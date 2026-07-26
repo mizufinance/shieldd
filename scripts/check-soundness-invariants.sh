@@ -11,6 +11,20 @@ fail() {
 
 command -v rg >/dev/null 2>&1 || fail "rg is required"
 
+# NoteReshape is the sole production vocabulary for this circuit family. Keep
+# the pcli negative assertion, Lean contributor instructions, and pinned
+# statement-hash domain labels out of this source-name lint.
+if rg -n 'Consolidate|consolidate(2x1|4x1|8x1)|Split1x8|split1x8' . \
+    --glob '!target/**' \
+    --glob '!tools/gnark/lean/.lake/**' \
+    --glob '!tools/gnark/lean/AGENTS.md' \
+    --glob '!crates/bin/pcli/tests/cli_surface.rs' \
+    --glob '!tools/gnark/lean/gen/gen_note_reshape_statement_hash_semantics.py' \
+    --glob '!scripts/check-soundness-invariants.sh' \
+    --glob '!docs/protocol/theme/js/mermaid.min.js'; then
+  fail "deleted Split/Consolidate production vocabulary remains"
+fi
+
 markdown_field() {
   local row="$1"
   local index="$2"
@@ -101,8 +115,7 @@ check_duplicates() {
 }
 
 # check_status_rows <file> [fixed_kind]
-# When fixed_kind is empty, the kind is read from each row's Kind column
-# (the handoff ledger); otherwise every row is validated against fixed_kind.
+# When fixed_kind is empty, the kind is read from each row's Kind column.
 check_status_rows() {
   local file="$1"
   local fixed_kind="${2:-}"
@@ -127,49 +140,6 @@ check_status_rows() {
   done < <(table_rows "$file")
 }
 
-# A proved* row must reference a checked-in, stamped proof artifact whose
-# sidecar hash matches; proved-symbolic rows must additionally cite at least
-# one assumption-ledger ID (the idealizations the lemma rests on).
-check_proof_artifact() {
-  local id="$1" status="$2" evidence="$3" assumption_ids="$4"
-  local matched=""
-  local artifact
-  for artifact in \
-    "$COMPLIANCE_FORMAL/compliance-symbolic-artifact.txt" \
-    "$COMPLIANCE_FORMAL/compliance-active-symbolic-artifact.txt" \
-    "$COMPLIANCE_FORMAL/alloy-nullifier-imt-artifact.txt" \
-    "$COMPLIANCE_FORMAL/alloy-value-conservation-artifact.txt" \
-    "$COMPLIANCE_FORMAL/alloy-compliance-tiers-artifact.txt" \
-    "$COMPLIANCE_FORMAL/alloy-orbis-authorization-artifact.txt" \
-    "$COMPLIANCE_FORMAL/alloy-ics20-supply-conservation-artifact.txt" \
-    "$COMPLIANCE_FORMAL/alloy-consolidate2x1-statement-sufficiency-artifact.txt" \
-    "$COMPLIANCE_FORMAL/alloy-transfer-statement-sufficiency-artifact.txt" \
-    "$COMPLIANCE_FORMAL/lean-dleq-artifact.txt" \
-    "$CIRCUIT_FORMAL/statement-field-formal-artifact.txt"; do
-    if [[ "$evidence" == *"$artifact"* ]]; then
-      matched="$artifact"
-      [[ -f "$artifact" ]] || fail "row $id cites missing proof artifact $artifact"
-      [[ -f "$artifact.sha256" ]] || fail "row $id artifact $artifact lacks .sha256 stamp"
-      local want have
-      want="$(cat "$artifact.sha256")"
-      have="$(shasum -a 256 "$artifact" | awk '{print $1}')"
-      [[ "$want" == "$have" ]] \
-        || fail "row $id artifact $artifact stamp mismatch (want $want got $have)"
-    fi
-  done
-  [[ -n "$matched" ]] \
-    || fail "row $id has status $status but cites no stamped proof artifact in Evidence"
-  if [[ "$status" == "proved-symbolic" || "$status" == "proved-computational" ]]; then
-    local cited=""
-    while IFS= read -r aid; do
-      [[ -z "$aid" ]] && continue
-      [[ "$evidence" == *"$aid"* ]] && cited="$aid"
-    done < <(printf '%s\n' "$assumption_ids")
-    [[ -n "$cited" ]] \
-      || fail "$status row $id must cite at least one assumption-ledger ID in Evidence"
-  fi
-}
-
 check_stamped_artifact() {
   local id="$1" artifact="$2"
   [[ -f "$artifact" ]] || fail "row $id cites missing proof artifact $artifact"
@@ -179,37 +149,6 @@ check_stamped_artifact() {
   have="$(shasum -a 256 "$artifact" | awk '{print $1}')"
   [[ "$want" == "$have" ]] \
     || fail "row $id artifact $artifact stamp mismatch (want $want got $have)"
-}
-
-check_whole_circuit_artifact() {
-  local id="$1" evidence="$2"
-  local matched="" artifact
-  for artifact in \
-    "$CIRCUIT_FORMAL"/acl2/*whole-circuit*-artifact.txt \
-    "$CIRCUIT_FORMAL"/*whole-circuit*-artifact.txt; do
-    [[ -e "$artifact" ]] || continue
-    if [[ "$evidence" == *"$artifact"* ]]; then
-      matched="$artifact"
-      check_stamped_artifact "$id" "$artifact"
-      rg -F "whole-circuit" "$artifact" >/dev/null \
-        || fail "row $id whole-circuit artifact $artifact does not state whole-circuit scope"
-    fi
-  done
-  [[ -n "$matched" ]] \
-    || fail "proved zk-circuit property $id must cite a stamped whole-circuit artifact in Evidence"
-}
-
-handoff_row_for_id() {
-  local want="$1" row id
-  while IFS= read -r row; do
-    [[ -z "$row" ]] && continue
-    id="$(markdown_field "$row" 2 | strip_ticks)"
-    if [[ "$id" == "$want" ]]; then
-      printf '%s\n' "$row"
-      return 0
-    fi
-  done < <(table_rows "$HANDOFF")
-  return 1
 }
 
 require_symbol() {
@@ -223,7 +162,6 @@ require_symbol() {
 
 COMPLIANCE_FORMAL=crates/core/component/compliance/formal
 CIRCUIT_FORMAL=crates/core/component/shielded-pool/formal
-HANDOFF=docs/soundness/reference/soundness-handoff.md
 
 required_files=(
   "$COMPLIANCE_FORMAL/threat-model.md"
@@ -241,16 +179,29 @@ required_files=(
   "$CIRCUIT_FORMAL/circuit-gadget-proofs.md"
   "$CIRCUIT_FORMAL/circuit-constraint-report.txt"
   "$CIRCUIT_FORMAL/circuit-whole-picus-report.txt"
-  "$HANDOFF"
   docs/soundness/README.md
-  docs/soundness/reference/constraint-system-assurance.md
-  docs/soundness/assurance-case.md
-  docs/soundness/reference/history.md
+  docs/soundness/fv.md
+  docs/soundness/optimization.md
+  docs/soundness/release.md
 )
 
 for file in "${required_files[@]}"; do
   [[ -f "$file" ]] || fail "required soundness file $file is missing"
 done
+
+# Keep the explanatory soundness surface intentionally small. Machine evidence
+# belongs beside the code and in stamped artifacts, not in additional narrative
+# files that can silently become competing sources of truth.
+expected_soundness_docs="$(printf '%s\n' README.md fv.md optimization.md release.md | LC_ALL=C sort)"
+actual_soundness_docs="$(find docs/soundness -type f -print \
+  | sed 's#^docs/soundness/##' \
+  | LC_ALL=C sort)"
+if [[ "$actual_soundness_docs" != "$expected_soundness_docs" ]]; then
+  diff -u \
+    <(printf '%s\n' "$expected_soundness_docs") \
+    <(printf '%s\n' "$actual_soundness_docs") >&2 || true
+  fail "docs/soundness must contain exactly README.md, fv.md, optimization.md, and release.md"
+fi
 
 property_files=(
   "$COMPLIANCE_FORMAL/soundness-properties.md"
@@ -276,8 +227,6 @@ for file in "${finding_files[@]}"; do
 done
 check_duplicates "$assumption_file" "$(row_ids "$assumption_file")"
 check_status_rows "$assumption_file" assumption
-check_duplicates "$HANDOFF" "$(row_ids "$HANDOFF")"
-check_status_rows "$HANDOFF"
 for file in "${map_files[@]}"; do
   check_duplicates "$file" "$(row_ids "$file")"
 done
@@ -285,46 +234,18 @@ done
 property_ids="$(for file in "${property_files[@]}"; do row_ids "$file"; done)"
 finding_ids="$(for file in "${finding_files[@]}"; do row_ids "$file"; done)"
 assumption_ids="$(row_ids "$assumption_file")"
-handoff_ids="$(row_ids "$HANDOFF")"
-
-# Enforce stamped proof artifacts for every proved* row in the handoff ledger.
-handoff_status_index="$(status_column_index "$HANDOFF")"
-handoff_evidence_index="$(column_index "$HANDOFF" "Evidence")"
-handoff_kind_index="$(column_index "$HANDOFF" "Kind")"
-handoff_source_index="$(column_index "$HANDOFF" "Source")"
-while IFS= read -r row; do
-  [[ -z "$row" ]] && continue
-  id="$(markdown_field "$row" 2 | strip_ticks)"
-  status="$(markdown_field "$row" "$handoff_status_index" | strip_ticks)"
-  case "$status" in
-    proved|proved-symbolic|proved-computational)
-      evidence="$(markdown_field "$row" "$handoff_evidence_index")"
-      kind="$(markdown_field "$row" "$handoff_kind_index" | strip_ticks)"
-      source="$(markdown_field "$row" "$handoff_source_index" | strip_ticks)"
-      if [[ "$kind" == "property" && "$source" == "zk-circuits" && "$status" == "proved" ]]; then
-        check_whole_circuit_artifact "$id" "$evidence"
-      else
-        check_proof_artifact "$id" "$status" "$evidence" "$assumption_ids"
-      fi
-      ;;
-  esac
-done < <(table_rows "$HANDOFF")
-
-circuit_status_index="$(status_column_index "$CIRCUIT_FORMAL/circuit-soundness-properties.md")"
-while IFS= read -r row; do
-  [[ -z "$row" ]] && continue
-  id="$(markdown_field "$row" 2 | strip_ticks)"
-  status="$(markdown_field "$row" "$circuit_status_index" | strip_ticks)"
-  if [[ "$status" == "proved" ]]; then
-    handoff_row="$(handoff_row_for_id "$id")" \
-      || fail "proved circuit property $id is missing from $HANDOFF"
-    handoff_status="$(markdown_field "$handoff_row" "$handoff_status_index" | strip_ticks)"
-    [[ "$handoff_status" == "proved" ]] \
-      || fail "proved circuit property $id must also be proved in $HANDOFF"
-    evidence="$(markdown_field "$handoff_row" "$handoff_evidence_index")"
-    check_whole_circuit_artifact "$id" "$evidence"
-  fi
-done < <(table_rows "$CIRCUIT_FORMAL/circuit-soundness-properties.md")
+# Whole-circuit evidence is checked directly. Narrative mirrors are deliberately
+# not machine inputs: they used to duplicate ledger rows and routinely went stale.
+for artifact in \
+  "$CIRCUIT_FORMAL/note_reshape2x1-whole-circuit-lean-artifact.txt" \
+  "$CIRCUIT_FORMAL/note_reshape4x1-whole-circuit-lean-artifact.txt" \
+  "$CIRCUIT_FORMAL/note_reshape8x1-whole-circuit-lean-artifact.txt" \
+  "$CIRCUIT_FORMAL/note_reshape1x8-whole-circuit-lean-artifact.txt" \
+  "$CIRCUIT_FORMAL/transfer-whole-circuit-lean-artifact.txt"; do
+  check_stamped_artifact "WHOLE-CIRCUIT-FV" "$artifact"
+  rg -F "whole-circuit" "$artifact" >/dev/null \
+    || fail "whole-circuit artifact $artifact does not state its scope"
+done
 
 # Gadget-scoped R1CS proof ledger. Status is the last column; a `proved` gadget
 # row must cite a checked-in, stamped proof artifact whose sidecar hash matches.
@@ -351,20 +272,6 @@ while IFS= read -r row; do
   fi
 done < <(table_rows "$GADGET_LEDGER")
 
-required_handoff_ids="$(printf '%s\n%s\n%s\n' "$property_ids" "$finding_ids" "$assumption_ids" | sed '/^$/d' | sort)"
-
-while IFS= read -r id; do
-  [[ -z "$id" ]] && continue
-  printf '%s\n' "$handoff_ids" | grep -Fx "$id" >/dev/null \
-    || fail "soundness-handoff.md is missing required row $id"
-done < <(printf '%s\n' "$required_handoff_ids")
-
-while IFS= read -r id; do
-  [[ -z "$id" ]] && continue
-  printf '%s\n' "$required_handoff_ids" | grep -Fx "$id" >/dev/null \
-    || fail "soundness-handoff.md contains untracked row $id"
-done < <(printf '%s\n' "$handoff_ids")
-
 while IFS= read -r row; do
   [[ -z "$row" ]] && continue
   id="$(markdown_field "$row" 2 | strip_ticks)"
@@ -386,7 +293,10 @@ done < <(table_rows "$assumption_file")
 # actually exists in the extracted Lean sources. This makes the exit criterion
 # ("no decaf row assumed for this circuit") mechanically checkable while rows
 # stay open for circuit families not yet composed in Lean.
-C2X1_ARTIFACT="$CIRCUIT_FORMAL/consolidate2x1-whole-circuit-lean-artifact.txt"
+C2X1_ARTIFACT="$CIRCUIT_FORMAL/note_reshape2x1-whole-circuit-lean-artifact.txt"
+C4X1_ARTIFACT="$CIRCUIT_FORMAL/note_reshape4x1-whole-circuit-lean-artifact.txt"
+C8X1_ARTIFACT="$CIRCUIT_FORMAL/note_reshape8x1-whole-circuit-lean-artifact.txt"
+S1X8_ARTIFACT="$CIRCUIT_FORMAL/note_reshape1x8-whole-circuit-lean-artifact.txt"
 TRANSFER_ARTIFACT="$CIRCUIT_FORMAL/transfer-whole-circuit-lean-artifact.txt"
 GNARK_LEAN_SRC="tools/gnark/lean/ShielddGnarkFormal"
 # bash 3.2 (macOS) has no associative arrays; map id->bridge theorem by case.
@@ -412,17 +322,20 @@ while IFS= read -r row; do
   # The bridge theorem must exist in the extracted Lean sources.
   rg -F "$theorem" "$GNARK_LEAN_SRC" >/dev/null \
     || fail "decaf row $id cites bridge theorem $theorem absent from $GNARK_LEAN_SRC"
-  for circuit in consolidate2x1 transfer; do
+  for circuit in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer; do
     if [[ "$status" != "discharged" ]]; then
       [[ "$evidence" == *"Discharged-Circuits:"*"$circuit"* ]] \
         || fail "decaf row $id is $status for $circuit without a Discharged-Circuits: $circuit marker"
     fi
     case "$circuit" in
-      consolidate2x1) check_stamped_artifact "$id" "$C2X1_ARTIFACT" ;;
+      note_reshape2x1) check_stamped_artifact "$id" "$C2X1_ARTIFACT" ;;
+      note_reshape4x1) check_stamped_artifact "$id" "$C4X1_ARTIFACT" ;;
+      note_reshape8x1) check_stamped_artifact "$id" "$C8X1_ARTIFACT" ;;
+      note_reshape1x8) check_stamped_artifact "$id" "$S1X8_ARTIFACT" ;;
       transfer) check_stamped_artifact "$id" "$TRANSFER_ARTIFACT" ;;
     esac
   done
-  # The two-torsion row is fully mechanized for consolidate2x1: it must be discharged.
+  # The two-torsion row is fully mechanized for note_reshape2x1: it must be discharged.
   if [[ "$id" == "ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE" ]]; then
     two_torsion_seen=1
     [[ "$status" == "discharged" ]] \
@@ -445,7 +358,6 @@ transfer_bridge_theorems() {
   esac
 }
 
-ASSURANCE_DOC="docs/soundness/reference/constraint-system-assurance.md"
 while IFS= read -r row; do
   [[ -z "$row" ]] && continue
   id="$(markdown_field "$row" 2 | strip_ticks)"
@@ -458,17 +370,13 @@ while IFS= read -r row; do
   check_stamped_artifact "$id" "$TRANSFER_ARTIFACT"
   while IFS= read -r theorem; do
     [[ -z "$theorem" ]] && continue
-    rg -F "$theorem" "$ASSURANCE_DOC" >/dev/null \
-      || fail "$ASSURANCE_DOC must cite transfer bridge theorem $theorem for $id"
     rg -F "$theorem" "$GNARK_LEAN_SRC" >/dev/null \
       || fail "transfer bridge theorem $theorem for $id is absent from $GNARK_LEAN_SRC"
   done < <(printf '%s\n' "$theorem_list")
 done < <(table_rows "$assumption_file")
 
-# safe-by-composition -> Lean binding: every composition-lift bridge theorem the
-# constraint-system-assurance doc cites for consolidate2x1 must (a) be named in
-# the doc and (b) actually exist in the extracted Lean sources, so the C2
-# "by-composition" verdict is not an unbacked word for this circuit.
+# Safe-by-composition -> Lean binding. Check theorem existence directly; prose
+# citations are not evidence and must not be required for a gate to pass.
 for bridge_theorem in \
   scalarMulLE128_sound \
   scalarMulLE251_sound \
@@ -488,10 +396,8 @@ for bridge_theorem in \
   select_point_sound \
   dummy_mux_sound \
   assert_equivalent_if_sound; do
-  rg -F "$bridge_theorem" "$ASSURANCE_DOC" >/dev/null \
-    || fail "$ASSURANCE_DOC must cite safe-by-composition Lean bridge $bridge_theorem"
   rg -F "$bridge_theorem" "$GNARK_LEAN_SRC" >/dev/null \
-    || fail "safe-by-composition bridge $bridge_theorem cited in $ASSURANCE_DOC is absent from $GNARK_LEAN_SRC"
+    || fail "safe-by-composition bridge $bridge_theorem is absent from $GNARK_LEAN_SRC"
 done
 
 scope_ids=""
@@ -547,8 +453,6 @@ while IFS= read -r row; do
   require_symbol "external-check-map $id Go" "$go_symbol" tools/gnark
 done < <(table_rows "$CIRCUIT_FORMAL/external-check-map.md")
 
-rg -F "Picus" docs/soundness/reference/constraint-system-assurance.md >/dev/null \
-  || fail "constraint-system assurance strategy must mention Picus"
 check_stamped_artifact "PICUS-GADGET-REPORT" "$CIRCUIT_FORMAL/circuit-constraint-report.txt"
 if rg -n '^GADGET .* undischarged$' "$CIRCUIT_FORMAL/circuit-constraint-report.txt" >/dev/null; then
   fail "Picus gadget report contains undischarged gadget leaves"
@@ -558,10 +462,6 @@ for gadget in gadget-poseidon-hash5 gadget-ack-two-step gadget-dleq; do
     || fail "Picus gadget report must mark transfer probe $gadget safe"
 done
 check_stamped_artifact "PICUS-WHOLE-REPORT" "$CIRCUIT_FORMAL/circuit-whole-picus-report.txt"
-rg -F "Ecne" docs/soundness/reference/constraint-system-assurance.md >/dev/null \
-  || fail "constraint-system assurance strategy must mention Ecne"
-rg -F "ACL2/Axe" docs/soundness/reference/constraint-system-assurance.md >/dev/null \
-  || fail "constraint-system assurance strategy must mention ACL2/Axe"
 
 # Lemma-citation existence: every `lean-dleq/Dleq/<File>.lean::<symbol>`
 # reference in the soundness docs must resolve to a real definition in the Lean
@@ -580,7 +480,6 @@ done < <(rg -oN --no-filename "lean-dleq/Dleq/[A-Za-z]+\.lean::[A-Za-z_][A-Za-z0
   "$COMPLIANCE_FORMAL/soundness-properties.md" \
   "$COMPLIANCE_FORMAL/assumption-ledger.md" \
   "$COMPLIANCE_FORMAL/compliance-soundness-findings.md" \
-  "$COMPLIANCE_FORMAL/compliance-soundness-scope.txt" \
-  "$HANDOFF" 2>/dev/null | sort -u)
+  "$COMPLIANCE_FORMAL/compliance-soundness-scope.txt" 2>/dev/null | sort -u)
 
 echo "soundness invariants ok"

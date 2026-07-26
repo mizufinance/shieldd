@@ -9,3 +9,6 @@ require «proven-zk» from git
 @[default_target]
 lean_lib ShielddGnarkFormal where
   moreLeanArgs := #["--tstack=4000000"]
+
+lean_exe oleanAxiomAudit where
+  root := `OLeanAxiomAudit

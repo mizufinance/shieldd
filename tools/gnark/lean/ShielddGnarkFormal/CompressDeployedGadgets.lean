@@ -1,5 +1,6 @@
 import ProvenZk.Gates
 import Mathlib.Tactic.LinearCombination
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option linter.unusedSectionVars false
 
@@ -13,16 +14,20 @@ extracted `circuit` references. Reusable across any deployed slice that lowers
 namespace Shieldd.GnarkFormal.DeployedGadgets
 
 variable {N : Nat} [Fact (Nat.Prime N)]
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+local instance : CommRing (ZMod N) := ZMod.commRing _
 
 /-- gnark `is_zero` hint rows: `a·inv = 1 - out` and `a·out = 0` force the
 disjunction with no separate booleanity. -/
 theorem is_zero_of_hint (a inv out : ZMod N)
     (h1 : a * inv = 1 - out) (h2 : a * out = 0) :
     GatesDef.is_zero a out := by
-  rcases eq_or_ne a 0 with ha | ha
-  · right; refine ⟨ha, ?_⟩
+  if ha : a = 0 then
+    right; refine ⟨ha, ?_⟩
     rw [ha, zero_mul] at h1; linear_combination h1
-  · left; refine ⟨ha, ?_⟩
+  else
+    left; refine ⟨ha, ?_⟩
     rcases mul_eq_zero.mp h2 with h | h
     · exact absurd h ha
     · exact h
@@ -34,7 +39,8 @@ theorem inv_of_mul (a out : ZMod N) (h : out * a = 1) : GatesDef.inv a out := by
 
 /-- `is_bool` from the deployed booleanity row `a·(1-a) = 0`. -/
 theorem is_bool_of_row (a : ZMod N) (h : a * (1 - a) = 0) : GatesDef.is_bool a := by
-  unfold GatesDef.is_bool; linear_combination h
+  unfold GatesDef.is_bool
+  simpa only [mul_comm] using h
 
 /-- `select` from booleanity + the affine output row. -/
 theorem select_of_row (b i1 i2 out : ZMod N)

@@ -25,7 +25,7 @@
 - Shielded actions must consume valid note commitments, reveal fresh
   nullifiers, and create note commitments that match their proved witness data.
 - `Transfer` alone participates in compliance extraction and binding.
-- `Split` and `Consolidate` reshape sender-owned notes without compliance
+- `NoteReshape` reshapes sender-owned notes without compliance
   binding.
 - `ShieldedIcs20Withdrawal` additionally binds its outbound IBC withdrawal
   effect while preserving shielded accounting for any sender-owned change.

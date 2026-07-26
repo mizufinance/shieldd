@@ -1,8 +1,8 @@
 # Lean Circuit Proof Rules
 
 Read this before touching anything under `tools/gnark/lean/`. The resource
-limits at the bottom are load-bearing, not polish. Deeper background:
-`docs/soundness/reference/fv-playbook.md`.
+limits at the bottom are load-bearing, not polish. Process and trust boundary:
+`docs/soundness/fv.md`.
 
 ## Proof structure
 
@@ -17,8 +17,11 @@ limits at the bottom are load-bearing, not polish. Deeper background:
   `exact`/`rfl` kernel defeq, never `simp`/`unfold` — simp generates the
   match-splitter equations (this alone once cost 769 MB oleans / 22 GB RSS).
 - Never hand-edit a `.lean` file with a GENERATED header — fix the generator
-  in `tools/gnark/lean/gen/` and regenerate. Hand-authored files: `Specs/`,
-  `Wiring.lean`, `Statement.lean`, `Bounds.lean`, `Projection.lean`.
+  in `tools/gnark/lean/gen/` and regenerate. In the NoteReshape deployed path,
+  `Bounds.lean`, `Capstone.lean`, `Statement.lean`, segment contracts, and
+  normalized template providers are generated. Legacy family-local
+  `Wiring.lean`, `Specs/`, and adapter stacks are obsolete; small generic proof
+  substrates are hand-authored unless their header says otherwise.
 - After a regeneration that changes constraint counts, grep the hand-authored
   layer for stale wire indices — deleted rows shift every downstream wire.
 - Monitor Lean compiles actively. A lot of them blow up in time or just hang.

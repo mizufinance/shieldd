@@ -130,9 +130,10 @@ parity-pinned; it is not promoted to a proof by extraction freshness.
 | preflight work-gate truth table (backend-allowed iff every cheap flag holds) | `crates/crypto/proof-aggregation/src/preflight.rs` | `PreflightCheapChecks`, `PreflightWorkGate`, `preflight_work_gate` | F* via hax | `crates/crypto/proof-aggregation/formal/snarkpack/fstar/PreflightProofs.fst` | `lemma_preflight_gate_allows_backend_work_iff` | proved | hax `v0.3.7`, F* `v2026.05.24` | formal gate passed |
 | family routing totality and route-tag injectivity | `crates/crypto/proof-aggregation/src/bundle.rs` | `FamilyRouteKind`, `FamilyRoute`, `FamilyRouteError`, `family_route_from_proto_fields` | F* via hax | `crates/crypto/proof-aggregation/formal/snarkpack/fstar/FamilyRoutingProofs.fst` | totality, cross-family rejection, VK-slot, and transcript-domain tag lemmas | proved | hax `v0.3.7`, F* `v2026.05.24` | formal gate passed |
 
-Proof artifact stamp: sha256:ee8515bfa1b354f64e31b49b15b1ee3d119510d63ac40ad19e500946a226d3d6
+Proof artifact stamp: sha256:a4dd8a5c99e54cc31d388a9b6e4bedfad905e074674a9c3e1964f8de50dd9c6c
 
-This existing stamp is unchanged. It hashes the SnarkPack F* proof files,
-`scripts/snarkpack-formal.sh`, and
-`crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml`; none is
-modified by this handoff.
+It hashes the SnarkPack F* proof files, `scripts/snarkpack-formal.sh`, and
+`crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml`. This handoff
+modifies none of them; the value was restamped on the `dev` side of the
+NoteReshape merge, which edited `fstar/FamilyRoutingProofs.fst`,
+`fstar/StatementEncodingProofs.fst`, and `scripts/snarkpack-formal.sh`.

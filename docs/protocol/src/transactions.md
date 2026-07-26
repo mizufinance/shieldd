@@ -18,7 +18,7 @@ The primary content of a transaction is its list of actions. Each action is exec
 Crucially, each action makes a shielded contribution to the transaction's value
 balance by means of a _balance commitment_, using the commitment scheme for asset values described in detail in the [Asset Model](./assets.md).
 
-Shielded actions such as `Transfer`, `Split`, and `Consolidate` consume and
+Shielded actions such as `Transfer` and `NoteReshape` consume and
 create shielded notes while maintaining a balanced transaction-level value
 commitment. Other supported actions, such as `ValidatorDefinition` or governance
 actions, affect non-shielded state directly.

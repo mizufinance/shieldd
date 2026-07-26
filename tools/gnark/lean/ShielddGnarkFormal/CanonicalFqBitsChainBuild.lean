@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.CanonicalFqBitsBridge
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 /-!
 Producing-direction helpers for the canonical-`Fq`-bits feeder: introduction
@@ -10,6 +11,8 @@ forces `pe * (1 - bit) = pe`. The zero-run invariance lemma below captures that.
 -/
 
 namespace Shieldd.GnarkFormal.Extracted.CanonicalFqBits
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 variable [Fact (Nat.Prime Order)]
 

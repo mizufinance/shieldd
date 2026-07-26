@@ -1,0 +1,10 @@
+{
+  "segments": [
+    {
+      "index": 1,
+      "op": "signed-coefficient-fixture",
+      "start": 0,
+      "end": 4
+    }
+  ]
+}

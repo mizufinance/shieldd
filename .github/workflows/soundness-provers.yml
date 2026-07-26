@@ -183,7 +183,7 @@ jobs:
         continue-on-error: true
         env:
           PICUS_WHOLE_BUDGET_SECONDS: '10800'
-        run: bash scripts/run-whole-circuit-picus.sh consolidate2x1 transfer
+        run: bash scripts/run-whole-circuit-picus.sh note_reshape2x1 transfer
 
   acl2:
     name: 'provers: acl2 (advisory)'

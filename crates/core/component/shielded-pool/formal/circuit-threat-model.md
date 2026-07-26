@@ -8,8 +8,7 @@ circuits, public-input extraction, and action handlers must jointly enforce.
 | Circuit family | Prover goal that must be prevented |
 | --- | --- |
 | Transfer | Spend notes without ownership, double-spend nullifiers, create value, misroute compliance ciphertexts, or claim the wrong public statement hash. |
-| Consolidate | Merge notes without ownership, hide a mismatched output commitment, or change nullifiers after signing. |
-| Split | Split into malformed outputs, alter balance, or use a nullifier unrelated to the spent note. |
+| NoteReshape | Merge or split notes without ownership, bypass padded dummy-slot checks, hide a mismatched commitment, alter balance, or change nullifiers after signing. |
 | Shielded ICS-20 withdrawal | Withdraw without owning inputs, change the external withdrawal effect hash, bypass registry status, or create untracked change. |
 
 Accepted-language soundness also depends on checks outside the circuit:

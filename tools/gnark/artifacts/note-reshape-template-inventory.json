@@ -1,0 +1,3872 @@
+{
+  "schema": "shieldd.gnark.normalized_template_inventory.v1",
+  "circuits": [
+    {
+      "circuit": "note_reshape1x8",
+      "sr1cs_sha256_hex": "25c68934fde82b77f9ae992133120a85501ffe383d3b7482a9d93f628850897e",
+      "nb_constraints": 28256,
+      "segment_count": 95,
+      "constraint_segment_count": 72,
+      "template_keys": [
+        "assert.eq@001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
+        "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
+        "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
+        "assert.eq@5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef",
+        "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
+        "assert.eq@ef313f39c5d5f9c3c2abea0b2fbcb1a75256e09acef6da5ab8070cf65b7a0cbd",
+        "decaf.assert_equivalent@44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7",
+        "decaf.assert_equivalent@534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
+        "decaf.assert_equivalent@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
+        "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
+        "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
+        "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
+        "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
+        "decaf.conservation_net_balance_commitment@b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a",
+        "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
+        "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
+        "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+        "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
+        "gadget.state_commitment_path@f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb",
+        "statement.hash@253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e"
+      ]
+    },
+    {
+      "circuit": "note_reshape2x1",
+      "sr1cs_sha256_hex": "90fe6bdd01f52c889a6ccd5d642e6b98befcd5c87ab301ec21682d7d53d25ad1",
+      "nb_constraints": 36553,
+      "segment_count": 54,
+      "constraint_segment_count": 43,
+      "template_keys": [
+        "assert.eq@001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
+        "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
+        "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
+        "assert.eq@5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef",
+        "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
+        "assert.eq@ef313f39c5d5f9c3c2abea0b2fbcb1a75256e09acef6da5ab8070cf65b7a0cbd",
+        "decaf.assert_equivalent@44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7",
+        "decaf.assert_equivalent@534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
+        "decaf.assert_equivalent@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
+        "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
+        "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
+        "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
+        "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
+        "decaf.conservation_net_balance_commitment@9602c510696ca316ef532feb1eaa5610fa2276fdeb6f49a351c8c7c242b359e6",
+        "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
+        "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
+        "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+        "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
+        "gadget.state_commitment_path@f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb",
+        "statement.hash@fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4"
+      ]
+    },
+    {
+      "circuit": "note_reshape4x1",
+      "sr1cs_sha256_hex": "b513f7bdd6b495311fdd22c33421c086c48cffe6a5ed59c6afacabb3310de297",
+      "nb_constraints": 102620,
+      "segment_count": 118,
+      "constraint_segment_count": 103,
+      "template_keys": [
+        "assert.active_range@18b8939dae25543d281e6aa5ebcc56c4fdd030a9a7e506b73e9157a2e4a8b549",
+        "assert.boolean@469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc",
+        "assert.dummy_suffix@678ab00aaa272510d3b55f2636ec8baddc4168fde2671bdda7bcbce5baeb54cc",
+        "assert.eq@001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
+        "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
+        "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
+        "assert.eq@460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3",
+        "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
+        "assert.eq_if@36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03",
+        "assert.eq_if@ce0e02a1deb2ef2e836cbed67d37f3678356db1d6c5cfaa61678d01652034f8f",
+        "assert.eq_if@ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d",
+        "decaf.assert_equivalent@44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7",
+        "decaf.assert_equivalent@534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
+        "decaf.assert_equivalent@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
+        "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
+        "decaf.assert_equivalent_if@15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350",
+        "decaf.assert_equivalent_if@5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f",
+        "decaf.assert_equivalent_if@5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e",
+        "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
+        "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
+        "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
+        "decaf.conservation_net_balance_commitment@f779542ea2a073487b8ab36fd2798d44fa0136855070c44e2ae2edc44c180a79",
+        "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
+        "decaf.randomized_verification_key.dummy@e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5",
+        "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
+        "dummy.mux@6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce",
+        "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+        "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
+        "gadget.state_commitment_path@f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb",
+        "gadget.synthetic_dummy_nullifier@3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6",
+        "gadget.synthetic_dummy_nullifier@58423f06a7f0cb831a6dadec90f949fb98ce7e0ce7482eb07d0f43f54791ef32",
+        "gadget.synthetic_dummy_nullifier@5cd0e472453822bbff47f6ae87a0159b05bde5f090330ae8a3cf1c866140651b",
+        "gadget.synthetic_dummy_nullifier@ac7ad308d1eedcc895ef7cfce1c01cd077579dee1a4f143d5dcb664af3af5907",
+        "statement.hash@4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7"
+      ]
+    },
+    {
+      "circuit": "note_reshape8x1",
+      "sr1cs_sha256_hex": "4ffe04461c563ff06dbf48479a6d3181cc3583b249e060a579ccbc072aab2199",
+      "nb_constraints": 194226,
+      "segment_count": 210,
+      "constraint_segment_count": 187,
+      "template_keys": [
+        "assert.active_range@486bb61d926bd1688072104ae23c98ba7bcac3614cb3a0c6b005c31b6b4b4861",
+        "assert.boolean@469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc",
+        "assert.dummy_suffix@a20cdb8e3309f92a6c215c2319440fcb8fbd56784d74625c842989c9342831c9",
+        "assert.eq@001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
+        "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
+        "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
+        "assert.eq@460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3",
+        "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
+        "assert.eq_if@36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03",
+        "assert.eq_if@ce0e02a1deb2ef2e836cbed67d37f3678356db1d6c5cfaa61678d01652034f8f",
+        "assert.eq_if@ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d",
+        "decaf.assert_equivalent@44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7",
+        "decaf.assert_equivalent@534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
+        "decaf.assert_equivalent@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
+        "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
+        "decaf.assert_equivalent_if@15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350",
+        "decaf.assert_equivalent_if@5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f",
+        "decaf.assert_equivalent_if@5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e",
+        "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
+        "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
+        "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
+        "decaf.conservation_net_balance_commitment@91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3",
+        "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
+        "decaf.randomized_verification_key.dummy@e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5",
+        "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
+        "dummy.mux@6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce",
+        "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+        "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
+        "gadget.state_commitment_path@f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb",
+        "gadget.synthetic_dummy_nullifier@100a96548743160160928cfe001821ba838bef079e180fd7d6cf0df70b5b37c8",
+        "gadget.synthetic_dummy_nullifier@3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6",
+        "gadget.synthetic_dummy_nullifier@46634cb71def9ddee7f509167e3e285ee57f9d7b8279ae43d754e872405182a0",
+        "gadget.synthetic_dummy_nullifier@58423f06a7f0cb831a6dadec90f949fb98ce7e0ce7482eb07d0f43f54791ef32",
+        "gadget.synthetic_dummy_nullifier@5cd0e472453822bbff47f6ae87a0159b05bde5f090330ae8a3cf1c866140651b",
+        "gadget.synthetic_dummy_nullifier@64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa",
+        "gadget.synthetic_dummy_nullifier@ac7ad308d1eedcc895ef7cfce1c01cd077579dee1a4f143d5dcb664af3af5907",
+        "gadget.synthetic_dummy_nullifier@b279304617fa393c48531d8db69795487f05219663ce38c6233e57eb19d14144",
+        "statement.hash@ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1"
+      ]
+    }
+  ],
+  "template_count": 48,
+  "constraint_segment_count": 405,
+  "templates": [
+    {
+      "template_key": "assert.active_range@18b8939dae25543d281e6aa5ebcc56c4fdd030a9a7e506b73e9157a2e4a8b549",
+      "op": "assert.active_range",
+      "normalized_relation_sha256_hex": "18b8939dae25543d281e6aa5ebcc56c4fdd030a9a7e506b73e9157a2e4a8b549",
+      "constraint_count": 2,
+      "local_wire_count": 6,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 6,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "27ff472dd9d754a50e9328d11d58f48ba1ac6cdd23b7d8b520668f622c7d606d",
+          "class_key": "assert.active_range@1a03d2b388d24a4f"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 6
+      }
+    },
+    {
+      "template_key": "assert.active_range@486bb61d926bd1688072104ae23c98ba7bcac3614cb3a0c6b005c31b6b4b4861",
+      "op": "assert.active_range",
+      "normalized_relation_sha256_hex": "486bb61d926bd1688072104ae23c98ba7bcac3614cb3a0c6b005c31b6b4b4861",
+      "constraint_count": 4,
+      "local_wire_count": 12,
+      "instances": [
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 10,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "4c1e61d57815e5dcd27b99254b87136d478c667746aa99a66af7e36b687c7b36",
+          "class_key": "assert.active_range@f3099de876459f65"
+        }
+      ],
+      "circuits": [
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape8x1",
+        "segment_index": 10
+      }
+    },
+    {
+      "template_key": "assert.boolean@469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc",
+      "op": "assert.boolean",
+      "normalized_relation_sha256_hex": "469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc",
+      "constraint_count": 1,
+      "local_wire_count": 2,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 1,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 2,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 3,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 4,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 1,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 2,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 3,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 4,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 5,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 6,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 7,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 8,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "class_key": "assert.boolean@7a87157611237b8e"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 1
+      }
+    },
+    {
+      "template_key": "assert.dummy_suffix@678ab00aaa272510d3b55f2636ec8baddc4168fde2671bdda7bcbce5baeb54cc",
+      "op": "assert.dummy_suffix",
+      "normalized_relation_sha256_hex": "678ab00aaa272510d3b55f2636ec8baddc4168fde2671bdda7bcbce5baeb54cc",
+      "constraint_count": 7,
+      "local_wire_count": 8,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 5,
+          "constraint_count": 7,
+          "constant_vector_sha256_hex": "4b3b52c46c99c7b80b082dd53f8f63ffb576e9e0a3b9899514a90af3ebba42d4",
+          "class_key": "assert.dummy_suffix@0a2e46eba606d207"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 5
+      }
+    },
+    {
+      "template_key": "assert.dummy_suffix@a20cdb8e3309f92a6c215c2319440fcb8fbd56784d74625c842989c9342831c9",
+      "op": "assert.dummy_suffix",
+      "normalized_relation_sha256_hex": "a20cdb8e3309f92a6c215c2319440fcb8fbd56784d74625c842989c9342831c9",
+      "constraint_count": 15,
+      "local_wire_count": 16,
+      "instances": [
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 9,
+          "constraint_count": 15,
+          "constant_vector_sha256_hex": "f535bd482c941f19240c3bcc861aa23c196b7bf989849022d759827dc261b320",
+          "class_key": "assert.dummy_suffix@6a84d599c86d2959"
+        }
+      ],
+      "circuits": [
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape8x1",
+        "segment_index": 9
+      }
+    },
+    {
+      "template_key": "assert.eq@001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
+      "op": "assert.eq",
+      "normalized_relation_sha256_hex": "001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
+      "constraint_count": 1,
+      "local_wire_count": 10,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 95,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
+          "class_key": "assert.eq@fcdce018977caef8"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 54,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
+          "class_key": "assert.eq@fcdce018977caef8"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 118,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
+          "class_key": "assert.eq@fcdce018977caef8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 210,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
+          "class_key": "assert.eq@fcdce018977caef8"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 95
+      }
+    },
+    {
+      "template_key": "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
+      "op": "assert.eq",
+      "normalized_relation_sha256_hex": "047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
+      "constraint_count": 1,
+      "local_wire_count": 2,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 21,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@745c86684fd7771d"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 21,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@745c86684fd7771d"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 33,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@745c86684fd7771d"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 37,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@745c86684fd7771d"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 21
+      }
+    },
+    {
+      "template_key": "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
+      "op": "assert.eq",
+      "normalized_relation_sha256_hex": "2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
+      "constraint_count": 1,
+      "local_wire_count": 9,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 10,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 25,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 33,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 41,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 49,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 57,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 65,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 73,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 81,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 10,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 25,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 40,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 104,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 196,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "class_key": "assert.eq@06c76cbbea275f19"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 10
+      }
+    },
+    {
+      "template_key": "assert.eq@460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3",
+      "op": "assert.eq",
+      "normalized_relation_sha256_hex": "460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3",
+      "constraint_count": 1,
+      "local_wire_count": 4,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 22,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 44,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 66,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 88,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 26,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 48,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 70,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 92,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 114,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 136,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 158,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 180,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "class_key": "assert.eq@c8f5f9ee8e1b47f7"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 22
+      }
+    },
+    {
+      "template_key": "assert.eq@5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef",
+      "op": "assert.eq",
+      "normalized_relation_sha256_hex": "5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef",
+      "constraint_count": 1,
+      "local_wire_count": 7,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 14,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
+          "class_key": "assert.eq@79834932d11ef8ff"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 14,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
+          "class_key": "assert.eq@79834932d11ef8ff"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 29,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
+          "class_key": "assert.eq@79834932d11ef8ff"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 14
+      }
+    },
+    {
+      "template_key": "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
+      "op": "assert.eq",
+      "normalized_relation_sha256_hex": "d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
+      "constraint_count": 1,
+      "local_wire_count": 3,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 29,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 37,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 45,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 53,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 61,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 69,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 77,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 85,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 36,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 44,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 55,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 77,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 99,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 108,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 59,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 81,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 103,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 125,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 147,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 169,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 191,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 200,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "class_key": "assert.eq@944014bd89e246a5"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 29
+      }
+    },
+    {
+      "template_key": "assert.eq@ef313f39c5d5f9c3c2abea0b2fbcb1a75256e09acef6da5ab8070cf65b7a0cbd",
+      "op": "assert.eq",
+      "normalized_relation_sha256_hex": "ef313f39c5d5f9c3c2abea0b2fbcb1a75256e09acef6da5ab8070cf65b7a0cbd",
+      "constraint_count": 1,
+      "local_wire_count": 6,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 12,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "910dabe3b4845cbdaea2b5042b08e67a0e0020ed3d574b9af73b4356fc1a5fd3",
+          "class_key": "assert.eq@3c90b3a5e0a7cdfc"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 12,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "910dabe3b4845cbdaea2b5042b08e67a0e0020ed3d574b9af73b4356fc1a5fd3",
+          "class_key": "assert.eq@3c90b3a5e0a7cdfc"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 27,
+          "constraint_count": 1,
+          "constant_vector_sha256_hex": "910dabe3b4845cbdaea2b5042b08e67a0e0020ed3d574b9af73b4356fc1a5fd3",
+          "class_key": "assert.eq@3c90b3a5e0a7cdfc"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 12
+      }
+    },
+    {
+      "template_key": "assert.eq_if@36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03",
+      "op": "assert.eq_if",
+      "normalized_relation_sha256_hex": "36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03",
+      "constraint_count": 2,
+      "local_wire_count": 9,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 19,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 41,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 63,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 85,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 23,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 45,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 67,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 89,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 111,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 133,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 155,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 177,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "class_key": "assert.eq_if@260c4859295f1af1"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 19
+      }
+    },
+    {
+      "template_key": "assert.eq_if@ce0e02a1deb2ef2e836cbed67d37f3678356db1d6c5cfaa61678d01652034f8f",
+      "op": "assert.eq_if",
+      "normalized_relation_sha256_hex": "ce0e02a1deb2ef2e836cbed67d37f3678356db1d6c5cfaa61678d01652034f8f",
+      "constraint_count": 2,
+      "local_wire_count": 11,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 16,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 38,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 60,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 82,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 20,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 42,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 64,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 86,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 108,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 130,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 152,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 174,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+          "class_key": "assert.eq_if@360acff86ba025ba"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 16
+      }
+    },
+    {
+      "template_key": "assert.eq_if@ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d",
+      "op": "assert.eq_if",
+      "normalized_relation_sha256_hex": "ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d",
+      "constraint_count": 2,
+      "local_wire_count": 4,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 29,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 51,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 73,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 95,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 33,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 55,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 77,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 99,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 121,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 143,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 165,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 187,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "class_key": "assert.eq_if@85cc0c8fd7537839"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 29
+      }
+    },
+    {
+      "template_key": "decaf.assert_equivalent@44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7",
+      "op": "decaf.assert_equivalent",
+      "normalized_relation_sha256_hex": "44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7",
+      "constraint_count": 3,
+      "local_wire_count": 506,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 88,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "528dcca721223d426f26acde59e09b3253ac9d0e717e2fc65f97e6f7141684b0",
+          "class_key": "decaf.assert_equivalent@33ce4e8355a9a671"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 47,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "528dcca721223d426f26acde59e09b3253ac9d0e717e2fc65f97e6f7141684b0",
+          "class_key": "decaf.assert_equivalent@33ce4e8355a9a671"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 111,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "528dcca721223d426f26acde59e09b3253ac9d0e717e2fc65f97e6f7141684b0",
+          "class_key": "decaf.assert_equivalent@33ce4e8355a9a671"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 203,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "528dcca721223d426f26acde59e09b3253ac9d0e717e2fc65f97e6f7141684b0",
+          "class_key": "decaf.assert_equivalent@33ce4e8355a9a671"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 88
+      }
+    },
+    {
+      "template_key": "decaf.assert_equivalent@534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
+      "op": "decaf.assert_equivalent",
+      "normalized_relation_sha256_hex": "534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
+      "constraint_count": 3,
+      "local_wire_count": 7,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 16,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 27,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 28,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 35,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 36,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 43,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 44,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 51,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 52,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 59,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 60,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 67,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 68,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 75,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 76,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 83,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 84,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 16,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 31,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 34,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 35,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 42,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 43,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 53,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 54,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 75,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 76,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 97,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 98,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 106,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 107,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 57,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 58,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 79,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 80,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 101,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 102,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 123,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 124,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 145,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 146,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 167,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 168,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 189,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 190,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 198,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 199,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 16
+      }
+    },
+    {
+      "template_key": "decaf.assert_equivalent@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
+      "op": "decaf.assert_equivalent",
+      "normalized_relation_sha256_hex": "9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
+      "constraint_count": 3,
+      "local_wire_count": 507,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 7,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "c78e793aa4d8f81f40305396be86cc7512337ae2cb7ba50a1a55806d07607754",
+          "class_key": "decaf.assert_equivalent@33ce4e8355a9a671"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 7,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "c78e793aa4d8f81f40305396be86cc7512337ae2cb7ba50a1a55806d07607754",
+          "class_key": "decaf.assert_equivalent@33ce4e8355a9a671"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 13,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "c78e793aa4d8f81f40305396be86cc7512337ae2cb7ba50a1a55806d07607754",
+          "class_key": "decaf.assert_equivalent@33ce4e8355a9a671"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 17,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "c78e793aa4d8f81f40305396be86cc7512337ae2cb7ba50a1a55806d07607754",
+          "class_key": "decaf.assert_equivalent@33ce4e8355a9a671"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 7
+      }
+    },
+    {
+      "template_key": "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
+      "op": "decaf.assert_equivalent",
+      "normalized_relation_sha256_hex": "ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
+      "constraint_count": 3,
+      "local_wire_count": 5,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 19,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 20,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 19,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 20,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 31,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 32,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 35,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 36,
+          "constraint_count": 3,
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "class_key": "decaf.assert_equivalent@cddeba650593d6cb"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 19
+      }
+    },
+    {
+      "template_key": "decaf.assert_equivalent_if@15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350",
+      "op": "decaf.assert_equivalent_if",
+      "normalized_relation_sha256_hex": "15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350",
+      "constraint_count": 5,
+      "local_wire_count": 10,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 26,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 48,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 70,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 92,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 30,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 52,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 74,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 96,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 118,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 140,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 162,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 184,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+          "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 26
+      }
+    },
+    {
+      "template_key": "decaf.assert_equivalent_if@5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f",
+      "op": "decaf.assert_equivalent_if",
+      "normalized_relation_sha256_hex": "5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f",
+      "constraint_count": 6,
+      "local_wire_count": 10,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 25,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 47,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 69,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 91,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 29,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 51,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 73,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 95,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 117,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 139,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 161,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 183,
+          "constraint_count": 6,
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "class_key": "decaf.assert_equivalent_if@6198d347efba32e9"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 25
+      }
+    },
+    {
+      "template_key": "decaf.assert_equivalent_if@5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e",
+      "op": "decaf.assert_equivalent_if",
+      "normalized_relation_sha256_hex": "5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e",
+      "constraint_count": 5,
+      "local_wire_count": 510,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 28,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 50,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 72,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 94,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 32,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 54,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 76,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 98,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 120,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 142,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 164,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 186,
+          "constraint_count": 5,
+          "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+          "class_key": "decaf.assert_equivalent_if@641f53399ac398a8"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 28
+      }
+    },
+    {
+      "template_key": "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
+      "op": "decaf.assert_on_curve",
+      "normalized_relation_sha256_hex": "24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
+      "constraint_count": 4,
+      "local_wire_count": 6,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 2,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 3,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 4,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 18,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 26,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 34,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 42,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 50,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 58,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 66,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 74,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 82,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 2,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 3,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 4,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 18,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 33,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 41,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 8,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 9,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 10,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 30,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 52,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 74,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 96,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 105,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 12,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 13,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 14,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 34,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 56,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 78,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 100,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 122,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 144,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 166,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 188,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 197,
+          "constraint_count": 4,
+          "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+          "class_key": "decaf.assert_on_curve@e37c7dd287242e19"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 2
+      }
+    },
+    {
+      "template_key": "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
+      "op": "decaf.compress_to_field",
+      "normalized_relation_sha256_hex": "231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
+      "constraint_count": 1046,
+      "local_wire_count": 706,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 5,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 17,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 5,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 17,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 32,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 11,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 34,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 56,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 78,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 100,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 15,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 38,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 60,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 82,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 104,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 126,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 148,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 170,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 192,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "class_key": "decaf.compress_to_field@c7b7aeec064cedd7"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 5
+      }
+    },
+    {
+      "template_key": "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
+      "op": "decaf.compress_to_field",
+      "normalized_relation_sha256_hex": "f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
+      "constraint_count": 1046,
+      "local_wire_count": 1205,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 89,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "61f670d190050635888383bb8cd74d651f5811d04ef2e0fa84317ba9fe733b9f",
+          "class_key": "decaf.compress_to_field@aaf77ee7e9fa9bd1"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 48,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "61f670d190050635888383bb8cd74d651f5811d04ef2e0fa84317ba9fe733b9f",
+          "class_key": "decaf.compress_to_field@aaf77ee7e9fa9bd1"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 112,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "61f670d190050635888383bb8cd74d651f5811d04ef2e0fa84317ba9fe733b9f",
+          "class_key": "decaf.compress_to_field@aaf77ee7e9fa9bd1"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 204,
+          "constraint_count": 1046,
+          "constant_vector_sha256_hex": "61f670d190050635888383bb8cd74d651f5811d04ef2e0fa84317ba9fe733b9f",
+          "class_key": "decaf.compress_to_field@aaf77ee7e9fa9bd1"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 89
+      }
+    },
+    {
+      "template_key": "decaf.conservation_net_balance_commitment@91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3",
+      "op": "decaf.conservation_net_balance_commitment",
+      "normalized_relation_sha256_hex": "91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3",
+      "constraint_count": 2967,
+      "local_wire_count": 2967,
+      "instances": [
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 202,
+          "constraint_count": 2967,
+          "constant_vector_sha256_hex": "d5178d8dd619e24a323d8411e722de338822117ae44fd05ff0789cc87b0c393c",
+          "class_key": "decaf.conservation_net_balance_commitment@aca1be670e91fca2"
+        }
+      ],
+      "circuits": [
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape8x1",
+        "segment_index": 202
+      }
+    },
+    {
+      "template_key": "decaf.conservation_net_balance_commitment@9602c510696ca316ef532feb1eaa5610fa2276fdeb6f49a351c8c7c242b359e6",
+      "op": "decaf.conservation_net_balance_commitment",
+      "normalized_relation_sha256_hex": "9602c510696ca316ef532feb1eaa5610fa2276fdeb6f49a351c8c7c242b359e6",
+      "constraint_count": 2193,
+      "local_wire_count": 2193,
+      "instances": [
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 46,
+          "constraint_count": 2193,
+          "constant_vector_sha256_hex": "cab153871312b7e2464004ac1ca19d63ebd2a65161ed4fd56f6ecaac5d94f13f",
+          "class_key": "decaf.conservation_net_balance_commitment@0e9794fce60e864b"
+        }
+      ],
+      "circuits": [
+        "note_reshape2x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape2x1",
+        "segment_index": 46
+      }
+    },
+    {
+      "template_key": "decaf.conservation_net_balance_commitment@b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a",
+      "op": "decaf.conservation_net_balance_commitment",
+      "normalized_relation_sha256_hex": "b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a",
+      "constraint_count": 2967,
+      "local_wire_count": 2967,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 87,
+          "constraint_count": 2967,
+          "constant_vector_sha256_hex": "828c9a741fb6957a208bd170b7d3598481a56573f4cf53ac16aa433b5eaee1b7",
+          "class_key": "decaf.conservation_net_balance_commitment@fa9ccd957388858b"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 87
+      }
+    },
+    {
+      "template_key": "decaf.conservation_net_balance_commitment@f779542ea2a073487b8ab36fd2798d44fa0136855070c44e2ae2edc44c180a79",
+      "op": "decaf.conservation_net_balance_commitment",
+      "normalized_relation_sha256_hex": "f779542ea2a073487b8ab36fd2798d44fa0136855070c44e2ae2edc44c180a79",
+      "constraint_count": 2451,
+      "local_wire_count": 2451,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 110,
+          "constraint_count": 2451,
+          "constant_vector_sha256_hex": "bb3d6cbefd53e95bbd632d067935a148c04143396db6ceb858464419a905971e",
+          "class_key": "decaf.conservation_net_balance_commitment@c74675dd3a0323d0"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 110
+      }
+    },
+    {
+      "template_key": "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
+      "op": "decaf.diversified_transmission_key",
+      "normalized_relation_sha256_hex": "7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
+      "constraint_count": 6077,
+      "local_wire_count": 5571,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 6,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 6,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 12,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 27,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 49,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 71,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 93,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 16,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 31,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 53,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 75,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 97,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 119,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 141,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 163,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 185,
+          "constraint_count": 6077,
+          "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+          "class_key": "decaf.diversified_transmission_key@f7b90071283b887a"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 6
+      }
+    },
+    {
+      "template_key": "decaf.randomized_verification_key.dummy@e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5",
+      "op": "decaf.randomized_verification_key.dummy",
+      "normalized_relation_sha256_hex": "e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5",
+      "constraint_count": 3618,
+      "local_wire_count": 3619,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 24,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 46,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 68,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 90,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 28,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 50,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 72,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 94,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 116,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 138,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 160,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 182,
+          "constraint_count": 3618,
+          "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+          "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 24
+      }
+    },
+    {
+      "template_key": "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
+      "op": "decaf.randomized_verification_key",
+      "normalized_relation_sha256_hex": "1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
+      "constraint_count": 1812,
+      "local_wire_count": 1815,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 15,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 15,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 30,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 23,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 45,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 67,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 89,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 27,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 49,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 71,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 93,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 115,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 137,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 159,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 181,
+          "constraint_count": 1812,
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "class_key": "decaf.randomized_verification_key@058cff75c684a4d6"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 15
+      }
+    },
+    {
+      "template_key": "dummy.mux@6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce",
+      "op": "dummy.mux",
+      "normalized_relation_sha256_hex": "6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce",
+      "constraint_count": 2,
+      "local_wire_count": 12,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 21,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 43,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 65,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 87,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 25,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 47,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 69,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 91,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 113,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 135,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 157,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 179,
+          "constraint_count": 2,
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "class_key": "dummy.mux@68c34d6e11c35404"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 21
+      }
+    },
+    {
+      "template_key": "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+      "op": "gadget.note_commitment",
+      "normalized_relation_sha256_hex": "7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+      "constraint_count": 430,
+      "local_wire_count": 438,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 9,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 24,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 32,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 40,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 48,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 56,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 64,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 72,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 80,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 9,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 24,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 39,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 15,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 37,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 59,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 81,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 103,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 19,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 41,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 63,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 85,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 107,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 129,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 151,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 173,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 195,
+          "constraint_count": 430,
+          "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+          "class_key": "gadget.note_commitment@99344ebca62df7e8"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 9
+      }
+    },
+    {
+      "template_key": "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
+      "op": "gadget.nullifier",
+      "normalized_relation_sha256_hex": "e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
+      "constraint_count": 310,
+      "local_wire_count": 314,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 11,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 11,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 26,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 17,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 39,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 61,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 83,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 21,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 43,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 65,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 87,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 109,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 131,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 153,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 175,
+          "constraint_count": 310,
+          "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+          "class_key": "gadget.nullifier@96286f6f866cc60c"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 11
+      }
+    },
+    {
+      "template_key": "gadget.state_commitment_path@f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb",
+      "op": "gadget.state_commitment_path",
+      "normalized_relation_sha256_hex": "f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb",
+      "constraint_count": 9015,
+      "local_wire_count": 8993,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 13,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 13,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 28,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 18,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 40,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 62,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 84,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 22,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 44,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 66,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 88,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 110,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 132,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 154,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 176,
+          "constraint_count": 9015,
+          "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+          "class_key": "gadget.state_commitment_path@088ab48133b9d3af"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 13
+      }
+    },
+    {
+      "template_key": "gadget.synthetic_dummy_nullifier@100a96548743160160928cfe001821ba838bef079e180fd7d6cf0df70b5b37c8",
+      "op": "gadget.synthetic_dummy_nullifier",
+      "normalized_relation_sha256_hex": "100a96548743160160928cfe001821ba838bef079e180fd7d6cf0df70b5b37c8",
+      "constraint_count": 305,
+      "local_wire_count": 308,
+      "instances": [
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 178,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "7a4dbc25aaf72e5749baca4be04bd7b50973d533a6fef13bf5ca3a3dbc54c2dc",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        }
+      ],
+      "circuits": [
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape8x1",
+        "segment_index": 178
+      }
+    },
+    {
+      "template_key": "gadget.synthetic_dummy_nullifier@3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6",
+      "op": "gadget.synthetic_dummy_nullifier",
+      "normalized_relation_sha256_hex": "3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6",
+      "constraint_count": 305,
+      "local_wire_count": 308,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 86,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "fbfd56adc6d25d3a10c99d025d26de6f0dad88018340449a043619eeb03cbd2d",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 90,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "fbfd56adc6d25d3a10c99d025d26de6f0dad88018340449a043619eeb03cbd2d",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 86
+      }
+    },
+    {
+      "template_key": "gadget.synthetic_dummy_nullifier@46634cb71def9ddee7f509167e3e285ee57f9d7b8279ae43d754e872405182a0",
+      "op": "gadget.synthetic_dummy_nullifier",
+      "normalized_relation_sha256_hex": "46634cb71def9ddee7f509167e3e285ee57f9d7b8279ae43d754e872405182a0",
+      "constraint_count": 305,
+      "local_wire_count": 308,
+      "instances": [
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 156,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "6d8585b98a765e578061d20cec4526b1695cdb9e90542f5950e54a50e080389f",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        }
+      ],
+      "circuits": [
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape8x1",
+        "segment_index": 156
+      }
+    },
+    {
+      "template_key": "gadget.synthetic_dummy_nullifier@58423f06a7f0cb831a6dadec90f949fb98ce7e0ce7482eb07d0f43f54791ef32",
+      "op": "gadget.synthetic_dummy_nullifier",
+      "normalized_relation_sha256_hex": "58423f06a7f0cb831a6dadec90f949fb98ce7e0ce7482eb07d0f43f54791ef32",
+      "constraint_count": 305,
+      "local_wire_count": 308,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 64,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "8414b88ad36db609fb45068ffe7ad987153215f3b4b4ed3db297f8c203e0454b",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 68,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "8414b88ad36db609fb45068ffe7ad987153215f3b4b4ed3db297f8c203e0454b",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 64
+      }
+    },
+    {
+      "template_key": "gadget.synthetic_dummy_nullifier@5cd0e472453822bbff47f6ae87a0159b05bde5f090330ae8a3cf1c866140651b",
+      "op": "gadget.synthetic_dummy_nullifier",
+      "normalized_relation_sha256_hex": "5cd0e472453822bbff47f6ae87a0159b05bde5f090330ae8a3cf1c866140651b",
+      "constraint_count": 305,
+      "local_wire_count": 308,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 20,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "d881ca6325a1a62872cdea69414fe5c28c47323d78d7743e3bde659f6a146c1e",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 24,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "d881ca6325a1a62872cdea69414fe5c28c47323d78d7743e3bde659f6a146c1e",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 20
+      }
+    },
+    {
+      "template_key": "gadget.synthetic_dummy_nullifier@64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa",
+      "op": "gadget.synthetic_dummy_nullifier",
+      "normalized_relation_sha256_hex": "64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa",
+      "constraint_count": 305,
+      "local_wire_count": 308,
+      "instances": [
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 134,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "7c4be4ede44c6cbae3075abcf9d74f5dd4800f623a8e00b7fba2f196a21832a1",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        }
+      ],
+      "circuits": [
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape8x1",
+        "segment_index": 134
+      }
+    },
+    {
+      "template_key": "gadget.synthetic_dummy_nullifier@ac7ad308d1eedcc895ef7cfce1c01cd077579dee1a4f143d5dcb664af3af5907",
+      "op": "gadget.synthetic_dummy_nullifier",
+      "normalized_relation_sha256_hex": "ac7ad308d1eedcc895ef7cfce1c01cd077579dee1a4f143d5dcb664af3af5907",
+      "constraint_count": 305,
+      "local_wire_count": 308,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 42,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "3cf4edc27984ce924211646a99022fa8d79c6be7347ce3772f38028b33eea295",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        },
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 46,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "3cf4edc27984ce924211646a99022fa8d79c6be7347ce3772f38028b33eea295",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 42
+      }
+    },
+    {
+      "template_key": "gadget.synthetic_dummy_nullifier@b279304617fa393c48531d8db69795487f05219663ce38c6233e57eb19d14144",
+      "op": "gadget.synthetic_dummy_nullifier",
+      "normalized_relation_sha256_hex": "b279304617fa393c48531d8db69795487f05219663ce38c6233e57eb19d14144",
+      "constraint_count": 305,
+      "local_wire_count": 308,
+      "instances": [
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 112,
+          "constraint_count": 305,
+          "constant_vector_sha256_hex": "5a598a4278a3f135fe01fa4c004ba90f5bd4fe3c923395c4ae938344550477b8",
+          "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3"
+        }
+      ],
+      "circuits": [
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape8x1",
+        "segment_index": 112
+      }
+    },
+    {
+      "template_key": "statement.hash@253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e",
+      "op": "statement.hash",
+      "normalized_relation_sha256_hex": "253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e",
+      "constraint_count": 935,
+      "local_wire_count": 1001,
+      "instances": [
+        {
+          "circuit": "note_reshape1x8",
+          "segment_index": 94,
+          "constraint_count": 935,
+          "constant_vector_sha256_hex": "cc9ecf95581a86327d77c14cd2a1f908632bda59db1e45096e21611eeab7ac26",
+          "class_key": "statement.hash@fbf8399d330524da"
+        }
+      ],
+      "circuits": [
+        "note_reshape1x8"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape1x8",
+        "segment_index": 94
+      }
+    },
+    {
+      "template_key": "statement.hash@4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7",
+      "op": "statement.hash",
+      "normalized_relation_sha256_hex": "4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7",
+      "constraint_count": 930,
+      "local_wire_count": 957,
+      "instances": [
+        {
+          "circuit": "note_reshape4x1",
+          "segment_index": 117,
+          "constraint_count": 930,
+          "constant_vector_sha256_hex": "14817ab31b3d1b2af712ea2603b4367da10cf44c7669d0d9917b8a71b0d7d32e",
+          "class_key": "statement.hash@f7eb09be4990369a"
+        }
+      ],
+      "circuits": [
+        "note_reshape4x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape4x1",
+        "segment_index": 117
+      }
+    },
+    {
+      "template_key": "statement.hash@ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1",
+      "op": "statement.hash",
+      "normalized_relation_sha256_hex": "ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1",
+      "constraint_count": 1410,
+      "local_wire_count": 1453,
+      "instances": [
+        {
+          "circuit": "note_reshape8x1",
+          "segment_index": 209,
+          "constraint_count": 1410,
+          "constant_vector_sha256_hex": "f15fd908811446d0094ad2783c3c29d8b8eb6db21f6e3f3a34ea261831432486",
+          "class_key": "statement.hash@791721c970540da3"
+        }
+      ],
+      "circuits": [
+        "note_reshape8x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape8x1",
+        "segment_index": 209
+      }
+    },
+    {
+      "template_key": "statement.hash@fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4",
+      "op": "statement.hash",
+      "normalized_relation_sha256_hex": "fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4",
+      "constraint_count": 470,
+      "local_wire_count": 493,
+      "instances": [
+        {
+          "circuit": "note_reshape2x1",
+          "segment_index": 53,
+          "constraint_count": 470,
+          "constant_vector_sha256_hex": "9f5d800c8b252ff641b14d7c021e2ae8f0cde417dcb6669e85de6c755561fdb1",
+          "class_key": "statement.hash@33a145d438545b5d"
+        }
+      ],
+      "circuits": [
+        "note_reshape2x1"
+      ],
+      "distinct_constant_vectors": 1,
+      "representative": {
+        "circuit": "note_reshape2x1",
+        "segment_index": 53
+      }
+    }
+  ]
+}

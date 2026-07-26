@@ -46,7 +46,7 @@ use shieldd_sdk_proto::{
     view::v1::GasPricesRequest,
     Message, Name as _,
 };
-use shieldd_sdk_shielded_pool::{ConsolidateFamilyId, Ics20Withdrawal};
+use shieldd_sdk_shielded_pool::{Ics20Withdrawal, NoteReshapeFamilyId};
 use shieldd_sdk_transaction::Transaction;
 use shieldd_sdk_validator::{GovernanceKey, IdentityKey};
 use shieldd_sdk_view::{NoteManager, TransferPlanningResult, ViewClient};
@@ -69,20 +69,61 @@ pub struct TxCmdWithOptions {
 }
 
 #[derive(Clone, Copy, Debug, clap::ValueEnum)]
-pub enum ConsolidateFamilyArg {
+pub enum NoteReshapeFamilyArg {
+    #[clap(name = "1x8")]
+    OneByEight,
     #[clap(name = "2x1")]
     TwoByOne,
+    #[clap(name = "4x1")]
+    FourByOne,
     #[clap(name = "8x1")]
     EightByOne,
 }
 
-impl From<ConsolidateFamilyArg> for ConsolidateFamilyId {
-    fn from(value: ConsolidateFamilyArg) -> Self {
+impl From<NoteReshapeFamilyArg> for NoteReshapeFamilyId {
+    fn from(value: NoteReshapeFamilyArg) -> Self {
         match value {
-            ConsolidateFamilyArg::TwoByOne => ConsolidateFamilyId::TwoByOne,
-            ConsolidateFamilyArg::EightByOne => ConsolidateFamilyId::EightByOne,
+            NoteReshapeFamilyArg::OneByEight => NoteReshapeFamilyId::OneByEight,
+            NoteReshapeFamilyArg::TwoByOne => NoteReshapeFamilyId::TwoByOne,
+            NoteReshapeFamilyArg::FourByOne => NoteReshapeFamilyId::FourByOne,
+            NoteReshapeFamilyArg::EightByOne => NoteReshapeFamilyId::EightByOne,
         }
     }
+}
+
+#[derive(Debug, clap::Subcommand)]
+pub enum NoteReshapeCmd {
+    /// Reshape several notes into one note.
+    #[clap(name = "many-to-one")]
+    ManyToOne {
+        /// The asset to reshape, expressed as a display denom.
+        asset: String,
+        /// Only spend funds originally received by the given account.
+        #[clap(long, default_value = "0", display_order = 300)]
+        source: u32,
+        /// Optional. Select a specific many-to-one family.
+        #[clap(long, value_enum)]
+        family: Option<NoteReshapeFamilyArg>,
+        /// The selected fee tier to multiply the fee amount by.
+        #[clap(short, long, default_value_t)]
+        fee_tier: FeeTier,
+    },
+    /// Reshape one spendable note into multiple notes.
+    #[clap(name = "one-to-many")]
+    OneToMany {
+        /// The note commitment of the spendable note, as hex.
+        #[clap(long)]
+        note_commitment: String,
+        /// The output values, written as typed values using the note's asset.
+        #[clap(min_values = 2, max_values = 8, required = true)]
+        values: Vec<String>,
+        /// Only spend funds originally received by the given account.
+        #[clap(long, default_value = "0", display_order = 300)]
+        source: u32,
+        /// The selected fee tier to multiply the fee amount by.
+        #[clap(short, long, default_value_t)]
+        fee_tier: FeeTier,
+    },
 }
 
 impl TxCmdWithOptions {
@@ -117,37 +158,9 @@ pub enum TxCmd {
         #[clap(short, long, default_value_t)]
         fee_tier: FeeTier,
     },
-    /// Consolidate many notes of one asset into a larger note.
-    #[clap(display_order = 101)]
-    Consolidate {
-        /// The asset to consolidate, expressed as a display denom.
-        asset: String,
-        /// Only spend funds originally received by the given account.
-        #[clap(long, default_value = "0", display_order = 300)]
-        source: u32,
-        /// Optional. Select a specific consolidate family.
-        #[clap(long, value_enum)]
-        family: Option<ConsolidateFamilyArg>,
-        /// The selected fee tier to multiply the fee amount by.
-        #[clap(short, long, default_value_t)]
-        fee_tier: FeeTier,
-    },
-    /// Split a spendable note into exactly 4 or 8 notes of the same asset.
-    #[clap(display_order = 102)]
-    Split {
-        /// The note commitment of the spendable note to split, as hex.
-        #[clap(long)]
-        note_commitment: String,
-        /// The output values to create, written as typed values using the note's asset.
-        #[clap(min_values = 4, required = true)]
-        values: Vec<String>,
-        /// Only spend funds originally received by the given account.
-        #[clap(long, default_value = "0", display_order = 300)]
-        source: u32,
-        /// The selected fee tier to multiply the fee amount by.
-        #[clap(short, long, default_value_t)]
-        fee_tier: FeeTier,
-    },
+    /// Reshape notes while selecting the canonical family from the real arity.
+    #[clap(name = "reshape", display_order = 101, subcommand)]
+    NoteReshape(NoteReshapeCmd),
     /// Submit or vote on a governance proposal.
     #[clap(display_order = 500, subcommand)]
     Proposal(ProposalCmd),
@@ -266,8 +279,7 @@ impl TxCmd {
     pub fn offline(&self) -> bool {
         match self {
             TxCmd::Transfer { .. } => false,
-            TxCmd::Consolidate { .. } => false,
-            TxCmd::Split { .. } => false,
+            TxCmd::NoteReshape(_) => false,
             TxCmd::Proposal(proposal_cmd) => proposal_cmd.offline(),
             TxCmd::Compliance(compliance_cmd) => compliance_cmd.offline(),
             TxCmd::ShieldedIcs20Withdrawal { .. } => false,
@@ -345,7 +357,7 @@ impl TxCmd {
                         maintenance_plan, ..
                     } => {
                         anyhow::bail!(
-                            "transfer requires note maintenance first; submit the suggested consolidate transaction and retry after finality: {:?}",
+                            "transfer requires note maintenance first; submit the suggested note reshape transaction and retry after finality: {:?}",
                             maintenance_plan
                         );
                     }
@@ -357,19 +369,19 @@ impl TxCmd {
                     }
                 }
             }
-            TxCmd::Consolidate {
+            TxCmd::NoteReshape(NoteReshapeCmd::ManyToOne {
                 asset,
                 source,
                 family,
                 fee_tier,
-            } => {
+            }) => {
                 let asset_id = asset::REGISTRY.parse_unit(asset.as_str()).id();
                 let mut note_manager = NoteManager::new(OsRng);
                 note_manager
                     .set_gas_prices(gas_prices)
                     .set_fee_tier((*fee_tier).into());
                 match note_manager
-                    .plan_consolidate(
+                    .plan_note_reshape_from_notes(
                         app.view
                             .as_mut()
                             .context("view service must be initialized")?,
@@ -378,28 +390,28 @@ impl TxCmd {
                         family.map(Into::into),
                     )
                     .await
-                    .context("can't build consolidate transaction")?
+                    .context("can't build note reshape transaction")?
                 {
                     TransferPlanningResult::Ready { transaction_plan } => {
                         app.build_and_submit_transaction(transaction_plan).await?;
                     }
                     TransferPlanningResult::NeedsMaintenance { .. } => {
-                        anyhow::bail!("consolidate planning unexpectedly requested maintenance");
+                        anyhow::bail!("note reshape planning unexpectedly requested maintenance");
                     }
                     TransferPlanningResult::InsufficientBalance => {
-                        anyhow::bail!("insufficient balance for requested consolidate");
+                        anyhow::bail!("insufficient balance for requested note reshape");
                     }
                     TransferPlanningResult::UnsupportedIntent { reason } => {
                         anyhow::bail!("{reason}");
                     }
                 }
             }
-            TxCmd::Split {
+            TxCmd::NoteReshape(NoteReshapeCmd::OneToMany {
                 note_commitment,
                 values,
                 source,
                 fee_tier,
-            } => {
+            }) => {
                 let note_commitment =
                     shieldd_sdk_shielded_pool::note::StateCommitment::parse_hex(note_commitment)
                         .map_err(|e| anyhow::anyhow!("invalid note commitment: {e}"))?;
@@ -420,7 +432,7 @@ impl TxCmd {
                     .map(|value| {
                         anyhow::ensure!(
                             value.asset_id == note_record.note.asset_id(),
-                            "split output {:?} must use the same asset as the selected note",
+                            "note reshape output {:?} must use the same asset as the selected note",
                             value
                         );
                         Ok(value.amount)
@@ -432,7 +444,7 @@ impl TxCmd {
                     .set_gas_prices(gas_prices)
                     .set_fee_tier((*fee_tier).into());
                 match note_manager
-                    .plan_split(
+                    .plan_note_reshape_from_note(
                         app.view
                             .as_mut()
                             .context("view service must be initialized")?,
@@ -441,17 +453,17 @@ impl TxCmd {
                         output_amounts,
                     )
                     .await
-                    .context("can't build split transaction")?
+                    .context("can't build note reshape transaction")?
                 {
                     TransferPlanningResult::Ready { transaction_plan } => {
                         app.build_and_submit_transaction(transaction_plan).await?;
                     }
                     TransferPlanningResult::NeedsMaintenance { .. } => {
-                        anyhow::bail!("split planning unexpectedly requested maintenance");
+                        anyhow::bail!("note reshape planning unexpectedly requested maintenance");
                     }
                     TransferPlanningResult::InsufficientBalance => {
                         anyhow::bail!(
-                            "selected note does not cover requested split outputs and fee"
+                            "selected note does not cover requested note reshape outputs and fee"
                         );
                     }
                     TransferPlanningResult::UnsupportedIntent { reason } => {
@@ -514,7 +526,7 @@ impl TxCmd {
                         maintenance_plan, ..
                     } => {
                         anyhow::bail!(
-                            "proposal submission requires note maintenance first; submit the suggested consolidate transaction and retry after finality: {:?}",
+                            "proposal submission requires note maintenance first; submit the suggested note reshape transaction and retry after finality: {:?}",
                             maintenance_plan
                         );
                     }
@@ -708,7 +720,7 @@ impl TxCmd {
                         maintenance_plan, ..
                     } => {
                         anyhow::bail!(
-                            "ICS-20 withdrawal requires note maintenance first; submit the suggested consolidate transaction and retry after finality: {:?}",
+                            "ICS-20 withdrawal requires note maintenance first; submit the suggested note reshape transaction and retry after finality: {:?}",
                             maintenance_plan
                         );
                     }

@@ -1,0 +1,34 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
+import ShielddGnarkFormal.Deployed.Templates.Relations.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e
+import ShielddGnarkFormal.Deployed.StatementHashDeployedBridge
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import Mathlib.Tactic.LinearCombination
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Part170
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
+abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.Order
+abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.StatementHash470_5c3d95.F
+
+local instance : Fact (Nat.Prime Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+theorem sound (rho : Nat → F)
+    (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.relationPart170 rho) :
+    rho 920 = Shieldd.GnarkFormal.Poseidon7Bridge.p17 ((7491312003383848086366979202793200051175563793929611119984170139909207668912 : F) + (7881497632799812395965569942862776762617506046143792906072884558856248623105 : F) * rho 845 + (7916682890089097272733273380107699873164905626706934838689281364922571161601 : F) * rho 850 + (5464063484924239686278651430976294814419699569805570712193386353828911860556 : F) * rho 855 + (2345683819285658451180229149661540703159972037542795507759787071088169233067 : F) * rho 860 + (5777789618029937658696564431797900258309825860894885777008317627732964216186 : F) * rho 865 + (8022238661956951903036383691842469204807104368396360636538471783121538777089 : F) * rho 870 + (8042344523265114689760785655982425267977046985861013169462127100873723084801 : F) * rho 875 + (1151517511285686876033930673470210890642168091157372340172986380352373987142 : F) * rho 880) := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.relationPart170 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.relationRow850 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.relationRow851 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.relationRow852 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.relationRow853 Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.relationRow854 at h
+  rcases h with ⟨h0, h1, h2, h3, h4⟩
+
+  exact Shieldd.GnarkFormal.Deployed.StatementHash.p17_from_rows
+    ((7491312003383848086366979202793200051175563793929611119984170139909207668912 : F) + (7881497632799812395965569942862776762617506046143792906072884558856248623105 : F) * rho 845 + (7916682890089097272733273380107699873164905626706934838689281364922571161601 : F) * rho 850 + (5464063484924239686278651430976294814419699569805570712193386353828911860556 : F) * rho 855 + (2345683819285658451180229149661540703159972037542795507759787071088169233067 : F) * rho 860 + (5777789618029937658696564431797900258309825860894885777008317627732964216186 : F) * rho 865 + (8022238661956951903036383691842469204807104368396360636538471783121538777089 : F) * rho 870 + (8042344523265114689760785655982425267977046985861013169462127100873723084801 : F) * rho 875 + (1151517511285686876033930673470210890642168091157372340172986380352373987142 : F) * rho 880) (rho 916) (rho 917) (rho 918) (rho 919) (rho 920)
+    (by simpa only [one_mul] using h0)
+    (by simpa only [one_mul] using h1)
+    (by simpa only [one_mul] using h2)
+    (by simpa only [one_mul] using h3)
+    (by simpa only [one_mul] using h4)
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Part170

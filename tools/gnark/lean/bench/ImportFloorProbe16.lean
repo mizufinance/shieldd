@@ -1,4 +1,4 @@
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Seg16
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Seg16
 
 /-!
 Import-only floor probe: no proof work, just the cost of loading the upstream

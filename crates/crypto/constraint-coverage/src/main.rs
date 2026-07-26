@@ -6,6 +6,7 @@ use shieldd_constraint_coverage::{
     ir::{build_ir, ir_json, parse_rows},
     leangen, load_manifest, load_sr1cs, obligations, report_json,
     rowmap::{build_row_map, row_map_json},
+    template_registry::{registry_json, seed_reviewed_templates, TemplateRegistry},
     CoverageReport,
 };
 use std::{fs, path::PathBuf};
@@ -22,6 +23,16 @@ struct Args {
     /// Building the IR runs the round-trip independence check over every row.
     #[clap(long)]
     ir_out: Option<PathBuf>,
+    /// Reviewed canonical proof-template registry used for fail-closed matching.
+    #[clap(long)]
+    template_registry: Option<PathBuf>,
+    /// Explicit review/bootstrap operation: add this circuit's exact local
+    /// presentations to the registry and write the result here.
+    #[clap(long)]
+    seed_template_registry_out: Option<PathBuf>,
+    /// Restrict an explicit registry review/seed operation to one exact op.
+    #[clap(long, requires = "seed-template-registry-out")]
+    seed_template_op: Option<String>,
     /// Write a pending deployed-coverage manifest skeleton derived from the IR.
     #[clap(long)]
     coverage_manifest_out: Option<PathBuf>,
@@ -46,6 +57,10 @@ struct Args {
     /// `ShielddGnarkFormal/Deployed/Contracts`.
     #[clap(long)]
     lean_contract_out: Option<PathBuf>,
+    /// Generate one reusable normalized-relation Lean template per template
+    /// key. Instance contracts import these modules and carry only seating.
+    #[clap(long)]
+    lean_template_out: Option<PathBuf>,
     /// Restrict Lean generation to ops whose name contains this substring.
     #[clap(long)]
     lean_only: Option<String>,
@@ -73,7 +88,7 @@ struct Args {
     #[clap(long, default_value_t = 16)]
     ladder_width_limit: usize,
     /// Emit the recovered, parity-gated lt-compare ladder seating (R + Q4
-    /// canonicity chains) for consolidate2x1 as JSON here — the Pass-3 handoff
+    /// canonicity chains) for note_reshape2x1 as JSON here — the Pass-3 handoff
     /// the Lean generator consumes instead of re-deriving the recovery.
     #[clap(long)]
     lt_seating_out: Option<PathBuf>,
@@ -126,14 +141,66 @@ fn main() -> anyhow::Result<()> {
     let sr1cs =
         load_sr1cs(&args.sr1cs).with_context(|| format!("load sr1cs {}", args.sr1cs.display()))?;
 
+    let mut registry = if let Some(path) = &args.template_registry {
+        let bytes = fs::read(path)
+            .with_context(|| format!("read proof-template registry {}", path.display()))?;
+        serde_json::from_slice::<TemplateRegistry>(&bytes)
+            .with_context(|| format!("parse proof-template registry {}", path.display()))?
+    } else {
+        TemplateRegistry::empty()
+    };
+    let registry_root = args
+        .template_registry
+        .as_deref()
+        .and_then(std::path::Path::parent)
+        .unwrap_or_else(|| std::path::Path::new("."));
+    if let Some(path) = &args.seed_template_registry_out {
+        let seed_root = path.parent().unwrap_or_else(|| std::path::Path::new("."));
+        seed_reviewed_templates(
+            &mut registry,
+            &manifest,
+            &sr1cs,
+            seed_root,
+            args.seed_template_op.as_deref(),
+        )
+        .context("seed reviewed proof templates")?;
+        write_out(path, registry_json(&registry)?)?;
+        eprintln!(
+            "seeded reviewed proof-template registry {} ({} templates)",
+            path.display(),
+            registry.templates.len()
+        );
+        if args.ir_out.is_none()
+            && args.coverage_manifest_out.is_none()
+            && args.lean_out.is_none()
+            && args.lean_contract_out.is_none()
+            && args.lean_template_out.is_none()
+            && args.lean_seg_out.is_none()
+            && args.lean_slice_seg_out.is_none()
+            && args.lt_seating_out.is_none()
+            && args.wiring_cert_out.is_none()
+            && args.row_map_out.is_none()
+            && args.coverage_manifest.is_none()
+            && args.report_out.is_none()
+        {
+            return Ok(());
+        }
+    }
+
     if args.ir_out.is_some()
         || args.coverage_manifest_out.is_some()
         || args.lean_out.is_some()
         || args.lean_contract_out.is_some()
+        || args.lean_template_out.is_some()
         || args.lean_seg_out.is_some()
         || args.lean_slice_seg_out.is_some()
     {
-        let ir = build_ir(&manifest, &sr1cs).context("build deployed-slice IR")?;
+        anyhow::ensure!(
+            args.template_registry.is_some(),
+            "--template-registry is required for deployed IR and Lean generation"
+        );
+        let ir = build_ir(&manifest, &sr1cs, &registry, registry_root)
+            .context("build deployed-slice IR")?;
         if let Some(path) = &args.ir_out {
             write_out(path, ir_json(&ir)?)?;
         }
@@ -171,6 +238,31 @@ fn main() -> anyhow::Result<()> {
             for f in &files {
                 write_out(&dir.join(&f.file_name), f.contents.clone().into_bytes())?;
                 eprintln!("generated contract {} ({})", f.file_name, f.module);
+            }
+        }
+        if let Some(dir) = &args.lean_template_out {
+            let mut write_error = None;
+            contracts::visit_templates_filtered(
+                &ir,
+                &sr1cs,
+                &registry,
+                registry_root,
+                args.lean_only.as_deref(),
+                |f| {
+                    if write_error.is_some() {
+                        return;
+                    }
+                    if let Err(error) = write_out(&dir.join(&f.file_name), f.contents.into_bytes())
+                    {
+                        write_error = Some(error);
+                    } else {
+                        eprintln!("generated template {} ({})", f.file_name, f.module);
+                    }
+                },
+            )
+            .context("generate normalized deployed Lean templates")?;
+            if let Some(error) = write_error {
+                return Err(error);
             }
         }
         if let Some(dir) = &args.lean_seg_out {
@@ -219,13 +311,14 @@ fn main() -> anyhow::Result<()> {
 
     if let Some(path) = &args.lt_seating_out {
         anyhow::ensure!(
-            manifest.circuit == "consolidate2x1",
-            "--lt-seating-out only applies to consolidate2x1 (got {:?})",
+            manifest.circuit == "note_reshape2x1",
+            "--lt-seating-out only applies to note_reshape2x1 (got {:?})",
             manifest.circuit
         );
         let rows = parse_rows(&sr1cs).context("parse rows for lt seating")?;
         const DTK_ROWS: usize = 6077;
-        let ir = build_ir(&manifest, &sr1cs).context("build deployed-slice IR for lt seating")?;
+        let ir = build_ir(&manifest, &sr1cs, &registry, registry_root)
+            .context("build deployed-slice IR for lt seating")?;
         let dtk_offset = ir
             .segments
             .iter()
@@ -236,7 +329,7 @@ fn main() -> anyhow::Result<()> {
             .get(dtk_offset..dtk_offset + DTK_ROWS)
             .context("DTK segment slice out of range for lt seating")?;
         let seating =
-            shieldd_constraint_coverage::ltchain::consolidate2x1_lt_seating_json(dtk, dtk_offset)
+            shieldd_constraint_coverage::ltchain::note_reshape2x1_lt_seating_json(dtk, dtk_offset)
                 .map_err(anyhow::Error::msg)
                 .context("recover + gate lt-compare ladders")?;
         let mut data = serde_json::to_vec_pretty(&seating)?;
@@ -247,7 +340,8 @@ fn main() -> anyhow::Result<()> {
     }
 
     if let Some(path) = &args.wiring_cert_out {
-        let ir = build_ir(&manifest, &sr1cs).context("build deployed-slice IR for wiring cert")?;
+        let ir = build_ir(&manifest, &sr1cs, &registry, registry_root)
+            .context("build deployed-slice IR for wiring cert")?;
         let cert = shieldd_constraint_coverage::wiring::build_certificate(&ir, &sr1cs)
             .map_err(anyhow::Error::msg)
             .context("build + check gadget-wiring certificate")?;
@@ -308,7 +402,8 @@ fn main() -> anyhow::Result<()> {
             );
             ir
         } else {
-            build_ir(&manifest, &sr1cs).context("build deployed-slice IR")?
+            build_ir(&manifest, &sr1cs, &registry, registry_root)
+                .context("build deployed-slice IR")?
         };
         let bytes = fs::read(path)
             .with_context(|| format!("read deployed coverage manifest {}", path.display()))?;

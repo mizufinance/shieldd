@@ -5,7 +5,7 @@
 //! documentation of [`ViewClient`] and a [`ViewServer`] for more information.
 //!
 //! This crate also provides a wallet-facing [`NoteManager`] for shielded transfer,
-//! consolidate, split, ICS-20 withdrawal, and transfer-funded action planning.
+//! note reshape, ICS-20 withdrawal, and transfer-funded action planning.
 //!
 //! Finally, this crate provides a [`Storage`] type for managing persistent sqlite storage.
 

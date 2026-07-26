@@ -504,7 +504,7 @@ pub const NB_GYM1: &str =
 
 /// Per-instance cert file for the seg52 blinding ladder's fused rungs: header +
 /// per-rung bindings/theorems only (the ladder walk and the 8-row split rungs
-/// are emitted by `gen/gen_nb_slice.py`, which consumes `rung{i}`/`rung{i}_wide`).
+/// are consumed by the normalized NB recovery, using `rung{i}`/`rung{i}_wide`).
 pub fn emit_nb_file(rows: &[Constraint], fused_base: usize, n: usize) -> String {
     let b0 = rows[fused_base].l[0].wire;
     let neg_gx = coeff_at(&rows[fused_base + 3].r, b0).unwrap().to_owned();
@@ -1455,7 +1455,7 @@ mod tests {
 
     #[test]
     fn dump_tail_rows() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let pr = |label: &str, s: &[Term]| {
@@ -1475,7 +1475,7 @@ mod tests {
 
     #[test]
     fn dump_tail_struct() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         // group terms by coeff; report coeff -> (count, wire-range), singletons listed.
@@ -1588,7 +1588,7 @@ mod tests {
 
     #[test]
     fn dump_wide_rung() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let fused_base = 17148usize;
@@ -1627,7 +1627,7 @@ mod tests {
 
     #[test]
     fn emit_tail_inst0() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let out = emit_tail(&rows, 17893, "inst0");
@@ -1646,7 +1646,7 @@ mod tests {
 
     #[test]
     fn locate_inst1_tail() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         // i67-style row: L = single w0 coeff "1", R len > 250, O len 1.
@@ -1671,7 +1671,7 @@ mod tests {
     #[test]
     fn emit_tail_inst1() {
         // inst1 rvk tail located at row 30523 (same i67 signature as inst0's 17893).
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let out = emit_tail(&rows, 30523, "inst1");
@@ -1681,7 +1681,7 @@ mod tests {
 
     #[test]
     fn emit_inst0_prefix() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let n: usize = std::env::var("RVK_N")
@@ -1695,7 +1695,7 @@ mod tests {
 
     #[test]
     fn emit_nb_seg46() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let n: usize = std::env::var("NB_N")
@@ -1704,7 +1704,7 @@ mod tests {
             .unwrap_or(149);
         // seg46 (NB-1 conservation shape) starts at absolute row 32840; first
         // fused blinding rung at segment-relative 640 (BLIND_COPY_ROW + 1; see
-        // gen/gen_nb_slice.py BLIND_* constants).
+        // normalized NB recovery BLIND_* constants).
         let out = emit_nb_file(&rows, 32840 + 640, n);
         std::fs::write(
             "../../../tools/gnark/lean/ShielddGnarkFormal/NbFixedGenSeg46.lean",
@@ -1716,7 +1716,7 @@ mod tests {
 
     #[test]
     fn emit_inst1_prefix() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         let n: usize = std::env::var("RVK_N")
@@ -1736,7 +1736,7 @@ mod fanout_probe {
     use crate::load_sr1cs;
     #[test]
     fn detect_b0() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs")
+        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
             .unwrap();
         let rows = parse_rows(&sr).unwrap();
         for (name, fb) in [("inst0", 17148usize), ("inst1", 29778usize)] {

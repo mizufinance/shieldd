@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.CanonicalFqBitsChainBuild
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 /-!
 Keystone for the deployed canonical-bits compose: `chainK bits k 253 1` from the
@@ -11,6 +12,7 @@ positions). At each `pmBit = false` rung the slice supplies `acc(m+1)·bits[m]! 
 namespace Shieldd.GnarkFormal.Extracted.CanonicalFqBits
 
 open scoped BigOperators
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 variable [Fact (Nat.Prime Order)]
 
@@ -28,20 +30,32 @@ theorem isVectorBinary_of_booleanity (bits : List.Vector F 253)
   · exact Or.inl h
   · exact Or.inr (by linear_combination -h)
 
+section ChoiceFreeChain
+
+attribute [-instance] ZMod.instField
+local instance : CommRing F := ZMod.commRing _
+
 /-- Rung factor: the multiplier applied to the accumulator at index `j`. -/
 def chainFactor (bits : List.Vector F 253) (j : ℕ) : F :=
   if pmBit j then bits[j]! else 1 - bits[j]!
 
+/-- Product of `count` consecutive factors beginning at `start`. -/
+def productFrom (factor : ℕ → F) (start : ℕ) : ℕ → F
+  | 0 => 1
+  | count + 1 => factor start * productFrom factor (start + 1) count
+
 /-- Accumulator entering rung `m` (product of factors at indices `m..252`). -/
 def chainAcc (bits : List.Vector F 253) (m : ℕ) : F :=
-  ∏ j ∈ Finset.Ico m 253, chainFactor bits j
+  productFrom (chainFactor bits) m (253 - m)
 
 theorem chainAcc_top (bits : List.Vector F 253) : chainAcc bits 253 = 1 := by
-  simp [chainAcc]
+  simp [chainAcc, productFrom]
 
 theorem chainAcc_succ (bits : List.Vector F 253) {m : ℕ} (h : m < 253) :
     chainAcc bits m = chainFactor bits m * chainAcc bits (m + 1) := by
-  rw [chainAcc, chainAcc, Finset.prod_eq_prod_Ico_succ_bot h]
+  unfold chainAcc
+  rw [show 253 - m = (253 - (m + 1)) + 1 by omega]
+  rfl
 
 /-- Downward induction: the counter chain holds at fuel `m` with accumulator
 `chainAcc bits m`, given the continuation and every `pmBit = false` obligation
@@ -141,25 +155,45 @@ def falseFactor (bits : List.Vector F 253) (j : ℕ) : F :=
 
 /-- Deployed accumulator entering rung `m` (true-position partial product). -/
 def truePartAcc (bits : List.Vector F 253) (m : ℕ) : F :=
-  ∏ j ∈ Finset.Ico m 253, trueFactor bits j
+  productFrom (trueFactor bits) m (253 - m)
+
+/-- Complementary accumulator over the false-position factors. -/
+def falsePartAcc (bits : List.Vector F 253) (m : ℕ) : F :=
+  productFrom (falseFactor bits) m (253 - m)
 
 theorem truePartAcc_top (bits : List.Vector F 253) : truePartAcc bits 253 = 1 := by
-  simp [truePartAcc]
+  simp [truePartAcc, productFrom]
 
 theorem truePartAcc_succ (bits : List.Vector F 253) {m : ℕ} (h : m < 253) :
     truePartAcc bits m = trueFactor bits m * truePartAcc bits (m + 1) := by
-  rw [truePartAcc, truePartAcc, Finset.prod_eq_prod_Ico_succ_bot h]
+  unfold truePartAcc
+  rw [show 253 - m = (253 - (m + 1)) + 1 by omega]
+  rfl
 
 theorem chainFactor_eq (bits : List.Vector F 253) (j : ℕ) :
     chainFactor bits j = trueFactor bits j * falseFactor bits j := by
   rw [chainFactor, trueFactor, falseFactor]
   cases pmBit j <;> simp
 
+/-- A pointwise product factors into the product of each component. -/
+theorem productFrom_mul (left right : ℕ → F) (start count : ℕ) :
+    productFrom (fun j => left j * right j) start count =
+      productFrom left start count * productFrom right start count := by
+  induction count generalizing start with
+  | zero => simp [productFrom]
+  | succ count ih =>
+      simp only [productFrom]
+      rw [ih]
+      ring
+
 /-- The full `chainAcc` factors through the deployed `truePartAcc`. -/
 theorem chainAcc_eq_truePart (bits : List.Vector F 253) (m : ℕ) :
-    chainAcc bits m = truePartAcc bits m * (∏ j ∈ Finset.Ico m 253, falseFactor bits j) := by
-  rw [chainAcc, truePartAcc, ← Finset.prod_mul_distrib]
-  exact Finset.prod_congr rfl (fun j _ => chainFactor_eq bits j)
+    chainAcc bits m = truePartAcc bits m * falsePartAcc bits m := by
+  unfold chainAcc truePartAcc falsePartAcc
+  rw [show chainFactor bits = fun j => trueFactor bits j * falseFactor bits j by
+    funext j
+    exact chainFactor_eq bits j]
+  exact productFrom_mul (trueFactor bits) (falseFactor bits) m (253 - m)
 
 /-- The deployed obligation `truePartAcc (j+1) · bit = 0` implies the `chainAcc`
 obligation that `chainK_of_obligations` wants, because `chainAcc` carries
@@ -168,7 +202,11 @@ theorem chainAcc_obl_of_truePart (bits : List.Vector F 253) (j : ℕ)
     (h : truePartAcc bits (j + 1) * bits[j]! = 0) :
     chainAcc bits (j + 1) * bits[j]! = 0 := by
   rw [chainAcc_eq_truePart]
-  linear_combination (∏ i ∈ Finset.Ico (j + 1) 253, falseFactor bits i) * h
+  calc
+    (truePartAcc bits (j + 1) * falsePartAcc bits (j + 1)) * bits[j]! =
+        falsePartAcc bits (j + 1) * (truePartAcc bits (j + 1) * bits[j]!) := by
+          ring
+    _ = 0 := by rw [h, mul_zero]
 
 /-- Deployed flag-thread equals `truePartAcc` (copy of `flag_eq_chainAcc` over the
 true-position factor). -/
@@ -210,5 +248,7 @@ theorem chainK_of_obligations (bits : List.Vector F 253) (k : List.Vector F 253 
     chainK bits k 253 (1 : F) := by
   have := chainK_acc bits k hk 253 (le_refl _) (fun j hj => hobl j hj)
   rwa [chainAcc_top] at this
+
+end ChoiceFreeChain
 
 end Shieldd.GnarkFormal.Extracted.CanonicalFqBits

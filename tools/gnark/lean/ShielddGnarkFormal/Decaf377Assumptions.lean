@@ -7,10 +7,11 @@ import ShielddGnarkFormal.CompressToFieldBridge
 import ShielddGnarkFormal.EdwardsCompleteness
 import ShielddGnarkFormal.EncodeToCurveBridge
 import ShielddGnarkFormal.IvkModRBridge
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option linter.unusedSectionVars false
 
-/-! Decaf377 gadget boundary used by the `consolidate2x1` compose model.
+/-! Decaf377 gadget boundary used by the 2x1 compose model.
 
 This file is intentionally named after the boundary, not after a completed
 verification result. `AssertEquivalent` and `CompressToField` are tied to
@@ -48,6 +49,10 @@ def identity : Point := ⟨0, 1⟩
 
 def neg (p : Point) : Point := ⟨-p.x, p.y⟩
 
+section ChoiceFreeCurveOperations
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 /-- Twisted-Edwards addition formula emitted by gnark's native Edwards gadget. -/
 def add (p q : Point) : Point :=
   let v0 := q.y * p.x
@@ -62,6 +67,8 @@ def double (p : Point) : Point :=
   let v := p.x * p.x
   let w := p.y * p.y
   ⟨(2 * u) * (w - v)⁻¹, (w + v) * (2 - (w - v))⁻¹⟩
+
+end ChoiceFreeCurveOperations
 
 def select (b : Bool) (whenTrue whenFalse : Point) : Point :=
   if b then whenTrue else whenFalse

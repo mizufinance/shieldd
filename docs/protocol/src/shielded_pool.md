@@ -12,8 +12,7 @@ underlying plaintext values.
 The supported shielded actions are:
 
 - `Transfer`
-- `Split`
-- `Consolidate`
+- `NoteReshape`
 - `ShieldedIcs20Withdrawal`
 
 To prevent double-spending, each spent note yields a unique _nullifier_. The

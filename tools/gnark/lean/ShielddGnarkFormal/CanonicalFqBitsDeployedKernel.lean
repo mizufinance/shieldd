@@ -16,6 +16,8 @@ any other deployed gadget carrying a canonical-bits block.
 
 namespace Shieldd.GnarkFormal.Extracted.CanonicalFqBits
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 variable [Fact (Nat.Prime Order)]
 
 /-- **Kernel composition.** Given a 253-bit witness vector that (1) recovers `In`

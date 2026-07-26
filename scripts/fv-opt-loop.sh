@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Optimize-safely loop orchestrator (full-verification-plan §5).
+# Optimize-safely loop orchestrator. Policy lives in
+# `docs/soundness/optimization.md`.
 #
 # One fail-closed entry point for a circuit-optimization attempt: recompiles the
 # circuit, computes exactly which coverage segments flipped, asserts the flip
 # set is contained in the caller's allowlist, maps each flip to its Lean
-# regeneration family (unknown family = T2-class, red), then runs the gate
-# battery and emits the per-commit measurement record playbook §5 requires.
+# regeneration family (unknown family = unsupported/red), then runs the gate
+# battery and emits the performance record described by
+# `docs/soundness/release.md`.
 #
 # This script only SEQUENCES existing gates; it never edits verdicts, stamps,
 # manifests, or generated Lean. Lean elaboration is opt-in (--lean) and is
 # delegated to check-constraint-coverage.sh under its own resource rules.
 #
 # Usage:
-#   scripts/fv-opt-loop.sh diff  --circuit consolidate2x1 --allow-flips 52,53 \
+#   scripts/fv-opt-loop.sh diff  --circuit note_reshape2x1 --allow-flips 52,53 \
 #       [--allow-remove 34,36] [--allow-add 60]
-#   scripts/fv-opt-loop.sh gates --circuit consolidate2x1 [--lean] [--prove] \
+#   scripts/fv-opt-loop.sh gates --circuit note_reshape2x1 [--lean] [--prove] \
 #       [--record-out <file.md>]
 #   scripts/fv-opt-loop.sh census --circuit transfer
 #
@@ -66,8 +68,8 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 case "$circuit" in
-  consolidate2x1|transfer) ;;
-  *) fail "--circuit must be consolidate2x1 or transfer" ;;
+  note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8) ;;
+  *) fail "--circuit must be a NoteReshape family" ;;
 esac
 
 formal_dir="$ROOT/crates/core/component/shielded-pool/formal"
@@ -80,20 +82,17 @@ artifact_dir="$GNARK_DIR/artifacts/$circuit"
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-# Regeneration family map: obligation op -> generator under tools/gnark/lean/gen.
-# An op absent here has no landed proof substrate: the change is T2-class and
-# needs frontier design BEFORE any Go edit lands (playbook §2 tiers).
+# Registry-backed discovery replaces the old fixed segment/generator map. An
+# operation absent from the reviewed NoteReshape inventory is unsupported until
+# its proof template is reviewed and registered.
 generator_for_op() {
-  case "$1" in
-    decaf.net_balance_commitment) echo "gen_nb_slice.py" ;;
-    decaf.diversified_transmission_key) echo "gen_dtk_slice.py" ;;
-    decaf.compress_to_field) echo "gen_consolidate_compress_adapters.py" ;;
-    decaf.randomized_verification_key) echo "gen_rvk_deployed_adapters.py" ;;
-    gadget.state_commitment_path) echo "gen_state_commitment_nodes.py" ;;
-    gadget.note_commitment) echo "gen_note_commitment_semantic.py" ;;
-    gadget.nullifier|statement.hash|assert.eq|decaf.assert_equivalent|decaf.assert_on_curve) echo "gen_scp_adapters.py" ;;
-    *) echo "" ;;
-  esac
+  local op="$1"
+  if jq -e --arg op "$op" '.templates[] | select(.op == $op)' \
+      "$GNARK_DIR/artifacts/note-reshape-template-inventory.json" >/dev/null; then
+    echo "gen_note_reshape_template_semantics.py"
+  else
+    echo ""
+  fi
 }
 
 # ---- Step 1: recompile + fresh extraction ---------------------------------
@@ -110,9 +109,10 @@ recompile_and_extract() {
   )
   (
     cd "$ROOT"
-    cargo run -q -p shieldd-constraint-coverage -- \
+    cargo run --release -q -p shieldd-constraint-coverage -- \
       --manifest "$manifest" \
       --sr1cs "$sr1cs" \
+      --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
       --coverage-manifest "$coverage_manifest" \
       --coverage-ir "$coverage_ir" \
       --report-out "$fresh_report"
@@ -165,7 +165,7 @@ check_flip_containment() {
       local gen
       gen="$(generator_for_op "$op")"
       if [[ -z "$gen" ]]; then
-        echo "fv-opt-loop: segment ${oidx}/${nidx} op $op has NO regeneration family — T2-class, needs frontier design" >&2
+        echo "fv-opt-loop: segment ${oidx}/${nidx} op $op has no regeneration family; proof design required" >&2
         red=1
       else
         note "  segment ${oidx}→${nidx} regenerates via tools/gnark/lean/gen/$gen"
@@ -198,15 +198,16 @@ gate_battery() {
       bash "$ROOT/scripts/check-constraint-coverage.sh" --circuit "$circuit"
   fi
   run_gate "soundness-invariants" bash "$ROOT/scripts/check-soundness-invariants.sh"
-  # SnarkPack boundary: config-only until S1 (playbook §3). If the aggregation
-  # crate differs from the merge base, its invariant gates must also pass.
+  # SnarkPack boundary: config-only until S1
+  # (`crates/crypto/proof-aggregation/optimization-playbook.md` §3). If the
+  # aggregation crate differs from the merge base, its invariant gates pass too.
   if ! git -C "$ROOT" diff --quiet HEAD -- crates/crypto/proof-aggregation 2>/dev/null \
      || [[ -n "$(git -C "$ROOT" log --oneline -1 -- crates/crypto/proof-aggregation 2>/dev/null)" && -n "$(git -C "$ROOT" diff --name-only "$(git -C "$ROOT" merge-base HEAD origin/dev 2>/dev/null || echo HEAD)" HEAD -- crates/crypto/proof-aggregation 2>/dev/null)" ]]; then
     run_gate "snarkpack-invariants" bash "$ROOT/scripts/check-snarkpack-invariants.sh"
   fi
   run_gate "wiring-transcript+parity-tests" \
     env -C "$GNARK_DIR" go test ./internal/circuits/ -run \
-    'TestConsolidate2x1WiringTranscript|TestAmountRangeBoundIs128Bits|Acl2ModelParity|AxeFidelity' -count=1
+    'TestNoteReshape2x1WiringTranscript|TestAmountRangeBoundIs128Bits|Acl2ModelParity|AxeFidelity' -count=1
   run_gate "statement-seam" \
     env -C "$GNARK_DIR" go test ./internal/primitives/ -run 'StatementSeam|StatementHash' -count=1
   if [[ "$run_prove" -eq 1 ]]; then

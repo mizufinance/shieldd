@@ -47,8 +47,7 @@ fn pretty_print_transaction_plan(
     ) -> Option<ActionView> {
         match action {
             ActionPlan::Transfer(_) => None,
-            ActionPlan::Consolidate(_) => None,
-            ActionPlan::Split(_) => None,
+            ActionPlan::NoteReshape(_) => None,
             ActionPlan::ValidatorDefinition(_) => None,
             ActionPlan::ProposalSubmit(_) => None,
             ActionPlan::ValidatorVote(_) => None,

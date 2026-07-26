@@ -705,7 +705,7 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
                     });
                 }
             }
-            ActionPlan::Consolidate(_) | ActionPlan::Split(_) => {}
+            ActionPlan::NoteReshape(_) => {}
             _ => {}
         }
     }

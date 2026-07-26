@@ -134,5 +134,5 @@ COMPOSITE transfer-dleq safe-by-composition
   lean_lift: Shieldd.GnarkFormal.DleqBridge.dleq_sound
 FAMILY transfer undischarged-by-design
   note: whole-circuit Picus times out (Poseidon+Merkle+Decaf377); not retried
-FAMILY consolidate2x1 undischarged-by-design
+FAMILY note_reshape2x1 undischarged-by-design
 FAMILY shielded_ics20_withdrawal undischarged-by-design

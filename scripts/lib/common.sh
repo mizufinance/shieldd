@@ -43,13 +43,7 @@ export_demo_gnark_env() {
     export SHIELDD_GNARK_TRANSFER_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_transfer.${ext}"
     export SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/transfer"
 
-    export SHIELDD_GNARK_SPLIT_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_split.${ext}"
-    export SHIELDD_GNARK_SPLIT_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/split1x8"
-    export SHIELDD_GNARK_SPLIT1X8_ARTIFACT_DIR="$SHIELDD_GNARK_SPLIT_ARTIFACT_DIR"
-
-    export SHIELDD_GNARK_CONSOLIDATE_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_consolidate.${ext}"
-    export SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/consolidate2x1"
-    export SHIELDD_GNARK_CONSOLIDATE2X1_ARTIFACT_DIR="$SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR"
+    export SHIELDD_GNARK_NOTE_RESHAPE_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_note_reshape.${ext}"
 
     export SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_shielded_ics20_withdrawal.${ext}"
     export SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/shielded_ics20_withdrawal"
@@ -102,9 +96,8 @@ build_demo_gnark_libs() {
 
     (
         cd "$COMPLIANCE_REPO_ROOT/tools/gnark"
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_split.$(gnark_lib_ext)" ./cmd/splitlib
+        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_note_reshape.$(gnark_lib_ext)" ./cmd/note_reshapelib
         CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_transfer.$(gnark_lib_ext)" ./cmd/transferlib
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_consolidate.$(gnark_lib_ext)" ./cmd/consolidatelib
         CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_shielded_ics20_withdrawal.$(gnark_lib_ext)" ./cmd/shieldedics20withdrawallib
     )
 }
@@ -116,9 +109,8 @@ ensure_demo_gnark_libs() {
     local lib_path
 
     for spec in \
-        "split:shieldd_gnark_split_init" \
+        "note_reshape:shieldd_gnark_note_reshape_init" \
         "transfer:shieldd_gnark_transfer_init" \
-        "consolidate:shieldd_gnark_consolidate_init" \
         "shielded_ics20_withdrawal:shieldd_gnark_shielded_ics20_withdrawal_init"
     do
         local family="${spec%%:*}"
@@ -139,9 +131,8 @@ ensure_demo_gnark_libs() {
     fi
 
     for spec in \
-        "split:shieldd_gnark_split_init" \
+        "note_reshape:shieldd_gnark_note_reshape_init" \
         "transfer:shieldd_gnark_transfer_init" \
-        "consolidate:shieldd_gnark_consolidate_init" \
         "shielded_ics20_withdrawal:shieldd_gnark_shielded_ics20_withdrawal_init"
     do
         local family="${spec%%:*}"

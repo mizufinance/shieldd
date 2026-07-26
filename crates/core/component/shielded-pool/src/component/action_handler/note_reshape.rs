@@ -72,7 +72,7 @@ pub(crate) fn extract_public_parts<I, O>(
     inputs: &[I],
     outputs: &[O],
     input_parts: impl Fn(&I) -> (Nullifier, &VerificationKey<SpendAuth>),
-    output_note_payload: impl Fn(&O) -> &NotePayload,
+    output_parts: impl Fn(&O) -> &NotePayload,
 ) -> (
     Vec<NoteReshapeInputPublicParts>,
     Vec<NoteReshapeOutputPublicParts>,
@@ -87,7 +87,7 @@ pub(crate) fn extract_public_parts<I, O>(
     let outputs = outputs
         .iter()
         .map(|output| NoteReshapeOutputPublicParts {
-            note_commitment: output_note_payload(output).note_commitment,
+            note_commitment: output_parts(output).note_commitment,
         })
         .collect();
     (inputs, outputs)
@@ -136,6 +136,43 @@ where
     Ok(())
 }
 
+pub(crate) async fn execute_note_reshape<S, I, O>(
+    state: &mut S,
+    inputs: &[I],
+    outputs: &[O],
+    input_nullifier: impl Fn(&I) -> Nullifier,
+    output_note_payload: impl Fn(&O) -> &NotePayload,
+) -> Result<()>
+where
+    S: StateWrite,
+{
+    // Every input nullifier is proof-bound and must be persisted. Body-only
+    // padding sentinels are wallet metadata, not consensus authorization.
+    for input in inputs {
+        state
+            .check_nullifier_unspent(input_nullifier(input))
+            .await?;
+    }
+
+    let source = state
+        .get_current_source()
+        .ok_or_else(|| anyhow::anyhow!("source should be set during execution"))?;
+
+    for input in inputs {
+        let nullifier = input_nullifier(input);
+        state.nullify(nullifier, source.into()).await?;
+        state.record_proto(event::EventNullifierSpent { nullifier }.to_proto());
+    }
+    for output in outputs {
+        let note_payload = output_note_payload(output).clone();
+        let note_commitment = note_payload.note_commitment;
+        state.add_note_payload(note_payload, source.into()).await;
+        state.record_proto(event::EventNoteCreated { note_commitment }.to_proto());
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,6 +191,20 @@ mod tests {
             |_| false,
             |payload| payload,
             |_| true,
+        )
+        .await
+    }
+
+    async fn run_note_reshape_execute<S: StateWrite>(
+        state: &mut S,
+        nullifier: Nullifier,
+    ) -> Result<()> {
+        execute_note_reshape::<_, TestInput, NotePayload>(
+            state,
+            &[TestInput(nullifier)],
+            &[],
+            |input| input.0,
+            |payload| payload,
         )
         .await
     }
@@ -181,6 +232,27 @@ mod tests {
 
         // A distinct nullifier is still accepted after the rejection.
         run_execute(&mut state, Nullifier(Fq::from(43u64))).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn note_reshape_persists_real_nullifier_despite_dummy_body_sentinel() -> Result<()> {
+        let storage = TempStorage::new().await?;
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut state).await?;
+        shieldd_sdk_sct::component::clock::EpochManager::put_block_height(&mut state, 1);
+        state.put_current_source(Some(TransactionId([8u8; 32])));
+        let real_nullifier = Nullifier(Fq::from(44u64));
+
+        run_note_reshape_execute(&mut state, real_nullifier).await?;
+
+        let err = run_note_reshape_execute(&mut state, real_nullifier)
+            .await
+            .expect_err("a body sentinel must not suppress NoteReshape nullifier persistence");
+        assert!(
+            err.to_string().contains("already spent"),
+            "unexpected rejection reason: {err:#}"
+        );
         Ok(())
     }
 }

@@ -2,7 +2,7 @@ import ShielddGnarkFormal.Extracted.Deployed.StatementHash470_5c3d95
 import ShielddGnarkFormal.Poseidon7Bridge
 
 /-!
-Deployed-slice S-box bridge for the `consolidate2x1` statement hash
+Deployed-slice S-box bridge for the `note_reshape2x1` statement hash
 (`StatementHash470_5c3d95`, a width-8 / rate-7 Poseidon sponge).
 
 `p17_from_rows` reconstructs the closed degree-17 S-box `p17 x` from a deployed

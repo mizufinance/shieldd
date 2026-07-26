@@ -283,7 +283,7 @@ jobs:
         working-directory: tools/gnark
         run: |
           go test ./internal/abi/ -run TestRustGoStatementFieldDifferential -count=1
-          go test ./internal/primitives/ -run TestConsolidate2x1StatementSeamMatchesShielddVectors -count=1
+          go test ./internal/primitives/ -run TestNoteReshapeStatementSeamsMatchShielddVectors -count=1
       - name: Manifest pin
         run: bash scripts/check-manifest-pin.sh
 
@@ -308,7 +308,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for circuit in consolidate2x1 transfer; do
+          for circuit in note_reshape2x1 transfer; do
             echo "::group::vk-derivation $circuit"
             bash scripts/check-vk-derivation.sh "$circuit"
             echo "::endgroup::"
@@ -372,9 +372,24 @@ jobs:
           key: go-fv-${{ hashFiles('tools/gnark/go.sum') }}
           restore-keys: |
             go-fv-
+      # dev replaced the script's `stamps|full` modes with `drift|typed|release`
+      # plus a family list. Map the applicability tier onto that interface here
+      # rather than passing the tier through, so an unrecognised tier fails loudly
+      # instead of reaching the script as an unknown mode.
       - name: Run whole-circuit FV tier
         shell: bash
-        run: bash scripts/check-lean-circuit-fv.sh "${{ needs.applicability.outputs.soundness_tier }}"
+        env:
+          TIER: ${{ needs.applicability.outputs.soundness_tier }}
+        run: |
+          set -euo pipefail
+          case "$TIER" in
+            stamps) bash scripts/check-lean-circuit-fv.sh drift all ;;
+            full)   bash scripts/check-lean-circuit-fv.sh release all ;;
+            *)
+              echo "unsupported soundness tier: $TIER" >&2
+              exit 1
+              ;;
+          esac
 
   # ------------------------------------------------------------------ summary
 

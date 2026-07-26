@@ -10,8 +10,9 @@ use ibc_types::core::{
 use ibc_types::timestamp::Timestamp;
 use proptest::prelude::*;
 use proptest::strategy::ValueTree;
-use proptest::test_runner::{Config, TestRunner};
-use rand_core::OsRng;
+use proptest::test_runner::TestRunner;
+use rand::{rngs::StdRng, SeedableRng};
+use rand_core::{CryptoRng, Error as RandError, RngCore};
 use shieldd_sdk_asset::{asset::Id, Value, BASE_ASSET_DENOM};
 use shieldd_sdk_fee::Fee;
 use shieldd_sdk_governance::{
@@ -25,9 +26,8 @@ use shieldd_sdk_keys::{Address, FullViewingKey};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_shielded_pool::{
-    ConsolidateFamilyId, ConsolidatePlan, Ics20Withdrawal, Note, ShieldedIcs20WithdrawalFamilyId,
-    ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, SplitFamilyId, SplitPlan,
-    TransferPlan,
+    Ics20Withdrawal, Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalFamilyId,
+    ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
 };
 use shieldd_sdk_transaction::{
     check_transaction_plan_enabled, ActionPlan, TransactionParameters, TransactionPlan,
@@ -37,6 +37,39 @@ use std::io::Write;
 use std::str::FromStr;
 use std::{fs::File, io::Read};
 use tendermint;
+
+thread_local! {
+    static VECTOR_RNG: std::cell::RefCell<StdRng> = std::cell::RefCell::new(
+        StdRng::seed_from_u64(0x7368_6965_6c64_645f),
+    );
+}
+
+fn with_vector_rng<T>(f: impl FnOnce(&mut StdRng) -> T) -> T {
+    VECTOR_RNG.with(|rng| f(&mut rng.borrow_mut()))
+}
+
+struct OsRng;
+
+impl RngCore for OsRng {
+    fn next_u32(&mut self) -> u32 {
+        with_vector_rng(|rng| rng.next_u32())
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        with_vector_rng(|rng| rng.next_u64())
+    }
+
+    fn fill_bytes(&mut self, destination: &mut [u8]) {
+        with_vector_rng(|rng| rng.fill_bytes(destination));
+    }
+
+    fn try_fill_bytes(&mut self, destination: &mut [u8]) -> Result<(), RandError> {
+        self.fill_bytes(destination);
+        Ok(())
+    }
+}
+
+impl CryptoRng for OsRng {}
 
 fn amount_strategy() -> impl Strategy<Value = Amount> {
     let inner_uint_range = 0u128..1_000_000_000_000_000_000u128;
@@ -56,7 +89,7 @@ fn address_strategy() -> impl Strategy<Value = Address> {
     // normally we would use address::dummy, but this seems to not work properly
     // for some reason (invalid key errors on computing effecthash.)
     prop::strategy::LazyJust::new(|| {
-        let seed_phrase = SeedPhrase::generate(&mut OsRng);
+        let seed_phrase = with_vector_rng(|rng| SeedPhrase::generate(rng));
         let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
         let addr = sk.full_viewing_key().payment_address(0u32.into()).0;
 
@@ -65,15 +98,16 @@ fn address_strategy() -> impl Strategy<Value = Address> {
 }
 
 fn note_strategy(addr: Address) -> impl Strategy<Value = Note> {
-    value_strategy().prop_map(move |value| Note::generate(&mut OsRng, &addr, value))
+    value_strategy().prop_map(move |value| with_vector_rng(|rng| Note::generate(rng, &addr, value)))
 }
 
 fn spend_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ShieldedInputPlan> {
     let tct_strategy = any::<shieldd_sdk_tct::Position>();
     let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()).0);
 
-    (tct_strategy, note_strategy)
-        .prop_map(|(tct_pos, note)| ShieldedInputPlan::new(&mut OsRng, note, tct_pos))
+    (tct_strategy, note_strategy).prop_map(|(tct_pos, note)| {
+        with_vector_rng(|rng| ShieldedInputPlan::new(rng, note, tct_pos))
+    })
 }
 
 fn identity_key_strategy() -> impl Strategy<Value = IdentityKey> {
@@ -83,11 +117,11 @@ fn identity_key_strategy() -> impl Strategy<Value = IdentityKey> {
 }
 
 fn signing_key_strategy() -> impl Strategy<Value = SigningKey<SpendAuth>> {
-    prop::strategy::LazyJust::new(|| SigningKey::<SpendAuth>::new(OsRng))
+    prop::strategy::LazyJust::new(|| with_vector_rng(|rng| SigningKey::<SpendAuth>::new(rng)))
 }
 
 fn consensus_secret_key_strategy() -> impl Strategy<Value = Ed25519SigningKey> {
-    prop::strategy::LazyJust::new(|| Ed25519SigningKey::new(OsRng))
+    prop::strategy::LazyJust::new(|| with_vector_rng(|rng| Ed25519SigningKey::new(rng)))
 }
 
 fn validator_strategy() -> impl Strategy<Value = (validator::Validator, SigningKey<SpendAuth>)> {
@@ -297,7 +331,9 @@ fn transfer_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Transfe
         })
 }
 
-fn consolidate_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ConsolidatePlan> {
+fn note_reshape_two_to_one_plan_strategy(
+    fvk: &FullViewingKey,
+) -> impl Strategy<Value = NoteReshapePlan> {
     let addr = fvk.incoming().payment_address(0u32.into()).0;
     (
         note_strategy(addr.clone()),
@@ -315,8 +351,8 @@ fn consolidate_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Cons
                 },
                 addr.clone(),
             );
-            ConsolidatePlan::new(
-                ConsolidateFamilyId::TwoByOne,
+            NoteReshapePlan::new(
+                NoteReshapeFamilyId::TwoByOne,
                 vec![
                     ShieldedInputPlan::new(&mut OsRng, note_1, pos_1).into(),
                     ShieldedInputPlan::new(&mut OsRng, note_2, pos_2).into(),
@@ -324,11 +360,13 @@ fn consolidate_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Cons
                 vec![output.into()],
                 Fr::rand(&mut OsRng),
             )
-            .expect("valid consolidate plan")
+            .expect("valid note reshape plan")
         })
 }
 
-fn split_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = SplitPlan> {
+fn note_reshape_one_to_eight_plan_strategy(
+    fvk: &FullViewingKey,
+) -> impl Strategy<Value = NoteReshapePlan> {
     let addr = fvk.incoming().payment_address(0u32.into()).0;
     (
         note_strategy(addr.clone()),
@@ -357,21 +395,21 @@ fn split_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = SplitPlan>
                 addr.clone(),
             ));
 
-            SplitPlan::new(
-                SplitFamilyId::OneByEight,
+            NoteReshapePlan::new(
+                NoteReshapeFamilyId::OneByEight,
                 vec![ShieldedInputPlan::new(&mut OsRng, note, position).into()],
                 outputs,
                 Fr::rand(&mut OsRng),
             )
-            .expect("valid split plan")
+            .expect("valid note reshape plan")
         })
 }
 
 fn action_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ActionPlan> {
     prop_oneof![
         transfer_plan_strategy(fvk).prop_map(ActionPlan::Transfer),
-        consolidate_plan_strategy(fvk).prop_map(ActionPlan::Consolidate),
-        split_plan_strategy(fvk).prop_map(ActionPlan::Split),
+        note_reshape_two_to_one_plan_strategy(fvk).prop_map(ActionPlan::NoteReshape),
+        note_reshape_one_to_eight_plan_strategy(fvk).prop_map(ActionPlan::NoteReshape),
         validator_definition_strategy().prop_map(ActionPlan::ValidatorDefinition),
         proposal_submit_strategy().prop_map(ActionPlan::ProposalSubmit),
         ibc_action_strategy().prop_map(ActionPlan::IbcAction),
@@ -414,7 +452,7 @@ fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Tran
 #[ignore]
 fn generate_transaction_signing_test_vectors() {
     // Run this to regenerate the `EffectHash` test vectors. Ignored by default.
-    let mut runner = TestRunner::new(Config::default());
+    let mut runner = TestRunner::deterministic();
     let test_vectors_dir = "tests/signing_test_vectors";
     std::fs::create_dir_all(test_vectors_dir).expect("failed to create test vectors dir");
 
@@ -478,6 +516,12 @@ fn effect_hash_test_vectors() {
 
     let mut supported_vectors = 0;
     for i in 0..100 {
+        let json_file_path = format!("{}/transaction_plan_{}.json", test_vectors_dir, i);
+        let json_plan: TransactionPlan = serde_json::from_str(
+            &std::fs::read_to_string(&json_file_path)
+                .expect("should be able to read JSON transaction plan"),
+        )
+        .expect("JSON transaction plan should match the current action schema");
         let proto_file_path = format!("{}/transaction_plan_{}.proto", test_vectors_dir, i);
         let mut proto_file = File::open(&proto_file_path).expect("Failed to open Protobuf file");
         let mut transaction_plan_encoded = Vec::<u8>::new();
@@ -487,6 +531,11 @@ fn effect_hash_test_vectors() {
         let Ok(transaction_plan) = TransactionPlan::decode(&transaction_plan_encoded[..]) else {
             continue;
         };
+        assert_eq!(
+            json_plan.encode_to_vec(),
+            transaction_plan_encoded,
+            "JSON/protobuf vector {i} drifted"
+        );
 
         if check_transaction_plan_enabled(&transaction_plan).is_err() {
             continue;
@@ -501,8 +550,10 @@ fn effect_hash_test_vectors() {
 
         let hash_file_path = format!("{}/effect_hash_{}.txt", test_vectors_dir, i);
         let expected_effect_hash = std::fs::read_to_string(&hash_file_path)
-            .expect("should be able to read expected effect hash");
-        assert_eq!(effect_hash_hex, expected_effect_hash);
+            .expect("should be able to read expected effect hash")
+            .trim()
+            .to_owned();
+        assert_eq!(effect_hash_hex, expected_effect_hash, "vector {i}");
         supported_vectors += 1;
     }
 

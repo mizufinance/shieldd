@@ -7,7 +7,7 @@ set -uo pipefail
 # finite-field SMT system) is a known scaling wall: the gadget-scope check
 # (scripts/circuit-constraint-check.sh) is what actually discharges
 # under-constraint, leaf by leaf, with the composition lift argued in
-# docs/soundness and — for consolidate2x1 — mechanized in Lean. This runner
+# docs/soundness and — for note_reshape2x1 — mechanized in Lean. This runner
 # exists so the whole-circuit attempt is made honestly with a real multi-hour
 # budget instead of the 180 s watchdog, and the outcome is recorded verbatim.
 #
@@ -53,11 +53,11 @@ mkdir -p "$WORK_DIR"
 
 families=("$@")
 if [ "${#families[@]}" -eq 0 ]; then
-  # The two Lean-proved deployed circuits. The split families were dropped: their
+  # The two Lean-proved deployed circuit families. Earlier standalone reshape paths were dropped: their
   # whole-circuit Picus attempts only ever walled out and they have no Lean
   # composition to cross-check against. Keep this default in sync with the
   # nightly invocation in .github/workflows/formal.yml.
-  families=(consolidate2x1 transfer)
+  families=(note_reshape2x1 transfer)
 fi
 
 cvc5_version="$("$PICUS_SOLVER" --version 2>/dev/null | head -1 | awk '{print $2}')"

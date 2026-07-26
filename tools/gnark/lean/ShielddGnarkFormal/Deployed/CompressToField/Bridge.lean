@@ -10,6 +10,9 @@ set_option maxHeartbeats 20000000
 namespace Shieldd.GnarkFormal.Extracted.DecafCompressToField
 
 open Shieldd.GnarkFormal.DeployedGadgets
+attribute [-instance] ZMod.instField
+local instance : CommRing F := ZMod.commRing _
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 private theorem modlit_eq : (8444461749428370424248824938781546531375899335154063827935233455917409236019 : F) = -3022 := by decide
 private theorem zeta_eq : (2841681278031794617739547238867782961338435681360110683443920362658525667816 : F) = -(5602780471396575806509277699913763570037463653793953144491313093258883571225 : F) := by decide

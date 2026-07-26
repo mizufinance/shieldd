@@ -106,8 +106,8 @@ func (c *TransferCircuit) bindWiringTrace(api frontend.API) {
 	}
 }
 
-func noteReshapeCircuitWithTranscript(nIn int, transcript *WiringTranscript) frontend.Circuit {
-	circuit := NewConsolidateCircuit(nIn)
+func noteReshapeCircuitWithTranscript(label string, nIn, nOut int, transcript *WiringTranscript) frontend.Circuit {
+	circuit := NewNoteReshapeCircuit(label, nIn, nOut)
 	circuit.wiringTrace = transcript
 	return circuit
 }
@@ -118,18 +118,23 @@ func transferCircuitWithTranscript(transcript *WiringTranscript) frontend.Circui
 	return circuit
 }
 
-// ExportConsolidate2x1WiringTranscript returns the canonical transcript for the
-// checked-in consolidate2x1 Define path.
-func ExportConsolidate2x1WiringTranscript() (string, error) {
-	transcript := newWiringTranscript("consolidate2x1", 2, 1)
+// ExportNoteReshapeWiringTranscript returns the canonical transcript for a
+// registered NoteReshape family.
+func ExportNoteReshapeWiringTranscript(label string, nIn, nOut int) (string, error) {
+	transcript := newWiringTranscript(label, nIn, nOut)
 	if _, err := frontend.Compile(
 		ecc.BLS12_377.ScalarField(),
 		r1cs.NewBuilder,
-		noteReshapeCircuitWithTranscript(2, transcript),
+		noteReshapeCircuitWithTranscript(label, nIn, nOut, transcript),
 	); err != nil {
-		return "", fmt.Errorf("compile consolidate2x1 for wiring transcript: %w", err)
+		return "", fmt.Errorf("compile %s for wiring transcript: %w", label, err)
 	}
 	return transcript.canonical()
+}
+
+// ExportNoteReshape2x1WiringTranscript retains the focused test entry point.
+func ExportNoteReshape2x1WiringTranscript() (string, error) {
+	return ExportNoteReshapeWiringTranscript("note_reshape2x1", 2, 1)
 }
 
 // ExportTransferWiringTranscript returns the canonical transcript for the
@@ -205,18 +210,45 @@ func WriteConstraintManifest(path string, manifest *ConstraintManifest) error {
 	return nil
 }
 
-func ExportConsolidate2x1ConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
-	transcript := newWiringTranscript("consolidate2x1", 2, 1)
+func ExportNoteReshapeConstraintManifest(label string, nIn, nOut int, sr1csPath string) (*ConstraintManifest, error) {
+	_, manifest, err := CompileNoteReshapeForFV(label, nIn, nOut)
+	if err != nil {
+		return nil, err
+	}
+	if sr1csPath != "" {
+		hash, err := sha256HexFile(sr1csPath)
+		if err != nil {
+			return nil, err
+		}
+		manifest.SR1CSSHA256Hex = hash
+	}
+	return manifest, nil
+}
+
+// CompileNoteReshapeForFV compiles one NoteReshape circuit once and returns
+// both the compiled constraint system and its semantic manifest. The FV
+// command uses this pair to emit SR1CS and manifest bytes without a second
+// frontend compile.
+func CompileNoteReshapeForFV(label string, nIn, nOut int) (constraint.ConstraintSystem, *ConstraintManifest, error) {
+	transcript := newWiringTranscript(label, nIn, nOut)
 	transcript.recordCounts = true
 	ccs, err := frontend.Compile(
 		ecc.BLS12_377.ScalarField(),
 		r1cs.NewBuilder,
-		noteReshapeCircuitWithTranscript(2, transcript),
+		noteReshapeCircuitWithTranscript(label, nIn, nOut, transcript),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("compile consolidate2x1 for constraint manifest: %w", err)
+		return nil, nil, fmt.Errorf("compile %s for FV artifacts: %w", label, err)
 	}
-	return transcript.constraintManifest(ccs, sr1csPath)
+	manifest, err := transcript.constraintManifest(ccs, "")
+	if err != nil {
+		return nil, nil, fmt.Errorf("manifest %s for FV artifacts: %w", label, err)
+	}
+	return ccs, manifest, nil
+}
+
+func ExportNoteReshape2x1ConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
+	return ExportNoteReshapeConstraintManifest("note_reshape2x1", 2, 1, sr1csPath)
 }
 
 func ExportTransferConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {

@@ -33,8 +33,8 @@ fixed overhead — an economic question we will eventually face too.)
 
 ## Why Shieldd needs something Filecoin doesn't
 
-- **Heterogeneous proofs.** A block mixes families — `Transfer`, `Consolidate`
-  (`*_BY_ONE`), `Split` (`ONE_BY_*`), `ShieldedIcs20Withdrawal`
+- **Heterogeneous proofs.** A block mixes families — `Transfer`, `NoteReshape`
+  (1→8, 2→1, 4→1, or 8→1), `ShieldedIcs20Withdrawal`
   ([bundle.rs](../../crates/crypto/proof-aggregation/src/bundle.rs)) — each a
   distinct VK. You cannot "aggregate the block"; you aggregate per `(family,
   subfamily)` bucket.

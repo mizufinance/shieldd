@@ -1,11 +1,13 @@
 import ShielddGnarkFormal.DtkBridge
 import ShielddGnarkFormal.Deployed.Dtk.Ladder
 import ShielddGnarkFormal.Deployed.Dtk.LtConst
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 /-! Shared composition from a deployed DTK prefix to the extracted circuit. -/
 
 namespace Shieldd.GnarkFormal.Deployed.Dtk
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.DtkBridge
 open Shieldd.GnarkFormal.ScalarMulBridge (finalKWithOutputCurve)
 

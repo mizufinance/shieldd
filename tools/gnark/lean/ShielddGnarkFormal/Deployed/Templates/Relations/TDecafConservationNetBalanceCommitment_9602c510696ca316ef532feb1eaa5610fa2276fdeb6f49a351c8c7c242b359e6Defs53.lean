@@ -1,0 +1,172 @@
+import ShielddGnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_9602c510696ca316ef532feb1eaa5610fa2276fdeb6f49a351c8c7c242b359e6Defs52
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 50000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_9602c510696ca316ef532feb1eaa5610fa2276fdeb6f49a351c8c7c242b359e6
+
+variable {F : Type} [CommRing F]
+
+def relationLc1065 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (2780335827837733432131378289849803592677100462025226270565671679486408496448 : F), runs := [⟨(2780335827837733432131378289849803592677100462025226270565671679486408496448 : F), 644, 5, 149⟩, ⟨(2780335827837733432131378289849803592677100462025226270565671679486408496448 : F), 1392, 8, 37⟩, ⟨(5857330323405339132413122048092440975185281451019032951464131125804884483021 : F), 643, 5, 149⟩, ⟨(5857330323405339132413122048092440975185281451019032951464131125804884483021 : F), 1391, 8, 37⟩], residual := [((6819199156813331884621835433948504583448041257185312269929963618207072800797 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1685 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1065 rho) = ((1 : F) * rho 1685)
+
+def relationRow1686 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 1686) * ((1 : F) + (-1 : F) * rho 1682) = ((8251257347613668283953149539620848494889416757263868433840664106543525498613 : F) * rho 1681 + (1 : F) * rho 1685)
+
+def relationLc1066 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (0 : F), runs := [⟨(-1 : F), 643, 5, 149⟩, ⟨(-1 : F), 1391, 8, 37⟩], residual := [((1 : F), 1684), ((3782780146720179662705280233507301717115018348286297112601203304873130087822 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1687 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 575) * (relationLc1066 rho) = ((1 : F) * rho 1687)
+
+def relationLc1067 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (-1 : F), runs := [⟨(-1 : F), 644, 5, 149⟩, ⟨(-1 : F), 1392, 8, 37⟩], residual := [((1 : F), 1686), ((4107124906918471747900842186134774287194237746620146206217253999774542118664 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1688 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 575) * (relationLc1067 rho) = ((1 : F) * rho 1688)
+
+def relationLc1068 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (1 : F), runs := [⟨(1 : F), 643, 5, 149⟩, ⟨(1 : F), 644, 5, 149⟩, ⟨(1 : F), 1391, 8, 38⟩, ⟨(1 : F), 1392, 8, 38⟩], residual := [((554556695789719013642702519139470527066643240247620509116776151269737032555 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1689 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1068 rho) = ((1 : F) * rho 1689)
+
+def relationLc1069 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (0 : F), runs := [⟨(6922811000887993217579984030095195121464617178287420021988095849235860064564 : F), 643, 5, 149⟩, ⟨(6922811000887993217579984030095195121464617178287420021988095849235860064564 : F), 1391, 8, 38⟩], residual := [((14303776005448437087817101055051617761828693284628317724679631503107821478 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationLc1070 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (4566659702402280241611209257404082758933800362364907704264911919510596352786 : F), runs := [⟨(4566659702402280241611209257404082758933800362364907704264911919510596352786 : F), 644, 5, 149⟩, ⟨(4566659702402280241611209257404082758933800362364907704264911919510596352786 : F), 1392, 8, 38⟩], residual := [((566254701759488235120972677527957762407484274840097124827533952264695348694 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1690 (rho : Nat -> F) : Prop :=
+    (relationLc1069 rho) * (relationLc1070 rho) = ((1 : F) * rho 1690)
+
+def relationLc1071 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (4566659702402280241611209257404082758933800362364907704264911919510596352786 : F), runs := [⟨(4566659702402280241611209257404082758933800362364907704264911919510596352786 : F), 644, 5, 149⟩, ⟨(4566659702402280241611209257404082758933800362364907704264911919510596352786 : F), 1392, 8, 38⟩, ⟨(6087559099472509237605849677509937766940350039658617799879838242099118097801 : F), 643, 5, 149⟩, ⟨(6087559099472509237605849677509937766940350039658617799879838242099118097801 : F), 1391, 8, 38⟩], residual := [((7663408851238017846377131014723390299574372802032898411634975999337123407531 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1691 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1071 rho) = ((1 : F) * rho 1691)
+
+def relationRow1692 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 1692) * ((1 : F) + (1 : F) * rho 1690) = ((1 : F) * rho 1691)
+
+def relationLc1072 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (3877802047026090182637615681377463772442098972789156123670321536406812886255 : F), runs := [⟨(2356902649955861186642975261271608764435549295495446028055395213818291141240 : F), 643, 5, 149⟩, ⟨(2356902649955861186642975261271608764435549295495446028055395213818291141240 : F), 1391, 8, 38⟩, ⟨(3877802047026090182637615681377463772442098972789156123670321536406812886255 : F), 644, 5, 149⟩, ⟨(3877802047026090182637615681377463772442098972789156123670321536406812886255 : F), 1392, 8, 38⟩], residual := [((781052898190352577871693924058156231801526533121165416300257456580285831510 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1693 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1072 rho) = ((1 : F) * rho 1693)
+
+def relationRow1694 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 1694) * ((1 : F) + (-1 : F) * rho 1690) = ((2209757052446419054968233996132473994498251066869461676209516705692305211546 : F) * rho 1689 + (1 : F) * rho 1693)
+
+def relationLc1073 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (0 : F), runs := [⟨(-1 : F), 643, 5, 149⟩, ⟨(-1 : F), 1391, 8, 38⟩], residual := [((1 : F), 1692), ((3782780146720179662705280233507301717115018348286297112601203304873130087822 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1695 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 576) * (relationLc1073 rho) = ((1 : F) * rho 1695)
+
+def relationLc1074 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (-1 : F), runs := [⟨(-1 : F), 644, 5, 149⟩, ⟨(-1 : F), 1392, 8, 38⟩], residual := [((1 : F), 1694), ((4107124906918471747900842186134774287194237746620146206217253999774542118664 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1696 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 576) * (relationLc1074 rho) = ((1 : F) * rho 1696)
+
+def relationLc1075 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (1 : F), runs := [⟨(1 : F), 643, 5, 149⟩, ⟨(1 : F), 644, 5, 149⟩, ⟨(1 : F), 1391, 8, 39⟩, ⟨(1 : F), 1392, 8, 39⟩], residual := [((554556695789719013642702519139470527066643240247620509116776151269737032555 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1697 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1075 rho) = ((1 : F) * rho 1697)
+
+def relationLc1076 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (0 : F), runs := [⟨(6524314985460573496601737361348284694458658975715625217606691023570314861904 : F), 643, 5, 149⟩, ⟨(6524314985460573496601737361348284694458658975715625217606691023570314861904 : F), 1391, 8, 39⟩], residual := [((3891133338582028720854362833555171518308555506521266766552101859987109084684 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationLc1077 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (3309409805907718488973225867968294079518603536308582507670435458888150009119 : F), runs := [⟨(3309409805907718488973225867968294079518603536308582507670435458888150009119 : F), 644, 5, 149⟩, ⟨(3309409805907718488973225867968294079518603536308582507670435458888150009119 : F), 1392, 8, 39⟩], residual := [((1595464300149660764758530111730061010614402182284645456524319626499860751122 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1698 (rho : Nat -> F) : Prop :=
+    (relationLc1076 rho) * (relationLc1077 rho) = ((1 : F) * rho 1698)
+
+def relationLc1078 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (3309409805907718488973225867968294079518603536308582507670435458888150009119 : F), runs := [⟨(3309409805907718488973225867968294079518603536308582507670435458888150009119 : F), 644, 5, 149⟩, ⟨(3309409805907718488973225867968294079518603536308582507670435458888150009119 : F), 1392, 8, 39⟩, ⟨(6512305769415470139547207884734713722697427411635064641005880638813378494733 : F), 643, 5, 149⟩, ⟨(6512305769415470139547207884734713722697427411635064641005880638813378494733 : F), 1391, 8, 39⟩], residual := [((654751795608522464774750025157460544028712172208379900997136053913240491449 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1699 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1078 rho) = ((1 : F) * rho 1699)
+
+def relationRow1700 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 1700) * ((1 : F) + (1 : F) * rho 1698) = ((1 : F) * rho 1699)
+
+def relationLc1079 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (5135051943520651935275599070813252451857295798845481320264797997029259229922 : F), runs := [⟨(1932155980012900284701617054046832808678471923518999186929352817104030744308 : F), 643, 5, 149⟩, ⟨(1932155980012900284701617054046832808678471923518999186929352817104030744308 : F), 1391, 8, 39⟩, ⟨(5135051943520651935275599070813252451857295798845481320264797997029259229922 : F), 644, 5, 149⟩, ⟨(5135051943520651935275599070813252451857295798845481320264797997029259229922 : F), 1392, 8, 39⟩], residual := [((7789709953819847959474074913624085987347187162945683926938097402004168747592 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1701 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1079 rho) = ((1 : F) * rho 1701)
+
+def relationRow1702 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 1702) * ((1 : F) + (-1 : F) * rho 1698) = ((1377253825894818204271608813921461270840131612789583320741082641784119264811 : F) * rho 1697 + (1 : F) * rho 1701)
+
+def relationLc1080 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (0 : F), runs := [⟨(-1 : F), 643, 5, 149⟩, ⟨(-1 : F), 1391, 8, 39⟩], residual := [((1 : F), 1700), ((3782780146720179662705280233507301717115018348286297112601203304873130087822 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1703 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 577) * (relationLc1080 rho) = ((1 : F) * rho 1703)
+
+def relationLc1081 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (-1 : F), runs := [⟨(-1 : F), 644, 5, 149⟩, ⟨(-1 : F), 1392, 8, 39⟩], residual := [((1 : F), 1702), ((4107124906918471747900842186134774287194237746620146206217253999774542118664 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1704 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 577) * (relationLc1081 rho) = ((1 : F) * rho 1704)
+
+def relationLc1082 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (1 : F), runs := [⟨(1 : F), 643, 5, 149⟩, ⟨(1 : F), 644, 5, 149⟩, ⟨(1 : F), 1391, 8, 40⟩, ⟨(1 : F), 1392, 8, 40⟩], residual := [((554556695789719013642702519139470527066643240247620509116776151269737032555 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1705 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1082 rho) = ((1 : F) * rho 1705)
+
+def relationLc1083 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (0 : F), runs := [⟨(5729468442223483610334665510447873755812178000459621932461328396501842032958 : F), 643, 5, 149⟩, ⟨(5729468442223483610334665510447873755812178000459621932461328396501842032958 : F), 1391, 8, 40⟩], residual := [((1112625066972103949522459514677280838014191752531931313897279597522496570843 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationLc1084 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (1733147509875631577792697947482857006578485467535195501665039803780509949475 : F), runs := [⟨(1733147509875631577792697947482857006578485467535195501665039803780509949475 : F), 644, 5, 149⟩, ⟨(1733147509875631577792697947482857006578485467535195501665039803780509949475 : F), 1392, 8, 40⟩], residual := [((7981065069239516003763237396880700992551856433791312584204101158303106282225 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1706 (rho : Nat -> F) : Prop :=
+    (relationLc1083 rho) * (relationLc1084 rho) = ((1 : F) * rho 1706)
+
+def relationLc1085 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (1733147509875631577792697947482857006578485467535195501665039803780509949475 : F), runs := [⟨(1733147509875631577792697947482857006578485467535195501665039803780509949475 : F), 644, 5, 149⟩, ⟨(1733147509875631577792697947482857006578485467535195501665039803780509949475 : F), 1392, 8, 40⟩, ⟨(222721597698465656115852974403902697694309243786041265918353118640839845057 : F), 643, 5, 149⟩, ⟨(222721597698465656115852974403902697694309243786041265918353118640839845057 : F), 1391, 8, 40⟩], residual := [((657868393160284488509215920517584596866043104975981469382381735957495653388 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1707 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1085 rho) = ((1 : F) * rho 1707)
+
+def relationRow1708 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 1708) * ((1 : F) + (1 : F) * rho 1706) = ((1 : F) * rho 1707)
+
+def relationLc1086 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (6711314239552738846456126991298689524797413867618868326270193652136899289566 : F), runs := [⟨(6711314239552738846456126991298689524797413867618868326270193652136899289566 : F), 644, 5, 149⟩, ⟨(6711314239552738846456126991298689524797413867618868326270193652136899289566 : F), 1392, 8, 40⟩, ⟨(8221740151729904768132971964377643833681590091368022562016880337276569393984 : F), 643, 5, 149⟩, ⟨(8221740151729904768132971964377643833681590091368022562016880337276569393984 : F), 1391, 8, 40⟩], residual := [((7786593356268085935739609018263961934509856230178082358552851719959913585653 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1709 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1086 rho) = ((1 : F) * rho 1709)
+
+def relationRow1710 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 1710) * ((1 : F) + (-1 : F) * rho 1706) = ((1955869107574097233908550921886759704272794711321236767583392922421349794532 : F) * rho 1705 + (1 : F) * rho 1709)
+
+def relationLc1087 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (0 : F), runs := [⟨(-1 : F), 643, 5, 149⟩, ⟨(-1 : F), 1391, 8, 40⟩], residual := [((1 : F), 1708), ((3782780146720179662705280233507301717115018348286297112601203304873130087822 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1711 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 578) * (relationLc1087 rho) = ((1 : F) * rho 1711)
+
+def relationLc1088 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (-1 : F), runs := [⟨(-1 : F), 644, 5, 149⟩, ⟨(-1 : F), 1392, 8, 40⟩], residual := [((1 : F), 1710), ((4107124906918471747900842186134774287194237746620146206217253999774542118664 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1712 (rho : Nat -> F) : Prop :=
+    ((1 : F) * rho 578) * (relationLc1088 rho) = ((1 : F) * rho 1712)
+
+def relationLc1089 (rho : Nat -> F) : F :=
+    Shieldd.GnarkFormal.StructuredLC.eval rho (({ const := (1 : F), runs := [⟨(1 : F), 643, 5, 149⟩, ⟨(1 : F), 644, 5, 149⟩, ⟨(1 : F), 1391, 8, 41⟩, ⟨(1 : F), 1392, 8, 41⟩], residual := [((554556695789719013642702519139470527066643240247620509116776151269737032555 : F), 388)] } : Shieldd.GnarkFormal.StructuredLC F))
+
+def relationRow1713 (rho : Nat -> F) : Prop :=
+    ((1 : F)) * (relationLc1089 rho) = ((1 : F) * rho 1713)
+
+end Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafConservationNetBalanceCommitment_9602c510696ca316ef532feb1eaa5610fa2276fdeb6f49a351c8c7c242b359e6

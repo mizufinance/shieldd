@@ -135,19 +135,27 @@ while IFS= read -r target; do
 done <"$FORMAL_DIR/hax-targets.txt"
 
 pushd "$CRATE_DIR" >/dev/null
+rm -rf proofs/fstar
+mkdir -p proofs/fstar/extraction
 cargo hax into -i "-** ${include_args[*]}" fstar \
   || fail "hax extraction failed for shielded-pool statement boundary"
 
 full_extraction_sha="$(find proofs/fstar/extraction -name '*.fst' -type f -print0 | sort -z | xargs -0 shasum -a 256 | shasum -a 256 | awk '{print $1}')"
 
 count_include_args=(
-  +shieldd_sdk_shielded_pool::public_input_hash::consolidate_statement_field_count
-  +shieldd_sdk_shielded_pool::public_input_hash::split_statement_field_count
+  +shieldd_sdk_shielded_pool::public_input_hash::note_reshape_statement_field_count
   +shieldd_sdk_shielded_pool::public_input_hash::transfer_statement_field_count
   +shieldd_sdk_shielded_pool::public_input_hash::shielded_ics20_withdrawal_statement_field_count
 )
 cargo hax into -i "-** ${count_include_args[*]}" fstar \
   || fail "hax extraction failed for shielded-pool statement field-count boundary"
+
+cat > proofs/fstar/extraction/Anyhow.fst <<'FSTAR'
+module Anyhow
+#set-options "--fuel 0 --ifuel 1 --z3rlimit 15"
+
+type t_Error = | Error : t_Error
+FSTAR
 popd >/dev/null
 
 prepare_fstar_inputs "$(find_hax_proof_libs)"

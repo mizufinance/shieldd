@@ -6,7 +6,7 @@ set -euo pipefail
 # an isolated temp dir with a FRESH artifact, then reports wall time, peak RSS,
 # and produced .olean size and checks them against budgets.
 #
-#   scripts/lean-leaf-bench.sh <FILE.lean|Module.Name> [leaf|aggregator|contract|import|expect-fail]
+#   scripts/lean-leaf-bench.sh <FILE.lean|Module.Name> [leaf|aggregator|contract|import|audit|expect-fail]
 #
 # Budget tiers (default: leaf):
 #   leaf        < 60s  / < 2GB RSS / < 10MB olean   (a single proof leaf)
@@ -16,6 +16,8 @@ set -euo pipefail
 #                measures the cost of loading upstream oleans, reported but not
 #                budget-checked, so leaf/aggregator marginal cost can be read
 #                net of it)
+#   audit       < 180s / no olean cap                 (guarded axiom/report import;
+#                BENCH_HARD_RSS_MB remains an absolute kill ceiling)
 #   expect-fail < 60s  / no olean cap                 (requires Lean to reject the
 #                module; BENCH_EXPECT_ERROR optionally matches the diagnostic)
 #
@@ -48,7 +50,7 @@ set -m  # job control: each background job gets its own process group
 
 fail() { echo "lean-leaf-bench failed: $*" >&2; exit 1; }
 
-[[ "$#" -ge 1 ]] || fail "usage: $(basename "$0") <FILE.lean|Module.Name> [leaf|aggregator|contract|import|expect-fail]"
+[[ "$#" -ge 1 ]] || fail "usage: $(basename "$0") <FILE.lean|Module.Name> [leaf|aggregator|contract|import|audit|expect-fail]"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LEAN_DIR="$ROOT/tools/gnark/lean"
@@ -60,8 +62,9 @@ case "$TIER" in
   aggregator) MAX_SECS=120; MAX_RSS_KB=$((4*1024*1024)); MAX_OLEAN=$((50*1024*1024)); CHECK_SIZE=1 ;;
   contract)   MAX_SECS=180; MAX_RSS_KB=$((8*1024*1024)); MAX_OLEAN=$((256*1024*1024)); CHECK_SIZE=1 ;;
   import)     MAX_SECS=30;  MAX_RSS_KB=0;                MAX_OLEAN=0;                 CHECK_SIZE=0 ;;
+  audit)      MAX_SECS=180; MAX_RSS_KB=0;                MAX_OLEAN=0;                 CHECK_SIZE=0 ;;
   expect-fail) MAX_SECS=60; MAX_RSS_KB=0;                MAX_OLEAN=0;                 CHECK_SIZE=0 ;;
-  *) fail "unknown tier '$TIER' (expected leaf|aggregator|contract|import|expect-fail)" ;;
+  *) fail "unknown tier '$TIER' (expected leaf|aggregator|contract|import|audit|expect-fail)" ;;
 esac
 
 # Resolve module name -> source file path (relative to LEAN_DIR).

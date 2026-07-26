@@ -99,7 +99,7 @@ type DLEQFixture struct {
 	DleqS             string `json:"dleq_s"`
 }
 
-type ConsolidateStatementFixture struct {
+type NoteReshapeStatementFixture struct {
 	Label         string   `json:"label"`
 	Domain        string   `json:"domain"`
 	FieldRoles    []string `json:"field_roles"`
@@ -108,12 +108,12 @@ type ConsolidateStatementFixture struct {
 }
 
 type PrototypeVectors struct {
-	Decaf377CompanionCurve CurveVectors                `json:"decaf377_companion_curve"`
-	Poseidon377            PoseidonVectors             `json:"poseidon377"`
-	Decaf377Compress       []DecafCompressVector       `json:"decaf377_compress_vectors"`
-	Decaf377Encode         []DecafEncodeVector         `json:"decaf377_encode_vectors"`
-	DleqFixture            DLEQFixture                 `json:"dleq_fixture"`
-	Consolidate2x1Stmt     ConsolidateStatementFixture `json:"consolidate2x1_statement"`
+	Decaf377CompanionCurve CurveVectors                  `json:"decaf377_companion_curve"`
+	Poseidon377            PoseidonVectors               `json:"poseidon377"`
+	Decaf377Compress       []DecafCompressVector         `json:"decaf377_compress_vectors"`
+	Decaf377Encode         []DecafEncodeVector           `json:"decaf377_encode_vectors"`
+	DleqFixture            DLEQFixture                   `json:"dleq_fixture"`
+	NoteReshapeStatements  []NoteReshapeStatementFixture `json:"note_reshape_statements"`
 }
 
 type SpendPublicFixture struct {

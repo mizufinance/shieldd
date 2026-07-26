@@ -11,9 +11,9 @@ use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::EffectingData;
 
-use crate::note_reshape::dummy_spend_auth_sig;
-use crate::note_reshape::dummy_state_commitment_proof;
-use crate::note_reshape::{pad_to_len, HiddenArityPadder};
+use crate::note_reshape_padding::dummy_spend_auth_sig;
+use crate::note_reshape_padding::dummy_state_commitment_proof;
+use crate::note_reshape_padding::{pad_to_len, HiddenArityPadder};
 use crate::{
     Ics20Withdrawal, ShieldedIcs20WithdrawalChangeBody, ShieldedInputPlan, ShieldedOutputPlan,
     TransferInputBody,

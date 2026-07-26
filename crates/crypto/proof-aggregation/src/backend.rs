@@ -20,7 +20,7 @@ use ark_serialize::CanonicalSerialize;
 use decaf377::{Bls12_377, Fq};
 use digest::Digest;
 use shieldd_sdk_proof_params::batch::BatchItem;
-use shieldd_sdk_shielded_pool::{ConsolidateFamilyId, SplitFamilyId};
+use shieldd_sdk_shielded_pool::NoteReshapeFamilyId;
 
 use crate::{
     aggregate_proof_wrapper::{
@@ -32,9 +32,7 @@ use crate::{
     srs::DevSrs,
     statement::{AggregateStatement, AggregateStatementError},
     strict_deserialize::deserialize_compressed_strict,
-    transcript::{
-        ConsolidateTranscriptDigest, ShieldedIcs20WithdrawalTranscriptDigest, SplitTranscriptDigest,
-    },
+    transcript::{NoteReshapeTranscriptDigest, ShieldedIcs20WithdrawalTranscriptDigest},
     transfer_family_dispatch::{
         aggregate_transfer, aggregate_transfer_profiled, verify_transfer_aggregate,
         verify_transfer_aggregate_profiled_status,
@@ -275,54 +273,70 @@ impl SnarkpackBackend {
         aggregate_transfer_profiled(items, srs, challenge_context)
     }
 
-    fn aggregate_split_family_profiled(
-        family_id: SplitFamilyId,
+    fn aggregate_note_reshape_family_profiled(
+        family_id: NoteReshapeFamilyId,
         items: &[BatchItem],
         srs: &DevSrs,
         challenge_context: &ChallengeContext,
     ) -> Result<(Vec<u8>, AggregateBuildBackendProfile)> {
         match family_id {
-            SplitFamilyId::OneByEight => aggregate_with_digest_profiled::<
-                SplitTranscriptDigest<{ SplitFamilyId::OneByEight.get() }>,
+            NoteReshapeFamilyId::TwoByOne => aggregate_with_digest_profiled::<
+                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
+            >(items, srs, challenge_context),
+            NoteReshapeFamilyId::OneByEight => aggregate_with_digest_profiled::<
+                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
+            >(items, srs, challenge_context),
+            NoteReshapeFamilyId::EightByOne => aggregate_with_digest_profiled::<
+                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
+            >(items, srs, challenge_context),
+            NoteReshapeFamilyId::FourByOne => aggregate_with_digest_profiled::<
+                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
             >(items, srs, challenge_context),
             other => Err(anyhow::anyhow!(
-                "unknown split aggregate family {}",
+                "unknown note reshape aggregate family {}",
                 other.get()
             )),
         }
     }
 
-    fn aggregate_consolidate_family_profiled(
-        family_id: ConsolidateFamilyId,
-        items: &[BatchItem],
-        srs: &DevSrs,
+    fn verify_note_reshape_family_aggregate_profiled_status(
         challenge_context: &ChallengeContext,
-    ) -> Result<(Vec<u8>, AggregateBuildBackendProfile)> {
-        match family_id {
-            ConsolidateFamilyId::TwoByOne => aggregate_with_digest_profiled::<
-                ConsolidateTranscriptDigest<{ ConsolidateFamilyId::TwoByOne.get() }>,
-            >(items, srs, challenge_context),
-            ConsolidateFamilyId::EightByOne => aggregate_with_digest_profiled::<
-                ConsolidateTranscriptDigest<{ ConsolidateFamilyId::EightByOne.get() }>,
-            >(items, srs, challenge_context),
-            other => Err(anyhow::anyhow!(
-                "unknown consolidate aggregate family {}",
-                other.get()
-            )),
-        }
-    }
-
-    fn verify_split_family_aggregate_profiled_status(
-        challenge_context: &ChallengeContext,
-        family_id: SplitFamilyId,
+        family_id: NoteReshapeFamilyId,
         pvk: &PreparedVerifyingKey<Bls12_377>,
         aggregate_proof_bytes: &[u8],
         padded_public_inputs: &[Vec<Fq>],
         srs: &DevSrs,
     ) -> Result<AggregateVerificationProfile, AggregateVerifyError> {
         match family_id {
-            SplitFamilyId::OneByEight => verify_with_digest_profiled::<
-                SplitTranscriptDigest<{ SplitFamilyId::OneByEight.get() }>,
+            NoteReshapeFamilyId::TwoByOne => verify_with_digest_profiled::<
+                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
+            >(
+                challenge_context,
+                pvk,
+                aggregate_proof_bytes,
+                padded_public_inputs,
+                srs,
+            ),
+            NoteReshapeFamilyId::OneByEight => verify_with_digest_profiled::<
+                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
+            >(
+                challenge_context,
+                pvk,
+                aggregate_proof_bytes,
+                padded_public_inputs,
+                srs,
+            ),
+            NoteReshapeFamilyId::EightByOne => verify_with_digest_profiled::<
+                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
+            >(
+                challenge_context,
+                pvk,
+                aggregate_proof_bytes,
+                padded_public_inputs,
+                srs,
+            ),
+            NoteReshapeFamilyId::FourByOne => verify_with_digest_profiled::<
+                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
             >(
                 challenge_context,
                 pvk,
@@ -331,41 +345,7 @@ impl SnarkpackBackend {
                 srs,
             ),
             other => Err(AggregateVerifyError::BadVersion(format!(
-                "unknown split aggregate family {}",
-                other.get()
-            ))),
-        }
-    }
-
-    fn verify_consolidate_family_aggregate_profiled_status(
-        challenge_context: &ChallengeContext,
-        family_id: ConsolidateFamilyId,
-        pvk: &PreparedVerifyingKey<Bls12_377>,
-        aggregate_proof_bytes: &[u8],
-        padded_public_inputs: &[Vec<Fq>],
-        srs: &DevSrs,
-    ) -> Result<AggregateVerificationProfile, AggregateVerifyError> {
-        match family_id {
-            ConsolidateFamilyId::TwoByOne => verify_with_digest_profiled::<
-                ConsolidateTranscriptDigest<{ ConsolidateFamilyId::TwoByOne.get() }>,
-            >(
-                challenge_context,
-                pvk,
-                aggregate_proof_bytes,
-                padded_public_inputs,
-                srs,
-            ),
-            ConsolidateFamilyId::EightByOne => verify_with_digest_profiled::<
-                ConsolidateTranscriptDigest<{ ConsolidateFamilyId::EightByOne.get() }>,
-            >(
-                challenge_context,
-                pvk,
-                aggregate_proof_bytes,
-                padded_public_inputs,
-                srs,
-            ),
-            other => Err(AggregateVerifyError::BadVersion(format!(
-                "unknown consolidate aggregate family {}",
+                "unknown note reshape aggregate family {}",
                 other.get()
             ))),
         }
@@ -397,8 +377,8 @@ impl SnarkpackBackend {
                 call.padded_public_inputs(),
                 call.srs(),
             ),
-            ProofFamilyId::Consolidate(family_id) => {
-                Self::verify_consolidate_family_aggregate_profiled_status(
+            ProofFamilyId::NoteReshape(family_id) => {
+                Self::verify_note_reshape_family_aggregate_profiled_status(
                     call.challenge_context(),
                     family_id,
                     call.pvk(),
@@ -407,14 +387,6 @@ impl SnarkpackBackend {
                     call.srs(),
                 )
             }
-            ProofFamilyId::Split(family_id) => Self::verify_split_family_aggregate_profiled_status(
-                call.challenge_context(),
-                family_id,
-                call.pvk(),
-                call.inner_proof_bytes(),
-                call.padded_public_inputs(),
-                call.srs(),
-            ),
             ProofFamilyId::ShieldedIcs20Withdrawal(_) => {
                 verify_with_digest_profiled::<ShieldedIcs20WithdrawalTranscriptDigest>(
                     call.challenge_context(),
@@ -448,6 +420,7 @@ impl SnarkpackBackend {
         }
         Ok(profile)
     }
+
 }
 
 impl AggregationBackend for SnarkpackBackend {
@@ -471,14 +444,7 @@ impl AggregationBackend for SnarkpackBackend {
             ProofFamilyId::Transfer => {
                 Self::aggregate_transfer_family(statement.challenge_context(), items, srs)
             }
-            ProofFamilyId::Consolidate(family_id) => Self::aggregate_consolidate_family_profiled(
-                family_id,
-                items,
-                srs,
-                statement.challenge_context(),
-            )
-            .map(|(bytes, _)| bytes),
-            ProofFamilyId::Split(family_id) => Self::aggregate_split_family_profiled(
+            ProofFamilyId::NoteReshape(family_id) => Self::aggregate_note_reshape_family_profiled(
                 family_id,
                 items,
                 srs,
@@ -527,19 +493,8 @@ impl AggregationBackend for SnarkpackBackend {
                 call.padded_public_inputs(),
                 call.srs(),
             )?,
-            ProofFamilyId::Consolidate(family_id) => {
-                Self::verify_consolidate_family_aggregate_profiled_status(
-                    call.challenge_context(),
-                    family_id,
-                    call.pvk(),
-                    call.inner_proof_bytes(),
-                    call.padded_public_inputs(),
-                    call.srs(),
-                )?
-                .accepted
-            }
-            ProofFamilyId::Split(family_id) => {
-                Self::verify_split_family_aggregate_profiled_status(
+            ProofFamilyId::NoteReshape(family_id) => {
+                Self::verify_note_reshape_family_aggregate_profiled_status(
                     call.challenge_context(),
                     family_id,
                     call.pvk(),
@@ -592,13 +547,7 @@ impl SnarkpackBackend {
             ProofFamilyId::Transfer => {
                 Self::aggregate_transfer_family_profiled(items, srs, statement.challenge_context())
             }
-            ProofFamilyId::Consolidate(family_id) => Self::aggregate_consolidate_family_profiled(
-                family_id,
-                items,
-                srs,
-                statement.challenge_context(),
-            ),
-            ProofFamilyId::Split(family_id) => Self::aggregate_split_family_profiled(
+            ProofFamilyId::NoteReshape(family_id) => Self::aggregate_note_reshape_family_profiled(
                 family_id,
                 items,
                 srs,
@@ -807,6 +756,7 @@ where
     .map_err(|e| AggregateVerifyError::BackendRejected(e.to_string()))
 }
 
+
 pub(crate) fn verify_with_digest_profiled<D: Digest>(
     challenge_context: &ChallengeContext,
     pvk: &PreparedVerifyingKey<Bls12_377>,
@@ -876,7 +826,7 @@ mod tests {
     use crate::transcript::TransferTranscriptDigest;
     use crate::{
         aggregate_family, aggregate_family_profiled, decode_wrapped_aggregate_proof,
-        encode_wrapped_aggregate_proof, pad_items_to_power_of_two, srs_id,
+        pad_items_to_power_of_two, srs_id,
         statement::aggregate_verification_key_digest, verify_family_aggregate,
         verify_family_aggregate_profiled, AggregateStatement, AggregateVerifyError,
         AGGREGATE_PROTOCOL_VERSION,
@@ -988,13 +938,17 @@ mod tests {
         (pvk, items)
     }
 
-    fn parity_families() -> [ProofFamilyId; 4] {
-        [
-            ProofFamilyId::Transfer,
-            ProofFamilyId::Consolidate(shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
-            ProofFamilyId::Split(shieldd_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
-            ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
-        ]
+    fn parity_families() -> Vec<ProofFamilyId> {
+        let mut families = vec![ProofFamilyId::Transfer];
+        families.extend(
+            NoteReshapeFamilyId::ALL
+                .into_iter()
+                .map(ProofFamilyId::NoteReshape),
+        );
+        families.push(ProofFamilyId::ShieldedIcs20Withdrawal(
+            ShieldedIcs20WithdrawalFamilyId::Canonical,
+        ));
+        families
     }
 
     fn padded_public_inputs(items: &[BatchItem]) -> Vec<Vec<Fq>> {
@@ -1489,7 +1443,6 @@ mod tests {
     fn g1_compressed_len() -> usize {
         compressed_bytes(&BackendG1::zero().into_affine()).len()
     }
-
     #[test]
     fn snarkpack_backend_accepts_valid_shielded_ics20_withdrawal_aggregate() {
         let (pvk, items) = sample_items();
@@ -2099,7 +2052,7 @@ mod tests {
         fn snarkpack_property_matches_legacy_batch_oracle(
             count in 1usize..=8,
             seed in any::<u64>(),
-            family_index in 0usize..4,
+            family_index in 0usize..parity_families().len(),
             mutate_proof in any::<bool>(),
         ) {
             let (pvk, items) = sample_items_with_count(seed, count);

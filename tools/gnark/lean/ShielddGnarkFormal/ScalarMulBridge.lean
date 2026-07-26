@@ -2,6 +2,8 @@ import ShielddGnarkFormal.Decaf377Assumptions
 import ShielddGnarkFormal.EdwardsCompleteness
 import ShielddGnarkFormal.Extracted.ScalarMulLE128
 import ShielddGnarkFormal.Extracted.ScalarMulLE251
+import ShielddGnarkFormal.ChoiceFreeBinary
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ProvenZk.Lemmas
 import ProvenZk.Ext.Vector
 
@@ -19,7 +21,7 @@ semantic step, then threads on-curve closure through the ladder.
 
 namespace Shieldd.GnarkFormal.ScalarMulBridge
 
-
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Bool (toZMod)
 
 abbrev F := EdwardsBridge.F
@@ -179,6 +181,10 @@ theorem stepRel_semantic (b : Bool) (acc cur acc' cur' : EdwardsBridge.Point)
   · rw [hcur']
     exact EdwardsBridge.double_onCurve cur hcur
 
+section ChoiceFreeFinalPredicates
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 def finalK (outX outY : F) (state : List.Vector F 4) : Prop :=
   GatesDef.eq state[0] outX ∧ GatesDef.eq state[1] outY ∧ True
 
@@ -194,6 +200,8 @@ def outputCurveGates (outX outY : F) : Prop :=
 
 def finalKWithOutputCurve (outX outY : F) (state : List.Vector F 4) : Prop :=
   GatesDef.eq state[0] outX ∧ GatesDef.eq state[1] outY ∧ outputCurveGates outX outY
+
+end ChoiceFreeFinalPredicates
 
 theorem finalKWithOutputCurve_implies_finalK (outX outY : F) (state : List.Vector F 4) :
     finalKWithOutputCurve outX outY state → finalK outX outY state := by
@@ -331,15 +339,24 @@ def scalarMulFromBits {n : ℕ} (bits : List.Vector Bool n) :
 
 theorem ofBitsLE_cons_val {n : ℕ} (hd : Bool) (tl : List.Vector Bool n) :
     (Fin.ofBitsLE (hd ::ᵥ tl)).val = Nat.bit hd (Fin.ofBitsLE tl).val := by
-  simp [Fin.ofBitsLE, List.Vector.reverse_cons, Fin.ofBitsBE_snoc]
+  simp [Fin.ofBitsLE, List.Vector.reverse_cons,
+    Shieldd.GnarkFormal.ChoiceFreeBinary.ofBitsBE_snoc_val]
   cases hd
   · simp [Nat.bit]
   · simp [Nat.bit, Nat.add_comm]
 
+private theorem vector_get_succ_nat {α : Type} {n i : ℕ} (hd : α)
+    (tl : List.Vector α n) (h : i.succ < n.succ) :
+    (hd ::ᵥ tl)[i.succ]'h =
+      tl[i]'(Nat.lt_of_succ_lt_succ h) := by
+  rfl
+
 theorem ofBitsLE_testBit {n : ℕ} (bits : List.Vector Bool n) :
     ∀ i, i < n → (Fin.ofBitsLE bits).val.testBit i = bits[i]! := by
   induction n with
-  | zero => intro i hi; omega
+  | zero =>
+      intro i hi
+      exact (Nat.not_lt_zero i hi).elim
   | succ n ih =>
     intro i hi
     cases bits using List.Vector.casesOn with
@@ -348,14 +365,14 @@ theorem ofBitsLE_testBit {n : ℕ} (bits : List.Vector Bool n) :
       | zero =>
         rw [ofBitsLE_cons_val]
         rw [Nat.testBit_bit_zero]
-        rw [getElem!_pos (hd ::ᵥ tl) 0 (by omega)]
+        rw [getElem!_pos (hd ::ᵥ tl) 0 (Nat.zero_lt_succ n)]
         simp
       | succ i =>
-        have hi' : i < n := by omega
+        have hi' : i < n := Nat.lt_of_succ_lt_succ hi
         rw [ofBitsLE_cons_val]
         rw [Nat.testBit_bit_succ]
         rw [getElem!_pos (hd ::ᵥ tl) (i + 1) hi]
-        rw [List.Vector.get_succ_nat]
+        rw [vector_get_succ_nat]
         rw [← getElem!_pos tl i hi']
         exact ih tl i hi'
 

@@ -9,7 +9,7 @@ package circuits
 // These circuits carry no fixtures and prove no statement on their own; they
 // exist purely as small, labelled R1CS export targets. Whole-circuit families
 // remain out of reach by design — see docs/soundness and
-// constraint-system-assurance.md.
+// docs/soundness/fv.md.
 
 import (
 	"github.com/consensys/gnark/frontend"
@@ -119,7 +119,7 @@ func (c *PoseidonHash6Gadget) Define(api frontend.API) error {
 }
 
 // PoseidonHash7Gadget isolates the seven-input Poseidon377 permutation used by
-// consolidate/split statement hashes.
+// NoteReshape statement hashes.
 type PoseidonHash7Gadget struct {
 	Domain frontend.Variable `gnark:",public"`
 	In0    frontend.Variable `gnark:",public"`

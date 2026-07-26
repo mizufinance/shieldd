@@ -713,10 +713,7 @@ fn challenge_preimage(
 fn transcript_family_domain(family_id: ProofFamilyId) -> Vec<u8> {
     match family_id {
         ProofFamilyId::Transfer => b"shieldd.snarkpack.transfer.v1".to_vec(),
-        ProofFamilyId::Consolidate(family_id) => {
-            format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes()
-        }
-        ProofFamilyId::Split(family_id) => {
+        ProofFamilyId::NoteReshape(family_id) => {
             format!("shieldd.snarkpack.{}.v1", family_id.label()).into_bytes()
         }
         ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => {
@@ -1107,7 +1104,7 @@ mod tests {
         aggregate_family, decode_wrapped_aggregate_proof, encode_wrapped_aggregate_proof,
         verify_family_aggregate, AGGREGATE_PROTOCOL_VERSION,
     };
-    use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
+    use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
 
     #[derive(Clone)]
     struct SquareCircuit {
@@ -1213,13 +1210,17 @@ mod tests {
         (pvk, items)
     }
 
-    fn parity_families() -> [ProofFamilyId; 4] {
-        [
-            ProofFamilyId::Transfer,
-            ProofFamilyId::Consolidate(shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
-            ProofFamilyId::Split(shieldd_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
-            ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
-        ]
+    fn parity_families() -> Vec<ProofFamilyId> {
+        let mut families = vec![ProofFamilyId::Transfer];
+        families.extend(
+            NoteReshapeFamilyId::ALL
+                .into_iter()
+                .map(ProofFamilyId::NoteReshape),
+        );
+        families.push(ProofFamilyId::ShieldedIcs20Withdrawal(
+            ShieldedIcs20WithdrawalFamilyId::Canonical,
+        ));
+        families
     }
 
     fn statement_for_items(

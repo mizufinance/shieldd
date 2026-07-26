@@ -6,7 +6,7 @@ set_option maxRecDepth 100000
 set_option maxHeartbeats 50000000
 
 /-! Auto-generated CPS-segmented deployed-slice relation for `gadget.state_commitment_path.leaf` (size 230, 46 segments of 5 rows).
-Generated from consolidate2x1.sr1cs global rows [1800,2030); do not edit by hand. -/
+Generated from note_reshape2x1.sr1cs global rows [1800,2030); do not edit by hand. -/
 
 namespace Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathLeaf230_c35850
 
