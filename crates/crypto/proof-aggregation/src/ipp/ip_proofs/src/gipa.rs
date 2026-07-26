@@ -54,7 +54,7 @@ where
     mul_helper(left, c) + current.clone() + mul_helper(right, c_inv)
 }
 
-fn fold_output<T, S>(left: &T, current: &mut T, right: &T, c: &S, c_inv: &S)
+pub(crate) fn fold_output<T, S>(left: &T, current: &mut T, right: &T, c: &S, c_inv: &S)
 where
     T: Clone + Default + Add<Output = T> + MulAssign<S>,
     S: Clone,
@@ -79,9 +79,283 @@ pub struct GIPA<IP, LMC, RMC, IPC, D> {
     _digest: PhantomData<D>,
 }
 
+pub(crate) enum BaseCommitmentResult<T, E> {
+    Ok(T),
+    Err(E),
+}
+
+impl<T, E> BaseCommitmentResult<T, E> {
+    fn from_result(result: Result<T, E>) -> Self {
+        match result {
+            Ok(value) => Self::Ok(value),
+            Err(error) => Self::Err(error),
+        }
+    }
+
+    fn into_result(self) -> Result<T, E> {
+        match self {
+            Self::Ok(value) => Ok(value),
+            Self::Err(error) => Err(error),
+        }
+    }
+}
+
+pub(crate) trait BaseCommitmentEffect<KA, KB, KT, MA, MB, MT, OA, OB, OT, E> {
+    fn inner_product(&self, left: &[MA], right: &[MB]) -> BaseCommitmentResult<MT, E>;
+    fn verify_left(
+        &self,
+        keys: &[KA],
+        messages: &[MA],
+        commitment: &OA,
+    ) -> BaseCommitmentResult<bool, E>;
+    fn verify_right(
+        &self,
+        keys: &[KB],
+        messages: &[MB],
+        commitment: &OB,
+    ) -> BaseCommitmentResult<bool, E>;
+    fn verify_target(
+        &self,
+        keys: &[KT],
+        messages: &[MT],
+        commitment: &OT,
+    ) -> BaseCommitmentResult<bool, E>;
+}
+
+struct ArkworksBaseCommitmentEffect<IP, LMC, RMC, IPC>(PhantomData<fn() -> (IP, LMC, RMC, IPC)>);
+
+impl<IP, LMC, RMC, IPC> Default for ArkworksBaseCommitmentEffect<IP, LMC, RMC, IPC> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<IP, LMC, RMC, IPC>
+    BaseCommitmentEffect<
+        LMC::Key,
+        RMC::Key,
+        IPC::Key,
+        LMC::Message,
+        RMC::Message,
+        IPC::Message,
+        LMC::Output,
+        RMC::Output,
+        IPC::Output,
+        Error,
+    > for ArkworksBaseCommitmentEffect<IP, LMC, RMC, IPC>
+where
+    IP: InnerProduct<
+        LeftMessage = LMC::Message,
+        RightMessage = RMC::Message,
+        Output = IPC::Message,
+    >,
+    LMC: DoublyHomomorphicCommitment,
+    RMC: DoublyHomomorphicCommitment<Scalar = LMC::Scalar>,
+    IPC: DoublyHomomorphicCommitment<Scalar = LMC::Scalar>,
+{
+    fn inner_product(
+        &self,
+        left: &[LMC::Message],
+        right: &[RMC::Message],
+    ) -> BaseCommitmentResult<IPC::Message, Error> {
+        BaseCommitmentResult::from_result(IP::inner_product(left, right))
+    }
+
+    fn verify_left(
+        &self,
+        keys: &[LMC::Key],
+        messages: &[LMC::Message],
+        commitment: &LMC::Output,
+    ) -> BaseCommitmentResult<bool, Error> {
+        BaseCommitmentResult::from_result(LMC::verify(keys, messages, commitment))
+    }
+
+    fn verify_right(
+        &self,
+        keys: &[RMC::Key],
+        messages: &[RMC::Message],
+        commitment: &RMC::Output,
+    ) -> BaseCommitmentResult<bool, Error> {
+        BaseCommitmentResult::from_result(RMC::verify(keys, messages, commitment))
+    }
+
+    fn verify_target(
+        &self,
+        keys: &[IPC::Key],
+        messages: &[IPC::Message],
+        commitment: &IPC::Output,
+    ) -> BaseCommitmentResult<bool, Error> {
+        BaseCommitmentResult::from_result(IPC::verify(keys, messages, commitment))
+    }
+}
+
+pub(crate) struct BaseCommitmentCoreInput<KA, KB, KT, MA, MB, OA, OB, OT> {
+    pub(crate) ck_a: KA,
+    pub(crate) ck_b: KB,
+    pub(crate) ck_t: Vec<KT>,
+    pub(crate) a: MA,
+    pub(crate) b: MB,
+    pub(crate) com_a: OA,
+    pub(crate) com_b: OB,
+    pub(crate) com_t: OT,
+}
+
+pub(crate) fn verify_base_commitment_core<KA, KB, KT, MA, MB, MT, OA, OB, OT, E, FX>(
+    input: BaseCommitmentCoreInput<KA, KB, KT, MA, MB, OA, OB, OT>,
+    effect: &FX,
+) -> BaseCommitmentResult<bool, E>
+where
+    FX: BaseCommitmentEffect<KA, KB, KT, MA, MB, MT, OA, OB, OT, E>,
+{
+    let a_base = vec![input.a];
+    let b_base = vec![input.b];
+    let t = match effect.inner_product(&a_base, &b_base) {
+        BaseCommitmentResult::Ok(value) => value,
+        BaseCommitmentResult::Err(error) => return BaseCommitmentResult::Err(error),
+    };
+    let mut t_base = Vec::with_capacity(1);
+    t_base.push(t);
+    match effect.verify_left(&[input.ck_a], &a_base, &input.com_a) {
+        BaseCommitmentResult::Err(error) => BaseCommitmentResult::Err(error),
+        BaseCommitmentResult::Ok(false) => BaseCommitmentResult::Ok(false),
+        BaseCommitmentResult::Ok(true) => {
+            match effect.verify_right(&[input.ck_b], &b_base, &input.com_b) {
+                BaseCommitmentResult::Err(error) => BaseCommitmentResult::Err(error),
+                BaseCommitmentResult::Ok(false) => BaseCommitmentResult::Ok(false),
+                BaseCommitmentResult::Ok(true) => {
+                    effect.verify_target(&input.ck_t, &t_base, &input.com_t)
+                }
+            }
+        }
+    }
+}
+
 // Warmed strict `1k` builder sweeps showed `64` was the only non-regressive
 // rescale crossover among `{64, 128, 256, 512}` on the local machine.
 const GIPA_RESCALE_PARALLEL_THRESHOLD: usize = 64;
+
+fn rescale_fold_inner<T, S>(scaled_half: &[T], unscaled_half: &[T], scalar: &S) -> Vec<T>
+where
+    T: Clone + Add<Output = T> + MulAssign<S> + Send + Sync,
+    S: Clone + Sync,
+{
+    #[cfg(hax_compilation)]
+    {
+        let mut folded = Vec::with_capacity(scaled_half.len());
+        for index in 0..scaled_half.len() {
+            folded.push(mul_helper(&scaled_half[index], scalar) + unscaled_half[index].clone());
+        }
+        folded
+    }
+    #[cfg(not(hax_compilation))]
+    if scaled_half.len() >= GIPA_RESCALE_PARALLEL_THRESHOLD {
+        cfg_iter!(scaled_half)
+            .map(|point| mul_helper(point, scalar))
+            .zip(unscaled_half)
+            .map(|(scaled, base)| scaled + base.clone())
+            .collect()
+    } else {
+        scaled_half
+            .iter()
+            .map(|point| mul_helper(point, scalar))
+            .zip(unscaled_half.iter())
+            .map(|(scaled, base)| scaled + base.clone())
+            .collect()
+    }
+}
+
+pub(crate) fn compute_final_commitment_keys_core<F, G1, G2>(
+    ck_a: &[G1],
+    ck_b: &[G2],
+    transcript: &[F],
+    transcript_inverses: &[F],
+    one: F,
+    #[cfg(not(hax_compilation))] msm_a: impl FnOnce(&[G1], &[F]) -> G1,
+    #[cfg(not(hax_compilation))] msm_b: impl FnOnce(&[G2], &[F]) -> G2,
+) -> (G1, G2)
+where
+    F: Copy + std::ops::Mul<Output = F>,
+    G1: Clone + Add<Output = G1> + MulAssign<F>,
+    G2: Clone + Add<Output = G2> + MulAssign<F>,
+{
+    assert!(ck_a.len().is_power_of_two());
+    assert_eq!(ck_a.len(), ck_b.len());
+    assert_eq!(transcript.len(), transcript_inverses.len());
+
+    let mut ck_a_agg_challenge_exponents = vec![one];
+    let mut ck_b_agg_challenge_exponents = vec![one];
+    for i in 0..transcript.len() {
+        let c = transcript[i];
+        let c_inv = transcript_inverses[i];
+        for j in 0..(2_usize).pow(i as u32) {
+            ck_a_agg_challenge_exponents.push(ck_a_agg_challenge_exponents[j] * c_inv);
+            ck_b_agg_challenge_exponents.push(ck_b_agg_challenge_exponents[j] * c);
+        }
+    }
+    assert_eq!(ck_a_agg_challenge_exponents.len(), ck_a.len());
+
+    #[cfg(hax_compilation)]
+    {
+        (
+            ordered_msm(ck_a, &ck_a_agg_challenge_exponents),
+            ordered_msm(ck_b, &ck_b_agg_challenge_exponents),
+        )
+    }
+    #[cfg(not(hax_compilation))]
+    {
+        (
+            msm_a(ck_a, &ck_a_agg_challenge_exponents),
+            msm_b(ck_b, &ck_b_agg_challenge_exponents),
+        )
+    }
+}
+
+fn compute_final_commitment_keys<LMC, RMC, IPC>(
+    ck: (&[LMC::Key], &[RMC::Key], &IPC::Key),
+    transcript: &[LMC::Scalar],
+) -> Result<(LMC::Key, RMC::Key), Error>
+where
+    LMC: DoublyHomomorphicCommitment,
+    RMC: DoublyHomomorphicCommitment<Scalar = LMC::Scalar>,
+    IPC: DoublyHomomorphicCommitment<Scalar = LMC::Scalar>,
+{
+    let (ck_a, ck_b, _) = ck;
+    let transcript_inverses = transcript
+        .iter()
+        .map(|challenge| challenge.inverse().unwrap())
+        .collect::<Vec<_>>();
+    Ok(compute_final_commitment_keys_core(
+        ck_a,
+        ck_b,
+        transcript,
+        &transcript_inverses,
+        LMC::Scalar::one(),
+        #[cfg(all(not(hax_compilation), not(feature = "bench-baseline")))]
+        LMC::msm_keys,
+        #[cfg(all(not(hax_compilation), not(feature = "bench-baseline")))]
+        RMC::msm_keys,
+        #[cfg(all(not(hax_compilation), feature = "bench-baseline"))]
+        fold_keys_baseline::<LMC::Key, LMC::Scalar>,
+        #[cfg(all(not(hax_compilation), feature = "bench-baseline"))]
+        fold_keys_baseline::<RMC::Key, RMC::Scalar>,
+    ))
+}
+
+#[cfg(any(test, hax_compilation))]
+fn ordered_msm<K, S>(keys: &[K], scalars: &[S]) -> K
+where
+    K: Clone + Add<Output = K> + MulAssign<S>,
+    S: Copy,
+{
+    let mut acc = keys[0].clone();
+    acc.mul_assign(scalars[0]);
+    for index in 1..keys.len() {
+        let mut term = keys[index].clone();
+        term.mul_assign(scalars[index]);
+        acc = acc + term;
+    }
+    acc
+}
 
 #[derive(Clone, Debug, Default)]
 pub struct GipaBuildProfile {
@@ -175,37 +449,11 @@ where
     RMC::Output: MulAssign<LMC::Scalar>,
     IPC::Output: MulAssign<LMC::Scalar>,
 {
-    #[inline]
-    fn use_parallel_rescale(len: usize) -> bool {
-        #[cfg(feature = "parallel")]
-        {
-            len >= GIPA_RESCALE_PARALLEL_THRESHOLD
-        }
-        #[cfg(not(feature = "parallel"))]
-        {
-            let _ = len;
-            false
-        }
-    }
-
     fn rescale_fold<T>(scaled_half: &[T], unscaled_half: &[T], scalar: &LMC::Scalar) -> Vec<T>
     where
         T: Clone + Add<Output = T> + MulAssign<LMC::Scalar> + Send + Sync,
     {
-        if Self::use_parallel_rescale(scaled_half.len()) {
-            cfg_iter!(scaled_half)
-                .map(|point| mul_helper(point, scalar))
-                .zip(unscaled_half)
-                .map(|(scaled, base)| scaled + base.clone())
-                .collect()
-        } else {
-            scaled_half
-                .iter()
-                .map(|point| mul_helper(point, scalar))
-                .zip(unscaled_half.iter())
-                .map(|(scaled, base)| scaled + base.clone())
-                .collect()
-        }
+        rescale_fold_inner(scaled_half, unscaled_half, scalar)
     }
 
     fn rescale_fold_profiled<T>(
@@ -712,38 +960,7 @@ where
         ck: (&[LMC::Key], &[RMC::Key], &IPC::Key),
         transcript: &Vec<LMC::Scalar>,
     ) -> Result<(LMC::Key, RMC::Key), Error> {
-        // Calculate base commitment keys
-        let (ck_a, ck_b, _) = ck;
-        assert!(ck_a.len().is_power_of_two());
-
-        let mut ck_a_agg_challenge_exponents = vec![LMC::Scalar::one()];
-        let mut ck_b_agg_challenge_exponents = vec![LMC::Scalar::one()];
-        for (i, c) in transcript.iter().enumerate() {
-            let c_inv = c.inverse().unwrap();
-            for j in 0..(2_usize).pow(i as u32) {
-                ck_a_agg_challenge_exponents.push(ck_a_agg_challenge_exponents[j] * &c_inv);
-                ck_b_agg_challenge_exponents.push(ck_b_agg_challenge_exponents[j] * c);
-            }
-        }
-        assert_eq!(ck_a_agg_challenge_exponents.len(), ck_a.len());
-        // Recombine the final commitment keys by multiexponentiation. The
-        // commitment trait's `msm_keys` is byte-identical to the prior
-        // sequential fold; group-backed keys (AFGHO) use a real MSM.
-        //
-        // The `bench-baseline` feature swaps in the pre-optimization sequential
-        // fold so the A/B harness can measure the MSM delta on the real verify
-        // path in the same release build. See the optimization playbook.
-        #[cfg(not(feature = "bench-baseline"))]
-        let (ck_a_base, ck_b_base) = (
-            LMC::msm_keys(ck_a, &ck_a_agg_challenge_exponents),
-            RMC::msm_keys(ck_b, &ck_b_agg_challenge_exponents),
-        );
-        #[cfg(feature = "bench-baseline")]
-        let (ck_a_base, ck_b_base) = (
-            fold_keys_baseline::<LMC::Key, LMC::Scalar>(ck_a, &ck_a_agg_challenge_exponents),
-            fold_keys_baseline::<RMC::Key, RMC::Scalar>(ck_b, &ck_b_agg_challenge_exponents),
-        );
-        Ok((ck_a_base, ck_b_base))
+        compute_final_commitment_keys::<LMC, RMC, IPC>(ck, transcript)
     }
 
     pub(crate) fn _verify_base_commitment(
@@ -753,13 +970,21 @@ where
     ) -> Result<bool, Error> {
         let (com_a, com_b, com_t) = base_com;
         let (ck_a_base, ck_b_base, ck_t) = base_ck;
-        let a_base = vec![proof.r_base.0.clone()];
-        let b_base = vec![proof.r_base.1.clone()];
-        let t_base = vec![IP::inner_product(&a_base, &b_base)?];
-
-        Ok(LMC::verify(&vec![ck_a_base.clone()], &a_base, &com_a)?
-            && RMC::verify(&vec![ck_b_base.clone()], &b_base, &com_b)?
-            && IPC::verify(&ck_t, &t_base, &com_t)?)
+        let input = BaseCommitmentCoreInput {
+            ck_a: ck_a_base.clone(),
+            ck_b: ck_b_base.clone(),
+            ck_t: ck_t.clone(),
+            a: proof.r_base.0.clone(),
+            b: proof.r_base.1.clone(),
+            com_a,
+            com_b,
+            com_t,
+        };
+        verify_base_commitment_core(
+            input,
+            &ArkworksBaseCommitmentEffect::<IP, LMC, RMC, IPC>::default(),
+        )
+        .into_result()
     }
 }
 
@@ -798,6 +1023,7 @@ mod tests {
     use ark_ff::UniformRand;
     use ark_std::rand::{rngs::StdRng, SeedableRng};
     use blake2::Blake2b;
+    use std::cell::RefCell;
 
     use ark_dh_commitments::{
         afgho16::{AFGHOCommitmentG1, AFGHOCommitmentG2},
@@ -917,6 +1143,34 @@ mod tests {
         )
         .unwrap();
 
+        let (base_com, transcript) = ScalarGIPA::verify_recursive_challenge_transcript(
+            &challenge_context,
+            (&com_a, &com_b, &com_t),
+            &proof,
+        )
+        .unwrap();
+        let (ck_a_base, ck_b_base) =
+            ScalarGIPA::_compute_final_commitment_keys((&ck_a, &ck_b, &ck_t), &transcript).unwrap();
+        let delegated = ScalarGIPA::_verify_base_commitment(
+            (&ck_a_base, &ck_b_base, &vec![ck_t.clone()]),
+            base_com.clone(),
+            &proof,
+        );
+        let core = verify_base_commitment_core(
+            BaseCommitmentCoreInput {
+                ck_a: ck_a_base,
+                ck_b: ck_b_base,
+                ck_t: vec![ck_t.clone()],
+                a: proof.r_base.0.clone(),
+                b: proof.r_base.1.clone(),
+                com_a: base_com.0,
+                com_b: base_com.1,
+                com_t: base_com.2,
+            },
+            &ArkworksBaseCommitmentEffect::<IP, SC2, SC2, IPC>::default(),
+        );
+        assert_eq!(delegated.unwrap(), core.into_result().unwrap());
+
         assert!(ScalarGIPA::verify(
             &challenge_context,
             (&ck_a, &ck_b, &ck_t),
@@ -924,5 +1178,154 @@ mod tests {
             &proof,
         )
         .unwrap());
+    }
+
+    struct ScriptedBaseCommitmentEffect {
+        fail_at: Option<u8>,
+        false_at: Option<u8>,
+        calls: RefCell<Vec<u8>>,
+    }
+
+    impl ScriptedBaseCommitmentEffect {
+        fn step<T>(&self, stage: u8, value: T) -> Result<T, u8> {
+            self.calls.borrow_mut().push(stage);
+            if self.fail_at == Some(stage) {
+                Err(stage)
+            } else {
+                Ok(value)
+            }
+        }
+    }
+
+    impl BaseCommitmentEffect<u8, u8, u8, u8, u8, u8, u8, u8, u8, u8> for ScriptedBaseCommitmentEffect {
+        fn inner_product(&self, _left: &[u8], _right: &[u8]) -> BaseCommitmentResult<u8, u8> {
+            BaseCommitmentResult::from_result(self.step(0, 9))
+        }
+
+        fn verify_left(
+            &self,
+            _keys: &[u8],
+            _messages: &[u8],
+            _commitment: &u8,
+        ) -> BaseCommitmentResult<bool, u8> {
+            BaseCommitmentResult::from_result(self.step(1, self.false_at != Some(1)))
+        }
+
+        fn verify_right(
+            &self,
+            _keys: &[u8],
+            _messages: &[u8],
+            _commitment: &u8,
+        ) -> BaseCommitmentResult<bool, u8> {
+            BaseCommitmentResult::from_result(self.step(2, self.false_at != Some(2)))
+        }
+
+        fn verify_target(
+            &self,
+            _keys: &[u8],
+            _messages: &[u8],
+            _commitment: &u8,
+        ) -> BaseCommitmentResult<bool, u8> {
+            BaseCommitmentResult::from_result(self.step(3, self.false_at != Some(3)))
+        }
+    }
+
+    fn scripted_base_input() -> BaseCommitmentCoreInput<u8, u8, u8, u8, u8, u8, u8, u8> {
+        BaseCommitmentCoreInput {
+            ck_a: 1,
+            ck_b: 2,
+            ck_t: vec![3],
+            a: 4,
+            b: 5,
+            com_a: 6,
+            com_b: 7,
+            com_t: 8,
+        }
+    }
+
+    #[test]
+    fn base_commitment_core_preserves_failures_and_short_circuit_order() {
+        for stage in 0..4 {
+            let effect = ScriptedBaseCommitmentEffect {
+                fail_at: Some(stage),
+                false_at: None,
+                calls: RefCell::new(Vec::new()),
+            };
+            assert_eq!(
+                verify_base_commitment_core(scripted_base_input(), &effect).into_result(),
+                Err(stage)
+            );
+            assert_eq!(*effect.calls.borrow(), (0..=stage).collect::<Vec<_>>());
+        }
+
+        for stage in 1..4 {
+            let effect = ScriptedBaseCommitmentEffect {
+                fail_at: None,
+                false_at: Some(stage),
+                calls: RefCell::new(Vec::new()),
+            };
+            assert_eq!(
+                verify_base_commitment_core(scripted_base_input(), &effect).into_result(),
+                Ok(false)
+            );
+            assert_eq!(*effect.calls.borrow(), (0..=stage).collect::<Vec<_>>());
+        }
+    }
+
+    #[test]
+    fn final_commitment_key_delegator_matches_core_and_transcript_orientation() {
+        type F = <Bls12_381 as Pairing>::ScalarField;
+        type IPC = IdentityCommitment<F, F>;
+        type ScalarGIPA = GIPA<ScalarInnerProduct<F>, SC2, SC2, IPC, Blake2b>;
+
+        let mut rng = StdRng::seed_from_u64(24u64);
+        let (ck_a, ck_b, ck_t) = ScalarGIPA::setup(&mut rng, TEST_SIZE).unwrap();
+        let transcript = vec![F::from(2u64), F::from(3u64), F::from(5u64)];
+
+        let delegated =
+            compute_final_commitment_keys::<SC2, SC2, IPC>((&ck_a, &ck_b, &ck_t), &transcript)
+                .unwrap();
+        let core = compute_final_commitment_keys_core(
+            &ck_a,
+            &ck_b,
+            &transcript,
+            &transcript
+                .iter()
+                .map(|challenge| challenge.inverse().unwrap())
+                .collect::<Vec<_>>(),
+            F::from(1u64),
+            #[cfg(not(hax_compilation))]
+            ordered_msm::<_, F>,
+            #[cfg(not(hax_compilation))]
+            ordered_msm::<_, F>,
+        );
+
+        let two_inv = transcript[0].inverse().unwrap();
+        let three_inv = transcript[1].inverse().unwrap();
+        let five_inv = transcript[2].inverse().unwrap();
+        let inverse_coefficients = vec![
+            F::from(1u64),
+            two_inv,
+            three_inv,
+            two_inv * three_inv,
+            five_inv,
+            two_inv * five_inv,
+            three_inv * five_inv,
+            two_inv * three_inv * five_inv,
+        ];
+        let raw_coefficients = vec![
+            F::from(1u64),
+            transcript[0],
+            transcript[1],
+            transcript[0] * transcript[1],
+            transcript[2],
+            transcript[0] * transcript[2],
+            transcript[1] * transcript[2],
+            transcript[0] * transcript[1] * transcript[2],
+        ];
+
+        assert_eq!(delegated, core);
+        assert_eq!(core.0, ordered_msm(&ck_a, &inverse_coefficients));
+        assert_eq!(core.1, ordered_msm(&ck_b, &raw_coefficients));
     }
 }

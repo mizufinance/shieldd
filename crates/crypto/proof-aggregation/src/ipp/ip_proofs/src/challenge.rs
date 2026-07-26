@@ -2,9 +2,6 @@ use std::convert::TryFrom;
 
 use digest::{Digest, Output};
 use sha2::Sha256;
-use shieldd_sdk_proof_aggregation_trace_schema::{
-    TraceComparisonLevel, TraceEvent, TraceEventKind,
-};
 
 const CHALLENGE_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge.v1\0";
 const CHALLENGE_CONTEXT_DOMAIN: &[u8] = b"shieldd.snarkpack.challenge_context.v1\0";
@@ -36,7 +33,13 @@ pub fn challenge_context_preimage(statement_digest: [u8; 32]) -> Vec<u8> {
     preimage
 }
 
-pub type ChallengeTraceEntry = TraceEvent;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ChallengeTraceEntry {
+    pub stage_label: &'static [u8],
+    pub nonce: u64,
+    pub preimage: Vec<u8>,
+    pub digest: Vec<u8>,
+}
 
 pub trait ChallengeTraceSink {
     fn record(&mut self, stage_label: &'static [u8], nonce: u64, preimage: &[u8], digest: &[u8]);
@@ -74,39 +77,11 @@ impl VecChallengeTraceSink {
 
 impl ChallengeTraceSink for VecChallengeTraceSink {
     fn record(&mut self, stage_label: &'static [u8], nonce: u64, preimage: &[u8], digest: &[u8]) {
-        let stage_label_str = trace_stage_label(stage_label);
-        self.entries.push(TraceEvent {
-            spec_row_id: "fs.stage-labels",
-            primary_level: TraceComparisonLevel::ShielddByte,
-            event_kind: TraceEventKind::ChallengePreimage,
-            stage_label: stage_label_str,
-            nonce: Some(nonce),
-            round_index: None,
-            byte_payload: stage_label.to_vec(),
-            abstract_payload: None,
-            filecoin_bug_class: None,
-        });
-        self.entries.push(TraceEvent {
-            spec_row_id: "fs.challenge-preimage",
-            primary_level: TraceComparisonLevel::ShielddByte,
-            event_kind: TraceEventKind::ChallengePreimage,
-            stage_label: stage_label_str,
-            nonce: Some(nonce),
-            round_index: None,
-            byte_payload: preimage.to_vec(),
-            abstract_payload: None,
-            filecoin_bug_class: None,
-        });
-        self.entries.push(TraceEvent {
-            spec_row_id: trace_spec_row_id(stage_label),
-            primary_level: TraceComparisonLevel::ShielddByte,
-            event_kind: TraceEventKind::ChallengeDigest,
-            stage_label: stage_label_str,
-            nonce: Some(nonce),
-            round_index: None,
-            byte_payload: digest.to_vec(),
-            abstract_payload: None,
-            filecoin_bug_class: None,
+        self.entries.push(ChallengeTraceEntry {
+            stage_label,
+            nonce,
+            preimage: preimage.to_vec(),
+            digest: digest.to_vec(),
         });
     }
 }
@@ -145,38 +120,4 @@ pub fn challenge_preimage(
     preimage.extend_from_slice(&nonce.to_le_bytes());
     preimage.extend_from_slice(messages);
     preimage
-}
-
-fn trace_stage_label(stage_label: &'static [u8]) -> &'static str {
-    match stage_label {
-        b"aggregate.randomizer" => "aggregate.randomizer",
-        b"tipp-mipp.x0" => "tipp-mipp.x0",
-        b"tipp-mipp.gipa.round" => "tipp-mipp.gipa.round",
-        b"tipp-mipp.final-bridge" => "tipp-mipp.final-bridge",
-        b"tipp-mipp.kzg" => "tipp-mipp.kzg",
-        b"tipa.ab.gipa.round" => "tipa.ab.gipa.round",
-        b"tipa.ab.kzg" => "tipa.ab.kzg",
-        b"tipa.c.gipa.round" => "tipa.c.gipa.round",
-        b"tipa.c.kzg" => "tipa.c.kzg",
-        b"tipa.generic.gipa.round" => "tipa.generic.gipa.round",
-        b"tipa.generic.kzg" => "tipa.generic.kzg",
-        b"tipa.generic.ssm.gipa.round" => "tipa.generic.ssm.gipa.round",
-        _ => "unknown",
-    }
-}
-
-fn trace_spec_row_id(stage_label: &'static [u8]) -> &'static str {
-    match stage_label {
-        b"aggregate.randomizer" => "groth16.randomizer",
-        b"tipp-mipp.x0" => "tipp-mipp.x0-seed",
-        b"tipp-mipp.final-bridge" => "tipp-mipp.final-bridge",
-        b"tipp-mipp.kzg" => "tipp-mipp.kzg-challenge",
-        b"tipp-mipp.gipa.round" => "gipa.challenge-dependency",
-        b"tipa.ab.kzg" | b"tipa.generic.kzg" | b"tipa.c.kzg" => "tipp-mipp.kzg-challenge",
-        b"tipa.ab.gipa.round"
-        | b"tipa.c.gipa.round"
-        | b"tipa.generic.gipa.round"
-        | b"tipa.generic.ssm.gipa.round" => "gipa.challenge-dependency",
-        _ => "fs.challenge-preimage",
-    }
 }

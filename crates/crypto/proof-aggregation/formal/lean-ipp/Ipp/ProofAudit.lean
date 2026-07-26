@@ -1,0 +1,194 @@
+import Ipp.S1
+import Ipp.Extracted.AggregateVerifierPairingAdapter
+import Ipp.Extracted.ArkworksFqBytesBridge
+import Ipp.Extracted.ArkworksFr
+import Ipp.Extracted.ArkworksFq12
+import Ipp.Extracted.ArkworksG1Mathlib
+import Ipp.Extracted.ArkworksG2Mathlib
+import Ipp.Extracted.ArkworksScalarMulG1Loop
+import Ipp.Extracted.ArkworksScalarMulG2Loop
+import Ipp.Extracted.ArkworksScalarMulGlvFinal
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchGeneralG1
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchGeneralG2
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchAllInfinityG1
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchAllInfinityG2
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchSingletonG1Nonzero
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchSingletonG2Nonzero
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchSingletonZero
+import Ipp.Extracted.ArkworksMsm
+import Ipp.Extracted.ArkworksG2Prepared
+import Ipp.Extracted.ArkworksFinalExpSpec
+import Ipp.Extracted.ArkworksMultiPairing
+import Ipp.Extracted.ArkworksSubgroupCheck
+import Ipp.Extracted.ArkworksMultiPairingGt
+import Ipp.Bls12377Pairing
+import Ipp.StrictG1Decode
+import Ipp.StrictG2DecodeBridge
+import Ipp.StrictGtDecode
+import Ipp.AggregateSerialization
+import Ipp.CanonicalSerializers
+import Ipp.ChallengeMessageSerialization
+
+/-!
+Single audit surface for every campaign capstone compatible with the canonical
+Fq12 extraction graph. The independently regenerated Miller graph is audited
+in `Ipp.ProofAuditMiller` because it declares overlapping extracted globals.
+-/
+
+-- S1
+#print axioms Ipp.S1.s1_soundness
+
+-- S2 aggregate refinement and error behavior
+#print axioms Ipp.Extracted.hax_translated_g2_kzg_product_evaluation
+#print axioms Ipp.Extracted.hax_translated_g2_kzg_product_evaluation_coefficients
+#print axioms Ipp.Extracted.hax_translated_verify_g2_kzg_eq
+#print axioms Ipp.Extracted.hax_translated_verify_g2_kzg_true_iff
+#print axioms Ipp.Extracted.hax_translated_verify_g2_kzg_opening_eq
+#print axioms Ipp.Extracted.hax_translated_verify_g2_kzg_opening_true_iff
+#print axioms Ipp.Extracted.hax_translated_verify_g1_kzg_eq
+#print axioms Ipp.Extracted.hax_translated_verify_g1_kzg_true_iff
+#print axioms Ipp.Extracted.hax_translated_verify_g1_kzg_opening_eq
+#print axioms Ipp.Extracted.hax_translated_verify_g1_kzg_opening_true_iff
+#print axioms Ipp.Extracted.verify_base_commitment_refinement
+#print axioms Ipp.Extracted.fold_public_inputs_refinement_statement
+#print axioms Ipp.Extracted.verify_ppe_refinement_eq
+#print axioms Ipp.Extracted.verify_ppe_refinement_statement
+#print axioms Ipp.Extracted.verify_combined_ppe_refinement_statement
+#print axioms Ipp.Extracted.verify_tipp_mipp_refinement_statement
+#print axioms Ipp.Extracted.CombinedChecks.run_empty
+#print axioms Ipp.Extracted.CombinedChecks.run_not_power_of_two
+#print axioms Ipp.Extracted.CombinedChecks.run_round_mismatch
+#print axioms Ipp.Extracted.CombinedChecks.run_tipp_error
+#print axioms Ipp.Extracted.CombinedChecks.run_refinement_statement
+#print axioms Ipp.Extracted.CombinedChecks.verify_combined_checks_refinement_statement
+#print axioms Ipp.Extracted.AggregateVerifier.profiledOutput_observational
+#print axioms Ipp.Extracted.AggregateVerifier.run_of_trace
+#print axioms Ipp.Extracted.AggregateVerifier.run_challenge_error
+#print axioms Ipp.Extracted.AggregateVerifier.run_randomizer_error
+#print axioms Ipp.Extracted.AggregateVerifier.run_combined_error
+#print axioms Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_refinement_statement
+#print axioms Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_profiled_with_trace_refinement_statement
+#print axioms Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_pairing_adapter_statement
+#print axioms Ipp.Bls12377.g1PrimeSubgroupModule
+#print axioms Ipp.Bls12377.g2PrimeSubgroupModule
+#print axioms Ipp.Bls12377.arkPairingOutputModule
+#print axioms Ipp.Bls12377.executablePairingLinear
+#print axioms Ipp.Bls12377.executablePairingLinear_apply
+#print axioms Ipp.Bls12377.statementWithExecutablePairing_e
+#print axioms Ipp.Bls12377.tippPairingEffect_failure
+#print axioms Ipp.Bls12377.tippPairingEffect_two_pair_law
+#print axioms Ipp.Bls12377.prepareNegative_value
+#print axioms Ipp.Bls12377.preparedPairingEffect_two_pair_law
+#print axioms Ipp.Bls12377.preparedPairingEffect_failure
+#print axioms Ipp.Bls12377.ppePairingAdapterLaws
+
+-- Fq and Fr
+#print axioms Ipp.Extracted.ArkworksFqMul.decode_extracted_mul
+#print axioms Ipp.Extracted.ArkworksFqOps.decode_extracted_add
+#print axioms Ipp.Extracted.ArkworksFqOps.decode_extracted_sub
+#print axioms Ipp.Extracted.ArkworksFqOps.decode_extracted_neg
+#print axioms Ipp.Extracted.ArkworksFqSquare.decode_extracted_square
+#print axioms Ipp.Extracted.ArkworksFqInv.decode_extracted_inv
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.decode_extracted_sqrt
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.from_bytes_decodeFqCanonical_bridge
+#print axioms Ipp.Extracted.ArkworksFqSqrtBytes.to_bytes_value_spec
+#print axioms Ipp.Extracted.ArkworksFr.decode_extracted_mul
+#print axioms Ipp.Extracted.ArkworksFr.decode_extracted_add
+#print axioms Ipp.Extracted.ArkworksFr.decode_extracted_sub
+#print axioms Ipp.Extracted.ArkworksFr.decode_extracted_neg
+#print axioms Ipp.Extracted.ArkworksFr.decode_extracted_inv
+#print axioms Ipp.Extracted.ArkworksFr.from_bytes_value_spec
+#print axioms Ipp.Extracted.ArkworksFr.bytes_to_limbs_value_spec
+
+-- Fq2/Fq6/Fq12 tower
+#print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_mul_spec
+#print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_square_spec
+#print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_inv_some_spec
+#print axioms Ipp.Extracted.ArkworksFq2.extracted_fq2_inv_none_iff
+#print axioms Ipp.Extracted.ArkworksFq2.decode_fq2_frobenius
+#print axioms Ipp.Extracted.ArkworksFq2.decode_extracted_fq2_sqrt
+#print axioms Ipp.Extracted.ArkworksFq6.canonical_field_fq6_mul
+#print axioms Ipp.Extracted.ArkworksFq6.canonical_field_fq6_square
+#print axioms Ipp.Extracted.ArkworksFq6.canonical_field_fq6_inv
+#print axioms Ipp.Extracted.ArkworksFq6.decode_fq6_frobenius_one
+#print axioms Ipp.Extracted.ArkworksFq6.decode_fq6_frobenius_two
+#print axioms Ipp.Extracted.ArkworksFq12.decode_fq12_mul
+#print axioms Ipp.Extracted.ArkworksFq12.decode_fq12_square
+#print axioms Ipp.Extracted.ArkworksFq12.decode_fq12_inv_some
+#print axioms Ipp.Extracted.ArkworksFq12.decode_fq12_inv_none
+#print axioms Ipp.Extracted.ArkworksFq12.decode_fq12_frobenius_one
+#print axioms Ipp.Extracted.ArkworksFq12.decode_fq12_frobenius_two
+#print axioms Ipp.Extracted.ArkworksFq12.decode_fq12_cyclotomic_square
+#print axioms Ipp.Extracted.ArkworksFq12.decode_fq12_cyclotomic_exp
+#print axioms Ipp.Extracted.ArkworksFq12.decode_fq12_to_bytes
+#print axioms Ipp.Extracted.ArkworksFq12.decode_fq12_from_bytes_exact
+
+-- Complete G1/G2 group-law refinements
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_add_generic_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_add_mixed_generic_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_double_generic_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_double_order2_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_neg_finite_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_neg_identity_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_add_left_identity_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_add_right_identity_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_add_mixed_identity_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_double_identity_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_add_opposite_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_add_mixed_opposite_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_add_equal_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG1.executed_g1_add_mixed_equal_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_add_generic_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_add_mixed_generic_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_double_generic_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_double_order2_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_neg_finite_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_neg_identity_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_add_left_identity_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_add_right_identity_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_add_mixed_identity_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_double_identity_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_add_opposite_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_add_mixed_opposite_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_add_equal_refines_mathlib
+#print axioms Ipp.Extracted.ArkworksG2.executed_g2_add_mixed_equal_refines_mathlib
+
+-- Scalar multiplication, normalization, and MSM
+#print axioms Ipp.Extracted.ArkworksScalarMul.valid_g1_mul_affine
+#print axioms Ipp.Extracted.ArkworksScalarMul.valid_g2_mul_projective
+#print axioms Ipp.Extracted.ArkworksScalarMul.valid_g2_mul_affine
+#print axioms Ipp.Extracted.ArkworksScalarMul.valid_g1_glv_mul_projective
+#print axioms Ipp.Extracted.ArkworksScalarMulNormalize.valid_g1_into_affine
+#print axioms Ipp.Extracted.ArkworksScalarMulNormalize.valid_g2_into_affine
+#print axioms Ipp.Extracted.ArkworksScalarMulNormalize.valid_g1_normalize_batch_general
+#print axioms Ipp.Extracted.ArkworksScalarMulNormalize.valid_g2_normalize_batch_general
+#print axioms Ipp.Extracted.ArkworksScalarMulNormalize.valid_g1_normalize_batch_all_infinity
+#print axioms Ipp.Extracted.ArkworksScalarMulNormalize.valid_g2_normalize_batch_all_infinity
+#print axioms Ipp.Extracted.ArkworksScalarMulNormalize.valid_g1_normalize_batch_singleton_nonzero
+#print axioms Ipp.Extracted.ArkworksScalarMulNormalize.valid_g2_normalize_batch_singleton_nonzero
+#print axioms Ipp.Extracted.ArkworksScalarMulNormalize.valid_g1_normalize_batch_singleton_zero
+#print axioms Ipp.Extracted.ArkworksMsm.executed_g1_msm
+#print axioms Ipp.Extracted.ArkworksMsm.executed_g2_msm
+
+-- Prepared G2, final exponentiation, pairing, and subgroup checks
+#print axioms Ipp.Extracted.ArkworksG2PreparedValid.valid_g2_prepared
+#print axioms Ipp.Extracted.ArkworksFinalExpEasy.final_exp_easy_cyclotomic
+#print axioms Ipp.Extracted.ArkworksFinalExpHard.final_exp_spec
+#print axioms Ipp.Extracted.ArkworksMultiPairing.multi_pairing_spec
+#print axioms Ipp.Extracted.ArkworksMultiPairing.multi_pairing_product_spec
+#print axioms Ipp.Extracted.ArkworksMultiPairingGt.arkworksPairingExponent_eq_executedPairingExponent
+#print axioms Ipp.Extracted.ArkworksMultiPairingGt.pairingModel_eq_gtValue
+#print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g1_subgroup_check
+#print axioms Ipp.Extracted.ArkworksSubgroupCheck.valid_g2_subgroup_check
+#print axioms Ipp.Bls12377.PublishedPairingBilinearNondegenerate
+
+-- Strict decoding and serialization
+#print axioms Ipp.StrictG1Decode.g1_strict_checked_success_iff
+#print axioms Ipp.StrictG1Decode.g1_strict_checked_byte_injective
+#print axioms Ipp.StrictG2Decode.g2_strict_checked_success_iff
+#print axioms Ipp.StrictG2Decode.g2_strict_checked_byte_injective
+#print axioms Ipp.StrictGtDecode.gt_strict_checked_success_iff
+#print axioms Ipp.StrictGtDecode.gt_strict_checked_byte_injective
+#print axioms Ipp.AggregateSerialization.aggregate_strict_decode_injective
+#print axioms Ipp.ChallengeMessageSerialization.challenge_message_serialize_injective
+#print axioms Ipp.ChallengeMessageSerialization.challenge_preimage_typed_injective

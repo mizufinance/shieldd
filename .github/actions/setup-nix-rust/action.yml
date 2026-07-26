@@ -26,7 +26,7 @@ runs:
   steps:
     - name: Free disk space
       if: inputs.free-disk == 'true'
-      uses: jlumbroso/free-disk-space@main
+      uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
       with:
         tool-cache: true
         android: true
@@ -37,23 +37,23 @@ runs:
         swap-storage: true
 
     - name: install nix
-      uses: nixbuild/nix-quick-install-action@v28
+      uses: nixbuild/nix-quick-install-action@60e9c39264d4714139af3cdf15f691b19eec3530 # v28
 
     - name: setup nix cache
-      uses: nix-community/cache-nix-action@v5
+      uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7.0.2
       with:
         primary-key: nix-${{ runner.os }}-${{ hashFiles(inputs.nix-cache-glob) }}
         restore-prefixes-first-match: nix-${{ runner.os }}-
 
     - name: Load rust cache
       if: inputs.rust-cache == 'true' && inputs.rust-cache-prefix == ''
-      uses: Swatinem/rust-cache@v2
+      uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
       with:
         workspaces: ${{ inputs.rust-workspaces }}
 
     - name: Load rust cache
       if: inputs.rust-cache == 'true' && inputs.rust-cache-prefix != ''
-      uses: Swatinem/rust-cache@v2
+      uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
       with:
         prefix-key: ${{ inputs.rust-cache-prefix }}
         workspaces: ${{ inputs.rust-workspaces }}

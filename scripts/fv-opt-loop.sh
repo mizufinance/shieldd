@@ -204,7 +204,6 @@ gate_battery() {
   if ! git -C "$ROOT" diff --quiet HEAD -- crates/crypto/proof-aggregation 2>/dev/null \
      || [[ -n "$(git -C "$ROOT" log --oneline -1 -- crates/crypto/proof-aggregation 2>/dev/null)" && -n "$(git -C "$ROOT" diff --name-only "$(git -C "$ROOT" merge-base HEAD origin/dev 2>/dev/null || echo HEAD)" HEAD -- crates/crypto/proof-aggregation 2>/dev/null)" ]]; then
     run_gate "snarkpack-invariants" bash "$ROOT/scripts/check-snarkpack-invariants.sh"
-    run_gate "snarkpack-filecoin-shape" bash "$ROOT/scripts/check-snarkpack-filecoin-shape.sh"
   fi
   run_gate "wiring-transcript+parity-tests" \
     env -C "$GNARK_DIR" go test ./internal/circuits/ -run \

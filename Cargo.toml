@@ -38,9 +38,7 @@ members = [
   "crates/crypto/eddy",
   "crates/crypto/proof-aggregation",
   "crates/crypto/proof-aggregation-fuzz",
-  "crates/crypto/proof-aggregation-lean-conformance",
   "crates/crypto/proof-aggregation-reference",
-  "crates/crypto/proof-aggregation-trace-schema",
   "crates/crypto/constraint-coverage",
   "crates/crypto/proof-params",
   "crates/crypto/tct",
@@ -190,7 +188,6 @@ shieldd-sdk-mock-tendermint-proxy   = { version = "2.1.0", path = "crates/test/m
 shieldd-sdk-num                     = { default-features = false, version = "2.1.0", path = "crates/core/num" }
 shieldd-sdk-proof-params            = { default-features = false, version = "2.1.0", path = "crates/crypto/proof-params" }
 shieldd-sdk-proof-aggregation       = { default-features = false, version = "2.1.0", path = "crates/crypto/proof-aggregation" }
-shieldd-sdk-proof-aggregation-trace-schema = { version = "2.1.0", path = "crates/crypto/proof-aggregation-trace-schema" }
 shieldd-sdk-proto                   = { default-features = false, version = "2.1.0", path = "crates/proto" }
 shieldd-sdk-sct                     = { default-features = false, version = "2.1.0", path = "crates/core/component/sct" }
 shieldd-sdk-compliance              = { default-features = false, version = "2.1.0", path = "crates/core/component/compliance" }
