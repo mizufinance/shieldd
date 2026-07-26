@@ -28,26 +28,27 @@ RUN cargo install --locked \
     && chmod -R a+rwX "${ELAN_HOME}"
 
 # Use the pinned Hax repository's supported setup and Aeneas installer.
+#
+# The release archives are the provenance boundary: each is pinned by sha256,
+# and AENEAS_COMMIT is cross-checked against hax's own pins.toml so our pin and
+# hax's cannot silently diverge. The binaries themselves report no commit
+# ("aeneas -version" prints "aeneas unknown"), so there is nothing to assert
+# about them beyond that they run.
+#
+# charon ships three binaries: `charon` drives `charon-driver`, which is a rustc
+# driver dynamically linked against librustc_driver from CHARON_TOOLCHAIN. All
+# three must be installed, and that toolchain must carry rustc-dev; otherwise
+# charon-driver cannot load and every extraction fails.
 ARG HAX_COMMIT=c8e27c5945f7fc5791939cff7c1277f4ab768fe1
-ARG CHARON_COMMIT=74166d896db4ae4f63101c13c22072fb2022092e
 ARG AENEAS_COMMIT=e0a159645386230102a2bf89b4df2dcd2140777e
 ARG AENEAS_ARCHIVE_SHA256=5a76680ce77737a5fe2ea3eb3750795bf3f3c13f0e3549d5dbd88e3fc191f2bd
 ARG CHARON_ARCHIVE_SHA256=9ee9516044f25ef04d33016e71c9a05d9f92575c342e99300fff4b9109d67a48
+ARG CHARON_TOOLCHAIN=nightly-2026-06-01
 RUN git clone --filter=blob:none https://github.com/cryspen/hax.git /opt/hax \
     && git -C /opt/hax checkout --detach "${HAX_COMMIT}" \
     && test "$(git -C /opt/hax rev-parse HEAD)" = "${HAX_COMMIT}" \
     && aeneas_short="$(printf '%s' "${AENEAS_COMMIT}" | cut -c1-7)" \
     && grep -Fq "commit = \"${aeneas_short}\"" /opt/hax/pins.toml \
-    && git clone --filter=blob:none --no-checkout \
-      https://github.com/AeneasVerif/charon.git /opt/charon-source \
-    && git -C /opt/charon-source fetch --depth=1 origin "${CHARON_COMMIT}" \
-    && git -C /opt/charon-source checkout --detach FETCH_HEAD \
-    && test "$(git -C /opt/charon-source rev-parse HEAD)" = "${CHARON_COMMIT}" \
-    && git clone --filter=blob:none --no-checkout \
-      https://github.com/cryspen/aeneas.git /opt/aeneas-source \
-    && git -C /opt/aeneas-source fetch --depth=1 origin "${AENEAS_COMMIT}" \
-    && git -C /opt/aeneas-source checkout --detach FETCH_HEAD \
-    && test "$(git -C /opt/aeneas-source rev-parse HEAD)" = "${AENEAS_COMMIT}" \
     && curl -fL --retry 3 \
       -o /tmp/aeneas.tar.gz \
       https://github.com/cryspen/aeneas/releases/download/nightly-2026.07.01/aeneas-linux-x86_64.tar.gz \
@@ -59,17 +60,19 @@ RUN git clone --filter=blob:none https://github.com/cryspen/hax.git /opt/hax \
     && mkdir /tmp/aeneas-unpack /tmp/charon-unpack \
     && tar -xzf /tmp/aeneas.tar.gz -C /tmp/aeneas-unpack \
     && tar -xzf /tmp/charon.tar.gz -C /tmp/charon-unpack \
-    && aeneas_bin="$(find /tmp/aeneas-unpack -type f -name aeneas)" \
-    && charon_bin="$(find /tmp/charon-unpack -type f -name charon)" \
-    && test -n "${aeneas_bin}" \
-    && test -n "${charon_bin}" \
-    && test "$(printf '%s\n' "${aeneas_bin}" | wc -l)" -eq 1 \
-    && test "$(printf '%s\n' "${charon_bin}" | wc -l)" -eq 1 \
-    && install -m 0755 "${aeneas_bin}" "${CARGO_HOME}/bin/aeneas" \
-    && install -m 0755 "${charon_bin}" "${CARGO_HOME}/bin/charon" \
+    && for name in aeneas:/tmp/aeneas-unpack charon:/tmp/charon-unpack \
+         charon-driver:/tmp/charon-unpack; do \
+         bin_name="${name%%:*}"; \
+         found="$(find "${name#*:}" -type f -name "${bin_name}")"; \
+         test "$(printf '%s\n' "${found}" | wc -l)" -eq 1; \
+         test -n "${found}"; \
+         install -m 0755 "${found}" "${CARGO_HOME}/bin/${bin_name}"; \
+       done \
     && rm -rf \
       /tmp/aeneas.tar.gz /tmp/aeneas-unpack \
       /tmp/charon.tar.gz /tmp/charon-unpack \
+    && rustup toolchain install "${CHARON_TOOLCHAIN}" --profile minimal \
+      --component rustc-dev --component llvm-tools-preview --component rust-src \
     && opam init --bare --disable-sandboxing -y \
     && opam switch create hax 5.1.1 -y \
     && eval "$(opam env --switch=hax --set-switch)" \
@@ -79,19 +82,27 @@ RUN git clone --filter=blob:none https://github.com/cryspen/hax.git /opt/hax \
     && rustup default 1.89.0 \
     && chmod -R a+rwX "${CARGO_HOME}" "${RUSTUP_HOME}" "${OPAMROOT}"
 
+# Every assertion here must be satisfiable by the artifacts installed above.
+# The charon translation at the end is the load-bearing one: it is the only
+# check that actually loads charon-driver against the rustc-dev toolchain, and
+# so the only one that would have caught the driver/toolchain being absent.
 RUN set -eux; \
     test "$(rustc --version)" = "rustc 1.89.0 (29483883e 2025-08-04)"; \
     lean --version | grep -F "Lean (version 4.30.0"; \
     cargo hax --version | grep -F "${HAX_COMMIT}"; \
     cargo hax into --help | grep -F "aeneas-lean"; \
     cargo hax into aeneas-lean --help | grep -F -- "--lakefile"; \
-    test -x "$(command -v aeneas)"; \
-    test -x "$(command -v charon)"; \
-    aeneas_short="$(printf '%s' "${AENEAS_COMMIT}" | cut -c1-7)"; \
-    aeneas -version | grep -F "${aeneas_short}"; \
+    aeneas -version; \
     test "$(charon version)" = "0.1.218"; \
-    test "$(git -C /opt/aeneas-source rev-parse HEAD)" = "${AENEAS_COMMIT}"; \
-    test "$(git -C /opt/charon-source rev-parse HEAD)" = "${CHARON_COMMIT}"; \
+    test "$(charon toolchain-version)" = "${CHARON_TOOLCHAIN}"; \
+    mkdir -p /tmp/charon-smoke/src; \
+    cd /tmp/charon-smoke; \
+    printf '[package]\nname = "smoke"\nversion = "0.0.0"\nedition = "2021"\n' \
+      > Cargo.toml; \
+    echo 'pub fn f(x: u32) -> u32 { x + 1 }' > src/lib.rs; \
+    charon cargo --start-from crate; \
+    test -s smoke.llbc; \
+    cd /; rm -rf /tmp/charon-smoke; \
     python3 --version; git --version; rsync --version; just --version
 
 CMD ["/bin/bash"]

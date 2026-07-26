@@ -59,7 +59,18 @@ jobs:
           docker run --rm "$image" sh -c \
             'cargo hax into aeneas-lean --help | grep -F -- --lakefile'
           docker run --rm "$image" sh -c \
-            'test -x "$(command -v charon)" && test -x "$(command -v aeneas)"'
+            'test -x "$(command -v charon)" &&
+             test -x "$(command -v charon-driver)" &&
+             test -x "$(command -v aeneas)"'
+          # Loads charon-driver against the rustc-dev toolchain; a plain
+          # `command -v` cannot tell a working driver from an unloadable one.
+          docker run --rm "$image" sh -c \
+            'set -eux
+             mkdir -p /tmp/probe/src && cd /tmp/probe
+             printf "[package]\nname = \"probe\"\nversion = \"0.0.0\"\nedition = \"2021\"\n" > Cargo.toml
+             echo "pub fn f(x: u32) -> u32 { x + 1 }" > src/lib.rs
+             charon cargo --start-from crate
+             test -s probe.llbc'
 
       - name: Report digest
         env:
