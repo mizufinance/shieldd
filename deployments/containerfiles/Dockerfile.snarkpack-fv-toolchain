@@ -44,7 +44,10 @@ ARG AENEAS_COMMIT=e0a159645386230102a2bf89b4df2dcd2140777e
 ARG AENEAS_ARCHIVE_SHA256=5a76680ce77737a5fe2ea3eb3750795bf3f3c13f0e3549d5dbd88e3fc191f2bd
 ARG CHARON_ARCHIVE_SHA256=9ee9516044f25ef04d33016e71c9a05d9f92575c342e99300fff4b9109d67a48
 ARG CHARON_TOOLCHAIN=nightly-2026-06-01
-RUN git clone --filter=blob:none https://github.com/cryspen/hax.git /opt/hax \
+# `set -e` is load-bearing: the statements inside the install loop below are
+# `;`-separated, so without it a failing guard would not stop the install.
+RUN set -eux \
+    && git clone --filter=blob:none https://github.com/cryspen/hax.git /opt/hax \
     && git -C /opt/hax checkout --detach "${HAX_COMMIT}" \
     && test "$(git -C /opt/hax rev-parse HEAD)" = "${HAX_COMMIT}" \
     && aeneas_short="$(printf '%s' "${AENEAS_COMMIT}" | cut -c1-7)" \
@@ -64,8 +67,8 @@ RUN git clone --filter=blob:none https://github.com/cryspen/hax.git /opt/hax \
          charon-driver:/tmp/charon-unpack; do \
          bin_name="${name%%:*}"; \
          found="$(find "${name#*:}" -type f -name "${bin_name}")"; \
-         test "$(printf '%s\n' "${found}" | wc -l)" -eq 1; \
          test -n "${found}"; \
+         test "$(printf '%s\n' "${found}" | wc -l)" -eq 1; \
          install -m 0755 "${found}" "${CARGO_HOME}/bin/${bin_name}"; \
        done \
     && rm -rf \
