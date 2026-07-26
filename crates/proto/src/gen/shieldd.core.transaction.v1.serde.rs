@@ -765,7 +765,7 @@ impl<'de> serde::Deserialize<'de> for AggregateBundle {
                             if version__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("version"));
                             }
-                            version__ =
+                            version__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -773,7 +773,7 @@ impl<'de> serde::Deserialize<'de> for AggregateBundle {
                             if srs_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("srsId"));
                             }
-                            srs_id__ =
+                            srs_id__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1023,7 +1023,7 @@ impl<'de> serde::Deserialize<'de> for CluePlan {
                             if rseed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rseed"));
                             }
-                            rseed__ =
+                            rseed__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1031,7 +1031,7 @@ impl<'de> serde::Deserialize<'de> for CluePlan {
                             if precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("precisionBits"));
                             }
-                            precision_bits__ =
+                            precision_bits__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1388,7 +1388,7 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
                             if real_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("realCount"));
                             }
-                            real_count__ =
+                            real_count__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1396,7 +1396,7 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
                             if padded_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("paddedCount"));
                             }
-                            padded_count__ =
+                            padded_count__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1404,7 +1404,7 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
                             if aggregate_proof__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("aggregateProof"));
                             }
-                            aggregate_proof__ =
+                            aggregate_proof__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1412,7 +1412,7 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
                             if note_reshape_family_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("noteReshapeFamilyId"));
                             }
-                            note_reshape_family_id__ =
+                            note_reshape_family_id__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1420,7 +1420,7 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
                             if shielded_ics20_withdrawal_family_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("shieldedIcs20WithdrawalFamilyId"));
                             }
-                            shielded_ics20_withdrawal_family_id__ =
+                            shielded_ics20_withdrawal_family_id__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1714,7 +1714,7 @@ impl<'de> serde::Deserialize<'de> for MemoCiphertext {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ =
+                            inner__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2055,7 +2055,7 @@ impl<'de> serde::Deserialize<'de> for MemoPlan {
                             if key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("key"));
                             }
-                            key__ =
+                            key__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3263,7 +3263,7 @@ impl<'de> serde::Deserialize<'de> for TransactionParameters {
                             if expiry_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("expiryHeight"));
                             }
-                            expiry_height__ =
+                            expiry_height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

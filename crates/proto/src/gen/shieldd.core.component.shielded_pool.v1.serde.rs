@@ -1321,7 +1321,7 @@ impl<'de> serde::Deserialize<'de> for FmdMetaParameters {
                             if fmd_grace_period_blocks__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("fmdGracePeriodBlocks"));
                             }
-                            fmd_grace_period_blocks__ =
+                            fmd_grace_period_blocks__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1444,7 +1444,7 @@ impl<'de> serde::Deserialize<'de> for fmd_meta_parameters::AlgorithmSlidingWindo
                             if window_update_periods__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("windowUpdatePeriods"));
                             }
-                            window_update_periods__ =
+                            window_update_periods__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1452,7 +1452,7 @@ impl<'de> serde::Deserialize<'de> for fmd_meta_parameters::AlgorithmSlidingWindo
                             if targeted_detections_per_window__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("targetedDetectionsPerWindow"));
                             }
-                            targeted_detections_per_window__ =
+                            targeted_detections_per_window__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1737,7 +1737,7 @@ impl<'de> serde::Deserialize<'de> for fmd_meta_parameters_algorithm_state::Slidi
                             if approximate_clue_count__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("approximateClueCount"));
                             }
-                            approximate_clue_count__ =
+                            approximate_clue_count__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1848,7 +1848,7 @@ impl<'de> serde::Deserialize<'de> for FmdParameters {
                             if precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("precisionBits"));
                             }
-                            precision_bits__ =
+                            precision_bits__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1856,7 +1856,7 @@ impl<'de> serde::Deserialize<'de> for FmdParameters {
                             if as_of_block_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("asOfBlockHeight"));
                             }
-                            as_of_block_height__ =
+                            as_of_block_height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1972,7 +1972,7 @@ impl<'de> serde::Deserialize<'de> for FungibleTokenTransferPacketMetadata {
                             if sequence__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("sequence"));
                             }
-                            sequence__ =
+                            sequence__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2340,7 +2340,7 @@ impl<'de> serde::Deserialize<'de> for Note {
                             if rseed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rseed"));
                             }
-                            rseed__ =
+                            rseed__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2447,7 +2447,7 @@ impl<'de> serde::Deserialize<'de> for NoteCiphertext {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ =
+                            inner__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2575,7 +2575,7 @@ impl<'de> serde::Deserialize<'de> for NotePayload {
                             if ephemeral_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ephemeralKey"));
                             }
-                            ephemeral_key__ =
+                            ephemeral_key__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2852,7 +2852,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeBody {
                             if family_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("familyId"));
                             }
-                            family_id__ =
+                            family_id__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -3012,7 +3012,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeInputBody {
                             if encrypted_backref__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("encryptedBackref"));
                             }
-                            encrypted_backref__ =
+                            encrypted_backref__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3144,7 +3144,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeOutputBody {
                             if wrapped_memo_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("wrappedMemoKey"));
                             }
-                            wrapped_memo_key__ =
+                            wrapped_memo_key__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3152,7 +3152,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapeOutputBody {
                             if ovk_wrapped_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ovkWrappedKey"));
                             }
-                            ovk_wrapped_key__ =
+                            ovk_wrapped_key__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3300,7 +3300,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ =
+                            value_blinding__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -3806,7 +3806,7 @@ impl<'de> serde::Deserialize<'de> for NoteView {
                             if rseed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rseed"));
                             }
-                            rseed__ =
+                            rseed__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4129,7 +4129,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                             if family_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("familyId"));
                             }
-                            family_id__ =
+                            family_id__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4167,7 +4167,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalBody {
                             if target_timestamp__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("targetTimestamp"));
                             }
-                            target_timestamp__ =
+                            target_timestamp__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -4317,7 +4317,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalChangeBody {
                             if wrapped_memo_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("wrappedMemoKey"));
                             }
-                            wrapped_memo_key__ =
+                            wrapped_memo_key__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4325,7 +4325,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalChangeBody {
                             if ovk_wrapped_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ovkWrappedKey"));
                             }
-                            ovk_wrapped_key__ =
+                            ovk_wrapped_key__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -4484,7 +4484,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ =
+                            value_blinding__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5302,7 +5302,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("position"));
                             }
-                            position__ =
+                            position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5310,7 +5310,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if randomizer__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("randomizer"));
                             }
-                            randomizer__ =
+                            randomizer__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5318,7 +5318,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ =
+                            value_blinding__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5326,7 +5326,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if proof_blinding_r__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("proofBlindingR"));
                             }
-                            proof_blinding_r__ =
+                            proof_blinding_r__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5334,7 +5334,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if proof_blinding_s__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("proofBlindingS"));
                             }
-                            proof_blinding_s__ =
+                            proof_blinding_s__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5342,7 +5342,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if target_timestamp__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("targetTimestamp"));
                             }
-                            target_timestamp__ =
+                            target_timestamp__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5350,7 +5350,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if compliance_ciphertext__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceCiphertext"));
                             }
-                            compliance_ciphertext__ =
+                            compliance_ciphertext__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5370,7 +5370,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if compliance_ephemeral_secret__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceEphemeralSecret"));
                             }
-                            compliance_ephemeral_secret__ =
+                            compliance_ephemeral_secret__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5378,7 +5378,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if tx_blinding_nonce__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("txBlindingNonce"));
                             }
-                            tx_blinding_nonce__ =
+                            tx_blinding_nonce__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5404,7 +5404,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if compliance_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("compliancePosition"));
                             }
-                            compliance_position__ =
+                            compliance_position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5418,7 +5418,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if asset_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetPosition"));
                             }
-                            asset_position__ =
+                            asset_position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5438,7 +5438,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if salt__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("salt"));
                             }
-                            salt__ =
+                            salt__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5446,7 +5446,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if dleq_k__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqK"));
                             }
-                            dleq_k__ =
+                            dleq_k__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5454,7 +5454,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if dleq_c__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqC"));
                             }
-                            dleq_c__ =
+                            dleq_c__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5462,7 +5462,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if dleq_s__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqS"));
                             }
-                            dleq_s__ =
+                            dleq_s__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5470,7 +5470,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
                             }
-                            ring_pk__ =
+                            ring_pk__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5478,7 +5478,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ =
+                            dk_pub__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -5486,7 +5486,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedInputPlan {
                             if threshold__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("threshold"));
                             }
-                            threshold__ =
+                            threshold__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6096,7 +6096,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if rseed__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rseed"));
                             }
-                            rseed__ =
+                            rseed__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6104,7 +6104,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ =
+                            value_blinding__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6112,7 +6112,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if proof_blinding_r__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("proofBlindingR"));
                             }
-                            proof_blinding_r__ =
+                            proof_blinding_r__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6120,7 +6120,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if proof_blinding_s__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("proofBlindingS"));
                             }
-                            proof_blinding_s__ =
+                            proof_blinding_s__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6128,7 +6128,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if target_timestamp__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("targetTimestamp"));
                             }
-                            target_timestamp__ =
+                            target_timestamp__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6136,7 +6136,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if compliance_ciphertext__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceCiphertext"));
                             }
-                            compliance_ciphertext__ =
+                            compliance_ciphertext__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6162,7 +6162,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if compliance_ephemeral_secret__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceEphemeralSecret"));
                             }
-                            compliance_ephemeral_secret__ =
+                            compliance_ephemeral_secret__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6176,7 +6176,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if tx_blinding_nonce__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("txBlindingNonce"));
                             }
-                            tx_blinding_nonce__ =
+                            tx_blinding_nonce__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6202,7 +6202,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if compliance_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("compliancePosition"));
                             }
-                            compliance_position__ =
+                            compliance_position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6216,7 +6216,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if asset_position__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("assetPosition"));
                             }
-                            asset_position__ =
+                            asset_position__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6230,7 +6230,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if sender_ciphertext__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("senderCiphertext"));
                             }
-                            sender_ciphertext__ =
+                            sender_ciphertext__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6238,7 +6238,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if salt__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("salt"));
                             }
-                            salt__ =
+                            salt__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6246,7 +6246,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if dleq_k_1__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqK1"));
                             }
-                            dleq_k_1__ =
+                            dleq_k_1__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6254,7 +6254,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if dleq_k_2__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqK2"));
                             }
-                            dleq_k_2__ =
+                            dleq_k_2__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6262,7 +6262,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if dleq_k_3__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqK3"));
                             }
-                            dleq_k_3__ =
+                            dleq_k_3__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6270,7 +6270,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if dleq_c_1__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqC1"));
                             }
-                            dleq_c_1__ =
+                            dleq_c_1__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6278,7 +6278,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if dleq_s_1__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqS1"));
                             }
-                            dleq_s_1__ =
+                            dleq_s_1__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6286,7 +6286,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if dleq_c_2__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqC2"));
                             }
-                            dleq_c_2__ =
+                            dleq_c_2__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6294,7 +6294,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if dleq_s_2__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqS2"));
                             }
-                            dleq_s_2__ =
+                            dleq_s_2__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6302,7 +6302,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if dleq_c_3__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqC3"));
                             }
-                            dleq_c_3__ =
+                            dleq_c_3__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6310,7 +6310,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if dleq_s_3__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dleqS3"));
                             }
-                            dleq_s_3__ =
+                            dleq_s_3__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6318,7 +6318,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if ring_pk__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ringPk"));
                             }
-                            ring_pk__ =
+                            ring_pk__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6326,7 +6326,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if dk_pub__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("dkPub"));
                             }
-                            dk_pub__ =
+                            dk_pub__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6334,7 +6334,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if threshold_bytes__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("thresholdBytes"));
                             }
-                            threshold_bytes__ =
+                            threshold_bytes__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6348,7 +6348,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if r_2__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("r2"));
                             }
-                            r_2__ =
+                            r_2__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6356,7 +6356,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedOutputPlan {
                             if r_3__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("r3"));
                             }
-                            r_3__ =
+                            r_3__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -6831,7 +6831,7 @@ impl<'de> serde::Deserialize<'de> for TransferBody {
                             if target_timestamp__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("targetTimestamp"));
                             }
-                            target_timestamp__ =
+                            target_timestamp__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -6994,7 +6994,7 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                             if encrypted_backref__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("encryptedBackref"));
                             }
-                            encrypted_backref__ =
+                            encrypted_backref__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7002,7 +7002,7 @@ impl<'de> serde::Deserialize<'de> for TransferInputBody {
                             if compliance_ciphertext__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceCiphertext"));
                             }
-                            compliance_ciphertext__ =
+                            compliance_ciphertext__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7161,7 +7161,7 @@ impl<'de> serde::Deserialize<'de> for TransferOutputBody {
                             if wrapped_memo_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("wrappedMemoKey"));
                             }
-                            wrapped_memo_key__ =
+                            wrapped_memo_key__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7169,7 +7169,7 @@ impl<'de> serde::Deserialize<'de> for TransferOutputBody {
                             if ovk_wrapped_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("ovkWrappedKey"));
                             }
-                            ovk_wrapped_key__ =
+                            ovk_wrapped_key__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7177,7 +7177,7 @@ impl<'de> serde::Deserialize<'de> for TransferOutputBody {
                             if compliance_ciphertext__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("complianceCiphertext"));
                             }
-                            compliance_ciphertext__ =
+                            compliance_ciphertext__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7185,7 +7185,7 @@ impl<'de> serde::Deserialize<'de> for TransferOutputBody {
                             if orbis_upload_bundle__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("orbisUploadBundle"));
                             }
-                            orbis_upload_bundle__ =
+                            orbis_upload_bundle__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7335,7 +7335,7 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                             if value_blinding__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("valueBlinding"));
                             }
-                            value_blinding__ =
+                            value_blinding__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7813,7 +7813,7 @@ impl<'de> serde::Deserialize<'de> for ZkNoteReshapeProof {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ =
+                            inner__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -7912,7 +7912,7 @@ impl<'de> serde::Deserialize<'de> for ZkShieldedIcs20WithdrawalProof {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ =
+                            inner__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -8011,7 +8011,7 @@ impl<'de> serde::Deserialize<'de> for ZkTransferProof {
                             if inner__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("inner"));
                             }
-                            inner__ =
+                            inner__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
