@@ -2463,8 +2463,7 @@ mod tests {
             )
             .expect("note reshape body materialization succeeds");
         assert_eq!(
-            body
-                .inputs
+            body.inputs
                 .iter()
                 .map(|input| input.is_dummy())
                 .collect::<Vec<_>>(),
@@ -2513,8 +2512,7 @@ mod tests {
             )
             .expect("note reshape body materialization succeeds");
         assert_eq!(
-            body
-                .outputs
+            body.outputs
                 .iter()
                 .map(|output| output.is_dummy())
                 .collect::<Vec<_>>(),
