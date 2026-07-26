@@ -1504,6 +1504,7 @@ mod tests {
     use shieldd_sdk_ibc::IbcRelay;
     use shieldd_sdk_keys::keys::SeedPhrase;
     use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SpendKey};
+    use shieldd_sdk_keys::symmetric::PayloadKey;
     use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
     use shieldd_sdk_proto::view::v1 as pb;
     use shieldd_sdk_proto::{DomainType, Message as _};
@@ -2451,9 +2452,18 @@ mod tests {
         assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::FourByOne);
         assert_eq!(note_reshape.spends.len(), 3);
         assert_eq!(note_reshape.body.inputs.len(), 4);
+        // Plan bodies are placeholders; dummy classification is meaningful
+        // only after materializing the action body.
+        let spend_key = test_spend_key(6);
+        let body = note_reshape
+            .note_reshape_body(
+                spend_key.full_viewing_key(),
+                &PayloadKey::from([0u8; 32]),
+                shieldd_sdk_tct::Tree::default().root(),
+            )
+            .expect("note reshape body materialization succeeds");
         assert_eq!(
-            note_reshape
-                .body
+            body
                 .inputs
                 .iter()
                 .map(|input| input.is_dummy())
@@ -2492,9 +2502,18 @@ mod tests {
         assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::OneByEight);
         assert_eq!(note_reshape.outputs.len(), 3);
         assert_eq!(note_reshape.body.outputs.len(), 8);
+        // Plan bodies are placeholders; dummy classification is meaningful
+        // only after materializing the action body.
+        let spend_key = test_spend_key(5);
+        let body = note_reshape
+            .note_reshape_body(
+                spend_key.full_viewing_key(),
+                &PayloadKey::from([0u8; 32]),
+                shieldd_sdk_tct::Tree::default().root(),
+            )
+            .expect("note reshape body materialization succeeds");
         assert_eq!(
-            note_reshape
-                .body
+            body
                 .outputs
                 .iter()
                 .map(|output| output.is_dummy())
