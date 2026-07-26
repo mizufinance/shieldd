@@ -13,11 +13,14 @@ ENV ELAN_HOME=/usr/local/elan
 ENV OPAMROOT=/usr/local/opam
 ENV PATH="/usr/local/elan/bin:/usr/local/cargo/bin:/usr/local/opam/hax/bin:${PATH}"
 
+# git-lfs is required by the consuming jobs' `actions/checkout` with `lfs: true`,
+# which fails with "Unable to locate executable file: git-lfs" without it.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-      build-essential ca-certificates curl git jq libgmp-dev nodejs opam \
+      build-essential ca-certificates curl git git-lfs jq libgmp-dev nodejs opam \
       pkg-config python3 rsync unzip xz-utils \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && git lfs install --system
 
 ARG JUST_VERSION=1.57.0
 RUN cargo install --locked --version "${JUST_VERSION}" just
@@ -111,6 +114,6 @@ RUN set -eux; \
     charon cargo --start-from crate; \
     test -s smoke.llbc; \
     cd /; rm -rf /tmp/charon-smoke; \
-    python3 --version; git --version; rsync --version; just --version
+    python3 --version; git --version; git lfs version; rsync --version; just --version
 
 CMD ["/bin/bash"]
