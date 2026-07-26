@@ -420,7 +420,6 @@ impl SnarkpackBackend {
         }
         Ok(profile)
     }
-
 }
 
 impl AggregationBackend for SnarkpackBackend {
@@ -756,7 +755,6 @@ where
     .map_err(|e| AggregateVerifyError::BackendRejected(e.to_string()))
 }
 
-
 pub(crate) fn verify_with_digest_profiled<D: Digest>(
     challenge_context: &ChallengeContext,
     pvk: &PreparedVerifyingKey<Bls12_377>,
@@ -826,10 +824,9 @@ mod tests {
     use crate::transcript::TransferTranscriptDigest;
     use crate::{
         aggregate_family, aggregate_family_profiled, decode_wrapped_aggregate_proof,
-        pad_items_to_power_of_two, srs_id,
-        statement::aggregate_verification_key_digest, verify_family_aggregate,
-        verify_family_aggregate_profiled, AggregateStatement, AggregateVerifyError,
-        AGGREGATE_PROTOCOL_VERSION,
+        pad_items_to_power_of_two, srs_id, statement::aggregate_verification_key_digest,
+        verify_family_aggregate, verify_family_aggregate_profiled, AggregateStatement,
+        AggregateVerifyError, AGGREGATE_PROTOCOL_VERSION,
     };
 
     use super::*;
