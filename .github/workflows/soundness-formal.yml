@@ -33,6 +33,7 @@ env:
 
 jobs:
   applicability:
+    name: 'soundness: applicability'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -65,6 +66,7 @@ jobs:
           python3 scripts/ci/gate-applicability.py "${args[@]}"
 
   gate:
+    name: 'soundness: gate'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: ubuntu-24.04
@@ -81,6 +83,7 @@ jobs:
         run: bash scripts/compliance-lean-dleq.sh stamps
 
   seam-and-pin:
+    name: 'soundness: seam-and-pin'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: ubuntu-24.04
@@ -103,6 +106,7 @@ jobs:
         run: bash scripts/check-manifest-pin.sh
 
   vk-derivation:
+    name: 'soundness: vk-derivation (${{ matrix.circuit }})'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: ubuntu-24.04
@@ -124,6 +128,7 @@ jobs:
         run: bash scripts/check-vk-derivation.sh "${{ matrix.circuit }}"
 
   alloy:
+    name: 'soundness: alloy'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true' && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
     runs-on: ubuntu-24.04
@@ -139,6 +144,7 @@ jobs:
         run: nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh
 
   lean-circuit-fv:
+    name: 'soundness: lean-circuit-fv'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: ${{ needs.applicability.outputs.tier == 'stamps' && 'ubuntu-24.04' || 'blacksmith-16vcpu-ubuntu-2404' }}
@@ -184,6 +190,7 @@ jobs:
         run: bash scripts/check-lean-circuit-fv.sh "${{ needs.applicability.outputs.tier }}"
 
   tamarin-alloy:
+    name: 'soundness: tamarin-alloy'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true' && (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch')
     runs-on: blacksmith-16vcpu-ubuntu-2404
@@ -201,6 +208,7 @@ jobs:
         run: nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh
 
   dleq:
+    name: 'soundness: dleq'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true' && (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch')
     runs-on: blacksmith-16vcpu-ubuntu-2404
@@ -225,6 +233,7 @@ jobs:
         run: bash scripts/compliance-lean-dleq.sh full
 
   fstar:
+    name: 'soundness: fstar'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true' && (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch')
     runs-on: blacksmith-16vcpu-ubuntu-2404
@@ -267,6 +276,7 @@ jobs:
         run: bash scripts/shielded-pool-formal.sh
 
   picus:
+    name: 'soundness: picus'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true' && (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch')
     runs-on: blacksmith-16vcpu-ubuntu-2404
@@ -303,6 +313,7 @@ jobs:
         run: bash scripts/run-whole-circuit-picus.sh consolidate2x1 transfer
 
   acl2:
+    name: 'soundness: acl2 (advisory)'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true' && (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch')
     runs-on: blacksmith-16vcpu-ubuntu-2404
@@ -319,6 +330,7 @@ jobs:
         run: nix shell nixpkgs#acl2 nixpkgs#lean4 --command bash scripts/circuit-gadget-proof-check.sh
 
   post-prover-invariants:
+    name: 'soundness: post-prover-invariants'
     needs: [applicability, tamarin-alloy, dleq, fstar, picus]
     if: always() && needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true' && (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
@@ -351,7 +363,7 @@ jobs:
         run: nix develop --command bash scripts/check-soundness-invariants.sh
 
   summary:
-    name: Soundness Formal Summary
+    name: 'soundness: summary'
     needs:
       - applicability
       - gate
@@ -368,6 +380,12 @@ jobs:
     if: always()
     runs-on: ubuntu-24.04
     steps:
+      # Asserts only what the job `if:` conditions cannot already guarantee:
+      # that applicability produced a tier we understand, and that the lanes
+      # that event selects all succeeded. Asserting the complement (that
+      # unselected lanes report `skipped`) would just restate those `if:`s.
+      # acl2 is `continue-on-error`, so its result is not a signal; it stays in
+      # `needs` for ordering only.
       - name: Enforce soundness result contract
         env:
           EVENT_NAME: ${{ github.event_name }}
@@ -384,49 +402,36 @@ jobs:
           DLEQ: ${{ needs.dleq.result }}
           FSTAR: ${{ needs.fstar.result }}
           PICUS: ${{ needs.picus.result }}
-          ACL2: ${{ needs.acl2.result }}
           POST: ${{ needs.post-prover-invariants.result }}
         run: |
+          set -euo pipefail
           if [[ "$APPLICABILITY" != "success" ]]; then
-            echo "applicability classification failed: $APPLICABILITY"
+            echo "applicability classification failed: $APPLICABILITY" >&2
             exit 1
           fi
-          jobs=("$GATE" "$SEAM" "$VK" "$ALLOY" "$LEAN" "$TAMARIN_ALLOY" "$DLEQ" "$FSTAR" "$PICUS" "$ACL2" "$POST")
           if [[ "$STATUS" == "skip" ]]; then
-            for result in "${jobs[@]}"; do
-              [[ "$result" == "skipped" ]] || {
-                echo "skip tier unexpectedly ran a job: $result"
-                exit 1
-              }
-            done
             echo "explained skip: $EXPLANATION"
             exit 0
           fi
           if [[ "$STATUS" != "run" || ( "$TIER" != "stamps" && "$TIER" != "full" ) ]]; then
-            echo "invalid applicability contract: status=$STATUS tier=$TIER"
+            echo "invalid applicability contract: status=$STATUS tier=$TIER" >&2
             exit 1
           fi
-          for required in "gate=$GATE" "seam=$SEAM" "vk=$VK" "lean=$LEAN"; do
-            [[ "${required#*=}" == "success" ]] || {
-              echo "required job failed: $required"
-              exit 1
-            }
-          done
+          required=("gate=$GATE" "seam=$SEAM" "vk=$VK" "lean=$LEAN")
+          # Candidate events run the cheap Alloy gate; scheduled and manual runs
+          # carry the heavy provers instead.
           if [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "merge_group" ]]; then
-            [[ "$ALLOY" == "success" ]] || exit 1
-            for result in "$TAMARIN_ALLOY" "$DLEQ" "$FSTAR" "$PICUS" "$ACL2" "$POST"; do
-              [[ "$result" == "skipped" ]] || {
-                echo "candidate unexpectedly ran nightly job: $result"
-                exit 1
-              }
-            done
+            required+=("alloy=$ALLOY")
           else
-            [[ "$ALLOY" == "skipped" ]] || exit 1
-            for result in "$TAMARIN_ALLOY" "$DLEQ" "$FSTAR" "$PICUS" "$ACL2" "$POST"; do
-              [[ "$result" == "success" ]] || {
-                echo "nightly job did not complete: $result"
-                exit 1
-              }
-            done
+            required+=(
+              "tamarin-alloy=$TAMARIN_ALLOY" "dleq=$DLEQ" "fstar=$FSTAR"
+              "picus=$PICUS" "post-prover-invariants=$POST"
+            )
           fi
+          for entry in "${required[@]}"; do
+            if [[ "${entry#*=}" != "success" ]]; then
+              echo "required job failed: $entry" >&2
+              exit 1
+            fi
+          done
           echo "soundness tier $TIER passed"

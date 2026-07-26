@@ -35,6 +35,7 @@ env:
 
 jobs:
   applicability:
+    name: 'snarkpack: applicability'
     runs-on: ubuntu-24.04
     outputs:
       status: ${{ steps.classify.outputs.status }}
@@ -68,6 +69,7 @@ jobs:
           python3 scripts/ci/gate-applicability.py "${args[@]}"
 
   static:
+    name: 'snarkpack: static'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: ubuntu-24.04
@@ -86,6 +88,7 @@ jobs:
         run: nix develop --command just snarkpack-fv
 
   toolchain:
+    name: 'snarkpack: toolchain (${{ matrix.lane }})'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: ubuntu-24.04
@@ -93,7 +96,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        lane: ${{ fromJSON(needs.applicability.outputs.tier == 'static' && '["fstar"]' || needs.applicability.outputs.tier == 'full' && '["extract-0","extract-1","extract-2","extract-3","lean","fstar"]' || '["extract-0","extract-1","extract-2","extract-3","fstar"]') }}
+        lane: ${{ fromJSON(needs.applicability.outputs.tier == 'static' && '["fstar"]' || needs.applicability.outputs.tier == 'full' && '["extract","lean","fstar"]' || '["extract","fstar"]') }}
     container:
       # TODO(fv-image-digest): replace the sentinel after running:
       # gh run view "$(gh run list --workflow snarkpack-fv-toolchain-image.yml --commit 027ddbd4c06bc1eb378664ed250099bce4c65817 --limit 1 --json databaseId --jq '.[0].databaseId')" --log | grep -oE 'ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:[0-9a-f]{64}' | tail -1
@@ -124,13 +127,11 @@ jobs:
         run: |
           set -euo pipefail
           case "$LANE" in
-            extract-*)
+            extract)
               export SNARKPACK_FV_MODE="$(
                 [[ "$APPLICABILITY_TIER" == extract-changed ]] &&
                   echo extract-changed || echo extract-all
               )"
-              export SNARKPACK_FV_SHARD_INDEX="${LANE#extract-}"
-              export SNARKPACK_FV_SHARD_COUNT=4
               just snarkpack-fv
               ;;
             lean)
@@ -148,6 +149,7 @@ jobs:
           esac
 
   parity:
+    name: 'snarkpack: parity'
     needs: applicability
     if: >-
       needs.applicability.result == 'success' &&
@@ -170,6 +172,7 @@ jobs:
         run: nix develop --command just snarkpack-fv
 
   fuzz:
+    name: 'snarkpack: fuzz'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: blacksmith-16vcpu-ubuntu-2404
@@ -191,6 +194,7 @@ jobs:
         run: nix develop --command just snarkpack-fuzz-smoke
 
   dos:
+    name: 'snarkpack: dos'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: blacksmith-16vcpu-ubuntu-2404
@@ -206,16 +210,22 @@ jobs:
         run: nix develop --command just snarkpack-dos-gate
 
   summary:
+    name: 'snarkpack: summary'
     if: always()
     needs: [applicability, static, toolchain, parity, fuzz, dos]
     runs-on: ubuntu-24.04
     steps:
+      # Asserts only what the job `if:` conditions cannot already guarantee:
+      # that applicability produced a tier we understand, and that the lanes
+      # that tier selects all succeeded. Asserting the complement (that
+      # unselected lanes report `skipped`) would just restate those `if:`s.
       - name: Require the selected contract
         shell: bash
         env:
           APPLICABILITY: ${{ needs.applicability.result }}
           STATUS: ${{ needs.applicability.outputs.status }}
           TIER: ${{ needs.applicability.outputs.tier }}
+          EXPLANATION: ${{ needs.applicability.outputs.explanation }}
           STATIC: ${{ needs.static.result }}
           TOOLCHAIN: ${{ needs.toolchain.result }}
           PARITY: ${{ needs.parity.result }}
@@ -223,25 +233,31 @@ jobs:
           DOS: ${{ needs.dos.result }}
         run: |
           set -euo pipefail
-          [[ "$APPLICABILITY" == success && "$STATUS" != block ]]
+          if [[ "$APPLICABILITY" != success ]]; then
+            echo "applicability classification failed: $APPLICABILITY" >&2
+            exit 1
+          fi
+          if [[ "$STATUS" == block ]]; then
+            echo "applicability blocked the run: $EXPLANATION" >&2
+            exit 1
+          fi
           if [[ "$STATUS" == skip ]]; then
-            [[ "$STATIC" == skipped && "$TOOLCHAIN" == skipped && "$PARITY" == skipped ]]
-            [[ "$FUZZ" == skipped && "$DOS" == skipped ]]
+            echo "explained skip: $EXPLANATION"
             exit 0
           fi
-          [[ "$STATIC" == success && "$TOOLCHAIN" == success && "$FUZZ" == success && "$DOS" == success ]]
+          required=("static=$STATIC" "toolchain=$TOOLCHAIN" "fuzz=$FUZZ" "dos=$DOS")
           case "$TIER" in
-            static)
-              [[ "$PARITY" == skipped ]]
-              ;;
-            extract-changed|extract-all)
-              [[ "$PARITY" == success ]]
-              ;;
-            full)
-              [[ "$PARITY" == success ]]
-              ;;
+            static) ;;
+            extract-changed|extract-all|full) required+=("parity=$PARITY") ;;
             *)
               echo "unsupported applicability tier: $TIER" >&2
               exit 1
               ;;
           esac
+          for entry in "${required[@]}"; do
+            if [[ "${entry#*=}" != success ]]; then
+              echo "required job failed: $entry" >&2
+              exit 1
+            fi
+          done
+          echo "snarkpack tier $TIER passed"
