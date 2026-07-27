@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
 use shieldd_sdk_keys::AddressView;
 use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
-use shieldd_sdk_shielded_pool::{NoteReshapeView, ShieldedIcs20WithdrawalView, TransferView};
+use shieldd_sdk_shielded_pool::{
+    NoteReshapeView, ShieldedHostWithdrawalView, ShieldedIcs20WithdrawalView, TransferView,
+};
 
 pub mod action_view;
 mod transaction_perspective;
@@ -140,6 +142,13 @@ impl TransactionView {
                     },
                     &mut effects,
                 ),
+                ActionView::ShieldedHostWithdrawal(withdrawal_view) => summarize_note_flow(
+                    withdrawal_view,
+                    |effects, address, balance| {
+                        effects.push(TransactionEffect { address, balance })
+                    },
+                    &mut effects,
+                ),
                 _ => {}
             }
         }
@@ -199,6 +208,24 @@ impl NoteFlowView for ShieldedIcs20WithdrawalView {
                 Some(std::slice::from_ref(change_note))
             }
             ShieldedIcs20WithdrawalView::Opaque { .. } => None,
+        }
+    }
+}
+
+impl NoteFlowView for ShieldedHostWithdrawalView {
+    fn spent_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
+        match self {
+            ShieldedHostWithdrawalView::Visible { spent_notes, .. } => Some(spent_notes),
+            ShieldedHostWithdrawalView::Opaque { .. } => None,
+        }
+    }
+
+    fn created_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
+        match self {
+            ShieldedHostWithdrawalView::Visible { change_note, .. } => {
+                Some(std::slice::from_ref(change_note))
+            }
+            ShieldedHostWithdrawalView::Opaque { .. } => None,
         }
     }
 }

@@ -14,6 +14,7 @@ fn note_creating_output_count(tx: &Transaction) -> usize {
                 .count(),
             Action::NoteReshape(note_reshape) => note_reshape.body.outputs.iter().count(),
             Action::ShieldedIcs20Withdrawal(_) => 1,
+            Action::ShieldedHostWithdrawal(_) => 1,
             _ => 0,
         })
         .sum::<usize>();

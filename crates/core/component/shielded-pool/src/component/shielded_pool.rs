@@ -143,6 +143,13 @@ pub trait StateReadExt: StateRead {
             .ok_or_else(|| anyhow!("Missing ShieldedPoolParameters"))
     }
 
+    async fn host_withdrawals_enabled(&self) -> Result<bool> {
+        Ok(self
+            .get_raw(state_key::host_withdrawals_enabled())
+            .await?
+            .is_some())
+    }
+
     async fn get_fmd_algorithm_state(&self) -> Result<fmd::MetaParametersAlgorithmState> {
         Ok(self
             .get(fmd::state_key::meta_parameters::algorithm_state())
@@ -158,6 +165,14 @@ impl<T: StateRead + ?Sized> StateReadExt for T {}
 pub trait StateWriteExt: StateWrite + StateReadExt {
     fn put_shielded_pool_params(&mut self, params: ShieldedPoolParameters) {
         self.put(crate::state_key::shielded_pool_params().into(), params)
+    }
+
+    fn put_host_withdrawals_enabled(&mut self, enabled: bool) {
+        if enabled {
+            self.put_raw(crate::state_key::host_withdrawals_enabled().into(), vec![1])
+        } else {
+            self.delete(crate::state_key::host_withdrawals_enabled().into())
+        }
     }
 
     /// Writes the current FMD parameters to the JMT.

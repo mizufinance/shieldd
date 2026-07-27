@@ -7,7 +7,7 @@ use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::execution_client::v1::{
     DepositRequest, DepositResponse, HostSource as ProtoHostSource,
 };
-use shieldd_sdk_shielded_pool::component::AssetRegistry as _;
+use shieldd_sdk_shielded_pool::component::{AssetRegistry as _, AssetRegistryRead as _};
 use std::str::FromStr as _;
 use std::time::Instant;
 
@@ -45,12 +45,14 @@ pub struct HostTxResponse {
     pub gas_used: i64,
     pub events: Vec<abci::Event>,
     pub codespace: String,
+    pub withdrawals: Vec<HostWithdrawal>,
 }
 
 impl HostTxResponse {
-    fn accepted(events: Vec<abci::Event>) -> Self {
+    fn accepted(events: Vec<abci::Event>, withdrawals: Vec<HostWithdrawal>) -> Self {
         Self {
             events,
+            withdrawals,
             ..Default::default()
         }
     }
@@ -63,6 +65,14 @@ impl HostTxResponse {
             ..Default::default()
         }
     }
+}
+
+/// Host-chain transfer emitted by an accepted shielded withdrawal.
+#[derive(Clone, Debug)]
+pub struct HostWithdrawal {
+    pub recipient: String,
+    pub denom: String,
+    pub amount: Amount,
 }
 
 #[derive(Clone, Debug)]
@@ -257,7 +267,7 @@ impl HostExecution {
                 .deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))
                 .await
             {
-                Ok(events) => HostTxResponse::accepted(events),
+                Ok(events) => HostTxResponse::accepted(events, Vec::new()),
                 Err(error) => HostTxResponse::rejected(error),
             },
         )
@@ -270,16 +280,44 @@ impl HostExecution {
             self.phase
         );
 
+        let tx = match Transaction::decode(tx_bytes).context("decoding host transaction") {
+            Ok(tx) => tx,
+            Err(error) => return Ok(HostTxResponse::rejected(error)),
+        };
+        let withdrawals = match self.resolve_host_withdrawals(&tx).await {
+            Ok(withdrawals) => withdrawals,
+            Err(error) => return Ok(HostTxResponse::rejected(error)),
+        };
+
         Ok(
             match self
                 .app
                 .deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))
                 .await
             {
-                Ok(events) => HostTxResponse::accepted(events),
+                Ok(events) => HostTxResponse::accepted(events, withdrawals),
                 Err(error) => HostTxResponse::rejected(error),
             },
         )
+    }
+
+    async fn resolve_host_withdrawals(&self, tx: &Transaction) -> Result<Vec<HostWithdrawal>> {
+        let mut withdrawals = Vec::new();
+        for action in tx.shielded_host_withdrawals() {
+            let value = action.body.withdrawal.value;
+            let metadata = self
+                .app
+                .state
+                .denom_metadata_by_asset(&value.asset_id)
+                .await
+                .ok_or_else(|| anyhow::anyhow!("host withdrawal asset is not registered"))?;
+            withdrawals.push(HostWithdrawal {
+                recipient: action.body.withdrawal.recipient.clone(),
+                denom: metadata.base_denom().denom,
+                amount: value.amount,
+            });
+        }
+        Ok(withdrawals)
     }
 
     /// Finishes the current host block without producing validator set updates.
@@ -335,6 +373,7 @@ impl App {
                 state_tx.put_chain_id(genesis.chain_id.clone());
                 Sct::init_chain(&mut state_tx, Some(&genesis.sct_content)).await;
                 ShieldedPool::init_chain(&mut state_tx, Some(&genesis.shielded_pool_content)).await;
+                state_tx.put_host_withdrawals_enabled(true);
                 FeeComponent::init_chain(&mut state_tx, Some(&genesis.fee_content)).await;
                 Compliance::init_chain(&mut state_tx, Some(&genesis.compliance_content)).await;
 
@@ -644,8 +683,16 @@ mod tests {
     use crate::genesis::{AppState, Content};
     use crate::SUBSTORE_PREFIXES;
     use cnidarium::TempStorage;
+    use cnidarium_component::ActionHandler as _;
     use shieldd_sdk_asset::BASE_ASSET_DENOM;
+    use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
     use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_shielded_pool::component::StateReadExt as _;
+    use shieldd_sdk_shielded_pool::{
+        HostWithdrawal as DomainHostWithdrawal, NotePayload, ShieldedHostWithdrawal,
+        ShieldedHostWithdrawalBody, ShieldedIcs20WithdrawalChangeBody,
+        ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalProof,
+    };
     use std::ops::Deref as _;
 
     async fn temp_storage() -> TempStorage {
@@ -682,11 +729,47 @@ mod tests {
         }
     }
 
+    fn host_withdrawal_action() -> ShieldedHostWithdrawal {
+        ShieldedHostWithdrawal {
+            body: ShieldedHostWithdrawalBody {
+                family_id: ShieldedIcs20WithdrawalFamilyId::Canonical,
+                anchor: shieldd_sdk_tct::Tree::default().root(),
+                balance_commitment: Default::default(),
+                inputs: Vec::new(),
+                withdrawal: DomainHostWithdrawal {
+                    recipient: "bank1recipient".to_owned(),
+                    value: Value {
+                        amount: 42u64.into(),
+                        asset_id: BASE_ASSET_DENOM.id(),
+                    },
+                },
+                change_output: ShieldedIcs20WithdrawalChangeBody {
+                    note_payload: NotePayload::dummy(),
+                    wrapped_memo_key: WrappedMemoKey([0u8; 48]),
+                    ovk_wrapped_key: OvkWrappedKey([0u8; 48]),
+                },
+                target_timestamp: 0,
+                compliance_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
+                asset_anchor: shieldd_sdk_tct::StateCommitment(decaf377::Fq::from(0u64)),
+            },
+            auth_sigs: Vec::new(),
+            proof: ShieldedIcs20WithdrawalProof::default(),
+        }
+    }
+
+    fn host_withdrawal_transaction() -> Transaction {
+        let mut tx = Transaction::default();
+        tx.transaction_body.actions =
+            vec![Action::ShieldedHostWithdrawal(host_withdrawal_action())];
+        tx
+    }
+
     #[tokio::test]
     async fn deposit_mints_note_and_rejects_replayed_host_source() -> Result<()> {
         let storage = temp_storage().await;
         let mut app = App::new(storage.latest_snapshot());
         app.init_chain(&host_genesis()).await;
+        assert!(!app.state.host_withdrawals_enabled().await?);
 
         let first = app.deposit(deposit_request(0)).await?;
         assert_eq!(first.response.deposit_id.len(), 32);
@@ -709,6 +792,7 @@ mod tests {
         assert!(host.commit().await.is_err());
         host.init_genesis(host_genesis()).await?;
         assert_eq!(host.phase(), HostExecutionPhase::InitializedGenesis);
+        assert!(host.app.state.host_withdrawals_enabled().await?);
         assert!(host.deposit(deposit_request(0)).await.is_err());
 
         let response = host.commit().await?;
@@ -834,6 +918,63 @@ mod tests {
         assert!(err.to_string().contains("initialized storage"));
     }
 
+    #[tokio::test]
+    async fn host_withdrawals_resolve_registered_asset_to_base_denom() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host = HostExecution::new(storage.deref().clone());
+
+        host.init_genesis(host_genesis()).await?;
+        host.commit().await?;
+        host.begin_block(host_block(1)).await?;
+        host.deposit(deposit_request(0)).await?;
+
+        let withdrawals = host
+            .resolve_host_withdrawals(&host_withdrawal_transaction())
+            .await?;
+
+        assert_eq!(withdrawals.len(), 1);
+        assert_eq!(withdrawals[0].recipient, "bank1recipient");
+        assert_eq!(withdrawals[0].denom, BASE_ASSET_DENOM.base_denom().denom);
+        assert_eq!(withdrawals[0].amount, 42u64.into());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn standalone_execution_rejects_host_withdrawals() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut app = App::new(storage.latest_snapshot());
+        app.init_chain(&host_genesis()).await;
+
+        let error = host_withdrawal_action()
+            .check_historical(app.state.clone())
+            .await
+            .expect_err("standalone execution must reject host withdrawals");
+
+        assert!(error
+            .to_string()
+            .contains("shielded host withdrawals are not enabled"));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn host_execution_accepts_withdrawals_for_registered_assets() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host = HostExecution::new(storage.deref().clone());
+
+        host.init_genesis(host_genesis()).await?;
+        host.commit().await?;
+        host.begin_block(host_block(1)).await?;
+        host.deposit(deposit_request(0)).await?;
+
+        host_withdrawal_action()
+            .check_historical(host.app.state.clone())
+            .await?;
+
+        Ok(())
+    }
+
     #[test]
     fn deposit_id_changes_with_host_message_index() {
         let recipient = test_keys::ADDRESS_0.clone();
@@ -876,5 +1017,12 @@ mod tests {
         };
 
         assert!(validate_host_source(&source).is_err());
+    }
+
+    #[test]
+    fn accepted_host_tx_response_accepts_empty_withdrawals() {
+        let response = HostTxResponse::accepted(Vec::new(), Vec::new());
+
+        assert!(response.withdrawals.is_empty());
     }
 }

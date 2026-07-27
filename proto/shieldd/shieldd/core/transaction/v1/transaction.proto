@@ -116,6 +116,7 @@ message Action {
     AggregateBundle aggregate_bundle = 82;
 
     component.shielded_pool.v1.ShieldedIcs20Withdrawal shielded_ics20_withdrawal = 200;
+    component.shielded_pool.v1.ShieldedHostWithdrawal shielded_host_withdrawal = 201;
   }
 }
 
@@ -224,6 +225,7 @@ message ActionView {
     AggregateBundle aggregate_bundle = 82;
 
     component.shielded_pool.v1.ShieldedIcs20WithdrawalView shielded_ics20_withdrawal = 200;
+    component.shielded_pool.v1.ShieldedHostWithdrawalView shielded_host_withdrawal = 201;
   }
 }
 
