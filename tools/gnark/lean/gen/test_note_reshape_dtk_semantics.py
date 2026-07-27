@@ -24,7 +24,7 @@ class NoteReshapeDtkSemanticsTest(unittest.TestCase):
         expected = reviewed.LT_SEATING_SHA256.read_text().strip()
         self.assertEqual(
             hashlib.sha256(raw).hexdigest(),
-            "c5361ded79b22ceab04709545e115f21e23be09543a972d3fb9a6ab4b9fe00bc",
+            "deb9765ac87b17c9c2aa661050c5dc528afc6bb123df18333c18e35df4c0cf04",
         )
         self.assertEqual(expected, hashlib.sha256(raw).hexdigest())
         seating = reviewed._lt_seating()

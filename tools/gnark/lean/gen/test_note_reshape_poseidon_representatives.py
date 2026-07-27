@@ -48,7 +48,7 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
             if path.parent == poseidon.OUT and "ring_nf" in source:
                 self.assertIn("import Mathlib.Tactic.Ring\n", source, path.name)
 
-    def test_note_commitment_bridge_uses_associativity_only(self) -> None:
+    def test_note_commitment_bridge_uses_only_reviewed_normalization_tactics(self) -> None:
         note = poseidon.NAMES[poseidon.NOTE_KEY]
         combined = "\n".join(
             source
@@ -57,8 +57,16 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
         )
         self.assertIn("@add_assoc F part60AddSemigroup", combined)
         self.assertIn("choiceFreeAddAssoc] using h0", combined)
-        self.assertNotIn("linear_combination", combined)
         self.assertNotIn("ring_nf", combined)
+        linear_parts = [
+            path.name
+            for path, source in self.outputs.items()
+            if path.name.startswith(f"{note}Part") and "linear_combination" in source
+        ]
+        self.assertEqual(linear_parts, [f"{note}Part4.lean"])
+        part4 = self.outputs[poseidon.OUT / f"{note}Part4.lean"]
+        self.assertIn("seg4 (rho 27 - rho 26)", part4)
+        self.assertEqual(part4.count("linear_combination h"), 5)
         part60 = self.outputs[poseidon.OUT / f"{note}Part60.lean"]
         self.assertIn("part60AddSemigroup : AddSemigroup F :=", part60)
         part0 = self.outputs[poseidon.OUT / f"{note}Part0.lean"]

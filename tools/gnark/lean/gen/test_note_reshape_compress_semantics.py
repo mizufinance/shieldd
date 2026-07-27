@@ -18,9 +18,9 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
         cls.outputs = gen.generated_files()
 
     def test_exact_provider_and_benchmark_set(self) -> None:
-        self.assertEqual(len(self.outputs), 50)
-        self.assertEqual(sum(path.parent == gen.OUT for path in self.outputs), 42)
-        self.assertEqual(sum(path.parent == gen.BENCH for path in self.outputs), 8)
+        self.assertEqual(len(self.outputs), 74)
+        self.assertEqual(sum(path.parent == gen.OUT for path in self.outputs), 62)
+        self.assertEqual(sum(path.parent == gen.BENCH for path in self.outputs), 12)
         self.assertTrue(set(gen.benchmark_candidates()).issubset(self.outputs))
         for family in gen.FAMILIES:
             self.assertIn(gen.OUT / f"{family.name}.lean", self.outputs)
@@ -54,8 +54,14 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
             self.assertNotRegex(base, r"theorem .*flat|theorem .*structured")
         simple = gen.FAMILIES[0]
         simple_rows = gen._rows(gen._relation_source(simple))
-        self.assertEqual(gen._coordinate_operand(simple, simple_rows[0]), "rho 1")
-        self.assertEqual(gen._coordinate_operand(simple, simple_rows[1]), "rho 3")
+        self.assertEqual(
+            gen._coordinate_operand(simple, simple_rows[0]),
+            f"{simple.relation_namespace}.relationLc0 rho",
+        )
+        self.assertEqual(
+            gen._coordinate_operand(simple, simple_rows[1]),
+            f"{simple.relation_namespace}.relationLc1 rho",
+        )
 
     def test_coordinate_operations_use_choice_free_ring_instances(self) -> None:
         common = self.outputs[gen.OUT / "CompressToFieldCommon.lean"]
@@ -103,18 +109,16 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
             )
             self.assertIn("\nend ChoiceFreeProof\n", rows0)
 
-    def test_large_coordinates_are_named_opaque_atoms_without_a_bridge(self) -> None:
+    def test_large_coordinates_use_exact_normalized_operands_without_a_bridge(self) -> None:
         family = gen.FAMILIES[1]
         source = gen._relation_source(family)
         rows = gen._rows(source)
         x, y = gen._first_operand(rows[0]), gen._first_operand(rows[1])
-        self.assertEqual(x, "relationLc0 rho")
-        self.assertEqual(y, "relationLc1 rho")
-        self.assertIn("def relationLc0 (rho : Nat -> F) : F :=\n    Shieldd.GnarkFormal.StructuredLC.eval", source)
-        self.assertIn("def relationLc1 (rho : Nat -> F) : F :=\n    Shieldd.GnarkFormal.StructuredLC.eval", source)
-        self.assertIn("(relationLc0 rho) * (relationLc0 rho)", rows[0])
-        self.assertIn("(relationLc1 rho) * (relationLc1 rho)", rows[1])
-        self.assertEqual(source.count("def relationLc"), 22)
+        self.assertEqual(x, "(1 : F) * rho 1")
+        self.assertEqual(y, "(1 : F) * rho 3")
+        self.assertIn("((1 : F) * rho 1) * ((1 : F) * rho 1)", rows[0])
+        self.assertIn("((1 : F) * rho 3) * ((1 : F) * rho 3)", rows[1])
+        self.assertEqual(source.count("def relationLc"), 18)
         base = self.outputs[gen.OUT / f"{family.name}Base.lean"]
         self.assertNotIn("flatX", base)
         self.assertNotIn("flatY", base)

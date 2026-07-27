@@ -148,22 +148,13 @@ def _cfg() -> dtk.Instance:
 
 
 def _scalar_outputs() -> tuple[list[int], list[int]]:
-    """Reviewed output-equivalence coordinates in canonical template space."""
-    ir = json.loads(IR.read_text())
-    key = (
-        "decaf.assert_equivalent@"
-        "9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3"
-    )
-    matches = [
-        segment for segment in ir["segments"]
-        if segment.get("proof_template_id") == key
-        and segment.get("op") == "decaf.assert_equivalent"
-    ]
-    if len(matches) != 1:
-        raise ValueError("expected exactly one DTK output-equivalence segment")
-    segment = SegmentTemplate.parse(matches[0])
-    if len(segment.canonical_wire_seating) != 507:
-        raise ValueError("DTK output-equivalence seating width drifted")
+    """Reviewed DTK ladder output coordinates in canonical template space.
+
+    The canonical-context circuit feeds these expressions directly into the
+    following compression gadget.  The old circuit inserted an equivalence
+    gadget solely to compare a duplicate affine witness; that duplicate and
+    its segment no longer exist.
+    """
     seating = [0] * 507
     seating[0], seating[1], seating[253], seating[254], seating[506] = 0, 21, 6470, 20, 6471
     for local, reference, stride, count in (
@@ -173,6 +164,124 @@ def _scalar_outputs() -> tuple[list[int], list[int]]:
         for offset in range(count):
             seating[local + offset] = reference + stride * offset
     return list(seating[2:253]), list(seating[255:506])
+
+
+def _scalar_rows(
+    segment: dict, reviewed_seating: tuple[int, ...]
+) -> list[tuple[dtk.Lc, dtk.Lc, dtk.Lc]]:
+    """Read current deployed rows in the stable reviewed proof coordinates.
+
+    Witness-schema changes renumber global wires without changing this
+    normalized DTK template.  Transport the raw rows through the extractor's
+    exact template-equivalence seating instead of pinning deployed wire IDs in
+    the proof generator.
+    """
+    deployed_seating = SegmentTemplate.parse(segment).canonical_wire_seating
+    if len(deployed_seating) != len(reviewed_seating):
+        raise ValueError("DTK deployed/reviewed seating lengths differ")
+    deployed_to_local = {wire: local for local, wire in enumerate(deployed_seating)}
+    if len(deployed_to_local) != len(deployed_seating):
+        raise ValueError("DTK deployed seating is not injective")
+
+    old_offset = dtk.DTK_GLOBAL_OFFSET
+    dtk.DTK_GLOBAL_OFFSET = segment["start"]
+    try:
+        deployed_rows = dtk.sr1cs_lc_rows()
+    finally:
+        dtk.DTK_GLOBAL_OFFSET = old_offset
+
+    def transport(value: dtk.Lc) -> dtk.Lc:
+        result: dtk.Lc = {}
+        for deployed_wire, coefficient in value.items():
+            if deployed_wire == 0:
+                reviewed_wire = 0
+            else:
+                try:
+                    reviewed_wire = reviewed_seating[deployed_to_local[deployed_wire]]
+                except KeyError as error:
+                    raise ValueError(
+                        f"DTK row references unseated deployed wire {deployed_wire}"
+                    ) from error
+            result[reviewed_wire] = (
+                result.get(reviewed_wire, 0) + coefficient
+            ) % ORDER
+        return dtk.lc_clean(result)
+
+    return [
+        (transport(a), transport(b), transport(c))
+        for a, b, c in deployed_rows
+    ]
+
+
+def _poseidon_rows(
+    segment: dict, reviewed_seating: tuple[int, ...]
+) -> list[tuple[list[tuple[str, int]], ...]]:
+    """Read the DTK Poseidon rows with wires transported to proof coordinates."""
+    deployed_seating = SegmentTemplate.parse(segment).canonical_wire_seating
+    deployed_to_local = {wire: local for local, wire in enumerate(deployed_seating)}
+    start = segment["start"] + 1046
+    rows: list[tuple[list[tuple[str, int]], ...]] = []
+    constraint_index = 0
+    with dtk.SR1CS.open() as source_file:
+        for line in source_file:
+            if not line.strip().startswith("(constraint "):
+                continue
+            if constraint_index >= start + 270:
+                break
+            if constraint_index >= start:
+                parsed = dtk.parse_constraint(line)
+                transported = []
+                for side in parsed:
+                    terms = []
+                    for coefficient, deployed_wire in side:
+                        if deployed_wire == 0:
+                            reviewed_wire = 0
+                        else:
+                            try:
+                                reviewed_wire = reviewed_seating[
+                                    deployed_to_local[deployed_wire]
+                                ]
+                            except KeyError as error:
+                                raise ValueError(
+                                    "DTK Poseidon row references unseated deployed "
+                                    f"wire {deployed_wire}"
+                                ) from error
+                        terms.append((coefficient, reviewed_wire))
+                    transported.append(terms)
+                rows.append(tuple(transported))
+            constraint_index += 1
+    if len(rows) != 270:
+        raise ValueError("missing transported DTK Poseidon rows")
+    return rows
+
+
+def _reviewed_lt_seating(
+    segment: dict, reviewed_seating: tuple[int, ...], deployed: dict
+) -> dict:
+    """Transport parity-gated LT certificates off deployed wire numbers."""
+    deployed_seating = SegmentTemplate.parse(segment).canonical_wire_seating
+    deployed_to_local = {wire: local for local, wire in enumerate(deployed_seating)}
+
+    def wire(value: int) -> int:
+        if value == 0:
+            return 0
+        try:
+            return reviewed_seating[deployed_to_local[value]]
+        except KeyError as error:
+            raise ValueError(f"LT seating references unseated wire {value}") from error
+
+    result = json.loads(json.dumps(deployed))
+    for ladder in result["ladders"]:
+        ladder["bit_base"] = wire(ladder["bit_base"])
+        for rung in ladder["rungs"]:
+            rung["bit_wire"] = wire(rung["bit_wire"])
+            for field in ("pe_in", "pe_out", "il_in", "il_out", "l", "il_mul"):
+                if rung[field] is not None:
+                    rung[field] = [
+                        [coefficient, wire(raw_wire)]
+                        for coefficient, raw_wire in rung[field]
+                    ]
+    return result
 
 
 def _rewrite(source: str) -> str:
@@ -376,8 +485,11 @@ def _render_reviewed(
     cfg: dtk.Instance,
     scalar_rungs: tuple[dtk.ScalarRung, ...],
     scalar_rows: list[tuple[dtk.Lc, dtk.Lc, dtk.Lc]],
+    poseidon_rows: list[tuple[list[tuple[str, int]], ...]],
 ) -> dict[str, str]:
-    poseidon_module, poseidon_sboxes = dtk.generate_poseidon_shape(write_auxiliary=False)
+    poseidon_module, poseidon_sboxes = dtk.generate_poseidon_shape(
+        write_auxiliary=False, rows_override=poseidon_rows
+    )
     outputs: dict[str, str] = {"DtkAdapterSeg6Base.lean": dtk.emit_base(cfg)}
     previous: str | None = None
     for block in dtk.canonical_blocks(cfg):
@@ -490,32 +602,44 @@ def _shard_ltr_defs(source: str, facade: str) -> dict[str, str]:
 
 def _generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
     cfg = _cfg()
+    segment = _segment()
     exact_source = _relation_source()
     shadow = _deployed_shadow(exact_source, cfg.wire_seating or ())
     old_source = dtk.source
     old_instances = dtk.INSTANCES
     old_output_wires = dtk.output_wires
+    old_lt_seating = dtk._lt_seating
     old_source_cache = dict(dtk._SOURCE_CACHE)
     old_parts_cache = dict(dtk._RELATION_PARTS_CACHE)
     old_layouts = dict(dtk.LTC_ATOM_LAYOUTS)
-    scalar_rows = dtk.sr1cs_lc_rows()
+    scalar_rows = _scalar_rows(segment, cfg.wire_seating or ())
     rungs = dtk.dtk_scalar_rungs(scalar_rows, _scalar_outputs())
+    reviewed_lt = _reviewed_lt_seating(
+        segment, cfg.wire_seating or (), old_lt_seating()
+    )
     try:
+        old_offset = dtk.DTK_GLOBAL_OFFSET
+        dtk.DTK_GLOBAL_OFFSET = segment["start"]
         dtk.source = lambda seg: shadow if seg == cfg.seg else old_source(seg)
         dtk.INSTANCES = (cfg,)
         dtk.output_wires = lambda _cfg: (
             [dtk.seat_wire(cfg, rung.delta_x) for rung in rungs],
             [dtk.seat_wire(cfg, rung.delta_y) for rung in rungs],
         )
+        dtk._lt_seating = lambda: reviewed_lt
         dtk._SOURCE_CACHE.clear()
         dtk._RELATION_PARTS_CACHE.clear()
         dtk.LTC_ATOM_LAYOUTS.clear()
-        reviewed = _render_reviewed(cfg, rungs, scalar_rows)
+        reviewed = _render_reviewed(
+            cfg, rungs, scalar_rows, _poseidon_rows(segment, cfg.wire_seating or ())
+        )
         reviewed["DtkAdapterSeg6Outputs.lean"] = dtk.emit_outputs()
     finally:
+        dtk.DTK_GLOBAL_OFFSET = old_offset
         dtk.source = old_source
         dtk.INSTANCES = old_instances
         dtk.output_wires = old_output_wires
+        dtk._lt_seating = old_lt_seating
         dtk._SOURCE_CACHE.clear()
         dtk._SOURCE_CACHE.update(old_source_cache)
         dtk._RELATION_PARTS_CACHE.clear()

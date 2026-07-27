@@ -1,0 +1,19 @@
+import ShielddGnarkFormal.Deployed.NoteReshape8x1BalanceRunsSupport
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 1000000
+
+/-! Compiler seating join for the first 8x1 balance y-coordinate run. -/
+
+namespace Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceRunY0
+
+open Shieldd.GnarkFormal
+open Contracts.NoteReshape8x1
+
+theorem seated (rho : Nat → Seg133.F) :
+    StrideRun.sumAux (Seg133.localRho rho) 1418 5 149 =
+      StrideRun.sumAux rho 109384 5 149 :=
+  NoteReshape8x1BalanceRunsSupport.seatedRun_eq
+    rho 1418 109384 5 149 (by rfl)
+
+end Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceRunY0

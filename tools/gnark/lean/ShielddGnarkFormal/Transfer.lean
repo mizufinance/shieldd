@@ -73,7 +73,6 @@ structure Spend where
   rkComputed : Point
   rkDummy : Point
   rkCompressed : F
-  transmissionComputed : Point
 
 structure Output where
   note : Note
@@ -195,6 +194,7 @@ structure Inputs where
   senderDivGen : Point
   senderDivGenFq : F
   senderTransmission : Point
+  senderTransmissionComputed : Point
   senderTransmissionFq : F
   senderAssetID : F
   senderSlotID : F
@@ -216,18 +216,19 @@ structure Inputs where
   output1 : Output
   compliance : Compliance
 
-def noteCommitmentCircuit (domain : F) (note : Note) : Prop :=
+def noteCommitmentCircuit (domain transmissionFq : F) (note : Note) : Prop :=
   Decaf377Assumptions.CompressToFieldCircuit note.divGen note.divGenFq ∧
   Extracted.PoseidonHash6.circuit domain note.blinding note.amount note.assetID
-    note.divGenFq note.transmissionKeyS note.clueKey note.commitment
+    note.divGenFq transmissionFq note.clueKey note.commitment
 
-def noteCommitmentSpec (domain : F) (note : Note) : Prop :=
+def noteCommitmentSpec (domain transmissionFq : F) (note : Note) : Prop :=
   Decaf377Assumptions.CompressToFieldSpec note.divGen note.divGenFq ∧
   Extracted.PoseidonHash6.circuit domain note.blinding note.amount note.assetID
-    note.divGenFq note.transmissionKeyS note.clueKey note.commitment
+    note.divGenFq transmissionFq note.clueKey note.commitment
 
-theorem note_commitment_sound (domain : F) (note : Note) :
-    noteCommitmentCircuit domain note → noteCommitmentSpec domain note := by
+theorem note_commitment_sound (domain transmissionFq : F) (note : Note) :
+    noteCommitmentCircuit domain transmissionFq note →
+      noteCommitmentSpec domain transmissionFq note := by
   intro h
   exact ⟨Decaf377Assumptions.decaf377_compressToField_sound note.divGen
     note.divGenFq h.1, h.2⟩
@@ -262,7 +263,8 @@ theorem compliance_leaf_sound (domain5 domain4 : F) (leaf : AssetLeaf) :
   ⟩
 
 def spendCircuit (i : Inputs) (s : Spend) : Prop :=
-  noteCommitmentCircuit i.noteCommitDomain s.note ∧
+  s.note.transmissionKeyS = i.senderTransmissionFq ∧
+  noteCommitmentCircuit i.noteCommitDomain i.senderTransmissionFq s.note ∧
   s.note.commitment = s.stateCommitment ∧
   Extracted.Nullifier.circuit i.nk s.stateCommitment s.position s.realNullifier ∧
   Extracted.QuadPath24.circuit i.tctNodeDomain s.stateCommitment s.position s.path s.anchor ∧
@@ -274,17 +276,14 @@ def spendCircuit (i : Inputs) (s : Spend) : Prop :=
   ThresholdRegulatedBridge.AssertEquivalentIfCircuit s.isNotDummy s.rkComputed s.rkClaimed ∧
   ThresholdRegulatedBridge.AssertEquivalentIfCircuit s.isDummy s.rkDummy s.rkClaimed ∧
   Decaf377Assumptions.CompressToFieldCircuit s.rkClaimed s.rkCompressed ∧
-  Decaf377Assumptions.DiversifiedTransmissionKeyCircuit i.nk i.sharedAK s.note.divGen
-    i.ivkReduced i.ivkQuotientA s.transmissionComputed ∧
-  ThresholdRegulatedBridge.AssertEquivalentIfCircuit s.isNotDummy
-    s.transmissionComputed s.note.transmission ∧
   ThresholdRegulatedBridge.AssertEquivalentIfCircuit 1 i.senderDivGen s.note.divGen ∧
   ThresholdRegulatedBridge.AssertEquivalentIfCircuit 1 i.senderTransmission s.note.transmission ∧
   s.note.assetID = i.spend0.note.assetID ∧
   s.note.assetID = i.senderAssetID
 
 def spendSpec (i : Inputs) (s : Spend) : Prop :=
-  noteCommitmentSpec i.noteCommitDomain s.note ∧
+  s.note.transmissionKeyS = i.senderTransmissionFq ∧
+  noteCommitmentSpec i.noteCommitDomain i.senderTransmissionFq s.note ∧
   s.note.commitment = s.stateCommitment ∧
   Extracted.Nullifier.circuit i.nk s.stateCommitment s.position s.realNullifier ∧
   Extracted.QuadPath24.circuit i.tctNodeDomain s.stateCommitment s.position s.path s.anchor ∧
@@ -296,28 +295,21 @@ def spendSpec (i : Inputs) (s : Spend) : Prop :=
   ThresholdRegulatedBridge.AssertEquivalentIfSpec s.isNotDummy s.rkComputed s.rkClaimed ∧
   ThresholdRegulatedBridge.AssertEquivalentIfSpec s.isDummy s.rkDummy s.rkClaimed ∧
   Decaf377Assumptions.CompressToFieldSpec s.rkClaimed s.rkCompressed ∧
-  Decaf377Assumptions.DiversifiedTransmissionKeySpec i.nk i.sharedAK s.note.divGen
-    i.ivkReduced i.ivkQuotientA s.transmissionComputed ∧
-  ThresholdRegulatedBridge.AssertEquivalentIfSpec s.isNotDummy
-    s.transmissionComputed s.note.transmission ∧
   ThresholdRegulatedBridge.AssertEquivalentIfSpec 1 i.senderDivGen s.note.divGen ∧
   ThresholdRegulatedBridge.AssertEquivalentIfSpec 1 i.senderTransmission s.note.transmission ∧
   s.note.assetID = i.spend0.note.assetID ∧
   s.note.assetID = i.senderAssetID
 
-theorem spend_sound (i : Inputs) (s : Spend) :
+theorem spend_sound (i : Inputs) (s : Spend)
+    (hak : EdwardsBridge.onCurve ⟨i.sharedAK.x, i.sharedAK.y⟩) :
     spendCircuit i s → spendSpec i s := by
   intro h
-  rcases h with ⟨hnote, hstate, hnullifier, hpath, hdummy0, hdummy1, hrvk,
-    hrvkDummy, hrkClaimed, hrkDummy, hrkCompressed, hdtk, htransmission,
+  rcases h with ⟨hencoding, hnote, hstate, hnullifier, hpath, hdummy0, hdummy1, hrvk,
+    hrvkDummy, hrkClaimed, hrkDummy, hrkCompressed,
     hsenderDivGen, hsenderTransmission, hasset0, hassetSender⟩
-  have hak := DtkBridge.decaf377_diversifiedTransmissionKey_ak_onCurve
-    i.nk i.sharedAK s.note.divGen i.ivkReduced i.ivkQuotientA
-    s.transmissionComputed hdtk
-  have hdiv := DtkBridge.decaf377_compressToField_onCurve
-    s.note.divGen s.note.divGenFq hnote.1
   exact ⟨
-    note_commitment_sound i.noteCommitDomain s.note hnote,
+    hencoding,
+    note_commitment_sound i.noteCommitDomain i.senderTransmissionFq s.note hnote,
     hstate,
     hnullifier,
     hpath,
@@ -332,10 +324,6 @@ theorem spend_sound (i : Inputs) (s : Spend) :
       s.rkDummy s.rkClaimed hrkDummy,
     Decaf377Assumptions.decaf377_compressToField_sound s.rkClaimed
       s.rkCompressed hrkCompressed,
-    DtkBridge.decaf377_diversifiedTransmissionKey_sound i.nk i.sharedAK
-      s.note.divGen i.ivkReduced i.ivkQuotientA s.transmissionComputed hdiv hdtk,
-    ThresholdRegulatedBridge.assert_equivalent_if_sound s.isNotDummy
-      s.transmissionComputed s.note.transmission htransmission,
     ThresholdRegulatedBridge.assert_equivalent_if_sound 1
       i.senderDivGen s.note.divGen hsenderDivGen,
     ThresholdRegulatedBridge.assert_equivalent_if_sound 1
@@ -345,7 +333,8 @@ theorem spend_sound (i : Inputs) (s : Spend) :
   ⟩
 
 def outputCircuit (i : Inputs) (o : Output) : Prop :=
-  noteCommitmentCircuit i.noteCommitDomain o.note ∧
+  o.note.transmissionKeyS = o.note.transmissionFq ∧
+  noteCommitmentCircuit i.noteCommitDomain o.note.transmissionFq o.note ∧
   o.note.commitment = o.noteCommitment ∧
   o.note.assetID = i.spend0.note.assetID ∧
   o.recipientAssetID = o.note.assetID ∧
@@ -356,7 +345,8 @@ def outputCircuit (i : Inputs) (o : Output) : Prop :=
   (o.isReceiver = 1 → AckBridge.AckCircuit i.effectiveRingPK o.recipientD o.ack)
 
 def outputSpec (i : Inputs) (o : Output) : Prop :=
-  noteCommitmentSpec i.noteCommitDomain o.note ∧
+  o.note.transmissionKeyS = o.note.transmissionFq ∧
+  noteCommitmentSpec i.noteCommitDomain o.note.transmissionFq o.note ∧
   o.note.commitment = o.noteCommitment ∧
   o.note.assetID = i.spend0.note.assetID ∧
   o.recipientAssetID = o.note.assetID ∧
@@ -369,10 +359,11 @@ def outputSpec (i : Inputs) (o : Output) : Prop :=
 theorem output_sound (i : Inputs) (o : Output) :
     outputCircuit i o → outputSpec i o := by
   intro h
-  rcases h with ⟨hnote, hcommitment, hasset0, hrecipientAsset,
+  rcases h with ⟨hencoding, hnote, hcommitment, hasset0, hrecipientAsset,
     hdivGen, htransmission, htransmissionFq, hroot, hack⟩
   exact ⟨
-    note_commitment_sound i.noteCommitDomain o.note hnote,
+    hencoding,
+    note_commitment_sound i.noteCommitDomain o.note.transmissionFq o.note hnote,
     hcommitment,
     hasset0,
     hrecipientAsset,
@@ -618,6 +609,12 @@ structure DefineModel (i : Inputs) : Prop where
     Decaf377Assumptions.CompressToFieldCircuit i.senderDivGen i.senderDivGenFq
   senderTransmissionCompressed :
     Decaf377Assumptions.CompressToFieldCircuit i.senderTransmission i.senderTransmissionFq
+  senderTransmissionDerived :
+    Decaf377Assumptions.DiversifiedTransmissionKeyCircuit i.nk i.sharedAK i.senderDivGen
+      i.ivkReduced i.ivkQuotientA i.senderTransmissionComputed
+  senderTransmissionEquivalent :
+    ThresholdRegulatedBridge.AssertEquivalentIfCircuit 1
+      i.senderTransmissionComputed i.senderTransmission
   effectiveRingPK :
     ThresholdRegulatedBridge.SelectPointCircuit i.isRegulated i.asset.ringPK i.unregulatedRingPK i.effectiveRingPK
   effectiveDKPub :
@@ -644,6 +641,12 @@ structure SoundSpec (i : Inputs) : Prop where
     Decaf377Assumptions.CompressToFieldSpec i.senderDivGen i.senderDivGenFq
   senderTransmissionCompressed :
     Decaf377Assumptions.CompressToFieldSpec i.senderTransmission i.senderTransmissionFq
+  senderTransmissionDerived :
+    Decaf377Assumptions.DiversifiedTransmissionKeySpec i.nk i.sharedAK i.senderDivGen
+      i.ivkReduced i.ivkQuotientA i.senderTransmissionComputed
+  senderTransmissionEquivalent :
+    ThresholdRegulatedBridge.AssertEquivalentIfSpec 1
+      i.senderTransmissionComputed i.senderTransmission
   effectiveRingPK :
     ThresholdRegulatedBridge.SelectPointSpec i.isRegulated i.asset.ringPK i.unregulatedRingPK i.effectiveRingPK
   effectiveDKPub :
@@ -666,11 +669,21 @@ structure SoundSpec (i : Inputs) : Prop where
 theorem transfer_circuit_sound (i : Inputs) :
     DefineModel i → SoundSpec i := by
   intro h
+  have hsenderDivGenOnCurve := DtkBridge.decaf377_compressToField_onCurve
+    i.senderDivGen i.senderDivGenFq h.senderDivGenCompressed
+  have hak := DtkBridge.decaf377_diversifiedTransmissionKey_ak_onCurve
+    i.nk i.sharedAK i.senderDivGen i.ivkReduced i.ivkQuotientA
+    i.senderTransmissionComputed h.senderTransmissionDerived
   exact {
     senderDivGenCompressed := Decaf377Assumptions.decaf377_compressToField_sound
       i.senderDivGen i.senderDivGenFq h.senderDivGenCompressed
     senderTransmissionCompressed := Decaf377Assumptions.decaf377_compressToField_sound
       i.senderTransmission i.senderTransmissionFq h.senderTransmissionCompressed
+    senderTransmissionDerived := DtkBridge.decaf377_diversifiedTransmissionKey_sound
+      i.nk i.sharedAK i.senderDivGen i.ivkReduced i.ivkQuotientA
+      i.senderTransmissionComputed hsenderDivGenOnCurve h.senderTransmissionDerived
+    senderTransmissionEquivalent := ThresholdRegulatedBridge.assert_equivalent_if_sound 1
+      i.senderTransmissionComputed i.senderTransmission h.senderTransmissionEquivalent
     effectiveRingPK := ThresholdRegulatedBridge.select_point_sound
       i.isRegulated i.asset.ringPK i.unregulatedRingPK i.effectiveRingPK h.effectiveRingPK
     effectiveDKPub := ThresholdRegulatedBridge.select_point_sound
@@ -679,8 +692,8 @@ theorem transfer_circuit_sound (i : Inputs) :
     senderAck := AckBridge.ack_sound i.effectiveRingPK i.senderD i.senderAck h.senderAck
     receiverAck := AckBridge.ack_sound i.effectiveRingPK i.output0.recipientD i.receiverAck
       h.receiverAck
-    spend0 := spend_sound i i.spend0 h.spend0
-    spend1 := spend_sound i i.spend1 h.spend1
+    spend0 := spend_sound i i.spend0 hak h.spend0
+    spend1 := spend_sound i i.spend1 hak h.spend1
     output0 := output_sound i i.output0 h.output0
     output1 := output_sound i i.output1 h.output1
     compliance := compliance_sound i h.compliance

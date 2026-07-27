@@ -43,7 +43,7 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             for template in inventory["templates"]
         }
         actual = expected & self.outputs.keys()
-        self.assertEqual(len(expected), 48)
+        self.assertEqual(len(expected), 42)
         self.assertEqual(actual, expected)
 
     def test_small_providers_use_choice_free_zmod_instances(self) -> None:
@@ -62,42 +62,10 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             self.assertNotIn(legacy_direction, relative)
             self.assertNotIn("split1x", relative)
 
-    def test_dummy_rvk_support_installs_the_extracted_prime_instance(self) -> None:
-        bases = [
-            text
-            for path, text in self.outputs.items()
-            if "RandomizedVerificationKeyDummy" in path.name
-            and path.name.endswith("DummyRvkBase.lean")
-        ]
-        self.assertEqual(len(bases), 1)
-        self.assertNotIn("EdwardsAddFactPrime", bases[0])
-        prime = {
-            path.name: text
-            for path, text in self.outputs.items()
-            if "RandomizedVerificationKeyDummy" in path.name
-            and path.name.endswith("DummyRvkPrime.lean")
-        }
-        self.assertEqual(len(prime), 1)
-        self.assertIn(
-            "instance dummyRvkEdwardsAddFactPrime : Fact (Nat.Prime\n"
-            "    Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order) :=",
-            next(iter(prime.values())),
+    def test_deleted_dummy_rvk_template_has_no_provider(self) -> None:
+        self.assertFalse(
+            any("RandomizedVerificationKeyDummy" in path.name for path in self.outputs)
         )
-        consumers = {
-            path.name: text
-            for path, text in self.outputs.items()
-            if "RandomizedVerificationKeyDummy" in path.name
-            and path.name.endswith(("Bits.lean", "Defs.lean"))
-        }
-        self.assertEqual(len(consumers), 4)
-        for name, text in consumers.items():
-            self.assertIn(
-                ".TDecafRandomizedVerificationKeyDummy_"
-                "e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5"
-                "DummyRvkPrime",
-                text,
-                name,
-            )
 
     def test_shared_scalar_trace_is_sharded_one_round_per_module(self) -> None:
         shared = {

@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""Generate padded-family balance seating leaves from the reviewed 1x8 shape."""
+
+from __future__ import annotations
+
+import argparse
+import re
+from dataclasses import dataclass
+from pathlib import Path
+
+from write_if_changed import write_if_changed
+
+
+ROOT = Path(__file__).resolve().parents[4]
+DEPLOYED = ROOT / "tools/gnark/lean/ShielddGnarkFormal/Deployed"
+SOURCE_PREFIX = "NoteReshape1x8Balance"
+
+NB_SOURCE_DIGEST = "b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a"
+
+
+@dataclass(frozen=True)
+class Config:
+    selector: str
+    family: str
+    digest: str
+    balance_segment: int
+    equivalent_segment: int
+    compress_segment: int
+    on_curve_segment: int
+    local_map: dict[int, int]
+
+    @property
+    def target_prefix(self) -> str:
+        return f"NoteReshape{self.family}Balance"
+
+    @property
+    def module(self) -> str:
+        return f"NoteReshape{self.family}"
+
+
+CONFIGS = (
+    Config(
+        "4x1",
+        "4x1",
+        "f779542ea2a073487b8ab36fd2798d44fa0136855070c44e2ae2edc44c180a79",
+        73,
+        74,
+        75,
+        8,
+        {1162: 646, 1417: 901, 1418: 902, 2165: 1649, 2166: 1650},
+    ),
+    Config(
+        "8x1",
+        "8x1",
+        "91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3",
+        133,
+        134,
+        135,
+        12,
+        {},
+    ),
+)
+
+EXCLUDED = {
+    f"{SOURCE_PREFIX}.lean",
+}
+
+
+def replace_number(source: str, old: int, new: int) -> str:
+    return re.sub(rf"(?<![0-9]){old}(?![0-9])", str(new), source)
+
+
+def wires(module: str, segment: int) -> list[int]:
+    source = (
+        DEPLOYED / "Contracts" / module / f"Seg{segment}.lean"
+    ).read_text()
+    marker = "def wireSeatingTable : List Nat := ["
+    body = source.split(marker, 1)[1].split("]", 1)[0]
+    return [int(value) for value in body.split(", ")]
+
+
+def global_map(config: Config) -> dict[int, int]:
+    balance = wires(config.module, config.balance_segment)
+    compress = wires(config.module, config.compress_segment)
+    local = lambda index: config.local_map.get(index, index)
+    return {
+        23860: balance[local(1162)],
+        24114: balance[local(1417)],
+        24115: balance[local(1418)],
+        24862: balance[local(2165)],
+        24863: balance[local(2166)],
+        26028: compress[864],
+        26368: compress[1204],
+    }
+
+
+def render(path: Path, config: Config) -> str:
+    source = path.read_text()
+    source = re.sub(r"by decide(?! \+kernel)", "by decide +kernel", source)
+    source = re.sub(
+        r"(?m)^(\s*)decide(?! \+kernel)$", r"\1decide +kernel", source
+    )
+    source = source.replace("NoteReshape1x8", f"NoteReshape{config.family}")
+    source = source.replace("1x8", config.family)
+    source = source.replace(NB_SOURCE_DIGEST, config.digest)
+    source = re.sub(r"\bSeg50\b", f"Seg{config.balance_segment}", source)
+    source = re.sub(r"\bSeg51\b", f"Seg{config.equivalent_segment}", source)
+    source = re.sub(r"\bSeg52\b", f"Seg{config.compress_segment}", source)
+    source = source.replace(
+        "DecafAssertEquivalentSeg51",
+        f"DecafAssertEquivalentSeg{config.equivalent_segment}",
+    )
+    source = source.replace(
+        "DecafCompressToFieldSeg52",
+        f"DecafCompressToFieldSeg{config.compress_segment}",
+    )
+    source = source.replace(
+        "DecafAssertOnCurveSeg2",
+        f"DecafAssertOnCurveSeg{config.on_curve_segment}",
+    )
+    source = re.sub(r"\bSeg2\b", f"Seg{config.on_curve_segment}", source)
+    for old, new in global_map(config).items():
+        source = replace_number(source, old, new)
+    if any(
+        token in path.stem
+        for token in ("BalanceAccFinal", "BalanceRun", "BalanceRuns")
+    ) and not any(token in path.stem for token in ("Cross", "Compress")):
+        for old, new in config.local_map.items():
+            source = replace_number(source, old, new)
+    return source
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "families",
+        nargs="*",
+        choices=[config.selector for config in CONFIGS],
+    )
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    selected = set(args.families) if args.families else {
+        config.selector for config in CONFIGS
+    }
+    for config in CONFIGS:
+        if config.selector not in selected:
+            continue
+        for path in sorted(DEPLOYED.glob(f"{SOURCE_PREFIX}*.lean")):
+            if path.name in EXCLUDED:
+                continue
+            target = DEPLOYED / path.name.replace(
+                SOURCE_PREFIX, config.target_prefix, 1
+            )
+            expected = render(path, config)
+            if args.check:
+                if not target.is_file() or target.read_text() != expected:
+                    raise SystemExit(f"generated file is stale: {target}")
+            elif write_if_changed(target, expected):
+                print(target)
+
+
+if __name__ == "__main__":
+    main()

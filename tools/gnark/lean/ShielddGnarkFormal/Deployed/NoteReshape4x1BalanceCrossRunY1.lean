@@ -1,0 +1,17 @@
+import ShielddGnarkFormal.Deployed.NoteReshape4x1BalanceCrossRunsSupport
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 1000000
+
+namespace Shieldd.GnarkFormal.Deployed.NoteReshape4x1BalanceCrossRunY1
+
+open Shieldd.GnarkFormal
+open Contracts.NoteReshape4x1
+
+theorem seated (rho : Nat → Seg74.F) :
+    StrideRun.sumAux (Seg74.localRho rho) 404 1 101 =
+      StrideRun.sumAux rho 59342 8 101 :=
+  NoteReshape4x1BalanceCrossRunsSupport.seatedRun_eq
+    rho 404 59342 8 101 (by rfl)
+
+end Shieldd.GnarkFormal.Deployed.NoteReshape4x1BalanceCrossRunY1

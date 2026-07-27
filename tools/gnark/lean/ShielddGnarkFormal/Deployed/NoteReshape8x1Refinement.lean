@@ -1,0 +1,624 @@
+import ShielddGnarkFormal.Deployed.Generated.NoteReshape8x1Commitments
+import ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
+import ShielddGnarkFormal.NoteReshapeStateBridge
+import ShielddGnarkFormal.Protocol.NoteReshape.Refinement
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 4000000
+
+/-! Handwritten action and policy refinement for the padded 8x1 deployment. -/
+
+namespace Shieldd.GnarkFormal.Deployed.NoteReshape8x1Refinement
+
+open Shieldd.GnarkFormal
+open Protocol.NoteReshape
+open NoteReshapeCanonical
+
+namespace C
+
+open Contracts.NoteReshape8x1
+
+def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
+  NoteReshape2x1Refinement.C.segmentPath (Seg21.localRho rho)
+
+def path1 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
+  NoteReshape2x1Refinement.C.segmentPath (Seg35.localRho rho)
+
+def path2 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
+  NoteReshape2x1Refinement.C.segmentPath (Seg49.localRho rho)
+
+def path3 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
+  NoteReshape2x1Refinement.C.segmentPath (Seg63.localRho rho)
+
+def path4 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
+  NoteReshape2x1Refinement.C.segmentPath (Seg77.localRho rho)
+
+def path5 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
+  NoteReshape2x1Refinement.C.segmentPath (Seg91.localRho rho)
+
+def path6 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
+  NoteReshape2x1Refinement.C.segmentPath (Seg105.localRho rho)
+
+def path7 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
+  NoteReshape2x1Refinement.C.segmentPath (Seg119.localRho rho)
+
+def realInput0 (rho : Nat → DeployedF) :
+    RealInput DeployedF NoteReshapeCanonical.Path24 :=
+  {
+    amount := spend0NoteCommitmentInputs1 rho
+    blinding := spend0NoteCommitmentInputs0 rho
+    commitment := spend0StateProofCommitment rho
+    nullifier := spend0NullifierClaimed rho
+    statePosition := rho 21
+    membershipProof := path0 rho
+    randomizedVerificationKey := ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
+    randomizer := rho 94
+  }
+
+def realInput1 (rho : Nat → DeployedF) :
+    RealInput DeployedF NoteReshapeCanonical.Path24 :=
+  {
+    amount := spend1NoteCommitmentInputs1 rho
+    blinding := spend1NoteCommitmentInputs0 rho
+    commitment := spend1StateProofCommitment rho
+    nullifier := spend1NullifierClaimed rho
+    statePosition := rho 103
+    membershipProof := path1 rho
+    randomizedVerificationKey := ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
+    randomizer := rho 176
+  }
+
+def realInput2 (rho : Nat → DeployedF) :
+    RealInput DeployedF NoteReshapeCanonical.Path24 :=
+  {
+    amount := spend2NoteCommitmentInputs1 rho
+    blinding := spend2NoteCommitmentInputs0 rho
+    commitment := spend2StateProofCommitment rho
+    nullifier := spend2NullifierClaimed rho
+    statePosition := rho 185
+    membershipProof := path2 rho
+    randomizedVerificationKey := ⟨spend2RkClaimed0 rho, spend2RkClaimed1 rho⟩
+    randomizer := rho 258
+  }
+
+def realInput3 (rho : Nat → DeployedF) :
+    RealInput DeployedF NoteReshapeCanonical.Path24 :=
+  {
+    amount := spend3NoteCommitmentInputs1 rho
+    blinding := spend3NoteCommitmentInputs0 rho
+    commitment := spend3StateProofCommitment rho
+    nullifier := spend3NullifierClaimed rho
+    statePosition := rho 267
+    membershipProof := path3 rho
+    randomizedVerificationKey := ⟨spend3RkClaimed0 rho, spend3RkClaimed1 rho⟩
+    randomizer := rho 340
+  }
+
+def realInput4 (rho : Nat → DeployedF) :
+    RealInput DeployedF NoteReshapeCanonical.Path24 :=
+  {
+    amount := spend4NoteCommitmentInputs1 rho
+    blinding := spend4NoteCommitmentInputs0 rho
+    commitment := spend4StateProofCommitment rho
+    nullifier := spend4NullifierClaimed rho
+    statePosition := rho 349
+    membershipProof := path4 rho
+    randomizedVerificationKey := ⟨spend4RkClaimed0 rho, spend4RkClaimed1 rho⟩
+    randomizer := rho 422
+  }
+
+def realInput5 (rho : Nat → DeployedF) :
+    RealInput DeployedF NoteReshapeCanonical.Path24 :=
+  {
+    amount := spend5NoteCommitmentInputs1 rho
+    blinding := spend5NoteCommitmentInputs0 rho
+    commitment := spend5StateProofCommitment rho
+    nullifier := spend5NullifierClaimed rho
+    statePosition := rho 431
+    membershipProof := path5 rho
+    randomizedVerificationKey := ⟨spend5RkClaimed0 rho, spend5RkClaimed1 rho⟩
+    randomizer := rho 504
+  }
+
+def realInput6 (rho : Nat → DeployedF) :
+    RealInput DeployedF NoteReshapeCanonical.Path24 :=
+  {
+    amount := spend6NoteCommitmentInputs1 rho
+    blinding := spend6NoteCommitmentInputs0 rho
+    commitment := spend6StateProofCommitment rho
+    nullifier := spend6NullifierClaimed rho
+    statePosition := rho 513
+    membershipProof := path6 rho
+    randomizedVerificationKey := ⟨spend6RkClaimed0 rho, spend6RkClaimed1 rho⟩
+    randomizer := rho 586
+  }
+
+def realInput7 (rho : Nat → DeployedF) :
+    RealInput DeployedF NoteReshapeCanonical.Path24 :=
+  {
+    amount := spend7NoteCommitmentInputs1 rho
+    blinding := spend7NoteCommitmentInputs0 rho
+    commitment := spend7StateProofCommitment rho
+    nullifier := spend7NullifierClaimed rho
+    statePosition := rho 595
+    membershipProof := path7 rho
+    randomizedVerificationKey := ⟨spend7RkClaimed0 rho, spend7RkClaimed1 rho⟩
+    randomizer := rho 668
+  }
+
+def dummyInput0 (rho : Nat → DeployedF) : DummyInput DeployedF :=
+  { slotIndex := 0, amount := spend0NoteCommitmentInputs1 rho,
+    nullifier := spend0NullifierClaimed rho, nullifierSeed := rho 96,
+    randomizedVerificationKey := ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩,
+    randomizer := rho 94 }
+
+def dummyInput1 (rho : Nat → DeployedF) : DummyInput DeployedF :=
+  { slotIndex := 1, amount := spend1NoteCommitmentInputs1 rho,
+    nullifier := spend1NullifierClaimed rho, nullifierSeed := rho 178,
+    randomizedVerificationKey := ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩,
+    randomizer := rho 176 }
+
+def dummyInput2 (rho : Nat → DeployedF) : DummyInput DeployedF :=
+  { slotIndex := 2, amount := spend2NoteCommitmentInputs1 rho,
+    nullifier := spend2NullifierClaimed rho, nullifierSeed := rho 260,
+    randomizedVerificationKey := ⟨spend2RkClaimed0 rho, spend2RkClaimed1 rho⟩,
+    randomizer := rho 258 }
+
+def dummyInput3 (rho : Nat → DeployedF) : DummyInput DeployedF :=
+  { slotIndex := 3, amount := spend3NoteCommitmentInputs1 rho,
+    nullifier := spend3NullifierClaimed rho, nullifierSeed := rho 342,
+    randomizedVerificationKey := ⟨spend3RkClaimed0 rho, spend3RkClaimed1 rho⟩,
+    randomizer := rho 340 }
+
+def dummyInput4 (rho : Nat → DeployedF) : DummyInput DeployedF :=
+  { slotIndex := 4, amount := spend4NoteCommitmentInputs1 rho,
+    nullifier := spend4NullifierClaimed rho, nullifierSeed := rho 424,
+    randomizedVerificationKey := ⟨spend4RkClaimed0 rho, spend4RkClaimed1 rho⟩,
+    randomizer := rho 422 }
+
+def dummyInput5 (rho : Nat → DeployedF) : DummyInput DeployedF :=
+  { slotIndex := 5, amount := spend5NoteCommitmentInputs1 rho,
+    nullifier := spend5NullifierClaimed rho, nullifierSeed := rho 506,
+    randomizedVerificationKey := ⟨spend5RkClaimed0 rho, spend5RkClaimed1 rho⟩,
+    randomizer := rho 504 }
+
+def dummyInput6 (rho : Nat → DeployedF) : DummyInput DeployedF :=
+  { slotIndex := 6, amount := spend6NoteCommitmentInputs1 rho,
+    nullifier := spend6NullifierClaimed rho, nullifierSeed := rho 588,
+    randomizedVerificationKey := ⟨spend6RkClaimed0 rho, spend6RkClaimed1 rho⟩,
+    randomizer := rho 586 }
+
+def dummyInput7 (rho : Nat → DeployedF) : DummyInput DeployedF :=
+  { slotIndex := 7, amount := spend7NoteCommitmentInputs1 rho,
+    nullifier := spend7NullifierClaimed rho, nullifierSeed := rho 670,
+    randomizedVerificationKey := ⟨spend7RkClaimed0 rho, spend7RkClaimed1 rho⟩,
+    randomizer := rho 668 }
+
+def input0 (rho : Nat → DeployedF) : Input DeployedF NoteReshapeCanonical.Path24 :=
+  if rho 95 = 0 then .real (realInput0 rho) else .dummy (dummyInput0 rho)
+
+def input1 (rho : Nat → DeployedF) : Input DeployedF NoteReshapeCanonical.Path24 :=
+  if rho 177 = 0 then .real (realInput1 rho) else .dummy (dummyInput1 rho)
+
+def input2 (rho : Nat → DeployedF) : Input DeployedF NoteReshapeCanonical.Path24 :=
+  if rho 259 = 0 then .real (realInput2 rho) else .dummy (dummyInput2 rho)
+
+def input3 (rho : Nat → DeployedF) : Input DeployedF NoteReshapeCanonical.Path24 :=
+  if rho 341 = 0 then .real (realInput3 rho) else .dummy (dummyInput3 rho)
+
+def input4 (rho : Nat → DeployedF) : Input DeployedF NoteReshapeCanonical.Path24 :=
+  if rho 423 = 0 then .real (realInput4 rho) else .dummy (dummyInput4 rho)
+
+def input5 (rho : Nat → DeployedF) : Input DeployedF NoteReshapeCanonical.Path24 :=
+  if rho 505 = 0 then .real (realInput5 rho) else .dummy (dummyInput5 rho)
+
+def input6 (rho : Nat → DeployedF) : Input DeployedF NoteReshapeCanonical.Path24 :=
+  if rho 587 = 0 then .real (realInput6 rho) else .dummy (dummyInput6 rho)
+
+def input7 (rho : Nat → DeployedF) : Input DeployedF NoteReshapeCanonical.Path24 :=
+  if rho 669 = 0 then .real (realInput7 rho) else .dummy (dummyInput7 rho)
+
+@[simp] theorem input0Amount (rho : Nat → DeployedF) :
+    Input.amount (input0 rho) = spend0NoteCommitmentInputs1 rho := by
+  by_cases h : rho 95 = 0 <;> simp [input0, realInput0, dummyInput0, Input.amount, h]
+
+@[simp] theorem input1Amount (rho : Nat → DeployedF) :
+    Input.amount (input1 rho) = spend1NoteCommitmentInputs1 rho := by
+  by_cases h : rho 177 = 0 <;> simp [input1, realInput1, dummyInput1, Input.amount, h]
+
+@[simp] theorem input2Amount (rho : Nat → DeployedF) :
+    Input.amount (input2 rho) = spend2NoteCommitmentInputs1 rho := by
+  by_cases h : rho 259 = 0 <;> simp [input2, realInput2, dummyInput2, Input.amount, h]
+
+@[simp] theorem input3Amount (rho : Nat → DeployedF) :
+    Input.amount (input3 rho) = spend3NoteCommitmentInputs1 rho := by
+  by_cases h : rho 341 = 0 <;> simp [input3, realInput3, dummyInput3, Input.amount, h]
+
+@[simp] theorem input4Amount (rho : Nat → DeployedF) :
+    Input.amount (input4 rho) = spend4NoteCommitmentInputs1 rho := by
+  by_cases h : rho 423 = 0 <;> simp [input4, realInput4, dummyInput4, Input.amount, h]
+
+@[simp] theorem input5Amount (rho : Nat → DeployedF) :
+    Input.amount (input5 rho) = spend5NoteCommitmentInputs1 rho := by
+  by_cases h : rho 505 = 0 <;> simp [input5, realInput5, dummyInput5, Input.amount, h]
+
+@[simp] theorem input6Amount (rho : Nat → DeployedF) :
+    Input.amount (input6 rho) = spend6NoteCommitmentInputs1 rho := by
+  by_cases h : rho 587 = 0 <;> simp [input6, realInput6, dummyInput6, Input.amount, h]
+
+@[simp] theorem input7Amount (rho : Nat → DeployedF) :
+    Input.amount (input7 rho) = spend7NoteCommitmentInputs1 rho := by
+  by_cases h : rho 669 = 0 <;> simp [input7, realInput7, dummyInput7, Input.amount, h]
+
+@[simp] theorem input0Nullifier (rho : Nat → DeployedF) :
+    Input.nullifier (input0 rho) = spend0NullifierClaimed rho := by
+  by_cases h : rho 95 = 0 <;> simp [input0, realInput0, dummyInput0, Input.nullifier, h]
+
+@[simp] theorem input1Nullifier (rho : Nat → DeployedF) :
+    Input.nullifier (input1 rho) = spend1NullifierClaimed rho := by
+  by_cases h : rho 177 = 0 <;> simp [input1, realInput1, dummyInput1, Input.nullifier, h]
+
+@[simp] theorem input2Nullifier (rho : Nat → DeployedF) :
+    Input.nullifier (input2 rho) = spend2NullifierClaimed rho := by
+  by_cases h : rho 259 = 0 <;> simp [input2, realInput2, dummyInput2, Input.nullifier, h]
+
+@[simp] theorem input3Nullifier (rho : Nat → DeployedF) :
+    Input.nullifier (input3 rho) = spend3NullifierClaimed rho := by
+  by_cases h : rho 341 = 0 <;> simp [input3, realInput3, dummyInput3, Input.nullifier, h]
+
+@[simp] theorem input4Nullifier (rho : Nat → DeployedF) :
+    Input.nullifier (input4 rho) = spend4NullifierClaimed rho := by
+  by_cases h : rho 423 = 0 <;> simp [input4, realInput4, dummyInput4, Input.nullifier, h]
+
+@[simp] theorem input5Nullifier (rho : Nat → DeployedF) :
+    Input.nullifier (input5 rho) = spend5NullifierClaimed rho := by
+  by_cases h : rho 505 = 0 <;> simp [input5, realInput5, dummyInput5, Input.nullifier, h]
+
+@[simp] theorem input6Nullifier (rho : Nat → DeployedF) :
+    Input.nullifier (input6 rho) = spend6NullifierClaimed rho := by
+  by_cases h : rho 587 = 0 <;> simp [input6, realInput6, dummyInput6, Input.nullifier, h]
+
+@[simp] theorem input7Nullifier (rho : Nat → DeployedF) :
+    Input.nullifier (input7 rho) = spend7NullifierClaimed rho := by
+  by_cases h : rho 669 = 0 <;> simp [input7, realInput7, dummyInput7, Input.nullifier, h]
+
+@[simp] theorem input0Rk (rho : Nat → DeployedF) :
+    Input.rk (input0 rho) = ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩ := by
+  by_cases h : rho 95 = 0 <;> simp [input0, realInput0, dummyInput0, Input.rk, h]
+
+@[simp] theorem input1Rk (rho : Nat → DeployedF) :
+    Input.rk (input1 rho) = ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩ := by
+  by_cases h : rho 177 = 0 <;> simp [input1, realInput1, dummyInput1, Input.rk, h]
+
+@[simp] theorem input2Rk (rho : Nat → DeployedF) :
+    Input.rk (input2 rho) = ⟨spend2RkClaimed0 rho, spend2RkClaimed1 rho⟩ := by
+  by_cases h : rho 259 = 0 <;> simp [input2, realInput2, dummyInput2, Input.rk, h]
+
+@[simp] theorem input3Rk (rho : Nat → DeployedF) :
+    Input.rk (input3 rho) = ⟨spend3RkClaimed0 rho, spend3RkClaimed1 rho⟩ := by
+  by_cases h : rho 341 = 0 <;> simp [input3, realInput3, dummyInput3, Input.rk, h]
+
+@[simp] theorem input4Rk (rho : Nat → DeployedF) :
+    Input.rk (input4 rho) = ⟨spend4RkClaimed0 rho, spend4RkClaimed1 rho⟩ := by
+  by_cases h : rho 423 = 0 <;> simp [input4, realInput4, dummyInput4, Input.rk, h]
+
+@[simp] theorem input5Rk (rho : Nat → DeployedF) :
+    Input.rk (input5 rho) = ⟨spend5RkClaimed0 rho, spend5RkClaimed1 rho⟩ := by
+  by_cases h : rho 505 = 0 <;> simp [input5, realInput5, dummyInput5, Input.rk, h]
+
+@[simp] theorem input6Rk (rho : Nat → DeployedF) :
+    Input.rk (input6 rho) = ⟨spend6RkClaimed0 rho, spend6RkClaimed1 rho⟩ := by
+  by_cases h : rho 587 = 0 <;> simp [input6, realInput6, dummyInput6, Input.rk, h]
+
+@[simp] theorem input7Rk (rho : Nat → DeployedF) :
+    Input.rk (input7 rho) = ⟨spend7RkClaimed0 rho, spend7RkClaimed1 rho⟩ := by
+  by_cases h : rho 669 = 0 <;> simp [input7, realInput7, dummyInput7, Input.rk, h]
+
+def output0 (rho : Nat → DeployedF) : Output DeployedF :=
+  {
+    amount := output0NoteCommitmentInputs1 rho
+    blinding := output0NoteCommitmentInputs0 rho
+    commitment := output0NoteCommitmentClaimed rho
+  }
+
+def action (rho : Nat → DeployedF) :
+    Action DeployedF NoteReshapeCanonical.Path24 :=
+  {
+    policy := .reshape8x1
+    shared := NoteReshapeCanonicalAddress8x1.shared rho
+    authorization := NoteReshapeCanonicalAddress8x1.authorization rho
+    inputs :=
+      [input0 rho, input1 rho, input2 rho, input3 rho,
+       input4 rho, input5 rho, input6 rho, input7 rho]
+    outputs := [output0 rho]
+    anchor := anchor rho
+    balanceCommitment := ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩
+    balanceBlinding := actionBalanceBlinding rho
+    publicStatementHash := claimedStatementHash rho
+  }
+
+theorem nextSelectorOne
+    (previous next : DeployedF)
+    (h10 : (1 : DeployedF) ≠ 0)
+    (previousOne : previous = 1)
+    (nextBoolean : next = 0 ∨ next = 1)
+    (suffix : previous * (1 - next) = 0) :
+    next = 1 := by
+  rcases nextBoolean with nextZero | nextOne
+  · have hbad : (1 : DeployedF) = 0 := by
+      calc
+        1 = previous * (1 - next) := by rw [previousOne, nextZero]; ring
+        _ = 0 := suffix
+    exact (h10 hbad).elim
+  · exact nextOne
+
+theorem selectorsOfControlSpecs
+    (a b c d e f g h : DeployedF)
+    (h10 : (1 : DeployedF) ≠ 0)
+    (h24 :
+      (((4 : DeployedF) - 0) * (4 - 1) * (4 - 2) * (4 - 3)) ≠ 0)
+    (h120 :
+      (((5 : DeployedF) - 0) * (5 - 1) * (5 - 2) * (5 - 3)) ≠ 0)
+    (h360 :
+      (((6 : DeployedF) - 0) * (6 - 1) * (6 - 2) * (6 - 3)) ≠ 0)
+    (h840 :
+      (((7 : DeployedF) - 0) * (7 - 1) * (7 - 2) * (7 - 3)) ≠ 0)
+    (hb : b = 0 ∨ b = 1)
+    (hc : c = 0 ∨ c = 1)
+    (hd : d = 0 ∨ d = 1)
+    (he : e = 0 ∨ e = 1)
+    (hf : f = 0 ∨ f = 1)
+    (hg : g = 0 ∨ g = 1)
+    (hh : h = 0 ∨ h = 1)
+    (suffix :
+      a = 0 ∧ a * (1 - b) = 0 ∧ b * (1 - c) = 0 ∧
+      c * (1 - d) = 0 ∧ d * (1 - e) = 0 ∧ e * (1 - f) = 0 ∧
+      f * (1 - g) = 0 ∧ g * (1 - h) = 0)
+    (active :
+      ((a + b + c + d + e + f + g + h) - 0) *
+        ((a + b + c + d + e + f + g + h) - 1) *
+        ((a + b + c + d + e + f + g + h) - 2) *
+        ((a + b + c + d + e + f + g + h) - 3) = 0) :
+    (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 0 ∧ e = 0 ∧ f = 0 ∧ g = 0 ∧ h = 0) ∨
+    (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 0 ∧ e = 0 ∧ f = 0 ∧ g = 0 ∧ h = 1) ∨
+    (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 0 ∧ e = 0 ∧ f = 0 ∧ g = 1 ∧ h = 1) ∨
+    (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 0 ∧ e = 0 ∧ f = 1 ∧ g = 1 ∧ h = 1) := by
+  rcases hb with hb | hb
+  · rcases hc with hc | hc
+    · rcases hd with hd | hd
+      · rcases he with he | he
+        · rcases hf with hf | hf
+          · rcases hg with hg | hg
+            · rcases hh with hh | hh
+              · exact Or.inl ⟨suffix.1, hb, hc, hd, he, hf, hg, hh⟩
+              · exact Or.inr <| Or.inl ⟨suffix.1, hb, hc, hd, he, hf, hg, hh⟩
+            · have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
+              exact Or.inr <| Or.inr <| Or.inl
+                ⟨suffix.1, hb, hc, hd, he, hf, hg, hh⟩
+          · have hg := nextSelectorOne f g h10 hf hg suffix.2.2.2.2.2.2.1
+            have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
+            exact Or.inr <| Or.inr <| Or.inr
+              ⟨suffix.1, hb, hc, hd, he, hf, hg, hh⟩
+        · have hf := nextSelectorOne e f h10 he hf suffix.2.2.2.2.2.1
+          have hg := nextSelectorOne f g h10 hf hg suffix.2.2.2.2.2.2.1
+          have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
+          have hbad := active
+          rw [suffix.1, hb, hc, hd, he, hf, hg, hh] at hbad
+          exact (h24 (by simpa only using hbad)).elim
+      · have he := nextSelectorOne d e h10 hd he suffix.2.2.2.2.1
+        have hf := nextSelectorOne e f h10 he hf suffix.2.2.2.2.2.1
+        have hg := nextSelectorOne f g h10 hf hg suffix.2.2.2.2.2.2.1
+        have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
+        have hbad := active
+        rw [suffix.1, hb, hc, hd, he, hf, hg, hh] at hbad
+        exact (h120 (by simpa only using hbad)).elim
+    · have hd := nextSelectorOne c d h10 hc hd suffix.2.2.2.1
+      have he := nextSelectorOne d e h10 hd he suffix.2.2.2.2.1
+      have hf := nextSelectorOne e f h10 he hf suffix.2.2.2.2.2.1
+      have hg := nextSelectorOne f g h10 hf hg suffix.2.2.2.2.2.2.1
+      have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
+      have hbad := active
+      rw [suffix.1, hb, hc, hd, he, hf, hg, hh] at hbad
+      exact (h360 (by simpa only using hbad)).elim
+  · have hc := nextSelectorOne b c h10 hb hc suffix.2.2.1
+    have hd := nextSelectorOne c d h10 hc hd suffix.2.2.2.1
+    have he := nextSelectorOne d e h10 hd he suffix.2.2.2.2.1
+    have hf := nextSelectorOne e f h10 he hf suffix.2.2.2.2.2.1
+    have hg := nextSelectorOne f g h10 hf hg suffix.2.2.2.2.2.2.1
+    have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
+    have hbad := active
+    rw [suffix.1, hb, hc, hd, he, hf, hg, hh] at hbad
+    exact (h840 (by simpa only using hbad)).elim
+
+theorem selectorFacts
+    (rho : Nat → DeployedF)
+    (facts : NoteReshape8x1CircuitFacts rho) :
+    (rho 95 = 0 ∧ rho 177 = 0 ∧ rho 259 = 0 ∧ rho 341 = 0 ∧
+      rho 423 = 0 ∧ rho 505 = 0 ∧ rho 587 = 0 ∧ rho 669 = 0) ∨
+    (rho 95 = 0 ∧ rho 177 = 0 ∧ rho 259 = 0 ∧ rho 341 = 0 ∧
+      rho 423 = 0 ∧ rho 505 = 0 ∧ rho 587 = 0 ∧ rho 669 = 1) ∨
+    (rho 95 = 0 ∧ rho 177 = 0 ∧ rho 259 = 0 ∧ rho 341 = 0 ∧
+      rho 423 = 0 ∧ rho 505 = 0 ∧ rho 587 = 1 ∧ rho 669 = 1) ∨
+    (rho 95 = 0 ∧ rho 177 = 0 ∧ rho 259 = 0 ∧ rho 341 = 0 ∧
+      rho 423 = 0 ∧ rho 505 = 1 ∧ rho 587 = 1 ∧ rho 669 = 1) := by
+  have h1 := facts.control.AssertBooleanSeg2
+  have h2 := facts.control.AssertBooleanSeg3
+  have h3 := facts.control.AssertBooleanSeg4
+  have h4 := facts.control.AssertBooleanSeg5
+  have h5 := facts.control.AssertBooleanSeg6
+  have h6 := facts.control.AssertBooleanSeg7
+  have h7 := facts.control.AssertBooleanSeg8
+  have hs := facts.control.AssertDummySuffixSeg9
+  have ha := facts.control.AssertActiveRangeSeg10
+  change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec
+    (Seg2.localRho rho) at h1
+  change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec
+    (Seg3.localRho rho) at h2
+  change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec
+    (Seg4.localRho rho) at h3
+  change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec
+    (Seg5.localRho rho) at h4
+  change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec
+    (Seg6.localRho rho) at h5
+  change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec
+    (Seg7.localRho rho) at h6
+  change Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec
+    (Seg8.localRho rho) at h7
+  change Deployed.Templates.Semantics.TAssertDummySuffix_a20cdb8e3309f92a6c215c2319440fcb8fbd56784d74625c842989c9342831c9.spec
+    (Seg9.localRho rho) at hs
+  change Deployed.Templates.Semantics.TAssertActiveRange_486bb61d926bd1688072104ae23c98ba7bcac3614cb3a0c6b005c31b6b4b4861.spec
+    (Seg10.localRho rho) at ha
+  simp only [
+    Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec,
+    Deployed.Templates.Semantics.TAssertDummySuffix_a20cdb8e3309f92a6c215c2319440fcb8fbd56784d74625c842989c9342831c9.spec,
+    Deployed.Templates.Semantics.TAssertActiveRange_486bb61d926bd1688072104ae23c98ba7bcac3614cb3a0c6b005c31b6b4b4861.spec,
+    Seg2.localRho, Seg3.localRho, Seg4.localRho, Seg5.localRho,
+    Seg6.localRho, Seg7.localRho, Seg8.localRho, Seg9.localRho, Seg10.localRho,
+    Deployed.Templates.seated,
+    Seg2.wireSeating, Seg3.wireSeating, Seg4.wireSeating, Seg5.wireSeating,
+    Seg6.wireSeating, Seg7.wireSeating, Seg8.wireSeating,
+    Seg9.wireSeating, Seg10.wireSeating,
+    Seg2.wireSeatingTable, Seg3.wireSeatingTable, Seg4.wireSeatingTable,
+    Seg5.wireSeatingTable, Seg6.wireSeatingTable, Seg7.wireSeatingTable,
+    Seg8.wireSeatingTable, Seg9.wireSeatingTable, Seg10.wireSeatingTable
+  ] at h1 h2 h3 h4 h5 h6 h7 hs ha
+  have h10 : (1 : DeployedF) ≠ 0 :=
+    EdwardsBridge.natLit_ne_zero 1 (by decide +kernel) (by decide +kernel)
+  have h24 :
+      (((4 : DeployedF) - 0) * (4 - 1) * (4 - 2) * (4 - 3)) ≠ 0 := by
+    change (24 : DeployedF) ≠ 0
+    exact EdwardsBridge.natLit_ne_zero 24 (by decide +kernel) (by decide +kernel)
+  have h120 :
+      (((5 : DeployedF) - 0) * (5 - 1) * (5 - 2) * (5 - 3)) ≠ 0 := by
+    change (120 : DeployedF) ≠ 0
+    exact EdwardsBridge.natLit_ne_zero 120 (by decide +kernel) (by decide +kernel)
+  have h360 :
+      (((6 : DeployedF) - 0) * (6 - 1) * (6 - 2) * (6 - 3)) ≠ 0 := by
+    change (360 : DeployedF) ≠ 0
+    exact EdwardsBridge.natLit_ne_zero 360 (by decide +kernel) (by decide +kernel)
+  have h840 :
+      (((7 : DeployedF) - 0) * (7 - 1) * (7 - 2) * (7 - 3)) ≠ 0 := by
+    change (840 : DeployedF) ≠ 0
+    exact EdwardsBridge.natLit_ne_zero 840 (by decide +kernel) (by decide +kernel)
+  exact selectorsOfControlSpecs
+    (rho 95) (rho 177) (rho 259) (rho 341)
+    (rho 423) (rho 505) (rho 587) (rho 669)
+    h10 h24 h120 h360 h840 h1 h2 h3 h4 h5 h6 h7 hs ha
+
+theorem actionShape
+    (rho : Nat → DeployedF)
+    (facts : NoteReshape8x1CircuitFacts rho) :
+    canonicalShape (action rho) := by
+  have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
+  rcases selectorFacts rho facts with s | s | s | s
+  all_goals
+    rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
+    simp [canonicalShape, realCount, action,
+      input0, input1, input2, input3, input4, input5, input6, input7,
+      FamilyPolicy.inputSlots, FamilyPolicy.outputSlots,
+      FamilyPolicy.minimumRealInputs, Input.isReal,
+      h0, h1, h2, h3, h4, h5, h6, h7, h10]
+
+theorem actionPadding
+    (rho : Nat → DeployedF)
+    (facts : NoteReshape8x1CircuitFacts rho) :
+    realPrefix (action rho) := by
+  have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
+  rcases selectorFacts rho facts with s | s | s | s
+  · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
+    refine ⟨[input0 rho, input1 rho, input2 rho, input3 rho,
+      input4 rho, input5 rho, input6 rho, input7 rho], [], ?_, ?_, ?_⟩
+    · simp [action]
+    · simp [input0, input1, input2, input3, input4, input5, input6, input7,
+        Input.isReal, h0, h1, h2, h3, h4, h5, h6, h7]
+    · simp
+  · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
+    refine ⟨[input0 rho, input1 rho, input2 rho, input3 rho,
+      input4 rho, input5 rho, input6 rho], [input7 rho], ?_, ?_, ?_⟩
+    · simp [action]
+    · simp [input0, input1, input2, input3, input4, input5, input6,
+        Input.isReal, h0, h1, h2, h3, h4, h5, h6]
+    · simp [input7, Input.isReal, h7, h10]
+  · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
+    refine ⟨[input0 rho, input1 rho, input2 rho, input3 rho,
+      input4 rho, input5 rho], [input6 rho, input7 rho], ?_, ?_, ?_⟩
+    · simp [action]
+    · simp [input0, input1, input2, input3, input4, input5,
+        Input.isReal, h0, h1, h2, h3, h4, h5]
+    · simp [input6, input7, Input.isReal, h6, h7, h10]
+  · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
+    refine ⟨[input0 rho, input1 rho, input2 rho, input3 rho, input4 rho],
+      [input5 rho, input6 rho, input7 rho], ?_, ?_, ?_⟩
+    · simp [action]
+    · simp [input0, input1, input2, input3, input4,
+        Input.isReal, h0, h1, h2, h3, h4]
+    · simp [input5, input6, input7, Input.isReal, h5, h6, h7, h10]
+
+theorem actionCanonicalAddress
+    (rho : Nat → DeployedF)
+    (facts : NoteReshape8x1CircuitFacts rho) :
+    NoteReshapeCanonical.canonicalTransmission
+      (action rho).authorization (action rho).shared := by
+  simpa [action] using
+    NoteReshapeCanonicalAddress8x1.canonicalTransmission_of_exact rho facts
+
+theorem sharedAuthorizationKeyOnCurve
+    (rho : Nat → DeployedF)
+    (facts : NoteReshape8x1CircuitFacts rho) :
+    EdwardsBridge.onCurve ⟨authAk0 rho, authAk1 rho⟩ := by
+  rcases NoteReshapeCanonicalAddress8x1.canonicalTransmissionFacts_of_exact
+      rho facts with ⟨_, hdtk, _⟩
+  rcases hdtk.1 with ⟨akFq, hak, _⟩
+  exact Decaf377Assumptions.onCurve_of_compress
+    ⟨authAk0 rho, authAk1 rho⟩ akFq hak
+
+theorem actionInputCommitments
+    (rho : Nat → DeployedF)
+    (facts : NoteReshape8x1CircuitFacts rho)
+    (signatureVerifies : Point DeployedF → Prop)
+    (nullifierFresh : DeployedF → Prop)
+    (transitionAccepted : Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    inputCommitments
+      (NoteReshapeCanonical.primitives
+        signatureVerifies nullifierFresh transitionAccepted)
+      (action rho) := by
+  have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
+  rcases selectorFacts rho facts with s | s | s | s
+  all_goals
+    rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
+    simp [
+      inputCommitments, action,
+      input0, input1, input2, input3, input4, input5, input6, input7,
+      realInput0, realInput1, realInput2, realInput3,
+      realInput4, realInput5, realInput6, realInput7,
+      NoteReshapeCanonical.primitives, NoteReshapeCanonical.realCommitment,
+      h0, h1, h2, h3, h4, h5, h6, h7, h10,
+      Generated.NoteReshape8x1Commitments.spend0Commitment rho facts,
+      Generated.NoteReshape8x1Commitments.spend1Commitment rho facts,
+      Generated.NoteReshape8x1Commitments.spend2Commitment rho facts,
+      Generated.NoteReshape8x1Commitments.spend3Commitment rho facts,
+      Generated.NoteReshape8x1Commitments.spend4Commitment rho facts,
+      Generated.NoteReshape8x1Commitments.spend5Commitment rho facts,
+      Generated.NoteReshape8x1Commitments.spend6Commitment rho facts,
+      Generated.NoteReshape8x1Commitments.spend7Commitment rho facts
+    ]
+
+theorem actionOutputCommitments
+    (rho : Nat → DeployedF)
+    (facts : NoteReshape8x1CircuitFacts rho)
+    (signatureVerifies : Point DeployedF → Prop)
+    (nullifierFresh : DeployedF → Prop)
+    (transitionAccepted : Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    outputCommitments
+      (NoteReshapeCanonical.primitives
+        signatureVerifies nullifierFresh transitionAccepted)
+      (action rho) := by
+  simp [
+    outputCommitments, action, output0,
+    NoteReshapeCanonical.primitives, NoteReshapeCanonical.outputCommitment,
+    Generated.NoteReshape8x1Commitments.output0Commitment rho facts
+  ]
+
+end C
+
+end Shieldd.GnarkFormal.Deployed.NoteReshape8x1Refinement

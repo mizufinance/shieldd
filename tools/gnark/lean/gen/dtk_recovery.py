@@ -3197,19 +3197,26 @@ def emit_poseidon_segment(
     )
 
 
-def generate_poseidon_shape(*, write_auxiliary: bool = True) -> tuple[str, list[list[int]]]:
-    start = DTK_GLOBAL_OFFSET + 1046
-    rows = []
-    constraint_index = 0
-    with SR1CS.open() as source_file:
-        for line in source_file:
-            if not line.strip().startswith("(constraint "):
-                continue
-            if constraint_index >= start + 270:
-                break
-            if constraint_index >= start:
-                rows.append(parse_constraint(line))
-            constraint_index += 1
+def generate_poseidon_shape(
+    *,
+    write_auxiliary: bool = True,
+    rows_override: list[tuple[list[tuple[str, int]], ...]] | None = None,
+) -> tuple[str, list[list[int]]]:
+    if rows_override is None:
+        start = DTK_GLOBAL_OFFSET + 1046
+        rows = []
+        constraint_index = 0
+        with SR1CS.open() as source_file:
+            for line in source_file:
+                if not line.strip().startswith("(constraint "):
+                    continue
+                if constraint_index >= start + 270:
+                    break
+                if constraint_index >= start:
+                    rows.append(parse_constraint(line))
+                constraint_index += 1
+    else:
+        rows = rows_override
     if len(rows) != 270:
         raise ValueError("missing DTK Poseidon rows")
     sboxes = [rows[index : index + 5] for index in range(0, len(rows), 5)]

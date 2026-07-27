@@ -1,0 +1,33 @@
+import ShielddGnarkFormal.Deployed.NoteReshape2x1BalanceXRun0
+import ShielddGnarkFormal.Deployed.NoteReshape2x1BalanceXRun1
+import ShielddGnarkFormal.Deployed.NoteReshape2x1BalanceAccFinal
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.SemanticBindings
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 4000000
+
+namespace Shieldd.GnarkFormal.Deployed.NoteReshape2x1BalanceX
+
+open Shieldd.GnarkFormal
+open Contracts.NoteReshape2x1
+
+theorem computedX_eq_gadget
+    (rho : Nat → SemanticF) :
+    balanceCommitmentComputed0 rho =
+      (Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_9602c510696ca316ef532feb1eaa5610fa2276fdeb6f49a351c8c7c242b359e6.NbSupport.nbBlindAccState
+        (Seg33.localRho rho) 251).x := by
+  have hw388 : Seg33.wireSeating 388 = 32315 := by decide
+  rw [NoteReshape2x1BalanceAccFinal.Nb.x]
+  simp only [
+    balanceCommitmentComputed0, balanceCommitmentComputed0LC,
+    Deployed.Templates.Semantics.TDecafConservationNetBalanceCommitment_9602c510696ca316ef532feb1eaa5610fa2276fdeb6f49a351c8c7c242b359e6.NbSupport.nbBlindDeltaX250,
+    StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
+    StrideRun.eval, zero_add, one_mul, add_zero]
+  rw [
+    NoteReshape2x1BalanceXRun0.seatedRun_eq,
+    NoteReshape2x1BalanceXRun1.seatedRun_eq
+  ]
+  simp only [Seg33.localRho, Deployed.Templates.seated, hw388]
+  ring
+
+end Shieldd.GnarkFormal.Deployed.NoteReshape2x1BalanceX

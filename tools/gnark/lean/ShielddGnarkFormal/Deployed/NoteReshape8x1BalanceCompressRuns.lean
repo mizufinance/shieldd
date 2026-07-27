@@ -1,0 +1,31 @@
+import ShielddGnarkFormal.Deployed.NoteReshape8x1BalanceCompressRunX0
+import ShielddGnarkFormal.Deployed.NoteReshape8x1BalanceCompressRunX1
+import ShielddGnarkFormal.Deployed.NoteReshape8x1BalanceCompressRunY0
+import ShielddGnarkFormal.Deployed.NoteReshape8x1BalanceCompressRunY1
+
+namespace Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceCompressRuns
+
+open Shieldd.GnarkFormal
+open Contracts.NoteReshape8x1
+
+theorem x0 (rho : Nat → Seg135.F) :
+    StrideRun.sumAux (Seg135.localRho rho) 2 1 149 =
+      StrideRun.sumAux rho 109383 5 149 :=
+  NoteReshape8x1BalanceCompressRunX0.seated rho
+
+theorem x1 (rho : Nat → Seg135.F) :
+    StrideRun.sumAux (Seg135.localRho rho) 151 1 101 =
+      StrideRun.sumAux rho 110131 8 101 :=
+  NoteReshape8x1BalanceCompressRunX1.seated rho
+
+theorem y0 (rho : Nat → Seg135.F) :
+    StrideRun.sumAux (Seg135.localRho rho) 253 1 149 =
+      StrideRun.sumAux rho 109384 5 149 :=
+  NoteReshape8x1BalanceCompressRunY0.seated rho
+
+theorem y1 (rho : Nat → Seg135.F) :
+    StrideRun.sumAux (Seg135.localRho rho) 402 1 101 =
+      StrideRun.sumAux rho 110132 8 101 :=
+  NoteReshape8x1BalanceCompressRunY1.seated rho
+
+end Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceCompressRuns

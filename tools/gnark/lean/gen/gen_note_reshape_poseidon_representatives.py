@@ -21,10 +21,10 @@ CONTRACTS = LEAN / "ShielddGnarkFormal/Deployed/Contracts/NoteReshape2x1"
 RELATIONS = LEAN / "ShielddGnarkFormal/Deployed/Templates/Relations"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 
-NOTE_KEY = "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f"
+NOTE_KEY = "gadget.note_commitment@9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5"
 NULLIFIER_KEY = "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72"
 NAMES = {
-    NOTE_KEY: "TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+    NOTE_KEY: "TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5",
     NULLIFIER_KEY: "TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
 }
 
@@ -100,7 +100,39 @@ def _note_context():
     _segment(key, 430)
     stem = "GadgetNoteCommitmentWithOutput431_7f228e"
     extracted = poseidon.parse_segments(stem)
-    deployed_local = poseidon.derive_mapping(stem, RELATIONS.glob(f"{name}Defs*.lean"))
+    def canonical_to_legacy_relation(text: str) -> str:
+        inlined = "(-1 : F) * rho 26 + (1 : F) * rho 27"
+        if inlined not in text:
+            raise ValueError("canonical transmission expression is missing")
+        text = text.replace(inlined, "(1 : F) * rho 26")
+        return re.sub(
+            r"\brho (\d+)\b",
+            lambda match: (
+                f"rho {int(match.group(1)) - 1}"
+                if int(match.group(1)) >= 28
+                else match.group(0)
+            ),
+            text,
+        )
+
+    legacy_local = poseidon.derive_mapping(
+        stem,
+        RELATIONS.glob(f"{name}Defs*.lean"),
+        canonical_to_legacy_relation,
+    )
+    # The canonical-context circuit feeds the shared compressed transmission
+    # directly as the linear expression `rho 27 - rho 26`.  The previous
+    # template materialized that expression as local wire 26.  Transport the
+    # already-reviewed Poseidon proof through this exact one-wire substitution;
+    # all later local wires shift by one.
+    deployed_local = {
+        wire: (
+            "rho 27 - rho 26"
+            if local == 26
+            else local if local < 26 else local + 1
+        )
+        for wire, local in legacy_local.items()
+    }
     used = {
         int(w[1:])
         for index, part in extracted.items()
@@ -154,6 +186,15 @@ def _note_part_provider(part: int) -> str:
         _relation_lc_names(NAMES[NOTE_KEY]),
         f"part{part}AddSemigroup",
     )
+    if part == 4:
+        # This part consumes the inlined canonical transmission expression.
+        # Normalize `rho 27 - rho 26` against the extractor's expanded
+        # `-rho 26 + rho 27` form with an explicit algebraic proof.
+        helpers = re.sub(
+            r"(?m)^  · exact h(\d+)$",
+            r"  · linear_combination h\1",
+            helpers,
+        )
     helpers = _normalize_note_adapter_text(helpers, relation)
     instances = named_instance_block(
         f"part{part}", include_add_semigroup="choiceFreeAddAssoc" in helpers
@@ -179,7 +220,6 @@ def _note_provider() -> str:
     prefix = "template"
     final = ["w1312", "w1317", "w1322", "w1327", "w1332", "w1337", "w1342"]
     nested = poseidon.build_nested(extracted_ns, extracted, mapping, 0, 85, poseidon.conj_eq(final, mapping))
-    input_ids = tuple(segment["wire_roles"]["input"])
     output_ids = tuple(segment["wire_roles"]["output"])
     inverse = {
         global_wire: local
@@ -188,7 +228,7 @@ def _note_provider() -> str:
     spec = (
         "def spec (rho : Nat → F) : Prop :=\n"
         "  Shieldd.GnarkFormal.Deployed.NoteCommitment.spec38\n"
-        f"      {' '.join(f'(rho {inverse[w]})' for w in input_ids)} =\n"
+        f"      {' '.join(poseidon.rho(w, mapping) for w in (14, 15, 16, 19, 22, 572, 912))} =\n"
         "    Shieldd.GnarkFormal.Deployed.NoteCommitment.st38\n"
         f"      {' '.join(f'(rho {inverse[w]})' for w in output_ids)}\n"
     )
@@ -263,7 +303,7 @@ def _nullifier_provider() -> str:
       {' '.join(f'(rho {inverse[wire]})' for wire in output_ids)} =
     Shieldd.GnarkFormal.Poseidon3Bridge.permSpec3
       Shieldd.GnarkFormal.Poseidon3Bridge.nullifierDomainLit
-      (rho {inverse[8]}) (rho {inverse[23]}) (rho {inverse[24]})
+      (rho {mapping[8]}) (rho {mapping[23]}) (rho {mapping[24]})
 
 """
     sound_inputs = " ".join(f"(rho {mapping[wire]})" for wire in (8, 23, 24))

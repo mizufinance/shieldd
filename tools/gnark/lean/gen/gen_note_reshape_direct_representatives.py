@@ -41,9 +41,9 @@ def templates() -> tuple[tuple[str, int, int], ...]:
             key = template.proof_template_id
             first.setdefault(key, (key, segment["constraint_count"], len(template.canonical_wire_seating)))
     result = tuple(first.values())
-    if len(result) != 11:
-        raise ValueError(f"expected 11 small representative templates, found {len(result)}")
-    expected = {"assert.eq": 6, "decaf.assert_equivalent": 4, "decaf.assert_on_curve": 1}
+    if len(result) != 7:
+        raise ValueError(f"expected 7 small representative templates, found {len(result)}")
+    expected = {"assert.eq": 4, "decaf.assert_equivalent": 2, "decaf.assert_on_curve": 1}
     actual = {op: sum(key.startswith(op + "@") for key, _, _ in result) for op in expected}
     if actual != expected:
         raise ValueError(f"small representative operation counts drifted: {actual}")
@@ -179,6 +179,6 @@ def generated_files(
         outputs[bench / f"NoteReshapeTemplate{name}Import.lean"] = (
             f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}\n"
         )
-    if len(outputs) != 22:
-        raise ValueError(f"expected 22 direct provider/import files, found {len(outputs)}")
+    if len(outputs) != 14:
+        raise ValueError(f"expected 14 direct provider/import files, found {len(outputs)}")
     return outputs

@@ -1320,9 +1320,6 @@ def generated_files() -> dict[Path, str]:
     merge("normalized NB", isolated_generated_files(
         "gen_note_reshape_nb_semantics", "generated_nb_semantic_files"
     ))
-    merge("dummy RVK", isolated_generated_files(
-        "gen_note_reshape_dummy_rvk_semantics", "generated_dummy_rvk_semantic_files"
-    ))
     merge("direct representatives", isolated_generated_files(
         "gen_note_reshape_direct_representatives", "generated_files"
     ))

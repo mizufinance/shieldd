@@ -63,6 +63,13 @@ class Family:
 
 FAMILIES = (
     Family(
+        "decaf.compress_to_field@134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2",
+        "TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2",
+        1206,
+        293,
+        (252, 504, 505, 506, 507, 508, 509, 510, 515, 512, 511, 513, 514, 516, 517, 518, 519, 520, 521, 522, 523),
+    ),
+    Family(
         "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
         "TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
         706,
