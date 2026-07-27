@@ -14,6 +14,8 @@ trap 'rm -rf "$tmp_dir"' EXIT
 export GOCACHE="${GOCACHE:-$tmp_dir/go-cache}"
 printf 'clean\n' >"$tmp_dir/clean.txt"
 printf 'forbidden\n' >"$tmp_dir/forbidden.txt"
+printf 'open Protocol.NoteReshape\n' >"$tmp_dir/protocol-namespace.txt"
+printf 'Protocol/NoteReshape\n' >"$tmp_dir/protocol-path.txt"
 
 reject_rg_matches "clean fixture" -n 'forbidden' "$tmp_dir/clean.txt" \
   || fail "a no-match search did not report clean"
@@ -25,6 +27,14 @@ reject_rg_matches "error fixture" -n 'forbidden' "$tmp_dir/missing.txt" >/dev/nu
 rg_error=$?
 set -e
 [[ "$rg_error" -ge 2 ]] || fail "a ripgrep error was not preserved"
+
+reject_rg_matches "protocol namespace reference" \
+  -n 'Protocol/NoteReshape' "$tmp_dir/protocol-namespace.txt" \
+  || fail "a generated refinement namespace reference was treated as path ownership"
+if reject_rg_matches "protocol output path" \
+    -n 'Protocol/NoteReshape' "$tmp_dir/protocol-path.txt"; then
+  fail "a generator-owned protocol output path was accepted"
+fi
 
 for invocation in \
   "check-lean-circuit-fv.sh drift definitely_not_a_circuit" \

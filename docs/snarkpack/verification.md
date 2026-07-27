@@ -36,29 +36,11 @@ itself is *assumed* (paper + Filecoin, see [Standing
 assumptions](#standing-assumptions)); these references pin down which algorithm
 our code must refine, and the tools below verify it does.
 
-#### ALG-M1 — Local algorithm spec (`ripp-spec.md`)
-- **What:** the Shieldd-local, row-indexed spec of GIPA/TIPA/SSM and the Groth16
-  adapter, checked against Filecoin v2 transcript bug classes.
-- **Why:** the reference every implementation check and the trace-schema policy
-  table compare against. Without it, "matches the algorithm" is unanchored.
-- **State:** drafted; the trace-schema policy table is gate-checked to match its
-  Spec Row Index.
-- **Fixture:** [ripp-spec.md](../../crates/crypto/proof-aggregation/formal/snarkpack/ripp-spec.md).
-
-#### ALG-M2 — Refinement map (`ripp-refinement.md`)
-- **What:** per-symbol audit mapping every scoped RIPP/GIPA/TIPA Rust symbol to a
-  spec row, classified by deviation class with file:line evidence; bijective with
-  `ripp-refinement-scope.txt`.
-- **Why:** turns "the code refines the paper" into a reviewed, coverage-checked
-  per-symbol claim rather than a hand-wave.
-- **State:** every scoped symbol `refined` with evidence; no `open` rows.
-- **Fixture:** [ripp-refinement.md](../../crates/crypto/proof-aggregation/formal/snarkpack/ripp-refinement.md).
-
 ### Tools that verify the code matches
 
 The hard problem here is the **shared-lineage common-mode bug**: most behavioral
-checks run arkworks-descended code on both sides, so a bug in the equations
-themselves passes them all. Only the independent oracles (ALG-I2, ALG-I4) can
+  checks run arkworks-descended code on both sides, so a bug in the equations
+  themselves passes them all. The independent reference oracle (ALG-I2) can
 falsify that class.
 
 #### ALG-I1 — Differential oracle agreement
@@ -81,31 +63,14 @@ falsify that class.
   a same-code test would miss. The Rust-level independent oracle.
 - **State:** implemented; feeds ALG-I1, ALG-I3, TXN-I2, TXN-I3.
 
-#### ALG-I3 — Trace instrumentation + equivalence
-- **What:** production and reference emit structured `TraceEvent`s through the
-  dependency-free `proof-aggregation-trace-schema` crate; its policy table must
-  match the ALG-M1 Spec Row Index, and instrumentation must not re-decide levels
-  from call shape (`production_and_reference_traces_match_declared_levels`).
-- **Why:** verifies the two paths perform the same *sequence/structure* of
-  transcript operations, not just the same final answer — the spine the byte
-  baselines and mutation matrices hang off.
-- **State:** implemented.
-
-#### ALG-I4 — Lean differential conformance
-- **What:** an independent, hand-built Lean model of the transcript + folding
-  discipline (FS label sequence, challenge derivation, GIPA/TIPA fold order,
-  padding), derived from `ripp-spec.md` and the paper — **not** transliterated
-  from the Rust — compiled to an executable oracle and differentially tested
-  against the Rust. Pairing/field arithmetic stays abstract and `assumed`.
-- **Why:** the only independent algebraic/transcript oracle. Because the transcript
-  shape is fully determined by `padded_count` (a power of two ≤ 2¹⁵), the domain
-  is finite and **exhaustively enumerated**, not sampled — certainty over the
-  bounded shape domain.
-- **State:** implemented as evidence, not proof, in
-  `proof-aggregation-lean-conformance`. Always-on smoke covers round depths 0..=5;
-  `lean_oracle_matches_all_shapes_to_max` (release-gated) covers every shape to the
-  SRS max. Strengthens, does not remove, the standing algebraic-soundness
-  assumption. Run: `just snarkpack-lean-conformance`.
+#### ALG-I3 — Acceptance and transcript invariants
+- **What:** production and reference cross-verify through the ordinary public API
+  (`production_and_reference_acceptance_parity`). The reference oracle retains
+  its byte baselines, mutation matrices, and transcript-manifest checks; internal
+  production parity checks compare the ordered challenge records directly.
+- **Why:** acceptance parity covers the implementation boundary, while the
+  independent transcript checks catch ordering and binding drift.
+- **State:** implemented; the former public production trace API is retired.
 
 ---
 
@@ -116,17 +81,6 @@ falsify that class.
 What the Fiat-Shamir transcript *must* bind, and in what order. The reference set
 comes from the paper's security proof, not from the Rust (deriving it from the
 code would be circular). This is the explicit oracle TXN-I2/TXN-I3 check against.
-
-#### TXN-M1 — Filecoin v2 discipline + adaptation register
-- **What:** the audited Filecoin Bellperson v2 transcript discipline — bind every
-  input, fixed order, domain-separated — borrowed as a *principle* (not bytes;
-  different curve and stack). Every intentional Filecoin→Shieldd difference is
-  recorded in the adaptation register, bijective with `adaptation-scope.txt`.
-- **Why:** our hand-rolled Fiat-Shamir must not reopen a v2 omission/reordering
-  bug class on our own bytes.
-- **State:** register coverage-checked; behavioral review recorded in
-  [filecoin-divergence-findings.md](../../crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md).
-- **Fixture:** [adaptation-register.md](../../crates/crypto/proof-aggregation/formal/snarkpack/adaptation-register.md).
 
 #### TXN-M2 — Transcript completeness reference set
 The per-stage set of inputs that **must** be hashed before each challenge. The
@@ -265,16 +219,7 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
 - **State:** implemented. *Scope:* Shieldd-reference vs Shieldd-optimized only —
   no cross-curve byte equivalence to Filecoin (BLS12-381 vs BLS12-377).
 
-#### TXN-I5 — Filecoin-shape static check
-- **What:** `scripts/check-snarkpack-filecoin-shape.sh` clones pinned Bellperson
-  v0.21.0 and greps the prover/verifier/transcript source to confirm the labels,
-  ordering, V2 branch, and domain/nonce binding we modeled on still exist.
-- **Why:** pins our claimed FS discipline to the audited reference and fails if it
-  drifts.
-- **State:** implemented, but review-grade and static — it never executes
-  Bellperson or compares behavior. ALG-I4 is its executable upgrade.
-
-#### TXN-I6 — Fuzzing
+#### TXN-I5 — Fuzzing
 - **What:** stable proptests (in-gate smoke) plus cargo-fuzz/libFuzzer targets in
   the non-published `proof-aggregation-fuzz` crate over every byte boundary —
   wrapper decode, preflight, aggregate-proof deserialize, sidecar decode, bundle

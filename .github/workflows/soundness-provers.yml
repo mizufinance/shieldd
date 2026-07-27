@@ -1,0 +1,284 @@
+name: soundness-provers
+
+# The heavy symbolic/SMT provers, split out of soundness-formal because they
+# only ever run on the scheduled path. Left in that workflow they were six
+# permanently-`skipped` check runs on every pull request. There is deliberately
+# no `pull_request` or `merge_group` trigger here.
+
+on:
+  workflow_call:
+    inputs:
+      target_ref:
+        description: Branch whose committed state is the reusable-run candidate.
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Branch whose committed state is the manual-run candidate.
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ inputs.target_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CANDIDATE_REF: ${{ inputs.target_ref }}
+
+jobs:
+  applicability:
+    name: 'provers: applicability'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    outputs:
+      status: ${{ steps.classify.outputs.status }}
+      tier: ${{ steps.classify.outputs.tier }}
+      run: ${{ steps.classify.outputs.run }}
+      explanation: ${{ steps.classify.outputs.explanation }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+          fetch-depth: 0
+      # Same gate declaration as soundness-formal: the provers verify the same
+      # sources, they just run on a different cadence.
+      - name: Classify soundness applicability
+        id: classify
+        run: |
+          python3 scripts/ci/gate-applicability.py \
+            --gate soundness-formal \
+            --event "${{ github.event_name }}" \
+            --head "$GITHUB_SHA" \
+            --github-output "$GITHUB_OUTPUT" \
+            --pretty
+
+  tamarin-alloy:
+    name: 'provers: tamarin-alloy'
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache: "false"
+      - name: Run Tamarin symbolic gate
+        run: nix shell nixpkgs#tamarin-prover nixpkgs#maude --command bash scripts/compliance-symbolic.sh
+      - name: Run Alloy state-invariant gate
+        run: nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh
+
+  dleq:
+    name: 'provers: dleq'
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache-prefix: soundness-dleq
+      - name: Install Lean
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v elan >/dev/null 2>&1; then
+            curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -o /tmp/elan-init.sh
+            sh /tmp/elan-init.sh -y --default-toolchain none
+            echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          fi
+      - name: Run DLEQ Lean and VCVio gate
+        run: bash scripts/compliance-lean-dleq.sh full
+
+  fstar:
+    name: 'provers: fstar'
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache-prefix: soundness-fstar
+      - name: Install Z3
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -fsSL -o /tmp/z3.zip https://github.com/Z3Prover/z3/releases/download/z3-4.14.1/z3-4.14.1-x64-glibc-2.35.zip
+          unzip -q /tmp/z3.zip -d "$HOME/.local/opt"
+          echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
+      - name: Install F*
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -fsSL -o /tmp/fstar.tar.gz https://github.com/FStarLang/FStar/releases/download/v2026.05.24/fstar-v2026.05.24-Linux-x86_64.tar.gz
+          tar -xzf /tmp/fstar.tar.gz -C "$HOME/.local/opt"
+          echo "$HOME/.local/opt/fstar/bin" >> "$GITHUB_PATH"
+      - name: Install hax
+        shell: bash
+        run: |
+          set -euo pipefail
+          hax_dir="$HOME/.local/opt/hax-c8e27c5"
+          git clone --filter=blob:none --no-checkout https://github.com/cryspen/hax "$hax_dir"
+          git -C "$hax_dir" fetch --depth=1 origin c8e27c5945f7fc5791939cff7c1277f4ab768fe1
+          git -C "$hax_dir" checkout --detach FETCH_HEAD
+          test "$(git -C "$hax_dir" rev-parse HEAD)" = c8e27c5945f7fc5791939cff7c1277f4ab768fe1
+          nix profile install "$hax_dir#hax" "$hax_dir#hax-engine"
+          echo "HAX_PROOF_LIBS_HOME=$hax_dir/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
+      - name: Run shielded-pool F* gate
+        run: bash scripts/shielded-pool-formal.sh
+
+  picus:
+    name: 'provers: picus'
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+          lfs: true
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache-prefix: soundness-picus
+      - name: Install cvc5
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -fsSL -o /tmp/cvc5.zip https://github.com/cvc5/cvc5/releases/download/cvc5-1.3.4/cvc5-Linux-x86_64-static-gpl.zip
+          unzip -q /tmp/cvc5.zip -d "$HOME/.local/opt"
+          echo "$HOME/.local/opt/cvc5-Linux-x86_64-static-gpl/bin" >> "$GITHUB_PATH"
+      - name: Install Picus
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/Veridise/Picus "$HOME/.local/opt/picus"
+          (cd "$HOME/.local/opt/picus" && raco pkg install --auto --batch)
+          echo "PICUS_BIN=$HOME/.local/opt/picus/run-picus" >> "$GITHUB_ENV"
+      - name: Run gadget-scope under-constraint gate
+        run: bash scripts/circuit-constraint-check.sh
+
+  acl2:
+    name: 'provers: acl2 (advisory)'
+    needs: applicability
+    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache: "false"
+      - name: Run advisory C3 gadget theorem certification
+        run: nix shell nixpkgs#acl2 nixpkgs#lean4 --command bash scripts/circuit-gadget-proof-check.sh
+
+  post-prover-invariants:
+    name: 'provers: post-prover-invariants'
+    needs: [applicability, tamarin-alloy, dleq, fstar, picus]
+    if: always() && needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Require prover lanes
+        env:
+          TAMARIN_ALLOY: ${{ needs.tamarin-alloy.result }}
+          DLEQ: ${{ needs.dleq.result }}
+          FSTAR: ${{ needs.fstar.result }}
+          PICUS: ${{ needs.picus.result }}
+        run: |
+          for result in \
+            "tamarin-alloy=$TAMARIN_ALLOY" \
+            "dleq=$DLEQ" \
+            "fstar=$FSTAR" \
+            "picus=$PICUS"; do
+            if [[ "${result#*=}" != "success" ]]; then
+              echo "required prover failed: $result"
+              exit 1
+            fi
+          done
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache-prefix: soundness-post-prover
+      - name: Check post-prover invariant and stamp state
+        run: nix develop --command bash scripts/check-soundness-invariants.sh
+
+  summary:
+    name: 'provers: summary'
+    needs:
+      - applicability
+      - tamarin-alloy
+      - dleq
+      - fstar
+      - picus
+      - acl2
+      - post-prover-invariants
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      # acl2 is `continue-on-error`, so its result is not a signal; it stays in
+      # `needs` for ordering only.
+      - name: Enforce prover result contract
+        env:
+          APPLICABILITY: ${{ needs.applicability.result }}
+          STATUS: ${{ needs.applicability.outputs.status }}
+          TIER: ${{ needs.applicability.outputs.tier }}
+          EXPLANATION: ${{ needs.applicability.outputs.explanation }}
+          TAMARIN_ALLOY: ${{ needs.tamarin-alloy.result }}
+          DLEQ: ${{ needs.dleq.result }}
+          FSTAR: ${{ needs.fstar.result }}
+          PICUS: ${{ needs.picus.result }}
+          POST: ${{ needs.post-prover-invariants.result }}
+        run: |
+          set -euo pipefail
+          if [[ "$APPLICABILITY" != "success" ]]; then
+            echo "applicability classification failed: $APPLICABILITY" >&2
+            exit 1
+          fi
+          if [[ "$STATUS" == "skip" ]]; then
+            echo "explained skip: $EXPLANATION"
+            exit 0
+          fi
+          if [[ "$STATUS" != "run" || ( "$TIER" != "stamps" && "$TIER" != "full" ) ]]; then
+            echo "invalid applicability contract: status=$STATUS tier=$TIER" >&2
+            exit 1
+          fi
+          for entry in \
+            "tamarin-alloy=$TAMARIN_ALLOY" \
+            "dleq=$DLEQ" \
+            "fstar=$FSTAR" \
+            "picus=$PICUS" \
+            "post-prover-invariants=$POST"; do
+            if [[ "${entry#*=}" != "success" ]]; then
+              echo "required job failed: $entry" >&2
+              exit 1
+            fi
+          done
+          echo "soundness provers tier $TIER passed"

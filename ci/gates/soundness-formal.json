@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "gate": "soundness-formal",
+  "tiers": [
+    "skip",
+    "stamps",
+    "full"
+  ],
+  "events": {
+    "pull_request": {
+      "conservative_tier": "stamps"
+    },
+    "merge_group": {
+      "conservative_tier": "full"
+    },
+    "schedule": {
+      "tier": "full"
+    },
+    "workflow_call": {
+      "tier": "full"
+    },
+    "workflow_dispatch": {
+      "tier": "full"
+    }
+  },
+  "derived_inputs": [
+    {
+      "type": "cargo_local_closure",
+      "packages": [
+        "shieldd-constraint-coverage",
+        "shieldd-sdk-compliance",
+        "shieldd-sdk-shielded-pool"
+      ],
+      "tiers": {
+        "pull_request": "stamps",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "local Cargo dependency closure for soundness seams and constraint coverage"
+    }
+  ],
+  "explicit_inputs": [
+    {
+      "patterns": [
+        ".cargo/config.toml",
+        ".github/actions/setup-nix-rust/**",
+        ".github/workflows/fv-toolchain-image.yml",
+        ".github/workflows/formal.yml",
+        ".github/workflows/formal-scheduled.yml",
+        ".github/workflows/soundness-provers.yml",
+        "Cargo.lock",
+        "Cargo.toml",
+        "ci/gates/soundness-formal.json",
+        "flake.lock",
+        "flake.nix",
+        "rust-toolchain.toml",
+        "scripts/ci/gate-applicability.py",
+        "scripts/ci/test_gate_applicability.py"
+      ],
+      "tiers": {
+        "pull_request": "stamps",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "workspace, toolchain, image, workflow, or classifier input"
+    },
+    {
+      "patterns": [
+        ".gitignore",
+        "crates/core/component/compliance/formal/**",
+        "crates/core/component/shielded-pool/formal/**",
+        "crates/core/component/shielded-pool/proofs/fstar/**",
+        "docs/soundness/**",
+        "scripts/check-constraint-coverage.sh",
+        "scripts/check-formal-gate-self-tests.sh",
+        "scripts/check-gadget-model-fidelity.sh",
+        "scripts/check-lean-circuit-fv.sh",
+        "scripts/check-manifest-pin.sh",
+        "scripts/check-note-reshape-impact.py",
+        "scripts/check-note-reshape-spec-independence.sh",
+        "scripts/check-soundness-invariants.sh",
+        "scripts/check-structured-lc-generation.sh",
+        "scripts/check-structured-lc-lint.sh",
+        "scripts/check-vk-derivation.sh",
+        "scripts/check_poseidon377_parity.sh",
+        "scripts/circuit-constraint-check.sh",
+        "scripts/circuit-gadget-proof-check.sh",
+        "scripts/compliance-alloy.sh",
+        "scripts/compliance-lean-dleq.sh",
+        "scripts/compliance-symbolic.sh",
+        "scripts/lib/fail-closed-rg.sh",
+        "scripts/lint-emitted-lean.py",
+        "scripts/run-picus-bounded.sh",
+        "scripts/shielded-pool-formal.sh",
+        "tools/gnark/**"
+      ],
+      "tiers": {
+        "pull_request": "stamps",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "soundness proof, artifact, generator, runtime, or invoked gate input"
+    }
+  ],
+  "irrelevant_inputs": [
+    {
+      "patterns": [
+        ".github/ISSUE_TEMPLATE/**",
+        "LICENSE",
+        "LICENSE-*",
+        "docs/**"
+      ],
+      "reason": "documentation-only path outside the declared soundness contract"
+    }
+  ]
+}

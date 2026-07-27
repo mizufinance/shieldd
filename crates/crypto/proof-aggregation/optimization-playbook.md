@@ -28,11 +28,11 @@ subgroup checks — §8 candidate 1). Such a change can be byte-stable and still
 accept invalid proofs; the gates won't catch it. Any change to how elements are
 *validated* needs an explicit security review on top of byte stability.
 
-Category 3 changes what gets hashed for challenges. That voids the Filecoin-shape
-inheritance (`scripts/check-snarkpack-filecoin-shape.sh`) — the argument *"our
-transcript is byte-shaped like the audited Filecoin/Bellperson SnarkPack,
-therefore their soundness analysis applies to us"* — and would require
-re-establishing that evidence plus the F\* boundary. It is not an optimization.
+Category 3 changes what gets hashed for challenges. That voids the existing
+transcript evidence — the argument *"our transcript is byte-shaped like the
+audited Filecoin/Bellperson SnarkPack, therefore their soundness analysis applies
+to us"* — and would require re-establishing the evidence plus the F\* boundary.
+It is not an optimization.
 **Do not do category 3 under the guise of speed.** The byte/trace baselines make
 it impossible to land silently: it shows up as a transcript-byte diff that fails
 the gate.
@@ -242,9 +242,8 @@ Two optimizations can work against each other:
 2. Regenerate both golden baselines via the `--ignored` helpers:
    - `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`
    - `cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored`
-3. Add one `adaptation-register.md` row (deviation class `performance` or
-   `mechanical`) plus the matching `adaptation-scope.txt` entry. The invariants
-   script enforces the bijection and field validity.
+3. Record the protocol-version decision in the formal handoff. The invariants
+   script enforces the remaining formal-handoff discipline.
 
 ## 6. VALIDATE — the gate set (all green before done)
 
@@ -257,7 +256,7 @@ Two optimizations can work against each other:
   mutation matrices (`*_mutant_matrix_is_declared_per_byte_binding_row`,
   `mutation_matrices_cover_shieldd_byte_trace_rows`).
 - `just snarkpack-fuzz-smoke` — 6 targets, zero crashes.
-- `just snarkpack-invariants`, `just snarkpack-filecoin-shape`,
+- `just snarkpack-invariants`,
   `just snarkpack-formal` — no regression.
 - `cargo fmt --all -- --check`.
 - A/B delta recorded in the commit/PR description (not a committed threshold —

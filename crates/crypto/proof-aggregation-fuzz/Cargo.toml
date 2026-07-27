@@ -24,8 +24,6 @@ libfuzzer-sys = "0.4"
 shieldd-sdk-app = { workspace = true, features = ["component", "fuzzing"] }
 shieldd-sdk-fee = { workspace = true, default-features = true }
 shieldd-sdk-proof-aggregation = { workspace = true, features = ["fuzzing"] }
-shieldd-sdk-proof-aggregation-reference = { path = "../proof-aggregation-reference" }
-shieldd-sdk-proof-aggregation-trace-schema = { workspace = true }
 shieldd-sdk-proof-params = { workspace = true, default-features = false }
 shieldd-sdk-proto = { workspace = true, default-features = true }
 shieldd-sdk-sct = { workspace = true, default-features = false }

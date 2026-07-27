@@ -17,6 +17,7 @@ pub mod genesis;
 mod ibc_action;
 mod ibc_token;
 pub mod params;
+#[cfg(feature = "component")]
 mod version;
 
 mod prefix;

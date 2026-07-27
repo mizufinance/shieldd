@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "orbis": {
+    "source_revision": "b5d229aaadef4c0127203c2fccafb6771f38eaca",
+    "crypto": "decaf377",
+    "image": "ghcr.io/sourcenetwork/orbis-rs@sha256:22af0899128e1e517cce6b5c0520a821548c4db84da13220dc5a7e8448719e2f"
+  },
+  "sourcehub": {
+    "image": "ghcr.io/sourcenetwork/sourcehub@sha256:2c1252e35a5037bf0fa25be2000733e60d8d27b6339bd3413c94794e27b25331"
+  }
+}

@@ -29,7 +29,6 @@ blake2 = "0.9"
 decaf377 = { workspace = true }
 digest = "0.9"
 hex = { workspace = true }
-shieldd-sdk-proof-aggregation-trace-schema = { workspace = true }
 shieldd-sdk-proof-params = { workspace = true, default-features = false }
 shieldd-sdk-proto = { workspace = true, default-features = true }
 shieldd-sdk-shielded-pool = { workspace = true, default-features = false }

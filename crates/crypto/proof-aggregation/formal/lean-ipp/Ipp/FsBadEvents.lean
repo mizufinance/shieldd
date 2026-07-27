@@ -1,0 +1,587 @@
+/-
+U5a: bad-event probability accounting for the wrapped cached-RO SnarkPack
+Fiat--Shamir game (DESIGN §U5a, §R7 item 4).
+
+The probability space is `replayFirstRun (fsRandomFunction (FsGame stmt adv))`
+over `unifSpec + SnarkpackFsSpec` — the lazy structured random function feeds
+fresh uniform `F` samples on structured cache misses, of which ≤ `Q qb` occur in
+scope. Its support points are `(out, sourceLog)` pairs whose wrapped image is
+`{ out := out, trace := fsPointTrace sourceLog }`.
+
+The `WrappedRunGood` predicate consumed by U5d(4) excludes six bad events; this
+file states the union-bound accounting for them and proves the quantitative
+lower bound `Q_0 ≥ Pr[accept] − err_bad` by pure ENNReal event algebra.
+
+R7(4) status: every probability bound is concrete. Dependency and round-slot
+order use adaptive candidate-pair bounds rather than the unsound single-guess
+constants.
+
+U5a hardening proves the mixed-source transport in `FsMissBounds.lean`:
+`structured_log_mem_at_le`, `structured_log_mem_before_le`, and
+`structured_log_mem_le` bound fixed finite bad sets across the structured
+ordinals while ignoring unrelated ambient-uniform ranges. The remaining gaps
+are the protocol-local dependency/order reductions.
+
+Spec rows: `fs.stage-labels`, `groth16.randomizer`, `tipp-mipp.gipa`,
+`tipp-mipp.kzg`, `fs.challenge-preimage`.
+-/
+import Ipp.FsOrderEvents
+
+open OracleSpec OracleComp ENNReal Function
+open scoped OracleSpec.PrimitiveQuery ENNReal BigOperators
+
+namespace Ipp
+
+noncomputable section
+
+variable {F G1 G2 GT : Type}
+  [Field F] [AddCommGroup G1] [Module F G1] [AddCommGroup G2] [Module F G2]
+  [AddCommGroup GT] [Module F GT]
+  [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+
+/-- R7's whole-game query cap: `Q qb := qb + 1`, the size of `Fin (qb + 1)`.
+The `+1` is not an extra query; `qb` is predecessor-style input to the cap. -/
+abbrev Q (qb : Nat) : Nat := qb + 1
+
+/-- `Q` unfolds to the predecessor-style whole-game query cap. -/
+@[simp] theorem Q_eq_add_one (qb : Nat) : Q qb = qb + 1 := rfl
+
+/-- The whole-game query cap has at least one ordinal. -/
+@[simp] theorem Q_pos (qb : Nat) : 0 < Q qb := Nat.zero_lt_succ qb
+
+/-- The structured SnarkPack FS source spec (uniform sampling + the structured
+challenge oracle). Its `Range` at the challenge index is `F`. -/
+abbrev FsSourceSpec (F G1 G2 GT : Type) := unifSpec + SnarkpackFsSpec F G1 G2 GT
+
+/-- Support-point type of the wrapped cached-RO computation. -/
+abbrev FsRunLog (μ : Nat) (F G1 G2 GT : Type) :=
+  FsResult μ F G1 G2 GT × QueryLog (FsSourceSpec F G1 G2 GT)
+
+/-- The lazy random-function probability space of the FS game (DESIGN §U5a).
+Uniform on structured misses; `replayFirstRun` exposes the miss log. -/
+abbrev fsProbComp {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT)) :
+    OracleComp (FsSourceSpec F G1 G2 GT) (FsRunLog μ F G1 G2 GT) :=
+  replayFirstRun (fsRandomFunction (FsGame stmt adv))
+
+/-- Query logging preserves the cached game's whole-query cap. -/
+theorem fsProbComp_isTotalQueryBound {μ : Nat}
+    [IsUniformSpec (FsSourceSpec F G1 G2 GT)]
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    {n : Nat} (h : IsTotalQueryBound (FsGame stmt adv) n) :
+    IsTotalQueryBound (fsProbComp stmt adv) n := by
+  unfold fsProbComp replayFirstRun
+  apply (isTotalQueryBound_run_simulateQ_loggingOracle_iff
+    (fsRandomFunction (FsGame stmt adv)) n).mpr
+  exact fsRandomFunction_isTotalQueryBound (FsGame stmt adv) h
+
+/-- The wrapped run determined by a source support point: the recomputed
+verifier result plus the structured miss trace. -/
+def wrappedOf {μ : Nat} (z : FsRunLog μ F G1 G2 GT) :
+    WrappedFsRun (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT) :=
+  { out := z.1, trace := fsPointTrace z.2 }
+
+/-- The run's verifier accepted. -/
+def Accepted {μ : Nat} (z : FsRunLog μ F G1 G2 GT) : Prop :=
+  z.1.accept = true
+
+/-- Bad event 1 (`answer_collision_bound`): two distinct structured miss
+ordinals carry equal fresh answers — the RO birthday collision that breaks
+`StructuredAnswersInjective`. -/
+def BadCollision {μ : Nat} (z : FsRunLog μ F G1 G2 GT) : Prop :=
+  ¬ StructuredAnswersInjective (F := F)
+      (fsPointTrace z.2).length (flattenFsLog z.2)
+
+/-- Bad event 2 (`randomizer_rootset_bound`): the sampled randomizer landed in
+the pre-`r` discrepancy root set (`groth16.randomizer`). Modelled by an
+abstract `Set F` so the consumer instantiates it with `discrepancyRootSet d`
+and `discrepancyRootSet_card` for the size. -/
+def BadRandomizer {μ : Nat} (badR : Set F) (z : FsRunLog μ F G1 G2 GT) : Prop :=
+  z.1.transcript.randomizer ∈ badR
+
+/-- Bad event 3 (`dependency_order_bound`): some in-budget round slot is not
+preceded by both the randomizer and x0 misses (`DependencyOrdered` fails). -/
+def BadDependency {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (z : FsRunLog μ F G1 G2 GT) : Prop :=
+  ¬ DependencyOrdered qb stmt (wrappedOf z)
+
+/-- Bad event 4 (`round_slot_order_bound`): accepted round-point first
+occurrences are not chronological. A misordered pre-query must guess a later
+fresh-uniform round challenge. -/
+def BadRoundOrder {μ : Nat} (qb : Nat) (z : FsRunLog μ F G1 G2 GT) : Prop :=
+  ¬ RoundSlotOrdered qb (wrappedOf z)
+
+/-- Bad event 5 (`kzg_z_bound`): the KZG challenge landed in the per-statement
+bad set (`tipp-mipp.kzg`). Abstract `Set F` of size ≤ `dZ`. -/
+def BadKzg {μ : Nat} (badZ : Set F) (z : FsRunLog μ F G1 G2 GT) : Prop :=
+  z.1.transcript.kzg ∈ badZ
+
+/-- Bad event 6 (`round_unqueried_bound`): some transcript round point was
+never cache-missed, or its first miss exceeds the fork budget. -/
+def BadUnqueried {μ : Nat} (qb : Nat) (z : FsRunLog μ F G1 G2 GT) : Prop :=
+  ∃ level, level < μ ∧ RoundPointUnqueried qb level (wrappedOf z)
+
+/-- The complete goodness event carried into U5d(4): `WrappedRunGood` (accept,
+challenge acceptance, in-budget chronologically ordered round slots, dependency
+order, and structured-answer injectivity) together with the randomizer- and
+KZG-goodness excluded in U5e. -/
+def RunGoodFull {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (badR badZ : Set F) (z : FsRunLog μ F G1 G2 GT) : Prop :=
+  WrappedRunGood qb stmt (wrappedOf z) (flattenFsLog z.2) ∧
+    z.1.transcript.randomizer ∉ badR ∧ z.1.transcript.kzg ∉ badZ
+
+/-- Wrapped-image form of `RunGoodFull`, used as the gate of the final fork
+experiment so root randomizer goodness is retained through extraction. -/
+def WrappedRunGoodFull {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (badR badZ : Set F)
+    (z : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT) × QueryLog (FsWrappedSpec F)) : Prop :=
+  WrappedRunGood qb stmt z.1 z.2 ∧
+    z.1.out.transcript.randomizer ∉ badR ∧
+    z.1.out.transcript.kzg ∉ badZ
+
+section FreshMiss
+
+/-- **U5a foundational uniform-miss lemma.** In the cached structured source
+oracle, the fresh answer installed at a structured cache MISS is uniform on `F`.
+Concretely: the first component (the sampled answer) of one miss step at an
+uncached `point` equals any fixed `v` with probability exactly `1/|F|`. This is
+the load-bearing per-miss uniform mass on which the KZG / birthday union bounds
+build; it is a direct `probOutput_query` computation once the miss step is
+unfolded to its `$ᵗ F` sampling. -/
+theorem fresh_miss_uniform {Point : Type} [DecidableEq Point] [Fintype F]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))]
+    (point : Point) (cache : (Point →ₒ F).QueryCache)
+    (hmiss : cache point = none) (v : F) :
+    Pr[= v | Prod.fst <$> ((fsSourceOracle Point F) (Sum.inr point)).run cache] =
+      (Fintype.card F : ℝ≥0∞)⁻¹ := by
+  have hrun : Prod.fst <$> ((fsSourceOracle Point F) (Sum.inr point)).run cache =
+      ((unifSpec + (Point →ₒ F)).query (Sum.inr point) :
+        OracleComp (unifSpec + (Point →ₒ F)) F) := by
+    simp [fsSourceOracle, QueryImpl.add_apply_inr, QueryImpl.withCaching_apply,
+      StateT.run_bind, StateT.run_get, fsSourceImpl, hmiss]
+  rw [hrun, probOutput_query]
+  congr
+  exact Subsingleton.elim _ _
+
+/-- **Set form of the uniform-miss lemma.** The fresh answer installed at a
+structured cache miss lands in any finite set `bad` with probability at most
+`|bad|/|F|` — the per-slot mass consumed by the KZG and randomizer union
+bounds. -/
+theorem fresh_miss_mem_le {Point : Type} [DecidableEq Point] [Fintype F]
+    [IsUniformSpec (unifSpec + (Point →ₒ F))]
+    (point : Point) (cache : (Point →ₒ F).QueryCache)
+    (hmiss : cache point = none) (bad : Finset F) :
+    Pr[fun z => z.1 ∈ bad |
+        ((fsSourceOracle Point F) (Sum.inr point)).run cache] ≤
+      (bad.card : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) := by
+  classical
+  have hterm : ∀ w : F,
+      (if w ∈ bad then
+        Pr[= w | Prod.fst <$> ((fsSourceOracle Point F) (Sum.inr point)).run cache]
+       else 0) =
+        (if w ∈ bad then (Fintype.card F : ℝ≥0∞)⁻¹ else 0) := by
+    intro w
+    by_cases hw : w ∈ bad
+    · rw [if_pos hw, if_pos hw, fresh_miss_uniform point cache hmiss w]
+    · rw [if_neg hw, if_neg hw]
+  have hmap : Pr[fun z => z.1 ∈ bad |
+        ((fsSourceOracle Point F) (Sum.inr point)).run cache] =
+      Pr[(· ∈ bad) |
+        Prod.fst <$> ((fsSourceOracle Point F) (Sum.inr point)).run cache] := by
+    rw [probEvent_map]; rfl
+  refine le_of_eq ?_
+  rw [hmap, probEvent_eq_sum_fintype_ite]
+  trans (∑ x : F, if x ∈ bad then (Fintype.card F : ℝ≥0∞)⁻¹ else 0)
+  · exact Finset.sum_congr rfl (fun w _ => hterm w)
+  · rw [← Finset.sum_filter, Finset.filter_univ_mem, Finset.sum_const, nsmul_eq_mul,
+      div_eq_mul_inv]
+
+end FreshMiss
+
+section Quantitative
+
+variable [(FsSourceSpec F G1 G2 GT).DecidableEq]
+  [IsUniformSpec (FsSourceSpec F G1 G2 GT)]
+  [∀ j, SampleableType ((FsSourceSpec F G1 G2 GT).Range j)]
+  [unifSpec ⊂ₒ FsSourceSpec F G1 G2 GT]
+  [IsUniformSpec (FsWrappedSpec F)]
+
+/-- Accepting support runs satisfy `ChallengesAccepted`: the four scalar nonce
+loops only accept nonzero (and `≠ 1` for the randomizer) answers. Extracted from
+the public U5d(3) leaf-data transfer. -/
+theorem accepted_challengesAccepted {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    {z : FsRunLog μ F G1 G2 GT}
+    (hz : z ∈ support (fsProbComp stmt adv))
+    (hacc : Accepted z) :
+    ChallengesAccepted z.1 := by
+  have hleaf := (wrapped_source_leaf_data stmt adv (out := z.1) (sourceLog := z.2) hz).2
+  exact (hleaf hacc).2.2.2
+
+/-- An accepted KZG bad-set hit is witnessed by the exact KZG answer in the
+mixed structured-miss log. -/
+theorem accepted_badKzg_log_witness {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badZ : Set F) {z : FsRunLog μ F G1 G2 GT}
+    (hz : z ∈ support (fsProbComp stmt adv))
+    (hbad : Accepted z ∧ BadKzg badZ z) :
+    ∃ point answer,
+      QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badZ := by
+  refine ⟨.kzg
+      { bridgeChallenge := z.1.transcript.bridge, vFinal := z.1.proof.vFinal,
+        wFinal := z.1.proof.wFinal }
+      z.1.transcript.kzgNonce,
+    z.1.transcript.kzg, ?_, hbad.2⟩
+  exact accepted_source_kzg_query stmt adv hz hbad.1
+
+/-- An accepted randomizer bad-set hit is witnessed by the exact randomizer
+answer in the mixed structured-miss log. -/
+theorem accepted_badRandomizer_log_witness {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badR : Set F) {z : FsRunLog μ F G1 G2 GT}
+    (hz : z ∈ support (fsProbComp stmt adv))
+    (hbad : Accepted z ∧ BadRandomizer badR z) :
+    ∃ point answer,
+      QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badR := by
+  refine ⟨.randomizer
+      { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+      z.1.transcript.randomizerNonce,
+    z.1.transcript.randomizer, ?_, hbad.2⟩
+  exact accepted_source_randomizer_query stmt adv hz hbad.1
+
+/-- Concrete birthday bound for accepted structured-answer collisions. -/
+theorem answer_collision_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadCollision z | fsProbComp stmt adv] ≤
+      (((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) := by
+  apply le_trans (probEvent_mono (q := fun z => BadCollision z) (by
+    intro z _ h
+    exact h.2))
+  simpa [BadCollision] using
+    (structured_answers_not_injective_le
+      (fsRandomFunction (FsGame stmt adv)) (Q qb)
+      (fsRandomFunction_isTotalQueryBound (FsGame stmt adv) hbound))
+
+/-- Concrete adaptive candidate-pair bound for dependency-order failures. -/
+theorem dependency_order_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤
+      (((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) := by
+  simpa [Accepted, BadDependency, wrappedOf, Q] using
+    dependency_order_candidate_bound qb stmt adv hbound
+
+/-- Concrete adaptive candidate-pair bound for round-slot order failures. -/
+theorem round_slot_order_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤
+      (((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) := by
+  simpa [Accepted, BadRoundOrder, wrappedOf, Q] using
+    round_slot_order_candidate_bound qb stmt adv hbound
+
+/-- The KZG bad-set field follows from the mixed-log union bound once the
+whole-game query cap and finite bad-set cardinality are supplied. -/
+theorem kzg_z_bound_of_query_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badZ : Finset F)
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadKzg (badZ : Set F) z |
+      fsProbComp stmt adv] ≤
+      (((Q qb) * badZ.card : Nat) : ℝ≥0∞) /
+        (Fintype.card F : ℝ≥0∞) := by
+  apply le_trans (probEvent_mono (q := fun z =>
+    ∃ point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT),
+      ∃ answer : F,
+        QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badZ) ?_)
+  · exact structured_log_mem_le
+      (fsRandomFunction (FsGame stmt adv)) (Q qb)
+      (fsRandomFunction_isTotalQueryBound (FsGame stmt adv) hbound) badZ
+  · intro z hz hbad
+    simpa using accepted_badKzg_log_witness stmt adv (badZ : Set F) hz hbad
+
+/-- Cardinality-bounded form matching `BadEventBudget.kzg_z_bound`. -/
+theorem kzg_z_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badZ : Finset F) (dZ : Nat) (hcard : badZ.card ≤ dZ)
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadKzg (badZ : Set F) z |
+      fsProbComp stmt adv] ≤
+      (((Q qb) * dZ : Nat) : ℝ≥0∞) /
+        (Fintype.card F : ℝ≥0∞) := by
+  calc
+    _ ≤ (((Q qb) * badZ.card : Nat) : ℝ≥0∞) /
+          (Fintype.card F : ℝ≥0∞) :=
+      kzg_z_bound_of_query_bound qb stmt adv badZ hbound
+    _ ≤ (((Q qb) * dZ : Nat) : ℝ≥0∞) /
+          (Fintype.card F : ℝ≥0∞) := by
+      gcongr
+
+/-- Cardinality-bounded form matching
+`BadEventBudget.randomizer_rootset_bound`. The proof bounds the unconditional
+source misses by `1/|F|`, then weakens to the budget's `1/(|F|-2)` form. -/
+theorem randomizer_rootset_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badR : Finset F) (dR : Nat) (hcard : badR.card ≤ dR)
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadRandomizer (badR : Set F) z |
+      fsProbComp stmt adv] ≤
+      (((Q qb) * dR : Nat) : ℝ≥0∞) /
+        ((Fintype.card F : ℝ≥0∞) - 2) := by
+  calc
+    _ ≤ (((Q qb) * badR.card : Nat) : ℝ≥0∞) /
+          (Fintype.card F : ℝ≥0∞) := by
+      apply le_trans (probEvent_mono (q := fun z =>
+        ∃ point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT),
+          ∃ answer : F,
+            QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badR) ?_)
+      · exact structured_log_mem_le
+          (fsRandomFunction (FsGame stmt adv)) (Q qb)
+          (fsRandomFunction_isTotalQueryBound (FsGame stmt adv) hbound) badR
+      · intro z hz hbad
+        simpa using
+          accepted_badRandomizer_log_witness stmt adv (badR : Set F) hz hbad
+    _ ≤ (((Q qb) * dR : Nat) : ℝ≥0∞) /
+          ((Fintype.card F : ℝ≥0∞) - 2) := by
+      gcongr
+      exact tsub_le_self
+
+/-- Exact quantitative transport of the complete accepted-good event through
+`wrapFs`; the wrapped experiment is its deterministic pushforward. -/
+theorem wrapped_good_probability_eq [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badR badZ : Finset F) :
+    Pr[fun z => Accepted z ∧
+        RunGoodFull qb stmt (badR : Set F) (badZ : Set F) z |
+      fsProbComp stmt adv] =
+    Pr[WrappedRunGoodFull qb stmt (badR : Set F) (badZ : Set F) |
+      replayFirstRun (wrapFs (FsGame stmt adv))] := by
+  calc
+    _ = Pr[fun z =>
+          WrappedRunGood qb stmt (wrappedOf z) (flattenFsLog z.2) ∧
+            z.1.transcript.randomizer ∉ badR ∧ z.1.transcript.kzg ∉ badZ |
+        fsProbComp stmt adv] := by
+      congr 1
+      funext z
+      apply propext
+      constructor
+      · exact fun h => h.2
+      · exact fun h => ⟨h.1.1, h⟩
+    _ = _ := by
+      simpa [fsProbComp, WrappedRunGoodFull, wrappedOf] using
+        (probEvent_wrapFs_eq (FsGame stmt adv)
+          (WrappedRunGoodFull qb stmt (badR : Set F) (badZ : Set F)))
+
+/-- Under the whole-game cap, an accepted run has every round point in the
+structured miss trace and its first occurrence is in budget. -/
+theorem accepted_not_badUnqueried {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb))
+    {z : FsRunLog μ F G1 G2 GT}
+    (hz : z ∈ support (fsProbComp stmt adv)) (hacc : Accepted z) :
+    ¬BadUnqueried qb z := by
+  rintro ⟨level, hlevel, hunq⟩
+  let i : Fin μ := ⟨level, hlevel⟩
+  let point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) :=
+    .round (z.1.transcript.roundPrev i) (z.1.proof.rounds i)
+      (z.1.transcript.roundNonce i)
+  have hround := ((wrapped_source_leaf_data stmt adv hz).2 hacc).1 i
+  have hmem : point ∈ fsPointTrace z.2 :=
+    fsPointTrace_mem_of_queryAnswered hround
+  have hloglen : z.2.length ≤ Q qb :=
+    log_length_le_of_mem_support_run_simulateQ
+      (fsRandomFunction_isTotalQueryBound (FsGame stmt adv) hbound) hz
+  have htracelen : (fsPointTrace z.2).length ≤ Q qb := by
+    exact Nat.le_trans (fsPointTrace_length_le z.2) hloglen
+  have hidx : (fsPointTrace z.2).findIdx (· == point) < Q qb :=
+    Nat.lt_of_lt_of_le
+      (List.findIdx_lt_length_of_exists ⟨point, hmem, by simp⟩) htracelen
+  change RoundPointUnqueried qb level (wrappedOf z) at hunq
+  simp [RoundPointUnqueried, wrappedRoundPoint, wrappedOf, hlevel] at hunq
+  rcases hunq with hnot | hlate
+  · exact hnot hmem
+  · exact Nat.not_le_of_gt hidx (by simpa [Q] using hlate)
+
+/-- Accepted round-unqueried probability is exactly zero under the whole-game
+query cap. -/
+theorem round_unqueried_bound {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] = 0 := by
+  apply probEvent_eq_zero
+  intro z hz hbad
+  exact accepted_not_badUnqueried qb stmt adv hbound hz hbad.1 hbad.2
+
+/-- Pointwise complement decomposition on the support: an accepting run whose
+full goodness fails must witness one of the six bad events. This is the union
+step of the U5a accounting; `ChallengesAccepted` is discharged for free on
+accepting support points. -/
+theorem accepted_not_good_bad {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badR badZ : Set F)
+    {z : FsRunLog μ F G1 G2 GT}
+    (hz : z ∈ support (fsProbComp stmt adv))
+    (hacc : Accepted z)
+    (hnot : ¬ RunGoodFull qb stmt badR badZ z) :
+    (Accepted z ∧ BadCollision z) ∨ (Accepted z ∧ BadRandomizer badR z) ∨
+    (Accepted z ∧ BadDependency qb stmt z) ∨
+      (Accepted z ∧ BadRoundOrder qb z) ∨
+      (Accepted z ∧ BadKzg badZ z) ∨ (Accepted z ∧ BadUnqueried qb z) := by
+  classical
+  by_cases hR : z.1.transcript.randomizer ∈ badR
+  · exact Or.inr (Or.inl ⟨hacc, hR⟩)
+  by_cases hZ : z.1.transcript.kzg ∈ badZ
+  · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨hacc, hZ⟩))))
+  · have hWRG : ¬ WrappedRunGood qb stmt (wrappedOf z) (flattenFsLog z.2) :=
+      fun hw => hnot ⟨hw, hR, hZ⟩
+    have hCA : ChallengesAccepted (wrappedOf z).out :=
+      accepted_challengesAccepted stmt adv hz hacc
+    have hrest : ¬ ((∀ level, level < μ →
+        ¬ RoundPointUnqueried qb level (wrappedOf z)) ∧
+        RoundSlotOrdered qb (wrappedOf z) ∧
+        DependencyOrdered qb stmt (wrappedOf z) ∧
+        StructuredAnswersInjective (F := F) (wrappedOf z).trace.length
+          (flattenFsLog z.2)) := by
+      intro h
+      exact hWRG ⟨hacc, hCA, h.1, h.2.1, h.2.2.1, h.2.2.2⟩
+    rw [not_and_or, not_and_or, not_and_or] at hrest
+    rcases hrest with hu | ho | hd | hs
+    · -- some round point unqueried / out of budget
+      push_neg at hu
+      obtain ⟨level, hlevel, hunq⟩ := hu
+      exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inr
+        ⟨hacc, ⟨level, hlevel, hunq⟩⟩))))
+    · -- cross-round order violated
+      exact Or.inr (Or.inr (Or.inr (Or.inl ⟨hacc, ho⟩)))
+    · -- dependency order violated
+      exact Or.inr (Or.inr (Or.inl ⟨hacc, hd⟩))
+    · -- structured-answer collision
+      exact Or.inl ⟨hacc, hs⟩
+
+/-- **U5a core (item 5), abstract form.** Pure ENNReal event algebra: the
+accepting-and-good probability is at least the accepting probability minus the
+sum of the six per-event bounds. Union bound over the complement events;
+`ChallengesAccepted` is free on accepting support points. -/
+theorem q0_lower_bound_abstract {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badR badZ : Set F)
+    (bCol bRnd bDep bOrd bKzg bUnq : ℝ≥0∞)
+    (hCol : Pr[fun z => Accepted z ∧ BadCollision z | fsProbComp stmt adv] ≤ bCol)
+    (hRnd : Pr[fun z => Accepted z ∧ BadRandomizer badR z | fsProbComp stmt adv] ≤ bRnd)
+    (hDep : Pr[fun z => Accepted z ∧ BadDependency qb stmt z | fsProbComp stmt adv] ≤ bDep)
+    (hOrd : Pr[fun z => Accepted z ∧ BadRoundOrder qb z | fsProbComp stmt adv] ≤ bOrd)
+    (hKzg : Pr[fun z => Accepted z ∧ BadKzg badZ z | fsProbComp stmt adv] ≤ bKzg)
+    (hUnq : Pr[fun z => Accepted z ∧ BadUnqueried qb z | fsProbComp stmt adv] ≤ bUnq) :
+    Pr[fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z | fsProbComp stmt adv] ≥
+      Pr[fun z => Accepted z | fsProbComp stmt adv] -
+        (bCol + (bRnd + (bDep + (bOrd + (bKzg + bUnq))))) := by
+  classical
+  set mx := fsProbComp stmt adv with hmx
+  -- Abbreviations for the good event and the accepting-but-not-good residual.
+  set G : FsRunLog μ F G1 G2 GT → Prop :=
+    fun z => Accepted z ∧ RunGoodFull qb stmt badR badZ z with hG
+  set R : FsRunLog μ F G1 G2 GT → Prop :=
+    fun z => Accepted z ∧ ¬ RunGoodFull qb stmt badR badZ z with hR
+  -- The six accepting bad events, right-nested.
+  set q : FsRunLog μ F G1 G2 GT → Prop :=
+    fun z => (Accepted z ∧ BadCollision z) ∨ (Accepted z ∧ BadRandomizer badR z) ∨
+      (Accepted z ∧ BadDependency qb stmt z) ∨ (Accepted z ∧ BadRoundOrder qb z) ∨
+      (Accepted z ∧ BadKzg badZ z) ∨ (Accepted z ∧ BadUnqueried qb z) with hq
+  rw [ge_iff_le, tsub_le_iff_right]
+  -- Goal: Pr[Accepted] ≤ Pr[G] + (bCol + (bRnd + (bDep + (bKzg + bUnq)))).
+  -- Step 1: accept splits into good and accepting-not-good.
+  have hsplit : Pr[fun z => Accepted z | mx] ≤ Pr[fun z => G z ∨ R z | mx] := by
+    apply probEvent_mono''
+    intro z hacc
+    by_cases hgood : RunGoodFull qb stmt badR badZ z
+    · exact Or.inl ⟨hacc, hgood⟩
+    · exact Or.inr ⟨hacc, hgood⟩
+  -- Step 2: union bound on good ∨ residual.
+  have hor : Pr[fun z => G z ∨ R z | mx] ≤ Pr[G | mx] + Pr[R | mx] :=
+    probEvent_or_le mx G R
+  -- Step 3: the residual is covered by the six accepting bad events.
+  have hRq : Pr[R | mx] ≤ Pr[q | mx] := by
+    apply probEvent_mono
+    intro z hz hzR
+    exact accepted_not_good_bad qb stmt adv badR badZ hz hzR.1 hzR.2
+  -- Step 4: union bound across the six bad events.
+  have hqsum : Pr[q | mx] ≤
+      Pr[fun z => Accepted z ∧ BadCollision z | mx] +
+        (Pr[fun z => Accepted z ∧ BadRandomizer badR z | mx] +
+          (Pr[fun z => Accepted z ∧ BadDependency qb stmt z | mx] +
+            (Pr[fun z => Accepted z ∧ BadRoundOrder qb z | mx] +
+              (Pr[fun z => Accepted z ∧ BadKzg badZ z | mx] +
+                Pr[fun z => Accepted z ∧ BadUnqueried qb z | mx])))) := by
+    rw [hq]
+    refine le_trans (probEvent_or_le _ _ _) (add_le_add le_rfl ?_)
+    refine le_trans (probEvent_or_le _ _ _) (add_le_add le_rfl ?_)
+    refine le_trans (probEvent_or_le _ _ _) (add_le_add le_rfl ?_)
+    refine le_trans (probEvent_or_le _ _ _) (add_le_add le_rfl ?_)
+    exact probEvent_or_le _ _ _
+  -- Assemble the numeric bound on the residual.
+  have hresidual : Pr[R | mx] ≤
+      bCol + (bRnd + (bDep + (bOrd + (bKzg + bUnq)))) := by
+    refine le_trans hRq (le_trans hqsum ?_)
+    exact add_le_add hCol (add_le_add hRnd
+      (add_le_add hDep (add_le_add hOrd (add_le_add hKzg hUnq))))
+  -- Combine everything.
+  calc Pr[fun z => Accepted z | mx]
+      ≤ Pr[fun z => G z ∨ R z | mx] := hsplit
+    _ ≤ Pr[G | mx] + Pr[R | mx] := hor
+    _ ≤ Pr[G | mx] + (bCol + (bRnd + (bDep + (bOrd + (bKzg + bUnq))))) :=
+        add_le_add le_rfl hresidual
+
+/-- **U5a core (item 5), concrete form.** Instantiates the abstract lower bound
+with concrete collision/root-set/unqueried bounds and the residual order budget:
+`Q_0 ≥ acc − err_bad` with
+`Q := qb + 1` (the whole-game cap), three `Q²/|F|` terms,
+`Q·dR/(|F|−2)`, and `Q·dZ/|F|` (DESIGN §U5a, §R7 item 4). -/
+theorem q0_lower_bound [Fintype F] {μ : Nat}
+    (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (badR badZ : Finset F) (dR dZ : Nat)
+    (hRcard : badR.card ≤ dR) (hZcard : badZ.card ≤ dZ)
+    (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
+    Pr[fun z => Accepted z ∧
+        RunGoodFull qb stmt (badR : Set F) (badZ : Set F) z |
+      fsProbComp stmt adv] ≥
+      Pr[fun z => Accepted z | fsProbComp stmt adv] -
+        ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
+          ((((Q qb) * dR : Nat) : ℝ≥0∞) / ((Fintype.card F : ℝ≥0∞) - 2) +
+            ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
+              ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
+                (((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))))) := by
+  simpa using q0_lower_bound_abstract qb stmt adv
+    (badR : Set F) (badZ : Set F) _ _ _ _ _ 0
+    (answer_collision_bound qb stmt adv hbound)
+    (randomizer_rootset_bound qb stmt adv badR dR hRcard hbound)
+    (dependency_order_bound qb stmt adv hbound)
+    (round_slot_order_bound qb stmt adv hbound)
+    (kzg_z_bound qb stmt adv badZ dZ hZcard hbound)
+    (round_unqueried_bound qb stmt adv hbound).le
+
+end Quantitative
+
+end
+
+end Ipp

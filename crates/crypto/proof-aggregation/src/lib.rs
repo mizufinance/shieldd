@@ -10,6 +10,7 @@ mod padding;
 mod preflight;
 mod srs;
 mod statement;
+mod strict_deserialize;
 mod transcript;
 mod transfer_family_dispatch;
 
@@ -26,8 +27,8 @@ pub use aggregate_proof_wrapper::{
 pub use backend::AggregateBuildBackendProfile;
 use backend::SnarkpackBackend;
 pub use backend::{
-    set_rayon_threads_per_batch_for_bench, AggregateTraceReport, AggregateVerificationProfile,
-    AggregateVerifyError, AggregationBackend,
+    set_rayon_threads_per_batch_for_bench, AggregateVerificationProfile, AggregateVerifyError,
+    AggregationBackend,
 };
 pub use bundle::{AggregateBundle, FamilyAggregate, ProofFamilyId};
 pub use padding::PADDING_RULE_DOMAIN;
@@ -36,7 +37,6 @@ pub use preflight::{
     preflight_aggregate_verify, AggregatePreflightInput, VerifiedAggregateBackendCall,
     VerifiedChallengeContext, VerifiedInnerProofBytes,
 };
-pub use shieldd_sdk_proof_aggregation_trace_schema as trace_schema;
 pub use srs::{
     srs_id, srs_report, DevSrs, DevSrsReport, DEFAULT_DEV_SRS_ID, DEFAULT_MAX_PADDED_PROOF_COUNT,
     DEV_SRS_BACKEND_ID, DEV_SRS_CURVE_ID, DEV_SRS_VERSION,
@@ -66,15 +66,6 @@ pub fn aggregate_family_profiled(
     SnarkpackBackend::aggregate_family_profiled(statement, pvk, items, srs)
 }
 
-pub fn aggregate_family_with_trace(
-    statement: &AggregateStatement,
-    pvk: &PreparedVerifyingKey<Bls12_377>,
-    items: &[BatchItem],
-    srs: &DevSrs,
-) -> Result<(Vec<u8>, Vec<trace_schema::TraceEvent>)> {
-    SnarkpackBackend::aggregate_family_with_trace(statement, pvk, items, srs)
-}
-
 pub fn verify_family_aggregate(
     statement: &AggregateStatement,
     pvk: &PreparedVerifyingKey<Bls12_377>,
@@ -91,15 +82,6 @@ pub fn verify_family_aggregate_profiled(
     srs: &DevSrs,
 ) -> std::result::Result<AggregateVerificationProfile, AggregateVerifyError> {
     SnarkpackBackend::verify_family_aggregate_profiled(statement, pvk, aggregate_proof_bytes, srs)
-}
-
-pub fn verify_family_aggregate_with_trace(
-    statement: &AggregateStatement,
-    pvk: &PreparedVerifyingKey<Bls12_377>,
-    aggregate_proof_bytes: &[u8],
-    srs: &DevSrs,
-) -> std::result::Result<AggregateTraceReport, AggregateVerifyError> {
-    SnarkpackBackend::verify_family_aggregate_with_trace(statement, pvk, aggregate_proof_bytes, srs)
 }
 
 pub fn verify_family_aggregate_profiled_status(

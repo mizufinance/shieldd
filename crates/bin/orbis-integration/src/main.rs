@@ -216,8 +216,8 @@ async fn run_full_flow(repo: &RepoPaths, keep_on_fail: bool) -> Result<()> {
         run_script_with_env(repo, "scripts/shieldd-up.sh", &[], &compliance_dev_env())?;
         started_shieldd = true;
 
-        run_script_with_args(repo, "scripts/orbis-stack.sh", &["up"])?;
         started_orbis = true;
+        run_script_with_args(repo, "scripts/orbis-stack.sh", &["up"])?;
 
         seed(repo).await?;
         verify(repo).await?;

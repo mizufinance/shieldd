@@ -1,0 +1,14 @@
+import Ipp.Extracted.ArkworksScalarMulNormalize
+import Ipp.Extracted.ArkworksScalarMulNormalizeG2Final
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchSingletonZero
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchSingletonG1Nonzero
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchSingletonG2Nonzero
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchAllInfinityG1
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchAllInfinityG2
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchGeneralG1
+import Ipp.Extracted.ArkworksScalarMulNormalizeBatchGeneralG2
+
+/-!
+S3-29 normalization correctness proofs. This import anchors the generated
+normalization graph and its proved G1/G2 conformance results in the Ipp tree.
+-/
