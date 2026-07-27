@@ -119,11 +119,11 @@ check_bridge_theorems() {
   local bounds_path="$lean_src_dir/${bounds_module//.//}.lean"
   local capstone_module="${bounds_module%.Bounds}.Capstone"
   local capstone_path="$lean_src_dir/${capstone_module//.//}.lean"
-  local statement_module="${bounds_module%.Bounds}.Statement"
-  local statement_path="$lean_src_dir/${statement_module//.//}.lean"
+  local circuit_facts_module="${bounds_module%.Bounds}.CircuitFacts"
+  local circuit_facts_path="$lean_src_dir/${circuit_facts_module//.//}.lean"
   {
-    if [[ -f "$statement_path" ]]; then
-      printf 'import %s\n' "$statement_module"
+    if [[ -f "$circuit_facts_path" ]]; then
+      printf 'import %s\n' "$circuit_facts_module"
     elif [[ -f "$bounds_path" ]]; then
       printf 'import %s\n' "$bounds_module"
     fi
@@ -142,9 +142,9 @@ check_bridge_theorems() {
       local capstone_ns="Shieldd.GnarkFormal.${capstone_module#ShielddGnarkFormal.}"
       printf '#check @%s.%s_deployed_sound\n' "${capstone_ns%.Capstone}" "$circuit"
     fi
-    if [[ -f "$statement_path" ]]; then
-      local statement_ns="Shieldd.GnarkFormal.${statement_module#ShielddGnarkFormal.}"
-      printf '#check @%s.%s_statement\n' "${statement_ns%.Statement}" "$circuit"
+    if [[ -f "$circuit_facts_path" ]]; then
+      local circuit_facts_ns="Shieldd.GnarkFormal.${circuit_facts_module#ShielddGnarkFormal.}"
+      printf '#check @%s.%s_circuitFacts\n' "${circuit_facts_ns%.CircuitFacts}" "$circuit"
     fi
     jq -r '
       .segments[].bridge_theorem // empty,
@@ -162,11 +162,11 @@ check_typed_contract_theorems() {
   local report="$1" circuit="$2" lean_check="$tmp_dir/$circuit-contract-theorems.lean"
   local bounds_module="ShielddGnarkFormal.Deployed.Contracts.$(contract_module_dir_for_circuit "$circuit").Bounds"
   local bounds_path="$lean_src_dir/${bounds_module//.//}.lean"
-  local statement_module="ShielddGnarkFormal.Deployed.Contracts.$(contract_module_dir_for_circuit "$circuit").Statement"
+  local circuit_facts_module="ShielddGnarkFormal.Deployed.Contracts.$(contract_module_dir_for_circuit "$circuit").CircuitFacts"
 
   {
-    if [[ -f "$lean_src_dir/${statement_module//.//}.lean" ]]; then
-      printf 'import %s\n' "$statement_module"
+    if [[ -f "$lean_src_dir/${circuit_facts_module//.//}.lean" ]]; then
+      printf 'import %s\n' "$circuit_facts_module"
     elif [[ -f "$bounds_path" ]]; then
       printf 'import %s\n' "$bounds_module"
     fi
@@ -484,13 +484,17 @@ while IFS= read -r circuit; do
     python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_family.py" \
       --ir "$tmp_ir" \
       --manifest "$tmp_coverage_manifest" \
+      --constraint-manifest "$manifest" \
       --out-dir "$tmp_contract_dir" \
       --manifest-out "$tmp_coverage_manifest" \
       --prune \
       || fail "generated family proof artifacts drift for $circuit"
     if ! cmp -s "$committed_contract_dir/Bounds.lean" "$tmp_contract_dir/Bounds.lean" \
       || ! cmp -s "$committed_contract_dir/Capstone.lean" "$tmp_contract_dir/Capstone.lean" \
-      || ! cmp -s "$committed_contract_dir/Statement.lean" "$tmp_contract_dir/Statement.lean"; then
+      || ! cmp -s "$committed_contract_dir/CircuitFacts.lean" "$tmp_contract_dir/CircuitFacts.lean" \
+      || ! cmp -s "$committed_contract_dir/RoleBindings.lean" "$tmp_contract_dir/RoleBindings.lean" \
+      || ! cmp -s "$committed_contract_dir/SemanticBindings.lean" "$tmp_contract_dir/SemanticBindings.lean" \
+      || ! cmp -s "$committed_contract_dir/SemanticSeams.lean" "$tmp_contract_dir/SemanticSeams.lean"; then
       fail "generated family proof artifacts drift for $circuit"
     fi
   fi

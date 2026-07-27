@@ -196,6 +196,10 @@ func WriteConstraintSystem(path string, ccs constraint.ConstraintSystem, circuit
 
 func picusWireRoles(ccs constraint.ConstraintSystem, circuit ...frontend.Circuit) ([]int, []int, error) {
 	if len(circuit) == 0 || circuit[0] == nil {
+		// Whole-circuit SR1CS files are consumed as exact row artifacts by the
+		// extractor. Their historical role annotations are not a Picus
+		// under-constraint claim: every secret is free. Only typed gadget
+		// exports below classify derived secret outputs for Picus.
 		nbPublic := ccs.GetNbPublicVariables()
 		nbSecret := ccs.GetNbSecretVariables()
 		inputs := make([]int, 0, nbSecret)

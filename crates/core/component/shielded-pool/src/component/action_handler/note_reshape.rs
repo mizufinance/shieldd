@@ -177,7 +177,9 @@ where
 mod tests {
     use super::*;
     use cnidarium::{StateDelta, TempStorage};
-    use decaf377::Fq;
+    use decaf377::{Fq, Fr};
+    use decaf377_rdsa::SigningKey;
+    use rand_core::OsRng;
     use shieldd_sdk_txhash::TransactionId;
 
     struct TestInput(Nullifier);
@@ -254,5 +256,37 @@ mod tests {
             "unexpected rejection reason: {err:#}"
         );
         Ok(())
+    }
+
+    #[test]
+    fn auth_verification_rejects_invalid_dummy_slot_signature() {
+        let real_sk = SigningKey::<SpendAuth>::from(Fr::from(11u64));
+        let dummy_sk = SigningKey::<SpendAuth>::from(Fr::from(12u64));
+        let wrong_dummy_sk = SigningKey::<SpendAuth>::from(Fr::from(13u64));
+        let inputs = [
+            VerificationKey::from(real_sk.clone()),
+            VerificationKey::from(dummy_sk.clone()),
+        ];
+        let context = TransactionContext {
+            anchor: shieldd_sdk_tct::Tree::default().root(),
+            effect_hash: Default::default(),
+        };
+        let signatures = [
+            real_sk.sign(OsRng, context.effect_hash.as_ref()),
+            wrong_dummy_sk.sign(OsRng, context.effect_hash.as_ref()),
+        ];
+
+        let err = verify_auth_sigs(
+            "note reshape",
+            &inputs,
+            &signatures,
+            &context,
+            |rk| rk,
+        )
+        .expect_err("every padded RK, including a dummy slot, must verify");
+        assert!(
+            err.to_string().contains("auth signature 1 failed"),
+            "unexpected rejection reason: {err:#}"
+        );
     }
 }

@@ -74,7 +74,14 @@ if [[ -f "$stamp" ]]; then
     || fail "Lean artifact stamp $stamp pins a DIFFERENT vk hash than metadata"
   note "Lean artifact stamp pins the same vk hash"
 else
-  note "no whole-circuit Lean stamp for $circuit (skipping cross-pin)"
+  case "$circuit" in
+    note_reshape*)
+      fail "missing mandatory whole-circuit Lean stamp for deployed family $circuit"
+      ;;
+    *)
+      note "no whole-circuit Lean stamp for $circuit (not a Lean-deployed NoteReshape family)"
+      ;;
+  esac
 fi
 
 # 2. fresh source bytes -> byte-identical .sr1cs. The FV gate passes the
@@ -92,10 +99,10 @@ note "recompiled .sr1cs byte-identical to deployed artifact"
 # 3. deployed keys prove+verify against the recompiled constraint system
 if [[ "$run_prove" -eq 1 ]]; then
   case "$circuit" in
-    note_reshape2x1) witness_name="note_reshape2x1_witness_v1.bin" ;;
-    note_reshape4x1) witness_name="note_reshape4x1_witness_v1.bin" ;;
-    note_reshape8x1) witness_name="note_reshape8x1_witness_v1.bin" ;;
-    note_reshape1x8) witness_name="note_reshape1x8_witness_v1.bin" ;;
+    note_reshape2x1) witness_name="note_reshape2x1_witness_v2.bin" ;;
+    note_reshape4x1) witness_name="note_reshape4x1_witness_v2.bin" ;;
+    note_reshape8x1) witness_name="note_reshape8x1_witness_v2.bin" ;;
+    note_reshape1x8) witness_name="note_reshape1x8_witness_v2.bin" ;;
     *) witness_name="${circuit}_witness_v1.bin" ;;
   esac
   witness="$GNARK_DIR/internal/testfixtures/vectors/$witness_name"

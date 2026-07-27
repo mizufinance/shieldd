@@ -12,39 +12,35 @@ use crate::{
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NoteReshapeSpendWitnessV1 {
+pub struct NoteReshapeSpendWitnessV2 {
     pub(crate) is_dummy: bool,
     pub nullifier: [u8; 32],
     pub(crate) dummy_nullifier_seed: [u8; 32],
-    pub(crate) dummy_spend_auth_key: [u8; 32],
     pub spent_note_blinding: [u8; 32],
     pub spent_note_amount: [u8; 32],
-    pub spent_note_asset_id: [u8; 32],
-    pub spent_transmission_key: [u8; 32],
-    pub spent_clue_key: [u8; 32],
     pub state_commitment_commitment: [u8; 32],
     pub state_commitment_position: u64,
     pub state_commitment_auth_path: Vec<[[u8; 32]; 3]>,
     pub spend_auth_randomizer: [u8; 32],
     pub rk_affine: PointAffineBytes,
-    pub spent_diversified_generator_affine: PointAffineBytes,
-    pub spent_transmission_key_affine: PointAffineBytes,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NoteReshapeOutputWitnessV1 {
+pub struct NoteReshapeOutputWitnessV2 {
     pub note_commitment: [u8; 32],
     pub created_note_blinding: [u8; 32],
     pub created_note_amount: [u8; 32],
-    pub created_note_asset_id: [u8; 32],
-    pub created_transmission_key: [u8; 32],
-    pub created_clue_key: [u8; 32],
-    pub created_diversified_generator_affine: PointAffineBytes,
-    pub created_transmission_key_affine: PointAffineBytes,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct NoteReshapeWitnessV1 {
+pub struct NoteReshapeSharedNoteContextWitnessV2 {
+    pub asset_id: [u8; 32],
+    pub clue_key: [u8; 32],
+    pub diversified_generator_affine: PointAffineBytes,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct NoteReshapeWitnessV2 {
     pub family_id: NoteReshapeFamilyId,
     pub total_length: u32,
     pub n_in: u32,
@@ -56,8 +52,9 @@ pub struct NoteReshapeWitnessV1 {
     pub action_balance_blinding: [u8; 32],
     pub ak: [u8; 32],
     pub nk: [u8; 32],
-    pub spends: Vec<NoteReshapeSpendWitnessV1>,
-    pub outputs: Vec<NoteReshapeOutputWitnessV1>,
+    pub shared: NoteReshapeSharedNoteContextWitnessV2,
+    pub spends: Vec<NoteReshapeSpendWitnessV2>,
+    pub outputs: Vec<NoteReshapeOutputWitnessV2>,
     pub balance_commitment_affine: PointAffineBytes,
     pub ak_affine: PointAffineBytes,
 }
@@ -75,64 +72,39 @@ fn spend_witness(
     public: &NoteReshapeInputPublic,
     private: &NoteReshapeInputPrivate,
     index: usize,
-) -> Result<NoteReshapeSpendWitnessV1> {
+) -> Result<NoteReshapeSpendWitnessV2> {
     let state_commitment_auth_path = private
         .state_commitment_proof
         .auth_path()
         .iter()
         .map(|siblings| siblings.map(|sibling| Fq::from(sibling).to_bytes()))
         .collect::<Vec<_>>();
-    Ok(NoteReshapeSpendWitnessV1 {
+    Ok(NoteReshapeSpendWitnessV2 {
         is_dummy: private.is_dummy,
         nullifier: public.nullifier.0.to_bytes(),
         dummy_nullifier_seed: private.dummy_nullifier_seed.to_bytes(),
-        dummy_spend_auth_key: private.dummy_spend_auth_key.to_bytes(),
         spent_note_blinding: private.spent_note.note_blinding().to_bytes(),
         spent_note_amount: Fq::from(private.spent_note.value().amount).to_bytes(),
-        spent_note_asset_id: private.spent_note.asset_id().0.to_bytes(),
-        spent_transmission_key: private.spent_note.transmission_key().0,
-        spent_clue_key: Fq::from_le_bytes_mod_order(&private.spent_note.clue_key().0).to_bytes(),
         state_commitment_commitment: private.state_commitment_proof.commitment().0.to_bytes(),
         state_commitment_position: u64::from(private.state_commitment_proof.position()),
         state_commitment_auth_path,
         spend_auth_randomizer: private.spend_auth_randomizer.to_bytes(),
         rk_affine: point_affine_bytes(verification_key_point(public.rk, &format!("rk_{index}"))?)?,
-        spent_diversified_generator_affine: point_affine_bytes(
-            private.spent_note.diversified_generator(),
-        )?,
-        spent_transmission_key_affine: point_affine_bytes(
-            Encoding(private.spent_note.transmission_key().0)
-                .vartime_decompress()
-                .map_err(|e| anyhow!("decompress spent transmission key {index}: {e:?}"))?,
-        )?,
     })
 }
 
 fn output_witness(
     public: &NoteReshapeOutputPublic,
     private: &NoteReshapeOutputPrivate,
-    index: usize,
-) -> Result<NoteReshapeOutputWitnessV1> {
-    Ok(NoteReshapeOutputWitnessV1 {
+) -> Result<NoteReshapeOutputWitnessV2> {
+    Ok(NoteReshapeOutputWitnessV2 {
         note_commitment: public.note_commitment.0.to_bytes(),
         created_note_blinding: private.created_note.note_blinding().to_bytes(),
         created_note_amount: Fq::from(private.created_note.value().amount).to_bytes(),
-        created_note_asset_id: private.created_note.asset_id().0.to_bytes(),
-        created_transmission_key: private.created_note.transmission_key().0,
-        created_clue_key: Fq::from_le_bytes_mod_order(&private.created_note.clue_key().0)
-            .to_bytes(),
-        created_diversified_generator_affine: point_affine_bytes(
-            private.created_note.diversified_generator(),
-        )?,
-        created_transmission_key_affine: point_affine_bytes(
-            Encoding(private.created_note.transmission_key().0)
-                .vartime_decompress()
-                .map_err(|e| anyhow!("decompress created transmission key {index}: {e:?}"))?,
-        )?,
     })
 }
 
-impl NoteReshapeWitnessV1 {
+impl NoteReshapeWitnessV2 {
     pub fn from_public_private(
         public: &NoteReshapeProofPublic,
         private: &NoteReshapeProofPrivate,
@@ -167,9 +139,19 @@ impl NoteReshapeWitnessV1 {
             .outputs
             .iter()
             .zip(private.outputs.iter())
-            .enumerate()
-            .map(|(index, (public, private))| output_witness(public, private, index))
+            .map(|(public, private)| output_witness(public, private))
             .collect::<Result<Vec<_>>>()?;
+        let first_input = private
+            .inputs
+            .first()
+            .ok_or_else(|| anyhow!("note reshape witness requires a real first input"))?;
+        let shared = NoteReshapeSharedNoteContextWitnessV2 {
+            asset_id: first_input.spent_note.asset_id().0.to_bytes(),
+            clue_key: Fq::from_le_bytes_mod_order(&first_input.spent_note.clue_key().0).to_bytes(),
+            diversified_generator_affine: point_affine_bytes(
+                first_input.spent_note.diversified_generator(),
+            )?,
+        };
 
         let mut witness = Self {
             family_id: public.family_id,
@@ -186,6 +168,7 @@ impl NoteReshapeWitnessV1 {
             action_balance_blinding: private.action_balance_blinding.to_bytes(),
             ak: private.ak.to_bytes(),
             nk: private.nk.0.to_bytes(),
+            shared,
             spends,
             outputs,
             balance_commitment_affine: point_affine_bytes(public.balance_commitment.0)?,

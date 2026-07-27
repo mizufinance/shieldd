@@ -30,8 +30,9 @@ The four NoteReshape families (`note_reshape2x1`, `note_reshape4x1`,
 [fv.md](fv.md); transfer retains the same release gate. The gate recompiles each
 Go circuit, rejects byte drift, derives proof inputs from the exact deployed
 rows, checks the generated Lean surface, and binds the deployed proving and
-verifying keys. The protocol-readable Statement is the public review surface;
-the generated Capstone is the exhaustive row-contract surface.
+verifying keys. Handwritten protocol semantics and refinement are the public
+review surface; generated `CircuitFacts` and `Capstone` modules are the typed
+and exhaustive exact-row surfaces.
 
 The compliance and shielded-pool property/assumption ledgers remain the source
 for protocol-wide claims beyond this circuit. A whole-circuit proof does not by

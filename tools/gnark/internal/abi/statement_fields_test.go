@@ -56,13 +56,13 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 		{name: "note_reshape8x1", label: "note_reshape8x1"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			witness, _, err := DecodeNoteReshapeWitnessV1(
-				testfixtures.LoadNoteReshapeWitnessV1(tc.label),
+			witness, _, err := DecodeNoteReshapeWitnessV2(
+				testfixtures.LoadNoteReshapeWitnessV2(tc.label),
 			)
 			if err != nil {
 				t.Fatalf("decode note reshape witness: %v", err)
 			}
-			reconstructed, err := ReconstructedNoteReshapeStatementFieldsFromWitnessV1(witness)
+			reconstructed, err := ReconstructedNoteReshapeStatementFieldsFromWitnessV2(witness)
 			if err != nil {
 				t.Fatalf("reconstruct note reshape statement fields: %v", err)
 			}

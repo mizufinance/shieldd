@@ -207,15 +207,14 @@ gate_battery() {
     run_gate "snarkpack-filecoin-shape" bash "$ROOT/scripts/check-snarkpack-filecoin-shape.sh"
   fi
   run_gate "wiring-transcript+parity-tests" \
-    env -C "$GNARK_DIR" go test ./internal/circuits/ -run \
-    'TestNoteReshape2x1WiringTranscript|TestAmountRangeBoundIs128Bits|Acl2ModelParity|AxeFidelity' -count=1
+    bash "$ROOT/scripts/check-gadget-model-fidelity.sh" all
   run_gate "statement-seam" \
     env -C "$GNARK_DIR" go test ./internal/primitives/ -run 'StatementSeam|StatementHash' -count=1
   if [[ "$run_prove" -eq 1 ]]; then
     run_gate "prover-round-trip" \
       env -C "$GNARK_DIR" go run ./cmd/gnarkctl replay \
       --circuit "$circuit" \
-      --witness "$GNARK_DIR/internal/testfixtures/vectors/${circuit}_witness_v1.bin" \
+      --witness "$GNARK_DIR/internal/testfixtures/vectors/${circuit}_witness_v2.bin" \
       --artifact-dir "$artifact_dir" \
       --mode prove
   fi

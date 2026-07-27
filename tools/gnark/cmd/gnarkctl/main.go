@@ -726,7 +726,7 @@ func runReplay(args []string) error {
 			break
 		}
 		if family, ok := generated.NoteReshapeFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(payload)
+			assignment, _, err = abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(payload)
 			if err != nil {
 				return err
 			}
@@ -1025,11 +1025,11 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 			}, err
 		}
 		if _, ok := generated.NoteReshapeFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeNoteReshapeWitnessV1(witnessPayload)
+			decoded, _, err := abi.DecodeNoteReshapeWitnessV2(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(witnessPayload)
+			assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(decoded.StatementFields),

@@ -25,8 +25,8 @@ import (
 
 func loadNoteReshapeRegressionAssignment(t *testing.T, label string) *circuits.NoteReshapeCircuit {
 	t.Helper()
-	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(
-		testfixtures.LoadNoteReshapeWitnessV1(label),
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(
+		testfixtures.LoadNoteReshapeWitnessV2(label),
 	)
 	if err != nil {
 		t.Fatalf("decode %s witness fixture: %v", label, err)
@@ -154,16 +154,13 @@ func TestNoteReshape1x8PaddedOutputFieldsAreBound(t *testing.T) {
 			c.Outputs[paddedIndex].Note.Blinding = mutateFieldByOne(c.Outputs[paddedIndex].Note.Blinding)
 		}},
 		{name: "asset", mutate: func(c *circuits.NoteReshapeCircuit) {
-			c.Outputs[paddedIndex].Note.AssetID = mutateFieldByOne(c.Outputs[paddedIndex].Note.AssetID)
+			c.Shared.AssetID = mutateFieldByOne(c.Shared.AssetID)
 		}},
 		{name: "diversified_generator", mutate: func(c *circuits.NoteReshapeCircuit) {
-			c.Outputs[paddedIndex].Note.DivGen.X = mutateFieldByOne(c.Outputs[paddedIndex].Note.DivGen.X)
+			c.Shared.DivGen.X = mutateFieldByOne(c.Shared.DivGen.X)
 		}},
-		{name: "diversified_transmission_key", mutate: func(c *circuits.NoteReshapeCircuit) {
-			c.Outputs[paddedIndex].Note.Transmission.X = mutateFieldByOne(c.Outputs[paddedIndex].Note.Transmission.X)
-		}},
-		{name: "transmission_data", mutate: func(c *circuits.NoteReshapeCircuit) {
-			c.Outputs[paddedIndex].Note.TransmissionKeyS = mutateFieldByOne(c.Outputs[paddedIndex].Note.TransmissionKeyS)
+		{name: "clue_key", mutate: func(c *circuits.NoteReshapeCircuit) {
+			c.Shared.ClueKey = mutateFieldByOne(c.Shared.ClueKey)
 		}},
 	}
 
@@ -249,8 +246,8 @@ func TestNoteReshapeFamiliesRejectWrongFamilyDomain(t *testing.T) {
 	for _, family := range generated.NoteReshapeFamilies {
 		t.Run(family.Label, func(t *testing.T) {
 			assignment := loadNoteReshapeRegressionAssignment(t, family.Label)
-			witness, _, err := abi.DecodeNoteReshapeWitnessV1(
-				testfixtures.LoadNoteReshapeWitnessV1(family.Label),
+			witness, _, err := abi.DecodeNoteReshapeWitnessV2(
+				testfixtures.LoadNoteReshapeWitnessV2(family.Label),
 			)
 			if err != nil {
 				t.Fatalf("decode %s fixture: %v", family.Label, err)
@@ -312,7 +309,7 @@ func TestNoteReshapeStatementsHaveNoActiveCountFieldsAfterRedesign(t *testing.T)
 }
 
 func TestNoteReshape1x8HasNoOutputDummyWitnessOrManifestOperationsAfterRedesign(t *testing.T) {
-	if _, ok := reflect.TypeOf(abi.NoteReshapeOutputWitnessV1Binary{}).FieldByName("IsDummy"); ok {
+	if _, ok := reflect.TypeOf(abi.NoteReshapeOutputWitnessV2Binary{}).FieldByName("IsDummy"); ok {
 		t.Fatal("1x8 witness still exposes an output dummy flag")
 	}
 	if _, ok := reflect.TypeOf(circuits.NoteReshapeSpendCircuitFields{}).FieldByName("IsDummy"); ok {
@@ -320,6 +317,14 @@ func TestNoteReshape1x8HasNoOutputDummyWitnessOrManifestOperationsAfterRedesign(
 	}
 	if _, ok := reflect.TypeOf(circuits.NoteReshapeSyntheticSpendCircuitFields{}).FieldByName("IsDummy"); !ok {
 		t.Fatal("synthetic-family spend witness lost its private selector")
+	}
+	for _, forbidden := range []string{"AssetID", "DivGen", "TransmissionKeyS", "Transmission", "ClueKey"} {
+		if _, ok := reflect.TypeOf(circuits.NoteReshapeNoteCircuitFields{}).FieldByName(forbidden); ok {
+			t.Fatalf("per-note reshape witness still exposes shared field %s", forbidden)
+		}
+	}
+	if _, ok := reflect.TypeOf(circuits.NoteReshapeSyntheticSpendCircuitFields{}).FieldByName("DummySpendAuthKey"); ok {
+		t.Fatal("synthetic reshape witness still exposes dummy spend authorization key")
 	}
 
 	_, sourceFile, _, ok := runtime.Caller(0)

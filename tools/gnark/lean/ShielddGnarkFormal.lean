@@ -58,7 +58,6 @@ import ShielddGnarkFormal.Deployed.Poseidon4Link
 import ShielddGnarkFormal.Deployed.Contract
 import ShielddGnarkFormal.Deployed.NoteCommitmentDeployedBridge
 import ShielddGnarkFormal.Deployed.NoteCommitmentSemanticBridge
-import ShielddGnarkFormal.Deployed.GlueBridges
 import ShielddGnarkFormal.Deployed.Nullifier.SemanticBridge
 import ShielddGnarkFormal.Deployed.StateCommitmentPathNode0.SemanticBridge
 import ShielddGnarkFormal.Deployed.DecafAssertOnCurveBridge
@@ -71,4 +70,9 @@ import ShielddGnarkFormal.CompressBlock1Chain
 import ShielddGnarkFormal.Deployed.CompressToField.Bridge
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Keystone
 import ShielddGnarkFormal.Deployed.PrimeOrder
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Statement
+import ShielddGnarkFormal.Protocol.NoteReshape.Refinement
+import ShielddGnarkFormal.Deployed.NoteReshapeRefinement
+import ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
+import ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness
+import ShielddGnarkFormal.Deployed.NoteReshape4x1Soundness
+import ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness

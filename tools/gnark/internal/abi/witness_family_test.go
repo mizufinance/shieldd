@@ -1,6 +1,7 @@
 package abi
 
 import (
+	"encoding/binary"
 	"testing"
 
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
@@ -37,20 +38,20 @@ func testWitnessFamilies() []witnessFamily {
 		{
 			name: "note_reshape2x1",
 			payload: func(t *testing.T) []byte {
-				return testfixtures.LoadNoteReshapeWitnessV1("note_reshape2x1")
+				return testfixtures.LoadNoteReshapeWitnessV2("note_reshape2x1")
 			},
 			decode: func(payload []byte) error {
-				_, _, err := DecodeNoteReshapeWitnessV1(payload)
+				_, _, err := DecodeNoteReshapeWitnessV2(payload)
 				return err
 			},
 		},
 		{
 			name: "note_reshape1x8",
 			payload: func(t *testing.T) []byte {
-				return testfixtures.LoadNoteReshapeWitnessV1("note_reshape1x8")
+				return testfixtures.LoadNoteReshapeWitnessV2("note_reshape1x8")
 			},
 			decode: func(payload []byte) error {
-				_, _, err := DecodeNoteReshapeWitnessV1(payload)
+				_, _, err := DecodeNoteReshapeWitnessV2(payload)
 				return err
 			},
 		},
@@ -92,8 +93,8 @@ func TestWitnessFamiliesRejectTruncatedPayload(t *testing.T) {
 }
 
 func TestNoteReshapeWitnessPaddingABI(t *testing.T) {
-	fixedPayload := testfixtures.LoadNoteReshapeWitnessV1("note_reshape2x1")
-	fixed, fixedFamily, err := DecodeNoteReshapeWitnessV1(fixedPayload)
+	fixedPayload := testfixtures.LoadNoteReshapeWitnessV2("note_reshape2x1")
+	fixed, fixedFamily, err := DecodeNoteReshapeWitnessV2(fixedPayload)
 	if err != nil {
 		t.Fatalf("decode fixed-family witness: %v", err)
 	}
@@ -101,13 +102,13 @@ func TestNoteReshapeWitnessPaddingABI(t *testing.T) {
 		t.Fatalf("2x1 input policy: got %v", fixedFamily.InputPadding)
 	}
 	for index, spend := range fixed.Spends {
-		if spend.IsDummy || spend.DummyNullifierSeed != [32]byte{} || spend.DummySpendAuthKey != [32]byte{} {
+		if spend.IsDummy || spend.DummyNullifierSeed != [32]byte{} {
 			t.Fatalf("fixed input %d carries synthetic-padding ABI data", index)
 		}
 	}
 
-	syntheticPayload := testfixtures.LoadNoteReshapeWitnessV1("note_reshape4x1")
-	synthetic, syntheticFamily, err := DecodeNoteReshapeWitnessV1(syntheticPayload)
+	syntheticPayload := testfixtures.LoadNoteReshapeWitnessV2("note_reshape4x1")
+	synthetic, syntheticFamily, err := DecodeNoteReshapeWitnessV2(syntheticPayload)
 	if err != nil {
 		t.Fatalf("decode synthetic-family witness: %v", err)
 	}
@@ -119,10 +120,29 @@ func TestNoteReshapeWitnessPaddingABI(t *testing.T) {
 	}
 
 	flagOffset := 24 + 3*32 + 4 +
-		primitives.NoteReshapeStatementFieldCount(syntheticFamily.NIn, syntheticFamily.NOut)*32 + 3*32
+		primitives.NoteReshapeStatementFieldCount(syntheticFamily.NIn, syntheticFamily.NOut)*32 +
+		3*32 + 2*32 + 2*32
 	malformed := append([]byte(nil), syntheticPayload...)
 	malformed[flagOffset] = 2
-	if _, _, err := DecodeNoteReshapeWitnessV1(malformed); err == nil {
+	if _, _, err := DecodeNoteReshapeWitnessV2(malformed); err == nil {
 		t.Fatal("synthetic-family witness must reject a non-boolean private padding flag")
+	}
+}
+
+func TestNoteReshapeV2RejectsSplitAddressRepresentationPayload(t *testing.T) {
+	payload := append(
+		[]byte(nil),
+		testfixtures.LoadNoteReshapeWitnessV2("note_reshape4x1")...,
+	)
+
+	// Simulate the obsolete per-note asset, diversified generator, affine
+	// transmission, transmission encoding, and clue-key fields. V2 has one
+	// canonical shared context, so there is no position at which an independent
+	// representation can be decoded.
+	payload = append(payload, make([]byte, 32+64+64+32+32)...)
+	binary.LittleEndian.PutUint32(payload[8:12], uint32(len(payload)))
+
+	if _, _, err := DecodeNoteReshapeWitnessV2(payload); err == nil {
+		t.Fatal("V2 must reject an appended split address representation")
 	}
 }

@@ -62,7 +62,7 @@ artifact_for() {
 
 witness_for() {
   local circuit="$1"
-  printf '%s/internal/testfixtures/vectors/%s_witness_v1.bin\n' "$GNARK_DIR" "$circuit"
+  printf '%s/internal/testfixtures/vectors/%s_witness_v2.bin\n' "$GNARK_DIR" "$circuit"
 }
 
 module_for() {
@@ -130,13 +130,19 @@ python3 "$ROOT/tools/gnark/lean/gen/gen_template_inventory.py" \
   "$fresh_dir/note_reshape1x8-deployed-slice-ir.json" \
   --out "$fresh_dir/note-reshape-template-inventory.json" \
   --require-note-reshape >/dev/null
+committed_template_inventory="$GNARK_DIR/artifacts/note-reshape-template-inventory.json"
+if ! cmp -s "$committed_template_inventory" "$fresh_dir/note-reshape-template-inventory.json"; then
+  diff -u "$committed_template_inventory" \
+    "$fresh_dir/note-reshape-template-inventory.json" >&2 || true
+  fail "normalized NoteReshape template inventory drifted"
+fi
 
 echo "==> content-based impact report"
 python3 "$ROOT/scripts/check-note-reshape-impact.py" \
   --fresh-dir "$fresh_dir" \
   --contracts-root "$fresh_dir/contracts" \
   --template-inventory "$fresh_dir/note-reshape-template-inventory.json" \
-  --affected $selected_circuits
+  --policy clean
 
 echo "==> generator unit, drift, and mtime tests"
 (
@@ -144,6 +150,16 @@ echo "==> generator unit, drift, and mtime tests"
   python3 -m unittest discover -p 'test_*.py'
 )
 python3 "$ROOT/tools/gnark/lean/gen/gen_template_ownership.py" --check
+python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_padded_spends.py" --check
+python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_padded_commitments.py" --check
+python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_dtk_seating.py" --check
+python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_balance_seating.py" --check
+
+echo "==> formal gate self-tests"
+"$ROOT/scripts/check-formal-gate-self-tests.sh"
+
+echo "==> Poseidon377 generated-vector parity"
+"$ROOT/scripts/check_poseidon377_parity.sh" vectors
 
 echo "==> emitted-Lean hygiene"
 "$ROOT/scripts/check-structured-lc-lint.sh"
@@ -213,15 +229,35 @@ run_benchmarks() {
   done <<< "$candidates"
 }
 
-echo "==> selected Statement closure"
+echo "==> exact facts, semantic seams, and handwritten canonical-address adapters"
 (
   cd "$LEAN_DIR"
-  # Exactly one cache fetch per invocation, followed by serial Statement builds.
+  # Exactly one cache fetch per invocation, followed by serial exact-fact and
+  # compiler-seam builds.
   lake exe cache get >/dev/null 2>&1 || true
   while IFS= read -r circuit; do
     [[ -z "$circuit" ]] && continue
-    lake build "ShielddGnarkFormal.Deployed.Contracts.$(module_for "$circuit").Statement"
+    lake build "ShielddGnarkFormal.Deployed.Contracts.$(module_for "$circuit").CircuitFacts"
+    lake build "ShielddGnarkFormal.Deployed.Contracts.$(module_for "$circuit").SemanticSeams"
   done <<< "$selected_circuits"
+  lake build ShielddGnarkFormal.NoteReshapeCanonical
+  lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress2x1
+  lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress1x8
+  lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress4x1
+  lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress8x1
+  lake build ShielddGnarkFormal.Deployed.NoteReshapeRefinement
+  if grep -qx 'note_reshape2x1' <<< "$selected_circuits"; then
+    lake build ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
+  fi
+  if grep -qx 'note_reshape1x8' <<< "$selected_circuits"; then
+    lake build ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness
+  fi
+  if grep -qx 'note_reshape4x1' <<< "$selected_circuits"; then
+    lake build ShielddGnarkFormal.Deployed.NoteReshape4x1Soundness
+  fi
+  if grep -qx 'note_reshape8x1' <<< "$selected_circuits"; then
+    lake build ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness
+  fi
 )
 
 run_benchmarks
@@ -241,24 +277,71 @@ axiom_args=(
   --lean-dir "$LEAN_DIR"
   --root-module ShielddGnarkFormal.Deployed.PrimeOrderCertificate
   --declaration Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime
+  --root-module ShielddGnarkFormal.Deployed.NoteReshapeRefinement
+  --declaration Shieldd.GnarkFormal.Deployed.NoteReshapeRefinement.exactCircuitFacts_of_deployed
+  --declaration Shieldd.GnarkFormal.Deployed.NoteReshapeRefinement.exactCanonicalAddress_of_circuitFacts
+  --root-module ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress2x1
+  --declaration Shieldd.GnarkFormal.Deployed.NoteReshapeCanonicalAddress2x1.canonicalTransmission_of_exact
+  --root-module ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress1x8
+  --declaration Shieldd.GnarkFormal.Deployed.NoteReshapeCanonicalAddress1x8.canonicalTransmission_of_exact
+  --root-module ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress4x1
+  --declaration Shieldd.GnarkFormal.Deployed.NoteReshapeCanonicalAddress4x1.canonicalTransmission_of_exact
+  --root-module ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress8x1
+  --declaration Shieldd.GnarkFormal.Deployed.NoteReshapeCanonicalAddress8x1.canonicalTransmission_of_exact
 )
+if grep -qx 'note_reshape2x1' <<< "$selected_circuits"; then
+  axiom_args+=(
+    --root-module ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
+    --declaration Shieldd.GnarkFormal.Deployed.NoteReshape2x1Refinement.C.deployedRelation_to_circuitFacts
+    --declaration Shieldd.GnarkFormal.Deployed.NoteReshape2x1Refinement.C.valid_of_deployedRelation
+  )
+fi
+if grep -qx 'note_reshape1x8' <<< "$selected_circuits"; then
+  axiom_args+=(
+    --root-module ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness
+    --declaration Shieldd.GnarkFormal.Deployed.NoteReshape1x8Refinement.C.deployedRelation_to_circuitFacts
+    --declaration Shieldd.GnarkFormal.Deployed.NoteReshape1x8Refinement.C.valid_of_deployedRelation
+  )
+fi
+if grep -qx 'note_reshape4x1' <<< "$selected_circuits"; then
+  axiom_args+=(
+    --root-module ShielddGnarkFormal.Deployed.NoteReshape4x1Soundness
+    --declaration Shieldd.GnarkFormal.Deployed.NoteReshape4x1Refinement.C.deployedRelation_to_circuitFacts
+    --declaration Shieldd.GnarkFormal.Deployed.NoteReshape4x1Refinement.C.valid_of_deployedRelation
+  )
+fi
+if grep -qx 'note_reshape8x1' <<< "$selected_circuits"; then
+  axiom_args+=(
+    --root-module ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness
+    --declaration Shieldd.GnarkFormal.Deployed.NoteReshape8x1Refinement.C.deployedRelation_to_circuitFacts
+    --declaration Shieldd.GnarkFormal.Deployed.NoteReshape8x1Refinement.C.valid_of_deployedRelation
+  )
+fi
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
   module="$(module_for "$circuit")"
   axiom_args+=(
-    --root-module "ShielddGnarkFormal.Deployed.Contracts.$module.Statement"
+    --root-module "ShielddGnarkFormal.Deployed.Contracts.$module.CircuitFacts"
     --declaration "Shieldd.GnarkFormal.Deployed.Contracts.$module.${circuit}_deployed_sound"
-    --declaration "Shieldd.GnarkFormal.Deployed.Contracts.$module.${circuit}_statement"
+    --declaration "Shieldd.GnarkFormal.Deployed.Contracts.$module.${circuit}_circuitFacts"
+    --root-module "ShielddGnarkFormal.Deployed.Contracts.$module.SemanticSeams"
+    --declaration "Shieldd.GnarkFormal.Deployed.Contracts.$module.dtkOutX_eq_transmissionCompressInputX"
+    --declaration "Shieldd.GnarkFormal.Deployed.Contracts.$module.dtkOutY_eq_transmissionCompressInputY"
   )
 done <<< "$selected_circuits"
 python3 "$LEAN_DIR/gen/olean_axiom_audit.py" "${axiom_args[@]}" \
   || fail "axiom audit requires every selected theorem to depend on exactly [propext, Quot.sound]"
 
 if [[ "$MODE" == "release" ]]; then
+  echo "==> StructuredLC generated-contract compile"
+  "$ROOT/scripts/check-structured-lc-generation.sh"
+  echo "==> Poseidon377 Lean parity"
+  "$ROOT/scripts/check_poseidon377_parity.sh" full
   echo "==> deployed PK/VK prove-verify and release checks"
   while IFS= read -r circuit; do
     [[ -z "$circuit" ]] && continue
-    "$ROOT/scripts/check-vk-derivation.sh" "$circuit" --sr1cs "$fresh_dir/$circuit.sr1cs"
+    "$ROOT/scripts/check-vk-derivation.sh" "$circuit" \
+      --sr1cs "$fresh_dir/$circuit.sr1cs" --prove
   done <<< "$selected_circuits"
   "$ROOT/scripts/check-soundness-invariants.sh"
   python3 "$ROOT/scripts/gen-note-reshape-family-artifacts.py" --check \

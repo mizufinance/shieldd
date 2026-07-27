@@ -165,35 +165,15 @@
     {
       "proof_template_id": "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
       "consumers": [
-        "note_reshape1x8",
-        "note_reshape2x1",
-        "note_reshape4x1",
-        "note_reshape8x1",
         "transfer"
       ],
       "files": [
         {
           "path": "tools/gnark/artifacts/proof-template-relations/047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e.sr1cs.gz",
           "sha256_hex": "6520211262b082e75185196f5e610e7eaf6e8b7b2dd71274b8bb35d86dffd2e3"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Generated/TAssertEq_047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e.lean",
-          "sha256_hex": "79de646c5062cde83dbe0a13bba4e4be26151cb56845337f0c4ca3472a4a9c2a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TAssertEq_047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e.lean",
-          "sha256_hex": "c71c9bbb601e92c57dc6561502be9c3f9a63161aa81324ba9cb23fc8cf2da4ae"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TAssertEq_047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e.lean",
-          "sha256_hex": "3b13caa2049c96acfcf8654158088e6ce54ff0b40e973814f8ace3b1002dbc27"
-        },
-        {
-          "path": "tools/gnark/lean/bench/NoteReshapeTemplateTAssertEq_047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9eImport.lean",
-          "sha256_hex": "a032fef9b42d153686ae6ca23f1d449a8de3161e111bcb63c30b1ec1d2e2ae12"
         }
       ],
-      "template_files_sha256_hex": "2927c5a2938b8dcbde977858c0b598c0b90038357891113f4c6809f849e68580"
+      "template_files_sha256_hex": "d030f76f153f02e125039b143e061c6586e305ba07d35d9b7faa92b0f00de4bb"
     },
     {
       "proof_template_id": "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
@@ -285,6 +265,19 @@
       "template_files_sha256_hex": "cb870c635feebd3ce4066784613255d0cddb9dc3913f91cf99a871259e10d2a1"
     },
     {
+      "proof_template_id": "assert.eq@69da8da0b6b464f2d1b83c3a1ce7917e88fe117647cafb6cd636b02ff294b5a7",
+      "consumers": [
+        "transfer"
+      ],
+      "files": [
+        {
+          "path": "tools/gnark/artifacts/proof-template-relations/69da8da0b6b464f2d1b83c3a1ce7917e88fe117647cafb6cd636b02ff294b5a7.sr1cs.gz",
+          "sha256_hex": "c11b5faa063be7480193a8c4215caed10914daad160e0433968b6ab7a72118b1"
+        }
+      ],
+      "template_files_sha256_hex": "68642d498ed9489e740af623429172c7379919a7b28359e1753241f1266d3a82"
+    },
+    {
       "proof_template_id": "assert.eq@ca693c9a644d7a101d49302f9052719ee7e0f45605900d8e80b3c59e6b2e2ddd",
       "consumers": [
         "transfer"
@@ -300,35 +293,15 @@
     {
       "proof_template_id": "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
       "consumers": [
-        "note_reshape1x8",
-        "note_reshape2x1",
-        "note_reshape4x1",
-        "note_reshape8x1",
         "transfer"
       ],
       "files": [
         {
           "path": "tools/gnark/artifacts/proof-template-relations/d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd.sr1cs.gz",
           "sha256_hex": "9ddefd9952bc305c8dcfd531dda5c4f421d1da1b91c5acb69059e7481d93fc01"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Generated/TAssertEq_d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd.lean",
-          "sha256_hex": "266edd979e08828d860df2cd2d498b3b2c0102db546a660ce5c097078c0aff94"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TAssertEq_d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd.lean",
-          "sha256_hex": "006780a6758ffe22c2b70c7e640bffebd0fe2c37d585ae8aff99f4406dc7a523"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TAssertEq_d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd.lean",
-          "sha256_hex": "1a09f843f0ca4858a7f571d0ce3fc3ff058374647809243a0347b8fc53b2457d"
-        },
-        {
-          "path": "tools/gnark/lean/bench/NoteReshapeTemplateTAssertEq_d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bdImport.lean",
-          "sha256_hex": "7140a7a2bc8ef57f54e85a44aff2938d95a5a75b784b67d6f38c2a66c66d4acf"
         }
       ],
-      "template_files_sha256_hex": "7b130f9c29be1831cedb22bcf6c0639bd4a10c9d8d1b3018fa1b282b8a1fe15a"
+      "template_files_sha256_hex": "dab04fd8487b5b44533371547cb0bb40e13e1f4265a29b4b95318fd23c1d10aa"
     },
     {
       "proof_template_id": "assert.eq@ef313f39c5d5f9c3c2abea0b2fbcb1a75256e09acef6da5ab8070cf65b7a0cbd",
@@ -517,8 +490,6 @@
       "consumers": [
         "note_reshape1x8",
         "note_reshape2x1",
-        "note_reshape4x1",
-        "note_reshape8x1",
         "transfer"
       ],
       "files": [
@@ -548,35 +519,15 @@
     {
       "proof_template_id": "decaf.assert_equivalent@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
       "consumers": [
-        "note_reshape1x8",
-        "note_reshape2x1",
-        "note_reshape4x1",
-        "note_reshape8x1",
         "transfer"
       ],
       "files": [
         {
           "path": "tools/gnark/artifacts/proof-template-relations/9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.sr1cs.gz",
           "sha256_hex": "62dd6e0ed23f3b02e945487195b33d78b29f62a15bb193dffe17487ee4de9bb3"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Generated/TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.lean",
-          "sha256_hex": "11879ba862e00da50122b6c5482d26a769c9c3dc83f2e1b8bf18d9a068908195"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.lean",
-          "sha256_hex": "fca3dba7faa9b5adcb76a9b65ebcfb6dabbc9fef03ba1e4567b0478244093ad9"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.lean",
-          "sha256_hex": "ad7497a8184c5adf11a765b236b8abdb0cb617c00d0f3ac3fe08a264c0df387b"
-        },
-        {
-          "path": "tools/gnark/lean/bench/NoteReshapeTemplateTDecafAssertEquivalent_9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3Import.lean",
-          "sha256_hex": "232bf4f1474f3daeed57768a13af3fa2f08905d51469b656a87b706b54167deb"
         }
       ],
-      "template_files_sha256_hex": "1c44a9c4fc59adc903918c1318653e3c9f6ef0e5f4e9d90fa6e2f1291174293b"
+      "template_files_sha256_hex": "15efc07c8f62b52dbe2e648f93b884d705e9e87151c15de4985a0250e1f0506a"
     },
     {
       "proof_template_id": "decaf.assert_equivalent@c83f4311b5aa10465b63e41fe912ef41939be506d260e6f6d6a0d45505fecc9e",
@@ -593,62 +544,27 @@
     },
     {
       "proof_template_id": "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
-      "consumers": [
-        "note_reshape1x8",
-        "note_reshape2x1",
-        "note_reshape4x1",
-        "note_reshape8x1"
-      ],
+      "consumers": [],
       "files": [
         {
           "path": "tools/gnark/artifacts/proof-template-relations/ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5.sr1cs.gz",
           "sha256_hex": "26087b99f55dc1e813f7371e70bba0227b37ff0e9d8669d3464d36da5a622e39"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Generated/TDecafAssertEquivalent_ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5.lean",
-          "sha256_hex": "c64e08340e3a40a477991c0066330d7265448032248c7def752aa16582b4eb1f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafAssertEquivalent_ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5.lean",
-          "sha256_hex": "6f159ba44ecf58a6f8b6488ea726a17f9c8f7df5639f7bc73616056bfe8f166e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafAssertEquivalent_ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5.lean",
-          "sha256_hex": "3bac28167758dbbfd67d601fe3814225e80965e1eca7e9c7cafd858ced4d7398"
-        },
-        {
-          "path": "tools/gnark/lean/bench/NoteReshapeTemplateTDecafAssertEquivalent_ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5Import.lean",
-          "sha256_hex": "430d8cbd283bfd1c8d4790c4e46e429611e6dd1c6b6af9b45f3001975adc13ab"
         }
       ],
-      "template_files_sha256_hex": "4dda428a14aa36983b16ae5770173bb348ac5314439a307e58d149e109b1e0c8"
+      "template_files_sha256_hex": "e9555d6e62926057963885638618e9587c6ea765b03c0cc7e02b448ebc689105"
     },
     {
       "proof_template_id": "decaf.assert_equivalent_if@15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350",
       "consumers": [
-        "note_reshape4x1",
-        "note_reshape8x1",
         "transfer"
       ],
       "files": [
         {
           "path": "tools/gnark/artifacts/proof-template-relations/15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350.sr1cs.gz",
           "sha256_hex": "3920e4452e9ee5d4b848e7f27ca10cadf98bb803065503a32a06361792ad5842"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Generated/TDecafAssertEquivalentIf_15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350.lean",
-          "sha256_hex": "c5bf75667593d60c4b3065033bcc100cbd649a6ea687b7d375588894116ad666"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafAssertEquivalentIf_15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350.lean",
-          "sha256_hex": "45a3bd722c35b428d83f490645cb4da02ffec4aac94ac626432d49e246cc3ba7"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafAssertEquivalentIf_15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350.lean",
-          "sha256_hex": "424c882606e94ee5b6ff327e50153aef98218a0b382d3f4406d6eeac3237427e"
         }
       ],
-      "template_files_sha256_hex": "612cd1e803e64877668910407a239f741c4267099d29ab20dc02b1ec5d7ab714"
+      "template_files_sha256_hex": "2a22cfcf4060f829da40eb6bf94a35da7dcc70c3b0303b6af09781181e88b79a"
     },
     {
       "proof_template_id": "decaf.assert_equivalent_if@5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f",
@@ -692,30 +608,27 @@
     },
     {
       "proof_template_id": "decaf.assert_equivalent_if@5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e",
-      "consumers": [
-        "note_reshape4x1",
-        "note_reshape8x1",
-        "transfer"
-      ],
+      "consumers": [],
       "files": [
         {
           "path": "tools/gnark/artifacts/proof-template-relations/5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.sr1cs.gz",
           "sha256_hex": "eae190cc54efb8d6eeb4571ac85999d05e7edd8d2be2d891e774bdff425567a2"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Generated/TDecafAssertEquivalentIf_5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.lean",
-          "sha256_hex": "8ceec2d7948126d1e9159f28db57c6754d29c2d97971874eee476bc4880f2b89"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafAssertEquivalentIf_5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.lean",
-          "sha256_hex": "7b771d2c7b6b65a8a8ac2c3b0935967caf33e04d28740059d988757ee3de6684"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafAssertEquivalentIf_5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.lean",
-          "sha256_hex": "303f49b6b612bc648367a7d5de7a5b963489ce1bd7b3943e36dd379110733735"
         }
       ],
-      "template_files_sha256_hex": "baaea07f6cd33c67106826804f494247c7f120b546246200838ddbc2f7a7e8e8"
+      "template_files_sha256_hex": "c218f7f1fc9ec32d834ff00c1c3ccd93e76bb15d3f6cf50fdbfbfb3b73d36929"
+    },
+    {
+      "proof_template_id": "decaf.assert_equivalent_if@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
+      "consumers": [
+        "transfer"
+      ],
+      "files": [
+        {
+          "path": "tools/gnark/artifacts/proof-template-relations/9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.sr1cs.gz",
+          "sha256_hex": "62dd6e0ed23f3b02e945487195b33d78b29f62a15bb193dffe17487ee4de9bb3"
+        }
+      ],
+      "template_files_sha256_hex": "15efc07c8f62b52dbe2e648f93b884d705e9e87151c15de4985a0250e1f0506a"
     },
     {
       "proof_template_id": "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
@@ -748,6 +661,182 @@
         }
       ],
       "template_files_sha256_hex": "4677645cea81cbe1ea1ba9731179d5441fee4cbfc1ecc69245def361d1068457"
+    },
+    {
+      "proof_template_id": "decaf.compress_to_field@134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2",
+      "consumers": [
+        "note_reshape1x8",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1"
+      ],
+      "files": [
+        {
+          "path": "tools/gnark/artifacts/proof-template-relations/134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.sr1cs.gz",
+          "sha256_hex": "7b3fd33717199007dc4b1113a15fd423d502af4b247e526526afc039b536c8f2"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Generated/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.lean",
+          "sha256_hex": "8f3d7a0bc12d584a5cbce7f32cc191aaec7d2a8a5e06140a86fbc28834c2f650"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.lean",
+          "sha256_hex": "3c2718b1c4c5aed8ab32bc6737c2b6cea5f6e5386df06264e7368bf37519d355"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Base.lean",
+          "sha256_hex": "80449cb135f809c12b8cb8807a177ff8c61b23fd677ed9ff0377ff38adf1874d"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs0.lean",
+          "sha256_hex": "fa1e3fb35a568f200cb08cd176482f724304b993c8ef16e5ba59099d0ad84259"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs1.lean",
+          "sha256_hex": "8c0fea5680fee48e4ed3e073f8a1f4f217d6c1bb66c5a91dd59169cdb1867c35"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs10.lean",
+          "sha256_hex": "162c7b63693ce4591e8f922168e6fa954de079d9b8499e97a6b05e7e5b88e602"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs11.lean",
+          "sha256_hex": "d43fbc56db593245af3026435fada777b86331574d997c24fb1f6a2a21dbd313"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs12.lean",
+          "sha256_hex": "02679e835714fef866c7a7ff8f0f2607e20a164ab114d7741f7e768d3cbcda10"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs2.lean",
+          "sha256_hex": "ff23d4926693957174f614c7b498530ab067a92c35cc07df3c03f4c41e765b39"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs3.lean",
+          "sha256_hex": "b07187d0c95d9f0035e235dd7efa816cd9fd439dd335f72c37cba70ac5eb1fcc"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs4.lean",
+          "sha256_hex": "3ca77ae4e7945a802b4391b2ab3064cc1814d93b04eb180aaa480b6f35bf7c7e"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs5.lean",
+          "sha256_hex": "4fd4fe5f9963311fd8b42e5fae09e22eeeb8bff424473b5cc8bceb60edc334da"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs6.lean",
+          "sha256_hex": "59246d16dcf9a66d3d6eaeb13b360e8fe91d59a1f89bcc2c0eaf57ae658aacab"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs7.lean",
+          "sha256_hex": "7cdba8e349eafef6d03672cde3a27cfdd5d5c316682b3a60af962658c690c860"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs8.lean",
+          "sha256_hex": "557e1630bb66983aba70463730d036fb5681a346f0e4e51d51b788c477bb1c87"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Defs9.lean",
+          "sha256_hex": "ceab76f4ee3de761d6746ca83faafc1fe1067363224f37973db014e7ca9f43f7"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.lean",
+          "sha256_hex": "f33233b56cd9b1adb474adfce743331a800e0fa6a3e1e2549183e63df2f1574e"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Base.lean",
+          "sha256_hex": "90299efcf34f7c533e7d7c312dc134dadff078597cc3c4ee57bc5a5bfcc6ea4e"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Chunks.lean",
+          "sha256_hex": "9adc64d25dc04b84180f96effd6c3b79c72dbc32a78053b1f4a3250152295232"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows0.lean",
+          "sha256_hex": "86c1673a72504997c66eff5fbcaa6fbda2ec26e105e418d5d833f3bc727b6db0"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows1.lean",
+          "sha256_hex": "b3c9d1abd0e6fe1a3b576233e489d02e53a4dfbb4681a558f76f10b9a3fce5f5"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows10.lean",
+          "sha256_hex": "1fade95336988a79429eaad95c33443f451b9b5d66a09d11cce63ef4488cc352"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows11.lean",
+          "sha256_hex": "6e3d940063688609af905e7128d728ddd0f898daa5c1f1e6dca3f1ebcee7339d"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows12.lean",
+          "sha256_hex": "9df52a591afaa10b29c19a0036c01d1c1ebcf0389cd731e8848f6c3c290816b1"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows13.lean",
+          "sha256_hex": "c50fb723d2fffebd7dc3aae4e745a84e7587646c4f038b096b7304681d27c5e3"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows14.lean",
+          "sha256_hex": "fbc73eb722c68a41f03e451f24a52580663d471c87e7aa02ac72a910d938ef4a"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows15.lean",
+          "sha256_hex": "cf0bba56c5f01cfbbe32793868e2d9368b0562dba235c38a78060160151d67ae"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows16.lean",
+          "sha256_hex": "37ecc4f0e63917c25de265166590eec0b932e98d31f5027c379cbba5f3f55739"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows2.lean",
+          "sha256_hex": "18b628b5865f39dc2671bb469d0cb86d40143e1a4c567aca34f0f5be317bcce2"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows3.lean",
+          "sha256_hex": "47bc9c50cc8d28687fa1c2ef4fe0f1ea7dc348a8ca6b4bf43327fb2479dc70dd"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows4.lean",
+          "sha256_hex": "7d9556a79653467b74716f9c8ac7a178b07d95bae1e851e2ad97d1ea1ff8f436"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows5.lean",
+          "sha256_hex": "8442ffd2736268e60d590eba302aaffcc262e20ed0f4f6bf0a68f6178a246bb4"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows6.lean",
+          "sha256_hex": "f4067e18b347302bdbab5ec579b344c15ab6ee812f25d40aeeaaf207c3b073a2"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows7.lean",
+          "sha256_hex": "1fd2bc737d76a4daa1cae662295acff157c24d8b6d6510a97f8d50bb065d4c22"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows8.lean",
+          "sha256_hex": "f80ecca1be8dcf871fc1cc0410cbe384f5ee31361ab16e5d5302f6295462c052"
+        },
+        {
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2Rows9.lean",
+          "sha256_hex": "633cdc0a792a85d09fc6039fdeea69154c0411f13ef1fb6cc5c107a00270695c"
+        },
+        {
+          "path": "tools/gnark/lean/bench/NoteReshapeTemplateCompressac56f4a2FinalImport.lean",
+          "sha256_hex": "9bc1304f5b8f261945bdebd37792d0b18a3025ccee337c618ce34419d18db068"
+        },
+        {
+          "path": "tools/gnark/lean/bench/NoteReshapeTemplateCompressac56f4a2Rows0Import.lean",
+          "sha256_hex": "62d4dcb4b01a95b5f6a07c1705864c3d707b1c32ea4418c1b5ac2565ae8737fd"
+        },
+        {
+          "path": "tools/gnark/lean/bench/NoteReshapeTemplateCompressac56f4a2Rows16Import.lean",
+          "sha256_hex": "acf1ae48e72be35648361908396cb2ba215f6865bfbc2008078e687014a1a540"
+        },
+        {
+          "path": "tools/gnark/lean/bench/NoteReshapeTemplateCompressac56f4a2Rows8Import.lean",
+          "sha256_hex": "da4641be4ea61474fa3a78b507bab6a9b9a26ed4ecf51c51655ebc76ff1ce475"
+        }
+      ],
+      "template_files_sha256_hex": "e85caaf8a54954f1ee6c057ade47727ac6bc1f4015c88c1f7d1f8ce40722e4aa"
     },
     {
       "proof_template_id": "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
@@ -6679,1057 +6768,15 @@
     {
       "proof_template_id": "decaf.randomized_verification_key.dummy@e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5",
       "consumers": [
-        "note_reshape4x1",
-        "note_reshape8x1",
         "transfer"
       ],
       "files": [
         {
           "path": "tools/gnark/artifacts/proof-template-relations/e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5.sr1cs.gz",
           "sha256_hex": "c4b2d3bc334cac81e52c4ca595af9bb73290ab506d624d553ce891427c307f8e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Generated/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5.lean",
-          "sha256_hex": "bc7b9e029b39e32fa1d14716d29aef7016edc6926b6d31bcc9ab61b784fb2d4e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5.lean",
-          "sha256_hex": "afc384b0d47aa95f2b0ec0b1f9bab1d77b8068c6ff043e15a324296b4afa93ff"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Base.lean",
-          "sha256_hex": "05829a783f071d3bfe115334a76d58533510d7e603b92d406f8e6a11e991e82f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs0.lean",
-          "sha256_hex": "d2c8fd468afc9175771bbc3bc9bd0e7c3889ff96472dd4fb757b0d9618246b81"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs1.lean",
-          "sha256_hex": "313604da32266807ce4b2476f00ad6f1b7f2b31a4e7faa234caa7313c928cd59"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs10.lean",
-          "sha256_hex": "a5bcf6e0bb725b408557621be34ae82a648059fee9ec6cf2567235cb579181c9"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs100.lean",
-          "sha256_hex": "a1d66afae50cad38d9c8bc28225ebdbeca6c0fefebf23c3db57933b65664d04b"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs101.lean",
-          "sha256_hex": "34810949b6604cc40bd405a637a6e0108a79d0f39a932205dad607e0819b112d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs102.lean",
-          "sha256_hex": "b2981264012e33f8408df0e5663e231ce793f995ec14b9b98609f81d0467f4d4"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs103.lean",
-          "sha256_hex": "5adf499b82cf5dae2f07964d499042faa924abdbaeeea01128f86285f0ec0f86"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs104.lean",
-          "sha256_hex": "82afc0abe6c9f83b4302456ae362df163b06e474186a362ee7dbdcd587568786"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs105.lean",
-          "sha256_hex": "a4a71373c17d78c7bf64eca6d0c66577b18c50eebfbde5f5db2ee48ed7d802a3"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs106.lean",
-          "sha256_hex": "967fe8819976a53787fcb396407530462a861abfbaac64069f96cfa4f8001135"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs107.lean",
-          "sha256_hex": "d2130986de0eb6397d4dda79b937cc4ffa5f9d2a4c25cc4dbfac5d2230dcb83d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs108.lean",
-          "sha256_hex": "411edc4b523689ca574455440d2994064b8a523ee8490707c1166bc30f7b380d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs109.lean",
-          "sha256_hex": "9e96686288a8bf78fe0146bc4d19adc8e058ac05f7079d4929541924e0572acc"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs11.lean",
-          "sha256_hex": "5546e69e693488aeecb7a4f0d5297730b72bfc9c108c13e089723b08649d1508"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs110.lean",
-          "sha256_hex": "d94d5f71b52b4452ffe9445c6cfab15dfac20f88f4e3809e6786b280f091f2ab"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs111.lean",
-          "sha256_hex": "43a7e9de9d0c15939e674e4677b16c54f6b4047f14364d27c369e31800075ee1"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs112.lean",
-          "sha256_hex": "639e29cedaa8301f602d4898da8d20c0aae5d80050ae33fc9528838477a5d00e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs113.lean",
-          "sha256_hex": "6caeb239cc4f3f7b4c3abc37af5fe9bd122a933d0c68c09a7cec1e2b9945a8cf"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs114.lean",
-          "sha256_hex": "716d21fb619ce3af52ee3b5639522af70d00f6b6d9c8f8d41a8aa65be14319d8"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs115.lean",
-          "sha256_hex": "eab52eecc0c9bf62a0bde06d326bab1cd8658ff8b5fd02d104f2d71d8648960d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs116.lean",
-          "sha256_hex": "8040029049736387c1abcc57b6ad534f049d106df49c325a3a164ca8c3e3ed4b"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs117.lean",
-          "sha256_hex": "f659d3c57ec7533e8e18494fa8a86a3a7b1b31e7dbe66ea8acb31985424c77d1"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs118.lean",
-          "sha256_hex": "56db0c0659c10ebc03c67cf40d18a699c3a1c1b164390af0dd58489630e300d8"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs119.lean",
-          "sha256_hex": "0ecb17a9a8f57d2370b321d8472f6a5749157228ea4a02b52bcf65d35ba06f57"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs12.lean",
-          "sha256_hex": "b4c12e318b4d8f337519aaf6215a2950b6ac398a7c339f2fc12ac6de794a1025"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs120.lean",
-          "sha256_hex": "914640d13ec7ce36381a3b8c21516a49f04b532aeb3db033e286e9a1f73846dd"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs121.lean",
-          "sha256_hex": "7d9f152e729aeadf403ad5077f198d68298d3d2d29bdd059b6796f99915f5626"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs122.lean",
-          "sha256_hex": "6b0bdc350af8d081041996d6ab6bec25e7d91edf7bbe757932824e7f312fbae3"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs123.lean",
-          "sha256_hex": "eb92df3be761d4330d5203903f3fe118e1f6afffa6e059bb22a2b3effaa458f6"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs124.lean",
-          "sha256_hex": "7d9b67eb19dfc0678954c62283171be847a4594dd7744440c353fe0ed389c266"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs125.lean",
-          "sha256_hex": "abac52980e79dbc6e45058f264766f8f55421949324b2cd2d5444b0a93c81272"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs126.lean",
-          "sha256_hex": "55a7ea11410f83f44c014a0532949d78a120c6bc552685a67c3dcca13786bd1a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs127.lean",
-          "sha256_hex": "5763e13f0305f8c3d008df61c7bc2ed6bfe561338c3954c9fd9473f4f1835922"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs128.lean",
-          "sha256_hex": "685d9490678cf572ad33b804e0ce80f2424bae8510e32fe7e4e7797e621ed68d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs129.lean",
-          "sha256_hex": "c7219301c2c249f9d004bf0dbbe13e74b92bc497e4f729179357bb364276cfa9"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs13.lean",
-          "sha256_hex": "d568ea5fbe62430342bf157535e75f81207d57dc4168cf31462ba703044b5c88"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs130.lean",
-          "sha256_hex": "4294e6e94dabd065fae48fd2abe4ea9e0fdfaffcee7b562d565f2d8fc109860c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs131.lean",
-          "sha256_hex": "761e6e1ff3fe749d0f3af74aaf4057bbe33cf135a0339050ab8ea2437dd75889"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs132.lean",
-          "sha256_hex": "93a5ca34cb35655bbde51441ca44ea36c027a2b5aa56c747f2d389005a873638"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs133.lean",
-          "sha256_hex": "58ff9a44546d1350464ef3f6b1343e8a975b2c47f9042fd19dad498431e7cca4"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs134.lean",
-          "sha256_hex": "5a5405137de86c2700123ae87a709155c56717e85a8846dd7a4d3516d210bc1f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs135.lean",
-          "sha256_hex": "f332d6022e6f0bb6745923ed411e77172df395de258ad182b7ca8a74302f9af1"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs136.lean",
-          "sha256_hex": "11149f0c20fb9b8a909b4acb87bd74bcfe35c57063ce61c6f7be2226ad5e27c8"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs137.lean",
-          "sha256_hex": "328ba909b3d7f944325150f42f31aafb658ed41057219df9b1622cf5393b16f3"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs138.lean",
-          "sha256_hex": "2ba158da4d10620b5cb583337c178c09044a6d7817edfb8980959de58454025d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs139.lean",
-          "sha256_hex": "893b5ba890ff3d8e98e36b44f8adc32dfb17d64ba543cce02d21ff6eb6c7a2e7"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs14.lean",
-          "sha256_hex": "5068fc6a4d2090a5fabd8df715308d5cfff01d69365c2572cc4f68dc9df30693"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs140.lean",
-          "sha256_hex": "c6a8409ab72892374a6a9ff6d27d6b166e3e0c428ca6ed7b2fd672a9d2be263f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs141.lean",
-          "sha256_hex": "56a9467aa18b1ee2f29063168f05e4a0a5de8bcfea459ef076339db396d21504"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs15.lean",
-          "sha256_hex": "04b4e0f73060fe8ea6e1c6d9560ba67ac317c25b9db2d534001dbe676db142cf"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs16.lean",
-          "sha256_hex": "afe2ba92c80e60fde27010b36bf4a6b85c0b00f911a7ce3572c9bf120e66a1f5"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs17.lean",
-          "sha256_hex": "9ab8b9496d6f7fbb2352f7919de239b95f8baf56ab1e5c4044ae0803c70ac266"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs18.lean",
-          "sha256_hex": "fc6d902bd207afe309a495c8b77926dcb9e9f7b85295fc4717886c35058f9895"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs19.lean",
-          "sha256_hex": "ba4f2f8b8daca8712faf49ca3ae4ba8186b9e913fe8abb6f836bc30def5c7fb3"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs2.lean",
-          "sha256_hex": "384e939cda9faec2902905ce0d6c55ba32ec9b631ea22b8b57c092f5637e2f24"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs20.lean",
-          "sha256_hex": "54cca3a3afabfbbb5a4da0992d0a677d2fdb5b3a65200f00df8813aebb181063"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs21.lean",
-          "sha256_hex": "922f2617f6a59869110900bae0b8499c5f7e7dda2a857b88816ed2a3bc40948d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs22.lean",
-          "sha256_hex": "9f8c550324c0939f720f548c4ed76d825ce0d7f1a669ed19f7fd960b77b6d173"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs23.lean",
-          "sha256_hex": "1f7e9d9b26ce5c91ac56a845e0398025def27dbd7c6f5c4b9a5c4b7751e113dc"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs24.lean",
-          "sha256_hex": "f29a5780add5c1e92cc3c760eb87030b9661a88b0c102f75e8e3e94ac721ed01"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs25.lean",
-          "sha256_hex": "784989eae991b24563eb2dcc54ebd82eacca6c93c94a0423ac6a10641416fc76"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs26.lean",
-          "sha256_hex": "20026da35267dc905eeb0dfb0809fc611d08eafa73df8f055032df3809aa4071"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs27.lean",
-          "sha256_hex": "55e84fb955704cd13691783daf8a120b9d6715b16c6861309fb5107113b98f5f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs28.lean",
-          "sha256_hex": "6211fa68ec3cbe524b0689ad337c10b962a0d15ca8bd3f5305dfc2e0f42c3947"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs29.lean",
-          "sha256_hex": "ada1ad1b7229447f51d12b93ceeb76b3e8069c0f8635869ed257f584bb39686c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs3.lean",
-          "sha256_hex": "2fe5a258687d25f55f624513a9226405ee5ec409cf133b180a9cebbd52cddea5"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs30.lean",
-          "sha256_hex": "b4e4e0d9b5c1b1006f1d41e1902504d2cd864232f98e2ddf732f71e10dcdedf1"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs31.lean",
-          "sha256_hex": "2b7d58a0f7d0558cf66c46b9f9d47495bae863a041af99746989e0c3b78045d8"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs32.lean",
-          "sha256_hex": "37d81fe3f2a04504e5a9db81250310c36af44f24a25e66249759bd7296518167"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs33.lean",
-          "sha256_hex": "2fccc5838a8f756f75882276dc7c9661d45abef411023ec719277f3cc9c50813"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs34.lean",
-          "sha256_hex": "59cb7a21d54a4174c6048dd24c014bc35d9382a7b6a34fb7ba7539251edac4fa"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs35.lean",
-          "sha256_hex": "1132752dfaed4f64b7aaaec0e68aabdf693fb205021a2a9005b70327cb366a1e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs36.lean",
-          "sha256_hex": "291abf6150409f57262883b2075cdf28f99f6e1151da4cbf1ad0625ededaa470"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs37.lean",
-          "sha256_hex": "a49a4f90ca37aecf737b9f587a3e9379f36555c1925edeae3718154460f8b5af"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs38.lean",
-          "sha256_hex": "4b5201bba16e7a0d4852e78e647ee9a8fd58c464c3b8bd09522ac7aaf7bd942b"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs39.lean",
-          "sha256_hex": "d5d5a2362d65de1896b0ebd79e85cc5182ba99198f3c1c27d2b425e3135de56a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs4.lean",
-          "sha256_hex": "405bfec31e53d874d8122db13b863d071fa92e5d43bcebb642a5e8c073f8970d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs40.lean",
-          "sha256_hex": "218511167e90df828b6aeda6442c67f9fcca649dad1aa53c88e7ea5fb2f8c6c6"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs41.lean",
-          "sha256_hex": "299d3e849f5f27eb5ee1eb4b2c2ff51a7769d9144c868a924617e0079cf91557"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs42.lean",
-          "sha256_hex": "c3941d272141792e9a8795f19ccac333b7a1ff91fd5019f83550f4e6dbcd3bcf"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs43.lean",
-          "sha256_hex": "b0beda57612aff9aaa74f961fc8820328baf0dc9c7ed632c755e96f44cede2ba"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs44.lean",
-          "sha256_hex": "7feb07cfba48bbe92a22352da59dc6140afd34f8b7d1e5f2ace67aa63e89be50"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs45.lean",
-          "sha256_hex": "27e81ea650fedc13881003e2d989029f9bb21b7942ac048fd99a40fc6fdccf04"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs46.lean",
-          "sha256_hex": "0dbfdf949e3c16e5a6127334503a124884e8a1bc179113bf3f92ecde67f2c485"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs47.lean",
-          "sha256_hex": "f3b5c71c9b7522cce395fd6ea37af8d93279481dd23822674d3a3d4c2f01c443"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs48.lean",
-          "sha256_hex": "c5cf05883eda6df279000a01adee9961801ac94fc1fc0a3f7fa745ea4b88f7da"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs49.lean",
-          "sha256_hex": "419430e860f56e3eafb032fb2294b4d9371d86cefe9cda8d5f58d1d74d2358bd"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs5.lean",
-          "sha256_hex": "1107796865b57f3b669478232d618634ea1e3f9110ea5dacda707adf012f93e4"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs50.lean",
-          "sha256_hex": "ca62b556822078fad5666aaea9eb5698abbd3a32130375306f0277ffacd60d59"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs51.lean",
-          "sha256_hex": "527b1cf9b644aa8af5b02a38183c8ff1baa3a1cb4ed1bd08a2c9342dd73b0708"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs52.lean",
-          "sha256_hex": "ec6ef376d6457e2d34fbdd857a1fe7be53ae8a395907fb77f62afee19ea76653"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs53.lean",
-          "sha256_hex": "c2340005e71d4d18fe3d70d475b5503fdeb65ba01cb89b4443cc0521d72186b8"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs54.lean",
-          "sha256_hex": "ef11a373bdaff46d04480995a57fe2881179d46af6b41ab504a69ca357880098"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs55.lean",
-          "sha256_hex": "2d0102720ee820605f6f58189fbfb45bc9caa02bccab3e59846a25a6be441986"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs56.lean",
-          "sha256_hex": "166b195e651399b7516c97fd8098082649b5ea2125a033752d65de0b4a0e3c3f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs57.lean",
-          "sha256_hex": "d4aa00b623b3c54aca9b289b9375cf8e17550c80e0734f49204a38584f2be616"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs58.lean",
-          "sha256_hex": "b9ea677433e9191a2d5cede127948a96eefd600aa93c8d4f64c58a48dd3fc199"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs59.lean",
-          "sha256_hex": "d4e16f22dfe7abac991e4dcc0d822c8840b9bcd597e5f47156cce8f0742371ac"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs6.lean",
-          "sha256_hex": "8df999e43f423a18a80d180bae30c1930f5abb6c370c05105efda6a20c8daad3"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs60.lean",
-          "sha256_hex": "0d5ae2496db8d4c47e3061cf2bd3e55b3fd7dd1695e2bedd0396d4095c66e5bd"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs61.lean",
-          "sha256_hex": "f2cd0836bf5e9a27c789230b0f38f2bd8c4135d2b5bc456cd20ff0c122ca5340"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs62.lean",
-          "sha256_hex": "99e431caaa9c41620873dfbce05a9da7c1bad25508fa2bb6b03e4cbba3a0522a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs63.lean",
-          "sha256_hex": "3b2f37c206efdb3aff6ac09275c31f7e26296406d373a75629c3f800e3ab88b1"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs64.lean",
-          "sha256_hex": "1b17cdc4fc596c3d240dd63b649fa942cacc1a8e23785d69c73a74c359ada9d9"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs65.lean",
-          "sha256_hex": "d4dcba306c50e85fbc8e8b1ef8de5f9be49d03cd7f5a1a33de4ede8acfd90a1a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs66.lean",
-          "sha256_hex": "628462f409a74d3a1eee9074206347f34762fa399dfa494682b9c351491011e1"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs67.lean",
-          "sha256_hex": "64e4bee0f41aefa26ebfded5e4c19513bc84864093e76b203db9a860b0282d21"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs68.lean",
-          "sha256_hex": "f15b4f2911af129151c2c10e7f9b96af9872a0bf962d4f5752cc87a9dfc6005d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs69.lean",
-          "sha256_hex": "5c1ba551c15ee18929a2280bddd700b887a6ba316b67fc5f8efead87127183fb"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs7.lean",
-          "sha256_hex": "1fab9e0ba14bb7f278692a34dd360dfddf7b833cb608fc9679eb60a5d93b3ad6"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs70.lean",
-          "sha256_hex": "e32a1a1c24c353a7f94db961a69b2fff7af2f35b353b09ad45acefcb278b2e55"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs71.lean",
-          "sha256_hex": "eb79ef1bd2c4b44e5ec12e75f9ae890ef70126c8cb24af0e89a1145908b55d4c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs72.lean",
-          "sha256_hex": "9560baa2ece1b5aa4ea2ea20b62f94bb14253d0f648aaf336e4fdee8952db1c6"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs73.lean",
-          "sha256_hex": "70fd906930a9766781489b5a739a889c71f12d4f8316049ee168c14037066dfc"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs74.lean",
-          "sha256_hex": "3d1f4d3652fe4ea9972f25a5ff611b960c9cb30df9f51d07967436431c2b3fc6"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs75.lean",
-          "sha256_hex": "ed10248537acaf1fbf5574d85e40a91d59928527dcf8d3f86c1c8acda24c4127"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs76.lean",
-          "sha256_hex": "e49302285a912e3b698a2b0ded742e99fe2c0fe1659a172f744aba55a0596144"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs77.lean",
-          "sha256_hex": "6cc1073e8e7939dcc6f3e1eead3eee156f38b969e6ce6b6ac511615adbdbbe61"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs78.lean",
-          "sha256_hex": "221c28d8da37540bee69f5ca266a70c94dc2c21465f0cc79a953715af95a6a7f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs79.lean",
-          "sha256_hex": "0225f799bb12917df54864ab40f97dd6ff283e5fdb830ddfef6c6d334ad7f8cd"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs8.lean",
-          "sha256_hex": "bece19e4cca5c5fa3338b23cfe5dda25c2ce5d378e1cd72f7f80c2920a548b72"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs80.lean",
-          "sha256_hex": "1af0c415ce538f30f1a8c8129a80e405a36c33c58db322062ba61c8fc9977925"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs81.lean",
-          "sha256_hex": "7e5e86c5545caeac18506454bb99b37d5c1d8fd103dcbe80fe2338e24606bc11"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs82.lean",
-          "sha256_hex": "21650123753d0b326e5c2767fd7a9d515c5068b72516a3af36ef6b0ce8c81c6a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs83.lean",
-          "sha256_hex": "35738512b0c86cc442b8684187f436064f4b4c5196e607ff52002c833ee28a69"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs84.lean",
-          "sha256_hex": "57b32926ab6a00a3b39e370d8cc84597375a20be866bc8a8833dc0fb92d6c030"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs85.lean",
-          "sha256_hex": "e2f7cc7b7cf5a18dd23936d101a3b85b584a0425d57f3b0861cf821f53411cb4"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs86.lean",
-          "sha256_hex": "15aa5714a54e0b29951417d79c151c0678a89256a5d78b3ab328f536d2164e9f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs87.lean",
-          "sha256_hex": "f7cf2b383d83efd213688a6e393a4a24d073ab509e51b71ce405095001c94f19"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs88.lean",
-          "sha256_hex": "8d313b6c4237b171f43426c85cb44516b5ce0dde741efd86b1536f9c292f492a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs89.lean",
-          "sha256_hex": "96fd907e7f3fd089294c9efcc71b4e49735ce9c04c0cbbb2f588d718634ffb8e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs9.lean",
-          "sha256_hex": "6a4e8ac1e80c62f7463e886af4833cbf50eda5ce100b8043317bb59462714d6c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs90.lean",
-          "sha256_hex": "44a8911ff0be0803f594a6e2cdccfbb4e365eb8181423e6fc083835cb3959f1d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs91.lean",
-          "sha256_hex": "9fda65504f8f825e28e74fd4368ec2ac35f1717d88d79940ae2a55cda6dc004f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs92.lean",
-          "sha256_hex": "82fa2fc61eadacf7bbba82fd5ff761c0a1f8329efe107c6c5c4c5dc07f03edf7"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs93.lean",
-          "sha256_hex": "7f05143de33fb42c5f83c1c3fa2191f7a5bceff93da88ce384ac95728f414155"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs94.lean",
-          "sha256_hex": "19dc49b2b87b0d81c144c5afc4d328880489f57bec3ecaaa20855a03057689c6"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs95.lean",
-          "sha256_hex": "c41fe35973b8e6755ac6c593e7ba42ce30051224f043c48689bd16d0c18f9740"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs96.lean",
-          "sha256_hex": "dd5e0931f693b14e011cf0d150b4691f08bf397824bf3d02c221eccb78666b8e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs97.lean",
-          "sha256_hex": "98d9d2385a5db0fe8580d30006a20d63c3b08eb2349578a40a2baa08a44f9cac"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs98.lean",
-          "sha256_hex": "bb0bf383deaaa4cf30d6d4b4cd8bc4195ef2c968e71fc2e9b3a046f13e101c6c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5Defs99.lean",
-          "sha256_hex": "114b38eab5175745bec9b3bdf3c46990cea5a61225621003248f01197344b679"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5.lean",
-          "sha256_hex": "a3ffd0ad6a7d5800b4fd41c1679a8fba870daf5ba0ac57ea49a95e2f84795cc3"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkBase.lean",
-          "sha256_hex": "85fed8b16bbc7c41c54ee61803c00c6e1c15b87313d2e0dd30ce62c01f7f1313"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyBits.lean",
-          "sha256_hex": "4cf74c6b36173bbd88e59e18bb8e7fcdc40e3232e1b71d80d4bd24455e101fc8"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyDefs.lean",
-          "sha256_hex": "7a8cdf2450cb6b6e7d7aa522b444a2fd08f95170a8e198d7205fadceb35dc25a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR0.lean",
-          "sha256_hex": "80243259311e920e5a986b53fa1a2253782edb6e37a225038b8d7c50c3b173df"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR1.lean",
-          "sha256_hex": "d23805ec7679e411b20be9826ae476dd1b7edf72b4660df6720abc58e5a184d9"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR10.lean",
-          "sha256_hex": "495304a20168e6b13d6ef074e843f0496a477d90a771a2f9df512f35292d97cd"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR11.lean",
-          "sha256_hex": "d11de8758712c5393c3ebfe988c8ae50a0e9e8246a5da72f150d14a2cb06688f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR12.lean",
-          "sha256_hex": "9128bf2ec17f43444894f42e8e18a692a74411a2e49733d2516884a1c965a1e8"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR13.lean",
-          "sha256_hex": "f3db3de3414ec4cbebd26580a7c85bd0e3ab42767a894b247ac4fe87b580bbb0"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR14.lean",
-          "sha256_hex": "d4ab36e5194d2faac284f0f5e263786b552f15c89f27ba9e2c7f2fc662ad8e2a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR15.lean",
-          "sha256_hex": "437a2ea6a5b1e37af3fcc1bbf8dc1af47dfe32f6f7d1be14962c08afd29b827d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR16.lean",
-          "sha256_hex": "8ba9783e69f42a7c9e29dacb0a2c7260a16fe5ad9a99ae442161ad6ff8024bdd"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR17.lean",
-          "sha256_hex": "074ba4ddd4c4c04f6f55099256f98c99631bb74674a3755382dd3a948c52bf1c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR18.lean",
-          "sha256_hex": "64643444add466f6de6d8a6e90bb90564ab103c377a4e8153d7e4cc71f8827d2"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR19.lean",
-          "sha256_hex": "25802b571dea5b6745c173c08efd1a6a74ae492df8394acd9bae52374a57e331"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR2.lean",
-          "sha256_hex": "e1330b2a3be641821b314424a655b9c3a0c03de096d2a42fc8b00fb30b82804f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR20.lean",
-          "sha256_hex": "54dd28e8d8e7e7e14ca1fd85373ee9187099f96522a3f527b4a298c69a7721fe"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR21.lean",
-          "sha256_hex": "8074b02b401dcebfe870c1db77fa87b923bc53855f37274f46bcbb61f458c908"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR22.lean",
-          "sha256_hex": "a6a2801ae43de247c5e582c05d87daf2c2abf52afe0584fb99e81dee771740c2"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR23.lean",
-          "sha256_hex": "e234becddc6a3ff8a2dc9662616ea557277380680cb466df7471ef27d3743aba"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR24.lean",
-          "sha256_hex": "e73b6d8157898da3d7364365b477daa5bab1c58bbdbcf838c7fc267591bcf88e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR3.lean",
-          "sha256_hex": "ea0cf0e547c05efa5b9f092cfe8272436e4d316cf5b6f6756f337ce4cbd494eb"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR4.lean",
-          "sha256_hex": "16d2e0f3f893647b951254544cb2bca9c7b5bfcc5c9ddc60b011c36fe2fe7794"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR5.lean",
-          "sha256_hex": "f61fe391309fd7d14a022eaa2896dba1055be3f811041706e870a61fc26a66a4"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR6.lean",
-          "sha256_hex": "33603a404ccc2d66c8970b0ef851f6e511cd8ee5330b68f9f123525c54fc9a4c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR7.lean",
-          "sha256_hex": "6ba5dc77fdf55004bf1c1dee10d27e05fb71ac07a080bc7f1b9d7e8053b3f359"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR8.lean",
-          "sha256_hex": "b2c4872b1d9365cf93dec88b83f7c71ae9923e1eb8427e179e69cd986085bc18"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyR9.lean",
-          "sha256_hex": "c50e2052715535efd408b63def44b09a9ca37306d9852ccef3da4a7675b8131a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySeed.lean",
-          "sha256_hex": "1fa5fe5b37ba2268e17c7230335c4d3a7e1ce68b30714df16b99f01a9b3aae13"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel0_12.lean",
-          "sha256_hex": "c96c318289db7832f98545bc063e0c738b6787bc0dfa249e1b461793be23a1f6"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel0_25.lean",
-          "sha256_hex": "1373452a53a6630080f4e0bc06d63e4d3d40995c21e521246d1e18a9870b3853"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel0_3.lean",
-          "sha256_hex": "b1292acfa5de987f2e2e73716611592b1a1423e14cea47be52769eae4eac779e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel0_6.lean",
-          "sha256_hex": "8d99ab2c6f6b106843af9e9299953b3ececde9ae6467802e5caecfd5de3a5bf5"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel10_12.lean",
-          "sha256_hex": "937f1e86290b55371790d33bd68e8ee6ebc698dd821c603810ea5bab97dd7091"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel12_15.lean",
-          "sha256_hex": "09f497b7f10c437fb1b074b882a0d9066132361e78c743521daed8a9864ae419"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel12_18.lean",
-          "sha256_hex": "08b35657a771d545997ad4476b39bf4665c3f3a73e870356dd564fcd102ce292"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel12_25.lean",
-          "sha256_hex": "485c2a2a6fbbd86e58590ffc58ad2b2d94abf37d3b5d01d9f9ea1d0865d168fe"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel13_15.lean",
-          "sha256_hex": "5a8c617f5d89a912cad12d7c60d871c2612f564a489b271d5fecd108d649cb65"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel15_18.lean",
-          "sha256_hex": "5ba220c4dc77411629fc7d697be051b907ae2e1e1aea752e1b3204cbfdeb25c2"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel16_18.lean",
-          "sha256_hex": "e136427239cbe5be287b547711e0cbde3155e7a235ea34f946807bb6c01a0b86"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel18_21.lean",
-          "sha256_hex": "c60e7dc338b28811badb12d1aae953fc47364c0b1f45d5f721a7e4a40cb59dde"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel18_25.lean",
-          "sha256_hex": "064b295fca7a019f055968567e38e9cb43bfbd8383e5bacd75a77eb0529222dd"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel19_21.lean",
-          "sha256_hex": "a2e63c0a2e49c131cce2adfc3528f2637df44225d3d572fe37cdf06933f40ace"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel1_3.lean",
-          "sha256_hex": "6053aeaa7a8fa7bc1a1f926307ff6b6f075d3c58ed6d8da6da149b7f0c9a902d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel21_23.lean",
-          "sha256_hex": "e2f33c9db640f6da375262dc00e821e81ea102a6ac09a5709f9fdd1c8838a64a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel21_25.lean",
-          "sha256_hex": "c3757015f09c55e29c59c4216d0b753e3eb3ac4b92949e2ed85f6caf5e1c2821"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel23_25.lean",
-          "sha256_hex": "2fa347b56ec3618b7df3ccb2a874bfefc808324e7d8b8f911bbf0b6e791b31be"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel3_6.lean",
-          "sha256_hex": "2c7cd4e89b614cebc167a934dfe9e477246ef59b3e7f54025835750ebdc884ce"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel4_6.lean",
-          "sha256_hex": "dd375817834046747ac79ad9af8c2b4a21e0e295571cfb54684fcd6a5771aee4"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel6_12.lean",
-          "sha256_hex": "afea64f9e34e28e7bb86f626d22a639adf783cb5c77bddcc9c68b37b08593268"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel6_9.lean",
-          "sha256_hex": "adba3dcf09eeadde141cd87a10472f7ff7e3982c58f69288d1156d1cc2bd6f2e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel7_9.lean",
-          "sha256_hex": "ea1df727b6f3a9efc755d4fd612610b2b323b5d960bfcf16d9bc726860c58264"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeySel9_12.lean",
-          "sha256_hex": "609f186546b3037a031d2f6db868fce1bdbe479a02c3c1f4dfd8fb666c59c92c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyStep.lean",
-          "sha256_hex": "6b91e7ddc88c2417f825cf0349d1904b53cca0169058e962a647bc539e2e161d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkDummyKeyTrace.lean",
-          "sha256_hex": "1317040e9029352df296809388247429b773bb137f3c7d9b2a857a4fbcdc3d95"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkNativeAdd.lean",
-          "sha256_hex": "ce1e5a8952ee1d7ce741fb8392c962ebd009e204b86a4c9dfffb67642f15cd7e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkPrime.lean",
-          "sha256_hex": "d5ab421f73702dbfb491ad2b18a034143c5ffe127c75f9b767515fd2ef3167bd"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerBits.lean",
-          "sha256_hex": "9a0adfa5e806b25cdf5ed7e69ee0a2477102cefa8d0a143f63e01e8aa47fe1ae"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerDefs.lean",
-          "sha256_hex": "460f835cde8dabf4a33bcbd792624968b56011b97bf7cc6aa9d4404845d19b74"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR0.lean",
-          "sha256_hex": "7e72778557bdf74481db2932cfa0bcc496a728a4e3c0ec76a4171903c2bf0131"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR1.lean",
-          "sha256_hex": "d0c4cb80817b7bc7ef0a5a1197c934e4161b80de92bf78eeb572afceb8c4d35d"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR10.lean",
-          "sha256_hex": "486d16ba0315a8382dfb02a9e679bf9c379e81b58be80d4dc8016a5aea4eda03"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR11.lean",
-          "sha256_hex": "6f425245ebc1aaf8112dd97a11711fe0986d1a02a680a74968e88d934cf0f4f5"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR12.lean",
-          "sha256_hex": "20ca26e3ff03cc167d5f97f7c0d06d66aa7f776431e6d567fabaf0235307e8d6"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR13.lean",
-          "sha256_hex": "d0711c4f04393ab3e5f8b68301cee74fa31d4915f1f21dbae8b01acde90be26e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR14.lean",
-          "sha256_hex": "78b0250c99c85853d8b2846f70d1d88d92ceff55d226fedec6de1d5566ead31a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR15.lean",
-          "sha256_hex": "aec57bfdc029704cbc208472a85728454f9419955a53c2af720451bb244cde13"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR16.lean",
-          "sha256_hex": "a67927e6bb239cb97fcad6c2fc6e50dbc9741111b3cd63b05f44d900272040a3"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR17.lean",
-          "sha256_hex": "f42c7e693d48929058108df9df5321f274ab4b67470ae6eadea005e0d5ea32a6"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR18.lean",
-          "sha256_hex": "19c149198517aa310403388d20fe9998bbb2f7120839d289cbd38f53ce0da675"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR19.lean",
-          "sha256_hex": "2e32c229dffe4577681f5ba1d1e762d21d532d58b54bba41780a37598e479e42"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR2.lean",
-          "sha256_hex": "fd4ee78918129f3d0195f79b7d6b369c7b7ee87fc96b0b1acbc4f2a6610d07bc"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR20.lean",
-          "sha256_hex": "7829a5c164a93dedc68e1908dfcbbbc74d7780f0fdd1c36b1c29af9e564ffca4"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR21.lean",
-          "sha256_hex": "0e938311123e874b229ae043db349f2e4d127781ca7f0cb77cd963ef0ffca192"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR22.lean",
-          "sha256_hex": "98865a4c106e66a7d666d4a13520b2b8355c6fc25a793a3cd055b240500faea7"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR23.lean",
-          "sha256_hex": "787aa296bae9012bc2624d64bc832e7863d40f237598853673eefcf69f795f62"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR24.lean",
-          "sha256_hex": "aa76c37c759b8244f4c934dc7a990b77c1d97b03bac199fee7efc83c3341b731"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR3.lean",
-          "sha256_hex": "25981e1970c4157e85a2ddbba45ac2b761eda79d547b296f9a978f3f21dbe7d4"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR4.lean",
-          "sha256_hex": "a131a20337aa21bc550a88f40b183c1d5c4e2f985503f977afbf276917b6bf98"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR5.lean",
-          "sha256_hex": "f0b2dfac0332cd403853dc58155aef4d4ddfed77a09b6167846b23d2d02cbe60"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR6.lean",
-          "sha256_hex": "50abfff0e8270809d0822afba56c46162de39992a07e93a998050bb7ac2f6d00"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR7.lean",
-          "sha256_hex": "3e7395d1287a18aa56429886b4c20fb4fa6ab5031f5cb05e3f8f9b7fc0611330"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR8.lean",
-          "sha256_hex": "f4615be7c74f662ffbb2b0deea680d13827390e04bf2f38110ff28389fb9ad33"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerR9.lean",
-          "sha256_hex": "35d304a8f4154b537854580796c0dcd3ec244bcd67eaa3a75bb7102994c868e1"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSeed.lean",
-          "sha256_hex": "df20b0bfdd539de1d3cd025d3cc2d896d1a388689f13243657b2848aff0bf0b4"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel0_12.lean",
-          "sha256_hex": "db5b54089360f0c0b34947f657de2ba71ad0cab29cbe43deccb988c4fdf903d5"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel0_25.lean",
-          "sha256_hex": "66fb56e6634fa63d1510a31e97d091e03cf4cd0543427f85d97fe91aae7173e4"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel0_3.lean",
-          "sha256_hex": "d2200bfe004c8e0fba0e58edef3ca1647b11c225691191bff31e4b4fc4cad61a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel0_6.lean",
-          "sha256_hex": "e8e6c47ed9c0f336b58d951b127f4ec6003bb5ff9814c7c55982577c80a65d5b"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel10_12.lean",
-          "sha256_hex": "559c3615fa96941dba3231b29767d876a4f7e0ebd89e463db9b7f7f018a7530c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel12_15.lean",
-          "sha256_hex": "0b466d5b2d148586d5b78c234423ef310a6c2cd945a73b4ab5ec1053e3e97708"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel12_18.lean",
-          "sha256_hex": "4df671ef35d06927bbf1e6b4327e7f705a1f7b0c8d5c2956f63a800a3e3bdd42"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel12_25.lean",
-          "sha256_hex": "9336b94c4b3932644a5d53c9fbfca3f10f87c2106edc1273028f465d16c079e6"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel13_15.lean",
-          "sha256_hex": "54f4efbe6f53cfbb010c8fba21419083fdc8ccc5f7534ecfe11e1e75b0296293"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel15_18.lean",
-          "sha256_hex": "b6be07ef45639785425be2a48c9312aad0024237eef54017816adc4ac2bbb1ea"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel16_18.lean",
-          "sha256_hex": "e2ac9e14c6d350168c0b3430ba4ec7a0f94ccb1f4bb98c7664681c43136f054c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel18_21.lean",
-          "sha256_hex": "892a4612c462e7d4b436f83722200f6463bcc854069b46190b367abbcfea9d1e"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel18_25.lean",
-          "sha256_hex": "23d114bba65fecc4be1fd7291c217ded5d5975caa56a921363301dda1412019f"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel19_21.lean",
-          "sha256_hex": "0781101b843cedeee88fc1cadc461aa76668df549e0fa990c9c494c38ab78e19"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel1_3.lean",
-          "sha256_hex": "b096ecc7fcf545bacb46e8fd1449466cd956e23ad964fe6f5828b49700caa300"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel21_23.lean",
-          "sha256_hex": "dfdbde4119d9f3fd9e4a35928ec994bdfb78d727e316150ca9aa28cb04f7fd16"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel21_25.lean",
-          "sha256_hex": "fcf825e336e2f705032e717ff65bdf61d3d755905d3d8d2dbb7e80f2fa71cb08"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel23_25.lean",
-          "sha256_hex": "7cfe0aee55779531518683e03c131310475bd18a42838e9f35b01eac76b4a005"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel3_6.lean",
-          "sha256_hex": "c69e24029a7c262d507d7ca67ccbf7827d73528a4b338a0651c7b0c905b8320a"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel4_6.lean",
-          "sha256_hex": "e59082f4febf62319b7643dc121576cdbdfc68bb574f007c866309803227b893"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel6_12.lean",
-          "sha256_hex": "f1d8a484a6af205ecf02b2f48370fb7564f4fe448f428ebd0013910146bd10cd"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel6_9.lean",
-          "sha256_hex": "898ad5cb351011a70e94f061ae6e5cf4aa927d2d760f0cc37da7056cd92d4e6c"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel7_9.lean",
-          "sha256_hex": "efc3a4faaf6ea9a8fd548fbcb581bd864538680531fbee4f2c236fd9b63ff797"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerSel9_12.lean",
-          "sha256_hex": "7954bd84c60918db334d85c19796857250b6954b60469dbbb7c3bedf1842ab02"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerStep.lean",
-          "sha256_hex": "ac68fc45d5d3b8cecad1d2307536e5fdb64d9ad29abab53b88e311cd5cfbefd3"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkRandomizerTrace.lean",
-          "sha256_hex": "ca780196e41071ffff13b58eb7fdd45eb7d84d231f5339436b9b960dad408ebe"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkTailLcs.lean",
-          "sha256_hex": "c5eb67f1a989e0d2a0ffc88ae5d1235803b79b67848feed51e242395e3cf1f36"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkTailProducts.lean",
-          "sha256_hex": "fdb7c8389b5f60f7c1b2ac206e7fcefa31ddf3a70df6ed402a6c258c86de13a7"
-        },
-        {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TDecafRandomizedVerificationKeyDummy_e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5DummyRvkTailRows.lean",
-          "sha256_hex": "687434dc8373b48323b564d6b913038585bb320674910deb7eebc1a020ff96b9"
         }
       ],
-      "template_files_sha256_hex": "48e234fb0bec36da5cb6c666dcdb73d1ce59ba504d4ae1fb60c4f341f7301b6c"
+      "template_files_sha256_hex": "a482ccd9bae38bf627433902138509b383f256aedca5af76cc1371593b118bf9"
     },
     {
       "proof_template_id": "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
@@ -11459,6 +10506,17 @@
     },
     {
       "proof_template_id": "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+      "consumers": [],
+      "files": [
+        {
+          "path": "tools/gnark/artifacts/proof-template-relations/7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.sr1cs.gz",
+          "sha256_hex": "1a991e715f23ca9a8ce0fd6dc66b079dffc0cbd532314d51e3a7ef117f0c742c"
+        }
+      ],
+      "template_files_sha256_hex": "05a59a777f85884bdcd10400376e7dbdbecd2eb17c639ed6d98d1dd162285ff5"
+    },
+    {
+      "proof_template_id": "gadget.note_commitment@9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5",
       "consumers": [
         "note_reshape1x8",
         "note_reshape2x1",
@@ -11468,471 +10526,471 @@
       ],
       "files": [
         {
-          "path": "tools/gnark/artifacts/proof-template-relations/7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.sr1cs.gz",
-          "sha256_hex": "1a991e715f23ca9a8ce0fd6dc66b079dffc0cbd532314d51e3a7ef117f0c742c"
+          "path": "tools/gnark/artifacts/proof-template-relations/9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5.sr1cs.gz",
+          "sha256_hex": "25631c2741813525ffa5d2b4f19247ebf77965a9ad4780df24034ac0beb173e2"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Generated/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.lean",
-          "sha256_hex": "2dff7e9043fad97fee500910b0767e52a41d7cae4acdbc2368b94b68780479c8"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Generated/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5.lean",
+          "sha256_hex": "eb576fa2b5b7f33bab2af1fef2c4057cb8a15578ef610c0f4d72caa776226a1a"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.lean",
-          "sha256_hex": "ef99be6c14a8b2f3c39557ac9fe770e74946844b8b77b44d1087a967c2257600"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5.lean",
+          "sha256_hex": "290b4c70b581b49aec555350c7ff9b93c4867a71c90238783ae39a5ffed1a3db"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fBase.lean",
-          "sha256_hex": "1279a4ed1dadb337339ca85e9e9489f43783a5b5496f1597cd0a7fbe47aed206"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Base.lean",
+          "sha256_hex": "32b7da3dcebbbc37f056acb7534ba2fbb4669a7e33111373a1933ec13d697f55"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs0.lean",
-          "sha256_hex": "b5b9759ad9be70409ffae67d395ba7128b5df1497ab27e23fee96d64b9dc347d"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs0.lean",
+          "sha256_hex": "2208c83111dadbe6b25e29ca3221fe8b5138a708db59c4e66fb2f1ec7b01fd3a"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs1.lean",
-          "sha256_hex": "1a637295b447490f809c37bd16198e01c780e3ef11795fc3c52fd447a56d4a3a"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs1.lean",
+          "sha256_hex": "fd313a592bd26a31e82978192f1127b06eac8d2e0004a5798152da69a2ca67ec"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs10.lean",
-          "sha256_hex": "240dd6796b82366feb703c82e4116248bfd0ea259f4b185cbcb22d230173dbf1"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs10.lean",
+          "sha256_hex": "488b19306cdf5329a2e4983684481b40b83694058eab8c27cbd9e82cf77c4ce6"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs11.lean",
-          "sha256_hex": "8c674cecbfc8e4712a95a26e967a8830ee38edca86097880f13ad28f33ca7d32"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs11.lean",
+          "sha256_hex": "bc495941ae7290fb35b0004cf9dbf5b410f315442e8275432d79ec0e4e01b8aa"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs12.lean",
-          "sha256_hex": "6f8f60e9b329b3ae8f5f30d9efaa0e3c2fc31c0e57b1c689b684577029568133"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs12.lean",
+          "sha256_hex": "1337c5ad244df5740f1a9a47bff88664e4ae0c048a61297f9be0c111e2b80f63"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs13.lean",
-          "sha256_hex": "40b72bd89379ea9aec769671d58d80708d0f80988c1cb5502c2e80a3090418c0"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs13.lean",
+          "sha256_hex": "2f189dac7be3b3acd06a661d3752437c3ba88f4638a855a8f2a1525fa075c8f9"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs14.lean",
-          "sha256_hex": "0b974930a06cd03d2983eaa4ff90fda5713486d2cd9e261e8b03cdbb6d15c901"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs14.lean",
+          "sha256_hex": "4dd83265ac12bf1191e2906eb01a5169f1377b659b0d501990918137f3f7716d"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs15.lean",
-          "sha256_hex": "cbedd5a3e76c14c5ee8fdddb4dae8a4517f776caf0437d93a3b37ac0ba43ffe5"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs15.lean",
+          "sha256_hex": "37545d37c2b5a25b20969225dc30c21974308e227526405d27cf774e07ad0ee2"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs16.lean",
-          "sha256_hex": "9e070fd8f11a41562c85bbca0d9c78c0b5e490a41fb49cb4396c15d4089b065f"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs16.lean",
+          "sha256_hex": "a1dbd1bb5b92971dcda194dc1bea90c2ab07f068194f8c47221e8a8b7c3f567b"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs17.lean",
-          "sha256_hex": "0b4558ee3f43a3ffb40013606d7cf8bc9d3552d37aa6d99999ef8eb8e1fe7ff1"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs17.lean",
+          "sha256_hex": "1fddda71e1888de7390eafe4ec928c424fe9963fe98ffeb44700a6fdf46ee92e"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs18.lean",
-          "sha256_hex": "b442e31535a5b360b8ee8b3cb4eda9941fb38bc47c6d3c27bef06c71f375ac54"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs18.lean",
+          "sha256_hex": "796b5381040ebd8787bd86476be02303f702a1b4cbce81e86f8dbef942a211a8"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs19.lean",
-          "sha256_hex": "443f7eb01d3a951b280685394f02c18409b7c3ae304b97064192de544306eecc"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs19.lean",
+          "sha256_hex": "368161e81fc66e9db1ba9e90ff84e42de426941407f9abeddca33d83899da8b1"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs2.lean",
-          "sha256_hex": "7e073cd3f34f536ce0d43e149ef2b19e5c11dec22ddb615b8db01f9e432d9591"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs2.lean",
+          "sha256_hex": "c6fa1121526450130d5652c27e6701f92d1208e820220685f45739c63f3e534e"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs20.lean",
-          "sha256_hex": "e45987fec6ce03fdeee7e9f60daaa0979e400eab0b348c8e5cb963e1be2df369"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs20.lean",
+          "sha256_hex": "1a3d193f542998ea2e817ae255756cf8fe31da27be11eeef8232378f790341e7"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs21.lean",
-          "sha256_hex": "62b86175c901feea8d0ce28f1a953bf858cf27ca32bf3ba241de6052ba232303"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs21.lean",
+          "sha256_hex": "3e3f0beb2b1ce2965fe3d75fb926e32da9281cf8bdd29fd1e98e41eef99fea4e"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs22.lean",
-          "sha256_hex": "761cc17b31ffe6575a305087ecf6c5d5bf635b67bdfea93c977424f2ba5c6f42"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs22.lean",
+          "sha256_hex": "1549ce8bec4bcbdea3938971381c834f00f0ecc841d742ac96d2208d7dfd394a"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs3.lean",
-          "sha256_hex": "6da0dfdf307eec8144192217bf08781b023d104e7c18cf22132f89e35e90f518"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs3.lean",
+          "sha256_hex": "09c3e97048d9a985b36e548afdfae72fa2e567da2f98e552ff11947e1de71b84"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs4.lean",
-          "sha256_hex": "0f80420b50b172af9199806a35d571943c366944f5cc84daf272bf220f1f548f"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs4.lean",
+          "sha256_hex": "09106a2565177f16c4e99ad7bf12c60eda84f24c2ed2afa03762adcd46ddfc55"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs5.lean",
-          "sha256_hex": "1bcf372e0916004c008877e21d5f7baf1ba4b48ea9ee0c95b0ac47000d7e0879"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs5.lean",
+          "sha256_hex": "736725220f24b5929a7ac4fff94be907b499c89f858e7e082b181048e3c14d7a"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs6.lean",
-          "sha256_hex": "899e31c31c807bfe253e26ad43e81a0687acbc91873b883cea7038aea7aa448b"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs6.lean",
+          "sha256_hex": "80d1ea1bad66310c8e23e065d71b22771db616bc1191ffeb76b72be14e64e6a0"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs7.lean",
-          "sha256_hex": "7b9981143c97cad3ced96f983db60786f1944b26a52fe27305959539cdfdc162"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs7.lean",
+          "sha256_hex": "6e67d0d9e556084b9048ad40af1c439efb1b20e4031ecac24a9dd45fe3d9f50f"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs8.lean",
-          "sha256_hex": "2b15eef8c89f2bd665caa3a033edbf3f3e992cd10078eeeedf03fa729c2595f7"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs8.lean",
+          "sha256_hex": "aa6eb85a8b5c636e8301ae220dbd492f6abec8aad2e9e6889bcf463e70b4565b"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fDefs9.lean",
-          "sha256_hex": "1b93b7fed87fd39bb6abd405843f5725ffea97e116dd204a6c5a645e3798f00c"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Relations/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Defs9.lean",
+          "sha256_hex": "6bab3219212ddb33c457abfa07e16f58ce46a8f68a0bdc5367c1bd3be4302b0c"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.lean",
-          "sha256_hex": "5cd3480344630a24329c22c873f62c01375f57811386e022c2528c6c39b4a7dc"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5.lean",
+          "sha256_hex": "2ff1ce201d2dfa03b1f3d0e9c8929c322b62aebfdc503313c7c2e060f2eeec42"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fBase.lean",
-          "sha256_hex": "d855581b2ece5eb0910f9ac68ff994182113b5bce97ce088bf86c15bafeee924"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Base.lean",
+          "sha256_hex": "5bcaa03679dc142d86de2d3becdf4b17595970698c31dfca1c27f609153cf812"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart0.lean",
-          "sha256_hex": "675d98d84fa146817df108c1a7f8f3e42e3cd544d23414031aa6f9ce8eafe1e1"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part0.lean",
+          "sha256_hex": "d399ff0958fecde4c6f422e5aa144eef1ede60bc7f2e3148676279101fbfb881"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart1.lean",
-          "sha256_hex": "49f9987e1c94294124575e0e59fa37b462faafe846798a386ba9b098d4fcbe2c"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part1.lean",
+          "sha256_hex": "365e6d5a849f5e0c306ddfe8116765b8e7c0c3e2f07954432fbff7af5bb8338e"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart10.lean",
-          "sha256_hex": "9bdd1d72bff363345b5fa9a3545c476e2ce57eb607da7c8627099a6b724b51f2"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part10.lean",
+          "sha256_hex": "8aa6dfb019dcd25bca307182747de033720f8a9c598e77a876bedd6ac3bf8460"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart11.lean",
-          "sha256_hex": "58adacd7463da94dfdb38e61fc9f5b3fd18a573a61ac8e35c251744329ca7c45"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part11.lean",
+          "sha256_hex": "37c522c6ab80516cc9e16642bcf00a4333fe859847db6ad54718ace471ff6357"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart12.lean",
-          "sha256_hex": "65cd0e51dcb6eeb577a54b376306038eb3a85ab6a059d3fd077a15e1dc77f413"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part12.lean",
+          "sha256_hex": "cbaba650aa3a71fa9b598edc21949cfb9b993ea8f218732d32f48a2f297829e0"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart13.lean",
-          "sha256_hex": "78a2147f58f8ed212701043edca9abc48537e95f892570c90642b1fb74b58811"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part13.lean",
+          "sha256_hex": "bca8f09d4361e05355224e85186db574e713708c9b0ca5b9706a592fd5774a2a"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart14.lean",
-          "sha256_hex": "a8044db609e6a9abb77ef6b924af9c69598a2fefb10645c3226e1f314feb0df1"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part14.lean",
+          "sha256_hex": "b60a9a0bf67dd58b5c09e636b3994a34c78d07cc73f4c693096ee6c5bbc69f41"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart15.lean",
-          "sha256_hex": "7d4cb32d505b41487921809345e73d4f75a3f628fd3a3dfb5432385a10bbda63"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part15.lean",
+          "sha256_hex": "ae9b6aa2107c4f1944e92fdc7e76c8373d54c4e9a86de8c5c26a6cc73ab0a929"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart16.lean",
-          "sha256_hex": "8a8a2a24062c4aa44346ab5e86d0baf98dc163ed5e35303c947f8ed88138882c"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part16.lean",
+          "sha256_hex": "9f529303f04d2c3039479731be02eeae04cca01e9e21132fa7791ba534e1a64b"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart17.lean",
-          "sha256_hex": "7cf7d2afb9ccbb2c49cec83209e0e72617e5b2b9034057cf0fc8f391e3d50e7d"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part17.lean",
+          "sha256_hex": "f0796fa3ba4132237472dfcc4d25bac84f5ec2e9ab0fc5244667ddff6ef27cdc"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart18.lean",
-          "sha256_hex": "1e10e22d84de0a4b7963ea057112c63f3b7e1bc4860d52fe795517c9f675e192"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part18.lean",
+          "sha256_hex": "605acd559409ba1ef0e7a6648ffa25c5e070fcb0e5e012b113e3b55e0ce426a7"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart19.lean",
-          "sha256_hex": "026bf0984ded069b744ea850b2d1bc31ca65a9a8a4a0a799454f0fd43912eab7"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part19.lean",
+          "sha256_hex": "767e0418a058e4e6e674b897c41c42f50fa8eff26ec2fd74180c44f8a4095379"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart2.lean",
-          "sha256_hex": "82c4c6096c67896a4ef653761e785f872f061e8b75522430825494b71278762c"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part2.lean",
+          "sha256_hex": "812c43233f21cd2726f09ac1fc33af027658778e3cb060d90c0957cae6cb7a0d"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart20.lean",
-          "sha256_hex": "ae85761e54e30ab24f06e388bcc23a90a3ea1d58374ef2634393aadd7463304d"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part20.lean",
+          "sha256_hex": "49be62855b8c13ae805f8b157869f94d6419ca48f34bb67543db2f51c260eb73"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart21.lean",
-          "sha256_hex": "60ec69f85443f8f0ef770f3aa7f2d1bffb57c23d75a16ee972c80b98168fa9be"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part21.lean",
+          "sha256_hex": "89259845d7cd4467eb9a78a2074324709973da4f912e60e36840c156369409ab"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart22.lean",
-          "sha256_hex": "55ebfcc9ef0aac5f415ee49598ab510f837c511906c69c20a02b5d4aec1e6dc4"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part22.lean",
+          "sha256_hex": "77594b764f797d3fb249857b2ba9fd0d7d50bbc314a0f4c97b1f152c953ec6d4"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart23.lean",
-          "sha256_hex": "786141d162a5ed6802be675e624c59ff92a485d9ad3186cbba6d2c636adde052"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part23.lean",
+          "sha256_hex": "aaba2e79042deb268b72d6206164cde6d8ffc549dd77727ad6e75c13be0d8c1c"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart24.lean",
-          "sha256_hex": "481c5dc84a1bb3538819e9a0c06a2dcfbd052c4de43d18e3959197f68d71831a"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part24.lean",
+          "sha256_hex": "56b9c8d4c86a11f8d52528935678052aeb6b5e41204a0b07cd4a96449f2f7725"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart25.lean",
-          "sha256_hex": "a31a1fa490533f6e04fad190975a216ad59f21d67cfd2997c45f5bcc40b55c10"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part25.lean",
+          "sha256_hex": "471b7e7b8055c6f40ee5188f1ada4e81bb86a69b31cd8f9141871b94cfcbe767"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart26.lean",
-          "sha256_hex": "99ee4b66da6c6c342467515242d150cfa92182c7cb056859119642ae884569f7"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part26.lean",
+          "sha256_hex": "8d303ee911c6da6a9700dc8126a258d6f9bb79492d14a672d9692964cda63ead"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart27.lean",
-          "sha256_hex": "045741b605b652291b5c276419d6de0371ced9684c00861e3e7ce0c9f01cbd22"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part27.lean",
+          "sha256_hex": "c73ab79c89c7f625e35dab788781ff34639154384973ceb133e6088ca364e916"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart28.lean",
-          "sha256_hex": "7927e472bc6d295c476f9b2b210592d9be0c4b3e8287cead99573bed64d587e8"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part28.lean",
+          "sha256_hex": "94f3ad7f6d80faa85b53b1490e4575c5f2a9b885bf74e4b75cc494b9036ee21c"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart29.lean",
-          "sha256_hex": "1c625151ec541545db7e0ee7fafb6b09c0ab46fc601e20dad21d8b51c535974b"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part29.lean",
+          "sha256_hex": "28bc6f639d9c60dc3c48890c9dfddde682c3fc41c67cc963f61d964ed5c75e63"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart3.lean",
-          "sha256_hex": "5ca57622eec7f28fd0337c9d184400d4489d77521551bb8ca86d9d2e25e4d8bc"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part3.lean",
+          "sha256_hex": "001e19eb29dcdc164c2d251c8511048eb0919c2101869726c97d580081c4dee7"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart30.lean",
-          "sha256_hex": "36374806efc07045017ca9fa11bcdebe7fd3fcd5f0e6ba49185940ccb0bd0c5f"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part30.lean",
+          "sha256_hex": "76b512c0d5c4458998ce10bfcf9bb03e344ce9eee3b84be7bb279a8ef0512f22"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart31.lean",
-          "sha256_hex": "b3baee851d47bee5690759cffc7f8cc1df2c96d095dfca70e71715ad03d8d76c"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part31.lean",
+          "sha256_hex": "754c740dd19b72e45f483a8c48b624ad10bbfe93a5a90f3e2e475409f5088df5"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart32.lean",
-          "sha256_hex": "e79109ed4656a0f9f9f7f1681e9f27860a2ac4b208cc6ae7db70f484e57933ba"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part32.lean",
+          "sha256_hex": "7cb5820df07aef20a853cf2e2e6425e1cd8d70f97679eb95062c5ebf72753765"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart33.lean",
-          "sha256_hex": "89e88136924351ba8f8b0a98ea49ca92d9ff4ed482b108abd8b82c3bfc9a0998"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part33.lean",
+          "sha256_hex": "fcd941b8871fe02d29aae522f3376bce9c92c0f3c77d95966db85205ea4de592"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart34.lean",
-          "sha256_hex": "9f8d29230211c0a4cde31a5a2269f52c931d2ffd04268546d4033123b14afd8d"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part34.lean",
+          "sha256_hex": "5be7eca0b28cd551a3f311b16860c3f16a1cc49d7a143c5ca974139b4cdc8cdb"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart35.lean",
-          "sha256_hex": "6506e68c2df3a79eacc2ec593c340808e46f967e6658eff67b8c94895d8c6c03"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part35.lean",
+          "sha256_hex": "9d5091f92e5a0e894fc75b4526267e6adf33c4920ff0eb11338781aab25c67d6"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart36.lean",
-          "sha256_hex": "e3398a7e0dc3ccccc55343d631ea8e7e2a8f154f498888d74a8fa4f6742b8643"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part36.lean",
+          "sha256_hex": "d388d6c3c73571a7ea59566f06437d5fb17e86a5b396a0738a0bb0bb8a8b0b70"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart37.lean",
-          "sha256_hex": "4126ad8a519a21cf02922cbf0667e0327d1d643f80e8dc4f90eb94e984faba1e"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part37.lean",
+          "sha256_hex": "f774d646b5a907a61296a8c26b1477a8674a29815d56e1995c4f0903984045c8"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart38.lean",
-          "sha256_hex": "c21758f8439e7f948c962b4b63796180d3ef12dc17dd66d13c3bcd1a49c63da2"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part38.lean",
+          "sha256_hex": "f27cbf17ebaed942e05938b92b9daaf7cd332bf46787599f03202f78a676e1ed"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart39.lean",
-          "sha256_hex": "a1012e1a277022d4ea98c79c6b7b41ab0c0be38f64afd44a300869cd89d4bb69"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part39.lean",
+          "sha256_hex": "3791aff57c108a93fe758e4464095031a3ff499e194f29b91a4595fd95d407d2"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart4.lean",
-          "sha256_hex": "f9925fa72d69acfbb5a31ca9fc27dfa6062ae781b9f62c1b0f15e9d8fc128228"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part4.lean",
+          "sha256_hex": "ea7be8f1cc442853cf4cb59b8dbfff37d9c267edaa637b34caab781706491b8d"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart40.lean",
-          "sha256_hex": "c1f9c5b0efad06e7dafcbb97e03393f294c6576f4ab47e5b40f83996756820ab"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part40.lean",
+          "sha256_hex": "0c4dd6f9fbebbcb47b876bb4e4b7a2ff5f48c6b830335c9788048fc006bf3f5a"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart41.lean",
-          "sha256_hex": "6b9dca9f654af596b1e297093b0556648c9077702e7933ee9b8ea28ec8f629d4"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part41.lean",
+          "sha256_hex": "e6c1acae22af5eb37ced7ad52d503c0a755406da15d4a90b33684618d6318234"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart42.lean",
-          "sha256_hex": "76e4777b4b5ba2b1b1984e364c6e1ed0934072663179ac7ea39383e7f8220a55"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part42.lean",
+          "sha256_hex": "d8822bf1031e541c79545c914517c39b5ba0104ecbb345f28e73b4cb2286b96c"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart43.lean",
-          "sha256_hex": "0dae511f3a6ce6f70a88ea62023927aeed96866390872030a58d6a075075e230"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part43.lean",
+          "sha256_hex": "816f7b56abb9956a6f7d53a5aafa157962f8fce660f0bb083fcea43b022d3d49"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart44.lean",
-          "sha256_hex": "803747ab5bc58a1a4fd4a0bc3fab449356f1433bef9926a49a0f3ed88d2ba195"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part44.lean",
+          "sha256_hex": "4f4bbfe8a2eea5069d03f6a3610bd0407b8bf63171426b76f7f03be7a9c6c576"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart45.lean",
-          "sha256_hex": "bc0e8fc11ad545195430f643a6eae1021cffb0a5e17d952705221fb02ad5fd2f"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part45.lean",
+          "sha256_hex": "2e6c862fdc1e7f43b427c6e0b5aea10f9f0031b62cc70966d01d0834d59a36cb"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart46.lean",
-          "sha256_hex": "7351498b79d6465e7d5292147fc1bc1d9f6e1a7095c650b99badab57a8b859c4"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part46.lean",
+          "sha256_hex": "b416ebb206162cb0ecadd39c4c4306528b50ee1687cfb1cd020a65e7a105e175"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart47.lean",
-          "sha256_hex": "1eea98134663f4cd856cb562306eb832edf7d179035a53a0ba5466bc40016094"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part47.lean",
+          "sha256_hex": "6ce78287d77ae3b8437004401c651c9ff3aaa8a95dfea5b4c3577a34dfac2c54"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart48.lean",
-          "sha256_hex": "6e8bb91988387cbdb885295d66a6c2edef7b4b6dad467867e963c6cc73f0c2e3"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part48.lean",
+          "sha256_hex": "d42f8a75aacdb51a4d164c5cdd0130a3b2211272e378ae5acf12667d68f87c76"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart49.lean",
-          "sha256_hex": "89bd387f6c7c454ba431b2a96af976c252a8c6d32b5b1cda83f2fa1c87e31838"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part49.lean",
+          "sha256_hex": "b36633854a0e767781b5ac3a608f6e957fea88138eb9741a23aa1b21a58dfc77"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart5.lean",
-          "sha256_hex": "bd585cea750dc349feee17ed6b0411eb5fde549eee6f936dd3e6c7eaba81129f"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part5.lean",
+          "sha256_hex": "08050b05b8fa161342b74a39ecc9a16cf86b927b2801cfc0ae8cd11b0755cf20"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart50.lean",
-          "sha256_hex": "e82f22c0fcea8c5816ee25d8feba92464116ac5e1327c99cd50e5e34156b838e"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part50.lean",
+          "sha256_hex": "0765a3d20a590542c44519e3d9576ae43d2e52c8f5b0278d3d9568cc11b66d71"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart51.lean",
-          "sha256_hex": "6a5205b4ccc24a4285c6b2d09873524fe8a4a643d54cee5afa1bc08f48bbe684"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part51.lean",
+          "sha256_hex": "f1327c83bae9df3e07815ab4bbc60ba78b8ac97baa2df56b90be448eb6d76557"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart52.lean",
-          "sha256_hex": "81d9a0a52a1b591de293919c0c6a1d930e936ae241dac996e6e59017c3bbc797"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part52.lean",
+          "sha256_hex": "38610c047b937f5252713c8ed304ab36bc0a45d47379e8980fa9575ee007e27c"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart53.lean",
-          "sha256_hex": "d06ba8dc557350ae7267f84932a901ed1d738d44a1fdea2e2b69d3943cc59542"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part53.lean",
+          "sha256_hex": "e7dd6fbc99d237bfcf75c1d91979ed0977a319f2b7db4a4606df5a25f78a87e9"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart54.lean",
-          "sha256_hex": "b52f2aca1e77f94cb17cc7efd1cf064dabcab5ff8f9bee3245d3ed78b4647ee9"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part54.lean",
+          "sha256_hex": "13cf223757e3b97a49e7057fef56a5b84823afc5f90d0af05d210529c49f54d5"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart55.lean",
-          "sha256_hex": "ad19a531ec975fe3925c4fd99af7b9c4db624e97032d21095156473a50e4c3ec"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part55.lean",
+          "sha256_hex": "7e6c14c5c14860575dabbb2130ce4464b303f71e3895e7f2bb7f297e56421ac7"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart56.lean",
-          "sha256_hex": "428d51c3bc78d60bf0062738e573df6caaf37961621425821075d69f34d00b0b"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part56.lean",
+          "sha256_hex": "dcf251b18313b6055445f2bdf327478f3e5180ca64566bdd264665d02313322c"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart57.lean",
-          "sha256_hex": "a38937ffc745cfc365e24a23bc53f52fb52585c18ab33aa8940680443745c589"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part57.lean",
+          "sha256_hex": "5bc6be600a8876f45a16ebcd0a746b5dc8e77e89447cea1ca5b8053e9da26914"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart58.lean",
-          "sha256_hex": "0b69f287ed24152dc314947f77fb680041ed872fb7878ca96d2d63acb6006d4f"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part58.lean",
+          "sha256_hex": "9091eb5f906962d784225295e28e64d81c41f0a5a8552d62ccb248e57c710716"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart59.lean",
-          "sha256_hex": "f5d7f6de5fe1768f64bf0e1ebf8b72c5dd63baad4fa1c51fce045012acea4bad"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part59.lean",
+          "sha256_hex": "0646b364a62405665b630690d8099f5c5b15d716b3071e2264d6ade81ff5da9b"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart6.lean",
-          "sha256_hex": "554ba05e17c89d050270b699b4e045749559ce94771b3ce11ddf809048f9b62f"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part6.lean",
+          "sha256_hex": "7564348d756d8405de538051754bd4e0e56b92a62ba14eb27a978d940d102c76"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart60.lean",
-          "sha256_hex": "57afcfec48a1cc0a75d815128ded3aa713ca4cacbd0c58d262f770540ea09ab0"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part60.lean",
+          "sha256_hex": "1fc6089605e6ef5aa5ac4d3f6de56c68141a82473993ab0db9142011a07636b8"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart61.lean",
-          "sha256_hex": "f0a7a4fa22b87544ae1f64fd052934f6cc4bebca876f980404f182e0febb70b8"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part61.lean",
+          "sha256_hex": "a4e9fa7ac730a82246da5d6c813f61df125b8aafab79da49e9ab0805758b439c"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart62.lean",
-          "sha256_hex": "89b2b2ac495ba73a36e67044d7631b64d5c7068d1a7080bcd0bb96afa29596a3"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part62.lean",
+          "sha256_hex": "45c125abb6e6d62775a9a675693266887c3a2241605dabafbe3fbb4f09b70818"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart63.lean",
-          "sha256_hex": "03c192ebe17e77ec88d8b56d3d6e932426179ba787fd5d8cd68454a07eb83492"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part63.lean",
+          "sha256_hex": "d0e9a3dd251334af180cdb773f89d38d0ba3167cbed3ce685d5efeedb9563d6c"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart64.lean",
-          "sha256_hex": "064d3e4f793f2898169553e319ed16f7abf7d945118a4d447d43ff3a6e200c77"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part64.lean",
+          "sha256_hex": "62a4acab0c4cb002083ed88a38cdda8f80017342adb5a562596dbe1c8818aca6"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart65.lean",
-          "sha256_hex": "9950bef12e89f48d475deb965aae5d8385029ce1e3f642bdd69207fa743bb93b"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part65.lean",
+          "sha256_hex": "2175026ef8b5d96d86621b631ca583f52a341035dca0d40bbbf6485bcafa1987"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart66.lean",
-          "sha256_hex": "f8d5f70807e1ccec5a82bdb52bc18b1ef9ea380e07c9106ecea8df178ac2d680"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part66.lean",
+          "sha256_hex": "b43a045a0a9864956e00514742fa2c51aa2e5f24e19965946f412a593cd3a298"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart67.lean",
-          "sha256_hex": "618ce2f33da239a0a02119ce20b0d77ae7671c8ba046a275ac1cd1944f4d9313"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part67.lean",
+          "sha256_hex": "a8ed65c371c5ca7bed5626b0bc2abeda739eb889ee26e31cbe13f2913b50a71f"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart68.lean",
-          "sha256_hex": "9e9b3426eea66320197036eeb1ae3747dbe49b73fb188d7112a7ddbf451cc3f5"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part68.lean",
+          "sha256_hex": "3981c5f6218e4a7d7b8765dacb7be98ce9ccfb8d2d876051fd536f6a2eafc24c"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart69.lean",
-          "sha256_hex": "34bd8ab5f8ee8a1c89060a49860a4a6e1b683ecf89aa98dfe44c56474da3f2cc"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part69.lean",
+          "sha256_hex": "d2dc0a4b76efe79566c3858c49dfb687477ba2ee76cb34d69faedac79d87d88e"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart7.lean",
-          "sha256_hex": "1a53b5855a2a9baf0980402320e095eef76db6ac8a005e26ea964d27279d3203"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part7.lean",
+          "sha256_hex": "178ece81f36ceee92f3a8bf6d187f7067971258822add6992e19ce6a9f1b1681"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart70.lean",
-          "sha256_hex": "b4cc0666e5c47ed6fd4c0ec36c115c2113186b9738227c665a6b376cbdd30d49"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part70.lean",
+          "sha256_hex": "3d2b61b1e7c747fd08201a7f6b435d1f131c73c1df079c0ee38bbc321edd4b77"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart71.lean",
-          "sha256_hex": "80980978b58765fdf0f2ce2ec5b8286acc313e51f2c075bf95091219bea73971"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part71.lean",
+          "sha256_hex": "2ceffe797ddd86e7726a8b117af702102c4437d5c4d5ca0b0c9073df43129631"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart72.lean",
-          "sha256_hex": "681ad8e5ed13c5d141b47ee5d88c8147bdff422829d1b492a6c25d09849d7170"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part72.lean",
+          "sha256_hex": "1cb5e176c40fe248ec4c10b19f5cc325465815ced1edf7375d3d747a84a74a8f"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart73.lean",
-          "sha256_hex": "7772722547610a3819b27f933497e6216933ddcf1a01145ff3649faf14503356"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part73.lean",
+          "sha256_hex": "920cf1915e78e8c82d10234a1be6700cb5201f3895065a2db3e5cc143a0199c9"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart74.lean",
-          "sha256_hex": "75aa6f719cb15d341ad307d19164289ad6024bef8095b36ff9432e44eccb8d1f"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part74.lean",
+          "sha256_hex": "d4336d52de34923c933fe4d4b85a2f6c097962b10bb16f0e12418f4bb9441d96"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart75.lean",
-          "sha256_hex": "194cc313221854932fab7b3733206164983b9b05b50ee7febbf5f4a77c150c5a"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part75.lean",
+          "sha256_hex": "9913b5b2778fbaa3387cdacd58af342879d72635702c87cb55e5466baa404e1e"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart76.lean",
-          "sha256_hex": "1d5f980d50270f13e3c10c7d9213adf35c7243ac02132b6a322fb63a60bcec75"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part76.lean",
+          "sha256_hex": "fbf824b8e1a34134a9db3aa8eed8dfcb7e3f175c62573d0f03afa3a4ee90046b"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart77.lean",
-          "sha256_hex": "a9d24b0b337c98476c8c527d6f5acb567d97e70a9f3ec0e80283fab8869560a7"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part77.lean",
+          "sha256_hex": "2057a163c1276b2012d58923629eafd04d35864c3a1e5c7ac8c424fba1832d74"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart78.lean",
-          "sha256_hex": "03382bc44055b12b145faf17bdaf17ef8c781a663043051dac087516959dcb8c"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part78.lean",
+          "sha256_hex": "c70249dc0881b475159447fd515f7f4b0237116003b97ec5a3773953cfc419ac"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart79.lean",
-          "sha256_hex": "dda52087fac73ae775bdc3516f7fbceee9013b9287b97384ba177070eceafed1"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part79.lean",
+          "sha256_hex": "ec0a292eb5afaa227b85d017b8fe266b54b1f119a3bf34b73815e00b90c1276c"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart8.lean",
-          "sha256_hex": "2ac9122abf29bf54cd955392733f08614caab18b70873bbe4fb9e266d909895c"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part8.lean",
+          "sha256_hex": "caf0d9e647c30272a2b168be06e772aa08812d608791c9cf79ba34ef2830ced5"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart80.lean",
-          "sha256_hex": "95a7ccd48cb026ced0c107dc10a019694fe5c5f537031f588ef3b33221eee91c"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part80.lean",
+          "sha256_hex": "dc30bfbca5e74eb7b9c8f5bc8ba3fa4081e4f7194af9666c6346df016cd8aaeb"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart81.lean",
-          "sha256_hex": "d6713d327a00d2b98b4530c46eadebfccd7b289dbc4ae27a1d6d7a363f0acd97"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part81.lean",
+          "sha256_hex": "e8844e00350abe41aa89c5e9712034a36cb85d61a3047e5d2fe7d6b09ceffce7"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart82.lean",
-          "sha256_hex": "f0e2bde3120c6b90c77dd0fc2df06759247ce1ed9f1e11e999242da97757d3de"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part82.lean",
+          "sha256_hex": "375b316341c64d6bdceae32ee872841e2648fd952e9280cd9a6add5c73d4b797"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart83.lean",
-          "sha256_hex": "3c00412aa8dbb84c1c6c52963ac45bd64ff5dc474d0dfb1a608b698aed60b853"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part83.lean",
+          "sha256_hex": "f7843db4023ac33b1b473ba31f9744442110e2b25532e44ba95b0b3e0c97992f"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart84.lean",
-          "sha256_hex": "daab4de92b572dc008296dafa69f0be807a45692e59571f2db6cd2bd27933498"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part84.lean",
+          "sha256_hex": "062af2f88bfb9eba0131a1d101621ccbcd9fe7a31d25fd6604ff06a349ed04af"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart85.lean",
-          "sha256_hex": "77255671024d16c85203acd0dcee5a215fdc49120607254c4689b36af681e190"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part85.lean",
+          "sha256_hex": "476b42112721e29a5741d755ec4ed195c7ab3981b1308df73b7cc4a9be6c2ac5"
         },
         {
-          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fPart9.lean",
-          "sha256_hex": "a1079f920048e0c93ad7fb5fdfa0ae2033b3d394f62c4b14026f9df6e1691b0b"
+          "path": "tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Part9.lean",
+          "sha256_hex": "afcd9f083bab881cd3cb78015ae7ff489aaa394e2df061d542802470483df729"
         },
         {
-          "path": "tools/gnark/lean/bench/NoteReshapeTemplateTGadgetNoteCommitment_7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382fImport.lean",
-          "sha256_hex": "2965db882c9c3b9f0e56027b6409a62a9252799a5f8e8fa1328f72fff72a5fd8"
+          "path": "tools/gnark/lean/bench/NoteReshapeTemplateTGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5Import.lean",
+          "sha256_hex": "a95d50875e3c80d5d169c1b38d6cbeb7d1bbc018cc4bce48d83821d9a439ff6a"
         }
       ],
-      "template_files_sha256_hex": "15d790efcf4df6e071d8bfe5eac56342ad95e07564b04b161a68ccd8224e25cd"
+      "template_files_sha256_hex": "46fe91691c8eef5d460137fac1fa05ded2267ba9416a4c6a5fa769dacd5be03b"
     },
     {
       "proof_template_id": "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
@@ -58838,53 +57896,47 @@
       "circuit": "note_reshape1x8",
       "proof_template_ids": [
         "assert.eq@001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
-        "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
         "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
         "assert.eq@5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef",
-        "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
         "assert.eq@ef313f39c5d5f9c3c2abea0b2fbcb1a75256e09acef6da5ab8070cf65b7a0cbd",
         "decaf.assert_equivalent@44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7",
         "decaf.assert_equivalent@534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
-        "decaf.assert_equivalent@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
-        "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
         "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
+        "decaf.compress_to_field@134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2",
         "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
         "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
         "decaf.conservation_net_balance_commitment@b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a",
         "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
         "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
-        "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+        "gadget.note_commitment@9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5",
         "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
         "gadget.state_commitment_path@f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb",
         "statement.hash@253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e"
       ],
-      "semantic_closure_sha256_hex": "2f2c694673e6455e41d3f8ae0b9c0872f7164d8a1d787b7c0362d63afbb11699"
+      "semantic_closure_sha256_hex": "8110290f421cf80e4efdbeaa8a7e34188220f4eecaf8be9186cf112fc3e4278f"
     },
     {
       "circuit": "note_reshape2x1",
       "proof_template_ids": [
         "assert.eq@001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
-        "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
         "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
         "assert.eq@5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef",
-        "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
         "assert.eq@ef313f39c5d5f9c3c2abea0b2fbcb1a75256e09acef6da5ab8070cf65b7a0cbd",
         "decaf.assert_equivalent@44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7",
         "decaf.assert_equivalent@534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
-        "decaf.assert_equivalent@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
-        "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
         "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
+        "decaf.compress_to_field@134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2",
         "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
         "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
         "decaf.conservation_net_balance_commitment@9602c510696ca316ef532feb1eaa5610fa2276fdeb6f49a351c8c7c242b359e6",
         "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
         "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
-        "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+        "gadget.note_commitment@9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5",
         "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
         "gadget.state_commitment_path@f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb",
         "statement.hash@fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4"
       ],
-      "semantic_closure_sha256_hex": "ac12ff7905eb8fdff9b737c64846f884d21242b868dcdfea149683806373758e"
+      "semantic_closure_sha256_hex": "27fbad37c6d176d04b8588256cb8766e844cf3f5dd20cfeebf640e2189aca5a2"
     },
     {
       "circuit": "note_reshape4x1",
@@ -58893,29 +57945,22 @@
         "assert.boolean@469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc",
         "assert.dummy_suffix@678ab00aaa272510d3b55f2636ec8baddc4168fde2671bdda7bcbce5baeb54cc",
         "assert.eq@001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
-        "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
         "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
         "assert.eq@460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3",
-        "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
         "assert.eq_if@36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03",
         "assert.eq_if@ce0e02a1deb2ef2e836cbed67d37f3678356db1d6c5cfaa61678d01652034f8f",
         "assert.eq_if@ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d",
         "decaf.assert_equivalent@44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7",
-        "decaf.assert_equivalent@534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
-        "decaf.assert_equivalent@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
-        "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
-        "decaf.assert_equivalent_if@15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350",
         "decaf.assert_equivalent_if@5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f",
-        "decaf.assert_equivalent_if@5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e",
         "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
+        "decaf.compress_to_field@134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2",
         "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
         "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
         "decaf.conservation_net_balance_commitment@f779542ea2a073487b8ab36fd2798d44fa0136855070c44e2ae2edc44c180a79",
         "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
-        "decaf.randomized_verification_key.dummy@e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5",
         "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
         "dummy.mux@6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce",
-        "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+        "gadget.note_commitment@9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5",
         "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
         "gadget.state_commitment_path@f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb",
         "gadget.synthetic_dummy_nullifier@3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6",
@@ -58924,7 +57969,7 @@
         "gadget.synthetic_dummy_nullifier@ac7ad308d1eedcc895ef7cfce1c01cd077579dee1a4f143d5dcb664af3af5907",
         "statement.hash@4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7"
       ],
-      "semantic_closure_sha256_hex": "45dca1484d3458f86f12a264be1cd5e45d1be3c4cdd1eb18fc67e1740747099a"
+      "semantic_closure_sha256_hex": "0abd24ab66c3e8ae903e9ed9b41b6a09372e23fe1ad2ebad1af4fd95aff73afc"
     },
     {
       "circuit": "note_reshape8x1",
@@ -58933,29 +57978,22 @@
         "assert.boolean@469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc",
         "assert.dummy_suffix@a20cdb8e3309f92a6c215c2319440fcb8fbd56784d74625c842989c9342831c9",
         "assert.eq@001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
-        "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
         "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
         "assert.eq@460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3",
-        "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
         "assert.eq_if@36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03",
         "assert.eq_if@ce0e02a1deb2ef2e836cbed67d37f3678356db1d6c5cfaa61678d01652034f8f",
         "assert.eq_if@ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d",
         "decaf.assert_equivalent@44fe73acf05522f84376de4d4171a14b20527abf88695468311a6b63a8b891d7",
-        "decaf.assert_equivalent@534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
-        "decaf.assert_equivalent@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
-        "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
-        "decaf.assert_equivalent_if@15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350",
         "decaf.assert_equivalent_if@5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f",
-        "decaf.assert_equivalent_if@5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e",
         "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
+        "decaf.compress_to_field@134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2",
         "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
         "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
         "decaf.conservation_net_balance_commitment@91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3",
         "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
-        "decaf.randomized_verification_key.dummy@e51d3ae895dfdd9467b9c73fdd305f3afed8e71a1350fb96e3119a3fba8860a5",
         "decaf.randomized_verification_key@1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f",
         "dummy.mux@6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce",
-        "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+        "gadget.note_commitment@9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5",
         "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
         "gadget.state_commitment_path@f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb",
         "gadget.synthetic_dummy_nullifier@100a96548743160160928cfe001821ba838bef079e180fd7d6cf0df70b5b37c8",
@@ -58968,7 +58006,7 @@
         "gadget.synthetic_dummy_nullifier@b279304617fa393c48531d8db69795487f05219663ce38c6233e57eb19d14144",
         "statement.hash@ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1"
       ],
-      "semantic_closure_sha256_hex": "1bdf9654c57c4b742d6bb06130f5664d8a155eaa9feb35c803b8db12ec682101"
+      "semantic_closure_sha256_hex": "210c408a506fd8970226c169d00a605185b6e2cf0edf3800ba3140f71a0525e8"
     },
     {
       "circuit": "transfer",
@@ -58977,6 +58015,7 @@
         "assert.eq@001662998b48830253568a34945bae30020bcb70574648b9aa58b23510a29b69",
         "assert.eq@047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e",
         "assert.eq@2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55",
+        "assert.eq@69da8da0b6b464f2d1b83c3a1ce7917e88fe117647cafb6cd636b02ff294b5a7",
         "assert.eq@ca693c9a644d7a101d49302f9052719ee7e0f45605900d8e80b3c59e6b2e2ddd",
         "assert.eq@d1faf7346a5dbff8ee29cd3032dc35de5268dd9eb13f3bf487edc1ef70d2e0bd",
         "assert.eq@f1238c54202596de154fe5463a64ac0ced86b75c38f77950f65358cba616bf0a",
@@ -58991,7 +58030,7 @@
         "decaf.assert_equivalent_if@15b90c10255335c2e3dea5cc594b560b13a2e116f7c31cc0431980b3843c0350",
         "decaf.assert_equivalent_if@5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f",
         "decaf.assert_equivalent_if@534c1d15097e8b552f82c9624b8deece32b50ee8ae5a2eb96ed1dd0de9146b4e",
-        "decaf.assert_equivalent_if@5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e",
+        "decaf.assert_equivalent_if@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
         "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
         "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b",
         "decaf.net_balance_commitment@d2168a8e35fd0ba84307be15dba2c691226cf6e388679427fb9c3b7c1f5ae20b",
@@ -59008,7 +58047,7 @@
         "gadget.metadata_hash@54c5c80fc46b5dd2473e98e23011854e3b05517baeb112c86b109f7da65775f2",
         "gadget.metadata_hash@7cc2c97bfcac0ef04c026090d48c9da1bb8a66a0cb339ad662b3b7d56ea5fdf5",
         "gadget.metadata_hash@bcc3f94d7b07528e399aca6a4e1ee0f7932db89ae05d630ce3a7f5fe7d1d336f",
-        "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
+        "gadget.note_commitment@9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5",
         "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",
         "gadget.poseidon_encryption.address@84f45d4d36024ecb5da97213ce50f0b1189e611bab025904bf61dc531e3d1893",
         "gadget.poseidon_encryption.amount@ce0728f0edf41974d31041d73d1bbd624feea8e46b9e434bf12dd1124b476fb9",
@@ -59026,7 +58065,7 @@
         "statement.hash@954385455be36f5111913fb2e5f815b62f04b784911ae898c26d6abd58cead31",
         "threshold.flag@76ed1e05faeee53586314f5c3efda03ae9445d964935e5e2814733fdee72da26"
       ],
-      "semantic_closure_sha256_hex": "2cf67124aa9c337155ec5ca8f281abd13fd760d94b5c631b7c49b9b524c1f83f"
+      "semantic_closure_sha256_hex": "054b24c0971c660913fb5015d65f8a4028c4967f07e9a9651f69a7f10188ccf7"
     }
   ]
 }

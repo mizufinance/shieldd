@@ -29,8 +29,15 @@ on:
       - 'tools/gnark/internal/abi/**'
       - 'tools/gnark/internal/primitives/**'
       - 'scripts/check-lean-circuit-fv.sh'
+      - 'scripts/check-note-reshape-impact.py'
+      - 'scripts/check-note-reshape-spec-independence.sh'
       - 'scripts/check-manifest-pin.sh'
       - 'scripts/check-soundness-invariants.sh'
+      - 'scripts/check-gadget-model-fidelity.sh'
+      - 'scripts/check-formal-gate-self-tests.sh'
+      - 'scripts/lib/fail-closed-rg.sh'
+      - 'scripts/check-structured-lc-generation.sh'
+      - 'scripts/check_poseidon377_parity.sh'
       - 'scripts/compliance-symbolic.sh'
       - 'scripts/compliance-alloy.sh'
       - 'scripts/compliance-lean-dleq.sh'
@@ -331,20 +338,6 @@ jobs:
       - name: Run gadget-scope R1CS under-constraint check (Picus + cvc5)
         if: github.event_name != 'pull_request'
         run: bash scripts/circuit-constraint-check.sh
-
-      # Honest whole-circuit Picus attempt with a real multi-hour budget instead
-      # of the 180 s watchdog. Advisory: an undischarged-timeout is expected and
-      # does not fail the build; a genuine underconstrained finding turns the
-      # step red without blocking the rest of the nightly. Schedule-only — never
-      # a PR gate. The Lean-proved note_reshape2x1 and transfer circuits run
-      # here; split families can be attempted by hand via
-      # scripts/run-whole-circuit-picus.sh.
-      - name: Attempt whole-circuit Picus (nightly, non-gating)
-        if: github.event_name == 'schedule'
-        continue-on-error: true
-        env:
-          PICUS_WHOLE_BUDGET_SECONDS: '10800'
-        run: bash scripts/run-whole-circuit-picus.sh note_reshape2x1 transfer
 
       # C3 gadget theorems — the only route to `proved`. Certifies the ACL2
       # `R1CS => spec` proof, verifies the gnark parity tie, and checks the

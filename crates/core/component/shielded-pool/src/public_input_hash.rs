@@ -632,7 +632,7 @@ mod tests {
 
     fn go_fixture_statement_hash(path: &str) -> (NoteReshapeFamilyId, Fq) {
         let bytes = std::fs::read(path).expect("read Go note reshape fixture");
-        let witness = crate::gnark::decode_note_reshape_witness_v1(&bytes)
+        let witness = crate::gnark::decode_note_reshape_witness_v2(&bytes)
             .expect("decode Go note reshape fixture");
         let fields = witness
             .statement_fields
@@ -678,17 +678,17 @@ mod tests {
             .join("../../../..")
             .join("tools/gnark/internal/testfixtures/vectors");
         for (label, filename) in [
-            ("note_reshape2x1", "note_reshape2x1_witness_v1.bin"),
-            ("note_reshape1x8", "note_reshape1x8_witness_v1.bin"),
-            ("note_reshape4x1", "note_reshape4x1_witness_v1.bin"),
-            ("note_reshape8x1", "note_reshape8x1_witness_v1.bin"),
+            ("note_reshape2x1", "note_reshape2x1_witness_v2.bin"),
+            ("note_reshape1x8", "note_reshape1x8_witness_v2.bin"),
+            ("note_reshape4x1", "note_reshape4x1_witness_v2.bin"),
+            ("note_reshape8x1", "note_reshape8x1_witness_v2.bin"),
         ] {
             let (family_id, hash) = go_fixture_statement_hash(
                 root.join(filename).to_str().expect("fixture path is UTF-8"),
             );
             assert_eq!(family_id.label(), label);
             let bytes = std::fs::read(root.join(filename)).expect("read Go note reshape fixture");
-            let witness = crate::gnark::decode_note_reshape_witness_v1(&bytes)
+            let witness = crate::gnark::decode_note_reshape_witness_v2(&bytes)
                 .expect("decode Go note reshape fixture");
             assert_eq!(
                 hash,

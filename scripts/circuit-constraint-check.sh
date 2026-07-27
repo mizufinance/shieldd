@@ -20,6 +20,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+update_report=0
+if [[ "${1:-}" == "--update" ]]; then
+  update_report=1
+  shift
+fi
+
 FORMAL_DIR="crates/core/component/shielded-pool/formal"
 WORK_DIR="$FORMAL_DIR/.generated/constraints"
 REPORT="$FORMAL_DIR/circuit-constraint-report.txt"
@@ -221,17 +227,37 @@ fi
   echo "  lean_lift: Shieldd.GnarkFormal.DleqBridge.dleq_sound"
 } >>"$tmp_report"
 
-# Whole-circuit families: recorded as attempted-and-undischarged by design. No
-# tool formally verifies a whole transaction circuit; this is the documented
-# industry state of the art, not a shortfall.
+# Whole-family Picus is not a soundness claim. Assigning every secret wire as an
+# input hides the functional-dependence question that underconstraint analysis
+# is meant to answer. Keep Picus for the reviewed leaf probes above.
 {
-  echo "FAMILY transfer undischarged-by-design"
-  echo "  note: whole-circuit Picus times out (Poseidon+Merkle+Decaf377); not retried"
-  echo "FAMILY note_reshape2x1 undischarged-by-design"
-  echo "FAMILY shielded_ics20_withdrawal undischarged-by-design"
+  echo "FAMILY transfer whole-family-picus-excluded"
+  echo "FAMILY note_reshape2x1 whole-family-picus-excluded"
+  echo "FAMILY note_reshape4x1 whole-family-picus-excluded"
+  echo "FAMILY note_reshape8x1 whole-family-picus-excluded"
+  echo "FAMILY note_reshape1x8 whole-family-picus-excluded"
+  echo "FAMILY shielded_ics20_withdrawal whole-family-picus-excluded"
+  echo "  note: leaf Picus probes remain rapid counterexample checks; exports that classify every secret wire as an input are rejected as family soundness evidence"
 } >>"$tmp_report"
 
-cp "$tmp_report" "$REPORT"
-shasum -a 256 "$REPORT" | awk '{print $1}' >"$REPORT_SHA"
+tmp_report_sha="$(shasum -a 256 "$tmp_report" | awk '{print $1}')"
+if [[ "$update_report" -eq 1 ]]; then
+  cp "$tmp_report" "$REPORT"
+  printf '%s\n' "$tmp_report_sha" >"$REPORT_SHA"
+  echo "circuit constraint report updated: sha256:$tmp_report_sha"
+  exit 0
+fi
 
-echo "circuit constraint check ok: sha256:$(cat "$REPORT_SHA")"
+[[ -f "$REPORT" && -f "$REPORT_SHA" ]] \
+  || fail "missing committed report or sha256 sidecar; use --update deliberately"
+committed_sha="$(tr -d '[:space:]' <"$REPORT_SHA")"
+[[ "$committed_sha" == "$(shasum -a 256 "$REPORT" | awk '{print $1}')" ]] \
+  || fail "committed report does not match its sha256 sidecar"
+if ! cmp -s "$tmp_report" "$REPORT"; then
+  diff -u "$REPORT" "$tmp_report" >&2 || true
+  fail "fresh Picus report differs from the committed report; review and run --update"
+fi
+[[ "$tmp_report_sha" == "$committed_sha" ]] \
+  || fail "fresh Picus report hash differs from the committed sidecar"
+
+echo "circuit constraint check ok: sha256:$committed_sha"

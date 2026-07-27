@@ -177,8 +177,8 @@ func appendNoteReshapeStatementFields(
 	fields [][32]byte,
 	anchor [32]byte,
 	balanceCommitmentAffine PointAffineBinary,
-	spends []NoteReshapeSpendWitnessV1Binary,
-	outputs []NoteReshapeOutputWitnessV1Binary,
+	spends []NoteReshapeSpendWitnessV2Binary,
+	outputs []NoteReshapeOutputWitnessV2Binary,
 	expected int,
 ) ([][32]byte, error) {
 	fields = append(fields, anchor)
@@ -204,10 +204,10 @@ func appendNoteReshapeStatementFields(
 	return fields, nil
 }
 
-// ReconstructedNoteReshapeStatementFieldsFromWitnessV1 mirrors the unified
+// ReconstructedNoteReshapeStatementFieldsFromWitnessV2 mirrors the unified
 // note-reshape circuit's statement-field order using decoded witness fields.
-func ReconstructedNoteReshapeStatementFieldsFromWitnessV1(
-	witness *NoteReshapeWitnessV1Binary,
+func ReconstructedNoteReshapeStatementFieldsFromWitnessV2(
+	witness *NoteReshapeWitnessV2Binary,
 ) ([][32]byte, error) {
 	expected := primitives.NoteReshapeStatementFieldCount(int(witness.NIn), int(witness.NOut))
 	fields, err := appendNoteReshapeStatementFields(

@@ -49,7 +49,7 @@ def ConservationNetBalanceCommitmentCircuit
   Extracted.ConservationNetBalanceCommitment.circuit input0 input1 output
     balanceBlinding out.x out.y
 
-/-- The transfer (2-in-2-out) net-balance gadget: identical to the consolidate
+/-- The transfer (2-in-2-out) net-balance gadget: identical to the reshape
 shape but subtracting two output value ladders instead of one. -/
 def NetBalanceCommitment2Circuit
     (input0 input1 output0 output1 assetID balanceBlinding : F) (out : Point) : Prop :=

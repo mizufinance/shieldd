@@ -2,74 +2,91 @@
 
 ## Decision rule
 
-At the current `note_reshape2x1` baseline, a standalone change must remove at
-least 1% of constraints to be worth landing. A smaller change is considered
-only when it is a necessary step toward a measured larger reduction. Count
-reduction is a filter, not proof of a speedup: release evidence also records
-compile, witness, prove, verify, and key-size effects.
+An optimization lands only when an affected compiled deployed family loses at
+least 1% of its constraints. Security fixes are exempt. Counts are a filter;
+release evidence must still include witness, prove, verify, memory, and key
+effects. Hints are rejected unless their result is fully constrained.
 
-Every accepted optimization preserves or strengthens the protocol statement,
-regenerates the deployed proof path, and passes the same drift/key gates as any
-other circuit change. A new relation shape needs its proof design before it is
-used in production.
+## Landed NoteReshape result
 
-## Baseline and landed results
+The canonical V2 witness and circuit remove per-note address representations,
+derive the DTK once, and remove the dummy-RK derivation after extending the
+accepted language to require an external signature for every public RK.
 
-The checked-in baseline is 36,553 constraints. The detailed history is in git;
-the durable measured summary is:
+| Family | Previous | Current | Delta |
+| --- | ---: | ---: | ---: |
+| `note_reshape2x1` | 36,553 | 37,559 | +1,006 (+2.75%) |
+| `note_reshape1x8` | 28,256 | 29,196 | +940 (+3.33%) |
+| `note_reshape4x1` | 102,620 | 64,784 | −37,836 (−36.87%) |
+| `note_reshape8x1` | 194,226 | 117,526 | −76,700 (−39.49%) |
 
-| Change | Constraints | Delta | Result |
-| --- | ---: | ---: | --- |
-| Starting measured baseline | 57,969 | — | baseline |
-| Remove constant zero seed ladder | 57,329 | −640 (−1.1%) | landed |
-| Hoist the shared DTK | 44,665 | −12,664 (−22.1%) | landed |
-| Shared `div_gen` compression, reused IVK bits, conservation NB | 36,553 | −8,112 (−18.2%) | landed |
+The fixed families grow because the old witness supplied the field encoding of
+the transmission key independently from the affine DTK output. Closing that
+join adds one 1,046-row `CompressToField(computed DTK)`. Removing each old
+per-note affine transmission/generator/asset representation saves 11 rows
+(4 on-curve + 3 transmission equivalence + 3 generator equivalence + 1 asset
+equality), and removing the old shared affine transmission witness saves 7
+more (4 on-curve + 3 equivalence). Therefore `2x1` is
+`+1,046 - 3×11 - 7 = +1,006`, while `1x8` is
+`+1,046 - 9×11 - 7 = +940`. This is the exact cost of replacing an
+under-specified representation join with one canonical encoding.
 
-Total measured reduction is 21,416 constraints (36.9%). The latest batch
-includes: one shared `div_gen` compression (−2,092), IVK bit reuse (−252), and
-the conservation net-balance relation (−5,768). These are constraint counts;
-the current baseline still needs a fresh end-to-end prover benchmark before a
-runtime claim is made.
+The padded families also remove one full DTK and dummy-RK derivation per
+redundant slot, so the family-wide batch is substantially smaller while
+removing the same ambiguous witness representation.
 
-## Current census
+The reviewed operation-level attribution is:
 
-| Area | Rows | Share | Assessment |
-| --- | ---: | ---: | --- |
-| Two state-commitment paths | 18,030 | 49.3% | Near the current hash/path floor; meaningful reduction requires a protocol/tree change or multiproof. |
-| DTK | 6,077 | 16.6% | Main local scalar-multiplication candidate. |
-| Two RVKs | 3,624 | 9.9% | Same scalar family; fixed-base methods may help. |
-| Conservation net balance | 2,193 | 6.0% | Mostly a 251-bit blinding ladder plus explicit amount ranges. |
-| Four Decaf compressions | 4,184 | 11.4% | Dominated by canonical bit decompositions; sharing is valid only with an exact bit-use proof. |
+| Change | `2x1` | `1x8` | `4x1` | `8x1` |
+| --- | ---: | ---: | ---: | ---: |
+| Hoist padded-spend DTKs into one shared DTK | — | — | −24,308 | −48,616 |
+| Delete in-circuit dummy-RK derivations | — | — | −14,472 | −28,944 |
+| Canonical-context binding and other row movement | +1,006 | +940 | +944 | +860 |
+| **Compiled family delta** | **+1,006** | **+940** | **−37,836** | **−76,700** |
 
-The signed-coefficient census reports only 15 exact duplicate rows, 19
-same-product CSE misses, and 10 write-only wires. That cleanup is far below the
-366-row 1% threshold and is rejected as a standalone project.
+The component rows reconcile exactly to each compiled family delta. The
+positive row is security hardening, not optimization overhead hidden from the
+threshold calculation.
 
-## Candidate policy
+## Transfer follow-up
 
-- The current qualifying prototype is a hint-free two-bit window for the one
-  variable-base 251-bit DTK ladder: 3,612 → 3,012 ladder rows, projecting the
-  whole circuit to 35,953 constraints (−600, −1.64%). It preserves the existing
-  little-endian bits and range checks. It is not landed: proving its MSB radix-4
-  recurrence equal to the current LSB ladder requires an on-curve Edwards
-  associativity certificate that the present proof substrate does not contain.
-  Production stays on the proved ladder until that bridge and the regenerated
-  deployed adapters are green.
-- The pinned gnark fake-GLV scalar multiplication is rejected even though its
-  isolated count is lower: an adversarial hint test accepts a false `[2]G = G`
-  assignment. It must not enter a proof-bearing circuit.
-- Measure scalar-multiplication alternatives in isolated gadgets first. The
-  pinned gnark implementation offers lookup/window and fake-GLV shapes, but
-  they introduce hints and a new proof relation; upstream code is not a proof
-  substitute.
-- Do not land a ladder replacement until witness parity, scalar range and
-  canonicity, exceptional-point behavior, exact constraint count, hint trust,
-  and a compact Lean recurrence have been reviewed.
-- Do not micro-optimize the Merkle path. A tree arity or multiproof change is a
-  protocol/state migration, not a circuit-local cleanup.
-- Do not merge a sub-1% compression/CSE tweak merely because it is easy.
-- Reject forecasts that do not include a compiled before/after count.
+Transfer now derives one shared-sender DTK, binds each spend to its canonical
+transmission encoding, and uses canonical created-note transmission encodings.
+The compiled circuit falls from 251,469 to 245,389 constraints: −6,080
+(−2.42%).
+
+## Scalar multiplication audit
+
+The hint-free two-bit variable-base window prototype measured:
+
+| Scalar width | Variable base | Fixed base |
+| --- | ---: | ---: |
+| 128 bits | −255 | +501 |
+| 251 bits | −600 | +691 |
+
+The 251-bit variable-base reduction would exceed 1% on `note_reshape1x8`
+(2.05% of the current family) and `note_reshape2x1` (1.60%). It is not deployed:
+the reusable radix-4/Edwards correctness theorem is not yet closed. Production
+keeps the current proven ladder.
+
+The fixed-base width-2 candidate is worse, so wider fixed-base tables were not
+promoted without evidence they could recover a full-family 1%. Fake GLV and
+unconstrained scalar-product hints are rejected; an adversarial probe accepts a
+false product for the pinned fake-GLV shape.
+
+## Audited candidates
+
+- Merkle multiproofs may qualify for the padded input families, but change the
+  state proof format and require a protocol/state design.
+- Quotient-invariant statement encodings may reduce canonical decomposition
+  work, but need an isolated proof that the public accepted language is
+  unchanged.
+- Poseidon2 changes, tree arity changes, shared-address prehashes, and
+  exact-arity families are deferred because they require protocol, state, or
+  privacy decisions.
+- Micro-CSE, conditional branch skipping, current-backend lookup ranges, and
+  compression cleanups measured below 1% are rejected as standalone changes.
 
 Use `scripts/fv-census.py` for row-level triage and `scripts/fv-opt-loop.sh` for
-the guarded circuit loop. Final performance numbers must come from the deployed
-key/witness path described in [release.md](release.md).
+the guarded compile loop. Final evidence comes from the deployed key/witness
+path in [release.md](release.md).

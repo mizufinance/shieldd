@@ -327,20 +327,20 @@ struct LadderSeat {
     bound: BigUint,
 }
 
-fn note_reshape2x1_ladders() -> Vec<LadderSeat> {
+fn note_reshape2x1_ladders(bit_base: usize) -> Vec<LadderSeat> {
     let r = scalar_order();
     let q4 = crate::field::modulus() - &(&r * 4u32);
     vec![
         LadderSeat {
             label: "R",
-            bit_base: 1884,
+            bit_base,
             start: 1828,
             end: 2345,
             bound: r,
         },
         LadderSeat {
             label: "Q4",
-            bit_base: 1884,
+            bit_base,
             start: 2346,
             end: 2715,
             bound: q4,
@@ -357,8 +357,30 @@ fn note_reshape2x1_ladders() -> Vec<LadderSeat> {
 pub fn verify_note_reshape2x1_lt_ladders(
     dtk_rows: &[Constraint],
 ) -> Result<Vec<LtChainRepr>, String> {
+    // The normalized DTK relation is stable, but witness-schema changes can
+    // renumber every deployed wire.  The first R-ladder row multiplies
+    // `(1 - bit[252]) * (1 - bit[251])`; recover the affine bit base from that
+    // exact pinned row instead of treating a deployed wire number as semantic.
+    let first = dtk_rows
+        .get(1828)
+        .ok_or_else(|| "DTK relation is too short for the R ladder".to_owned())?;
+    let mut leading_bits: Vec<_> = first
+        .l
+        .iter()
+        .chain(first.r.iter())
+        .filter(|term| term.wire != 0 && Fp::parse(&term.coeff) == -&Fp::one())
+        .map(|term| term.wire)
+        .collect();
+    leading_bits.sort_unstable();
+    leading_bits.dedup();
+    if leading_bits.len() != 2 || leading_bits[1] != leading_bits[0] + 1 || leading_bits[1] < 252 {
+        return Err(format!(
+            "cannot recover affine DTK bit base from row 1828: {leading_bits:?}"
+        ));
+    }
+    let bit_base = leading_bits[1] - 252;
     let mut out = Vec::new();
-    for seat in note_reshape2x1_ladders() {
+    for seat in note_reshape2x1_ladders(bit_base) {
         let repr = recover_lt_chain(dtk_rows, &seat.bound, seat.bit_base, seat.start)
             .map_err(|e| format!("{} ladder recovery failed: {e}", seat.label))?;
         if repr.end_row != seat.end {
@@ -485,9 +507,9 @@ mod tests {
     // Wave 2 T1-f moved its offset (shared compress inserted before it) and
     // T1-h shifted wire numbering (bits threaded from IVKModRDecomposition;
     // the redundant 251-bit ToBinary is gone, ladder rows unchanged).
-    const DTK_OFFSET: usize = 1058;
+    const DTK_OFFSET: usize = 1054;
     const DTK_ROWS: usize = 6077;
-    const BIT_BASE: usize = 1884;
+    const BIT_BASE: usize = 1864;
 
     fn dtk_rows() -> Vec<Constraint> {
         let path = concat!(

@@ -46,6 +46,11 @@ def render(circuit: str) -> str:
     module = FAMILIES[circuit]
     artifact_dir = GNARK / "artifacts" / circuit
     contract_dir = LEAN / "ShielddGnarkFormal/Deployed/Contracts" / module
+    canonical_address = (
+        LEAN
+        / "ShielddGnarkFormal/Deployed"
+        / f"NoteReshapeCanonicalAddress{module.removeprefix('NoteReshape')}.lean"
+    )
     fields = {
         "whole_circuit_sr1cs_sha256": sha256(artifact_dir / f"{circuit}.sr1cs"),
         "manifest_sha256": sha256(artifact_dir / f"{circuit}-manifest.json"),
@@ -54,8 +59,12 @@ def render(circuit: str) -> str:
         "coverage_ir_sha256": sha256(FORMAL / f"{circuit}-deployed-slice-ir.json"),
         "nb_constraints": str(json.loads((artifact_dir / "circuit_metadata.json").read_text())["nb_constraints"]),
         "verifying_key_sha256_hex": json.loads((artifact_dir / "circuit_metadata.json").read_text())["verifying_key_sha256_hex"],
-        "deployed_statement_source_sha256": sha256(contract_dir / "Statement.lean"),
+        "deployed_circuit_facts_source_sha256": sha256(contract_dir / "CircuitFacts.lean"),
         "deployed_capstone_source_sha256": sha256(contract_dir / "Capstone.lean"),
+        "deployed_role_bindings_source_sha256": sha256(contract_dir / "RoleBindings.lean"),
+        "deployed_semantic_bindings_source_sha256": sha256(contract_dir / "SemanticBindings.lean"),
+        "deployed_semantic_seams_source_sha256": sha256(contract_dir / "SemanticSeams.lean"),
+        "handwritten_canonical_address_source_sha256": sha256(canonical_address),
         "family_generator_source_sha256": sha256(LEAN / "gen/gen_note_reshape_family.py"),
         "template_semantics_generator_source_sha256": sha256(LEAN / "gen/gen_note_reshape_template_semantics.py"),
         "proof_template_ownership_sha256": sha256(OWNERSHIP),
@@ -73,19 +82,19 @@ def render(circuit: str) -> str:
         "scope: whole-circuit",
         f"target: {circuit} deployed SR1CS contract chain",
         "engine: Lean 4 / normalized-relation deployed-template proofs",
-        f"theorem: Shieldd.GnarkFormal.Deployed.Contracts.{module}.{circuit}_statement",
+        f"theorem: Shieldd.GnarkFormal.Deployed.Contracts.{module}.{circuit}_circuitFacts",
         "model: exact deployed segment relations over one global wire valuation; normalized templates are restricted through per-instance seating, and Capstone composes every discharged segment",
         "axiom_baseline: propext, Quot.sound",
         "named_external_assumptions:",
         "- none",
         "decaf_fv_status: full",
         "covered_flow:",
-        "- ControlSpec exposes Boolean flags, dummy-suffix ordering, active-count ranges, conditional equality, and dummy multiplexing.",
-        "- SharedSpec covers shared curve, diversified-key, transmission-key, and equivalent-key obligations.",
-        "- Each SpendSpec covers note commitment, nullifier, state path, synthetic dummy nullifier, randomized verification-key branches, key bindings, and asset bindings.",
-        "- Each OutputSpec covers output note commitment, curve/equivalence, and asset bindings.",
-        "- BalanceSpec covers net-balance conservation, compression, and equivalent-key binding.",
-        "- TranscriptSpec covers statement-hash equality and exact transcript binding, including active-count inputs.",
+        "- ControlCircuitFacts exposes Boolean selectors, dummy-suffix ordering, minimum-real-input enforcement, conditional equality, and dummy multiplexing.",
+        "- SharedCircuitFacts covers the canonical asset/address context, its one diversified transmission-key derivation, and canonical transmission compression.",
+        "- Each SpendCircuitFacts covers note commitment, nullifier, state path, synthetic dummy nullifier, randomized verification key, and claimed-key binding.",
+        "- Each OutputCircuitFacts covers output note-commitment rows.",
+        "- BalanceCircuitFacts covers net-balance conservation, compression, and equivalent-key binding.",
+        "- TranscriptCircuitFacts covers statement-hash equality and exact transcript binding; padding selectors remain private and are constrained by the control facts.",
         "known_limitations:",
         "- The family theorem composes exact deployed segment relations; the Rust source/SR1CS, normalized IR, reconstruction, and coverage gates provide the compiled-row partition and hash binding.",
         "- Cryptographic bridge assumptions remain those recorded in the formal assumption ledger; no project Lean axioms are admitted.",

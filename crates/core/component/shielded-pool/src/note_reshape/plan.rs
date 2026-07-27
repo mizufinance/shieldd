@@ -358,7 +358,6 @@ impl NoteReshapePlan {
                     spend_auth_randomizer: spend.randomizer,
                     is_dummy: false,
                     dummy_nullifier_seed: Fq::from(0u64),
-                    dummy_spend_auth_key: Fr::from(0u64),
                 })
             })
             .collect::<Result<Vec<_>, crate::ProofError>>()?;
@@ -373,7 +372,6 @@ impl NoteReshapePlan {
                 spend_auth_randomizer: padder.synthetic_dummy_spend_auth_randomizer(slot),
                 is_dummy: true,
                 dummy_nullifier_seed: padder.synthetic_dummy_nullifier_seed(slot),
-                dummy_spend_auth_key: padder.synthetic_dummy_spend_auth_key(slot),
             },
         );
 

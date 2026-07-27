@@ -11,6 +11,15 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+MODE="${1:-full}"
+case "$MODE" in
+  vectors|full) ;;
+  *)
+    echo "usage: $(basename "$0") [vectors|full]" >&2
+    exit 2
+    ;;
+esac
+export LEAN_NUM_THREADS="${LEAN_NUM_THREADS:-1}"
 
 VECTORS="tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Vectors.lean"
 
@@ -31,7 +40,12 @@ if ! diff -u "$VECTORS" "$tmp" >/dev/null; then
 fi
 echo "    generated artifact in sync"
 
+if [[ "$MODE" == "vectors" ]]; then
+  echo "poseidon377 vector parity ok (gnark/Go artifact == committed Lean vectors)"
+  exit 0
+fi
+
 echo "==> lake build (evaluates Lean #guard parity vs Go-native outputs)"
-( cd tools/gnark/lean && lake build ShielddGnarkFormal.Poseidon377.Vectors )
+( cd tools/gnark/lean && LEAN_NUM_THREADS=1 lake build ShielddGnarkFormal.Poseidon377.Vectors )
 
 echo "poseidon377 parity ok (gnark/Go == Lean)"

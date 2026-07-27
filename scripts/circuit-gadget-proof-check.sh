@@ -181,7 +181,7 @@ check_lean_artifact_stamp() {
 # gadgets, wire-for-wire.
 (
   cd tools/gnark
-  go test ./internal/circuits/ -run 'TestBoolSelectAcl2ModelParity|TestAxeExportFidelity' -count=1
+  bash "$ROOT/scripts/check-gadget-model-fidelity.sh" acl2
 ) || fail "ACL2/gnark parity or Axe export fidelity failed — proof models a different circuit"
 
 tmp_poseidon2="$(mktemp)"

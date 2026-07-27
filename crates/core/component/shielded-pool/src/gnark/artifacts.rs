@@ -169,8 +169,8 @@ mod statement_parity_tests {
     /// Every shieldd gnark family exposes exactly one public input wire,
     /// `ClaimedStatementHash` — the statement-hash transcript binding (see
     /// `note_reshape_circuit.go:23` / `transfer_circuit.go:49`, and the
-    /// per-field binding inventories under
-    /// the generated coverage manifests and deployed `Statement.lean` modules).
+    /// per-field binding inventories under the generated coverage manifests
+    /// and deployed `CircuitFacts.lean` modules).
     ///
     /// The SnarkPack aggregation layer derives its per-proof arity from the VK
     /// as `pvk.vk.gamma_abc_g1.len() - 1` (`proof-aggregation/src/statement.rs:212`).

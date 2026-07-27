@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+source "$ROOT/scripts/lib/fail-closed-rg.sh"
 
 fail() {
   echo "soundness invariant failed: $*" >&2
@@ -14,16 +15,21 @@ command -v rg >/dev/null 2>&1 || fail "rg is required"
 # NoteReshape is the sole production vocabulary for this circuit family. Keep
 # the pcli negative assertion, Lean contributor instructions, and pinned
 # statement-hash domain labels out of this source-name lint.
-if rg -n 'Consolidate|consolidate(2x1|4x1|8x1)|Split1x8|split1x8' . \
+reject_rg_matches "legacy NoteReshape vocabulary" \
+    -ni '\b(consolidate(2x1|4x1|8x1)?|split1x8)\b' . \
     --glob '!target/**' \
     --glob '!tools/gnark/lean/.lake/**' \
     --glob '!tools/gnark/lean/AGENTS.md' \
     --glob '!crates/bin/pcli/tests/cli_surface.rs' \
     --glob '!tools/gnark/lean/gen/gen_note_reshape_statement_hash_semantics.py' \
     --glob '!scripts/check-soundness-invariants.sh' \
-    --glob '!docs/protocol/theme/js/mermaid.min.js'; then
-  fail "deleted Split/Consolidate production vocabulary remains"
-fi
+    --glob '!docs/protocol/theme/js/mermaid.min.js' \
+  || fail "deleted Split/Consolidate production vocabulary remains or the search failed"
+reject_rg_matches "bare Split production vocabulary" \
+    -n '(^|[^.[:alnum:]_])Split([^[:alnum:]_]|$)' \
+    crates/core/component/shielded-pool/src \
+    tools/gnark/cmd tools/gnark/internal/abi tools/gnark/internal/circuits \
+  || fail "deleted bare Split production vocabulary remains or the search failed"
 
 markdown_field() {
   local row="$1"
@@ -178,7 +184,6 @@ required_files=(
   "$CIRCUIT_FORMAL/circuit-soundness-scope.txt"
   "$CIRCUIT_FORMAL/circuit-gadget-proofs.md"
   "$CIRCUIT_FORMAL/circuit-constraint-report.txt"
-  "$CIRCUIT_FORMAL/circuit-whole-picus-report.txt"
   docs/soundness/README.md
   docs/soundness/fv.md
   docs/soundness/optimization.md
@@ -454,14 +459,32 @@ while IFS= read -r row; do
 done < <(table_rows "$CIRCUIT_FORMAL/external-check-map.md")
 
 check_stamped_artifact "PICUS-GADGET-REPORT" "$CIRCUIT_FORMAL/circuit-constraint-report.txt"
-if rg -n '^GADGET .* undischarged$' "$CIRCUIT_FORMAL/circuit-constraint-report.txt" >/dev/null; then
-  fail "Picus gadget report contains undischarged gadget leaves"
-fi
+reject_rg_matches "Picus undischarged verdict" \
+  -n '^GADGET .* undischarged$' "$CIRCUIT_FORMAL/circuit-constraint-report.txt" \
+  >/dev/null \
+  || fail "Picus gadget report contains undischarged gadget leaves or the search failed"
 for gadget in gadget-poseidon-hash5 gadget-ack-two-step gadget-dleq; do
   rg -F "GADGET $gadget safe" "$CIRCUIT_FORMAL/circuit-constraint-report.txt" >/dev/null \
     || fail "Picus gadget report must mark transfer probe $gadget safe"
 done
-check_stamped_artifact "PICUS-WHOLE-REPORT" "$CIRCUIT_FORMAL/circuit-whole-picus-report.txt"
+bash scripts/check-note-reshape-spec-independence.sh
+
+# A refinement theorem must derive semantic obligations from exact circuit
+# facts. A caller-supplied projection merely assumes the theorem's conclusion
+# and can make an incomplete circuit look end-to-end sound.
+reject_rg_matches "caller-supplied NoteReshape semantic projection" \
+  -n 'structure[[:space:]]+Projection|projection[[:space:]]*:[[:space:]]*Projection' \
+  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshapeRefinement.lean \
+  || fail "NoteReshape refinement accepts semantic obligations from its caller or the search failed"
+for family in NoteReshape2x1 NoteReshape1x8 NoteReshape4x1 NoteReshape8x1; do
+  circuit_facts="tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/$family/CircuitFacts.lean"
+  rg -n 'rows[[:space:]]*:[[:space:]]*relationAll rho' "$circuit_facts" >/dev/null \
+    || fail "$family exact CircuitFacts dropped raw deployed-row provenance"
+  semantic_seams="tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/$family/SemanticSeams.lean"
+  reject_rg_matches "$family semantic seam field alias collision" \
+    -n '^abbrev DeployedF' "$semantic_seams" \
+    || fail "$family SemanticSeams redeclares Capstone.DeployedF or the search failed"
+done
 
 # Lemma-citation existence: every `lean-dleq/Dleq/<File>.lean::<symbol>`
 # reference in the soundness docs must resolve to a real definition in the Lean

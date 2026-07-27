@@ -93,6 +93,15 @@
       "canonical_relation_file": "proof-template-relations/5e5758a2d4a6d172e743a9ad78863e351485ec2c3a01a4ef7fdc4d01f6c826ef.sr1cs.gz"
     },
     {
+      "proof_template_id": "assert.eq@69da8da0b6b464f2d1b83c3a1ce7917e88fe117647cafb6cd636b02ff294b5a7",
+      "op": "assert.eq",
+      "coarse_shape_sha256_hex": "893e1bf152209e4fd12dd495bea0c233352b127cd588cfeec7f60e8bbe636667",
+      "local_wire_count": 4,
+      "row_count": 1,
+      "canonical_relation_sha256_hex": "69da8da0b6b464f2d1b83c3a1ce7917e88fe117647cafb6cd636b02ff294b5a7",
+      "canonical_relation_file": "proof-template-relations/69da8da0b6b464f2d1b83c3a1ce7917e88fe117647cafb6cd636b02ff294b5a7.sr1cs.gz"
+    },
+    {
       "proof_template_id": "assert.eq@ca693c9a644d7a101d49302f9052719ee7e0f45605900d8e80b3c59e6b2e2ddd",
       "op": "assert.eq",
       "coarse_shape_sha256_hex": "4515731ffc85ad638bffdaeb63337e31735485437245d3a31af9268c0e7f2df8",
@@ -255,6 +264,15 @@
       "canonical_relation_file": "proof-template-relations/5be591435a6da60f6425c787fbbe584d1c91891985a42a1a1ae026592549eb3e.sr1cs.gz"
     },
     {
+      "proof_template_id": "decaf.assert_equivalent_if@9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
+      "op": "decaf.assert_equivalent_if",
+      "coarse_shape_sha256_hex": "e401230c0b1c02be84e4c7189dd5869ac42433db17560d4ad1e865246025ea52",
+      "local_wire_count": 507,
+      "row_count": 3,
+      "canonical_relation_sha256_hex": "9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3",
+      "canonical_relation_file": "proof-template-relations/9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.sr1cs.gz"
+    },
+    {
       "proof_template_id": "decaf.assert_on_curve@24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
       "op": "decaf.assert_on_curve",
       "coarse_shape_sha256_hex": "1ddb099d30d4930ed12245963dc85a0286faa7250da1d2f4b7e394ff840bf647",
@@ -262,6 +280,15 @@
       "row_count": 4,
       "canonical_relation_sha256_hex": "24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e",
       "canonical_relation_file": "proof-template-relations/24bf85b2827b81673d6d4cc8defe8ee186fa904c91905b1d2fa2b9b734d52b7e.sr1cs.gz"
+    },
+    {
+      "proof_template_id": "decaf.compress_to_field@134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2",
+      "op": "decaf.compress_to_field",
+      "coarse_shape_sha256_hex": "3fbb0f057bca90ba32cfb5bdacf2776ac3b17d5a17cc5d39537155653bbf6e24",
+      "local_wire_count": 1206,
+      "row_count": 1046,
+      "canonical_relation_sha256_hex": "134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2",
+      "canonical_relation_file": "proof-template-relations/134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.sr1cs.gz"
     },
     {
       "proof_template_id": "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
@@ -469,6 +496,15 @@
       "row_count": 430,
       "canonical_relation_sha256_hex": "7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
       "canonical_relation_file": "proof-template-relations/7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f.sr1cs.gz"
+    },
+    {
+      "proof_template_id": "gadget.note_commitment@9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5",
+      "op": "gadget.note_commitment",
+      "coarse_shape_sha256_hex": "c55a4344dcc2ee2b75efff37f624b658b5d1417cd6111af10c6d7fe79c2e8184",
+      "local_wire_count": 439,
+      "row_count": 430,
+      "canonical_relation_sha256_hex": "9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5",
+      "canonical_relation_file": "proof-template-relations/9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5.sr1cs.gz"
     },
     {
       "proof_template_id": "gadget.nullifier@e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72",

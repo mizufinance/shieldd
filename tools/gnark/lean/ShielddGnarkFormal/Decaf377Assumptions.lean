@@ -163,6 +163,28 @@ def AssertEquivalentCircuit (p q : Point) : Prop :=
 def CompressToFieldSpec (p : Point) (out : F) : Prop :=
   Extracted.DecafCompressToField.Relation p.x p.y out
 
+section ChoiceFreeOnCurve
+
+attribute [-instance] ZMod.instField ZMod.instIsDomain
+local instance choiceFreeOnCurveCommRing : CommRing F := ZMod.commRing _
+
+/-- Compression is only defined for an affine representative satisfying the
+Edwards curve equation. -/
+theorem onCurve_of_compress
+    (p : Point) (out : F) (h : CompressToFieldSpec p out) :
+    EdwardsBridge.onCurve ⟨p.x, p.y⟩ := by
+  have hc := h.1
+  change
+    p.y * p.y - p.x * p.x =
+      1 + (3021 : F) * (p.x * p.x) * (p.y * p.y) at hc
+  unfold EdwardsBridge.onCurve EdwardsBridge.d
+  change
+    -(p.x * p.x) + p.y * p.y =
+      1 + (3021 : F) * (p.x * p.x) * (p.y * p.y)
+  linear_combination hc
+
+end ChoiceFreeOnCurve
+
 /-- Cross-ratio equality `x_p·y_q = x_q·y_p` — exactly what the gadget
 constrains. The gadget itself does NOT assert either operand is on-curve; call
 sites that need Decaf quotient equality must provide those on-curve facts at

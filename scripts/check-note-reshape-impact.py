@@ -58,7 +58,7 @@ def relation_inventory(ir: dict) -> dict:
     }
 
 
-def statement_inventory(manifest: dict) -> dict:
+def public_statement_inventory(manifest: dict) -> dict:
     return {
         "circuit": manifest.get("circuit"),
         "shape": manifest.get("shape"),
@@ -108,7 +108,21 @@ def tree_hash(root: Path, patterns: tuple[str, ...]) -> str | None:
 
 
 def contract_patterns(circuit: str) -> tuple[str, ...]:
-    return ("Seg*.lean", "Bounds.lean", "Capstone.lean", "Statement.lean")
+    return (
+        "Seg*.lean",
+        "Bounds.lean",
+        "Capstone.lean",
+        "CircuitFacts.lean",
+        "RoleBindings.lean",
+        "SemanticBindings.lean",
+        "SemanticSeams.lean",
+    )
+
+
+def change_is_failure(
+    policy: str, circuit: str, affected: set[str], changed: list[str]
+) -> bool:
+    return bool(changed) and (policy == "clean" or circuit not in affected)
 
 
 def main() -> int:
@@ -116,9 +130,18 @@ def main() -> int:
     parser.add_argument("--fresh-dir", type=Path, required=True)
     parser.add_argument("--contracts-root", type=Path, required=True)
     parser.add_argument("--template-inventory", type=Path, required=True)
-    parser.add_argument("--affected", nargs="+", choices=[*FAMILIES, "all"], required=True)
+    parser.add_argument(
+        "--policy",
+        choices=("clean", "scoped"),
+        default="clean",
+        help="clean rejects every drift; scoped permits drift only in --affected families",
+    )
+    parser.add_argument("--affected", nargs="+", choices=[*FAMILIES, "all"])
     args = parser.parse_args()
-    affected = set(FAMILIES if "all" in args.affected else args.affected)
+    if args.policy == "scoped" and not args.affected:
+        parser.error("--policy scoped requires --affected")
+    requested = args.affected or []
+    affected = set(FAMILIES if "all" in requested else requested)
     root = Path(__file__).resolve().parents[1]
     expected_inventory = root / "tools/gnark/artifacts/note-reshape-template-inventory.json"
     failures: list[str] = []
@@ -153,8 +176,8 @@ def main() -> int:
         checks = {
             "sr1cs": sha(fresh_sr1cs) != sha(committed_sr1cs),
             "manifest": sha(fresh_manifest) != sha(committed_manifest),
-            "statement": digest(statement_inventory(fresh_manifest_data))
-            != digest(statement_inventory(committed_manifest_data)),
+            "public_statement": digest(public_statement_inventory(fresh_manifest_data))
+            != digest(public_statement_inventory(committed_manifest_data)),
             "relations": digest(relation_inventory(fresh_ir_data))
             != digest(relation_inventory(committed_ir_data)),
             "contracts": fresh_contracts is not None and fresh_contracts != committed_contracts,
@@ -165,12 +188,12 @@ def main() -> int:
             print(f"{circuit}: unchanged")
         else:
             print(f"{circuit}: changed: {', '.join(changed)}")
-        if circuit not in affected and changed:
+        if change_is_failure(args.policy, circuit, affected, changed):
             failures.append(circuit)
 
     if failures:
         print(
-            "content-based impact failed: supposedly unaffected families changed: "
+            f"content-based impact failed under {args.policy} policy: "
             + ", ".join(failures),
             file=sys.stderr,
         )

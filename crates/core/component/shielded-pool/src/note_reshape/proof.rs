@@ -96,7 +96,6 @@ pub struct NoteReshapeInputPrivate {
     pub spend_auth_randomizer: Fr,
     pub(crate) is_dummy: bool,
     pub(crate) dummy_nullifier_seed: Fq,
-    pub(crate) dummy_spend_auth_key: Fr,
 }
 
 #[derive(Clone, Debug)]

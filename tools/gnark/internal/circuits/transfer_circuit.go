@@ -337,6 +337,33 @@ func (c *TransferCircuit) verifySharedTransferContext(api frontend.API) (transfe
 	if err != nil {
 		return transferSharedContext{}, err
 	}
+	c.traceWiring(
+		"decaf.diversified_transmission_key",
+		"nk=auth.nk",
+		"ak=shared.ak",
+		"div_gen=sender.div_gen",
+		"ivk_reduced=auth.ivk_reduced",
+		"ivk_quotient_a=auth.ivk_quotient_a",
+		"out=sender.transmission.computed",
+	)
+	computedSenderTransmission, err := DiversifiedTransmissionKey(
+		api,
+		c.Auth.NK,
+		shared.ak,
+		shared.senderDivGen,
+		c.Auth.IVKReduced,
+		c.Auth.IVKQuotientA,
+	)
+	if err != nil {
+		return transferSharedContext{}, err
+	}
+	c.traceWiring(
+		"decaf.assert_equivalent_if",
+		"lhs=sender.transmission.computed",
+		"rhs=sender.transmission",
+		"cond=1",
+	)
+	decafgnark.AssertEquivalentIf(api, computedSenderTransmission, shared.senderTransmission, 1)
 
 	c.traceWiring("gadget.asset_registry_imt", "asset_id=shared.asset_id", "is_regulated=is_regulated", "leaf=asset.leaf", "path=asset.path", "position=asset.position", "root=asset_anchor")
 	if err := VerifyAssetRegistryIMT(
@@ -465,15 +492,17 @@ func (c *TransferCircuit) verifyTransferSpend(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("assert.eq", "lhs="+name+".note.transmission_key_s", "rhs=sender.transmission_fq")
+	api.AssertIsEqual(spend.Note.TransmissionKeyS, shared.senderTransmissionFq)
 
-	c.traceWiring("gadget.note_commitment", "blinding="+name+".note.blinding", "amount="+name+".note.amount", "asset_id="+name+".note.asset_id", "div_gen_fq="+name+".note.div_gen_fq", "transmission_key_s="+name+".note.transmission_key_s", "clue_key="+name+".note.clue_key", "out="+name+".note.commitment.computed")
+	c.traceWiring("gadget.note_commitment", "blinding="+name+".note.blinding", "amount="+name+".note.amount", "asset_id="+name+".note.asset_id", "div_gen_fq="+name+".note.div_gen_fq", "transmission_key_s=sender.transmission_fq", "clue_key="+name+".note.clue_key", "out="+name+".note.commitment.computed")
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		spend.Note.Blinding,
 		spend.Note.Amount,
 		spend.Note.AssetID,
 		spentDivGenFq,
-		spend.Note.TransmissionKeyS,
+		shared.senderTransmissionFq,
 		spend.Note.ClueKey,
 	)
 	if err != nil {
@@ -526,20 +555,6 @@ func (c *TransferCircuit) verifyTransferSpend(
 	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".rk.dummy", "rhs="+name+".rk.claimed", "cond="+name+".is_dummy")
 	decafgnark.AssertEquivalentIf(api, dummyRK, rkClaimed, spend.IsDummy)
 
-	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen="+name+".note.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out="+name+".transmission.computed")
-	computedSpentTransmission, err := DiversifiedTransmissionKey(
-		api,
-		c.Auth.NK,
-		shared.ak,
-		spentDivGen,
-		c.Auth.IVKReduced,
-		c.Auth.IVKQuotientA,
-	)
-	if err != nil {
-		return err
-	}
-	c.traceWiring("decaf.assert_equivalent_if", "lhs="+name+".transmission.computed", "rhs="+name+".note.transmission", "cond="+name+".is_not_dummy")
-	decafgnark.AssertEquivalentIf(api, computedSpentTransmission, spentTransmission, isNotDummy)
 	c.traceWiring("assert.eq_if", "lhs="+name+".note.amount", "rhs=0", "cond="+name+".is_dummy")
 	AssertEqualIf(api, spend.Note.Amount, 0, spend.IsDummy)
 
@@ -595,15 +610,17 @@ func (c *TransferCircuit) verifyTransferOutput(
 	if err != nil {
 		return err
 	}
+	c.traceWiring("assert.eq", "lhs="+name+".note.transmission_key_s", "rhs="+name+".note.transmission_fq")
+	api.AssertIsEqual(output.Note.TransmissionKeyS, createdTransmissionFq)
 
-	c.traceWiring("gadget.note_commitment", "blinding="+name+".note.blinding", "amount="+name+".note.amount", "asset_id="+name+".note.asset_id", "div_gen_fq="+name+".note.div_gen_fq", "transmission_key_s="+name+".note.transmission_key_s", "clue_key="+name+".note.clue_key", "out="+name+".note.commitment.computed")
+	c.traceWiring("gadget.note_commitment", "blinding="+name+".note.blinding", "amount="+name+".note.amount", "asset_id="+name+".note.asset_id", "div_gen_fq="+name+".note.div_gen_fq", "transmission_key_s="+name+".note.transmission_fq", "clue_key="+name+".note.clue_key", "out="+name+".note.commitment.computed")
 	createdCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		output.Note.Blinding,
 		output.Note.Amount,
 		output.Note.AssetID,
 		createdDivGenFq,
-		output.Note.TransmissionKeyS,
+		createdTransmissionFq,
 		output.Note.ClueKey,
 	)
 	if err != nil {

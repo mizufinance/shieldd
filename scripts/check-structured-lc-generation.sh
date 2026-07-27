@@ -11,14 +11,14 @@ fail() {
 }
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-ARTIFACT_DIR="$ROOT/tools/gnark/artifacts/note_reshape2x1"
+ARTIFACT_DIR="$ROOT/tools/gnark/artifacts/transfer"
 mkdir -p "$ROOT/tools/gnark/lean/.lake"
 TMP="$(mktemp -d "$ROOT/tools/gnark/lean/.lake/structured-lc-generation.XXXXXX")"
 trap 'rm -rf "$TMP"' EXIT
 
 if ! cargo run --release -q -p shieldd-constraint-coverage -- \
-    --manifest "$ARTIFACT_DIR/note_reshape2x1-manifest.json" \
-    --sr1cs "$ARTIFACT_DIR/note_reshape2x1.sr1cs" \
+    --manifest "$ARTIFACT_DIR/transfer-manifest.json" \
+    --sr1cs "$ARTIFACT_DIR/transfer.sr1cs" \
     --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
     --lean-contract-out "$TMP/generated" >"$TMP/generate.log" 2>&1; then
   cat "$TMP/generate.log" >&2
@@ -41,4 +41,40 @@ if rg -q '^set_option maxHeartbeats 0$' "$candidate"; then
 fi
 
 echo "generated_contract=$candidate"
-"$ROOT/scripts/lean-leaf-bench.sh" "$candidate" contract
+
+# Split contracts import their generated `SegNBase` module. Compile that base
+# into an isolated overlay first; otherwise this check can accidentally use a
+# committed sibling or fail merely because the fresh module is not on
+# `LEAN_PATH`.
+candidate_name="$(basename "$candidate" .lean)"
+segment_stem="${candidate_name%%Defs*}"
+base="$TMP/generated/Transfer/${segment_stem}Base.lean"
+[[ -f "$base" ]] || fail "generated StructuredLC contract lacks base module: $base"
+overlay="$TMP/olean"
+specs="$TMP/Specs.lean"
+specs_olean="$overlay/ShielddGnarkFormal/Deployed/Contracts/Transfer/Specs.olean"
+base_olean="$overlay/ShielddGnarkFormal/Deployed/Contracts/Transfer/${segment_stem}Base.olean"
+
+# Lean resolves the `ShielddGnarkFormal` package at the first matching search
+# root, so the overlay must also expose the two non-family modules imported by
+# the generated base. Keep this overlay minimal and read-only.
+mkdir -p "$overlay/ShielddGnarkFormal/Deployed"
+ln -s "$ROOT/tools/gnark/lean/.lake/build/lib/ShielddGnarkFormal/Deployed/Contract.olean" \
+  "$overlay/ShielddGnarkFormal/Deployed/Contract.olean"
+ln -s "$ROOT/tools/gnark/lean/.lake/build/lib/ShielddGnarkFormal/StructuredLC.olean" \
+  "$overlay/ShielddGnarkFormal/StructuredLC.olean"
+
+# The generic contract renderer imports the hand-authored family `Specs`
+# module, but split relation definition chunks do not use any endpoint symbol.
+# This syntax gate deliberately supplies only that empty namespace: endpoint
+# coverage is checked by the deployed contract gate, while this check remains
+# independent of a committed Transfer Specs artifact.
+printf '%s\n' \
+  'namespace Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Specs' \
+  'end Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Specs' >"$specs"
+BENCH_OLEAN_OUT="$specs_olean" \
+  "$ROOT/scripts/lean-leaf-bench.sh" "$specs" contract
+BENCH_LEAN_PATH_PREPEND="$overlay" BENCH_OLEAN_OUT="$base_olean" \
+  "$ROOT/scripts/lean-leaf-bench.sh" "$base" contract
+BENCH_LEAN_PATH_PREPEND="$overlay" \
+  "$ROOT/scripts/lean-leaf-bench.sh" "$candidate" contract

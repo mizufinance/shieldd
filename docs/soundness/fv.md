@@ -1,155 +1,123 @@
 # Circuit formal verification
 
-## Guarantee
+## What the NoteReshape proof claims
 
-The maintained NoteReshape FV paths prove specifications of the exact deployed
-R1CS segments over one global wire valuation for `note_reshape2x1`,
-`note_reshape4x1`, `note_reshape8x1`, and `note_reshape1x8`. Each path composes every
-discharged segment and projects the result into a protocol-readable family
-Statement. Every shape covers its active notes' owner/key material, note
-commitments, nullifiers, depth-24 state paths, spend authorization keys,
-outputs, exact value conservation, net balance commitment, and public
-statement hash. Padded shapes additionally prove their active-range,
-dummy-suffix, and deterministic dummy-note obligations.
+NoteReshape has three deliberately separate assurance layers:
 
-The protocol theorem intentionally reflects the optimized circuit:
+1. `Protocol.NoteReshape.Semantics` is handwritten and imports only general
+   mathematics. It defines the accepted action relation over one canonical
+   address/asset context and distinct real and dummy input types.
+2. Generated `Deployed.Contracts.NoteReshape*/CircuitFacts.lean` modules prove
+   typed facts about every row of the exact deployed R1CS. Generated code does
+   not define protocol correctness.
+3. `Deployed.NoteReshapeRefinement` dispatches exact deployed rows to their
+   generated typed facts. Handwritten adapters must then construct each
+   `Protocol.NoteReshape.CircuitFacts` field from those exact facts. The former
+   caller-supplied `Projection` is forbidden because it assumed the obligations
+   that the refinement was supposed to derive.
 
-- `div_gen` is compressed once from the shared on-curve point. Per-note points
-  are related to it only by the circuit's Decaf cross-ratio relation; the proof
-  does not invent deleted per-note compression or curve checks.
-- the diversified transmission key is computed once from the shared inputs and
-  every note is bound to that result;
-- the 253-bit IVK decomposition proves the unused high bits are zero before the
-  251-bit scalar ladder is used;
-- every active input and output amount is 128-bit, the sum of active inputs
-  equals the sum of active outputs, and the conservation net-balance commitment
-  is the fixed blinding-generator multiplication compressed into the statement;
-- each randomized verification key is tied to the authorization key and
-  randomizer, not merely asserted to be on curve.
+The obligation ledger is
+`crates/core/component/shielded-pool/formal/note-reshape-obligation-ledger.md`.
 
-The generated capstone remains exhaustive even when the readable theorem names
-only protocol facts. Review both: the capstone answers “did every deployed
-segment get a proof?”; the readable statement answers “did we retain the facts
-the protocol relies on?”
+The four exact-circuit capstones cover `note_reshape2x1`,
+`note_reshape1x8`, `note_reshape4x1`, and `note_reshape8x1`. The circuit facts
+partition every exact gadget fact by protocol role. Generated compiler-LC
+bindings and permutation-certified seams now prove that the one DTK output is
+the point consumed by transmission compression in all four families. The
+`note_reshape2x1` handwritten adapter now derives commitments,
+membership/nullifiers, randomized keys, conservation, balance and RK
+compression, and exact statement binding, and its final deployed-relation
+refinement theorem compiles. The corresponding complete adapters for
+`note_reshape1x8`, `note_reshape4x1`, and `note_reshape8x1` are still open.
+External signature verification and state transition checks remain outside
+Groth16 and are explicit inputs to the final refinement.
 
-## Deployed Statement families
+## Why the dummy-input bug passed
 
-The four final StatementHash providers use the exact deployed normalized
-relation for their family and keep the circuit's domain separator in the
-family-specific `TraceBase` artifact:
+The previous Lean path proved that the deployed circuit satisfied facts derived
+from that same circuit. Its generated semantic-looking `Statement` interface
+was not an independent protocol specification. If the circuit and generated
+interface omitted the same dummy obligation, Lean could prove both perfectly.
+The missing piece was the handwritten join from exact circuit behavior to an
+independently reviewed accepted-language relation.
 
-| Direction | Family hash | Domain separator | Rows | Proof blocks |
-| --- | --- | ---: | ---: | --- |
-| 2 → 1 | `fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4` | `5079577531472816977664249278115400294401892237874490721478834552286369830267` | 470 | 0 |
-| 4 → 1 | `1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78` | `5915654282401331336747985974992743439571166637199277295399593266008193812311` | 940 | 0–1 |
-| 1 → 8 | `ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805` | `2598058543572663691928291801991083332834406653466399970650219017347474033401` | 1,385 | 0–2 |
-| 8 → 1 | `7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed` | `8151566796627494957780365425260097767647931594965532798107827918965818197203` | 1,860 | 0–3 |
+Whole-family Picus did not close that gap. Its export classified every secret
+wire as an input, so the solver checked satisfiability after the prover had
+already chosen all secret values. That is useful for finding some algebraic
+gadget counterexamples, but it does not establish that an externally meaningful
+dummy field is functionally constrained or joined to the protocol relation.
 
-Each relation provider exposes five-row `relationPart` shards, including the
-large 1 → 8 and 8 → 1 relations. Block providers compose those parts, and the
-family Statement composes the deployed blocks; no compatibility or alternate
-relation path is retained.
+Picus remains useful for:
 
-## Drift-proof chain
+- leaf-gadget counterexamples and small underconstraint probes;
+- rapid checks before an exact Lean adapter exists;
+- adversarial tests of a proposed local relation.
+
+It is not part of the whole-family NoteReshape soundness claim. Family exports
+that assign every secret wire as an input are rejected.
+
+## Specification independence
+
+The CI boundary enforces:
+
+- protocol semantics cannot import generated contracts, manifests, traces,
+  artifacts, or wire indices;
+- generators cannot write protocol-semantic modules;
+- a circuit-only change must preserve
+  `tools/gnark/lean/note-reshape-semantics.sha256`;
+- every witness field must have a reviewed role and supporting obligation;
+- removed per-note address representations and dummy authorization-key fields
+  are forbidden by the role manifest and structural regression tests.
+
+The V2 witness contains one private shared asset ID, diversified generator, and
+clue key. The circuit derives one DTK and one canonical transmission encoding
+from that context and uses them in every input and output commitment. There is
+no ABI location for a per-note affine transmission, encoded transmission, clue
+key, generator, or asset to disagree with it.
+
+## Exact deployed chain
 
 ```text
-Go Define source
-  -> freshly compiled SR1CS, byte-equal to deployed SR1CS
-  -> semantic segment manifest, byte-equal to the committed manifest
-  -> typed slice IR and verified proof-template equivalence witness
-  -> reviewed proof-template registry and normalized coverage manifest
-  -> exact generated row contracts
-  -> generated template Bounds and exhaustive Capstone
-  -> generated role-partitioned Statement theorem
-  -> deployed PK/VK pins and a deployed-key prove/verify round trip
+handwritten protocol semantics + obligation ledger
+                         |
+Go Define -> SR1CS -> typed slice IR -> exact generated row contracts
+                         |                    |
+                 coverage capstone      typed CircuitFacts
+                         \                    /
+                handwritten semantic adapters
+                              |
+          external signatures + state preconditions
+                              |
+                 Protocol.NoteReshape.Valid
 ```
 
-No handwritten circuit replica participates in this chain. The extractor may
-reuse a reviewed template only after reconstructing every deployed row from its
-canonical row with a wire and row permutation, optional L/R swap, and valid
-nonzero R1CS scaling. Term ordering is normalized. Aliases, coefficients,
-equations, or unmatched templates fail closed as unreviewed. Broader polynomial
-equivalence and variable elimination are intentionally out of scope.
+Until every adapter is constructed and the final theorem compiles, the
+NoteReshape end-to-end Lean claim remains open. The exact-circuit branch
+additionally pins the semantic segment manifest,
+template equivalence witnesses, generated ownership digests, SR1CS bytes,
+PK/VK bytes, and deployed-key prove/verify round trips. Template reuse is
+permitted only with a checked wire/row permutation, optional L/R swap, and
+valid nonzero R1CS scaling.
 
-Changing Go source, segment boundaries, operation labels, wire roles,
-proof-class status, theorem names, capstone membership, Statement
-membership, key bytes, or generated output makes a gate fail unless the change
-is covered by a verified local-equivalence witness. Generated Lean must be
-fixed through its generator and then regenerated; never edit it directly.
+## Trust boundary
 
-Lean's theorem starts from the conjunction of exact deployed segment relations.
-The Rust coverage gate is the checked bridge establishing that those relations
-partition the compiled SR1CS rows. The source/SR1CS and key gates are therefore
-part of the proof claim, not optional bookkeeping.
+The result still trusts the gnark compiler/backend and Groth16 implementation,
+the extraction and coverage tools, Lean's kernel and standard axiom baseline,
+and the documented cryptographic assumptions. Protocol handlers own signature
+verification, nullifier freshness, and state transitions.
 
-## Evidence and trust boundary
+The Lean gate permits one Lake build at a time with `LEAN_NUM_THREADS=1`.
+Generated Lean is never edited directly; generator output and template
+ownership are byte-checked.
 
-Authoritative evidence lives at:
-
-- `tools/gnark/artifacts/{note_reshape2x1,note_reshape4x1,note_reshape8x1,note_reshape1x8}/`
-  — deployed SR1CS, metadata, PK, and VK;
-- `crates/core/component/shielded-pool/formal/` — coverage reports, normalized
-  manifests, and stamped whole-circuit artifacts;
-- `tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/` — generated family
-  bounds, capstones, wiring, and Statements;
-- `tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/` — exact normalized
-  template relations and their reusable semantic providers;
-- `tools/gnark/artifacts/proof-template-registry.json` and
-  `tools/gnark/artifacts/proof-template-relations/` — reviewed canonical
-  relations and stable template identities;
-- `tools/gnark/artifacts/proof-template-ownership.json` —
-  template-owned generated files, exact byte digests, family consumers, and
-  per-family semantic-closure hashes;
-- `crates/core/component/compliance/formal/assumption-ledger.md` — named
-  assumptions and removal paths.
-
-The proof still trusts the gnark compiler/backend and Groth16 implementation,
-the coverage/extraction tools, Lean's kernel and standard axiom baseline, the
-cryptographic assumptions recorded in the ledger, and the surrounding Decaf377
-representation bridges. The BLS12-377 scalar-field modulus itself is proved
-prime by a kernel-checked Lucas certificate. The gate forbids project axioms and
-compiler-backed certificate shortcuts, then requires the certificate, deployed
-capstones, and readable Statements to expose their reviewed axiom baselines.
-The memory-bounded `.olean` dependency auditor requires each final theorem to
-depend on exactly `[propext, Quot.sound]`; every other axiom, including
-`Classical.choice` and `sorryAx`, fails the gate. Each deployed Statement's
-exact standard-axiom baseline is recorded in its stamped artifact. Protocol handlers and
-accepted-language/state-machine claims remain separate evidence.
-
-## Editing workflow
-
-1. Change the circuit or semantic spec.
-2. Run focused Go tests and export a fresh candidate SR1CS/manifest.
-3. Inspect the semantic segment diff. New or changed relations require an
-   explicit proof; deleted relations require an explanation.
-4. Regenerate typed IR and verify its registry witness. A new relation must be
-   reviewed and added to the registry before proof generation can continue.
-5. Regenerate contracts, template semantics, wiring, capstone, Statement, and
-   the ownership manifest from their generators.
-6. Build the narrowest changed Lean modules in dependency order.
-7. Run `drift`, then `typed`; generate evidence only after the axiom audit is
-   green, and finish with `release` for the deployed-key round trip.
-8. Update compact stamped artifacts only after every source gate is green.
-
-Lean resource rules are load-bearing: run one Lake command at a time, set
-`LEAN_NUM_THREADS=1`, build the narrowest named module, keep generated
-`maxHeartbeats` finite, and monitor the process. The extractor now emits a finite
-budget, and its regression gate prevents new unbounded exports. Exact contracts
-whose definition payload exceeds 16 MiB are emitted as a small base, contiguous
-512 KiB definition shards, and a canonical façade; every shard must remain
-inside the leaf budget. Older extracted
-modules remain source-hash-gated with their historical unbounded setting until a
-deliberate bulk regeneration is reviewed. The complete local rules are in
-`tools/gnark/lean/AGENTS.md`.
-
-Useful commands:
+## Release commands
 
 ```sh
+scripts/check-note-reshape-spec-independence.sh
 scripts/check-manifest-pin.sh all
-scripts/check-constraint-coverage.sh --require-full-deployed --check-typed-bindings all
+scripts/check-constraint-coverage.sh --require-full-deployed --check-typed-bindings --circuit all
 LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh drift all
 LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh typed all
-python3 scripts/gen-note-reshape-family-artifacts.py
 LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh release all
 bash scripts/check-soundness-invariants.sh
 ```

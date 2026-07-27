@@ -135,8 +135,8 @@ func testCircuitFamilies() []circuitFamily {
 			},
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("note_reshape2x1")
-				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
+				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV2("note_reshape2x1")
+				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode note reshape witness fixture: %v", err)
 				}
@@ -156,8 +156,8 @@ func testCircuitFamilies() []circuitFamily {
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("note_reshape1x8")
-				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
+				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV2("note_reshape1x8")
+				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode note reshape witness fixture: %v", err)
 				}
@@ -195,27 +195,27 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 251469, public: 2, secret: 542, internal: 224461},
+			stats:   circuitStats{constraints: 245389, public: 2, secret: 542, internal: 218892},
 		},
 		{
 			name:    "note_reshape2x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape2x1", 2, 1) },
-			stats:   circuitStats{constraints: 36553, public: 2, secret: 193, internal: 34439},
+			stats:   circuitStats{constraints: 37559, public: 2, secret: 176, internal: 35116},
 		},
 		{
 			name:    "note_reshape8x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape8x1", 8, 1) },
-			stats:   circuitStats{constraints: 194226, public: 2, secret: 739, internal: 185235},
+			stats:   circuitStats{constraints: 117526, public: 2, secret: 672, internal: 112374},
 		},
 		{
 			name:    "note_reshape4x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape4x1", 4, 1) },
-			stats:   circuitStats{constraints: 102620, public: 2, secret: 379, internal: 97517},
+			stats:   circuitStats{constraints: 64784, public: 2, secret: 344, internal: 61432},
 		},
 		{
 			name:    "note_reshape1x8",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
-			stats:   circuitStats{constraints: 28256, public: 2, secret: 176, internal: 26550},
+			stats:   circuitStats{constraints: 29196, public: 2, secret: 117, internal: 27185},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",
@@ -389,8 +389,8 @@ func TestPaddedSpendCircuitsRejectMutatedDummyNullifierSeed(t *testing.T) {
 }
 
 func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
-	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("note_reshape1x8")
-	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
+	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV2("note_reshape1x8")
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode note reshape witness fixture: %v", err)
 	}
@@ -417,8 +417,8 @@ func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
 }
 
 func TestNoteReshapeRejectsPaddedOutputPayloadMutation(t *testing.T) {
-	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV1("note_reshape1x8")
-	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(fixtureBytes)
+	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV2("note_reshape1x8")
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode note reshape witness fixture: %v", err)
 	}
