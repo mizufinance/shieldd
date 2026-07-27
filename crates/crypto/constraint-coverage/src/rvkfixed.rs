@@ -1451,7 +1451,39 @@ pub fn emit_tail(rows: &[Constraint], base: usize, inst: &str) -> String {
 mod tests {
     use super::*;
     use crate::ir::parse_rows;
-    use crate::load_sr1cs;
+    use crate::{load_manifest, load_sr1cs, ConstraintManifest, ManifestSegment};
+
+    const ARTIFACT_DIR: &str = "../../../tools/gnark/artifacts/note_reshape2x1";
+    const TO_BINARY_ROWS: usize = 252;
+    const FUSED_RUNGS: usize = 149;
+    const ROWS_PER_FUSED_RUNG: usize = 5;
+    const NET_BALANCE_FUSED_OFFSET: usize = 640;
+
+    fn load_artifact() -> (Vec<Constraint>, ConstraintManifest) {
+        let sr = load_sr1cs(format!("{ARTIFACT_DIR}/note_reshape2x1.sr1cs")).unwrap();
+        let rows = parse_rows(&sr).unwrap();
+        let (manifest, _) =
+            load_manifest(format!("{ARTIFACT_DIR}/note_reshape2x1-manifest.json")).unwrap();
+        (rows, manifest)
+    }
+
+    fn rvk_segment(manifest: &ConstraintManifest, index: usize) -> &ManifestSegment {
+        manifest
+            .segments
+            .iter()
+            .filter(|segment| segment.op == "decaf.randomized_verification_key")
+            .nth(index)
+            .unwrap_or_else(|| panic!("randomized verification key segment {index}"))
+    }
+
+    fn rvk_fused_base(segment: &ManifestSegment) -> usize {
+        assert_eq!(segment.constraint_count, 1812);
+        segment.start + TO_BINARY_ROWS
+    }
+
+    fn rvk_tail_base(segment: &ManifestSegment) -> usize {
+        rvk_fused_base(segment) + FUSED_RUNGS * ROWS_PER_FUSED_RUNG
+    }
 
     #[test]
     fn dump_tail_rows() {
@@ -1627,11 +1659,8 @@ mod tests {
 
     #[test]
     fn emit_tail_inst0() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
-            .unwrap();
-        let rows = parse_rows(&sr).unwrap();
-        let out = emit_tail(&rows, 17893, "inst0");
-        std::fs::write("/tmp/tail_gen.lean", &out).unwrap();
+        let (rows, manifest) = load_artifact();
+        let out = emit_tail(&rows, rvk_tail_base(rvk_segment(&manifest, 0)), "inst0");
         // every baked literal must have been resolved (no `expect` panic) and the
         // 7 const-identity lemmas + tail theorem present.
         for needle in [
@@ -1670,63 +1699,49 @@ mod tests {
 
     #[test]
     fn emit_tail_inst1() {
-        // inst1 rvk tail located at row 30523 (same i67 signature as inst0's 17893).
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
-            .unwrap();
-        let rows = parse_rows(&sr).unwrap();
-        let out = emit_tail(&rows, 30523, "inst1");
-        std::fs::write("/tmp/tail_gen_inst1.lean", &out).unwrap();
+        let (rows, manifest) = load_artifact();
+        let out = emit_tail(&rows, rvk_tail_base(rvk_segment(&manifest, 1)), "inst1");
         assert!(out.contains("deployedTail_addSpec"));
     }
 
     #[test]
     fn emit_inst0_prefix() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
-            .unwrap();
-        let rows = parse_rows(&sr).unwrap();
+        let (rows, manifest) = load_artifact();
         let n: usize = std::env::var("RVK_N")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(3);
-        let out = emit_rvk_file(&rows, 17148, n, "Inst0");
-        std::fs::write("/tmp/rvkfixed_gen.lean", &out).unwrap();
-        eprintln!("wrote /tmp/rvkfixed_gen.lean ({} bytes)", out.len());
+        let out = emit_rvk_file(&rows, rvk_fused_base(rvk_segment(&manifest, 0)), n, "Inst0");
+        assert!(out.contains("namespace Shieldd.GnarkFormal.RvkFixedGenInst0"));
     }
 
     #[test]
     fn emit_nb_seg46() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
-            .unwrap();
-        let rows = parse_rows(&sr).unwrap();
+        let (rows, manifest) = load_artifact();
         let n: usize = std::env::var("NB_N")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(149);
-        // seg46 (NB-1 conservation shape) starts at absolute row 32840; first
-        // fused blinding rung at segment-relative 640 (BLIND_COPY_ROW + 1; see
-        // normalized NB recovery BLIND_* constants).
-        let out = emit_nb_file(&rows, 32840 + 640, n);
-        std::fs::write(
-            "../../../tools/gnark/lean/ShielddGnarkFormal/NbFixedGenSeg46.lean",
-            &out,
-        )
-        .unwrap();
-        eprintln!("wrote NbFixedGenSeg46.lean ({} bytes)", out.len());
+        let segment = manifest
+            .segments
+            .iter()
+            .find(|segment| segment.op == "decaf.conservation_net_balance_commitment")
+            .expect("net balance segment");
+        assert_eq!(segment.constraint_count, 2193);
+        let out = emit_nb_file(&rows, segment.start + NET_BALANCE_FUSED_OFFSET, n);
+        assert!(out.contains("namespace Shieldd.GnarkFormal.NbFixedGenSeg46"));
+        assert!(out.contains(&format!("theorem rung{n}")));
     }
 
     #[test]
     fn emit_inst1_prefix() {
-        let sr = load_sr1cs("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs")
-            .unwrap();
-        let rows = parse_rows(&sr).unwrap();
+        let (rows, manifest) = load_artifact();
         let n: usize = std::env::var("RVK_N")
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(3);
-        // inst1 fused ladder base = inst0 17148 + tail offset (30523-17893) = 29778.
-        let out = emit_rvk_file(&rows, 29778, n, "Inst1");
-        std::fs::write("/tmp/rvkfixed_gen_inst1.lean", &out).unwrap();
-        eprintln!("wrote /tmp/rvkfixed_gen_inst1.lean ({} bytes)", out.len());
+        let out = emit_rvk_file(&rows, rvk_fused_base(rvk_segment(&manifest, 1)), n, "Inst1");
+        assert!(out.contains("namespace Shieldd.GnarkFormal.RvkFixedGenInst1"));
     }
 }
 

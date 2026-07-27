@@ -276,14 +276,8 @@ mod tests {
             wrong_dummy_sk.sign(OsRng, context.effect_hash.as_ref()),
         ];
 
-        let err = verify_auth_sigs(
-            "note reshape",
-            &inputs,
-            &signatures,
-            &context,
-            |rk| rk,
-        )
-        .expect_err("every padded RK, including a dummy slot, must verify");
+        let err = verify_auth_sigs("note reshape", &inputs, &signatures, &context, |rk| rk)
+            .expect_err("every padded RK, including a dummy slot, must verify");
         assert!(
             err.to_string().contains("auth signature 1 failed"),
             "unexpected rejection reason: {err:#}"
