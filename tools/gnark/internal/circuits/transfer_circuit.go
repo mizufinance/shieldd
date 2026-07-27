@@ -234,7 +234,7 @@ func computeTransferNetBalanceCommitment(
 
 // computeConservationNetBalanceCommitment is NB-1: the net-balance
 // commitment for shapes that are conservation-exact by construction (every
-// note_reshape family: consolidate/split always net to zero value change on
+// NoteReshape family: every supported shape has zero net value change on
 // a single shared asset ID). Sigma(inputAmounts) = Sigma(outputAmounts) is
 // asserted directly as one linear row instead of building the balance from
 // per-amount value-generator ladders (computeTransferNetBalanceCommitment),

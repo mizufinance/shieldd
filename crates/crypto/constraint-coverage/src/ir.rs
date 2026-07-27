@@ -14,13 +14,15 @@
 //! drift the IR from the deployed rows). Lean is generated *from* this IR; we
 //! never parse Lean back to R1CS.
 
+use crate::template_registry::{match_registry, TemplateEquivalenceWitness, TemplateRegistry};
 use crate::{ConstraintManifest, CoverageError, Sr1cs};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
+use std::path::Path;
 
 /// One `(coeff wire)` term of a linear combination.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Term {
     pub coeff: String,
     pub wire: usize,
@@ -28,7 +30,7 @@ pub struct Term {
 
 /// A parsed R1CS row `L * R = O`, each side a linear combination over wires.
 /// Wire 0 is the constant-one wire.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct Constraint {
     pub l: Vec<Term>,
     pub r: Vec<Term>,
@@ -42,7 +44,7 @@ impl Constraint {
 
     /// Re-render to the canonical `.sr1cs` token string. The X-check compares
     /// this against the original line, so a parse/serialize mismatch fails loud.
-    fn render(&self) -> String {
+    pub(crate) fn render(&self) -> String {
         fn side(terms: &[Term]) -> String {
             let inner: String = terms
                 .iter()
@@ -71,7 +73,7 @@ pub struct WireRoles {
     pub internal: Vec<usize>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SegmentIr {
     pub index: usize,
     pub op: String,
@@ -103,6 +105,18 @@ pub struct SegmentIr {
     /// row tokens.
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub wire_role_sha256_hex: String,
+    /// Hash of the normalized local relation. Local wire ids are assigned by
+    /// first occurrence across the complete segment; coefficients and all
+    /// row/side/term ordering remain part of the digest.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub deployed_normalized_relation_sha256_hex: String,
+    /// Stable reviewed proof identity, independent of deployed presentation.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub proof_template_id: String,
+    /// Audited equivalence between the reviewed canonical proof template and
+    /// this deployed presentation. Empty only for zero-row marker segments.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template_equivalence_witness: Option<TemplateEquivalenceWitness>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -128,6 +142,16 @@ pub struct CircuitIr {
     pub nb_constraints: usize,
     pub classes: Vec<ClassIr>,
     pub segments: Vec<SegmentIr>,
+}
+
+pub const DEPLOYED_SLICE_IR_SCHEMA: &str = "shieldd.gnark.deployed_slice_ir.v3";
+
+/// A relation with local wire ids and its exact local-to-global seating.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub struct NormalizedRelation {
+    pub rows: Vec<Constraint>,
+    pub wire_seating: Vec<usize>,
+    pub sha256_hex: String,
 }
 
 /// Parse one `(constraint [L] [R] [O])` line into a typed [`Constraint`].
@@ -319,9 +343,167 @@ fn sha256_hex(data: &[u8]) -> String {
     hex::encode(hasher.finalize())
 }
 
+fn normalized_relation_text(rows: &[Constraint]) -> String {
+    let mut text = String::new();
+    for row in rows {
+        text.push_str(&row.render());
+        text.push('\n');
+    }
+    text
+}
+
+/// Normalize one segment without losing any relation information.
+///
+/// Local ids are assigned once, in row/side/term order, so an alias that
+/// crosses rows remains an alias in the normalized relation. Wire 0 is kept as
+/// the constant-one sentinel and is never assigned by first occurrence.
+pub fn normalize_relation(rows: &[Constraint]) -> NormalizedRelation {
+    let mut global_to_local = BTreeMap::<usize, usize>::new();
+    let mut wire_seating = vec![0usize];
+    let mut next_local = 1usize;
+    let mut normalized_rows = Vec::with_capacity(rows.len());
+
+    for row in rows {
+        let mut localize_side = |side: &[Term]| {
+            side.iter()
+                .map(|term| {
+                    let wire = if term.wire == 0 {
+                        0
+                    } else if let Some(local) = global_to_local.get(&term.wire) {
+                        *local
+                    } else {
+                        let local = next_local;
+                        next_local += 1;
+                        global_to_local.insert(term.wire, local);
+                        wire_seating.push(term.wire);
+                        local
+                    };
+                    Term {
+                        coeff: term.coeff.clone(),
+                        wire,
+                    }
+                })
+                .collect::<Vec<_>>()
+        };
+        normalized_rows.push(Constraint {
+            l: localize_side(&row.l),
+            r: localize_side(&row.r),
+            o: localize_side(&row.o),
+        });
+    }
+
+    let sha256_hex = sha256_hex(normalized_relation_text(&normalized_rows).as_bytes());
+    NormalizedRelation {
+        rows: normalized_rows,
+        wire_seating,
+        sha256_hex,
+    }
+}
+
+/// Expand a normalized relation back into deployed global wire ids.
+///
+/// The seating must be injective and must reserve local wire 0 for global wire
+/// 0. Rejecting malformed seatings here keeps a mutated template from being
+/// mistaken for a valid deployed instance.
+pub fn reconstruct_rows(
+    normalized_rows: &[Constraint],
+    wire_seating: &[usize],
+) -> Result<Vec<Constraint>, CoverageError> {
+    if normalized_rows.is_empty() {
+        return Ok(Vec::new());
+    }
+    if wire_seating.is_empty() {
+        return Err(CoverageError::NormalizedSeating {
+            message: "missing local wire 0 seating".to_owned(),
+        });
+    }
+    if wire_seating[0] != 0 {
+        return Err(CoverageError::NormalizedSeating {
+            message: format!(
+                "local wire 0 must seat global wire 0, got {}",
+                wire_seating[0]
+            ),
+        });
+    }
+    let mut seen_global = BTreeSet::new();
+    for (local, &global) in wire_seating.iter().enumerate() {
+        if !seen_global.insert(global) {
+            return Err(CoverageError::NormalizedSeating {
+                message: format!(
+                    "global wire {global} is seated more than once (at local wire {local})"
+                ),
+            });
+        }
+    }
+
+    let map_side = |side: &[Term]| -> Result<Vec<Term>, CoverageError> {
+        side.iter()
+            .map(|term| {
+                let global = wire_seating.get(term.wire).copied().ok_or_else(|| {
+                    CoverageError::NormalizedSeating {
+                        message: format!("local wire {} is missing from the seating", term.wire),
+                    }
+                })?;
+                Ok(Term {
+                    coeff: term.coeff.clone(),
+                    wire: global,
+                })
+            })
+            .collect()
+    };
+
+    normalized_rows
+        .iter()
+        .map(|row| {
+            Ok(Constraint {
+                l: map_side(&row.l)?,
+                r: map_side(&row.r)?,
+                o: map_side(&row.o)?,
+            })
+        })
+        .collect()
+}
+
+/// Verify that normalized rows plus their seating reconstruct the exact rows
+/// that were parsed from the deployed `.sr1cs` slice.
+pub fn check_reconstruction(
+    segment_index: usize,
+    op: &str,
+    expected_rows: &[Constraint],
+    normalized: &NormalizedRelation,
+) -> Result<(), CoverageError> {
+    let reconstructed = reconstruct_rows(&normalized.rows, &normalized.wire_seating)?;
+    if reconstructed.len() != expected_rows.len() {
+        return Err(CoverageError::NormalizedReconstructionMismatch {
+            segment_index,
+            op: op.to_owned(),
+            row: reconstructed.len().min(expected_rows.len()),
+            expected: format!("{} rows", expected_rows.len()),
+            reconstructed: format!("{} rows", reconstructed.len()),
+        });
+    }
+    for (row, (expected, actual)) in expected_rows.iter().zip(reconstructed.iter()).enumerate() {
+        if expected != actual {
+            return Err(CoverageError::NormalizedReconstructionMismatch {
+                segment_index,
+                op: op.to_owned(),
+                row,
+                expected: expected.render(),
+                reconstructed: actual.render(),
+            });
+        }
+    }
+    Ok(())
+}
+
 /// Build the canonical IR from the manifest partition and the parsed `.sr1cs`,
 /// running the round-trip X-check on every constraint.
-pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitIr, CoverageError> {
+pub fn build_ir(
+    manifest: &ConstraintManifest,
+    sr1cs: &Sr1cs,
+    registry: &TemplateRegistry,
+    registry_root: &Path,
+) -> Result<CircuitIr, CoverageError> {
     // 1. Scan every row + round-trip check (independence: IR == deployed rows).
     // Do not retain parsed rows: transfer has 252k rows / a 267 MiB source
     // file, and retaining the source strings, parsed coefficient strings, and
@@ -375,14 +557,41 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
         let mut const_hash = String::new();
         let mut relation_hash = String::new();
         let mut wire_role_hash = String::new();
+        let mut normalized_relation_hash = String::new();
+        let mut proof_template_id = String::new();
+        let mut template_equivalence_witness = None;
         if seg.constraint_count > 0 {
+            let segment_rows =
+                sr1cs
+                    .constraints
+                    .get(seg.start..seg.end)
+                    .ok_or(CoverageError::SegmentBounds {
+                        start: seg.start,
+                        end: seg.end,
+                        nb_constraints: sr1cs.constraints.len(),
+                    })?;
+            let mut parsed_rows = Vec::with_capacity(segment_rows.len());
+            for (offset, raw) in segment_rows.iter().enumerate() {
+                parsed_rows.push(parse_constraint(raw, seg.start + offset + 1)?);
+            }
+            let normalized = normalize_relation(&parsed_rows);
+            check_reconstruction(seg.index, &seg.op, &parsed_rows, &normalized)?;
+            normalized_relation_hash = normalized.sha256_hex.clone();
+            let equivalence = match_registry(
+                registry,
+                registry_root,
+                &seg.op,
+                &normalized.rows,
+                &normalized.wire_seating,
+            )?;
+            proof_template_id = equivalence.proof_template_id.clone();
+            template_equivalence_witness = Some(equivalence);
             // shape + constant vector over the slice
             let mut shape = String::new();
             let mut consts = String::new();
             let mut relation = String::new();
             let mut seen = BTreeSet::new();
-            for (offset, raw) in sr1cs.constraints[seg.start..seg.end].iter().enumerate() {
-                let c = parse_constraint(raw, seg.start + offset + 1)?;
+            for c in &parsed_rows {
                 for side in c.sides() {
                     for term in side {
                         if term.wire != 0 {
@@ -443,6 +652,9 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
             constant_vector_sha256_hex: const_hash,
             relation_sha256_hex: relation_hash,
             wire_role_sha256_hex: wire_role_hash,
+            deployed_normalized_relation_sha256_hex: normalized_relation_hash,
+            proof_template_id,
+            template_equivalence_witness,
         });
     }
 
@@ -461,7 +673,7 @@ pub fn build_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> Result<CircuitI
     }
 
     Ok(CircuitIr {
-        schema: "shieldd.gnark.deployed_slice_ir.v1".to_owned(),
+        schema: DEPLOYED_SLICE_IR_SCHEMA.to_owned(),
         circuit: manifest.circuit.clone(),
         sr1cs_sha256_hex: sr1cs.sha256_hex.clone(),
         nb_constraints: sr1cs.constraints.len(),
@@ -577,7 +789,16 @@ fn wire_roles_for_seen(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parse_sr1cs;
+    use crate::{
+        parse_sr1cs,
+        template_registry::{seed_reviewed_templates, TemplateRegistry},
+    };
+
+    fn build_test_ir(manifest: &ConstraintManifest, sr1cs: &Sr1cs) -> CircuitIr {
+        let mut registry = TemplateRegistry::empty();
+        seed_reviewed_templates(&mut registry, manifest, sr1cs, Path::new("/tmp"), None).unwrap();
+        build_ir(manifest, sr1cs, &registry, Path::new("/tmp")).unwrap()
+    }
 
     #[test]
     fn parses_and_round_trips_a_constraint() {
@@ -633,7 +854,7 @@ mod tests {
     fn builds_ir_with_classes_and_wire_roles() {
         let manifest = manifest_two();
         let sr1cs = sr1cs_two();
-        let ir = build_ir(&manifest, &sr1cs).unwrap();
+        let ir = build_test_ir(&manifest, &sr1cs);
         // two gadget rows collapse to one class with two distinct const vectors
         let gadget_class = ir
             .classes
@@ -656,8 +877,120 @@ mod tests {
     fn round_trip_check_bites_on_garbled_row() {
         // a coeff the renderer would normalize differently would fail; here we
         // ensure a well-formed file passes and the hash is stable.
-        let ir = build_ir(&manifest_two(), &sr1cs_two()).unwrap();
+        let ir = build_test_ir(&manifest_two(), &sr1cs_two());
         assert_eq!(ir.nb_constraints, 3);
-        assert_eq!(ir.schema, "shieldd.gnark.deployed_slice_ir.v1");
+        assert_eq!(ir.schema, DEPLOYED_SLICE_IR_SCHEMA);
+    }
+
+    #[test]
+    fn normalizes_once_across_rows_and_reconstructs_exact_rows() {
+        let sr1cs = sr1cs_two();
+        let rows = parse_rows(&sr1cs).unwrap();
+        let normalized = normalize_relation(&rows[..2]);
+        assert_eq!(normalized.wire_seating, vec![0, 2, 3, 4]);
+        assert_eq!(normalized.rows[0].l[0].wire, 1);
+        assert_eq!(normalized.rows[1].l[0].wire, 1);
+        assert_eq!(normalized.rows[1].o[0].wire, 3);
+        assert_eq!(normalized.wire_seating.len(), 4);
+        check_reconstruction(1, "gadget.h", &rows[..2], &normalized).unwrap();
+        assert_eq!(
+            reconstruct_rows(&normalized.rows, &normalized.wire_seating).unwrap(),
+            rows[..2]
+        );
+    }
+
+    #[test]
+    fn seating_and_relation_mutations_fail_closed() {
+        let rows = parse_rows(&sr1cs_two()).unwrap();
+        let normalized = normalize_relation(&rows[..2]);
+
+        let mut swapped = normalized.clone();
+        swapped.wire_seating.swap(1, 2);
+        assert!(matches!(
+            check_reconstruction(1, "gadget.h", &rows[..2], &swapped),
+            Err(CoverageError::NormalizedReconstructionMismatch { .. })
+        ));
+
+        let mut dropped = normalized.clone();
+        dropped.wire_seating.pop();
+        assert!(matches!(
+            check_reconstruction(1, "gadget.h", &rows[..2], &dropped),
+            Err(CoverageError::NormalizedSeating { .. })
+        ));
+
+        let mut duplicate = normalized.clone();
+        duplicate.wire_seating[2] = duplicate.wire_seating[1];
+        assert!(matches!(
+            check_reconstruction(1, "gadget.h", &rows[..2], &duplicate),
+            Err(CoverageError::NormalizedSeating { .. })
+        ));
+
+        let mut wrong_constant = normalized.clone();
+        wrong_constant.wire_seating[0] = 1;
+        assert!(matches!(
+            check_reconstruction(1, "gadget.h", &rows[..2], &wrong_constant),
+            Err(CoverageError::NormalizedSeating { .. })
+        ));
+
+        let mut changed_coefficient = normalized.clone();
+        changed_coefficient.rows[0].l[0].coeff = "2".to_owned();
+        assert!(matches!(
+            check_reconstruction(1, "gadget.h", &rows[..2], &changed_coefficient),
+            Err(CoverageError::NormalizedReconstructionMismatch { .. })
+        ));
+
+        let mut changed_alias = normalized.clone();
+        changed_alias.rows[1].l[0].wire = 2;
+        assert!(matches!(
+            check_reconstruction(1, "gadget.h", &rows[..2], &changed_alias),
+            Err(CoverageError::NormalizedReconstructionMismatch { .. })
+        ));
+
+        let mut changed_row_order = normalized.clone();
+        changed_row_order.rows.swap(0, 1);
+        assert!(matches!(
+            check_reconstruction(1, "gadget.h", &rows[..2], &changed_row_order),
+            Err(CoverageError::NormalizedReconstructionMismatch { .. })
+        ));
+
+        let mut changed_term_order = normalized.clone();
+        changed_term_order.rows[0].l.swap(0, 1);
+        assert!(matches!(
+            check_reconstruction(1, "gadget.h", &rows[..2], &changed_term_order),
+            Err(CoverageError::NormalizedReconstructionMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn normalization_preserves_cross_row_connectivity_and_coefficients() {
+        let connected = parse_sr1cs(
+            b"(prime-number 17)\n(in 1)\n(out 3)\n\
+              (constraint [(1 10)] [(1 0)] [(1 20)])\n\
+              (constraint [(1 20)] [(1 0)] [(1 30)])\n",
+        )
+        .unwrap();
+        let disconnected = parse_sr1cs(
+            b"(prime-number 17)\n(in 1)\n(out 3)\n\
+              (constraint [(1 40)] [(1 0)] [(1 50)])\n\
+              (constraint [(1 60)] [(1 0)] [(1 70)])\n",
+        )
+        .unwrap();
+        let connected_hash = normalize_relation(&parse_rows(&connected).unwrap()).sha256_hex;
+        let disconnected_hash = normalize_relation(&parse_rows(&disconnected).unwrap()).sha256_hex;
+        assert_ne!(connected_hash, disconnected_hash);
+
+        let constants_a = parse_sr1cs(
+            b"(prime-number 17)\n(in 1)\n(out 2)\n\
+              (constraint [(1 10) (7 0)] [(1 0)] [(1 20)])\n",
+        )
+        .unwrap();
+        let constants_b = parse_sr1cs(
+            b"(prime-number 17)\n(in 1)\n(out 2)\n\
+              (constraint [(1 30) (9 0)] [(1 0)] [(1 40)])\n",
+        )
+        .unwrap();
+        let hash_a = normalize_relation(&parse_rows(&constants_a).unwrap()).sha256_hex;
+        let hash_b = normalize_relation(&parse_rows(&constants_b).unwrap()).sha256_hex;
+        assert_ne!(hash_a, hash_b);
     }
 }

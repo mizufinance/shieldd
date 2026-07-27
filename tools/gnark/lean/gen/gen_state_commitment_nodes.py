@@ -17,15 +17,17 @@ import json
 import pathlib
 import re
 
+from write_if_changed import write_if_changed
+
 ROOT = pathlib.Path(__file__).resolve().parents[4]
 LEAN_ROOT = ROOT / "tools/gnark/lean/ShielddGnarkFormal"
 EXTRACTED = LEAN_ROOT / "Extracted/Deployed"
 DEPLOYED = LEAN_ROOT / "Deployed"
-SR1CS = ROOT / "tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs"
+SR1CS = ROOT / "tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
 POSEIDON4 = LEAN_ROOT / "Poseidon4Bridge.lean"
 VECTORS = ROOT / "tools/gnark/internal/primitives/vectors/phase05_vectors.json"
 
-NODE0_START = 2093
+NODE0_START = 8173
 STRIDE = 364
 LEVELS = 24
 WIDTH = 5
@@ -267,6 +269,7 @@ def gen_level(level, sr1cs_rows, cs, tct_domain):
     module = f"{camel(op)}350_{sh[:6]}"
 
     lean = [
+        "import ShielddGnarkFormal.ChoiceFreeZMod\n",
         "import ProvenZk.Gates\n",
         "import ShielddGnarkFormal.Extracted.PoseidonHash4\n\n",
         "set_option linter.unusedVariables false\n",
@@ -274,8 +277,9 @@ def gen_level(level, sr1cs_rows, cs, tct_domain):
         "set_option maxHeartbeats 50000000\n\n",
         f"/-! Auto-generated CPS-segmented deployed-slice relation for `{op}` ",
         "(size 350, 70 segments of 5 rows).\n",
-        f"Generated from consolidate2x1.sr1cs global rows [{start},{end}); do not edit by hand. -/\n\n",
+        f"Generated from note_reshape2x1.sr1cs global rows [{start},{end}); do not edit by hand. -/\n\n",
         f"namespace Shieldd.GnarkFormal.Extracted.Deployed.{module}\n\n",
+        "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n",
         "abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.PoseidonHash4.Order\n",
         "variable [Fact (Nat.Prime Order)]\n",
         "abbrev F := Shieldd.GnarkFormal.Extracted.PoseidonHash4.F\n\n",
@@ -285,7 +289,7 @@ def gen_level(level, sr1cs_rows, cs, tct_domain):
     lean.append(emit_relation(args, bvs))
     lean.append(f"end Shieldd.GnarkFormal.Extracted.Deployed.{module}\n")
     EXTRACTED.mkdir(parents=True, exist_ok=True)
-    (EXTRACTED / f"{module}.lean").write_text("".join(lean))
+    write_if_changed(EXTRACTED / f"{module}.lean", "".join(lean))
 
     domain = (tct_domain + 1 + level) % int(ORDER)
     gendata = {
@@ -315,13 +319,15 @@ def gen_level(level, sr1cs_rows, cs, tct_domain):
         "seq": SEQ,
     }
     gd_path = pathlib.Path(__file__).resolve().parent / f"state_commitment_node{level}_gendata.json"
-    gd_path.write_text(json.dumps(gendata, indent=2) + "\n")
+    write_if_changed(gd_path, json.dumps(gendata, indent=2) + "\n")
 
-    shim = f"""import ShielddGnarkFormal.Extracted.Deployed.{module}
+    shim = f"""import ShielddGnarkFormal.ChoiceFreeZMod
+import ShielddGnarkFormal.Extracted.Deployed.{module}
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Keystone
 
 namespace Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode{level}
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Poseidon4Bridge
 
 variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.{module}.Order)]
@@ -339,11 +345,11 @@ theorem p17_from_rows (x v0 v1 v2 v3 v4 : F)
 
 end Shieldd.GnarkFormal.Deployed.StateCommitmentPathNode{level}
 """
-    (DEPLOYED / f"StateCommitmentPathNode{level}DeployedBridge.lean").write_text(shim)
+    write_if_changed(DEPLOYED / f"StateCommitmentPathNode{level}DeployedBridge.lean", shim)
     return module
 
 
-LEAF_START = 1800  # global row of the leaf Poseidon1 (230 rows, 46 chains)
+LEAF_START = 7880  # global row of the leaf Poseidon1 (230 rows, 46 chains)
 
 
 def gen_leaf(sr1cs_rows, tct_domain):
@@ -398,6 +404,7 @@ def gen_leaf(sr1cs_rows, tct_domain):
     module = f"{camel(op)}230_{sh[:6]}"
 
     lean = [
+        "import ShielddGnarkFormal.ChoiceFreeZMod\n",
         "import ProvenZk.Gates\n",
         "import ShielddGnarkFormal.Extracted.PoseidonHash1\n\n",
         "set_option linter.unusedVariables false\n",
@@ -405,8 +412,9 @@ def gen_leaf(sr1cs_rows, tct_domain):
         "set_option maxHeartbeats 50000000\n\n",
         f"/-! Auto-generated CPS-segmented deployed-slice relation for `{op}` ",
         "(size 230, 46 segments of 5 rows).\n",
-        f"Generated from consolidate2x1.sr1cs global rows [{start},{end}); do not edit by hand. -/\n\n",
+        f"Generated from note_reshape2x1.sr1cs global rows [{start},{end}); do not edit by hand. -/\n\n",
         f"namespace Shieldd.GnarkFormal.Extracted.Deployed.{module}\n\n",
+        "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod\n\n",
         "abbrev Order : Nat := Shieldd.GnarkFormal.Extracted.PoseidonHash1.Order\n",
         "variable [Fact (Nat.Prime Order)]\n",
         "abbrev F := Shieldd.GnarkFormal.Extracted.PoseidonHash1.F\n\n",
@@ -415,7 +423,7 @@ def gen_leaf(sr1cs_rows, tct_domain):
         lean.append(emit_segment(seg, args[seg], bvs[seg], rows[seg * 5 : seg * 5 + 5]))
     lean.append(emit_relation(args, bvs))
     lean.append(f"end Shieldd.GnarkFormal.Extracted.Deployed.{module}\n")
-    (EXTRACTED / f"{module}.lean").write_text("".join(lean))
+    write_if_changed(EXTRACTED / f"{module}.lean", "".join(lean))
 
     # round-0 lane-1 input LC (lane 0 is the folded domain)
     side = rows[0][0]
@@ -436,16 +444,19 @@ def gen_leaf(sr1cs_rows, tct_domain):
         "spec_inputs": spec_inputs,
         "seq": nb["seq"],
     }
-    (pathlib.Path(__file__).resolve().parent / "state_commitment_leaf_gendata.json").write_text(
-        json.dumps(gendata, indent=2) + "\n"
+    write_if_changed(
+        pathlib.Path(__file__).resolve().parent / "state_commitment_leaf_gendata.json",
+        json.dumps(gendata, indent=2) + "\n",
     )
 
-    shim = f"""import ShielddGnarkFormal.Extracted.Deployed.{module}
+    shim = f"""import ShielddGnarkFormal.ChoiceFreeZMod
+import ShielddGnarkFormal.Extracted.Deployed.{module}
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Keystone
 import ShielddGnarkFormal.Poseidon1Bridge
 
 namespace Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Poseidon1Bridge
 
 variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.{module}.Order)]
@@ -463,7 +474,7 @@ theorem p17_from_rows (x v0 v1 v2 v3 v4 : F)
 
 end Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf
 """
-    (DEPLOYED / "StateCommitmentPathLeafDeployedBridge.lean").write_text(shim)
+    write_if_changed(DEPLOYED / "StateCommitmentPathLeafDeployedBridge.lean", shim)
     return module
 
 
@@ -479,7 +490,7 @@ def main():
     stems = {}
     for level in range(LEVELS):
         stems[level] = gen_level(level, sr1cs_rows, cs, tct_domain)
-    if stems[0] != "GadgetStateCommitmentPathNode0350_28e5d0":
+    if stems[0] != "GadgetStateCommitmentPathNode0350_9a4a8f":
         raise ValueError(f"node0 regeneration drifted: {stems[0]}")
     leaf = gen_leaf(sr1cs_rows, tct_domain)
     print("generated node slices:", " ".join(stems[k] for k in sorted(stems)))

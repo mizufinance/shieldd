@@ -1,6 +1,7 @@
 import ShielddGnarkFormal.CompressToFieldBridge
 import ShielddGnarkFormal.CanonicalFqBitsChainAcc
 import ShielddGnarkFormal.CanonicalFqBitsDeployedKernel
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.RvkToBinary
 
 set_option maxHeartbeats 20000000
@@ -11,6 +12,7 @@ set_option linter.unreachableTactic false
 namespace Shieldd.GnarkFormal.Extracted.DecafCompressToField
 
 open Shieldd.GnarkFormal.Extracted.CanonicalFqBits
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 variable [Fact (Nat.Prime Order)]
 
 def block1_W : ℕ → ℕ := fun n => (if n ≤ 47 then 569 else (if n ≤ 48 then 568 else (if n ≤ 52 then 567 else (if n ≤ 57 then 566 else (if n ≤ 59 then 565 else (if n ≤ 64 then 564 else (if n ≤ 92 then 563 else (if n ≤ 94 then 562 else (if n ≤ 95 then 561 else (if n ≤ 97 then 560 else (if n ≤ 98 then 559 else (if n ≤ 99 then 558 else (if n ≤ 100 then 557 else (if n ≤ 101 then 556 else (if n ≤ 102 then 555 else (if n ≤ 103 then 554 else (if n ≤ 105 then 553 else (if n ≤ 106 then 552 else (if n ≤ 108 then 551 else (if n ≤ 109 then 550 else (if n ≤ 110 then 549 else (if n ≤ 113 then 548 else (if n ≤ 115 then 547 else (if n ≤ 117 then 546 else (if n ≤ 119 then 545 else (if n ≤ 120 then 544 else (if n ≤ 123 then 543 else (if n ≤ 124 then 542 else (if n ≤ 126 then 541 else (if n ≤ 128 then 540 else (if n ≤ 140 then 539 else (if n ≤ 141 then 538 else (if n ≤ 143 then 537 else (if n ≤ 144 then 536 else (if n ≤ 145 then 535 else (if n ≤ 146 then 534 else (if n ≤ 148 then 533 else (if n ≤ 149 then 532 else (if n ≤ 154 then 531 else (if n ≤ 155 then 530 else (if n ≤ 156 then 529 else (if n ≤ 158 then 528 else (if n ≤ 161 then 527 else (if n ≤ 162 then 526 else (if n ≤ 163 then 525 else (if n ≤ 164 then 524 else (if n ≤ 168 then 523 else (if n ≤ 170 then 522 else (if n ≤ 171 then 521 else (if n ≤ 174 then 520 else (if n ≤ 178 then 519 else (if n ≤ 180 then 518 else (if n ≤ 181 then 517 else (if n ≤ 183 then 516 else (if n ≤ 189 then 515 else (if n ≤ 190 then 514 else (if n ≤ 193 then 513 else (if n ≤ 194 then 512 else (if n ≤ 196 then 511 else (if n ≤ 198 then 510 else (if n ≤ 200 then 509 else (if n ≤ 202 then 508 else (if n ≤ 205 then 507 else (if n ≤ 207 then 506 else (if n ≤ 210 then 505 else (if n ≤ 211 then 504 else (if n ≤ 213 then 503 else (if n ≤ 217 then 502 else (if n ≤ 219 then 501 else (if n ≤ 220 then 500 else (if n ≤ 223 then 499 else (if n ≤ 225 then 498 else (if n ≤ 226 then 497 else (if n ≤ 227 then 496 else (if n ≤ 228 then 495 else (if n ≤ 230 then 494 else (if n ≤ 232 then 493 else (if n ≤ 234 then 492 else (if n ≤ 237 then 491 else (if n ≤ 238 then 490 else (if n ≤ 240 then 489 else (if n ≤ 241 then 488 else (if n ≤ 243 then 487 else (if n ≤ 245 then 486 else (if n ≤ 247 then 485 else (if n ≤ 249 then 484 else (if n ≤ 252 then 483 else 1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
@@ -798,1122 +800,1122 @@ theorem block1_canonical (rho : Nat → F)
     · simp only [Nat.reduceAdd]; rw [hrho0] at hb252; linear_combination hb252
   · refine chainK_of_obligations bits k hk ?_
     refine block_hobl_of_truethread bits (block1_flag rho) ?_ ?_ ?_ ?_
-    · rw [block1_flag, if_pos (by norm_num : (253 : ℕ) ≤ 253)]
+    · rw [block1_flag, if_pos (by exact le_rfl)]
     · intro m hm
       interval_cases m
       · have htf : trueFactor bits 0 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 0 = true))]
-        rw [htf, show block1_flag rho 0 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 1 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 0 = rho 569 from by rfl, show block1_flag rho 1 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 1 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 1 = true))]
-        rw [htf, show block1_flag rho 1 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 2 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 1 = rho 569 from by rfl, show block1_flag rho 2 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 2 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 2 = true))]
-        rw [htf, show block1_flag rho 2 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 3 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 2 = rho 569 from by rfl, show block1_flag rho 3 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 3 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 3 = true))]
-        rw [htf, show block1_flag rho 3 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 4 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 3 = rho 569 from by rfl, show block1_flag rho 4 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 4 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 4 = true))]
-        rw [htf, show block1_flag rho 4 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 5 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 4 = rho 569 from by rfl, show block1_flag rho 5 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 5 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 5 = true))]
-        rw [htf, show block1_flag rho 5 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 6 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 5 = rho 569 from by rfl, show block1_flag rho 6 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 6 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 6 = true))]
-        rw [htf, show block1_flag rho 6 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 7 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 6 = rho 569 from by rfl, show block1_flag rho 7 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 7 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 7 = true))]
-        rw [htf, show block1_flag rho 7 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 8 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 7 = rho 569 from by rfl, show block1_flag rho 8 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 8 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 8 = true))]
-        rw [htf, show block1_flag rho 8 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 9 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 8 = rho 569 from by rfl, show block1_flag rho 9 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 9 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 9 = true))]
-        rw [htf, show block1_flag rho 9 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 10 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 9 = rho 569 from by rfl, show block1_flag rho 10 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 10 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 10 = true))]
-        rw [htf, show block1_flag rho 10 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 11 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 10 = rho 569 from by rfl, show block1_flag rho 11 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 11 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 11 = true))]
-        rw [htf, show block1_flag rho 11 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 12 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 11 = rho 569 from by rfl, show block1_flag rho 12 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 12 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 12 = true))]
-        rw [htf, show block1_flag rho 12 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 13 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 12 = rho 569 from by rfl, show block1_flag rho 13 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 13 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 13 = true))]
-        rw [htf, show block1_flag rho 13 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 14 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 13 = rho 569 from by rfl, show block1_flag rho 14 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 14 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 14 = true))]
-        rw [htf, show block1_flag rho 14 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 15 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 14 = rho 569 from by rfl, show block1_flag rho 15 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 15 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 15 = true))]
-        rw [htf, show block1_flag rho 15 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 16 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 15 = rho 569 from by rfl, show block1_flag rho 16 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 16 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 16 = true))]
-        rw [htf, show block1_flag rho 16 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 17 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 16 = rho 569 from by rfl, show block1_flag rho 17 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 17 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 17 = true))]
-        rw [htf, show block1_flag rho 17 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 18 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 17 = rho 569 from by rfl, show block1_flag rho 18 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 18 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 18 = true))]
-        rw [htf, show block1_flag rho 18 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 19 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 18 = rho 569 from by rfl, show block1_flag rho 19 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 19 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 19 = true))]
-        rw [htf, show block1_flag rho 19 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 20 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 19 = rho 569 from by rfl, show block1_flag rho 20 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 20 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 20 = true))]
-        rw [htf, show block1_flag rho 20 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 21 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 20 = rho 569 from by rfl, show block1_flag rho 21 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 21 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 21 = true))]
-        rw [htf, show block1_flag rho 21 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 22 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 21 = rho 569 from by rfl, show block1_flag rho 22 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 22 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 22 = true))]
-        rw [htf, show block1_flag rho 22 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 23 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 22 = rho 569 from by rfl, show block1_flag rho 23 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 23 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 23 = true))]
-        rw [htf, show block1_flag rho 23 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 24 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 23 = rho 569 from by rfl, show block1_flag rho 24 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 24 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 24 = true))]
-        rw [htf, show block1_flag rho 24 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 25 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 24 = rho 569 from by rfl, show block1_flag rho 25 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 25 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 25 = true))]
-        rw [htf, show block1_flag rho 25 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 26 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 25 = rho 569 from by rfl, show block1_flag rho 26 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 26 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 26 = true))]
-        rw [htf, show block1_flag rho 26 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 27 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 26 = rho 569 from by rfl, show block1_flag rho 27 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 27 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 27 = true))]
-        rw [htf, show block1_flag rho 27 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 28 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 27 = rho 569 from by rfl, show block1_flag rho 28 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 28 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 28 = true))]
-        rw [htf, show block1_flag rho 28 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 29 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 28 = rho 569 from by rfl, show block1_flag rho 29 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 29 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 29 = true))]
-        rw [htf, show block1_flag rho 29 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 30 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 29 = rho 569 from by rfl, show block1_flag rho 30 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 30 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 30 = true))]
-        rw [htf, show block1_flag rho 30 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 31 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 30 = rho 569 from by rfl, show block1_flag rho 31 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 31 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 31 = true))]
-        rw [htf, show block1_flag rho 31 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 32 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 31 = rho 569 from by rfl, show block1_flag rho 32 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 32 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 32 = true))]
-        rw [htf, show block1_flag rho 32 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 33 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 32 = rho 569 from by rfl, show block1_flag rho 33 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 33 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 33 = true))]
-        rw [htf, show block1_flag rho 33 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 34 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 33 = rho 569 from by rfl, show block1_flag rho 34 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 34 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 34 = true))]
-        rw [htf, show block1_flag rho 34 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 35 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 34 = rho 569 from by rfl, show block1_flag rho 35 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 35 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 35 = true))]
-        rw [htf, show block1_flag rho 35 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 36 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 35 = rho 569 from by rfl, show block1_flag rho 36 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 36 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 36 = true))]
-        rw [htf, show block1_flag rho 36 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 37 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 36 = rho 569 from by rfl, show block1_flag rho 37 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 37 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 37 = true))]
-        rw [htf, show block1_flag rho 37 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 38 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 37 = rho 569 from by rfl, show block1_flag rho 38 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 38 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 38 = true))]
-        rw [htf, show block1_flag rho 38 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 39 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 38 = rho 569 from by rfl, show block1_flag rho 39 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 39 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 39 = true))]
-        rw [htf, show block1_flag rho 39 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 40 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 39 = rho 569 from by rfl, show block1_flag rho 40 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 40 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 40 = true))]
-        rw [htf, show block1_flag rho 40 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 41 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 40 = rho 569 from by rfl, show block1_flag rho 41 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 41 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 41 = true))]
-        rw [htf, show block1_flag rho 41 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 42 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 41 = rho 569 from by rfl, show block1_flag rho 42 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 42 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 42 = true))]
-        rw [htf, show block1_flag rho 42 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 43 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 42 = rho 569 from by rfl, show block1_flag rho 43 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 43 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 43 = true))]
-        rw [htf, show block1_flag rho 43 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 44 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 43 = rho 569 from by rfl, show block1_flag rho 44 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 44 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 44 = true))]
-        rw [htf, show block1_flag rho 44 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 45 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 44 = rho 569 from by rfl, show block1_flag rho 45 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 45 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 45 = true))]
-        rw [htf, show block1_flag rho 45 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 46 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 45 = rho 569 from by rfl, show block1_flag rho 46 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 46 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 46 = true))]
-        rw [htf, show block1_flag rho 46 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 47 = rho 569 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 46 = rho 569 from by rfl, show block1_flag rho 47 = rho 569 from by rfl]
         ring
       · have htf : trueFactor bits 47 = rho 278 := by
           rw [trueFactor, if_pos (by decide : pmBit 47 = true)]; exact keyB 47 (by omega)
-        rw [htf, show block1_flag rho 47 = rho 569 from by norm_num [block1_flag, block1_W], show block1_flag rho 48 = rho 568 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 47 = rho 569 from by rfl, show block1_flag rho 48 = rho 568 from by rfl]
         first | linear_combination ht47 | linear_combination -ht47
       · have htf : trueFactor bits 48 = rho 279 := by
           rw [trueFactor, if_pos (by decide : pmBit 48 = true)]; exact keyB 48 (by omega)
-        rw [htf, show block1_flag rho 48 = rho 568 from by norm_num [block1_flag, block1_W], show block1_flag rho 49 = rho 567 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 48 = rho 568 from by rfl, show block1_flag rho 49 = rho 567 from by rfl]
         first | linear_combination ht48 | linear_combination -ht48
       · have htf : trueFactor bits 49 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 49 = true))]
-        rw [htf, show block1_flag rho 49 = rho 567 from by norm_num [block1_flag, block1_W], show block1_flag rho 50 = rho 567 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 49 = rho 567 from by rfl, show block1_flag rho 50 = rho 567 from by rfl]
         ring
       · have htf : trueFactor bits 50 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 50 = true))]
-        rw [htf, show block1_flag rho 50 = rho 567 from by norm_num [block1_flag, block1_W], show block1_flag rho 51 = rho 567 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 50 = rho 567 from by rfl, show block1_flag rho 51 = rho 567 from by rfl]
         ring
       · have htf : trueFactor bits 51 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 51 = true))]
-        rw [htf, show block1_flag rho 51 = rho 567 from by norm_num [block1_flag, block1_W], show block1_flag rho 52 = rho 567 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 51 = rho 567 from by rfl, show block1_flag rho 52 = rho 567 from by rfl]
         ring
       · have htf : trueFactor bits 52 = rho 283 := by
           rw [trueFactor, if_pos (by decide : pmBit 52 = true)]; exact keyB 52 (by omega)
-        rw [htf, show block1_flag rho 52 = rho 567 from by norm_num [block1_flag, block1_W], show block1_flag rho 53 = rho 566 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 52 = rho 567 from by rfl, show block1_flag rho 53 = rho 566 from by rfl]
         first | linear_combination ht52 | linear_combination -ht52
       · have htf : trueFactor bits 53 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 53 = true))]
-        rw [htf, show block1_flag rho 53 = rho 566 from by norm_num [block1_flag, block1_W], show block1_flag rho 54 = rho 566 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 53 = rho 566 from by rfl, show block1_flag rho 54 = rho 566 from by rfl]
         ring
       · have htf : trueFactor bits 54 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 54 = true))]
-        rw [htf, show block1_flag rho 54 = rho 566 from by norm_num [block1_flag, block1_W], show block1_flag rho 55 = rho 566 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 54 = rho 566 from by rfl, show block1_flag rho 55 = rho 566 from by rfl]
         ring
       · have htf : trueFactor bits 55 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 55 = true))]
-        rw [htf, show block1_flag rho 55 = rho 566 from by norm_num [block1_flag, block1_W], show block1_flag rho 56 = rho 566 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 55 = rho 566 from by rfl, show block1_flag rho 56 = rho 566 from by rfl]
         ring
       · have htf : trueFactor bits 56 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 56 = true))]
-        rw [htf, show block1_flag rho 56 = rho 566 from by norm_num [block1_flag, block1_W], show block1_flag rho 57 = rho 566 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 56 = rho 566 from by rfl, show block1_flag rho 57 = rho 566 from by rfl]
         ring
       · have htf : trueFactor bits 57 = rho 288 := by
           rw [trueFactor, if_pos (by decide : pmBit 57 = true)]; exact keyB 57 (by omega)
-        rw [htf, show block1_flag rho 57 = rho 566 from by norm_num [block1_flag, block1_W], show block1_flag rho 58 = rho 565 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 57 = rho 566 from by rfl, show block1_flag rho 58 = rho 565 from by rfl]
         first | linear_combination ht57 | linear_combination -ht57
       · have htf : trueFactor bits 58 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 58 = true))]
-        rw [htf, show block1_flag rho 58 = rho 565 from by norm_num [block1_flag, block1_W], show block1_flag rho 59 = rho 565 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 58 = rho 565 from by rfl, show block1_flag rho 59 = rho 565 from by rfl]
         ring
       · have htf : trueFactor bits 59 = rho 290 := by
           rw [trueFactor, if_pos (by decide : pmBit 59 = true)]; exact keyB 59 (by omega)
-        rw [htf, show block1_flag rho 59 = rho 565 from by norm_num [block1_flag, block1_W], show block1_flag rho 60 = rho 564 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 59 = rho 565 from by rfl, show block1_flag rho 60 = rho 564 from by rfl]
         first | linear_combination ht59 | linear_combination -ht59
       · have htf : trueFactor bits 60 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 60 = true))]
-        rw [htf, show block1_flag rho 60 = rho 564 from by norm_num [block1_flag, block1_W], show block1_flag rho 61 = rho 564 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 60 = rho 564 from by rfl, show block1_flag rho 61 = rho 564 from by rfl]
         ring
       · have htf : trueFactor bits 61 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 61 = true))]
-        rw [htf, show block1_flag rho 61 = rho 564 from by norm_num [block1_flag, block1_W], show block1_flag rho 62 = rho 564 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 61 = rho 564 from by rfl, show block1_flag rho 62 = rho 564 from by rfl]
         ring
       · have htf : trueFactor bits 62 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 62 = true))]
-        rw [htf, show block1_flag rho 62 = rho 564 from by norm_num [block1_flag, block1_W], show block1_flag rho 63 = rho 564 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 62 = rho 564 from by rfl, show block1_flag rho 63 = rho 564 from by rfl]
         ring
       · have htf : trueFactor bits 63 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 63 = true))]
-        rw [htf, show block1_flag rho 63 = rho 564 from by norm_num [block1_flag, block1_W], show block1_flag rho 64 = rho 564 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 63 = rho 564 from by rfl, show block1_flag rho 64 = rho 564 from by rfl]
         ring
       · have htf : trueFactor bits 64 = rho 295 := by
           rw [trueFactor, if_pos (by decide : pmBit 64 = true)]; exact keyB 64 (by omega)
-        rw [htf, show block1_flag rho 64 = rho 564 from by norm_num [block1_flag, block1_W], show block1_flag rho 65 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 64 = rho 564 from by rfl, show block1_flag rho 65 = rho 563 from by rfl]
         first | linear_combination ht64 | linear_combination -ht64
       · have htf : trueFactor bits 65 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 65 = true))]
-        rw [htf, show block1_flag rho 65 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 66 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 65 = rho 563 from by rfl, show block1_flag rho 66 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 66 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 66 = true))]
-        rw [htf, show block1_flag rho 66 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 67 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 66 = rho 563 from by rfl, show block1_flag rho 67 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 67 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 67 = true))]
-        rw [htf, show block1_flag rho 67 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 68 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 67 = rho 563 from by rfl, show block1_flag rho 68 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 68 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 68 = true))]
-        rw [htf, show block1_flag rho 68 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 69 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 68 = rho 563 from by rfl, show block1_flag rho 69 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 69 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 69 = true))]
-        rw [htf, show block1_flag rho 69 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 70 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 69 = rho 563 from by rfl, show block1_flag rho 70 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 70 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 70 = true))]
-        rw [htf, show block1_flag rho 70 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 71 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 70 = rho 563 from by rfl, show block1_flag rho 71 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 71 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 71 = true))]
-        rw [htf, show block1_flag rho 71 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 72 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 71 = rho 563 from by rfl, show block1_flag rho 72 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 72 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 72 = true))]
-        rw [htf, show block1_flag rho 72 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 73 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 72 = rho 563 from by rfl, show block1_flag rho 73 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 73 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 73 = true))]
-        rw [htf, show block1_flag rho 73 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 74 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 73 = rho 563 from by rfl, show block1_flag rho 74 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 74 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 74 = true))]
-        rw [htf, show block1_flag rho 74 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 75 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 74 = rho 563 from by rfl, show block1_flag rho 75 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 75 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 75 = true))]
-        rw [htf, show block1_flag rho 75 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 76 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 75 = rho 563 from by rfl, show block1_flag rho 76 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 76 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 76 = true))]
-        rw [htf, show block1_flag rho 76 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 77 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 76 = rho 563 from by rfl, show block1_flag rho 77 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 77 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 77 = true))]
-        rw [htf, show block1_flag rho 77 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 78 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 77 = rho 563 from by rfl, show block1_flag rho 78 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 78 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 78 = true))]
-        rw [htf, show block1_flag rho 78 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 79 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 78 = rho 563 from by rfl, show block1_flag rho 79 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 79 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 79 = true))]
-        rw [htf, show block1_flag rho 79 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 80 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 79 = rho 563 from by rfl, show block1_flag rho 80 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 80 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 80 = true))]
-        rw [htf, show block1_flag rho 80 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 81 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 80 = rho 563 from by rfl, show block1_flag rho 81 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 81 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 81 = true))]
-        rw [htf, show block1_flag rho 81 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 82 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 81 = rho 563 from by rfl, show block1_flag rho 82 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 82 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 82 = true))]
-        rw [htf, show block1_flag rho 82 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 83 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 82 = rho 563 from by rfl, show block1_flag rho 83 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 83 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 83 = true))]
-        rw [htf, show block1_flag rho 83 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 84 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 83 = rho 563 from by rfl, show block1_flag rho 84 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 84 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 84 = true))]
-        rw [htf, show block1_flag rho 84 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 85 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 84 = rho 563 from by rfl, show block1_flag rho 85 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 85 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 85 = true))]
-        rw [htf, show block1_flag rho 85 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 86 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 85 = rho 563 from by rfl, show block1_flag rho 86 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 86 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 86 = true))]
-        rw [htf, show block1_flag rho 86 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 87 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 86 = rho 563 from by rfl, show block1_flag rho 87 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 87 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 87 = true))]
-        rw [htf, show block1_flag rho 87 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 88 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 87 = rho 563 from by rfl, show block1_flag rho 88 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 88 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 88 = true))]
-        rw [htf, show block1_flag rho 88 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 89 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 88 = rho 563 from by rfl, show block1_flag rho 89 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 89 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 89 = true))]
-        rw [htf, show block1_flag rho 89 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 90 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 89 = rho 563 from by rfl, show block1_flag rho 90 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 90 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 90 = true))]
-        rw [htf, show block1_flag rho 90 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 91 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 90 = rho 563 from by rfl, show block1_flag rho 91 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 91 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 91 = true))]
-        rw [htf, show block1_flag rho 91 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 92 = rho 563 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 91 = rho 563 from by rfl, show block1_flag rho 92 = rho 563 from by rfl]
         ring
       · have htf : trueFactor bits 92 = rho 323 := by
           rw [trueFactor, if_pos (by decide : pmBit 92 = true)]; exact keyB 92 (by omega)
-        rw [htf, show block1_flag rho 92 = rho 563 from by norm_num [block1_flag, block1_W], show block1_flag rho 93 = rho 562 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 92 = rho 563 from by rfl, show block1_flag rho 93 = rho 562 from by rfl]
         first | linear_combination ht92 | linear_combination -ht92
       · have htf : trueFactor bits 93 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 93 = true))]
-        rw [htf, show block1_flag rho 93 = rho 562 from by norm_num [block1_flag, block1_W], show block1_flag rho 94 = rho 562 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 93 = rho 562 from by rfl, show block1_flag rho 94 = rho 562 from by rfl]
         ring
       · have htf : trueFactor bits 94 = rho 325 := by
           rw [trueFactor, if_pos (by decide : pmBit 94 = true)]; exact keyB 94 (by omega)
-        rw [htf, show block1_flag rho 94 = rho 562 from by norm_num [block1_flag, block1_W], show block1_flag rho 95 = rho 561 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 94 = rho 562 from by rfl, show block1_flag rho 95 = rho 561 from by rfl]
         first | linear_combination ht94 | linear_combination -ht94
       · have htf : trueFactor bits 95 = rho 326 := by
           rw [trueFactor, if_pos (by decide : pmBit 95 = true)]; exact keyB 95 (by omega)
-        rw [htf, show block1_flag rho 95 = rho 561 from by norm_num [block1_flag, block1_W], show block1_flag rho 96 = rho 560 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 95 = rho 561 from by rfl, show block1_flag rho 96 = rho 560 from by rfl]
         first | linear_combination ht95 | linear_combination -ht95
       · have htf : trueFactor bits 96 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 96 = true))]
-        rw [htf, show block1_flag rho 96 = rho 560 from by norm_num [block1_flag, block1_W], show block1_flag rho 97 = rho 560 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 96 = rho 560 from by rfl, show block1_flag rho 97 = rho 560 from by rfl]
         ring
       · have htf : trueFactor bits 97 = rho 328 := by
           rw [trueFactor, if_pos (by decide : pmBit 97 = true)]; exact keyB 97 (by omega)
-        rw [htf, show block1_flag rho 97 = rho 560 from by norm_num [block1_flag, block1_W], show block1_flag rho 98 = rho 559 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 97 = rho 560 from by rfl, show block1_flag rho 98 = rho 559 from by rfl]
         first | linear_combination ht97 | linear_combination -ht97
       · have htf : trueFactor bits 98 = rho 329 := by
           rw [trueFactor, if_pos (by decide : pmBit 98 = true)]; exact keyB 98 (by omega)
-        rw [htf, show block1_flag rho 98 = rho 559 from by norm_num [block1_flag, block1_W], show block1_flag rho 99 = rho 558 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 98 = rho 559 from by rfl, show block1_flag rho 99 = rho 558 from by rfl]
         first | linear_combination ht98 | linear_combination -ht98
       · have htf : trueFactor bits 99 = rho 330 := by
           rw [trueFactor, if_pos (by decide : pmBit 99 = true)]; exact keyB 99 (by omega)
-        rw [htf, show block1_flag rho 99 = rho 558 from by norm_num [block1_flag, block1_W], show block1_flag rho 100 = rho 557 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 99 = rho 558 from by rfl, show block1_flag rho 100 = rho 557 from by rfl]
         first | linear_combination ht99 | linear_combination -ht99
       · have htf : trueFactor bits 100 = rho 331 := by
           rw [trueFactor, if_pos (by decide : pmBit 100 = true)]; exact keyB 100 (by omega)
-        rw [htf, show block1_flag rho 100 = rho 557 from by norm_num [block1_flag, block1_W], show block1_flag rho 101 = rho 556 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 100 = rho 557 from by rfl, show block1_flag rho 101 = rho 556 from by rfl]
         first | linear_combination ht100 | linear_combination -ht100
       · have htf : trueFactor bits 101 = rho 332 := by
           rw [trueFactor, if_pos (by decide : pmBit 101 = true)]; exact keyB 101 (by omega)
-        rw [htf, show block1_flag rho 101 = rho 556 from by norm_num [block1_flag, block1_W], show block1_flag rho 102 = rho 555 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 101 = rho 556 from by rfl, show block1_flag rho 102 = rho 555 from by rfl]
         first | linear_combination ht101 | linear_combination -ht101
       · have htf : trueFactor bits 102 = rho 333 := by
           rw [trueFactor, if_pos (by decide : pmBit 102 = true)]; exact keyB 102 (by omega)
-        rw [htf, show block1_flag rho 102 = rho 555 from by norm_num [block1_flag, block1_W], show block1_flag rho 103 = rho 554 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 102 = rho 555 from by rfl, show block1_flag rho 103 = rho 554 from by rfl]
         first | linear_combination ht102 | linear_combination -ht102
       · have htf : trueFactor bits 103 = rho 334 := by
           rw [trueFactor, if_pos (by decide : pmBit 103 = true)]; exact keyB 103 (by omega)
-        rw [htf, show block1_flag rho 103 = rho 554 from by norm_num [block1_flag, block1_W], show block1_flag rho 104 = rho 553 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 103 = rho 554 from by rfl, show block1_flag rho 104 = rho 553 from by rfl]
         first | linear_combination ht103 | linear_combination -ht103
       · have htf : trueFactor bits 104 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 104 = true))]
-        rw [htf, show block1_flag rho 104 = rho 553 from by norm_num [block1_flag, block1_W], show block1_flag rho 105 = rho 553 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 104 = rho 553 from by rfl, show block1_flag rho 105 = rho 553 from by rfl]
         ring
       · have htf : trueFactor bits 105 = rho 336 := by
           rw [trueFactor, if_pos (by decide : pmBit 105 = true)]; exact keyB 105 (by omega)
-        rw [htf, show block1_flag rho 105 = rho 553 from by norm_num [block1_flag, block1_W], show block1_flag rho 106 = rho 552 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 105 = rho 553 from by rfl, show block1_flag rho 106 = rho 552 from by rfl]
         first | linear_combination ht105 | linear_combination -ht105
       · have htf : trueFactor bits 106 = rho 337 := by
           rw [trueFactor, if_pos (by decide : pmBit 106 = true)]; exact keyB 106 (by omega)
-        rw [htf, show block1_flag rho 106 = rho 552 from by norm_num [block1_flag, block1_W], show block1_flag rho 107 = rho 551 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 106 = rho 552 from by rfl, show block1_flag rho 107 = rho 551 from by rfl]
         first | linear_combination ht106 | linear_combination -ht106
       · have htf : trueFactor bits 107 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 107 = true))]
-        rw [htf, show block1_flag rho 107 = rho 551 from by norm_num [block1_flag, block1_W], show block1_flag rho 108 = rho 551 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 107 = rho 551 from by rfl, show block1_flag rho 108 = rho 551 from by rfl]
         ring
       · have htf : trueFactor bits 108 = rho 339 := by
           rw [trueFactor, if_pos (by decide : pmBit 108 = true)]; exact keyB 108 (by omega)
-        rw [htf, show block1_flag rho 108 = rho 551 from by norm_num [block1_flag, block1_W], show block1_flag rho 109 = rho 550 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 108 = rho 551 from by rfl, show block1_flag rho 109 = rho 550 from by rfl]
         first | linear_combination ht108 | linear_combination -ht108
       · have htf : trueFactor bits 109 = rho 340 := by
           rw [trueFactor, if_pos (by decide : pmBit 109 = true)]; exact keyB 109 (by omega)
-        rw [htf, show block1_flag rho 109 = rho 550 from by norm_num [block1_flag, block1_W], show block1_flag rho 110 = rho 549 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 109 = rho 550 from by rfl, show block1_flag rho 110 = rho 549 from by rfl]
         first | linear_combination ht109 | linear_combination -ht109
       · have htf : trueFactor bits 110 = rho 341 := by
           rw [trueFactor, if_pos (by decide : pmBit 110 = true)]; exact keyB 110 (by omega)
-        rw [htf, show block1_flag rho 110 = rho 549 from by norm_num [block1_flag, block1_W], show block1_flag rho 111 = rho 548 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 110 = rho 549 from by rfl, show block1_flag rho 111 = rho 548 from by rfl]
         first | linear_combination ht110 | linear_combination -ht110
       · have htf : trueFactor bits 111 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 111 = true))]
-        rw [htf, show block1_flag rho 111 = rho 548 from by norm_num [block1_flag, block1_W], show block1_flag rho 112 = rho 548 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 111 = rho 548 from by rfl, show block1_flag rho 112 = rho 548 from by rfl]
         ring
       · have htf : trueFactor bits 112 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 112 = true))]
-        rw [htf, show block1_flag rho 112 = rho 548 from by norm_num [block1_flag, block1_W], show block1_flag rho 113 = rho 548 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 112 = rho 548 from by rfl, show block1_flag rho 113 = rho 548 from by rfl]
         ring
       · have htf : trueFactor bits 113 = rho 344 := by
           rw [trueFactor, if_pos (by decide : pmBit 113 = true)]; exact keyB 113 (by omega)
-        rw [htf, show block1_flag rho 113 = rho 548 from by norm_num [block1_flag, block1_W], show block1_flag rho 114 = rho 547 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 113 = rho 548 from by rfl, show block1_flag rho 114 = rho 547 from by rfl]
         first | linear_combination ht113 | linear_combination -ht113
       · have htf : trueFactor bits 114 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 114 = true))]
-        rw [htf, show block1_flag rho 114 = rho 547 from by norm_num [block1_flag, block1_W], show block1_flag rho 115 = rho 547 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 114 = rho 547 from by rfl, show block1_flag rho 115 = rho 547 from by rfl]
         ring
       · have htf : trueFactor bits 115 = rho 346 := by
           rw [trueFactor, if_pos (by decide : pmBit 115 = true)]; exact keyB 115 (by omega)
-        rw [htf, show block1_flag rho 115 = rho 547 from by norm_num [block1_flag, block1_W], show block1_flag rho 116 = rho 546 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 115 = rho 547 from by rfl, show block1_flag rho 116 = rho 546 from by rfl]
         first | linear_combination ht115 | linear_combination -ht115
       · have htf : trueFactor bits 116 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 116 = true))]
-        rw [htf, show block1_flag rho 116 = rho 546 from by norm_num [block1_flag, block1_W], show block1_flag rho 117 = rho 546 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 116 = rho 546 from by rfl, show block1_flag rho 117 = rho 546 from by rfl]
         ring
       · have htf : trueFactor bits 117 = rho 348 := by
           rw [trueFactor, if_pos (by decide : pmBit 117 = true)]; exact keyB 117 (by omega)
-        rw [htf, show block1_flag rho 117 = rho 546 from by norm_num [block1_flag, block1_W], show block1_flag rho 118 = rho 545 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 117 = rho 546 from by rfl, show block1_flag rho 118 = rho 545 from by rfl]
         first | linear_combination ht117 | linear_combination -ht117
       · have htf : trueFactor bits 118 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 118 = true))]
-        rw [htf, show block1_flag rho 118 = rho 545 from by norm_num [block1_flag, block1_W], show block1_flag rho 119 = rho 545 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 118 = rho 545 from by rfl, show block1_flag rho 119 = rho 545 from by rfl]
         ring
       · have htf : trueFactor bits 119 = rho 350 := by
           rw [trueFactor, if_pos (by decide : pmBit 119 = true)]; exact keyB 119 (by omega)
-        rw [htf, show block1_flag rho 119 = rho 545 from by norm_num [block1_flag, block1_W], show block1_flag rho 120 = rho 544 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 119 = rho 545 from by rfl, show block1_flag rho 120 = rho 544 from by rfl]
         first | linear_combination ht119 | linear_combination -ht119
       · have htf : trueFactor bits 120 = rho 351 := by
           rw [trueFactor, if_pos (by decide : pmBit 120 = true)]; exact keyB 120 (by omega)
-        rw [htf, show block1_flag rho 120 = rho 544 from by norm_num [block1_flag, block1_W], show block1_flag rho 121 = rho 543 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 120 = rho 544 from by rfl, show block1_flag rho 121 = rho 543 from by rfl]
         first | linear_combination ht120 | linear_combination -ht120
       · have htf : trueFactor bits 121 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 121 = true))]
-        rw [htf, show block1_flag rho 121 = rho 543 from by norm_num [block1_flag, block1_W], show block1_flag rho 122 = rho 543 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 121 = rho 543 from by rfl, show block1_flag rho 122 = rho 543 from by rfl]
         ring
       · have htf : trueFactor bits 122 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 122 = true))]
-        rw [htf, show block1_flag rho 122 = rho 543 from by norm_num [block1_flag, block1_W], show block1_flag rho 123 = rho 543 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 122 = rho 543 from by rfl, show block1_flag rho 123 = rho 543 from by rfl]
         ring
       · have htf : trueFactor bits 123 = rho 354 := by
           rw [trueFactor, if_pos (by decide : pmBit 123 = true)]; exact keyB 123 (by omega)
-        rw [htf, show block1_flag rho 123 = rho 543 from by norm_num [block1_flag, block1_W], show block1_flag rho 124 = rho 542 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 123 = rho 543 from by rfl, show block1_flag rho 124 = rho 542 from by rfl]
         first | linear_combination ht123 | linear_combination -ht123
       · have htf : trueFactor bits 124 = rho 355 := by
           rw [trueFactor, if_pos (by decide : pmBit 124 = true)]; exact keyB 124 (by omega)
-        rw [htf, show block1_flag rho 124 = rho 542 from by norm_num [block1_flag, block1_W], show block1_flag rho 125 = rho 541 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 124 = rho 542 from by rfl, show block1_flag rho 125 = rho 541 from by rfl]
         first | linear_combination ht124 | linear_combination -ht124
       · have htf : trueFactor bits 125 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 125 = true))]
-        rw [htf, show block1_flag rho 125 = rho 541 from by norm_num [block1_flag, block1_W], show block1_flag rho 126 = rho 541 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 125 = rho 541 from by rfl, show block1_flag rho 126 = rho 541 from by rfl]
         ring
       · have htf : trueFactor bits 126 = rho 357 := by
           rw [trueFactor, if_pos (by decide : pmBit 126 = true)]; exact keyB 126 (by omega)
-        rw [htf, show block1_flag rho 126 = rho 541 from by norm_num [block1_flag, block1_W], show block1_flag rho 127 = rho 540 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 126 = rho 541 from by rfl, show block1_flag rho 127 = rho 540 from by rfl]
         first | linear_combination ht126 | linear_combination -ht126
       · have htf : trueFactor bits 127 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 127 = true))]
-        rw [htf, show block1_flag rho 127 = rho 540 from by norm_num [block1_flag, block1_W], show block1_flag rho 128 = rho 540 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 127 = rho 540 from by rfl, show block1_flag rho 128 = rho 540 from by rfl]
         ring
       · have htf : trueFactor bits 128 = rho 359 := by
           rw [trueFactor, if_pos (by decide : pmBit 128 = true)]; exact keyB 128 (by omega)
-        rw [htf, show block1_flag rho 128 = rho 540 from by norm_num [block1_flag, block1_W], show block1_flag rho 129 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 128 = rho 540 from by rfl, show block1_flag rho 129 = rho 539 from by rfl]
         first | linear_combination ht128 | linear_combination -ht128
       · have htf : trueFactor bits 129 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 129 = true))]
-        rw [htf, show block1_flag rho 129 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 130 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 129 = rho 539 from by rfl, show block1_flag rho 130 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 130 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 130 = true))]
-        rw [htf, show block1_flag rho 130 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 131 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 130 = rho 539 from by rfl, show block1_flag rho 131 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 131 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 131 = true))]
-        rw [htf, show block1_flag rho 131 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 132 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 131 = rho 539 from by rfl, show block1_flag rho 132 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 132 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 132 = true))]
-        rw [htf, show block1_flag rho 132 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 133 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 132 = rho 539 from by rfl, show block1_flag rho 133 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 133 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 133 = true))]
-        rw [htf, show block1_flag rho 133 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 134 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 133 = rho 539 from by rfl, show block1_flag rho 134 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 134 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 134 = true))]
-        rw [htf, show block1_flag rho 134 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 135 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 134 = rho 539 from by rfl, show block1_flag rho 135 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 135 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 135 = true))]
-        rw [htf, show block1_flag rho 135 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 136 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 135 = rho 539 from by rfl, show block1_flag rho 136 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 136 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 136 = true))]
-        rw [htf, show block1_flag rho 136 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 137 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 136 = rho 539 from by rfl, show block1_flag rho 137 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 137 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 137 = true))]
-        rw [htf, show block1_flag rho 137 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 138 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 137 = rho 539 from by rfl, show block1_flag rho 138 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 138 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 138 = true))]
-        rw [htf, show block1_flag rho 138 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 139 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 138 = rho 539 from by rfl, show block1_flag rho 139 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 139 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 139 = true))]
-        rw [htf, show block1_flag rho 139 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 140 = rho 539 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 139 = rho 539 from by rfl, show block1_flag rho 140 = rho 539 from by rfl]
         ring
       · have htf : trueFactor bits 140 = rho 371 := by
           rw [trueFactor, if_pos (by decide : pmBit 140 = true)]; exact keyB 140 (by omega)
-        rw [htf, show block1_flag rho 140 = rho 539 from by norm_num [block1_flag, block1_W], show block1_flag rho 141 = rho 538 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 140 = rho 539 from by rfl, show block1_flag rho 141 = rho 538 from by rfl]
         first | linear_combination ht140 | linear_combination -ht140
       · have htf : trueFactor bits 141 = rho 372 := by
           rw [trueFactor, if_pos (by decide : pmBit 141 = true)]; exact keyB 141 (by omega)
-        rw [htf, show block1_flag rho 141 = rho 538 from by norm_num [block1_flag, block1_W], show block1_flag rho 142 = rho 537 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 141 = rho 538 from by rfl, show block1_flag rho 142 = rho 537 from by rfl]
         first | linear_combination ht141 | linear_combination -ht141
       · have htf : trueFactor bits 142 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 142 = true))]
-        rw [htf, show block1_flag rho 142 = rho 537 from by norm_num [block1_flag, block1_W], show block1_flag rho 143 = rho 537 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 142 = rho 537 from by rfl, show block1_flag rho 143 = rho 537 from by rfl]
         ring
       · have htf : trueFactor bits 143 = rho 374 := by
           rw [trueFactor, if_pos (by decide : pmBit 143 = true)]; exact keyB 143 (by omega)
-        rw [htf, show block1_flag rho 143 = rho 537 from by norm_num [block1_flag, block1_W], show block1_flag rho 144 = rho 536 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 143 = rho 537 from by rfl, show block1_flag rho 144 = rho 536 from by rfl]
         first | linear_combination ht143 | linear_combination -ht143
       · have htf : trueFactor bits 144 = rho 375 := by
           rw [trueFactor, if_pos (by decide : pmBit 144 = true)]; exact keyB 144 (by omega)
-        rw [htf, show block1_flag rho 144 = rho 536 from by norm_num [block1_flag, block1_W], show block1_flag rho 145 = rho 535 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 144 = rho 536 from by rfl, show block1_flag rho 145 = rho 535 from by rfl]
         first | linear_combination ht144 | linear_combination -ht144
       · have htf : trueFactor bits 145 = rho 376 := by
           rw [trueFactor, if_pos (by decide : pmBit 145 = true)]; exact keyB 145 (by omega)
-        rw [htf, show block1_flag rho 145 = rho 535 from by norm_num [block1_flag, block1_W], show block1_flag rho 146 = rho 534 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 145 = rho 535 from by rfl, show block1_flag rho 146 = rho 534 from by rfl]
         first | linear_combination ht145 | linear_combination -ht145
       · have htf : trueFactor bits 146 = rho 377 := by
           rw [trueFactor, if_pos (by decide : pmBit 146 = true)]; exact keyB 146 (by omega)
-        rw [htf, show block1_flag rho 146 = rho 534 from by norm_num [block1_flag, block1_W], show block1_flag rho 147 = rho 533 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 146 = rho 534 from by rfl, show block1_flag rho 147 = rho 533 from by rfl]
         first | linear_combination ht146 | linear_combination -ht146
       · have htf : trueFactor bits 147 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 147 = true))]
-        rw [htf, show block1_flag rho 147 = rho 533 from by norm_num [block1_flag, block1_W], show block1_flag rho 148 = rho 533 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 147 = rho 533 from by rfl, show block1_flag rho 148 = rho 533 from by rfl]
         ring
       · have htf : trueFactor bits 148 = rho 379 := by
           rw [trueFactor, if_pos (by decide : pmBit 148 = true)]; exact keyB 148 (by omega)
-        rw [htf, show block1_flag rho 148 = rho 533 from by norm_num [block1_flag, block1_W], show block1_flag rho 149 = rho 532 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 148 = rho 533 from by rfl, show block1_flag rho 149 = rho 532 from by rfl]
         first | linear_combination ht148 | linear_combination -ht148
       · have htf : trueFactor bits 149 = rho 380 := by
           rw [trueFactor, if_pos (by decide : pmBit 149 = true)]; exact keyB 149 (by omega)
-        rw [htf, show block1_flag rho 149 = rho 532 from by norm_num [block1_flag, block1_W], show block1_flag rho 150 = rho 531 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 149 = rho 532 from by rfl, show block1_flag rho 150 = rho 531 from by rfl]
         first | linear_combination ht149 | linear_combination -ht149
       · have htf : trueFactor bits 150 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 150 = true))]
-        rw [htf, show block1_flag rho 150 = rho 531 from by norm_num [block1_flag, block1_W], show block1_flag rho 151 = rho 531 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 150 = rho 531 from by rfl, show block1_flag rho 151 = rho 531 from by rfl]
         ring
       · have htf : trueFactor bits 151 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 151 = true))]
-        rw [htf, show block1_flag rho 151 = rho 531 from by norm_num [block1_flag, block1_W], show block1_flag rho 152 = rho 531 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 151 = rho 531 from by rfl, show block1_flag rho 152 = rho 531 from by rfl]
         ring
       · have htf : trueFactor bits 152 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 152 = true))]
-        rw [htf, show block1_flag rho 152 = rho 531 from by norm_num [block1_flag, block1_W], show block1_flag rho 153 = rho 531 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 152 = rho 531 from by rfl, show block1_flag rho 153 = rho 531 from by rfl]
         ring
       · have htf : trueFactor bits 153 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 153 = true))]
-        rw [htf, show block1_flag rho 153 = rho 531 from by norm_num [block1_flag, block1_W], show block1_flag rho 154 = rho 531 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 153 = rho 531 from by rfl, show block1_flag rho 154 = rho 531 from by rfl]
         ring
       · have htf : trueFactor bits 154 = rho 385 := by
           rw [trueFactor, if_pos (by decide : pmBit 154 = true)]; exact keyB 154 (by omega)
-        rw [htf, show block1_flag rho 154 = rho 531 from by norm_num [block1_flag, block1_W], show block1_flag rho 155 = rho 530 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 154 = rho 531 from by rfl, show block1_flag rho 155 = rho 530 from by rfl]
         first | linear_combination ht154 | linear_combination -ht154
       · have htf : trueFactor bits 155 = rho 386 := by
           rw [trueFactor, if_pos (by decide : pmBit 155 = true)]; exact keyB 155 (by omega)
-        rw [htf, show block1_flag rho 155 = rho 530 from by norm_num [block1_flag, block1_W], show block1_flag rho 156 = rho 529 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 155 = rho 530 from by rfl, show block1_flag rho 156 = rho 529 from by rfl]
         first | linear_combination ht155 | linear_combination -ht155
       · have htf : trueFactor bits 156 = rho 387 := by
           rw [trueFactor, if_pos (by decide : pmBit 156 = true)]; exact keyB 156 (by omega)
-        rw [htf, show block1_flag rho 156 = rho 529 from by norm_num [block1_flag, block1_W], show block1_flag rho 157 = rho 528 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 156 = rho 529 from by rfl, show block1_flag rho 157 = rho 528 from by rfl]
         first | linear_combination ht156 | linear_combination -ht156
       · have htf : trueFactor bits 157 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 157 = true))]
-        rw [htf, show block1_flag rho 157 = rho 528 from by norm_num [block1_flag, block1_W], show block1_flag rho 158 = rho 528 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 157 = rho 528 from by rfl, show block1_flag rho 158 = rho 528 from by rfl]
         ring
       · have htf : trueFactor bits 158 = rho 389 := by
           rw [trueFactor, if_pos (by decide : pmBit 158 = true)]; exact keyB 158 (by omega)
-        rw [htf, show block1_flag rho 158 = rho 528 from by norm_num [block1_flag, block1_W], show block1_flag rho 159 = rho 527 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 158 = rho 528 from by rfl, show block1_flag rho 159 = rho 527 from by rfl]
         first | linear_combination ht158 | linear_combination -ht158
       · have htf : trueFactor bits 159 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 159 = true))]
-        rw [htf, show block1_flag rho 159 = rho 527 from by norm_num [block1_flag, block1_W], show block1_flag rho 160 = rho 527 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 159 = rho 527 from by rfl, show block1_flag rho 160 = rho 527 from by rfl]
         ring
       · have htf : trueFactor bits 160 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 160 = true))]
-        rw [htf, show block1_flag rho 160 = rho 527 from by norm_num [block1_flag, block1_W], show block1_flag rho 161 = rho 527 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 160 = rho 527 from by rfl, show block1_flag rho 161 = rho 527 from by rfl]
         ring
       · have htf : trueFactor bits 161 = rho 392 := by
           rw [trueFactor, if_pos (by decide : pmBit 161 = true)]; exact keyB 161 (by omega)
-        rw [htf, show block1_flag rho 161 = rho 527 from by norm_num [block1_flag, block1_W], show block1_flag rho 162 = rho 526 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 161 = rho 527 from by rfl, show block1_flag rho 162 = rho 526 from by rfl]
         first | linear_combination ht161 | linear_combination -ht161
       · have htf : trueFactor bits 162 = rho 393 := by
           rw [trueFactor, if_pos (by decide : pmBit 162 = true)]; exact keyB 162 (by omega)
-        rw [htf, show block1_flag rho 162 = rho 526 from by norm_num [block1_flag, block1_W], show block1_flag rho 163 = rho 525 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 162 = rho 526 from by rfl, show block1_flag rho 163 = rho 525 from by rfl]
         first | linear_combination ht162 | linear_combination -ht162
       · have htf : trueFactor bits 163 = rho 394 := by
           rw [trueFactor, if_pos (by decide : pmBit 163 = true)]; exact keyB 163 (by omega)
-        rw [htf, show block1_flag rho 163 = rho 525 from by norm_num [block1_flag, block1_W], show block1_flag rho 164 = rho 524 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 163 = rho 525 from by rfl, show block1_flag rho 164 = rho 524 from by rfl]
         first | linear_combination ht163 | linear_combination -ht163
       · have htf : trueFactor bits 164 = rho 395 := by
           rw [trueFactor, if_pos (by decide : pmBit 164 = true)]; exact keyB 164 (by omega)
-        rw [htf, show block1_flag rho 164 = rho 524 from by norm_num [block1_flag, block1_W], show block1_flag rho 165 = rho 523 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 164 = rho 524 from by rfl, show block1_flag rho 165 = rho 523 from by rfl]
         first | linear_combination ht164 | linear_combination -ht164
       · have htf : trueFactor bits 165 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 165 = true))]
-        rw [htf, show block1_flag rho 165 = rho 523 from by norm_num [block1_flag, block1_W], show block1_flag rho 166 = rho 523 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 165 = rho 523 from by rfl, show block1_flag rho 166 = rho 523 from by rfl]
         ring
       · have htf : trueFactor bits 166 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 166 = true))]
-        rw [htf, show block1_flag rho 166 = rho 523 from by norm_num [block1_flag, block1_W], show block1_flag rho 167 = rho 523 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 166 = rho 523 from by rfl, show block1_flag rho 167 = rho 523 from by rfl]
         ring
       · have htf : trueFactor bits 167 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 167 = true))]
-        rw [htf, show block1_flag rho 167 = rho 523 from by norm_num [block1_flag, block1_W], show block1_flag rho 168 = rho 523 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 167 = rho 523 from by rfl, show block1_flag rho 168 = rho 523 from by rfl]
         ring
       · have htf : trueFactor bits 168 = rho 399 := by
           rw [trueFactor, if_pos (by decide : pmBit 168 = true)]; exact keyB 168 (by omega)
-        rw [htf, show block1_flag rho 168 = rho 523 from by norm_num [block1_flag, block1_W], show block1_flag rho 169 = rho 522 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 168 = rho 523 from by rfl, show block1_flag rho 169 = rho 522 from by rfl]
         first | linear_combination ht168 | linear_combination -ht168
       · have htf : trueFactor bits 169 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 169 = true))]
-        rw [htf, show block1_flag rho 169 = rho 522 from by norm_num [block1_flag, block1_W], show block1_flag rho 170 = rho 522 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 169 = rho 522 from by rfl, show block1_flag rho 170 = rho 522 from by rfl]
         ring
       · have htf : trueFactor bits 170 = rho 401 := by
           rw [trueFactor, if_pos (by decide : pmBit 170 = true)]; exact keyB 170 (by omega)
-        rw [htf, show block1_flag rho 170 = rho 522 from by norm_num [block1_flag, block1_W], show block1_flag rho 171 = rho 521 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 170 = rho 522 from by rfl, show block1_flag rho 171 = rho 521 from by rfl]
         first | linear_combination ht170 | linear_combination -ht170
       · have htf : trueFactor bits 171 = rho 402 := by
           rw [trueFactor, if_pos (by decide : pmBit 171 = true)]; exact keyB 171 (by omega)
-        rw [htf, show block1_flag rho 171 = rho 521 from by norm_num [block1_flag, block1_W], show block1_flag rho 172 = rho 520 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 171 = rho 521 from by rfl, show block1_flag rho 172 = rho 520 from by rfl]
         first | linear_combination ht171 | linear_combination -ht171
       · have htf : trueFactor bits 172 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 172 = true))]
-        rw [htf, show block1_flag rho 172 = rho 520 from by norm_num [block1_flag, block1_W], show block1_flag rho 173 = rho 520 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 172 = rho 520 from by rfl, show block1_flag rho 173 = rho 520 from by rfl]
         ring
       · have htf : trueFactor bits 173 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 173 = true))]
-        rw [htf, show block1_flag rho 173 = rho 520 from by norm_num [block1_flag, block1_W], show block1_flag rho 174 = rho 520 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 173 = rho 520 from by rfl, show block1_flag rho 174 = rho 520 from by rfl]
         ring
       · have htf : trueFactor bits 174 = rho 405 := by
           rw [trueFactor, if_pos (by decide : pmBit 174 = true)]; exact keyB 174 (by omega)
-        rw [htf, show block1_flag rho 174 = rho 520 from by norm_num [block1_flag, block1_W], show block1_flag rho 175 = rho 519 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 174 = rho 520 from by rfl, show block1_flag rho 175 = rho 519 from by rfl]
         first | linear_combination ht174 | linear_combination -ht174
       · have htf : trueFactor bits 175 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 175 = true))]
-        rw [htf, show block1_flag rho 175 = rho 519 from by norm_num [block1_flag, block1_W], show block1_flag rho 176 = rho 519 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 175 = rho 519 from by rfl, show block1_flag rho 176 = rho 519 from by rfl]
         ring
       · have htf : trueFactor bits 176 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 176 = true))]
-        rw [htf, show block1_flag rho 176 = rho 519 from by norm_num [block1_flag, block1_W], show block1_flag rho 177 = rho 519 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 176 = rho 519 from by rfl, show block1_flag rho 177 = rho 519 from by rfl]
         ring
       · have htf : trueFactor bits 177 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 177 = true))]
-        rw [htf, show block1_flag rho 177 = rho 519 from by norm_num [block1_flag, block1_W], show block1_flag rho 178 = rho 519 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 177 = rho 519 from by rfl, show block1_flag rho 178 = rho 519 from by rfl]
         ring
       · have htf : trueFactor bits 178 = rho 409 := by
           rw [trueFactor, if_pos (by decide : pmBit 178 = true)]; exact keyB 178 (by omega)
-        rw [htf, show block1_flag rho 178 = rho 519 from by norm_num [block1_flag, block1_W], show block1_flag rho 179 = rho 518 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 178 = rho 519 from by rfl, show block1_flag rho 179 = rho 518 from by rfl]
         first | linear_combination ht178 | linear_combination -ht178
       · have htf : trueFactor bits 179 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 179 = true))]
-        rw [htf, show block1_flag rho 179 = rho 518 from by norm_num [block1_flag, block1_W], show block1_flag rho 180 = rho 518 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 179 = rho 518 from by rfl, show block1_flag rho 180 = rho 518 from by rfl]
         ring
       · have htf : trueFactor bits 180 = rho 411 := by
           rw [trueFactor, if_pos (by decide : pmBit 180 = true)]; exact keyB 180 (by omega)
-        rw [htf, show block1_flag rho 180 = rho 518 from by norm_num [block1_flag, block1_W], show block1_flag rho 181 = rho 517 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 180 = rho 518 from by rfl, show block1_flag rho 181 = rho 517 from by rfl]
         first | linear_combination ht180 | linear_combination -ht180
       · have htf : trueFactor bits 181 = rho 412 := by
           rw [trueFactor, if_pos (by decide : pmBit 181 = true)]; exact keyB 181 (by omega)
-        rw [htf, show block1_flag rho 181 = rho 517 from by norm_num [block1_flag, block1_W], show block1_flag rho 182 = rho 516 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 181 = rho 517 from by rfl, show block1_flag rho 182 = rho 516 from by rfl]
         first | linear_combination ht181 | linear_combination -ht181
       · have htf : trueFactor bits 182 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 182 = true))]
-        rw [htf, show block1_flag rho 182 = rho 516 from by norm_num [block1_flag, block1_W], show block1_flag rho 183 = rho 516 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 182 = rho 516 from by rfl, show block1_flag rho 183 = rho 516 from by rfl]
         ring
       · have htf : trueFactor bits 183 = rho 414 := by
           rw [trueFactor, if_pos (by decide : pmBit 183 = true)]; exact keyB 183 (by omega)
-        rw [htf, show block1_flag rho 183 = rho 516 from by norm_num [block1_flag, block1_W], show block1_flag rho 184 = rho 515 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 183 = rho 516 from by rfl, show block1_flag rho 184 = rho 515 from by rfl]
         first | linear_combination ht183 | linear_combination -ht183
       · have htf : trueFactor bits 184 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 184 = true))]
-        rw [htf, show block1_flag rho 184 = rho 515 from by norm_num [block1_flag, block1_W], show block1_flag rho 185 = rho 515 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 184 = rho 515 from by rfl, show block1_flag rho 185 = rho 515 from by rfl]
         ring
       · have htf : trueFactor bits 185 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 185 = true))]
-        rw [htf, show block1_flag rho 185 = rho 515 from by norm_num [block1_flag, block1_W], show block1_flag rho 186 = rho 515 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 185 = rho 515 from by rfl, show block1_flag rho 186 = rho 515 from by rfl]
         ring
       · have htf : trueFactor bits 186 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 186 = true))]
-        rw [htf, show block1_flag rho 186 = rho 515 from by norm_num [block1_flag, block1_W], show block1_flag rho 187 = rho 515 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 186 = rho 515 from by rfl, show block1_flag rho 187 = rho 515 from by rfl]
         ring
       · have htf : trueFactor bits 187 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 187 = true))]
-        rw [htf, show block1_flag rho 187 = rho 515 from by norm_num [block1_flag, block1_W], show block1_flag rho 188 = rho 515 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 187 = rho 515 from by rfl, show block1_flag rho 188 = rho 515 from by rfl]
         ring
       · have htf : trueFactor bits 188 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 188 = true))]
-        rw [htf, show block1_flag rho 188 = rho 515 from by norm_num [block1_flag, block1_W], show block1_flag rho 189 = rho 515 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 188 = rho 515 from by rfl, show block1_flag rho 189 = rho 515 from by rfl]
         ring
       · have htf : trueFactor bits 189 = rho 420 := by
           rw [trueFactor, if_pos (by decide : pmBit 189 = true)]; exact keyB 189 (by omega)
-        rw [htf, show block1_flag rho 189 = rho 515 from by norm_num [block1_flag, block1_W], show block1_flag rho 190 = rho 514 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 189 = rho 515 from by rfl, show block1_flag rho 190 = rho 514 from by rfl]
         first | linear_combination ht189 | linear_combination -ht189
       · have htf : trueFactor bits 190 = rho 421 := by
           rw [trueFactor, if_pos (by decide : pmBit 190 = true)]; exact keyB 190 (by omega)
-        rw [htf, show block1_flag rho 190 = rho 514 from by norm_num [block1_flag, block1_W], show block1_flag rho 191 = rho 513 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 190 = rho 514 from by rfl, show block1_flag rho 191 = rho 513 from by rfl]
         first | linear_combination ht190 | linear_combination -ht190
       · have htf : trueFactor bits 191 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 191 = true))]
-        rw [htf, show block1_flag rho 191 = rho 513 from by norm_num [block1_flag, block1_W], show block1_flag rho 192 = rho 513 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 191 = rho 513 from by rfl, show block1_flag rho 192 = rho 513 from by rfl]
         ring
       · have htf : trueFactor bits 192 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 192 = true))]
-        rw [htf, show block1_flag rho 192 = rho 513 from by norm_num [block1_flag, block1_W], show block1_flag rho 193 = rho 513 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 192 = rho 513 from by rfl, show block1_flag rho 193 = rho 513 from by rfl]
         ring
       · have htf : trueFactor bits 193 = rho 424 := by
           rw [trueFactor, if_pos (by decide : pmBit 193 = true)]; exact keyB 193 (by omega)
-        rw [htf, show block1_flag rho 193 = rho 513 from by norm_num [block1_flag, block1_W], show block1_flag rho 194 = rho 512 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 193 = rho 513 from by rfl, show block1_flag rho 194 = rho 512 from by rfl]
         first | linear_combination ht193 | linear_combination -ht193
       · have htf : trueFactor bits 194 = rho 425 := by
           rw [trueFactor, if_pos (by decide : pmBit 194 = true)]; exact keyB 194 (by omega)
-        rw [htf, show block1_flag rho 194 = rho 512 from by norm_num [block1_flag, block1_W], show block1_flag rho 195 = rho 511 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 194 = rho 512 from by rfl, show block1_flag rho 195 = rho 511 from by rfl]
         first | linear_combination ht194 | linear_combination -ht194
       · have htf : trueFactor bits 195 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 195 = true))]
-        rw [htf, show block1_flag rho 195 = rho 511 from by norm_num [block1_flag, block1_W], show block1_flag rho 196 = rho 511 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 195 = rho 511 from by rfl, show block1_flag rho 196 = rho 511 from by rfl]
         ring
       · have htf : trueFactor bits 196 = rho 427 := by
           rw [trueFactor, if_pos (by decide : pmBit 196 = true)]; exact keyB 196 (by omega)
-        rw [htf, show block1_flag rho 196 = rho 511 from by norm_num [block1_flag, block1_W], show block1_flag rho 197 = rho 510 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 196 = rho 511 from by rfl, show block1_flag rho 197 = rho 510 from by rfl]
         first | linear_combination ht196 | linear_combination -ht196
       · have htf : trueFactor bits 197 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 197 = true))]
-        rw [htf, show block1_flag rho 197 = rho 510 from by norm_num [block1_flag, block1_W], show block1_flag rho 198 = rho 510 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 197 = rho 510 from by rfl, show block1_flag rho 198 = rho 510 from by rfl]
         ring
       · have htf : trueFactor bits 198 = rho 429 := by
           rw [trueFactor, if_pos (by decide : pmBit 198 = true)]; exact keyB 198 (by omega)
-        rw [htf, show block1_flag rho 198 = rho 510 from by norm_num [block1_flag, block1_W], show block1_flag rho 199 = rho 509 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 198 = rho 510 from by rfl, show block1_flag rho 199 = rho 509 from by rfl]
         first | linear_combination ht198 | linear_combination -ht198
       · have htf : trueFactor bits 199 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 199 = true))]
-        rw [htf, show block1_flag rho 199 = rho 509 from by norm_num [block1_flag, block1_W], show block1_flag rho 200 = rho 509 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 199 = rho 509 from by rfl, show block1_flag rho 200 = rho 509 from by rfl]
         ring
       · have htf : trueFactor bits 200 = rho 431 := by
           rw [trueFactor, if_pos (by decide : pmBit 200 = true)]; exact keyB 200 (by omega)
-        rw [htf, show block1_flag rho 200 = rho 509 from by norm_num [block1_flag, block1_W], show block1_flag rho 201 = rho 508 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 200 = rho 509 from by rfl, show block1_flag rho 201 = rho 508 from by rfl]
         first | linear_combination ht200 | linear_combination -ht200
       · have htf : trueFactor bits 201 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 201 = true))]
-        rw [htf, show block1_flag rho 201 = rho 508 from by norm_num [block1_flag, block1_W], show block1_flag rho 202 = rho 508 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 201 = rho 508 from by rfl, show block1_flag rho 202 = rho 508 from by rfl]
         ring
       · have htf : trueFactor bits 202 = rho 433 := by
           rw [trueFactor, if_pos (by decide : pmBit 202 = true)]; exact keyB 202 (by omega)
-        rw [htf, show block1_flag rho 202 = rho 508 from by norm_num [block1_flag, block1_W], show block1_flag rho 203 = rho 507 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 202 = rho 508 from by rfl, show block1_flag rho 203 = rho 507 from by rfl]
         first | linear_combination ht202 | linear_combination -ht202
       · have htf : trueFactor bits 203 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 203 = true))]
-        rw [htf, show block1_flag rho 203 = rho 507 from by norm_num [block1_flag, block1_W], show block1_flag rho 204 = rho 507 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 203 = rho 507 from by rfl, show block1_flag rho 204 = rho 507 from by rfl]
         ring
       · have htf : trueFactor bits 204 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 204 = true))]
-        rw [htf, show block1_flag rho 204 = rho 507 from by norm_num [block1_flag, block1_W], show block1_flag rho 205 = rho 507 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 204 = rho 507 from by rfl, show block1_flag rho 205 = rho 507 from by rfl]
         ring
       · have htf : trueFactor bits 205 = rho 436 := by
           rw [trueFactor, if_pos (by decide : pmBit 205 = true)]; exact keyB 205 (by omega)
-        rw [htf, show block1_flag rho 205 = rho 507 from by norm_num [block1_flag, block1_W], show block1_flag rho 206 = rho 506 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 205 = rho 507 from by rfl, show block1_flag rho 206 = rho 506 from by rfl]
         first | linear_combination ht205 | linear_combination -ht205
       · have htf : trueFactor bits 206 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 206 = true))]
-        rw [htf, show block1_flag rho 206 = rho 506 from by norm_num [block1_flag, block1_W], show block1_flag rho 207 = rho 506 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 206 = rho 506 from by rfl, show block1_flag rho 207 = rho 506 from by rfl]
         ring
       · have htf : trueFactor bits 207 = rho 438 := by
           rw [trueFactor, if_pos (by decide : pmBit 207 = true)]; exact keyB 207 (by omega)
-        rw [htf, show block1_flag rho 207 = rho 506 from by norm_num [block1_flag, block1_W], show block1_flag rho 208 = rho 505 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 207 = rho 506 from by rfl, show block1_flag rho 208 = rho 505 from by rfl]
         first | linear_combination ht207 | linear_combination -ht207
       · have htf : trueFactor bits 208 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 208 = true))]
-        rw [htf, show block1_flag rho 208 = rho 505 from by norm_num [block1_flag, block1_W], show block1_flag rho 209 = rho 505 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 208 = rho 505 from by rfl, show block1_flag rho 209 = rho 505 from by rfl]
         ring
       · have htf : trueFactor bits 209 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 209 = true))]
-        rw [htf, show block1_flag rho 209 = rho 505 from by norm_num [block1_flag, block1_W], show block1_flag rho 210 = rho 505 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 209 = rho 505 from by rfl, show block1_flag rho 210 = rho 505 from by rfl]
         ring
       · have htf : trueFactor bits 210 = rho 441 := by
           rw [trueFactor, if_pos (by decide : pmBit 210 = true)]; exact keyB 210 (by omega)
-        rw [htf, show block1_flag rho 210 = rho 505 from by norm_num [block1_flag, block1_W], show block1_flag rho 211 = rho 504 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 210 = rho 505 from by rfl, show block1_flag rho 211 = rho 504 from by rfl]
         first | linear_combination ht210 | linear_combination -ht210
       · have htf : trueFactor bits 211 = rho 442 := by
           rw [trueFactor, if_pos (by decide : pmBit 211 = true)]; exact keyB 211 (by omega)
-        rw [htf, show block1_flag rho 211 = rho 504 from by norm_num [block1_flag, block1_W], show block1_flag rho 212 = rho 503 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 211 = rho 504 from by rfl, show block1_flag rho 212 = rho 503 from by rfl]
         first | linear_combination ht211 | linear_combination -ht211
       · have htf : trueFactor bits 212 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 212 = true))]
-        rw [htf, show block1_flag rho 212 = rho 503 from by norm_num [block1_flag, block1_W], show block1_flag rho 213 = rho 503 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 212 = rho 503 from by rfl, show block1_flag rho 213 = rho 503 from by rfl]
         ring
       · have htf : trueFactor bits 213 = rho 444 := by
           rw [trueFactor, if_pos (by decide : pmBit 213 = true)]; exact keyB 213 (by omega)
-        rw [htf, show block1_flag rho 213 = rho 503 from by norm_num [block1_flag, block1_W], show block1_flag rho 214 = rho 502 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 213 = rho 503 from by rfl, show block1_flag rho 214 = rho 502 from by rfl]
         first | linear_combination ht213 | linear_combination -ht213
       · have htf : trueFactor bits 214 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 214 = true))]
-        rw [htf, show block1_flag rho 214 = rho 502 from by norm_num [block1_flag, block1_W], show block1_flag rho 215 = rho 502 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 214 = rho 502 from by rfl, show block1_flag rho 215 = rho 502 from by rfl]
         ring
       · have htf : trueFactor bits 215 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 215 = true))]
-        rw [htf, show block1_flag rho 215 = rho 502 from by norm_num [block1_flag, block1_W], show block1_flag rho 216 = rho 502 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 215 = rho 502 from by rfl, show block1_flag rho 216 = rho 502 from by rfl]
         ring
       · have htf : trueFactor bits 216 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 216 = true))]
-        rw [htf, show block1_flag rho 216 = rho 502 from by norm_num [block1_flag, block1_W], show block1_flag rho 217 = rho 502 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 216 = rho 502 from by rfl, show block1_flag rho 217 = rho 502 from by rfl]
         ring
       · have htf : trueFactor bits 217 = rho 448 := by
           rw [trueFactor, if_pos (by decide : pmBit 217 = true)]; exact keyB 217 (by omega)
-        rw [htf, show block1_flag rho 217 = rho 502 from by norm_num [block1_flag, block1_W], show block1_flag rho 218 = rho 501 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 217 = rho 502 from by rfl, show block1_flag rho 218 = rho 501 from by rfl]
         first | linear_combination ht217 | linear_combination -ht217
       · have htf : trueFactor bits 218 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 218 = true))]
-        rw [htf, show block1_flag rho 218 = rho 501 from by norm_num [block1_flag, block1_W], show block1_flag rho 219 = rho 501 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 218 = rho 501 from by rfl, show block1_flag rho 219 = rho 501 from by rfl]
         ring
       · have htf : trueFactor bits 219 = rho 450 := by
           rw [trueFactor, if_pos (by decide : pmBit 219 = true)]; exact keyB 219 (by omega)
-        rw [htf, show block1_flag rho 219 = rho 501 from by norm_num [block1_flag, block1_W], show block1_flag rho 220 = rho 500 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 219 = rho 501 from by rfl, show block1_flag rho 220 = rho 500 from by rfl]
         first | linear_combination ht219 | linear_combination -ht219
       · have htf : trueFactor bits 220 = rho 451 := by
           rw [trueFactor, if_pos (by decide : pmBit 220 = true)]; exact keyB 220 (by omega)
-        rw [htf, show block1_flag rho 220 = rho 500 from by norm_num [block1_flag, block1_W], show block1_flag rho 221 = rho 499 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 220 = rho 500 from by rfl, show block1_flag rho 221 = rho 499 from by rfl]
         first | linear_combination ht220 | linear_combination -ht220
       · have htf : trueFactor bits 221 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 221 = true))]
-        rw [htf, show block1_flag rho 221 = rho 499 from by norm_num [block1_flag, block1_W], show block1_flag rho 222 = rho 499 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 221 = rho 499 from by rfl, show block1_flag rho 222 = rho 499 from by rfl]
         ring
       · have htf : trueFactor bits 222 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 222 = true))]
-        rw [htf, show block1_flag rho 222 = rho 499 from by norm_num [block1_flag, block1_W], show block1_flag rho 223 = rho 499 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 222 = rho 499 from by rfl, show block1_flag rho 223 = rho 499 from by rfl]
         ring
       · have htf : trueFactor bits 223 = rho 454 := by
           rw [trueFactor, if_pos (by decide : pmBit 223 = true)]; exact keyB 223 (by omega)
-        rw [htf, show block1_flag rho 223 = rho 499 from by norm_num [block1_flag, block1_W], show block1_flag rho 224 = rho 498 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 223 = rho 499 from by rfl, show block1_flag rho 224 = rho 498 from by rfl]
         first | linear_combination ht223 | linear_combination -ht223
       · have htf : trueFactor bits 224 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 224 = true))]
-        rw [htf, show block1_flag rho 224 = rho 498 from by norm_num [block1_flag, block1_W], show block1_flag rho 225 = rho 498 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 224 = rho 498 from by rfl, show block1_flag rho 225 = rho 498 from by rfl]
         ring
       · have htf : trueFactor bits 225 = rho 456 := by
           rw [trueFactor, if_pos (by decide : pmBit 225 = true)]; exact keyB 225 (by omega)
-        rw [htf, show block1_flag rho 225 = rho 498 from by norm_num [block1_flag, block1_W], show block1_flag rho 226 = rho 497 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 225 = rho 498 from by rfl, show block1_flag rho 226 = rho 497 from by rfl]
         first | linear_combination ht225 | linear_combination -ht225
       · have htf : trueFactor bits 226 = rho 457 := by
           rw [trueFactor, if_pos (by decide : pmBit 226 = true)]; exact keyB 226 (by omega)
-        rw [htf, show block1_flag rho 226 = rho 497 from by norm_num [block1_flag, block1_W], show block1_flag rho 227 = rho 496 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 226 = rho 497 from by rfl, show block1_flag rho 227 = rho 496 from by rfl]
         first | linear_combination ht226 | linear_combination -ht226
       · have htf : trueFactor bits 227 = rho 458 := by
           rw [trueFactor, if_pos (by decide : pmBit 227 = true)]; exact keyB 227 (by omega)
-        rw [htf, show block1_flag rho 227 = rho 496 from by norm_num [block1_flag, block1_W], show block1_flag rho 228 = rho 495 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 227 = rho 496 from by rfl, show block1_flag rho 228 = rho 495 from by rfl]
         first | linear_combination ht227 | linear_combination -ht227
       · have htf : trueFactor bits 228 = rho 459 := by
           rw [trueFactor, if_pos (by decide : pmBit 228 = true)]; exact keyB 228 (by omega)
-        rw [htf, show block1_flag rho 228 = rho 495 from by norm_num [block1_flag, block1_W], show block1_flag rho 229 = rho 494 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 228 = rho 495 from by rfl, show block1_flag rho 229 = rho 494 from by rfl]
         first | linear_combination ht228 | linear_combination -ht228
       · have htf : trueFactor bits 229 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 229 = true))]
-        rw [htf, show block1_flag rho 229 = rho 494 from by norm_num [block1_flag, block1_W], show block1_flag rho 230 = rho 494 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 229 = rho 494 from by rfl, show block1_flag rho 230 = rho 494 from by rfl]
         ring
       · have htf : trueFactor bits 230 = rho 461 := by
           rw [trueFactor, if_pos (by decide : pmBit 230 = true)]; exact keyB 230 (by omega)
-        rw [htf, show block1_flag rho 230 = rho 494 from by norm_num [block1_flag, block1_W], show block1_flag rho 231 = rho 493 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 230 = rho 494 from by rfl, show block1_flag rho 231 = rho 493 from by rfl]
         first | linear_combination ht230 | linear_combination -ht230
       · have htf : trueFactor bits 231 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 231 = true))]
-        rw [htf, show block1_flag rho 231 = rho 493 from by norm_num [block1_flag, block1_W], show block1_flag rho 232 = rho 493 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 231 = rho 493 from by rfl, show block1_flag rho 232 = rho 493 from by rfl]
         ring
       · have htf : trueFactor bits 232 = rho 463 := by
           rw [trueFactor, if_pos (by decide : pmBit 232 = true)]; exact keyB 232 (by omega)
-        rw [htf, show block1_flag rho 232 = rho 493 from by norm_num [block1_flag, block1_W], show block1_flag rho 233 = rho 492 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 232 = rho 493 from by rfl, show block1_flag rho 233 = rho 492 from by rfl]
         first | linear_combination ht232 | linear_combination -ht232
       · have htf : trueFactor bits 233 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 233 = true))]
-        rw [htf, show block1_flag rho 233 = rho 492 from by norm_num [block1_flag, block1_W], show block1_flag rho 234 = rho 492 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 233 = rho 492 from by rfl, show block1_flag rho 234 = rho 492 from by rfl]
         ring
       · have htf : trueFactor bits 234 = rho 465 := by
           rw [trueFactor, if_pos (by decide : pmBit 234 = true)]; exact keyB 234 (by omega)
-        rw [htf, show block1_flag rho 234 = rho 492 from by norm_num [block1_flag, block1_W], show block1_flag rho 235 = rho 491 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 234 = rho 492 from by rfl, show block1_flag rho 235 = rho 491 from by rfl]
         first | linear_combination ht234 | linear_combination -ht234
       · have htf : trueFactor bits 235 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 235 = true))]
-        rw [htf, show block1_flag rho 235 = rho 491 from by norm_num [block1_flag, block1_W], show block1_flag rho 236 = rho 491 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 235 = rho 491 from by rfl, show block1_flag rho 236 = rho 491 from by rfl]
         ring
       · have htf : trueFactor bits 236 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 236 = true))]
-        rw [htf, show block1_flag rho 236 = rho 491 from by norm_num [block1_flag, block1_W], show block1_flag rho 237 = rho 491 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 236 = rho 491 from by rfl, show block1_flag rho 237 = rho 491 from by rfl]
         ring
       · have htf : trueFactor bits 237 = rho 468 := by
           rw [trueFactor, if_pos (by decide : pmBit 237 = true)]; exact keyB 237 (by omega)
-        rw [htf, show block1_flag rho 237 = rho 491 from by norm_num [block1_flag, block1_W], show block1_flag rho 238 = rho 490 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 237 = rho 491 from by rfl, show block1_flag rho 238 = rho 490 from by rfl]
         first | linear_combination ht237 | linear_combination -ht237
       · have htf : trueFactor bits 238 = rho 469 := by
           rw [trueFactor, if_pos (by decide : pmBit 238 = true)]; exact keyB 238 (by omega)
-        rw [htf, show block1_flag rho 238 = rho 490 from by norm_num [block1_flag, block1_W], show block1_flag rho 239 = rho 489 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 238 = rho 490 from by rfl, show block1_flag rho 239 = rho 489 from by rfl]
         first | linear_combination ht238 | linear_combination -ht238
       · have htf : trueFactor bits 239 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 239 = true))]
-        rw [htf, show block1_flag rho 239 = rho 489 from by norm_num [block1_flag, block1_W], show block1_flag rho 240 = rho 489 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 239 = rho 489 from by rfl, show block1_flag rho 240 = rho 489 from by rfl]
         ring
       · have htf : trueFactor bits 240 = rho 471 := by
           rw [trueFactor, if_pos (by decide : pmBit 240 = true)]; exact keyB 240 (by omega)
-        rw [htf, show block1_flag rho 240 = rho 489 from by norm_num [block1_flag, block1_W], show block1_flag rho 241 = rho 488 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 240 = rho 489 from by rfl, show block1_flag rho 241 = rho 488 from by rfl]
         first | linear_combination ht240 | linear_combination -ht240
       · have htf : trueFactor bits 241 = rho 472 := by
           rw [trueFactor, if_pos (by decide : pmBit 241 = true)]; exact keyB 241 (by omega)
-        rw [htf, show block1_flag rho 241 = rho 488 from by norm_num [block1_flag, block1_W], show block1_flag rho 242 = rho 487 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 241 = rho 488 from by rfl, show block1_flag rho 242 = rho 487 from by rfl]
         first | linear_combination ht241 | linear_combination -ht241
       · have htf : trueFactor bits 242 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 242 = true))]
-        rw [htf, show block1_flag rho 242 = rho 487 from by norm_num [block1_flag, block1_W], show block1_flag rho 243 = rho 487 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 242 = rho 487 from by rfl, show block1_flag rho 243 = rho 487 from by rfl]
         ring
       · have htf : trueFactor bits 243 = rho 474 := by
           rw [trueFactor, if_pos (by decide : pmBit 243 = true)]; exact keyB 243 (by omega)
-        rw [htf, show block1_flag rho 243 = rho 487 from by norm_num [block1_flag, block1_W], show block1_flag rho 244 = rho 486 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 243 = rho 487 from by rfl, show block1_flag rho 244 = rho 486 from by rfl]
         first | linear_combination ht243 | linear_combination -ht243
       · have htf : trueFactor bits 244 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 244 = true))]
-        rw [htf, show block1_flag rho 244 = rho 486 from by norm_num [block1_flag, block1_W], show block1_flag rho 245 = rho 486 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 244 = rho 486 from by rfl, show block1_flag rho 245 = rho 486 from by rfl]
         ring
       · have htf : trueFactor bits 245 = rho 476 := by
           rw [trueFactor, if_pos (by decide : pmBit 245 = true)]; exact keyB 245 (by omega)
-        rw [htf, show block1_flag rho 245 = rho 486 from by norm_num [block1_flag, block1_W], show block1_flag rho 246 = rho 485 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 245 = rho 486 from by rfl, show block1_flag rho 246 = rho 485 from by rfl]
         first | linear_combination ht245 | linear_combination -ht245
       · have htf : trueFactor bits 246 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 246 = true))]
-        rw [htf, show block1_flag rho 246 = rho 485 from by norm_num [block1_flag, block1_W], show block1_flag rho 247 = rho 485 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 246 = rho 485 from by rfl, show block1_flag rho 247 = rho 485 from by rfl]
         ring
       · have htf : trueFactor bits 247 = rho 478 := by
           rw [trueFactor, if_pos (by decide : pmBit 247 = true)]; exact keyB 247 (by omega)
-        rw [htf, show block1_flag rho 247 = rho 485 from by norm_num [block1_flag, block1_W], show block1_flag rho 248 = rho 484 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 247 = rho 485 from by rfl, show block1_flag rho 248 = rho 484 from by rfl]
         first | linear_combination ht247 | linear_combination -ht247
       · have htf : trueFactor bits 248 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 248 = true))]
-        rw [htf, show block1_flag rho 248 = rho 484 from by norm_num [block1_flag, block1_W], show block1_flag rho 249 = rho 484 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 248 = rho 484 from by rfl, show block1_flag rho 249 = rho 484 from by rfl]
         ring
       · have htf : trueFactor bits 249 = rho 480 := by
           rw [trueFactor, if_pos (by decide : pmBit 249 = true)]; exact keyB 249 (by omega)
-        rw [htf, show block1_flag rho 249 = rho 484 from by norm_num [block1_flag, block1_W], show block1_flag rho 250 = rho 483 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 249 = rho 484 from by rfl, show block1_flag rho 250 = rho 483 from by rfl]
         first | linear_combination ht249 | linear_combination -ht249
       · have htf : trueFactor bits 250 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 250 = true))]
-        rw [htf, show block1_flag rho 250 = rho 483 from by norm_num [block1_flag, block1_W], show block1_flag rho 251 = rho 483 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 250 = rho 483 from by rfl, show block1_flag rho 251 = rho 483 from by rfl]
         ring
       · have htf : trueFactor bits 251 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 251 = true))]
-        rw [htf, show block1_flag rho 251 = rho 483 from by norm_num [block1_flag, block1_W], show block1_flag rho 252 = rho 483 from by norm_num [block1_flag, block1_W]]
+        rw [htf, show block1_flag rho 251 = rho 483 from by rfl, show block1_flag rho 252 = rho 483 from by rfl]
         ring
       · have htf : trueFactor bits 252 = rho 483 := by
           rw [trueFactor, if_pos (by decide : pmBit 252 = true)]; exact keyB 252 (by omega)
-        rw [htf, show block1_flag rho 252 = rho 483 from by norm_num [block1_flag, block1_W], show block1_flag rho 253 = (1 : F) from by rw [block1_flag, if_pos (by norm_num : (253 : ℕ) ≤ 253)]]
+        rw [htf, show block1_flag rho 252 = rho 483 from by rfl, show block1_flag rho 253 = (1 : F) from by rw [block1_flag, if_pos (by exact le_rfl)]]
         ring
     · intro j hj hpm
       show bits[j]! * (1 - bits[j]! - block1_flag rho (j + 1)) = 0
       rw [keyB j hj]
       interval_cases j
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 1 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc0; linear_combination hc0
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 2 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc1; linear_combination hc1
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 3 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc2; linear_combination hc2
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 4 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc3; linear_combination hc3
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 5 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc4; linear_combination hc4
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 6 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc5; linear_combination hc5
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 7 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc6; linear_combination hc6
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 8 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc7; linear_combination hc7
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 9 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc8; linear_combination hc8
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 10 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc9; linear_combination hc9
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 11 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc10; linear_combination hc10
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 12 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc11; linear_combination hc11
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 13 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc12; linear_combination hc12
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 14 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc13; linear_combination hc13
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 15 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc14; linear_combination hc14
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 16 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc15; linear_combination hc15
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 17 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc16; linear_combination hc16
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 18 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc17; linear_combination hc17
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 19 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc18; linear_combination hc18
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 20 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc19; linear_combination hc19
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 21 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc20; linear_combination hc20
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 22 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc21; linear_combination hc21
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 23 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc22; linear_combination hc22
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 24 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc23; linear_combination hc23
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 25 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc24; linear_combination hc24
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 26 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc25; linear_combination hc25
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 27 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc26; linear_combination hc26
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 28 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc27; linear_combination hc27
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 29 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc28; linear_combination hc28
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 30 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc29; linear_combination hc29
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 31 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc30; linear_combination hc30
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 32 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc31; linear_combination hc31
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 33 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc32; linear_combination hc32
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 34 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc33; linear_combination hc33
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 35 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc34; linear_combination hc34
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 36 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc35; linear_combination hc35
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 37 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc36; linear_combination hc36
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 38 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc37; linear_combination hc37
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 39 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc38; linear_combination hc38
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 40 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc39; linear_combination hc39
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 41 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc40; linear_combination hc40
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 42 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc41; linear_combination hc41
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 43 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc42; linear_combination hc42
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 44 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc43; linear_combination hc43
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 45 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc44; linear_combination hc44
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 46 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc45; linear_combination hc45
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 47 = rho 569 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc46; linear_combination hc46
-      · exact absurd hpm (by decide)
-      · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 50 = rho 567 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc49; linear_combination hc49
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 51 = rho 567 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc50; linear_combination hc50
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 52 = rho 567 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc51; linear_combination hc51
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 1 = rho 569 from by rfl]; rw [hrho0] at hc0; linear_combination hc0
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 2 = rho 569 from by rfl]; rw [hrho0] at hc1; linear_combination hc1
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 3 = rho 569 from by rfl]; rw [hrho0] at hc2; linear_combination hc2
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 4 = rho 569 from by rfl]; rw [hrho0] at hc3; linear_combination hc3
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 5 = rho 569 from by rfl]; rw [hrho0] at hc4; linear_combination hc4
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 6 = rho 569 from by rfl]; rw [hrho0] at hc5; linear_combination hc5
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 7 = rho 569 from by rfl]; rw [hrho0] at hc6; linear_combination hc6
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 8 = rho 569 from by rfl]; rw [hrho0] at hc7; linear_combination hc7
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 9 = rho 569 from by rfl]; rw [hrho0] at hc8; linear_combination hc8
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 10 = rho 569 from by rfl]; rw [hrho0] at hc9; linear_combination hc9
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 11 = rho 569 from by rfl]; rw [hrho0] at hc10; linear_combination hc10
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 12 = rho 569 from by rfl]; rw [hrho0] at hc11; linear_combination hc11
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 13 = rho 569 from by rfl]; rw [hrho0] at hc12; linear_combination hc12
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 14 = rho 569 from by rfl]; rw [hrho0] at hc13; linear_combination hc13
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 15 = rho 569 from by rfl]; rw [hrho0] at hc14; linear_combination hc14
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 16 = rho 569 from by rfl]; rw [hrho0] at hc15; linear_combination hc15
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 17 = rho 569 from by rfl]; rw [hrho0] at hc16; linear_combination hc16
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 18 = rho 569 from by rfl]; rw [hrho0] at hc17; linear_combination hc17
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 19 = rho 569 from by rfl]; rw [hrho0] at hc18; linear_combination hc18
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 20 = rho 569 from by rfl]; rw [hrho0] at hc19; linear_combination hc19
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 21 = rho 569 from by rfl]; rw [hrho0] at hc20; linear_combination hc20
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 22 = rho 569 from by rfl]; rw [hrho0] at hc21; linear_combination hc21
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 23 = rho 569 from by rfl]; rw [hrho0] at hc22; linear_combination hc22
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 24 = rho 569 from by rfl]; rw [hrho0] at hc23; linear_combination hc23
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 25 = rho 569 from by rfl]; rw [hrho0] at hc24; linear_combination hc24
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 26 = rho 569 from by rfl]; rw [hrho0] at hc25; linear_combination hc25
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 27 = rho 569 from by rfl]; rw [hrho0] at hc26; linear_combination hc26
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 28 = rho 569 from by rfl]; rw [hrho0] at hc27; linear_combination hc27
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 29 = rho 569 from by rfl]; rw [hrho0] at hc28; linear_combination hc28
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 30 = rho 569 from by rfl]; rw [hrho0] at hc29; linear_combination hc29
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 31 = rho 569 from by rfl]; rw [hrho0] at hc30; linear_combination hc30
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 32 = rho 569 from by rfl]; rw [hrho0] at hc31; linear_combination hc31
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 33 = rho 569 from by rfl]; rw [hrho0] at hc32; linear_combination hc32
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 34 = rho 569 from by rfl]; rw [hrho0] at hc33; linear_combination hc33
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 35 = rho 569 from by rfl]; rw [hrho0] at hc34; linear_combination hc34
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 36 = rho 569 from by rfl]; rw [hrho0] at hc35; linear_combination hc35
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 37 = rho 569 from by rfl]; rw [hrho0] at hc36; linear_combination hc36
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 38 = rho 569 from by rfl]; rw [hrho0] at hc37; linear_combination hc37
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 39 = rho 569 from by rfl]; rw [hrho0] at hc38; linear_combination hc38
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 40 = rho 569 from by rfl]; rw [hrho0] at hc39; linear_combination hc39
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 41 = rho 569 from by rfl]; rw [hrho0] at hc40; linear_combination hc40
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 42 = rho 569 from by rfl]; rw [hrho0] at hc41; linear_combination hc41
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 43 = rho 569 from by rfl]; rw [hrho0] at hc42; linear_combination hc42
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 44 = rho 569 from by rfl]; rw [hrho0] at hc43; linear_combination hc43
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 45 = rho 569 from by rfl]; rw [hrho0] at hc44; linear_combination hc44
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 46 = rho 569 from by rfl]; rw [hrho0] at hc45; linear_combination hc45
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 47 = rho 569 from by rfl]; rw [hrho0] at hc46; linear_combination hc46
+      · exact absurd hpm (by decide)
+      · exact absurd hpm (by decide)
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 50 = rho 567 from by rfl]; rw [hrho0] at hc49; linear_combination hc49
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 51 = rho 567 from by rfl]; rw [hrho0] at hc50; linear_combination hc50
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 52 = rho 567 from by rfl]; rw [hrho0] at hc51; linear_combination hc51
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 54 = rho 566 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc53; linear_combination hc53
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 55 = rho 566 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc54; linear_combination hc54
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 56 = rho 566 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc55; linear_combination hc55
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 57 = rho 566 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc56; linear_combination hc56
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 54 = rho 566 from by rfl]; rw [hrho0] at hc53; linear_combination hc53
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 55 = rho 566 from by rfl]; rw [hrho0] at hc54; linear_combination hc54
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 56 = rho 566 from by rfl]; rw [hrho0] at hc55; linear_combination hc55
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 57 = rho 566 from by rfl]; rw [hrho0] at hc56; linear_combination hc56
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 59 = rho 565 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc58; linear_combination hc58
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 59 = rho 565 from by rfl]; rw [hrho0] at hc58; linear_combination hc58
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 61 = rho 564 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc60; linear_combination hc60
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 62 = rho 564 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc61; linear_combination hc61
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 63 = rho 564 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc62; linear_combination hc62
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 64 = rho 564 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc63; linear_combination hc63
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 61 = rho 564 from by rfl]; rw [hrho0] at hc60; linear_combination hc60
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 62 = rho 564 from by rfl]; rw [hrho0] at hc61; linear_combination hc61
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 63 = rho 564 from by rfl]; rw [hrho0] at hc62; linear_combination hc62
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 64 = rho 564 from by rfl]; rw [hrho0] at hc63; linear_combination hc63
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 66 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc65; linear_combination hc65
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 67 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc66; linear_combination hc66
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 68 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc67; linear_combination hc67
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 69 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc68; linear_combination hc68
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 70 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc69; linear_combination hc69
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 71 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc70; linear_combination hc70
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 72 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc71; linear_combination hc71
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 73 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc72; linear_combination hc72
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 74 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc73; linear_combination hc73
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 75 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc74; linear_combination hc74
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 76 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc75; linear_combination hc75
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 77 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc76; linear_combination hc76
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 78 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc77; linear_combination hc77
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 79 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc78; linear_combination hc78
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 80 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc79; linear_combination hc79
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 81 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc80; linear_combination hc80
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 82 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc81; linear_combination hc81
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 83 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc82; linear_combination hc82
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 84 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc83; linear_combination hc83
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 85 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc84; linear_combination hc84
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 86 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc85; linear_combination hc85
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 87 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc86; linear_combination hc86
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 88 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc87; linear_combination hc87
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 89 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc88; linear_combination hc88
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 90 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc89; linear_combination hc89
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 91 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc90; linear_combination hc90
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 92 = rho 563 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc91; linear_combination hc91
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 66 = rho 563 from by rfl]; rw [hrho0] at hc65; linear_combination hc65
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 67 = rho 563 from by rfl]; rw [hrho0] at hc66; linear_combination hc66
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 68 = rho 563 from by rfl]; rw [hrho0] at hc67; linear_combination hc67
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 69 = rho 563 from by rfl]; rw [hrho0] at hc68; linear_combination hc68
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 70 = rho 563 from by rfl]; rw [hrho0] at hc69; linear_combination hc69
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 71 = rho 563 from by rfl]; rw [hrho0] at hc70; linear_combination hc70
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 72 = rho 563 from by rfl]; rw [hrho0] at hc71; linear_combination hc71
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 73 = rho 563 from by rfl]; rw [hrho0] at hc72; linear_combination hc72
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 74 = rho 563 from by rfl]; rw [hrho0] at hc73; linear_combination hc73
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 75 = rho 563 from by rfl]; rw [hrho0] at hc74; linear_combination hc74
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 76 = rho 563 from by rfl]; rw [hrho0] at hc75; linear_combination hc75
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 77 = rho 563 from by rfl]; rw [hrho0] at hc76; linear_combination hc76
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 78 = rho 563 from by rfl]; rw [hrho0] at hc77; linear_combination hc77
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 79 = rho 563 from by rfl]; rw [hrho0] at hc78; linear_combination hc78
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 80 = rho 563 from by rfl]; rw [hrho0] at hc79; linear_combination hc79
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 81 = rho 563 from by rfl]; rw [hrho0] at hc80; linear_combination hc80
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 82 = rho 563 from by rfl]; rw [hrho0] at hc81; linear_combination hc81
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 83 = rho 563 from by rfl]; rw [hrho0] at hc82; linear_combination hc82
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 84 = rho 563 from by rfl]; rw [hrho0] at hc83; linear_combination hc83
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 85 = rho 563 from by rfl]; rw [hrho0] at hc84; linear_combination hc84
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 86 = rho 563 from by rfl]; rw [hrho0] at hc85; linear_combination hc85
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 87 = rho 563 from by rfl]; rw [hrho0] at hc86; linear_combination hc86
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 88 = rho 563 from by rfl]; rw [hrho0] at hc87; linear_combination hc87
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 89 = rho 563 from by rfl]; rw [hrho0] at hc88; linear_combination hc88
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 90 = rho 563 from by rfl]; rw [hrho0] at hc89; linear_combination hc89
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 91 = rho 563 from by rfl]; rw [hrho0] at hc90; linear_combination hc90
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 92 = rho 563 from by rfl]; rw [hrho0] at hc91; linear_combination hc91
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 94 = rho 562 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc93; linear_combination hc93
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 94 = rho 562 from by rfl]; rw [hrho0] at hc93; linear_combination hc93
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 97 = rho 560 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc96; linear_combination hc96
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 97 = rho 560 from by rfl]; rw [hrho0] at hc96; linear_combination hc96
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
@@ -1921,154 +1923,154 @@ theorem block1_canonical (rho : Nat → F)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 105 = rho 553 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc104; linear_combination hc104
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 105 = rho 553 from by rfl]; rw [hrho0] at hc104; linear_combination hc104
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 108 = rho 551 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc107; linear_combination hc107
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 108 = rho 551 from by rfl]; rw [hrho0] at hc107; linear_combination hc107
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 112 = rho 548 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc111; linear_combination hc111
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 113 = rho 548 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc112; linear_combination hc112
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 112 = rho 548 from by rfl]; rw [hrho0] at hc111; linear_combination hc111
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 113 = rho 548 from by rfl]; rw [hrho0] at hc112; linear_combination hc112
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 115 = rho 547 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc114; linear_combination hc114
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 115 = rho 547 from by rfl]; rw [hrho0] at hc114; linear_combination hc114
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 117 = rho 546 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc116; linear_combination hc116
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 117 = rho 546 from by rfl]; rw [hrho0] at hc116; linear_combination hc116
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 119 = rho 545 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc118; linear_combination hc118
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 119 = rho 545 from by rfl]; rw [hrho0] at hc118; linear_combination hc118
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 122 = rho 543 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc121; linear_combination hc121
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 123 = rho 543 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc122; linear_combination hc122
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 122 = rho 543 from by rfl]; rw [hrho0] at hc121; linear_combination hc121
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 123 = rho 543 from by rfl]; rw [hrho0] at hc122; linear_combination hc122
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 126 = rho 541 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc125; linear_combination hc125
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 126 = rho 541 from by rfl]; rw [hrho0] at hc125; linear_combination hc125
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 128 = rho 540 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc127; linear_combination hc127
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 128 = rho 540 from by rfl]; rw [hrho0] at hc127; linear_combination hc127
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 130 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc129; linear_combination hc129
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 131 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc130; linear_combination hc130
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 132 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc131; linear_combination hc131
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 133 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc132; linear_combination hc132
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 134 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc133; linear_combination hc133
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 135 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc134; linear_combination hc134
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 136 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc135; linear_combination hc135
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 137 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc136; linear_combination hc136
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 138 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc137; linear_combination hc137
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 139 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc138; linear_combination hc138
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 140 = rho 539 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc139; linear_combination hc139
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 130 = rho 539 from by rfl]; rw [hrho0] at hc129; linear_combination hc129
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 131 = rho 539 from by rfl]; rw [hrho0] at hc130; linear_combination hc130
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 132 = rho 539 from by rfl]; rw [hrho0] at hc131; linear_combination hc131
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 133 = rho 539 from by rfl]; rw [hrho0] at hc132; linear_combination hc132
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 134 = rho 539 from by rfl]; rw [hrho0] at hc133; linear_combination hc133
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 135 = rho 539 from by rfl]; rw [hrho0] at hc134; linear_combination hc134
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 136 = rho 539 from by rfl]; rw [hrho0] at hc135; linear_combination hc135
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 137 = rho 539 from by rfl]; rw [hrho0] at hc136; linear_combination hc136
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 138 = rho 539 from by rfl]; rw [hrho0] at hc137; linear_combination hc137
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 139 = rho 539 from by rfl]; rw [hrho0] at hc138; linear_combination hc138
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 140 = rho 539 from by rfl]; rw [hrho0] at hc139; linear_combination hc139
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 143 = rho 537 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc142; linear_combination hc142
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 143 = rho 537 from by rfl]; rw [hrho0] at hc142; linear_combination hc142
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 148 = rho 533 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc147; linear_combination hc147
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 148 = rho 533 from by rfl]; rw [hrho0] at hc147; linear_combination hc147
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 151 = rho 531 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc150; linear_combination hc150
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 152 = rho 531 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc151; linear_combination hc151
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 153 = rho 531 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc152; linear_combination hc152
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 154 = rho 531 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc153; linear_combination hc153
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 151 = rho 531 from by rfl]; rw [hrho0] at hc150; linear_combination hc150
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 152 = rho 531 from by rfl]; rw [hrho0] at hc151; linear_combination hc151
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 153 = rho 531 from by rfl]; rw [hrho0] at hc152; linear_combination hc152
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 154 = rho 531 from by rfl]; rw [hrho0] at hc153; linear_combination hc153
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 158 = rho 528 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc157; linear_combination hc157
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 158 = rho 528 from by rfl]; rw [hrho0] at hc157; linear_combination hc157
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 160 = rho 527 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc159; linear_combination hc159
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 161 = rho 527 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc160; linear_combination hc160
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 160 = rho 527 from by rfl]; rw [hrho0] at hc159; linear_combination hc159
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 161 = rho 527 from by rfl]; rw [hrho0] at hc160; linear_combination hc160
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 166 = rho 523 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc165; linear_combination hc165
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 167 = rho 523 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc166; linear_combination hc166
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 168 = rho 523 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc167; linear_combination hc167
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 166 = rho 523 from by rfl]; rw [hrho0] at hc165; linear_combination hc165
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 167 = rho 523 from by rfl]; rw [hrho0] at hc166; linear_combination hc166
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 168 = rho 523 from by rfl]; rw [hrho0] at hc167; linear_combination hc167
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 170 = rho 522 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc169; linear_combination hc169
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 170 = rho 522 from by rfl]; rw [hrho0] at hc169; linear_combination hc169
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 173 = rho 520 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc172; linear_combination hc172
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 174 = rho 520 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc173; linear_combination hc173
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 173 = rho 520 from by rfl]; rw [hrho0] at hc172; linear_combination hc172
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 174 = rho 520 from by rfl]; rw [hrho0] at hc173; linear_combination hc173
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 176 = rho 519 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc175; linear_combination hc175
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 177 = rho 519 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc176; linear_combination hc176
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 178 = rho 519 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc177; linear_combination hc177
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 176 = rho 519 from by rfl]; rw [hrho0] at hc175; linear_combination hc175
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 177 = rho 519 from by rfl]; rw [hrho0] at hc176; linear_combination hc176
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 178 = rho 519 from by rfl]; rw [hrho0] at hc177; linear_combination hc177
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 180 = rho 518 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc179; linear_combination hc179
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 180 = rho 518 from by rfl]; rw [hrho0] at hc179; linear_combination hc179
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 183 = rho 516 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc182; linear_combination hc182
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 183 = rho 516 from by rfl]; rw [hrho0] at hc182; linear_combination hc182
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 185 = rho 515 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc184; linear_combination hc184
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 186 = rho 515 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc185; linear_combination hc185
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 187 = rho 515 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc186; linear_combination hc186
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 188 = rho 515 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc187; linear_combination hc187
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 189 = rho 515 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc188; linear_combination hc188
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 185 = rho 515 from by rfl]; rw [hrho0] at hc184; linear_combination hc184
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 186 = rho 515 from by rfl]; rw [hrho0] at hc185; linear_combination hc185
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 187 = rho 515 from by rfl]; rw [hrho0] at hc186; linear_combination hc186
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 188 = rho 515 from by rfl]; rw [hrho0] at hc187; linear_combination hc187
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 189 = rho 515 from by rfl]; rw [hrho0] at hc188; linear_combination hc188
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 192 = rho 513 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc191; linear_combination hc191
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 193 = rho 513 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc192; linear_combination hc192
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 192 = rho 513 from by rfl]; rw [hrho0] at hc191; linear_combination hc191
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 193 = rho 513 from by rfl]; rw [hrho0] at hc192; linear_combination hc192
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 196 = rho 511 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc195; linear_combination hc195
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 196 = rho 511 from by rfl]; rw [hrho0] at hc195; linear_combination hc195
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 198 = rho 510 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc197; linear_combination hc197
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 198 = rho 510 from by rfl]; rw [hrho0] at hc197; linear_combination hc197
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 200 = rho 509 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc199; linear_combination hc199
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 200 = rho 509 from by rfl]; rw [hrho0] at hc199; linear_combination hc199
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 202 = rho 508 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc201; linear_combination hc201
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 202 = rho 508 from by rfl]; rw [hrho0] at hc201; linear_combination hc201
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 204 = rho 507 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc203; linear_combination hc203
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 205 = rho 507 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc204; linear_combination hc204
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 204 = rho 507 from by rfl]; rw [hrho0] at hc203; linear_combination hc203
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 205 = rho 507 from by rfl]; rw [hrho0] at hc204; linear_combination hc204
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 207 = rho 506 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc206; linear_combination hc206
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 207 = rho 506 from by rfl]; rw [hrho0] at hc206; linear_combination hc206
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 209 = rho 505 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc208; linear_combination hc208
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 210 = rho 505 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc209; linear_combination hc209
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 209 = rho 505 from by rfl]; rw [hrho0] at hc208; linear_combination hc208
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 210 = rho 505 from by rfl]; rw [hrho0] at hc209; linear_combination hc209
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 213 = rho 503 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc212; linear_combination hc212
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 213 = rho 503 from by rfl]; rw [hrho0] at hc212; linear_combination hc212
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 215 = rho 502 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc214; linear_combination hc214
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 216 = rho 502 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc215; linear_combination hc215
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 217 = rho 502 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc216; linear_combination hc216
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 215 = rho 502 from by rfl]; rw [hrho0] at hc214; linear_combination hc214
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 216 = rho 502 from by rfl]; rw [hrho0] at hc215; linear_combination hc215
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 217 = rho 502 from by rfl]; rw [hrho0] at hc216; linear_combination hc216
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 219 = rho 501 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc218; linear_combination hc218
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 219 = rho 501 from by rfl]; rw [hrho0] at hc218; linear_combination hc218
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 222 = rho 499 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc221; linear_combination hc221
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 223 = rho 499 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc222; linear_combination hc222
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 222 = rho 499 from by rfl]; rw [hrho0] at hc221; linear_combination hc221
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 223 = rho 499 from by rfl]; rw [hrho0] at hc222; linear_combination hc222
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 225 = rho 498 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc224; linear_combination hc224
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 225 = rho 498 from by rfl]; rw [hrho0] at hc224; linear_combination hc224
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 230 = rho 494 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc229; linear_combination hc229
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 230 = rho 494 from by rfl]; rw [hrho0] at hc229; linear_combination hc229
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 232 = rho 493 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc231; linear_combination hc231
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 232 = rho 493 from by rfl]; rw [hrho0] at hc231; linear_combination hc231
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 234 = rho 492 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc233; linear_combination hc233
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 234 = rho 492 from by rfl]; rw [hrho0] at hc233; linear_combination hc233
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 236 = rho 491 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc235; linear_combination hc235
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 237 = rho 491 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc236; linear_combination hc236
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 236 = rho 491 from by rfl]; rw [hrho0] at hc235; linear_combination hc235
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 237 = rho 491 from by rfl]; rw [hrho0] at hc236; linear_combination hc236
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 240 = rho 489 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc239; linear_combination hc239
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 240 = rho 489 from by rfl]; rw [hrho0] at hc239; linear_combination hc239
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 243 = rho 487 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc242; linear_combination hc242
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 243 = rho 487 from by rfl]; rw [hrho0] at hc242; linear_combination hc242
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 245 = rho 486 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc244; linear_combination hc244
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 245 = rho 486 from by rfl]; rw [hrho0] at hc244; linear_combination hc244
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 247 = rho 485 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc246; linear_combination hc246
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 247 = rho 485 from by rfl]; rw [hrho0] at hc246; linear_combination hc246
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 249 = rho 484 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc248; linear_combination hc248
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 249 = rho 484 from by rfl]; rw [hrho0] at hc248; linear_combination hc248
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 251 = rho 483 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc250; linear_combination hc250
-      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 252 = rho 483 from by norm_num [block1_flag, block1_W]]; rw [hrho0] at hc251; linear_combination hc251
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 251 = rho 483 from by rfl]; rw [hrho0] at hc250; linear_combination hc250
+      · simp only [Nat.reduceAdd]; rw [show block1_flag rho 252 = rho 483 from by rfl]; rw [hrho0] at hc251; linear_combination hc251
       · exact absurd hpm (by decide)
     · intro j hj
       show bits[j]! * bits[j]! = bits[j]!
@@ -3113,1122 +3115,1122 @@ theorem block2_canonical (rho : Nat → F)
     · simp only [Nat.reduceAdd]; rw [hrho0] at hb252; linear_combination hb252
   · refine chainK_of_obligations bits k hk ?_
     refine block_hobl_of_truethread bits (block2_flag rho) ?_ ?_ ?_ ?_
-    · rw [block2_flag, if_pos (by norm_num : (253 : ℕ) ≤ 253)]
+    · rw [block2_flag, if_pos (by exact le_rfl)]
     · intro m hm
       interval_cases m
       · have htf : trueFactor bits 0 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 0 = true))]
-        rw [htf, show block2_flag rho 0 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 1 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 0 = rho 911 from by rfl, show block2_flag rho 1 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 1 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 1 = true))]
-        rw [htf, show block2_flag rho 1 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 2 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 1 = rho 911 from by rfl, show block2_flag rho 2 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 2 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 2 = true))]
-        rw [htf, show block2_flag rho 2 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 3 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 2 = rho 911 from by rfl, show block2_flag rho 3 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 3 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 3 = true))]
-        rw [htf, show block2_flag rho 3 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 4 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 3 = rho 911 from by rfl, show block2_flag rho 4 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 4 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 4 = true))]
-        rw [htf, show block2_flag rho 4 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 5 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 4 = rho 911 from by rfl, show block2_flag rho 5 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 5 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 5 = true))]
-        rw [htf, show block2_flag rho 5 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 6 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 5 = rho 911 from by rfl, show block2_flag rho 6 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 6 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 6 = true))]
-        rw [htf, show block2_flag rho 6 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 7 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 6 = rho 911 from by rfl, show block2_flag rho 7 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 7 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 7 = true))]
-        rw [htf, show block2_flag rho 7 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 8 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 7 = rho 911 from by rfl, show block2_flag rho 8 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 8 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 8 = true))]
-        rw [htf, show block2_flag rho 8 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 9 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 8 = rho 911 from by rfl, show block2_flag rho 9 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 9 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 9 = true))]
-        rw [htf, show block2_flag rho 9 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 10 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 9 = rho 911 from by rfl, show block2_flag rho 10 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 10 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 10 = true))]
-        rw [htf, show block2_flag rho 10 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 11 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 10 = rho 911 from by rfl, show block2_flag rho 11 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 11 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 11 = true))]
-        rw [htf, show block2_flag rho 11 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 12 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 11 = rho 911 from by rfl, show block2_flag rho 12 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 12 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 12 = true))]
-        rw [htf, show block2_flag rho 12 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 13 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 12 = rho 911 from by rfl, show block2_flag rho 13 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 13 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 13 = true))]
-        rw [htf, show block2_flag rho 13 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 14 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 13 = rho 911 from by rfl, show block2_flag rho 14 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 14 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 14 = true))]
-        rw [htf, show block2_flag rho 14 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 15 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 14 = rho 911 from by rfl, show block2_flag rho 15 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 15 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 15 = true))]
-        rw [htf, show block2_flag rho 15 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 16 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 15 = rho 911 from by rfl, show block2_flag rho 16 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 16 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 16 = true))]
-        rw [htf, show block2_flag rho 16 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 17 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 16 = rho 911 from by rfl, show block2_flag rho 17 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 17 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 17 = true))]
-        rw [htf, show block2_flag rho 17 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 18 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 17 = rho 911 from by rfl, show block2_flag rho 18 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 18 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 18 = true))]
-        rw [htf, show block2_flag rho 18 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 19 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 18 = rho 911 from by rfl, show block2_flag rho 19 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 19 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 19 = true))]
-        rw [htf, show block2_flag rho 19 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 20 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 19 = rho 911 from by rfl, show block2_flag rho 20 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 20 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 20 = true))]
-        rw [htf, show block2_flag rho 20 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 21 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 20 = rho 911 from by rfl, show block2_flag rho 21 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 21 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 21 = true))]
-        rw [htf, show block2_flag rho 21 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 22 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 21 = rho 911 from by rfl, show block2_flag rho 22 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 22 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 22 = true))]
-        rw [htf, show block2_flag rho 22 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 23 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 22 = rho 911 from by rfl, show block2_flag rho 23 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 23 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 23 = true))]
-        rw [htf, show block2_flag rho 23 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 24 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 23 = rho 911 from by rfl, show block2_flag rho 24 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 24 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 24 = true))]
-        rw [htf, show block2_flag rho 24 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 25 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 24 = rho 911 from by rfl, show block2_flag rho 25 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 25 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 25 = true))]
-        rw [htf, show block2_flag rho 25 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 26 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 25 = rho 911 from by rfl, show block2_flag rho 26 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 26 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 26 = true))]
-        rw [htf, show block2_flag rho 26 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 27 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 26 = rho 911 from by rfl, show block2_flag rho 27 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 27 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 27 = true))]
-        rw [htf, show block2_flag rho 27 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 28 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 27 = rho 911 from by rfl, show block2_flag rho 28 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 28 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 28 = true))]
-        rw [htf, show block2_flag rho 28 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 29 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 28 = rho 911 from by rfl, show block2_flag rho 29 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 29 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 29 = true))]
-        rw [htf, show block2_flag rho 29 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 30 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 29 = rho 911 from by rfl, show block2_flag rho 30 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 30 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 30 = true))]
-        rw [htf, show block2_flag rho 30 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 31 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 30 = rho 911 from by rfl, show block2_flag rho 31 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 31 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 31 = true))]
-        rw [htf, show block2_flag rho 31 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 32 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 31 = rho 911 from by rfl, show block2_flag rho 32 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 32 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 32 = true))]
-        rw [htf, show block2_flag rho 32 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 33 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 32 = rho 911 from by rfl, show block2_flag rho 33 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 33 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 33 = true))]
-        rw [htf, show block2_flag rho 33 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 34 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 33 = rho 911 from by rfl, show block2_flag rho 34 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 34 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 34 = true))]
-        rw [htf, show block2_flag rho 34 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 35 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 34 = rho 911 from by rfl, show block2_flag rho 35 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 35 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 35 = true))]
-        rw [htf, show block2_flag rho 35 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 36 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 35 = rho 911 from by rfl, show block2_flag rho 36 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 36 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 36 = true))]
-        rw [htf, show block2_flag rho 36 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 37 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 36 = rho 911 from by rfl, show block2_flag rho 37 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 37 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 37 = true))]
-        rw [htf, show block2_flag rho 37 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 38 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 37 = rho 911 from by rfl, show block2_flag rho 38 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 38 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 38 = true))]
-        rw [htf, show block2_flag rho 38 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 39 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 38 = rho 911 from by rfl, show block2_flag rho 39 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 39 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 39 = true))]
-        rw [htf, show block2_flag rho 39 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 40 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 39 = rho 911 from by rfl, show block2_flag rho 40 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 40 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 40 = true))]
-        rw [htf, show block2_flag rho 40 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 41 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 40 = rho 911 from by rfl, show block2_flag rho 41 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 41 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 41 = true))]
-        rw [htf, show block2_flag rho 41 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 42 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 41 = rho 911 from by rfl, show block2_flag rho 42 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 42 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 42 = true))]
-        rw [htf, show block2_flag rho 42 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 43 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 42 = rho 911 from by rfl, show block2_flag rho 43 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 43 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 43 = true))]
-        rw [htf, show block2_flag rho 43 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 44 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 43 = rho 911 from by rfl, show block2_flag rho 44 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 44 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 44 = true))]
-        rw [htf, show block2_flag rho 44 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 45 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 44 = rho 911 from by rfl, show block2_flag rho 45 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 45 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 45 = true))]
-        rw [htf, show block2_flag rho 45 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 46 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 45 = rho 911 from by rfl, show block2_flag rho 46 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 46 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 46 = true))]
-        rw [htf, show block2_flag rho 46 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 47 = rho 911 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 46 = rho 911 from by rfl, show block2_flag rho 47 = rho 911 from by rfl]
         ring
       · have htf : trueFactor bits 47 = rho 620 := by
           rw [trueFactor, if_pos (by decide : pmBit 47 = true)]; exact keyB 47 (by omega)
-        rw [htf, show block2_flag rho 47 = rho 911 from by norm_num [block2_flag, block2_W], show block2_flag rho 48 = rho 910 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 47 = rho 911 from by rfl, show block2_flag rho 48 = rho 910 from by rfl]
         first | linear_combination ht47 | linear_combination -ht47
       · have htf : trueFactor bits 48 = rho 621 := by
           rw [trueFactor, if_pos (by decide : pmBit 48 = true)]; exact keyB 48 (by omega)
-        rw [htf, show block2_flag rho 48 = rho 910 from by norm_num [block2_flag, block2_W], show block2_flag rho 49 = rho 909 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 48 = rho 910 from by rfl, show block2_flag rho 49 = rho 909 from by rfl]
         first | linear_combination ht48 | linear_combination -ht48
       · have htf : trueFactor bits 49 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 49 = true))]
-        rw [htf, show block2_flag rho 49 = rho 909 from by norm_num [block2_flag, block2_W], show block2_flag rho 50 = rho 909 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 49 = rho 909 from by rfl, show block2_flag rho 50 = rho 909 from by rfl]
         ring
       · have htf : trueFactor bits 50 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 50 = true))]
-        rw [htf, show block2_flag rho 50 = rho 909 from by norm_num [block2_flag, block2_W], show block2_flag rho 51 = rho 909 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 50 = rho 909 from by rfl, show block2_flag rho 51 = rho 909 from by rfl]
         ring
       · have htf : trueFactor bits 51 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 51 = true))]
-        rw [htf, show block2_flag rho 51 = rho 909 from by norm_num [block2_flag, block2_W], show block2_flag rho 52 = rho 909 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 51 = rho 909 from by rfl, show block2_flag rho 52 = rho 909 from by rfl]
         ring
       · have htf : trueFactor bits 52 = rho 625 := by
           rw [trueFactor, if_pos (by decide : pmBit 52 = true)]; exact keyB 52 (by omega)
-        rw [htf, show block2_flag rho 52 = rho 909 from by norm_num [block2_flag, block2_W], show block2_flag rho 53 = rho 908 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 52 = rho 909 from by rfl, show block2_flag rho 53 = rho 908 from by rfl]
         first | linear_combination ht52 | linear_combination -ht52
       · have htf : trueFactor bits 53 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 53 = true))]
-        rw [htf, show block2_flag rho 53 = rho 908 from by norm_num [block2_flag, block2_W], show block2_flag rho 54 = rho 908 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 53 = rho 908 from by rfl, show block2_flag rho 54 = rho 908 from by rfl]
         ring
       · have htf : trueFactor bits 54 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 54 = true))]
-        rw [htf, show block2_flag rho 54 = rho 908 from by norm_num [block2_flag, block2_W], show block2_flag rho 55 = rho 908 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 54 = rho 908 from by rfl, show block2_flag rho 55 = rho 908 from by rfl]
         ring
       · have htf : trueFactor bits 55 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 55 = true))]
-        rw [htf, show block2_flag rho 55 = rho 908 from by norm_num [block2_flag, block2_W], show block2_flag rho 56 = rho 908 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 55 = rho 908 from by rfl, show block2_flag rho 56 = rho 908 from by rfl]
         ring
       · have htf : trueFactor bits 56 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 56 = true))]
-        rw [htf, show block2_flag rho 56 = rho 908 from by norm_num [block2_flag, block2_W], show block2_flag rho 57 = rho 908 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 56 = rho 908 from by rfl, show block2_flag rho 57 = rho 908 from by rfl]
         ring
       · have htf : trueFactor bits 57 = rho 630 := by
           rw [trueFactor, if_pos (by decide : pmBit 57 = true)]; exact keyB 57 (by omega)
-        rw [htf, show block2_flag rho 57 = rho 908 from by norm_num [block2_flag, block2_W], show block2_flag rho 58 = rho 907 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 57 = rho 908 from by rfl, show block2_flag rho 58 = rho 907 from by rfl]
         first | linear_combination ht57 | linear_combination -ht57
       · have htf : trueFactor bits 58 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 58 = true))]
-        rw [htf, show block2_flag rho 58 = rho 907 from by norm_num [block2_flag, block2_W], show block2_flag rho 59 = rho 907 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 58 = rho 907 from by rfl, show block2_flag rho 59 = rho 907 from by rfl]
         ring
       · have htf : trueFactor bits 59 = rho 632 := by
           rw [trueFactor, if_pos (by decide : pmBit 59 = true)]; exact keyB 59 (by omega)
-        rw [htf, show block2_flag rho 59 = rho 907 from by norm_num [block2_flag, block2_W], show block2_flag rho 60 = rho 906 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 59 = rho 907 from by rfl, show block2_flag rho 60 = rho 906 from by rfl]
         first | linear_combination ht59 | linear_combination -ht59
       · have htf : trueFactor bits 60 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 60 = true))]
-        rw [htf, show block2_flag rho 60 = rho 906 from by norm_num [block2_flag, block2_W], show block2_flag rho 61 = rho 906 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 60 = rho 906 from by rfl, show block2_flag rho 61 = rho 906 from by rfl]
         ring
       · have htf : trueFactor bits 61 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 61 = true))]
-        rw [htf, show block2_flag rho 61 = rho 906 from by norm_num [block2_flag, block2_W], show block2_flag rho 62 = rho 906 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 61 = rho 906 from by rfl, show block2_flag rho 62 = rho 906 from by rfl]
         ring
       · have htf : trueFactor bits 62 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 62 = true))]
-        rw [htf, show block2_flag rho 62 = rho 906 from by norm_num [block2_flag, block2_W], show block2_flag rho 63 = rho 906 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 62 = rho 906 from by rfl, show block2_flag rho 63 = rho 906 from by rfl]
         ring
       · have htf : trueFactor bits 63 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 63 = true))]
-        rw [htf, show block2_flag rho 63 = rho 906 from by norm_num [block2_flag, block2_W], show block2_flag rho 64 = rho 906 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 63 = rho 906 from by rfl, show block2_flag rho 64 = rho 906 from by rfl]
         ring
       · have htf : trueFactor bits 64 = rho 637 := by
           rw [trueFactor, if_pos (by decide : pmBit 64 = true)]; exact keyB 64 (by omega)
-        rw [htf, show block2_flag rho 64 = rho 906 from by norm_num [block2_flag, block2_W], show block2_flag rho 65 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 64 = rho 906 from by rfl, show block2_flag rho 65 = rho 905 from by rfl]
         first | linear_combination ht64 | linear_combination -ht64
       · have htf : trueFactor bits 65 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 65 = true))]
-        rw [htf, show block2_flag rho 65 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 66 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 65 = rho 905 from by rfl, show block2_flag rho 66 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 66 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 66 = true))]
-        rw [htf, show block2_flag rho 66 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 67 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 66 = rho 905 from by rfl, show block2_flag rho 67 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 67 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 67 = true))]
-        rw [htf, show block2_flag rho 67 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 68 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 67 = rho 905 from by rfl, show block2_flag rho 68 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 68 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 68 = true))]
-        rw [htf, show block2_flag rho 68 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 69 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 68 = rho 905 from by rfl, show block2_flag rho 69 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 69 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 69 = true))]
-        rw [htf, show block2_flag rho 69 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 70 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 69 = rho 905 from by rfl, show block2_flag rho 70 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 70 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 70 = true))]
-        rw [htf, show block2_flag rho 70 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 71 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 70 = rho 905 from by rfl, show block2_flag rho 71 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 71 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 71 = true))]
-        rw [htf, show block2_flag rho 71 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 72 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 71 = rho 905 from by rfl, show block2_flag rho 72 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 72 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 72 = true))]
-        rw [htf, show block2_flag rho 72 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 73 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 72 = rho 905 from by rfl, show block2_flag rho 73 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 73 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 73 = true))]
-        rw [htf, show block2_flag rho 73 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 74 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 73 = rho 905 from by rfl, show block2_flag rho 74 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 74 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 74 = true))]
-        rw [htf, show block2_flag rho 74 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 75 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 74 = rho 905 from by rfl, show block2_flag rho 75 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 75 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 75 = true))]
-        rw [htf, show block2_flag rho 75 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 76 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 75 = rho 905 from by rfl, show block2_flag rho 76 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 76 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 76 = true))]
-        rw [htf, show block2_flag rho 76 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 77 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 76 = rho 905 from by rfl, show block2_flag rho 77 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 77 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 77 = true))]
-        rw [htf, show block2_flag rho 77 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 78 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 77 = rho 905 from by rfl, show block2_flag rho 78 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 78 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 78 = true))]
-        rw [htf, show block2_flag rho 78 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 79 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 78 = rho 905 from by rfl, show block2_flag rho 79 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 79 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 79 = true))]
-        rw [htf, show block2_flag rho 79 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 80 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 79 = rho 905 from by rfl, show block2_flag rho 80 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 80 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 80 = true))]
-        rw [htf, show block2_flag rho 80 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 81 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 80 = rho 905 from by rfl, show block2_flag rho 81 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 81 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 81 = true))]
-        rw [htf, show block2_flag rho 81 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 82 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 81 = rho 905 from by rfl, show block2_flag rho 82 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 82 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 82 = true))]
-        rw [htf, show block2_flag rho 82 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 83 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 82 = rho 905 from by rfl, show block2_flag rho 83 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 83 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 83 = true))]
-        rw [htf, show block2_flag rho 83 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 84 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 83 = rho 905 from by rfl, show block2_flag rho 84 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 84 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 84 = true))]
-        rw [htf, show block2_flag rho 84 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 85 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 84 = rho 905 from by rfl, show block2_flag rho 85 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 85 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 85 = true))]
-        rw [htf, show block2_flag rho 85 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 86 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 85 = rho 905 from by rfl, show block2_flag rho 86 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 86 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 86 = true))]
-        rw [htf, show block2_flag rho 86 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 87 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 86 = rho 905 from by rfl, show block2_flag rho 87 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 87 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 87 = true))]
-        rw [htf, show block2_flag rho 87 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 88 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 87 = rho 905 from by rfl, show block2_flag rho 88 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 88 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 88 = true))]
-        rw [htf, show block2_flag rho 88 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 89 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 88 = rho 905 from by rfl, show block2_flag rho 89 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 89 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 89 = true))]
-        rw [htf, show block2_flag rho 89 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 90 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 89 = rho 905 from by rfl, show block2_flag rho 90 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 90 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 90 = true))]
-        rw [htf, show block2_flag rho 90 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 91 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 90 = rho 905 from by rfl, show block2_flag rho 91 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 91 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 91 = true))]
-        rw [htf, show block2_flag rho 91 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 92 = rho 905 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 91 = rho 905 from by rfl, show block2_flag rho 92 = rho 905 from by rfl]
         ring
       · have htf : trueFactor bits 92 = rho 665 := by
           rw [trueFactor, if_pos (by decide : pmBit 92 = true)]; exact keyB 92 (by omega)
-        rw [htf, show block2_flag rho 92 = rho 905 from by norm_num [block2_flag, block2_W], show block2_flag rho 93 = rho 904 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 92 = rho 905 from by rfl, show block2_flag rho 93 = rho 904 from by rfl]
         first | linear_combination ht92 | linear_combination -ht92
       · have htf : trueFactor bits 93 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 93 = true))]
-        rw [htf, show block2_flag rho 93 = rho 904 from by norm_num [block2_flag, block2_W], show block2_flag rho 94 = rho 904 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 93 = rho 904 from by rfl, show block2_flag rho 94 = rho 904 from by rfl]
         ring
       · have htf : trueFactor bits 94 = rho 667 := by
           rw [trueFactor, if_pos (by decide : pmBit 94 = true)]; exact keyB 94 (by omega)
-        rw [htf, show block2_flag rho 94 = rho 904 from by norm_num [block2_flag, block2_W], show block2_flag rho 95 = rho 903 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 94 = rho 904 from by rfl, show block2_flag rho 95 = rho 903 from by rfl]
         first | linear_combination ht94 | linear_combination -ht94
       · have htf : trueFactor bits 95 = rho 668 := by
           rw [trueFactor, if_pos (by decide : pmBit 95 = true)]; exact keyB 95 (by omega)
-        rw [htf, show block2_flag rho 95 = rho 903 from by norm_num [block2_flag, block2_W], show block2_flag rho 96 = rho 902 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 95 = rho 903 from by rfl, show block2_flag rho 96 = rho 902 from by rfl]
         first | linear_combination ht95 | linear_combination -ht95
       · have htf : trueFactor bits 96 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 96 = true))]
-        rw [htf, show block2_flag rho 96 = rho 902 from by norm_num [block2_flag, block2_W], show block2_flag rho 97 = rho 902 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 96 = rho 902 from by rfl, show block2_flag rho 97 = rho 902 from by rfl]
         ring
       · have htf : trueFactor bits 97 = rho 670 := by
           rw [trueFactor, if_pos (by decide : pmBit 97 = true)]; exact keyB 97 (by omega)
-        rw [htf, show block2_flag rho 97 = rho 902 from by norm_num [block2_flag, block2_W], show block2_flag rho 98 = rho 901 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 97 = rho 902 from by rfl, show block2_flag rho 98 = rho 901 from by rfl]
         first | linear_combination ht97 | linear_combination -ht97
       · have htf : trueFactor bits 98 = rho 671 := by
           rw [trueFactor, if_pos (by decide : pmBit 98 = true)]; exact keyB 98 (by omega)
-        rw [htf, show block2_flag rho 98 = rho 901 from by norm_num [block2_flag, block2_W], show block2_flag rho 99 = rho 900 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 98 = rho 901 from by rfl, show block2_flag rho 99 = rho 900 from by rfl]
         first | linear_combination ht98 | linear_combination -ht98
       · have htf : trueFactor bits 99 = rho 672 := by
           rw [trueFactor, if_pos (by decide : pmBit 99 = true)]; exact keyB 99 (by omega)
-        rw [htf, show block2_flag rho 99 = rho 900 from by norm_num [block2_flag, block2_W], show block2_flag rho 100 = rho 899 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 99 = rho 900 from by rfl, show block2_flag rho 100 = rho 899 from by rfl]
         first | linear_combination ht99 | linear_combination -ht99
       · have htf : trueFactor bits 100 = rho 673 := by
           rw [trueFactor, if_pos (by decide : pmBit 100 = true)]; exact keyB 100 (by omega)
-        rw [htf, show block2_flag rho 100 = rho 899 from by norm_num [block2_flag, block2_W], show block2_flag rho 101 = rho 898 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 100 = rho 899 from by rfl, show block2_flag rho 101 = rho 898 from by rfl]
         first | linear_combination ht100 | linear_combination -ht100
       · have htf : trueFactor bits 101 = rho 674 := by
           rw [trueFactor, if_pos (by decide : pmBit 101 = true)]; exact keyB 101 (by omega)
-        rw [htf, show block2_flag rho 101 = rho 898 from by norm_num [block2_flag, block2_W], show block2_flag rho 102 = rho 897 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 101 = rho 898 from by rfl, show block2_flag rho 102 = rho 897 from by rfl]
         first | linear_combination ht101 | linear_combination -ht101
       · have htf : trueFactor bits 102 = rho 675 := by
           rw [trueFactor, if_pos (by decide : pmBit 102 = true)]; exact keyB 102 (by omega)
-        rw [htf, show block2_flag rho 102 = rho 897 from by norm_num [block2_flag, block2_W], show block2_flag rho 103 = rho 896 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 102 = rho 897 from by rfl, show block2_flag rho 103 = rho 896 from by rfl]
         first | linear_combination ht102 | linear_combination -ht102
       · have htf : trueFactor bits 103 = rho 676 := by
           rw [trueFactor, if_pos (by decide : pmBit 103 = true)]; exact keyB 103 (by omega)
-        rw [htf, show block2_flag rho 103 = rho 896 from by norm_num [block2_flag, block2_W], show block2_flag rho 104 = rho 895 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 103 = rho 896 from by rfl, show block2_flag rho 104 = rho 895 from by rfl]
         first | linear_combination ht103 | linear_combination -ht103
       · have htf : trueFactor bits 104 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 104 = true))]
-        rw [htf, show block2_flag rho 104 = rho 895 from by norm_num [block2_flag, block2_W], show block2_flag rho 105 = rho 895 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 104 = rho 895 from by rfl, show block2_flag rho 105 = rho 895 from by rfl]
         ring
       · have htf : trueFactor bits 105 = rho 678 := by
           rw [trueFactor, if_pos (by decide : pmBit 105 = true)]; exact keyB 105 (by omega)
-        rw [htf, show block2_flag rho 105 = rho 895 from by norm_num [block2_flag, block2_W], show block2_flag rho 106 = rho 894 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 105 = rho 895 from by rfl, show block2_flag rho 106 = rho 894 from by rfl]
         first | linear_combination ht105 | linear_combination -ht105
       · have htf : trueFactor bits 106 = rho 679 := by
           rw [trueFactor, if_pos (by decide : pmBit 106 = true)]; exact keyB 106 (by omega)
-        rw [htf, show block2_flag rho 106 = rho 894 from by norm_num [block2_flag, block2_W], show block2_flag rho 107 = rho 893 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 106 = rho 894 from by rfl, show block2_flag rho 107 = rho 893 from by rfl]
         first | linear_combination ht106 | linear_combination -ht106
       · have htf : trueFactor bits 107 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 107 = true))]
-        rw [htf, show block2_flag rho 107 = rho 893 from by norm_num [block2_flag, block2_W], show block2_flag rho 108 = rho 893 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 107 = rho 893 from by rfl, show block2_flag rho 108 = rho 893 from by rfl]
         ring
       · have htf : trueFactor bits 108 = rho 681 := by
           rw [trueFactor, if_pos (by decide : pmBit 108 = true)]; exact keyB 108 (by omega)
-        rw [htf, show block2_flag rho 108 = rho 893 from by norm_num [block2_flag, block2_W], show block2_flag rho 109 = rho 892 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 108 = rho 893 from by rfl, show block2_flag rho 109 = rho 892 from by rfl]
         first | linear_combination ht108 | linear_combination -ht108
       · have htf : trueFactor bits 109 = rho 682 := by
           rw [trueFactor, if_pos (by decide : pmBit 109 = true)]; exact keyB 109 (by omega)
-        rw [htf, show block2_flag rho 109 = rho 892 from by norm_num [block2_flag, block2_W], show block2_flag rho 110 = rho 891 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 109 = rho 892 from by rfl, show block2_flag rho 110 = rho 891 from by rfl]
         first | linear_combination ht109 | linear_combination -ht109
       · have htf : trueFactor bits 110 = rho 683 := by
           rw [trueFactor, if_pos (by decide : pmBit 110 = true)]; exact keyB 110 (by omega)
-        rw [htf, show block2_flag rho 110 = rho 891 from by norm_num [block2_flag, block2_W], show block2_flag rho 111 = rho 890 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 110 = rho 891 from by rfl, show block2_flag rho 111 = rho 890 from by rfl]
         first | linear_combination ht110 | linear_combination -ht110
       · have htf : trueFactor bits 111 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 111 = true))]
-        rw [htf, show block2_flag rho 111 = rho 890 from by norm_num [block2_flag, block2_W], show block2_flag rho 112 = rho 890 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 111 = rho 890 from by rfl, show block2_flag rho 112 = rho 890 from by rfl]
         ring
       · have htf : trueFactor bits 112 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 112 = true))]
-        rw [htf, show block2_flag rho 112 = rho 890 from by norm_num [block2_flag, block2_W], show block2_flag rho 113 = rho 890 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 112 = rho 890 from by rfl, show block2_flag rho 113 = rho 890 from by rfl]
         ring
       · have htf : trueFactor bits 113 = rho 686 := by
           rw [trueFactor, if_pos (by decide : pmBit 113 = true)]; exact keyB 113 (by omega)
-        rw [htf, show block2_flag rho 113 = rho 890 from by norm_num [block2_flag, block2_W], show block2_flag rho 114 = rho 889 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 113 = rho 890 from by rfl, show block2_flag rho 114 = rho 889 from by rfl]
         first | linear_combination ht113 | linear_combination -ht113
       · have htf : trueFactor bits 114 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 114 = true))]
-        rw [htf, show block2_flag rho 114 = rho 889 from by norm_num [block2_flag, block2_W], show block2_flag rho 115 = rho 889 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 114 = rho 889 from by rfl, show block2_flag rho 115 = rho 889 from by rfl]
         ring
       · have htf : trueFactor bits 115 = rho 688 := by
           rw [trueFactor, if_pos (by decide : pmBit 115 = true)]; exact keyB 115 (by omega)
-        rw [htf, show block2_flag rho 115 = rho 889 from by norm_num [block2_flag, block2_W], show block2_flag rho 116 = rho 888 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 115 = rho 889 from by rfl, show block2_flag rho 116 = rho 888 from by rfl]
         first | linear_combination ht115 | linear_combination -ht115
       · have htf : trueFactor bits 116 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 116 = true))]
-        rw [htf, show block2_flag rho 116 = rho 888 from by norm_num [block2_flag, block2_W], show block2_flag rho 117 = rho 888 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 116 = rho 888 from by rfl, show block2_flag rho 117 = rho 888 from by rfl]
         ring
       · have htf : trueFactor bits 117 = rho 690 := by
           rw [trueFactor, if_pos (by decide : pmBit 117 = true)]; exact keyB 117 (by omega)
-        rw [htf, show block2_flag rho 117 = rho 888 from by norm_num [block2_flag, block2_W], show block2_flag rho 118 = rho 887 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 117 = rho 888 from by rfl, show block2_flag rho 118 = rho 887 from by rfl]
         first | linear_combination ht117 | linear_combination -ht117
       · have htf : trueFactor bits 118 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 118 = true))]
-        rw [htf, show block2_flag rho 118 = rho 887 from by norm_num [block2_flag, block2_W], show block2_flag rho 119 = rho 887 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 118 = rho 887 from by rfl, show block2_flag rho 119 = rho 887 from by rfl]
         ring
       · have htf : trueFactor bits 119 = rho 692 := by
           rw [trueFactor, if_pos (by decide : pmBit 119 = true)]; exact keyB 119 (by omega)
-        rw [htf, show block2_flag rho 119 = rho 887 from by norm_num [block2_flag, block2_W], show block2_flag rho 120 = rho 886 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 119 = rho 887 from by rfl, show block2_flag rho 120 = rho 886 from by rfl]
         first | linear_combination ht119 | linear_combination -ht119
       · have htf : trueFactor bits 120 = rho 693 := by
           rw [trueFactor, if_pos (by decide : pmBit 120 = true)]; exact keyB 120 (by omega)
-        rw [htf, show block2_flag rho 120 = rho 886 from by norm_num [block2_flag, block2_W], show block2_flag rho 121 = rho 885 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 120 = rho 886 from by rfl, show block2_flag rho 121 = rho 885 from by rfl]
         first | linear_combination ht120 | linear_combination -ht120
       · have htf : trueFactor bits 121 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 121 = true))]
-        rw [htf, show block2_flag rho 121 = rho 885 from by norm_num [block2_flag, block2_W], show block2_flag rho 122 = rho 885 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 121 = rho 885 from by rfl, show block2_flag rho 122 = rho 885 from by rfl]
         ring
       · have htf : trueFactor bits 122 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 122 = true))]
-        rw [htf, show block2_flag rho 122 = rho 885 from by norm_num [block2_flag, block2_W], show block2_flag rho 123 = rho 885 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 122 = rho 885 from by rfl, show block2_flag rho 123 = rho 885 from by rfl]
         ring
       · have htf : trueFactor bits 123 = rho 696 := by
           rw [trueFactor, if_pos (by decide : pmBit 123 = true)]; exact keyB 123 (by omega)
-        rw [htf, show block2_flag rho 123 = rho 885 from by norm_num [block2_flag, block2_W], show block2_flag rho 124 = rho 884 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 123 = rho 885 from by rfl, show block2_flag rho 124 = rho 884 from by rfl]
         first | linear_combination ht123 | linear_combination -ht123
       · have htf : trueFactor bits 124 = rho 697 := by
           rw [trueFactor, if_pos (by decide : pmBit 124 = true)]; exact keyB 124 (by omega)
-        rw [htf, show block2_flag rho 124 = rho 884 from by norm_num [block2_flag, block2_W], show block2_flag rho 125 = rho 883 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 124 = rho 884 from by rfl, show block2_flag rho 125 = rho 883 from by rfl]
         first | linear_combination ht124 | linear_combination -ht124
       · have htf : trueFactor bits 125 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 125 = true))]
-        rw [htf, show block2_flag rho 125 = rho 883 from by norm_num [block2_flag, block2_W], show block2_flag rho 126 = rho 883 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 125 = rho 883 from by rfl, show block2_flag rho 126 = rho 883 from by rfl]
         ring
       · have htf : trueFactor bits 126 = rho 699 := by
           rw [trueFactor, if_pos (by decide : pmBit 126 = true)]; exact keyB 126 (by omega)
-        rw [htf, show block2_flag rho 126 = rho 883 from by norm_num [block2_flag, block2_W], show block2_flag rho 127 = rho 882 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 126 = rho 883 from by rfl, show block2_flag rho 127 = rho 882 from by rfl]
         first | linear_combination ht126 | linear_combination -ht126
       · have htf : trueFactor bits 127 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 127 = true))]
-        rw [htf, show block2_flag rho 127 = rho 882 from by norm_num [block2_flag, block2_W], show block2_flag rho 128 = rho 882 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 127 = rho 882 from by rfl, show block2_flag rho 128 = rho 882 from by rfl]
         ring
       · have htf : trueFactor bits 128 = rho 701 := by
           rw [trueFactor, if_pos (by decide : pmBit 128 = true)]; exact keyB 128 (by omega)
-        rw [htf, show block2_flag rho 128 = rho 882 from by norm_num [block2_flag, block2_W], show block2_flag rho 129 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 128 = rho 882 from by rfl, show block2_flag rho 129 = rho 881 from by rfl]
         first | linear_combination ht128 | linear_combination -ht128
       · have htf : trueFactor bits 129 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 129 = true))]
-        rw [htf, show block2_flag rho 129 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 130 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 129 = rho 881 from by rfl, show block2_flag rho 130 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 130 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 130 = true))]
-        rw [htf, show block2_flag rho 130 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 131 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 130 = rho 881 from by rfl, show block2_flag rho 131 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 131 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 131 = true))]
-        rw [htf, show block2_flag rho 131 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 132 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 131 = rho 881 from by rfl, show block2_flag rho 132 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 132 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 132 = true))]
-        rw [htf, show block2_flag rho 132 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 133 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 132 = rho 881 from by rfl, show block2_flag rho 133 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 133 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 133 = true))]
-        rw [htf, show block2_flag rho 133 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 134 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 133 = rho 881 from by rfl, show block2_flag rho 134 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 134 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 134 = true))]
-        rw [htf, show block2_flag rho 134 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 135 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 134 = rho 881 from by rfl, show block2_flag rho 135 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 135 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 135 = true))]
-        rw [htf, show block2_flag rho 135 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 136 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 135 = rho 881 from by rfl, show block2_flag rho 136 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 136 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 136 = true))]
-        rw [htf, show block2_flag rho 136 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 137 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 136 = rho 881 from by rfl, show block2_flag rho 137 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 137 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 137 = true))]
-        rw [htf, show block2_flag rho 137 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 138 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 137 = rho 881 from by rfl, show block2_flag rho 138 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 138 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 138 = true))]
-        rw [htf, show block2_flag rho 138 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 139 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 138 = rho 881 from by rfl, show block2_flag rho 139 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 139 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 139 = true))]
-        rw [htf, show block2_flag rho 139 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 140 = rho 881 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 139 = rho 881 from by rfl, show block2_flag rho 140 = rho 881 from by rfl]
         ring
       · have htf : trueFactor bits 140 = rho 713 := by
           rw [trueFactor, if_pos (by decide : pmBit 140 = true)]; exact keyB 140 (by omega)
-        rw [htf, show block2_flag rho 140 = rho 881 from by norm_num [block2_flag, block2_W], show block2_flag rho 141 = rho 880 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 140 = rho 881 from by rfl, show block2_flag rho 141 = rho 880 from by rfl]
         first | linear_combination ht140 | linear_combination -ht140
       · have htf : trueFactor bits 141 = rho 714 := by
           rw [trueFactor, if_pos (by decide : pmBit 141 = true)]; exact keyB 141 (by omega)
-        rw [htf, show block2_flag rho 141 = rho 880 from by norm_num [block2_flag, block2_W], show block2_flag rho 142 = rho 879 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 141 = rho 880 from by rfl, show block2_flag rho 142 = rho 879 from by rfl]
         first | linear_combination ht141 | linear_combination -ht141
       · have htf : trueFactor bits 142 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 142 = true))]
-        rw [htf, show block2_flag rho 142 = rho 879 from by norm_num [block2_flag, block2_W], show block2_flag rho 143 = rho 879 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 142 = rho 879 from by rfl, show block2_flag rho 143 = rho 879 from by rfl]
         ring
       · have htf : trueFactor bits 143 = rho 716 := by
           rw [trueFactor, if_pos (by decide : pmBit 143 = true)]; exact keyB 143 (by omega)
-        rw [htf, show block2_flag rho 143 = rho 879 from by norm_num [block2_flag, block2_W], show block2_flag rho 144 = rho 878 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 143 = rho 879 from by rfl, show block2_flag rho 144 = rho 878 from by rfl]
         first | linear_combination ht143 | linear_combination -ht143
       · have htf : trueFactor bits 144 = rho 717 := by
           rw [trueFactor, if_pos (by decide : pmBit 144 = true)]; exact keyB 144 (by omega)
-        rw [htf, show block2_flag rho 144 = rho 878 from by norm_num [block2_flag, block2_W], show block2_flag rho 145 = rho 877 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 144 = rho 878 from by rfl, show block2_flag rho 145 = rho 877 from by rfl]
         first | linear_combination ht144 | linear_combination -ht144
       · have htf : trueFactor bits 145 = rho 718 := by
           rw [trueFactor, if_pos (by decide : pmBit 145 = true)]; exact keyB 145 (by omega)
-        rw [htf, show block2_flag rho 145 = rho 877 from by norm_num [block2_flag, block2_W], show block2_flag rho 146 = rho 876 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 145 = rho 877 from by rfl, show block2_flag rho 146 = rho 876 from by rfl]
         first | linear_combination ht145 | linear_combination -ht145
       · have htf : trueFactor bits 146 = rho 719 := by
           rw [trueFactor, if_pos (by decide : pmBit 146 = true)]; exact keyB 146 (by omega)
-        rw [htf, show block2_flag rho 146 = rho 876 from by norm_num [block2_flag, block2_W], show block2_flag rho 147 = rho 875 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 146 = rho 876 from by rfl, show block2_flag rho 147 = rho 875 from by rfl]
         first | linear_combination ht146 | linear_combination -ht146
       · have htf : trueFactor bits 147 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 147 = true))]
-        rw [htf, show block2_flag rho 147 = rho 875 from by norm_num [block2_flag, block2_W], show block2_flag rho 148 = rho 875 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 147 = rho 875 from by rfl, show block2_flag rho 148 = rho 875 from by rfl]
         ring
       · have htf : trueFactor bits 148 = rho 721 := by
           rw [trueFactor, if_pos (by decide : pmBit 148 = true)]; exact keyB 148 (by omega)
-        rw [htf, show block2_flag rho 148 = rho 875 from by norm_num [block2_flag, block2_W], show block2_flag rho 149 = rho 874 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 148 = rho 875 from by rfl, show block2_flag rho 149 = rho 874 from by rfl]
         first | linear_combination ht148 | linear_combination -ht148
       · have htf : trueFactor bits 149 = rho 722 := by
           rw [trueFactor, if_pos (by decide : pmBit 149 = true)]; exact keyB 149 (by omega)
-        rw [htf, show block2_flag rho 149 = rho 874 from by norm_num [block2_flag, block2_W], show block2_flag rho 150 = rho 873 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 149 = rho 874 from by rfl, show block2_flag rho 150 = rho 873 from by rfl]
         first | linear_combination ht149 | linear_combination -ht149
       · have htf : trueFactor bits 150 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 150 = true))]
-        rw [htf, show block2_flag rho 150 = rho 873 from by norm_num [block2_flag, block2_W], show block2_flag rho 151 = rho 873 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 150 = rho 873 from by rfl, show block2_flag rho 151 = rho 873 from by rfl]
         ring
       · have htf : trueFactor bits 151 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 151 = true))]
-        rw [htf, show block2_flag rho 151 = rho 873 from by norm_num [block2_flag, block2_W], show block2_flag rho 152 = rho 873 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 151 = rho 873 from by rfl, show block2_flag rho 152 = rho 873 from by rfl]
         ring
       · have htf : trueFactor bits 152 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 152 = true))]
-        rw [htf, show block2_flag rho 152 = rho 873 from by norm_num [block2_flag, block2_W], show block2_flag rho 153 = rho 873 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 152 = rho 873 from by rfl, show block2_flag rho 153 = rho 873 from by rfl]
         ring
       · have htf : trueFactor bits 153 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 153 = true))]
-        rw [htf, show block2_flag rho 153 = rho 873 from by norm_num [block2_flag, block2_W], show block2_flag rho 154 = rho 873 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 153 = rho 873 from by rfl, show block2_flag rho 154 = rho 873 from by rfl]
         ring
       · have htf : trueFactor bits 154 = rho 727 := by
           rw [trueFactor, if_pos (by decide : pmBit 154 = true)]; exact keyB 154 (by omega)
-        rw [htf, show block2_flag rho 154 = rho 873 from by norm_num [block2_flag, block2_W], show block2_flag rho 155 = rho 872 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 154 = rho 873 from by rfl, show block2_flag rho 155 = rho 872 from by rfl]
         first | linear_combination ht154 | linear_combination -ht154
       · have htf : trueFactor bits 155 = rho 728 := by
           rw [trueFactor, if_pos (by decide : pmBit 155 = true)]; exact keyB 155 (by omega)
-        rw [htf, show block2_flag rho 155 = rho 872 from by norm_num [block2_flag, block2_W], show block2_flag rho 156 = rho 871 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 155 = rho 872 from by rfl, show block2_flag rho 156 = rho 871 from by rfl]
         first | linear_combination ht155 | linear_combination -ht155
       · have htf : trueFactor bits 156 = rho 729 := by
           rw [trueFactor, if_pos (by decide : pmBit 156 = true)]; exact keyB 156 (by omega)
-        rw [htf, show block2_flag rho 156 = rho 871 from by norm_num [block2_flag, block2_W], show block2_flag rho 157 = rho 870 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 156 = rho 871 from by rfl, show block2_flag rho 157 = rho 870 from by rfl]
         first | linear_combination ht156 | linear_combination -ht156
       · have htf : trueFactor bits 157 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 157 = true))]
-        rw [htf, show block2_flag rho 157 = rho 870 from by norm_num [block2_flag, block2_W], show block2_flag rho 158 = rho 870 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 157 = rho 870 from by rfl, show block2_flag rho 158 = rho 870 from by rfl]
         ring
       · have htf : trueFactor bits 158 = rho 731 := by
           rw [trueFactor, if_pos (by decide : pmBit 158 = true)]; exact keyB 158 (by omega)
-        rw [htf, show block2_flag rho 158 = rho 870 from by norm_num [block2_flag, block2_W], show block2_flag rho 159 = rho 869 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 158 = rho 870 from by rfl, show block2_flag rho 159 = rho 869 from by rfl]
         first | linear_combination ht158 | linear_combination -ht158
       · have htf : trueFactor bits 159 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 159 = true))]
-        rw [htf, show block2_flag rho 159 = rho 869 from by norm_num [block2_flag, block2_W], show block2_flag rho 160 = rho 869 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 159 = rho 869 from by rfl, show block2_flag rho 160 = rho 869 from by rfl]
         ring
       · have htf : trueFactor bits 160 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 160 = true))]
-        rw [htf, show block2_flag rho 160 = rho 869 from by norm_num [block2_flag, block2_W], show block2_flag rho 161 = rho 869 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 160 = rho 869 from by rfl, show block2_flag rho 161 = rho 869 from by rfl]
         ring
       · have htf : trueFactor bits 161 = rho 734 := by
           rw [trueFactor, if_pos (by decide : pmBit 161 = true)]; exact keyB 161 (by omega)
-        rw [htf, show block2_flag rho 161 = rho 869 from by norm_num [block2_flag, block2_W], show block2_flag rho 162 = rho 868 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 161 = rho 869 from by rfl, show block2_flag rho 162 = rho 868 from by rfl]
         first | linear_combination ht161 | linear_combination -ht161
       · have htf : trueFactor bits 162 = rho 735 := by
           rw [trueFactor, if_pos (by decide : pmBit 162 = true)]; exact keyB 162 (by omega)
-        rw [htf, show block2_flag rho 162 = rho 868 from by norm_num [block2_flag, block2_W], show block2_flag rho 163 = rho 867 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 162 = rho 868 from by rfl, show block2_flag rho 163 = rho 867 from by rfl]
         first | linear_combination ht162 | linear_combination -ht162
       · have htf : trueFactor bits 163 = rho 736 := by
           rw [trueFactor, if_pos (by decide : pmBit 163 = true)]; exact keyB 163 (by omega)
-        rw [htf, show block2_flag rho 163 = rho 867 from by norm_num [block2_flag, block2_W], show block2_flag rho 164 = rho 866 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 163 = rho 867 from by rfl, show block2_flag rho 164 = rho 866 from by rfl]
         first | linear_combination ht163 | linear_combination -ht163
       · have htf : trueFactor bits 164 = rho 737 := by
           rw [trueFactor, if_pos (by decide : pmBit 164 = true)]; exact keyB 164 (by omega)
-        rw [htf, show block2_flag rho 164 = rho 866 from by norm_num [block2_flag, block2_W], show block2_flag rho 165 = rho 865 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 164 = rho 866 from by rfl, show block2_flag rho 165 = rho 865 from by rfl]
         first | linear_combination ht164 | linear_combination -ht164
       · have htf : trueFactor bits 165 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 165 = true))]
-        rw [htf, show block2_flag rho 165 = rho 865 from by norm_num [block2_flag, block2_W], show block2_flag rho 166 = rho 865 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 165 = rho 865 from by rfl, show block2_flag rho 166 = rho 865 from by rfl]
         ring
       · have htf : trueFactor bits 166 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 166 = true))]
-        rw [htf, show block2_flag rho 166 = rho 865 from by norm_num [block2_flag, block2_W], show block2_flag rho 167 = rho 865 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 166 = rho 865 from by rfl, show block2_flag rho 167 = rho 865 from by rfl]
         ring
       · have htf : trueFactor bits 167 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 167 = true))]
-        rw [htf, show block2_flag rho 167 = rho 865 from by norm_num [block2_flag, block2_W], show block2_flag rho 168 = rho 865 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 167 = rho 865 from by rfl, show block2_flag rho 168 = rho 865 from by rfl]
         ring
       · have htf : trueFactor bits 168 = rho 741 := by
           rw [trueFactor, if_pos (by decide : pmBit 168 = true)]; exact keyB 168 (by omega)
-        rw [htf, show block2_flag rho 168 = rho 865 from by norm_num [block2_flag, block2_W], show block2_flag rho 169 = rho 864 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 168 = rho 865 from by rfl, show block2_flag rho 169 = rho 864 from by rfl]
         first | linear_combination ht168 | linear_combination -ht168
       · have htf : trueFactor bits 169 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 169 = true))]
-        rw [htf, show block2_flag rho 169 = rho 864 from by norm_num [block2_flag, block2_W], show block2_flag rho 170 = rho 864 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 169 = rho 864 from by rfl, show block2_flag rho 170 = rho 864 from by rfl]
         ring
       · have htf : trueFactor bits 170 = rho 743 := by
           rw [trueFactor, if_pos (by decide : pmBit 170 = true)]; exact keyB 170 (by omega)
-        rw [htf, show block2_flag rho 170 = rho 864 from by norm_num [block2_flag, block2_W], show block2_flag rho 171 = rho 863 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 170 = rho 864 from by rfl, show block2_flag rho 171 = rho 863 from by rfl]
         first | linear_combination ht170 | linear_combination -ht170
       · have htf : trueFactor bits 171 = rho 744 := by
           rw [trueFactor, if_pos (by decide : pmBit 171 = true)]; exact keyB 171 (by omega)
-        rw [htf, show block2_flag rho 171 = rho 863 from by norm_num [block2_flag, block2_W], show block2_flag rho 172 = rho 862 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 171 = rho 863 from by rfl, show block2_flag rho 172 = rho 862 from by rfl]
         first | linear_combination ht171 | linear_combination -ht171
       · have htf : trueFactor bits 172 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 172 = true))]
-        rw [htf, show block2_flag rho 172 = rho 862 from by norm_num [block2_flag, block2_W], show block2_flag rho 173 = rho 862 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 172 = rho 862 from by rfl, show block2_flag rho 173 = rho 862 from by rfl]
         ring
       · have htf : trueFactor bits 173 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 173 = true))]
-        rw [htf, show block2_flag rho 173 = rho 862 from by norm_num [block2_flag, block2_W], show block2_flag rho 174 = rho 862 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 173 = rho 862 from by rfl, show block2_flag rho 174 = rho 862 from by rfl]
         ring
       · have htf : trueFactor bits 174 = rho 747 := by
           rw [trueFactor, if_pos (by decide : pmBit 174 = true)]; exact keyB 174 (by omega)
-        rw [htf, show block2_flag rho 174 = rho 862 from by norm_num [block2_flag, block2_W], show block2_flag rho 175 = rho 861 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 174 = rho 862 from by rfl, show block2_flag rho 175 = rho 861 from by rfl]
         first | linear_combination ht174 | linear_combination -ht174
       · have htf : trueFactor bits 175 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 175 = true))]
-        rw [htf, show block2_flag rho 175 = rho 861 from by norm_num [block2_flag, block2_W], show block2_flag rho 176 = rho 861 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 175 = rho 861 from by rfl, show block2_flag rho 176 = rho 861 from by rfl]
         ring
       · have htf : trueFactor bits 176 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 176 = true))]
-        rw [htf, show block2_flag rho 176 = rho 861 from by norm_num [block2_flag, block2_W], show block2_flag rho 177 = rho 861 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 176 = rho 861 from by rfl, show block2_flag rho 177 = rho 861 from by rfl]
         ring
       · have htf : trueFactor bits 177 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 177 = true))]
-        rw [htf, show block2_flag rho 177 = rho 861 from by norm_num [block2_flag, block2_W], show block2_flag rho 178 = rho 861 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 177 = rho 861 from by rfl, show block2_flag rho 178 = rho 861 from by rfl]
         ring
       · have htf : trueFactor bits 178 = rho 751 := by
           rw [trueFactor, if_pos (by decide : pmBit 178 = true)]; exact keyB 178 (by omega)
-        rw [htf, show block2_flag rho 178 = rho 861 from by norm_num [block2_flag, block2_W], show block2_flag rho 179 = rho 860 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 178 = rho 861 from by rfl, show block2_flag rho 179 = rho 860 from by rfl]
         first | linear_combination ht178 | linear_combination -ht178
       · have htf : trueFactor bits 179 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 179 = true))]
-        rw [htf, show block2_flag rho 179 = rho 860 from by norm_num [block2_flag, block2_W], show block2_flag rho 180 = rho 860 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 179 = rho 860 from by rfl, show block2_flag rho 180 = rho 860 from by rfl]
         ring
       · have htf : trueFactor bits 180 = rho 753 := by
           rw [trueFactor, if_pos (by decide : pmBit 180 = true)]; exact keyB 180 (by omega)
-        rw [htf, show block2_flag rho 180 = rho 860 from by norm_num [block2_flag, block2_W], show block2_flag rho 181 = rho 859 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 180 = rho 860 from by rfl, show block2_flag rho 181 = rho 859 from by rfl]
         first | linear_combination ht180 | linear_combination -ht180
       · have htf : trueFactor bits 181 = rho 754 := by
           rw [trueFactor, if_pos (by decide : pmBit 181 = true)]; exact keyB 181 (by omega)
-        rw [htf, show block2_flag rho 181 = rho 859 from by norm_num [block2_flag, block2_W], show block2_flag rho 182 = rho 858 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 181 = rho 859 from by rfl, show block2_flag rho 182 = rho 858 from by rfl]
         first | linear_combination ht181 | linear_combination -ht181
       · have htf : trueFactor bits 182 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 182 = true))]
-        rw [htf, show block2_flag rho 182 = rho 858 from by norm_num [block2_flag, block2_W], show block2_flag rho 183 = rho 858 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 182 = rho 858 from by rfl, show block2_flag rho 183 = rho 858 from by rfl]
         ring
       · have htf : trueFactor bits 183 = rho 756 := by
           rw [trueFactor, if_pos (by decide : pmBit 183 = true)]; exact keyB 183 (by omega)
-        rw [htf, show block2_flag rho 183 = rho 858 from by norm_num [block2_flag, block2_W], show block2_flag rho 184 = rho 857 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 183 = rho 858 from by rfl, show block2_flag rho 184 = rho 857 from by rfl]
         first | linear_combination ht183 | linear_combination -ht183
       · have htf : trueFactor bits 184 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 184 = true))]
-        rw [htf, show block2_flag rho 184 = rho 857 from by norm_num [block2_flag, block2_W], show block2_flag rho 185 = rho 857 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 184 = rho 857 from by rfl, show block2_flag rho 185 = rho 857 from by rfl]
         ring
       · have htf : trueFactor bits 185 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 185 = true))]
-        rw [htf, show block2_flag rho 185 = rho 857 from by norm_num [block2_flag, block2_W], show block2_flag rho 186 = rho 857 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 185 = rho 857 from by rfl, show block2_flag rho 186 = rho 857 from by rfl]
         ring
       · have htf : trueFactor bits 186 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 186 = true))]
-        rw [htf, show block2_flag rho 186 = rho 857 from by norm_num [block2_flag, block2_W], show block2_flag rho 187 = rho 857 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 186 = rho 857 from by rfl, show block2_flag rho 187 = rho 857 from by rfl]
         ring
       · have htf : trueFactor bits 187 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 187 = true))]
-        rw [htf, show block2_flag rho 187 = rho 857 from by norm_num [block2_flag, block2_W], show block2_flag rho 188 = rho 857 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 187 = rho 857 from by rfl, show block2_flag rho 188 = rho 857 from by rfl]
         ring
       · have htf : trueFactor bits 188 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 188 = true))]
-        rw [htf, show block2_flag rho 188 = rho 857 from by norm_num [block2_flag, block2_W], show block2_flag rho 189 = rho 857 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 188 = rho 857 from by rfl, show block2_flag rho 189 = rho 857 from by rfl]
         ring
       · have htf : trueFactor bits 189 = rho 762 := by
           rw [trueFactor, if_pos (by decide : pmBit 189 = true)]; exact keyB 189 (by omega)
-        rw [htf, show block2_flag rho 189 = rho 857 from by norm_num [block2_flag, block2_W], show block2_flag rho 190 = rho 856 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 189 = rho 857 from by rfl, show block2_flag rho 190 = rho 856 from by rfl]
         first | linear_combination ht189 | linear_combination -ht189
       · have htf : trueFactor bits 190 = rho 763 := by
           rw [trueFactor, if_pos (by decide : pmBit 190 = true)]; exact keyB 190 (by omega)
-        rw [htf, show block2_flag rho 190 = rho 856 from by norm_num [block2_flag, block2_W], show block2_flag rho 191 = rho 855 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 190 = rho 856 from by rfl, show block2_flag rho 191 = rho 855 from by rfl]
         first | linear_combination ht190 | linear_combination -ht190
       · have htf : trueFactor bits 191 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 191 = true))]
-        rw [htf, show block2_flag rho 191 = rho 855 from by norm_num [block2_flag, block2_W], show block2_flag rho 192 = rho 855 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 191 = rho 855 from by rfl, show block2_flag rho 192 = rho 855 from by rfl]
         ring
       · have htf : trueFactor bits 192 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 192 = true))]
-        rw [htf, show block2_flag rho 192 = rho 855 from by norm_num [block2_flag, block2_W], show block2_flag rho 193 = rho 855 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 192 = rho 855 from by rfl, show block2_flag rho 193 = rho 855 from by rfl]
         ring
       · have htf : trueFactor bits 193 = rho 766 := by
           rw [trueFactor, if_pos (by decide : pmBit 193 = true)]; exact keyB 193 (by omega)
-        rw [htf, show block2_flag rho 193 = rho 855 from by norm_num [block2_flag, block2_W], show block2_flag rho 194 = rho 854 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 193 = rho 855 from by rfl, show block2_flag rho 194 = rho 854 from by rfl]
         first | linear_combination ht193 | linear_combination -ht193
       · have htf : trueFactor bits 194 = rho 767 := by
           rw [trueFactor, if_pos (by decide : pmBit 194 = true)]; exact keyB 194 (by omega)
-        rw [htf, show block2_flag rho 194 = rho 854 from by norm_num [block2_flag, block2_W], show block2_flag rho 195 = rho 853 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 194 = rho 854 from by rfl, show block2_flag rho 195 = rho 853 from by rfl]
         first | linear_combination ht194 | linear_combination -ht194
       · have htf : trueFactor bits 195 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 195 = true))]
-        rw [htf, show block2_flag rho 195 = rho 853 from by norm_num [block2_flag, block2_W], show block2_flag rho 196 = rho 853 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 195 = rho 853 from by rfl, show block2_flag rho 196 = rho 853 from by rfl]
         ring
       · have htf : trueFactor bits 196 = rho 769 := by
           rw [trueFactor, if_pos (by decide : pmBit 196 = true)]; exact keyB 196 (by omega)
-        rw [htf, show block2_flag rho 196 = rho 853 from by norm_num [block2_flag, block2_W], show block2_flag rho 197 = rho 852 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 196 = rho 853 from by rfl, show block2_flag rho 197 = rho 852 from by rfl]
         first | linear_combination ht196 | linear_combination -ht196
       · have htf : trueFactor bits 197 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 197 = true))]
-        rw [htf, show block2_flag rho 197 = rho 852 from by norm_num [block2_flag, block2_W], show block2_flag rho 198 = rho 852 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 197 = rho 852 from by rfl, show block2_flag rho 198 = rho 852 from by rfl]
         ring
       · have htf : trueFactor bits 198 = rho 771 := by
           rw [trueFactor, if_pos (by decide : pmBit 198 = true)]; exact keyB 198 (by omega)
-        rw [htf, show block2_flag rho 198 = rho 852 from by norm_num [block2_flag, block2_W], show block2_flag rho 199 = rho 851 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 198 = rho 852 from by rfl, show block2_flag rho 199 = rho 851 from by rfl]
         first | linear_combination ht198 | linear_combination -ht198
       · have htf : trueFactor bits 199 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 199 = true))]
-        rw [htf, show block2_flag rho 199 = rho 851 from by norm_num [block2_flag, block2_W], show block2_flag rho 200 = rho 851 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 199 = rho 851 from by rfl, show block2_flag rho 200 = rho 851 from by rfl]
         ring
       · have htf : trueFactor bits 200 = rho 773 := by
           rw [trueFactor, if_pos (by decide : pmBit 200 = true)]; exact keyB 200 (by omega)
-        rw [htf, show block2_flag rho 200 = rho 851 from by norm_num [block2_flag, block2_W], show block2_flag rho 201 = rho 850 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 200 = rho 851 from by rfl, show block2_flag rho 201 = rho 850 from by rfl]
         first | linear_combination ht200 | linear_combination -ht200
       · have htf : trueFactor bits 201 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 201 = true))]
-        rw [htf, show block2_flag rho 201 = rho 850 from by norm_num [block2_flag, block2_W], show block2_flag rho 202 = rho 850 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 201 = rho 850 from by rfl, show block2_flag rho 202 = rho 850 from by rfl]
         ring
       · have htf : trueFactor bits 202 = rho 775 := by
           rw [trueFactor, if_pos (by decide : pmBit 202 = true)]; exact keyB 202 (by omega)
-        rw [htf, show block2_flag rho 202 = rho 850 from by norm_num [block2_flag, block2_W], show block2_flag rho 203 = rho 849 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 202 = rho 850 from by rfl, show block2_flag rho 203 = rho 849 from by rfl]
         first | linear_combination ht202 | linear_combination -ht202
       · have htf : trueFactor bits 203 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 203 = true))]
-        rw [htf, show block2_flag rho 203 = rho 849 from by norm_num [block2_flag, block2_W], show block2_flag rho 204 = rho 849 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 203 = rho 849 from by rfl, show block2_flag rho 204 = rho 849 from by rfl]
         ring
       · have htf : trueFactor bits 204 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 204 = true))]
-        rw [htf, show block2_flag rho 204 = rho 849 from by norm_num [block2_flag, block2_W], show block2_flag rho 205 = rho 849 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 204 = rho 849 from by rfl, show block2_flag rho 205 = rho 849 from by rfl]
         ring
       · have htf : trueFactor bits 205 = rho 778 := by
           rw [trueFactor, if_pos (by decide : pmBit 205 = true)]; exact keyB 205 (by omega)
-        rw [htf, show block2_flag rho 205 = rho 849 from by norm_num [block2_flag, block2_W], show block2_flag rho 206 = rho 848 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 205 = rho 849 from by rfl, show block2_flag rho 206 = rho 848 from by rfl]
         first | linear_combination ht205 | linear_combination -ht205
       · have htf : trueFactor bits 206 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 206 = true))]
-        rw [htf, show block2_flag rho 206 = rho 848 from by norm_num [block2_flag, block2_W], show block2_flag rho 207 = rho 848 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 206 = rho 848 from by rfl, show block2_flag rho 207 = rho 848 from by rfl]
         ring
       · have htf : trueFactor bits 207 = rho 780 := by
           rw [trueFactor, if_pos (by decide : pmBit 207 = true)]; exact keyB 207 (by omega)
-        rw [htf, show block2_flag rho 207 = rho 848 from by norm_num [block2_flag, block2_W], show block2_flag rho 208 = rho 847 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 207 = rho 848 from by rfl, show block2_flag rho 208 = rho 847 from by rfl]
         first | linear_combination ht207 | linear_combination -ht207
       · have htf : trueFactor bits 208 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 208 = true))]
-        rw [htf, show block2_flag rho 208 = rho 847 from by norm_num [block2_flag, block2_W], show block2_flag rho 209 = rho 847 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 208 = rho 847 from by rfl, show block2_flag rho 209 = rho 847 from by rfl]
         ring
       · have htf : trueFactor bits 209 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 209 = true))]
-        rw [htf, show block2_flag rho 209 = rho 847 from by norm_num [block2_flag, block2_W], show block2_flag rho 210 = rho 847 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 209 = rho 847 from by rfl, show block2_flag rho 210 = rho 847 from by rfl]
         ring
       · have htf : trueFactor bits 210 = rho 783 := by
           rw [trueFactor, if_pos (by decide : pmBit 210 = true)]; exact keyB 210 (by omega)
-        rw [htf, show block2_flag rho 210 = rho 847 from by norm_num [block2_flag, block2_W], show block2_flag rho 211 = rho 846 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 210 = rho 847 from by rfl, show block2_flag rho 211 = rho 846 from by rfl]
         first | linear_combination ht210 | linear_combination -ht210
       · have htf : trueFactor bits 211 = rho 784 := by
           rw [trueFactor, if_pos (by decide : pmBit 211 = true)]; exact keyB 211 (by omega)
-        rw [htf, show block2_flag rho 211 = rho 846 from by norm_num [block2_flag, block2_W], show block2_flag rho 212 = rho 845 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 211 = rho 846 from by rfl, show block2_flag rho 212 = rho 845 from by rfl]
         first | linear_combination ht211 | linear_combination -ht211
       · have htf : trueFactor bits 212 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 212 = true))]
-        rw [htf, show block2_flag rho 212 = rho 845 from by norm_num [block2_flag, block2_W], show block2_flag rho 213 = rho 845 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 212 = rho 845 from by rfl, show block2_flag rho 213 = rho 845 from by rfl]
         ring
       · have htf : trueFactor bits 213 = rho 786 := by
           rw [trueFactor, if_pos (by decide : pmBit 213 = true)]; exact keyB 213 (by omega)
-        rw [htf, show block2_flag rho 213 = rho 845 from by norm_num [block2_flag, block2_W], show block2_flag rho 214 = rho 844 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 213 = rho 845 from by rfl, show block2_flag rho 214 = rho 844 from by rfl]
         first | linear_combination ht213 | linear_combination -ht213
       · have htf : trueFactor bits 214 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 214 = true))]
-        rw [htf, show block2_flag rho 214 = rho 844 from by norm_num [block2_flag, block2_W], show block2_flag rho 215 = rho 844 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 214 = rho 844 from by rfl, show block2_flag rho 215 = rho 844 from by rfl]
         ring
       · have htf : trueFactor bits 215 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 215 = true))]
-        rw [htf, show block2_flag rho 215 = rho 844 from by norm_num [block2_flag, block2_W], show block2_flag rho 216 = rho 844 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 215 = rho 844 from by rfl, show block2_flag rho 216 = rho 844 from by rfl]
         ring
       · have htf : trueFactor bits 216 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 216 = true))]
-        rw [htf, show block2_flag rho 216 = rho 844 from by norm_num [block2_flag, block2_W], show block2_flag rho 217 = rho 844 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 216 = rho 844 from by rfl, show block2_flag rho 217 = rho 844 from by rfl]
         ring
       · have htf : trueFactor bits 217 = rho 790 := by
           rw [trueFactor, if_pos (by decide : pmBit 217 = true)]; exact keyB 217 (by omega)
-        rw [htf, show block2_flag rho 217 = rho 844 from by norm_num [block2_flag, block2_W], show block2_flag rho 218 = rho 843 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 217 = rho 844 from by rfl, show block2_flag rho 218 = rho 843 from by rfl]
         first | linear_combination ht217 | linear_combination -ht217
       · have htf : trueFactor bits 218 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 218 = true))]
-        rw [htf, show block2_flag rho 218 = rho 843 from by norm_num [block2_flag, block2_W], show block2_flag rho 219 = rho 843 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 218 = rho 843 from by rfl, show block2_flag rho 219 = rho 843 from by rfl]
         ring
       · have htf : trueFactor bits 219 = rho 792 := by
           rw [trueFactor, if_pos (by decide : pmBit 219 = true)]; exact keyB 219 (by omega)
-        rw [htf, show block2_flag rho 219 = rho 843 from by norm_num [block2_flag, block2_W], show block2_flag rho 220 = rho 842 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 219 = rho 843 from by rfl, show block2_flag rho 220 = rho 842 from by rfl]
         first | linear_combination ht219 | linear_combination -ht219
       · have htf : trueFactor bits 220 = rho 793 := by
           rw [trueFactor, if_pos (by decide : pmBit 220 = true)]; exact keyB 220 (by omega)
-        rw [htf, show block2_flag rho 220 = rho 842 from by norm_num [block2_flag, block2_W], show block2_flag rho 221 = rho 841 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 220 = rho 842 from by rfl, show block2_flag rho 221 = rho 841 from by rfl]
         first | linear_combination ht220 | linear_combination -ht220
       · have htf : trueFactor bits 221 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 221 = true))]
-        rw [htf, show block2_flag rho 221 = rho 841 from by norm_num [block2_flag, block2_W], show block2_flag rho 222 = rho 841 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 221 = rho 841 from by rfl, show block2_flag rho 222 = rho 841 from by rfl]
         ring
       · have htf : trueFactor bits 222 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 222 = true))]
-        rw [htf, show block2_flag rho 222 = rho 841 from by norm_num [block2_flag, block2_W], show block2_flag rho 223 = rho 841 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 222 = rho 841 from by rfl, show block2_flag rho 223 = rho 841 from by rfl]
         ring
       · have htf : trueFactor bits 223 = rho 796 := by
           rw [trueFactor, if_pos (by decide : pmBit 223 = true)]; exact keyB 223 (by omega)
-        rw [htf, show block2_flag rho 223 = rho 841 from by norm_num [block2_flag, block2_W], show block2_flag rho 224 = rho 840 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 223 = rho 841 from by rfl, show block2_flag rho 224 = rho 840 from by rfl]
         first | linear_combination ht223 | linear_combination -ht223
       · have htf : trueFactor bits 224 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 224 = true))]
-        rw [htf, show block2_flag rho 224 = rho 840 from by norm_num [block2_flag, block2_W], show block2_flag rho 225 = rho 840 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 224 = rho 840 from by rfl, show block2_flag rho 225 = rho 840 from by rfl]
         ring
       · have htf : trueFactor bits 225 = rho 798 := by
           rw [trueFactor, if_pos (by decide : pmBit 225 = true)]; exact keyB 225 (by omega)
-        rw [htf, show block2_flag rho 225 = rho 840 from by norm_num [block2_flag, block2_W], show block2_flag rho 226 = rho 839 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 225 = rho 840 from by rfl, show block2_flag rho 226 = rho 839 from by rfl]
         first | linear_combination ht225 | linear_combination -ht225
       · have htf : trueFactor bits 226 = rho 799 := by
           rw [trueFactor, if_pos (by decide : pmBit 226 = true)]; exact keyB 226 (by omega)
-        rw [htf, show block2_flag rho 226 = rho 839 from by norm_num [block2_flag, block2_W], show block2_flag rho 227 = rho 838 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 226 = rho 839 from by rfl, show block2_flag rho 227 = rho 838 from by rfl]
         first | linear_combination ht226 | linear_combination -ht226
       · have htf : trueFactor bits 227 = rho 800 := by
           rw [trueFactor, if_pos (by decide : pmBit 227 = true)]; exact keyB 227 (by omega)
-        rw [htf, show block2_flag rho 227 = rho 838 from by norm_num [block2_flag, block2_W], show block2_flag rho 228 = rho 837 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 227 = rho 838 from by rfl, show block2_flag rho 228 = rho 837 from by rfl]
         first | linear_combination ht227 | linear_combination -ht227
       · have htf : trueFactor bits 228 = rho 801 := by
           rw [trueFactor, if_pos (by decide : pmBit 228 = true)]; exact keyB 228 (by omega)
-        rw [htf, show block2_flag rho 228 = rho 837 from by norm_num [block2_flag, block2_W], show block2_flag rho 229 = rho 836 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 228 = rho 837 from by rfl, show block2_flag rho 229 = rho 836 from by rfl]
         first | linear_combination ht228 | linear_combination -ht228
       · have htf : trueFactor bits 229 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 229 = true))]
-        rw [htf, show block2_flag rho 229 = rho 836 from by norm_num [block2_flag, block2_W], show block2_flag rho 230 = rho 836 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 229 = rho 836 from by rfl, show block2_flag rho 230 = rho 836 from by rfl]
         ring
       · have htf : trueFactor bits 230 = rho 803 := by
           rw [trueFactor, if_pos (by decide : pmBit 230 = true)]; exact keyB 230 (by omega)
-        rw [htf, show block2_flag rho 230 = rho 836 from by norm_num [block2_flag, block2_W], show block2_flag rho 231 = rho 835 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 230 = rho 836 from by rfl, show block2_flag rho 231 = rho 835 from by rfl]
         first | linear_combination ht230 | linear_combination -ht230
       · have htf : trueFactor bits 231 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 231 = true))]
-        rw [htf, show block2_flag rho 231 = rho 835 from by norm_num [block2_flag, block2_W], show block2_flag rho 232 = rho 835 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 231 = rho 835 from by rfl, show block2_flag rho 232 = rho 835 from by rfl]
         ring
       · have htf : trueFactor bits 232 = rho 805 := by
           rw [trueFactor, if_pos (by decide : pmBit 232 = true)]; exact keyB 232 (by omega)
-        rw [htf, show block2_flag rho 232 = rho 835 from by norm_num [block2_flag, block2_W], show block2_flag rho 233 = rho 834 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 232 = rho 835 from by rfl, show block2_flag rho 233 = rho 834 from by rfl]
         first | linear_combination ht232 | linear_combination -ht232
       · have htf : trueFactor bits 233 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 233 = true))]
-        rw [htf, show block2_flag rho 233 = rho 834 from by norm_num [block2_flag, block2_W], show block2_flag rho 234 = rho 834 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 233 = rho 834 from by rfl, show block2_flag rho 234 = rho 834 from by rfl]
         ring
       · have htf : trueFactor bits 234 = rho 807 := by
           rw [trueFactor, if_pos (by decide : pmBit 234 = true)]; exact keyB 234 (by omega)
-        rw [htf, show block2_flag rho 234 = rho 834 from by norm_num [block2_flag, block2_W], show block2_flag rho 235 = rho 833 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 234 = rho 834 from by rfl, show block2_flag rho 235 = rho 833 from by rfl]
         first | linear_combination ht234 | linear_combination -ht234
       · have htf : trueFactor bits 235 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 235 = true))]
-        rw [htf, show block2_flag rho 235 = rho 833 from by norm_num [block2_flag, block2_W], show block2_flag rho 236 = rho 833 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 235 = rho 833 from by rfl, show block2_flag rho 236 = rho 833 from by rfl]
         ring
       · have htf : trueFactor bits 236 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 236 = true))]
-        rw [htf, show block2_flag rho 236 = rho 833 from by norm_num [block2_flag, block2_W], show block2_flag rho 237 = rho 833 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 236 = rho 833 from by rfl, show block2_flag rho 237 = rho 833 from by rfl]
         ring
       · have htf : trueFactor bits 237 = rho 810 := by
           rw [trueFactor, if_pos (by decide : pmBit 237 = true)]; exact keyB 237 (by omega)
-        rw [htf, show block2_flag rho 237 = rho 833 from by norm_num [block2_flag, block2_W], show block2_flag rho 238 = rho 832 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 237 = rho 833 from by rfl, show block2_flag rho 238 = rho 832 from by rfl]
         first | linear_combination ht237 | linear_combination -ht237
       · have htf : trueFactor bits 238 = rho 811 := by
           rw [trueFactor, if_pos (by decide : pmBit 238 = true)]; exact keyB 238 (by omega)
-        rw [htf, show block2_flag rho 238 = rho 832 from by norm_num [block2_flag, block2_W], show block2_flag rho 239 = rho 831 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 238 = rho 832 from by rfl, show block2_flag rho 239 = rho 831 from by rfl]
         first | linear_combination ht238 | linear_combination -ht238
       · have htf : trueFactor bits 239 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 239 = true))]
-        rw [htf, show block2_flag rho 239 = rho 831 from by norm_num [block2_flag, block2_W], show block2_flag rho 240 = rho 831 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 239 = rho 831 from by rfl, show block2_flag rho 240 = rho 831 from by rfl]
         ring
       · have htf : trueFactor bits 240 = rho 813 := by
           rw [trueFactor, if_pos (by decide : pmBit 240 = true)]; exact keyB 240 (by omega)
-        rw [htf, show block2_flag rho 240 = rho 831 from by norm_num [block2_flag, block2_W], show block2_flag rho 241 = rho 830 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 240 = rho 831 from by rfl, show block2_flag rho 241 = rho 830 from by rfl]
         first | linear_combination ht240 | linear_combination -ht240
       · have htf : trueFactor bits 241 = rho 814 := by
           rw [trueFactor, if_pos (by decide : pmBit 241 = true)]; exact keyB 241 (by omega)
-        rw [htf, show block2_flag rho 241 = rho 830 from by norm_num [block2_flag, block2_W], show block2_flag rho 242 = rho 829 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 241 = rho 830 from by rfl, show block2_flag rho 242 = rho 829 from by rfl]
         first | linear_combination ht241 | linear_combination -ht241
       · have htf : trueFactor bits 242 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 242 = true))]
-        rw [htf, show block2_flag rho 242 = rho 829 from by norm_num [block2_flag, block2_W], show block2_flag rho 243 = rho 829 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 242 = rho 829 from by rfl, show block2_flag rho 243 = rho 829 from by rfl]
         ring
       · have htf : trueFactor bits 243 = rho 816 := by
           rw [trueFactor, if_pos (by decide : pmBit 243 = true)]; exact keyB 243 (by omega)
-        rw [htf, show block2_flag rho 243 = rho 829 from by norm_num [block2_flag, block2_W], show block2_flag rho 244 = rho 828 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 243 = rho 829 from by rfl, show block2_flag rho 244 = rho 828 from by rfl]
         first | linear_combination ht243 | linear_combination -ht243
       · have htf : trueFactor bits 244 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 244 = true))]
-        rw [htf, show block2_flag rho 244 = rho 828 from by norm_num [block2_flag, block2_W], show block2_flag rho 245 = rho 828 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 244 = rho 828 from by rfl, show block2_flag rho 245 = rho 828 from by rfl]
         ring
       · have htf : trueFactor bits 245 = rho 818 := by
           rw [trueFactor, if_pos (by decide : pmBit 245 = true)]; exact keyB 245 (by omega)
-        rw [htf, show block2_flag rho 245 = rho 828 from by norm_num [block2_flag, block2_W], show block2_flag rho 246 = rho 827 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 245 = rho 828 from by rfl, show block2_flag rho 246 = rho 827 from by rfl]
         first | linear_combination ht245 | linear_combination -ht245
       · have htf : trueFactor bits 246 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 246 = true))]
-        rw [htf, show block2_flag rho 246 = rho 827 from by norm_num [block2_flag, block2_W], show block2_flag rho 247 = rho 827 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 246 = rho 827 from by rfl, show block2_flag rho 247 = rho 827 from by rfl]
         ring
       · have htf : trueFactor bits 247 = rho 820 := by
           rw [trueFactor, if_pos (by decide : pmBit 247 = true)]; exact keyB 247 (by omega)
-        rw [htf, show block2_flag rho 247 = rho 827 from by norm_num [block2_flag, block2_W], show block2_flag rho 248 = rho 826 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 247 = rho 827 from by rfl, show block2_flag rho 248 = rho 826 from by rfl]
         first | linear_combination ht247 | linear_combination -ht247
       · have htf : trueFactor bits 248 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 248 = true))]
-        rw [htf, show block2_flag rho 248 = rho 826 from by norm_num [block2_flag, block2_W], show block2_flag rho 249 = rho 826 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 248 = rho 826 from by rfl, show block2_flag rho 249 = rho 826 from by rfl]
         ring
       · have htf : trueFactor bits 249 = rho 822 := by
           rw [trueFactor, if_pos (by decide : pmBit 249 = true)]; exact keyB 249 (by omega)
-        rw [htf, show block2_flag rho 249 = rho 826 from by norm_num [block2_flag, block2_W], show block2_flag rho 250 = rho 825 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 249 = rho 826 from by rfl, show block2_flag rho 250 = rho 825 from by rfl]
         first | linear_combination ht249 | linear_combination -ht249
       · have htf : trueFactor bits 250 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 250 = true))]
-        rw [htf, show block2_flag rho 250 = rho 825 from by norm_num [block2_flag, block2_W], show block2_flag rho 251 = rho 825 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 250 = rho 825 from by rfl, show block2_flag rho 251 = rho 825 from by rfl]
         ring
       · have htf : trueFactor bits 251 = (1 : F) := by
           rw [trueFactor, if_neg (by decide : ¬ (pmBit 251 = true))]
-        rw [htf, show block2_flag rho 251 = rho 825 from by norm_num [block2_flag, block2_W], show block2_flag rho 252 = rho 825 from by norm_num [block2_flag, block2_W]]
+        rw [htf, show block2_flag rho 251 = rho 825 from by rfl, show block2_flag rho 252 = rho 825 from by rfl]
         ring
       · have htf : trueFactor bits 252 = rho 825 := by
           rw [trueFactor, if_pos (by decide : pmBit 252 = true)]; exact keyB 252 (by omega)
-        rw [htf, show block2_flag rho 252 = rho 825 from by norm_num [block2_flag, block2_W], show block2_flag rho 253 = (1 : F) from by rw [block2_flag, if_pos (by norm_num : (253 : ℕ) ≤ 253)]]
+        rw [htf, show block2_flag rho 252 = rho 825 from by rfl, show block2_flag rho 253 = (1 : F) from by rw [block2_flag, if_pos (by exact le_rfl)]]
         ring
     · intro j hj hpm
       show bits[j]! * (1 - bits[j]! - block2_flag rho (j + 1)) = 0
       rw [keyB j hj]
       interval_cases j
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 1 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc0; linear_combination hc0
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 2 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc1; linear_combination hc1
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 3 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc2; linear_combination hc2
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 4 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc3; linear_combination hc3
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 5 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc4; linear_combination hc4
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 6 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc5; linear_combination hc5
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 7 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc6; linear_combination hc6
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 8 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc7; linear_combination hc7
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 9 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc8; linear_combination hc8
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 10 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc9; linear_combination hc9
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 11 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc10; linear_combination hc10
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 12 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc11; linear_combination hc11
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 13 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc12; linear_combination hc12
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 14 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc13; linear_combination hc13
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 15 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc14; linear_combination hc14
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 16 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc15; linear_combination hc15
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 17 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc16; linear_combination hc16
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 18 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc17; linear_combination hc17
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 19 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc18; linear_combination hc18
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 20 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc19; linear_combination hc19
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 21 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc20; linear_combination hc20
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 22 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc21; linear_combination hc21
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 23 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc22; linear_combination hc22
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 24 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc23; linear_combination hc23
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 25 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc24; linear_combination hc24
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 26 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc25; linear_combination hc25
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 27 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc26; linear_combination hc26
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 28 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc27; linear_combination hc27
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 29 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc28; linear_combination hc28
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 30 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc29; linear_combination hc29
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 31 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc30; linear_combination hc30
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 32 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc31; linear_combination hc31
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 33 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc32; linear_combination hc32
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 34 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc33; linear_combination hc33
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 35 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc34; linear_combination hc34
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 36 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc35; linear_combination hc35
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 37 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc36; linear_combination hc36
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 38 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc37; linear_combination hc37
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 39 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc38; linear_combination hc38
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 40 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc39; linear_combination hc39
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 41 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc40; linear_combination hc40
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 42 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc41; linear_combination hc41
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 43 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc42; linear_combination hc42
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 44 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc43; linear_combination hc43
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 45 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc44; linear_combination hc44
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 46 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc45; linear_combination hc45
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 47 = rho 911 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc46; linear_combination hc46
-      · exact absurd hpm (by decide)
-      · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 50 = rho 909 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc49; linear_combination hc49
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 51 = rho 909 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc50; linear_combination hc50
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 52 = rho 909 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc51; linear_combination hc51
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 1 = rho 911 from by rfl]; rw [hrho0] at hc0; linear_combination hc0
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 2 = rho 911 from by rfl]; rw [hrho0] at hc1; linear_combination hc1
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 3 = rho 911 from by rfl]; rw [hrho0] at hc2; linear_combination hc2
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 4 = rho 911 from by rfl]; rw [hrho0] at hc3; linear_combination hc3
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 5 = rho 911 from by rfl]; rw [hrho0] at hc4; linear_combination hc4
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 6 = rho 911 from by rfl]; rw [hrho0] at hc5; linear_combination hc5
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 7 = rho 911 from by rfl]; rw [hrho0] at hc6; linear_combination hc6
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 8 = rho 911 from by rfl]; rw [hrho0] at hc7; linear_combination hc7
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 9 = rho 911 from by rfl]; rw [hrho0] at hc8; linear_combination hc8
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 10 = rho 911 from by rfl]; rw [hrho0] at hc9; linear_combination hc9
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 11 = rho 911 from by rfl]; rw [hrho0] at hc10; linear_combination hc10
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 12 = rho 911 from by rfl]; rw [hrho0] at hc11; linear_combination hc11
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 13 = rho 911 from by rfl]; rw [hrho0] at hc12; linear_combination hc12
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 14 = rho 911 from by rfl]; rw [hrho0] at hc13; linear_combination hc13
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 15 = rho 911 from by rfl]; rw [hrho0] at hc14; linear_combination hc14
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 16 = rho 911 from by rfl]; rw [hrho0] at hc15; linear_combination hc15
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 17 = rho 911 from by rfl]; rw [hrho0] at hc16; linear_combination hc16
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 18 = rho 911 from by rfl]; rw [hrho0] at hc17; linear_combination hc17
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 19 = rho 911 from by rfl]; rw [hrho0] at hc18; linear_combination hc18
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 20 = rho 911 from by rfl]; rw [hrho0] at hc19; linear_combination hc19
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 21 = rho 911 from by rfl]; rw [hrho0] at hc20; linear_combination hc20
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 22 = rho 911 from by rfl]; rw [hrho0] at hc21; linear_combination hc21
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 23 = rho 911 from by rfl]; rw [hrho0] at hc22; linear_combination hc22
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 24 = rho 911 from by rfl]; rw [hrho0] at hc23; linear_combination hc23
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 25 = rho 911 from by rfl]; rw [hrho0] at hc24; linear_combination hc24
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 26 = rho 911 from by rfl]; rw [hrho0] at hc25; linear_combination hc25
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 27 = rho 911 from by rfl]; rw [hrho0] at hc26; linear_combination hc26
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 28 = rho 911 from by rfl]; rw [hrho0] at hc27; linear_combination hc27
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 29 = rho 911 from by rfl]; rw [hrho0] at hc28; linear_combination hc28
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 30 = rho 911 from by rfl]; rw [hrho0] at hc29; linear_combination hc29
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 31 = rho 911 from by rfl]; rw [hrho0] at hc30; linear_combination hc30
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 32 = rho 911 from by rfl]; rw [hrho0] at hc31; linear_combination hc31
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 33 = rho 911 from by rfl]; rw [hrho0] at hc32; linear_combination hc32
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 34 = rho 911 from by rfl]; rw [hrho0] at hc33; linear_combination hc33
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 35 = rho 911 from by rfl]; rw [hrho0] at hc34; linear_combination hc34
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 36 = rho 911 from by rfl]; rw [hrho0] at hc35; linear_combination hc35
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 37 = rho 911 from by rfl]; rw [hrho0] at hc36; linear_combination hc36
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 38 = rho 911 from by rfl]; rw [hrho0] at hc37; linear_combination hc37
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 39 = rho 911 from by rfl]; rw [hrho0] at hc38; linear_combination hc38
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 40 = rho 911 from by rfl]; rw [hrho0] at hc39; linear_combination hc39
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 41 = rho 911 from by rfl]; rw [hrho0] at hc40; linear_combination hc40
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 42 = rho 911 from by rfl]; rw [hrho0] at hc41; linear_combination hc41
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 43 = rho 911 from by rfl]; rw [hrho0] at hc42; linear_combination hc42
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 44 = rho 911 from by rfl]; rw [hrho0] at hc43; linear_combination hc43
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 45 = rho 911 from by rfl]; rw [hrho0] at hc44; linear_combination hc44
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 46 = rho 911 from by rfl]; rw [hrho0] at hc45; linear_combination hc45
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 47 = rho 911 from by rfl]; rw [hrho0] at hc46; linear_combination hc46
+      · exact absurd hpm (by decide)
+      · exact absurd hpm (by decide)
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 50 = rho 909 from by rfl]; rw [hrho0] at hc49; linear_combination hc49
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 51 = rho 909 from by rfl]; rw [hrho0] at hc50; linear_combination hc50
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 52 = rho 909 from by rfl]; rw [hrho0] at hc51; linear_combination hc51
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 54 = rho 908 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc53; linear_combination hc53
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 55 = rho 908 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc54; linear_combination hc54
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 56 = rho 908 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc55; linear_combination hc55
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 57 = rho 908 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc56; linear_combination hc56
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 54 = rho 908 from by rfl]; rw [hrho0] at hc53; linear_combination hc53
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 55 = rho 908 from by rfl]; rw [hrho0] at hc54; linear_combination hc54
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 56 = rho 908 from by rfl]; rw [hrho0] at hc55; linear_combination hc55
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 57 = rho 908 from by rfl]; rw [hrho0] at hc56; linear_combination hc56
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 59 = rho 907 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc58; linear_combination hc58
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 59 = rho 907 from by rfl]; rw [hrho0] at hc58; linear_combination hc58
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 61 = rho 906 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc60; linear_combination hc60
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 62 = rho 906 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc61; linear_combination hc61
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 63 = rho 906 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc62; linear_combination hc62
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 64 = rho 906 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc63; linear_combination hc63
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 61 = rho 906 from by rfl]; rw [hrho0] at hc60; linear_combination hc60
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 62 = rho 906 from by rfl]; rw [hrho0] at hc61; linear_combination hc61
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 63 = rho 906 from by rfl]; rw [hrho0] at hc62; linear_combination hc62
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 64 = rho 906 from by rfl]; rw [hrho0] at hc63; linear_combination hc63
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 66 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc65; linear_combination hc65
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 67 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc66; linear_combination hc66
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 68 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc67; linear_combination hc67
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 69 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc68; linear_combination hc68
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 70 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc69; linear_combination hc69
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 71 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc70; linear_combination hc70
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 72 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc71; linear_combination hc71
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 73 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc72; linear_combination hc72
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 74 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc73; linear_combination hc73
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 75 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc74; linear_combination hc74
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 76 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc75; linear_combination hc75
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 77 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc76; linear_combination hc76
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 78 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc77; linear_combination hc77
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 79 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc78; linear_combination hc78
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 80 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc79; linear_combination hc79
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 81 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc80; linear_combination hc80
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 82 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc81; linear_combination hc81
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 83 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc82; linear_combination hc82
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 84 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc83; linear_combination hc83
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 85 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc84; linear_combination hc84
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 86 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc85; linear_combination hc85
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 87 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc86; linear_combination hc86
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 88 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc87; linear_combination hc87
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 89 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc88; linear_combination hc88
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 90 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc89; linear_combination hc89
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 91 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc90; linear_combination hc90
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 92 = rho 905 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc91; linear_combination hc91
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 66 = rho 905 from by rfl]; rw [hrho0] at hc65; linear_combination hc65
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 67 = rho 905 from by rfl]; rw [hrho0] at hc66; linear_combination hc66
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 68 = rho 905 from by rfl]; rw [hrho0] at hc67; linear_combination hc67
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 69 = rho 905 from by rfl]; rw [hrho0] at hc68; linear_combination hc68
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 70 = rho 905 from by rfl]; rw [hrho0] at hc69; linear_combination hc69
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 71 = rho 905 from by rfl]; rw [hrho0] at hc70; linear_combination hc70
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 72 = rho 905 from by rfl]; rw [hrho0] at hc71; linear_combination hc71
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 73 = rho 905 from by rfl]; rw [hrho0] at hc72; linear_combination hc72
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 74 = rho 905 from by rfl]; rw [hrho0] at hc73; linear_combination hc73
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 75 = rho 905 from by rfl]; rw [hrho0] at hc74; linear_combination hc74
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 76 = rho 905 from by rfl]; rw [hrho0] at hc75; linear_combination hc75
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 77 = rho 905 from by rfl]; rw [hrho0] at hc76; linear_combination hc76
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 78 = rho 905 from by rfl]; rw [hrho0] at hc77; linear_combination hc77
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 79 = rho 905 from by rfl]; rw [hrho0] at hc78; linear_combination hc78
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 80 = rho 905 from by rfl]; rw [hrho0] at hc79; linear_combination hc79
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 81 = rho 905 from by rfl]; rw [hrho0] at hc80; linear_combination hc80
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 82 = rho 905 from by rfl]; rw [hrho0] at hc81; linear_combination hc81
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 83 = rho 905 from by rfl]; rw [hrho0] at hc82; linear_combination hc82
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 84 = rho 905 from by rfl]; rw [hrho0] at hc83; linear_combination hc83
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 85 = rho 905 from by rfl]; rw [hrho0] at hc84; linear_combination hc84
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 86 = rho 905 from by rfl]; rw [hrho0] at hc85; linear_combination hc85
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 87 = rho 905 from by rfl]; rw [hrho0] at hc86; linear_combination hc86
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 88 = rho 905 from by rfl]; rw [hrho0] at hc87; linear_combination hc87
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 89 = rho 905 from by rfl]; rw [hrho0] at hc88; linear_combination hc88
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 90 = rho 905 from by rfl]; rw [hrho0] at hc89; linear_combination hc89
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 91 = rho 905 from by rfl]; rw [hrho0] at hc90; linear_combination hc90
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 92 = rho 905 from by rfl]; rw [hrho0] at hc91; linear_combination hc91
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 94 = rho 904 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc93; linear_combination hc93
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 94 = rho 904 from by rfl]; rw [hrho0] at hc93; linear_combination hc93
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 97 = rho 902 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc96; linear_combination hc96
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 97 = rho 902 from by rfl]; rw [hrho0] at hc96; linear_combination hc96
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
@@ -4236,154 +4238,154 @@ theorem block2_canonical (rho : Nat → F)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 105 = rho 895 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc104; linear_combination hc104
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 105 = rho 895 from by rfl]; rw [hrho0] at hc104; linear_combination hc104
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 108 = rho 893 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc107; linear_combination hc107
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 108 = rho 893 from by rfl]; rw [hrho0] at hc107; linear_combination hc107
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 112 = rho 890 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc111; linear_combination hc111
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 113 = rho 890 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc112; linear_combination hc112
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 112 = rho 890 from by rfl]; rw [hrho0] at hc111; linear_combination hc111
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 113 = rho 890 from by rfl]; rw [hrho0] at hc112; linear_combination hc112
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 115 = rho 889 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc114; linear_combination hc114
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 115 = rho 889 from by rfl]; rw [hrho0] at hc114; linear_combination hc114
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 117 = rho 888 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc116; linear_combination hc116
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 117 = rho 888 from by rfl]; rw [hrho0] at hc116; linear_combination hc116
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 119 = rho 887 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc118; linear_combination hc118
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 119 = rho 887 from by rfl]; rw [hrho0] at hc118; linear_combination hc118
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 122 = rho 885 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc121; linear_combination hc121
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 123 = rho 885 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc122; linear_combination hc122
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 122 = rho 885 from by rfl]; rw [hrho0] at hc121; linear_combination hc121
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 123 = rho 885 from by rfl]; rw [hrho0] at hc122; linear_combination hc122
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 126 = rho 883 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc125; linear_combination hc125
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 126 = rho 883 from by rfl]; rw [hrho0] at hc125; linear_combination hc125
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 128 = rho 882 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc127; linear_combination hc127
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 128 = rho 882 from by rfl]; rw [hrho0] at hc127; linear_combination hc127
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 130 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc129; linear_combination hc129
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 131 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc130; linear_combination hc130
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 132 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc131; linear_combination hc131
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 133 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc132; linear_combination hc132
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 134 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc133; linear_combination hc133
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 135 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc134; linear_combination hc134
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 136 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc135; linear_combination hc135
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 137 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc136; linear_combination hc136
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 138 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc137; linear_combination hc137
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 139 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc138; linear_combination hc138
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 140 = rho 881 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc139; linear_combination hc139
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 130 = rho 881 from by rfl]; rw [hrho0] at hc129; linear_combination hc129
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 131 = rho 881 from by rfl]; rw [hrho0] at hc130; linear_combination hc130
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 132 = rho 881 from by rfl]; rw [hrho0] at hc131; linear_combination hc131
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 133 = rho 881 from by rfl]; rw [hrho0] at hc132; linear_combination hc132
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 134 = rho 881 from by rfl]; rw [hrho0] at hc133; linear_combination hc133
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 135 = rho 881 from by rfl]; rw [hrho0] at hc134; linear_combination hc134
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 136 = rho 881 from by rfl]; rw [hrho0] at hc135; linear_combination hc135
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 137 = rho 881 from by rfl]; rw [hrho0] at hc136; linear_combination hc136
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 138 = rho 881 from by rfl]; rw [hrho0] at hc137; linear_combination hc137
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 139 = rho 881 from by rfl]; rw [hrho0] at hc138; linear_combination hc138
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 140 = rho 881 from by rfl]; rw [hrho0] at hc139; linear_combination hc139
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 143 = rho 879 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc142; linear_combination hc142
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 143 = rho 879 from by rfl]; rw [hrho0] at hc142; linear_combination hc142
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 148 = rho 875 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc147; linear_combination hc147
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 148 = rho 875 from by rfl]; rw [hrho0] at hc147; linear_combination hc147
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 151 = rho 873 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc150; linear_combination hc150
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 152 = rho 873 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc151; linear_combination hc151
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 153 = rho 873 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc152; linear_combination hc152
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 154 = rho 873 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc153; linear_combination hc153
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 151 = rho 873 from by rfl]; rw [hrho0] at hc150; linear_combination hc150
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 152 = rho 873 from by rfl]; rw [hrho0] at hc151; linear_combination hc151
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 153 = rho 873 from by rfl]; rw [hrho0] at hc152; linear_combination hc152
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 154 = rho 873 from by rfl]; rw [hrho0] at hc153; linear_combination hc153
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 158 = rho 870 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc157; linear_combination hc157
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 158 = rho 870 from by rfl]; rw [hrho0] at hc157; linear_combination hc157
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 160 = rho 869 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc159; linear_combination hc159
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 161 = rho 869 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc160; linear_combination hc160
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 160 = rho 869 from by rfl]; rw [hrho0] at hc159; linear_combination hc159
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 161 = rho 869 from by rfl]; rw [hrho0] at hc160; linear_combination hc160
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 166 = rho 865 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc165; linear_combination hc165
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 167 = rho 865 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc166; linear_combination hc166
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 168 = rho 865 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc167; linear_combination hc167
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 166 = rho 865 from by rfl]; rw [hrho0] at hc165; linear_combination hc165
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 167 = rho 865 from by rfl]; rw [hrho0] at hc166; linear_combination hc166
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 168 = rho 865 from by rfl]; rw [hrho0] at hc167; linear_combination hc167
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 170 = rho 864 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc169; linear_combination hc169
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 170 = rho 864 from by rfl]; rw [hrho0] at hc169; linear_combination hc169
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 173 = rho 862 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc172; linear_combination hc172
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 174 = rho 862 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc173; linear_combination hc173
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 173 = rho 862 from by rfl]; rw [hrho0] at hc172; linear_combination hc172
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 174 = rho 862 from by rfl]; rw [hrho0] at hc173; linear_combination hc173
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 176 = rho 861 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc175; linear_combination hc175
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 177 = rho 861 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc176; linear_combination hc176
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 178 = rho 861 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc177; linear_combination hc177
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 176 = rho 861 from by rfl]; rw [hrho0] at hc175; linear_combination hc175
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 177 = rho 861 from by rfl]; rw [hrho0] at hc176; linear_combination hc176
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 178 = rho 861 from by rfl]; rw [hrho0] at hc177; linear_combination hc177
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 180 = rho 860 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc179; linear_combination hc179
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 180 = rho 860 from by rfl]; rw [hrho0] at hc179; linear_combination hc179
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 183 = rho 858 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc182; linear_combination hc182
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 183 = rho 858 from by rfl]; rw [hrho0] at hc182; linear_combination hc182
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 185 = rho 857 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc184; linear_combination hc184
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 186 = rho 857 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc185; linear_combination hc185
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 187 = rho 857 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc186; linear_combination hc186
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 188 = rho 857 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc187; linear_combination hc187
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 189 = rho 857 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc188; linear_combination hc188
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 185 = rho 857 from by rfl]; rw [hrho0] at hc184; linear_combination hc184
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 186 = rho 857 from by rfl]; rw [hrho0] at hc185; linear_combination hc185
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 187 = rho 857 from by rfl]; rw [hrho0] at hc186; linear_combination hc186
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 188 = rho 857 from by rfl]; rw [hrho0] at hc187; linear_combination hc187
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 189 = rho 857 from by rfl]; rw [hrho0] at hc188; linear_combination hc188
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 192 = rho 855 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc191; linear_combination hc191
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 193 = rho 855 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc192; linear_combination hc192
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 192 = rho 855 from by rfl]; rw [hrho0] at hc191; linear_combination hc191
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 193 = rho 855 from by rfl]; rw [hrho0] at hc192; linear_combination hc192
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 196 = rho 853 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc195; linear_combination hc195
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 196 = rho 853 from by rfl]; rw [hrho0] at hc195; linear_combination hc195
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 198 = rho 852 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc197; linear_combination hc197
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 198 = rho 852 from by rfl]; rw [hrho0] at hc197; linear_combination hc197
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 200 = rho 851 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc199; linear_combination hc199
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 200 = rho 851 from by rfl]; rw [hrho0] at hc199; linear_combination hc199
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 202 = rho 850 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc201; linear_combination hc201
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 202 = rho 850 from by rfl]; rw [hrho0] at hc201; linear_combination hc201
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 204 = rho 849 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc203; linear_combination hc203
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 205 = rho 849 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc204; linear_combination hc204
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 204 = rho 849 from by rfl]; rw [hrho0] at hc203; linear_combination hc203
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 205 = rho 849 from by rfl]; rw [hrho0] at hc204; linear_combination hc204
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 207 = rho 848 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc206; linear_combination hc206
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 207 = rho 848 from by rfl]; rw [hrho0] at hc206; linear_combination hc206
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 209 = rho 847 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc208; linear_combination hc208
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 210 = rho 847 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc209; linear_combination hc209
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 209 = rho 847 from by rfl]; rw [hrho0] at hc208; linear_combination hc208
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 210 = rho 847 from by rfl]; rw [hrho0] at hc209; linear_combination hc209
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 213 = rho 845 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc212; linear_combination hc212
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 213 = rho 845 from by rfl]; rw [hrho0] at hc212; linear_combination hc212
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 215 = rho 844 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc214; linear_combination hc214
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 216 = rho 844 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc215; linear_combination hc215
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 217 = rho 844 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc216; linear_combination hc216
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 215 = rho 844 from by rfl]; rw [hrho0] at hc214; linear_combination hc214
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 216 = rho 844 from by rfl]; rw [hrho0] at hc215; linear_combination hc215
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 217 = rho 844 from by rfl]; rw [hrho0] at hc216; linear_combination hc216
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 219 = rho 843 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc218; linear_combination hc218
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 219 = rho 843 from by rfl]; rw [hrho0] at hc218; linear_combination hc218
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 222 = rho 841 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc221; linear_combination hc221
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 223 = rho 841 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc222; linear_combination hc222
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 222 = rho 841 from by rfl]; rw [hrho0] at hc221; linear_combination hc221
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 223 = rho 841 from by rfl]; rw [hrho0] at hc222; linear_combination hc222
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 225 = rho 840 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc224; linear_combination hc224
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 225 = rho 840 from by rfl]; rw [hrho0] at hc224; linear_combination hc224
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 230 = rho 836 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc229; linear_combination hc229
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 230 = rho 836 from by rfl]; rw [hrho0] at hc229; linear_combination hc229
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 232 = rho 835 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc231; linear_combination hc231
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 232 = rho 835 from by rfl]; rw [hrho0] at hc231; linear_combination hc231
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 234 = rho 834 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc233; linear_combination hc233
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 234 = rho 834 from by rfl]; rw [hrho0] at hc233; linear_combination hc233
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 236 = rho 833 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc235; linear_combination hc235
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 237 = rho 833 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc236; linear_combination hc236
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 236 = rho 833 from by rfl]; rw [hrho0] at hc235; linear_combination hc235
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 237 = rho 833 from by rfl]; rw [hrho0] at hc236; linear_combination hc236
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 240 = rho 831 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc239; linear_combination hc239
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 240 = rho 831 from by rfl]; rw [hrho0] at hc239; linear_combination hc239
       · exact absurd hpm (by decide)
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 243 = rho 829 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc242; linear_combination hc242
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 243 = rho 829 from by rfl]; rw [hrho0] at hc242; linear_combination hc242
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 245 = rho 828 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc244; linear_combination hc244
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 245 = rho 828 from by rfl]; rw [hrho0] at hc244; linear_combination hc244
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 247 = rho 827 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc246; linear_combination hc246
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 247 = rho 827 from by rfl]; rw [hrho0] at hc246; linear_combination hc246
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 249 = rho 826 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc248; linear_combination hc248
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 249 = rho 826 from by rfl]; rw [hrho0] at hc248; linear_combination hc248
       · exact absurd hpm (by decide)
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 251 = rho 825 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc250; linear_combination hc250
-      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 252 = rho 825 from by norm_num [block2_flag, block2_W]]; rw [hrho0] at hc251; linear_combination hc251
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 251 = rho 825 from by rfl]; rw [hrho0] at hc250; linear_combination hc250
+      · simp only [Nat.reduceAdd]; rw [show block2_flag rho 252 = rho 825 from by rfl]; rw [hrho0] at hc251; linear_combination hc251
       · exact absurd hpm (by decide)
     · intro j hj
       show bits[j]! * bits[j]! = bits[j]!

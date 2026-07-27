@@ -28,7 +28,7 @@ pd network unsafe-reset-all
 | `just test` | All unit tests (nextest) | Before commit |
 | `just go-test` | `tools/gnark` Go tests only | Fast circuit/gadget iteration |
 | `just go-check` | `tools/gnark` format/build/test/vet | Before commit on gnark changes |
-| `just gnark-proof-tests` | Fast gnark inner-loop checks | During transfer/split/consolidate development |
+| `just gnark-proof-tests` | Fast gnark inner-loop checks | During transfer/NoteReshape development |
 | `just gnark-proof-tests-slow` | End-to-end gnark proof generation | Before PR on shielded-action changes |
 | `just smoke` | End-to-end | Before PR (transaction changes) |
 | `just integration-pcli` | pcli tests | Before PR (CLI changes) |

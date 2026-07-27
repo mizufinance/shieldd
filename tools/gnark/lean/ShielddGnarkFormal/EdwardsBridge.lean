@@ -1,6 +1,7 @@
 import ShielddGnarkFormal.Extracted.DecafEdwardsAdd
 import ShielddGnarkFormal.Extracted.DecafEdwardsDouble
 import ShielddGnarkFormal.Extracted.DecafEdwardsNeg
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000
@@ -18,8 +19,19 @@ structure Point where
   x : F
   y : F
 
+section ChoiceFreeConstants
+
+local instance (priority := 2000) : CommRing F := ZMod.commRing _
+local instance (priority := 3000) : NatCast F := (ZMod.commRing _).toNatCast
+
 def a : F := 8444461749428370424248824938781546531375899335154063827935233455917409239040
 def d : F := 3021
+
+end ChoiceFreeConstants
+
+section ChoiceFreeSpecifications
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 def negSpec (p out : Point) : Prop :=
   out.x = -p.x ∧ out.y = p.y
@@ -46,6 +58,8 @@ def doubleSpec (p out : Point) : Prop :=
   let d2 := 2 - d1
   GatesDef.div_unchecked n1 d1 out.x ∧
   GatesDef.div_unchecked n2 d2 out.y
+
+end ChoiceFreeSpecifications
 
 theorem neg_sound (x y outX outY : F)
     (h : Shieldd.GnarkFormal.Extracted.DecafEdwardsNeg.circuit x y outX outY) :

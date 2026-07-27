@@ -743,7 +743,10 @@ pub mod proof_test_helpers {
         let transfer = transfer_plan
             .transfer(
                 &base.fvk,
-                vec![crate::note_reshape::dummy_spend_auth_sig(); crate::transfer_input_count()],
+                vec![
+                    crate::note_reshape_padding::dummy_spend_auth_sig();
+                    crate::transfer_input_count()
+                ],
                 state_commitment_proofs,
                 anchor,
                 &PayloadKey::random_key(&mut rng),
@@ -760,22 +763,37 @@ pub mod proof_test_helpers {
         )
     }
 
-    pub(crate) fn build_consolidate_roundtrip_inputs_with_rng(
+    pub(crate) fn build_note_reshape_roundtrip_inputs_with_rng(
         rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
-        family_id: crate::ConsolidateFamilyId,
+        family_id: crate::NoteReshapeFamilyId,
     ) -> (
-        crate::ConsolidateProofPublic,
-        crate::ConsolidateProofPrivate,
+        crate::NoteReshapeProofPublic,
+        crate::NoteReshapeProofPrivate,
     ) {
-        use crate::{ConsolidatePlan, ShieldedInputPlan, ShieldedOutputPlan};
+        use crate::{NoteReshapePlan, ShieldedInputPlan, ShieldedOutputPlan};
         use shieldd_sdk_asset::{asset, Value};
         use shieldd_sdk_num::Amount;
 
         let base = generate_base_test_data(rng, 1, 100, false);
+        let real_inputs = family_id.min_real_inputs();
+        let real_outputs = family_id.min_real_outputs();
         let input_total = 100u64
-            .checked_mul(family_id.input_count() as u64)
-            .expect("consolidate input total fits in u64");
-        let input_amounts = split_transfer_amounts(family_id.input_count(), input_total);
+            .checked_mul(if family_id.is_many_to_one() {
+                real_inputs
+            } else {
+                real_outputs
+            } as u64)
+            .expect("note reshape input total fits in u64");
+        let input_amounts = if family_id.is_many_to_one() {
+            split_transfer_amounts(real_inputs, input_total)
+        } else {
+            vec![input_total]
+        };
+        let output_amounts = if family_id.is_many_to_one() {
+            vec![input_total]
+        } else {
+            split_transfer_amounts(real_outputs, input_total)
+        };
         let asset_id = asset::Id(Fq::from(1u64));
 
         let notes = input_amounts
@@ -789,7 +807,7 @@ pub mod proof_test_helpers {
                     },
                     crate::Rseed::generate(rng),
                 )
-                .expect("create consolidate test note")
+                .expect("create note reshape test note")
             })
             .collect::<Vec<_>>();
 
@@ -813,73 +831,6 @@ pub mod proof_test_helpers {
             .map(|(note, proof)| ShieldedInputPlan::new(rng, note, proof.position()))
             .collect::<Vec<_>>();
 
-        let outputs = vec![ShieldedOutputPlan::new(
-            rng,
-            Value {
-                amount: Amount::from(input_total),
-                asset_id,
-            },
-            base.address.clone(),
-        )];
-
-        let plan = ConsolidatePlan::new(
-            family_id,
-            spends.into_iter().map(Into::into).collect(),
-            outputs.into_iter().map(Into::into).collect(),
-            Fr::rand(rng),
-        )
-        .expect("build consolidate plan");
-        plan.consolidate_public_private(&base.fvk, &state_commitment_proofs, anchor)
-            .expect("derive consolidate public/private inputs")
-    }
-
-    pub(crate) fn build_consolidate_roundtrip_inputs(
-        family_id: crate::ConsolidateFamilyId,
-    ) -> (
-        crate::ConsolidateProofPublic,
-        crate::ConsolidateProofPrivate,
-    ) {
-        let mut rng = rand::thread_rng();
-        build_consolidate_roundtrip_inputs_with_rng(&mut rng, family_id)
-    }
-
-    pub(crate) fn build_split_roundtrip_inputs_with_rng(
-        rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
-        family_id: crate::SplitFamilyId,
-    ) -> (crate::SplitProofPublic, crate::SplitProofPrivate) {
-        use crate::{ShieldedInputPlan, ShieldedOutputPlan, SplitPlan};
-        use shieldd_sdk_asset::{asset, Value};
-        use shieldd_sdk_num::Amount;
-
-        let base = generate_base_test_data(rng, 1, 100, false);
-        let input_total = 100u64
-            .checked_mul(family_id.output_count() as u64)
-            .expect("split input total fits in u64");
-        let output_amounts = split_transfer_amounts(family_id.output_count(), input_total);
-        let asset_id = asset::Id(Fq::from(1u64));
-
-        let note = crate::Note::from_parts(
-            base.address.clone(),
-            Value {
-                amount: Amount::from(input_total),
-                asset_id,
-            },
-            crate::Rseed::generate(rng),
-        )
-        .expect("create split test note");
-
-        let mut sct = tct::Tree::new();
-        sct.insert(tct::Witness::Keep, note.commit()).unwrap();
-        let anchor = sct.root();
-        let state_commitment_proof = sct
-            .witness(note.commit())
-            .expect("state commitment witness");
-
-        let spends = vec![ShieldedInputPlan::new(
-            rng,
-            note,
-            state_commitment_proof.position(),
-        )];
         let outputs = output_amounts
             .iter()
             .map(|amount| {
@@ -894,22 +845,25 @@ pub mod proof_test_helpers {
             })
             .collect::<Vec<_>>();
 
-        let plan = SplitPlan::new(
+        let plan = NoteReshapePlan::new(
             family_id,
             spends.into_iter().map(Into::into).collect(),
             outputs.into_iter().map(Into::into).collect(),
             Fr::rand(rng),
         )
-        .expect("build split plan");
-        plan.split_public_private(&base.fvk, &[state_commitment_proof], anchor)
-            .expect("derive split public/private inputs")
+        .expect("build note reshape plan");
+        plan.note_reshape_public_private(&base.fvk, &state_commitment_proofs, anchor)
+            .expect("derive note reshape public/private inputs")
     }
 
-    pub(crate) fn build_split_roundtrip_inputs(
-        family_id: crate::SplitFamilyId,
-    ) -> (crate::SplitProofPublic, crate::SplitProofPrivate) {
+    pub(crate) fn build_note_reshape_roundtrip_inputs(
+        family_id: crate::NoteReshapeFamilyId,
+    ) -> (
+        crate::NoteReshapeProofPublic,
+        crate::NoteReshapeProofPrivate,
+    ) {
         let mut rng = rand::thread_rng();
-        build_split_roundtrip_inputs_with_rng(&mut rng, family_id)
+        build_note_reshape_roundtrip_inputs_with_rng(&mut rng, family_id)
     }
 
     pub(crate) fn build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng(

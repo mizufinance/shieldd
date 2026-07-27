@@ -18,7 +18,7 @@ pub mod state_key;
 
 pub mod note;
 mod note_payload;
-mod note_reshape;
+mod note_reshape_padding;
 pub mod rseed;
 mod shielded_note_plan;
 
@@ -28,12 +28,11 @@ pub use rseed::Rseed;
 
 pub use shielded_note_plan::{ShieldedInputPlan, ShieldedOutputPlan};
 
-pub mod consolidate;
+pub mod note_reshape;
 pub mod public_input_hash;
 pub mod r1cs;
 pub mod shielded_host_withdrawal;
 pub mod shielded_ics20_withdrawal;
-pub mod split;
 pub mod transfer;
 
 pub mod backref;
@@ -44,11 +43,11 @@ pub mod compliance_helpers;
 pub mod proof_error;
 pub use proof_error::{ProofError, ProofResult};
 
-pub use consolidate::{
-    Consolidate, ConsolidateBody, ConsolidateFamilyId, ConsolidateFamilySpec, ConsolidateInputBody,
-    ConsolidateInputPrivate, ConsolidateInputPublic, ConsolidateOutputBody,
-    ConsolidateOutputPrivate, ConsolidateOutputPublic, ConsolidatePlan, ConsolidateProof,
-    ConsolidateProofPrivate, ConsolidateProofPublic, ConsolidateView, CONSOLIDATE_FAMILY_SPECS,
+pub use note_reshape::{
+    NoteReshape, NoteReshapeBody, NoteReshapeFamilyId, NoteReshapeFamilySpec, NoteReshapeInputBody,
+    NoteReshapeInputPrivate, NoteReshapeInputPublic, NoteReshapeOutputBody,
+    NoteReshapeOutputPrivate, NoteReshapeOutputPublic, NoteReshapePlan, NoteReshapeProof,
+    NoteReshapeProofPrivate, NoteReshapeProofPublic, NoteReshapeView, NOTE_RESHAPE_FAMILY_SPECS,
 };
 pub use shielded_host_withdrawal::{
     ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedHostWithdrawalView,
@@ -61,11 +60,6 @@ pub use shielded_ics20_withdrawal::{
     ShieldedIcs20WithdrawalPlan, ShieldedIcs20WithdrawalProof, ShieldedIcs20WithdrawalProofPrivate,
     ShieldedIcs20WithdrawalProofPublic, ShieldedIcs20WithdrawalView,
     SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS,
-};
-pub use split::{
-    Split, SplitBody, SplitFamilyId, SplitFamilySpec, SplitInputBody, SplitInputPrivate,
-    SplitInputPublic, SplitOutputBody, SplitOutputPrivate, SplitOutputPublic, SplitPlan,
-    SplitProof, SplitProofPrivate, SplitProofPublic, SplitView, SPLIT_FAMILY_SPECS,
 };
 pub use transfer::{
     transfer_auth_sig_count, transfer_input_count, transfer_output_count, Transfer, TransferBody,

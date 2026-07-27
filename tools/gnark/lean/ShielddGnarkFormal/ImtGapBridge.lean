@@ -1,5 +1,6 @@
 import ShielddGnarkFormal.Extracted.ImtGap
 import ShielddGnarkFormal.CanonicalFqBitsBridge
+import ShielddGnarkFormal.ChoiceFreeBinary
 import ShielddGnarkFormal.LexLessLadder
 import ShielddGnarkFormal.Specs
 import ProvenZk.Lemmas
@@ -170,7 +171,7 @@ theorem to_binary_val_eq_of_lt (In : F) (x : List.Vector Bool 253)
     (hlt : (Fin.ofBitsLE x).val < Order) :
     In.val = (Fin.ofBitsLE x).val := by
   have hrec : recover_binary_zmod' (x.map (Bool.toZMod (N := Order))) = In := hbin.1
-  rw [recover_binary_zmod'_map_toZMod_eq_Fin_ofBitsLE] at hrec
+  rw [Shieldd.GnarkFormal.ChoiceFreeBinary.recover_binary_map_toZMod_eq_ofBitsLE] at hrec
   rw [← hrec]
   exact ZMod.val_natCast_of_lt hlt
 

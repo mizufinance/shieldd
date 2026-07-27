@@ -1,4 +1,0 @@
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterSeg5
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterSeg17
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterSeg32
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.CompressAdapterSeg48

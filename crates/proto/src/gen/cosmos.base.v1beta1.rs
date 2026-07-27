@@ -42,3 +42,35 @@ impl ::prost::Name for DecCoin {
         "/cosmos.base.v1beta1.DecCoin".into()
     }
 }
+/// IntProto defines a Protobuf wrapper around an Int object.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct IntProto {
+    #[prost(string, tag = "1")]
+    pub int: ::prost::alloc::string::String,
+}
+impl ::prost::Name for IntProto {
+    const NAME: &'static str = "IntProto";
+    const PACKAGE: &'static str = "cosmos.base.v1beta1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "cosmos.base.v1beta1.IntProto".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/cosmos.base.v1beta1.IntProto".into()
+    }
+}
+/// DecProto defines a Protobuf wrapper around a Dec object.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DecProto {
+    #[prost(string, tag = "1")]
+    pub dec: ::prost::alloc::string::String,
+}
+impl ::prost::Name for DecProto {
+    const NAME: &'static str = "DecProto";
+    const PACKAGE: &'static str = "cosmos.base.v1beta1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "cosmos.base.v1beta1.DecProto".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/cosmos.base.v1beta1.DecProto".into()
+    }
+}

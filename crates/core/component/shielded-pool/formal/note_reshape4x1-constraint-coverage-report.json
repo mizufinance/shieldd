@@ -1,0 +1,3267 @@
+{
+  "schema": "shieldd.gnark.constraint_coverage_report.v1",
+  "circuit": "note_reshape4x1",
+  "sr1cs_sha256_hex": "b513f7bdd6b495311fdd22c33421c086c48cffe6a5ed59c6afacabb3310de297",
+  "manifest_sha256_hex": "4553150f1fade68878af6f4cbccfc5e319581db5d4b7e46dbde67fd46cf5deda",
+  "nb_constraints": 102620,
+  "prime": "8444461749428370424248824938781546531375899335154063827935233455917409239041",
+  "inputs": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    134,
+    135,
+    136,
+    137,
+    138,
+    139,
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150,
+    151,
+    152,
+    153,
+    154,
+    155,
+    156,
+    157,
+    158,
+    159,
+    160,
+    161,
+    162,
+    163,
+    164,
+    165,
+    166,
+    167,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189,
+    190,
+    191,
+    192,
+    193,
+    194,
+    195,
+    196,
+    197,
+    198,
+    199,
+    200,
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207,
+    208,
+    209,
+    210,
+    211,
+    212,
+    213,
+    214,
+    215,
+    216,
+    217,
+    218,
+    219,
+    220,
+    221,
+    222,
+    223,
+    224,
+    225,
+    226,
+    227,
+    228,
+    229,
+    230,
+    231,
+    232,
+    233,
+    234,
+    235,
+    236,
+    237,
+    238,
+    239,
+    240,
+    241,
+    242,
+    243,
+    244,
+    245,
+    246,
+    247,
+    248,
+    249,
+    250,
+    251,
+    252,
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262,
+    263,
+    264,
+    265,
+    266,
+    267,
+    268,
+    269,
+    270,
+    271,
+    272,
+    273,
+    274,
+    275,
+    276,
+    277,
+    278,
+    279,
+    280,
+    281,
+    282,
+    283,
+    284,
+    285,
+    286,
+    287,
+    288,
+    289,
+    290,
+    291,
+    292,
+    293,
+    294,
+    295,
+    296,
+    297,
+    298,
+    299,
+    300,
+    301,
+    302,
+    303,
+    304,
+    305,
+    306,
+    307,
+    308,
+    309,
+    310,
+    311,
+    312,
+    313,
+    314,
+    315,
+    316,
+    317,
+    318,
+    319,
+    320,
+    321,
+    322,
+    323,
+    324,
+    325,
+    326,
+    327,
+    328,
+    329,
+    330,
+    331,
+    332,
+    333,
+    334,
+    335,
+    336,
+    337,
+    338,
+    339,
+    340,
+    341,
+    342,
+    343,
+    344,
+    345,
+    346,
+    347,
+    348,
+    349,
+    350,
+    351,
+    352,
+    353,
+    354,
+    355,
+    356,
+    357,
+    358,
+    359,
+    360,
+    361,
+    362,
+    363,
+    364,
+    365,
+    366,
+    367,
+    368,
+    369,
+    370,
+    371,
+    372,
+    373,
+    374,
+    375,
+    376,
+    377,
+    378,
+    379,
+    380
+  ],
+  "outputs": [
+    1
+  ],
+  "constraints_by_kind": {
+    "adapter": 0,
+    "gadget": 102532,
+    "glue": 88,
+    "marker": 0
+  },
+  "segments": [
+    {
+      "index": 1,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 0,
+      "end": 1,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "ed6e17c9c4a0f1f37550bfd688141e32066ea4b077a46657cb75fd3e7e0f5ecb",
+      "verdict": "covered"
+    },
+    {
+      "index": 2,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 1,
+      "end": 2,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "2d997e53d339900b8b8b3b162134218b4b6cf30d7fb41fad1ab8ab107358601a",
+      "verdict": "covered"
+    },
+    {
+      "index": 3,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 2,
+      "end": 3,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "9ed373b1f1ee5b24781c04caac83650a77f82231c0cfd63f7e67698613e2bb9a",
+      "verdict": "covered"
+    },
+    {
+      "index": 4,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 3,
+      "end": 4,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "32cadb2f023a516bb65424de396ceed19b9ce19a047701547fd4eef6425a473b",
+      "verdict": "covered"
+    },
+    {
+      "index": 5,
+      "op": "assert.dummy_suffix",
+      "kind": "glue",
+      "start": 4,
+      "end": 11,
+      "constraint_count": 7,
+      "constraint_sha256_hex": "6b22fccf25ae24ed031f082372c3dccd555f3cb1c7719791f04415552fe7a0c8",
+      "verdict": "covered"
+    },
+    {
+      "index": 6,
+      "op": "assert.active_range",
+      "kind": "glue",
+      "start": 11,
+      "end": 13,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "2301bc0d73dbe55d6349dd1b75da6ea011b2574311b7591f23c88300c13d73a5",
+      "verdict": "covered"
+    },
+    {
+      "index": 7,
+      "op": "shared.bind",
+      "kind": "marker",
+      "start": 13,
+      "end": 13,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 8,
+      "op": "decaf.assert_on_curve",
+      "kind": "glue",
+      "start": 13,
+      "end": 17,
+      "constraint_count": 4,
+      "constraint_sha256_hex": "0c6ba9de832cdb33fb390c431ba37dd5d9d1be0399ee5a21bfc6640386175177",
+      "verdict": "covered"
+    },
+    {
+      "index": 9,
+      "op": "decaf.assert_on_curve",
+      "kind": "glue",
+      "start": 17,
+      "end": 21,
+      "constraint_count": 4,
+      "constraint_sha256_hex": "c0c5e8f8bfe6a02527725dd5680d7d64e8de2f44593301652363c9b7dc2b33f0",
+      "verdict": "covered"
+    },
+    {
+      "index": 10,
+      "op": "decaf.assert_on_curve",
+      "kind": "glue",
+      "start": 21,
+      "end": 25,
+      "constraint_count": 4,
+      "constraint_sha256_hex": "bf811940aa13adfb3a8a2944b830ec46cf074086852ade22801bb5c96b196e57",
+      "verdict": "covered"
+    },
+    {
+      "index": 11,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 25,
+      "end": 1071,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "c1dbb322c856aac860734eb1be7d9df0ff9c813fc52624c83363cdf388ead141",
+      "verdict": "covered"
+    },
+    {
+      "index": 12,
+      "op": "decaf.diversified_transmission_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-dtk",
+      "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
+      "start": 1071,
+      "end": 7148,
+      "constraint_count": 6077,
+      "constraint_sha256_hex": "5b6873ec30668f18b0c7ff9e372c946798e4357503d90b6627c56ee9fd797012",
+      "verdict": "covered"
+    },
+    {
+      "index": 13,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 7148,
+      "end": 7151,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "ad73cdf13f45f373b597ab0de8f8e9f93346906748f53888498c34c364d18184",
+      "verdict": "covered"
+    },
+    {
+      "index": 14,
+      "op": "spend.begin",
+      "kind": "marker",
+      "start": 7151,
+      "end": 7151,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 15,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 7151,
+      "end": 7581,
+      "constraint_count": 430,
+      "constraint_sha256_hex": "6960d3ebd1e1a4786d6128bed1cd34016b470e190fdec2aa2c8ea9615455858a",
+      "verdict": "covered"
+    },
+    {
+      "index": 16,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 7581,
+      "end": 7583,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "35de539e7c792b11e451a474a96c13b37752f3a39eef5c13f14f12db3a7e5cc5",
+      "verdict": "covered"
+    },
+    {
+      "index": 17,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-nullifier",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
+      "start": 7583,
+      "end": 7893,
+      "constraint_count": 310,
+      "constraint_sha256_hex": "1b3cadec75208b48e461152820e8377bfd372f627df99aa728d10d0ca453091e",
+      "verdict": "covered"
+    },
+    {
+      "index": 18,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 7893,
+      "end": 16908,
+      "constraint_count": 9015,
+      "constraint_sha256_hex": "783315cd81dd84805ed497937649d4d4eb906e7dbf3ff01f53ce2012f6f8c748",
+      "verdict": "covered"
+    },
+    {
+      "index": 19,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 16908,
+      "end": 16910,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "58c0b84cae1f81ce52db3debb86691ae7b0f477fa1409763ff7e9a49be3df265",
+      "verdict": "covered"
+    },
+    {
+      "index": 20,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash3-specialized",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
+      "start": 16910,
+      "end": 17215,
+      "constraint_count": 305,
+      "constraint_sha256_hex": "37ab2db6977c436e22b6b57fc11433001e07b95663d8b1b8db4450884331e87f",
+      "verdict": "covered"
+    },
+    {
+      "index": 21,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 17215,
+      "end": 17217,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "6c381ac717ff5ce502c71d92aac36367d28a014762e7a44dff34cea12d6847a5",
+      "verdict": "covered"
+    },
+    {
+      "index": 22,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 17217,
+      "end": 17218,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "9b9df85f18ca40603aa27fd34f46c450e8e86f35da2defc273901012de11a7c7",
+      "verdict": "covered"
+    },
+    {
+      "index": 23,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 17218,
+      "end": 19030,
+      "constraint_count": 1812,
+      "constraint_sha256_hex": "701bce0ff866ffa4d0b1c756d88809894a1035c449a788a5b67bab65fd28bb98",
+      "verdict": "covered"
+    },
+    {
+      "index": 24,
+      "op": "decaf.randomized_verification_key.dummy",
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 19030,
+      "end": 22648,
+      "constraint_count": 3618,
+      "constraint_sha256_hex": "8096065eb1e42a6b373c7380c562a66de492c03a8aad265c9495f15b0998c883",
+      "verdict": "covered"
+    },
+    {
+      "index": 25,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 22648,
+      "end": 22654,
+      "constraint_count": 6,
+      "constraint_sha256_hex": "f136e64663a0f9ca600127407b5280bdebe7bd153009b1e548a58ae86c85dd8f",
+      "verdict": "covered"
+    },
+    {
+      "index": 26,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 22654,
+      "end": 22659,
+      "constraint_count": 5,
+      "constraint_sha256_hex": "3e56298e479ca502cd984c8e1abfa0ba65ce424d7daabd3c891b060f37544ef2",
+      "verdict": "covered"
+    },
+    {
+      "index": 27,
+      "op": "decaf.diversified_transmission_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-dtk",
+      "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
+      "start": 22659,
+      "end": 28736,
+      "constraint_count": 6077,
+      "constraint_sha256_hex": "5fc9d3f48877371c16c89962a1e6122b6c874062a8f44e32375e759c38bc8912",
+      "verdict": "covered"
+    },
+    {
+      "index": 28,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 28736,
+      "end": 28741,
+      "constraint_count": 5,
+      "constraint_sha256_hex": "b6a8c481ee596b29f3f78e50da628a75dfdd3ffa53f62b06350e0e02b7e22601",
+      "verdict": "covered"
+    },
+    {
+      "index": 29,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 28741,
+      "end": 28743,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "f8420311bcbbb15bb1658c5b3e07288518cabbc4c3571bdea44160938ca34ea8",
+      "verdict": "covered"
+    },
+    {
+      "index": 30,
+      "op": "decaf.assert_on_curve",
+      "kind": "glue",
+      "start": 28743,
+      "end": 28747,
+      "constraint_count": 4,
+      "constraint_sha256_hex": "891933c021aa05c527f56a8dda0196d42a5a77fc04926fa5df4fdd2196f74730",
+      "verdict": "covered"
+    },
+    {
+      "index": 31,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 28747,
+      "end": 28750,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "320f99b4df5d2ccd67283b33b16a120f207bcc8f75a0acda0eac32a82d4370a0",
+      "verdict": "covered"
+    },
+    {
+      "index": 32,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 28750,
+      "end": 28753,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "8ea7282edcdf19d63e1b174ff495d544002373a2cf726ab9c084be7635b1059a",
+      "verdict": "covered"
+    },
+    {
+      "index": 33,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 28753,
+      "end": 28754,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "a86d5dace212f9074d147e131233e634d91e9a22d7acf04c95f4597b8c95dde6",
+      "verdict": "covered"
+    },
+    {
+      "index": 34,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 28754,
+      "end": 29800,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "c1e24bd36da6ec69b8de5ad54bed5a4d541fee53af501119ca9aea70c7cb26c5",
+      "verdict": "covered"
+    },
+    {
+      "index": 35,
+      "op": "spend.collect",
+      "kind": "marker",
+      "start": 29800,
+      "end": 29800,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 36,
+      "op": "spend.begin",
+      "kind": "marker",
+      "start": 29800,
+      "end": 29800,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 37,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 29800,
+      "end": 30230,
+      "constraint_count": 430,
+      "constraint_sha256_hex": "a250266e5448b92601ad2ed56bff1908ac947822a854b0c4d646e9d183e1ad3e",
+      "verdict": "covered"
+    },
+    {
+      "index": 38,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 30230,
+      "end": 30232,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "50a2df34763a4f7d17d964408963d4548b87ac4a0cbd9b642f7541359078f8e7",
+      "verdict": "covered"
+    },
+    {
+      "index": 39,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-nullifier",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
+      "start": 30232,
+      "end": 30542,
+      "constraint_count": 310,
+      "constraint_sha256_hex": "48b5ae2683bb42c4a8114f24ff10268d8f588b49c1b9f4624b3c110639cc588b",
+      "verdict": "covered"
+    },
+    {
+      "index": 40,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 30542,
+      "end": 39557,
+      "constraint_count": 9015,
+      "constraint_sha256_hex": "0f9f45b3fb333f8f86f0d25564a01413f0716e165c1afb64069c6a5782eb1725",
+      "verdict": "covered"
+    },
+    {
+      "index": 41,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 39557,
+      "end": 39559,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "ce9640b5cdd871b9b5ceb3d446396b08037aff0c828a6b3e75afa9473563cf6d",
+      "verdict": "covered"
+    },
+    {
+      "index": 42,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash3-specialized",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
+      "start": 39559,
+      "end": 39864,
+      "constraint_count": 305,
+      "constraint_sha256_hex": "627ad265a287ee05f17f23ccf81c9f85fab2fa493a585a39366eb14e899b5f4c",
+      "verdict": "covered"
+    },
+    {
+      "index": 43,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 39864,
+      "end": 39866,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "7390da8d824dd7530382f5237902edcf7e51e5046c7419cd604b1f07da807777",
+      "verdict": "covered"
+    },
+    {
+      "index": 44,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 39866,
+      "end": 39867,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "3133448253b44ea511be7dd9a0ef6bceb63a502b0a4ec617fc8894d1c072df50",
+      "verdict": "covered"
+    },
+    {
+      "index": 45,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 39867,
+      "end": 41679,
+      "constraint_count": 1812,
+      "constraint_sha256_hex": "413c95f675b2301121e5fc4fd797acd8abacf787e5149f55ba61324c9b39cabe",
+      "verdict": "covered"
+    },
+    {
+      "index": 46,
+      "op": "decaf.randomized_verification_key.dummy",
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 41679,
+      "end": 45297,
+      "constraint_count": 3618,
+      "constraint_sha256_hex": "c2a6b47fd200d4a8067c1a020b65cc463538040eca8a515098babb409207bd90",
+      "verdict": "covered"
+    },
+    {
+      "index": 47,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 45297,
+      "end": 45303,
+      "constraint_count": 6,
+      "constraint_sha256_hex": "5543d16c65fb5ae41bdc13a67339f1a8a4a8ef5b9b727922be433deacb9dbb53",
+      "verdict": "covered"
+    },
+    {
+      "index": 48,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 45303,
+      "end": 45308,
+      "constraint_count": 5,
+      "constraint_sha256_hex": "6c8c16eb6e77aac96368d92d4061b8fc47686764652f542020e73f606e3a313d",
+      "verdict": "covered"
+    },
+    {
+      "index": 49,
+      "op": "decaf.diversified_transmission_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-dtk",
+      "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
+      "start": 45308,
+      "end": 51385,
+      "constraint_count": 6077,
+      "constraint_sha256_hex": "8af29d26b266ada0e77978920ede84cf889a5106c8e19793b28775188175ac77",
+      "verdict": "covered"
+    },
+    {
+      "index": 50,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 51385,
+      "end": 51390,
+      "constraint_count": 5,
+      "constraint_sha256_hex": "f41c9dd94226139aea5d1e5c7a122c98be50890b2eb366b7a175d941046f4916",
+      "verdict": "covered"
+    },
+    {
+      "index": 51,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 51390,
+      "end": 51392,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "92219b34ab6e43cc1ecbbf54434a78e5d5b29685118d4c142aa124906e048b3e",
+      "verdict": "covered"
+    },
+    {
+      "index": 52,
+      "op": "decaf.assert_on_curve",
+      "kind": "glue",
+      "start": 51392,
+      "end": 51396,
+      "constraint_count": 4,
+      "constraint_sha256_hex": "45d61254952f2d2f748365e39204be87ea47e174a65a0f3abcd5b4d7901c96a9",
+      "verdict": "covered"
+    },
+    {
+      "index": 53,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 51396,
+      "end": 51399,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "79ef89b960b03cbfad0b6ba41b4ff1d6c9b488244588f460989f4bec28073c76",
+      "verdict": "covered"
+    },
+    {
+      "index": 54,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 51399,
+      "end": 51402,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "c1e31591002bdf36026dad551a557cbb53a898b73e9d96cd0dd77776958d82fd",
+      "verdict": "covered"
+    },
+    {
+      "index": 55,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 51402,
+      "end": 51403,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "6f439a9f763385124ba6af740f1ce8aa628717f45a45654404b9d10a0132e60f",
+      "verdict": "covered"
+    },
+    {
+      "index": 56,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 51403,
+      "end": 52449,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "e69b3afeb7de8f28ad27f3085f99f2b2762e0e4e38fe01096045ce500de35e06",
+      "verdict": "covered"
+    },
+    {
+      "index": 57,
+      "op": "spend.collect",
+      "kind": "marker",
+      "start": 52449,
+      "end": 52449,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 58,
+      "op": "spend.begin",
+      "kind": "marker",
+      "start": 52449,
+      "end": 52449,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 59,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 52449,
+      "end": 52879,
+      "constraint_count": 430,
+      "constraint_sha256_hex": "f9cb8d1db559a4b2a568c90f660c73dc0a8bbc44444f8aa10c2593032cc9b7df",
+      "verdict": "covered"
+    },
+    {
+      "index": 60,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 52879,
+      "end": 52881,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "37eb5a0d2538044885aca6db237574d43e16191b0254bb43d6fbaa345070c7e1",
+      "verdict": "covered"
+    },
+    {
+      "index": 61,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-nullifier",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
+      "start": 52881,
+      "end": 53191,
+      "constraint_count": 310,
+      "constraint_sha256_hex": "e82075cb62fc2faee38edbdd8d81a2aac07f38d950c7438d40dc5b11fc65edc5",
+      "verdict": "covered"
+    },
+    {
+      "index": 62,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 53191,
+      "end": 62206,
+      "constraint_count": 9015,
+      "constraint_sha256_hex": "e447f41cc9ea19845e0dcd05614c3464a5ca2f83362b31476b25d0025fe57741",
+      "verdict": "covered"
+    },
+    {
+      "index": 63,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 62206,
+      "end": 62208,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "39ace4c12308ef52091d872be728e4f92abeac39b4d54430b463b6244f90b760",
+      "verdict": "covered"
+    },
+    {
+      "index": 64,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash3-specialized",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
+      "start": 62208,
+      "end": 62513,
+      "constraint_count": 305,
+      "constraint_sha256_hex": "d8f8b88761725ed2ba05c805a29bab451285893376612d195c940a98327d8608",
+      "verdict": "covered"
+    },
+    {
+      "index": 65,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 62513,
+      "end": 62515,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "6d96cab7eac4228de3a4c9562f5ddd73a025fe99ba3d3d0c224912e6fba29dcd",
+      "verdict": "covered"
+    },
+    {
+      "index": 66,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 62515,
+      "end": 62516,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "e84149c4b40046f941491ec49ca80c13232f36da24c88e5ca1c7cfd42f9d0d80",
+      "verdict": "covered"
+    },
+    {
+      "index": 67,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 62516,
+      "end": 64328,
+      "constraint_count": 1812,
+      "constraint_sha256_hex": "b425a2994220d41150877ba4f773aa71ef3e67081a4e3572734b6a7a79f28dd0",
+      "verdict": "covered"
+    },
+    {
+      "index": 68,
+      "op": "decaf.randomized_verification_key.dummy",
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 64328,
+      "end": 67946,
+      "constraint_count": 3618,
+      "constraint_sha256_hex": "803a14f941b8bbce8587e2d236f23d65fb687deff382d39eda0aa3eb6aeadd68",
+      "verdict": "covered"
+    },
+    {
+      "index": 69,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 67946,
+      "end": 67952,
+      "constraint_count": 6,
+      "constraint_sha256_hex": "200d088e7bf1fb56be040d0309a9721aa659fd459ac7760dbe1146e9b08dafab",
+      "verdict": "covered"
+    },
+    {
+      "index": 70,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 67952,
+      "end": 67957,
+      "constraint_count": 5,
+      "constraint_sha256_hex": "eb4509737cc1e05f86ac97cb1de4f70a2c3e4de95ccb78d0abfd718af82e2f70",
+      "verdict": "covered"
+    },
+    {
+      "index": 71,
+      "op": "decaf.diversified_transmission_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-dtk",
+      "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
+      "start": 67957,
+      "end": 74034,
+      "constraint_count": 6077,
+      "constraint_sha256_hex": "e1856525c58223d5096fc7665c985e97bbf7aed79de7bb6622c98d8ef5649fbf",
+      "verdict": "covered"
+    },
+    {
+      "index": 72,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 74034,
+      "end": 74039,
+      "constraint_count": 5,
+      "constraint_sha256_hex": "ac363e06309b115880ea828a6e717dde05294fabd04a0bbb40cc3bf6214aa687",
+      "verdict": "covered"
+    },
+    {
+      "index": 73,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 74039,
+      "end": 74041,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "5c359a59168e5d51ed6cf6d5ace6a5643835421a0b42b792ad272694b0fb8373",
+      "verdict": "covered"
+    },
+    {
+      "index": 74,
+      "op": "decaf.assert_on_curve",
+      "kind": "glue",
+      "start": 74041,
+      "end": 74045,
+      "constraint_count": 4,
+      "constraint_sha256_hex": "d28afc549c535315528a68fe823bbde8b0648853dccb8c85ac6708700cc31490",
+      "verdict": "covered"
+    },
+    {
+      "index": 75,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 74045,
+      "end": 74048,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "253109bd7606abf98d866a84076efe72d52cc0ee75006b0020396a1619ac8c5a",
+      "verdict": "covered"
+    },
+    {
+      "index": 76,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 74048,
+      "end": 74051,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "2adc63a5b8f5b62768db6d47eeffdc84e2d71b2e37103f831bbc8e7461b62e23",
+      "verdict": "covered"
+    },
+    {
+      "index": 77,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 74051,
+      "end": 74052,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "4843eff61209e3f0357031eb76c9420062b3115da515cbb46f6ba2b698bc9562",
+      "verdict": "covered"
+    },
+    {
+      "index": 78,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 74052,
+      "end": 75098,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "1af2dbb0065c94ff37c20e6b5a614ed7a1c2a1162a1ba0f6796e80f648bd8fe8",
+      "verdict": "covered"
+    },
+    {
+      "index": 79,
+      "op": "spend.collect",
+      "kind": "marker",
+      "start": 75098,
+      "end": 75098,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 80,
+      "op": "spend.begin",
+      "kind": "marker",
+      "start": 75098,
+      "end": 75098,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 81,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 75098,
+      "end": 75528,
+      "constraint_count": 430,
+      "constraint_sha256_hex": "e4f12ab94996de4ba0e219d8b93a73e5afb7127e6abf9847782c90cc909fa3ca",
+      "verdict": "covered"
+    },
+    {
+      "index": 82,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 75528,
+      "end": 75530,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "0a8cd9951b68c5997ffe8173d45aa4b95caa2fb6e0901ff1572d19a50da67af0",
+      "verdict": "covered"
+    },
+    {
+      "index": 83,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-nullifier",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
+      "start": 75530,
+      "end": 75840,
+      "constraint_count": 310,
+      "constraint_sha256_hex": "3b16cf65059cca84582f24a983657c6760e3823aecffb57dca55eb4b3ebb6d4a",
+      "verdict": "covered"
+    },
+    {
+      "index": 84,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 75840,
+      "end": 84855,
+      "constraint_count": 9015,
+      "constraint_sha256_hex": "edbef52722b501de8e289b720f213cdd9f536341849f143b68de0fdd8182c6b5",
+      "verdict": "covered"
+    },
+    {
+      "index": 85,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 84855,
+      "end": 84857,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "e6ab8bf5c9952a55eb6b3a4de7685a916fd58c72e6ce8bd20ba6136190e0328f",
+      "verdict": "covered"
+    },
+    {
+      "index": 86,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash3-specialized",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
+      "start": 84857,
+      "end": 85162,
+      "constraint_count": 305,
+      "constraint_sha256_hex": "a431877b283d6e5bc2262e947fc4feff4deecbc0a36c11580393776ad2fd9e99",
+      "verdict": "covered"
+    },
+    {
+      "index": 87,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 85162,
+      "end": 85164,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "2af8a17b001ee415ec4b7bed8bbd93469349564015c6038da067804b8513d5ea",
+      "verdict": "covered"
+    },
+    {
+      "index": 88,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 85164,
+      "end": 85165,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "300afed3358d277905593e8743b9b167086ab26be1f4989603831f0a106a8cc6",
+      "verdict": "covered"
+    },
+    {
+      "index": 89,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 85165,
+      "end": 86977,
+      "constraint_count": 1812,
+      "constraint_sha256_hex": "c07a6e72a9a59ece355f6de026786a29a674d65eb75d6f7a15475f0139b696be",
+      "verdict": "covered"
+    },
+    {
+      "index": 90,
+      "op": "decaf.randomized_verification_key.dummy",
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 86977,
+      "end": 90595,
+      "constraint_count": 3618,
+      "constraint_sha256_hex": "618842526aff8d4b68b4af45095f33cb28e1a9626598e472bfb36e5bb0e939af",
+      "verdict": "covered"
+    },
+    {
+      "index": 91,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 90595,
+      "end": 90601,
+      "constraint_count": 6,
+      "constraint_sha256_hex": "e58902cf04d8c28afd0952bd1b07bbae6af944c058ab04ddedbd7d0e991f4cf6",
+      "verdict": "covered"
+    },
+    {
+      "index": 92,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 90601,
+      "end": 90606,
+      "constraint_count": 5,
+      "constraint_sha256_hex": "696c14f66dd2683495f549f052f7f62f14b09e7f73dd8d0233fe17900488c302",
+      "verdict": "covered"
+    },
+    {
+      "index": 93,
+      "op": "decaf.diversified_transmission_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-dtk",
+      "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
+      "start": 90606,
+      "end": 96683,
+      "constraint_count": 6077,
+      "constraint_sha256_hex": "3b88e984d50269cd440a54e436c8a7763dff09e4a1c877d7882de7c794bbbaab",
+      "verdict": "covered"
+    },
+    {
+      "index": 94,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 96683,
+      "end": 96688,
+      "constraint_count": 5,
+      "constraint_sha256_hex": "1755c487552fb33e2ad2c149617f0decab5c00c6eec14d7a699dc3db32c5371a",
+      "verdict": "covered"
+    },
+    {
+      "index": 95,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 96688,
+      "end": 96690,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "ee1da87905c04e1f0c890d0f6d6e9dc64aca94c77906f3001067167977c7b332",
+      "verdict": "covered"
+    },
+    {
+      "index": 96,
+      "op": "decaf.assert_on_curve",
+      "kind": "glue",
+      "start": 96690,
+      "end": 96694,
+      "constraint_count": 4,
+      "constraint_sha256_hex": "a74b2d839ead8e6200f168d85c6ae1006e97f84bbaf042948dbcc4ef6c9ba28e",
+      "verdict": "covered"
+    },
+    {
+      "index": 97,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 96694,
+      "end": 96697,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "be833edc50ba3476c990c369d26309209e724ea67f33de464b29e87a3a20ffd6",
+      "verdict": "covered"
+    },
+    {
+      "index": 98,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 96697,
+      "end": 96700,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "081b1da48d36e81b8f8dd1fe0736fcaaa7531110dee9fc87bd8acdb139a2c908",
+      "verdict": "covered"
+    },
+    {
+      "index": 99,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 96700,
+      "end": 96701,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "49dc82ee3d60aea3680af19ff5b076ae942c76f24f42fab9c40049d339194300",
+      "verdict": "covered"
+    },
+    {
+      "index": 100,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 96701,
+      "end": 97747,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "81ef914f8157f195d6939d9acafc13ecc4aa3fec242c08e0517657064fa76691",
+      "verdict": "covered"
+    },
+    {
+      "index": 101,
+      "op": "spend.collect",
+      "kind": "marker",
+      "start": 97747,
+      "end": 97747,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 102,
+      "op": "output.begin",
+      "kind": "marker",
+      "start": 97747,
+      "end": 97747,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 103,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 97747,
+      "end": 98177,
+      "constraint_count": 430,
+      "constraint_sha256_hex": "864c9a33aa20f43796d562b29683c2996a51d7494718c1d10e00829f4620034e",
+      "verdict": "covered"
+    },
+    {
+      "index": 104,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 98177,
+      "end": 98178,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "1d9eb56197502045ff72675f25e2eb1b9094d82756aefb1512d44e23fd48ceca",
+      "verdict": "covered"
+    },
+    {
+      "index": 105,
+      "op": "decaf.assert_on_curve",
+      "kind": "glue",
+      "start": 98178,
+      "end": 98182,
+      "constraint_count": 4,
+      "constraint_sha256_hex": "ef326c9763b719c66256ed144c2284dcf95e467861be98ee8a0ce9cfa0640bc5",
+      "verdict": "covered"
+    },
+    {
+      "index": 106,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 98182,
+      "end": 98185,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "6d413e0fcda65deaa2b46c1b1a3acc6959b5fba9cb0c97d7410b5ff73a977433",
+      "verdict": "covered"
+    },
+    {
+      "index": 107,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 98185,
+      "end": 98188,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "aeaafd5350ecec7d39101e10383ede09ae108e4af50459972155ad4eb7b58ad1",
+      "verdict": "covered"
+    },
+    {
+      "index": 108,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 98188,
+      "end": 98189,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "1cb2b38aac3ad19e79fa4d4fc18914e5ec6e3bab5cce4bb14bdda88ac0828a2c",
+      "verdict": "covered"
+    },
+    {
+      "index": 109,
+      "op": "output.collect",
+      "kind": "marker",
+      "start": 98189,
+      "end": 98189,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 110,
+      "op": "decaf.conservation_net_balance_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-conservation-net-balance-commitment",
+      "bridge_theorem": "Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound",
+      "start": 98189,
+      "end": 100640,
+      "constraint_count": 2451,
+      "constraint_sha256_hex": "4ee253f8fb0c7ad28f333386b8b9cfea1d7b593404bce25237a3254fe66597ed",
+      "verdict": "covered"
+    },
+    {
+      "index": 111,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 100640,
+      "end": 100643,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "afb123dbfd44a63fa929407c4de1fa1c2d55704fe4836d2997d8594b656144cd",
+      "verdict": "covered"
+    },
+    {
+      "index": 112,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 100643,
+      "end": 101689,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "5d332f240ec11bdff1fff4fe7ad3249e87b8c3c4a6d6b5ccbf08f64ff21a8b93",
+      "verdict": "covered"
+    },
+    {
+      "index": 113,
+      "op": "statement.append",
+      "kind": "adapter",
+      "start": 101689,
+      "end": 101689,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 114,
+      "op": "statement.append_all",
+      "kind": "adapter",
+      "start": 101689,
+      "end": 101689,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 115,
+      "op": "statement.append",
+      "kind": "adapter",
+      "start": 101689,
+      "end": 101689,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 116,
+      "op": "statement.append_all",
+      "kind": "adapter",
+      "start": 101689,
+      "end": 101689,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 117,
+      "op": "statement.hash",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash7",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound",
+      "start": 101689,
+      "end": 102619,
+      "constraint_count": 930,
+      "constraint_sha256_hex": "1b619479d5e5f39487938d38c7255e8d53332be09434ccbb31cd8028ca1fe85e",
+      "verdict": "covered"
+    },
+    {
+      "index": 118,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 102619,
+      "end": 102620,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "d4882c40e6769b84ae39b333df7c02f45bd9add1bbc4d354bdb3c3cc9a0de326",
+      "verdict": "covered"
+    }
+  ],
+  "deployed_obligations": {
+    "circuit": "note_reshape4x1",
+    "sr1cs_sha256_hex": "b513f7bdd6b495311fdd22c33421c086c48cffe6a5ed59c6afacabb3310de297",
+    "total_obligations": 103,
+    "discharged": 103,
+    "functional_assumptions": 0,
+    "pending": 0,
+    "unmapped": 0,
+    "constant_mismatch": 0,
+    "instance_unpinned": 0,
+    "theorem_missing": 0,
+    "contract_missing": 0,
+    "relation_mismatch": 0,
+    "wire_role_mismatch": 0,
+    "class_errors": [],
+    "obligations": [
+      {
+        "segment_index": 1,
+        "op": "assert.boolean",
+        "start": 0,
+        "end": 1,
+        "class_key": "assert.boolean@7a87157611237b8e",
+        "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+        "relation_sha256_hex": "bd6093b23d31d1ceef537d92c978d2eeac8263adb1e21f173cdea3357479e849",
+        "wire_role_sha256_hex": "e1f4f0e207108386bc15c5dd0381e2127aac520c35af18b9d79e19050a323c3c",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst1_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg1"
+        }
+      },
+      {
+        "segment_index": 2,
+        "op": "assert.boolean",
+        "start": 1,
+        "end": 2,
+        "class_key": "assert.boolean@7a87157611237b8e",
+        "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+        "relation_sha256_hex": "d2b0a75c9081ea41d64571e7636dc46fb9d604611f532ea838fe74fac5158e12",
+        "wire_role_sha256_hex": "9f028becef903f7404ac5ff48b5d81dc62818a4efd533992097023ae810e82a1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst2_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg2"
+        }
+      },
+      {
+        "segment_index": 3,
+        "op": "assert.boolean",
+        "start": 2,
+        "end": 3,
+        "class_key": "assert.boolean@7a87157611237b8e",
+        "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+        "relation_sha256_hex": "ca71779cd90319edce98369c9ed328be522d4ac85dada909a5597f496482869e",
+        "wire_role_sha256_hex": "9fe149d3e23529eb8761b759e03ce3d1892631e6d7e2061eb07a3be188b030c5",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst3_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg3"
+        }
+      },
+      {
+        "segment_index": 4,
+        "op": "assert.boolean",
+        "start": 3,
+        "end": 4,
+        "class_key": "assert.boolean@7a87157611237b8e",
+        "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+        "relation_sha256_hex": "bacad89f35c9528bd8071204507892e9c96eaa974d7bc3e47a2b054c7ca371a5",
+        "wire_role_sha256_hex": "f864e3b839ee7a5393fcfd0b233b9fba008a672db1b278d85a5c5b2f637ec8b4",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst4_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg4"
+        }
+      },
+      {
+        "segment_index": 5,
+        "op": "assert.dummy_suffix",
+        "start": 4,
+        "end": 11,
+        "class_key": "assert.dummy_suffix@0a2e46eba606d207",
+        "constant_vector_sha256_hex": "4b3b52c46c99c7b80b082dd53f8f63ffb576e9e0a3b9899514a90af3ebba42d4",
+        "relation_sha256_hex": "7d6492eb60326fc605d47288f5d5a5e35ae0710d221df0d2f9538b4555525f67",
+        "wire_role_sha256_hex": "8686bb5b2be8b07bd4ec6756c2969f8bab42a37548d5ebcd4cee477bd0112132",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst5_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg5"
+        }
+      },
+      {
+        "segment_index": 6,
+        "op": "assert.active_range",
+        "start": 11,
+        "end": 13,
+        "class_key": "assert.active_range@1a03d2b388d24a4f",
+        "constant_vector_sha256_hex": "27ff472dd9d754a50e9328d11d58f48ba1ac6cdd23b7d8b520668f622c7d606d",
+        "relation_sha256_hex": "f9e0111dab9909ac0fe7b60920636f497853d03a246bd87d876ac41c18ba9335",
+        "wire_role_sha256_hex": "6e5fa1fcb423951a850dde011949e4eca5a50f9619327eba2fb0a534d80a2855",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst6_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg6"
+        }
+      },
+      {
+        "segment_index": 8,
+        "op": "decaf.assert_on_curve",
+        "start": 13,
+        "end": 17,
+        "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
+        "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+        "relation_sha256_hex": "a81d2542f639599580d29aed2f8b326bac6f074c69900d5fab93c91db7c94a3f",
+        "wire_role_sha256_hex": "4bd4cc8ee2717e9147153836157d3161c5fe470a941787dcc91ab4c168e991d5",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst8_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg8"
+        }
+      },
+      {
+        "segment_index": 9,
+        "op": "decaf.assert_on_curve",
+        "start": 17,
+        "end": 21,
+        "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
+        "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+        "relation_sha256_hex": "6781ea27e09fcd05d3aadb4f3eeab016978271db2c61cb35e012a527ccb216a9",
+        "wire_role_sha256_hex": "b7b58bd56efb2af2e2f814614742da310242013986ce6281081f40cf07678c03",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst9_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg9"
+        }
+      },
+      {
+        "segment_index": 10,
+        "op": "decaf.assert_on_curve",
+        "start": 21,
+        "end": 25,
+        "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
+        "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+        "relation_sha256_hex": "80c0629427da8d1e1051b2eb2635d18ba4d7c11a6ae1ab82396e91dc00c1bc4d",
+        "wire_role_sha256_hex": "5a1ed29642c90dc632cbafa3a8e883f208261034a993e94a01f1ef223f7603a6",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst10_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg10"
+        }
+      },
+      {
+        "segment_index": 11,
+        "op": "decaf.compress_to_field",
+        "start": 25,
+        "end": 1071,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "085e3a218d171932b4f0aaeed75460d322a4045c105542f9779bad5618f318ee",
+        "wire_role_sha256_hex": "fb410ccd03c19d61c05dd379f9b75d3a55aec6c22b8a0f41f8dfdae9c6ffe3a1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst11_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg11"
+        }
+      },
+      {
+        "segment_index": 12,
+        "op": "decaf.diversified_transmission_key",
+        "start": 1071,
+        "end": 7148,
+        "class_key": "decaf.diversified_transmission_key@f7b90071283b887a",
+        "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+        "relation_sha256_hex": "5e295b17474575603d23e4fe8cf5e5f78910724b2b0800eb9ac6b4ef09c2b9ca",
+        "wire_role_sha256_hex": "0cc514f62c3a1a8221c18574d578807eb359f56496ba8f269aaeca5660a562eb",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst12_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg12"
+        }
+      },
+      {
+        "segment_index": 13,
+        "op": "decaf.assert_equivalent",
+        "start": 7148,
+        "end": 7151,
+        "class_key": "decaf.assert_equivalent@33ce4e8355a9a671",
+        "constant_vector_sha256_hex": "c78e793aa4d8f81f40305396be86cc7512337ae2cb7ba50a1a55806d07607754",
+        "relation_sha256_hex": "c389faa3d66f037b0ce58bffd49f0b3dd43b41a53a1386077b008b154f0587cb",
+        "wire_role_sha256_hex": "0ce64bba8299ba1505f619814a54280127d216ce1a97fbf791a4b585fe8a5ed1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst13_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg13"
+        }
+      },
+      {
+        "segment_index": 15,
+        "op": "gadget.note_commitment",
+        "start": 7151,
+        "end": 7581,
+        "class_key": "gadget.note_commitment@99344ebca62df7e8",
+        "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+        "relation_sha256_hex": "a75873e367982164d9c13b50b7b14cd5d2696c8b6a30fd4f2c24b5e953f7ae63",
+        "wire_role_sha256_hex": "337fde86090256834fc7b68cd00e3f55fd8218c25708dd9e70c9ebc85d5de5a8",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst15_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg15"
+        }
+      },
+      {
+        "segment_index": 16,
+        "op": "assert.eq_if",
+        "start": 7581,
+        "end": 7583,
+        "class_key": "assert.eq_if@360acff86ba025ba",
+        "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+        "relation_sha256_hex": "7db5660acd19601e6015b274854c813f3674329fd365f3c80f4759fb7cc2d030",
+        "wire_role_sha256_hex": "7278c860f99a21be1d9407c1fd9ddbf42d21d0598c7617bcb50463f2295121be",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst16_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg16"
+        }
+      },
+      {
+        "segment_index": 17,
+        "op": "gadget.nullifier",
+        "start": 7583,
+        "end": 7893,
+        "class_key": "gadget.nullifier@96286f6f866cc60c",
+        "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+        "relation_sha256_hex": "c4d8e89bed54a1f019834f790536138a33a2d8b54d20f2fae438b32a3bc4b98a",
+        "wire_role_sha256_hex": "7007e922e8857438635be3449b861fe54e6d9b47a595806fe371e2914447f395",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst17_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg17"
+        }
+      },
+      {
+        "segment_index": 18,
+        "op": "gadget.state_commitment_path",
+        "start": 7893,
+        "end": 16908,
+        "class_key": "gadget.state_commitment_path@088ab48133b9d3af",
+        "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+        "relation_sha256_hex": "28dfb214a2a14a3c7a6351bc2275a98e42e0e80d94a8a28578fe0dc6d911105c",
+        "wire_role_sha256_hex": "dfdf45d8b558dd534b0714ab41af8635aaa2b2a563596b10ab5448d626d19bba",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst18_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg18"
+        }
+      },
+      {
+        "segment_index": 19,
+        "op": "assert.eq_if",
+        "start": 16908,
+        "end": 16910,
+        "class_key": "assert.eq_if@260c4859295f1af1",
+        "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+        "relation_sha256_hex": "f519affb0f4dcef1412c5836a128c7004d3b72cf8a9519a810a5c893e8f2c8b5",
+        "wire_role_sha256_hex": "04e15da325cf75780e0e237d8a4bc4c6abbb92df4ebcd98808152ef77b58baa4",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst19_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg19"
+        }
+      },
+      {
+        "segment_index": 20,
+        "op": "gadget.synthetic_dummy_nullifier",
+        "start": 16910,
+        "end": 17215,
+        "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3",
+        "constant_vector_sha256_hex": "d881ca6325a1a62872cdea69414fe5c28c47323d78d7743e3bde659f6a146c1e",
+        "relation_sha256_hex": "2244895edcf285734c4f422a896aeaac340c882bfa89a46ef1139f3089ebc721",
+        "wire_role_sha256_hex": "5c96052105a4faa097e03957411740215cb6dfc468b938c2a05cb34517f67b9e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst20_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg20"
+        }
+      },
+      {
+        "segment_index": 21,
+        "op": "dummy.mux",
+        "start": 17215,
+        "end": 17217,
+        "class_key": "dummy.mux@68c34d6e11c35404",
+        "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+        "relation_sha256_hex": "deb26eedd84fdaad15dce3347d9dbe878b3e773d2971b873ab34ed43b2bb6340",
+        "wire_role_sha256_hex": "2bee09c856ad27474ba0726f1ef75bb66aa6be14ab77831c2991e61dd68b5866",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst21_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg21"
+        }
+      },
+      {
+        "segment_index": 22,
+        "op": "assert.eq",
+        "start": 17217,
+        "end": 17218,
+        "class_key": "assert.eq@c8f5f9ee8e1b47f7",
+        "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+        "relation_sha256_hex": "e5574f5d22637378341eaed8010d9f5fce4601441af852be2db62c0893e3a658",
+        "wire_role_sha256_hex": "3f9cce2621084024ba7b4ff4020d4096ede047a14e9e58c5f4e325ea662de0a2",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst22_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg22"
+        }
+      },
+      {
+        "segment_index": 23,
+        "op": "decaf.randomized_verification_key",
+        "start": 17218,
+        "end": 19030,
+        "class_key": "decaf.randomized_verification_key@058cff75c684a4d6",
+        "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+        "relation_sha256_hex": "5f60c3bc6cf178b39831e60616791b60d64a0c23d2d3a743125abf9f202d06c0",
+        "wire_role_sha256_hex": "03e010bf3030f05374f7ac72ff70c88ebb0cbfc234deb42575f2328ceadccf9b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst23_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg23"
+        }
+      },
+      {
+        "segment_index": 24,
+        "op": "decaf.randomized_verification_key.dummy",
+        "start": 19030,
+        "end": 22648,
+        "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd",
+        "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+        "relation_sha256_hex": "65ec614fe06f16d86e8ee4e9acf3db3f0c67dfa729770fee4755baf90e8ccf21",
+        "wire_role_sha256_hex": "a8db352182033ed13028bf9cff74a6e011585c4dd46a71d447b4232c6b868a73",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst24_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg24"
+        }
+      },
+      {
+        "segment_index": 25,
+        "op": "decaf.assert_equivalent_if",
+        "start": 22648,
+        "end": 22654,
+        "class_key": "decaf.assert_equivalent_if@6198d347efba32e9",
+        "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+        "relation_sha256_hex": "c1ceefddc8613eefd0624e7317609d9eb91227cd5c8b2503428aaeed691207f6",
+        "wire_role_sha256_hex": "7789df7d3e080527dd1ee758dc06f4e9771da025ea72e0f420cc039f8811d6a7",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst25_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg25"
+        }
+      },
+      {
+        "segment_index": 26,
+        "op": "decaf.assert_equivalent_if",
+        "start": 22654,
+        "end": 22659,
+        "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d",
+        "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+        "relation_sha256_hex": "5ce7fc0e5bff2fcd3558d52156b3d1be54e51a818456d25bb1b9ac395c6831ca",
+        "wire_role_sha256_hex": "a2847cb6ae9c573c678496bef530db016e0039d5c970abc243ffd49b0a995c5e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst26_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg26"
+        }
+      },
+      {
+        "segment_index": 27,
+        "op": "decaf.diversified_transmission_key",
+        "start": 22659,
+        "end": 28736,
+        "class_key": "decaf.diversified_transmission_key@f7b90071283b887a",
+        "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+        "relation_sha256_hex": "7e2f79d65896b658b07b3fffaaa277580dc32be1016d1dee03f60957ec38f1ad",
+        "wire_role_sha256_hex": "ea829f50c67c16f6295861060ba3da2874b0b19906c011b584bd3a891bc25854",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst27_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg27"
+        }
+      },
+      {
+        "segment_index": 28,
+        "op": "decaf.assert_equivalent_if",
+        "start": 28736,
+        "end": 28741,
+        "class_key": "decaf.assert_equivalent_if@641f53399ac398a8",
+        "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+        "relation_sha256_hex": "2d8680d9376bc265ed0624354a74ee63fb789f2e59276119913bf6f689aaf717",
+        "wire_role_sha256_hex": "e6509531438e4fa199906f670411c01788e337f41e3f5d5f874b614034cb0d71",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst28_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg28"
+        }
+      },
+      {
+        "segment_index": 29,
+        "op": "assert.eq_if",
+        "start": 28741,
+        "end": 28743,
+        "class_key": "assert.eq_if@85cc0c8fd7537839",
+        "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+        "relation_sha256_hex": "52ae44b82791ce864b7c22b38783cf974c3f5359b31e59c337a1a157bd9bac76",
+        "wire_role_sha256_hex": "40b951f174f34368a760196b9a374553db6ea69e4520f6d3be5ea52731b1be4b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst29_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg29"
+        }
+      },
+      {
+        "segment_index": 30,
+        "op": "decaf.assert_on_curve",
+        "start": 28743,
+        "end": 28747,
+        "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
+        "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+        "relation_sha256_hex": "d09ff71de5d80890ef3eb7be1a053d2da23bf610c88a6ae314d86427ff82ad1b",
+        "wire_role_sha256_hex": "ebc1c11068830d1aabe9544095bae5841c7a5a9d601c1f8caa7f713b72cd5359",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst30_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg30"
+        }
+      },
+      {
+        "segment_index": 31,
+        "op": "decaf.assert_equivalent",
+        "start": 28747,
+        "end": 28750,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "aec700f3f0905cf32c3681b96b8183e1c61297f3ee18ff79f0ebe870b5c5bb8f",
+        "wire_role_sha256_hex": "d73531456e06f630b2891484ceb61ef72e61b4fa250084b0f7e290d0b4d3df0e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst31_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg31"
+        }
+      },
+      {
+        "segment_index": 32,
+        "op": "decaf.assert_equivalent",
+        "start": 28750,
+        "end": 28753,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "aedaead141ab791ffea5c691cddc3fee48f54cc72a706e8e18a1c4e30afa6d5f",
+        "wire_role_sha256_hex": "672209bb4740fa2e691d28a2c32d36b1753b46e870ab20e1a0274d72d2933b66",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst32_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg32"
+        }
+      },
+      {
+        "segment_index": 33,
+        "op": "assert.eq",
+        "start": 28753,
+        "end": 28754,
+        "class_key": "assert.eq@745c86684fd7771d",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "9af6da6022d906317eb385666f1bd03373430abdf6bf2fa224a57c74d78f7bf3",
+        "wire_role_sha256_hex": "ac61f09ebc6d63d3ab0f3aad3f874f6e380cbd975517c2740cd49a4fc4c7e23e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst33_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg33"
+        }
+      },
+      {
+        "segment_index": 34,
+        "op": "decaf.compress_to_field",
+        "start": 28754,
+        "end": 29800,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "c1206561b5697e27d901eb313146d2859ba614cdfa041d05e92e40411c7e8b15",
+        "wire_role_sha256_hex": "f9e2c406a9dafd275479fc34c1df6c3ab9402ef0057a943fa0053d0ae4b6e358",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst34_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg34"
+        }
+      },
+      {
+        "segment_index": 37,
+        "op": "gadget.note_commitment",
+        "start": 29800,
+        "end": 30230,
+        "class_key": "gadget.note_commitment@99344ebca62df7e8",
+        "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+        "relation_sha256_hex": "d247cb449d8268a6cd7092c19a59ae4948bc42c5196ddf2058b0e79a2137c229",
+        "wire_role_sha256_hex": "39436fc7e3c79a2acda60a73ed20334f8fe60db299303589cccc6ffdf4c9a3f3",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst37_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg37"
+        }
+      },
+      {
+        "segment_index": 38,
+        "op": "assert.eq_if",
+        "start": 30230,
+        "end": 30232,
+        "class_key": "assert.eq_if@360acff86ba025ba",
+        "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+        "relation_sha256_hex": "24a575b4356c211b2eba86aa934688a39d701c017259d43b688ab0fbf1880a8f",
+        "wire_role_sha256_hex": "3b27a53ddb79bb0b69fc2367ef42e15b3674160a25a1e147eccdc63666fbb99b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst38_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg38"
+        }
+      },
+      {
+        "segment_index": 39,
+        "op": "gadget.nullifier",
+        "start": 30232,
+        "end": 30542,
+        "class_key": "gadget.nullifier@96286f6f866cc60c",
+        "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+        "relation_sha256_hex": "83d30c97ebe32745d6509460e8633f8683802c3cd34e579dd69fc49d78ceb2d2",
+        "wire_role_sha256_hex": "090e5c028c49d429ade1dad5e864c1384ed8a7e4c7d0c38c2c0147e13cab8b7b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst39_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg39"
+        }
+      },
+      {
+        "segment_index": 40,
+        "op": "gadget.state_commitment_path",
+        "start": 30542,
+        "end": 39557,
+        "class_key": "gadget.state_commitment_path@088ab48133b9d3af",
+        "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+        "relation_sha256_hex": "928500e2bf3af60d6957e08cb320d093d99d38bee453a2d99c60f6e40aab73d9",
+        "wire_role_sha256_hex": "d36301f5ec9fbcd50efc1f8a63f0603a8b7ca6b4aeb50f82d23bb29b24f79534",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst40_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg40"
+        }
+      },
+      {
+        "segment_index": 41,
+        "op": "assert.eq_if",
+        "start": 39557,
+        "end": 39559,
+        "class_key": "assert.eq_if@260c4859295f1af1",
+        "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+        "relation_sha256_hex": "996bec2b8c21a1609e6317adeb115f2a7a7a5ccc05922955f079ec8bee51e78a",
+        "wire_role_sha256_hex": "3ef0156fa72290da50edb8a1a322892c7413f7617226a977f763e788e92fabcd",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst41_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg41"
+        }
+      },
+      {
+        "segment_index": 42,
+        "op": "gadget.synthetic_dummy_nullifier",
+        "start": 39559,
+        "end": 39864,
+        "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3",
+        "constant_vector_sha256_hex": "3cf4edc27984ce924211646a99022fa8d79c6be7347ce3772f38028b33eea295",
+        "relation_sha256_hex": "56f0ac96a10c14b49a994588d019797bafcbc394946cc1dfd6cf158296ee1fdb",
+        "wire_role_sha256_hex": "58a7702ff653ee4e0c56c475964683592456fdea813ba49816ddd19a6ca841f4",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst42_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg42"
+        }
+      },
+      {
+        "segment_index": 43,
+        "op": "dummy.mux",
+        "start": 39864,
+        "end": 39866,
+        "class_key": "dummy.mux@68c34d6e11c35404",
+        "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+        "relation_sha256_hex": "58e89e40f3fa2c8e217a86527860905ff7701aa9d826f9662dc2de27c2d0d532",
+        "wire_role_sha256_hex": "6238e5edbc0b0bfd04f3e61c4f9bd0d6fbd3d839fb9120fc75148e88262fae2e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst43_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg43"
+        }
+      },
+      {
+        "segment_index": 44,
+        "op": "assert.eq",
+        "start": 39866,
+        "end": 39867,
+        "class_key": "assert.eq@c8f5f9ee8e1b47f7",
+        "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+        "relation_sha256_hex": "0cd1423bed65ee202d5d1581be0ef82483664896ea972e32e9797d94e6a41478",
+        "wire_role_sha256_hex": "3f3f776e2d197e82b3e394485b2e5df2ca1a558a6c18e175b229a4e35babda8a",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst44_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg44"
+        }
+      },
+      {
+        "segment_index": 45,
+        "op": "decaf.randomized_verification_key",
+        "start": 39867,
+        "end": 41679,
+        "class_key": "decaf.randomized_verification_key@058cff75c684a4d6",
+        "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+        "relation_sha256_hex": "eb827f90806293bc04a6a86b4045760f42d2c1d37208a37c1e6df66eac42e52a",
+        "wire_role_sha256_hex": "0b1e66ed2a1cbf131b80e631d02c3555fc654643ac7a93ed36473c7f3e1c76aa",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst45_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg45"
+        }
+      },
+      {
+        "segment_index": 46,
+        "op": "decaf.randomized_verification_key.dummy",
+        "start": 41679,
+        "end": 45297,
+        "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd",
+        "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+        "relation_sha256_hex": "89a941edf3772804eac42a0951a240d813904081059976b789df87beeb722585",
+        "wire_role_sha256_hex": "766f064c3eac94a96ddbacfcafa4c22539c50aa585cae263f69b791177cd7652",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst46_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg46"
+        }
+      },
+      {
+        "segment_index": 47,
+        "op": "decaf.assert_equivalent_if",
+        "start": 45297,
+        "end": 45303,
+        "class_key": "decaf.assert_equivalent_if@6198d347efba32e9",
+        "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+        "relation_sha256_hex": "eae0e5b6f93e49ad4bb2732be7f88657c3253b1d734b8a82baff9cc6ad153bbd",
+        "wire_role_sha256_hex": "214a1e9d6f4d2d3c0771f6c95fb005b3f8dfd0c23f2b69fefdf70d2dfd58721e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst47_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg47"
+        }
+      },
+      {
+        "segment_index": 48,
+        "op": "decaf.assert_equivalent_if",
+        "start": 45303,
+        "end": 45308,
+        "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d",
+        "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+        "relation_sha256_hex": "062c4ef7d7c7efaee346fe1857f4735154abb4b553a8bb95cae452f04e22a0e2",
+        "wire_role_sha256_hex": "8a32935bfefaf9a7aeca34ec426d198b956c46836d51947de70d2754bd4af5d1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst48_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg48"
+        }
+      },
+      {
+        "segment_index": 49,
+        "op": "decaf.diversified_transmission_key",
+        "start": 45308,
+        "end": 51385,
+        "class_key": "decaf.diversified_transmission_key@f7b90071283b887a",
+        "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+        "relation_sha256_hex": "e358154672312d0ac07197011b549d941863160fdc5cc6d44e98135f684c6e8c",
+        "wire_role_sha256_hex": "f301ded311b611637d1cb39e30c1ba05f5c29797e0e168fd99380b1541175b2b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst49_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg49"
+        }
+      },
+      {
+        "segment_index": 50,
+        "op": "decaf.assert_equivalent_if",
+        "start": 51385,
+        "end": 51390,
+        "class_key": "decaf.assert_equivalent_if@641f53399ac398a8",
+        "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+        "relation_sha256_hex": "7d0be1ebd93ea377b590b36016b36972f5d76379cf6c4c9c68fe05eac5d84e9a",
+        "wire_role_sha256_hex": "1b9e4a0df7f1fdd66c766b666e26c8500c1261273be2f7ba19a322f42adc9717",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst50_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg50"
+        }
+      },
+      {
+        "segment_index": 51,
+        "op": "assert.eq_if",
+        "start": 51390,
+        "end": 51392,
+        "class_key": "assert.eq_if@85cc0c8fd7537839",
+        "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+        "relation_sha256_hex": "9d74442c0f582ba87970092ffdd411589cd9e0cd2e6be301f0b348e3dd3f48c7",
+        "wire_role_sha256_hex": "d1150fff9333a5b0cec98f4f1c2a79bedf889798d0259ab565b050dd94980d0d",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst51_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg51"
+        }
+      },
+      {
+        "segment_index": 52,
+        "op": "decaf.assert_on_curve",
+        "start": 51392,
+        "end": 51396,
+        "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
+        "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+        "relation_sha256_hex": "ec1ccd80cf70b6c906ca21d2b8f13594ea72e8ee4e030db0fb94b040b20d38a6",
+        "wire_role_sha256_hex": "c4c360723b812c7819d4ed7184603a5a64664c4f3b3f1bcc2f796227394cf685",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst52_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg52"
+        }
+      },
+      {
+        "segment_index": 53,
+        "op": "decaf.assert_equivalent",
+        "start": 51396,
+        "end": 51399,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "4c0c9344ad7be7d845e44aceb48d87202a48c4423a13de737fa8d5f8e6c392e7",
+        "wire_role_sha256_hex": "41cb9f65eb627ce582177e8f15a6aeb382a950e3f17734212286f0659583297f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst53_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg53"
+        }
+      },
+      {
+        "segment_index": 54,
+        "op": "decaf.assert_equivalent",
+        "start": 51399,
+        "end": 51402,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "f9173db7f9e5e33b8a9a48f98f6f2130792705dda0aad6b56ede385c1bac30c7",
+        "wire_role_sha256_hex": "fba51842dec87c6e74e478c38da740bce2d2b61499bc8b7770210868db446d4f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst54_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg54"
+        }
+      },
+      {
+        "segment_index": 55,
+        "op": "assert.eq",
+        "start": 51402,
+        "end": 51403,
+        "class_key": "assert.eq@944014bd89e246a5",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "86ed2f5c5b9acefc13e7423579ba6b81aa6d329e955b4ef9d27495254a0e0c48",
+        "wire_role_sha256_hex": "0ddfd2818a27ef90e8826a0cbedfdddc70e1de65a80104bb68fa458b3267b7ae",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst55_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg55"
+        }
+      },
+      {
+        "segment_index": 56,
+        "op": "decaf.compress_to_field",
+        "start": 51403,
+        "end": 52449,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "7ff381a5043221e8af385da9ab3b31da1a34e718db70c84011ac441d2c1cb4a8",
+        "wire_role_sha256_hex": "e7a9139d2807459b39130e08e8701136161ec3d8a8acaf1d6e9a29e59edbfdf3",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst56_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg56"
+        }
+      },
+      {
+        "segment_index": 59,
+        "op": "gadget.note_commitment",
+        "start": 52449,
+        "end": 52879,
+        "class_key": "gadget.note_commitment@99344ebca62df7e8",
+        "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+        "relation_sha256_hex": "3dcac029551119df2879eef627e12a565565999a557b39e59d557a5169ef4542",
+        "wire_role_sha256_hex": "e68eecbbbe68e9519d89ec88a4e75f72385f3f021673ae949ed0417dd2280556",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst59_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg59"
+        }
+      },
+      {
+        "segment_index": 60,
+        "op": "assert.eq_if",
+        "start": 52879,
+        "end": 52881,
+        "class_key": "assert.eq_if@360acff86ba025ba",
+        "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+        "relation_sha256_hex": "f1744ead1bbbb7934c503cfe0e7cf6d40f28577b2913ff71f43693cdfc146865",
+        "wire_role_sha256_hex": "743521f91652cbb54a45d53ee4a46037c900dc6f61b43e844f5eb1bff5a0c2cf",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst60_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg60"
+        }
+      },
+      {
+        "segment_index": 61,
+        "op": "gadget.nullifier",
+        "start": 52881,
+        "end": 53191,
+        "class_key": "gadget.nullifier@96286f6f866cc60c",
+        "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+        "relation_sha256_hex": "6d5cd1899297294f8914e0f5df15cf86d018aaa4a2bc9d8ea5d0f6f1f6bf529e",
+        "wire_role_sha256_hex": "091e50c90e1f9c47141768c5f530917430502ce8b075c6582f979293185b7c9a",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst61_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg61"
+        }
+      },
+      {
+        "segment_index": 62,
+        "op": "gadget.state_commitment_path",
+        "start": 53191,
+        "end": 62206,
+        "class_key": "gadget.state_commitment_path@088ab48133b9d3af",
+        "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+        "relation_sha256_hex": "629c332478e83711da7726e63c3943418bb91b3589344ca903b9550977cf051a",
+        "wire_role_sha256_hex": "11b4869265e047d1386092f0794e3dceae985179e456a3c58112d4593301d62d",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst62_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg62"
+        }
+      },
+      {
+        "segment_index": 63,
+        "op": "assert.eq_if",
+        "start": 62206,
+        "end": 62208,
+        "class_key": "assert.eq_if@260c4859295f1af1",
+        "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+        "relation_sha256_hex": "543e130944887fee3c851f68c7f35613e7702b9da0933c73e58d1000f6846174",
+        "wire_role_sha256_hex": "1833117f3f5ada4bc402fcd816111c321ad17ad92cce70f1dcbe71c697bf58a8",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst63_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg63"
+        }
+      },
+      {
+        "segment_index": 64,
+        "op": "gadget.synthetic_dummy_nullifier",
+        "start": 62208,
+        "end": 62513,
+        "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3",
+        "constant_vector_sha256_hex": "8414b88ad36db609fb45068ffe7ad987153215f3b4b4ed3db297f8c203e0454b",
+        "relation_sha256_hex": "a5ed8c88f0aab240eb997e07c0f46045ade86273968a50fd770a93a8678888f4",
+        "wire_role_sha256_hex": "ad90dfb1e9b6bd8039077b553b3cb81fabdbbd00099ba35b68fec4e1f4148e01",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst64_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg64"
+        }
+      },
+      {
+        "segment_index": 65,
+        "op": "dummy.mux",
+        "start": 62513,
+        "end": 62515,
+        "class_key": "dummy.mux@68c34d6e11c35404",
+        "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+        "relation_sha256_hex": "774aa20817abede27d4c1909ef33e6249794d7d93d7155652cf97b00ab42ad79",
+        "wire_role_sha256_hex": "e89e63e965c8fe686c95571278fe5d8dfcc6436322ceadc4bc7500f6a5c5dab5",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst65_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg65"
+        }
+      },
+      {
+        "segment_index": 66,
+        "op": "assert.eq",
+        "start": 62515,
+        "end": 62516,
+        "class_key": "assert.eq@c8f5f9ee8e1b47f7",
+        "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+        "relation_sha256_hex": "c7088886e7e2958cfea67a27f002810d63c7eeb633659d5f5cde2d7c498a8eb3",
+        "wire_role_sha256_hex": "7fe35adb1d18ff4812f75545f7e94646d3b8a5286627e43befcb7369bf958a59",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst66_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg66"
+        }
+      },
+      {
+        "segment_index": 67,
+        "op": "decaf.randomized_verification_key",
+        "start": 62516,
+        "end": 64328,
+        "class_key": "decaf.randomized_verification_key@058cff75c684a4d6",
+        "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+        "relation_sha256_hex": "feeaa989d07510b2fec026f2e77a1500083d1419f6967da58ed4b91c82c226f2",
+        "wire_role_sha256_hex": "61ad2cf0d00770df16a7bb0b0ab9a37884decc6673e6b44d9f31d4372b4dbaf8",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst67_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg67"
+        }
+      },
+      {
+        "segment_index": 68,
+        "op": "decaf.randomized_verification_key.dummy",
+        "start": 64328,
+        "end": 67946,
+        "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd",
+        "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+        "relation_sha256_hex": "c61a6d4181b3918561c3a95841d23de198801a4553b90bd8819e209a5eb4faa2",
+        "wire_role_sha256_hex": "c18912288346cdbc977a1be2c894140602d96c0d3e34056d86f44d28be7ec87e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst68_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg68"
+        }
+      },
+      {
+        "segment_index": 69,
+        "op": "decaf.assert_equivalent_if",
+        "start": 67946,
+        "end": 67952,
+        "class_key": "decaf.assert_equivalent_if@6198d347efba32e9",
+        "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+        "relation_sha256_hex": "421e234ac9bb356f80f6afa51eb2f4b164790dadd4ec522848edff65045ae5cc",
+        "wire_role_sha256_hex": "4586a61b439ef71277d3b8cb4f4b32518bc31dd4dced6a01f7a97b495d55488b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst69_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg69"
+        }
+      },
+      {
+        "segment_index": 70,
+        "op": "decaf.assert_equivalent_if",
+        "start": 67952,
+        "end": 67957,
+        "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d",
+        "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+        "relation_sha256_hex": "baf2e37b27714a4999f0552361375446bc45c26a7c15084cee8ee3ef69b0a0c9",
+        "wire_role_sha256_hex": "f76562cceb5d5bad3897b3cd6eafa5faff55fc96340d09dbda56a93cb9f0ea4b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst70_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg70"
+        }
+      },
+      {
+        "segment_index": 71,
+        "op": "decaf.diversified_transmission_key",
+        "start": 67957,
+        "end": 74034,
+        "class_key": "decaf.diversified_transmission_key@f7b90071283b887a",
+        "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+        "relation_sha256_hex": "9ccdac4fdeee089385ae7079504338b706a99d316091b68f0ae17b35d80f886e",
+        "wire_role_sha256_hex": "8e003c63e1b3ae5101f487e8105e53762004693816a46e6bf0c1094cc4dc113a",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst71_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg71"
+        }
+      },
+      {
+        "segment_index": 72,
+        "op": "decaf.assert_equivalent_if",
+        "start": 74034,
+        "end": 74039,
+        "class_key": "decaf.assert_equivalent_if@641f53399ac398a8",
+        "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+        "relation_sha256_hex": "e2ccb75519610b7ea1f50486201224aeab68e22c9de8465a7ec7792853d0c717",
+        "wire_role_sha256_hex": "cf05f09adfccba2556bb073cee94bf35c8ae87adf4530d7ef2c208401cf5c891",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst72_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg72"
+        }
+      },
+      {
+        "segment_index": 73,
+        "op": "assert.eq_if",
+        "start": 74039,
+        "end": 74041,
+        "class_key": "assert.eq_if@85cc0c8fd7537839",
+        "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+        "relation_sha256_hex": "ad3c217fbc9bdeb01ee375aa09b78a9b9470e0d2c218f4dc11e8c1d440c0fc7b",
+        "wire_role_sha256_hex": "066da0ca3877303a0aa137a754ed52050a6e254d8a9fcb81254c724e7fd05ae2",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst73_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg73"
+        }
+      },
+      {
+        "segment_index": 74,
+        "op": "decaf.assert_on_curve",
+        "start": 74041,
+        "end": 74045,
+        "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
+        "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+        "relation_sha256_hex": "f7cb9428780e7914664ab19d5f717740910aa2c6daac6d5ff0965c8bc0d7c09f",
+        "wire_role_sha256_hex": "a056a2a3809144ee89a1003110643d7e27e91905059085e94eab1667827a4049",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst74_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg74"
+        }
+      },
+      {
+        "segment_index": 75,
+        "op": "decaf.assert_equivalent",
+        "start": 74045,
+        "end": 74048,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "f19cc1818e2b075748c23104a2412fbc942f88ef2630b9c458a3a4388b166a54",
+        "wire_role_sha256_hex": "7f2ece16fa9cff72f5edf9b2826e70faeacbe7a3caa6af4249df70e95f8a9268",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst75_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg75"
+        }
+      },
+      {
+        "segment_index": 76,
+        "op": "decaf.assert_equivalent",
+        "start": 74048,
+        "end": 74051,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "5c307cc92b1ff374fef8511bea4a1b7fcee81dc53543590cf7363b1b86ea9380",
+        "wire_role_sha256_hex": "48a253ceff1ae2cad23241205e5f44cb9d244c68a0769055e1c009ec5c5281e9",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst76_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg76"
+        }
+      },
+      {
+        "segment_index": 77,
+        "op": "assert.eq",
+        "start": 74051,
+        "end": 74052,
+        "class_key": "assert.eq@944014bd89e246a5",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "ba277dee65f0f3289ac8e9e4a99da3dcd27fa2fbc5b9a1315b251f8ab9f33cc5",
+        "wire_role_sha256_hex": "a348a70ae8eae1fb096fb01ae527f20aa4ba95afb2cae7fd7052e0ef2f08545b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst77_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg77"
+        }
+      },
+      {
+        "segment_index": 78,
+        "op": "decaf.compress_to_field",
+        "start": 74052,
+        "end": 75098,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "d9bfb6992230a46603b6b49f55d150d19ffb49e5e9f43545abeeb2a177ea30ee",
+        "wire_role_sha256_hex": "63bb7914be19d1537d24931437194811d6a1bfdd93f90c09460ed18436ca73c8",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst78_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg78"
+        }
+      },
+      {
+        "segment_index": 81,
+        "op": "gadget.note_commitment",
+        "start": 75098,
+        "end": 75528,
+        "class_key": "gadget.note_commitment@99344ebca62df7e8",
+        "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+        "relation_sha256_hex": "cbcb378c4252f9c048b8dc884fe778e13dbfe5b51aeb5684176560f7ccc5c643",
+        "wire_role_sha256_hex": "bda370d20830f5f405e5191b8e1e16416b4584e7173dc12f473bbbe8e9d48fc1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst81_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg81"
+        }
+      },
+      {
+        "segment_index": 82,
+        "op": "assert.eq_if",
+        "start": 75528,
+        "end": 75530,
+        "class_key": "assert.eq_if@360acff86ba025ba",
+        "constant_vector_sha256_hex": "3b2ba91a8dff1cc10d36fce4d8054f7b20ab66837c6fae005664d260bbd6b5f5",
+        "relation_sha256_hex": "0f58a18f02400c46d0bfc05d2ffa6e2f46e9b716e48cab9bb8cd3094083e8daa",
+        "wire_role_sha256_hex": "d73e75909c9595f7c2556b4a875adf481f599870f32c101c6be91119fc1c5558",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst82_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg82"
+        }
+      },
+      {
+        "segment_index": 83,
+        "op": "gadget.nullifier",
+        "start": 75530,
+        "end": 75840,
+        "class_key": "gadget.nullifier@96286f6f866cc60c",
+        "constant_vector_sha256_hex": "ecf2db837f86dd52a025889dad0337cbfd08b6da40c3008b8d776e796d0858b1",
+        "relation_sha256_hex": "1d6e49ffb0782e18e9c6ff25e334d8405110d96e5d7d44f7d540171fa0992ce9",
+        "wire_role_sha256_hex": "c52107513a2875c1c157a42c52e5e30ea22dbcffc970578d2c8a5e377b870fc3",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst83_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg83"
+        }
+      },
+      {
+        "segment_index": 84,
+        "op": "gadget.state_commitment_path",
+        "start": 75840,
+        "end": 84855,
+        "class_key": "gadget.state_commitment_path@088ab48133b9d3af",
+        "constant_vector_sha256_hex": "02b3d6f5192c3b01e169435bcb1e038a317bb537f947b8a737230cb73f5a2c33",
+        "relation_sha256_hex": "fe851c22081d8c3aa25ddf3d7e0f145ed5c805a82e64fd3c71dec3fa48589fe3",
+        "wire_role_sha256_hex": "07008ab93ff9550a3c254075973690d41da38c91865a97d97a14cf53bc623644",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst84_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg84"
+        }
+      },
+      {
+        "segment_index": 85,
+        "op": "assert.eq_if",
+        "start": 84855,
+        "end": 84857,
+        "class_key": "assert.eq_if@260c4859295f1af1",
+        "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+        "relation_sha256_hex": "ed8676f1036ab17cfbf27ceb575c7646a4d55fced06943d651deb1d1a7bacada",
+        "wire_role_sha256_hex": "3ecef0dac0df3e892466f41a076fdcc5f7a4aa25e1754722e184c7f4ff197a44",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst85_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg85"
+        }
+      },
+      {
+        "segment_index": 86,
+        "op": "gadget.synthetic_dummy_nullifier",
+        "start": 84857,
+        "end": 85162,
+        "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3",
+        "constant_vector_sha256_hex": "fbfd56adc6d25d3a10c99d025d26de6f0dad88018340449a043619eeb03cbd2d",
+        "relation_sha256_hex": "e559831a50ce3188cdbf5d33405ed6a8fd7ebdbafdb6e19ea2e95b8a3a607dec",
+        "wire_role_sha256_hex": "7dba8269ccab2f0ebe711abfdfd38031a22ea40cc33f87285c8b5be7377e3a18",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst86_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg86"
+        }
+      },
+      {
+        "segment_index": 87,
+        "op": "dummy.mux",
+        "start": 85162,
+        "end": 85164,
+        "class_key": "dummy.mux@68c34d6e11c35404",
+        "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+        "relation_sha256_hex": "ee6c1a920af139a331567c131544bf2594dd6cfe2d71019b42d180e7b24d26c5",
+        "wire_role_sha256_hex": "7798b6e4dc9338680a666fb26f80243751f9171db468e6ba4ae698b5f06f7d94",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst87_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg87"
+        }
+      },
+      {
+        "segment_index": 88,
+        "op": "assert.eq",
+        "start": 85164,
+        "end": 85165,
+        "class_key": "assert.eq@c8f5f9ee8e1b47f7",
+        "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+        "relation_sha256_hex": "c234b07851e54476d0fa9904aa2d4bee5b5dd06aab4055c50cd9720799fcf034",
+        "wire_role_sha256_hex": "29642ee6d650e11cc6a85a177706318c2ae1fd4e77f74eccc13c1b19ddbc4aae",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst88_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg88"
+        }
+      },
+      {
+        "segment_index": 89,
+        "op": "decaf.randomized_verification_key",
+        "start": 85165,
+        "end": 86977,
+        "class_key": "decaf.randomized_verification_key@058cff75c684a4d6",
+        "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+        "relation_sha256_hex": "45ca16e6ee20d5f99231c9dfe8ca28bd802e7ae67ef38e58b13edea7b1e84686",
+        "wire_role_sha256_hex": "c00b0099ed4d10c4ecb8b1d9726edca26d9a9697c92fa2779ecaadd5eb94f7f4",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst89_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg89"
+        }
+      },
+      {
+        "segment_index": 90,
+        "op": "decaf.randomized_verification_key.dummy",
+        "start": 86977,
+        "end": 90595,
+        "class_key": "decaf.randomized_verification_key.dummy@8dac38c4d5a6eccd",
+        "constant_vector_sha256_hex": "d09ee9973909bede3ee9854427d51f25e35ae8496b7cfe45d9ab5bef861e5cc9",
+        "relation_sha256_hex": "af68d80b5ab1754d01c0ad2baa87c92ff0089477119064ce5bcab5801e39146e",
+        "wire_role_sha256_hex": "5eb786d412fe46459d0ac3f72bbe14e32d3175b59cb928d57427fdad992de0c5",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst90_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg90"
+        }
+      },
+      {
+        "segment_index": 91,
+        "op": "decaf.assert_equivalent_if",
+        "start": 90595,
+        "end": 90601,
+        "class_key": "decaf.assert_equivalent_if@6198d347efba32e9",
+        "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+        "relation_sha256_hex": "2987c1d016b73fd904a82dab7233696b479bcfa4ccf075002aafc575c3838839",
+        "wire_role_sha256_hex": "75c8152c0ae72da9432af66220a66c9993e2462019cba466694fbcc4b2890a92",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst91_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg91"
+        }
+      },
+      {
+        "segment_index": 92,
+        "op": "decaf.assert_equivalent_if",
+        "start": 90601,
+        "end": 90606,
+        "class_key": "decaf.assert_equivalent_if@18c6de26b3077e1d",
+        "constant_vector_sha256_hex": "7d1553f82ffa958735dca53916421d7761e5a08a414150e6c4e5bf541099c090",
+        "relation_sha256_hex": "53d30b452571549c970518f5c6f7a993f8b118ae4cb56ca04e87723ebda811b0",
+        "wire_role_sha256_hex": "7e8c7ce4670900d348df7b44f1861aad80fb2bfde3a1e6b1b1518224cd26862f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst92_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg92"
+        }
+      },
+      {
+        "segment_index": 93,
+        "op": "decaf.diversified_transmission_key",
+        "start": 90606,
+        "end": 96683,
+        "class_key": "decaf.diversified_transmission_key@f7b90071283b887a",
+        "constant_vector_sha256_hex": "a1414d862c8ad0b27fc1f75e294ed68bbefcc5458513a22125256e5911984867",
+        "relation_sha256_hex": "ff54764d5f56f8bf7a260f5f0016e3cc40d8af85a04a35228c587844b9ab2233",
+        "wire_role_sha256_hex": "f4a6eb335dc5e0d0071778d35674853238cfd1d240398d05250e4482e6b1f816",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst93_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg93"
+        }
+      },
+      {
+        "segment_index": 94,
+        "op": "decaf.assert_equivalent_if",
+        "start": 96683,
+        "end": 96688,
+        "class_key": "decaf.assert_equivalent_if@641f53399ac398a8",
+        "constant_vector_sha256_hex": "86665ccadc8e3512262b6073997d9021970ba88a120fdefaf079591fc681d449",
+        "relation_sha256_hex": "63ef6175909d05ef46c37d5809302c3df4aeb170f6a5d8c05984ccbed628e575",
+        "wire_role_sha256_hex": "d85e83e922c99e6f484c598829727ea9e7509515277ab8c85fd0bbe25e3e551d",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst94_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg94"
+        }
+      },
+      {
+        "segment_index": 95,
+        "op": "assert.eq_if",
+        "start": 96688,
+        "end": 96690,
+        "class_key": "assert.eq_if@85cc0c8fd7537839",
+        "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+        "relation_sha256_hex": "13a8bfd0cd1f60b1aaa4c820494ffcab724dadfd8fd7896255eb3c0cba6ea5d9",
+        "wire_role_sha256_hex": "896ac47447be5019fa1f13971b39a229a1039ebed56ad7f8c95f44bcf4898a9f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst95_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg95"
+        }
+      },
+      {
+        "segment_index": 96,
+        "op": "decaf.assert_on_curve",
+        "start": 96690,
+        "end": 96694,
+        "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
+        "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+        "relation_sha256_hex": "3890eac9ee0c5a713468b8586627bde232c25e37e72acd450983da264c49b002",
+        "wire_role_sha256_hex": "f8c97353c2bb92cc6ee5e23bae5a7435080dc4ff2a752e5cb20371cfb43999f9",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst96_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg96"
+        }
+      },
+      {
+        "segment_index": 97,
+        "op": "decaf.assert_equivalent",
+        "start": 96694,
+        "end": 96697,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "bf8cec866716b4318669bb205f2bef96dc97a935ae48295317c639770a276f4a",
+        "wire_role_sha256_hex": "421a451bd288f45b754d19d5aaff3136e66e5f1755e25e734c9a1c93cdeb2d9a",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst97_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg97"
+        }
+      },
+      {
+        "segment_index": 98,
+        "op": "decaf.assert_equivalent",
+        "start": 96697,
+        "end": 96700,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "0b0b339c088ec196c956235f1129754e313f2d6f0a9f3b4116ec536f132ab2b7",
+        "wire_role_sha256_hex": "57b782ba09aaa5bc898dc172081608a8cedb57b31d42db547bb2ed4c3d55c43f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst98_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg98"
+        }
+      },
+      {
+        "segment_index": 99,
+        "op": "assert.eq",
+        "start": 96700,
+        "end": 96701,
+        "class_key": "assert.eq@944014bd89e246a5",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "312499896b391e21223ad546df44ef262b2774f52368601c4c6ab1b43065df22",
+        "wire_role_sha256_hex": "f38ba58d4c97b20404079bac1b2ff6a0d7ed95ca6dd2126777981d2dda17c6a0",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst99_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg99"
+        }
+      },
+      {
+        "segment_index": 100,
+        "op": "decaf.compress_to_field",
+        "start": 96701,
+        "end": 97747,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "462431132eee29d041c6924bcbb25db6b9851e49db9b4c7f6caa228f41e94049",
+        "wire_role_sha256_hex": "b2a8042a722d86d85fc16bff08b997d8b90d0c21c8444afd4c01d779f5cec3aa",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst100_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg100"
+        }
+      },
+      {
+        "segment_index": 103,
+        "op": "gadget.note_commitment",
+        "start": 97747,
+        "end": 98177,
+        "class_key": "gadget.note_commitment@99344ebca62df7e8",
+        "constant_vector_sha256_hex": "7293e81bed753e68ec978eef9d312b0554144cf814fde78c4aa162519169e64e",
+        "relation_sha256_hex": "35e708e1cda829331c1902b5c4731cce82f4aee3eb8b52807dcb4eecc5d769f3",
+        "wire_role_sha256_hex": "fde48fd54602bcd33d1fdab3c73da1936ebc177100c6f1057defb13492cd6b1c",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst103_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg103"
+        }
+      },
+      {
+        "segment_index": 104,
+        "op": "assert.eq",
+        "start": 98177,
+        "end": 98178,
+        "class_key": "assert.eq@06c76cbbea275f19",
+        "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+        "relation_sha256_hex": "e180dd9e063b96f69a866e15e5c0d957ee8311e448a5afe874d241758680080d",
+        "wire_role_sha256_hex": "669677b057db3b8b20f2642182c7c07ec96511ded1c8f09ecc197aaf51953a51",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst104_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg104"
+        }
+      },
+      {
+        "segment_index": 105,
+        "op": "decaf.assert_on_curve",
+        "start": 98178,
+        "end": 98182,
+        "class_key": "decaf.assert_on_curve@e37c7dd287242e19",
+        "constant_vector_sha256_hex": "426dc13a8859ca535562a7926520569ab50ce4d3a25f452badc1807a965b9309",
+        "relation_sha256_hex": "eebc51c08914502bcf782450a493ae048863f2495f44c08c6b7d6513baf582c3",
+        "wire_role_sha256_hex": "822fc003716937f0033f352ccb1fc4c62d809e378dbe0add53665e4fc16f0ab1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst105_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg105"
+        }
+      },
+      {
+        "segment_index": 106,
+        "op": "decaf.assert_equivalent",
+        "start": 98182,
+        "end": 98185,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "761aef09e95b879d82ecc381c4129016873ffb3ad09d8c2cf6c7ded70b316059",
+        "wire_role_sha256_hex": "86d7e072e0152fa642d2ae2ce478c82f08d3860d50435ca67752e893b57c85d4",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst106_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg106"
+        }
+      },
+      {
+        "segment_index": 107,
+        "op": "decaf.assert_equivalent",
+        "start": 98185,
+        "end": 98188,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "05cc37d9bc62b7579246b5d1809427b51dd3dbf0c9fe5b1d9456cd69e43feee7",
+        "wire_role_sha256_hex": "05535d1e178a6323d6452c15a7d8988fa251d2d17add71fe1316dd5246662954",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst107_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg107"
+        }
+      },
+      {
+        "segment_index": 108,
+        "op": "assert.eq",
+        "start": 98188,
+        "end": 98189,
+        "class_key": "assert.eq@944014bd89e246a5",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "0768b162d9c705c012add090bef7ca0afe8a056d41411b8e0d07d77cf96bee70",
+        "wire_role_sha256_hex": "08a519a46e547bba5670b280865dee36a380812af1ef9e22a9b4e811fc9cc36c",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst108_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg108"
+        }
+      },
+      {
+        "segment_index": 110,
+        "op": "decaf.conservation_net_balance_commitment",
+        "start": 98189,
+        "end": 100640,
+        "class_key": "decaf.conservation_net_balance_commitment@c74675dd3a0323d0",
+        "constant_vector_sha256_hex": "bb3d6cbefd53e95bbd632d067935a148c04143396db6ceb858464419a905971e",
+        "relation_sha256_hex": "d59cb26cecb2e49041af8fb7758993bd1666cb6c984789b63ac5296d64ccc4d7",
+        "wire_role_sha256_hex": "cde848899dcc211223e2daaa93150ad3a489d0bdc2d1fb732cf3afe4f4d4f958",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst110_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg110"
+        }
+      },
+      {
+        "segment_index": 111,
+        "op": "decaf.assert_equivalent",
+        "start": 100640,
+        "end": 100643,
+        "class_key": "decaf.assert_equivalent@33ce4e8355a9a671",
+        "constant_vector_sha256_hex": "528dcca721223d426f26acde59e09b3253ac9d0e717e2fc65f97e6f7141684b0",
+        "relation_sha256_hex": "a8dab4c38904d35a0184e47b66ee76960ec4f2bf7e3c88294ac6fad19353547d",
+        "wire_role_sha256_hex": "4bb3e29a2fd5b543cf89056bca75b04141a67549c4f435f5cee9167cdbcf7ce7",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst111_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg111"
+        }
+      },
+      {
+        "segment_index": 112,
+        "op": "decaf.compress_to_field",
+        "start": 100643,
+        "end": 101689,
+        "class_key": "decaf.compress_to_field@aaf77ee7e9fa9bd1",
+        "constant_vector_sha256_hex": "61f670d190050635888383bb8cd74d651f5811d04ef2e0fa84317ba9fe733b9f",
+        "relation_sha256_hex": "e1dd58311ca9be325ea2ddaa0b3857c94b8634fdf84ba474ecfd1637b9be2a35",
+        "wire_role_sha256_hex": "4158791cbdff1b325e2eebcbd7c17eec5a742dfd33ce8ee4f4b019341cf6ad0d",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst112_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg112"
+        }
+      },
+      {
+        "segment_index": 117,
+        "op": "statement.hash",
+        "start": 101689,
+        "end": 102619,
+        "class_key": "statement.hash@f7eb09be4990369a",
+        "constant_vector_sha256_hex": "14817ab31b3d1b2af712ea2603b4367da10cf44c7669d0d9917b8a71b0d7d32e",
+        "relation_sha256_hex": "20f12ed8bf2879f7c20d955c1045d22f749870129a513a6c318f4c2912c55eb1",
+        "wire_role_sha256_hex": "6e0988ceab7b38479acaad482dae1fc0aff503627027f96b015983f262526dce",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst117_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg117"
+        }
+      },
+      {
+        "segment_index": 118,
+        "op": "assert.eq",
+        "start": 102619,
+        "end": 102620,
+        "class_key": "assert.eq@fcdce018977caef8",
+        "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
+        "relation_sha256_hex": "2d313c9bcfe1b741140070b6e4f5143e109ed9f73627ad37e7becd4363a90d8a",
+        "wire_role_sha256_hex": "18a30f293313dfe521cbcc5c0417ab831a8db163efe76661fb5a7fad3194edb1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.inst118_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape4x1.Seg118"
+        }
+      }
+    ]
+  }
+}

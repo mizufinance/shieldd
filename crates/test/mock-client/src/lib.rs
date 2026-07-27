@@ -203,12 +203,7 @@ impl MockClient {
                 .iter()
                 .map(|spend| spend.note.commit())
                 .collect::<Vec<_>>(),
-            ActionPlan::Consolidate(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.note.commit())
-                .collect::<Vec<_>>(),
-            ActionPlan::Split(plan) => plan
+            ActionPlan::NoteReshape(plan) => plan
                 .spends
                 .iter()
                 .map(|spend| spend.note.commit())

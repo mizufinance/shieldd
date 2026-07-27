@@ -15,8 +15,7 @@ use crate::{ActionView, IsAction, TransactionPerspective};
 #[allow(clippy::large_enum_variant)]
 pub enum Action {
     Transfer(shieldd_sdk_shielded_pool::Transfer),
-    Consolidate(shieldd_sdk_shielded_pool::Consolidate),
-    Split(shieldd_sdk_shielded_pool::Split),
+    NoteReshape(shieldd_sdk_shielded_pool::NoteReshape),
     ValidatorDefinition(shieldd_sdk_validator::validator::Definition),
     IbcRelay(shieldd_sdk_ibc::IbcRelay),
     ProposalSubmit(shieldd_sdk_governance::ProposalSubmit),
@@ -32,8 +31,7 @@ impl EffectingData for Action {
     fn effect_hash(&self) -> EffectHash {
         match self {
             Action::Transfer(transfer) => transfer.effect_hash(),
-            Action::Consolidate(consolidate) => consolidate.effect_hash(),
-            Action::Split(split) => split.effect_hash(),
+            Action::NoteReshape(note_reshape) => note_reshape.effect_hash(),
             Action::ProposalSubmit(submit) => submit.effect_hash(),
             Action::ValidatorVote(vote) => vote.effect_hash(),
             Action::ValidatorDefinition(defn) => defn.effect_hash(),
@@ -64,8 +62,7 @@ impl Action {
     pub fn create_span(&self, idx: usize) -> tracing::Span {
         match self {
             Action::Transfer(_) => tracing::info_span!("Transfer", ?idx),
-            Action::Consolidate(_) => tracing::info_span!("Consolidate", ?idx),
-            Action::Split(_) => tracing::info_span!("Split", ?idx),
+            Action::NoteReshape(_) => tracing::info_span!("NoteReshape", ?idx),
             Action::ValidatorDefinition(_) => tracing::info_span!("ValidatorDefinition", ?idx),
             Action::IbcRelay(msg) => {
                 let action_span = tracing::info_span!("IbcAction", ?idx);
@@ -93,8 +90,7 @@ impl Action {
     pub fn variant_index(&self) -> usize {
         match self {
             Action::Transfer(_) => 5,
-            Action::Consolidate(_) => 6,
-            Action::Split(_) => 7,
+            Action::NoteReshape(_) => 6,
             Action::ValidatorDefinition(_) => 16,
             Action::IbcRelay(_) => 17,
             Action::ProposalSubmit(_) => 18,
@@ -112,8 +108,7 @@ impl IsAction for Action {
     fn balance_commitment(&self) -> balance::Commitment {
         match self {
             Action::Transfer(transfer) => transfer.balance_commitment(),
-            Action::Consolidate(consolidate) => consolidate.balance_commitment(),
-            Action::Split(split) => split.balance_commitment(),
+            Action::NoteReshape(note_reshape) => note_reshape.balance_commitment(),
             Action::ProposalSubmit(submit) => submit.balance_commitment(),
             Action::ValidatorVote(vote) => vote.balance_commitment(),
             Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.balance_commitment(),
@@ -129,8 +124,7 @@ impl IsAction for Action {
     fn view_from_perspective(&self, txp: &TransactionPerspective) -> ActionView {
         match self {
             Action::Transfer(action) => action.view_from_perspective(txp),
-            Action::Consolidate(action) => action.view_from_perspective(txp),
-            Action::Split(action) => action.view_from_perspective(txp),
+            Action::NoteReshape(action) => action.view_from_perspective(txp),
             Action::ProposalSubmit(action) => action.view_from_perspective(txp),
             Action::ValidatorVote(action) => action.view_from_perspective(txp),
             Action::ShieldedIcs20Withdrawal(action) => action.view_from_perspective(txp),
@@ -160,11 +154,8 @@ impl From<Action> for pb::Action {
             Action::Transfer(inner) => pb::Action {
                 action: Some(pb::action::Action::Transfer(inner.into())),
             },
-            Action::Consolidate(inner) => pb::Action {
-                action: Some(pb::action::Action::Consolidate(inner.into())),
-            },
-            Action::Split(inner) => pb::Action {
-                action: Some(pb::action::Action::Split(inner.into())),
+            Action::NoteReshape(inner) => pb::Action {
+                action: Some(pb::action::Action::NoteReshape(inner.into())),
             },
             Action::ValidatorDefinition(inner) => pb::Action {
                 action: Some(pb::action::Action::ValidatorDefinition(inner.into())),
@@ -211,8 +202,7 @@ impl TryFrom<pb::Action> for Action {
             .ok_or_else(|| anyhow!("missing action in Action protobuf"))?
         {
             pb::action::Action::Transfer(inner) => Ok(Action::Transfer(inner.try_into()?)),
-            pb::action::Action::Consolidate(inner) => Ok(Action::Consolidate(inner.try_into()?)),
-            pb::action::Action::Split(inner) => Ok(Action::Split(inner.try_into()?)),
+            pb::action::Action::NoteReshape(inner) => Ok(Action::NoteReshape(inner.try_into()?)),
             pb::action::Action::ValidatorDefinition(inner) => {
                 Ok(Action::ValidatorDefinition(inner.try_into()?))
             }

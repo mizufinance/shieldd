@@ -1,0 +1,44 @@
+import ShielddGnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11
+import ShielddGnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace
+import ShielddGnarkFormal.Deployed.Poseidon3Link
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZMod
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 4000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound12
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
+open Shieldd.GnarkFormal.Poseidon3Bridge
+open Shieldd.GnarkFormal.Deployed.Poseidon3Link
+
+abbrev Order : Nat :=
+  Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.Order
+abbrev F :=
+  Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.F
+
+local instance : Fact (Nat.Prime Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+def state12Lane0 (domain in0 in1 in2 : F) : F :=
+  row4 (6333346312071277818186618704086159898531924501365547870951425091938056929281 : F) (6755569399542696339399059951025237225100719468123251062348186764733927391233 : F) (7037051457856975353540687448984622109479916112628386523279361213264507699201 : F) (7238110070938603220784707090384182741179342287274911852515914390786350776321 : F) (p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane0 domain in0 in1 in2 + (3201635684356589303957559840868578463993422412405939241547886338480364890847 : F))) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane1 domain in0 in1 in2 + (1666877490991395391549048946911053473487849642250360673170573745319764829033 : F)) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane2 domain in0 in1 in2 + (3299223839115383023937717000826182296440529851590453764583865472885058307271 : F)) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane3 domain in0 in1 in2 + (4996045171356088098584327231799712971775597657789563922144692970174095423805 : F))
+def state12Lane1 (domain in0 in1 in2 : F) : F :=
+  row4 (6755569399542696339399059951025237225100719468123251062348186764733927391233 : F) (7037051457856975353540687448984622109479916112628386523279361213264507699201 : F) (7238110070938603220784707090384182741179342287274911852515914390786350776321 : F) (7388904030749824121217721821433853214953911918259805849443329273927733084161 : F) (p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane0 domain in0 in1 in2 + (3201635684356589303957559840868578463993422412405939241547886338480364890847 : F))) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane1 domain in0 in1 in2 + (1666877490991395391549048946911053473487849642250360673170573745319764829033 : F)) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane2 domain in0 in1 in2 + (3299223839115383023937717000826182296440529851590453764583865472885058307271 : F)) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane3 domain in0 in1 in2 + (4996045171356088098584327231799712971775597657789563922144692970174095423805 : F))
+def state12Lane2 (domain in0 in1 in2 : F) : F :=
+  row4 (7037051457856975353540687448984622109479916112628386523279361213264507699201 : F) (7238110070938603220784707090384182741179342287274911852515914390786350776321 : F) (7388904030749824121217721821433853214953911918259805849443329273927733084161 : F) (4691367638571316902360458299323081406319944075085591015519574142176338466134 : F) (p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane0 domain in0 in1 in2 + (3201635684356589303957559840868578463993422412405939241547886338480364890847 : F))) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane1 domain in0 in1 in2 + (1666877490991395391549048946911053473487849642250360673170573745319764829033 : F)) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane2 domain in0 in1 in2 + (3299223839115383023937717000826182296440529851590453764583865472885058307271 : F)) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane3 domain in0 in1 in2 + (4996045171356088098584327231799712971775597657789563922144692970174095423805 : F))
+def state12Lane3 (domain in0 in1 in2 : F) : F :=
+  row4 (7238110070938603220784707090384182741179342287274911852515914390786350776321 : F) (7388904030749824121217721821433853214953911918259805849443329273927733084161 : F) (4691367638571316902360458299323081406319944075085591015519574142176338466134 : F) (7600015574485533381823942444903391878238309401638657445141710110325668315137 : F) (p17 (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane0 domain in0 in1 in2 + (3201635684356589303957559840868578463993422412405939241547886338480364890847 : F))) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane1 domain in0 in1 in2 + (1666877490991395391549048946911053473487849642250360673170573745319764829033 : F)) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane2 domain in0 in1 in2 + (3299223839115383023937717000826182296440529851590453764583865472885058307271 : F)) (Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state11Lane3 domain in0 in1 in2 + (4996045171356088098584327231799712971775597657789563922144692970174095423805 : F))
+
+theorem state_eq_trace (domain in0 in1 in2 : F) :
+    vec![state12Lane0 domain in0 in1 in2, state12Lane1 domain in0 in1 in2,
+      state12Lane2 domain in0 in1 in2, state12Lane3 domain in0 in1 in2] =
+      Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.state12
+        domain in0 in1 in2 := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace.state12
+  rw [← Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound11.state_eq_trace]
+  rfl
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.Poseidon3ScalarRound12

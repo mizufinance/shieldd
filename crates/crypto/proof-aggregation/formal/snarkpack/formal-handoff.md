@@ -1,68 +1,112 @@
 # SnarkPack Formal Handoff
 
-This is the typed evidence ledger. Implementation-boundary F* rows cover the
-current extracted Rust target set; the RIPP implementation map is reviewed; no
-rows remain `open`. The `assumed` rows are standing external/tool/cryptographic
-assumptions with named postconditions and removal paths, not missing
-implementation work.
+## Final Conditional Implementation Claim
 
-Evidence statuses:
+If Shieldd aggregate verification accepts, locally recomputed statement,
+wrapper, padding, and challenge artifacts passed typed preflight and reached the
+executed RIPP verifier core. The S2 aggregate-verifier refinement identifies
+that core with `Ipp.FsAccepts`; `Ipp.S1.s1_soundness` then implies every
+constituent Groth16 pairing equation. This claim is conditional only on the
+standing cryptographic, production-correspondence, dependency, and
+translation-tool boundaries recorded below.
 
-- `proved`: mechanically checked in F* against hax-extracted executed Rust.
-- `refined`: reviewed against the published algorithm, backed by tests and
-  signed review.
-- `composed`: enforced by Rust types plus proved/refined pieces, tests, and
-  invariant guards.
-- `assumed`: explicit external/tool/cryptographic assumption with owner,
-  rationale, supporting evidence, and removal path.
-- `open`: completion blocker; none remain in this ledger.
+The reached BLS12-377 arithmetic, scalar-multiplication, normalization, MSM,
+pairing execution, strict G1/G2/GT decoding, aggregate traversal/injectivity,
+and challenge-message serialization paths are proved. They are not
+implementation assumptions.
 
-Pinned tools: hax `v0.3.7`, F* `v2026.05.24`, Rust `1.89`, OCaml `5.1.1`,
-Z3 `4.14.1`, OPAM switch `hax-0.3.7`. Any hax/F*/OCaml/Z3/Rust pin change
-requires rerunning `just snarkpack-formal`, reviewing generated extraction
-diffs and support shims, updating the verification marker, and refreshing the
-proof artifact stamp.
+## Lean Roots
 
-Proof artifact stamp: sha256:ee8515bfa1b354f64e31b49b15b1ee3d119510d63ac40ad19e500946a226d3d6
+- S1: `Ipp.S1.s1_soundness`.
+- S2: `Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_refinement_statement`
+  and
+  `Ipp.Extracted.AggregateVerifier.verify_aggregate_proof_pairing_adapter_statement`.
+- S3: the audited arithmetic roots for Fq, Fr, Fq2, Fq6, and Fq12; G1/G2
+  group-law, scalar-multiplication, normalization, and
+  `Ipp.Extracted.ArkworksMsm.executed_g1_msm` /
+  `executed_g2_msm`; G2 preparation, line evaluation, Miller and multi-Miller
+  traversal, final exponentiation, multi-pairing, GT membership, subgroup
+  checks, and the concrete pairing adapter.
+- Strict decode:
+  `Ipp.StrictG1Decode.g1_strict_checked_{success_iff,byte_injective}`,
+  `Ipp.StrictG2Decode.g2_strict_checked_{success_iff,byte_injective}`, and
+  `Ipp.StrictGtDecode.gt_strict_checked_{success_iff,byte_injective}`.
+- Aggregate and transcript:
+  `Ipp.AggregateSerialization.aggregate_strict_decode_injective`,
+  `Ipp.AggregateSerialization.aggregate_decoder_traversal_conformance`,
+  `Ipp.ChallengeMessageSerialization.challenge_message_serialize_injective`,
+  and `challenge_preimage_typed_injective`.
 
-The stamp is the SHA-256 of the committed SnarkPack F* proof files and
-`scripts/snarkpack-formal.sh` plus
-`crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml`. It is
-checked by `just snarkpack-invariants`.
+The authoritative audited list is
+[`Ipp/ProofAudit.lean`](../lean-ipp/Ipp/ProofAudit.lean) plus
+[`Ipp/ProofAuditMiller.lean`](../lean-ipp/Ipp/ProofAuditMiller.lean): 145
+capstones, checked against the allowlist `propext`, `Classical.choice`, and
+`Quot.sound`.
 
-## Final Implementation Claim
+The GAP-14 serialization/subgroup retirement is deliberately limited to the
+reached BLS12-377 aggregate-proof boundary in
+`backend.rs::deserialize_aggregate_proof` through
+`deserialize_compressed_strict`. Its nested malformed flags, trailing bytes,
+noncanonical GT field encodings, G1/G2 infinity aliases, non-subgroup
+components, and valid round trips are covered by the strict-decode and
+aggregate roots above plus Rust boundary fixtures. SRS, VK, and other
+proof-byte consumers, hax/Aeneas or copy correspondence, and delegator/Rayon
+parity are outside this retirement.
 
-If Shieldd aggregate verification accepts, then the accepted backend call was
-produced from recomputed local artifacts, passed verified statement, wrapper,
-padding, and challenge preflight, and reached a local RIPP implementation
-reviewed against the intended algorithm. Validity then depends only on named
-cryptographic, arkworks, hax, and refinement assumptions.
+## Assumptions
 
-This is a composition claim, not a full mechanized SnarkPack/RIPP/Groth16
-soundness theorem.
+| Assumption | Owner | Rationale | Why not proved here | Supporting evidence | Removal path | Required signoff | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| SHA-256 collision resistance | cryptography lead | Statement, SRS, VK, wrapper, and challenge binding reduce to collision resistance after the proved encodings. | SHA-256 cryptanalysis is external to this repository. | Postcondition: distinct bound preimages do not collide at the chosen security margin; evidence is standard SHA-256 analysis and the proved byte-framing reductions. | replace the primitive or obtain an external cryptographic audit artifact | security/crypto | assumed |
+| SHA-256 preimage resistance | cryptography lead | Digest commitments must not be attacker-invertible. | SHA-256 cryptanalysis is external to this repository. | Postcondition: attackers cannot invert the recorded statement, wrapper, or challenge commitments at the chosen security margin; evidence is standard SHA-256 analysis and fixed-domain review. | replace the primitive or obtain an external cryptographic audit artifact | security/crypto | assumed |
+| Domain separation by fixed distinct prefixes | proof-aggregation maintainers | Statement digest, challenge context, challenge preimage, VK digest, and wrapper hashing occupy distinct domains. | The cryptographic consequence composes fixed-prefix review with the SHA-256 assumptions. | Postcondition: the five hash domains remain disjoint and unambiguous; evidence is the fixed constants, golden-layout tests, and invariant review. | mechanize prefix disjointness and bind it to every hash call site | security/crypto | assumed |
+| abstract Groth16 soundness | cryptography lead | Aggregate acceptance ultimately relies on each recovered Groth16 pairing equation being sound for its circuit. | Circuit and Groth16 soundness are separate from the SnarkPack implementation proof. | Postcondition: every accepted Groth16 proof satisfies its verified circuit under the published Groth16 assumptions; evidence is the published construction and Shieldd circuit audits. | replace with a separate Groth16 and circuit-soundness proof or external audit | security/crypto | assumed |
+| `assume.kzg-structured-key-binding` | cryptography lead | Supplies the q-SDH-style binding and KZG evaluation step consumed by S1. | This is a computational BLS12-377 assumption represented by `Ipp.KzgStructuredKeyBinding`. | Postcondition: every accepted final key and opening equals the honest structured-SRS MSM at the transcript coefficients; evidence is the explicit premise of `Ipp.S1.s1_soundness`. | provide a reduction for the deployed KZG scheme and curve | security/crypto | assumed |
+| `assume.pairing-commitment-binding` | cryptography lead | Supplies AFGHO/double-pairing binding for the A/C product lane and real B lane. | This is a computational BLS12-377 assumption represented by `Ipp.PairingCommitmentBinding`. | Postcondition: the pairing vector commitment is message-injective at the supplied keys; evidence is the exact S1 premise and the removal of the synthetic scalar column. | provide a reduction for the deployed pairing commitment | security/crypto | assumed |
+| `assume.bls12377-curve-orders` | proof-aggregation maintainers | Supplies the two concrete G1/G2 point-cardinality equalities used to construct prime subgroups. | Lean proves the field primes and cofactor arithmetic, but not the two point counts. | Postcondition: `Ipp.Bls12377.PublishedCurveOrderFacts` holds for the BLS12-377 curve and D-twist; evidence is arkworks-rs/algebra commit `df907e8c1601a898c2903ed7ab7bbbb10607f36b` and Bowe et al., IACR ePrint 2018/962, Section 8. | derive the concrete point counts in a checked development | security/crypto/formal | assumed |
+| `assume.bls12377-optimal-ate-pairing-laws` | proof-aggregation maintainers | Supplies `Ipp.Bls12377.PublishedPairingBilinearNondegenerate` for the executable pairing on the two prime subgroups. | The repository lacks divisor and Miller-function theory from which to derive the published optimal-ate theorem. | Postcondition: the executable pairing is additive in each source argument and left/right nondegenerate; evidence is the cited optimal-ate literature and the proved S3 Miller/final-exponent execution chain. | formalize the concrete optimal-ate theorem and identify it with the executed S3 chain | security/crypto/formal | assumed |
+| `assume.bls12377-g1-glv-eigenspace` | proof-aggregation maintainers | The optimized G1 scalar path uses the configured endomorphism and eigenvalue. | The executed joint loop is proved conditionally, but the concrete subgroup eigenvalue identity is a published-parameter boundary. | Postcondition: every prime-subgroup G1 point satisfies `phi(P) = lambda • P`; evidence is `ark-bls12-377` v0.5.0 G1 parameters, `ark-ec` v0.5.0 GLV documentation, and `Ipp.Extracted.ArkworksScalarMul.runJoint_eigenvalue`. | prove the parameter identity over the concrete G1 subgroup | security/crypto/formal | assumed |
+| production-copy/delegator/Rayon parity | proof-aggregation maintainers | Lean proves translation-validated monomorphic S3 copies; production calls retain generic delegators and parallel paths. | Kernel identification of each copy with the production generic/parallel implementation is not present. | Postcondition: reached production delegators and Rayon executions equal the proved ordered monomorphic executions and preserve transcript-visible results; evidence is edge plus 512-random copy parity, MSM parity, pairing parity, and committed byte-trace tests. | extract the production delegators/parallel paths directly or obtain an independent translation audit | security/crypto/formal | assumed |
+| residual arkworks serialization implementations outside the aggregate boundary | proof-aggregation maintainers | SRS, VK, and other proof-byte consumers are not reached by the retired aggregate decoder boundary. | GAP-14 proves only the exact BLS12-377 aggregate traversal and its nested G1/G2/GT checks. | Postcondition: residual arkworks byte consumers enforce their documented canonicality, subgroup, and full-consumption requirements; evidence is SRS/VK round trips, subgroup fixtures, and dependency tests. | prove each reached residual consumer or replace it with the proved strict aggregate decoder pattern | security/crypto | assumed |
+| decaf377 group, field, and encoding behavior | proof-aggregation maintainers | The production and reference crates depend on decaf377 curve, field, and encoding behavior. | Full decaf377 backend verification is outside this scope. | Postcondition: decaf377 group/field arithmetic and encodings used by aggregation match the backend assumptions; evidence is `decaf377_vk_digest_round_trips_after_serialization`, `srs_id_is_stable`, `reference_srs_matches_public_production_id`, subgroup/serialization tests, and production/reference parity. | provide a verified curve/encoding backend or external audit artifact | security/crypto | assumed |
+| hax and Aeneas extraction preserve modeled Rust semantics | formal verification owner | F* and Lean implementation proofs consume generated translations. | End-to-end semantic preservation for the pinned translators is not proved in this repository. | Postcondition: every extracted target preserves the modeled Rust safe-subset semantics recorded by the F* boundary and Lean manifest/copy provenance; evidence is pinned toolchains, regeneration, normalization, parity, and freshness gates. | use proved translators or independently translation-validate every extracted root | security/crypto/formal | assumed |
+| `impl_u32__is_power_of_two` shim preserves Rust semantics | formal verification owner | Required because pinned hax support output is not directly accepted by pinned F*. | Compatibility shim, not an implementation property. | Postcondition: shim truth value equals Rust `u32::is_power_of_two`; evidence is the semantic postcondition in `hax-extraction-boundary.md`. | remove when hax/F* support library accepts this definition directly | security/crypto/formal | assumed |
+| `impl__starts_with` shim preserves Rust slice semantics | formal verification owner | Required because pinned hax support output is not directly accepted by pinned F*. | Compatibility shim, not an implementation property. | Postcondition: shim truth value equals Rust slice `starts_with`; evidence is the semantic postcondition in `hax-extraction-boundary.md`. | remove when hax/F* support library accepts this definition directly | security/crypto/formal | assumed |
+| recorded hax support shims preserve Rust support-library semantics | formal verification owner | Required because pinned hax support output omits or cannot directly discharge several byte-framing, slice-range, array-conversion, integer-roundtrip, and checked-arithmetic facts. | Compatibility shims, not implementation properties. | Postcondition: each appended support shim matches the Rust support-library fact named in `hax-extraction-boundary.md`; evidence is the per-shim semantic postconditions for all shims appended by `scripts/snarkpack-formal.sh`. | remove each shim when hax/F* support libraries expose an accepted definition or lemma | security/crypto/formal | assumed |
 
-## Completion Rules
+## Extraction And Copy Provenance
 
-Statement encoding injectivity is `proved` for the current extracted Rust target
-set by `lemma_encode_statement_injective`. It cannot be downgraded to
-`composed`. Digest reduction, SRS/VK preimage binding, padding canonicality,
-challenge-preimage injectivity, wrapper binding, typed aggregate preflight, family
-routing, and app-level aggregate composition all depend on that proved row plus
-their named proof/test evidence.
-If a future change reopens statement encoding injectivity, those dependent rows
-must be re-reviewed and either reopened or given an explicit replacement proof
-dependency.
+[`lean-extraction-manifest.json`](lean-extraction-manifest.json) is the
+canonical 32-record graph ledger. It pins roots, source and parity-test hashes,
+copy provenance, raw and normalized output hashes, commands, and toolchain
+revisions.
 
-Security-binding or semantic RIPP deviations in
-`ripp-refinement.md` are blockers unless mechanically
-`proved-equivalent` or explicitly accepted as `assumed` by security/crypto
-review. Prose review can support `refined`, but not `proved-equivalent`.
+The S3 arithmetic copy sources are
+`src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs` and
+`s3_07_arkworks_fr_spike.rs`, derived from the manifest-named ark-ff,
+ark-bls12-377, and ark-ec v0.5.0 sources. Their parity sources are
+`tests/bls12_377_arkworks_fq_spike.rs` and
+`bls12_377_arkworks_fr_spike.rs`. Production-copy identification remains
+parity-pinned; it is not promoted to a proof by extraction freshness.
 
-Every assumption row must have an owner, rationale, supporting evidence, removal
-path, and security/crypto reviewer signoff. Disputed RIPP deviation
-classification defaults to the higher-risk class until resolved.
+## Gates And Toolchains
 
-## Proof And Evidence Index
+- `just snarkpack-fv`: explicit `static`, `extract-changed`, `extract-all`,
+  `parity-changed`, `parity-all`, `lean`, and `full` modes. Extraction
+  comparison supports four stable manifest-order shards. The `lean` mode uses
+  one `lake build Ipp` process with `LEAN_NUM_THREADS=1` and validates the
+  145-capstone audit from that build log.
+- `.github/workflows/snarkpack-formal.yml`: fail-closed applicability plus
+  independent static, four-way extraction, parity, Lean, F*, fuzz, and DoS
+  lanes. Pull requests select the smallest sound tier; merge-queue and reusable
+  branch runs require the full contract.
+- `just snarkpack-formal`: unchanged hax `v0.3.7` and F* `v2026.05.24`
+  pipeline with Rust `1.89`, OCaml `5.1.1`, Z3 `4.14.1`, and OPAM switch
+  `hax-0.3.7`.
+- `just snarkpack-invariants`: runtime boundaries, F*/hax metadata, assumption
+  row completeness, and the F* artifact stamp.
+
+## Retained F* Proof Evidence
 
 | Obligation | Rust path | Extracted or evidence target | Backend/evidence | Proof or evidence file | Lemma or row | Status | Tool version | Verification marker |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -81,103 +125,15 @@ classification defaults to the higher-risk class until resolved.
 | wrapper outer decode oversize rejects before inner exposure | `crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs` | `decode_wrapped_aggregate_proof` | F* via hax | `crates/crypto/proof-aggregation/formal/snarkpack/fstar/WrapperProofs.fst` | `lemma_wrapper_decode_rejects_oversize_before_inner_exposure` | proved | hax `v0.3.7`, F* `v2026.05.24` | formal gate passed |
 | wrapper round trip and exact inner range | `crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs` | wrapper encode/decode core | F* via hax | `crates/crypto/proof-aggregation/formal/snarkpack/fstar/WrapperProofs.fst` | `lemma_wrapper_roundtrip` | proved | hax `v0.3.7`, F* `v2026.05.24` | formal gate passed |
 | wrapper digest mismatch rejects before inner exposure | `crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs` | wrapper decode core | F* via hax | `crates/crypto/proof-aggregation/formal/snarkpack/fstar/WrapperProofs.fst` | `lemma_wrapper_digest_mismatch_before_range` | proved | hax `v0.3.7`, F* `v2026.05.24` | formal gate passed |
-| challenge preimage layout and injectivity, including `tipp-mipp.x0` and `tipp-mipp.final-bridge` | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs` | `challenge_preimage` | F* via hax | `crates/crypto/proof-aggregation/formal/snarkpack/fstar/ChallengePreimageProofs.fst` | `lemma_challenge_preimage_layout`; `lemma_challenge_preimage_injective` | proved | hax `v0.3.7`, F* `v2026.05.24` | formal gate passed |
+| challenge preimage byte framing and injectivity, including every deployed verifier message | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs`; `src/applications/groth16_aggregation.rs` | `challenge_preimage`; randomizer, x0, GIPA round, final bridge, and KZG message concatenations | F* via hax plus Lean | `crates/crypto/proof-aggregation/formal/snarkpack/fstar/ChallengePreimageProofs.fst`; `crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/ChallengeEncoding.lean`; `Ipp/CanonicalSerializers.lean`; `Ipp/ChallengeMessageSerialization.lean` | `lemma_challenge_preimage_layout`; `lemma_challenge_preimage_injective`; `Ipp.ChallengeMessageSerialization.challenge_message_serialize_injective`; `challenge_preimage_typed_injective` | proved | hax `v0.3.7`, F* `v2026.05.24`, Lean `v4.30.0` | formal and FV gates passed |
 | challenge context constructor derives from statement digest | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs` | `ChallengeContext::from_statement_digest` | F* via hax plus Rust privacy guard | `crates/crypto/proof-aggregation/formal/snarkpack/fstar/ChallengePreimageProofs.fst`; invariant script | `lemma_challenge_context_preimage_layout`; `lemma_challenge_context_bytes_injective` | proved | hax `v0.3.7`, F* `v2026.05.24` | formal gate passed |
-| challenge context has no alternate production constructor | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs` | `ChallengeContext` privacy and invariant guards | Rust type system plus `just snarkpack-invariants` | `scripts/check-snarkpack-invariants.sh` | no `Default`, tuple constructor, or TLS context | composed | n/a | invariant gate passed |
 | preflight work-gate truth table (backend-allowed iff every cheap flag holds) | `crates/crypto/proof-aggregation/src/preflight.rs` | `PreflightCheapChecks`, `PreflightWorkGate`, `preflight_work_gate` | F* via hax | `crates/crypto/proof-aggregation/formal/snarkpack/fstar/PreflightProofs.fst` | `lemma_preflight_gate_allows_backend_work_iff` | proved | hax `v0.3.7`, F* `v2026.05.24` | formal gate passed |
 | family routing totality and route-tag injectivity | `crates/crypto/proof-aggregation/src/bundle.rs` | `FamilyRouteKind`, `FamilyRoute`, `FamilyRouteError`, `family_route_from_proto_fields` | F* via hax | `crates/crypto/proof-aggregation/formal/snarkpack/fstar/FamilyRoutingProofs.fst` | totality, cross-family rejection, VK-slot, and transcript-domain tag lemmas | proved | hax `v0.3.7`, F* `v2026.05.24` | formal gate passed |
-| aggregate backend receives only preflighted bytes | `crates/crypto/proof-aggregation/src/preflight.rs`; `src/backend.rs` | `VerifiedAggregateBackendCall`, `VerifiedInnerProofBytes` | Rust type system plus invariant guards | `scripts/check-snarkpack-invariants.sh` | raw verifier entrypoints route through typed preflight | composed | n/a | invariant gate passed |
-| app-level aggregate composition | `crates/core/app/src/app/mod.rs` | aggregate bundle verification pipeline | Rust tests plus typed backend preflight | `docs/snarkpack/verification.md` verification matrix | recomputed statement material reaches typed preflight | composed | n/a | invariant gate passed |
-| deterministic and property conformance | `crates/crypto/proof-aggregation/src/backend.rs`; `crates/crypto/proof-aggregation-reference/src/lib.rs` | production/reference/batch oracle parity, Groth16 oracle table, mutation matrices, aggregate determinism | Rust deterministic tests plus proptest | `docs/snarkpack/verification.md` verification matrix | clean and mutated aggregate decisions agree across production, reference, and batch oracles | composed | n/a | test and invariant gates passed |
-| untrusted-byte fuzz smoke coverage | `crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs`; `src/preflight.rs`; `src/backend.rs`; `crates/core/app/src/app/preconsensus.rs`; `crates/core/app/src/app/mod.rs`; `crates/crypto/proof-aggregation-fuzz` | wrapper, preflight, aggregate deserialization, sidecar, aggregate-bundle shape, and proposal-validation byte boundaries | Stable proptest plus cargo-fuzz smoke targets | `just snarkpack-fuzz-smoke`; `scripts/check-snarkpack-invariants.sh` | byte-boundary entrypoints return bounded Ok/Err without panics in smoke coverage | composed | n/a | test, fuzz, and invariant gates passed |
-| optimization preserves byte trace or versions the protocol | `crates/crypto/proof-aggregation/src/backend.rs`; `crates/crypto/proof-aggregation-reference/src/lib.rs`; `crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs`; `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs`; `../../optimization-playbook.md`; `crates/bench/benches/vanilla/snarkpack.rs` | committed aggregate-byte and ShielddByte-trace baselines; `msm_keys` final commitment-key recombination; corpus-backed bench plus compile-time `bench-baseline` A/B seam | Rust golden-baseline tests plus unit equivalence; documented playbook process | `aggregate_bytes_match_committed_baseline`; `shieldd_byte_trace_matches_committed_baseline`; `msm_keys_equals_sequential_fold`; committed fixtures under `tests/fixtures/`; `../../optimization-playbook.md` | aggregate bytes and transcript are locked to a version-tagged baseline; the playbook constrains optimizations to categories 1/2 (never transcript), measured honestly, so a change either preserves bytes or bumps `AGGREGATE_PROTOCOL_VERSION` with an adaptation-register row | composed | n/a | test gates passed |
-| local RIPP implementation maps to intended algorithm | `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src` | proof-relevant RIPP symbols | refinement map plus tests/review | `ripp-refinement.md` | all scoped rows refined against `ripp-spec.md` | refined | n/a | ripp refinement reviewed; invariant gate passed |
 
-## Assumptions
+Proof artifact stamp: sha256:a4dd8a5c99e54cc31d388a9b6e4bedfad905e074674a9c3e1964f8de50dd9c6c
 
-| Assumption | Owner | Rationale | Why not proved here | Supporting evidence | Removal path | Required signoff | Status |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| SHA-256 collision resistance | cryptography lead | Statement digest binding reduces to this after encoding injectivity is proved. | External cryptographic primitive assumption. | Postcondition: distinct encoded statements do not collide under SHA-256 at the chosen security margins; evidence is standard SHA-256 analysis plus fixed domain prefixes. | replace primitive or obtain external audit evidence; no end-to-end FV is planned for this primitive | security/crypto | assumed |
-| SHA-256 preimage resistance | cryptography lead | Challenge context and wrapper digests use SHA-256-derived commitments. | External cryptographic primitive assumption. | Postcondition: attacker cannot choose proof/wrapper/challenge bytes that invert the recorded SHA-256 commitments at the chosen security margins; evidence is standard SHA-256 analysis plus fixed domain prefixes. | replace primitive or obtain external audit evidence; no end-to-end FV is planned for this primitive | security/crypto | assumed |
-| Domain separation by fixed distinct prefixes | proof-aggregation maintainers | Separate statement digest, challenge context, challenge preimage, VK digest, and wrapper domains. | Reduces to fixed-prefix review plus hash assumptions. | Postcondition: statement digest, challenge context, challenge preimage, VK digest, and wrapper domains have disjoint fixed prefixes; evidence is golden-layout tests plus invariant review. | prove prefix disjointness mechanically if this becomes proof-critical | security/crypto | assumed |
-| abstract Groth16 soundness | cryptography lead | Aggregate verification ultimately depends on Groth16 proof soundness. | Out of implementation-boundary FV scope. | Postcondition: accepted Groth16 proofs satisfy the verified circuits under the published Groth16 assumptions; evidence is published Groth16 proof material and existing Shieldd circuit audits. | standing assumption; replace only with external audit or separate Groth16 proof campaign | security/crypto | assumed |
-| abstract RIPP/GIPA/TIPA/SnarkPack algebraic soundness | cryptography lead | Local implementation is reviewed against the algorithm, but algebraic soundness is external. | End-to-end FV out of scope; paper + Filecoin impl assumed sound. | Postcondition: the reviewed local RIPP/GIPA/TIPA equations are sound under the published SnarkPack/RIPP algebraic assumptions; evidence is published proof material, `ripp-refinement.md`, and the implemented Stage 9 Lean differential conformance gate (`just snarkpack-lean-conformance`). | standing assumption; removal requires a separate algebraic proof or external audit; Lean conformance remains supporting evidence, not a proof | security/crypto | assumed |
-| SnarkPack aggregation implies each per-proof Groth16 verification (S1 decision) | cryptography lead (human decision 2026-07-06) | The final SnarkPack claim is a composition claim: accepting one aggregate proof must imply each underlying per-proof Groth16 verification equation holds. Human-decided 2026-07-06 to accept for now on Filecoin lineage plus paper review rather than block on a mechanized IPP soundness theorem (plan §3, S1 DECIDED; assurance-case R1.3). Distinct from and composed with the abstract algebraic-soundness row above. | End-to-end mechanization of the aggregate→per-proof implication is deferred; re-proving the IPP paper is explicitly out of scope. | Postcondition: an accepted aggregate verification equation implies each per-proof Groth16 verification equation under the BLS12-377 pairing and KZG/SRS assumptions; evidence is the published SnarkPack/RIPP proof material, the Filecoin Bellperson v0.21.0 implementation lineage, `ripp-refinement.md`, and the Stage 9 Lean differential conformance gate (`just snarkpack-lean-conformance`) as supporting evidence. | Lean mechanization that the aggregated verification equation implies each per-proof Groth16 equation under the pairing assumptions — a bounded, statement-shaped target, NOT a re-proof of the IPP paper (plan §3 removal path). | security/crypto | assumed |
-| arkworks field/group/pairing mathematical operation implementations | proof-aggregation maintainers | The implementation calls arkworks arithmetic primitives. | Full library verification is outside this scope. | Postcondition: arkworks field, group, and pairing operations implement the algebra used by SnarkPack; evidence is upstream tests plus `arkworks_pairing_identity_and_generator_consistency`, `arkworks_g1_g2_compressed_round_trip_and_identity`, and `arkworks_g1_g2_subgroup_and_torsion_rejection`. | verified arithmetic backend or external audit artifact | security/crypto | assumed |
-| arkworks MSM implementation computes intended linear combination | proof-aggregation maintainers | MSM is an implementation-heavy dependency, not a pure algebra axiom. | Full arkworks MSM verification is outside this scope. | Postcondition: arkworks MSM returns the same linear combination as the naive fold for the boundary cases used by aggregation; evidence is `arkworks_msm_boundary_zero_scalar_identity_and_random_parity`. | verified MSM or external audit artifact | security/crypto | assumed |
-| arkworks serialization and subgroup behavior | proof-aggregation maintainers | SRS, VK, proof bytes, and digests depend on arkworks encoding checks. | Full serialization/subgroup proof is outside this scope. | Postcondition: checked compressed G1/G2 decoding rejects malformed and non-subgroup encodings and round-trips valid/identity encodings; evidence is `arkworks_g1_g2_compressed_round_trip_and_identity`, `arkworks_g1_g2_malformed_compressed_bytes_reject`, and `arkworks_g1_g2_subgroup_and_torsion_rejection`. | verified serialization backend or external audit artifact | security/crypto | assumed |
-| hax extraction preserves modeled Rust semantics for the extracted safe subset | formal verification owner | F* proofs are over hax output. | hax semantic preservation is not proved inside this repo. | Postcondition: each extracted safe-subset target preserves the Rust semantics recorded in `hax-extraction-boundary.md`; evidence is pinned versions and invariant guards over the target list and support assumptions. | upstream hax soundness proof or independent translation validation | security/crypto/formal | assumed |
-| `impl_u32__is_power_of_two` shim preserves Rust semantics | formal verification owner | Required because pinned hax support output is not directly accepted by pinned F*. | Compatibility shim, not an implementation property. | Postcondition: shim truth value equals Rust `u32::is_power_of_two`; evidence is the semantic postcondition in `hax-extraction-boundary.md`. | remove when hax/F* support library accepts this definition directly | security/crypto/formal | assumed |
-| `impl__starts_with` shim preserves Rust slice semantics | formal verification owner | Required because pinned hax support output is not directly accepted by pinned F*. | Compatibility shim, not an implementation property. | Postcondition: shim truth value equals Rust slice `starts_with`; evidence is the semantic postcondition in `hax-extraction-boundary.md`. | remove when hax/F* support library accepts this definition directly | security/crypto/formal | assumed |
-| recorded hax support shims preserve Rust support-library semantics | formal verification owner | Required because pinned hax support output omits or cannot directly discharge several byte-framing, slice-range, array-conversion, integer-roundtrip, and checked-arithmetic facts. | Compatibility shims, not implementation properties. | Postcondition: each appended support shim matches the Rust support-library fact named in `hax-extraction-boundary.md`; evidence is the per-shim semantic postconditions for all shims appended by `scripts/snarkpack-formal.sh`. | remove each shim when hax/F* support libraries expose an accepted definition or lemma | security/crypto/formal | assumed |
-| decaf377 group, field, and encoding behavior | proof-aggregation maintainers | The production and reference crates depend on decaf377 curve, field, and encoding behavior. | Full decaf377 backend verification is outside this scope. | Postcondition: decaf377 group/field arithmetic and encodings used by aggregation match the backend assumptions; evidence is `decaf377_vk_digest_round_trips_after_serialization`, `srs_id_is_stable`, `reference_srs_matches_public_production_id`, arkworks subgroup/serialization tests, and production/reference parity tests. | verified curve/encoding backend or external audit artifact | security/crypto | assumed |
-
-## Arkworks Boundary Test Obligations
-
-These are evidence obligations, not proofs. They narrow the arkworks
-implementation assumptions above.
-
-- compressed G1 deserialization rejects non-subgroup encodings
-- compressed G2 deserialization rejects non-subgroup encodings
-- identity points round-trip according to arkworks documented semantics
-- torsion-injection fixtures reject for G1 and G2
-- malformed compressed bytes reject
-- valid G1/G2 points serialize and deserialize round trip
-- verifying key digest is stable under serialize/deserialize
-- SRS id is stable under serialize/deserialize
-- MSM with zero scalars matches naive linear combination
-- MSM with identity elements matches naive linear combination
-- MSM on small random vectors matches naive linear combination
-
-Implemented test evidence:
-`arkworks_pairing_identity_and_generator_consistency`,
-`arkworks_msm_boundary_zero_scalar_identity_and_random_parity`,
-`arkworks_g1_g2_compressed_round_trip_and_identity`,
-`arkworks_g1_g2_malformed_compressed_bytes_reject`,
-`arkworks_g1_g2_subgroup_and_torsion_rejection`,
-`decaf377_vk_digest_round_trips_after_serialization`,
-`srs_id_is_stable`, and `reference_srs_matches_public_production_id`.
-
-## Hax Extraction Discipline
-
-The current extracted target list is
-`crates/crypto/proof-aggregation/formal/snarkpack/hax-targets.txt`. Per-target
-features, preconditions, arithmetic mode, control-flow forms, panics, unsafe,
-and support shims are recorded in
-`crates/crypto/proof-aggregation/formal/snarkpack/hax-extraction-boundary.md`.
-
-Unrecorded `assume val`, `admit`, `--admit_smt_queries`, duplicate
-formal-only encoders, tuple/default `ChallengeContext` constructors, and
-unmapped RIPP refinement symbols are rejected by `just snarkpack-invariants`.
-Any recorded extraction-only traversal branch must have a boundary row and
-normal plus `cfg(hax)` parity coverage.
-
-## Soundness Assumption And Differential Conformance
-
-End-to-end formal verification is **out of scope**. SnarkPack/RIPP/Groth16
-algebraic soundness is a standing assumption, inherited from the published paper
-and the Filecoin (Bellperson v0.21.0) implementation, both assumed sound. There
-is no Lean algebraic proof and no EasyCrypt Fiat-Shamir proof.
-
-Instead, algebraic/transcript conformance is **exhaustively cross-checked over a
-bounded domain** by ALG-I4 (verification.md): an independent, hand-built Lean model of
-the transcript and folding discipline, differentially tested against the Rust by
-enumerating every distinct transcript shape (one per power of two up to the SRS
-max) rather than sampling. This is evidence, not proof (bounded by the SRS max,
-algebra abstract), and is non-blocking. F* via hax remains the executed-Rust
-implementation-boundary proof backend and stays a completion blocker.
-
-## Gates
-
-Run `just snarkpack-formal` for the formal gate. It checks the pinned toolchain,
-hax extraction, F* module imports, smoke bindings to extracted functions, and
-proved rows above. The SnarkPack proof files are checked without
-`--admit_smt_queries`.
-
-The clean-image `.github/workflows/snarkpack-formal.yml` job installs the pinned
-Z3, F*, and hax versions from `toolchain.toml`, runs `just snarkpack-formal`,
-then runs `just snarkpack-invariants`, `just snarkpack-fuzz-smoke`,
-`just snarkpack-filecoin-shape`, `just snarkpack-dos-gate`, and
-`just snarkpack-lean-conformance`. Keep the full
-formal gate out of default `just check` unless it satisfies the default CI
-runtime policy; it remains a required SnarkPack workflow gate.
+It hashes the SnarkPack F* proof files, `scripts/snarkpack-formal.sh`, and
+`crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml`. This handoff
+modifies none of them; the value was restamped on the `dev` side of the
+NoteReshape merge, which edited `fstar/FamilyRoutingProofs.fst`,
+`fstar/StatementEncodingProofs.fst`, and `scripts/snarkpack-formal.sh`.

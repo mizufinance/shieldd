@@ -13,7 +13,7 @@ go_correspondence_status = "differential-conformance-testing-only"
 # Phase C3 — gadget-scope constraint-system proofs (ACL2/Axe). Heavy, nightly
 # CI only. Proves a decomposed gadget's R1CS implies an ACL2 spec predicate;
 # does not promote whole-circuit property rows. See
-# docs/soundness/constraint-system-assurance.md and the C3 plan.
+# docs/soundness/fv.md and the checked coverage gate.
 [constraints]
 acl2 = "8.7"
 sbcl = "2.4.0"

@@ -19,9 +19,7 @@ blake2 = "0.9"
 decaf377 = { workspace = true, default-features = false }
 digest = "0.9"
 shieldd-sdk-proof-aggregation = { workspace = true, default-features = false }
-shieldd-sdk-proof-aggregation-trace-schema = { workspace = true }
 shieldd-sdk-proof-params = { workspace = true, default-features = false }
-shieldd-sdk-shielded-pool = { workspace = true, default-features = false }
 rand_chacha = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
@@ -30,5 +28,4 @@ thiserror = { workspace = true }
 ark-r1cs-std = { workspace = true }
 ark-relations = { workspace = true }
 ark-snark = { workspace = true }
-hex = { workspace = true }
-proptest = { workspace = true }
+shieldd-sdk-shielded-pool = { workspace = true, default-features = false }

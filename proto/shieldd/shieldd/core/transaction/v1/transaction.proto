@@ -74,8 +74,7 @@ message DetectionData {
 enum ProofFamilyId {
   PROOF_FAMILY_ID_UNSPECIFIED = 0;
   PROOF_FAMILY_ID_TRANSFER = 7;
-  PROOF_FAMILY_ID_CONSOLIDATE = 8;
-  PROOF_FAMILY_ID_SPLIT = 9;
+  PROOF_FAMILY_ID_NOTE_RESHAPE = 8;
   PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL = 10;
 }
 
@@ -84,8 +83,8 @@ message FamilyAggregate {
   uint32 real_count = 3;
   uint32 padded_count = 4;
   bytes aggregate_proof = 5;
-  uint32 consolidate_family_id = 6;
-  uint32 split_family_id = 7;
+  uint32 note_reshape_family_id = 6;
+  reserved 7;
   uint32 shielded_ics20_withdrawal_family_id = 8;
 }
 
@@ -97,10 +96,10 @@ message AggregateBundle {
 
 // A state change performed by a transaction.
 message Action {
+  reserved 7;
   oneof action {
     component.shielded_pool.v1.Transfer transfer = 5;
-    component.shielded_pool.v1.Consolidate consolidate = 6;
-    component.shielded_pool.v1.Split split = 7;
+    component.shielded_pool.v1.NoteReshape note_reshape = 6;
 
     // Uncommon actions have numbers > 15.
 
@@ -207,10 +206,10 @@ message TransactionBodyView {
 
 // A view of a specific state change action performed by a transaction.
 message ActionView {
+  reserved 7;
   oneof action_view {
     component.shielded_pool.v1.TransferView transfer = 5;
-    component.shielded_pool.v1.ConsolidateView consolidate = 6;
-    component.shielded_pool.v1.SplitView split = 7;
+    component.shielded_pool.v1.NoteReshapeView note_reshape = 6;
 
     // Action types without visible/opaque variants
     component.validator.v1.ValidatorDefinition validator_definition = 16;
@@ -285,10 +284,10 @@ message DetectionDataPlan {
 // Some transaction Actions don't have any private data and are treated as being plans
 // themselves.
 message ActionPlan {
+  reserved 7;
   oneof action {
     component.shielded_pool.v1.TransferPlan transfer = 5;
-    component.shielded_pool.v1.ConsolidatePlan consolidate = 6;
-    component.shielded_pool.v1.SplitPlan split = 7;
+    component.shielded_pool.v1.NoteReshapePlan note_reshape = 6;
 
     // This is just a message relayed to the chain.
     component.validator.v1.ValidatorDefinition validator_definition = 16;

@@ -797,19 +797,15 @@ impl ViewService for ViewServer {
                         }
                     }
                 }
-                Action::Consolidate(consolidate) => {
-                    for input in &consolidate.body.inputs {
-                        let nullifier = input.nullifier;
-                        if let Ok(spendable_note_record) =
-                            self.storage.note_by_nullifier(nullifier, false).await
-                        {
-                            txp.spend_nullifiers
-                                .insert(nullifier, spendable_note_record.note);
-                        }
-                    }
-                }
-                Action::Split(split) => {
-                    for input in &split.body.inputs {
+                Action::NoteReshape(note_reshape) => {
+                    let synthetic_input_padding = note_reshape.body.family_id.spec().input_padding
+                        == shieldd_sdk_shielded_pool::note_reshape::InputPaddingPolicy::SyntheticPrivate;
+                    for input in note_reshape
+                        .body
+                        .inputs
+                        .iter()
+                        .filter(|input| !synthetic_input_padding || !input.is_dummy())
+                    {
                         let nullifier = input.nullifier;
                         if let Ok(spendable_note_record) =
                             self.storage.note_by_nullifier(nullifier, false).await
@@ -850,15 +846,8 @@ impl ViewService for ViewServer {
                         ..
                     },
                 )
-                | ActionView::Consolidate(
-                    shieldd_sdk_transaction::view::action_view::ConsolidateView::Visible {
-                        spent_notes,
-                        created_notes,
-                        ..
-                    },
-                )
-                | ActionView::Split(
-                    shieldd_sdk_transaction::view::action_view::SplitView::Visible {
+                | ActionView::NoteReshape(
+                    shieldd_sdk_transaction::view::action_view::NoteReshapeView::Visible {
                         spent_notes,
                         created_notes,
                         ..
@@ -1329,8 +1318,7 @@ impl ViewService for ViewServer {
             use shieldd_sdk_transaction::ActionPlan;
             match action {
                 ActionPlan::Transfer(p) => &p.spends,
-                ActionPlan::Consolidate(p) => &p.spends,
-                ActionPlan::Split(p) => &p.spends,
+                ActionPlan::NoteReshape(p) => &p.spends,
                 ActionPlan::ShieldedIcs20Withdrawal(p) => &p.spends,
                 _ => &[],
             }

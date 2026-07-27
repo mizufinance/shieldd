@@ -1,28 +1,19 @@
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
-use shieldd_sdk_shielded_pool::{
-    ConsolidateFamilyId, ShieldedIcs20WithdrawalFamilyId, SplitFamilyId,
-};
+use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
 
 const PROOF_FAMILY_TRANSFER: u32 = pb::ProofFamilyId::Transfer as u32;
-const PROOF_FAMILY_CONSOLIDATE: u32 = pb::ProofFamilyId::Consolidate as u32;
-const PROOF_FAMILY_SPLIT: u32 = pb::ProofFamilyId::Split as u32;
+const PROOF_FAMILY_NOTE_RESHAPE: u32 = pb::ProofFamilyId::NoteReshape as u32;
 const PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL: u32 =
     pb::ProofFamilyId::ShieldedIcs20Withdrawal as u32;
 
-const CONSOLIDATE_TWO_BY_ONE: u32 = 1;
-const CONSOLIDATE_FOUR_BY_ONE: u32 = 2;
-const CONSOLIDATE_EIGHT_BY_ONE: u32 = 3;
-const SPLIT_ONE_BY_FOUR: u32 = 1;
-const SPLIT_ONE_BY_EIGHT: u32 = 2;
 const SHIELDED_ICS20_WITHDRAWAL_CANONICAL: u32 = 1;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum ProofFamilyId {
     Transfer,
-    Consolidate(ConsolidateFamilyId),
-    Split(SplitFamilyId),
+    NoteReshape(NoteReshapeFamilyId),
     ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId),
 }
 
@@ -44,8 +35,7 @@ pub struct AggregateBundle {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FamilyRouteKind {
     Transfer,
-    Consolidate,
-    Split,
+    NoteReshape,
     ShieldedIcs20Withdrawal,
 }
 
@@ -65,16 +55,12 @@ pub enum FamilyRouteError {
 
 pub fn family_route_from_proto_fields(
     family_id: u32,
-    consolidate_family_id: u32,
-    split_family_id: u32,
+    note_reshape_family_id: u32,
     shielded_ics20_withdrawal_family_id: u32,
 ) -> Result<FamilyRoute, FamilyRouteError> {
     match family_id {
         PROOF_FAMILY_TRANSFER => {
-            if consolidate_family_id != 0
-                || split_family_id != 0
-                || shielded_ics20_withdrawal_family_id != 0
-            {
+            if note_reshape_family_id != 0 || shielded_ics20_withdrawal_family_id != 0 {
                 Err(FamilyRouteError::UnexpectedSubfamily)
             } else {
                 Ok(FamilyRoute {
@@ -83,33 +69,15 @@ pub fn family_route_from_proto_fields(
                 })
             }
         }
-        PROOF_FAMILY_CONSOLIDATE => {
-            if consolidate_family_id == 0 {
+        PROOF_FAMILY_NOTE_RESHAPE => {
+            if note_reshape_family_id == 0 {
                 Err(FamilyRouteError::MissingSubfamily)
-            } else if split_family_id != 0 || shielded_ics20_withdrawal_family_id != 0 {
+            } else if shielded_ics20_withdrawal_family_id != 0 {
                 Err(FamilyRouteError::UnexpectedSubfamily)
-            } else if consolidate_family_id == CONSOLIDATE_TWO_BY_ONE
-                || consolidate_family_id == CONSOLIDATE_FOUR_BY_ONE
-                || consolidate_family_id == CONSOLIDATE_EIGHT_BY_ONE
-            {
+            } else if NoteReshapeFamilyId::try_from(note_reshape_family_id).is_ok() {
                 Ok(FamilyRoute {
-                    kind: FamilyRouteKind::Consolidate,
-                    subfamily_id: consolidate_family_id,
-                })
-            } else {
-                Err(FamilyRouteError::UnknownSubfamily)
-            }
-        }
-        PROOF_FAMILY_SPLIT => {
-            if split_family_id == 0 {
-                Err(FamilyRouteError::MissingSubfamily)
-            } else if consolidate_family_id != 0 || shielded_ics20_withdrawal_family_id != 0 {
-                Err(FamilyRouteError::UnexpectedSubfamily)
-            } else if split_family_id == SPLIT_ONE_BY_FOUR || split_family_id == SPLIT_ONE_BY_EIGHT
-            {
-                Ok(FamilyRoute {
-                    kind: FamilyRouteKind::Split,
-                    subfamily_id: split_family_id,
+                    kind: FamilyRouteKind::NoteReshape,
+                    subfamily_id: note_reshape_family_id,
                 })
             } else {
                 Err(FamilyRouteError::UnknownSubfamily)
@@ -118,7 +86,7 @@ pub fn family_route_from_proto_fields(
         PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL => {
             if shielded_ics20_withdrawal_family_id == 0 {
                 Err(FamilyRouteError::MissingSubfamily)
-            } else if consolidate_family_id != 0 || split_family_id != 0 {
+            } else if note_reshape_family_id != 0 {
                 Err(FamilyRouteError::UnexpectedSubfamily)
             } else if shielded_ics20_withdrawal_family_id == SHIELDED_ICS20_WITHDRAWAL_CANONICAL {
                 Ok(FamilyRoute {
@@ -137,8 +105,7 @@ impl From<ProofFamilyId> for pb::ProofFamilyId {
     fn from(value: ProofFamilyId) -> Self {
         match value {
             ProofFamilyId::Transfer => Self::Transfer,
-            ProofFamilyId::Consolidate(_) => Self::Consolidate,
-            ProofFamilyId::Split(_) => Self::Split,
+            ProofFamilyId::NoteReshape(_) => Self::NoteReshape,
             ProofFamilyId::ShieldedIcs20Withdrawal(_) => Self::ShieldedIcs20Withdrawal,
         }
     }
@@ -147,8 +114,7 @@ impl From<ProofFamilyId> for pb::ProofFamilyId {
 impl ProofFamilyId {
     pub(crate) fn try_from_proto_fields(
         family_id: i32,
-        consolidate_family_id: u32,
-        split_family_id: u32,
+        note_reshape_family_id: u32,
         shielded_ics20_withdrawal_family_id: u32,
     ) -> Result<Self> {
         let family_id_u32 =
@@ -158,31 +124,22 @@ impl ProofFamilyId {
         }
         let route = family_route_from_proto_fields(
             family_id_u32,
-            consolidate_family_id,
-            split_family_id,
+            note_reshape_family_id,
             shielded_ics20_withdrawal_family_id,
         )
         .map_err(|err| family_route_error_message(err, family_id))?;
         match route.kind {
             FamilyRouteKind::Transfer => Ok(Self::Transfer),
-            FamilyRouteKind::Consolidate => Ok(Self::Consolidate(route.subfamily_id.try_into()?)),
-            FamilyRouteKind::Split => Ok(Self::Split(route.subfamily_id.try_into()?)),
+            FamilyRouteKind::NoteReshape => Ok(Self::NoteReshape(route.subfamily_id.try_into()?)),
             FamilyRouteKind::ShieldedIcs20Withdrawal => Ok(Self::ShieldedIcs20Withdrawal(
                 route.subfamily_id.try_into()?,
             )),
         }
     }
 
-    pub(crate) fn consolidate_family_id(self) -> u32 {
+    pub(crate) fn note_reshape_family_id(self) -> u32 {
         match self {
-            ProofFamilyId::Consolidate(family_id) => family_id.get(),
-            _ => 0,
-        }
-    }
-
-    pub(crate) fn split_family_id(self) -> u32 {
-        match self {
-            ProofFamilyId::Split(family_id) => family_id.get(),
+            ProofFamilyId::NoteReshape(family_id) => family_id.get(),
             _ => 0,
         }
     }
@@ -214,7 +171,7 @@ impl TryFrom<i32> for ProofFamilyId {
     type Error = anyhow::Error;
 
     fn try_from(value: i32) -> Result<Self> {
-        Self::try_from_proto_fields(value, 0, 0, 0)
+        Self::try_from_proto_fields(value, 0, 0)
     }
 }
 
@@ -256,8 +213,7 @@ impl From<FamilyAggregate> for pb::FamilyAggregate {
     fn from(value: FamilyAggregate) -> Self {
         Self {
             family_id: pb::ProofFamilyId::from(value.family_id) as i32,
-            consolidate_family_id: value.family_id.consolidate_family_id(),
-            split_family_id: value.family_id.split_family_id(),
+            note_reshape_family_id: value.family_id.note_reshape_family_id(),
             shielded_ics20_withdrawal_family_id: value
                 .family_id
                 .shielded_ics20_withdrawal_family_id(),
@@ -275,8 +231,7 @@ impl TryFrom<pb::FamilyAggregate> for FamilyAggregate {
         Ok(Self {
             family_id: ProofFamilyId::try_from_proto_fields(
                 value.family_id,
-                value.consolidate_family_id,
-                value.split_family_id,
+                value.note_reshape_family_id,
                 value.shielded_ics20_withdrawal_family_id,
             )?,
             real_count: value.real_count,
@@ -290,7 +245,7 @@ impl TryFrom<pb::FamilyAggregate> for FamilyAggregate {
 mod tests {
     use super::{AggregateBundle, FamilyAggregate, ProofFamilyId};
     use shieldd_sdk_proto::DomainType;
-    use shieldd_sdk_shielded_pool::{ConsolidateFamilyId, SplitFamilyId};
+    use shieldd_sdk_shielded_pool::NoteReshapeFamilyId;
 
     #[test]
     fn aggregate_bundle_proto_round_trip() {
@@ -299,13 +254,13 @@ mod tests {
             srs_id: vec![1, 2, 3, 4],
             families: vec![
                 FamilyAggregate {
-                    family_id: ProofFamilyId::Consolidate(ConsolidateFamilyId::TwoByOne),
+                    family_id: ProofFamilyId::NoteReshape(NoteReshapeFamilyId::TwoByOne),
                     real_count: 1,
                     padded_count: 1,
                     aggregate_proof: vec![1, 2, 3],
                 },
                 FamilyAggregate {
-                    family_id: ProofFamilyId::Split(SplitFamilyId::OneByEight),
+                    family_id: ProofFamilyId::NoteReshape(NoteReshapeFamilyId::OneByEight),
                     real_count: 2,
                     padded_count: 2,
                     aggregate_proof: vec![4, 5, 6],
@@ -326,8 +281,7 @@ mod tests {
             families: vec![shieldd_sdk_proto::core::transaction::v1::FamilyAggregate {
                 family_id: shieldd_sdk_proto::core::transaction::v1::ProofFamilyId::Unspecified
                     as i32,
-                consolidate_family_id: 0,
-                split_family_id: 0,
+                note_reshape_family_id: 0,
                 shielded_ics20_withdrawal_family_id: 0,
                 real_count: 1,
                 padded_count: 1,

@@ -170,7 +170,7 @@ mod statement_parity_tests {
     /// `ClaimedStatementHash` — the statement-hash transcript binding (see
     /// `note_reshape_circuit.go:23` / `transfer_circuit.go:49`, and the
     /// per-field binding inventories under
-    /// `docs/soundness/reference/{consolidate2x1,transfer}-statement-binding-inventory.md`).
+    /// the generated coverage manifests and deployed `Statement.lean` modules).
     ///
     /// The SnarkPack aggregation layer derives its per-proof arity from the VK
     /// as `pvk.vk.gamma_abc_g1.len() - 1` (`proof-aggregation/src/statement.rs:212`).
@@ -184,10 +184,11 @@ mod statement_parity_tests {
 
     /// All committed gnark families (one artifact dir each under tools/gnark/artifacts).
     const FAMILIES: &[&str] = &[
-        "consolidate2x1",
-        "consolidate8x1",
+        "note_reshape2x1",
+        "note_reshape4x1",
+        "note_reshape8x1",
         "shielded_ics20_withdrawal",
-        "split1x8",
+        "note_reshape1x8",
         "transfer",
     ];
 

@@ -155,8 +155,7 @@ fn snarkpack_bench(c: &mut Criterion) {
     let counts = [1usize, 2, 4, 8, 64];
     let families = [
         ProofFamilyId::Transfer,
-        ProofFamilyId::Consolidate(shieldd_sdk_shielded_pool::CONSOLIDATE_FAMILY_SPECS[0].id),
-        ProofFamilyId::Split(shieldd_sdk_shielded_pool::SPLIT_FAMILY_SPECS[0].id),
+        ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NOTE_RESHAPE_FAMILY_SPECS[0].id),
         ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
     ];
 

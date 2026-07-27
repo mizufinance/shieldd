@@ -49,11 +49,16 @@ theorem ltAccum_eq_decide {d : ℕ} (a b : List.Vector Bool d) :
       simp only [Bool.true_and, Bool.not_true, Bool.not_false, Bool.and_false,
         Bool.and_true, Bool.false_and, Bool.false_or, Bool.or_false, Bool.or_true,
         Bool.xor_false, Bool.xor_true, Bool.xor_self, ltAccum_pe_false,
-        Bool.toNat_false, Bool.toNat_true]
-    · rw [ih, decide_eq_decide]; omega
-    · rw [eq_comm, decide_eq_true_iff]; omega
-    · rw [eq_comm, decide_eq_false_iff_not]; omega
-    · rw [ih, decide_eq_decide]; omega
+        Bool.toNat_false, Bool.toNat_true, Nat.zero_mul, Nat.zero_add, Nat.one_mul]
+    · exact ih ta tb
+    · rw [eq_comm, decide_eq_true_iff]
+      exact lt_of_lt_of_le hat (Nat.le_add_right (2 ^ d) (Fin.ofBitsBE tb).val)
+    · rw [eq_comm, decide_eq_false_iff_not]
+      intro h
+      exact Nat.not_lt_of_ge (Nat.le_of_lt hbt)
+        (lt_of_le_of_lt (Nat.le_add_right (2 ^ d) (Fin.ofBitsBE ta).val) h)
+    · rw [ih ta tb]
+      simp only [Nat.add_lt_add_iff_left]
 
 /-- Little-endian corollary for the LE canonical decompositions the gadget consumes. -/
 theorem ltAccum_reverse_eq_decide {d : ℕ} (a b : List.Vector Bool d) :

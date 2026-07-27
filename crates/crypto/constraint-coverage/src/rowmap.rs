@@ -379,7 +379,7 @@ mod tests {
     #[test]
     fn real_rvk_slice_is_exhaustive_and_bit_exact() {
         let data =
-            std::fs::read("../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs");
+            std::fs::read("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs");
         let Ok(data) = data else {
             return; // artifact not present in this checkout
         };
@@ -390,8 +390,8 @@ mod tests {
         assert_eq!(map.rows.len(), 1812);
         // exactly the 251 deployed bit wires, recomposed into the scalar wire.
         assert_eq!(map.bit_wires.len(), 251);
-        assert_eq!(*map.bit_wires.first().unwrap(), 16136);
-        assert_eq!(*map.bit_wires.last().unwrap(), 16386);
+        assert_eq!(*map.bit_wires.first().unwrap(), 16130);
+        assert_eq!(*map.bit_wires.last().unwrap(), 16380);
         // exactly one geometric recomposition row; the rest of to_binary is bitness.
         assert_eq!(map.counts.get("ToBinary:recomposition").copied(), Some(1));
         assert_eq!(map.counts.get("ToBinary:bitness").copied(), Some(251));

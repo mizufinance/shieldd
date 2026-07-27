@@ -694,10 +694,28 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                         .map(|output| output.note_payload.clone()),
                 );
             }
-            // Split and Consolidate have no nullifiers or compliance anchors to pre-read.
-            Action::Split(_) | Action::Consolidate(_) => {}
+            // Note reshape has no compliance anchors. Every proof-bound input
+            // nullifier and output payload participates in prepared effects;
+            // body-only padding sentinels cannot suppress consensus writes.
+            Action::NoteReshape(note_reshape) => {
+                for input in &note_reshape.body.inputs {
+                    anyhow::ensure!(
+                        tx_nullifiers.insert(input.nullifier),
+                        "transaction contains duplicate spend nullifier {}",
+                        input.nullifier
+                    );
+                    spend_nullifiers.push(input.nullifier);
+                }
+                output_payloads.extend(
+                    note_reshape
+                        .body
+                        .outputs
+                        .iter()
+                        .map(|output| output.note_payload.clone()),
+                );
+            }
             _ => anyhow::bail!(
-                "parallel prepare only supports transfer actions, found unsupported action {:?} at index {}",
+                "parallel prepare only supports transfer and note reshape actions, found unsupported action {:?} at index {}",
                 action,
                 i
             ),
@@ -733,6 +751,7 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                 .map(|output| output.note_payload.clone()),
         );
     }
+    let read_nullifiers = spend_nullifiers.clone();
     prepared.execution_profile.read_local_precheck_ms =
         local_precheck_start.elapsed().as_secs_f64() * 1000.0;
 
@@ -768,7 +787,7 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
             })
         });
     }
-    for nullifier in &spend_nullifiers {
+    for nullifier in &read_nullifiers {
         let state = state.clone();
         let nullifier = *nullifier;
         let context = context.clone();
@@ -891,10 +910,28 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                         .map(|output| output.note_payload.clone()),
                 );
             }
-            // Split and Consolidate have no nullifiers or compliance anchors to pre-read.
-            Action::Split(_) | Action::Consolidate(_) => {}
+            // Note reshape has no compliance anchors. Every proof-bound input
+            // nullifier and output payload participates in prepared effects;
+            // body-only padding sentinels cannot suppress consensus writes.
+            Action::NoteReshape(note_reshape) => {
+                for input in &note_reshape.body.inputs {
+                    anyhow::ensure!(
+                        tx_nullifiers.insert(input.nullifier),
+                        "transaction contains duplicate spend nullifier {}",
+                        input.nullifier
+                    );
+                    spend_nullifiers.push(input.nullifier);
+                }
+                output_payloads.extend(
+                    note_reshape
+                        .body
+                        .outputs
+                        .iter()
+                        .map(|output| output.note_payload.clone()),
+                );
+            }
             _ => anyhow::bail!(
-                "parallel prepare only supports transfer actions, found unsupported action {:?} at index {}",
+                "parallel prepare only supports transfer and note reshape actions, found unsupported action {:?} at index {}",
                 action,
                 i
             ),
@@ -930,6 +967,7 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                 .map(|output| output.note_payload.clone()),
         );
     }
+    let read_nullifiers = spend_nullifiers.clone();
     prepared.execution_profile.read_local_precheck_ms =
         local_precheck_start.elapsed().as_secs_f64() * 1000.0;
 
@@ -959,7 +997,7 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
         prepared.execution_profile.read_anchor_validation_ms += elapsed_ms;
         prepared.execution_profile.read_anchor_cache_wait_ms += cache_wait_ms;
     }
-    for nullifier in &spend_nullifiers {
+    for nullifier in &read_nullifiers {
         let elapsed_ms = check_nullifier_read_only_sync(&handle, &snapshot, &context, *nullifier)?;
         prepared.execution_profile.read_committed_nullifier_ms += elapsed_ms;
         prepared.execution_profile.read_nullifier_wait_ms += elapsed_ms;

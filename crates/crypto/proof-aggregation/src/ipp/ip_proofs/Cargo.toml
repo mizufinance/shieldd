@@ -29,15 +29,16 @@ serde = { version = "1", features = [ "derive" ] }
 
 ark-inner-products = { path = "../inner_products" }
 ark-dh-commitments = { path = "../dh_commitments" }
-shieldd-sdk-proof-aggregation-trace-schema = { path = "../../../../proof-aggregation-trace-schema" }
 
 [dev-dependencies]
+ark-bls12-377 = { workspace = true, features = [ "curve" ] }
 ark-bls12-381 = { version = "0.5", features = [ "curve" ] }
 ark-ed-on-bls12-381 = "0.5"
 
 ark-relations = "0.5"
 ark-r1cs-std = "0.5"
 blake2 = "0.9"
+num-bigint = "0.4"
 
 [features]
 default = [ "parallel" ]
@@ -48,3 +49,9 @@ print-trace = [ "ark-std/print-trace" ]
 # built twice and compared. Never enabled in production. See
 # crates/crypto/proof-aggregation/optimization-playbook.md.
 bench-baseline = []
+# Formal-verification campaign only: exposes the monomorphic BLS12-377 Fq
+# Montgomery multiplication closure to hax without changing production builds.
+mac-campaign = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(hax_compilation)'] }

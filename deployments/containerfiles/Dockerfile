@@ -17,8 +17,18 @@ RUN apt-get update && apt-get install -y \
         lld \
         protobuf-compiler
 
-RUN curl -fsSL "https://go.dev/dl/go1.25.4.linux-${TARGETARCH}.tar.gz" \
-        | tar -C /usr/local -xz
+ARG GO_VERSION=1.25.4
+ARG GO_AMD64_SHA256=9fa5ffeda4170de60f67f3aa0f824e426421ba724c21e133c1e35d6159ca1bec
+ARG GO_ARM64_SHA256=a68e86d4b72c2c2fecf7dfed667680b6c2a071221bbdb6913cf83ce3f80d9ff0
+RUN case "${TARGETARCH}" in \
+      amd64) go_sha256="${GO_AMD64_SHA256}" ;; \
+      arm64) go_sha256="${GO_ARM64_SHA256}" ;; \
+      *) echo "unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" -o /tmp/go.tgz \
+    && echo "${go_sha256}  /tmp/go.tgz" | sha256sum -c - \
+    && tar -C /usr/local -xzf /tmp/go.tgz \
+    && rm /tmp/go.tgz
 ENV PATH="/usr/local/go/bin:${PATH}"
 
 WORKDIR /usr/src/shieldd

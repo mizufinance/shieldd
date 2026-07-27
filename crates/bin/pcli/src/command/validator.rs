@@ -301,7 +301,7 @@ impl ValidatorCmd {
                         maintenance_plan, ..
                     } => {
                         anyhow::bail!(
-                            "validator definition requires note maintenance first; submit the suggested consolidate transaction and retry after finality: {:?}",
+                            "validator definition requires note maintenance first; submit the suggested note reshape transaction and retry after finality: {:?}",
                             maintenance_plan
                         );
                     }
@@ -448,7 +448,7 @@ impl ValidatorCmd {
                         maintenance_plan, ..
                     } => {
                         anyhow::bail!(
-                            "validator vote requires note maintenance first; submit the suggested consolidate transaction and retry after finality: {:?}",
+                            "validator vote requires note maintenance first; submit the suggested note reshape transaction and retry after finality: {:?}",
                             maintenance_plan
                         );
                     }

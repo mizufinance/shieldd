@@ -12,8 +12,7 @@ fn note_creating_output_count(tx: &Transaction) -> usize {
                 .iter()
                 .filter(|output| !output.is_dummy())
                 .count(),
-            Action::Consolidate(consolidate) => consolidate.body.outputs.len(),
-            Action::Split(split) => split.body.outputs.len(),
+            Action::NoteReshape(note_reshape) => note_reshape.body.outputs.iter().count(),
             Action::ShieldedIcs20Withdrawal(_) => 1,
             Action::ShieldedHostWithdrawal(_) => 1,
             _ => 0,

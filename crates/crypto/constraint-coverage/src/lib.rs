@@ -16,6 +16,7 @@ pub mod ltchain;
 pub mod obligations;
 pub mod rowmap;
 pub mod rvkfixed;
+pub mod template_registry;
 pub mod wiring;
 
 #[derive(Debug, Error)]
@@ -106,8 +107,36 @@ pub enum CoverageError {
         bound: usize,
         wires: Vec<usize>,
     },
-    #[error("consolidate2x1 lt-ladder recovery/parity gate failed: {0}")]
+    #[error("note_reshape2x1 lt-ladder recovery/parity gate failed: {0}")]
     LtLadderParity(String),
+    #[error("normalized seating is invalid: {message}")]
+    NormalizedSeating { message: String },
+    #[error(
+        "normalized relation reconstruction mismatch for segment {segment_index} ({op}), row {row}: expected {expected}, reconstructed {reconstructed}"
+    )]
+    NormalizedReconstructionMismatch {
+        segment_index: usize,
+        op: String,
+        row: usize,
+        expected: String,
+        reconstructed: String,
+    },
+    #[error(
+        "normalized metadata mismatch for segment {segment_index} ({op}), {field}: expected {expected}, actual {actual}"
+    )]
+    NormalizedMetadataMismatch {
+        segment_index: usize,
+        op: String,
+        field: &'static str,
+        expected: String,
+        actual: String,
+    },
+    #[error("proof-template registry error: {0}")]
+    TemplateRegistry(String),
+    #[error("unreviewed proof template for operation {op:?}")]
+    UnreviewedTemplate { op: String },
+    #[error("ambiguous proof template for operation {op:?}: {count} registry matches")]
+    AmbiguousTemplate { op: String, count: usize },
 }
 
 #[derive(Debug, Deserialize)]

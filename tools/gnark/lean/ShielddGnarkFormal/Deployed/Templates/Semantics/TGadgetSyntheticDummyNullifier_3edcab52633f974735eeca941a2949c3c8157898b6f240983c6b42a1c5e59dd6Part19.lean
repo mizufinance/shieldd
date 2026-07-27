@@ -1,0 +1,34 @@
+import ShielddGnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6
+import ShielddGnarkFormal.Deployed.NullifierDeployedBridge
+import ShielddGnarkFormal.Deployed.PrimeOrderCertificate
+import ShielddGnarkFormal.ChoiceFreeZModCast
+import Mathlib.Tactic.LinearCombination
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6.Part19
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
+abbrev Order : Nat :=
+  Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.Order
+abbrev F :=
+  Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.F
+
+local instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.Order) :=
+  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
+
+theorem sound (rho : Nat → F)
+    (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6.relationPart19 rho) :
+    rho 102 = Shieldd.GnarkFormal.Poseidon3Bridge.p17 (((5213540101430858357416841876231707004300979103148310869846630088036668864780 : F) + (7664344529798628900514666158350111947519030649218375717172696559706161045319 : F) * rho 57 + (2517931337784671469746065209438950124555697011910302568267146216785362777665 : F) * rho 62 + (1871398140745686429249372615212938376575517207318403151829567332458561958868 : F) * rho 67 + (3977305820851493523602032776891834601924844986115642713533201821764692325958 : F) * rho 72 + (668747237121320492782168270063825062220919494747515865744658334588595234051 : F) * rho 77 + (3579836157955309420880140593532766176609326046154565461072858000375764742326 : F) * rho 82 + (8263421233974591934739537252948315170507181901467385008661160910236927442893 : F) * rho 87 + (6332580374497633521549498629261780619934974306414513488744809651261783241368 : F) * rho 92 + (6333346312071277818186618704086159898531924501365547870951425091938056929281 : F) * rho 97)) := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6.relationPart19 Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6.relationRow95 Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6.relationRow96 Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6.relationRow97 Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6.relationRow98 Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6.relationRow99 at h
+  rcases h with ⟨h0, h1, h2, h3, h4⟩
+  exact Shieldd.GnarkFormal.Deployed.Nullifier.p17_from_rows
+    (((5213540101430858357416841876231707004300979103148310869846630088036668864780 : F) + (7664344529798628900514666158350111947519030649218375717172696559706161045319 : F) * rho 57 + (2517931337784671469746065209438950124555697011910302568267146216785362777665 : F) * rho 62 + (1871398140745686429249372615212938376575517207318403151829567332458561958868 : F) * rho 67 + (3977305820851493523602032776891834601924844986115642713533201821764692325958 : F) * rho 72 + (668747237121320492782168270063825062220919494747515865744658334588595234051 : F) * rho 77 + (3579836157955309420880140593532766176609326046154565461072858000375764742326 : F) * rho 82 + (8263421233974591934739537252948315170507181901467385008661160910236927442893 : F) * rho 87 + (6332580374497633521549498629261780619934974306414513488744809651261783241368 : F) * rho 92 + (6333346312071277818186618704086159898531924501365547870951425091938056929281 : F) * rho 97)) (rho 98) (rho 99) (rho 100) (rho 101) (rho 102)
+    (by linear_combination h0) (by linear_combination h1)
+    (by linear_combination h2) (by linear_combination h3)
+    (by linear_combination h4)
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6.Part19

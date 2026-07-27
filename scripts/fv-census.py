@@ -25,7 +25,10 @@ import sys
 from collections import Counter, defaultdict
 
 ROW_RE = re.compile(r"^\(constraint \[(.*?)\] \[(.*?)\] \[(.*?)\]\)$")
-TERM_RE = re.compile(r"\((\d+) (\d+)\)")
+# Coefficients are signed in gnark's SR1CS text form.  Dropping the sign (and
+# therefore the entire term) can collapse distinct rows into apparent exact
+# duplicates and hide wires from the use census.
+TERM_RE = re.compile(r"\((-?\d+) (\d+)\)")
 
 
 def parse(path):

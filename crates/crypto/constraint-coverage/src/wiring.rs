@@ -344,7 +344,16 @@ mod tests {
     fn acyclic_chain_certifies_with_topo_order() {
         let m = manifest("chain");
         let s = sr1cs_chain();
-        let ir = build_ir(&m, &s).unwrap();
+        let mut registry = crate::template_registry::TemplateRegistry::empty();
+        crate::template_registry::seed_reviewed_templates(
+            &mut registry,
+            &m,
+            &s,
+            std::path::Path::new("/tmp"),
+            None,
+        )
+        .unwrap();
+        let ir = build_ir(&m, &s, &registry, std::path::Path::new("/tmp")).unwrap();
         let cert = build_certificate(&ir, &s).unwrap();
         assert!(cert.acyclic);
         assert_eq!(cert.n_nodes, 3);
@@ -359,7 +368,16 @@ mod tests {
     fn cycle_fails_closed() {
         let m = manifest("cycle");
         let s = sr1cs_cycle();
-        let ir = build_ir(&m, &s).unwrap();
+        let mut registry = crate::template_registry::TemplateRegistry::empty();
+        crate::template_registry::seed_reviewed_templates(
+            &mut registry,
+            &m,
+            &s,
+            std::path::Path::new("/tmp"),
+            None,
+        )
+        .unwrap();
+        let ir = build_ir(&m, &s, &registry, std::path::Path::new("/tmp")).unwrap();
         let err = build_certificate(&ir, &s).unwrap_err();
         assert!(err.contains("cyclic"), "unexpected error: {err}");
     }

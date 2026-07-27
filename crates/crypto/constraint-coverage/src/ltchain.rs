@@ -316,9 +316,9 @@ impl LtChainRepr {
     }
 }
 
-/// One canonicity-ladder seating within the consolidate2x1 DTK segment, pinning
+/// One canonicity-ladder seating within the note_reshape2x1 DTK segment, pinning
 /// the ladder to its bound (branch pattern) and bit-wire base. Mirrors
-/// `gen_dtk_slice.py::dtk_ltc_traces`.
+/// `dtk_recovery.py::dtk_ltc_traces`.
 struct LadderSeat {
     label: &'static str,
     bit_base: usize,
@@ -327,20 +327,20 @@ struct LadderSeat {
     bound: BigUint,
 }
 
-fn consolidate2x1_ladders() -> Vec<LadderSeat> {
+fn note_reshape2x1_ladders() -> Vec<LadderSeat> {
     let r = scalar_order();
-    let q4 = &crate::field::modulus() - &(&r * 4u32);
+    let q4 = crate::field::modulus() - &(&r * 4u32);
     vec![
         LadderSeat {
             label: "R",
-            bit_base: 1890,
+            bit_base: 1884,
             start: 1828,
             end: 2345,
             bound: r,
         },
         LadderSeat {
             label: "Q4",
-            bit_base: 1890,
+            bit_base: 1884,
             start: 2346,
             end: 2715,
             bound: q4,
@@ -348,17 +348,17 @@ fn consolidate2x1_ladders() -> Vec<LadderSeat> {
     ]
 }
 
-/// Production enforcement: recover and **parity-gate** both consolidate2x1 DTK
+/// Production enforcement: recover and **parity-gate** both note_reshape2x1 DTK
 /// canonicity ladders at extraction time (fail-closed), the analogue of
 /// `structure_lc`'s in-line parity assert. `dtk_rows` is the DTK segment slice
 /// (a 6077-row slice of the whole `.sr1cs`, offset varies by circuit revision).
 /// Returns the recovered chains,
 /// or a descriptive error if recovery, the bound-pinning, or the gate fails.
-pub fn verify_consolidate2x1_lt_ladders(
+pub fn verify_note_reshape2x1_lt_ladders(
     dtk_rows: &[Constraint],
 ) -> Result<Vec<LtChainRepr>, String> {
     let mut out = Vec::new();
-    for seat in consolidate2x1_ladders() {
+    for seat in note_reshape2x1_ladders() {
         let repr = recover_lt_chain(dtk_rows, &seat.bound, seat.bit_base, seat.start)
             .map_err(|e| format!("{} ladder recovery failed: {e}", seat.label))?;
         if repr.end_row != seat.end {
@@ -400,17 +400,17 @@ pub fn scalar_order() -> BigUint {
     .expect("valid scalar order")
 }
 
-/// Recover, parity-gate, and serialize both consolidate2x1 DTK canonicity
+/// Recover, parity-gate, and serialize both note_reshape2x1 DTK canonicity
 /// ladders as the Pass-3 seating handoff the Python generator consumes. `dtk`
 /// is the DTK segment slice (`dtk_offset` records where in the whole `.sr1cs`
 /// it was taken from, for the emitted JSON). Fails closed if either
 /// ladder fails recovery, bound-pinning, or the parity gate — so a consumer that
 /// trusts this JSON is trusting the same gate the extractor enforces.
-pub fn consolidate2x1_lt_seating_json(
+pub fn note_reshape2x1_lt_seating_json(
     dtk: &[Constraint],
     dtk_offset: usize,
 ) -> Result<serde_json::Value, String> {
-    let chains = verify_consolidate2x1_lt_ladders(dtk)?;
+    let chains = verify_note_reshape2x1_lt_ladders(dtk)?;
     let labels = ["R", "Q4"];
     let ladders: Vec<_> = chains
         .iter()
@@ -480,21 +480,21 @@ mod tests {
     use crate::load_sr1cs;
 
     // DTK segment global offset and R/Q4 ladder seating, mirroring
-    // gen_dtk_slice.py::dtk_ltc_traces (the current Python recovery). T1-d
+    // dtk_recovery.py::dtk_ltc_traces (the current Python recovery). T1-d
     // hoisted DTK computation into Define() (segment 5 in emission order);
     // Wave 2 T1-f moved its offset (shared compress inserted before it) and
     // T1-h shifted wire numbering (bits threaded from IVKModRDecomposition;
     // the redundant 251-bit ToBinary is gone, ladder rows unchanged).
     const DTK_OFFSET: usize = 1058;
     const DTK_ROWS: usize = 6077;
-    const BIT_BASE: usize = 1890;
+    const BIT_BASE: usize = 1884;
 
     fn dtk_rows() -> Vec<Constraint> {
         let path = concat!(
             env!("CARGO_MANIFEST_DIR"),
-            "/../../../tools/gnark/artifacts/consolidate2x1/consolidate2x1.sr1cs"
+            "/../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
         );
-        let sr1cs = load_sr1cs(path).expect("load consolidate2x1 sr1cs");
+        let sr1cs = load_sr1cs(path).expect("load note_reshape2x1 sr1cs");
         let rows = parse_rows(&sr1cs).expect("parse rows");
         rows[DTK_OFFSET..DTK_OFFSET + DTK_ROWS].to_vec()
     }
@@ -533,7 +533,7 @@ mod tests {
     #[test]
     fn recovers_q4_ladder_from_real_sr1cs() {
         let rows = dtk_rows();
-        let bound = &modulus() - &(&scalar_order() * 4u32);
+        let bound = modulus() - &(&scalar_order() * 4u32);
         let repr = recover_lt_chain(&rows, &bound, BIT_BASE, 2346)
             .expect("Q4 ladder recovery must succeed");
         assert_eq!(repr.end_row, 2715, "Q4 ladder row span");
@@ -550,7 +550,7 @@ mod tests {
         // pattern, so recovery fails (or, if it structurally matched, the gate
         // would reject). Either way it does not return a passing chain.
         let rows = dtk_rows();
-        let wrong = &modulus() - &(&scalar_order() * 4u32); // Q4 bound at R start
+        let wrong = modulus() - &(&scalar_order() * 4u32); // Q4 bound at R start
         let result = recover_lt_chain(&rows, &wrong, BIT_BASE, 1828);
         let bad = match result {
             Err(_) => return, // recovery already fails closed
@@ -567,7 +567,7 @@ mod tests {
         // The extraction-time entry point wired into contracts::generate().
         let rows = dtk_rows();
         let chains =
-            verify_consolidate2x1_lt_ladders(&rows).expect("both ladders must recover and gate");
+            verify_note_reshape2x1_lt_ladders(&rows).expect("both ladders must recover and gate");
         assert_eq!(chains.len(), 2);
         assert_eq!(chains[0].end_row, 2345);
         assert_eq!(chains[1].end_row, 2715);

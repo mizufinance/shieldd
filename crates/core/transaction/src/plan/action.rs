@@ -12,9 +12,7 @@ use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{symmetric::PayloadKey, FullViewingKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb_t, DomainType};
-use shieldd_sdk_shielded_pool::{
-    ConsolidatePlan, ShieldedIcs20WithdrawalPlan, SplitPlan, TransferPlan,
-};
+use shieldd_sdk_shielded_pool::{NoteReshapePlan, ShieldedIcs20WithdrawalPlan, TransferPlan};
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 /// A declaration of a planned [`Action`], for use in transaction creation.
@@ -24,10 +22,8 @@ use shieldd_sdk_txhash::{EffectHash, EffectingData};
 pub enum ActionPlan {
     /// Describes a proposed fused transfer.
     Transfer(TransferPlan),
-    /// Describes a same-address note consolidation.
-    Consolidate(ConsolidatePlan),
-    /// Describes a same-address note split.
-    Split(SplitPlan),
+    /// Describes a padded note reshape between one and eight notes.
+    NoteReshape(NoteReshapePlan),
     ValidatorDefinition(shieldd_sdk_validator::validator::Definition),
     IbcAction(IbcRelay),
     ProposalSubmit(ProposalSubmit),
@@ -78,9 +74,9 @@ impl ActionPlan {
                         .map_err(|e| anyhow::anyhow!("transfer proof generation failed: {}", e))?,
                 )
             }
-            Consolidate(consolidate_plan) => {
+            NoteReshape(note_reshape_plan) => {
                 let dummy_payload_key: PayloadKey = [0u8; 32].into();
-                let auth_paths = consolidate_plan
+                let auth_paths = note_reshape_plan
                     .spends
                     .iter()
                     .map(|spend| {
@@ -93,44 +89,18 @@ impl ActionPlan {
                     })
                     .collect::<Result<Vec<_>>>()?;
 
-                Action::Consolidate(
-                    consolidate_plan
-                        .consolidate(
+                Action::NoteReshape(
+                    note_reshape_plan
+                        .note_reshape(
                             fvk,
-                            vec![[0; 64].into(); consolidate_plan.spends.len()],
+                            vec![[0; 64].into(); note_reshape_plan.spends.len()],
                             auth_paths,
                             witness_data.anchor,
                             memo_key.as_ref().unwrap_or(&dummy_payload_key),
                         )
                         .map_err(|e| {
-                            anyhow::anyhow!("consolidate proof generation failed: {}", e)
+                            anyhow::anyhow!("note reshape proof generation failed: {}", e)
                         })?,
-                )
-            }
-            Split(split_plan) => {
-                let dummy_payload_key: PayloadKey = [0u8; 32].into();
-                let auth_paths = split_plan
-                    .spends
-                    .iter()
-                    .map(|spend| {
-                        let note_commitment = spend.note.commit();
-                        witness_data
-                            .state_commitment_proofs
-                            .get(&note_commitment)
-                            .cloned()
-                            .context(format!("could not get proof for {note_commitment:?}"))
-                    })
-                    .collect::<Result<Vec<_>>>()?;
-                Action::Split(
-                    split_plan
-                        .split(
-                            fvk,
-                            vec![[0; 64].into(); split_plan.spends.len()],
-                            auth_paths,
-                            witness_data.anchor,
-                            memo_key.as_ref().unwrap_or(&dummy_payload_key),
-                        )
-                        .map_err(|e| anyhow::anyhow!("split proof generation failed: {}", e))?,
                 )
             }
             ValidatorDefinition(plan) => Action::ValidatorDefinition(plan.clone()),
@@ -173,8 +143,7 @@ impl ActionPlan {
     pub fn variant_index(&self) -> usize {
         match self {
             ActionPlan::Transfer(_) => 5,
-            ActionPlan::Consolidate(_) => 6,
-            ActionPlan::Split(_) => 7,
+            ActionPlan::NoteReshape(_) => 6,
             ActionPlan::ValidatorDefinition(_) => 16,
             ActionPlan::IbcAction(_) => 17,
             ActionPlan::ProposalSubmit(_) => 18,
@@ -190,8 +159,7 @@ impl ActionPlan {
 
         match self {
             Transfer(action) => action.balance(),
-            Consolidate(action) => action.balance(),
-            Split(action) => action.balance(),
+            NoteReshape(action) => action.balance(),
             ProposalSubmit(action) => action.balance(),
             ShieldedIcs20Withdrawal(action) => action.balance(),
             IbcAction(_)
@@ -207,8 +175,7 @@ impl ActionPlan {
 
         match self {
             Transfer(action) => action.value_blinding,
-            Consolidate(action) => action.value_blinding,
-            Split(action) => action.value_blinding,
+            NoteReshape(action) => action.value_blinding,
             ShieldedIcs20Withdrawal(action) => action.value_blinding,
             ValidatorDefinition(_)
             | IbcAction(_)
@@ -231,11 +198,8 @@ impl ActionPlan {
             Transfer(plan) => plan
                 .transfer_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
                 .map(|body| body.effect_hash())?,
-            Consolidate(plan) => plan
-                .consolidate_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
-                .map(|body| body.effect_hash())?,
-            Split(plan) => plan
-                .split_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
+            NoteReshape(plan) => plan
+                .note_reshape_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
                 .map(|body| body.effect_hash())?,
             ValidatorDefinition(plan) => plan.effect_hash(),
             IbcAction(plan) => plan.effect_hash(),
@@ -258,15 +222,9 @@ impl From<TransferPlan> for ActionPlan {
     }
 }
 
-impl From<ConsolidatePlan> for ActionPlan {
-    fn from(inner: ConsolidatePlan) -> ActionPlan {
-        ActionPlan::Consolidate(inner)
-    }
-}
-
-impl From<SplitPlan> for ActionPlan {
-    fn from(inner: SplitPlan) -> ActionPlan {
-        ActionPlan::Split(inner)
+impl From<NoteReshapePlan> for ActionPlan {
+    fn from(inner: NoteReshapePlan) -> ActionPlan {
+        ActionPlan::NoteReshape(inner)
     }
 }
 
@@ -322,11 +280,8 @@ impl From<ActionPlan> for pb_t::ActionPlan {
             ActionPlan::Transfer(inner) => pb_t::ActionPlan {
                 action: Some(pb_t::action_plan::Action::Transfer(inner.into())),
             },
-            ActionPlan::Consolidate(inner) => pb_t::ActionPlan {
-                action: Some(pb_t::action_plan::Action::Consolidate(inner.into())),
-            },
-            ActionPlan::Split(inner) => pb_t::ActionPlan {
-                action: Some(pb_t::action_plan::Action::Split(inner.into())),
+            ActionPlan::NoteReshape(inner) => pb_t::ActionPlan {
+                action: Some(pb_t::action_plan::Action::NoteReshape(inner.into())),
             },
             ActionPlan::ValidatorDefinition(inner) => pb_t::ActionPlan {
                 action: Some(pb_t::action_plan::Action::ValidatorDefinition(inner.into())),
@@ -374,10 +329,9 @@ impl TryFrom<pb_t::ActionPlan> for ActionPlan {
             pb_t::action_plan::Action::Transfer(inner) => {
                 Ok(ActionPlan::Transfer(inner.try_into()?))
             }
-            pb_t::action_plan::Action::Consolidate(inner) => {
-                Ok(ActionPlan::Consolidate(inner.try_into()?))
+            pb_t::action_plan::Action::NoteReshape(inner) => {
+                Ok(ActionPlan::NoteReshape(inner.try_into()?))
             }
-            pb_t::action_plan::Action::Split(inner) => Ok(ActionPlan::Split(inner.try_into()?)),
             pb_t::action_plan::Action::ValidatorDefinition(inner) => {
                 Ok(ActionPlan::ValidatorDefinition(inner.try_into()?))
             }

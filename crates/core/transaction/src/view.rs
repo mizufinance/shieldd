@@ -5,8 +5,7 @@ use shieldd_sdk_asset::Balance;
 use shieldd_sdk_keys::AddressView;
 use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
 use shieldd_sdk_shielded_pool::{
-    ConsolidateView, ShieldedHostWithdrawalView, ShieldedIcs20WithdrawalView, SplitView,
-    TransferView,
+    NoteReshapeView, ShieldedHostWithdrawalView, ShieldedIcs20WithdrawalView, TransferView,
 };
 
 pub mod action_view;
@@ -129,15 +128,8 @@ impl TransactionView {
                     },
                     &mut effects,
                 ),
-                ActionView::Consolidate(consolidate_view) => summarize_note_flow(
-                    consolidate_view,
-                    |effects, address, balance| {
-                        effects.push(TransactionEffect { address, balance })
-                    },
-                    &mut effects,
-                ),
-                ActionView::Split(split_view) => summarize_note_flow(
-                    split_view,
+                ActionView::NoteReshape(note_reshape_view) => summarize_note_flow(
+                    note_reshape_view,
                     |effects, address, balance| {
                         effects.push(TransactionEffect { address, balance })
                     },
@@ -186,34 +178,18 @@ impl NoteFlowView for TransferView {
     }
 }
 
-impl NoteFlowView for ConsolidateView {
+impl NoteFlowView for NoteReshapeView {
     fn spent_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
-            ConsolidateView::Visible { spent_notes, .. } => Some(spent_notes),
-            ConsolidateView::Opaque { .. } => None,
+            NoteReshapeView::Visible { spent_notes, .. } => Some(spent_notes),
+            NoteReshapeView::Opaque { .. } => None,
         }
     }
 
     fn created_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
-            ConsolidateView::Visible { created_notes, .. } => Some(created_notes),
-            ConsolidateView::Opaque { .. } => None,
-        }
-    }
-}
-
-impl NoteFlowView for SplitView {
-    fn spent_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
-        match self {
-            SplitView::Visible { spent_notes, .. } => Some(spent_notes),
-            SplitView::Opaque { .. } => None,
-        }
-    }
-
-    fn created_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
-        match self {
-            SplitView::Visible { created_notes, .. } => Some(created_notes),
-            SplitView::Opaque { .. } => None,
+            NoteReshapeView::Visible { created_notes, .. } => Some(created_notes),
+            NoteReshapeView::Opaque { .. } => None,
         }
     }
 }

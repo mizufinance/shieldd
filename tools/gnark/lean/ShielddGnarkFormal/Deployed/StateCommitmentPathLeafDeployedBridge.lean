@@ -1,14 +1,16 @@
-import ShielddGnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathLeaf230_c35850
+import ShielddGnarkFormal.ChoiceFreeZMod
+import ShielddGnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathLeaf230_c300c3
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Keystone
 import ShielddGnarkFormal.Poseidon1Bridge
 
 namespace Shieldd.GnarkFormal.Deployed.StateCommitmentPathLeaf
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Poseidon1Bridge
 
-variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathLeaf230_c35850.Order)]
+variable [Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathLeaf230_c300c3.Order)]
 
-abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathLeaf230_c35850.F
+abbrev F := Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathLeaf230_c300c3.F
 
 def tctLeafDomainLit : F := (545001158149490383238005163525397553024965043366546261617421270984613353336 : F)
 

@@ -1,9 +1,11 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Poseidon1Bridge
 
 /-! Reusable deployed-slice link for width-2 Poseidon permutations. -/
 
 namespace Shieldd.GnarkFormal.Deployed.Poseidon1Link
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Poseidon1Bridge
 open Shieldd.GnarkFormal.Extracted.PoseidonHash1 (F Order)
 

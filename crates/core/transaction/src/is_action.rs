@@ -4,8 +4,8 @@ use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_proof_aggregation::AggregateBundle;
 use shieldd_sdk_shielded_pool::{
-    Consolidate, ConsolidateView, Note, ShieldedHostWithdrawal, ShieldedHostWithdrawalView,
-    ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalView, Split, SplitView, Transfer, TransferView,
+    Note, NoteReshape, NoteReshapeView, ShieldedHostWithdrawal, ShieldedHostWithdrawalView,
+    ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalView, Transfer, TransferView,
 };
 
 use crate::{ActionView, TransactionPerspective};
@@ -113,23 +113,23 @@ impl IsAction for Transfer {
     }
 }
 
-impl IsAction for Consolidate {
+impl IsAction for NoteReshape {
     fn balance_commitment(&self) -> balance::Commitment {
         self.body.balance_commitment
     }
 
     fn view_from_perspective(&self, txp: &TransactionPerspective) -> ActionView {
         let Some(first_output) = self.body.outputs.first() else {
-            return ActionView::Consolidate(ConsolidateView::Opaque {
-                consolidate: self.to_owned(),
+            return ActionView::NoteReshape(NoteReshapeView::Opaque {
+                note_reshape: self.to_owned(),
             });
         };
         let Some(payload_key) = txp
             .payload_keys
             .get(&first_output.note_payload.note_commitment)
         else {
-            return ActionView::Consolidate(ConsolidateView::Opaque {
-                consolidate: self.to_owned(),
+            return ActionView::NoteReshape(NoteReshapeView::Opaque {
+                note_reshape: self.to_owned(),
             });
         };
 
@@ -140,8 +140,8 @@ impl IsAction for Consolidate {
             .map(|input| txp.spend_nullifiers.get(&input.nullifier).cloned())
             .collect::<Option<Vec<_>>>()
         else {
-            return ActionView::Consolidate(ConsolidateView::Opaque {
-                consolidate: self.to_owned(),
+            return ActionView::NoteReshape(NoteReshapeView::Opaque {
+                note_reshape: self.to_owned(),
             });
         };
 
@@ -163,14 +163,14 @@ impl IsAction for Consolidate {
             })
             .collect::<Option<Vec<_>>>()
         else {
-            return ActionView::Consolidate(ConsolidateView::Opaque {
-                consolidate: self.to_owned(),
+            return ActionView::NoteReshape(NoteReshapeView::Opaque {
+                note_reshape: self.to_owned(),
             });
         };
 
         match first_output.wrapped_memo_key.decrypt_outgoing(payload_key) {
-            Ok(decrypted_memo_key) => ActionView::Consolidate(ConsolidateView::Visible {
-                consolidate: self.to_owned(),
+            Ok(decrypted_memo_key) => ActionView::NoteReshape(NoteReshapeView::Visible {
+                note_reshape: self.to_owned(),
                 spent_notes: spent_notes
                     .into_iter()
                     .map(|note| txp.view_note(note))
@@ -181,83 +181,8 @@ impl IsAction for Consolidate {
                     .collect(),
                 payload_key: decrypted_memo_key,
             }),
-            Err(_) => ActionView::Consolidate(ConsolidateView::Opaque {
-                consolidate: self.to_owned(),
-            }),
-        }
-    }
-}
-
-impl IsAction for Split {
-    fn balance_commitment(&self) -> balance::Commitment {
-        self.body.balance_commitment
-    }
-
-    fn view_from_perspective(&self, txp: &TransactionPerspective) -> ActionView {
-        let Some(first_output) = self.body.outputs.first() else {
-            return ActionView::Split(SplitView::Opaque {
-                split: self.to_owned(),
-            });
-        };
-        let Some(payload_key) = txp
-            .payload_keys
-            .get(&first_output.note_payload.note_commitment)
-        else {
-            return ActionView::Split(SplitView::Opaque {
-                split: self.to_owned(),
-            });
-        };
-
-        let Some(spent_notes) = self
-            .body
-            .inputs
-            .iter()
-            .map(|input| txp.spend_nullifiers.get(&input.nullifier).cloned())
-            .collect::<Option<Vec<_>>>()
-        else {
-            return ActionView::Split(SplitView::Opaque {
-                split: self.to_owned(),
-            });
-        };
-
-        let Some(created_notes) = self
-            .body
-            .outputs
-            .iter()
-            .map(|output| {
-                txp.payload_keys
-                    .get(&output.note_payload.note_commitment)
-                    .and_then(|output_payload_key| {
-                        Note::decrypt_with_payload_key(
-                            &output.note_payload.encrypted_note,
-                            output_payload_key,
-                            &output.note_payload.ephemeral_key,
-                        )
-                        .ok()
-                    })
-            })
-            .collect::<Option<Vec<_>>>()
-        else {
-            return ActionView::Split(SplitView::Opaque {
-                split: self.to_owned(),
-            });
-        };
-
-        match first_output.wrapped_memo_key.decrypt_outgoing(payload_key) {
-            Ok(decrypted_memo_key) => ActionView::Split(SplitView::Visible {
-                split: self.to_owned(),
-                spent_notes: spent_notes
-                    .into_iter()
-                    .map(|note| txp.view_note(note))
-                    .collect(),
-                created_notes: created_notes
-                    .into_iter()
-                    .map(|note| txp.view_note(note))
-                    .collect(),
-                payload_key: decrypted_memo_key,
-            }),
-            Err(_) => ActionView::Split(SplitView::Opaque {
-                split: self.to_owned(),
+            Err(_) => ActionView::NoteReshape(NoteReshapeView::Opaque {
+                note_reshape: self.to_owned(),
             }),
         }
     }

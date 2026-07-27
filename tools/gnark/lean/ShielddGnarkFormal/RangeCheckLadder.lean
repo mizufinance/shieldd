@@ -35,24 +35,30 @@ theorem ofBitsBE_le_of_ladder {d : ℕ} (c b : List.Vector Bool d)
     obtain ⟨hhead, htail⟩ := h
     -- ofBitsBE x = x.head.toNat * 2^d + (ofBitsBE x.tail).val
     have hbtail : (Fin.ofBitsBE b.tail).val < 2 ^ d := (Fin.ofBitsBE b.tail).isLt
-    simp only [Fin.ofBitsBE]
     cases hb : b.head with
     | false =>
       cases hc : c.head with
       | false =>
         -- heads equal → recurse on tails
-        have := ih c.tail b.tail (htail (by simp [hb, hc]))
-        simp [hb, hc, Bool.toNat]
-        omega
+        have htails := ih c.tail b.tail (htail (by simp [hb, hc]))
+        simp only [Fin.ofBitsBE, hb, hc, Bool.toNat, Bool.cond_false, zero_mul, zero_add]
+        exact htails
       | true =>
         -- value head 0, bound head 1: value tail < 2^d ≤ bound
-        simp [hb, hc, Bool.toNat]
-        omega
+        have hpow : (Fin.ofBitsBE b.tail).val ≤ 2 ^ d :=
+          Nat.le_of_lt hbtail
+        have hsum : (Fin.ofBitsBE b.tail).val ≤
+            2 ^ d + (Fin.ofBitsBE c.tail).val :=
+          hpow.trans (Nat.le_add_right _ _)
+        simp only [Fin.ofBitsBE, hb, hc, Bool.toNat, Bool.cond_false, Bool.cond_true,
+          zero_mul, zero_add, one_mul]
+        exact hsum
     | true =>
       have hc : c.head = true := hhead hb
-      have := ih c.tail b.tail (htail (by simp [hb, hc]))
-      simp [hb, hc, Bool.toNat]
-      omega
+      have htails := ih c.tail b.tail (htail (by simp [hb, hc]))
+      have hsum := Nat.add_le_add_left htails (2 ^ d)
+      simp only [Fin.ofBitsBE, hb, hc, Bool.toNat, Bool.cond_true, one_mul]
+      exact hsum
 
 /-- Little-endian corollary: the values recovered LE compare the same way. -/
 theorem ofBitsLE_le_of_ladder {d : ℕ} (c b : List.Vector Bool d)

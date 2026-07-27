@@ -935,7 +935,25 @@ pub fn generate(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{ir::build_ir, parse_sr1cs, ConstraintManifest};
+    use crate::{
+        ir::build_ir,
+        parse_sr1cs,
+        template_registry::{seed_reviewed_templates, TemplateRegistry},
+        ConstraintManifest,
+    };
+
+    fn build_test_ir(manifest: &ConstraintManifest, sr1cs: &crate::Sr1cs) -> crate::ir::CircuitIr {
+        let mut registry = TemplateRegistry::empty();
+        seed_reviewed_templates(
+            &mut registry,
+            manifest,
+            sr1cs,
+            std::path::Path::new("/tmp"),
+            None,
+        )
+        .unwrap();
+        build_ir(manifest, sr1cs, &registry, std::path::Path::new("/tmp")).unwrap()
+    }
 
     #[test]
     fn generates_relation_with_binders() {
@@ -952,7 +970,7 @@ mod tests {
               (constraint [(1 3)] [(1 0)] [(1 4)])\n",
         )
         .unwrap();
-        let ir = build_ir(&manifest, &sr1cs).unwrap();
+        let ir = build_test_ir(&manifest, &sr1cs);
         let files = generate(&ir, &sr1cs, None).unwrap();
         assert_eq!(files.len(), 1);
         let c = &files[0].contents;
@@ -980,7 +998,7 @@ mod tests {
               (constraint [(1 5)] [(1 0)] [(1 6)])\n",
         )
         .unwrap();
-        let ir = build_ir(&manifest, &sr1cs).unwrap();
+        let ir = build_test_ir(&manifest, &sr1cs);
         let files = generate_segmented(&ir, &sr1cs, None, 1).unwrap();
         assert_eq!(files.len(), 1);
         // These rows are narrow (no wide accumulator) -> one cert per deployed row,

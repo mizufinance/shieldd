@@ -142,7 +142,7 @@ fn extract_ics20_withdrawal(
 mod tests {
     use super::*;
     use shieldd_sdk_proto::core::component::shielded_pool::v1::{
-        Consolidate, ConsolidateBody, Split, SplitBody, Transfer, TransferBody, TransferOutputBody,
+        NoteReshape, NoteReshapeBody, Transfer, TransferBody, TransferOutputBody,
     };
     use shieldd_sdk_proto::core::transaction::v1::{
         action::Action, Action as ActionProto, TransactionBody,
@@ -180,8 +180,8 @@ mod tests {
             body: Some(TransactionBody {
                 actions: vec![
                     ActionProto {
-                        action: Some(Action::Split(Split {
-                            body: Some(SplitBody::default()),
+                        action: Some(Action::NoteReshape(NoteReshape {
+                            body: Some(NoteReshapeBody::default()),
                             ..Default::default()
                         })),
                     },
@@ -202,12 +202,6 @@ mod tests {
                                 ],
                                 ..Default::default()
                             }),
-                            ..Default::default()
-                        })),
-                    },
-                    ActionProto {
-                        action: Some(Action::Consolidate(Consolidate {
-                            body: Some(ConsolidateBody::default()),
                             ..Default::default()
                         })),
                     },

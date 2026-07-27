@@ -22,8 +22,7 @@ impl AppActionHandler for Action {
     async fn check_stateless(&self, context: TransactionContext) -> Result<()> {
         match self {
             Action::Transfer(action) => action.check_stateless(context).await,
-            Action::Consolidate(action) => action.check_stateless(context).await,
-            Action::Split(action) => action.check_stateless(context).await,
+            Action::NoteReshape(action) => action.check_stateless(context).await,
             Action::ValidatorDefinition(action) => action.check_stateless(()).await,
             Action::ValidatorVote(action) => action.check_stateless(()).await,
             Action::ProposalSubmit(action) => action.check_stateless(()).await,
@@ -47,8 +46,7 @@ impl AppActionHandler for Action {
     async fn check_historical<S: StateRead + 'static>(&self, state: Arc<S>) -> Result<()> {
         match self {
             Action::Transfer(action) => action.check_historical(state).await,
-            Action::Consolidate(_) => Ok(()),
-            Action::Split(_) => Ok(()),
+            Action::NoteReshape(_) => Ok(()),
             Action::ValidatorDefinition(action) => action.check_historical(state).await,
             Action::ValidatorVote(action) => action.check_historical(state).await,
             Action::ProposalSubmit(action) => action.check_historical(state).await,
@@ -72,8 +70,7 @@ impl AppActionHandler for Action {
     async fn check_and_execute<S: StateWrite>(&self, state: S) -> Result<()> {
         match self {
             Action::Transfer(action) => action.check_and_execute(state).await,
-            Action::Consolidate(action) => action.check_and_execute(state).await,
-            Action::Split(action) => action.check_and_execute(state).await,
+            Action::NoteReshape(action) => action.check_and_execute(state).await,
             Action::ValidatorDefinition(action) => action.check_and_execute(state).await,
             Action::ValidatorVote(action) => action.check_and_execute(state).await,
             Action::ProposalSubmit(action) => action.check_and_execute(state).await,

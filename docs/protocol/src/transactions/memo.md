@@ -19,5 +19,5 @@ The transaction-level encrypted memo is visible only to the sender and receiver(
 Each memo is encrypted using the *Memo Key*, a symmetric ChaCha20-Poly1305 key
 generated randomly as described [here](../addresses_keys/transaction_crypto.md#random-memo-key).
 The Memo Key is then encrypted using per-output payload data from the
-output-bearing supported actions: `Transfer`, `Split`, `Consolidate`, and the
+output-bearing supported actions: `Transfer`, `NoteReshape`, and the
 change output of `ShieldedIcs20Withdrawal`.

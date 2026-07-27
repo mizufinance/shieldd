@@ -32,7 +32,19 @@ note() { echo "check-vk-derivation: $*"; }
 circuit="${1:-}"; shift || true
 [[ -n "$circuit" ]] || fail "usage: check-vk-derivation.sh <circuit> [--prove]"
 run_prove=0
-[[ "${1:-}" == "--prove" ]] && run_prove=1
+fresh_sr1cs=""
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    --prove) run_prove=1 ;;
+    --sr1cs)
+      shift
+      [[ "$#" -gt 0 ]] || fail "--sr1cs requires a path"
+      fresh_sr1cs="$1"
+      ;;
+    *) fail "unknown argument $1" ;;
+  esac
+  shift
+done
 
 adir="$GNARK_DIR/artifacts/$circuit"
 meta="$adir/circuit_metadata.json"
@@ -65,17 +77,28 @@ else
   note "no whole-circuit Lean stamp for $circuit (skipping cross-pin)"
 fi
 
-# 2. recompiled source -> byte-identical .sr1cs
-tmp_dir="$(mktemp -d)"; trap 'rm -rf "$tmp_dir"' EXIT
-( cd "$GNARK_DIR" && go run ./cmd/gnarkctl export-r1cs \
-    --circuit "$circuit" --out "$tmp_dir/$circuit.sr1cs" >/dev/null )
-cmp -s "$tmp_dir/$circuit.sr1cs" "$adir/$circuit.sr1cs" \
+# 2. fresh source bytes -> byte-identical .sr1cs. The FV gate passes the
+# already-compiled temporary file so this check never recompiles a family.
+if [[ -z "$fresh_sr1cs" ]]; then
+  tmp_dir="$(mktemp -d)"; trap 'rm -rf "$tmp_dir"' EXIT
+  ( cd "$GNARK_DIR" && go run ./cmd/gnarkctl export-r1cs \
+      --circuit "$circuit" --out "$tmp_dir/$circuit.sr1cs" >/dev/null )
+  fresh_sr1cs="$tmp_dir/$circuit.sr1cs"
+fi
+cmp -s "$fresh_sr1cs" "$adir/$circuit.sr1cs" \
   || fail "recompiled .sr1cs differs from deployed artifact (source drift)"
 note "recompiled .sr1cs byte-identical to deployed artifact"
 
 # 3. deployed keys prove+verify against the recompiled constraint system
 if [[ "$run_prove" -eq 1 ]]; then
-  witness="$GNARK_DIR/internal/testfixtures/vectors/${circuit}_witness_v1.bin"
+  case "$circuit" in
+    note_reshape2x1) witness_name="note_reshape2x1_witness_v1.bin" ;;
+    note_reshape4x1) witness_name="note_reshape4x1_witness_v1.bin" ;;
+    note_reshape8x1) witness_name="note_reshape8x1_witness_v1.bin" ;;
+    note_reshape1x8) witness_name="note_reshape1x8_witness_v1.bin" ;;
+    *) witness_name="${circuit}_witness_v1.bin" ;;
+  esac
+  witness="$GNARK_DIR/internal/testfixtures/vectors/$witness_name"
   [[ -f "$witness" ]] || fail "missing witness fixture $witness"
   ( cd "$GNARK_DIR" && go run ./cmd/gnarkctl replay \
       --circuit "$circuit" --witness "$witness" \

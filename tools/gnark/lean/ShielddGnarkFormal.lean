@@ -51,8 +51,6 @@ import ShielddGnarkFormal.TransferSaltBridge
 import ShielddGnarkFormal.PoseidonEncryptionBridge
 import ShielddGnarkFormal.DleqBridge
 import ShielddGnarkFormal.ThresholdRegulatedBridge
-import ShielddGnarkFormal.Consolidate2x1
-import ShielddGnarkFormal.Consolidate2x1WiringTranscript
 import ShielddGnarkFormal.Transfer
 import ShielddGnarkFormal.TransferWiringTranscript
 import ShielddGnarkFormal.Deployed.Poseidon6Link
@@ -62,7 +60,6 @@ import ShielddGnarkFormal.Deployed.NoteCommitmentDeployedBridge
 import ShielddGnarkFormal.Deployed.NoteCommitmentSemanticBridge
 import ShielddGnarkFormal.Deployed.GlueBridges
 import ShielddGnarkFormal.Deployed.Nullifier.SemanticBridge
-import ShielddGnarkFormal.Deployed.StatementHash.SemanticBridge
 import ShielddGnarkFormal.Deployed.StateCommitmentPathNode0.SemanticBridge
 import ShielddGnarkFormal.Deployed.DecafAssertOnCurveBridge
 import ShielddGnarkFormal.CanonicalFqBitsDeployedKernel
@@ -73,5 +70,5 @@ import ShielddGnarkFormal.CompressDeployedGadgets
 import ShielddGnarkFormal.CompressBlock1Chain
 import ShielddGnarkFormal.Deployed.CompressToField.Bridge
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Keystone
-import ShielddGnarkFormal.Deployed.PrimeOrderAssumption
-import ShielddGnarkFormal.Deployed.Contracts.Consolidate2x1.Bounds
+import ShielddGnarkFormal.Deployed.PrimeOrder
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.Statement

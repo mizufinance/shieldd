@@ -102,18 +102,18 @@ struct DleqFixture {
     dleq_s: String,
 }
 
-/// Consolidate2x1 statement-hash seam fixture (H3 / Phase C).
+/// NoteReshape2x1 statement-hash seam fixture (H3 / Phase C).
 ///
-/// A seeded consolidate2x1 public statement: the 7 field elements in the exact
+/// A seeded note_reshape2x1 public statement: the 7 field elements in the exact
 /// production role order the circuit assembles them (anchor, output note
 /// commitment, balance commitment Fq, then per-input nullifier+rk), plus the
 /// reference statement hash computed with the real `poseidon377::hash_7` over
-/// the `consolidate2x1` public-input-hash domain. The Go seam test assembles
+/// the `note_reshape2x1` public-input-hash domain. The Go seam test assembles
 /// these fields in the same order, runs the production statement-hash gadget,
 /// and asserts the in-circuit wire equals `statement_hash`. Any wire-order,
 /// endianness, or domain drift fails.
 #[derive(Serialize)]
-struct ConsolidateStatementFixture {
+struct NoteReshapeStatementFixture {
     label: String,
     domain: String,
     field_roles: Vec<String>,
@@ -128,7 +128,7 @@ struct Vectors {
     decaf377_compress_vectors: Vec<DecafCompressVector>,
     decaf377_encode_vectors: Vec<DecafEncodeVector>,
     dleq_fixture: DleqFixture,
-    consolidate2x1_statement: ConsolidateStatementFixture,
+    note_reshape_statements: Vec<NoteReshapeStatementFixture>,
 }
 
 fn blake2b_fq(label: &[u8]) -> Fq {
@@ -192,6 +192,73 @@ fn compute_dleq_native(r: Fr, k: Fr, ack: &Element, epk: &Element, metadata_hash
     let c_truncated = fq_to_challenge_scalar(c_fq_full);
     let s = k + c_truncated * r;
     (Fq::from_le_bytes_mod_order(&c_truncated.to_bytes()), s)
+}
+
+fn note_reshape_statement_fixture(
+    label: &str,
+    n_in: usize,
+    n_out: usize,
+) -> NoteReshapeStatementFixture {
+    let domain_label = format!("shieldd.shielded_pool.{label}.public_input_hash.v1");
+    let pad_0_label = format!("shieldd.shielded_pool.{label}.public_input_hash.pad0");
+    let pad_1_label = format!("shieldd.shielded_pool.{label}.public_input_hash.pad1");
+    let domain = blake2b_fq(domain_label.as_bytes());
+    let pad_0 = blake2b_fq(pad_0_label.as_bytes());
+    let pad_1 = blake2b_fq(pad_1_label.as_bytes());
+
+    let mut field_roles = vec!["anchor".to_string()];
+    field_roles.extend((0..n_out).map(|index| format!("output_note_commitment_{index}")));
+    field_roles.push("balance_commitment_fq".to_string());
+    for index in 0..n_in {
+        field_roles.push(format!("nullifier_{index}"));
+        field_roles.push(format!("rk_{index}"));
+    }
+
+    let fields = (0..field_roles.len())
+        .map(|index| Fq::from(70_001u64 + index as u64))
+        .collect::<Vec<_>>();
+    let mut first = [pad_0, pad_1, pad_0, pad_1, pad_0, pad_1, pad_0];
+    for (index, field) in fields.iter().take(7).enumerate() {
+        first[index] = *field;
+    }
+    let mut hash = poseidon377::hash_7(
+        &domain,
+        (first[0], first[1], first[2], first[3], first[4], first[5], first[6]),
+    );
+    let mut index = usize::min(7, fields.len());
+    while index + 6 <= fields.len() {
+        hash = poseidon377::hash_7(
+            &domain,
+            (
+                hash,
+                fields[index],
+                fields[index + 1],
+                fields[index + 2],
+                fields[index + 3],
+                fields[index + 4],
+                fields[index + 5],
+            ),
+        );
+        index += 6;
+    }
+    if index < fields.len() {
+        let mut tail = [pad_0, pad_1, pad_0, pad_1, pad_0, pad_1];
+        for (offset, field) in fields[index..].iter().enumerate() {
+            tail[offset] = *field;
+        }
+        hash = poseidon377::hash_7(
+            &domain,
+            (hash, tail[0], tail[1], tail[2], tail[3], tail[4], tail[5]),
+        );
+    }
+
+    NoteReshapeStatementFixture {
+        label: label.to_string(),
+        domain: domain.to_string(),
+        field_roles,
+        fields: fields.iter().map(ToString::to_string).collect(),
+        statement_hash: hash.to_string(),
+    }
 }
 
 fn poseidon_rate_vectors<
@@ -276,36 +343,15 @@ fn main() {
             note_commit_inputs[5],
         ),
     );
-    // Consolidate2x1 statement-hash seam: 7 seeded, distinct field elements in
-    // the production assembly order, hashed via the real poseidon377::hash_7
-    // over the consolidate2x1 public-input-hash domain (single hash_7, no
-    // continuation, for the 7-field statement — pads unused). See
-    // NoteReshapeCircuit.Define / hashStatementFields on the Go side.
-    let consolidate_statement_domain =
-        blake2b_fq(b"shieldd.shielded_pool.consolidate2x1.public_input_hash.v1");
-    let consolidate_statement_roles = [
-        "anchor",
-        "output_note_commitment_0",
-        "balance_commitment_fq",
-        "nullifier_0",
-        "rk_0",
-        "nullifier_1",
-        "rk_1",
-    ];
-    let consolidate_statement_fields =
-        [70_001u64, 70_002, 70_003, 70_004, 70_005, 70_006, 70_007].map(Fq::from);
-    let consolidate_statement_hash = poseidon377::hash_7(
-        &consolidate_statement_domain,
-        (
-            consolidate_statement_fields[0],
-            consolidate_statement_fields[1],
-            consolidate_statement_fields[2],
-            consolidate_statement_fields[3],
-            consolidate_statement_fields[4],
-            consolidate_statement_fields[5],
-            consolidate_statement_fields[6],
-        ),
-    );
+    let note_reshape_statements = [
+        ("note_reshape2x1", 2, 1),
+        ("note_reshape4x1", 4, 1),
+        ("note_reshape8x1", 8, 1),
+        ("note_reshape1x8", 1, 8),
+    ]
+    .into_iter()
+    .map(|(label, n_in, n_out)| note_reshape_statement_fixture(label, n_in, n_out))
+    .collect();
     let generator_encoding = Encoding::from(Element::GENERATOR);
     let generator_encoding_bytes: [u8; 32] = generator_encoding.into();
     let generator_affine = Element::GENERATOR.into_affine();
@@ -462,19 +508,7 @@ fn main() {
             dleq_c: dleq_c.to_string(),
             dleq_s: Fq::from_le_bytes_mod_order(&dleq_s.to_bytes()).to_string(),
         },
-        consolidate2x1_statement: ConsolidateStatementFixture {
-            label: "consolidate2x1".to_string(),
-            domain: consolidate_statement_domain.to_string(),
-            field_roles: consolidate_statement_roles
-                .iter()
-                .map(ToString::to_string)
-                .collect(),
-            fields: consolidate_statement_fields
-                .iter()
-                .map(ToString::to_string)
-                .collect(),
-            statement_hash: consolidate_statement_hash.to_string(),
-        },
+        note_reshape_statements,
     };
 
     serde_json::to_writer_pretty(std::io::stdout(), &vectors).expect("serialize vectors");

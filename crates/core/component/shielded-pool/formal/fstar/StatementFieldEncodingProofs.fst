@@ -8,12 +8,10 @@ open Core_models
 
 let lemma_extracted_field_count_constants () : Lemma
   (ensures
-    P.v_CONSOLIDATE_STATEMENT_BASE_FIELDS == mk_usize 2 /\
-    P.v_CONSOLIDATE_STATEMENT_FIELDS_PER_INPUT == mk_usize 2 /\
-    P.v_CONSOLIDATE_STATEMENT_FIELDS_PER_OUTPUT == mk_usize 1 /\
-    P.v_SPLIT_STATEMENT_BASE_FIELDS == mk_usize 2 /\
-    P.v_SPLIT_STATEMENT_FIELDS_PER_INPUT == mk_usize 2 /\
-    P.v_SPLIT_STATEMENT_FIELDS_PER_OUTPUT == mk_usize 1 /\
+    P.v_NOTE_RESHAPE_STATEMENT_BASE_FIELDS == mk_usize 2 /\
+    P.v_NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT == mk_usize 2 /\
+    P.v_NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT == mk_usize 1 /\
+    P.v_NOTE_RESHAPE_STATEMENT_ACTIVE_COUNT_FIELDS == mk_usize 2 /\
     P.v_TRANSFER_STATEMENT_BASE_FIELDS == mk_usize 77 /\
     P.v_TRANSFER_STATEMENT_FIELDS_PER_INPUT == mk_usize 2 /\
     P.v_TRANSFER_STATEMENT_FIELDS_PER_OUTPUT == mk_usize 1 /\

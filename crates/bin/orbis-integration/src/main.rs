@@ -216,8 +216,8 @@ async fn run_full_flow(repo: &RepoPaths, keep_on_fail: bool) -> Result<()> {
         run_script_with_env(repo, "scripts/shieldd-up.sh", &[], &compliance_dev_env())?;
         started_shieldd = true;
 
-        run_script_with_args(repo, "scripts/orbis-stack.sh", &["up"])?;
         started_orbis = true;
+        run_script_with_args(repo, "scripts/orbis-stack.sh", &["up"])?;
 
         seed(repo).await?;
         verify(repo).await?;
@@ -602,7 +602,8 @@ async fn seed(repo: &RepoPaths) -> Result<()> {
             "--home",
             env.get("ALICE_HOME")?,
             "tx",
-            "split",
+            "reshape",
+            "one-to-many",
             "--note-commitment",
             &alice_split_note,
             "400regulated_usd",
@@ -687,7 +688,8 @@ async fn seed(repo: &RepoPaths) -> Result<()> {
             "--home",
             env.get("BOB_HOME")?,
             "tx",
-            "consolidate",
+            "reshape",
+            "many-to-one",
             "regulated_usd",
             "--family",
             "2x1",

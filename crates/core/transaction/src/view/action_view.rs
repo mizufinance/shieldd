@@ -6,8 +6,7 @@ use shieldd_sdk_proof_aggregation::AggregateBundle;
 use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
 use shieldd_sdk_shielded_pool::{ShieldedHostWithdrawalView, ShieldedIcs20WithdrawalView};
 
-pub use shieldd_sdk_shielded_pool::ConsolidateView;
-pub use shieldd_sdk_shielded_pool::SplitView;
+pub use shieldd_sdk_shielded_pool::NoteReshapeView;
 pub use shieldd_sdk_shielded_pool::TransferView;
 
 use crate::Action;
@@ -17,8 +16,7 @@ use crate::Action;
 #[allow(clippy::large_enum_variant)]
 pub enum ActionView {
     Transfer(TransferView),
-    Consolidate(ConsolidateView),
-    Split(SplitView),
+    NoteReshape(NoteReshapeView),
     ValidatorDefinition(shieldd_sdk_validator::validator::Definition),
     IbcRelay(IbcRelay),
     ProposalSubmit(ProposalSubmit),
@@ -45,8 +43,7 @@ impl TryFrom<pbt::ActionView> for ActionView {
                 .ok_or_else(|| anyhow::anyhow!("missing action_view"))?
             {
                 AV::Transfer(x) => ActionView::Transfer(x.try_into()?),
-                AV::Consolidate(x) => ActionView::Consolidate(x.try_into()?),
-                AV::Split(x) => ActionView::Split(x.try_into()?),
+                AV::NoteReshape(x) => ActionView::NoteReshape(x.try_into()?),
                 AV::ValidatorDefinition(x) => ActionView::ValidatorDefinition(x.try_into()?),
                 AV::IbcRelayAction(x) => ActionView::IbcRelay(x.try_into()?),
                 AV::ProposalSubmit(x) => ActionView::ProposalSubmit(x.try_into()?),
@@ -71,8 +68,7 @@ impl From<ActionView> for pbt::ActionView {
         Self {
             action_view: Some(match v {
                 ActionView::Transfer(x) => AV::Transfer(x.into()),
-                ActionView::Consolidate(x) => AV::Consolidate(x.into()),
-                ActionView::Split(x) => AV::Split(x.into()),
+                ActionView::NoteReshape(x) => AV::NoteReshape(x.into()),
                 ActionView::ValidatorDefinition(x) => AV::ValidatorDefinition(x.into()),
                 ActionView::IbcRelay(x) => AV::IbcRelayAction(x.into()),
                 ActionView::ProposalSubmit(x) => AV::ProposalSubmit(x.into()),
@@ -91,8 +87,7 @@ impl From<ActionView> for Action {
     fn from(action_view: ActionView) -> Action {
         match action_view {
             ActionView::Transfer(x) => Action::Transfer(x.into()),
-            ActionView::Consolidate(x) => Action::Consolidate(x.into()),
-            ActionView::Split(x) => Action::Split(x.into()),
+            ActionView::NoteReshape(x) => Action::NoteReshape(x.into()),
             ActionView::ValidatorDefinition(x) => Action::ValidatorDefinition(x),
             ActionView::IbcRelay(x) => Action::IbcRelay(x),
             ActionView::ProposalSubmit(x) => Action::ProposalSubmit(x),

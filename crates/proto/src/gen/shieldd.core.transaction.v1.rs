@@ -148,9 +148,7 @@ pub struct FamilyAggregate {
     #[prost(bytes = "vec", tag = "5")]
     pub aggregate_proof: ::prost::alloc::vec::Vec<u8>,
     #[prost(uint32, tag = "6")]
-    pub consolidate_family_id: u32,
-    #[prost(uint32, tag = "7")]
-    pub split_family_id: u32,
+    pub note_reshape_family_id: u32,
     #[prost(uint32, tag = "8")]
     pub shielded_ics20_withdrawal_family_id: u32,
 }
@@ -188,7 +186,7 @@ impl ::prost::Name for AggregateBundle {
 pub struct Action {
     #[prost(
         oneof = "action::Action",
-        tags = "5, 6, 7, 16, 17, 18, 20, 80, 81, 82, 200, 201"
+        tags = "5, 6, 16, 17, 18, 20, 80, 81, 82, 200, 201"
     )]
     pub action: ::core::option::Option<action::Action>,
 }
@@ -199,9 +197,7 @@ pub mod action {
         #[prost(message, tag = "5")]
         Transfer(super::super::super::component::shielded_pool::v1::Transfer),
         #[prost(message, tag = "6")]
-        Consolidate(super::super::super::component::shielded_pool::v1::Consolidate),
-        #[prost(message, tag = "7")]
-        Split(super::super::super::component::shielded_pool::v1::Split),
+        NoteReshape(super::super::super::component::shielded_pool::v1::NoteReshape),
         #[prost(message, tag = "16")]
         ValidatorDefinition(
             super::super::super::component::validator::v1::ValidatorDefinition,
@@ -473,7 +469,7 @@ impl ::prost::Name for TransactionBodyView {
 pub struct ActionView {
     #[prost(
         oneof = "action_view::ActionView",
-        tags = "5, 6, 7, 16, 17, 18, 20, 80, 81, 82, 200, 201"
+        tags = "5, 6, 16, 17, 18, 20, 80, 81, 82, 200, 201"
     )]
     pub action_view: ::core::option::Option<action_view::ActionView>,
 }
@@ -484,9 +480,7 @@ pub mod action_view {
         #[prost(message, tag = "5")]
         Transfer(super::super::super::component::shielded_pool::v1::TransferView),
         #[prost(message, tag = "6")]
-        Consolidate(super::super::super::component::shielded_pool::v1::ConsolidateView),
-        #[prost(message, tag = "7")]
-        Split(super::super::super::component::shielded_pool::v1::SplitView),
+        NoteReshape(super::super::super::component::shielded_pool::v1::NoteReshapeView),
         /// Action types without visible/opaque variants
         #[prost(message, tag = "16")]
         ValidatorDefinition(
@@ -666,10 +660,7 @@ impl ::prost::Name for DetectionDataPlan {
 /// themselves.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ActionPlan {
-    #[prost(
-        oneof = "action_plan::Action",
-        tags = "5, 6, 7, 16, 17, 18, 20, 200, 80, 81"
-    )]
+    #[prost(oneof = "action_plan::Action", tags = "5, 6, 16, 17, 18, 20, 200, 80, 81")]
     pub action: ::core::option::Option<action_plan::Action>,
 }
 /// Nested message and enum types in `ActionPlan`.
@@ -679,9 +670,7 @@ pub mod action_plan {
         #[prost(message, tag = "5")]
         Transfer(super::super::super::component::shielded_pool::v1::TransferPlan),
         #[prost(message, tag = "6")]
-        Consolidate(super::super::super::component::shielded_pool::v1::ConsolidatePlan),
-        #[prost(message, tag = "7")]
-        Split(super::super::super::component::shielded_pool::v1::SplitPlan),
+        NoteReshape(super::super::super::component::shielded_pool::v1::NoteReshapePlan),
         /// This is just a message relayed to the chain.
         #[prost(message, tag = "16")]
         ValidatorDefinition(
@@ -882,8 +871,7 @@ impl ::prost::Name for MemoView {
 pub enum ProofFamilyId {
     Unspecified = 0,
     Transfer = 7,
-    Consolidate = 8,
-    Split = 9,
+    NoteReshape = 8,
     ShieldedIcs20Withdrawal = 10,
 }
 impl ProofFamilyId {
@@ -895,8 +883,7 @@ impl ProofFamilyId {
         match self {
             Self::Unspecified => "PROOF_FAMILY_ID_UNSPECIFIED",
             Self::Transfer => "PROOF_FAMILY_ID_TRANSFER",
-            Self::Consolidate => "PROOF_FAMILY_ID_CONSOLIDATE",
-            Self::Split => "PROOF_FAMILY_ID_SPLIT",
+            Self::NoteReshape => "PROOF_FAMILY_ID_NOTE_RESHAPE",
             Self::ShieldedIcs20Withdrawal => "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL",
         }
     }
@@ -905,8 +892,7 @@ impl ProofFamilyId {
         match value {
             "PROOF_FAMILY_ID_UNSPECIFIED" => Some(Self::Unspecified),
             "PROOF_FAMILY_ID_TRANSFER" => Some(Self::Transfer),
-            "PROOF_FAMILY_ID_CONSOLIDATE" => Some(Self::Consolidate),
-            "PROOF_FAMILY_ID_SPLIT" => Some(Self::Split),
+            "PROOF_FAMILY_ID_NOTE_RESHAPE" => Some(Self::NoteReshape),
             "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL" => {
                 Some(Self::ShieldedIcs20Withdrawal)
             }

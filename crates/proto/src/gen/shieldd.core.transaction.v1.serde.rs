@@ -15,11 +15,8 @@ impl serde::Serialize for Action {
                 action::Action::Transfer(v) => {
                     struct_ser.serialize_field("transfer", v)?;
                 }
-                action::Action::Consolidate(v) => {
-                    struct_ser.serialize_field("consolidate", v)?;
-                }
-                action::Action::Split(v) => {
-                    struct_ser.serialize_field("split", v)?;
+                action::Action::NoteReshape(v) => {
+                    struct_ser.serialize_field("noteReshape", v)?;
                 }
                 action::Action::ValidatorDefinition(v) => {
                     struct_ser.serialize_field("validatorDefinition", v)?;
@@ -61,8 +58,8 @@ impl<'de> serde::Deserialize<'de> for Action {
     {
         const FIELDS: &[&str] = &[
             "transfer",
-            "consolidate",
-            "split",
+            "note_reshape",
+            "noteReshape",
             "validator_definition",
             "validatorDefinition",
             "ibc_relay_action",
@@ -86,8 +83,7 @@ impl<'de> serde::Deserialize<'de> for Action {
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Transfer,
-            Consolidate,
-            Split,
+            NoteReshape,
             ValidatorDefinition,
             IbcRelayAction,
             ProposalSubmit,
@@ -120,8 +116,7 @@ impl<'de> serde::Deserialize<'de> for Action {
                     {
                         match value {
                             "transfer" => Ok(GeneratedField::Transfer),
-                            "consolidate" => Ok(GeneratedField::Consolidate),
-                            "split" => Ok(GeneratedField::Split),
+                            "noteReshape" | "note_reshape" => Ok(GeneratedField::NoteReshape),
                             "validatorDefinition" | "validator_definition" => Ok(GeneratedField::ValidatorDefinition),
                             "ibcRelayAction" | "ibc_relay_action" => Ok(GeneratedField::IbcRelayAction),
                             "proposalSubmit" | "proposal_submit" => Ok(GeneratedField::ProposalSubmit),
@@ -160,18 +155,11 @@ impl<'de> serde::Deserialize<'de> for Action {
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::Transfer)
 ;
                         }
-                        GeneratedField::Consolidate => {
+                        GeneratedField::NoteReshape => {
                             if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("consolidate"));
+                                return Err(serde::de::Error::duplicate_field("noteReshape"));
                             }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::Consolidate)
-;
-                        }
-                        GeneratedField::Split => {
-                            if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("split"));
-                            }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::Split)
+                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::NoteReshape)
 ;
                         }
                         GeneratedField::ValidatorDefinition => {
@@ -267,11 +255,8 @@ impl serde::Serialize for ActionPlan {
                 action_plan::Action::Transfer(v) => {
                     struct_ser.serialize_field("transfer", v)?;
                 }
-                action_plan::Action::Consolidate(v) => {
-                    struct_ser.serialize_field("consolidate", v)?;
-                }
-                action_plan::Action::Split(v) => {
-                    struct_ser.serialize_field("split", v)?;
+                action_plan::Action::NoteReshape(v) => {
+                    struct_ser.serialize_field("noteReshape", v)?;
                 }
                 action_plan::Action::ValidatorDefinition(v) => {
                     struct_ser.serialize_field("validatorDefinition", v)?;
@@ -307,8 +292,8 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
     {
         const FIELDS: &[&str] = &[
             "transfer",
-            "consolidate",
-            "split",
+            "note_reshape",
+            "noteReshape",
             "validator_definition",
             "validatorDefinition",
             "ibc_relay_action",
@@ -328,8 +313,7 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Transfer,
-            Consolidate,
-            Split,
+            NoteReshape,
             ValidatorDefinition,
             IbcRelayAction,
             ProposalSubmit,
@@ -360,8 +344,7 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
                     {
                         match value {
                             "transfer" => Ok(GeneratedField::Transfer),
-                            "consolidate" => Ok(GeneratedField::Consolidate),
-                            "split" => Ok(GeneratedField::Split),
+                            "noteReshape" | "note_reshape" => Ok(GeneratedField::NoteReshape),
                             "validatorDefinition" | "validator_definition" => Ok(GeneratedField::ValidatorDefinition),
                             "ibcRelayAction" | "ibc_relay_action" => Ok(GeneratedField::IbcRelayAction),
                             "proposalSubmit" | "proposal_submit" => Ok(GeneratedField::ProposalSubmit),
@@ -398,18 +381,11 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::Transfer)
 ;
                         }
-                        GeneratedField::Consolidate => {
+                        GeneratedField::NoteReshape => {
                             if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("consolidate"));
+                                return Err(serde::de::Error::duplicate_field("noteReshape"));
                             }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::Consolidate)
-;
-                        }
-                        GeneratedField::Split => {
-                            if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("split"));
-                            }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::Split)
+                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::NoteReshape)
 ;
                         }
                         GeneratedField::ValidatorDefinition => {
@@ -491,11 +467,8 @@ impl serde::Serialize for ActionView {
                 action_view::ActionView::Transfer(v) => {
                     struct_ser.serialize_field("transfer", v)?;
                 }
-                action_view::ActionView::Consolidate(v) => {
-                    struct_ser.serialize_field("consolidate", v)?;
-                }
-                action_view::ActionView::Split(v) => {
-                    struct_ser.serialize_field("split", v)?;
+                action_view::ActionView::NoteReshape(v) => {
+                    struct_ser.serialize_field("noteReshape", v)?;
                 }
                 action_view::ActionView::ValidatorDefinition(v) => {
                     struct_ser.serialize_field("validatorDefinition", v)?;
@@ -537,8 +510,8 @@ impl<'de> serde::Deserialize<'de> for ActionView {
     {
         const FIELDS: &[&str] = &[
             "transfer",
-            "consolidate",
-            "split",
+            "note_reshape",
+            "noteReshape",
             "validator_definition",
             "validatorDefinition",
             "ibc_relay_action",
@@ -562,8 +535,7 @@ impl<'de> serde::Deserialize<'de> for ActionView {
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Transfer,
-            Consolidate,
-            Split,
+            NoteReshape,
             ValidatorDefinition,
             IbcRelayAction,
             ProposalSubmit,
@@ -596,8 +568,7 @@ impl<'de> serde::Deserialize<'de> for ActionView {
                     {
                         match value {
                             "transfer" => Ok(GeneratedField::Transfer),
-                            "consolidate" => Ok(GeneratedField::Consolidate),
-                            "split" => Ok(GeneratedField::Split),
+                            "noteReshape" | "note_reshape" => Ok(GeneratedField::NoteReshape),
                             "validatorDefinition" | "validator_definition" => Ok(GeneratedField::ValidatorDefinition),
                             "ibcRelayAction" | "ibc_relay_action" => Ok(GeneratedField::IbcRelayAction),
                             "proposalSubmit" | "proposal_submit" => Ok(GeneratedField::ProposalSubmit),
@@ -636,18 +607,11 @@ impl<'de> serde::Deserialize<'de> for ActionView {
                             action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::Transfer)
 ;
                         }
-                        GeneratedField::Consolidate => {
+                        GeneratedField::NoteReshape => {
                             if action_view__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("consolidate"));
+                                return Err(serde::de::Error::duplicate_field("noteReshape"));
                             }
-                            action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::Consolidate)
-;
-                        }
-                        GeneratedField::Split => {
-                            if action_view__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("split"));
-                            }
-                            action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::Split)
+                            action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::NoteReshape)
 ;
                         }
                         GeneratedField::ValidatorDefinition => {
@@ -1326,10 +1290,7 @@ impl serde::Serialize for FamilyAggregate {
         if !self.aggregate_proof.is_empty() {
             len += 1;
         }
-        if self.consolidate_family_id != 0 {
-            len += 1;
-        }
-        if self.split_family_id != 0 {
+        if self.note_reshape_family_id != 0 {
             len += 1;
         }
         if self.shielded_ics20_withdrawal_family_id != 0 {
@@ -1352,11 +1313,8 @@ impl serde::Serialize for FamilyAggregate {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("aggregateProof", pbjson::private::base64::encode(&self.aggregate_proof).as_str())?;
         }
-        if self.consolidate_family_id != 0 {
-            struct_ser.serialize_field("consolidateFamilyId", &self.consolidate_family_id)?;
-        }
-        if self.split_family_id != 0 {
-            struct_ser.serialize_field("splitFamilyId", &self.split_family_id)?;
+        if self.note_reshape_family_id != 0 {
+            struct_ser.serialize_field("noteReshapeFamilyId", &self.note_reshape_family_id)?;
         }
         if self.shielded_ics20_withdrawal_family_id != 0 {
             struct_ser.serialize_field("shieldedIcs20WithdrawalFamilyId", &self.shielded_ics20_withdrawal_family_id)?;
@@ -1379,10 +1337,8 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
             "paddedCount",
             "aggregate_proof",
             "aggregateProof",
-            "consolidate_family_id",
-            "consolidateFamilyId",
-            "split_family_id",
-            "splitFamilyId",
+            "note_reshape_family_id",
+            "noteReshapeFamilyId",
             "shielded_ics20_withdrawal_family_id",
             "shieldedIcs20WithdrawalFamilyId",
         ];
@@ -1393,8 +1349,7 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
             RealCount,
             PaddedCount,
             AggregateProof,
-            ConsolidateFamilyId,
-            SplitFamilyId,
+            NoteReshapeFamilyId,
             ShieldedIcs20WithdrawalFamilyId,
             __SkipField__,
         }
@@ -1422,8 +1377,7 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
                             "realCount" | "real_count" => Ok(GeneratedField::RealCount),
                             "paddedCount" | "padded_count" => Ok(GeneratedField::PaddedCount),
                             "aggregateProof" | "aggregate_proof" => Ok(GeneratedField::AggregateProof),
-                            "consolidateFamilyId" | "consolidate_family_id" => Ok(GeneratedField::ConsolidateFamilyId),
-                            "splitFamilyId" | "split_family_id" => Ok(GeneratedField::SplitFamilyId),
+                            "noteReshapeFamilyId" | "note_reshape_family_id" => Ok(GeneratedField::NoteReshapeFamilyId),
                             "shieldedIcs20WithdrawalFamilyId" | "shielded_ics20_withdrawal_family_id" => Ok(GeneratedField::ShieldedIcs20WithdrawalFamilyId),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -1448,8 +1402,7 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
                 let mut real_count__ = None;
                 let mut padded_count__ = None;
                 let mut aggregate_proof__ = None;
-                let mut consolidate_family_id__ = None;
-                let mut split_family_id__ = None;
+                let mut note_reshape_family_id__ = None;
                 let mut shielded_ics20_withdrawal_family_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -1483,19 +1436,11 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::ConsolidateFamilyId => {
-                            if consolidate_family_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("consolidateFamilyId"));
+                        GeneratedField::NoteReshapeFamilyId => {
+                            if note_reshape_family_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("noteReshapeFamilyId"));
                             }
-                            consolidate_family_id__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::SplitFamilyId => {
-                            if split_family_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("splitFamilyId"));
-                            }
-                            split_family_id__ = 
+                            note_reshape_family_id__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1517,8 +1462,7 @@ impl<'de> serde::Deserialize<'de> for FamilyAggregate {
                     real_count: real_count__.unwrap_or_default(),
                     padded_count: padded_count__.unwrap_or_default(),
                     aggregate_proof: aggregate_proof__.unwrap_or_default(),
-                    consolidate_family_id: consolidate_family_id__.unwrap_or_default(),
-                    split_family_id: split_family_id__.unwrap_or_default(),
+                    note_reshape_family_id: note_reshape_family_id__.unwrap_or_default(),
                     shielded_ics20_withdrawal_family_id: shielded_ics20_withdrawal_family_id__.unwrap_or_default(),
                 })
             }
@@ -2711,8 +2655,7 @@ impl serde::Serialize for ProofFamilyId {
         let variant = match self {
             Self::Unspecified => "PROOF_FAMILY_ID_UNSPECIFIED",
             Self::Transfer => "PROOF_FAMILY_ID_TRANSFER",
-            Self::Consolidate => "PROOF_FAMILY_ID_CONSOLIDATE",
-            Self::Split => "PROOF_FAMILY_ID_SPLIT",
+            Self::NoteReshape => "PROOF_FAMILY_ID_NOTE_RESHAPE",
             Self::ShieldedIcs20Withdrawal => "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL",
         };
         serializer.serialize_str(variant)
@@ -2727,8 +2670,7 @@ impl<'de> serde::Deserialize<'de> for ProofFamilyId {
         const FIELDS: &[&str] = &[
             "PROOF_FAMILY_ID_UNSPECIFIED",
             "PROOF_FAMILY_ID_TRANSFER",
-            "PROOF_FAMILY_ID_CONSOLIDATE",
-            "PROOF_FAMILY_ID_SPLIT",
+            "PROOF_FAMILY_ID_NOTE_RESHAPE",
             "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL",
         ];
 
@@ -2772,8 +2714,7 @@ impl<'de> serde::Deserialize<'de> for ProofFamilyId {
                 match value {
                     "PROOF_FAMILY_ID_UNSPECIFIED" => Ok(ProofFamilyId::Unspecified),
                     "PROOF_FAMILY_ID_TRANSFER" => Ok(ProofFamilyId::Transfer),
-                    "PROOF_FAMILY_ID_CONSOLIDATE" => Ok(ProofFamilyId::Consolidate),
-                    "PROOF_FAMILY_ID_SPLIT" => Ok(ProofFamilyId::Split),
+                    "PROOF_FAMILY_ID_NOTE_RESHAPE" => Ok(ProofFamilyId::NoteReshape),
                     "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL" => Ok(ProofFamilyId::ShieldedIcs20Withdrawal),
                     _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
                 }

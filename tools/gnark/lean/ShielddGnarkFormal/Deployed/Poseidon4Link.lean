@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Poseidon4Bridge
 
 /-! Reusable deployed-slice ⇒ `permSpec4` link for width-5 Poseidon classes.
@@ -9,6 +10,7 @@ round-by-round without expanding long partial-round linear lanes. -/
 
 namespace Shieldd.GnarkFormal.Deployed.Poseidon4Link
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Poseidon4Bridge
 open Shieldd.GnarkFormal.Extracted.PoseidonHash4 (F Order)
 

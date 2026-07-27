@@ -172,7 +172,7 @@ func (c *ConservationNetBalanceCommitmentGadget) Define(api frontend.API) error 
 
 // NetBalanceCommitment2Gadget mirrors the transfer net-balance commitment:
 // two input amounts and two output amounts over the asset value generator. The
-// single-output gadget above is the consolidate (2-in-1-out) shape.
+// single-output gadget above is the NoteReshape 2→1 shape.
 type NetBalanceCommitment2Gadget struct {
 	Input0Amount    frontend.Variable `gnark:",public"`
 	Input1Amount    frontend.Variable `gnark:",public"`

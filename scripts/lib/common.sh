@@ -43,13 +43,7 @@ export_demo_gnark_env() {
     export SHIELDD_GNARK_TRANSFER_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_transfer.${ext}"
     export SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/transfer"
 
-    export SHIELDD_GNARK_SPLIT_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_split.${ext}"
-    export SHIELDD_GNARK_SPLIT_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/split1x8"
-    export SHIELDD_GNARK_SPLIT1X8_ARTIFACT_DIR="$SHIELDD_GNARK_SPLIT_ARTIFACT_DIR"
-
-    export SHIELDD_GNARK_CONSOLIDATE_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_consolidate.${ext}"
-    export SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/consolidate2x1"
-    export SHIELDD_GNARK_CONSOLIDATE2X1_ARTIFACT_DIR="$SHIELDD_GNARK_CONSOLIDATE_ARTIFACT_DIR"
+    export SHIELDD_GNARK_NOTE_RESHAPE_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_note_reshape.${ext}"
 
     export SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_LIB="$COMPLIANCE_REPO_ROOT/tools/gnark/libshieldd_gnark_shielded_ics20_withdrawal.${ext}"
     export SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR="$COMPLIANCE_REPO_ROOT/tools/gnark/artifacts/shielded_ics20_withdrawal"
@@ -102,9 +96,8 @@ build_demo_gnark_libs() {
 
     (
         cd "$COMPLIANCE_REPO_ROOT/tools/gnark"
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_split.$(gnark_lib_ext)" ./cmd/splitlib
+        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_note_reshape.$(gnark_lib_ext)" ./cmd/note_reshapelib
         CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_transfer.$(gnark_lib_ext)" ./cmd/transferlib
-        CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_consolidate.$(gnark_lib_ext)" ./cmd/consolidatelib
         CGO_ENABLED=1 go build -buildmode=c-shared -o "libshieldd_gnark_shielded_ics20_withdrawal.$(gnark_lib_ext)" ./cmd/shieldedics20withdrawallib
     )
 }
@@ -116,9 +109,8 @@ ensure_demo_gnark_libs() {
     local lib_path
 
     for spec in \
-        "split:shieldd_gnark_split_init" \
+        "note_reshape:shieldd_gnark_note_reshape_init" \
         "transfer:shieldd_gnark_transfer_init" \
-        "consolidate:shieldd_gnark_consolidate_init" \
         "shielded_ics20_withdrawal:shieldd_gnark_shielded_ics20_withdrawal_init"
     do
         local family="${spec%%:*}"
@@ -139,9 +131,8 @@ ensure_demo_gnark_libs() {
     fi
 
     for spec in \
-        "split:shieldd_gnark_split_init" \
+        "note_reshape:shieldd_gnark_note_reshape_init" \
         "transfer:shieldd_gnark_transfer_init" \
-        "consolidate:shieldd_gnark_consolidate_init" \
         "shielded_ics20_withdrawal:shieldd_gnark_shielded_ics20_withdrawal_init"
     do
         local family="${spec%%:*}"
@@ -410,32 +401,65 @@ orbis_pinned_rev_from_cargo() {
         log_error "Cannot derive Orbis pin: $cargo_toml not found"
         return 1
     fi
-    # All three orbis-rs git deps must share one rev; extract the first one and
-    # verify the others match so a stray edit can't silently drift.
+    # All three orbis-rs git deps must share one rev.
+    local pins
+    pins="$(grep -oE 'orbis-rs", rev = "[0-9a-f]{40}"' "$cargo_toml" | grep -oE '[0-9a-f]{40}')"
+    local pin_count
+    pin_count="$(printf '%s\n' "$pins" | grep -c '^[0-9a-f]')"
+    if [ "$pin_count" -ne 3 ]; then
+        log_error "Expected exactly three Orbis Cargo rev pins, found $pin_count"
+        return 1
+    fi
     local revs
-    revs="$(grep -oE 'orbis-rs", rev = "[0-9a-f]{40}"' "$cargo_toml" | grep -oE '[0-9a-f]{40}' | sort -u)"
-    local count
-    count="$(printf '%s\n' "$revs" | grep -c '^[0-9a-f]')"
-    if [ "$count" -ne 1 ]; then
+    revs="$(printf '%s\n' "$pins" | sort -u)"
+    local rev_count
+    rev_count="$(printf '%s\n' "$revs" | grep -c '^[0-9a-f]')"
+    if [ "$rev_count" -ne 1 ]; then
         log_error "Orbis Cargo.toml rev pins are inconsistent: $revs"
         return 1
     fi
     printf '%s' "$revs"
 }
 
-# Orbis node image, pinned to the same orbis-rs rev as the Cargo git deps so the
-# runtime and the linked client never drift. The published multi-arch tag encodes
-# the crypto feature. Override ORBIS_IMAGE to bypass. sourcehub:dev is a rolling
-# tag pulled directly (no ref pin) — override SOURCEHUB_IMAGE / SOURCEHUB_PLATFORM
-# (e.g. a locally-built linux/arm64 image on Apple Silicon) as needed.
+# Load the digest-pinned integration images and verify that the Orbis image's
+# source revision matches all three Cargo git dependencies.
 ensure_orbis_images() {
-    if [ -z "${ORBIS_IMAGE:-}" ]; then
-        local rev crypto
-        rev="$(orbis_pinned_rev_from_cargo)" || return 1
-        crypto="${ORBIS_INTEGRATION_CRYPTO:-decaf377}"
-        export ORBIS_IMAGE="ghcr.io/sourcenetwork/orbis-rs:${rev}-${crypto}"
+    local lock_file="$COMPLIANCE_REPO_ROOT/deployments/orbis/images.lock.json"
+    if [ ! -f "$lock_file" ]; then
+        log_error "Orbis image lock not found: $lock_file"
+        return 1
     fi
-    export SOURCEHUB_IMAGE="${SOURCEHUB_IMAGE:-ghcr.io/sourcenetwork/sourcehub:dev}"
+    if ! command -v jq >/dev/null 2>&1; then
+        log_error "jq not found; cannot load Orbis image lock"
+        return 1
+    fi
+    if ! jq -e '
+        .schema_version == 1
+        and (.orbis.source_revision | strings | test("^[0-9a-f]{40}$"))
+        and (.orbis.crypto | strings | length > 0)
+        and (.orbis.image | strings | test("^ghcr\\.io/sourcenetwork/orbis-rs@sha256:[0-9a-f]{64}$"))
+        and (.sourcehub.image | strings | test("^ghcr\\.io/sourcenetwork/sourcehub@sha256:[0-9a-f]{64}$"))
+    ' "$lock_file" >/dev/null; then
+        log_error "Invalid Orbis image lock: $lock_file"
+        return 1
+    fi
+
+    local cargo_rev lock_rev
+    cargo_rev="$(orbis_pinned_rev_from_cargo)" || return 1
+    lock_rev="$(jq -r '.orbis.source_revision' "$lock_file")"
+    if [ "$cargo_rev" != "$lock_rev" ]; then
+        log_error "Orbis image revision $lock_rev does not match Cargo revision $cargo_rev"
+        return 1
+    fi
+
+    if [ "${CI:-}" = "true" ] \
+        && { [ "${ORBIS_IMAGE+x}" = "x" ] || [ "${SOURCEHUB_IMAGE+x}" = "x" ]; }; then
+        log_error "CI may not override digest-pinned Orbis integration images"
+        return 1
+    fi
+
+    export ORBIS_IMAGE="${ORBIS_IMAGE:-$(jq -r '.orbis.image' "$lock_file")}"
+    export SOURCEHUB_IMAGE="${SOURCEHUB_IMAGE:-$(jq -r '.sourcehub.image' "$lock_file")}"
     export SOURCEHUB_PLATFORM="${SOURCEHUB_PLATFORM:-linux/amd64}"
 }
 

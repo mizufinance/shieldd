@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Poseidon3Bridge
 
 set_option maxRecDepth 100000
@@ -12,6 +13,8 @@ output into the continuation, mirroring `NoteCommitmentDeployedBridge` at width 
 The remaining semantic step composes these up to `Poseidon3Bridge.permSpec3`. -/
 
 namespace Shieldd.GnarkFormal.Deployed.Nullifier
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 open Shieldd.GnarkFormal.Poseidon3Bridge
 
