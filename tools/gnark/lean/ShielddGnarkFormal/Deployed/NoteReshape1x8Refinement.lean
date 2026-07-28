@@ -1,6 +1,7 @@
 import ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress1x8
-import ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
+import ShielddGnarkFormal.NoteReshapeMembershipBridge
 import ShielddGnarkFormal.Deployed.Generated.NoteReshape1x8Commitments
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.RoleBindings
 import ShielddGnarkFormal.NoteReshapeStateBridge
 import ShielddGnarkFormal.Protocol.NoteReshape.Refinement
 
@@ -14,6 +15,8 @@ independent protocol relation.
 
 namespace Shieldd.GnarkFormal.Deployed.NoteReshape1x8Refinement
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open Shieldd.GnarkFormal
 open Protocol.NoteReshape
 open NoteReshapeCanonical
@@ -21,9 +24,12 @@ open NoteReshapeCanonical
 namespace C
 
 open Contracts.NoteReshape1x8
+open Contracts.NoteReshape1x8.Witness (
+  spends0AuthRandomizer spends0StateProofPosition
+)
 
 def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshape2x1Refinement.C.segmentPath (Seg12.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg12.localRho rho)
 
 def input0 (rho : Nat → DeployedF) :
     RealInput DeployedF NoteReshapeCanonical.Path24 :=
@@ -32,11 +38,11 @@ def input0 (rho : Nat → DeployedF) :
     blinding := spend0NoteCommitmentInputs0 rho
     commitment := spend0StateProofCommitment rho
     nullifier := spend0NullifierClaimed rho
-    statePosition := rho 21
+    statePosition := spends0StateProofPosition rho
     membershipProof := path0 rho
     randomizedVerificationKey :=
       ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
-    randomizer := rho 94
+    randomizer := spends0AuthRandomizer rho
   }
 
 def output0 (rho : Nat → DeployedF) : Output DeployedF :=
@@ -135,36 +141,26 @@ theorem actionCanonicalAddress
 
 theorem actionInputCommitments
     (rho : Nat → DeployedF)
-    (facts : NoteReshape1x8CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape1x8CircuitFacts rho) :
     inputCommitments
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   simp [
     inputCommitments, action, input0,
-    NoteReshapeCanonical.primitives, NoteReshapeCanonical.realCommitment,
+    NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.realCommitment,
     Generated.NoteReshape1x8Commitments.spend0Commitment rho facts
   ]
 
 theorem actionOutputCommitments
     (rho : Nat → DeployedF)
-    (facts : NoteReshape1x8CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape1x8CircuitFacts rho) :
     outputCommitments
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   simp [
     outputCommitments, action, output0, output1, output2, output3,
     output4, output5, output6, output7,
-    NoteReshapeCanonical.primitives, NoteReshapeCanonical.outputCommitment,
+    NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.outputCommitment,
     Generated.NoteReshape1x8Commitments.output0Commitment rho facts,
     Generated.NoteReshape1x8Commitments.output1Commitment rho facts,
     Generated.NoteReshape1x8Commitments.output2Commitment rho facts,

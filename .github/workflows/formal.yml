@@ -436,10 +436,8 @@ jobs:
           key: go-fv-${{ hashFiles('tools/gnark/go.sum') }}
           restore-keys: |
             go-fv-
-      # dev replaced the script's `stamps|full` modes with `drift|typed|release`
-      # plus a family list. Map the applicability tier onto that interface here
-      # rather than passing the tier through, so an unrecognised tier fails loudly
-      # instead of reaching the script as an unknown mode.
+      # Handwritten NoteReshape proof changes are typechecked on pull requests;
+      # deployed-key proving remains a merge/release check.
       - name: Run whole-circuit FV tier
         shell: bash
         env:
@@ -448,6 +446,7 @@ jobs:
           set -euo pipefail
           case "$TIER" in
             stamps) bash scripts/check-lean-circuit-fv.sh drift all ;;
+            typed)  bash scripts/check-lean-circuit-fv.sh typed all ;;
             full)   bash scripts/check-lean-circuit-fv.sh release all ;;
             *)
               echo "unsupported soundness tier: $TIER" >&2

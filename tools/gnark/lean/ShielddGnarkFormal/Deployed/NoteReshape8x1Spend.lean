@@ -14,6 +14,8 @@ set_option maxHeartbeats 4000000
 
 namespace Shieldd.GnarkFormal.Deployed.NoteReshape8x1Refinement.C
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open Shieldd.GnarkFormal
 open Protocol.NoteReshape
 open NoteReshapeCanonical
@@ -21,13 +23,9 @@ open Contracts.NoteReshape8x1
 
 theorem actionMembershipAndNullifiers
     (rho : Nat → DeployedF)
-    (facts : NoteReshape8x1CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted : Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape8x1CircuitFacts rho) :
     membershipAndNullifiers
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
   rcases selectorFacts rho facts with s | s | s | s
@@ -35,7 +33,7 @@ theorem actionMembershipAndNullifiers
     simp [
       membershipAndNullifiers, action,
       input0, input1, input2, input3, input4, input5, input6, input7,
-      NoteReshapeCanonical.primitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
+      NoteReshapeCanonical.circuitPrimitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
       Generated.NoteReshape8x1Spend0.member rho facts h0,
       Generated.NoteReshape8x1Spend0.realNullifier rho facts h0,
       Generated.NoteReshape8x1Spend1.member rho facts h1,
@@ -57,7 +55,7 @@ theorem actionMembershipAndNullifiers
     simp [
       membershipAndNullifiers, action,
       input0, input1, input2, input3, input4, input5, input6, input7,
-      NoteReshapeCanonical.primitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
+      NoteReshapeCanonical.circuitPrimitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
       Generated.NoteReshape8x1Spend0.member rho facts h0,
       Generated.NoteReshape8x1Spend0.realNullifier rho facts h0,
       Generated.NoteReshape8x1Spend1.member rho facts h1,
@@ -79,7 +77,7 @@ theorem actionMembershipAndNullifiers
     simp [
       membershipAndNullifiers, action,
       input0, input1, input2, input3, input4, input5, input6, input7,
-      NoteReshapeCanonical.primitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
+      NoteReshapeCanonical.circuitPrimitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
       Generated.NoteReshape8x1Spend0.member rho facts h0,
       Generated.NoteReshape8x1Spend0.realNullifier rho facts h0,
       Generated.NoteReshape8x1Spend1.member rho facts h1,
@@ -101,7 +99,7 @@ theorem actionMembershipAndNullifiers
     simp [
       membershipAndNullifiers, action,
       input0, input1, input2, input3, input4, input5, input6, input7,
-      NoteReshapeCanonical.primitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
+      NoteReshapeCanonical.circuitPrimitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
       Generated.NoteReshape8x1Spend0.member rho facts h0,
       Generated.NoteReshape8x1Spend0.realNullifier rho facts h0,
       Generated.NoteReshape8x1Spend1.member rho facts h1,
@@ -122,13 +120,9 @@ theorem actionMembershipAndNullifiers
 
 theorem actionRandomizedKeys
     (rho : Nat → DeployedF)
-    (facts : NoteReshape8x1CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted : Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape8x1CircuitFacts rho) :
     randomizedKeys
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
   rcases selectorFacts rho facts with s | s | s | s
@@ -136,7 +130,7 @@ theorem actionRandomizedKeys
     simp [
       randomizedKeys, action,
       input0, input1, input2, input3, input4, input5, input6, input7,
-      NoteReshapeCanonical.primitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
+      NoteReshapeCanonical.circuitPrimitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
       Generated.NoteReshape8x1Spend0.randomizedKey rho facts h0,
       Generated.NoteReshape8x1Spend1.randomizedKey rho facts h1,
       Generated.NoteReshape8x1Spend2.randomizedKey rho facts h2,
@@ -150,7 +144,7 @@ theorem actionRandomizedKeys
     simp [
       randomizedKeys, action,
       input0, input1, input2, input3, input4, input5, input6, input7,
-      NoteReshapeCanonical.primitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
+      NoteReshapeCanonical.circuitPrimitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
       Generated.NoteReshape8x1Spend0.randomizedKey rho facts h0,
       Generated.NoteReshape8x1Spend1.randomizedKey rho facts h1,
       Generated.NoteReshape8x1Spend2.randomizedKey rho facts h2,
@@ -163,7 +157,7 @@ theorem actionRandomizedKeys
     simp [
       randomizedKeys, action,
       input0, input1, input2, input3, input4, input5, input6, input7,
-      NoteReshapeCanonical.primitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
+      NoteReshapeCanonical.circuitPrimitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
       Generated.NoteReshape8x1Spend0.randomizedKey rho facts h0,
       Generated.NoteReshape8x1Spend1.randomizedKey rho facts h1,
       Generated.NoteReshape8x1Spend2.randomizedKey rho facts h2,
@@ -175,7 +169,7 @@ theorem actionRandomizedKeys
     simp [
       randomizedKeys, action,
       input0, input1, input2, input3, input4, input5, input6, input7,
-      NoteReshapeCanonical.primitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
+      NoteReshapeCanonical.circuitPrimitives, h0, h1, h2, h3, h4, h5, h6, h7, h10,
       Generated.NoteReshape8x1Spend0.randomizedKey rho facts h0,
       Generated.NoteReshape8x1Spend1.randomizedKey rho facts h1,
       Generated.NoteReshape8x1Spend2.randomizedKey rho facts h2,

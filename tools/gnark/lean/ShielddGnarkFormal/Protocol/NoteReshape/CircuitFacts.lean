@@ -8,7 +8,7 @@ Generated modules may establish row facts, but cannot change this interface.
 namespace Shieldd.GnarkFormal.Protocol.NoteReshape
 
 structure CircuitFacts [Zero F]
-    (primitives : Primitives F Path) (action : Action F Path) : Prop where
+    (primitives : CircuitPrimitives F Path) (action : Action F Path) : Prop where
   shape : canonicalShape action
   padding : realPrefix action
   canonicalAddress :

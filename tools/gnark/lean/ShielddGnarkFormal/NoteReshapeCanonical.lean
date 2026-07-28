@@ -8,11 +8,12 @@ import ShielddGnarkFormal.Decaf377Assumptions
 import ShielddGnarkFormal.ChoiceFreeZMod
 
 /-!
-Concrete NoteReshape cryptographic relations.
+Circuit-facing NoteReshape cryptographic relations.
 
-This handwritten module fixes the interpretation used by the deployed
-refinement. It contains no circuit row, wire, segment, or generated-contract
-reference.
+This handwritten module gives the extracted gadgets a typed interpretation.
+`Deployed.NoteReshapeRefinement` proves that these relations imply the
+independent protocol relations in `Protocol.NoteReshape.Concrete`. This module
+contains no circuit row, wire, segment, or generated-contract reference.
 -/
 
 namespace Shieldd.GnarkFormal.NoteReshapeCanonical
@@ -96,81 +97,50 @@ def member (anchor : F) (input : RealInput F Path24) : Prop :=
     anchor = stateCommitmentRoot input.commitment input.membershipProof b0 b1
 
 def noteCommitment
-    (authorization : AuthorizationContext F)
     (shared : SharedContext F)
     (blinding amount commitment : F) : Prop :=
-  ∃ divGenFq transmission transmissionFq,
-    Decaf377Assumptions.CompressToFieldSpec
-      (toDecafPoint shared.diversifiedGenerator) divGenFq ∧
-    Decaf377Assumptions.DiversifiedTransmissionKeySpec
-      authorization.nullifierKey
-      (toDecafPoint authorization.authorizationKey)
-      (toDecafPoint shared.diversifiedGenerator)
-      authorization.ivkReduced
-      authorization.ivkQuotientA
-      transmission ∧
-    Decaf377Assumptions.CompressToFieldSpec transmission transmissionFq ∧
-    commitment =
-      Poseidon6Bridge.permSpec6 noteCommitmentDomain
-        blinding amount shared.assetId divGenFq transmissionFq shared.clueKey
+  commitment =
+    Poseidon6Bridge.permSpec6 noteCommitmentDomain
+      blinding amount shared.assetId shared.diversifiedGeneratorEncoding
+        shared.transmissionEncoding shared.clueKey
 
-/--
-Build a note-commitment obligation from one explicit canonical transmission
-witness and the commitment hash. This is the shared refinement join used by
-input and output adapters.
--/
-theorem noteCommitment_of_canonicalWitness
-    (authorization : AuthorizationContext F)
+/-- Build a note-commitment obligation from the exact commitment hash. -/
+theorem noteCommitment_of_hash
     (shared : SharedContext F)
-    (blinding amount commitment divGenFq transmissionFq : F)
-    (transmission : Decaf377Assumptions.Point)
-    (hdivGen :
-      Decaf377Assumptions.CompressToFieldSpec
-        (toDecafPoint shared.diversifiedGenerator) divGenFq)
-    (htransmission :
-      Decaf377Assumptions.DiversifiedTransmissionKeySpec
-        authorization.nullifierKey
-        (toDecafPoint authorization.authorizationKey)
-        (toDecafPoint shared.diversifiedGenerator)
-        authorization.ivkReduced
-        authorization.ivkQuotientA
-        transmission)
-    (htransmissionFq :
-      Decaf377Assumptions.CompressToFieldSpec transmission transmissionFq)
+    (blinding amount commitment : F)
     (hcommitment :
       commitment =
         Poseidon6Bridge.permSpec6 noteCommitmentDomain
-          blinding amount shared.assetId divGenFq transmissionFq shared.clueKey) :
-    noteCommitment authorization shared blinding amount commitment := by
-  exact ⟨divGenFq, transmission, transmissionFq,
-    hdivGen, htransmission, htransmissionFq, hcommitment⟩
+          blinding amount shared.assetId shared.diversifiedGeneratorEncoding
+            shared.transmissionEncoding shared.clueKey) :
+    noteCommitment shared blinding amount commitment :=
+  hcommitment
 
 def canonicalTransmission
     (authorization : AuthorizationContext F)
     (shared : SharedContext F) : Prop :=
-  ∃ divGenFq transmission transmissionFq,
-    Decaf377Assumptions.CompressToFieldSpec
-      (toDecafPoint shared.diversifiedGenerator) divGenFq ∧
+  Decaf377Assumptions.CompressToFieldSpec
+      (toDecafPoint shared.diversifiedGenerator)
+      shared.diversifiedGeneratorEncoding ∧
     Decaf377Assumptions.DiversifiedTransmissionKeySpec
       authorization.nullifierKey
       (toDecafPoint authorization.authorizationKey)
       (toDecafPoint shared.diversifiedGenerator)
       authorization.ivkReduced
       authorization.ivkQuotientA
-      transmission ∧
-    Decaf377Assumptions.CompressToFieldSpec transmission transmissionFq
+      (toDecafPoint shared.transmission) ∧
+    Decaf377Assumptions.CompressToFieldSpec
+      (toDecafPoint shared.transmission) shared.transmissionEncoding
 
 def realCommitment
-    (authorization : AuthorizationContext F)
     (shared : SharedContext F)
     (input : RealInput F Path24) : Prop :=
-  noteCommitment authorization shared input.blinding input.amount input.commitment
+  noteCommitment shared input.blinding input.amount input.commitment
 
 def outputCommitment
-    (authorization : AuthorizationContext F)
     (shared : SharedContext F)
     (output : Output F) : Prop :=
-  noteCommitment authorization shared output.blinding output.amount output.commitment
+  noteCommitment shared output.blinding output.amount output.commitment
 
 def realNullifier
     (authorization : AuthorizationContext F)
@@ -308,11 +278,7 @@ def statementBinding (action : Action F Path24) : Prop :=
     action.publicStatementHash =
       statementHash action.policy (statementFields action balanceFq rkFqs)
 
-def primitives
-    (signatureVerifies : Point F → Prop)
-    (nullifierFresh : F → Prop)
-    (transitionAccepted : Action F Path24 → Prop) :
-    Primitives F Path24 :=
+def circuitPrimitives : CircuitPrimitives F Path24 :=
   {
     canonicalTransmission
     realCommitment
@@ -323,9 +289,6 @@ def primitives
     randomizedKeyReal
     conservation
     statementBinding
-    signatureVerifies
-    nullifierFresh
-    transitionAccepted
   }
 
 end Shieldd.GnarkFormal.NoteReshapeCanonical

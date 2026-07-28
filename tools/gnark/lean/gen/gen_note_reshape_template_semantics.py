@@ -225,8 +225,8 @@ def tuple_expr(parts: list[str]) -> str:
 
 
 def poseidon3_rounds() -> list[tuple[str, list[int]]]:
-    source = (LEAN / "ShielddGnarkFormal/Poseidon3Bridge.lean").read_text()
-    body = source.split("def permSpec3", 1)[1].split("theorem perm3_uncps", 1)[0]
+    source = (LEAN / "ShielddGnarkFormal/Poseidon3Spec.lean").read_text()
+    body = source.split("def permSpec3", 1)[1].split("\n\nend ", 1)[0]
     rounds = []
     for line in body.splitlines():
         line = line.strip()

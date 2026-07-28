@@ -3,12 +3,11 @@ set -euo pipefail
 
 # Gadget-scope R1CS under-constraint check (Phase C / Track C).
 #
-# Runs Picus on the *decomposed soundness-critical gadgets*, not whole
-# transaction families. Whole-circuit Picus is a known scaling dead end
-# (Poseidon + Merkle + Decaf377 in one SMT system) and is recorded as
-# `attempted, undischarged (timeout)` rather than retried — see the plan and
-# docs/soundness. This is heavy prover work: it runs in the soundness-formal CI
-# `provers` job, not on every PR and not as part of the cheap invariant gate.
+# Runs Picus on decomposed soundness-critical gadgets, not transaction
+# families. The family export assigns every secret wire as an input, so it
+# cannot establish the functional joins required by the soundness claim. This
+# heavy prover work runs in the soundness-formal CI `provers` job, not on every
+# PR or in the cheap invariant gate.
 #
 # Verdicts (per gadget):
 #   safe         - Picus proved the gadget properly constrained (under-constraint

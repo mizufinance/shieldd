@@ -14,2717 +14,3260 @@
     {
       "wire_id": 1,
       "path": "ClaimedStatementHash",
-      "visibility": "public"
+      "visibility": "public",
+      "constraint_rows": 1
     },
     {
       "wire_id": 2,
       "path": "Anchor",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 3,
       "path": "BalanceCommitment_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 4,
       "path": "BalanceCommitment_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 5,
       "path": "AssetAnchor",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 6,
       "path": "ComplianceAnchor",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 7,
       "path": "TargetTimestamp",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 8,
       "path": "ActionBalanceBlinding",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 9,
       "path": "IsRegulated",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1049
     },
     {
       "wire_id": 10,
       "path": "Auth_AK_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 9
     },
     {
       "wire_id": 11,
       "path": "Auth_AK_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 12,
       "path": "Auth_NK",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 13,
       "path": "Auth_IVKReduced",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 14,
       "path": "Auth_IVKQuotientA",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 7
     },
     {
       "wire_id": 15,
       "path": "Asset_Leaf_Value",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 16,
       "path": "Asset_Leaf_NextIndex",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 17,
       "path": "Asset_Leaf_NextValue",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 18,
       "path": "Asset_Leaf_DKPub_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 19,
       "path": "Asset_Leaf_DKPub_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 20,
       "path": "Asset_Leaf_Threshold",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 21,
       "path": "Asset_Leaf_SlotCount",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 22,
       "path": "Asset_Leaf_ChannelsHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 23,
       "path": "Asset_Leaf_RingPK_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 24,
       "path": "Asset_Leaf_RingPK_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 25,
       "path": "Asset_Leaf_RingIDHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 26,
       "path": "Asset_Leaf_PolicyIDHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 27,
       "path": "Asset_Leaf_PermissionHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 28,
       "path": "Asset_Leaf_ResourceHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 29,
       "path": "Asset_Path_0_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 30,
       "path": "Asset_Path_0_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 31,
       "path": "Asset_Path_0_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 32,
       "path": "Asset_Path_1_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 33,
       "path": "Asset_Path_1_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 34,
       "path": "Asset_Path_1_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 35,
       "path": "Asset_Path_2_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 36,
       "path": "Asset_Path_2_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 37,
       "path": "Asset_Path_2_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 38,
       "path": "Asset_Path_3_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 39,
       "path": "Asset_Path_3_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 40,
       "path": "Asset_Path_3_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 41,
       "path": "Asset_Path_4_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 42,
       "path": "Asset_Path_4_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 43,
       "path": "Asset_Path_4_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 44,
       "path": "Asset_Path_5_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 45,
       "path": "Asset_Path_5_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 46,
       "path": "Asset_Path_5_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 47,
       "path": "Asset_Path_6_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 48,
       "path": "Asset_Path_6_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 49,
       "path": "Asset_Path_6_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 50,
       "path": "Asset_Path_7_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 51,
       "path": "Asset_Path_7_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 52,
       "path": "Asset_Path_7_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 53,
       "path": "Asset_Path_8_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 54,
       "path": "Asset_Path_8_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 55,
       "path": "Asset_Path_8_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 56,
       "path": "Asset_Path_9_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 57,
       "path": "Asset_Path_9_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 58,
       "path": "Asset_Path_9_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 59,
       "path": "Asset_Path_10_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 60,
       "path": "Asset_Path_10_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 61,
       "path": "Asset_Path_10_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 62,
       "path": "Asset_Path_11_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 63,
       "path": "Asset_Path_11_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 64,
       "path": "Asset_Path_11_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 65,
       "path": "Asset_Path_12_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 66,
       "path": "Asset_Path_12_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 67,
       "path": "Asset_Path_12_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 68,
       "path": "Asset_Path_13_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 69,
       "path": "Asset_Path_13_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 70,
       "path": "Asset_Path_13_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 71,
       "path": "Asset_Path_14_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 72,
       "path": "Asset_Path_14_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 73,
       "path": "Asset_Path_14_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 74,
       "path": "Asset_Path_15_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 75,
       "path": "Asset_Path_15_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 76,
       "path": "Asset_Path_15_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 77,
       "path": "Asset_Position",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 78,
       "path": "Sender_DivGen_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 11
     },
     {
       "wire_id": 79,
       "path": "Sender_DivGen_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 80,
       "path": "Sender_Transmission_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 9
     },
     {
       "wire_id": 81,
       "path": "Sender_Transmission_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 82,
       "path": "Sender_AssetID",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 83,
       "path": "Sender_SlotID",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 84,
       "path": "Sender_SlotDerivation",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 85,
       "path": "Sender_D",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 86,
       "path": "Sender_Path_0_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 87,
       "path": "Sender_Path_0_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 88,
       "path": "Sender_Path_0_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 89,
       "path": "Sender_Path_1_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 90,
       "path": "Sender_Path_1_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 91,
       "path": "Sender_Path_1_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 92,
       "path": "Sender_Path_2_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 93,
       "path": "Sender_Path_2_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 94,
       "path": "Sender_Path_2_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 95,
       "path": "Sender_Path_3_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 96,
       "path": "Sender_Path_3_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 97,
       "path": "Sender_Path_3_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 98,
       "path": "Sender_Path_4_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 99,
       "path": "Sender_Path_4_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 100,
       "path": "Sender_Path_4_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 101,
       "path": "Sender_Path_5_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 102,
       "path": "Sender_Path_5_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 103,
       "path": "Sender_Path_5_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 104,
       "path": "Sender_Path_6_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 105,
       "path": "Sender_Path_6_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 106,
       "path": "Sender_Path_6_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 107,
       "path": "Sender_Path_7_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 108,
       "path": "Sender_Path_7_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 109,
       "path": "Sender_Path_7_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 110,
       "path": "Sender_Path_8_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 111,
       "path": "Sender_Path_8_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 112,
       "path": "Sender_Path_8_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 113,
       "path": "Sender_Path_9_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 114,
       "path": "Sender_Path_9_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 115,
       "path": "Sender_Path_9_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 116,
       "path": "Sender_Path_10_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 117,
       "path": "Sender_Path_10_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 118,
       "path": "Sender_Path_10_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 119,
       "path": "Sender_Path_11_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 120,
       "path": "Sender_Path_11_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 121,
       "path": "Sender_Path_11_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 122,
       "path": "Sender_Path_12_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 123,
       "path": "Sender_Path_12_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 124,
       "path": "Sender_Path_12_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 125,
       "path": "Sender_Path_13_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 126,
       "path": "Sender_Path_13_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 127,
       "path": "Sender_Path_13_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 128,
       "path": "Sender_Path_14_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 129,
       "path": "Sender_Path_14_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 130,
       "path": "Sender_Path_14_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 131,
       "path": "Sender_Path_15_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 132,
       "path": "Sender_Path_15_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 133,
       "path": "Sender_Path_15_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 134,
       "path": "Sender_Position",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 135,
       "path": "Compliance_TransferNonceRoot",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 10
     },
     {
       "wire_id": 136,
       "path": "Compliance_DetectionCiphertext_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 137,
       "path": "Compliance_DetectionCiphertext_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 138,
       "path": "Compliance_DetectionCiphertext_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 139,
       "path": "Compliance_DetectionCiphertext_3",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 140,
       "path": "Compliance_SenderRCore",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 141,
       "path": "Compliance_SenderRExt",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 142,
       "path": "Compliance_OutputRCore",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 143,
       "path": "Compliance_OutputRExt",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 144,
       "path": "Compliance_SenderCore_Epk_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 7
     },
     {
       "wire_id": 145,
       "path": "Compliance_SenderCore_Epk_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 146,
       "path": "Compliance_SenderCore_C2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 147,
       "path": "Compliance_SenderCore_Ciphertext_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 148,
       "path": "Compliance_SenderCore_Proof_Statement_SubjectDerivation",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 149,
       "path": "Compliance_SenderCore_Proof_Statement_RingIDHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 150,
       "path": "Compliance_SenderCore_Proof_Statement_PolicyIDHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 151,
       "path": "Compliance_SenderCore_Proof_Statement_ResourceHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 152,
       "path": "Compliance_SenderCore_Proof_Statement_PermissionHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 153,
       "path": "Compliance_SenderCore_Proof_Statement_Tier",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 154,
       "path": "Compliance_SenderCore_Proof_Statement_TargetTimestamp",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 155,
       "path": "Compliance_SenderCore_Proof_Statement_Salt",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 156,
       "path": "Compliance_SenderCore_Proof_Challenge",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 157,
       "path": "Compliance_SenderCore_Proof_Response",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 158,
       "path": "Compliance_SenderCore_Proof_DerivedPK_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 520
     },
     {
       "wire_id": 159,
       "path": "Compliance_SenderCore_Proof_DerivedPK_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 514
     },
     {
       "wire_id": 160,
       "path": "Compliance_SenderCore_Proof_EncCmt_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 521
     },
     {
       "wire_id": 161,
       "path": "Compliance_SenderCore_Proof_EncCmt_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 515
     },
     {
       "wire_id": 162,
       "path": "Compliance_SenderCore_Proof_SharedPoint_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 518
     },
     {
       "wire_id": 163,
       "path": "Compliance_SenderCore_Proof_SharedPoint_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 512
     },
     {
       "wire_id": 164,
       "path": "Compliance_SenderExt_Epk_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 7
     },
     {
       "wire_id": 165,
       "path": "Compliance_SenderExt_Epk_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 166,
       "path": "Compliance_SenderExt_C2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 167,
       "path": "Compliance_SenderExt_Ciphertext_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 168,
       "path": "Compliance_SenderExt_Ciphertext_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 169,
       "path": "Compliance_SenderExt_Ciphertext_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 170,
       "path": "Compliance_SenderExt_Proof_Statement_SubjectDerivation",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 171,
       "path": "Compliance_SenderExt_Proof_Statement_RingIDHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 172,
       "path": "Compliance_SenderExt_Proof_Statement_PolicyIDHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 173,
       "path": "Compliance_SenderExt_Proof_Statement_ResourceHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 174,
       "path": "Compliance_SenderExt_Proof_Statement_PermissionHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 175,
       "path": "Compliance_SenderExt_Proof_Statement_Tier",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 176,
       "path": "Compliance_SenderExt_Proof_Statement_TargetTimestamp",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 177,
       "path": "Compliance_SenderExt_Proof_Statement_Salt",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 178,
       "path": "Compliance_SenderExt_Proof_Challenge",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 179,
       "path": "Compliance_SenderExt_Proof_Response",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 180,
       "path": "Compliance_SenderExt_Proof_DerivedPK_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 520
     },
     {
       "wire_id": 181,
       "path": "Compliance_SenderExt_Proof_DerivedPK_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 514
     },
     {
       "wire_id": 182,
       "path": "Compliance_SenderExt_Proof_EncCmt_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 521
     },
     {
       "wire_id": 183,
       "path": "Compliance_SenderExt_Proof_EncCmt_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 515
     },
     {
       "wire_id": 184,
       "path": "Compliance_SenderExt_Proof_SharedPoint_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 518
     },
     {
       "wire_id": 185,
       "path": "Compliance_SenderExt_Proof_SharedPoint_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 512
     },
     {
       "wire_id": 186,
       "path": "Compliance_OutputCore_Epk_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 7
     },
     {
       "wire_id": 187,
       "path": "Compliance_OutputCore_Epk_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 188,
       "path": "Compliance_OutputCore_C2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 189,
       "path": "Compliance_OutputCore_Ciphertext_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 190,
       "path": "Compliance_OutputCore_Proof_Statement_SubjectDerivation",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 191,
       "path": "Compliance_OutputCore_Proof_Statement_RingIDHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 192,
       "path": "Compliance_OutputCore_Proof_Statement_PolicyIDHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 193,
       "path": "Compliance_OutputCore_Proof_Statement_ResourceHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 194,
       "path": "Compliance_OutputCore_Proof_Statement_PermissionHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 195,
       "path": "Compliance_OutputCore_Proof_Statement_Tier",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 196,
       "path": "Compliance_OutputCore_Proof_Statement_TargetTimestamp",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 197,
       "path": "Compliance_OutputCore_Proof_Statement_Salt",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 198,
       "path": "Compliance_OutputCore_Proof_Challenge",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 199,
       "path": "Compliance_OutputCore_Proof_Response",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 200,
       "path": "Compliance_OutputCore_Proof_DerivedPK_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 520
     },
     {
       "wire_id": 201,
       "path": "Compliance_OutputCore_Proof_DerivedPK_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 514
     },
     {
       "wire_id": 202,
       "path": "Compliance_OutputCore_Proof_EncCmt_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 521
     },
     {
       "wire_id": 203,
       "path": "Compliance_OutputCore_Proof_EncCmt_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 515
     },
     {
       "wire_id": 204,
       "path": "Compliance_OutputCore_Proof_SharedPoint_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 518
     },
     {
       "wire_id": 205,
       "path": "Compliance_OutputCore_Proof_SharedPoint_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 512
     },
     {
       "wire_id": 206,
       "path": "Compliance_OutputExt_Epk_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 7
     },
     {
       "wire_id": 207,
       "path": "Compliance_OutputExt_Epk_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 208,
       "path": "Compliance_OutputExt_C2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 209,
       "path": "Compliance_OutputExt_Ciphertext_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 210,
       "path": "Compliance_OutputExt_Ciphertext_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 211,
       "path": "Compliance_OutputExt_Ciphertext_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 212,
       "path": "Compliance_OutputExt_Proof_Statement_SubjectDerivation",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 213,
       "path": "Compliance_OutputExt_Proof_Statement_RingIDHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 214,
       "path": "Compliance_OutputExt_Proof_Statement_PolicyIDHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 215,
       "path": "Compliance_OutputExt_Proof_Statement_ResourceHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 216,
       "path": "Compliance_OutputExt_Proof_Statement_PermissionHash",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 217,
       "path": "Compliance_OutputExt_Proof_Statement_Tier",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 218,
       "path": "Compliance_OutputExt_Proof_Statement_TargetTimestamp",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 219,
       "path": "Compliance_OutputExt_Proof_Statement_Salt",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 220,
       "path": "Compliance_OutputExt_Proof_Challenge",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 221,
       "path": "Compliance_OutputExt_Proof_Response",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 222,
       "path": "Compliance_OutputExt_Proof_DerivedPK_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 520
     },
     {
       "wire_id": 223,
       "path": "Compliance_OutputExt_Proof_DerivedPK_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 514
     },
     {
       "wire_id": 224,
       "path": "Compliance_OutputExt_Proof_EncCmt_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 521
     },
     {
       "wire_id": 225,
       "path": "Compliance_OutputExt_Proof_EncCmt_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 515
     },
     {
       "wire_id": 226,
       "path": "Compliance_OutputExt_Proof_SharedPoint_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 518
     },
     {
       "wire_id": 227,
       "path": "Compliance_OutputExt_Proof_SharedPoint_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 512
     },
     {
       "wire_id": 228,
       "path": "Spends_0_Nullifier",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 229,
       "path": "Spends_0_RK_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 7
     },
     {
       "wire_id": 230,
       "path": "Spends_0_RK_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 231,
       "path": "Spends_0_Note_Blinding",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 232,
       "path": "Spends_0_Note_Amount",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 233,
       "path": "Spends_0_Note_AssetID",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 12
     },
     {
       "wire_id": 234,
       "path": "Spends_0_Note_DivGen_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 235,
       "path": "Spends_0_Note_DivGen_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 236,
       "path": "Spends_0_Note_TransmissionKeyS",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 237,
       "path": "Spends_0_Note_Transmission_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 238,
       "path": "Spends_0_Note_Transmission_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 239,
       "path": "Spends_0_Note_ClueKey",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 240,
       "path": "Spends_0_StateProof_Commitment",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 241,
       "path": "Spends_0_StateProof_Position",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 242,
       "path": "Spends_0_StateProof_Path_0_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 243,
       "path": "Spends_0_StateProof_Path_0_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 244,
       "path": "Spends_0_StateProof_Path_0_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 245,
       "path": "Spends_0_StateProof_Path_1_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 246,
       "path": "Spends_0_StateProof_Path_1_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 247,
       "path": "Spends_0_StateProof_Path_1_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 248,
       "path": "Spends_0_StateProof_Path_2_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 249,
       "path": "Spends_0_StateProof_Path_2_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 250,
       "path": "Spends_0_StateProof_Path_2_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 251,
       "path": "Spends_0_StateProof_Path_3_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 252,
       "path": "Spends_0_StateProof_Path_3_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 253,
       "path": "Spends_0_StateProof_Path_3_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 254,
       "path": "Spends_0_StateProof_Path_4_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 255,
       "path": "Spends_0_StateProof_Path_4_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 256,
       "path": "Spends_0_StateProof_Path_4_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 257,
       "path": "Spends_0_StateProof_Path_5_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 258,
       "path": "Spends_0_StateProof_Path_5_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 259,
       "path": "Spends_0_StateProof_Path_5_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 260,
       "path": "Spends_0_StateProof_Path_6_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 261,
       "path": "Spends_0_StateProof_Path_6_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 262,
       "path": "Spends_0_StateProof_Path_6_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 263,
       "path": "Spends_0_StateProof_Path_7_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 264,
       "path": "Spends_0_StateProof_Path_7_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 265,
       "path": "Spends_0_StateProof_Path_7_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 266,
       "path": "Spends_0_StateProof_Path_8_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 267,
       "path": "Spends_0_StateProof_Path_8_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 268,
       "path": "Spends_0_StateProof_Path_8_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 269,
       "path": "Spends_0_StateProof_Path_9_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 270,
       "path": "Spends_0_StateProof_Path_9_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 271,
       "path": "Spends_0_StateProof_Path_9_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 272,
       "path": "Spends_0_StateProof_Path_10_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 273,
       "path": "Spends_0_StateProof_Path_10_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 274,
       "path": "Spends_0_StateProof_Path_10_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 275,
       "path": "Spends_0_StateProof_Path_11_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 276,
       "path": "Spends_0_StateProof_Path_11_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 277,
       "path": "Spends_0_StateProof_Path_11_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 278,
       "path": "Spends_0_StateProof_Path_12_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 279,
       "path": "Spends_0_StateProof_Path_12_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 280,
       "path": "Spends_0_StateProof_Path_12_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 281,
       "path": "Spends_0_StateProof_Path_13_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 282,
       "path": "Spends_0_StateProof_Path_13_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 283,
       "path": "Spends_0_StateProof_Path_13_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 284,
       "path": "Spends_0_StateProof_Path_14_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 285,
       "path": "Spends_0_StateProof_Path_14_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 286,
       "path": "Spends_0_StateProof_Path_14_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 287,
       "path": "Spends_0_StateProof_Path_15_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 288,
       "path": "Spends_0_StateProof_Path_15_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 289,
       "path": "Spends_0_StateProof_Path_15_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 290,
       "path": "Spends_0_StateProof_Path_16_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 291,
       "path": "Spends_0_StateProof_Path_16_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 292,
       "path": "Spends_0_StateProof_Path_16_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 293,
       "path": "Spends_0_StateProof_Path_17_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 294,
       "path": "Spends_0_StateProof_Path_17_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 295,
       "path": "Spends_0_StateProof_Path_17_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 296,
       "path": "Spends_0_StateProof_Path_18_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 297,
       "path": "Spends_0_StateProof_Path_18_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 298,
       "path": "Spends_0_StateProof_Path_18_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 299,
       "path": "Spends_0_StateProof_Path_19_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 300,
       "path": "Spends_0_StateProof_Path_19_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 301,
       "path": "Spends_0_StateProof_Path_19_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 302,
       "path": "Spends_0_StateProof_Path_20_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 303,
       "path": "Spends_0_StateProof_Path_20_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 304,
       "path": "Spends_0_StateProof_Path_20_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 305,
       "path": "Spends_0_StateProof_Path_21_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 306,
       "path": "Spends_0_StateProof_Path_21_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 307,
       "path": "Spends_0_StateProof_Path_21_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 308,
       "path": "Spends_0_StateProof_Path_22_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 309,
       "path": "Spends_0_StateProof_Path_22_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 310,
       "path": "Spends_0_StateProof_Path_22_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 311,
       "path": "Spends_0_StateProof_Path_23_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 312,
       "path": "Spends_0_StateProof_Path_23_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 313,
       "path": "Spends_0_StateProof_Path_23_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 314,
       "path": "Spends_0_AuthRandomizer",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 315,
       "path": "Spends_0_IsDummy",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 11
     },
     {
       "wire_id": 316,
       "path": "Spends_0_DummyNullifierSeed",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 317,
       "path": "Spends_0_DummySpendAuthKey",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 318,
       "path": "Spends_1_Nullifier",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 319,
       "path": "Spends_1_RK_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 7
     },
     {
       "wire_id": 320,
       "path": "Spends_1_RK_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 321,
       "path": "Spends_1_Note_Blinding",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 322,
       "path": "Spends_1_Note_Amount",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 323,
       "path": "Spends_1_Note_AssetID",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 324,
       "path": "Spends_1_Note_DivGen_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 325,
       "path": "Spends_1_Note_DivGen_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 326,
       "path": "Spends_1_Note_TransmissionKeyS",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 327,
       "path": "Spends_1_Note_Transmission_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 328,
       "path": "Spends_1_Note_Transmission_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 329,
       "path": "Spends_1_Note_ClueKey",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 330,
       "path": "Spends_1_StateProof_Commitment",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 331,
       "path": "Spends_1_StateProof_Position",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 332,
       "path": "Spends_1_StateProof_Path_0_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 333,
       "path": "Spends_1_StateProof_Path_0_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 334,
       "path": "Spends_1_StateProof_Path_0_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 335,
       "path": "Spends_1_StateProof_Path_1_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 336,
       "path": "Spends_1_StateProof_Path_1_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 337,
       "path": "Spends_1_StateProof_Path_1_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 338,
       "path": "Spends_1_StateProof_Path_2_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 339,
       "path": "Spends_1_StateProof_Path_2_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 340,
       "path": "Spends_1_StateProof_Path_2_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 341,
       "path": "Spends_1_StateProof_Path_3_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 342,
       "path": "Spends_1_StateProof_Path_3_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 343,
       "path": "Spends_1_StateProof_Path_3_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 344,
       "path": "Spends_1_StateProof_Path_4_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 345,
       "path": "Spends_1_StateProof_Path_4_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 346,
       "path": "Spends_1_StateProof_Path_4_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 347,
       "path": "Spends_1_StateProof_Path_5_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 348,
       "path": "Spends_1_StateProof_Path_5_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 349,
       "path": "Spends_1_StateProof_Path_5_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 350,
       "path": "Spends_1_StateProof_Path_6_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 351,
       "path": "Spends_1_StateProof_Path_6_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 352,
       "path": "Spends_1_StateProof_Path_6_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 353,
       "path": "Spends_1_StateProof_Path_7_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 354,
       "path": "Spends_1_StateProof_Path_7_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 355,
       "path": "Spends_1_StateProof_Path_7_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 356,
       "path": "Spends_1_StateProof_Path_8_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 357,
       "path": "Spends_1_StateProof_Path_8_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 358,
       "path": "Spends_1_StateProof_Path_8_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 359,
       "path": "Spends_1_StateProof_Path_9_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 360,
       "path": "Spends_1_StateProof_Path_9_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 361,
       "path": "Spends_1_StateProof_Path_9_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 362,
       "path": "Spends_1_StateProof_Path_10_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 363,
       "path": "Spends_1_StateProof_Path_10_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 364,
       "path": "Spends_1_StateProof_Path_10_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 365,
       "path": "Spends_1_StateProof_Path_11_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 366,
       "path": "Spends_1_StateProof_Path_11_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 367,
       "path": "Spends_1_StateProof_Path_11_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 368,
       "path": "Spends_1_StateProof_Path_12_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 369,
       "path": "Spends_1_StateProof_Path_12_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 370,
       "path": "Spends_1_StateProof_Path_12_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 371,
       "path": "Spends_1_StateProof_Path_13_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 372,
       "path": "Spends_1_StateProof_Path_13_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 373,
       "path": "Spends_1_StateProof_Path_13_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 374,
       "path": "Spends_1_StateProof_Path_14_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 375,
       "path": "Spends_1_StateProof_Path_14_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 376,
       "path": "Spends_1_StateProof_Path_14_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 377,
       "path": "Spends_1_StateProof_Path_15_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 378,
       "path": "Spends_1_StateProof_Path_15_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 379,
       "path": "Spends_1_StateProof_Path_15_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 380,
       "path": "Spends_1_StateProof_Path_16_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 381,
       "path": "Spends_1_StateProof_Path_16_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 382,
       "path": "Spends_1_StateProof_Path_16_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 383,
       "path": "Spends_1_StateProof_Path_17_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 384,
       "path": "Spends_1_StateProof_Path_17_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 385,
       "path": "Spends_1_StateProof_Path_17_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 386,
       "path": "Spends_1_StateProof_Path_18_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 387,
       "path": "Spends_1_StateProof_Path_18_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 388,
       "path": "Spends_1_StateProof_Path_18_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 389,
       "path": "Spends_1_StateProof_Path_19_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 390,
       "path": "Spends_1_StateProof_Path_19_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 391,
       "path": "Spends_1_StateProof_Path_19_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 392,
       "path": "Spends_1_StateProof_Path_20_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 393,
       "path": "Spends_1_StateProof_Path_20_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 394,
       "path": "Spends_1_StateProof_Path_20_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 395,
       "path": "Spends_1_StateProof_Path_21_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 396,
       "path": "Spends_1_StateProof_Path_21_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 397,
       "path": "Spends_1_StateProof_Path_21_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 398,
       "path": "Spends_1_StateProof_Path_22_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 399,
       "path": "Spends_1_StateProof_Path_22_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 400,
       "path": "Spends_1_StateProof_Path_22_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 401,
       "path": "Spends_1_StateProof_Path_23_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 402,
       "path": "Spends_1_StateProof_Path_23_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 403,
       "path": "Spends_1_StateProof_Path_23_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 404,
       "path": "Spends_1_AuthRandomizer",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 405,
       "path": "Spends_1_IsDummy",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 11
     },
     {
       "wire_id": 406,
       "path": "Spends_1_DummyNullifierSeed",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 407,
       "path": "Spends_1_DummySpendAuthKey",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 408,
       "path": "Outputs_0_NoteCommitment",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 409,
       "path": "Outputs_0_Note_Blinding",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 410,
       "path": "Outputs_0_Note_Amount",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 411,
       "path": "Outputs_0_Note_AssetID",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 412,
       "path": "Outputs_0_Note_DivGen_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 413,
       "path": "Outputs_0_Note_DivGen_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 414,
       "path": "Outputs_0_Note_TransmissionKeyS",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 415,
       "path": "Outputs_0_Note_Transmission_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 416,
       "path": "Outputs_0_Note_Transmission_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 417,
       "path": "Outputs_0_Note_ClueKey",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 418,
       "path": "Outputs_0_Recipient_DivGen_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 419,
       "path": "Outputs_0_Recipient_DivGen_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 420,
       "path": "Outputs_0_Recipient_Transmission_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 421,
       "path": "Outputs_0_Recipient_Transmission_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 422,
       "path": "Outputs_0_Recipient_AssetID",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 423,
       "path": "Outputs_0_Recipient_SlotID",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 424,
       "path": "Outputs_0_Recipient_SlotDerivation",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 425,
       "path": "Outputs_0_Recipient_D",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 426,
       "path": "Outputs_0_Recipient_Path_0_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 427,
       "path": "Outputs_0_Recipient_Path_0_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 428,
       "path": "Outputs_0_Recipient_Path_0_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 429,
       "path": "Outputs_0_Recipient_Path_1_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 430,
       "path": "Outputs_0_Recipient_Path_1_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 431,
       "path": "Outputs_0_Recipient_Path_1_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 432,
       "path": "Outputs_0_Recipient_Path_2_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 433,
       "path": "Outputs_0_Recipient_Path_2_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 434,
       "path": "Outputs_0_Recipient_Path_2_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 435,
       "path": "Outputs_0_Recipient_Path_3_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 436,
       "path": "Outputs_0_Recipient_Path_3_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 437,
       "path": "Outputs_0_Recipient_Path_3_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 438,
       "path": "Outputs_0_Recipient_Path_4_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 439,
       "path": "Outputs_0_Recipient_Path_4_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 440,
       "path": "Outputs_0_Recipient_Path_4_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 441,
       "path": "Outputs_0_Recipient_Path_5_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 442,
       "path": "Outputs_0_Recipient_Path_5_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 443,
       "path": "Outputs_0_Recipient_Path_5_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 444,
       "path": "Outputs_0_Recipient_Path_6_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 445,
       "path": "Outputs_0_Recipient_Path_6_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 446,
       "path": "Outputs_0_Recipient_Path_6_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 447,
       "path": "Outputs_0_Recipient_Path_7_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 448,
       "path": "Outputs_0_Recipient_Path_7_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 449,
       "path": "Outputs_0_Recipient_Path_7_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 450,
       "path": "Outputs_0_Recipient_Path_8_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 451,
       "path": "Outputs_0_Recipient_Path_8_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 452,
       "path": "Outputs_0_Recipient_Path_8_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 453,
       "path": "Outputs_0_Recipient_Path_9_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 454,
       "path": "Outputs_0_Recipient_Path_9_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 455,
       "path": "Outputs_0_Recipient_Path_9_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 456,
       "path": "Outputs_0_Recipient_Path_10_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 457,
       "path": "Outputs_0_Recipient_Path_10_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 458,
       "path": "Outputs_0_Recipient_Path_10_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 459,
       "path": "Outputs_0_Recipient_Path_11_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 460,
       "path": "Outputs_0_Recipient_Path_11_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 461,
       "path": "Outputs_0_Recipient_Path_11_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 462,
       "path": "Outputs_0_Recipient_Path_12_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 463,
       "path": "Outputs_0_Recipient_Path_12_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 464,
       "path": "Outputs_0_Recipient_Path_12_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 465,
       "path": "Outputs_0_Recipient_Path_13_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 466,
       "path": "Outputs_0_Recipient_Path_13_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 467,
       "path": "Outputs_0_Recipient_Path_13_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 468,
       "path": "Outputs_0_Recipient_Path_14_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 469,
       "path": "Outputs_0_Recipient_Path_14_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 470,
       "path": "Outputs_0_Recipient_Path_14_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 471,
       "path": "Outputs_0_Recipient_Path_15_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 472,
       "path": "Outputs_0_Recipient_Path_15_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 473,
       "path": "Outputs_0_Recipient_Path_15_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 474,
       "path": "Outputs_0_Recipient_Position",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 475,
       "path": "Outputs_0_IsReceiver",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 476,
       "path": "Outputs_1_NoteCommitment",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 477,
       "path": "Outputs_1_Note_Blinding",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 478,
       "path": "Outputs_1_Note_Amount",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 5
     },
     {
       "wire_id": 479,
       "path": "Outputs_1_Note_AssetID",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 480,
       "path": "Outputs_1_Note_DivGen_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 481,
       "path": "Outputs_1_Note_DivGen_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 482,
       "path": "Outputs_1_Note_TransmissionKeyS",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 483,
       "path": "Outputs_1_Note_Transmission_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 6
     },
     {
       "wire_id": 484,
       "path": "Outputs_1_Note_Transmission_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 485,
       "path": "Outputs_1_Note_ClueKey",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 486,
       "path": "Outputs_1_Recipient_DivGen_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 487,
       "path": "Outputs_1_Recipient_DivGen_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 488,
       "path": "Outputs_1_Recipient_Transmission_X",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 489,
       "path": "Outputs_1_Recipient_Transmission_Y",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 490,
       "path": "Outputs_1_Recipient_AssetID",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 491,
       "path": "Outputs_1_Recipient_SlotID",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 492,
       "path": "Outputs_1_Recipient_SlotDerivation",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 2
     },
     {
       "wire_id": 493,
       "path": "Outputs_1_Recipient_D",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 3
     },
     {
       "wire_id": 494,
       "path": "Outputs_1_Recipient_Path_0_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 495,
       "path": "Outputs_1_Recipient_Path_0_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 496,
       "path": "Outputs_1_Recipient_Path_0_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 497,
       "path": "Outputs_1_Recipient_Path_1_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 498,
       "path": "Outputs_1_Recipient_Path_1_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 499,
       "path": "Outputs_1_Recipient_Path_1_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 500,
       "path": "Outputs_1_Recipient_Path_2_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 501,
       "path": "Outputs_1_Recipient_Path_2_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 502,
       "path": "Outputs_1_Recipient_Path_2_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 503,
       "path": "Outputs_1_Recipient_Path_3_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 504,
       "path": "Outputs_1_Recipient_Path_3_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 505,
       "path": "Outputs_1_Recipient_Path_3_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 506,
       "path": "Outputs_1_Recipient_Path_4_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 507,
       "path": "Outputs_1_Recipient_Path_4_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 508,
       "path": "Outputs_1_Recipient_Path_4_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 509,
       "path": "Outputs_1_Recipient_Path_5_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 510,
       "path": "Outputs_1_Recipient_Path_5_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 511,
       "path": "Outputs_1_Recipient_Path_5_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 512,
       "path": "Outputs_1_Recipient_Path_6_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 513,
       "path": "Outputs_1_Recipient_Path_6_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 514,
       "path": "Outputs_1_Recipient_Path_6_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 515,
       "path": "Outputs_1_Recipient_Path_7_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 516,
       "path": "Outputs_1_Recipient_Path_7_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 517,
       "path": "Outputs_1_Recipient_Path_7_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 518,
       "path": "Outputs_1_Recipient_Path_8_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 519,
       "path": "Outputs_1_Recipient_Path_8_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 520,
       "path": "Outputs_1_Recipient_Path_8_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 521,
       "path": "Outputs_1_Recipient_Path_9_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 522,
       "path": "Outputs_1_Recipient_Path_9_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 523,
       "path": "Outputs_1_Recipient_Path_9_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 524,
       "path": "Outputs_1_Recipient_Path_10_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 525,
       "path": "Outputs_1_Recipient_Path_10_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 526,
       "path": "Outputs_1_Recipient_Path_10_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 527,
       "path": "Outputs_1_Recipient_Path_11_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 528,
       "path": "Outputs_1_Recipient_Path_11_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 529,
       "path": "Outputs_1_Recipient_Path_11_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 530,
       "path": "Outputs_1_Recipient_Path_12_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 531,
       "path": "Outputs_1_Recipient_Path_12_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 532,
       "path": "Outputs_1_Recipient_Path_12_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 533,
       "path": "Outputs_1_Recipient_Path_13_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 534,
       "path": "Outputs_1_Recipient_Path_13_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 535,
       "path": "Outputs_1_Recipient_Path_13_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 536,
       "path": "Outputs_1_Recipient_Path_14_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 537,
       "path": "Outputs_1_Recipient_Path_14_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 538,
       "path": "Outputs_1_Recipient_Path_14_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 539,
       "path": "Outputs_1_Recipient_Path_15_0",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 540,
       "path": "Outputs_1_Recipient_Path_15_1",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 541,
       "path": "Outputs_1_Recipient_Path_15_2",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 542,
       "path": "Outputs_1_Recipient_Position",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     },
     {
       "wire_id": 543,
       "path": "Outputs_1_IsReceiver",
-      "visibility": "secret"
+      "visibility": "secret",
+      "constraint_rows": 1
     }
   ],
   "semantic_bindings": [],

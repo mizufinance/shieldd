@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.Deployed.NoteReshape1x8Refinement
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.RoleBindings
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -7,17 +8,23 @@ set_option maxHeartbeats 4000000
 
 namespace Shieldd.GnarkFormal.Deployed.NoteReshape1x8Refinement.C
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open Shieldd.GnarkFormal
 open Protocol.NoteReshape
 open NoteReshapeCanonical
 open Contracts.NoteReshape1x8
+open Contracts.NoteReshape1x8.Witness (
+  spends0AuthRandomizer spends0StateProofPosition
+)
 
 theorem spend0NullifierHash
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
     spend0NullifierComputed rho =
       Poseidon3Bridge.permSpec3 Poseidon3Bridge.nullifierDomainLit
-        (authNk rho) (spend0StateProofCommitment rho) (rho 21) := by
+        (authNk rho) (spend0StateProofCommitment rho)
+          (spends0StateProofPosition rho) := by
   have h := facts.spend0.GadgetNullifierSeg10
   change
     Deployed.Templates.Semantics.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.spec
@@ -29,7 +36,7 @@ theorem spend0NullifierHash
   have hw303 : Seg10.wireSeating 303 = 7823 := by decide
   have hw308 : Seg10.wireSeating 308 = 7828 := by decide
   have hw313 : Seg10.wireSeating 313 = 7833 := by decide
-  apply NoteReshape2x1Refinement.C.nullifierHash_of_spec
+  apply NoteReshapeMembershipBridge.nullifierHash_of_spec
     (Seg10.localRho rho) h
   · simp [
       spend0NullifierComputed, spend0NullifierComputedLC,
@@ -45,7 +52,8 @@ theorem spend0NullifierHash
   · simp [spend0StateProofCommitment, spend0StateProofCommitmentLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg10.localRho, Deployed.Templates.seated, hw7]
-  · simp [Seg10.localRho, Deployed.Templates.seated, hw13]
+  · simp [spends0StateProofPosition,
+      Seg10.localRho, Deployed.Templates.seated, hw13]
 
 theorem spend0NullifierAsserted
     (rho : Nat → DeployedF)
@@ -123,17 +131,18 @@ theorem spend0Member
   have hw8982 : Seg12.wireSeating 8982 = 16741 := by decide
   have hw8987 : Seg12.wireSeating 8987 = 16746 := by decide
   have hw8992 : Seg12.wireSeating 8992 = 16751 := by decide
-  apply NoteReshape2x1Refinement.C.member_of_state_spec
+  apply NoteReshapeMembershipBridge.member_of_state_spec
     (Seg12.localRho rho) (input0 rho) (anchor rho) h
   · simp [input0, spend0StateProofCommitment, spend0StateProofCommitmentLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg12.localRho, Deployed.Templates.seated, hw1]
-  · simp [input0, Seg12.localRho, Deployed.Templates.seated, hw280]
+  · simp [input0, spends0StateProofPosition,
+      Seg12.localRho, Deployed.Templates.seated, hw280]
   · rfl
   · rw [spend0AnchorAsserted rho facts]
     simp [
       spend0AnchorComputed, spend0AnchorComputedLC,
-      NoteReshape2x1Refinement.C.stateRootOutput,
+      NoteReshapeMembershipBridge.stateRootOutput,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg12.localRho, Deployed.Templates.seated,
       hw8972, hw8977, hw8982, hw8987, hw8992
@@ -160,7 +169,8 @@ theorem spend0Rvk
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
     Decaf377Assumptions.RandomizedVerificationKeySpec
-      ⟨authAk0 rho, authAk1 rho⟩ (rho 94) (spend0ComputedRk rho) ∧
+      ⟨authAk0 rho, authAk1 rho⟩
+        (spends0AuthRandomizer rho) (spend0ComputedRk rho) ∧
     EdwardsBridge.onCurve
       ⟨(spend0ComputedRk rho).x, (spend0ComputedRk rho).y⟩ := by
   have h := facts.spend0.DecafRandomizedVerificationKeySeg14
@@ -180,6 +190,7 @@ theorem spend0Rvk
     ] using sharedAuthorizationKeyOnCurve rho facts)
   simpa [
     spend0ComputedRk,
+    spends0AuthRandomizer,
     authAk0, authAk0LC, authAk1, authAk1LC,
     spend0RkComputed0, spend0RkComputed0LC,
     spend0RkComputed1, spend0RkComputed1LC,
@@ -264,33 +275,23 @@ theorem spend0RandomizedKey
 
 theorem actionMembershipAndNullifiers
     (rho : Nat → DeployedF)
-    (facts : NoteReshape1x8CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape1x8CircuitFacts rho) :
     membershipAndNullifiers
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   simpa [
     membershipAndNullifiers, action, input0,
-    NoteReshapeCanonical.primitives
+    NoteReshapeCanonical.circuitPrimitives
   ] using And.intro (spend0Member rho facts) (spend0RealNullifier rho facts)
 
 theorem actionRandomizedKeys
     (rho : Nat → DeployedF)
-    (facts : NoteReshape1x8CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape1x8CircuitFacts rho) :
     randomizedKeys
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   simpa [
-    randomizedKeys, action, input0, NoteReshapeCanonical.primitives
+    randomizedKeys, action, input0, NoteReshapeCanonical.circuitPrimitives
   ] using spend0RandomizedKey rho facts
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape1x8Refinement.C

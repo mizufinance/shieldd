@@ -1,7 +1,7 @@
 name: soundness-provers
 
-# The heavy symbolic/SMT provers, split out of soundness-formal because they
-# only ever run on the scheduled path. Left in that workflow they were six
+# The heavy symbolic/SMT provers are separate from the main formal workflow
+# because they only run on the scheduled path. Kept there, they would be six
 # permanently-`skipped` check runs on every pull request. There is deliberately
 # no `pull_request` or `merge_group` trigger here.
 

@@ -6,10 +6,15 @@ set_option maxHeartbeats 4000000
 
 namespace Shieldd.GnarkFormal.Deployed.Generated.NoteReshape8x1Spend7
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open Shieldd.GnarkFormal
 open Protocol.NoteReshape
 open NoteReshapeCanonical
 open Contracts.NoteReshape8x1
+open Contracts.NoteReshape8x1.Witness (
+  syntheticSpends7StateProofPosition syntheticSpends7AuthRandomizer syntheticSpends7DummyNullifierSeed
+)
 open NoteReshape8x1Refinement.C
 
 theorem realNullifierHash
@@ -17,7 +22,8 @@ theorem realNullifierHash
     (facts : NoteReshape8x1CircuitFacts rho) :
     spend7NullifierReal rho =
       Poseidon3Bridge.permSpec3 Poseidon3Bridge.nullifierDomainLit
-        (authNk rho) (spend7StateProofCommitment rho) (rho 595) := by
+        (authNk rho) (spend7StateProofCommitment rho)
+          (syntheticSpends7StateProofPosition rho) := by
   have h := facts.spend7.GadgetNullifierSeg118
   change
     Deployed.Templates.Semantics.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.spec
@@ -29,7 +35,7 @@ theorem realNullifierHash
   have hw303 : Seg118.wireSeating 303 = 95791 := by decide +kernel
   have hw308 : Seg118.wireSeating 308 = 95796 := by decide +kernel
   have hw313 : Seg118.wireSeating 313 = 95801 := by decide +kernel
-  apply NoteReshape2x1Refinement.C.nullifierHash_of_spec
+  apply NoteReshapeMembershipBridge.nullifierHash_of_spec
     (Seg118.localRho rho) h
   · simp [
       spend7NullifierReal, spend7NullifierRealLC,
@@ -45,7 +51,8 @@ theorem realNullifierHash
   · simp [spend7StateProofCommitment, spend7StateProofCommitmentLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg118.localRho, Deployed.Templates.seated, hw7]
-  · simp [Seg118.localRho, Deployed.Templates.seated, hw13]
+  · simp [syntheticSpends7StateProofPosition,
+      Seg118.localRho, Deployed.Templates.seated, hw13]
 
 theorem anchorAsserted
     (rho : Nat → DeployedF)
@@ -96,19 +103,19 @@ theorem member
   have hw8982 : Seg119.wireSeating 8982 = 104709 := by decide +kernel
   have hw8987 : Seg119.wireSeating 8987 = 104714 := by decide +kernel
   have hw8992 : Seg119.wireSeating 8992 = 104719 := by decide +kernel
-  apply NoteReshape2x1Refinement.C.member_of_state_spec
+  apply NoteReshapeMembershipBridge.member_of_state_spec
     (Seg119.localRho rho) (realInput7 rho) (anchor rho) h
   · simp [realInput7, spend7StateProofCommitment,
       spend7StateProofCommitmentLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg119.localRho, Deployed.Templates.seated, hw1]
-  · simp [realInput7, Seg119.localRho,
+  · simp [realInput7, syntheticSpends7StateProofPosition, Seg119.localRho,
       Deployed.Templates.seated, hw280]
   · rfl
   · rw [anchorAsserted rho facts real]
     simp [
       spend7AnchorComputed, spend7AnchorComputedLC,
-      NoteReshape2x1Refinement.C.stateRootOutput,
+      NoteReshapeMembershipBridge.stateRootOutput,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg119.localRho, Deployed.Templates.seated,
       hw8972, hw8977, hw8982, hw8987, hw8992
@@ -121,7 +128,8 @@ theorem dummyNullifierHash
     spend7NullifierDummy rho =
       Poseidon3Bridge.permSpec3
         NoteReshapeCanonical.syntheticDummyNullifierDomain
-        (rho 670) (rho 668) (7 : DeployedF) := by
+        (syntheticSpends7DummyNullifierSeed rho) (syntheticSpends7AuthRandomizer rho)
+          (7 : DeployedF) := by
   have h := facts.spend7.GadgetSyntheticDummyNullifierSeg121
   change Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_100a96548743160160928cfe001821ba838bef079e180fd7d6cf0df70b5b37c8.spec
     (Seg121.localRho rho) at h
@@ -146,10 +154,12 @@ theorem dummyNullifierHash
       ring
     _ = Poseidon3Bridge.permSpec3
           NoteReshapeCanonical.syntheticDummyNullifierDomain
-          (rho 670) (rho 668) (7 : DeployedF) := by
+          (syntheticSpends7DummyNullifierSeed rho) (syntheticSpends7AuthRandomizer rho)
+            (7 : DeployedF) := by
       simpa [
         Deployed.Templates.Semantics.TGadgetSyntheticDummyNullifier_100a96548743160160928cfe001821ba838bef079e180fd7d6cf0df70b5b37c8.spec,
         NoteReshapeCanonical.syntheticDummyNullifierDomain,
+        syntheticSpends7DummyNullifierSeed, syntheticSpends7AuthRandomizer,
         Seg121.localRho, Deployed.Templates.seated, hw1, hw7
       ] using h
 
@@ -314,7 +324,8 @@ theorem rvk
     (rho : Nat → DeployedF)
     (facts : NoteReshape8x1CircuitFacts rho) :
     Decaf377Assumptions.RandomizedVerificationKeySpec
-      ⟨authAk0 rho, authAk1 rho⟩ (rho 668) (computedRk rho) ∧
+      ⟨authAk0 rho, authAk1 rho⟩ (syntheticSpends7AuthRandomizer rho)
+        (computedRk rho) ∧
     EdwardsBridge.onCurve ⟨(computedRk rho).x, (computedRk rho).y⟩ := by
   have h := facts.spend7.DecafRandomizedVerificationKeySeg124
   change
@@ -333,6 +344,7 @@ theorem rvk
     ] using NoteReshape8x1Refinement.C.sharedAuthorizationKeyOnCurve rho facts)
   simpa [
     computedRk,
+    syntheticSpends7AuthRandomizer,
     authAk0, authAk0LC, authAk1, authAk1LC,
     spend7RkReal0, spend7RkReal0LC,
     spend7RkReal1, spend7RkReal1LC,

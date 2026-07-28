@@ -4,9 +4,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 require_full_deployed=0
 check_typed_bindings=0
-# The default run is Rust-only. Optional theorem checks assume that the caller
-# has already built the selected Statement closure; this script never builds a
-# Lean package and never depends on the umbrella formalization.
+# The default run is Rust-only. Optional theorem checks assume the caller has
+# already built the selected circuit-facts closure; this script never builds
+# the umbrella formalization.
 run_lean_theorem_checks=0
 
 fail() {
@@ -23,12 +23,30 @@ sha256_file() {
 }
 
 select_circuits() {
+  local selected=()
+  local candidate existing seen
+
+  add_circuit() {
+    candidate="$1"
+    seen=0
+    if [[ "${#selected[@]}" -gt 0 ]]; then
+      for existing in "${selected[@]}"; do
+        if [[ "$existing" == "$candidate" ]]; then
+          seen=1
+          break
+        fi
+      done
+    fi
+    [[ "$seen" -eq 1 ]] || selected+=("$candidate")
+  }
+
   if [[ "$#" -eq 0 ]]; then
     if [[ "$require_full_deployed" -eq 1 ]]; then
-      printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8
-      return
+      selected=(note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8)
+    else
+      selected=(note_reshape2x1 transfer)
     fi
-    printf '%s\n' note_reshape2x1 transfer
+    printf '%s\n' "${selected[@]}"
     return
   fi
   while [[ "$#" -gt 0 ]]; do
@@ -39,12 +57,16 @@ select_circuits() {
         case "$1" in
           all)
             if [[ "$require_full_deployed" -eq 1 ]]; then
-              printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8
+              for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
+                add_circuit "$candidate"
+              done
             else
-              printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer
+              for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer; do
+                add_circuit "$candidate"
+              done
             fi
             ;;
-          note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer) printf '%s\n' "$1" ;;
+          note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer) add_circuit "$1" ;;
           *) fail "unsupported circuit $1" ;;
         esac
         ;;
@@ -54,20 +76,25 @@ select_circuits() {
         ;;
       all)
         if [[ "$require_full_deployed" -eq 1 ]]; then
-          printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8
+          for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
+            add_circuit "$candidate"
+          done
         else
-          printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer
+          for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer; do
+            add_circuit "$candidate"
+          done
         fi
         ;;
       note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer)
-        printf '%s\n' "$1"
+        add_circuit "$1"
         ;;
       *)
         fail "unsupported circuit argument $1"
         ;;
     esac
     shift
-  done | awk '!seen[$0]++'
+  done
+  printf '%s\n' "${selected[@]}"
 }
 
 lean_src_dir="$ROOT/tools/gnark/lean"

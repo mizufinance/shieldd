@@ -5,14 +5,14 @@ set -euo pipefail
 #
 #   drift   Go compilation, content impact, coverage, generator/inventory
 #           checks, and stamp integrity. No Lake command and no proving.
-#   typed   drift plus selected Statement closures, typed theorem bindings,
+#   typed   drift plus selected final soundness modules, typed theorem bindings,
 #           obligation coverage, axiom output, and changed-source benchmarks.
 #   release typed plus stamp validation, deployed-key prove/verify, negative
 #           key-family checks, and release invariants.
 #
 # The four NoteReshape families are compiled once per invocation into a
 # temporary directory. Typed/release builds are serial and target only the
-# selected deployed Statement modules. `release all` is the nightly/final
+# selected deployed soundness modules. `release all` is the merge/release
 # certification entry point; handoff can run `release <affected families>`
 # before the final `release all`.
 
@@ -38,18 +38,42 @@ GNARK_DIR="$ROOT/tools/gnark"
 FAMILIES=(note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8)
 
 select_circuits() {
+  local selected=()
+  local candidate existing seen
+
+  add_circuit() {
+    candidate="$1"
+    seen=0
+    if [[ "${#selected[@]}" -gt 0 ]]; then
+      for existing in "${selected[@]}"; do
+        if [[ "$existing" == "$candidate" ]]; then
+          seen=1
+          break
+        fi
+      done
+    fi
+    [[ "$seen" -eq 1 ]] || selected+=("$candidate")
+  }
+
   if [[ "$#" -eq 0 ]]; then
-    printf '%s\n' "${FAMILIES[@]}"
+    selected=("${FAMILIES[@]}")
+    printf '%s\n' "${selected[@]}"
     return
   fi
   for circuit in "$@"; do
     case "$circuit" in
-      all) printf '%s\n' "${FAMILIES[@]}" ;;
+      all)
+        for candidate in "${FAMILIES[@]}"; do
+          add_circuit "$candidate"
+        done
+        ;;
       note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8)
-        printf '%s\n' "$circuit" ;;
+        add_circuit "$circuit"
+        ;;
       *) fail "unsupported family $circuit" ;;
     esac
-  done | awk '!seen[$0]++'
+  done
+  printf '%s\n' "${selected[@]}"
 }
 
 selected_circuits="$(select_circuits "$@")"
@@ -188,6 +212,10 @@ while IFS= read -r circuit; do
   check_stamp "$circuit"
 done < <(printf '%s\n' "${FAMILIES[@]}")
 
+echo "==> family evidence closure"
+python3 "$ROOT/scripts/gen-note-reshape-family-artifacts.py" --check \
+  || fail "generated NoteReshape family evidence is stale"
+
 if [[ "$MODE" == "drift" ]]; then
   echo "lean circuit fv ok (drift): families=$(printf '%s' "$selected_circuits" | tr '\n' ',' | sed 's/,$//')"
   exit 0
@@ -245,7 +273,6 @@ echo "==> exact facts, semantic seams, and handwritten canonical-address adapter
   lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress1x8
   lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress4x1
   lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress8x1
-  lake build ShielddGnarkFormal.Deployed.NoteReshapeRefinement
   if grep -qx 'note_reshape2x1' <<< "$selected_circuits"; then
     lake build ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
   fi
@@ -277,9 +304,6 @@ axiom_args=(
   --lean-dir "$LEAN_DIR"
   --root-module ShielddGnarkFormal.Deployed.PrimeOrderCertificate
   --declaration Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime
-  --root-module ShielddGnarkFormal.Deployed.NoteReshapeRefinement
-  --declaration Shieldd.GnarkFormal.Deployed.NoteReshapeRefinement.exactCircuitFacts_of_deployed
-  --declaration Shieldd.GnarkFormal.Deployed.NoteReshapeRefinement.exactCanonicalAddress_of_circuitFacts
   --root-module ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress2x1
   --declaration Shieldd.GnarkFormal.Deployed.NoteReshapeCanonicalAddress2x1.canonicalTransmission_of_exact
   --root-module ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress1x8
@@ -344,8 +368,6 @@ if [[ "$MODE" == "release" ]]; then
       --sr1cs "$fresh_dir/$circuit.sr1cs" --prove
   done <<< "$selected_circuits"
   "$ROOT/scripts/check-soundness-invariants.sh"
-  python3 "$ROOT/scripts/gen-note-reshape-family-artifacts.py" --check \
-    || fail "generated NoteReshape family evidence is stale; release requires final stamps"
 fi
 
 echo "lean circuit fv ok ($MODE): families=$(printf '%s' "$selected_circuits" | tr '\n' ',' | sed 's/,$//')"

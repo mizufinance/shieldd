@@ -74,8 +74,9 @@ segment.
 > **INCIDENT LOG:** Unbounded, concurrent `lake build` invocations have
 > force-rebooted this 48GB macOS machine **twice** (2025-06-23, 2025-06-29) by
 > exhausting RAM and disk. These rules bind on the local machine; ephemeral CI
-> runners run the full nightly tier (`soundness-formal.yml`) — never add Lean
-> to per-PR jobs.
+> runners run the full merge/release tier in `formal.yml`. Pull requests run
+> only selected final modules when handwritten NoteReshape proofs change;
+> never run concurrent or whole-package Lean builds there.
 
 Heavyweight adapter elaborations (Rvk/Dtk/Nb/Compress adapters, `Bounds`, Seg
 files) each hold hundreds of GF(p) witnesses; a single one can consume many GB

@@ -3,23 +3,51 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT/scripts/lib/fail-closed-rg.sh"
-SEMANTICS="$ROOT/tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/Semantics.lean"
 PROTOCOL_DIR="$ROOT/tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape"
 GENERATOR_DIR="$ROOT/tools/gnark/lean/gen"
 PIN="$ROOT/tools/gnark/lean/note-reshape-semantics.sha256"
+SPEC_FILES=(
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon377.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Basic.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Sponge.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Vectors.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/ChoiceFreeZMod.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon1Spec.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon2Spec.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon3Spec.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon4Spec.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon6Spec.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon7Spec.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/Semantics.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/Concrete.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/CircuitFacts.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/Refinement.lean"
+  "crates/core/component/shielded-pool/formal/note-reshape-obligation-ledger.md"
+)
 
 fail() {
   echo "note-reshape specification independence: $*" >&2
   exit 1
 }
 
-[[ -f "$SEMANTICS" && -f "$PIN" ]] || fail "missing semantic source or digest pin"
+[[ -f "$PIN" ]] || fail "missing semantic digest pin"
+for relative in "${SPEC_FILES[@]}"; do
+  [[ -f "$ROOT/$relative" ]] || fail "missing semantic source $relative"
+done
 
 reject_rg_matches "protocol import independence" \
   -n '^import ShielddGnarkFormal\.(Deployed|Generated|Extracted)' "$PROTOCOL_DIR" \
-  || fail "protocol semantics/refinement imports circuit-owned modules or the search failed"
+  || fail "an independent protocol module imports circuit-owned modules or the search failed"
+python3 "$ROOT/tools/gnark/lean/gen/check_lean_import_closure.py" \
+  --lean-dir "$ROOT/tools/gnark/lean" \
+  --root ShielddGnarkFormal.Protocol.NoteReshape.Semantics \
+  --root ShielddGnarkFormal.Protocol.NoteReshape.Concrete \
+  --root ShielddGnarkFormal.Protocol.NoteReshape.CircuitFacts \
+  --root ShielddGnarkFormal.Protocol.NoteReshape.Refinement \
+  --forbid-regex '(^|\\.)(Deployed|Generated|Extracted)(\\.|$)|Bridge$|NoteReshapeCanonical$' \
+  || fail "protocol semantics import closure reaches a circuit-owned module"
 reject_rg_matches "protocol representation independence" \
-  -n '(wireSeating|wire index|manifest|sr1cs|trace)' "$SEMANTICS" \
+  -n '(wireSeating|wire index|manifest|sr1cs|trace)' "$PROTOCOL_DIR" \
   || fail "protocol semantics mentions a circuit-owned representation or the search failed"
 reject_rg_matches "generator ownership boundary" \
   -n --glob '*.py' 'Protocol/NoteReshape' "$GENERATOR_DIR" \
@@ -32,9 +60,19 @@ reject_rg_matches "generated statement boundary" \
   "$GENERATOR_DIR" "$ROOT/scripts" \
   || fail "generated family contracts must expose exact CircuitFacts, not protocol statements, or the search failed"
 
+for field in shape padding canonicalAddress inputsBound membership \
+  authorizationKeys outputsBound valueConserved statementBound; do
+  rg -n "facts\\.$field" \
+    "$PROTOCOL_DIR/Refinement.lean" >/dev/null \
+    || fail "family-independent refinement does not consume CircuitFacts.$field"
+done
+
 want="$(tr -d '[:space:]' < "$PIN")"
-have="$(shasum -a 256 "$SEMANTICS" | awk '{print $1}')"
+have="$(
+  cd "$ROOT"
+  shasum -a 256 "${SPEC_FILES[@]}" | shasum -a 256 | awk '{print $1}'
+)"
 [[ "$want" == "$have" ]] \
-  || fail "semantic spec digest changed (review and update $PIN deliberately)"
+  || fail "semantic specification bundle changed (review and update $PIN deliberately)"
 
 echo "note-reshape specification independence ok"

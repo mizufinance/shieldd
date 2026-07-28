@@ -23,17 +23,42 @@ fail() {
 }
 
 select_circuits() {
+  local selected=()
+  local candidate existing seen
+
+  add_circuit() {
+    candidate="$1"
+    seen=0
+    if [[ "${#selected[@]}" -gt 0 ]]; then
+      for existing in "${selected[@]}"; do
+        if [[ "$existing" == "$candidate" ]]; then
+          seen=1
+          break
+        fi
+      done
+    fi
+    [[ "$seen" -eq 1 ]] || selected+=("$candidate")
+  }
+
   if [[ "$#" -eq 0 ]]; then
-    printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer
+    selected=(note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer)
+    printf '%s\n' "${selected[@]}"
     return
   fi
   for c in "$@"; do
     case "$c" in
-      all) printf '%s\n' note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer ;;
-      note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer) printf '%s\n' "$c" ;;
+      all)
+        for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer; do
+          add_circuit "$candidate"
+        done
+        ;;
+      note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer)
+        add_circuit "$c"
+        ;;
       *) fail "unsupported circuit $c" ;;
     esac
-  done | awk '!seen[$0]++'
+  done
+  printf '%s\n' "${selected[@]}"
 }
 
 json_field() {

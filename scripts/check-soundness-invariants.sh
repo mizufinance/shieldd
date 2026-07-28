@@ -469,17 +469,40 @@ for gadget in gadget-poseidon-hash5 gadget-ack-two-step gadget-dleq; do
 done
 bash scripts/check-note-reshape-spec-independence.sh
 
-# A refinement theorem must derive semantic obligations from exact circuit
-# facts. A caller-supplied projection merely assumes the theorem's conclusion
-# and can make an incomplete circuit look end-to-end sound.
-reject_rg_matches "caller-supplied NoteReshape semantic projection" \
-  -n 'structure[[:space:]]+Projection|projection[[:space:]]*:[[:space:]]*Projection' \
-  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshapeRefinement.lean \
-  || fail "NoteReshape refinement accepts semantic obligations from its caller or the search failed"
-for family in NoteReshape2x1 NoteReshape1x8 NoteReshape4x1 NoteReshape8x1; do
+# Handwritten family adapters must resolve action witness roles through the
+# generated named bindings rather than embedding compiler wire numbers.
+reject_rg_matches "raw NoteReshape witness wire in handwritten adapter" \
+  -n -P '(?<!localRho )\brho [0-9]+' \
+  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape2x1Refinement.lean \
+  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape1x8Refinement.lean \
+  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape1x8Spend.lean \
+  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape4x1Refinement.lean \
+  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape8x1Refinement.lean \
+  || fail "handwritten NoteReshape adapter embeds a raw witness wire or the search failed"
+reject_rg_matches "cross-family NoteReshape refinement dependency" \
+  -n 'NoteReshape2x1Refinement' \
+  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape1x8Refinement.lean \
+  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape1x8Spend.lean \
+  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape4x1Refinement.lean \
+  tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape8x1Refinement.lean \
+  tools/gnark/lean/gen/gen_note_reshape_1x8_commitments.py \
+  tools/gnark/lean/gen/gen_note_reshape_padded_commitments.py \
+  tools/gnark/lean/gen/gen_note_reshape_padded_spends.py \
+  || fail "NoteReshape family adapter depends on the 2x1 refinement or the search failed"
+for family_circuit in \
+  NoteReshape2x1:note_reshape2x1 \
+  NoteReshape1x8:note_reshape1x8 \
+  NoteReshape4x1:note_reshape4x1 \
+  NoteReshape8x1:note_reshape8x1; do
+  family="${family_circuit%%:*}"
+  circuit="${family_circuit#*:}"
   circuit_facts="tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/$family/CircuitFacts.lean"
-  rg -n 'rows[[:space:]]*:[[:space:]]*relationAll rho' "$circuit_facts" >/dev/null \
-    || fail "$family exact CircuitFacts dropped raw deployed-row provenance"
+  reject_rg_matches "$family typed facts expose raw deployed rows" \
+    -n 'rows[[:space:]]*:[[:space:]]*relationAll rho' "$circuit_facts" \
+    || fail "$family CircuitFacts retains a raw-row escape hatch or the search failed"
+  rg -F "theorem ${circuit}_circuitFacts (rho : Nat → DeployedF) (h : relationAll rho) :" \
+    "$circuit_facts" >/dev/null \
+    || fail "$family typed-fact constructor is not rooted in the exact deployed relation"
   semantic_seams="tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/$family/SemanticSeams.lean"
   reject_rg_matches "$family semantic seam field alias collision" \
     -n '^abbrev DeployedF' "$semantic_seams" \

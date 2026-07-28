@@ -2,35 +2,39 @@
 
 ## What the NoteReshape proof claims
 
-NoteReshape has three deliberately separate assurance layers:
+NoteReshape has four deliberately separate assurance layers:
 
 1. `Protocol.NoteReshape.Semantics` is handwritten and imports only general
    mathematics. It defines the accepted action relation over one canonical
    address/asset context and distinct real and dummy input types.
-2. Generated `Deployed.Contracts.NoteReshape*/CircuitFacts.lean` modules prove
+2. `Protocol.NoteReshape.Concrete` fixes every cryptographic primitive and
+   domain separator using handwritten Poseidon specifications and Decaf
+   relations. It has no dependency on extracted or deployed circuit modules.
+3. Generated `Deployed.Contracts.NoteReshape*/CircuitFacts.lean` modules prove
    typed facts about every row of the exact deployed R1CS. Generated code does
    not define protocol correctness.
-3. `Deployed.NoteReshapeRefinement` dispatches exact deployed rows to their
-   generated typed facts. Handwritten adapters must then construct each
-   `Protocol.NoteReshape.CircuitFacts` field from those exact facts. The former
-   caller-supplied `Projection` is forbidden because it assumed the obligations
-   that the refinement was supposed to derive.
+4. One handwritten soundness root per family consumes exact deployed rows and
+   generated typed facts. Its adapters construct each
+   `Protocol.NoteReshape.CircuitFacts` field from those exact facts. One central
+   handwritten `Deployed.NoteReshapeRefinement` then translates the circuit-facing
+   cryptographic interpretation to `Concrete`. The former caller-supplied
+   `Projection` is forbidden because it assumed the obligations that the
+   refinement was supposed to derive.
 
 The obligation ledger is
 `crates/core/component/shielded-pool/formal/note-reshape-obligation-ledger.md`.
 
 The four exact-circuit capstones cover `note_reshape2x1`,
-`note_reshape1x8`, `note_reshape4x1`, and `note_reshape8x1`. The circuit facts
-partition every exact gadget fact by protocol role. Generated compiler-LC
-bindings and permutation-certified seams now prove that the one DTK output is
-the point consumed by transmission compression in all four families. The
-`note_reshape2x1` handwritten adapter now derives commitments,
-membership/nullifiers, randomized keys, conservation, balance and RK
-compression, and exact statement binding, and its final deployed-relation
-refinement theorem compiles. The corresponding complete adapters for
-`note_reshape1x8`, `note_reshape4x1`, and `note_reshape8x1` are still open.
-External signature verification and state transition checks remain outside
-Groth16 and are explicit inputs to the final refinement.
+`note_reshape1x8`, `note_reshape4x1`, and `note_reshape8x1`. Generated
+compiler-LC bindings and permutation-certified seams prove that the one DTK
+output is the point consumed by transmission compression in all four families.
+The family adapters derive commitments, membership/nullifiers, randomized
+keys, conservation, balance and RK compression, and exact statement binding.
+Witness support is measured by polynomial influence in the compiled R1CS and
+checked against an exact reviewed role-to-obligation map. The final
+deployed-relation theorems pass through the one independent concrete join and
+are axiom-audited. External signature verification and state transition checks
+remain outside Groth16 and are explicit inputs to the final refinement.
 
 ## Why the dummy-input bug passed
 
@@ -63,9 +67,10 @@ The CI boundary enforces:
 - protocol semantics cannot import generated contracts, manifests, traces,
   artifacts, or wire indices;
 - generators cannot write protocol-semantic modules;
-- a circuit-only change must preserve
+- a circuit-only change must preserve the reviewed specification bundle digest
   `tools/gnark/lean/note-reshape-semantics.sha256`;
-- every witness field must have a reviewed role and supporting obligation;
+- every witness field must have a reviewed role, a supporting obligation, and
+  at least one compiled R1CS row;
 - removed per-note address representations and dummy authorization-key fields
   are forbidden by the role manifest and structural regression tests.
 
@@ -78,22 +83,24 @@ key, generator, or asset to disagree with it.
 ## Exact deployed chain
 
 ```text
-handwritten protocol semantics + obligation ledger
-                         |
-Go Define -> SR1CS -> typed slice IR -> exact generated row contracts
-                         |                    |
-                 coverage capstone      typed CircuitFacts
-                         \                    /
-                handwritten semantic adapters
+independent Semantics + Concrete primitives + obligation ledger
                               |
-          external signatures + state preconditions
+Go Define -> SR1CS -> typed slice IR -> generated row contracts
+                              |                   |
+                      coverage capstone     typed CircuitFacts
+                              \                   /
+                      family circuit adapters
                               |
-                 Protocol.NoteReshape.Valid
+          one handwritten Deployed.NoteReshapeRefinement
+                              |
+             external signatures + state preconditions
+                              |
+                   Protocol.NoteReshape.Valid
 ```
 
-Until every adapter is constructed and the final theorem compiles, the
-NoteReshape end-to-end Lean claim remains open. The exact-circuit branch
-additionally pins the semantic segment manifest,
+The four circuit-to-protocol refinements are closed, conditional on the named
+external signature and state facts. The exact-circuit branch additionally pins
+the semantic segment manifest,
 template equivalence witnesses, generated ownership digests, SR1CS bytes,
 PK/VK bytes, and deployed-key prove/verify round trips. Template reuse is
 permitted only with a checked wire/row permutation, optional L/R swap, and

@@ -24,7 +24,7 @@ LEAN_ROOT = ROOT / "tools/gnark/lean/ShielddGnarkFormal"
 EXTRACTED = LEAN_ROOT / "Extracted/Deployed"
 DEPLOYED = LEAN_ROOT / "Deployed"
 SR1CS = ROOT / "tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
-POSEIDON4 = LEAN_ROOT / "Poseidon4Bridge.lean"
+POSEIDON4 = LEAN_ROOT / "Poseidon4Spec.lean"
 VECTORS = ROOT / "tools/gnark/internal/primitives/vectors/phase05_vectors.json"
 
 NODE0_START = 8173

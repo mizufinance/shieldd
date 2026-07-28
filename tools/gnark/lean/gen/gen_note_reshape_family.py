@@ -359,15 +359,11 @@ open Shieldd.GnarkFormal
 {"\n\n".join(structures)}
 
 structure {module}CircuitFacts (rho : Nat → DeployedF) : Prop where
-  /-- The exact deployed rows, retained so handwritten refinement adapters can
-  derive stronger joins than a deliberately narrow gadget summary exposes. -/
-  rows : relationAll rho
 {"\n".join(fields)}
 
 theorem {circuit}_circuitFacts (rho : Nat → DeployedF) (h : relationAll rho) :
     {module}CircuitFacts rho := by
   exact {{
-    rows := h
 {"\n".join(constructors)}
   }}
 

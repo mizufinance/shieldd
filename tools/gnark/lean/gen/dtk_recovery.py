@@ -1,23 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the deployed DTK adapter for note_reshape2x1 segment 6.
-
-Post-T1-d: DTK computation is hoisted into `Define()` and computed once, so
-the three pre-T1-d instances (segments 16, 34, 45) collapse into a single
-segment-6 instance. Generated Lean is split by semantic block so no theorem elaborates
-the complete 6,329-row relation.
-
-StructuredLC contract (see `AGENTS.md`, "Lean Circuit Proofs"): the base `Seg{N}.lean`
-now renders wide accumulator rows as `StructuredLC.eval rho { const, runs, residual }`
-(compact `StrideRun`s), not flat `relationLc*Part*` sums.  Adapter certificates MUST
-consume those rows opaquely — `linear_combination`/`ring` treat `StructuredLC.eval`
-as one atom.  Prove rung-to-rung recurrences over a SYMBOLIC index via the reused
-`StrideRun.sumAux_succ` peel, then instantiate at the concrete rung; never `simp`/
-`unfold` `StrideRun.sumAux` at a literal `count` (that expands all k terms
-and hits max recursion depth).  Never bridge a flat LC to `StructuredLC.eval` in
-Lean — the Rust extractor's parity gate (`contracts::structure_lc`) already proves
-the compact form equals the raw (coeff,wire) multiset.  Debug obligations with
-`scripts/lean-leaf-bench.sh` leaves, never full adapter rebuilds.
-"""
+"""Generate the normalized proof adapter for NoteReshape's shared DTK."""
 
 from __future__ import annotations
 
@@ -41,13 +23,12 @@ DTK = FORMAL / "Deployed/Dtk"
 OUTPUT_DTK = DTK
 EXTRACTED_DEPLOYED = FORMAL / "Extracted/Deployed"
 SR1CS = ROOT.parent / "artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
-POSEIDON2 = FORMAL / "Poseidon2Bridge.lean"
+POSEIDON2 = FORMAL / "Poseidon2Spec.lean"
 
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 ROW_COUNT = 6077
 LADDER_BITS = 251
-# DTK segment's global row offset in the whole .sr1cs (was 13677 pre-T1-d;
-# DTK hoisting into Define() moved it to the front of emission order).
+# Shared-DTK segment offset in the deployed R1CS.
 DTK_GLOBAL_OFFSET = 1058
 
 
@@ -57,19 +38,13 @@ def write_generated(path: Path, contents: str) -> None:
     path.write_text(contents)
 
 
-# Wire index of the seg5 (only, post-T1-d) instance. `delta` measures every
-# instance's internal-witness offset relative to this base, so the
-# ladder-accumulator seat arithmetic reuses seg5's layout shifted by `delta`.
-# (Was 210 pre-T1-f; the shared divGen compress inserted 703 wires ahead.)
+# Base internal wire for relative seating within the shared instance.
 BASE_INTERNAL = 907
 
 
 @dataclass(frozen=True)
 class Instance:
-    """Per-instance seating data: the wire offsets that reseat the seg16 proof
-    shape onto seg34/seg45. Pure data — no emission logic lives here. The
-    validator fails generation on a wiring typo instead of emitting a silently
-    mis-seated (and later blowup-prone or unsound) adapter."""
+    """Reviewed wire offsets for one normalized DTK instance."""
 
     seg: int
     internal_base: int

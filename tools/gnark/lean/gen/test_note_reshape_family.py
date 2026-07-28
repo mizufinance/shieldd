@@ -42,8 +42,8 @@ class NoteReshapeFamilyTests(unittest.TestCase):
             source = family.render_circuit_facts(ir)
             self.assertIn("ControlCircuitFacts", source)
             self.assertIn("TranscriptCircuitFacts", source)
-            self.assertIn("rows : relationAll rho", source)
-            self.assertIn("rows := h", source)
+            self.assertIn("(h : relationAll rho)", source)
+            self.assertNotIn("rows : relationAll rho", source)
 
     def test_equivalent_seating_change_does_not_regenerate_composition(self) -> None:
         ir = self.irs[0]

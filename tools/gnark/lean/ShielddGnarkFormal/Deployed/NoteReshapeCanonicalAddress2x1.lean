@@ -16,16 +16,6 @@ open Shieldd.GnarkFormal
 open Protocol.NoteReshape
 open NoteReshapeCanonical
 
-def shared (rho : Nat → NoteReshapeCanonical.F) :
-    SharedContext NoteReshapeCanonical.F :=
-  {
-    assetId := Contracts.NoteReshape2x1.sharedAssetId rho
-    diversifiedGenerator :=
-      ⟨Contracts.NoteReshape2x1.sharedDivGen0 rho,
-       Contracts.NoteReshape2x1.sharedDivGen1 rho⟩
-    clueKey := Contracts.NoteReshape2x1.sharedClueKey rho
-  }
-
 def authorization (rho : Nat → NoteReshapeCanonical.F) :
     AuthorizationContext NoteReshapeCanonical.F :=
   {
@@ -56,6 +46,19 @@ def transmissionFq (rho : Nat → NoteReshapeCanonical.F) :
       (Contracts.NoteReshape2x1.Seg6.localRho rho) 912 -
     Deployed.Templates.Semantics.TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.templateRho
       (Contracts.NoteReshape2x1.Seg6.localRho rho) 572
+
+def shared (rho : Nat → NoteReshapeCanonical.F) :
+    SharedContext NoteReshapeCanonical.F :=
+  {
+    assetId := Contracts.NoteReshape2x1.sharedAssetId rho
+    diversifiedGenerator :=
+      ⟨Contracts.NoteReshape2x1.sharedDivGen0 rho,
+       Contracts.NoteReshape2x1.sharedDivGen1 rho⟩
+    diversifiedGeneratorEncoding := divGenFq rho
+    transmission := NoteReshapeCanonical.toProtocolPoint (transmission rho)
+    transmissionEncoding := transmissionFq rho
+    clueKey := Contracts.NoteReshape2x1.sharedClueKey rho
+  }
 
 /-- The exact witnesses behind the canonical transmission relation. -/
 theorem canonicalTransmissionFacts_of_exact
@@ -142,7 +145,6 @@ theorem canonicalTransmission_of_exact
     (facts : Contracts.NoteReshape2x1.NoteReshape2x1CircuitFacts rho) :
     NoteReshapeCanonical.canonicalTransmission (authorization rho) (shared rho) := by
   rcases canonicalTransmissionFacts_of_exact rho facts with ⟨hdiv, hdtk, htransmission⟩
-  exact ⟨divGenFq rho, transmission rho, transmissionFq rho,
-    hdiv, hdtk, htransmission⟩
+  exact ⟨hdiv, hdtk, htransmission⟩
 
 end Shieldd.GnarkFormal.Deployed.NoteReshapeCanonicalAddress2x1

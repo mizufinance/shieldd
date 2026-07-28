@@ -237,9 +237,10 @@ type ConstraintLinearExpressionTerm struct {
 }
 
 type ConstraintWitnessWire struct {
-	WireID     int    `json:"wire_id"`
-	Path       string `json:"path"`
-	Visibility string `json:"visibility"`
+	WireID         int    `json:"wire_id"`
+	Path           string `json:"path"`
+	Visibility     string `json:"visibility"`
+	ConstraintRows int    `json:"constraint_rows"`
 }
 
 type ConstraintManifestShape struct {
@@ -403,6 +404,9 @@ func (t *WiringTranscript) constraintManifest(
 	if err != nil {
 		return nil, err
 	}
+	if err := attachConstraintRows(ccs, witnessWires); err != nil {
+		return nil, err
+	}
 	semanticBindings, err := constraintSemanticBindings(ccs, t.bindings)
 	if err != nil {
 		return nil, err
@@ -422,6 +426,154 @@ func (t *WiringTranscript) constraintManifest(
 		Segments:         segments,
 		Breakdown:        breakdown,
 	}, nil
+}
+
+func attachConstraintRows(
+	ccs constraint.ConstraintSystem,
+	witnessWires []ConstraintWitnessWire,
+) error {
+	r1cs, ok := ccs.(constraint.R1CS[constraint.U64])
+	if !ok {
+		return fmt.Errorf("constraint system is not a U64 R1CS")
+	}
+
+	rowsByWire := make(map[int]int, len(witnessWires))
+	modulus := ccs.Field()
+	for _, row := range r1cs.GetR1Cs() {
+		left := normalizeLinearExpression(ccs, row.L, modulus)
+		right := normalizeLinearExpression(ccs, row.R, modulus)
+		output := normalizeLinearExpression(ccs, row.O, modulus)
+		candidates := make(map[int]struct{})
+		for wireID := range left.coefficients {
+			candidates[wireID] = struct{}{}
+		}
+		for wireID := range right.coefficients {
+			candidates[wireID] = struct{}{}
+		}
+		for wireID := range output.coefficients {
+			candidates[wireID] = struct{}{}
+		}
+		for wireID := range candidates {
+			if r1cPolynomialDependsOn(
+				left,
+				right,
+				output,
+				wireID,
+				modulus,
+			) {
+				rowsByWire[wireID]++
+			}
+		}
+	}
+
+	for i := range witnessWires {
+		witnessWires[i].ConstraintRows = rowsByWire[witnessWires[i].WireID]
+	}
+	return nil
+}
+
+type normalizedLinearExpression struct {
+	constant     *big.Int
+	coefficients map[int]*big.Int
+}
+
+func normalizeLinearExpression(
+	ccs constraint.ConstraintSystem,
+	expression constraint.LinearExpression,
+	modulus *big.Int,
+) normalizedLinearExpression {
+	normalized := normalizedLinearExpression{
+		constant:     new(big.Int),
+		coefficients: make(map[int]*big.Int),
+	}
+	for _, term := range expression {
+		coefficient := ccs.ToBigInt(ccs.GetCoefficient(term.CoeffID()))
+		if term.IsConstant() || term.WireID() == 0 {
+			normalized.constant.Add(normalized.constant, coefficient)
+			normalized.constant.Mod(normalized.constant, modulus)
+			continue
+		}
+		wireID := term.WireID()
+		if _, ok := normalized.coefficients[wireID]; !ok {
+			normalized.coefficients[wireID] = new(big.Int)
+		}
+		normalized.coefficients[wireID].Add(
+			normalized.coefficients[wireID],
+			coefficient,
+		)
+		normalized.coefficients[wireID].Mod(
+			normalized.coefficients[wireID],
+			modulus,
+		)
+	}
+	for wireID, coefficient := range normalized.coefficients {
+		if coefficient.Sign() == 0 {
+			delete(normalized.coefficients, wireID)
+		}
+	}
+	return normalized
+}
+
+// r1cPolynomialDependsOn checks actual influence in L*R-O, rather than mere
+// appearance in one of the three linear expressions. This rejects wires whose
+// contributions cancel into a tautology.
+func r1cPolynomialDependsOn(
+	left normalizedLinearExpression,
+	right normalizedLinearExpression,
+	output normalizedLinearExpression,
+	wireID int,
+	modulus *big.Int,
+) bool {
+	leftWire := coefficientAt(left, wireID)
+	rightWire := coefficientAt(right, wireID)
+	outputWire := coefficientAt(output, wireID)
+	if leftWire.Sign() == 0 && rightWire.Sign() == 0 && outputWire.Sign() == 0 {
+		return false
+	}
+
+	constant := new(big.Int).Mul(leftWire, right.constant)
+	constant.Add(
+		constant,
+		new(big.Int).Mul(rightWire, left.constant),
+	)
+	constant.Sub(constant, outputWire)
+	constant.Mod(constant, modulus)
+	if constant.Sign() != 0 {
+		return true
+	}
+
+	candidates := make(map[int]struct{})
+	for candidate := range left.coefficients {
+		candidates[candidate] = struct{}{}
+	}
+	for candidate := range right.coefficients {
+		candidates[candidate] = struct{}{}
+	}
+	for candidate := range candidates {
+		coefficient := new(big.Int).Mul(
+			leftWire,
+			coefficientAt(right, candidate),
+		)
+		coefficient.Add(
+			coefficient,
+			new(big.Int).Mul(
+				rightWire,
+				coefficientAt(left, candidate),
+			),
+		)
+		coefficient.Mod(coefficient, modulus)
+		if coefficient.Sign() != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func coefficientAt(expression normalizedLinearExpression, wireID int) *big.Int {
+	if coefficient, ok := expression.coefficients[wireID]; ok {
+		return coefficient
+	}
+	return new(big.Int)
 }
 
 func constraintSemanticBindings(

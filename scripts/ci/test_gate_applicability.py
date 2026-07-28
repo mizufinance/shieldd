@@ -135,6 +135,24 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertEqual(decision.tier, "stamps")
 
+    def test_note_reshape_refinement_inputs_select_typed_pr_gate(self) -> None:
+        paths = (
+            "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/Semantics.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Poseidon6Spec.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Vectors.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape4x1Refinement.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Generated/NoteReshape4x1Spend1.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape4x1/CircuitFacts.lean",
+            "tools/gnark/lean/gen/gen_note_reshape_padded_spends.py",
+            "crates/core/component/shielded-pool/formal/note-reshape-obligation-ledger.md",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness, "pull_request", [path], []
+                )
+                self.assertEqual((decision.status, decision.tier), ("run", "typed"))
+
     def test_one_graph_input_selects_only_that_graph(self) -> None:
         manifest = self.synthetic_manifest(
             ("GraphA", "src/a.rs"), ("GraphB", "src/b.rs")

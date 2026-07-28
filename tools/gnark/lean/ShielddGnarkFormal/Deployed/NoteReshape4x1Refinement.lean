@@ -1,5 +1,6 @@
 import ShielddGnarkFormal.Deployed.Generated.NoteReshape4x1Commitments
-import ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
+import ShielddGnarkFormal.NoteReshapeMembershipBridge
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape4x1.RoleBindings
 import ShielddGnarkFormal.NoteReshapeStateBridge
 import ShielddGnarkFormal.Protocol.NoteReshape.Refinement
 
@@ -10,6 +11,8 @@ set_option maxHeartbeats 4000000
 
 namespace Shieldd.GnarkFormal.Deployed.NoteReshape4x1Refinement
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 open Shieldd.GnarkFormal
 open Protocol.NoteReshape
 open NoteReshapeCanonical
@@ -17,18 +20,28 @@ open NoteReshapeCanonical
 namespace C
 
 open Contracts.NoteReshape4x1
+open Contracts.NoteReshape4x1.Witness (
+  syntheticSpends0AuthRandomizer syntheticSpends0DummyNullifierSeed
+  syntheticSpends0IsDummy syntheticSpends0StateProofPosition
+  syntheticSpends1AuthRandomizer syntheticSpends1DummyNullifierSeed
+  syntheticSpends1IsDummy syntheticSpends1StateProofPosition
+  syntheticSpends2AuthRandomizer syntheticSpends2DummyNullifierSeed
+  syntheticSpends2IsDummy syntheticSpends2StateProofPosition
+  syntheticSpends3AuthRandomizer syntheticSpends3DummyNullifierSeed
+  syntheticSpends3IsDummy syntheticSpends3StateProofPosition
+)
 
 def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshape2x1Refinement.C.segmentPath (Seg17.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg17.localRho rho)
 
 def path1 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshape2x1Refinement.C.segmentPath (Seg31.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg31.localRho rho)
 
 def path2 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshape2x1Refinement.C.segmentPath (Seg45.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg45.localRho rho)
 
 def path3 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshape2x1Refinement.C.segmentPath (Seg59.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg59.localRho rho)
 
 def realInput0 (rho : Nat → DeployedF) :
     RealInput DeployedF NoteReshapeCanonical.Path24 :=
@@ -37,11 +50,11 @@ def realInput0 (rho : Nat → DeployedF) :
     blinding := spend0NoteCommitmentInputs0 rho
     commitment := spend0StateProofCommitment rho
     nullifier := spend0NullifierClaimed rho
-    statePosition := rho 21
+    statePosition := syntheticSpends0StateProofPosition rho
     membershipProof := path0 rho
     randomizedVerificationKey :=
       ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
-    randomizer := rho 94
+    randomizer := syntheticSpends0AuthRandomizer rho
   }
 
 def realInput1 (rho : Nat → DeployedF) :
@@ -51,11 +64,11 @@ def realInput1 (rho : Nat → DeployedF) :
     blinding := spend1NoteCommitmentInputs0 rho
     commitment := spend1StateProofCommitment rho
     nullifier := spend1NullifierClaimed rho
-    statePosition := rho 103
+    statePosition := syntheticSpends1StateProofPosition rho
     membershipProof := path1 rho
     randomizedVerificationKey :=
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
-    randomizer := rho 176
+    randomizer := syntheticSpends1AuthRandomizer rho
   }
 
 def realInput2 (rho : Nat → DeployedF) :
@@ -65,11 +78,11 @@ def realInput2 (rho : Nat → DeployedF) :
     blinding := spend2NoteCommitmentInputs0 rho
     commitment := spend2StateProofCommitment rho
     nullifier := spend2NullifierClaimed rho
-    statePosition := rho 185
+    statePosition := syntheticSpends2StateProofPosition rho
     membershipProof := path2 rho
     randomizedVerificationKey :=
       ⟨spend2RkClaimed0 rho, spend2RkClaimed1 rho⟩
-    randomizer := rho 258
+    randomizer := syntheticSpends2AuthRandomizer rho
   }
 
 def realInput3 (rho : Nat → DeployedF) :
@@ -79,11 +92,11 @@ def realInput3 (rho : Nat → DeployedF) :
     blinding := spend3NoteCommitmentInputs0 rho
     commitment := spend3StateProofCommitment rho
     nullifier := spend3NullifierClaimed rho
-    statePosition := rho 267
+    statePosition := syntheticSpends3StateProofPosition rho
     membershipProof := path3 rho
     randomizedVerificationKey :=
       ⟨spend3RkClaimed0 rho, spend3RkClaimed1 rho⟩
-    randomizer := rho 340
+    randomizer := syntheticSpends3AuthRandomizer rho
   }
 
 def dummyInput0 (rho : Nat → DeployedF) : DummyInput DeployedF :=
@@ -91,10 +104,10 @@ def dummyInput0 (rho : Nat → DeployedF) : DummyInput DeployedF :=
     slotIndex := 0
     amount := spend0NoteCommitmentInputs1 rho
     nullifier := spend0NullifierClaimed rho
-    nullifierSeed := rho 96
+    nullifierSeed := syntheticSpends0DummyNullifierSeed rho
     randomizedVerificationKey :=
       ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
-    randomizer := rho 94
+    randomizer := syntheticSpends0AuthRandomizer rho
   }
 
 def dummyInput1 (rho : Nat → DeployedF) : DummyInput DeployedF :=
@@ -102,10 +115,10 @@ def dummyInput1 (rho : Nat → DeployedF) : DummyInput DeployedF :=
     slotIndex := 1
     amount := spend1NoteCommitmentInputs1 rho
     nullifier := spend1NullifierClaimed rho
-    nullifierSeed := rho 178
+    nullifierSeed := syntheticSpends1DummyNullifierSeed rho
     randomizedVerificationKey :=
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
-    randomizer := rho 176
+    randomizer := syntheticSpends1AuthRandomizer rho
   }
 
 def dummyInput2 (rho : Nat → DeployedF) : DummyInput DeployedF :=
@@ -113,10 +126,10 @@ def dummyInput2 (rho : Nat → DeployedF) : DummyInput DeployedF :=
     slotIndex := 2
     amount := spend2NoteCommitmentInputs1 rho
     nullifier := spend2NullifierClaimed rho
-    nullifierSeed := rho 260
+    nullifierSeed := syntheticSpends2DummyNullifierSeed rho
     randomizedVerificationKey :=
       ⟨spend2RkClaimed0 rho, spend2RkClaimed1 rho⟩
-    randomizer := rho 258
+    randomizer := syntheticSpends2AuthRandomizer rho
   }
 
 def dummyInput3 (rho : Nat → DeployedF) : DummyInput DeployedF :=
@@ -124,86 +137,98 @@ def dummyInput3 (rho : Nat → DeployedF) : DummyInput DeployedF :=
     slotIndex := 3
     amount := spend3NoteCommitmentInputs1 rho
     nullifier := spend3NullifierClaimed rho
-    nullifierSeed := rho 342
+    nullifierSeed := syntheticSpends3DummyNullifierSeed rho
     randomizedVerificationKey :=
       ⟨spend3RkClaimed0 rho, spend3RkClaimed1 rho⟩
-    randomizer := rho 340
+    randomizer := syntheticSpends3AuthRandomizer rho
   }
 
 def input0 (rho : Nat → DeployedF) :
     Input DeployedF NoteReshapeCanonical.Path24 :=
-  if rho 95 = 0 then .real (realInput0 rho) else .dummy (dummyInput0 rho)
+  if syntheticSpends0IsDummy rho = 0 then
+    .real (realInput0 rho)
+  else
+    .dummy (dummyInput0 rho)
 
 def input1 (rho : Nat → DeployedF) :
     Input DeployedF NoteReshapeCanonical.Path24 :=
-  if rho 177 = 0 then .real (realInput1 rho) else .dummy (dummyInput1 rho)
+  if syntheticSpends1IsDummy rho = 0 then
+    .real (realInput1 rho)
+  else
+    .dummy (dummyInput1 rho)
 
 def input2 (rho : Nat → DeployedF) :
     Input DeployedF NoteReshapeCanonical.Path24 :=
-  if rho 259 = 0 then .real (realInput2 rho) else .dummy (dummyInput2 rho)
+  if syntheticSpends2IsDummy rho = 0 then
+    .real (realInput2 rho)
+  else
+    .dummy (dummyInput2 rho)
 
 def input3 (rho : Nat → DeployedF) :
     Input DeployedF NoteReshapeCanonical.Path24 :=
-  if rho 341 = 0 then .real (realInput3 rho) else .dummy (dummyInput3 rho)
+  if syntheticSpends3IsDummy rho = 0 then
+    .real (realInput3 rho)
+  else
+    .dummy (dummyInput3 rho)
 
 @[simp] theorem input0Amount (rho : Nat → DeployedF) :
     Input.amount (input0 rho) = spend0NoteCommitmentInputs1 rho := by
-  by_cases h : rho 95 = 0 <;>
+  by_cases h : syntheticSpends0IsDummy rho = 0 <;>
     simp [input0, realInput0, dummyInput0, Input.amount, h]
 
 @[simp] theorem input1Amount (rho : Nat → DeployedF) :
     Input.amount (input1 rho) = spend1NoteCommitmentInputs1 rho := by
-  by_cases h : rho 177 = 0 <;>
+  by_cases h : syntheticSpends1IsDummy rho = 0 <;>
     simp [input1, realInput1, dummyInput1, Input.amount, h]
 
 @[simp] theorem input2Amount (rho : Nat → DeployedF) :
     Input.amount (input2 rho) = spend2NoteCommitmentInputs1 rho := by
-  by_cases h : rho 259 = 0 <;>
+  by_cases h : syntheticSpends2IsDummy rho = 0 <;>
     simp [input2, realInput2, dummyInput2, Input.amount, h]
 
 @[simp] theorem input3Amount (rho : Nat → DeployedF) :
     Input.amount (input3 rho) = spend3NoteCommitmentInputs1 rho := by
-  by_cases h : rho 341 = 0 <;>
+  by_cases h : syntheticSpends3IsDummy rho = 0 <;>
     simp [input3, realInput3, dummyInput3, Input.amount, h]
 
 @[simp] theorem input0Nullifier (rho : Nat → DeployedF) :
     Input.nullifier (input0 rho) = spend0NullifierClaimed rho := by
-  by_cases h : rho 95 = 0 <;>
+  by_cases h : syntheticSpends0IsDummy rho = 0 <;>
     simp [input0, realInput0, dummyInput0, Input.nullifier, h]
 
 @[simp] theorem input1Nullifier (rho : Nat → DeployedF) :
     Input.nullifier (input1 rho) = spend1NullifierClaimed rho := by
-  by_cases h : rho 177 = 0 <;>
+  by_cases h : syntheticSpends1IsDummy rho = 0 <;>
     simp [input1, realInput1, dummyInput1, Input.nullifier, h]
 
 @[simp] theorem input2Nullifier (rho : Nat → DeployedF) :
     Input.nullifier (input2 rho) = spend2NullifierClaimed rho := by
-  by_cases h : rho 259 = 0 <;>
+  by_cases h : syntheticSpends2IsDummy rho = 0 <;>
     simp [input2, realInput2, dummyInput2, Input.nullifier, h]
 
 @[simp] theorem input3Nullifier (rho : Nat → DeployedF) :
     Input.nullifier (input3 rho) = spend3NullifierClaimed rho := by
-  by_cases h : rho 341 = 0 <;>
+  by_cases h : syntheticSpends3IsDummy rho = 0 <;>
     simp [input3, realInput3, dummyInput3, Input.nullifier, h]
 
 @[simp] theorem input0Rk (rho : Nat → DeployedF) :
     Input.rk (input0 rho) = ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩ := by
-  by_cases h : rho 95 = 0 <;>
+  by_cases h : syntheticSpends0IsDummy rho = 0 <;>
     simp [input0, realInput0, dummyInput0, Input.rk, h]
 
 @[simp] theorem input1Rk (rho : Nat → DeployedF) :
     Input.rk (input1 rho) = ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩ := by
-  by_cases h : rho 177 = 0 <;>
+  by_cases h : syntheticSpends1IsDummy rho = 0 <;>
     simp [input1, realInput1, dummyInput1, Input.rk, h]
 
 @[simp] theorem input2Rk (rho : Nat → DeployedF) :
     Input.rk (input2 rho) = ⟨spend2RkClaimed0 rho, spend2RkClaimed1 rho⟩ := by
-  by_cases h : rho 259 = 0 <;>
+  by_cases h : syntheticSpends2IsDummy rho = 0 <;>
     simp [input2, realInput2, dummyInput2, Input.rk, h]
 
 @[simp] theorem input3Rk (rho : Nat → DeployedF) :
     Input.rk (input3 rho) = ⟨spend3RkClaimed0 rho, spend3RkClaimed1 rho⟩ := by
-  by_cases h : rho 341 = 0 <;>
+  by_cases h : syntheticSpends3IsDummy rho = 0 <;>
     simp [input3, realInput3, dummyInput3, Input.rk, h]
 
 def output0 (rho : Nat → DeployedF) : Output DeployedF :=
@@ -292,8 +317,14 @@ theorem selectorsOfControlSpecs
 theorem selectorFacts
     (rho : Nat → DeployedF)
     (facts : NoteReshape4x1CircuitFacts rho) :
-    (rho 95 = 0 ∧ rho 177 = 0 ∧ rho 259 = 0 ∧ rho 341 = 0) ∨
-    (rho 95 = 0 ∧ rho 177 = 0 ∧ rho 259 = 0 ∧ rho 341 = 1) := by
+    (syntheticSpends0IsDummy rho = 0 ∧
+      syntheticSpends1IsDummy rho = 0 ∧
+      syntheticSpends2IsDummy rho = 0 ∧
+      syntheticSpends3IsDummy rho = 0) ∨
+    (syntheticSpends0IsDummy rho = 0 ∧
+      syntheticSpends1IsDummy rho = 0 ∧
+      syntheticSpends2IsDummy rho = 0 ∧
+      syntheticSpends3IsDummy rho = 1) := by
   have h1 := facts.control.AssertBooleanSeg2
   have h2 := facts.control.AssertBooleanSeg3
   have h3 := facts.control.AssertBooleanSeg4
@@ -335,7 +366,10 @@ theorem selectorFacts
     change (6 : DeployedF) ≠ 0
     exact EdwardsBridge.natLit_ne_zero 6 (by decide +kernel) (by decide +kernel)
   exact selectorsOfControlSpecs
-    (rho 95) (rho 177) (rho 259) (rho 341)
+    (syntheticSpends0IsDummy rho)
+    (syntheticSpends1IsDummy rho)
+    (syntheticSpends2IsDummy rho)
+    (syntheticSpends3IsDummy rho)
     h10 h20 h60 h1 h2 h3 hs ha
 
 theorem actionShape
@@ -392,23 +426,18 @@ theorem sharedAuthorizationKeyOnCurve
 
 theorem actionInputCommitments
     (rho : Nat → DeployedF)
-    (facts : NoteReshape4x1CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape4x1CircuitFacts rho) :
     inputCommitments
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
-  by_cases h0 : rho 95 = 0 <;>
-    by_cases h1 : rho 177 = 0 <;>
-    by_cases h2 : rho 259 = 0 <;>
-    by_cases h3 : rho 341 = 0 <;>
+  by_cases h0 : syntheticSpends0IsDummy rho = 0 <;>
+    by_cases h1 : syntheticSpends1IsDummy rho = 0 <;>
+    by_cases h2 : syntheticSpends2IsDummy rho = 0 <;>
+    by_cases h3 : syntheticSpends3IsDummy rho = 0 <;>
     simp [
       inputCommitments, action, input0, input1, input2, input3,
       realInput0, realInput1, realInput2, realInput3,
-      NoteReshapeCanonical.primitives, NoteReshapeCanonical.realCommitment,
+      NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.realCommitment,
       h0, h1, h2, h3,
       Generated.NoteReshape4x1Commitments.spend0Commitment rho facts,
       Generated.NoteReshape4x1Commitments.spend1Commitment rho facts,
@@ -418,18 +447,13 @@ theorem actionInputCommitments
 
 theorem actionOutputCommitments
     (rho : Nat → DeployedF)
-    (facts : NoteReshape4x1CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape4x1CircuitFacts rho) :
     outputCommitments
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   simp [
     outputCommitments, action, output0,
-    NoteReshapeCanonical.primitives, NoteReshapeCanonical.outputCommitment,
+    NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.outputCommitment,
     Generated.NoteReshape4x1Commitments.output0Commitment rho facts
   ]
 

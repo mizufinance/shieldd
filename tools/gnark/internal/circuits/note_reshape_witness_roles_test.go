@@ -26,7 +26,42 @@ type witnessRoleManifest struct {
 	ForbiddenPaths []string           `json:"forbidden_paths"`
 }
 
-func TestNoteReshapeWitnessRolesAreCompleteAndConnected(t *testing.T) {
+var reviewedWitnessRoleSupports = map[string][]string{
+	"ClaimedStatementHash":                    {"NR-STATEMENT"},
+	"Anchor":                                  {"NR-MEMBERSHIP", "NR-STATEMENT"},
+	"BalanceCommitment.{X,Y}":                 {"NR-CONSERVATION", "NR-STATEMENT"},
+	"ActionBalanceBlinding":                   {"NR-CONSERVATION"},
+	"Shared.AssetID":                          {"NR-SHARED-ADDRESS", "NR-INPUT-COMMITMENT", "NR-OUTPUT-COMMITMENT"},
+	"Shared.DivGen.{X,Y}":                     {"NR-SHARED-ADDRESS", "NR-INPUT-COMMITMENT", "NR-OUTPUT-COMMITMENT"},
+	"Shared.ClueKey":                          {"NR-SHARED-ADDRESS", "NR-INPUT-COMMITMENT", "NR-OUTPUT-COMMITMENT"},
+	"Auth.AK.{X,Y}":                           {"NR-SHARED-ADDRESS", "NR-AUTHORIZATION"},
+	"Auth.NK":                                 {"NR-SHARED-ADDRESS", "NR-NULLIFIER"},
+	"Auth.IVKReduced":                         {"NR-SHARED-ADDRESS"},
+	"Auth.IVKQuotientA":                       {"NR-SHARED-ADDRESS"},
+	"Spends[].Nullifier":                      {"NR-NULLIFIER", "NR-STATEMENT"},
+	"Spends[].RK.{X,Y}":                       {"NR-AUTHORIZATION", "NR-STATEMENT"},
+	"Spends[].Note.Blinding":                  {"NR-INPUT-COMMITMENT"},
+	"Spends[].Note.Amount":                    {"NR-INPUT-COMMITMENT", "NR-CONSERVATION"},
+	"Spends[].StateProof.Commitment":          {"NR-INPUT-COMMITMENT", "NR-MEMBERSHIP", "NR-NULLIFIER"},
+	"Spends[].StateProof.Position":            {"NR-MEMBERSHIP", "NR-NULLIFIER"},
+	"Spends[].StateProof.Path":                {"NR-MEMBERSHIP"},
+	"Spends[].AuthRandomizer":                 {"NR-AUTHORIZATION"},
+	"SyntheticSpends[].Nullifier":             {"NR-NULLIFIER", "NR-STATEMENT"},
+	"SyntheticSpends[].RK.{X,Y}":              {"NR-AUTHORIZATION", "NR-STATEMENT"},
+	"SyntheticSpends[].Note.Blinding":         {"NR-INPUT-COMMITMENT"},
+	"SyntheticSpends[].Note.Amount":           {"NR-INPUT-COMMITMENT", "NR-CONSERVATION"},
+	"SyntheticSpends[].StateProof.Commitment": {"NR-INPUT-COMMITMENT", "NR-MEMBERSHIP", "NR-NULLIFIER"},
+	"SyntheticSpends[].StateProof.Position":   {"NR-MEMBERSHIP", "NR-NULLIFIER"},
+	"SyntheticSpends[].StateProof.Path":       {"NR-MEMBERSHIP"},
+	"SyntheticSpends[].AuthRandomizer":        {"NR-AUTHORIZATION", "NR-NULLIFIER"},
+	"SyntheticSpends[].IsDummy":               {"NR-SHAPE", "NR-INPUT-COMMITMENT", "NR-MEMBERSHIP", "NR-NULLIFIER", "NR-AUTHORIZATION"},
+	"SyntheticSpends[].DummyNullifierSeed":    {"NR-NULLIFIER"},
+	"Outputs[].NoteCommitment":                {"NR-OUTPUT-COMMITMENT", "NR-STATEMENT"},
+	"Outputs[].Note.Blinding":                 {"NR-OUTPUT-COMMITMENT"},
+	"Outputs[].Note.Amount":                   {"NR-OUTPUT-COMMITMENT", "NR-CONSERVATION"},
+}
+
+func TestNoteReshapeWitnessRolesAreCompleteAndConstrained(t *testing.T) {
 	path := filepath.Join("..", "..", "artifacts", "note-reshape-witness-roles.json")
 	payload, err := os.ReadFile(path)
 	if err != nil {
@@ -64,12 +99,28 @@ func TestNoteReshapeWitnessRolesAreCompleteAndConnected(t *testing.T) {
 			t.Fatalf("unrecognized role %q for %s", entry.Role, entry.Path)
 		}
 		if len(entry.Supports) == 0 {
-			t.Fatalf("semantically disconnected witness field %s", entry.Path)
+			t.Fatalf("witness field %s lacks a reviewed obligation", entry.Path)
 		}
 		for _, obligation := range entry.Supports {
 			if !validObligations[obligation] {
 				t.Fatalf("field %s names unknown obligation %s", entry.Path, obligation)
 			}
+		}
+		wantSupports, ok := reviewedWitnessRoleSupports[entry.Path]
+		if !ok {
+			t.Fatalf("field %s has no executable reviewed support mapping", entry.Path)
+		}
+		gotSupports := append([]string(nil), entry.Supports...)
+		wantSupports = append([]string(nil), wantSupports...)
+		sort.Strings(gotSupports)
+		sort.Strings(wantSupports)
+		if !reflect.DeepEqual(gotSupports, wantSupports) {
+			t.Fatalf(
+				"field %s obligation support drift: got %v want %v",
+				entry.Path,
+				gotSupports,
+				wantSupports,
+			)
 		}
 		if entry.Role == "conditional-dummy" &&
 			!strings.HasPrefix(entry.Path, "SyntheticSpends[]") {
@@ -80,6 +131,13 @@ func TestNoteReshapeWitnessRolesAreCompleteAndConnected(t *testing.T) {
 	sort.Strings(got)
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("witness role classification drift:\n got %v\nwant %v", got, want)
+	}
+	if len(reviewedWitnessRoleSupports) != len(manifest.Roles) {
+		t.Fatalf(
+			"reviewed support map has %d entries for %d roles",
+			len(reviewedWitnessRoleSupports),
+			len(manifest.Roles),
+		)
 	}
 	for _, forbidden := range manifest.ForbiddenPaths {
 		if _, ok := seen[forbidden]; ok {
@@ -118,6 +176,14 @@ func assertCompiledWitnessRoles(t *testing.T, roles witnessRoleManifest) {
 			)
 		}
 		for _, wire := range compiled.WitnessWires {
+			if wire.ConstraintRows == 0 {
+				t.Fatalf(
+					"%s compiler wire %d %q is classified but occurs in no R1CS row",
+					family,
+					wire.WireID,
+					wire.Path,
+				)
+			}
 			var matches []witnessRoleEntry
 			for _, role := range roles.Roles {
 				if rolePathMatchesCompilerPath(role.Path, wire.Path) {

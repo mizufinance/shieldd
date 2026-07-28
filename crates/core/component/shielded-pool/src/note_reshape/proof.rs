@@ -6,7 +6,6 @@ use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_keys::keys::NullifierKey;
-use shieldd_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
@@ -189,15 +188,6 @@ impl NoteReshapeProof {
             proof,
             public_inputs: vec![statement_hash],
         })
-    }
-
-    pub fn for_family(&self, _family_id: NoteReshapeFamilyId) -> anyhow::Result<()> {
-        let _: [u8; GROTH16_PROOF_LENGTH_BYTES] = self
-            .inner
-            .clone()
-            .try_into()
-            .map_err(|_| anyhow!("malformed note_reshape proof length"))?;
-        Ok(())
     }
 
     pub fn verify(&self, public: &NoteReshapeProofPublic) -> anyhow::Result<()> {

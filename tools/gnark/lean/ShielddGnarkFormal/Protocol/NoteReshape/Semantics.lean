@@ -46,6 +46,9 @@ structure Point (F : Type u) where
 structure SharedContext (F : Type u) where
   assetId : F
   diversifiedGenerator : Point F
+  diversifiedGeneratorEncoding : F
+  transmission : Point F
+  transmissionEncoding : F
   clueKey : F
   deriving DecidableEq, Repr
 
@@ -122,16 +125,13 @@ def Input.amount : Input F Path → F
   | .dummy input => input.amount
 
 /--
-Protocol primitives are reviewed independently from any circuit layout. Their
-arguments expose the canonical context, so a per-note alternative address
-representation cannot satisfy the accepted relation.
+Facts computed by the proof circuit. External authorization and state checks
+are separate because they are not R1CS obligations.
 -/
-structure Primitives (F : Type u) (Path : Type v) where
+structure CircuitPrimitives (F : Type u) (Path : Type v) where
   canonicalTransmission : AuthorizationContext F → SharedContext F → Prop
-  realCommitment :
-    AuthorizationContext F → SharedContext F → RealInput F Path → Prop
-  outputCommitment :
-    AuthorizationContext F → SharedContext F → Output F → Prop
+  realCommitment : SharedContext F → RealInput F Path → Prop
+  outputCommitment : SharedContext F → Output F → Prop
   member : F → RealInput F Path → Prop
   realNullifier : AuthorizationContext F → RealInput F Path → Prop
   dummyNullifier : DummyInput F → Prop
@@ -139,7 +139,13 @@ structure Primitives (F : Type u) (Path : Type v) where
     AuthorizationContext F → RealInput F Path → Prop
   conservation : Action F Path → Prop
   statementBinding : Action F Path → Prop
-  signatureVerifies : Point F → Prop
+
+/-- Authorization checks performed for a specific action and input slot. -/
+structure ExternalAuthorization (F : Type u) (Path : Type v) where
+  signatureVerifies : Action F Path → Nat → Point F → Prop
+
+/-- State-machine checks performed outside the proof circuit. -/
+structure StateChecks (F : Type u) (Path : Type v) where
   nullifierFresh : F → Prop
   transitionAccepted : Action F Path → Prop
 
@@ -160,15 +166,15 @@ def realPrefix (action : Action F Path) : Prop :=
 
 /-- Dummy slots deliberately have no input-commitment obligation. -/
 def inputCommitments
-    (primitives : Primitives F Path) (action : Action F Path) : Prop :=
+    (primitives : CircuitPrimitives F Path) (action : Action F Path) : Prop :=
   ∀ input ∈ action.inputs,
     match input with
     | .real real =>
-        primitives.realCommitment action.authorization action.shared real
+        primitives.realCommitment action.shared real
     | .dummy _ => True
 
 def membershipAndNullifiers [Zero F]
-    (primitives : Primitives F Path) (action : Action F Path) : Prop :=
+    (primitives : CircuitPrimitives F Path) (action : Action F Path) : Prop :=
   ∀ input ∈ action.inputs,
     match input with
     | .real real =>
@@ -178,33 +184,38 @@ def membershipAndNullifiers [Zero F]
         dummy.amount = 0 ∧ primitives.dummyNullifier dummy
 
 def randomizedKeys
-    (primitives : Primitives F Path) (action : Action F Path) : Prop :=
+    (primitives : CircuitPrimitives F Path) (action : Action F Path) : Prop :=
   ∀ input ∈ action.inputs,
     match input with
     | .real real => primitives.randomizedKeyReal action.authorization real
     | .dummy _ => True
 
 def outputCommitments
-    (primitives : Primitives F Path) (action : Action F Path) : Prop :=
+    (primitives : CircuitPrimitives F Path) (action : Action F Path) : Prop :=
   ∀ output ∈ action.outputs,
-    primitives.outputCommitment action.authorization action.shared output
+    primitives.outputCommitment action.shared output
 
 /-- Facts checked outside Groth16 but required by the accepted language. -/
 structure ExternalSignatureFacts
-    (primitives : Primitives F Path) (action : Action F Path) : Prop where
+    (checks : ExternalAuthorization F Path) (action : Action F Path) : Prop where
   verifiesEveryRk :
-    ∀ input ∈ action.inputs, primitives.signatureVerifies input.rk
+    ∀ index input,
+      action.inputs.get? index = some input →
+        checks.signatureVerifies action index input.rk
 
 /-- State-machine facts intentionally owned outside the proof circuit. -/
 structure StatePreconditions
-    (primitives : Primitives F Path) (action : Action F Path) : Prop where
+    (checks : StateChecks F Path) (action : Action F Path) : Prop where
   nullifiersFresh :
-    ∀ input ∈ action.inputs, primitives.nullifierFresh input.nullifier
-  transitionAccepted : primitives.transitionAccepted action
+    ∀ input ∈ action.inputs, checks.nullifierFresh input.nullifier
+  transitionAccepted : checks.transitionAccepted action
 
 /-- Complete accepted NoteReshape action relation. -/
 structure Valid [Zero F]
-    (primitives : Primitives F Path) (action : Action F Path) : Prop where
+    (primitives : CircuitPrimitives F Path)
+    (authorizationChecks : ExternalAuthorization F Path)
+    (stateChecks : StateChecks F Path)
+    (action : Action F Path) : Prop where
   shape : canonicalShape action
   padding : realPrefix action
   canonicalAddress :
@@ -215,7 +226,7 @@ structure Valid [Zero F]
   outputsBound : outputCommitments primitives action
   valueConserved : primitives.conservation action
   statementBound : primitives.statementBinding action
-  signatures : ExternalSignatureFacts primitives action
-  state : StatePreconditions primitives action
+  signatures : ExternalSignatureFacts authorizationChecks action
+  state : StatePreconditions stateChecks action
 
 end Shieldd.GnarkFormal.Protocol.NoteReshape

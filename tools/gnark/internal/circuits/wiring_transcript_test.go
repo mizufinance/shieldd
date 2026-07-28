@@ -2,6 +2,7 @@ package circuits
 
 import (
 	"fmt"
+	"math/big"
 	"reflect"
 	"strings"
 	"testing"
@@ -11,6 +12,40 @@ import (
 	"github.com/consensys/gnark/frontend/cs/r1cs"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 )
+
+func normalizedExpression(
+	constant int64,
+	coefficients map[int]int64,
+) normalizedLinearExpression {
+	result := normalizedLinearExpression{
+		constant:     big.NewInt(constant),
+		coefficients: make(map[int]*big.Int, len(coefficients)),
+	}
+	for wireID, coefficient := range coefficients {
+		result.coefficients[wireID] = big.NewInt(coefficient)
+	}
+	return result
+}
+
+func TestR1CPolynomialInfluenceRejectsCanceledAppearances(t *testing.T) {
+	modulus := big.NewInt(101)
+	left := normalizedExpression(0, map[int]int64{1: 1})
+	right := normalizedExpression(1, nil)
+	output := normalizedExpression(0, map[int]int64{1: 1})
+	if r1cPolynomialDependsOn(left, right, output, 1, modulus) {
+		t.Fatal("x*1-x is a tautology, but x was reported as influential")
+	}
+}
+
+func TestR1CPolynomialInfluenceKeepsNonlinearTerms(t *testing.T) {
+	modulus := big.NewInt(101)
+	left := normalizedExpression(0, map[int]int64{1: 1})
+	right := normalizedExpression(0, map[int]int64{1: 1})
+	output := normalizedExpression(0, nil)
+	if !r1cPolynomialDependsOn(left, right, output, 1, modulus) {
+		t.Fatal("x*x must report x as influential")
+	}
+}
 
 const expectedNoteReshape2x1WiringTranscript = `schema shieldd.gnark.wiring.v1
 circuit note_reshape2x1
@@ -106,6 +141,9 @@ func TestNoteReshapeFamilyManifestsPartitionEveryConstraint(t *testing.T) {
 			for wireIndex, wire := range manifest.WitnessWires {
 				if wire.WireID != wireIndex+1 || wire.Path == "" {
 					t.Fatalf("noncanonical witness wire %d: %#v", wireIndex, wire)
+				}
+				if wire.ConstraintRows == 0 {
+					t.Fatalf("witness wire %d %q occurs in no R1CS row", wire.WireID, wire.Path)
 				}
 			}
 			if len(manifest.Segments) == 0 || manifest.Segments[0].Start != 0 {

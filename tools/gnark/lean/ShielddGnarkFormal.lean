@@ -1,5 +1,11 @@
 import ShielddGnarkFormal.Poseidon377
 import ShielddGnarkFormal.Specs
+import ShielddGnarkFormal.Poseidon1Spec
+import ShielddGnarkFormal.Poseidon2Spec
+import ShielddGnarkFormal.Poseidon3Spec
+import ShielddGnarkFormal.Poseidon4Spec
+import ShielddGnarkFormal.Poseidon6Spec
+import ShielddGnarkFormal.Poseidon7Spec
 import ShielddGnarkFormal.Extracted.BoolSelect
 import ShielddGnarkFormal.Extracted.IsZero
 import ShielddGnarkFormal.Extracted.Nullifier
@@ -70,8 +76,9 @@ import ShielddGnarkFormal.CompressBlock1Chain
 import ShielddGnarkFormal.Deployed.CompressToField.Bridge
 import ShielddGnarkFormal.Deployed.StateCommitmentPath.Keystone
 import ShielddGnarkFormal.Deployed.PrimeOrder
-import ShielddGnarkFormal.Protocol.NoteReshape.Refinement
 import ShielddGnarkFormal.Deployed.NoteReshapeRefinement
+import ShielddGnarkFormal.Protocol.NoteReshape.Concrete
+import ShielddGnarkFormal.Protocol.NoteReshape.Refinement
 import ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
 import ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness
 import ShielddGnarkFormal.Deployed.NoteReshape4x1Soundness

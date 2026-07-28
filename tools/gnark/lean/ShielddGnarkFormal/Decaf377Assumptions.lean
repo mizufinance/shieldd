@@ -11,14 +11,12 @@ import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option linter.unusedSectionVars false
 
-/-! Decaf377 gadget boundary used by the 2x1 compose model.
-
-This file is intentionally named after the boundary, not after a completed
-verification result. `AssertEquivalent` and `CompressToField` are tied to
-extracted gadget constraints. RVK, DTK, and net balance are still compose-model
-definitions until their scalar-mul / encode-to-curve / curve-operation
-composition bridges replace the definitions below. Lean's standard-only axiom
-report therefore means "no kernel axioms," not "decaf is fully closed."
+/-!
+Circuit-facing Decaf377 relations used by the composed soundness proofs.
+Extracted leaf constraints prove the compression and equivalence relations;
+the RVK, DTK, and conservation bridge modules compose their scalar and curve
+gadgets into the definitions below. Protocol interpretation and backend
+correctness remain part of the documented trust boundary.
 -/
 
 namespace Shieldd.GnarkFormal.Decaf377Assumptions

@@ -1,6 +1,6 @@
 # Soundness
 
-This directory contains four maintained documents. Machine artifacts and
+This directory contains three maintained documents. Machine artifacts and
 ledgers beside the code are authoritative; these pages explain how to use them.
 Hashes, wire numbers, constraint ranges, and obligation counts belong in the
 generated artifacts, not in prose.
@@ -18,7 +18,7 @@ When sources disagree, use this order:
 1. compiled circuit, deployed keys, and source-controlled machine artifacts;
 2. generated coverage IR, normalized coverage manifest, Lean contracts, and their gates;
 3. formal property and assumption ledgers under `crates/*/formal/`;
-4. these four explanatory documents.
+4. these explanatory documents.
 
 Git is the history. There is no separate handoff, status mirror, inventory, or
 gate-record documentation.
@@ -27,7 +27,7 @@ gate-record documentation.
 
 The four NoteReshape families (`note_reshape2x1`, `note_reshape4x1`,
 `note_reshape8x1`, and `note_reshape1x8`) use the deployed SR1CS proof path described in
-[fv.md](fv.md); transfer retains the same release gate. The gate recompiles each
+[fv.md](fv.md); transfer retains its separate deployed release path. The gate recompiles each
 Go circuit, rejects byte drift, derives proof inputs from the exact deployed
 rows, checks the generated Lean surface, and binds the deployed proving and
 verifying keys. Handwritten protocol semantics and refinement are the public

@@ -4,8 +4,10 @@ import ShielddGnarkFormal.Deployed.NoteReshape2x1Conservation
 import ShielddGnarkFormal.Deployed.NoteReshape2x1Statement
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.RoleBindings
 import ShielddGnarkFormal.ChoiceFreeZMod
-import ShielddGnarkFormal.NoteReshapeStateBridge
+import ShielddGnarkFormal.NoteReshapeCommitmentBridge
+import ShielddGnarkFormal.NoteReshapeMembershipBridge
 import ShielddGnarkFormal.Protocol.NoteReshape.Refinement
+import ShielddGnarkFormal.Deployed.NoteReshapeRefinement
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 4000000
@@ -22,120 +24,22 @@ open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal
 open Protocol.NoteReshape
 open NoteReshapeCanonical
+open NoteReshapeCommitmentBridge
+open NoteReshapeMembershipBridge
 
 namespace C
 
 open Contracts.NoteReshape2x1
-
-def segmentPath (sigma : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  fun level sibling =>
-    match sibling.val with
-    | 0 => sigma (285 + 363 * level.val)
-    | 1 => sigma (287 + 363 * level.val)
-    | _ => sigma (290 + 363 * level.val)
+open Contracts.NoteReshape2x1.Witness (
+  spends0AuthRandomizer spends0StateProofPosition
+  spends1AuthRandomizer spends1StateProofPosition
+)
 
 def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
   segmentPath (Seg12.localRho rho)
 
 def path1 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
   segmentPath (Seg23.localRho rho)
-
-theorem pathSibling_segmentPath0
-    (sigma : Nat → DeployedF) (level : Nat) (hlevel : level < 24) :
-    NoteReshapeCanonical.pathSibling (segmentPath sigma) level 0 =
-      sigma (285 + 363 * level) := by
-  unfold NoteReshapeCanonical.pathSibling
-  rw [dif_pos hlevel, dif_pos (by decide : 0 < 3)]
-  rfl
-
-theorem pathSibling_segmentPath1
-    (sigma : Nat → DeployedF) (level : Nat) (hlevel : level < 24) :
-    NoteReshapeCanonical.pathSibling (segmentPath sigma) level 1 =
-      sigma (287 + 363 * level) := by
-  unfold NoteReshapeCanonical.pathSibling
-  rw [dif_pos hlevel, dif_pos (by decide : 1 < 3)]
-  rfl
-
-theorem pathSibling_segmentPath2
-    (sigma : Nat → DeployedF) (level : Nat) (hlevel : level < 24) :
-    NoteReshapeCanonical.pathSibling (segmentPath sigma) level 2 =
-      sigma (290 + 363 * level) := by
-  unfold NoteReshapeCanonical.pathSibling
-  rw [dif_pos hlevel, dif_pos (by decide : 2 < 3)]
-  rfl
-
-def stateRootOutput (sigma : Nat → DeployedF) : DeployedF :=
-  7037051457856975353540687448984622109479916112628386523279361213264507699201 * sigma 8972 +
-    7238110070938603220784707090384182741179342287274911852515914390786350776321 * sigma 8977 +
-    7388904030749824121217721821433853214953911918259805849443329273927733084161 * sigma 8982 +
-    4691367638571316902360458299323081406319944075085591015519574142176338466134 * sigma 8987 +
-    7600015574485533381823942444903391878238309401638657445141710110325668315137 * sigma 8992
-
-theorem recoverPrefix_segmentPath
-    (sigma : Nat → NoteReshapeStateBridge.F)
-    (domain : Nat → NoteReshapeStateBridge.F)
-    (leaf : NoteReshapeStateBridge.F)
-    (b0 b1 : Nat → NoteReshapeStateBridge.F)
-    (level : Nat)
-    (hlevel : level < 24) :
-    Deployed.StateCommitmentPathChoiceFree.recoverPrefix
-        Poseidon4Bridge.permSpec4 domain leaf
-        (fun k => NoteReshapeCanonical.pathSibling (segmentPath sigma) k 0)
-        (fun k => NoteReshapeCanonical.pathSibling (segmentPath sigma) k 1)
-        (fun k => NoteReshapeCanonical.pathSibling (segmentPath sigma) k 2)
-        b0 b1 level =
-      Deployed.StateCommitmentPathChoiceFree.recoverPrefix
-        Poseidon4Bridge.permSpec4 domain leaf
-        (fun k => sigma (285 + 363 * k))
-        (fun k => sigma (287 + 363 * k))
-        (fun k => sigma (290 + 363 * k))
-        b0 b1 level := by
-  induction level with
-  | zero =>
-      simp only [Deployed.StateCommitmentPathChoiceFree.recoverPrefix]
-      rw [
-        pathSibling_segmentPath0 sigma 0 (by decide),
-        pathSibling_segmentPath1 sigma 0 (by decide),
-        pathSibling_segmentPath2 sigma 0 (by decide)
-      ]
-  | succ level ih =>
-      have hprevious : level < 24 := Nat.lt_trans (Nat.lt_succ_self level) hlevel
-      simp only [Deployed.StateCommitmentPathChoiceFree.recoverPrefix]
-      rw [
-        ih hprevious,
-        pathSibling_segmentPath0 sigma (level + 1) hlevel,
-        pathSibling_segmentPath1 sigma (level + 1) hlevel,
-        pathSibling_segmentPath2 sigma (level + 1) hlevel
-      ]
-
-theorem stateRecover_segmentPath_eq_deployed
-    (sigma : Nat → NoteReshapeStateBridge.F)
-    (commitment : NoteReshapeStateBridge.F)
-    (b0 b1 : Nat → NoteReshapeStateBridge.F)
-    (level : Nat)
-    (hlevel : level < 24) :
-    NoteReshapeCanonical.stateCommitmentRecover
-        commitment (segmentPath sigma) b0 b1 level =
-      Deployed.StateCommitmentPathChoiceFree.recoverPrefix
-        Poseidon4Bridge.permSpec4
-        (fun k => NoteReshapeStateBridge.stateCommitmentDomain +
-          (k : NoteReshapeStateBridge.F) + 1)
-        (Poseidon1Bridge.permSpec1
-          NoteReshapeStateBridge.stateCommitmentDomain commitment)
-        (fun k => sigma (285 + 363 * k))
-        (fun k => sigma (287 + 363 * k))
-        (fun k => sigma (290 + 363 * k))
-        b0 b1 level := by
-  rw [
-    NoteReshapeStateBridge.stateRecover_eq_deployed
-      commitment (segmentPath sigma) b0 b1 level hlevel,
-    recoverPrefix_segmentPath sigma
-      (fun k => NoteReshapeStateBridge.stateCommitmentDomain +
-        (k : NoteReshapeStateBridge.F) + 1)
-      (Poseidon1Bridge.permSpec1
-        NoteReshapeStateBridge.stateCommitmentDomain commitment)
-      b0 b1 level hlevel
-  ]
 
 def input0 (rho : Nat → DeployedF) :
     RealInput DeployedF NoteReshapeCanonical.Path24 :=
@@ -144,11 +48,11 @@ def input0 (rho : Nat → DeployedF) :
     blinding := spend0NoteCommitmentInputs0 rho
     commitment := spend0StateProofCommitment rho
     nullifier := spend0NullifierClaimed rho
-    statePosition := rho 21
+    statePosition := spends0StateProofPosition rho
     membershipProof := path0 rho
     randomizedVerificationKey :=
       ⟨spend0RkClaimed0 rho, spend0RkClaimed1 rho⟩
-    randomizer := rho 94
+    randomizer := spends0AuthRandomizer rho
   }
 
 def input1 (rho : Nat → DeployedF) :
@@ -158,11 +62,11 @@ def input1 (rho : Nat → DeployedF) :
     blinding := spend1NoteCommitmentInputs0 rho
     commitment := spend1StateProofCommitment rho
     nullifier := spend1NullifierClaimed rho
-    statePosition := rho 101
+    statePosition := spends1StateProofPosition rho
     membershipProof := path1 rho
     randomizedVerificationKey :=
       ⟨spend1RkClaimed0 rho, spend1RkClaimed1 rho⟩
-    randomizer := rho 174
+    randomizer := spends1AuthRandomizer rho
   }
 
 def output0 (rho : Nat → DeployedF) : Output DeployedF :=
@@ -186,46 +90,6 @@ def action (rho : Nat → DeployedF) :
     balanceBlinding := actionBalanceBlinding rho
     publicStatementHash := claimedStatementHash rho
   }
-
-theorem noteCommitmentHash_of_spec
-    (sigma : Nat → DeployedF)
-    (h :
-      Deployed.Templates.Semantics.TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5.spec
-        sigma)
-    (computed input0 input1 input2 input3 input4 input5 : DeployedF)
-    (hcomputed :
-      computed =
-        Deployed.NoteCommitment.s38_1
-          (sigma 408) (sigma 413) (sigma 418) (sigma 423)
-          (sigma 428) (sigma 433) (sigma 438))
-    (hinput0 : input0 = sigma 1)
-    (hinput1 : input1 = sigma 7)
-    (hinput2 : input2 = sigma 13)
-    (hinput3 : input3 = sigma 20 - sigma 19)
-    (hinput4 : input4 = sigma 27 - sigma 26)
-    (hinput5 : input5 = sigma 33) :
-    computed =
-      Poseidon6Bridge.permSpec6 NoteReshapeCanonical.noteCommitmentDomain
-        input0 input1 input2 input3 input4 input5 := by
-  have h1 := congrArg (fun state => state[1]) h
-  change
-    (Deployed.NoteCommitment.spec38
-      (sigma 1) (sigma 7) (sigma 13)
-      (sigma 27 - sigma 26) (sigma 33)
-      (sigma 19) (sigma 20))[1] =
-    (Deployed.NoteCommitment.st38
-      (sigma 408) (sigma 413) (sigma 418) (sigma 423)
-      (sigma 428) (sigma 433) (sigma 438))[1] at h1
-  rw [Deployed.NoteCommitment.spec38_eq_permSpec] at h1
-  change
-    Poseidon6Bridge.permSpec6 NoteReshapeCanonical.noteCommitmentDomain
-      (sigma 1) (sigma 7) (sigma 13)
-      (sigma 20 - sigma 19) (sigma 27 - sigma 26) (sigma 33) =
-    Deployed.NoteCommitment.s38_1
-      (sigma 408) (sigma 413) (sigma 418) (sigma 423)
-      (sigma 428) (sigma 433) (sigma 438) at h1
-  rw [hcomputed, hinput0, hinput1, hinput2, hinput3, hinput4, hinput5]
-  exact h1.symm
 
 theorem spend0NoteCommitmentHash
     (rho : Nat → DeployedF)
@@ -558,14 +422,10 @@ theorem spend0RealCommitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
     NoteReshapeCanonical.noteCommitment
-      (NoteReshapeCanonicalAddress2x1.authorization rho)
       (NoteReshapeCanonicalAddress2x1.shared rho)
       (spend0NoteCommitmentInputs0 rho)
       (spend0NoteCommitmentInputs1 rho)
       (spend0StateProofCommitment rho) := by
-  rcases
-      NoteReshapeCanonicalAddress2x1.canonicalTransmissionFacts_of_exact rho facts with
-    ⟨hdiv, hdtk, htransmission⟩
   have hw4Output : Seg4.wireSeating 705 = 886 := by decide
   have hw4Carry : Seg4.wireSeating 365 = 546 := by decide
   have hw6Output : Seg6.wireSeating 1205 = 7152 := by decide
@@ -596,16 +456,11 @@ theorem spend0RealCommitment
       Seg6.localRho, Deployed.Templates.seated, hw6Output, hw6Carry, hneg
     ]
     ring
-  refine NoteReshapeCanonical.noteCommitment_of_canonicalWitness
-    (NoteReshapeCanonicalAddress2x1.authorization rho)
+  refine NoteReshapeCanonical.noteCommitment_of_hash
     (NoteReshapeCanonicalAddress2x1.shared rho)
     (spend0NoteCommitmentInputs0 rho)
     (spend0NoteCommitmentInputs1 rho)
-    (spend0StateProofCommitment rho)
-    (NoteReshapeCanonicalAddress2x1.divGenFq rho)
-    (NoteReshapeCanonicalAddress2x1.transmissionFq rho)
-    (NoteReshapeCanonicalAddress2x1.transmission rho)
-    hdiv hdtk htransmission ?_
+    (spend0StateProofCommitment rho) ?_
   rw [spend0NoteCommitmentAsserted rho facts, spend0NoteCommitmentHash rho facts]
   rw [hdivFq, htransmissionFq]
   simp [
@@ -622,14 +477,10 @@ theorem spend1RealCommitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
     NoteReshapeCanonical.noteCommitment
-      (NoteReshapeCanonicalAddress2x1.authorization rho)
       (NoteReshapeCanonicalAddress2x1.shared rho)
       (spend1NoteCommitmentInputs0 rho)
       (spend1NoteCommitmentInputs1 rho)
       (spend1StateProofCommitment rho) := by
-  rcases
-      NoteReshapeCanonicalAddress2x1.canonicalTransmissionFacts_of_exact rho facts with
-    ⟨hdiv, hdtk, htransmission⟩
   have hw4Output : Seg4.wireSeating 705 = 886 := by decide
   have hw4Carry : Seg4.wireSeating 365 = 546 := by decide
   have hw6Output : Seg6.wireSeating 1205 = 7152 := by decide
@@ -660,16 +511,11 @@ theorem spend1RealCommitment
       Seg6.localRho, Deployed.Templates.seated, hw6Output, hw6Carry, hneg
     ]
     ring
-  refine NoteReshapeCanonical.noteCommitment_of_canonicalWitness
-    (NoteReshapeCanonicalAddress2x1.authorization rho)
+  refine NoteReshapeCanonical.noteCommitment_of_hash
     (NoteReshapeCanonicalAddress2x1.shared rho)
     (spend1NoteCommitmentInputs0 rho)
     (spend1NoteCommitmentInputs1 rho)
-    (spend1StateProofCommitment rho)
-    (NoteReshapeCanonicalAddress2x1.divGenFq rho)
-    (NoteReshapeCanonicalAddress2x1.transmissionFq rho)
-    (NoteReshapeCanonicalAddress2x1.transmission rho)
-    hdiv hdtk htransmission ?_
+    (spend1StateProofCommitment rho) ?_
   rw [spend1NoteCommitmentAsserted rho facts, spend1NoteCommitmentHash rho facts]
   rw [hdivFq, htransmissionFq]
   simp [
@@ -686,14 +532,10 @@ theorem output0Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
     NoteReshapeCanonical.noteCommitment
-      (NoteReshapeCanonicalAddress2x1.authorization rho)
       (NoteReshapeCanonicalAddress2x1.shared rho)
       (output0NoteCommitmentInputs0 rho)
       (output0NoteCommitmentInputs1 rho)
       (output0NoteCommitmentClaimed rho) := by
-  rcases
-      NoteReshapeCanonicalAddress2x1.canonicalTransmissionFacts_of_exact rho facts with
-    ⟨hdiv, hdtk, htransmission⟩
   have hw4Output : Seg4.wireSeating 705 = 886 := by decide
   have hw4Carry : Seg4.wireSeating 365 = 546 := by decide
   have hw6Output : Seg6.wireSeating 1205 = 7152 := by decide
@@ -724,16 +566,11 @@ theorem output0Commitment
       Seg6.localRho, Deployed.Templates.seated, hw6Output, hw6Carry, hneg
     ]
     ring
-  refine NoteReshapeCanonical.noteCommitment_of_canonicalWitness
-    (NoteReshapeCanonicalAddress2x1.authorization rho)
+  refine NoteReshapeCanonical.noteCommitment_of_hash
     (NoteReshapeCanonicalAddress2x1.shared rho)
     (output0NoteCommitmentInputs0 rho)
     (output0NoteCommitmentInputs1 rho)
-    (output0NoteCommitmentClaimed rho)
-    (NoteReshapeCanonicalAddress2x1.divGenFq rho)
-    (NoteReshapeCanonicalAddress2x1.transmissionFq rho)
-    (NoteReshapeCanonicalAddress2x1.transmission rho)
-    hdiv hdtk htransmission ?_
+    (output0NoteCommitmentClaimed rho) ?_
   rw [output0NoteCommitmentAsserted rho facts, output0NoteCommitmentHash rho facts]
   rw [hdivFq, htransmissionFq]
   simp [
@@ -768,62 +605,34 @@ theorem actionCanonicalAddress
 
 theorem actionInputCommitments
     (rho : Nat → DeployedF)
-    (facts : NoteReshape2x1CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape2x1CircuitFacts rho) :
     inputCommitments
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   simp [
     inputCommitments, action, input0, input1,
-    NoteReshapeCanonical.primitives, NoteReshapeCanonical.realCommitment,
+    NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.realCommitment,
     spend0RealCommitment rho facts, spend1RealCommitment rho facts
   ]
 
 theorem actionOutputCommitments
     (rho : Nat → DeployedF)
-    (facts : NoteReshape2x1CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape2x1CircuitFacts rho) :
     outputCommitments
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   simpa [
     outputCommitments, action, output0,
-    NoteReshapeCanonical.primitives, NoteReshapeCanonical.outputCommitment
+    NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.outputCommitment
   ] using output0Commitment rho facts
-
-theorem nullifierHash_of_spec
-    (sigma : Nat → DeployedF)
-    (h :
-      Deployed.Templates.Semantics.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.spec
-        sigma)
-    (computed nk commitment position : DeployedF)
-    (hcomputed :
-      computed =
-        Deployed.Nullifier.s38_1
-          (sigma 298) (sigma 303) (sigma 308) (sigma 313))
-    (hnk : nk = sigma 1)
-    (hcommitment : commitment = sigma 7)
-    (hposition : position = sigma 13) :
-    computed =
-      Poseidon3Bridge.permSpec3 Poseidon3Bridge.nullifierDomainLit
-        nk commitment position := by
-  rw [hcomputed, hnk, hcommitment, hposition]
-  simpa only [add_assoc] using h
 
 theorem spend0NullifierHash
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
     spend0NullifierComputed rho =
       Poseidon3Bridge.permSpec3 Poseidon3Bridge.nullifierDomainLit
-        (authNk rho) (spend0StateProofCommitment rho) (rho 21) := by
+        (authNk rho) (spend0StateProofCommitment rho)
+          (spends0StateProofPosition rho) := by
   have h := facts.spend0.GadgetNullifierSeg10
   change
     Deployed.Templates.Semantics.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.spec
@@ -850,14 +659,16 @@ theorem spend0NullifierHash
   · simp [spend0StateProofCommitment, spend0StateProofCommitmentLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg10.localRho, Deployed.Templates.seated, hw7]
-  · simp [Seg10.localRho, Deployed.Templates.seated, hw13]
+  · simp [spends0StateProofPosition,
+      Seg10.localRho, Deployed.Templates.seated, hw13]
 
 theorem spend1NullifierHash
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
     spend1NullifierComputed rho =
       Poseidon3Bridge.permSpec3 Poseidon3Bridge.nullifierDomainLit
-        (authNk rho) (spend1StateProofCommitment rho) (rho 101) := by
+        (authNk rho) (spend1StateProofCommitment rho)
+          (spends1StateProofPosition rho) := by
   have h := facts.spend1.GadgetNullifierSeg21
   change
     Deployed.Templates.Semantics.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.spec
@@ -884,7 +695,8 @@ theorem spend1NullifierHash
   · simp [spend1StateProofCommitment, spend1StateProofCommitmentLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg21.localRho, Deployed.Templates.seated, hw7]
-  · simp [Seg21.localRho, Deployed.Templates.seated, hw13]
+  · simp [spends1StateProofPosition,
+      Seg21.localRho, Deployed.Templates.seated, hw13]
 
 theorem spend0NullifierAsserted
     (rho : Nat → DeployedF)
@@ -955,54 +767,6 @@ theorem spend1RealNullifier
   unfold NoteReshapeCanonical.realNullifier
   simp only [input1, NoteReshapeCanonicalAddress2x1.authorization]
   rw [spend1NullifierAsserted rho facts, spend1NullifierHash rho facts]
-
-theorem member_of_state_spec
-    (sigma : Nat → DeployedF)
-    (stateInput : RealInput DeployedF NoteReshapeCanonical.Path24)
-    (anchorValue : DeployedF)
-    (h :
-      Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.spec
-        sigma)
-    (hcommitment : stateInput.commitment = sigma 1)
-    (hpositionInput : stateInput.statePosition = sigma 280)
-    (hpath : stateInput.membershipProof = segmentPath sigma)
-    (hanchor : anchorValue = stateRootOutput sigma) :
-    NoteReshapeCanonical.member anchorValue stateInput := by
-  rcases h with ⟨hboolean, hposition, hroot⟩
-  let b0 : Nat → DeployedF := fun level => sigma (232 + 2 * level)
-  let b1 : Nat → DeployedF := fun level => sigma (233 + 2 * level)
-  refine ⟨b0, b1, ?_, ?_, ?_, ?_⟩
-  · intro level hlevel
-    exact hboolean (2 * level) (by omega)
-  · intro level hlevel
-    have hindex : 232 + (2 * level + 1) = 233 + 2 * level := by
-      omega
-    simpa [b1, hindex] using
-      hboolean (2 * level + 1) (by omega)
-  · rw [hpositionInput, hposition]
-    simp only [b0, b1, NoteReshapeCanonical.statePositionFromBits]
-    ring
-  · rw [hanchor, hcommitment, hpath]
-    unfold NoteReshapeCanonical.stateCommitmentRoot
-    rw [
-      stateRecover_segmentPath_eq_deployed
-        sigma (sigma 1) b0 b1 23 (by decide)
-    ]
-    change stateRootOutput sigma =
-      Deployed.StateCommitmentPathChoiceFree.recover24H
-        Poseidon4Bridge.permSpec4
-        (fun k =>
-          NoteReshapeStateBridge.stateCommitmentDomain +
-            (k : NoteReshapeStateBridge.F) + 1)
-        (Poseidon1Bridge.permSpec1
-          NoteReshapeStateBridge.stateCommitmentDomain (sigma 1))
-        (fun k => sigma (285 + 363 * k))
-        (fun k => sigma (287 + 363 * k))
-        (fun k => sigma (290 + 363 * k))
-        b0 b1 at hroot
-    simpa [
-      Deployed.StateCommitmentPathChoiceFree.recover24H
-    ] using hroot
 
 theorem spend0AnchorAsserted
     (rho : Nat → DeployedF)
@@ -1075,7 +839,8 @@ theorem spend0Member
   · simp [input0, spend0StateProofCommitment, spend0StateProofCommitmentLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg12.localRho, Deployed.Templates.seated, hw1]
-  · simp [input0, Seg12.localRho, Deployed.Templates.seated, hw280]
+  · simp [input0, spends0StateProofPosition,
+      Seg12.localRho, Deployed.Templates.seated, hw280]
   · rfl
   · rw [spend0AnchorAsserted rho facts]
     simp [
@@ -1105,7 +870,8 @@ theorem spend1Member
   · simp [input1, spend1StateProofCommitment, spend1StateProofCommitmentLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
       Seg23.localRho, Deployed.Templates.seated, hw1]
-  · simp [input1, Seg23.localRho, Deployed.Templates.seated, hw280]
+  · simp [input1, spends1StateProofPosition,
+      Seg23.localRho, Deployed.Templates.seated, hw280]
   · rfl
   · rw [spend1AnchorAsserted rho facts]
     simp [
@@ -1140,7 +906,8 @@ theorem spend0Rvk
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
     Decaf377Assumptions.RandomizedVerificationKeySpec
-      ⟨authAk0 rho, authAk1 rho⟩ (rho 94) (spend0ComputedRk rho) ∧
+      ⟨authAk0 rho, authAk1 rho⟩
+        (spends0AuthRandomizer rho) (spend0ComputedRk rho) ∧
     EdwardsBridge.onCurve
       ⟨(spend0ComputedRk rho).x, (spend0ComputedRk rho).y⟩ := by
   have h := facts.spend0.DecafRandomizedVerificationKeySeg14
@@ -1160,6 +927,7 @@ theorem spend0Rvk
     ] using sharedAuthorizationKeyOnCurve rho facts)
   simpa [
     spend0ComputedRk,
+    spends0AuthRandomizer,
     authAk0, authAk0LC, authAk1, authAk1LC,
     spend0RkComputed0, spend0RkComputed0LC,
     spend0RkComputed1, spend0RkComputed1LC,
@@ -1172,7 +940,8 @@ theorem spend1Rvk
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
     Decaf377Assumptions.RandomizedVerificationKeySpec
-      ⟨authAk0 rho, authAk1 rho⟩ (rho 174) (spend1ComputedRk rho) ∧
+      ⟨authAk0 rho, authAk1 rho⟩
+        (spends1AuthRandomizer rho) (spend1ComputedRk rho) ∧
     EdwardsBridge.onCurve
       ⟨(spend1ComputedRk rho).x, (spend1ComputedRk rho).y⟩ := by
   have h := facts.spend1.DecafRandomizedVerificationKeySeg25
@@ -1192,6 +961,7 @@ theorem spend1Rvk
     ] using sharedAuthorizationKeyOnCurve rho facts)
   simpa [
     spend1ComputedRk,
+    spends1AuthRandomizer,
     authAk0, authAk0LC, authAk1, authAk1LC,
     spend1RkComputed0, spend1RkComputed0LC,
     spend1RkComputed1, spend1RkComputed1LC,
@@ -1352,42 +1122,32 @@ theorem spend1RandomizedKey
 
 theorem actionMembershipAndNullifiers
     (rho : Nat → DeployedF)
-    (facts : NoteReshape2x1CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape2x1CircuitFacts rho) :
     membershipAndNullifiers
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   intro input hinput
   simp only [action, List.mem_cons, List.mem_singleton] at hinput
   rcases hinput with rfl | hinput
-  · simpa [NoteReshapeCanonical.primitives] using
+  · simpa [NoteReshapeCanonical.circuitPrimitives] using
       And.intro (spend0Member rho facts) (spend0RealNullifier rho facts)
   · rcases hinput with rfl | hinput
-    · simpa [NoteReshapeCanonical.primitives] using
+    · simpa [NoteReshapeCanonical.circuitPrimitives] using
         And.intro (spend1Member rho facts) (spend1RealNullifier rho facts)
     · contradiction
 
 theorem actionRandomizedKeys
     (rho : Nat → DeployedF)
-    (facts : NoteReshape2x1CircuitFacts rho)
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop) :
+    (facts : NoteReshape2x1CircuitFacts rho) :
     randomizedKeys
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   intro input hinput
   simp only [action, List.mem_cons, List.mem_singleton] at hinput
   rcases hinput with rfl | hinput
-  · simpa [NoteReshapeCanonical.primitives] using spend0RandomizedKey rho facts
+  · simpa [NoteReshapeCanonical.circuitPrimitives] using spend0RandomizedKey rho facts
   · rcases hinput with rfl | hinput
-    · simpa [NoteReshapeCanonical.primitives] using spend1RandomizedKey rho facts
+    · simpa [NoteReshapeCanonical.circuitPrimitives] using spend1RandomizedKey rho facts
     · contradiction
 
 theorem balanceGadgetSpec
@@ -1462,78 +1222,54 @@ theorem actionStatementBinding
     ] using NoteReshape2x1Statement.claimedHash rho facts
 
 theorem semanticCircuitFacts
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop)
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
     Protocol.NoteReshape.CircuitFacts
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   exact {
     shape := actionShape rho
     padding := actionPadding rho
     canonicalAddress := actionCanonicalAddress rho facts
-    inputsBound :=
-      actionInputCommitments rho facts
-        signatureVerifies nullifierFresh transitionAccepted
-    membership :=
-      actionMembershipAndNullifiers rho facts
-        signatureVerifies nullifierFresh transitionAccepted
-    authorizationKeys :=
-      actionRandomizedKeys rho facts
-        signatureVerifies nullifierFresh transitionAccepted
-    outputsBound :=
-      actionOutputCommitments rho facts
-        signatureVerifies nullifierFresh transitionAccepted
+    inputsBound := actionInputCommitments rho facts
+    membership := actionMembershipAndNullifiers rho facts
+    authorizationKeys := actionRandomizedKeys rho facts
+    outputsBound := actionOutputCommitments rho facts
     valueConserved := actionConservation rho facts
     statementBound := actionStatementBinding rho facts
   }
 
 theorem deployedRelation_to_circuitFacts
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop)
     (rho : Nat → DeployedF)
     (h : relationAll rho) :
     Protocol.NoteReshape.CircuitFacts
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      NoteReshapeCanonical.circuitPrimitives
       (action rho) :=
-  semanticCircuitFacts
-    signatureVerifies nullifierFresh transitionAccepted rho
+  semanticCircuitFacts rho
     (note_reshape2x1_circuitFacts rho h)
 
 theorem valid_of_deployedRelation
-    (signatureVerifies : Point DeployedF → Prop)
-    (nullifierFresh : DeployedF → Prop)
-    (transitionAccepted :
-      Action DeployedF NoteReshapeCanonical.Path24 → Prop)
+    (authorizationChecks :
+      ExternalAuthorization DeployedF Concrete.Path24)
+    (stateChecks : StateChecks DeployedF Concrete.Path24)
     (rho : Nat → DeployedF)
     (h : relationAll rho)
     (signatures :
-      ExternalSignatureFacts
-        (NoteReshapeCanonical.primitives
-          signatureVerifies nullifierFresh transitionAccepted)
-        (action rho))
+      ExternalSignatureFacts authorizationChecks (action rho))
     (state :
-      StatePreconditions
-        (NoteReshapeCanonical.primitives
-          signatureVerifies nullifierFresh transitionAccepted)
-        (action rho)) :
+      StatePreconditions stateChecks (action rho)) :
     Valid
-      (NoteReshapeCanonical.primitives
-        signatureVerifies nullifierFresh transitionAccepted)
+      Concrete.circuitPrimitives
+      authorizationChecks
+      stateChecks
       (action rho) :=
   Protocol.NoteReshape.valid_of_circuitFacts
-    (NoteReshapeCanonical.primitives
-      signatureVerifies nullifierFresh transitionAccepted)
+    Concrete.circuitPrimitives
+    authorizationChecks
+    stateChecks
     (action rho)
-    (deployedRelation_to_circuitFacts
-      signatureVerifies nullifierFresh transitionAccepted rho h)
+    (NoteReshapeRefinement.circuitFacts_refine
+      (action rho) (deployedRelation_to_circuitFacts rho h))
     signatures state
 
 end C

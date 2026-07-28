@@ -30,8 +30,8 @@ Status model (gadget rows):
 ## Scope honesty
 
 - `gadget-bool-select` proves the **routing primitive** (a satisfying R1CS
-  assignment forces `Valid` to the spec-selected branch). It is the end-to-end
-  certified anchor for the C3 methodology: a real `R1CS ⟹ spec` proof over the
+  assignment forces `Valid` to the spec-selected branch). It is a
+  certified gadget-scoped example of the C3 methodology: an `R1CS ⟹ spec` proof over the
   byte-for-byte gnark export (parity asserted by
   `TestBoolSelectAcl2ModelParity`). Booleanity of `Cond` is now derived from c0
   via the checked BLS12-377 scalar-field prime certificate; it is no longer a

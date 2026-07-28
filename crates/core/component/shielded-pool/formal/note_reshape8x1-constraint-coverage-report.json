@@ -2,7 +2,7 @@
   "schema": "shieldd.gnark.constraint_coverage_report.v1",
   "circuit": "note_reshape8x1",
   "sr1cs_sha256_hex": "842b27bd4ce15f03996726bb0fd31aa64f9ec7db8ec5c4e1c31e8d7d749bf4fe",
-  "manifest_sha256_hex": "429fcb5ceb6c0de61f37bdcff34bee3e5a4b8de6b76473fdc804a3ba8531169e",
+  "manifest_sha256_hex": "476f9f964a9b82aa38de2ebf398dd7cbd28b400fbe5affa3ccf90e5b5346e7d9",
   "nb_constraints": 117526,
   "prime": "8444461749428370424248824938781546531375899335154063827935233455917409239041",
   "inputs": [

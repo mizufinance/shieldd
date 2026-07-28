@@ -85,9 +85,6 @@ structure Output7CircuitFacts (rho : Nat → DeployedF) : Prop where
   AssertEqSeg48 : Seg48.contract.spec rho
 
 structure NoteReshape1x8CircuitFacts (rho : Nat → DeployedF) : Prop where
-  /-- The exact deployed rows, retained so handwritten refinement adapters can
-  derive stronger joins than a deliberately narrow gadget summary exposes. -/
-  rows : relationAll rho
   control : ControlCircuitFacts rho
   shared : SharedCircuitFacts rho
   balance : BalanceCircuitFacts rho
@@ -105,7 +102,6 @@ structure NoteReshape1x8CircuitFacts (rho : Nat → DeployedF) : Prop where
 theorem note_reshape1x8_circuitFacts (rho : Nat → DeployedF) (h : relationAll rho) :
     NoteReshape1x8CircuitFacts rho := by
   exact {
-    rows := h
     control := True.intro
     shared := ⟨specOf2 rho h, specOf3 rho h, specOf4 rho h, specOf5 rho h, specOf6 rho h⟩
     balance := ⟨specOf50 rho h, specOf51 rho h, specOf52 rho h⟩

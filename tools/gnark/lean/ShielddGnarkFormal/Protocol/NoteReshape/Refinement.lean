@@ -5,12 +5,14 @@ import ShielddGnarkFormal.Protocol.NoteReshape.CircuitFacts
 namespace Shieldd.GnarkFormal.Protocol.NoteReshape
 
 theorem valid_of_circuitFacts [Zero F]
-    (primitives : Primitives F Path)
+    (primitives : CircuitPrimitives F Path)
+    (authorizationChecks : ExternalAuthorization F Path)
+    (stateChecks : StateChecks F Path)
     (action : Action F Path)
     (facts : CircuitFacts primitives action)
-    (signatures : ExternalSignatureFacts primitives action)
-    (state : StatePreconditions primitives action) :
-    Valid primitives action := by
+    (signatures : ExternalSignatureFacts authorizationChecks action)
+    (state : StatePreconditions stateChecks action) :
+    Valid primitives authorizationChecks stateChecks action := by
   exact {
     shape := facts.shape
     padding := facts.padding

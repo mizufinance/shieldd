@@ -15,6 +15,7 @@ FORMAL = ROOT / "crates/core/component/shielded-pool/formal"
 GNARK = ROOT / "tools/gnark"
 LEAN = GNARK / "lean"
 sys.path.insert(0, str(LEAN / "gen"))
+from lean_affected_modules import local_imports, module_sources
 from write_if_changed import write_if_changed
 
 FAMILIES = {
@@ -23,6 +24,12 @@ FAMILIES = {
     "note_reshape8x1": "NoteReshape8x1",
     "note_reshape1x8": "NoteReshape1x8",
 }
+SOUNDNESS_MODULES = {
+    "note_reshape2x1": "NoteReshape2x1Refinement",
+    "note_reshape1x8": "NoteReshape1x8Soundness",
+    "note_reshape4x1": "NoteReshape4x1Soundness",
+    "note_reshape8x1": "NoteReshape8x1Soundness",
+}
 OWNERSHIP = GNARK / "artifacts/proof-template-ownership.json"
 
 
@@ -30,7 +37,7 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def family_semantic_closure(circuit: str) -> str:
+def template_semantic_closure(circuit: str) -> str:
     ownership = json.loads(OWNERSHIP.read_text())
     matches = [
         family["semantic_closure_sha256_hex"]
@@ -42,8 +49,37 @@ def family_semantic_closure(circuit: str) -> str:
     return matches[0]
 
 
+def aggregate(paths: list[Path]) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(set(paths)):
+        digest.update(str(path.relative_to(ROOT)).encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def soundness_source_closure(circuit: str) -> str:
+    sources = module_sources(LEAN)
+    known = set(sources)
+    root = f"ShielddGnarkFormal.Deployed.{SOUNDNESS_MODULES[circuit]}"
+    if root not in sources:
+        raise ValueError(f"missing soundness root: {root}")
+    closure: set[str] = set()
+    pending = [root]
+    while pending:
+        module = pending.pop()
+        if module in closure:
+            continue
+        closure.add(module)
+        pending.extend(local_imports(sources[module], known))
+    return aggregate([sources[module] for module in closure])
+
+
 def render(circuit: str) -> str:
     module = FAMILIES[circuit]
+    soundness_module = SOUNDNESS_MODULES[circuit]
+    refinement_namespace = f"NoteReshape{module.removeprefix('NoteReshape')}Refinement"
     artifact_dir = GNARK / "artifacts" / circuit
     contract_dir = LEAN / "ShielddGnarkFormal/Deployed/Contracts" / module
     canonical_address = (
@@ -68,7 +104,8 @@ def render(circuit: str) -> str:
         "family_generator_source_sha256": sha256(LEAN / "gen/gen_note_reshape_family.py"),
         "template_semantics_generator_source_sha256": sha256(LEAN / "gen/gen_note_reshape_template_semantics.py"),
         "proof_template_ownership_sha256": sha256(OWNERSHIP),
-        "family_semantic_closure_sha256": family_semantic_closure(circuit),
+        "template_semantics_closure_sha256": template_semantic_closure(circuit),
+        "soundness_source_closure_sha256": soundness_source_closure(circuit),
         "template_inventory_sha256": sha256(GNARK / "artifacts/note-reshape-template-inventory.json"),
         "dtk_lt_seating_sha256": sha256(FORMAL / "note_reshape2x1-dtk-lt-seating.json"),
         "constraint_coverage_script_sha256": sha256(ROOT / "scripts/check-constraint-coverage.sh"),
@@ -80,24 +117,19 @@ def render(circuit: str) -> str:
     lines = [
         f"artifact: {circuit}-whole-circuit-lean",
         "scope: whole-circuit",
-        f"target: {circuit} deployed SR1CS contract chain",
+        f"target: {circuit} deployed relation to protocol validity",
         "engine: Lean 4 / normalized-relation deployed-template proofs",
-        f"theorem: Shieldd.GnarkFormal.Deployed.Contracts.{module}.{circuit}_circuitFacts",
-        "model: exact deployed segment relations over one global wire valuation; normalized templates are restricted through per-instance seating, and Capstone composes every discharged segment",
+        f"theorem: Shieldd.GnarkFormal.Deployed.{refinement_namespace}.C.valid_of_deployedRelation",
+        f"root_module: ShielddGnarkFormal.Deployed.{soundness_module}",
+        f"exact_circuit_facts_theorem: Shieldd.GnarkFormal.Deployed.Contracts.{module}.{circuit}_circuitFacts",
+        "model: exact deployed rows imply typed circuit facts; handwritten family refinement maps those facts into the independent protocol relation",
         "axiom_baseline: propext, Quot.sound",
         "named_external_assumptions:",
         "- none",
-        "decaf_fv_status: full",
-        "covered_flow:",
-        "- ControlCircuitFacts exposes Boolean selectors, dummy-suffix ordering, minimum-real-input enforcement, conditional equality, and dummy multiplexing.",
-        "- SharedCircuitFacts covers the canonical asset/address context, its one diversified transmission-key derivation, and canonical transmission compression.",
-        "- Each SpendCircuitFacts covers note commitment, nullifier, state path, synthetic dummy nullifier, randomized verification key, and claimed-key binding.",
-        "- Each OutputCircuitFacts covers output note-commitment rows.",
-        "- BalanceCircuitFacts covers net-balance conservation, compression, and equivalent-key binding.",
-        "- TranscriptCircuitFacts covers statement-hash equality and exact transcript binding; padding selectors remain private and are constrained by the control facts.",
+        "decaf_relation_status: extracted-gadgets-composed",
         "known_limitations:",
-        "- The family theorem composes exact deployed segment relations; the Rust source/SR1CS, normalized IR, reconstruction, and coverage gates provide the compiled-row partition and hash binding.",
-        "- Cryptographic bridge assumptions remain those recorded in the formal assumption ledger; no project Lean axioms are admitted.",
+        "- External signature verification and state-transition facts are explicit premises of the final theorem.",
+        "- The theorem proves the modeled cryptographic relations; protocol interpretation, gnark compilation, and Groth16 remain in the documented trust boundary.",
         "",
     ]
     lines.extend(f"{key}: {value}" for key, value in fields.items())

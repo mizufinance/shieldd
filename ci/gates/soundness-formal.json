@@ -4,6 +4,7 @@
   "tiers": [
     "skip",
     "stamps",
+    "typed",
     "full"
   ],
   "events": {
@@ -40,6 +41,32 @@
     }
   ],
   "explicit_inputs": [
+    {
+      "patterns": [
+        "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/**",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon1Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon2Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon3Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon4Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon6Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon7Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon377*",
+        "tools/gnark/lean/ShielddGnarkFormal/ChoiceFreeZMod*",
+        "tools/gnark/lean/ShielddGnarkFormal/NoteReshapeCanonical.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/NoteReshape*Bridge.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape*.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Deployed/Generated/NoteReshape*.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape*/**",
+        "tools/gnark/lean/gen/gen_note_reshape_*.py",
+        "crates/core/component/shielded-pool/formal/note-reshape-obligation-ledger.md"
+      ],
+      "tiers": {
+        "pull_request": "typed",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "handwritten NoteReshape semantic or refinement source"
+    },
     {
       "patterns": [
         ".cargo/config.toml",
