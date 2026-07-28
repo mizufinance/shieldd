@@ -7842,6 +7842,7 @@ dependencies = [
  "prost 0.13.4",
  "shieldd-sdk-app",
  "shieldd-sdk-proto",
+ "tempfile",
  "tendermint 0.40.3",
  "tendermint-proto 0.40.3",
  "tokio",

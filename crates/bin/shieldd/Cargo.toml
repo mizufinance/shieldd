@@ -9,6 +9,9 @@ license = { workspace = true }
 publish = false
 rust-version = "1.75"
 
+[lib]
+crate-type = ["rlib", "staticlib"]
+
 [dependencies]
 anyhow = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"] }
@@ -22,3 +25,6 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal", "
 tonic = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter", "ansi"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }

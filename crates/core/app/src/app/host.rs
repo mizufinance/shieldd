@@ -357,6 +357,19 @@ impl HostExecution {
         self.app = app;
         self.phase = HostExecutionPhase::Idle;
     }
+
+    /// Drops application snapshots before shutting down Cnidarium and RocksDB.
+    pub async fn release(self) {
+        let Self {
+            storage,
+            app,
+            stateless_cache,
+            phase: _,
+        } = self;
+        drop(app);
+        drop(stateless_cache);
+        storage.release().await;
+    }
 }
 
 impl App {
