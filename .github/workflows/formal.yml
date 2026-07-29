@@ -204,7 +204,7 @@ jobs:
     name: 'snarkpack: fstar'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.snarkpack_run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -250,7 +250,7 @@ jobs:
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.snarkpack_run == 'true' &&
       contains(fromJSON('["extract-changed","extract-all","full"]'), needs.applicability.outputs.snarkpack_tier)
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -270,7 +270,7 @@ jobs:
     name: 'snarkpack: fuzz'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.snarkpack_run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -292,7 +292,7 @@ jobs:
     name: 'snarkpack: dos'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.snarkpack_run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -393,7 +393,7 @@ jobs:
     name: 'soundness: lean-circuit-fv'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
-    runs-on: ${{ needs.applicability.outputs.soundness_tier == 'stamps' && 'ubuntu-24.04' || 'blacksmith-16vcpu-ubuntu-2404' }}
+    runs-on: ${{ needs.applicability.outputs.soundness_tier == 'stamps' && 'ubuntu-24.04' || 'blacksmith-2vcpu-ubuntu-2404' }}
     timeout-minutes: 50
     container:
       image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:4bdec94eb778ca2ae549ba75de18b44a822f5460f608d7facc911382f08e88aa
