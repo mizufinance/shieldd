@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
+	decaf377 "github.com/mizufinance/decaf377-go"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
@@ -18,19 +19,19 @@ func testWitnessFamilies() []witnessFamily {
 	return []witnessFamily{
 		{
 			name:    "transfer",
-			payload: func(t *testing.T) []byte { return testfixtures.LoadTransferWitnessV1("transfer") },
+			payload: func(t *testing.T) []byte { return testfixtures.LoadTransferWitnessV11("transfer") },
 			decode: func(payload []byte) error {
-				_, _, err := DecodeTransferWitnessV1(payload)
+				_, _, err := DecodeTransferWitnessV11(payload)
 				return err
 			},
 		},
 		{
 			name: "shielded_ics20_withdrawal",
 			payload: func(t *testing.T) []byte {
-				return testfixtures.LoadShieldedIcs20WithdrawalWitnessV1("shielded_ics20_withdrawal")
+				return testfixtures.LoadShieldedIcs20WithdrawalWitnessV6("shielded_ics20_withdrawal")
 			},
 			decode: func(payload []byte) error {
-				_, _, err := DecodeShieldedIcs20WithdrawalWitnessV1(payload)
+				_, _, err := DecodeShieldedIcs20WithdrawalWitnessV6(payload)
 				return err
 			},
 		},
@@ -96,6 +97,97 @@ func TestNoteReshapeV3RejectsLegacyVersion(t *testing.T) {
 	binary.LittleEndian.PutUint32(payload[4:8], 2)
 	if _, _, err := DecodeNoteReshapeWitnessV3(payload); err == nil {
 		t.Fatal("V3 decoder must reject the obsolete V2 layout")
+	}
+}
+
+func TestTransferV11RejectsLegacyVersion(t *testing.T) {
+	payload := testfixtures.LoadTransferWitnessV11("transfer")
+	binary.LittleEndian.PutUint32(payload[4:8], 10)
+	if _, _, err := DecodeTransferWitnessV11(payload); err == nil {
+		t.Fatal("V11 decoder must reject the obsolete V10 layout")
+	}
+}
+
+func TestTransferV11AssignmentRejectsClaimedHashMismatch(t *testing.T) {
+	payload := testfixtures.LoadTransferWitnessV11("transfer")
+	const claimedStatementHashOffset = 12 + 4*32
+	payload[claimedStatementHashOffset] ^= 1
+	if _, _, err := NewTransferCircuitAssignmentFromWitnessV11(payload); err == nil {
+		t.Fatal("V11 assignment must reject a claimed hash that disagrees with reconstructed fields")
+	}
+}
+
+func TestTransferV11AssignmentRejectsSerializedSemanticMutation(t *testing.T) {
+	payload := testfixtures.LoadTransferWitnessV11("transfer")
+	const anchorOffset = 12
+	payload[anchorOffset] ^= 1
+	if _, _, err := NewTransferCircuitAssignmentFromWitnessV11(payload); err == nil {
+		t.Fatal("V11 assignment must reject a serialized anchor mutation against the claimed hash")
+	}
+}
+
+func TestShieldedIcs20WithdrawalV6RejectsLegacyVersion(t *testing.T) {
+	payload := testfixtures.LoadShieldedIcs20WithdrawalWitnessV6("shielded_ics20_withdrawal")
+	binary.LittleEndian.PutUint32(payload[4:8], 5)
+	if _, _, err := DecodeShieldedIcs20WithdrawalWitnessV6(payload); err == nil {
+		t.Fatal("V6 decoder must reject the obsolete V5 layout")
+	}
+}
+
+func TestShieldedIcs20WithdrawalV6AssignmentRejectsClaimedHashMismatch(t *testing.T) {
+	payload := testfixtures.LoadShieldedIcs20WithdrawalWitnessV6("shielded_ics20_withdrawal")
+	const claimedStatementHashOffset = 20 + 6*32 + 4*32
+	payload[claimedStatementHashOffset] ^= 1
+	if _, _, err := NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV6(payload); err == nil {
+		t.Fatal("V6 assignment must reject a claimed hash that disagrees with reconstructed fields")
+	}
+}
+
+func TestShieldedIcs20WithdrawalV6RejectsOversizedEffectHashLimb(t *testing.T) {
+	payload := testfixtures.LoadShieldedIcs20WithdrawalWitnessV6("shielded_ics20_withdrawal")
+	const effectHashLimbsOffset = 20 + 6*32
+	payload[effectHashLimbsOffset+16] = 1
+	if _, _, err := DecodeShieldedIcs20WithdrawalWitnessV6(payload); err == nil {
+		t.Fatal("V6 decoder must reject effect-hash limbs wider than 128 bits")
+	}
+}
+
+func TestShieldedIcs20WithdrawalV6RejectsNonCanonicalBalanceBlinding(t *testing.T) {
+	payload := testfixtures.LoadShieldedIcs20WithdrawalWitnessV6("shielded_ics20_withdrawal")
+	const actionBalanceBlindingOffset = 20 + 6*32 + 4*32 + 32
+	modulus, err := bigIntToLE32(decaf377.ScalarOrder())
+	if err != nil {
+		t.Fatalf("encode Decaf377 scalar modulus: %v", err)
+	}
+	copy(payload[actionBalanceBlindingOffset:], modulus[:])
+	if _, _, err := DecodeShieldedIcs20WithdrawalWitnessV6(payload); err == nil {
+		t.Fatal("V6 decoder must reject a non-canonical action balance blinding")
+	}
+}
+
+func TestShieldedIcs20WithdrawalV6RejectsNonCanonicalBooleanFlags(t *testing.T) {
+	const (
+		headerBytes            = 20
+		topFieldsThroughNK     = 6*32 + 4*32 + 32 + 2*32
+		merklePathBytes        = 4 + 16*(4+3*32)
+		slimIndexedLeafBytes   = 32 + 8 + 32 + 16 + 6*32
+		isRegulatedOffset      = headerBytes + topFieldsThroughNK + merklePathBytes + 8 + slimIndexedLeafBytes
+		slimRequiredSpendBytes = 4*32 + 8 + 4 + 24*3*32 + 32 + 64
+		optionalIsDummyOffset  = isRegulatedOffset + 1 + merklePathBytes + 8 + 3*32 + 2*slimRequiredSpendBytes
+	)
+	for name, offset := range map[string]int{
+		"is_regulated":      isRegulatedOffset,
+		"optional.is_dummy": optionalIsDummyOffset,
+	} {
+		t.Run(name, func(t *testing.T) {
+			payload := testfixtures.LoadShieldedIcs20WithdrawalWitnessV6(
+				"shielded_ics20_withdrawal",
+			)
+			payload[offset] = 2
+			if _, _, err := DecodeShieldedIcs20WithdrawalWitnessV6(payload); err == nil {
+				t.Fatal("V6 decoder must reject non-canonical boolean flags")
+			}
+		})
 	}
 }
 

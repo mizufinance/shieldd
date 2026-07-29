@@ -4,24 +4,18 @@ use cnidarium::StateWrite;
 use cnidarium_component::ActionHandler;
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
 use shieldd_sdk_proof_params::batch::{self, BatchItem};
-use shieldd_sdk_proto::{DomainType as _, StateWriteProto as _};
-use shieldd_sdk_sct::component::{
-    clock::EpochRead,
-    source::SourceContext,
-    tree::{SctManager, VerificationExt},
-};
+use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_txhash::TransactionContext;
 
 use crate::transfer::compliance::{
     parse_transfer_output_compliance, transfer_compliance_public_from_parts,
 };
 use crate::{
-    component::{action_handler::note_reshape, NoteManager},
-    event, Transfer, TransferInputBody, TransferOutputBody, TransferOutputPublic,
-    TransferProofPublic, TransferSpendPublic,
+    component::action_handler::note_reshape, Transfer, TransferOutputPublic, TransferProofPublic,
+    TransferSpendPublic,
 };
 
-pub fn transfer_verify_auth_sigs(transfer: &Transfer, context: &TransactionContext) -> Result<()> {
+fn transfer_verify_auth_sigs(transfer: &Transfer, context: &TransactionContext) -> Result<()> {
     anyhow::ensure!(
         transfer.body.inputs.len() == transfer.auth_sigs.len(),
         "transfer expected {} auth sigs, got {}",
@@ -55,7 +49,7 @@ fn transfer_check_lengths(transfer: &Transfer) -> Result<()> {
     Ok(())
 }
 
-pub fn transfer_extract_public(
+pub(crate) fn transfer_extract_public(
     transfer: &Transfer,
     context: &TransactionContext,
 ) -> Result<TransferProofPublic> {
@@ -98,10 +92,7 @@ pub fn transfer_extract_public(
     Ok(public)
 }
 
-pub fn transfer_to_batch_item(
-    transfer: &Transfer,
-    public: TransferProofPublic,
-) -> Result<BatchItem> {
+fn transfer_to_batch_item(transfer: &Transfer, public: TransferProofPublic) -> Result<BatchItem> {
     transfer.proof.to_batch_item(&public)
 }
 
@@ -109,6 +100,11 @@ pub fn transfer_check_stateless_and_extract(
     transfer: &Transfer,
     context: &TransactionContext,
 ) -> Result<BatchItem> {
+    note_reshape::validate_action_anchor("transfer", transfer.body.anchor, context)?;
+    transfer
+        .body
+        .validate_shape()
+        .context("transfer body shape mismatch")?;
     transfer_verify_auth_sigs(transfer, context)?;
     transfer_check_lengths(transfer)?;
     let public = transfer_extract_public(transfer, context)?;
@@ -144,35 +140,13 @@ impl ActionHandler for Transfer {
             block_timestamp,
         )?;
 
-        for input in &self.body.inputs {
-            state.check_nullifier_unspent(input.nullifier).await?;
-        }
-
-        let source = state
-            .get_current_source()
-            .ok_or_else(|| anyhow::anyhow!("source should be set during execution"))?;
-
-        for input in note_reshape::real_items(&self.body.inputs, TransferInputBody::is_dummy) {
-            state.nullify(input.nullifier, source.into()).await?;
-            state.record_proto(
-                event::EventNullifierSpent {
-                    nullifier: input.nullifier,
-                }
-                .to_proto(),
-            );
-        }
-        for output in note_reshape::real_items(&self.body.outputs, TransferOutputBody::is_dummy) {
-            state
-                .add_note_payload(output.note_payload.clone(), source.into())
-                .await;
-            state.record_proto(
-                event::EventNoteCreated {
-                    note_commitment: output.note_payload.note_commitment,
-                }
-                .to_proto(),
-            );
-        }
-
-        Ok(())
+        note_reshape::execute_proof_bound_effects(
+            &mut state,
+            &self.body.inputs,
+            &self.body.outputs,
+            |input| input.nullifier,
+            |output| &output.note_payload,
+        )
+        .await
     }
 }

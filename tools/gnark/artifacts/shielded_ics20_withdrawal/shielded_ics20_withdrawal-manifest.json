@@ -1,0 +1,1859 @@
+{
+  "schema": "shieldd.gnark.constraint_manifest.v1",
+  "circuit": "shielded_ics20_withdrawal",
+  "shape": {
+    "n_in": 2,
+    "n_out": 1
+  },
+  "nb_constraints": 67014,
+  "nb_public_variables": 2,
+  "nb_secret_variables": 302,
+  "nb_internal_variables": 62579,
+  "sr1cs_sha256_hex": "0014c84c62b6b6e836fdd03e3ac9970ab3cf15b098a5726e1832fc7710facb1d",
+  "witness_wires": [
+    {
+      "wire_id": 1,
+      "path": "ClaimedStatementHash",
+      "visibility": "public",
+      "constraint_rows": 1
+    },
+    {
+      "wire_id": 2,
+      "path": "Anchor",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 3,
+      "path": "BalanceCommitment_X",
+      "visibility": "secret",
+      "constraint_rows": 1
+    },
+    {
+      "wire_id": 4,
+      "path": "BalanceCommitment_Y",
+      "visibility": "secret",
+      "constraint_rows": 1
+    },
+    {
+      "wire_id": 5,
+      "path": "AssetAnchor",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 6,
+      "path": "ComplianceAnchor",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 7,
+      "path": "TargetTimestamp",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 8,
+      "path": "OutboundAssetID",
+      "visibility": "secret",
+      "constraint_rows": 15
+    },
+    {
+      "wire_id": 9,
+      "path": "OutboundAmount",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 10,
+      "path": "WithdrawalEffectHashLimbs_0",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 11,
+      "path": "WithdrawalEffectHashLimbs_1",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 12,
+      "path": "WithdrawalEffectHashLimbs_2",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 13,
+      "path": "WithdrawalEffectHashLimbs_3",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 14,
+      "path": "ActionBalanceBlinding",
+      "visibility": "secret",
+      "constraint_rows": 1
+    },
+    {
+      "wire_id": 15,
+      "path": "IsRegulated",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 16,
+      "path": "Auth_AK_X",
+      "visibility": "secret",
+      "constraint_rows": 9
+    },
+    {
+      "wire_id": 17,
+      "path": "Auth_AK_Y",
+      "visibility": "secret",
+      "constraint_rows": 6
+    },
+    {
+      "wire_id": 18,
+      "path": "Auth_NK",
+      "visibility": "secret",
+      "constraint_rows": 6
+    },
+    {
+      "wire_id": 19,
+      "path": "Auth_IVKReduced",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 20,
+      "path": "Auth_IVKQuotientA",
+      "visibility": "secret",
+      "constraint_rows": 7
+    },
+    {
+      "wire_id": 21,
+      "path": "Asset_Leaf_Value",
+      "visibility": "secret",
+      "constraint_rows": 5
+    },
+    {
+      "wire_id": 22,
+      "path": "Asset_Leaf_NextIndex",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 23,
+      "path": "Asset_Leaf_NextValue",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 24,
+      "path": "Asset_Leaf_DKPub_X",
+      "visibility": "secret",
+      "constraint_rows": 5
+    },
+    {
+      "wire_id": 25,
+      "path": "Asset_Leaf_DKPub_Y",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 26,
+      "path": "Asset_Leaf_Threshold",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 27,
+      "path": "Asset_Leaf_SlotCount",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 28,
+      "path": "Asset_Leaf_ChannelsHash",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 29,
+      "path": "Asset_Leaf_RingPK_X",
+      "visibility": "secret",
+      "constraint_rows": 5
+    },
+    {
+      "wire_id": 30,
+      "path": "Asset_Leaf_RingPK_Y",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 31,
+      "path": "Asset_Leaf_RingIDHash",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 32,
+      "path": "Asset_Leaf_PolicyIDHash",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 33,
+      "path": "Asset_Leaf_PermissionHash",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 34,
+      "path": "Asset_Leaf_ResourceHash",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 35,
+      "path": "Asset_Path_0_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 36,
+      "path": "Asset_Path_0_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 37,
+      "path": "Asset_Path_0_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 38,
+      "path": "Asset_Path_1_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 39,
+      "path": "Asset_Path_1_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 40,
+      "path": "Asset_Path_1_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 41,
+      "path": "Asset_Path_2_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 42,
+      "path": "Asset_Path_2_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 43,
+      "path": "Asset_Path_2_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 44,
+      "path": "Asset_Path_3_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 45,
+      "path": "Asset_Path_3_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 46,
+      "path": "Asset_Path_3_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 47,
+      "path": "Asset_Path_4_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 48,
+      "path": "Asset_Path_4_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 49,
+      "path": "Asset_Path_4_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 50,
+      "path": "Asset_Path_5_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 51,
+      "path": "Asset_Path_5_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 52,
+      "path": "Asset_Path_5_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 53,
+      "path": "Asset_Path_6_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 54,
+      "path": "Asset_Path_6_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 55,
+      "path": "Asset_Path_6_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 56,
+      "path": "Asset_Path_7_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 57,
+      "path": "Asset_Path_7_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 58,
+      "path": "Asset_Path_7_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 59,
+      "path": "Asset_Path_8_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 60,
+      "path": "Asset_Path_8_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 61,
+      "path": "Asset_Path_8_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 62,
+      "path": "Asset_Path_9_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 63,
+      "path": "Asset_Path_9_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 64,
+      "path": "Asset_Path_9_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 65,
+      "path": "Asset_Path_10_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 66,
+      "path": "Asset_Path_10_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 67,
+      "path": "Asset_Path_10_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 68,
+      "path": "Asset_Path_11_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 69,
+      "path": "Asset_Path_11_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 70,
+      "path": "Asset_Path_11_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 71,
+      "path": "Asset_Path_12_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 72,
+      "path": "Asset_Path_12_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 73,
+      "path": "Asset_Path_12_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 74,
+      "path": "Asset_Path_13_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 75,
+      "path": "Asset_Path_13_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 76,
+      "path": "Asset_Path_13_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 77,
+      "path": "Asset_Path_14_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 78,
+      "path": "Asset_Path_14_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 79,
+      "path": "Asset_Path_14_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 80,
+      "path": "Asset_Path_15_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 81,
+      "path": "Asset_Path_15_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 82,
+      "path": "Asset_Path_15_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 83,
+      "path": "Asset_Position",
+      "visibility": "secret",
+      "constraint_rows": 1
+    },
+    {
+      "wire_id": 84,
+      "path": "Sender_DivGen_X",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 85,
+      "path": "Sender_DivGen_Y",
+      "visibility": "secret",
+      "constraint_rows": 5
+    },
+    {
+      "wire_id": 86,
+      "path": "Sender_SlotID",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 87,
+      "path": "Sender_SlotDerivation",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 88,
+      "path": "Sender_D",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 89,
+      "path": "Sender_Path_0_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 90,
+      "path": "Sender_Path_0_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 91,
+      "path": "Sender_Path_0_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 92,
+      "path": "Sender_Path_1_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 93,
+      "path": "Sender_Path_1_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 94,
+      "path": "Sender_Path_1_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 95,
+      "path": "Sender_Path_2_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 96,
+      "path": "Sender_Path_2_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 97,
+      "path": "Sender_Path_2_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 98,
+      "path": "Sender_Path_3_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 99,
+      "path": "Sender_Path_3_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 100,
+      "path": "Sender_Path_3_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 101,
+      "path": "Sender_Path_4_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 102,
+      "path": "Sender_Path_4_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 103,
+      "path": "Sender_Path_4_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 104,
+      "path": "Sender_Path_5_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 105,
+      "path": "Sender_Path_5_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 106,
+      "path": "Sender_Path_5_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 107,
+      "path": "Sender_Path_6_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 108,
+      "path": "Sender_Path_6_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 109,
+      "path": "Sender_Path_6_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 110,
+      "path": "Sender_Path_7_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 111,
+      "path": "Sender_Path_7_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 112,
+      "path": "Sender_Path_7_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 113,
+      "path": "Sender_Path_8_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 114,
+      "path": "Sender_Path_8_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 115,
+      "path": "Sender_Path_8_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 116,
+      "path": "Sender_Path_9_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 117,
+      "path": "Sender_Path_9_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 118,
+      "path": "Sender_Path_9_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 119,
+      "path": "Sender_Path_10_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 120,
+      "path": "Sender_Path_10_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 121,
+      "path": "Sender_Path_10_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 122,
+      "path": "Sender_Path_11_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 123,
+      "path": "Sender_Path_11_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 124,
+      "path": "Sender_Path_11_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 125,
+      "path": "Sender_Path_12_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 126,
+      "path": "Sender_Path_12_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 127,
+      "path": "Sender_Path_12_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 128,
+      "path": "Sender_Path_13_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 129,
+      "path": "Sender_Path_13_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 130,
+      "path": "Sender_Path_13_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 131,
+      "path": "Sender_Path_14_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 132,
+      "path": "Sender_Path_14_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 133,
+      "path": "Sender_Path_14_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 134,
+      "path": "Sender_Path_15_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 135,
+      "path": "Sender_Path_15_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 136,
+      "path": "Sender_Path_15_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 137,
+      "path": "Sender_Position",
+      "visibility": "secret",
+      "constraint_rows": 1
+    },
+    {
+      "wire_id": 138,
+      "path": "RequiredSpend_Nullifier",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 139,
+      "path": "RequiredSpend_RK_X",
+      "visibility": "secret",
+      "constraint_rows": 6
+    },
+    {
+      "wire_id": 140,
+      "path": "RequiredSpend_RK_Y",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 141,
+      "path": "RequiredSpend_Note_Blinding",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 142,
+      "path": "RequiredSpend_Note_Amount",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 143,
+      "path": "RequiredSpend_Note_ClueKey",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 144,
+      "path": "RequiredSpend_StateProof_Position",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 145,
+      "path": "RequiredSpend_StateProof_Path_0_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 146,
+      "path": "RequiredSpend_StateProof_Path_0_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 147,
+      "path": "RequiredSpend_StateProof_Path_0_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 148,
+      "path": "RequiredSpend_StateProof_Path_1_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 149,
+      "path": "RequiredSpend_StateProof_Path_1_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 150,
+      "path": "RequiredSpend_StateProof_Path_1_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 151,
+      "path": "RequiredSpend_StateProof_Path_2_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 152,
+      "path": "RequiredSpend_StateProof_Path_2_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 153,
+      "path": "RequiredSpend_StateProof_Path_2_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 154,
+      "path": "RequiredSpend_StateProof_Path_3_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 155,
+      "path": "RequiredSpend_StateProof_Path_3_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 156,
+      "path": "RequiredSpend_StateProof_Path_3_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 157,
+      "path": "RequiredSpend_StateProof_Path_4_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 158,
+      "path": "RequiredSpend_StateProof_Path_4_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 159,
+      "path": "RequiredSpend_StateProof_Path_4_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 160,
+      "path": "RequiredSpend_StateProof_Path_5_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 161,
+      "path": "RequiredSpend_StateProof_Path_5_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 162,
+      "path": "RequiredSpend_StateProof_Path_5_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 163,
+      "path": "RequiredSpend_StateProof_Path_6_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 164,
+      "path": "RequiredSpend_StateProof_Path_6_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 165,
+      "path": "RequiredSpend_StateProof_Path_6_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 166,
+      "path": "RequiredSpend_StateProof_Path_7_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 167,
+      "path": "RequiredSpend_StateProof_Path_7_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 168,
+      "path": "RequiredSpend_StateProof_Path_7_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 169,
+      "path": "RequiredSpend_StateProof_Path_8_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 170,
+      "path": "RequiredSpend_StateProof_Path_8_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 171,
+      "path": "RequiredSpend_StateProof_Path_8_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 172,
+      "path": "RequiredSpend_StateProof_Path_9_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 173,
+      "path": "RequiredSpend_StateProof_Path_9_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 174,
+      "path": "RequiredSpend_StateProof_Path_9_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 175,
+      "path": "RequiredSpend_StateProof_Path_10_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 176,
+      "path": "RequiredSpend_StateProof_Path_10_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 177,
+      "path": "RequiredSpend_StateProof_Path_10_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 178,
+      "path": "RequiredSpend_StateProof_Path_11_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 179,
+      "path": "RequiredSpend_StateProof_Path_11_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 180,
+      "path": "RequiredSpend_StateProof_Path_11_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 181,
+      "path": "RequiredSpend_StateProof_Path_12_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 182,
+      "path": "RequiredSpend_StateProof_Path_12_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 183,
+      "path": "RequiredSpend_StateProof_Path_12_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 184,
+      "path": "RequiredSpend_StateProof_Path_13_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 185,
+      "path": "RequiredSpend_StateProof_Path_13_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 186,
+      "path": "RequiredSpend_StateProof_Path_13_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 187,
+      "path": "RequiredSpend_StateProof_Path_14_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 188,
+      "path": "RequiredSpend_StateProof_Path_14_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 189,
+      "path": "RequiredSpend_StateProof_Path_14_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 190,
+      "path": "RequiredSpend_StateProof_Path_15_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 191,
+      "path": "RequiredSpend_StateProof_Path_15_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 192,
+      "path": "RequiredSpend_StateProof_Path_15_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 193,
+      "path": "RequiredSpend_StateProof_Path_16_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 194,
+      "path": "RequiredSpend_StateProof_Path_16_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 195,
+      "path": "RequiredSpend_StateProof_Path_16_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 196,
+      "path": "RequiredSpend_StateProof_Path_17_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 197,
+      "path": "RequiredSpend_StateProof_Path_17_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 198,
+      "path": "RequiredSpend_StateProof_Path_17_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 199,
+      "path": "RequiredSpend_StateProof_Path_18_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 200,
+      "path": "RequiredSpend_StateProof_Path_18_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 201,
+      "path": "RequiredSpend_StateProof_Path_18_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 202,
+      "path": "RequiredSpend_StateProof_Path_19_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 203,
+      "path": "RequiredSpend_StateProof_Path_19_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 204,
+      "path": "RequiredSpend_StateProof_Path_19_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 205,
+      "path": "RequiredSpend_StateProof_Path_20_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 206,
+      "path": "RequiredSpend_StateProof_Path_20_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 207,
+      "path": "RequiredSpend_StateProof_Path_20_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 208,
+      "path": "RequiredSpend_StateProof_Path_21_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 209,
+      "path": "RequiredSpend_StateProof_Path_21_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 210,
+      "path": "RequiredSpend_StateProof_Path_21_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 211,
+      "path": "RequiredSpend_StateProof_Path_22_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 212,
+      "path": "RequiredSpend_StateProof_Path_22_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 213,
+      "path": "RequiredSpend_StateProof_Path_22_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 214,
+      "path": "RequiredSpend_StateProof_Path_23_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 215,
+      "path": "RequiredSpend_StateProof_Path_23_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 216,
+      "path": "RequiredSpend_StateProof_Path_23_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 217,
+      "path": "RequiredSpend_AuthRandomizer",
+      "visibility": "secret",
+      "constraint_rows": 1
+    },
+    {
+      "wire_id": 218,
+      "path": "OptionalSpend_Nullifier",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 219,
+      "path": "OptionalSpend_RK_X",
+      "visibility": "secret",
+      "constraint_rows": 6
+    },
+    {
+      "wire_id": 220,
+      "path": "OptionalSpend_RK_Y",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 221,
+      "path": "OptionalSpend_Note_Blinding",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 222,
+      "path": "OptionalSpend_Note_Amount",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 223,
+      "path": "OptionalSpend_Note_ClueKey",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 224,
+      "path": "OptionalSpend_StateProof_Position",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 225,
+      "path": "OptionalSpend_StateProof_Path_0_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 226,
+      "path": "OptionalSpend_StateProof_Path_0_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 227,
+      "path": "OptionalSpend_StateProof_Path_0_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 228,
+      "path": "OptionalSpend_StateProof_Path_1_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 229,
+      "path": "OptionalSpend_StateProof_Path_1_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 230,
+      "path": "OptionalSpend_StateProof_Path_1_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 231,
+      "path": "OptionalSpend_StateProof_Path_2_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 232,
+      "path": "OptionalSpend_StateProof_Path_2_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 233,
+      "path": "OptionalSpend_StateProof_Path_2_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 234,
+      "path": "OptionalSpend_StateProof_Path_3_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 235,
+      "path": "OptionalSpend_StateProof_Path_3_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 236,
+      "path": "OptionalSpend_StateProof_Path_3_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 237,
+      "path": "OptionalSpend_StateProof_Path_4_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 238,
+      "path": "OptionalSpend_StateProof_Path_4_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 239,
+      "path": "OptionalSpend_StateProof_Path_4_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 240,
+      "path": "OptionalSpend_StateProof_Path_5_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 241,
+      "path": "OptionalSpend_StateProof_Path_5_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 242,
+      "path": "OptionalSpend_StateProof_Path_5_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 243,
+      "path": "OptionalSpend_StateProof_Path_6_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 244,
+      "path": "OptionalSpend_StateProof_Path_6_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 245,
+      "path": "OptionalSpend_StateProof_Path_6_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 246,
+      "path": "OptionalSpend_StateProof_Path_7_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 247,
+      "path": "OptionalSpend_StateProof_Path_7_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 248,
+      "path": "OptionalSpend_StateProof_Path_7_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 249,
+      "path": "OptionalSpend_StateProof_Path_8_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 250,
+      "path": "OptionalSpend_StateProof_Path_8_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 251,
+      "path": "OptionalSpend_StateProof_Path_8_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 252,
+      "path": "OptionalSpend_StateProof_Path_9_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 253,
+      "path": "OptionalSpend_StateProof_Path_9_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 254,
+      "path": "OptionalSpend_StateProof_Path_9_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 255,
+      "path": "OptionalSpend_StateProof_Path_10_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 256,
+      "path": "OptionalSpend_StateProof_Path_10_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 257,
+      "path": "OptionalSpend_StateProof_Path_10_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 258,
+      "path": "OptionalSpend_StateProof_Path_11_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 259,
+      "path": "OptionalSpend_StateProof_Path_11_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 260,
+      "path": "OptionalSpend_StateProof_Path_11_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 261,
+      "path": "OptionalSpend_StateProof_Path_12_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 262,
+      "path": "OptionalSpend_StateProof_Path_12_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 263,
+      "path": "OptionalSpend_StateProof_Path_12_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 264,
+      "path": "OptionalSpend_StateProof_Path_13_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 265,
+      "path": "OptionalSpend_StateProof_Path_13_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 266,
+      "path": "OptionalSpend_StateProof_Path_13_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 267,
+      "path": "OptionalSpend_StateProof_Path_14_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 268,
+      "path": "OptionalSpend_StateProof_Path_14_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 269,
+      "path": "OptionalSpend_StateProof_Path_14_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 270,
+      "path": "OptionalSpend_StateProof_Path_15_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 271,
+      "path": "OptionalSpend_StateProof_Path_15_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 272,
+      "path": "OptionalSpend_StateProof_Path_15_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 273,
+      "path": "OptionalSpend_StateProof_Path_16_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 274,
+      "path": "OptionalSpend_StateProof_Path_16_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 275,
+      "path": "OptionalSpend_StateProof_Path_16_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 276,
+      "path": "OptionalSpend_StateProof_Path_17_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 277,
+      "path": "OptionalSpend_StateProof_Path_17_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 278,
+      "path": "OptionalSpend_StateProof_Path_17_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 279,
+      "path": "OptionalSpend_StateProof_Path_18_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 280,
+      "path": "OptionalSpend_StateProof_Path_18_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 281,
+      "path": "OptionalSpend_StateProof_Path_18_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 282,
+      "path": "OptionalSpend_StateProof_Path_19_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 283,
+      "path": "OptionalSpend_StateProof_Path_19_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 284,
+      "path": "OptionalSpend_StateProof_Path_19_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 285,
+      "path": "OptionalSpend_StateProof_Path_20_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 286,
+      "path": "OptionalSpend_StateProof_Path_20_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 287,
+      "path": "OptionalSpend_StateProof_Path_20_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 288,
+      "path": "OptionalSpend_StateProof_Path_21_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 289,
+      "path": "OptionalSpend_StateProof_Path_21_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 290,
+      "path": "OptionalSpend_StateProof_Path_21_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 291,
+      "path": "OptionalSpend_StateProof_Path_22_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 292,
+      "path": "OptionalSpend_StateProof_Path_22_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 293,
+      "path": "OptionalSpend_StateProof_Path_22_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 294,
+      "path": "OptionalSpend_StateProof_Path_23_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 295,
+      "path": "OptionalSpend_StateProof_Path_23_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 296,
+      "path": "OptionalSpend_StateProof_Path_23_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 297,
+      "path": "OptionalSpend_AuthRandomizer",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 298,
+      "path": "OptionalSpend_IsDummy",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 299,
+      "path": "OptionalSpend_DummyNullifierSeed",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 300,
+      "path": "ChangeOutput_NoteCommitment",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 301,
+      "path": "ChangeOutput_Note_Blinding",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 302,
+      "path": "ChangeOutput_Note_Amount",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 303,
+      "path": "ChangeOutput_Note_ClueKey",
+      "visibility": "secret",
+      "constraint_rows": 2
+    }
+  ],
+  "semantic_bindings": [],
+  "segments": [
+    {
+      "index": 1,
+      "op": "candidate.unmodeled",
+      "args": [
+        "reason=semantic_trace_pending"
+      ],
+      "kind": "unclassified",
+      "start": 0,
+      "end": 67014,
+      "constraint_count": 67014,
+      "classification_note": "must be discharged by a gadget mapping or by re-authoring"
+    }
+  ],
+  "breakdown": {
+    "total_constraints": 67014,
+    "constraints_by_kind": {
+      "unclassified": 67014
+    },
+    "segments_by_kind": {
+      "unclassified": 1
+    },
+    "unclassified_constraints": 67014,
+    "unclassified_segments": 1
+  }
+}

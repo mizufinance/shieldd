@@ -482,7 +482,6 @@ impl Transaction {
                     .body
                     .inputs
                     .iter()
-                    .filter(|input| !input.is_dummy())
                     .map(|input| input.nullifier)
                     .collect(),
                 Action::NoteReshape(note_reshape) => note_reshape
@@ -508,7 +507,6 @@ impl Transaction {
                     .body
                     .inputs
                     .iter()
-                    .filter(|input| !input.is_dummy())
                     .map(|input| input.nullifier),
             );
         }
@@ -524,7 +522,6 @@ impl Transaction {
                     .body
                     .outputs
                     .iter()
-                    .filter(|output| !output.is_dummy())
                     .map(|output| Some(output.note_payload.note_commitment))
                     .collect::<Vec<_>>(),
                 Action::NoteReshape(note_reshape) => note_reshape
@@ -548,7 +545,6 @@ impl Transaction {
                     .body
                     .outputs
                     .iter()
-                    .filter(|output| !output.is_dummy())
                     .map(|output| output.note_payload.note_commitment),
             );
         }
@@ -720,9 +716,9 @@ mod tests {
                             decaf377::Fr::from(40u64),
                         )),
                         encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
-                            [2u8; ENCRYPTED_BACKREF_LEN],
+                            [2u8; 48],
                         )
-                        .expect("valid encrypted backref"),
+                        .expect("fixed-size encrypted backref"),
                         compliance_ciphertext: vec![],
                     },
                 ],
@@ -761,10 +757,12 @@ mod tests {
             auth_sigs: vec![[17u8; 64].into(), [0u8; 64].into()],
             proof: shieldd_sdk_shielded_pool::TransferProof::default(),
         };
+        assert_eq!(transfer.body.inputs.len(), 2);
+        assert_eq!(transfer.body.outputs.len(), 2);
 
         let tx = Transaction {
             transaction_body: TransactionBody {
-                actions: vec![Action::Transfer(transfer)],
+                actions: vec![Action::Transfer(transfer.clone())],
                 ..Default::default()
             },
             ..Default::default()
@@ -772,20 +770,41 @@ mod tests {
 
         assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 2);
         assert_eq!(tx.state_commitments().collect::<Vec<_>>().len(), 2);
+
+        let fee_funded_tx = Transaction {
+            transaction_body: TransactionBody {
+                fee_funding: Some(crate::FeeFunding { transfer }),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert_eq!(
+            fee_funded_tx.spent_nullifiers().collect::<Vec<_>>().len(),
+            2
+        );
+        assert_eq!(
+            fee_funded_tx.state_commitments().collect::<Vec<_>>().len(),
+            2
+        );
     }
 
     #[test]
-    fn note_reshape_body_sentinel_does_not_filter_spent_nullifiers() {
+    fn note_reshape_fixed_slots_do_not_filter_spent_nullifiers() {
         let inputs = (0..4)
             .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                 nullifier: Nullifier(decaf377::Fq::from(100u64 + index)),
                 rk: VerificationKey::from(SigningKey::<SpendAuth>::from(decaf377::Fr::from(
                     200u64 + index,
                 ))),
-                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                    [u8::try_from(index + 1).expect("small test index"); 48],
+                )
+                .expect("fixed-size encrypted backref"),
             })
             .collect::<Vec<_>>();
-        assert!(inputs.iter().all(|input| input.is_dummy()));
+        assert!(inputs
+            .iter()
+            .all(|input| input.encrypted_backref.len() == 48));
 
         let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
             body: shieldd_sdk_shielded_pool::NoteReshapeBody {
@@ -920,7 +939,10 @@ mod tests {
                                             decaf377::Fr::from(24u64),
                                         )),
                                         encrypted_backref:
-                                            shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                            shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                                                [23u8; 48],
+                                            )
+                                            .expect("fixed-size encrypted backref"),
                                         compliance_ciphertext: vec![],
                                     },
                                     shieldd_sdk_shielded_pool::TransferInputBody {
@@ -929,7 +951,10 @@ mod tests {
                                             decaf377::Fr::from(26u64),
                                         )),
                                         encrypted_backref:
-                                            shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                            shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                                                [25u8; 48],
+                                            )
+                                            .expect("fixed-size encrypted backref"),
                                         compliance_ciphertext: vec![],
                                     },
                                 ],

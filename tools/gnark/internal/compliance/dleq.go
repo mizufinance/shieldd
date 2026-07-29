@@ -118,7 +118,6 @@ func AssertEqualIf(api frontend.API, left, right, cond frontend.Variable) {
 // VerifyDLEQ mirrors Shieldd's verify_dleq_r1cs gadget for a single tier.
 func VerifyDLEQ(
 	api frontend.API,
-	r frontend.Variable,
 	ack gnarkte.Point,
 	sPoint gnarkte.Point,
 	epk gnarkte.Point,
@@ -146,9 +145,6 @@ func VerifyDLEQ(
 	if err != nil {
 		return err
 	}
-	orderBitLen := primitives.MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen()
-	_ = orderBitLen
-
 	rRec := curve.DoubleBaseScalarMul(generator, curve.Neg(epk), publishedS, publishedC)
 
 	rpRec := curve.DoubleBaseScalarMul(ack, curve.Neg(sPoint), publishedS, publishedC)

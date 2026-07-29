@@ -288,7 +288,6 @@ pub(crate) fn parse_transfer_output_compliance(
         );
     }
     let bundle = TransferOrbisUploadBundle::from_bytes(&receiver_output.orbis_upload_bundle)?;
-    bundle.validate()?;
     Ok((
         TransferComplianceCiphertext::from_bytes(&receiver_output.compliance_ciphertext)?,
         bundle,

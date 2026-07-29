@@ -4,16 +4,15 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
 )
 
 const (
-	transferWitnessV1Magic   = "PTWG"
-	transferWitnessV1Version = 8
+	transferWitnessV11Magic   = "PTWG"
+	transferWitnessV11Version = 11
 )
 
-type TransferComplianceCiphertextWitnessV1Binary struct {
+type TransferComplianceCiphertextWitnessV11Binary struct {
 	C2                 [32]byte
 	Ciphertext         [][32]byte
 	SubjectDerivation  [32]byte
@@ -32,61 +31,62 @@ type TransferComplianceCiphertextWitnessV1Binary struct {
 	SharedPointAffine  PointAffineBinary
 }
 
-type TransferSpendWitnessV1Binary struct {
-	Nullifier                   [32]byte
-	SpentNoteBlinding           [32]byte
-	SpentNoteAmount             [32]byte
-	SpentNoteAssetID            [32]byte
-	SpentTransmissionKey        [32]byte
-	SpentClueKey                [32]byte
-	StateCommitmentCommitment   [32]byte
-	StateCommitmentPosition     uint64
-	StateCommitmentAuthPath     [][3][32]byte
-	SpendAuthRandomizer         [32]byte
-	IsDummy                     bool
-	DummyNullifierSeed          [32]byte
-	DummySpendAuthKey           [32]byte
-	RKAffine                    PointAffineBinary
-	SpentDiversifiedGeneratorXY PointAffineBinary
-	SpentTransmissionKeyXY      PointAffineBinary
+type TransferRequiredSpendWitnessV11Binary struct {
+	Nullifier               [32]byte
+	SpentNoteBlinding       [32]byte
+	SpentNoteAmount         [32]byte
+	SpentNoteAssetID        [32]byte
+	SpentClueKey            [32]byte
+	StateCommitmentPosition uint64
+	StateCommitmentAuthPath [][3][32]byte
+	SpendAuthRandomizer     [32]byte
+	RKAffine                PointAffineBinary
 }
 
-type TransferOutputWitnessV1Binary struct {
-	NoteCommitment              [32]byte
-	CreatedNoteBlinding         [32]byte
-	CreatedNoteAmount           [32]byte
-	CreatedNoteAssetID          [32]byte
-	CreatedTransmissionKey      [32]byte
-	CreatedClueKey              [32]byte
-	RecipientCompliancePath     MerklePathBinary
-	RecipientCompliancePosition uint64
-	RecipientAssetID            [32]byte
-	RecipientSlotID             [32]byte
-	RecipientSlotDerivation     [32]byte
-	RecipientD                  [32]byte
-	// Output 0 is the receiver leg. Output 1, when present, is sender-owned change.
-	IsReceiver                    bool
-	CreatedDiversifiedGeneratorXY PointAffineBinary
-	CreatedTransmissionKeyXY      PointAffineBinary
+type TransferOptionalSpendWitnessV11Binary struct {
+	Nullifier               [32]byte
+	SpentNoteBlinding       [32]byte
+	SpentNoteAmount         [32]byte
+	SpentClueKey            [32]byte
+	StateCommitmentPosition uint64
+	StateCommitmentAuthPath [][3][32]byte
+	SpendAuthRandomizer     [32]byte
+	RKAffine                PointAffineBinary
+	IsDummy                 bool
+	DummyNullifierSeed      [32]byte
+}
+
+type TransferReceiverOutputWitnessV11Binary struct {
+	NoteCommitment                [32]byte
+	CreatedNoteBlinding           [32]byte
+	CreatedNoteAmount             [32]byte
+	CreatedClueKey                [32]byte
+	RecipientCompliancePath       MerklePathBinary
+	RecipientCompliancePosition   uint64
+	RecipientSlotID               [32]byte
+	RecipientSlotDerivation       [32]byte
+	RecipientD                    [32]byte
 	RecipientDiversifiedGenerator PointAffineBinary
 	RecipientTransmissionKey      PointAffineBinary
 }
 
-type TransferWitnessV1Binary struct {
+type TransferChangeOutputWitnessV11Binary struct {
+	NoteCommitment      [32]byte
+	CreatedNoteBlinding [32]byte
+	CreatedNoteAmount   [32]byte
+	CreatedClueKey      [32]byte
+}
+
+type TransferWitnessV11Binary struct {
 	TotalLength uint32
-	NIn         uint32
-	NOut        uint32
 
 	Anchor               [32]byte
-	BalanceCommitment    [32]byte
 	AssetAnchor          [32]byte
 	ComplianceAnchor     [32]byte
 	TargetTimestamp      [32]byte
 	ClaimedStatementHash [32]byte
-	StatementFields      [][32]byte
 
 	ActionBalanceBlinding    [32]byte
-	AK                       [32]byte
 	NK                       [32]byte
 	AssetPath                MerklePathBinary
 	AssetPosition            uint64
@@ -94,24 +94,25 @@ type TransferWitnessV1Binary struct {
 	IsRegulated              bool
 	SenderCompliancePath     MerklePathBinary
 	SenderCompliancePosition uint64
-	SenderAssetID            [32]byte
 	SenderSlotID             [32]byte
 	SenderSlotDerivation     [32]byte
 	SenderD                  [32]byte
 	TransferNonceRoot        [32]byte
 
 	DetectionCiphertext [][32]byte
-	SenderCore          TransferComplianceCiphertextWitnessV1Binary
-	SenderExt           TransferComplianceCiphertextWitnessV1Binary
-	OutputCore          TransferComplianceCiphertextWitnessV1Binary
-	OutputExt           TransferComplianceCiphertextWitnessV1Binary
+	SenderCore          TransferComplianceCiphertextWitnessV11Binary
+	SenderExt           TransferComplianceCiphertextWitnessV11Binary
+	OutputCore          TransferComplianceCiphertextWitnessV11Binary
+	OutputExt           TransferComplianceCiphertextWitnessV11Binary
 	SenderRCore         [32]byte
 	SenderRExt          [32]byte
 	OutputRCore         [32]byte
 	OutputRExt          [32]byte
 
-	Spends  []TransferSpendWitnessV1Binary
-	Outputs []TransferOutputWitnessV1Binary
+	RequiredSpend  TransferRequiredSpendWitnessV11Binary
+	OptionalSpend  TransferOptionalSpendWitnessV11Binary
+	ReceiverOutput TransferReceiverOutputWitnessV11Binary
+	ChangeOutput   TransferChangeOutputWitnessV11Binary
 
 	BalanceCommitmentAffine    PointAffineBinary
 	AKAffine                   PointAffineBinary
@@ -121,37 +122,39 @@ type TransferWitnessV1Binary struct {
 	SenderTransmissionKey      PointAffineBinary
 }
 
-func DecodeTransferWitnessV1(payload []byte) (*TransferWitnessV1Binary, generated.TransferFamilySpec, error) {
+func DecodeTransferWitnessV11(
+	payload []byte,
+) (*TransferWitnessV11Binary, generated.TransferFamilySpec, error) {
 	family, ok := generated.TransferFamilyByLabel("transfer")
 	if !ok {
 		return nil, generated.TransferFamilySpec{}, fmt.Errorf("missing generated transfer spec")
 	}
-	witness, err := decodeTransferWitnessV1("Transfer", payload)
+	witness, err := decodeTransferWitnessV11("Transfer", payload)
 	if err != nil {
 		return nil, generated.TransferFamilySpec{}, err
 	}
 	return witness, family, nil
 }
 
-func decodeTransferWitnessV1(
+func decodeTransferWitnessV11(
 	label string,
 	payload []byte,
-) (*TransferWitnessV1Binary, error) {
+) (*TransferWitnessV11Binary, error) {
 	reader := bytes.NewReader(payload)
 
 	magic, err := readExact(reader, 4)
 	if err != nil {
 		return nil, err
 	}
-	if string(magic) != transferWitnessV1Magic {
-		return nil, fmt.Errorf("invalid %sWitnessV1 magic %q", label, string(magic))
+	if string(magic) != transferWitnessV11Magic {
+		return nil, fmt.Errorf("invalid %sWitnessV11 magic %q", label, string(magic))
 	}
 	version, err := readU32(reader)
 	if err != nil {
 		return nil, err
 	}
-	if version != transferWitnessV1Version {
-		return nil, fmt.Errorf("unsupported %sWitnessV1 version %d", label, version)
+	if version != transferWitnessV11Version {
+		return nil, fmt.Errorf("unsupported %sWitnessV11 version %d", label, version)
 	}
 	totalLength, err := readU32(reader)
 	if err != nil {
@@ -161,27 +164,8 @@ func decodeTransferWitnessV1(
 		return nil, fmt.Errorf("payload length mismatch: header=%d actual=%d", totalLength, len(payload))
 	}
 
-	witness := &TransferWitnessV1Binary{TotalLength: totalLength}
-	if witness.NIn, err = readU32(reader); err != nil {
-		return nil, err
-	}
-	if witness.NOut, err = readU32(reader); err != nil {
-		return nil, err
-	}
-	if int(witness.NIn) != circuits.TransferCircuitInputs || int(witness.NOut) != circuits.TransferCircuitOutputs {
-		return nil, fmt.Errorf(
-			"%s witness shape mismatch: got %dx%d, expected %dx%d",
-			label,
-			witness.NIn,
-			witness.NOut,
-			circuits.TransferCircuitInputs,
-			circuits.TransferCircuitOutputs,
-		)
-	}
+	witness := &TransferWitnessV11Binary{TotalLength: totalLength}
 	if witness.Anchor, err = read32(reader); err != nil {
-		return nil, err
-	}
-	if witness.BalanceCommitment, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.AssetAnchor, err = read32(reader); err != nil {
@@ -196,13 +180,7 @@ func decodeTransferWitnessV1(
 	if witness.ClaimedStatementHash, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.StatementFields, err = readVec32(reader); err != nil {
-		return nil, err
-	}
-	if witness.ActionBalanceBlinding, err = read32(reader); err != nil {
-		return nil, err
-	}
-	if witness.AK, err = read32(reader); err != nil {
+	if witness.ActionBalanceBlinding, err = readFr32(reader); err != nil {
 		return nil, err
 	}
 	if witness.NK, err = read32(reader); err != nil {
@@ -226,9 +204,6 @@ func decodeTransferWitnessV1(
 	if witness.SenderCompliancePosition, err = readU64(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderAssetID, err = read32(reader); err != nil {
-		return nil, err
-	}
 	if witness.SenderSlotID, err = read32(reader); err != nil {
 		return nil, err
 	}
@@ -244,136 +219,42 @@ func decodeTransferWitnessV1(
 	if witness.DetectionCiphertext, err = readVec32(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderCore, err = readTransferComplianceTier(reader); err != nil {
+	if witness.SenderCore, err = readTransferComplianceTierV11(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderExt, err = readTransferComplianceTier(reader); err != nil {
+	if witness.SenderExt, err = readTransferComplianceTierV11(reader); err != nil {
 		return nil, err
 	}
-	if witness.OutputCore, err = readTransferComplianceTier(reader); err != nil {
+	if witness.OutputCore, err = readTransferComplianceTierV11(reader); err != nil {
 		return nil, err
 	}
-	if witness.OutputExt, err = readTransferComplianceTier(reader); err != nil {
+	if witness.OutputExt, err = readTransferComplianceTierV11(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderRCore, err = read32(reader); err != nil {
+	if witness.SenderRCore, err = readFr32(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderRExt, err = read32(reader); err != nil {
+	if witness.SenderRExt, err = readFr32(reader); err != nil {
 		return nil, err
 	}
-	if witness.OutputRCore, err = read32(reader); err != nil {
+	if witness.OutputRCore, err = readFr32(reader); err != nil {
 		return nil, err
 	}
-	if witness.OutputRExt, err = read32(reader); err != nil {
+	if witness.OutputRExt, err = readFr32(reader); err != nil {
 		return nil, err
 	}
 
-	witness.Spends = make([]TransferSpendWitnessV1Binary, witness.NIn)
-	for i := range witness.Spends {
-		if witness.Spends[i].Nullifier, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].SpentNoteBlinding, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].SpentNoteAmount, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].SpentNoteAssetID, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].SpentTransmissionKey, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].SpentClueKey, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].StateCommitmentCommitment, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].StateCommitmentPosition, err = readU64(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].StateCommitmentAuthPath, err = readTriplePath(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].SpendAuthRandomizer, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].IsDummy, err = readBool(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].DummyNullifierSeed, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].DummySpendAuthKey, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].RKAffine, err = readPointAffine(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].SpentDiversifiedGeneratorXY, err = readPointAffine(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].SpentTransmissionKeyXY, err = readPointAffine(reader); err != nil {
-			return nil, err
-		}
+	if witness.RequiredSpend, err = readTransferRequiredSpendV11(reader); err != nil {
+		return nil, fmt.Errorf("decode required transfer spend: %w", err)
 	}
-
-	witness.Outputs = make([]TransferOutputWitnessV1Binary, witness.NOut)
-	for i := range witness.Outputs {
-		if witness.Outputs[i].NoteCommitment, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].CreatedNoteBlinding, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].CreatedNoteAmount, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].CreatedNoteAssetID, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].CreatedTransmissionKey, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].CreatedClueKey, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientCompliancePath, err = readMerklePath(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientCompliancePosition, err = readU64(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientAssetID, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientSlotID, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientSlotDerivation, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientD, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].IsReceiver, err = readBool(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].CreatedDiversifiedGeneratorXY, err = readPointAffine(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].CreatedTransmissionKeyXY, err = readPointAffine(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientDiversifiedGenerator, err = readPointAffine(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientTransmissionKey, err = readPointAffine(reader); err != nil {
-			return nil, err
-		}
+	if witness.OptionalSpend, err = readTransferOptionalSpendV11(reader); err != nil {
+		return nil, fmt.Errorf("decode optional transfer spend: %w", err)
+	}
+	if witness.ReceiverOutput, err = readTransferReceiverOutputV11(reader); err != nil {
+		return nil, fmt.Errorf("decode transfer receiver output: %w", err)
+	}
+	if witness.ChangeOutput, err = readTransferChangeOutputV11(reader); err != nil {
+		return nil, fmt.Errorf("decode transfer change output: %w", err)
 	}
 
 	if witness.BalanceCommitmentAffine, err = readPointAffine(reader); err != nil {
@@ -404,8 +285,144 @@ func decodeTransferWitnessV1(
 	return witness, nil
 }
 
-func readTransferComplianceTier(reader *bytes.Reader) (TransferComplianceCiphertextWitnessV1Binary, error) {
-	var tier TransferComplianceCiphertextWitnessV1Binary
+func readTransferRequiredSpendV11(
+	reader *bytes.Reader,
+) (TransferRequiredSpendWitnessV11Binary, error) {
+	var spend TransferRequiredSpendWitnessV11Binary
+	var err error
+	if spend.Nullifier, err = read32(reader); err != nil {
+		return spend, err
+	}
+	if spend.SpentNoteBlinding, err = read32(reader); err != nil {
+		return spend, err
+	}
+	if spend.SpentNoteAmount, err = read32(reader); err != nil {
+		return spend, err
+	}
+	if spend.SpentNoteAssetID, err = read32(reader); err != nil {
+		return spend, err
+	}
+	if spend.SpentClueKey, err = read32(reader); err != nil {
+		return spend, err
+	}
+	if spend.StateCommitmentPosition, err = readU64(reader); err != nil {
+		return spend, err
+	}
+	if spend.StateCommitmentAuthPath, err = readTriplePath(reader); err != nil {
+		return spend, err
+	}
+	if spend.SpendAuthRandomizer, err = readFr32(reader); err != nil {
+		return spend, err
+	}
+	if spend.RKAffine, err = readPointAffine(reader); err != nil {
+		return spend, err
+	}
+	return spend, nil
+}
+
+func readTransferOptionalSpendV11(
+	reader *bytes.Reader,
+) (TransferOptionalSpendWitnessV11Binary, error) {
+	var spend TransferOptionalSpendWitnessV11Binary
+	var err error
+	if spend.Nullifier, err = read32(reader); err != nil {
+		return spend, err
+	}
+	if spend.SpentNoteBlinding, err = read32(reader); err != nil {
+		return spend, err
+	}
+	if spend.SpentNoteAmount, err = read32(reader); err != nil {
+		return spend, err
+	}
+	if spend.SpentClueKey, err = read32(reader); err != nil {
+		return spend, err
+	}
+	if spend.StateCommitmentPosition, err = readU64(reader); err != nil {
+		return spend, err
+	}
+	if spend.StateCommitmentAuthPath, err = readTriplePath(reader); err != nil {
+		return spend, err
+	}
+	if spend.SpendAuthRandomizer, err = readFr32(reader); err != nil {
+		return spend, err
+	}
+	if spend.RKAffine, err = readPointAffine(reader); err != nil {
+		return spend, err
+	}
+	if spend.IsDummy, err = readBool(reader); err != nil {
+		return spend, err
+	}
+	if spend.DummyNullifierSeed, err = read32(reader); err != nil {
+		return spend, err
+	}
+	return spend, nil
+}
+
+func readTransferReceiverOutputV11(
+	reader *bytes.Reader,
+) (TransferReceiverOutputWitnessV11Binary, error) {
+	var output TransferReceiverOutputWitnessV11Binary
+	var err error
+	if output.NoteCommitment, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.CreatedNoteBlinding, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.CreatedNoteAmount, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.CreatedClueKey, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.RecipientCompliancePath, err = readMerklePath(reader); err != nil {
+		return output, err
+	}
+	if output.RecipientCompliancePosition, err = readU64(reader); err != nil {
+		return output, err
+	}
+	if output.RecipientSlotID, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.RecipientSlotDerivation, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.RecipientD, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.RecipientDiversifiedGenerator, err = readPointAffine(reader); err != nil {
+		return output, err
+	}
+	if output.RecipientTransmissionKey, err = readPointAffine(reader); err != nil {
+		return output, err
+	}
+	return output, nil
+}
+
+func readTransferChangeOutputV11(
+	reader *bytes.Reader,
+) (TransferChangeOutputWitnessV11Binary, error) {
+	var output TransferChangeOutputWitnessV11Binary
+	var err error
+	if output.NoteCommitment, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.CreatedNoteBlinding, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.CreatedNoteAmount, err = read32(reader); err != nil {
+		return output, err
+	}
+	if output.CreatedClueKey, err = read32(reader); err != nil {
+		return output, err
+	}
+	return output, nil
+}
+
+func readTransferComplianceTierV11(
+	reader *bytes.Reader,
+) (TransferComplianceCiphertextWitnessV11Binary, error) {
+	var tier TransferComplianceCiphertextWitnessV11Binary
 	var err error
 	if tier.C2, err = read32(reader); err != nil {
 		return tier, err
@@ -437,10 +454,10 @@ func readTransferComplianceTier(reader *bytes.Reader) (TransferComplianceCiphert
 	if tier.Salt, err = read32(reader); err != nil {
 		return tier, err
 	}
-	if tier.Challenge, err = read32(reader); err != nil {
+	if tier.Challenge, err = readFr32(reader); err != nil {
 		return tier, err
 	}
-	if tier.Response, err = read32(reader); err != nil {
+	if tier.Response, err = readFr32(reader); err != nil {
 		return tier, err
 	}
 	if tier.EPKAffine, err = readPointAffine(reader); err != nil {

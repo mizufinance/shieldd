@@ -92,7 +92,6 @@ func (c *pointCompressionProfileCircuit) Define(api frontend.API) error {
 }
 
 type dleqProfileCircuit struct {
-	R            frontend.Variable
 	AckX         frontend.Variable
 	AckY         frontend.Variable
 	SPointX      frontend.Variable
@@ -108,7 +107,6 @@ type dleqProfileCircuit struct {
 func (c *dleqProfileCircuit) Define(api frontend.API) error {
 	return compliance.VerifyDLEQ(
 		api,
-		c.R,
 		gnarkte.Point{X: c.AckX, Y: c.AckY},
 		gnarkte.Point{X: c.SPointX, Y: c.SPointY},
 		gnarkte.Point{X: c.EpkX, Y: c.EpkY},
@@ -283,7 +281,12 @@ func (c *transferSharedSpendProfileCircuit) Define(api frontend.API) error {
 		return err
 	}
 	statementData := c.TransferCircuit.newTransferStatementData()
-	return c.TransferCircuit.verifyTransferSpend(api, &shared, &statementData, &c.Spends[0], 0)
+	return c.TransferCircuit.verifyRequiredTransferSpend(
+		api,
+		&shared,
+		&statementData,
+		&c.RequiredSpend,
+	)
 }
 
 type transferSharedReceiverOutputProfileCircuit struct {
@@ -300,7 +303,12 @@ func (c *transferSharedReceiverOutputProfileCircuit) Define(api frontend.API) er
 		return err
 	}
 	statementData := c.TransferCircuit.newTransferStatementData()
-	return c.TransferCircuit.verifyTransferOutput(api, &shared, &statementData, &c.Outputs[0], 0)
+	return c.TransferCircuit.verifyTransferReceiverOutput(
+		api,
+		&shared,
+		&statementData,
+		&c.ReceiverOutput,
+	)
 }
 
 type transferSharedReceiverComplianceProfileCircuit struct {
@@ -317,7 +325,12 @@ func (c *transferSharedReceiverComplianceProfileCircuit) Define(api frontend.API
 		return err
 	}
 	statementData := c.TransferCircuit.newTransferStatementData()
-	if err := c.TransferCircuit.verifyTransferOutput(api, &shared, &statementData, &c.Outputs[0], 0); err != nil {
+	if err := c.TransferCircuit.verifyTransferReceiverOutput(
+		api,
+		&shared,
+		&statementData,
+		&c.ReceiverOutput,
+	); err != nil {
 		return err
 	}
 	return c.TransferCircuit.verifyTransferComplianceCiphertexts(api, &shared, &statementData)

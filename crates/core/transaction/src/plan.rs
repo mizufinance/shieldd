@@ -188,8 +188,8 @@ impl TransactionPlan {
             .actions
             .iter()
             .map(|action| match action {
-                ActionPlan::Transfer(plan) => plan.outputs.len(),
-                ActionPlan::NoteReshape(plan) => plan.outputs.len(),
+                ActionPlan::Transfer(plan) => plan.body.outputs.len(),
+                ActionPlan::NoteReshape(plan) => plan.body.outputs.len(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.note_creating_output_count(),
                 _ => 0,
             })
@@ -198,7 +198,7 @@ impl TransactionPlan {
         let fee_funding_outputs = self
             .fee_funding
             .as_ref()
-            .map(|fee_funding| fee_funding.transfer.outputs.len())
+            .map(|fee_funding| fee_funding.transfer.body.outputs.len())
             .unwrap_or_default();
 
         action_outputs + fee_funding_outputs
@@ -317,6 +317,7 @@ impl TryFrom<pb::TransactionPlan> for TransactionPlan {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{Transaction, TransactionBody};
     use decaf377::Fr;
     use ibc_types::core::channel::ChannelId;
     use ibc_types::core::client::Height as IbcHeight;
@@ -325,9 +326,10 @@ mod tests {
     use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SeedPhrase, SpendKey};
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_shielded_pool::{
-        Ics20Withdrawal, Note, Rseed, ShieldedIcs20WithdrawalFamilyId, ShieldedInputPlan,
-        ShieldedOutputPlan,
+        Ics20Withdrawal, Note, NoteReshape, NoteReshapeFamilyId, NoteReshapePlan, NoteReshapeProof,
+        Rseed, ShieldedIcs20WithdrawalFamilyId, ShieldedInputPlan, ShieldedOutputPlan,
     };
+    use shieldd_sdk_txhash::EffectHash;
     use std::{ops::Deref, str::FromStr};
 
     #[test]
@@ -377,8 +379,8 @@ mod tests {
 
         assert_eq!(
             plan.num_outputs(),
-            1,
-            "transfer should count semantic outputs, not padded family slots"
+            shieldd_sdk_shielded_pool::PADDED_TRANSFER_OUTPUTS,
+            "transfer must count every proof-bound output slot"
         );
         assert_eq!(
             plan.detection_data
@@ -386,7 +388,7 @@ mod tests {
                 .expect("detection data")
                 .clue_plans
                 .len(),
-            1
+            shieldd_sdk_shielded_pool::PADDED_TRANSFER_OUTPUTS
         );
     }
 
@@ -505,5 +507,73 @@ mod tests {
                 .len(),
             1
         );
+    }
+
+    #[test]
+    fn apply_auth_data_rebinds_note_reshape_dummy_signatures_to_transaction_hash() {
+        let mut rng = OsRng;
+        let input_value = Value {
+            amount: 1u64.into(),
+            asset_id: *BASE_ASSET_ID,
+        };
+        let spends = (0..5)
+            .map(|_| {
+                let note = Note::generate(&mut rng, &test_keys::ADDRESS_0, input_value);
+                ShieldedInputPlan::new(&mut rng, note, 0u64.into())
+            })
+            .collect::<Vec<_>>();
+        let output = ShieldedOutputPlan::new(
+            &mut rng,
+            Value {
+                amount: 5u64.into(),
+                asset_id: *BASE_ASSET_ID,
+            },
+            test_keys::ADDRESS_0.deref().clone(),
+        );
+        let note_reshape = NoteReshapePlan::new(
+            NoteReshapeFamilyId::EightByOne,
+            spends,
+            vec![output],
+            Fr::from(17u64),
+        )
+        .expect("valid padded NoteReshape plan");
+        let placeholder = NoteReshape {
+            body: note_reshape.body.clone(),
+            auth_sigs: vec![[0u8; 64].into(); NoteReshapeFamilyId::EightByOne.auth_sig_count()],
+            proof: NoteReshapeProof::default(),
+        };
+        let plan = TransactionPlan {
+            actions: vec![ActionPlan::NoteReshape(note_reshape.clone())],
+            ..Default::default()
+        };
+        let effect_hash = EffectHash([0x5au8; 64]);
+        let transaction = Transaction {
+            transaction_body: TransactionBody {
+                actions: vec![crate::Action::NoteReshape(placeholder)],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let authorized = plan
+            .apply_auth_data(
+                &crate::AuthorizationData {
+                    effect_hash: Some(effect_hash),
+                    spend_auths: vec![[0u8; 64].into(); note_reshape.spends.len()],
+                },
+                transaction,
+            )
+            .expect("apply authorization data");
+        let crate::Action::NoteReshape(action) = &authorized.transaction_body.actions[0] else {
+            panic!("expected NoteReshape action");
+        };
+
+        for index in note_reshape.spends.len()..action.body.inputs.len() {
+            action.body.inputs[index]
+                .rk
+                .verify(effect_hash.as_ref(), &action.auth_sigs[index])
+                .unwrap_or_else(|error| {
+                    panic!("dummy signature {index} was not rebound to transaction hash: {error}")
+                });
+        }
     }
 }

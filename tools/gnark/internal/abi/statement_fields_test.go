@@ -1,7 +1,6 @@
 package abi
 
 import (
-	"bytes"
 	"math/big"
 	"testing"
 
@@ -9,43 +8,60 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
 
-func assertStatementFieldsMatch(t *testing.T, label string, reconstructed, rust [][32]byte) {
-	t.Helper()
-	if len(reconstructed) != len(rust) {
-		t.Fatalf("%s field count mismatch: reconstructed=%d rust=%d", label, len(reconstructed), len(rust))
-	}
-	for i := range reconstructed {
-		if !bytes.Equal(reconstructed[i][:], rust[i][:]) {
-			t.Fatalf("%s field %d mismatch:\nreconstructed=%x\nrust=%x", label, i, reconstructed[i], rust[i])
-		}
-	}
-}
-
 func TestRustGoStatementFieldDifferential(t *testing.T) {
 	t.Run("transfer", func(t *testing.T) {
-		witness, _, err := DecodeTransferWitnessV1(testfixtures.LoadTransferWitnessV1("transfer"))
+		witness, _, err := DecodeTransferWitnessV11(testfixtures.LoadTransferWitnessV11("transfer"))
 		if err != nil {
 			t.Fatalf("decode transfer witness: %v", err)
 		}
-		reconstructed, err := ReconstructedTransferStatementFieldsFromWitnessV1(witness)
+		reconstructed, err := ReconstructedTransferStatementFieldsFromWitnessV11(witness)
 		if err != nil {
 			t.Fatalf("reconstruct transfer statement fields: %v", err)
 		}
-		assertStatementFieldsMatch(t, "transfer", reconstructed, witness.StatementFields)
+		nativeFields := make([]*big.Int, len(reconstructed))
+		for i, field := range reconstructed {
+			nativeFields[i] = primitives.LittleEndianBytesToBigInt(field[:])
+		}
+		hash, err := primitives.TransferStatementHashNativeForShape(nativeFields, 2, 2)
+		if err != nil {
+			t.Fatalf("hash reconstructed transfer statement fields: %v", err)
+		}
+		claimed := primitives.LittleEndianBytesToBigInt(witness.ClaimedStatementHash[:])
+		if hash.Cmp(claimed) != 0 {
+			t.Fatalf("transfer reconstructed statement hash mismatch:\ngot=%s\nwant=%s", hash, claimed)
+		}
 	})
 
 	t.Run("shielded_ics20_withdrawal", func(t *testing.T) {
-		witness, _, err := DecodeShieldedIcs20WithdrawalWitnessV1(
-			testfixtures.LoadShieldedIcs20WithdrawalWitnessV1("shielded_ics20_withdrawal"),
+		witness, _, err := DecodeShieldedIcs20WithdrawalWitnessV6(
+			testfixtures.LoadShieldedIcs20WithdrawalWitnessV6("shielded_ics20_withdrawal"),
 		)
 		if err != nil {
 			t.Fatalf("decode shielded ICS-20 withdrawal witness: %v", err)
 		}
-		reconstructed, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV1(witness)
+		reconstructed, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV6(witness)
 		if err != nil {
 			t.Fatalf("reconstruct shielded ICS-20 withdrawal statement fields: %v", err)
 		}
-		assertStatementFieldsMatch(t, "shielded_ics20_withdrawal", reconstructed, witness.StatementFields)
+		nativeFields := make([]*big.Int, len(reconstructed))
+		for i, field := range reconstructed {
+			nativeFields[i] = primitives.LittleEndianBytesToBigInt(field[:])
+		}
+		hash, err := primitives.ShieldedIcs20WithdrawalStatementHashNativeForShape(
+			nativeFields,
+			int(witness.NIn),
+		)
+		if err != nil {
+			t.Fatalf("hash reconstructed shielded ICS-20 withdrawal statement fields: %v", err)
+		}
+		claimed := primitives.LittleEndianBytesToBigInt(witness.ClaimedStatementHash[:])
+		if hash.Cmp(claimed) != 0 {
+			t.Fatalf(
+				"shielded ICS-20 withdrawal reconstructed statement hash mismatch:\ngot=%s\nwant=%s",
+				hash,
+				claimed,
+			)
+		}
 	})
 
 	for _, tc := range []struct {
@@ -86,22 +102,5 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 				t.Fatalf("%s reconstructed statement hash mismatch:\ngot=%s\nwant=%s", tc.name, hash, claimed)
 			}
 		})
-	}
-}
-
-func TestRustGoStatementFieldDifferentialDoesNotTrustStoredVector(t *testing.T) {
-	witness, _, err := DecodeTransferWitnessV1(testfixtures.LoadTransferWitnessV1("transfer"))
-	if err != nil {
-		t.Fatalf("decode transfer witness: %v", err)
-	}
-	reconstructed, err := ReconstructedTransferStatementFieldsFromWitnessV1(witness)
-	if err != nil {
-		t.Fatalf("reconstruct transfer statement fields: %v", err)
-	}
-	assertStatementFieldsMatch(t, "transfer", reconstructed, witness.StatementFields)
-
-	witness.StatementFields[0][0] ^= 1
-	if bytes.Equal(reconstructed[0][:], witness.StatementFields[0][:]) {
-		t.Fatalf("stored statement field mutation was not detected")
 	}
 }

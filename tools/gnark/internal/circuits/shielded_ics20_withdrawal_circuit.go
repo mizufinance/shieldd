@@ -2,20 +2,53 @@ package circuits
 
 import (
 	"fmt"
-	decafgnark "github.com/mizufinance/decaf377-go/gnark"
 	"math/big"
 
-	curves "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
+	decafgnark "github.com/mizufinance/decaf377-go/gnark"
 	. "github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 	. "github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 	"golang.org/x/crypto/blake2b"
 )
 
+type ShieldedIcs20WithdrawalRequiredSpendCircuitFields struct {
+	Nullifier      frontend.Variable
+	RK             Point2D
+	Note           ShieldedIcs20WithdrawalNoteCircuitFields
+	StateProof     ShieldedIcs20WithdrawalStatePathCircuitFields
+	AuthRandomizer frontend.Variable
+}
+
+type ShieldedIcs20WithdrawalNoteCircuitFields struct {
+	Blinding frontend.Variable
+	Amount   frontend.Variable
+	ClueKey  frontend.Variable
+}
+
+type ShieldedIcs20WithdrawalStatePathCircuitFields struct {
+	Position frontend.Variable
+	Path     [StateCommitmentDepth][3]frontend.Variable
+}
+
+type ShieldedIcs20WithdrawalOptionalSpendCircuitFields struct {
+	ShieldedIcs20WithdrawalRequiredSpendCircuitFields
+	IsDummy            frontend.Variable
+	DummyNullifierSeed frontend.Variable
+}
+
 type ShieldedIcs20WithdrawalChangeCircuitFields struct {
 	NoteCommitment frontend.Variable
-	Note           NoteFields
+	Note           ShieldedIcs20WithdrawalNoteCircuitFields
+}
+
+type ShieldedIcs20WithdrawalSenderCircuitFields struct {
+	DivGen         Point2D
+	SlotID         frontend.Variable
+	SlotDerivation frontend.Variable
+	D              frontend.Variable
+	Path           [ComplianceQuadTreeDepth][3]frontend.Variable
+	Position       frontend.Variable
 }
 
 type ShieldedIcs20WithdrawalCircuit struct {
@@ -23,39 +56,33 @@ type ShieldedIcs20WithdrawalCircuit struct {
 
 	ClaimedStatementHash frontend.Variable `gnark:",public"`
 
-	Anchor                 frontend.Variable
-	BalanceCommitment      Point2D
-	AssetAnchor            frontend.Variable
-	ComplianceAnchor       frontend.Variable
-	TargetTimestamp        frontend.Variable
-	OutboundAssetID        frontend.Variable
-	OutboundAmount         frontend.Variable
-	WithdrawalEffectHashLo frontend.Variable
-	WithdrawalEffectHashHi frontend.Variable
-	ActionBalanceBlinding  frontend.Variable
-	IsRegulated            frontend.Variable
+	Anchor                    frontend.Variable
+	BalanceCommitment         Point2D
+	AssetAnchor               frontend.Variable
+	ComplianceAnchor          frontend.Variable
+	TargetTimestamp           frontend.Variable
+	OutboundAssetID           frontend.Variable
+	OutboundAmount            frontend.Variable
+	WithdrawalEffectHashLimbs [4]frontend.Variable
+	ActionBalanceBlinding     frontend.Variable
+	IsRegulated               frontend.Variable
 
 	Auth   TransferAuthSharedFields
 	Asset  AssetTreeFields
-	Sender UserComplianceFields
+	Sender ShieldedIcs20WithdrawalSenderCircuitFields
 
-	Spends       []TransferSpendCircuitFields
-	ChangeOutput ShieldedIcs20WithdrawalChangeCircuitFields
+	RequiredSpend ShieldedIcs20WithdrawalRequiredSpendCircuitFields
+	OptionalSpend ShieldedIcs20WithdrawalOptionalSpendCircuitFields
+	ChangeOutput  ShieldedIcs20WithdrawalChangeCircuitFields
 }
 
 func NewShieldedIcs20WithdrawalCircuit(nIn int) *ShieldedIcs20WithdrawalCircuit {
-	return &ShieldedIcs20WithdrawalCircuit{
-		nIn:    nIn,
-		Spends: make([]TransferSpendCircuitFields, nIn),
-	}
+	return &ShieldedIcs20WithdrawalCircuit{nIn: nIn}
 }
 
 func (c *ShieldedIcs20WithdrawalCircuit) Define(api frontend.API) error {
-	if c.nIn <= 0 {
-		return fmt.Errorf("shielded ICS-20 withdrawal circuit shape must be positive, got %d", c.nIn)
-	}
-	if len(c.Spends) != c.nIn {
-		return fmt.Errorf("shielded ICS-20 withdrawal circuit shape mismatch: expected %d spends, got %d", c.nIn, len(c.Spends))
+	if c.nIn != 2 {
+		return fmt.Errorf("shielded ICS-20 withdrawal circuit requires one required and one optional spend, got n_in=%d", c.nIn)
 	}
 
 	shared, err := c.verifySharedContext(api)
@@ -63,15 +90,22 @@ func (c *ShieldedIcs20WithdrawalCircuit) Define(api frontend.API) error {
 		return err
 	}
 
-	inputAmounts := make([]frontend.Variable, 0, c.nIn)
-	nullifiersAndRKs := make([]frontend.Variable, 0, 2*c.nIn)
-	for i := range c.Spends {
-		amount, nullifier, rkCompressed, err := c.verifySpend(api, &shared, &c.Spends[i], i)
-		if err != nil {
-			return err
-		}
-		inputAmounts = append(inputAmounts, amount)
-		nullifiersAndRKs = append(nullifiersAndRKs, nullifier, rkCompressed)
+	requiredAmount, requiredNullifier, requiredRK, err :=
+		c.verifyRequiredSpend(api, &shared, &c.RequiredSpend)
+	if err != nil {
+		return err
+	}
+	optionalAmount, optionalNullifier, optionalRK, err :=
+		c.verifyOptionalSpend(api, &shared, &c.OptionalSpend)
+	if err != nil {
+		return err
+	}
+	inputAmounts := []frontend.Variable{requiredAmount, optionalAmount}
+	nullifiersAndRKs := []frontend.Variable{
+		requiredNullifier,
+		requiredRK,
+		optionalNullifier,
+		optionalRK,
 	}
 
 	changeAmount, changeCommitment, err := c.verifyChangeOutput(api, &shared, &c.ChangeOutput)
@@ -104,9 +138,8 @@ func (c *ShieldedIcs20WithdrawalCircuit) Define(api frontend.API) error {
 		c.TargetTimestamp,
 		c.OutboundAssetID,
 		c.OutboundAmount,
-		c.WithdrawalEffectHashLo,
-		c.WithdrawalEffectHashHi,
 	)
+	fields = append(fields, c.WithdrawalEffectHashLimbs[:]...)
 
 	statementHash, err := ShieldedIcs20WithdrawalStatementHashForShape(api, c.nIn, fields)
 	if err != nil {
@@ -121,7 +154,9 @@ type shieldedIcs20WithdrawalSharedContext struct {
 	ak                       gnarkte.Point
 	indexedLeaf              IndexedLeafInputs
 	senderDivGen             gnarkte.Point
+	senderDivGenFq           frontend.Variable
 	senderTransmission       gnarkte.Point
+	senderTransmissionFq     frontend.Variable
 	sharedAssetID            frontend.Variable
 }
 
@@ -145,16 +180,27 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 			PermissionHash: c.Asset.Leaf.PermissionHash,
 			ResourceHash:   c.Asset.Leaf.ResourceHash,
 		},
-		senderDivGen:       gnarkte.Point{X: c.Sender.DivGen.X, Y: c.Sender.DivGen.Y},
-		senderTransmission: gnarkte.Point{X: c.Sender.Transmission.X, Y: c.Sender.Transmission.Y},
-		sharedAssetID:      c.Spends[0].Note.AssetID,
+		senderDivGen:  gnarkte.Point{X: c.Sender.DivGen.X, Y: c.Sender.DivGen.Y},
+		sharedAssetID: c.OutboundAssetID,
 	}
 
-	senderDivGenFq, err := decafgnark.CompressToField(api, shared.senderDivGen)
+	var err error
+	shared.senderDivGenFq, err = decafgnark.CompressToField(api, shared.senderDivGen)
 	if err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
-	senderTransmissionFq, err := decafgnark.CompressToField(api, shared.senderTransmission)
+	shared.senderTransmission, err = DiversifiedTransmissionKey(
+		api,
+		c.Auth.NK,
+		shared.ak,
+		shared.senderDivGen,
+		c.Auth.IVKReduced,
+		c.Auth.IVKQuotientA,
+	)
+	if err != nil {
+		return shieldedIcs20WithdrawalSharedContext{}, err
+	}
+	shared.senderTransmissionFq, err = decafgnark.CompressToField(api, shared.senderTransmission)
 	if err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
@@ -173,9 +219,9 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
-		senderDivGenFq,
-		senderTransmissionFq,
-		c.Sender.AssetID,
+		shared.senderDivGenFq,
+		shared.senderTransmissionFq,
+		shared.sharedAssetID,
 		c.Sender.SlotID,
 		c.Sender.SlotDerivation,
 		c.Sender.D,
@@ -189,9 +235,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 	}
 	AssertEqualIf(api, senderComplianceRoot, c.ComplianceAnchor, c.IsRegulated)
 
-	api.AssertIsEqual(shared.sharedAssetID, c.OutboundAssetID)
-	api.AssertIsEqual(c.Sender.AssetID, c.OutboundAssetID)
-
 	return shared, nil
 }
 
@@ -204,87 +247,104 @@ func shieldedIcs20WithdrawalSyntheticDummyNullifier(
 	api frontend.API,
 	seed frontend.Variable,
 	authRandomizer frontend.Variable,
-	slotIndex int,
 ) (frontend.Variable, error) {
 	return Poseidon377Hash3(
 		api,
 		shieldedIcs20WithdrawalSyntheticDummyNullifierDomain(),
-		[3]frontend.Variable{seed, authRandomizer, slotIndex},
+		[3]frontend.Variable{seed, authRandomizer, 1},
 	)
 }
 
-func shieldedIcs20WithdrawalSyntheticDummyVerificationKey(
-	api frontend.API,
-	spendAuthKey frontend.Variable,
-	authRandomizer frontend.Variable,
-) (gnarkte.Point, error) {
-	vectors, err := LoadPrototypeVectors()
-	if err != nil {
-		return gnarkte.Point{}, err
-	}
-	curve, err := gnarkte.NewEdCurve(api, curves.BLS12_377)
-	if err != nil {
-		return gnarkte.Point{}, err
-	}
-	generator := gnarkte.Point{
-		X: MustBigInt(vectors.Decaf377CompanionCurve.GeneratorX),
-		Y: MustBigInt(vectors.Decaf377CompanionCurve.GeneratorY),
-	}
-	dummyAK := ScalarMulLE(
-		api,
-		curve,
-		generator,
-		spendAuthKey,
-		MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen(),
-	)
-	return RandomizedVerificationKey(api, dummyAK, authRandomizer)
+type shieldedIcs20WithdrawalVerifiedSpend struct {
+	realNullifier frontend.Variable
+	anchor        frontend.Variable
+	computedRK    gnarkte.Point
+	rkClaimed     gnarkte.Point
+	rkFq          frontend.Variable
 }
 
-func (c *ShieldedIcs20WithdrawalCircuit) verifySpend(
+func (c *ShieldedIcs20WithdrawalCircuit) verifySpendFacts(
 	api frontend.API,
 	shared *shieldedIcs20WithdrawalSharedContext,
-	spend *TransferSpendCircuitFields,
-	index int,
-) (frontend.Variable, frontend.Variable, frontend.Variable, error) {
-	spentDivGen := gnarkte.Point{X: spend.Note.DivGen.X, Y: spend.Note.DivGen.Y}
-	spentTransmission := gnarkte.Point{X: spend.Note.Transmission.X, Y: spend.Note.Transmission.Y}
+	spend *ShieldedIcs20WithdrawalRequiredSpendCircuitFields,
+) (shieldedIcs20WithdrawalVerifiedSpend, error) {
 	rkClaimed := gnarkte.Point{X: spend.RK.X, Y: spend.RK.Y}
-	api.AssertIsBoolean(spend.IsDummy)
-	isNotDummy := api.Sub(1, spend.IsDummy)
 
-	spentDivGenFq, err := decafgnark.CompressToField(api, spentDivGen)
-	if err != nil {
-		return nil, nil, nil, err
-	}
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		spend.Note.Blinding,
 		spend.Note.Amount,
-		spend.Note.AssetID,
-		spentDivGenFq,
-		spend.Note.TransmissionKeyS,
+		shared.sharedAssetID,
+		shared.senderDivGenFq,
+		shared.senderTransmissionFq,
 		spend.Note.ClueKey,
+	)
+	if err != nil {
+		return shieldedIcs20WithdrawalVerifiedSpend{}, err
+	}
+
+	realNullifier, err := Nullifier(api, c.Auth.NK, spentCommitment, spend.StateProof.Position)
+	if err != nil {
+		return shieldedIcs20WithdrawalVerifiedSpend{}, err
+	}
+	statePath := make([][3]frontend.Variable, len(spend.StateProof.Path))
+	copy(statePath, spend.StateProof.Path[:])
+	anchor, err := VerifyStateCommitmentPath(api, spentCommitment, spend.StateProof.Position, statePath)
+	if err != nil {
+		return shieldedIcs20WithdrawalVerifiedSpend{}, err
+	}
+
+	computedRK, err := RandomizedVerificationKey(api, shared.ak, spend.AuthRandomizer)
+	if err != nil {
+		return shieldedIcs20WithdrawalVerifiedSpend{}, err
+	}
+	rkFq, err := decafgnark.CompressToField(api, rkClaimed)
+	if err != nil {
+		return shieldedIcs20WithdrawalVerifiedSpend{}, err
+	}
+	return shieldedIcs20WithdrawalVerifiedSpend{
+		realNullifier: realNullifier,
+		anchor:        anchor,
+		computedRK:    computedRK,
+		rkClaimed:     rkClaimed,
+		rkFq:          rkFq,
+	}, nil
+}
+
+func (c *ShieldedIcs20WithdrawalCircuit) verifyRequiredSpend(
+	api frontend.API,
+	shared *shieldedIcs20WithdrawalSharedContext,
+	spend *ShieldedIcs20WithdrawalRequiredSpendCircuitFields,
+) (frontend.Variable, frontend.Variable, frontend.Variable, error) {
+	verified, err := c.verifySpendFacts(api, shared, spend)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	api.AssertIsEqual(spend.Nullifier, verified.realNullifier)
+	api.AssertIsEqual(verified.anchor, c.Anchor)
+	decafgnark.AssertEquivalent(api, verified.computedRK, verified.rkClaimed)
+	return spend.Note.Amount, spend.Nullifier, verified.rkFq, nil
+}
+
+func (c *ShieldedIcs20WithdrawalCircuit) verifyOptionalSpend(
+	api frontend.API,
+	shared *shieldedIcs20WithdrawalSharedContext,
+	spend *ShieldedIcs20WithdrawalOptionalSpendCircuitFields,
+) (frontend.Variable, frontend.Variable, frontend.Variable, error) {
+	verified, err := c.verifySpendFacts(
+		api,
+		shared,
+		&spend.ShieldedIcs20WithdrawalRequiredSpendCircuitFields,
 	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	AssertEqualIf(api, spentCommitment, spend.StateProof.Commitment, isNotDummy)
-
-	realNullifier, err := Nullifier(api, c.Auth.NK, spend.StateProof.Commitment, spend.StateProof.Position)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	statePath := make([][3]frontend.Variable, len(spend.StateProof.Path))
-	copy(statePath, spend.StateProof.Path[:])
-	anchor, err := VerifyStateCommitmentPath(api, spend.StateProof.Commitment, spend.StateProof.Position, statePath)
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	api.AssertIsBoolean(spend.IsDummy)
+	isNotDummy := api.Sub(1, spend.IsDummy)
 	syntheticNullifier, err := shieldedIcs20WithdrawalSyntheticDummyNullifier(
 		api,
 		spend.DummyNullifierSeed,
 		spend.AuthRandomizer,
-		index,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -292,51 +352,18 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySpend(
 	api.AssertIsEqual(
 		spend.Nullifier,
 		api.Add(
-			api.Mul(isNotDummy, realNullifier),
+			api.Mul(isNotDummy, verified.realNullifier),
 			api.Mul(spend.IsDummy, syntheticNullifier),
 		),
 	)
-	AssertEqualIf(api, anchor, c.Anchor, isNotDummy)
+	AssertEqualIf(api, verified.anchor, c.Anchor, isNotDummy)
 
-	computedRK, err := RandomizedVerificationKey(api, shared.ak, spend.AuthRandomizer)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	dummyRK, err := shieldedIcs20WithdrawalSyntheticDummyVerificationKey(
-		api,
-		spend.DummySpendAuthKey,
-		spend.AuthRandomizer,
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	decafgnark.AssertEquivalentIf(api, computedRK, rkClaimed, isNotDummy)
-	decafgnark.AssertEquivalentIf(api, dummyRK, rkClaimed, spend.IsDummy)
-
-	computedTransmission, err := DiversifiedTransmissionKey(
-		api,
-		c.Auth.NK,
-		shared.ak,
-		spentDivGen,
-		c.Auth.IVKReduced,
-		c.Auth.IVKQuotientA,
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	decafgnark.AssertEquivalentIf(api, computedTransmission, spentTransmission, isNotDummy)
+	// Dummy RKs are authenticated by the transaction-layer signature and do not
+	// authorize a state spend, so only real optional inputs require this relation.
+	decafgnark.AssertEquivalentIf(api, verified.computedRK, verified.rkClaimed, isNotDummy)
 	AssertEqualIf(api, spend.Note.Amount, 0, spend.IsDummy)
 
-	api.AssertIsEqual(spend.Note.AssetID, shared.sharedAssetID)
-	api.AssertIsEqual(c.Sender.AssetID, spend.Note.AssetID)
-	decafgnark.AssertEquivalentIf(api, shared.senderDivGen, spentDivGen, 1)
-	decafgnark.AssertEquivalentIf(api, shared.senderTransmission, spentTransmission, 1)
-
-	rkFq, err := decafgnark.CompressToField(api, rkClaimed)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return spend.Note.Amount, spend.Nullifier, rkFq, nil
+	return spend.Note.Amount, spend.Nullifier, verified.rkFq, nil
 }
 
 func (c *ShieldedIcs20WithdrawalCircuit) verifyChangeOutput(
@@ -344,42 +371,19 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyChangeOutput(
 	shared *shieldedIcs20WithdrawalSharedContext,
 	output *ShieldedIcs20WithdrawalChangeCircuitFields,
 ) (frontend.Variable, frontend.Variable, error) {
-	createdDivGen := gnarkte.Point{X: output.Note.DivGen.X, Y: output.Note.DivGen.Y}
-	createdTransmission := gnarkte.Point{X: output.Note.Transmission.X, Y: output.Note.Transmission.Y}
-
-	createdDivGenFq, err := decafgnark.CompressToField(api, createdDivGen)
-	if err != nil {
-		return nil, nil, err
-	}
 	createdCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		output.Note.Blinding,
 		output.Note.Amount,
-		output.Note.AssetID,
-		createdDivGenFq,
-		output.Note.TransmissionKeyS,
+		shared.sharedAssetID,
+		shared.senderDivGenFq,
+		shared.senderTransmissionFq,
 		output.Note.ClueKey,
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 	api.AssertIsEqual(createdCommitment, output.NoteCommitment)
-
-	computedTransmission, err := DiversifiedTransmissionKey(
-		api,
-		c.Auth.NK,
-		shared.ak,
-		createdDivGen,
-		c.Auth.IVKReduced,
-		c.Auth.IVKQuotientA,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-	decafgnark.AssertEquivalentIf(api, computedTransmission, createdTransmission, 1)
-	api.AssertIsEqual(output.Note.AssetID, shared.sharedAssetID)
-	decafgnark.AssertEquivalentIf(api, createdDivGen, shared.senderDivGen, 1)
-	decafgnark.AssertEquivalentIf(api, createdTransmission, shared.senderTransmission, 1)
 
 	return output.Note.Amount, output.NoteCommitment, nil
 }

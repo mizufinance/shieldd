@@ -1,15 +1,10 @@
 use decaf377::{Fq, Fr};
-use decaf377_ka as ka;
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{Balance, Value};
 use shieldd_sdk_compliance::{AssetPolicy, MerklePath};
-use shieldd_sdk_keys::{
-    keys::{IncomingViewingKey, OutgoingViewingKey},
-    symmetric::{OvkWrappedKey, WrappedMemoKey},
-    Address, FullViewingKey, PayloadKey,
-};
+use shieldd_sdk_keys::{keys::IncomingViewingKey, Address, FullViewingKey};
 use shieldd_sdk_proto::core::component::shielded_pool::v1 as pb;
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
@@ -390,23 +385,6 @@ impl ShieldedOutputPlan {
             .expect("transmission key in address is always valid")
     }
 
-    pub fn action_output_parts(
-        &self,
-        ovk: &OutgoingViewingKey,
-        memo_key: &PayloadKey,
-    ) -> (crate::NotePayload, WrappedMemoKey, OvkWrappedKey) {
-        let note = self.output_note();
-        let esk: ka::Secret = note.ephemeral_secret_key();
-        let ovk_wrapped_key = note.encrypt_key(ovk, self.balance().commit(self.value_blinding));
-        let wrapped_memo_key = WrappedMemoKey::encrypt(
-            memo_key,
-            esk,
-            note.transmission_key(),
-            &note.diversified_generator(),
-        );
-        (note.payload(), wrapped_memo_key, ovk_wrapped_key)
-    }
-
     pub fn is_viewed_by(&self, ivk: &IncomingViewingKey) -> bool {
         ivk.views_address(&self.dest_address)
     }
@@ -473,8 +451,7 @@ impl TryFrom<pb::ShieldedInputPlan> for ShieldedInputPlan {
             .map(|leaf| compliance_leaf_from_proto(leaf, "compliance leaf"))
             .transpose()?;
         let compliance_ephemeral_secret = parse_ephemeral_secret(&msg.compliance_ephemeral_secret)?;
-        let tx_blinding_nonce =
-            parse_tx_blinding_nonce(&msg.tx_blinding_nonce)?.unwrap_or_else(|| Fr::from(0u64));
+        let tx_blinding_nonce = parse_tx_blinding_nonce(&msg.tx_blinding_nonce)?;
         let compliance_anchor =
             parse_state_commitment(msg.compliance_anchor)?.unwrap_or_else(default_state_commitment);
         let asset_anchor =
@@ -491,13 +468,13 @@ impl TryFrom<pb::ShieldedInputPlan> for ShieldedInputPlan {
                 .try_into()?,
             position: msg.position.into(),
             randomizer: Fr::from_bytes_checked(msg.randomizer.as_slice().try_into()?)
-                .expect("randomizer malformed"),
+                .map_err(|_| anyhow::anyhow!("randomizer malformed"))?,
             value_blinding: Fr::from_bytes_checked(msg.value_blinding.as_slice().try_into()?)
-                .expect("value_blinding malformed"),
+                .map_err(|_| anyhow::anyhow!("value_blinding malformed"))?,
             proof_blinding_r: Fq::from_bytes_checked(msg.proof_blinding_r.as_slice().try_into()?)
-                .expect("proof_blinding_r malformed"),
+                .map_err(|_| anyhow::anyhow!("proof_blinding_r malformed"))?,
             proof_blinding_s: Fq::from_bytes_checked(msg.proof_blinding_s.as_slice().try_into()?)
-                .expect("proof_blinding_s malformed"),
+                .map_err(|_| anyhow::anyhow!("proof_blinding_s malformed"))?,
             compliance_path,
             compliance_ciphertext: msg.compliance_ciphertext,
             compliance_leaf,
@@ -616,8 +593,7 @@ impl TryFrom<pb::ShieldedOutputPlan> for ShieldedOutputPlan {
             .map(|leaf| compliance_leaf_from_proto(leaf, "counterparty leaf"))
             .transpose()?;
         let compliance_ephemeral_secret = parse_ephemeral_secret(&msg.compliance_ephemeral_secret)?;
-        let tx_blinding_nonce =
-            parse_tx_blinding_nonce(&msg.tx_blinding_nonce)?.unwrap_or_else(|| Fr::from(0u64));
+        let tx_blinding_nonce = parse_tx_blinding_nonce(&msg.tx_blinding_nonce)?;
         let compliance_anchor =
             parse_state_commitment(msg.compliance_anchor)?.unwrap_or_else(default_state_commitment);
         let asset_anchor =
@@ -643,11 +619,11 @@ impl TryFrom<pb::ShieldedOutputPlan> for ShieldedOutputPlan {
                     .map_err(|_| anyhow::anyhow!("rseed malformed"))?,
             ),
             value_blinding: Fr::from_bytes_checked(msg.value_blinding.as_slice().try_into()?)
-                .expect("value_blinding malformed"),
+                .map_err(|_| anyhow::anyhow!("value_blinding malformed"))?,
             proof_blinding_r: Fq::from_bytes_checked(msg.proof_blinding_r.as_slice().try_into()?)
-                .expect("proof_blinding_r malformed"),
+                .map_err(|_| anyhow::anyhow!("proof_blinding_r malformed"))?,
             proof_blinding_s: Fq::from_bytes_checked(msg.proof_blinding_s.as_slice().try_into()?)
-                .expect("proof_blinding_s malformed"),
+                .map_err(|_| anyhow::anyhow!("proof_blinding_s malformed"))?,
             compliance_path,
             compliance_ciphertext: msg.compliance_ciphertext,
             compliance_leaf,
@@ -713,9 +689,9 @@ fn parse_optional_fr(bytes: &[u8]) -> anyhow::Result<Option<Fr>> {
     if bytes.is_empty() {
         Ok(None)
     } else {
-        Ok(Some(
-            Fr::from_bytes_checked(bytes.try_into()?).expect("Fr bytes malformed"),
-        ))
+        Fr::from_bytes_checked(bytes.try_into()?)
+            .map(Some)
+            .map_err(|_| anyhow::anyhow!("Fr bytes malformed"))
     }
 }
 
@@ -731,4 +707,54 @@ fn parse_fq_or_zero(label: &str, bytes: &[u8]) -> anyhow::Result<Fq> {
         return Ok(Fq::from(0u64));
     }
     Fq::from_bytes_checked(bytes.try_into()?).map_err(|_| anyhow::anyhow!("{label} malformed"))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ops::Deref;
+
+    use rand_core::OsRng;
+    use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM};
+    use shieldd_sdk_keys::test_keys;
+
+    use super::*;
+
+    fn fr_modulus_bytes() -> [u8; 32] {
+        let mut modulus = (-Fr::from(1u64)).to_bytes();
+        for byte in &mut modulus {
+            let (next, carry) = byte.overflowing_add(1);
+            *byte = next;
+            if !carry {
+                break;
+            }
+        }
+        modulus
+    }
+
+    #[test]
+    fn plan_proto_rejects_missing_nonce_and_noncanonical_scalars() {
+        let value = Value {
+            amount: 7u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let note = Note::generate(&mut OsRng, test_keys::ADDRESS_0.deref(), value);
+        let input = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+
+        let mut missing_nonce: pb::ShieldedInputPlan = input.clone().into();
+        missing_nonce.tx_blinding_nonce.clear();
+        ShieldedInputPlan::try_from(missing_nonce)
+            .expect_err("an omitted transaction blinding nonce must fail");
+
+        let mut invalid_randomizer: pb::ShieldedInputPlan = input.into();
+        invalid_randomizer.randomizer = fr_modulus_bytes().to_vec();
+        ShieldedInputPlan::try_from(invalid_randomizer)
+            .expect_err("a non-canonical input randomizer must return an error");
+
+        let output =
+            ShieldedOutputPlan::new(&mut OsRng, value, test_keys::ADDRESS_0.deref().clone());
+        let mut invalid_optional_scalar: pb::ShieldedOutputPlan = output.into();
+        invalid_optional_scalar.r_2 = fr_modulus_bytes().to_vec();
+        ShieldedOutputPlan::try_from(invalid_optional_scalar)
+            .expect_err("a non-canonical optional scalar must return an error");
+    }
 }

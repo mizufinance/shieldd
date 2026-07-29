@@ -93,15 +93,18 @@ fn init_gnark_shielded_ics20_withdrawal_client(
             family_id.label()
         )));
     }
-    let pvk = family_id.proof_verification_key().clone();
+    let vk_json_bytes = family_id.verifying_key_json_bytes();
     let metadata = family_id.circuit_metadata_bytes();
-    GnarkShieldedIcs20WithdrawalClient::from_bundled(&lib_path, pk_bytes, pvk, metadata, family_id)
-        .map_err(|e| {
-            crate::ProofError::ProofGenerationFailed(format!(
-                "gnark {} init: {e}",
-                family_id.label()
-            ))
-        })
+    GnarkShieldedIcs20WithdrawalClient::from_bundled(
+        &lib_path,
+        pk_bytes,
+        vk_json_bytes,
+        metadata,
+        family_id,
+    )
+    .map_err(|e| {
+        crate::ProofError::ProofGenerationFailed(format!("gnark {} init: {e}", family_id.label()))
+    })
 }
 
 fn ensure_client<'a>(

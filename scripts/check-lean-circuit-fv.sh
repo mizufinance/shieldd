@@ -37,6 +37,19 @@ LEAN_DIR="$ROOT/tools/gnark/lean"
 GNARK_DIR="$ROOT/tools/gnark"
 FAMILIES=(note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8)
 
+catalog_certified="$(
+  python3 "$ROOT/scripts/check-fv-profiles.py" --emit-tsv --status certified \
+    | cut -f1 \
+    | LC_ALL=C sort
+)"
+driver_certified="$(printf '%s\n' "${FAMILIES[@]}" | LC_ALL=C sort)"
+if [[ "$catalog_certified" != "$driver_certified" ]]; then
+  diff -u \
+    <(printf '%s\n' "$driver_certified") \
+    <(printf '%s\n' "$catalog_certified") >&2 || true
+  fail "certified FV catalog and exact Lean backend registries differ"
+fi
+
 select_circuits() {
   local selected=()
   local candidate existing seen
@@ -131,7 +144,7 @@ lean_build() {
 }
 
 echo "==> registry parity"
-python3 "$GNARK_DIR/check_note_reshape_registry.py"
+python3 "$GNARK_DIR/check_gnark_family_registries.py"
 
 echo "==> compile all four NoteReshape families once"
 while IFS= read -r circuit; do

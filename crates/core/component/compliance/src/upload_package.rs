@@ -3,6 +3,7 @@ use aes_gcm::{
     Aes256Gcm, Nonce,
 };
 use anyhow::{anyhow, bail, Context, Result};
+use bincode::Options as _;
 use decaf377::{Element, Encoding, Fq, Fr};
 use hkdf::Hkdf;
 use rand_core::{CryptoRng, RngCore};
@@ -20,6 +21,12 @@ const AAD_DOMAIN: &[u8; 15] = b"elgamal-aad-v1\0";
 const DERIVATION_DOMAIN: &[u8; 23] = b"elgamal-derivation-v1\0\0";
 const POLICY_METADATA_DOMAIN: &[u8] = b"orbis-policy-metadata-v1";
 const HKDF_INFO: &[u8] = b"elgamal-aes-key-v1";
+const MAX_ORBIS_IDENTIFIER_BYTES: usize = 4 * 1024;
+const ENCRYPTED_SEED_BYTES: usize = 32 + 16;
+const AES_GCM_NONCE_BYTES: usize = 12;
+
+/// Consensus transport bound for the four-package upload bundle.
+pub const MAX_TRANSFER_ORBIS_UPLOAD_BUNDLE_BYTES: usize = 64 * 1024;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrbisSecretEnvelope {
@@ -111,8 +118,8 @@ impl OrbisEncryptedSeedUploadPackage {
         Fr::from_bytes_checked(&bytes).map_err(|_| anyhow!("invalid response scalar"))
     }
 
-    pub fn challenge_scalar(&self) -> Fq {
-        Fq::from_le_bytes_mod_order(&self.challenge)
+    pub fn challenge_scalar(&self) -> Result<Fq> {
+        parse_challenge(&self.challenge, "challenge")
     }
 
     pub fn orbis_response_scalar(&self) -> Result<Fr> {
@@ -124,12 +131,23 @@ impl OrbisEncryptedSeedUploadPackage {
         Fr::from_bytes_checked(&bytes).map_err(|_| anyhow!("invalid orbis_response scalar"))
     }
 
-    pub fn orbis_challenge_scalar(&self) -> Fq {
-        Fq::from_le_bytes_mod_order(&self.orbis_challenge)
+    pub fn orbis_challenge_scalar(&self) -> Result<Fq> {
+        parse_challenge(&self.orbis_challenge, "orbis_challenge")
     }
 
     pub fn validate(&self) -> Result<()> {
         self.statement.validate_shape()?;
+        for (label, value) in [
+            ("ring_id", self.ring_id.as_str()),
+            ("policy_id", self.policy_id.as_str()),
+            ("resource", self.resource.as_str()),
+            ("permission", self.permission.as_str()),
+        ] {
+            anyhow::ensure!(
+                value.len() <= MAX_ORBIS_IDENTIFIER_BYTES,
+                "{label} exceeds {MAX_ORBIS_IDENTIFIER_BYTES} bytes"
+            );
+        }
         anyhow::ensure!(
             string_to_fq(&self.ring_id) == self.statement.ring_id_hash()?,
             "ring_id does not match statement ring_id_hash"
@@ -166,10 +184,30 @@ impl OrbisEncryptedSeedUploadPackage {
             &derived_pk,
             &enc_cmt,
             &shared_point,
-            &self.challenge_scalar(),
+            &self.challenge_scalar()?,
             &self.response_scalar()?,
             transfer_metadata_hash,
         )?;
+
+        let secret: OrbisSecretEnvelope = serde_json::from_slice(&self.encrypted_document)
+            .context("encrypted_document must be a seed envelope")?;
+        anyhow::ensure!(
+            serde_json::to_vec(&secret)? == self.encrypted_document,
+            "encrypted_document must use canonical JSON encoding"
+        );
+        anyhow::ensure!(
+            secret.enc_cmt == self.enc_cmt,
+            "encrypted_document enc_cmt does not match package enc_cmt"
+        );
+        parse_element(&secret.enc_cmt, "encrypted_document enc_cmt")?;
+        anyhow::ensure!(
+            secret.encrypted_data.len() == ENCRYPTED_SEED_BYTES,
+            "encrypted_document encrypted_data must be {ENCRYPTED_SEED_BYTES} bytes"
+        );
+        anyhow::ensure!(
+            secret.nonce.len() == AES_GCM_NONCE_BYTES,
+            "encrypted_document nonce must be {AES_GCM_NONCE_BYTES} bytes"
+        );
 
         let metadata_hash = self.orbis_policy_metadata();
         anyhow::ensure!(
@@ -180,7 +218,7 @@ impl OrbisEncryptedSeedUploadPackage {
             &derived_pk,
             &enc_cmt,
             &shared_point,
-            &self.orbis_challenge_scalar(),
+            &self.orbis_challenge_scalar()?,
             &self.orbis_response_scalar()?,
             self.metadata_hash_fq()?,
         )
@@ -199,20 +237,57 @@ impl OrbisEncryptedSeedUploadPackage {
 
 impl TransferOrbisUploadBundle {
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
-        bincode::serialize(self).context("failed to serialize Orbis upload bundle")
+        self.validate()?;
+        upload_bundle_bincode_options()
+            .serialize(self)
+            .context("failed to serialize Orbis upload bundle")
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        bincode::deserialize(bytes).context("failed to deserialize Orbis upload bundle")
+        anyhow::ensure!(
+            bytes.len() <= MAX_TRANSFER_ORBIS_UPLOAD_BUNDLE_BYTES,
+            "Orbis upload bundle exceeds {MAX_TRANSFER_ORBIS_UPLOAD_BUNDLE_BYTES} bytes"
+        );
+        let bundle: Self = upload_bundle_bincode_options()
+            .deserialize(bytes)
+            .context("failed to deserialize Orbis upload bundle")?;
+        bundle.validate()?;
+        Ok(bundle)
     }
 
     pub fn validate(&self) -> Result<()> {
+        for (label, package, expected_tier) in [
+            (
+                "sender_core",
+                &self.sender_core,
+                TransferTierKind::SenderCore,
+            ),
+            ("sender_ext", &self.sender_ext, TransferTierKind::SenderExt),
+            (
+                "output_core",
+                &self.output_core,
+                TransferTierKind::OutputCore,
+            ),
+            ("output_ext", &self.output_ext, TransferTierKind::OutputExt),
+        ] {
+            anyhow::ensure!(
+                package.statement.tier == expected_tier,
+                "{label} package has the wrong transfer tier"
+            );
+        }
         self.sender_core.validate()?;
         self.sender_ext.validate()?;
         self.output_core.validate()?;
         self.output_ext.validate()?;
         Ok(())
     }
+}
+
+fn upload_bundle_bincode_options() -> impl bincode::Options {
+    bincode::DefaultOptions::new()
+        .with_fixint_encoding()
+        .with_limit(MAX_TRANSFER_ORBIS_UPLOAD_BUNDLE_BYTES as u64)
+        .reject_trailing_bytes()
 }
 
 pub fn encode_orbis_policy_metadata(
@@ -577,10 +652,107 @@ fn parse_element(bytes: &[u8], label: &str) -> Result<Element> {
         .map_err(|_| anyhow!("invalid {label} encoding"))
 }
 
+fn parse_challenge(bytes: &[u8], label: &str) -> Result<Fq> {
+    let bytes: [u8; 32] = bytes
+        .try_into()
+        .map_err(|_| anyhow!("{label} must be 32 bytes"))?;
+    let scalar = Fr::from_bytes_checked(&bytes).map_err(|_| anyhow!("invalid {label} scalar"))?;
+    // The wire challenge is an Fr scalar. The compliance statement and circuit
+    // expose that canonical scalar through their Fq-valued public-input type.
+    Ok(Fq::from_le_bytes_mod_order(&scalar.to_bytes()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use rand_core::OsRng;
+
+    fn encode_unvalidated(bundle: &TransferOrbisUploadBundle) -> Vec<u8> {
+        upload_bundle_bincode_options()
+            .serialize(bundle)
+            .expect("serialize test bundle")
+    }
+
+    fn fr_modulus_bytes() -> [u8; 32] {
+        let mut modulus = (-Fr::from(1u64)).to_bytes();
+        for byte in &mut modulus {
+            let (next, carry) = byte.overflowing_add(1);
+            *byte = next;
+            if !carry {
+                break;
+            }
+        }
+        modulus
+    }
+
+    #[test]
+    fn upload_bundle_decode_is_bounded_and_canonical() {
+        let (_, bundle, _) = crate::evidence::tests::valid_evidence_fixture();
+        let encoded = bundle.to_bytes().expect("serialize valid upload bundle");
+        assert!(encoded.len() < MAX_TRANSFER_ORBIS_UPLOAD_BUNDLE_BYTES);
+
+        let decoded =
+            TransferOrbisUploadBundle::from_bytes(&encoded).expect("decode canonical bundle");
+        decoded.validate().expect("validate canonical bundle");
+
+        let mut trailing = encoded.clone();
+        trailing.push(0);
+        TransferOrbisUploadBundle::from_bytes(&trailing)
+            .expect_err("trailing upload bundle bytes must be rejected");
+
+        TransferOrbisUploadBundle::from_bytes(&vec![
+            0u8;
+            MAX_TRANSFER_ORBIS_UPLOAD_BUNDLE_BYTES + 1
+        ])
+        .expect_err("oversized upload bundle must be rejected before decoding");
+
+        let mut claimed_length = encoded;
+        let ring_id_length = ("ring-id".len() as u64).to_le_bytes();
+        let length_offset = claimed_length
+            .windows(ring_id_length.len())
+            .position(|window| window == ring_id_length)
+            .expect("canonical bundle contains the ring ID length");
+        claimed_length[length_offset..length_offset + 8].copy_from_slice(&u64::MAX.to_le_bytes());
+        TransferOrbisUploadBundle::from_bytes(&claimed_length)
+            .expect_err("claimed vector length beyond the decode budget must fail");
+    }
+
+    #[test]
+    fn upload_bundle_validation_rejects_semantic_encoding_aliases() {
+        let (_, bundle, _) = crate::evidence::tests::valid_evidence_fixture();
+
+        let mut noncanonical_challenge = bundle.clone();
+        noncanonical_challenge.sender_core.challenge = fr_modulus_bytes().to_vec();
+        TransferOrbisUploadBundle::from_bytes(&encode_unvalidated(&noncanonical_challenge))
+            .expect_err("non-canonical challenge scalar must fail");
+
+        let mut noncanonical_document = bundle.clone();
+        noncanonical_document
+            .sender_core
+            .encrypted_document
+            .push(b' ');
+        TransferOrbisUploadBundle::from_bytes(&encode_unvalidated(&noncanonical_document))
+            .expect_err("non-canonical encrypted document JSON must fail");
+
+        let mut oversized_identifier = bundle.clone();
+        oversized_identifier.sender_core.ring_id = "x".repeat(MAX_ORBIS_IDENTIFIER_BYTES + 1);
+        oversized_identifier
+            .to_bytes()
+            .expect_err("canonical encoder must reject oversized identifiers");
+        TransferOrbisUploadBundle::from_bytes(&encode_unvalidated(&oversized_identifier))
+            .expect_err("oversized upload package identifier must fail");
+
+        let mut swapped_tiers = bundle;
+        std::mem::swap(
+            &mut swapped_tiers.sender_core,
+            &mut swapped_tiers.sender_ext,
+        );
+        swapped_tiers
+            .to_bytes()
+            .expect_err("canonical encoder must reject packages in the wrong tier slot");
+        TransferOrbisUploadBundle::from_bytes(&encode_unvalidated(&swapped_tiers))
+            .expect_err("upload packages in the wrong tier slot must fail");
+    }
 
     #[test]
     fn upload_package_roundtrips_seed_and_proof() {

@@ -10,7 +10,7 @@ use crate::{
     NoteReshapeOutputPublic, NoteReshapeProofPublic,
 };
 
-pub fn note_reshape_verify_auth_sigs(
+fn note_reshape_verify_auth_sigs(
     note_reshape: &NoteReshape,
     context: &TransactionContext,
 ) -> Result<()> {
@@ -23,7 +23,7 @@ pub fn note_reshape_verify_auth_sigs(
     )
 }
 
-pub fn note_reshape_extract_public(
+fn note_reshape_extract_public(
     note_reshape: &NoteReshape,
     context: &TransactionContext,
 ) -> Result<NoteReshapeProofPublic> {
@@ -58,7 +58,7 @@ pub fn note_reshape_extract_public(
     Ok(public)
 }
 
-pub fn note_reshape_to_batch_item(
+fn note_reshape_to_batch_item(
     note_reshape: &NoteReshape,
     public: NoteReshapeProofPublic,
 ) -> Result<BatchItem> {
@@ -69,6 +69,8 @@ pub fn note_reshape_check_stateless_and_extract(
     note_reshape: &NoteReshape,
     context: &TransactionContext,
 ) -> Result<BatchItem> {
+    note_reshape::validate_action_anchor("note_reshape", note_reshape.body.anchor, context)?;
+    note_reshape.body.validate_shape()?;
     note_reshape_verify_auth_sigs(note_reshape, context)?;
     let public = note_reshape_extract_public(note_reshape, context)?;
     note_reshape_to_batch_item(note_reshape, public)
@@ -89,7 +91,7 @@ impl ActionHandler for NoteReshape {
     }
 
     async fn check_and_execute<S: StateWrite>(&self, mut state: S) -> Result<()> {
-        note_reshape::execute_note_reshape(
+        note_reshape::execute_proof_bound_effects(
             &mut state,
             &self.body.inputs,
             &self.body.outputs,

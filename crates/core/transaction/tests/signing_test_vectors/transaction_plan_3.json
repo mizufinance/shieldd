@@ -4,7 +4,47 @@
       "ibcRelayAction": {
         "rawAction": {
           "typeUrl": "/ibc.core.channel.v1.MsgRecvPacket",
-          "value": "CrEBCN7LsQESC2RlZmF1bHRQb3J0GgljaGFubmVsLTAiC2RlZmF1bHRQb3J0KgljaGFubmVsLTAyZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA6CgiG2KccEOCq8SlAkKWngYvF4OEYEgIKABoKCIbYpxwQ4KrxKSKOAXNoaWVsZGQxYTluMnlyMG55ZzVjejVzNjk1Z2Z3ZjI0cWRjeXM2ZnUzcWdheWtkODAyZ2FjZTk5YXlqaHdtdWhxcmd1dWozOGh4anZhY2o1cTZjOGc0eDZjajI1NDh4ZDdzN3p4NzcwazhnNHhwMHNnZ2RyOW55eDdtN3lqY2tzajN1dDB3ODc4OTA0NWc="
+          "value": "CrIBCN+3y8gGEgtkZWZhdWx0UG9ydBoJY2hhbm5lbC0wIgtkZWZhdWx0UG9ydCoJY2hhbm5lbC0wMmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOgsIsN6WiQIQhP3UbUCil8GR3pH+IxICCgAaCwiw3paJAhCE/dRtIo4Bc2hpZWxkZDE4eDZjMHl6Y3VsZTVwNmd0azh5bDVoOW5ydGV5cXpnMGx0bm42dGtyN3M3YW4yNWNseWpkc2xmbnZnaGUzOW1sMHhkNXNwNnR1ODlhYXprc2hlZjVmNGxxcGhtaGNrYzUzanN5bHlzOWFrNmNubm1qYXFuYXRnZzZ1Z2RoanAyejl2cWp1Mg=="
+        }
+      }
+    },
+    {
+      "validatorVote": {
+        "body": {
+          "proposal": "486592089",
+          "vote": {
+            "vote": "VOTE_NO"
+          },
+          "identityKey": {
+            "ik": "71A4D1rH3rcvL/VWf8MFdxX8FrGi3lYz7qstEokC/O0="
+          },
+          "governanceKey": {
+            "gk": "tjh0EELCl/94PbCsWkNFv5U1QM1JtDixkzzajv4wfw8="
+          },
+          "reason": {
+            "reason": "d9cSqR1kWH5ghGYp6"
+          }
+        },
+        "authSig": {
+          "inner": "VhGDdOCLdy+xVyNBMuK5U3Iw3gafBJrQ3QQKm/nSWwpYIuAj2+CAjnIOX/hcBezPUhYiVlvcTi7tpWt7rnPTAQ=="
+        }
+      }
+    },
+    {
+      "proposalSubmit": {
+        "proposal": {
+          "title": "ost-493829",
+          "description": "bcprddyfrpyofpmqtvcbzvd-43771575157",
+          "signaling": {}
+        },
+        "proposer": {
+          "ik": "NDqeKPDpZCrEnLp6EvJSz/F9dDJyDE8KSnq3eg3WcL8="
+        },
+        "governanceKey": {
+          "gk": "tlHw46Cg7DWZkaUytNEZ6ekY4i0oByJBPrNyVGCMbQE="
+        },
+        "authSig": {
+          "inner": "Yi/otrTVEFTgzI/FN5aeJHvlGxyGR/poNlTeQImIYg6kYsUhVkTujCMpXDBfNjNzrCOy2lA5Zzpdl0MJ6V07BA=="
         }
       }
     },
@@ -16,7 +56,7 @@
             "inner": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
           },
           "balanceCommitment": {
-            "inner": "FOGR5BIRq2CJoRbOkCT2Gj98hKzsHSQwLqZOLP4UARE="
+            "inner": "XDTJdQzuBBBZWdTGZRHpgjYeW4HA0NLDLha+0hPC3QY="
           },
           "inputs": [
             {
@@ -25,7 +65,8 @@
               },
               "rk": {
                 "inner": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-              }
+              },
+              "encryptedBackref": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             },
             {
               "nullifier": {
@@ -33,18 +74,19 @@
               },
               "rk": {
                 "inner": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-              }
+              },
+              "encryptedBackref": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             }
           ],
           "outputs": [
             {
               "notePayload": {
                 "noteCommitment": {
-                  "inner": "RHR8SrS9ShBVWTaD6kwMOhnpMWn7Qq68kgi+lPy+JQ0="
+                  "inner": "FNisxPOj7Wpkq7NWnsCGtkWzeCc/rkHV237mYywgHwg="
                 },
-                "ephemeralKey": "4sZfxECbVpX+al5cu1ZJ8rQoYvvMqED6OZUpio0MlxA=",
+                "ephemeralKey": "piWoVeMIztcItUc1o6nqzxIzSHDg1ywa6jwTyQL3bw8=",
                 "encryptedNote": {
-                  "inner": "OSt57+sqXomeeWRycdOQ08ihr1tbC1yQDiK9wMLWvTnMgmvhRpbcsRdHbATw64RARwCOgNy/G/imSt5W6ls5WSMySsI8/oj4F2e3mCgcQ28e2x3Lhq9ST+wwrfh+LqA3cuZDvVTU2Os3cdl+q7NJTgY+vjAZXVp+YoGKYE6rHHx7cYsN8ugLprogTTAiEQW45w6kbfBBw9r+uTa7qMoicVBbrUNWuqpr9vJwq5p8jkQ="
+                  "inner": "3/GAAVY4ulh/mFBD7HvmZwXLem8syWlL8LFPnrKXMjmS1Rd7utDDTzBx5rSyl+9hoZAhlDIfVkWZ15MwYtO/uITa8vX66QkTTzvG0UV3ZbCFZ6qPoRDdBP2vllzDlGEOTcVIVm7/1A9ELOdRLni8IZn5FVJR6jApPBrJMB5htAuOVxmYxwhqFDcEuITdBc08yhguPUA0xin8JrnJBh4NJDS9aYenuusP99nwKREsxuo="
                 }
               },
               "wrappedMemoKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -52,29 +94,29 @@
             }
           ]
         },
-        "valueBlinding": "AmYNxMI+icMjuN1IREFjD710D/FZWQ2RZ54diUu2iAQ=",
+        "valueBlinding": "X254M/4pWuhxktrOZXGjp1EphLgrctP+VRz5hv4FqgE=",
         "balance": {},
         "spends": [
           {
             "note": {
               "value": {
                 "amount": {
-                  "lo": "482842793892733996"
+                  "lo": "677721062492771378"
                 },
                 "assetId": {
                   "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
                 }
               },
-              "rseed": "llRk/Ugibdap7xIuATKZ+rJdvc+wOqgLu18xJI1PkgE=",
+              "rseed": "zOYkJNm1a1UloiuxWpPNEjV1Yy6mlr6sBuIZbuLJ6UI=",
               "address": {
                 "inner": "f5S87pFJRemOtMohDnOA8JE6v1moYepaF9LUFMbUhtbAlillFc83/YJQk1xWthW9oldw8HcoETnAmyKLDGgXQ9fXGnoT6opn0I0TsUULBE4="
               }
             },
-            "position": "48527208550127",
-            "randomizer": "jp/c9pOzB+gJpSwAD6qPE5smcdPnTRxHpBK4xjTsbgI=",
-            "valueBlinding": "ufjiF2doB1isWZKlcC8U/eLMmwDpPnpRLeTsQuRLgQI=",
-            "proofBlindingR": "RTcfuqLKRBqF10ZpE5uiWs1WdFyB8eg3tgiha698QAE=",
-            "proofBlindingS": "FrJ9JmxMx+k9C19ZKjwyyhQEwOXODfIqmSXMYZgPsQM=",
+            "position": "26865325483493",
+            "randomizer": "U7Qn3R3pivIbdEKgJCVHudcPhtXwIpe4l1+EYwPYZgQ=",
+            "valueBlinding": "ptaB0z/tsiv659y3ZAT2/BP/eHRbjLdGZ0HO//BsHAQ=",
+            "proofBlindingR": "m6xd+ENYQUm97EJ18OVmIHRgdg+r6hKoES0wu8cyZAA=",
+            "proofBlindingS": "wPPni0Jtu4lS++IePaN2/Kio2ProJCUCHzVitRdyOws=",
             "targetTimestamp": "1700000000",
             "complianceLeaf": {
               "address": {
@@ -86,7 +128,7 @@
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
               "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
             },
-            "txBlindingNonce": "KojT1NDB/1nce3hZnfyrG21YMRkFI9X0JR3mpsJSIwM=",
+            "txBlindingNonce": "xlEyZxu+Q9CWC8K4OUN9Qo2sxprDcbgSKyAhe+r2sAA=",
             "complianceAnchor": {
               "inner": "qbH17/XFERx6iqnEwjLIj6XLvL9ARtroPY4luEpa8Q8="
             },
@@ -350,22 +392,22 @@
             "note": {
               "value": {
                 "amount": {
-                  "lo": "396370998507094930"
+                  "lo": "977634398580592033"
                 },
                 "assetId": {
                   "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
                 }
               },
-              "rseed": "NOQrDSvDLFFMlfWCf3blEZZKHfPzw2ZGqjoL+rtjJnA=",
+              "rseed": "sLhgqfKTe9cL+HHaQUQjslfhCaSW1UosvzyCYUjUUog=",
               "address": {
                 "inner": "f5S87pFJRemOtMohDnOA8JE6v1moYepaF9LUFMbUhtbAlillFc83/YJQk1xWthW9oldw8HcoETnAmyKLDGgXQ9fXGnoT6opn0I0TsUULBE4="
               }
             },
-            "position": "22670992228556",
-            "randomizer": "1iEKnwCQZaKlJTz01kasu+nvS3g0V7yj4pXAzjpQ/QM=",
-            "valueBlinding": "e+fG9NFz8Fy12Pq6zRMYkBw2D3RjuTqkpFZs0u0LPQI=",
-            "proofBlindingR": "cmo/wK5egfmNwrdExyMJ6biHtOs2xiRpUrnY3oQEMwo=",
-            "proofBlindingS": "HOw4mVXY7YF3BZZ088K951TR8aupbu7r9D8VbLE3OQ4=",
+            "position": "23062291530118",
+            "randomizer": "l8AvwaSLQeo2aVQMC81geU3liw2l8Y0uq3ftQZK4NgA=",
+            "valueBlinding": "olABp4X4rva8oro1cW/gVkLWNdfjFqBxHSo0lOv90gE=",
+            "proofBlindingR": "G0RGKAdT5+rSMj7vvkVLCvTR04u5nHHFBuPivC9wRAs=",
+            "proofBlindingS": "wgd8Up+xEKsFuY2iVxGPb3i7yREtQM31a+QO7UXbOgY=",
             "targetTimestamp": "1700000000",
             "complianceLeaf": {
               "address": {
@@ -377,7 +419,7 @@
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
               "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
             },
-            "txBlindingNonce": "aFS5YtfVAPXIhjvSnPtb8eWBSUZKRxvLYnsf5CSSLgI=",
+            "txBlindingNonce": "bP5gKzehYIh4/UXnmIiG53ohKzvodaTeRbLJeJkCiwM=",
             "complianceAnchor": {
               "inner": "qbH17/XFERx6iqnEwjLIj6XLvL9ARtroPY4luEpa8Q8="
             },
@@ -642,7 +684,7 @@
           {
             "value": {
               "amount": {
-                "lo": "879213792399828926"
+                "lo": "1655355461073363411"
               },
               "assetId": {
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
@@ -651,10 +693,10 @@
             "destAddress": {
               "inner": "f5S87pFJRemOtMohDnOA8JE6v1moYepaF9LUFMbUhtbAlillFc83/YJQk1xWthW9oldw8HcoETnAmyKLDGgXQ9fXGnoT6opn0I0TsUULBE4="
             },
-            "rseed": "ftnGmMVTK3vuNJa9nnvfSKuVOglT4TutqiIpbc6D/98=",
-            "valueBlinding": "Kh+dh6LgXu44aw0joaXQ8pB4q0t2817bPkIF/qZNrAM=",
-            "proofBlindingR": "5UcJ4/C6/wOPRedMI+WtVpTLOUXp0ObRBy6T4zjofAA=",
-            "proofBlindingS": "Y67G9iZp17FF5vBSYkHdlBeTiDcNuiPu5uf8IR8JVBA=",
+            "rseed": "u2v6hcipWq8JXbGBsn2yqCmusoSJOZRvm5iCbGar4qA=",
+            "valueBlinding": "dPIqdrpQI63b6+Uw90FInk8299cHDxdMnkkn4JRlGgM=",
+            "proofBlindingR": "AuInPO2+7xtEVdAfyJpjWEV+jiBvdW9dvIhp5lUdbwA=",
+            "proofBlindingS": "nLDZH41R2EpNAeoAzTs/DnTtaWekBIrtm3rO5o1rZAw=",
             "targetTimestamp": "1700000000",
             "complianceLeaf": {
               "address": {
@@ -676,7 +718,7 @@
               "d": "21a1slJRj87qGhwqRWGy62QF1f89n5mHilbKPW7riwM=",
               "slotDerivation": "/q1rwJrc4WrTbbSnH8fM73Ll3r9XtbcJ/Cow/zNegBA="
             },
-            "txBlindingNonce": "7NdX6E8e0QgjxTT+hCmkiHSV080iynQ+/EOFwe/RfgM=",
+            "txBlindingNonce": "6vjlT6TdV0LUbwxVZ2PtqY9+kkbF8bwrZtoyQ/WNlwA=",
             "complianceAnchor": {
               "inner": "qbH17/XFERx6iqnEwjLIj6XLvL9ARtroPY4luEpa8Q8="
             },
@@ -945,11 +987,11 @@
     }
   ],
   "transactionParameters": {
-    "expiryHeight": "3681142367",
-    "chainId": "axhkrdebdbambiiaederezqziylvnn-079065775",
+    "expiryHeight": "9426576003",
+    "chainId": "coqgngobgdfaulbqd-78202310",
     "fee": {
       "amount": {
-        "lo": "367510670712762253"
+        "lo": "665253098518311685"
       }
     }
   }

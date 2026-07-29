@@ -196,7 +196,7 @@ impl NoteFlowView for ShieldedIcs20WithdrawalView {
     fn created_notes(&self) -> Option<&[shieldd_sdk_shielded_pool::NoteView]> {
         match self {
             ShieldedIcs20WithdrawalView::Visible { change_note, .. } => {
-                Some(std::slice::from_ref(change_note))
+                Some(change_note.as_ref().map_or(&[], std::slice::from_ref))
             }
             ShieldedIcs20WithdrawalView::Opaque { .. } => None,
         }
@@ -298,7 +298,8 @@ mod tests {
                                     rk: decaf377_rdsa::VerificationKey::from(
                                         SigningKey::<SpendAuth>::from(Fr::from(2u64)),
                                     ),
-                                    encrypted_backref: EncryptedBackref::dummy(),
+                                    encrypted_backref: EncryptedBackref::try_from([1u8; 48])
+                                        .expect("fixed-size encrypted backref"),
                                     compliance_ciphertext: Vec::new(),
                                 }],
                                 withdrawal: Ics20Withdrawal {
@@ -330,7 +331,7 @@ mod tests {
                             proof: ShieldedIcs20WithdrawalProof::default(),
                         },
                         spent_notes: vec![note_view(&spent_note)],
-                        change_note: note_view(&change_note),
+                        change_note: Some(note_view(&change_note)),
                         payload_key: PayloadKey::from([0u8; 32]),
                     },
                 )],

@@ -6,12 +6,52 @@ OUTPUT-WELL-FORMEDNESS|tools/gnark/internal/circuits/shared_core.go:NoteCommitme
 REGULATED-STATUS-SOUNDNESS|crates/core/component/compliance/src/r1cs.rs:verify_asset_registry_imt
 CIPHERTEXT-CORRECTNESS|tools/gnark/internal/compliance/transfer_encryption.go:VerifyPoseidonEncryptionTransferDetection
 STATEMENT-INTEGRITY|tools/gnark/internal/abi/statement_fields_test.go:TestRustGoStatementFieldDifferential
+WITNESS-ABI-CANONICALITY|crates/core/component/shielded-pool/src/gnark/binary.rs:pub(crate) fn read_bool
+FIXED-ARITY-PRIVACY|crates/core/component/shielded-pool/src/note_reshape/plan.rs:let backref = crate::Backref::new
+ACTION-ANCHOR-CONSISTENCY|crates/core/component/shielded-pool/src/component/action_handler/note_reshape.rs:pub(crate) fn validate_action_anchor
+CONSENSUS-PROOF-EXTRACTION-COMPOSITION|crates/core/app/src/app/mod.rs:async fn collect_consensus_proof_items_with_artifacts
+OUTGOING-VIEW-BINDING|crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/plan.rs:withdrawal change key must unwrap with the serialized action commitment
+PLAN-BOUNDARY-CANONICALITY|crates/core/component/shielded-pool/src/compliance_helpers.rs:pub fn parse_tx_blinding_nonce
+FV-ARTIFACT-CANONICALITY|tools/gnark/internal/artifacts/key_io.go:func ReadProvingKeyStrict
+FV-PROFILE-COMPLETENESS|scripts/check-fv-profiles.py:def validate_registry_completeness
+SYMBOLIC-LEMMA-CLOSURE|scripts/compliance-symbolic.sh:check_lemma_inventory()
 NOTE-RESHAPE-LEAN-SOUNDNESS|tools/gnark/internal/circuits/note_reshape_circuit.go:func (c *NoteReshapeCircuit) Define
 TRANSFER-LEAN-SOUNDNESS|tools/gnark/internal/circuits/transfer_circuit.go:func (c *TransferCircuit) Define
+WITHDRAWAL-LEAN-SOUNDNESS|tools/gnark/internal/circuits/shielded_ics20_withdrawal_circuit.go:func (c *ShieldedIcs20WithdrawalCircuit) Define
 ZK-FIND-GO-UNREGULATED-NONMEMBERSHIP|tools/gnark/internal/compliance/indexed_tree.go:func VerifyAssetRegistryIMT
 ZK-FIND-WITHDRAWAL-EFFECT-HASH-EXTERNAL|crates/core/component/shielded-pool/src/component/action_handler/shielded_ics20_withdrawal.rs:shielded_ics20_withdrawal_extract_public
 ZK-FIND-DUMMY-NULLIFIER-DOMAIN|crates/core/component/shielded-pool/src/note_reshape_padding.rs:synthetic_dummy_nullifier
-ZK-FIND-RUST-GO-FIELD-CORRESPONDENCE|tools/gnark/internal/abi/statement_fields.go:ReconstructedTransferStatementFieldsFromWitnessV1
+ZK-FIND-RUST-GO-FIELD-CORRESPONDENCE|tools/gnark/internal/abi/statement_fields.go:ReconstructedTransferStatementFieldsFromWitnessV11
+ZK-FIND-PROOF-BOUND-EFFECT-FILTERING|crates/core/component/shielded-pool/src/component/action_handler/note_reshape.rs:execute_proof_bound_effects
+ZK-FIND-PROOF-BOUND-EFFECT-ATOMICITY|crates/core/component/shielded-pool/src/component/action_handler/note_reshape.rs:nullify_all
+ZK-FIND-WITHDRAWAL-TRANSMISSION-BINDING|tools/gnark/internal/circuits/shielded_ics20_withdrawal_circuit.go:senderTransmissionFq
+ZK-FIND-PROOF-ENCODING-CANONICAL|crates/core/component/shielded-pool/src/groth16_proof.rs:pub(crate) fn decode
+ZK-FIND-TRANSFER-FALSE-CERTIFICATION|tools/gnark/fv_profiles.json:"status": "candidate"
+ZK-FIND-WITHDRAWAL-FV-MISSING|tools/gnark/internal/circuits/wiring_transcript.go:CompileShieldedIcs20WithdrawalForFV
+ZK-FIND-PADDED-AUTH-HASH-BINDING|crates/core/transaction/src/plan.rs:apply_auth_data_rebinds_note_reshape_dummy_signatures_to_transaction_hash
+ZK-FIND-FV-PROMOTION-FAIL-OPEN|scripts/check-fv-profiles.py:CERTIFICATION_ROOTS
+ZK-FIND-COMPLIANCE-POSITION-ALIAS|tools/gnark/internal/compliance/indexed_tree_test.go:positionAlias
+ZK-FIND-FV-APPLICABILITY-GAP|ci/gates/soundness-formal.json:shieldd-sdk-transaction
+ZK-FIND-REQUIRED-SLOT-DUMMY-SURFACE|tools/gnark/internal/circuits/transfer_circuit.go:type TransferRequiredSpendCircuitFields struct
+ZK-FIND-DUPLICATE-ADDRESS-WITNESSES|tools/gnark/internal/circuits/transfer_circuit.go:type TransferChangeOutputCircuitFields struct
+ZK-FIND-WITNESS-ABI-MALLEABILITY|crates/core/component/shielded-pool/src/gnark/binary.rs:pub(crate) fn read_fr
+ZK-FIND-HIDDEN-ARITY-SENTINELS|crates/core/component/shielded-pool/src/note_reshape/plan.rs:backref.encrypt(&fvk.backref_key(), &nullifier)
+ZK-FIND-ACTION-ANCHOR-DIVERGENCE|crates/core/component/shielded-pool/src/component/action_handler/note_reshape.rs:body anchor does not match transaction anchor
+ZK-FIND-UNAUTHENTICATED-ACTION-API|crates/core/component/shielded-pool/src/transfer/plan.rs:pub fn build_unauth_transfer(
+ZK-FIND-OUTGOING-VIEW-COMMITMENT-CONTEXT|crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/plan.rs:withdrawal change key must unwrap with the serialized action commitment
+ZK-FIND-FORMAL-STAMP-DRIFT|scripts/compliance-alloy.sh:MODE="${1:-check}"
+ZK-FIND-CONSENSUS-EXTRACTOR-CHECK-BYPASS|crates/core/app/src/app/mod.rs:async fn collect_consensus_proof_items_with_artifacts
+ZK-FIND-TRANSFER-COMPLIANCE-BUNDLE-DECODING|crates/core/component/compliance/src/upload_package.rs:pub fn from_bytes(bytes: &[u8]) -> Result<Self>
+ZK-FIND-WITHDRAWAL-PLAN-INVARIANT-DRIFT|crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/plan.rs:pub fn refresh_body_public_inputs
+ZK-FIND-SHIELDED-PLAN-DECODE-CANONICALITY|crates/core/component/shielded-pool/src/compliance_helpers.rs:pub fn parse_tx_blinding_nonce
+ZK-FIND-COMPLIANCE-PATH-IMPLICIT-PADDING|crates/core/component/compliance/src/structs.rs:pub fn validate(&self) -> anyhow::Result<()>
+ZK-FIND-FV-CANDIDATE-MANIFEST-VALIDATION|scripts/check-fv-profiles.py:def validate_manifest_segments
+ZK-FIND-FV-ARTIFACT-CANONICALITY|tools/gnark/internal/artifacts/key_io.go:func ReadProvingKeyStrict
+ZK-FIND-FV-RUNTIME-REGISTRY-DIVERGENCE|scripts/check-fv-profiles.py:def load_runtime_profiles
+ZK-FIND-SYMBOLIC-LEMMA-INVENTORY|scripts/compliance-symbolic.sh:check_lemma_inventory()
+ZK-FIND-TRANSFER-PLAN-INVARIANT-DRIFT|crates/core/component/shielded-pool/src/transfer/plan.rs:transfer body balance commitment must match plan balance
+ZK-FIND-WITHDRAWAL-UNUSED-CIPHERTEXT|crates/core/component/shielded-pool/src/component/action_handler/shielded_ics20_withdrawal.rs:compliance ciphertext must be empty
+ZK-FIND-FV-METADATA-SCHEMA|tools/gnark/internal/artifacts/artifacts.go:const CircuitMetadataSchema
 ZK-PROP-AMOUNT-RANGE-128|tools/gnark/internal/circuits/amount_range_test.go:TestAmountRangeBoundIs128Bits
 ZK-PROP-NOTE-RESHAPE-STATEMENT-SEAM|tools/gnark/internal/primitives/crypto_primitives_test.go:TestNoteReshapeStatementSeamsMatchShielddVectors
 ZK-PROP-C2X1-STATEMENT-SUFFICIENT|crates/core/component/compliance/formal/alloy/note_reshape2x1-statement-sufficiency.als:assert NoDoubleSpend

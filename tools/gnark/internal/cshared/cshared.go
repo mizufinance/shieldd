@@ -130,7 +130,14 @@ func InitFromDir[T any](
 	if err != nil {
 		return initError(fmt.Errorf("load circuit metadata: %w", err))
 	}
-	pk, err := loadProvingKey(filepath.Join(dir, "proving_key.bin"))
+	pkBytes, err := os.ReadFile(filepath.Join(dir, "proving_key.bin"))
+	if err != nil {
+		return initError(fmt.Errorf("read proving key: %w", err))
+	}
+	if err := artifacts.ValidateProvingKeyBytes(metadata, pkBytes); err != nil {
+		return initError(err)
+	}
+	pk, err := loadProvingKeyFromBytes(pkBytes)
 	if err != nil {
 		return initError(fmt.Errorf("load proving key: %w", err))
 	}
@@ -166,6 +173,9 @@ func InitFromBytes[T any](
 	pkBytes, err := SafeBytes(pkData, pkLen, MaxInitBytes)
 	if err != nil {
 		return initError(fmt.Errorf("read proving key bytes: %w", err))
+	}
+	if err := artifacts.ValidateProvingKeyBytes(metadata, pkBytes); err != nil {
+		return initError(err)
 	}
 	pk, err := loadProvingKeyFromBytes(pkBytes)
 	if err != nil {
@@ -262,24 +272,6 @@ func initError(err error) InitResult {
 	return InitResult{Err: Failure(err, 0).Payload}
 }
 
-func loadProvingKey(path string) (*groth16bls.ProvingKey, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	pk := new(groth16bls.ProvingKey)
-	if _, err := pk.ReadFrom(file); err != nil {
-		return nil, err
-	}
-	return pk, nil
-}
-
 func loadProvingKeyFromBytes(data []byte) (*groth16bls.ProvingKey, error) {
-	pk := new(groth16bls.ProvingKey)
-	if _, err := pk.ReadFrom(bytes.NewReader(data)); err != nil {
-		return nil, err
-	}
-	return pk, nil
+	return artifacts.ReadProvingKeyStrict(bytes.NewReader(data))
 }

@@ -50,26 +50,33 @@ func ensureFieldCount(label string, fields [][32]byte, expected int) error {
 	return nil
 }
 
-// ReconstructedTransferStatementFieldsFromWitnessV1 mirrors the Go transfer
-// circuit's statement-field order using decoded witness fields, not the stored
-// StatementFields vector.
-func ReconstructedTransferStatementFieldsFromWitnessV1(
-	witness *TransferWitnessV1Binary,
+// ReconstructedTransferStatementFieldsFromWitnessV11 mirrors the Go transfer
+// circuit's statement-field order using the canonical v11 witness records.
+func ReconstructedTransferStatementFieldsFromWitnessV11(
+	witness *TransferWitnessV11Binary,
 ) ([][32]byte, error) {
 	expected := expectedTransferStatementFieldCount()
 	fields := make([][32]byte, 0, expected)
-	fields = append(fields, witness.Anchor)
-	for _, output := range witness.Outputs {
-		fields = append(fields, output.NoteCommitment)
-	}
+	fields = append(
+		fields,
+		witness.Anchor,
+		witness.ReceiverOutput.NoteCommitment,
+		witness.ChangeOutput.NoteCommitment,
+	)
 	balanceCommitment, err := pointAffineToField(witness.BalanceCommitmentAffine)
 	if err != nil {
 		return nil, fmt.Errorf("compress transfer balance commitment: %w", err)
 	}
 	fields = append(fields, balanceCommitment)
-	for index, spend := range witness.Spends {
-		fields = append(fields, spend.Nullifier)
-		rk, err := pointAffineToField(spend.RKAffine)
+	for index, spend := range []struct {
+		nullifier [32]byte
+		rk        PointAffineBinary
+	}{
+		{witness.RequiredSpend.Nullifier, witness.RequiredSpend.RKAffine},
+		{witness.OptionalSpend.Nullifier, witness.OptionalSpend.RKAffine},
+	} {
+		fields = append(fields, spend.nullifier)
+		rk, err := pointAffineToField(spend.rk)
 		if err != nil {
 			return nil, fmt.Errorf("compress transfer rk_%d: %w", index, err)
 		}
@@ -85,7 +92,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV1(
 	}
 	fields = append(fields, witness.DetectionCiphertext...)
 
-	appendTier := func(label string, tier TransferComplianceCiphertextWitnessV1Binary, expectedCiphertext int) error {
+	appendTier := func(label string, tier TransferComplianceCiphertextWitnessV11Binary, expectedCiphertext int) error {
 		if len(tier.Ciphertext) != expectedCiphertext {
 			return fmt.Errorf(
 				"expected %d %s ciphertext elements, got %d",
@@ -105,7 +112,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV1(
 
 	for _, tier := range []struct {
 		label              string
-		value              TransferComplianceCiphertextWitnessV1Binary
+		value              TransferComplianceCiphertextWitnessV11Binary
 		expectedCiphertext int
 	}{
 		{"sender_core", witness.SenderCore, compliance.TransferCoreCiphertextFQCount},
@@ -120,7 +127,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV1(
 
 	fields = append(fields, witness.TargetTimestamp)
 
-	appendProof := func(label string, tier TransferComplianceCiphertextWitnessV1Binary) error {
+	appendProof := func(label string, tier TransferComplianceCiphertextWitnessV11Binary) error {
 		derivedPK, err := pointAffineToField(tier.DerivedPKAffine)
 		if err != nil {
 			return fmt.Errorf("compress %s derived_pk: %w", label, err)
@@ -154,7 +161,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV1(
 
 	for _, tier := range []struct {
 		label string
-		value TransferComplianceCiphertextWitnessV1Binary
+		value TransferComplianceCiphertextWitnessV11Binary
 	}{
 		{"sender_core", witness.SenderCore},
 		{"sender_ext", witness.SenderExt},
@@ -228,11 +235,11 @@ func ReconstructedNoteReshapeStatementFieldsFromWitnessV3(
 	return fields, nil
 }
 
-// ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV1 mirrors the
+// ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV6 mirrors the
 // Go shielded ICS-20 withdrawal circuit's statement-field order using decoded
 // witness fields.
-func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV1(
-	witness *ShieldedIcs20WithdrawalWitnessV1Binary,
+func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV6(
+	witness *ShieldedIcs20WithdrawalWitnessV6Binary,
 ) ([][32]byte, error) {
 	expected := primitives.ShieldedIcs20WithdrawalStatementFieldCount(int(witness.NIn))
 	fields := make([][32]byte, 0, expected)
@@ -242,7 +249,10 @@ func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV1(
 		return nil, fmt.Errorf("compress shielded ICS-20 withdrawal balance commitment: %w", err)
 	}
 	fields = append(fields, balanceCommitment)
-	for index, spend := range witness.Spends {
+	for index, spend := range []ShieldedIcs20WithdrawalRequiredSpendWitnessV6Binary{
+		witness.RequiredSpend,
+		witness.OptionalSpend.ShieldedIcs20WithdrawalRequiredSpendWitnessV6Binary,
+	} {
 		fields = append(fields, spend.Nullifier)
 		rk, err := pointAffineToField(spend.RKAffine)
 		if err != nil {
@@ -257,11 +267,31 @@ func ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV1(
 		witness.TargetTimestamp,
 		witness.OutboundAssetID,
 		witness.OutboundAmount,
-		witness.WithdrawalEffectHashLo,
-		witness.WithdrawalEffectHashHi,
 	)
+	fields = append(fields, witness.WithdrawalEffectHashLimbs[:]...)
 	if err := ensureFieldCount("shielded ICS-20 withdrawal", fields, expected); err != nil {
 		return nil, err
 	}
 	return fields, nil
+}
+
+func reconstructedShieldedIcs20WithdrawalStatementHashFromWitnessV6(
+	witness *ShieldedIcs20WithdrawalWitnessV6Binary,
+) (*big.Int, error) {
+	fields, err := ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV6(witness)
+	if err != nil {
+		return nil, fmt.Errorf("reconstruct shielded ICS-20 withdrawal statement fields: %w", err)
+	}
+	nativeFields := make([]*big.Int, len(fields))
+	for index := range fields {
+		nativeFields[index] = primitives.LittleEndianBytesToBigInt(fields[index][:])
+	}
+	hash, err := primitives.ShieldedIcs20WithdrawalStatementHashNativeForShape(
+		nativeFields,
+		int(witness.NIn),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("hash reconstructed shielded ICS-20 withdrawal statement fields: %w", err)
+	}
+	return hash, nil
 }

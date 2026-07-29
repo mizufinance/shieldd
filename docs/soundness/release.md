@@ -19,10 +19,11 @@ restamping is never a fix for a failed semantic or source-drift gate.
 6. No project axiom or compiler-backed primality shortcut exists, and
    the bounded `.olean` audit reports exactly `[propext, Quot.sound]` for the
    scalar-field certificate and selected final soundness declarations.
-7. PK/VK metadata pins match the deployed files; VK JSON and binary encode the
-   same key.
+7. Canonical schema-v1 metadata separately pins the deployed PK, binary VK, and
+   JSON VK bytes; the two VK encodings decode to the same key.
 8. The deployed keys prove and verify the committed witness against a freshly
-   compiled constraint system.
+   compiled constraint system, and the schema-v3 receipt binds that metadata,
+   witness, manifest, SR1CS, PK, and both VK encodings.
 9. Stamped artifacts are updated last and their sidecars match.
 10. Constraint and performance deltas are recorded when the circuit changed.
 
@@ -39,6 +40,7 @@ bash scripts/check-manifest-pin.sh all
 bash scripts/check-constraint-coverage.sh --require-full-deployed --check-typed-bindings all
 python3 scripts/gen-note-reshape-family-artifacts.py
 LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh release all
+bash scripts/check-circuit-fv.sh receipt --status candidate
 ```
 
 The modes are cumulative. `drift` checks source, extraction, generator,
@@ -46,8 +48,10 @@ ownership, and emitted-Lean stability. `typed` additionally checks the selected
 exact-fact and refinement closures, theorem bindings, obligation coverage, and
 axioms. `release` additionally checks deployed PK/VK derivation, prove/verify,
 negative key-family cases, soundness invariants, and final evidence.
-`release all` is the terminal four-family certification. Transfer retains its
-separate FV release path.
+`release all` is the terminal certification for the four NoteReshape families.
+Transfer and shielded ICS-20 withdrawal have separate candidate FV paths:
+their drift checks and prover receipts bind source, witness, SR1CS, keys, and
+proofs, but do not claim exact Lean refinement or certification.
 
 The focused StatementHash resource gate uses a 120 s / 4 GiB aggregator budget,
 a 2 GiB marginal-RSS leaf budget, and a 50 MiB generated-olean budget. Current

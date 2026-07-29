@@ -71,8 +71,9 @@ use shieldd_sdk_sct::epoch::Epoch;
 use shieldd_sdk_sct::{CommitmentSource, Nullifier};
 use shieldd_sdk_shielded_pool::component::ClueManager as _;
 use shieldd_sdk_shielded_pool::component::{
-    transfer_extract_public, transfer_to_batch_item, NoteManager as _, ShieldedPool,
-    StateReadExt as _, StateWriteExt as _,
+    note_reshape_check_stateless_and_extract,
+    shielded_ics20_withdrawal_check_stateless_and_extract, transfer_check_stateless_and_extract,
+    NoteManager as _, ShieldedPool, StateReadExt as _, StateWriteExt as _,
 };
 use shieldd_sdk_transaction::gas::GasCost as _;
 use shieldd_sdk_transaction::{Action, Transaction, TransactionBody, TransactionParameters};
@@ -1394,14 +1395,9 @@ impl App {
                 match action {
                     Action::Transfer(transfer) => {
                         let t1 = Instant::now();
-                        let public = transfer_extract_public(transfer, &context)
-                            .context("transfer extract public failed")?;
+                        let item = transfer_check_stateless_and_extract(transfer, &context)
+                            .context("transfer stateless extraction failed")?;
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-
-                        let t2 = Instant::now();
-                        let item = transfer_to_batch_item(transfer, public)
-                            .context("transfer to_batch_item failed")?;
-                        profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                         let family_id = action_family_id(&Action::Transfer(transfer.clone()))
                             .expect("transfer has a proof family");
 
@@ -1416,22 +1412,11 @@ impl App {
                     }
                     Action::ShieldedIcs20Withdrawal(withdrawal) => {
                         let t1 = Instant::now();
-                        let public =
-                            shieldd_sdk_shielded_pool::component::shielded_ics20_withdrawal_extract_public(
-                                withdrawal,
-                                &context,
-                            )
-                            .context("shielded ICS-20 withdrawal extract public failed")?;
+                        let item = shielded_ics20_withdrawal_check_stateless_and_extract(
+                            withdrawal, &context,
+                        )
+                        .context("shielded ICS-20 withdrawal stateless extraction failed")?;
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-
-                        let t2 = Instant::now();
-                        let item =
-                            shieldd_sdk_shielded_pool::component::shielded_ics20_withdrawal_to_batch_item(
-                                withdrawal,
-                                public,
-                            )
-                            .context("shielded ICS-20 withdrawal to_batch_item failed")?;
-                        profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                         let family_id =
                             action_family_id(&Action::ShieldedIcs20Withdrawal(withdrawal.clone()))
                                 .expect("shielded ICS-20 withdrawal has a proof family");
@@ -1447,22 +1432,9 @@ impl App {
                     }
                     Action::NoteReshape(note_reshape) => {
                         let t1 = Instant::now();
-                        let public =
-                            shieldd_sdk_shielded_pool::component::note_reshape_extract_public(
-                                note_reshape,
-                                &context,
-                            )
-                            .context("note reshape extract public failed")?;
+                        let item = note_reshape_check_stateless_and_extract(note_reshape, &context)
+                            .context("note reshape stateless extraction failed")?;
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-
-                        let t2 = Instant::now();
-                        let item =
-                            shieldd_sdk_shielded_pool::component::note_reshape_to_batch_item(
-                                note_reshape,
-                                public,
-                            )
-                            .context("note reshape to_batch_item failed")?;
-                        profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                         let family_id =
                             action_family_id(&Action::NoteReshape(note_reshape.clone()))
                                 .expect("note reshape has a proof family");
@@ -1496,14 +1468,9 @@ impl App {
             if let Some(fee_funding) = &tx.transaction_body.fee_funding {
                 let transfer = &fee_funding.transfer;
                 let t1 = Instant::now();
-                let public = transfer_extract_public(transfer, &context)
-                    .context("fee funding transfer extract public failed")?;
+                let item = transfer_check_stateless_and_extract(transfer, &context)
+                    .context("fee funding transfer stateless extraction failed")?;
                 profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-
-                let t2 = Instant::now();
-                let item = transfer_to_batch_item(transfer, public)
-                    .context("fee funding transfer to_batch_item failed")?;
-                profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                 let family_id = action_family_id(&Action::Transfer(transfer.clone()))
                     .expect("fee funding transfer has a proof family");
 
@@ -6378,7 +6345,7 @@ mod tests {
     use shieldd_sdk_tct as tct;
     use shieldd_sdk_transaction::{
         memo::{MemoCiphertext, MemoPlaintext, MEMO_CIPHERTEXT_LEN_BYTES},
-        plan::MemoPlan,
+        plan::{CluePlan, MemoPlan},
         Action, DetectionData, Transaction, TransactionParameters, TransactionPlan,
     };
     use shieldd_sdk_txhash::AuthorizingData;
@@ -6411,17 +6378,22 @@ mod tests {
     }
 
     #[test]
-    fn artifact_extraction_keeps_note_reshape_sentinel_nullifiers() {
+    fn artifact_extraction_keeps_all_note_reshape_slot_nullifiers() {
         let inputs = (0..4)
             .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                 nullifier: Nullifier(Fq::from(400u64 + index)),
                 rk: rdsa::VerificationKey::from(rdsa::SigningKey::<rdsa::SpendAuth>::from(
                     Fr::from(500u64 + index),
                 )),
-                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                    [u8::try_from(index + 1).expect("small test index"); 48],
+                )
+                .expect("fixed-size encrypted backref"),
             })
             .collect::<Vec<_>>();
-        assert!(inputs.iter().all(|input| input.is_dummy()));
+        assert!(inputs
+            .iter()
+            .all(|input| input.encrypted_backref.len() == 48));
 
         let tx = Transaction {
             transaction_body: shieldd_sdk_transaction::TransactionBody {
@@ -6598,6 +6570,180 @@ mod tests {
         Ok((storage, test_node, txs))
     }
 
+    fn resign_fixture_transaction(tx: &mut Transaction) {
+        let binding_signing_key = rdsa::SigningKey::<rdsa::Binding>::from(Fr::from(1u64));
+        tx.binding_sig = binding_signing_key.sign_deterministic(tx.auth_hash().as_bytes());
+    }
+
+    #[tokio::test]
+    async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<()> {
+        let action_anchor = tct::Tree::default().root();
+        let balance_commitment = shieldd_sdk_asset::Balance::default().commit(Fr::from(1u64));
+        let inputs = (0..4)
+            .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
+                nullifier: Nullifier(Fq::from(10u64 + index)),
+                rk: rdsa::VerificationKey::from(rdsa::SigningKey::<rdsa::SpendAuth>::from(
+                    Fr::from(20u64 + index),
+                )),
+                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                    [u8::try_from(index + 1).expect("small index"); 48],
+                )
+                .expect("fixed-size encrypted backref"),
+            })
+            .collect();
+        let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
+            body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::FourByOne,
+                anchor: action_anchor,
+                balance_commitment,
+                inputs,
+                outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
+                    note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                        note_commitment: tct::StateCommitment(Fq::from(30u64)),
+                        ..shieldd_sdk_shielded_pool::NotePayload::dummy()
+                    },
+                    wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([31u8; 48]),
+                    ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([32u8; 48]),
+                }],
+            },
+            auth_sigs: vec![[0u8; 64].into(); 4],
+            proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
+        };
+        let mut invalid_auth = Transaction {
+            transaction_body: shieldd_sdk_transaction::TransactionBody {
+                actions: vec![Action::NoteReshape(note_reshape)],
+                detection_data: Some(DetectionData {
+                    fmd_clues: vec![CluePlan::new(
+                        &mut OsRng,
+                        test_keys::ADDRESS_0.deref().clone(),
+                        1.try_into().expect("valid clue precision"),
+                    )
+                    .clue()],
+                }),
+                memo: Some(MemoCiphertext([0u8; MEMO_CIPHERTEXT_LEN_BYTES])),
+                ..Default::default()
+            },
+            anchor: action_anchor,
+            ..Default::default()
+        };
+        resign_fixture_transaction(&mut invalid_auth);
+
+        let mut mismatched_anchor = invalid_auth.clone();
+        mismatched_anchor.anchor = tct::Root(tct::structure::Hash::new(Fq::from(987_654u64)));
+        let error = match App::build_tx_artifacts_extracted_for_stage_public(
+            "artifact_stateless_regression_anchor",
+            &[Arc::new(mismatched_anchor)],
+        )
+        .await
+        {
+            Ok(_) => panic!("artifact extraction must enforce action/context anchor equality"),
+            Err(error) => error,
+        };
+        assert!(
+            format!("{error:#}").contains("body anchor does not match transaction anchor"),
+            "unexpected anchor rejection: {error:#}"
+        );
+
+        let error = match App::build_tx_artifacts_extracted_for_stage_public(
+            "artifact_stateless_regression_auth",
+            &[Arc::new(invalid_auth)],
+        )
+        .await
+        {
+            Ok(_) => panic!("artifact extraction must verify spend authorization signatures"),
+            Err(error) => error,
+        };
+        assert!(
+            format!("{error:#}").contains("auth signature 0 failed to verify"),
+            "unexpected authorization rejection: {error:#}"
+        );
+
+        let transfer = shieldd_sdk_shielded_pool::Transfer {
+            body: shieldd_sdk_shielded_pool::TransferBody {
+                anchor: action_anchor,
+                balance_commitment,
+                inputs: (0..2)
+                    .map(|index| shieldd_sdk_shielded_pool::TransferInputBody {
+                        nullifier: Nullifier(Fq::from(40u64 + index)),
+                        rk: rdsa::VerificationKey::from(rdsa::SigningKey::<rdsa::SpendAuth>::from(
+                            Fr::from(5u64 + index),
+                        )),
+                        encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                        compliance_ciphertext: if index == 0 { vec![1u8] } else { vec![] },
+                    })
+                    .collect(),
+                outputs: (0..2)
+                    .map(|index| shieldd_sdk_shielded_pool::TransferOutputBody {
+                        note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                            note_commitment: tct::StateCommitment(Fq::from(50u64 + index)),
+                            ..shieldd_sdk_shielded_pool::NotePayload::dummy()
+                        },
+                        wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey(
+                            [51u8 + u8::try_from(index).expect("small index"); 48],
+                        ),
+                        ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey(
+                            [61u8 + u8::try_from(index).expect("small index"); 48],
+                        ),
+                        compliance_ciphertext: vec![],
+                        orbis_upload_bundle: vec![],
+                    })
+                    .collect(),
+                target_timestamp: 0,
+                compliance_anchor: tct::StateCommitment(Fq::from(6u64)),
+                asset_anchor: tct::StateCommitment(Fq::from(7u64)),
+            },
+            auth_sigs: vec![[0u8; 64].into(); 2],
+            proof: shieldd_sdk_shielded_pool::TransferProof::default(),
+        };
+        let mut invalid_transport = Transaction {
+            transaction_body: shieldd_sdk_transaction::TransactionBody {
+                actions: vec![Action::Transfer(transfer)],
+                detection_data: Some(DetectionData {
+                    fmd_clues: (0..2)
+                        .map(|_| {
+                            CluePlan::new(
+                                &mut OsRng,
+                                test_keys::ADDRESS_0.deref().clone(),
+                                1.try_into().expect("valid clue precision"),
+                            )
+                            .clue()
+                        })
+                        .collect(),
+                }),
+                memo: Some(MemoCiphertext([0u8; MEMO_CIPHERTEXT_LEN_BYTES])),
+                ..Default::default()
+            },
+            anchor: action_anchor,
+            ..Default::default()
+        };
+        let effect_hash = invalid_transport.context().effect_hash;
+        let Action::Transfer(transfer) = &mut invalid_transport.transaction_body.actions[0] else {
+            panic!("fixture action must be a transfer");
+        };
+        for (index, auth_sig) in transfer.auth_sigs.iter_mut().enumerate() {
+            *auth_sig = rdsa::SigningKey::<rdsa::SpendAuth>::from(Fr::from(
+                5u64 + u64::try_from(index).expect("small index"),
+            ))
+            .sign_deterministic(effect_hash.as_ref());
+        }
+        resign_fixture_transaction(&mut invalid_transport);
+        let error = match App::build_tx_artifacts_extracted_for_stage_public(
+            "artifact_stateless_regression_transport",
+            &[Arc::new(invalid_transport)],
+        )
+        .await
+        {
+            Ok(_) => panic!("artifact extraction must enforce transfer transport invariants"),
+            Err(error) => error,
+        };
+        assert!(
+            format!("{error:#}").contains("compliance ciphertext must be empty"),
+            "unexpected transport rejection: {error:#}"
+        );
+
+        Ok(())
+    }
+
     async fn candidate_envelope_from_fixture_txs(
         storage: &TempStorage,
         txs: &[Vec<u8>],
@@ -6714,7 +6860,11 @@ mod tests {
             )
             .await?;
 
-            assert_eq!(prepared.effects.spend_nullifiers.len(), 1);
+            assert_eq!(
+                prepared.effects.spend_nullifiers.len(),
+                2,
+                "fixed-shape Transfer effects must include the real and synthetic input nullifiers",
+            );
             assert_eq!(
                 prepared.effects.sct_payloads.len(),
                 2,

@@ -1,6 +1,5 @@
 use anyhow::{anyhow, ensure, Result};
 use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, PreparedVerifyingKey, Proof};
-use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
@@ -10,7 +9,6 @@ use shieldd_sdk_compliance::{
     TransferTierMetadataStatement,
 };
 use shieldd_sdk_keys::keys::NullifierKey;
-use shieldd_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
@@ -57,7 +55,7 @@ impl TransferComplianceProofPublic {
             derived_pk: package.derived_pk()?,
             enc_cmt: package.enc_cmt()?,
             shared_point: package.shared_point()?,
-            challenge: package.challenge_scalar(),
+            challenge: package.challenge_scalar()?,
             response: package.response_scalar()?,
         })
     }
@@ -113,19 +111,26 @@ pub struct TransferSpendPrivate {
     pub state_commitment_proof: tct::Proof,
     pub spent_note: Note,
     pub spend_auth_randomizer: Fr,
-    pub is_dummy: bool,
-    pub dummy_nullifier_seed: Fq,
-    pub dummy_spend_auth_key: Fr,
 }
 
 #[derive(Clone, Debug)]
-pub struct TransferOutputPrivate {
+pub struct TransferOptionalSpendPrivate {
+    pub spend: TransferSpendPrivate,
+    pub is_dummy: bool,
+    pub dummy_nullifier_seed: Fq,
+}
+
+#[derive(Clone, Debug)]
+pub struct TransferReceiverOutputPrivate {
     pub created_note: Note,
     pub recipient_compliance_path: MerklePath,
     pub recipient_compliance_position: u64,
     pub recipient_leaf: ComplianceLeaf,
-    /// Output 0 is always the external receiver leg. Output 1, when present, is sender-owned change.
-    pub is_receiver: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct TransferChangeOutputPrivate {
+    pub created_note: Note,
 }
 
 #[derive(Clone, Debug)]
@@ -155,28 +160,10 @@ pub struct TransferProofPrivate {
     pub sender_compliance_position: u64,
     pub sender_leaf: ComplianceLeaf,
     pub compliance: TransferCompliancePrivate,
-    pub inputs: Vec<TransferSpendPrivate>,
-    pub outputs: Vec<TransferOutputPrivate>,
-}
-
-impl TransferProofPrivate {
-    pub fn validate_shape(&self) -> Result<()> {
-        ensure!(
-            self.inputs.len() == transfer_input_count(),
-            "{} expects {} private inputs, got {}",
-            TRANSFER_PROOF_LABEL,
-            transfer_input_count(),
-            self.inputs.len()
-        );
-        ensure!(
-            self.outputs.len() == transfer_output_count(),
-            "{} expects {} private outputs, got {}",
-            TRANSFER_PROOF_LABEL,
-            transfer_output_count(),
-            self.outputs.len()
-        );
-        Ok(())
-    }
+    pub required_input: TransferSpendPrivate,
+    pub optional_input: TransferOptionalSpendPrivate,
+    pub receiver_output: TransferReceiverOutputPrivate,
+    pub change_output: TransferChangeOutputPrivate,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -186,10 +173,10 @@ pub struct TransferProof {
 
 impl TransferProof {
     fn decoded_proof(&self) -> anyhow::Result<Proof<Bls12_377>> {
-        Proof::deserialize_compressed(&self.inner[..]).map_err(|e| anyhow!(e))
+        crate::groth16_proof::decode(&self.inner)
     }
 
-    pub fn to_batch_item(
+    pub(crate) fn to_batch_item(
         &self,
         public: &TransferProofPublic,
     ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
@@ -228,11 +215,7 @@ impl TransferProof {
     }
 
     pub fn validate_encoding(&self) -> anyhow::Result<()> {
-        let _: [u8; GROTH16_PROOF_LENGTH_BYTES] = self
-            .inner
-            .clone()
-            .try_into()
-            .map_err(|_| anyhow!("malformed transfer proof length"))?;
+        self.decoded_proof()?;
         Ok(())
     }
 
@@ -244,10 +227,6 @@ impl TransferProof {
         public
             .validate_shape()
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
-        private
-            .validate_shape()
-            .map_err(|e| crate::ProofError::InvalidPrivateInput(e.to_string()))?;
-
         let prove_result = super::prover_runtime::prove_with_runtime(public, private);
 
         prove_result.map_err(|e| {
@@ -272,7 +251,9 @@ impl TryFrom<pb::ZkTransferProof> for TransferProof {
     type Error = anyhow::Error;
 
     fn try_from(proto: pb::ZkTransferProof) -> Result<Self, Self::Error> {
-        Ok(Self { inner: proto.inner })
+        let proof = Self { inner: proto.inner };
+        proof.validate_encoding()?;
+        Ok(proof)
     }
 }
 

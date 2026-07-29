@@ -19,19 +19,11 @@ pub use shielded_pool::{ShieldedPool, StateReadExt, StateWriteExt};
 pub(crate) use transfer::benchmark_parse_ics20_receive_context;
 pub use transfer::Ics20Transfer;
 
-// Batch verification helpers for process_proposal
-pub use action_handler::note_reshape_action::{
-    note_reshape_check_stateless_and_extract, note_reshape_extract_public,
-    note_reshape_to_batch_item, note_reshape_verify_auth_sigs,
-};
-pub use action_handler::shielded_ics20_withdrawal::{
-    shielded_ics20_withdrawal_check_stateless_and_extract,
-    shielded_ics20_withdrawal_extract_public, shielded_ics20_withdrawal_to_batch_item,
-    shielded_ics20_withdrawal_verify_auth_sigs,
-};
-pub use action_handler::transfer::{
-    transfer_check_stateless_and_extract, transfer_extract_public, transfer_to_batch_item,
-    transfer_verify_auth_sigs,
-};
+// Checked batch-verification entry points for process_proposal.
+pub use action_handler::note_reshape_action::note_reshape_check_stateless_and_extract;
+pub use action_handler::shielded_ics20_withdrawal::shielded_ics20_withdrawal_check_stateless_and_extract;
+pub use action_handler::transfer::transfer_check_stateless_and_extract;
+#[cfg(all(test, any(unix, windows)))]
+pub(crate) use action_handler::transfer::transfer_extract_public;
 
 pub mod rpc;

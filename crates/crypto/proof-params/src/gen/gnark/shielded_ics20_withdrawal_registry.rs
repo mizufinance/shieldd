@@ -1,10 +1,17 @@
+// Code generated from shielded_ics20_withdrawal_families.json. DO NOT EDIT.
 #[derive(Clone, Copy, Debug)]
 struct GeneratedShieldedIcs20WithdrawalProofFamily {
     id: u32,
     verification_key: &'static Lazy<PreparedVerifyingKey<Bls12_377>>,
     proving_key_bytes: &'static [u8],
+    verifying_key_json_bytes: &'static [u8],
     metadata_bytes: &'static [u8],
 }
+
+static SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFYING_KEY_JSON_BYTES: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../../tools/gnark/artifacts/shielded_ics20_withdrawal/verifying_key.json"
+));
 
 static SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFICATION_KEY: Lazy<
     PreparedVerifyingKey<Bls12_377>,
@@ -14,10 +21,7 @@ static SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFICATION_KEY: Lazy<
             .expect("can deserialize shielded_ics20_withdrawal VerifyingKey")
             .into();
     }
-    load_verifying_key_json_bytes(include_bytes!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../../tools/gnark/artifacts/shielded_ics20_withdrawal/verifying_key.json"
-    )))
+    load_verifying_key_json_bytes(SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFYING_KEY_JSON_BYTES)
     .expect("bundled shielded_ics20_withdrawal VerifyingKey is valid")
     .into()
 });
@@ -42,12 +46,15 @@ static SHIELDED_ICS20_WITHDRAWAL_CIRCUIT_METADATA: &[u8] = include_bytes!(concat
 ));
 
 static GENERATED_SHIELDED_ICS20_WITHDRAWAL_PROOF_FAMILIES:
-    &[GeneratedShieldedIcs20WithdrawalProofFamily] = &[GeneratedShieldedIcs20WithdrawalProofFamily {
-    id: 1,
-    verification_key: &SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFICATION_KEY,
-    proving_key_bytes: SHIELDED_ICS20_WITHDRAWAL_PROOF_PROVING_KEY_BYTES,
-    metadata_bytes: SHIELDED_ICS20_WITHDRAWAL_CIRCUIT_METADATA,
-}];
+    &[GeneratedShieldedIcs20WithdrawalProofFamily] = &[
+    GeneratedShieldedIcs20WithdrawalProofFamily {
+        id: 1,
+        verification_key: &SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFICATION_KEY,
+        proving_key_bytes: SHIELDED_ICS20_WITHDRAWAL_PROOF_PROVING_KEY_BYTES,
+        verifying_key_json_bytes: SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFYING_KEY_JSON_BYTES,
+        metadata_bytes: SHIELDED_ICS20_WITHDRAWAL_CIRCUIT_METADATA,
+    },
+];
 
 fn shielded_ics20_withdrawal_proof_family(
     family_id: u32,
@@ -66,6 +73,10 @@ pub fn shielded_ics20_withdrawal_proof_verification_key(
 
 pub fn shielded_ics20_withdrawal_proving_key_bytes(family_id: u32) -> &'static [u8] {
     shielded_ics20_withdrawal_proof_family(family_id).proving_key_bytes
+}
+
+pub fn shielded_ics20_withdrawal_verifying_key_json_bytes(family_id: u32) -> &'static [u8] {
+    shielded_ics20_withdrawal_proof_family(family_id).verifying_key_json_bytes
 }
 
 pub fn shielded_ics20_withdrawal_circuit_metadata(family_id: u32) -> &'static [u8] {

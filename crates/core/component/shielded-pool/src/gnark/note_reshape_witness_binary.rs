@@ -70,7 +70,7 @@ impl NoteReshapeWitnessV3 {
         let n_out = cursor.read_u32()?;
         let anchor = cursor.read_fixed::<32>()?;
         let claimed_statement_hash = cursor.read_fixed::<32>()?;
-        let action_balance_blinding = cursor.read_fixed::<32>()?;
+        let action_balance_blinding = cursor.read_fr()?;
         let nk = cursor.read_fixed::<32>()?;
         let shared = NoteReshapeSharedNoteContextWitnessV3 {
             asset_id: cursor.read_fixed::<32>()?,
@@ -164,7 +164,7 @@ fn decode_spend(
         state_commitment_commitment: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
-        spend_auth_randomizer: cursor.read_fixed::<32>()?,
+        spend_auth_randomizer: cursor.read_fr()?,
         rk_affine: cursor.read_point_affine()?,
     })
 }

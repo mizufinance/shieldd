@@ -64,7 +64,7 @@ impl ActionPlan {
 
                 Action::Transfer(
                     transfer_plan
-                        .transfer(
+                        .build_unauth_transfer(
                             fvk,
                             vec![[0; 64].into(); transfer_plan.spends.len()],
                             auth_paths,
@@ -122,7 +122,7 @@ impl ActionPlan {
                     })
                     .collect::<Result<Vec<_>>>()?;
                 Action::ShieldedIcs20Withdrawal(
-                    plan.shielded_ics20_withdrawal(
+                    plan.build_unauth_shielded_ics20_withdrawal(
                         fvk,
                         vec![[0; 64].into(); plan.spends.len()],
                         auth_paths,

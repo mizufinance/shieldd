@@ -241,7 +241,7 @@ func VerifyQuadPath(
 	position frontend.Variable,
 ) (frontend.Variable, error) {
 	current := leafHash
-	posBits := api.ToBinary(position, 64)
+	posBits := api.ToBinary(position, 2*ComplianceQuadTreeDepth)
 	for layerIdx := 0; layerIdx < ComplianceQuadTreeDepth; layerIdx++ {
 		bit0 := posBits[layerIdx*2]
 		bit1 := posBits[layerIdx*2+1]

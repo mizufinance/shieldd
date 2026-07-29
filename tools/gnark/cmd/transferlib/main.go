@@ -67,7 +67,7 @@ func transferFamilyForCircuit(circuit string) (generated.TransferFamilySpec, err
 }
 
 func packProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeTransferWitnessV1(witnessPayload)
+	witness, _, err := abi.DecodeTransferWitnessV11(witnessPayload)
 	if err != nil {
 		return nil, fmt.Errorf("decode transfer witness: %w", err)
 	}
@@ -140,7 +140,7 @@ func shieldd_gnark_transfer_prove(handle C.uint64_t, witnessPtr unsafe.Pointer, 
 }
 
 func proveContext(ctx *proverContext, witnessPayload []byte) ([]byte, float64, error) {
-	assignment, family, err := abi.NewTransferCircuitAssignmentFromWitnessV1(witnessPayload)
+	assignment, family, err := abi.NewTransferCircuitAssignmentFromWitnessV11(witnessPayload)
 	if err != nil {
 		return nil, 0, fmt.Errorf("decode witness: %w", err)
 	}

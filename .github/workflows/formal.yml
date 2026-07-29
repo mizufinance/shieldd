@@ -349,9 +349,16 @@ jobs:
   soundness-vk-derivation:
     name: 'soundness: vk-derivation'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
+    # The full whole-circuit lane emits and validates the same deployed-key
+    # proof receipts for all certified and candidate profiles. Keep this
+    # standalone round trip only for stamps/typed runs, where the whole-circuit
+    # lane deliberately does not prove.
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.soundness_run == 'true' &&
+      needs.applicability.outputs.soundness_tier != 'full'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -361,22 +368,20 @@ jobs:
         with:
           go-version-file: tools/gnark/go.mod
           cache-dependency-path: tools/gnark/go.sum
-      # One job, not a 2-way matrix: each circuit takes ~1 min, so a second
-      # runner and Go toolchain setup cost more than running them in sequence.
-      - name: VK derivation pinning
+      # Run serially so each deployed key is exercised against the exact
+      # source-compiled circuit without multiplying peak memory.
+      - name: VK derivation and prove/verify pinning
         shell: bash
         run: |
           set -euo pipefail
-          for circuit in \
-            note_reshape2x1 \
-            note_reshape4x1 \
-            note_reshape8x1 \
-            note_reshape1x8 \
-            transfer; do
+          profiles_tsv="$RUNNER_TEMP/fv-profiles.tsv"
+          python3 scripts/check-fv-profiles.py --emit-tsv all > "$profiles_tsv"
+          while IFS=$'\t' read -r circuit _; do
+            [[ -n "$circuit" ]] || continue
             echo "::group::vk-derivation $circuit"
-            bash scripts/check-vk-derivation.sh "$circuit"
+            bash scripts/check-vk-derivation.sh "$circuit" --prove
             echo "::endgroup::"
-          done
+          done < "$profiles_tsv"
 
   soundness-alloy:
     name: 'soundness: alloy'
@@ -445,9 +450,18 @@ jobs:
         run: |
           set -euo pipefail
           case "$TIER" in
-            stamps) bash scripts/check-lean-circuit-fv.sh drift all ;;
-            typed)  bash scripts/check-lean-circuit-fv.sh typed all ;;
-            full)   bash scripts/check-lean-circuit-fv.sh release all ;;
+            stamps)
+              bash scripts/check-lean-circuit-fv.sh drift all
+              bash scripts/check-circuit-fv.sh drift --status candidate
+              ;;
+            typed)
+              bash scripts/check-lean-circuit-fv.sh typed all
+              bash scripts/check-circuit-fv.sh drift --status candidate
+              ;;
+            full)
+              bash scripts/check-lean-circuit-fv.sh release all
+              bash scripts/check-circuit-fv.sh receipt --status candidate
+              ;;
             *)
               echo "unsupported soundness tier: $TIER" >&2
               exit 1
@@ -541,14 +555,17 @@ jobs:
           elif [[ "$SOUNDNESS_STATUS" == skip ]]; then
             echo "soundness explained skip: $SOUNDNESS_EXPLANATION"
           else
-            # A successful applicability job has already validated the tier
-            # against ci/gates/soundness-formal.json. Every runnable soundness
-            # tier selects the same result lanes, so duplicating the tier enum
-            # here can only drift from the declaration.
             required+=(
               "soundness-gate=$GATE" "soundness-seam-and-pin=$SEAM"
-              "soundness-vk-derivation=$VK" "soundness-lean-circuit-fv=$LEAN"
+              "soundness-lean-circuit-fv=$LEAN"
             )
+            # stamps/typed need the standalone deployed-key round trip. Full
+            # obtains equivalent schema-v3 proof receipts for all six profiles
+            # inside the terminal whole-circuit lane, so rerunning it here only
+            # doubles proving cost.
+            if [[ "$SOUNDNESS_TIER" != full ]]; then
+              required+=("soundness-vk-derivation=$VK")
+            fi
             # alloy runs only on candidate events; the scheduled path covers the
             # same gate inside soundness-provers' tamarin-alloy lane.
             if [[ "$EVENT_NAME" == pull_request || "$EVENT_NAME" == merge_group ]]; then

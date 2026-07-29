@@ -200,6 +200,12 @@ func TestQuadPathCircuitMatchesNativeRoot(t *testing.T) {
 		Path:         quadPathAssignment(path),
 		ExpectedRoot: root.String(),
 	}
+	positionAlias := &quadPathCircuit{
+		LeafHash:     leafHash.String(),
+		Position:     position | (uint64(1) << (2 * ComplianceQuadTreeDepth)),
+		Path:         quadPathAssignment(path),
+		ExpectedRoot: root.String(),
+	}
 
 	assert := test.NewAssert(t)
 	assert.CheckCircuit(
@@ -207,5 +213,6 @@ func TestQuadPathCircuitMatchesNativeRoot(t *testing.T) {
 		test.WithCurves(ecc.BLS12_377),
 		test.WithBackends(backend.GROTH16),
 		test.WithValidAssignment(assignment),
+		test.WithInvalidAssignment(positionAlias),
 	)
 }

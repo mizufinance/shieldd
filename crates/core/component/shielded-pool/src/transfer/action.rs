@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 
 use anyhow::{Context, Error};
-use decaf377::Fq;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
@@ -23,12 +22,6 @@ pub struct TransferInputBody {
     pub compliance_ciphertext: Vec<u8>,
 }
 
-impl TransferInputBody {
-    pub fn is_dummy(&self) -> bool {
-        self.encrypted_backref.is_empty() || self.nullifier.0 == Fq::from(0u64)
-    }
-}
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(try_from = "pb::TransferOutputBody", into = "pb::TransferOutputBody")]
 pub struct TransferOutputBody {
@@ -37,12 +30,6 @@ pub struct TransferOutputBody {
     pub ovk_wrapped_key: OvkWrappedKey,
     pub compliance_ciphertext: Vec<u8>,
     pub orbis_upload_bundle: Vec<u8>,
-}
-
-impl TransferOutputBody {
-    pub fn is_dummy(&self) -> bool {
-        self.wrapped_memo_key.0 == [0u8; 48] && self.ovk_wrapped_key.0 == [0u8; 48]
-    }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -181,18 +168,12 @@ impl TryFrom<pb::TransferInputBody> for TransferInputBody {
     type Error = Error;
 
     fn try_from(proto: pb::TransferInputBody) -> Result<Self, Self::Error> {
-        let encrypted_backref = if proto.encrypted_backref.len() == ENCRYPTED_BACKREF_LEN {
-            let bytes: [u8; ENCRYPTED_BACKREF_LEN] = proto
-                .encrypted_backref
-                .try_into()
-                .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?;
-            EncryptedBackref::try_from(bytes)
-                .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?
-        } else if proto.encrypted_backref.is_empty() {
-            EncryptedBackref::dummy()
-        } else {
-            anyhow::bail!("invalid encrypted backref length")
-        };
+        let bytes: [u8; ENCRYPTED_BACKREF_LEN] = proto
+            .encrypted_backref
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("encrypted backref must be exactly 48 bytes"))?;
+        let encrypted_backref = EncryptedBackref::try_from(bytes)
+            .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?;
 
         Ok(Self {
             nullifier: proto

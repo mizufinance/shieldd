@@ -798,14 +798,7 @@ impl ViewService for ViewServer {
                     }
                 }
                 Action::NoteReshape(note_reshape) => {
-                    let synthetic_input_padding = note_reshape.body.family_id.spec().input_padding
-                        == shieldd_sdk_shielded_pool::note_reshape::InputPaddingPolicy::SyntheticPrivate;
-                    for input in note_reshape
-                        .body
-                        .inputs
-                        .iter()
-                        .filter(|input| !synthetic_input_padding || !input.is_dummy())
-                    {
+                    for input in &note_reshape.body.inputs {
                         let nullifier = input.nullifier;
                         if let Ok(spendable_note_record) =
                             self.storage.note_by_nullifier(nullifier, false).await
@@ -871,10 +864,7 @@ impl ViewService for ViewServer {
                         ..
                     },
                 ) => {
-                    for note in spent_notes
-                        .iter()
-                        .chain(std::slice::from_ref(change_note).iter())
-                    {
+                    for note in spent_notes.iter().chain(change_note.iter()) {
                         let address = note.address();
                         address_views.insert(address.clone(), fvk.view_address(address));
                         asset_ids.insert(note.asset_id());
@@ -1816,15 +1806,13 @@ impl ViewService for ViewServer {
 
                         let path = proof_response
                             .compliance_path
-                            .map(|p| shieldd_sdk_compliance::structs::MerklePath {
-                                layers: p
-                                    .layers
-                                    .into_iter()
-                                    .map(|layer| shieldd_sdk_compliance::structs::MerklePathLayer {
-                                        siblings: layer.siblings,
-                                    })
-                                    .collect(),
-                            })
+                            .map(shieldd_sdk_compliance::structs::MerklePath::try_from)
+                            .transpose()
+                            .map_err(|error| {
+                                tonic::Status::internal(format!(
+                                    "invalid compliance_path in pd response: {error}"
+                                ))
+                            })?
                             .ok_or_else(|| {
                                 tonic::Status::internal("compliance_path missing from pd response")
                             })?;
@@ -2126,17 +2114,13 @@ impl ViewService for ViewServer {
 
                             let path = proof_response
                                 .compliance_path
-                                .map(|p| shieldd_sdk_compliance::structs::MerklePath {
-                                    layers: p
-                                        .layers
-                                        .into_iter()
-                                        .map(|layer| {
-                                            shieldd_sdk_compliance::structs::MerklePathLayer {
-                                                siblings: layer.siblings,
-                                            }
-                                        })
-                                        .collect(),
-                                })
+                                .map(shieldd_sdk_compliance::structs::MerklePath::try_from)
+                                .transpose()
+                                .map_err(|error| {
+                                    tonic::Status::internal(format!(
+                                        "invalid compliance_path in pd response: {error}"
+                                    ))
+                                })?
                                 .ok_or_else(|| {
                                     tonic::Status::internal(
                                         "compliance_path missing from pd response",

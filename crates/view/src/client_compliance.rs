@@ -67,20 +67,11 @@ use crate::ViewClient;
 /// Convert a proto MerklePath to native MerklePath.
 fn parse_proto_merkle_path(
     path: Option<shieldd_sdk_proto::core::component::compliance::v1::MerklePath>,
-) -> shieldd_sdk_compliance::structs::MerklePath {
-    use shieldd_sdk_compliance::structs::MerklePathLayer;
-    match path {
-        Some(p) => shieldd_sdk_compliance::structs::MerklePath {
-            layers: p
-                .layers
-                .into_iter()
-                .map(|layer| MerklePathLayer {
-                    siblings: layer.siblings,
-                })
-                .collect(),
-        },
-        None => shieldd_sdk_compliance::structs::MerklePath { layers: vec![] },
-    }
+    label: &str,
+) -> Result<shieldd_sdk_compliance::structs::MerklePath> {
+    path.ok_or_else(|| anyhow::anyhow!("missing {label}"))?
+        .try_into()
+        .map_err(|error| anyhow::anyhow!("invalid {label}: {error}"))
 }
 
 /// Compliance extensions for ViewClient.
@@ -201,8 +192,8 @@ impl ComplianceMerkleProofsData {
     pub fn try_from_proto(response: view_pb::ComplianceMerkleProofsResponse) -> Result<Self> {
         use decaf377::Fq;
 
-        let compliance_path = parse_proto_merkle_path(response.compliance_path);
-        let asset_path = parse_proto_merkle_path(response.asset_path);
+        let compliance_path = parse_proto_merkle_path(response.compliance_path, "compliance_path")?;
+        let asset_path = parse_proto_merkle_path(response.asset_path, "asset_path")?;
 
         // Parse anchors
         let compliance_anchor_bytes: [u8; 32] =
@@ -382,6 +373,12 @@ impl<'a, V: ViewClient + Send + ?Sized> ComplianceProofProvider
             view.compliance_batch_merkle_proofs(queries.to_vec())
         };
         let batch_response = batch_future.await?;
+        anyhow::ensure!(
+            batch_response.results.len() == queries.len(),
+            "batch compliance response count {} does not match query count {}",
+            batch_response.results.len(),
+            queries.len()
+        );
 
         // Parse anchors
         let compliance_anchor_bytes: [u8; 32] = batch_response
@@ -419,39 +416,11 @@ impl<'a, V: ViewClient + Send + ?Sized> ComplianceProofProvider
 
         // Match results with queries - parse directly since individual results don't have anchors
         for (i, result) in batch_response.results.into_iter().enumerate() {
-            use shieldd_sdk_compliance::structs::MerklePathLayer;
-
             let (address, asset_id) = &queries[i];
 
-            // Parse compliance path
-            let compliance_path = if let Some(path) = result.compliance_path {
-                shieldd_sdk_compliance::structs::MerklePath {
-                    layers: path
-                        .layers
-                        .into_iter()
-                        .map(|layer| MerklePathLayer {
-                            siblings: layer.siblings,
-                        })
-                        .collect(),
-                }
-            } else {
-                shieldd_sdk_compliance::structs::MerklePath { layers: vec![] }
-            };
-
-            // Parse asset path
-            let asset_path = if let Some(path) = result.asset_path {
-                shieldd_sdk_compliance::structs::MerklePath {
-                    layers: path
-                        .layers
-                        .into_iter()
-                        .map(|layer| MerklePathLayer {
-                            siblings: layer.siblings,
-                        })
-                        .collect(),
-                }
-            } else {
-                shieldd_sdk_compliance::structs::MerklePath { layers: vec![] }
-            };
+            let compliance_path =
+                parse_proto_merkle_path(result.compliance_path, "batch compliance_path")?;
+            let asset_path = parse_proto_merkle_path(result.asset_path, "batch asset_path")?;
 
             // Cache asset proof
             if !asset_proofs.contains_key(asset_id) {
@@ -763,7 +732,14 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
             .asset_proofs
             .get(&spend_asset_id)
             .cloned()
-            .unwrap_or_else(default_unregulated_asset_proof);
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "compliance provider omitted asset proof for transfer spend at action {} input {} (asset {})",
+                    action_index,
+                    spend_index,
+                    spend_asset_id
+                )
+            })?;
 
         let sender_proof = batch_data
             .user_proofs
@@ -836,7 +812,14 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
                 .asset_proofs
                 .get(&output_asset_id)
                 .cloned()
-                .unwrap_or_else(default_unregulated_asset_proof);
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "compliance provider omitted asset proof for transfer output at action {} output {} (asset {})",
+                        action_index,
+                        output_index,
+                        output_asset_id
+                    )
+                })?;
 
             let recipient_proof = batch_data
                 .user_proofs
@@ -950,7 +933,12 @@ async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
             .asset_proofs
             .get(&spend_asset_id)
             .cloned()
-            .unwrap_or_else(default_unregulated_asset_proof);
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "compliance provider omitted asset proof for fee-funding spend asset {}",
+                    spend_asset_id
+                )
+            })?;
 
         let sender_proof = batch_data
             .user_proofs
@@ -1012,7 +1000,12 @@ async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
                 .asset_proofs
                 .get(&output_asset_id)
                 .cloned()
-                .unwrap_or_else(default_unregulated_asset_proof);
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "compliance provider omitted asset proof for fee-funding output asset {}",
+                        output_asset_id
+                    )
+                })?;
 
             let recipient_proof = batch_data
                 .user_proofs
@@ -1135,7 +1128,14 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
             .asset_proofs
             .get(&spend_asset_id)
             .cloned()
-            .unwrap_or_else(default_unregulated_asset_proof);
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "compliance provider omitted asset proof for shielded ICS-20 withdrawal at action {} input {} (asset {})",
+                    action_index,
+                    spend_index,
+                    spend_asset_id
+                )
+            })?;
 
         let sender_proof = batch_data
             .user_proofs
@@ -1180,13 +1180,10 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
         else {
             unreachable!()
         };
-        let Some(first_spend) = withdrawal.spends.first() else {
-            continue;
-        };
-
-        withdrawal.body.target_timestamp = first_spend.target_timestamp;
-        withdrawal.body.compliance_anchor = first_spend.compliance_anchor;
-        withdrawal.body.asset_anchor = first_spend.asset_anchor;
+        let first_spend = withdrawal
+            .spends
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("shielded ICS-20 withdrawal has no spends"))?;
 
         if first_spend.is_regulated
             && !first_spend.compliance_ciphertext.is_empty()
@@ -1202,22 +1199,32 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
                 metadata.encode_to_memo(&withdrawal.withdrawal.ics20_memo)?;
         }
 
-        withdrawal.body.withdrawal = withdrawal.withdrawal.clone();
+        withdrawal.refresh_body_public_inputs()?;
     }
 
     Ok(())
 }
 
-fn default_unregulated_asset_proof() -> AssetProofData {
-    let default_leaf = shieldd_sdk_compliance::IndexedLeaf::with_default_policy(
-        decaf377::Fq::from(0u64),
-        0,
-        shieldd_sdk_compliance::indexed_tree::FQ_MAX.clone(),
-    );
-    AssetProofData {
-        indexed_leaf: default_leaf,
-        position: 0,
-        auth_path: MerklePath::default(),
-        is_regulated: false,
+#[cfg(test)]
+mod tests {
+    use super::parse_proto_merkle_path;
+    use shieldd_sdk_compliance::MerklePath;
+    use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
+
+    #[test]
+    fn rpc_merkle_path_parser_requires_canonical_fixed_shape() {
+        parse_proto_merkle_path(Some(MerklePath::default().into()), "test_path")
+            .expect("canonical fixed-width path");
+
+        parse_proto_merkle_path(None, "test_path").expect_err("missing path must fail");
+
+        let mut short: compliance_pb::MerklePath = MerklePath::default().into();
+        short.layers.pop();
+        parse_proto_merkle_path(Some(short), "test_path").expect_err("short path must fail");
+
+        let mut noncanonical: compliance_pb::MerklePath = MerklePath::default().into();
+        noncanonical.layers[0].siblings[0] = vec![0xff; 32];
+        parse_proto_merkle_path(Some(noncanonical), "test_path")
+            .expect_err("noncanonical field must fail");
     }
 }

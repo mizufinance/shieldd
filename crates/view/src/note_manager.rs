@@ -85,7 +85,7 @@ enum BaseFeeFundingSelection {
     UnsupportedIntent { reason: String },
 }
 
-fn align_transfer_planning_metadata(
+fn align_shielded_planning_metadata(
     spends: &mut [ShieldedInputPlan],
     outputs: &mut [ShieldedOutputPlan],
 ) {
@@ -265,7 +265,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         }
 
                         let transfer = self.build_transfer_plan(
-                            source,
                             &selected,
                             recipient.clone(),
                             value,
@@ -345,8 +344,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 });
             }
 
-            let transfer =
-                self.build_transfer_plan(source, &selected, recipient.clone(), value, fee)?;
+            let transfer = self.build_transfer_plan(&selected, recipient.clone(), value, fee)?;
             let new_fee = gas_prices
                 .fee(&ActionPlan::Transfer(transfer.clone()).gas_cost())
                 .apply_tier(self.fee_tier);
@@ -548,7 +546,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         }
 
                         let shielded_withdrawal = self.build_ics20_withdrawal_plan(
-                            source,
                             &selected,
                             withdrawal.clone(),
                             zero_base_fee(),
@@ -628,7 +625,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             }
 
             let shielded_withdrawal =
-                self.build_ics20_withdrawal_plan(source, &selected, withdrawal.clone(), fee)?;
+                self.build_ics20_withdrawal_plan(&selected, withdrawal.clone(), fee)?;
             let new_fee = gas_prices
                 .fee(&ActionPlan::ShieldedIcs20Withdrawal(shielded_withdrawal.clone()).gas_cost())
                 .apply_tier(self.fee_tier);
@@ -999,7 +996,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
     fn build_transfer_plan(
         &mut self,
-        source: AddressIndex,
         selected: &[SpendableNoteRecord],
         recipient: Address,
         value: Value,
@@ -1009,7 +1005,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             .first()
             .map(|record| record.note.address())
             .ok_or_else(|| anyhow!("transfer requires at least one selected note"))?;
-        debug_assert_eq!(source.account, source.account);
         let total_input = selected
             .iter()
             .map(|record| record.note.amount())
@@ -1041,7 +1036,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 sender_address,
             ));
         }
-        align_transfer_planning_metadata(&mut spends, &mut outputs);
+        align_shielded_planning_metadata(&mut spends, &mut outputs);
 
         TransferPlan::new(spends, outputs, Fr::rand(&mut self.rng))
     }
@@ -1082,7 +1077,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             },
             sender_address,
         )];
-        align_transfer_planning_metadata(&mut spends, &mut outputs);
+        align_shielded_planning_metadata(&mut spends, &mut outputs);
 
         TransferPlan::new(spends, outputs, Fr::rand(&mut self.rng))
     }
@@ -1217,7 +1212,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
     fn build_ics20_withdrawal_plan(
         &mut self,
-        source: AddressIndex,
         selected: &[SpendableNoteRecord],
         withdrawal: Ics20Withdrawal,
         fee: Fee,
@@ -1226,7 +1220,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             .first()
             .map(|record| record.note.address())
             .ok_or_else(|| anyhow!("ICS-20 withdrawal requires at least one selected note"))?;
-        debug_assert_eq!(source.account, source.account);
         let total_input = selected
             .iter()
             .map(|record| record.note.amount())
@@ -1240,14 +1233,14 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         }
 
         let change_amount = total_input - total_required;
-        let spends = selected
+        let mut spends = selected
             .iter()
             .map(|record| {
                 ShieldedInputPlan::new(&mut self.rng, record.note.clone(), record.position)
             })
             .collect::<Vec<_>>();
 
-        let change_output = if change_amount > Amount::zero() {
+        let mut change_output = if change_amount > Amount::zero() {
             Some(ShieldedOutputPlan::new(
                 &mut self.rng,
                 Value {
@@ -1259,6 +1252,12 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         } else {
             None
         };
+        match change_output.as_mut() {
+            Some(output) => {
+                align_shielded_planning_metadata(&mut spends, std::slice::from_mut(output))
+            }
+            None => align_shielded_planning_metadata(&mut spends, &mut []),
+        }
 
         ShieldedIcs20WithdrawalPlan::new(
             ShieldedIcs20WithdrawalFamilyId::Canonical,
@@ -1992,9 +1991,9 @@ mod tests {
                     user_registered: false,
                     asset_registered: false,
                     is_regulated: false,
-                    compliance_path: None,
+                    compliance_path: Some(shieldd_sdk_compliance::MerklePath::default().into()),
                     compliance_position: 0,
-                    asset_path: None,
+                    asset_path: Some(shieldd_sdk_compliance::MerklePath::default().into()),
                     asset_position: 0,
                     compliance_anchor: vec![0u8; 32],
                     asset_anchor: vec![0u8; 32],
@@ -2452,23 +2451,23 @@ mod tests {
         assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::FourByOne);
         assert_eq!(note_reshape.spends.len(), 3);
         assert_eq!(note_reshape.body.inputs.len(), 4);
-        // Plan bodies are placeholders; dummy classification is meaningful
-        // only after materializing the action body.
         let spend_key = test_spend_key(6);
+        let fvk = spend_key.full_viewing_key();
         let body = note_reshape
             .note_reshape_body(
-                spend_key.full_viewing_key(),
+                fvk,
                 &PayloadKey::from([0u8; 32]),
                 shieldd_sdk_tct::Tree::default().root(),
             )
             .expect("note reshape body materialization succeeds");
-        assert_eq!(
-            body.inputs
-                .iter()
-                .map(|input| input.is_dummy())
-                .collect::<Vec<_>>(),
-            vec![false, false, false, true]
-        );
+        assert!(body.inputs.iter().all(|input| input.encrypted_backref.len()
+            == shieldd_sdk_shielded_pool::backref::ENCRYPTED_BACKREF_LEN));
+        let padded_input = &body.inputs[3];
+        assert!(padded_input
+            .encrypted_backref
+            .decrypt(&fvk.backref_key(), &padded_input.nullifier)
+            .expect("padded backref is a valid ciphertext")
+            .is_some());
     }
 
     #[tokio::test]
@@ -2501,22 +2500,38 @@ mod tests {
         assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::OneByEight);
         assert_eq!(note_reshape.outputs.len(), 3);
         assert_eq!(note_reshape.body.outputs.len(), 8);
-        // Plan bodies are placeholders; dummy classification is meaningful
-        // only after materializing the action body.
         let spend_key = test_spend_key(5);
+        let fvk = spend_key.full_viewing_key();
         let body = note_reshape
             .note_reshape_body(
-                spend_key.full_viewing_key(),
+                fvk,
                 &PayloadKey::from([0u8; 32]),
                 shieldd_sdk_tct::Tree::default().root(),
             )
             .expect("note reshape body materialization succeeds");
-        assert_eq!(
-            body.outputs
-                .iter()
-                .map(|output| output.is_dummy())
-                .collect::<Vec<_>>(),
-            vec![false, false, false, true, true, true, true, true]
-        );
+        assert!(body.outputs.iter().all(|output| {
+            output.wrapped_memo_key.0 != [0u8; 48] && output.ovk_wrapped_key.0 != [0u8; 48]
+        }));
+        for (index, output) in body.outputs.iter().enumerate() {
+            let shared_secret = Note::decrypt_key(
+                output.ovk_wrapped_key.clone(),
+                output.note_payload.note_commitment,
+                body.balance_commitment,
+                fvk.outgoing(),
+                &output.note_payload.ephemeral_key,
+            )
+            .expect("every fixed output uses the serialized action commitment");
+            let payload_key =
+                PayloadKey::derive(&shared_secret, &output.note_payload.ephemeral_key);
+            let note = Note::decrypt_with_payload_key(
+                &output.note_payload.encrypted_note,
+                &payload_key,
+                &output.note_payload.ephemeral_key,
+            )
+            .expect("fixed output is an ordinary encrypted note");
+            if index >= 3 {
+                assert_eq!(note.amount(), Amount::zero());
+            }
+        }
     }
 }

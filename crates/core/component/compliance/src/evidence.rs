@@ -277,7 +277,7 @@ impl ComplianceEvidenceObject {
 
 fn dleq_from_upload_package(package: &crate::OrbisEncryptedSeedUploadPackage) -> Result<DleqProof> {
     Ok(DleqProof {
-        c: package.challenge_scalar(),
+        c: package.challenge_scalar()?,
         s: package.response_scalar()?,
     })
 }

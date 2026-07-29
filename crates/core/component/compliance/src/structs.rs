@@ -1741,10 +1741,47 @@ mod tests {
         );
         assert_eq!(policy.params.threshold, u128::MAX);
     }
+
+    #[test]
+    fn merkle_path_default_is_fixed_width_and_canonical() {
+        let path = MerklePath::default();
+        path.validate().expect("default path is canonical");
+        assert_eq!(path.layers.len(), usize::from(crate::tree::DEFAULT_DEPTH));
+        assert!(path.layers.iter().all(|layer| {
+            layer.siblings.len() == 3 && layer.siblings.iter().all(|sibling| sibling == &[0u8; 32])
+        }));
+
+        let proto: pb::MerklePath = path.clone().into();
+        assert_eq!(
+            MerklePath::try_from(proto).expect("canonical path roundtrip"),
+            path
+        );
+    }
+
+    #[test]
+    fn merkle_path_proto_rejects_noncanonical_shape_and_fields() {
+        let canonical: pb::MerklePath = MerklePath::default().into();
+
+        let mut short = canonical.clone();
+        short.layers.pop();
+        MerklePath::try_from(short).expect_err("short path must fail");
+
+        let mut wrong_arity = canonical.clone();
+        wrong_arity.layers[0].siblings.pop();
+        MerklePath::try_from(wrong_arity).expect_err("wrong sibling arity must fail");
+
+        let mut wrong_length = canonical.clone();
+        wrong_length.layers[0].siblings[0].pop();
+        MerklePath::try_from(wrong_length).expect_err("short sibling must fail");
+
+        let mut noncanonical = canonical;
+        noncanonical.layers[0].siblings[0] = vec![0xff; 32];
+        MerklePath::try_from(noncanonical).expect_err("noncanonical sibling must fail");
+    }
 }
 
 /// A Merkle path in the Quad Merkle Tree (arity 4).
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::MerklePath", into = "pb::MerklePath")]
 pub struct MerklePath {
     /// The layers of the Merkle path, from leaf to root.
@@ -1752,6 +1789,17 @@ pub struct MerklePath {
 }
 
 impl MerklePath {
+    /// Fixed-width zero path for a conditionally disabled membership branch.
+    pub fn zeroed() -> Self {
+        Self {
+            layers: (0..crate::tree::DEFAULT_DEPTH)
+                .map(|_| MerklePathLayer {
+                    siblings: vec![vec![0u8; 32]; 3],
+                })
+                .collect(),
+        }
+    }
+
     /// Create a MerklePath from the output of registry auth_path functions.
     pub fn from_auth_path(auth_path: Vec<[StateCommitment; 3]>) -> Self {
         let layers = auth_path
@@ -1765,6 +1813,41 @@ impl MerklePath {
             })
             .collect();
         MerklePath { layers }
+    }
+
+    pub fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.layers.len() == usize::from(crate::tree::DEFAULT_DEPTH),
+            "Merkle path must have exactly {} layers, got {}",
+            crate::tree::DEFAULT_DEPTH,
+            self.layers.len()
+        );
+        for (layer_index, layer) in self.layers.iter().enumerate() {
+            anyhow::ensure!(
+                layer.siblings.len() == 3,
+                "Merkle path layer {layer_index} must have exactly 3 siblings, got {}",
+                layer.siblings.len()
+            );
+            for (sibling_index, sibling) in layer.siblings.iter().enumerate() {
+                let bytes: [u8; 32] = sibling.as_slice().try_into().map_err(|_| {
+                    anyhow::anyhow!(
+                        "Merkle path layer {layer_index} sibling {sibling_index} must be 32 bytes"
+                    )
+                })?;
+                Fq::from_bytes_checked(&bytes).map_err(|_| {
+                    anyhow::anyhow!(
+                        "Merkle path layer {layer_index} sibling {sibling_index} is not canonical"
+                    )
+                })?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Default for MerklePath {
+    fn default() -> Self {
+        Self::zeroed()
     }
 }
 
@@ -1787,7 +1870,9 @@ impl TryFrom<pb::MerklePath> for MerklePath {
             .into_iter()
             .map(|l| l.try_into())
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(MerklePath { layers })
+        let path = MerklePath { layers };
+        path.validate()?;
+        Ok(path)
     }
 }
 

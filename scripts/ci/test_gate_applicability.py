@@ -154,6 +154,33 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertEqual((decision.status, decision.tier), ("run", "typed"))
 
+    def test_transaction_view_and_consensus_seams_select_soundness_gate(self) -> None:
+        source = next(
+            item
+            for item in self.soundness.derived_inputs
+            if item["type"] == "cargo_local_closure"
+        )
+        rules = GATE.cargo_closure_rules(self.root, source, "pull_request")
+        for path in (
+            "crates/core/transaction/src/plan/build.rs",
+            "crates/core/app/src/action_handler/actions.rs",
+            "crates/core/app/src/action_handler/transaction.rs",
+            "crates/core/app/src/app/mod.rs",
+            "crates/view/src/client_compliance.rs",
+            "crates/view/src/note_manager.rs",
+            "crates/view/src/service.rs",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness,
+                    "pull_request",
+                    [path],
+                    rules,
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier), ("run", "stamps")
+                )
+
     def test_formal_workflow_handles_every_declared_soundness_tier(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
             encoding="utf-8"
@@ -168,7 +195,35 @@ class GateApplicabilityTests(unittest.TestCase):
                 continue
             with self.subTest(tier=tier):
                 self.assertIn(f"{tier})", run_case)
-        self.assertNotIn('SOUNDNESS_TIER" !=', workflow)
+
+        vk_job = workflow[
+            workflow.index("  soundness-vk-derivation:") : workflow.index(
+                "  soundness-alloy:"
+            )
+        ]
+        self.assertIn(
+            """if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.soundness_run == 'true' &&
+      needs.applicability.outputs.soundness_tier != 'full'""",
+            vk_job,
+        )
+
+        summary = workflow[workflow.index("  summary:") :]
+        self.assertIn(
+            """if [[ "$SOUNDNESS_TIER" != full ]]; then
+              required+=("soundness-vk-derivation=$VK")
+            fi""",
+            summary,
+        )
+        self.assertIn('"soundness-lean-circuit-fv=$LEAN"', summary)
+
+        full_case = run_case[run_case.index("            full)") :]
+        full_case = full_case[: full_case.index("            *)")]
+        self.assertIn(
+            "bash scripts/check-circuit-fv.sh receipt --status candidate",
+            full_case,
+        )
 
     def test_one_graph_input_selects_only_that_graph(self) -> None:
         manifest = self.synthetic_manifest(

@@ -22,9 +22,10 @@ pub mod proof_test_helpers {
 
     use crate::{
         Note, Rseed, ShieldedIcs20WithdrawalChangePrivate, ShieldedIcs20WithdrawalChangePublic,
-        ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalInputPrivate,
-        ShieldedIcs20WithdrawalInputPublic, ShieldedIcs20WithdrawalProofPrivate,
-        ShieldedIcs20WithdrawalProofPublic, ShieldedInputPlan,
+        ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalInputPublic,
+        ShieldedIcs20WithdrawalOptionalInputPrivate, ShieldedIcs20WithdrawalProofPrivate,
+        ShieldedIcs20WithdrawalProofPublic, ShieldedIcs20WithdrawalRequiredInputPrivate,
+        ShieldedInputPlan,
     };
 
     /// Create valid IMT proof data for an unregulated asset.
@@ -741,7 +742,7 @@ pub mod proof_test_helpers {
             .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor)
             .expect("derive transfer public/private inputs");
         let transfer = transfer_plan
-            .transfer(
+            .build_unauth_transfer(
                 &base.fvk,
                 vec![
                     crate::note_reshape_padding::dummy_spend_auth_sig();
@@ -951,24 +952,20 @@ pub mod proof_test_helpers {
                 rk: spend_b.rk(&base.fvk),
             },
         ];
-        let input_privates = vec![
-            ShieldedIcs20WithdrawalInputPrivate {
-                state_commitment_proof: state_commitment_proofs[0].clone(),
-                spent_note: note_a,
-                spend_auth_randomizer: spend_a.randomizer,
-                is_dummy: false,
-                dummy_nullifier_seed: Fq::from(0u64),
-                dummy_spend_auth_key: Fr::from(0u64),
-            },
-            ShieldedIcs20WithdrawalInputPrivate {
+        let required_input = ShieldedIcs20WithdrawalRequiredInputPrivate {
+            state_commitment_proof: state_commitment_proofs[0].clone(),
+            spent_note: note_a,
+            spend_auth_randomizer: spend_a.randomizer,
+        };
+        let optional_input = ShieldedIcs20WithdrawalOptionalInputPrivate {
+            spend: ShieldedIcs20WithdrawalRequiredInputPrivate {
                 state_commitment_proof: state_commitment_proofs[1].clone(),
                 spent_note: note_b,
                 spend_auth_randomizer: spend_b.randomizer,
-                is_dummy: false,
-                dummy_nullifier_seed: Fq::from(0u64),
-                dummy_spend_auth_key: Fr::from(0u64),
             },
-        ];
+            is_dummy: false,
+            dummy_nullifier_seed: Fq::from(0u64),
+        };
 
         (
             ShieldedIcs20WithdrawalProofPublic {
@@ -984,8 +981,12 @@ pub mod proof_test_helpers {
                 },
                 outbound_asset_id: base.value.asset_id.0,
                 outbound_amount: Fq::from(100u64),
-                withdrawal_effect_hash_lo: Fq::from(21u64),
-                withdrawal_effect_hash_hi: Fq::from(22u64),
+                withdrawal_effect_hash_limbs: [
+                    Fq::from(21u64),
+                    Fq::from(22u64),
+                    Fq::from(23u64),
+                    Fq::from(24u64),
+                ],
             },
             ShieldedIcs20WithdrawalProofPrivate {
                 family_id,
@@ -999,7 +1000,8 @@ pub mod proof_test_helpers {
                 sender_compliance_path: base.compliance_path,
                 sender_compliance_position: base.compliance_position,
                 sender_leaf: base.user_leaf,
-                inputs: input_privates,
+                required_input,
+                optional_input,
                 change_output: ShieldedIcs20WithdrawalChangePrivate {
                     created_note: change_note,
                 },

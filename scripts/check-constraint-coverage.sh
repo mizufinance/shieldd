@@ -44,7 +44,7 @@ select_circuits() {
     if [[ "$require_full_deployed" -eq 1 ]]; then
       selected=(note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8)
     else
-      selected=(note_reshape2x1 transfer)
+      selected=(note_reshape2x1)
     fi
     printf '%s\n' "${selected[@]}"
     return
@@ -56,17 +56,11 @@ select_circuits() {
         [[ "$#" -gt 0 ]] || fail "--circuit requires an argument"
         case "$1" in
           all)
-            if [[ "$require_full_deployed" -eq 1 ]]; then
-              for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
-                add_circuit "$candidate"
-              done
-            else
-              for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer; do
-                add_circuit "$candidate"
-              done
-            fi
+            for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
+              add_circuit "$candidate"
+            done
             ;;
-          note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer) add_circuit "$1" ;;
+          note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8) add_circuit "$1" ;;
           *) fail "unsupported circuit $1" ;;
         esac
         ;;
@@ -75,17 +69,11 @@ select_circuits() {
       --check-typed-bindings)
         ;;
       all)
-        if [[ "$require_full_deployed" -eq 1 ]]; then
-          for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
-            add_circuit "$candidate"
-          done
-        else
-          for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer; do
-            add_circuit "$candidate"
-          done
-        fi
+        for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
+          add_circuit "$candidate"
+        done
         ;;
-      note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8|transfer)
+      note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8)
         add_circuit "$1"
         ;;
       *)
@@ -238,7 +226,7 @@ check_generated_contracts() {
   # allowed only when the tier permits pending obligations (stamps tier),
   # exactly as pending obligations are treated below, and fatal under
   # --require-full-deployed. This keeps a complete set (note_reshape2x1) at full
-  # equality while letting an in-progress set (transfer) stay gated and honest.
+  # equality while allowing a stamps-tier run to omit unselected families.
   local orphans missing
   orphans="$(comm -23 "$committed_list" "$generated_list")"
   if [[ -n "$orphans" ]]; then
@@ -300,7 +288,6 @@ coverage_manifest_for_circuit() {
     note_reshape4x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape4x1-coverage-manifest.json" ;;
     note_reshape8x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape8x1-coverage-manifest.json" ;;
     note_reshape1x8) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-coverage-manifest.json" ;;
-    transfer) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/transfer-coverage-manifest.json" ;;
     *) fail "unsupported circuit $1" ;;
   esac
 }
@@ -311,7 +298,6 @@ coverage_ir_for_circuit() {
     note_reshape4x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape4x1-deployed-slice-ir.json" ;;
     note_reshape8x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape8x1-deployed-slice-ir.json" ;;
     note_reshape1x8) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-deployed-slice-ir.json" ;;
-    transfer) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/transfer-deployed-slice-ir.json" ;;
     *) fail "unsupported circuit $1" ;;
   esac
 }
@@ -322,7 +308,6 @@ contract_module_dir_for_circuit() {
     note_reshape4x1) printf '%s\n' NoteReshape4x1 ;;
     note_reshape8x1) printf '%s\n' NoteReshape8x1 ;;
     note_reshape1x8) printf '%s\n' NoteReshape1x8 ;;
-    transfer) printf '%s\n' Transfer ;;
     *) fail "unsupported circuit $1" ;;
   esac
 }
@@ -333,7 +318,6 @@ artifact_dir_for_circuit() {
     note_reshape4x1) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape4x1" ;;
     note_reshape8x1) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape8x1" ;;
     note_reshape1x8) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape1x8" ;;
-    transfer) printf '%s\n' "$ROOT/tools/gnark/artifacts/transfer" ;;
     *) fail "unsupported circuit $1" ;;
   esac
 }
@@ -344,7 +328,6 @@ formal_report_for_circuit() {
     note_reshape4x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape4x1-constraint-coverage-report.json" ;;
     note_reshape8x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape8x1-constraint-coverage-report.json" ;;
     note_reshape1x8) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-constraint-coverage-report.json" ;;
-    transfer) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/transfer-constraint-coverage-report.json" ;;
     *) fail "unsupported circuit $1" ;;
   esac
 }
@@ -553,9 +536,9 @@ while IFS= read -r circuit; do
   [[ "$metadata_constraints" == "$report_constraints" ]] \
     || fail "metadata/report constraint-count mismatch for $circuit"
 
-  metadata_vk_sha="$(jq -r '.verifying_key_sha256_hex' "$metadata")"
+  metadata_vk_sha="$(jq -r '.verifying_key_json_sha256_hex' "$metadata")"
   [[ "$metadata_vk_sha" == "$(sha256_file "$vk_json")" ]] \
-    || fail "metadata verifying_key_sha256_hex does not match bundled verifying_key.json for $circuit"
+    || fail "metadata verifying_key_json_sha256_hex does not match bundled verifying_key.json for $circuit"
 
   jq -e '.deployed_obligations != null' "$report" >/dev/null \
     || fail "coverage report does not contain deployed obligation verdicts for $circuit"

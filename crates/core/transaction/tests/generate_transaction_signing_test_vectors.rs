@@ -168,32 +168,38 @@ fn ibc_action_strategy() -> impl Strategy<Value = IbcRelay> {
     (
         sequence_strategy(),
         0..1000000000u64,
-        0..1000000000u64,
+        1..1000000000u64,
+        1..1_000_000_000_000_000_000u64,
         address_strategy(),
     )
-        .prop_map(|(sequence, revision_number, revision_height, src)| {
-            IbcRelay::RecvPacket(MsgRecvPacket {
-                packet: Packet {
-                    sequence,
-                    port_on_a: PortId::default(),
-                    chan_on_a: ChannelId::default(),
-                    port_on_b: PortId::default(),
-                    chan_on_b: ChannelId::default(),
-                    data: vec![0u8; 100],
-                    timeout_height_on_b: ibc_types::core::channel::TimeoutHeight::At(
-                        Height::new(revision_number, revision_height).expect("test value"),
-                    ),
-                    timeout_timestamp_on_b: Timestamp::now(),
-                },
-                // this can't be empty
-                proof_commitment_on_a: MerkleProof {
-                    proofs: vec![CommitmentProof::default()],
-                },
-                proof_height_on_a: Height::new(revision_number, revision_height)
-                    .expect("test value"),
-                signer: src.to_string(),
-            })
-        })
+        .prop_map(
+            |(sequence, revision_number, revision_height, timeout_timestamp_nanos, src)| {
+                IbcRelay::RecvPacket(MsgRecvPacket {
+                    packet: Packet {
+                        sequence,
+                        port_on_a: PortId::default(),
+                        chan_on_a: ChannelId::default(),
+                        port_on_b: PortId::default(),
+                        chan_on_b: ChannelId::default(),
+                        data: vec![0u8; 100],
+                        timeout_height_on_b: ibc_types::core::channel::TimeoutHeight::At(
+                            Height::new(revision_number, revision_height).expect("test value"),
+                        ),
+                        timeout_timestamp_on_b: Timestamp::from_nanoseconds(
+                            timeout_timestamp_nanos,
+                        )
+                        .expect("test timestamp"),
+                    },
+                    // this can't be empty
+                    proof_commitment_on_a: MerkleProof {
+                        proofs: vec![CommitmentProof::default()],
+                    },
+                    proof_height_on_a: Height::new(revision_number, revision_height)
+                        .expect("test value"),
+                    signer: src.to_string(),
+                })
+            },
+        )
 }
 
 fn proposal_strategy() -> impl Strategy<Value = Proposal> {
@@ -270,10 +276,18 @@ fn shielded_ics20_withdrawal_plan_strategy(
         position_strategy,
         address_strategy(),
         0..1000000000u64,
-        0..1000000000u64,
+        1..1000000u64,
+        1..1000000u64,
     )
         .prop_map(
-            |(note, position, return_address, revision_number, revision_height)| {
+            |(
+                note,
+                position,
+                return_address,
+                revision_number,
+                revision_height,
+                timeout_minutes,
+            )| {
                 let withdrawal = Ics20Withdrawal {
                     amount: note.amount(),
                     denom: BASE_ASSET_DENOM.clone(),
@@ -281,7 +295,7 @@ fn shielded_ics20_withdrawal_plan_strategy(
                     return_address: return_address.clone(),
                     timeout_height: Height::new(revision_number, revision_height)
                         .expect("test value"),
-                    timeout_time: 0u64,
+                    timeout_time: timeout_minutes * 60_000_000_000,
                     source_channel: ChannelId::default(),
                     use_compat_address: false,
                     use_transparent_address: false,
@@ -514,7 +528,6 @@ fn effect_hash_test_vectors() {
     let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
     let fvk = sk.full_viewing_key();
 
-    let mut supported_vectors = 0;
     for i in 0..100 {
         let json_file_path = format!("{}/transaction_plan_{}.json", test_vectors_dir, i);
         let json_plan: TransactionPlan = serde_json::from_str(
@@ -528,18 +541,16 @@ fn effect_hash_test_vectors() {
         proto_file
             .read_to_end(&mut transaction_plan_encoded)
             .expect("Failed to read Protobuf file");
-        let Ok(transaction_plan) = TransactionPlan::decode(&transaction_plan_encoded[..]) else {
-            continue;
-        };
+        let transaction_plan = TransactionPlan::decode(&transaction_plan_encoded[..])
+            .unwrap_or_else(|error| panic!("protobuf vector {i} must decode: {error}"));
         assert_eq!(
             json_plan.encode_to_vec(),
             transaction_plan_encoded,
             "JSON/protobuf vector {i} drifted"
         );
 
-        if check_transaction_plan_enabled(&transaction_plan).is_err() {
-            continue;
-        }
+        check_transaction_plan_enabled(&transaction_plan)
+            .unwrap_or_else(|error| panic!("vector {i} must remain enabled: {error}"));
 
         let effect_hash_hex = hex::encode(
             transaction_plan
@@ -554,11 +565,5 @@ fn effect_hash_test_vectors() {
             .trim()
             .to_owned();
         assert_eq!(effect_hash_hex, expected_effect_hash, "vector {i}");
-        supported_vectors += 1;
     }
-
-    assert!(
-        supported_vectors > 0,
-        "expected at least one enabled signing test vector"
-    );
 }

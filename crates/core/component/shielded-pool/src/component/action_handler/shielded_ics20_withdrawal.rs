@@ -15,12 +15,11 @@ use crate::{
         action_handler::note_reshape,
         transfer::{Ics20TransferExecutionExt as _, Ics20TransferWriteExt as _},
     },
-    ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalChangeBody,
-    ShieldedIcs20WithdrawalChangePublic, ShieldedIcs20WithdrawalInputPublic,
-    ShieldedIcs20WithdrawalProofPublic, TransferInputBody,
+    ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalChangePublic,
+    ShieldedIcs20WithdrawalInputPublic, ShieldedIcs20WithdrawalProofPublic,
 };
 
-pub fn shielded_ics20_withdrawal_verify_auth_sigs(
+fn shielded_ics20_withdrawal_verify_auth_sigs(
     action: &ShieldedIcs20Withdrawal,
     context: &TransactionContext,
 ) -> Result<()> {
@@ -33,7 +32,18 @@ pub fn shielded_ics20_withdrawal_verify_auth_sigs(
     )
 }
 
-pub fn shielded_ics20_withdrawal_extract_public(
+fn shielded_ics20_withdrawal_check_lengths(action: &ShieldedIcs20Withdrawal) -> Result<()> {
+    for (index, input) in action.body.inputs.iter().enumerate() {
+        anyhow::ensure!(
+            input.compliance_ciphertext.is_empty(),
+            "shielded ICS-20 withdrawal input {} compliance ciphertext must be empty",
+            index + 1
+        );
+    }
+    Ok(())
+}
+
+fn shielded_ics20_withdrawal_extract_public(
     action: &ShieldedIcs20Withdrawal,
     context: &TransactionContext,
 ) -> Result<ShieldedIcs20WithdrawalProofPublic> {
@@ -60,8 +70,8 @@ pub fn shielded_ics20_withdrawal_extract_public(
         },
         outbound_asset_id: action.body.withdrawal.denom.id().0,
         outbound_amount: decaf377::Fq::from(action.body.withdrawal.amount),
-        withdrawal_effect_hash_lo: decaf377::Fq::from_le_bytes_mod_order(&effect_hash_bytes[..32]),
-        withdrawal_effect_hash_hi: decaf377::Fq::from_le_bytes_mod_order(&effect_hash_bytes[32..]),
+        withdrawal_effect_hash_limbs:
+            crate::shielded_ics20_withdrawal::withdrawal_effect_hash_limbs(effect_hash_bytes),
     };
     public
         .validate_shape()
@@ -69,7 +79,7 @@ pub fn shielded_ics20_withdrawal_extract_public(
     Ok(public)
 }
 
-pub fn shielded_ics20_withdrawal_to_batch_item(
+fn shielded_ics20_withdrawal_to_batch_item(
     action: &ShieldedIcs20Withdrawal,
     public: ShieldedIcs20WithdrawalProofPublic,
 ) -> Result<BatchItem> {
@@ -80,8 +90,10 @@ pub fn shielded_ics20_withdrawal_check_stateless_and_extract(
     action: &ShieldedIcs20Withdrawal,
     context: &TransactionContext,
 ) -> Result<BatchItem> {
+    note_reshape::validate_action_anchor("shielded_ics20_withdrawal", action.body.anchor, context)?;
     action.body.validate_shape()?;
     action.body.withdrawal.validate()?;
+    shielded_ics20_withdrawal_check_lengths(action)?;
     shielded_ics20_withdrawal_verify_auth_sigs(action, context)?;
     let public = shielded_ics20_withdrawal_extract_public(action, context)?;
     shielded_ics20_withdrawal_to_batch_item(action, public)
@@ -131,16 +143,83 @@ impl ActionHandler for ShieldedIcs20Withdrawal {
         state
             .withdrawal_check_cached(&self.body.withdrawal, current_block_time)
             .await?;
-        note_reshape::execute(
+        note_reshape::execute_proof_bound_effects(
             &mut state,
             &self.body.inputs,
             std::slice::from_ref(&self.body.change_output),
             |input| input.nullifier,
-            TransferInputBody::is_dummy,
             |output| &output.note_payload,
-            ShieldedIcs20WithdrawalChangeBody::is_dummy,
         )
         .await?;
         state.withdrawal_execute(&self.body.withdrawal).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{ops::Deref, str::FromStr};
+
+    use decaf377::Fr;
+    use ibc_types::core::{channel::ChannelId, client::Height as IbcHeight};
+    use rand_core::OsRng;
+    use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM};
+    use shieldd_sdk_keys::test_keys;
+
+    use super::*;
+    use crate::{
+        note_reshape_padding::dummy_spend_auth_sig, Ics20Withdrawal, Note,
+        ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalPlan, ShieldedInputPlan,
+    };
+
+    #[test]
+    fn stateless_rejects_nonempty_input_compliance_ciphertext() {
+        let value = Value {
+            amount: 40u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
+        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+        let withdrawal = Ics20Withdrawal {
+            amount: 40u64.into(),
+            denom: BASE_ASSET_DENOM.clone(),
+            destination_chain_address: "cosmos1destination".to_string(),
+            return_address: test_keys::ADDRESS_0.deref().clone(),
+            timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),
+            timeout_time: 60_000_000_000,
+            source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
+            use_compat_address: false,
+            ics20_memo: String::new(),
+            use_transparent_address: false,
+        };
+        let plan = ShieldedIcs20WithdrawalPlan::new(
+            ShieldedIcs20WithdrawalFamilyId::Canonical,
+            vec![spend],
+            None,
+            withdrawal,
+            Fr::from(7u64),
+        )
+        .expect("withdrawal plan should be valid");
+        let anchor = shieldd_sdk_tct::Tree::default().root();
+        let mut body = plan
+            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
+            .expect("withdrawal body should build");
+        body.inputs[0].compliance_ciphertext.push(1);
+        let auth_sigs = vec![dummy_spend_auth_sig(); body.inputs.len()];
+        let action = ShieldedIcs20Withdrawal {
+            body,
+            auth_sigs,
+            proof: Default::default(),
+        };
+        let context = TransactionContext {
+            anchor,
+            effect_hash: Default::default(),
+        };
+
+        let err = shielded_ics20_withdrawal_check_stateless_and_extract(&action, &context)
+            .err()
+            .expect("stateless validation must reject unused input compliance ciphertext");
+        assert!(err
+            .to_string()
+            .contains("withdrawal input 1 compliance ciphertext must be empty"));
     }
 }

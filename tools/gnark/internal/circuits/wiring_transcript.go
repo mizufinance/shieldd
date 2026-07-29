@@ -330,6 +330,24 @@ func ExportNoteReshape2x1ConstraintManifest(sr1csPath string) (*ConstraintManife
 }
 
 func ExportTransferConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
+	_, manifest, err := CompileTransferForFV()
+	if err != nil {
+		return nil, err
+	}
+	if sr1csPath != "" {
+		hash, err := sha256HexFile(sr1csPath)
+		if err != nil {
+			return nil, err
+		}
+		manifest.SR1CSSHA256Hex = hash
+	}
+	return manifest, nil
+}
+
+// CompileTransferForFV emits the transfer SR1CS and semantic manifest from one
+// frontend compile. Transfer remains a candidate until its exact deployed
+// obligations and semantic bindings are complete.
+func CompileTransferForFV() (constraint.ConstraintSystem, *ConstraintManifest, error) {
 	transcript := newWiringTranscript("transfer", TransferCircuitInputs, TransferCircuitOutputs)
 	transcript.recordCounts = true
 	circuit := transferCircuitWithTranscript(transcript)
@@ -339,9 +357,43 @@ func ExportTransferConstraintManifest(sr1csPath string) (*ConstraintManifest, er
 		circuit,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("compile transfer for constraint manifest: %w", err)
+		return nil, nil, fmt.Errorf("compile transfer for FV artifacts: %w", err)
 	}
-	return transcript.constraintManifest(ccs, sr1csPath, circuit)
+	manifest, err := transcript.constraintManifest(ccs, "", circuit)
+	if err != nil {
+		return nil, nil, fmt.Errorf("manifest transfer for FV artifacts: %w", err)
+	}
+	return ccs, manifest, nil
+}
+
+// CompileShieldedIcs20WithdrawalForFV emits a candidate artifact pair.
+// Until detailed tracing is added, its single unclassified segment makes
+// exact-coverage gates fail closed instead of implying certification.
+func CompileShieldedIcs20WithdrawalForFV(
+	label string,
+	nIn int,
+) (constraint.ConstraintSystem, *ConstraintManifest, error) {
+	transcript := newWiringTranscript(label, nIn, 1)
+	transcript.recordCounts = true
+	transcript.events = append(transcript.events, wiringEvent{
+		op:         "candidate.unmodeled",
+		args:       []string{"reason=semantic_trace_pending"},
+		constraint: 0,
+	})
+	circuit := NewShieldedIcs20WithdrawalCircuit(nIn)
+	ccs, err := frontend.Compile(
+		ecc.BLS12_377.ScalarField(),
+		r1cs.NewBuilder,
+		circuit,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("compile %s for FV artifacts: %w", label, err)
+	}
+	manifest, err := transcript.constraintManifest(ccs, "", circuit)
+	if err != nil {
+		return nil, nil, fmt.Errorf("manifest %s for FV artifacts: %w", label, err)
+	}
+	return ccs, manifest, nil
 }
 
 func (t *WiringTranscript) constraintManifest(

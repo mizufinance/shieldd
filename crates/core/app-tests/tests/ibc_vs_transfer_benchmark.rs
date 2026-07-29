@@ -380,10 +380,6 @@ struct DetailedRunReport {
     transfer_action_count: usize,
     transfer_input_slots: usize,
     transfer_output_slots: usize,
-    transfer_real_inputs: usize,
-    transfer_dummy_inputs: usize,
-    transfer_real_outputs: usize,
-    transfer_dummy_outputs: usize,
     ibc_relay_action_count: usize,
     delay_block_count: usize,
     delay_block_wall_ms: f64,
@@ -1508,22 +1504,6 @@ fn apply_shape_counts(report: &mut DetailedRunReport, txs: &[Arc<Transaction>]) 
                     report.transfer_action_count += 1;
                     report.transfer_input_slots += transfer.body.inputs.len();
                     report.transfer_output_slots += transfer.body.outputs.len();
-                    let real_inputs = transfer
-                        .body
-                        .inputs
-                        .iter()
-                        .filter(|input| !input.is_dummy())
-                        .count();
-                    let real_outputs = transfer
-                        .body
-                        .outputs
-                        .iter()
-                        .filter(|output| !output.is_dummy())
-                        .count();
-                    report.transfer_real_inputs += real_inputs;
-                    report.transfer_dummy_inputs += transfer.body.inputs.len() - real_inputs;
-                    report.transfer_real_outputs += real_outputs;
-                    report.transfer_dummy_outputs += transfer.body.outputs.len() - real_outputs;
                 }
                 Action::IbcRelay(_) => {
                     report.ibc_relay_action_count += 1;
@@ -1571,10 +1551,6 @@ impl DetailedRunReport {
         self.transfer_action_count += block.transfer_action_count;
         self.transfer_input_slots += block.transfer_input_slots;
         self.transfer_output_slots += block.transfer_output_slots;
-        self.transfer_real_inputs += block.transfer_real_inputs;
-        self.transfer_dummy_inputs += block.transfer_dummy_inputs;
-        self.transfer_real_outputs += block.transfer_real_outputs;
-        self.transfer_dummy_outputs += block.transfer_dummy_outputs;
         self.ibc_relay_action_count += block.ibc_relay_action_count;
         self.delay_block_count += block.delay_block_count;
         self.delay_block_wall_ms += block.delay_block_wall_ms;
@@ -2103,21 +2079,17 @@ fn render_markdown(report: &BenchmarkReport) -> String {
     }
     out.push_str(
         "\n## Transaction Shape Counts\n\n\
-         | Scenario | tx/run | transfer actions/run | transfer input slots/run | real transfer inputs/run | dummy transfer inputs/run | transfer output slots/run | real transfer outputs/run | dummy transfer outputs/run | IBC relay actions/run |\n\
-         |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n",
+         | Scenario | tx/run | transfer actions/run | transfer input slots/run | transfer output slots/run | IBC relay actions/run |\n\
+         |---|---:|---:|---:|---:|---:|\n",
     );
     for scenario in &report.scenarios {
         out.push_str(&format!(
-            "| {} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} |\n",
+            "| {} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} |\n",
             scenario.name,
             mean_detail(scenario, |d| d.profiled_tx_count as f64),
             mean_detail(scenario, |d| d.transfer_action_count as f64),
             mean_detail(scenario, |d| d.transfer_input_slots as f64),
-            mean_detail(scenario, |d| d.transfer_real_inputs as f64),
-            mean_detail(scenario, |d| d.transfer_dummy_inputs as f64),
             mean_detail(scenario, |d| d.transfer_output_slots as f64),
-            mean_detail(scenario, |d| d.transfer_real_outputs as f64),
-            mean_detail(scenario, |d| d.transfer_dummy_outputs as f64),
             mean_detail(scenario, |d| d.ibc_relay_action_count as f64),
         ));
     }

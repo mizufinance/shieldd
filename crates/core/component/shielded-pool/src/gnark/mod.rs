@@ -21,15 +21,16 @@ pub use note_reshape::{
 };
 pub use note_reshape_witness::NoteReshapeWitnessV3;
 pub use shielded_ics20_withdrawal::{
-    decode_shielded_ics20_withdrawal_witness_v1, encode_shielded_ics20_withdrawal_witness_v1,
+    decode_shielded_ics20_withdrawal_witness_v6, encode_shielded_ics20_withdrawal_witness_v6,
     translate_shielded_ics20_withdrawal_proof_result, GnarkShieldedIcs20WithdrawalClient,
 };
-pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV1;
+pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV6;
 pub use transfer::{
-    decode_transfer_witness_v1, encode_transfer_witness_v1, translate_transfer_proof_result,
+    decode_transfer_witness_v11, encode_transfer_witness_v11, translate_transfer_proof_result,
     GnarkTransferClient,
 };
-pub use transfer_witness::TransferWitnessV1;
+pub use transfer_witness::TransferWitnessV11;
+#[cfg(test)]
 pub(crate) use typed::point_affine_compress_to_field_bytes;
 pub use typed::{ComplianceLeafBinary, IndexedLeafBinary, MerklePathBinary, PointAffineBytes};
 
@@ -153,8 +154,8 @@ mod soundness_fixture_tests {
 
     use crate::{
         gnark::{
-            encode_note_reshape_witness_v3, encode_shielded_ics20_withdrawal_witness_v1,
-            encode_transfer_witness_v1,
+            encode_note_reshape_witness_v3, encode_shielded_ics20_withdrawal_witness_v6,
+            encode_transfer_witness_v11,
         },
         test_proof_helpers::proof_test_helpers,
         NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId,
@@ -175,17 +176,47 @@ mod soundness_fixture_tests {
         eprintln!("wrote {} bytes to {path:?}", bytes.len());
     }
 
+    fn write_transfer_fixture() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0x0000_0054_5832_5832);
+        let (public, private) =
+            proof_test_helpers::build_transfer_roundtrip_inputs_with_rng(&mut rng, true);
+        write_fixture(
+            "transfer_witness_v11.bin",
+            encode_transfer_witness_v11(&public, &private).expect("encode transfer witness"),
+        );
+    }
+
+    fn write_shielded_ics20_withdrawal_fixture() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0x0000_0049_4353_3201);
+        let (public, private) =
+            proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng(
+                &mut rng,
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                true,
+            );
+        write_fixture(
+            "shielded_ics20_withdrawal_witness_v6.bin",
+            encode_shielded_ics20_withdrawal_witness_v6(&public, &private)
+                .expect("encode shielded ICS-20 withdrawal witness"),
+        );
+    }
+
+    #[test]
+    #[ignore = "debug: refresh Rust-emitted withdrawal gnark soundness fixture"]
+    fn bless_shielded_ics20_withdrawal_witness_fixture() {
+        write_shielded_ics20_withdrawal_fixture();
+    }
+
+    #[test]
+    #[ignore = "debug: refresh Rust-emitted transfer gnark soundness fixture"]
+    fn bless_transfer_witness_fixture() {
+        write_transfer_fixture();
+    }
+
     #[test]
     #[ignore = "debug: refresh Rust-emitted gnark soundness fixtures"]
     fn bless_soundness_gnark_witness_fixtures() {
-        let mut transfer_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0054_5832_5832);
-        let (transfer_public, transfer_private) =
-            proof_test_helpers::build_transfer_roundtrip_inputs_with_rng(&mut transfer_rng, true);
-        write_fixture(
-            "transfer_witness_v1.bin",
-            encode_transfer_witness_v1(&transfer_public, &transfer_private)
-                .expect("encode transfer witness"),
-        );
+        write_transfer_fixture();
 
         let mut note_reshape_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0043_3258_3101);
         let (note_reshape_public, note_reshape_private) =
@@ -235,17 +266,6 @@ mod soundness_fixture_tests {
             );
         }
 
-        let mut withdrawal_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0049_4353_3201);
-        let (withdrawal_public, withdrawal_private) =
-            proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng(
-                &mut withdrawal_rng,
-                ShieldedIcs20WithdrawalFamilyId::Canonical,
-                true,
-            );
-        write_fixture(
-            "shielded_ics20_withdrawal_witness_v1.bin",
-            encode_shielded_ics20_withdrawal_witness_v1(&withdrawal_public, &withdrawal_private)
-                .expect("encode shielded ICS-20 withdrawal witness"),
-        );
+        write_shielded_ics20_withdrawal_fixture();
     }
 }

@@ -26,13 +26,14 @@ gate-record documentation.
 ## Current focus
 
 The four NoteReshape families (`note_reshape2x1`, `note_reshape4x1`,
-`note_reshape8x1`, and `note_reshape1x8`) use the deployed SR1CS proof path described in
-[fv.md](fv.md); transfer retains its separate deployed release path. The gate recompiles each
-Go circuit, rejects byte drift, derives proof inputs from the exact deployed
-rows, checks the generated Lean surface, and binds the deployed proving and
-verifying keys. Handwritten protocol semantics and refinement are the public
-review surface; generated `CircuitFacts` and `Capstone` modules are the typed
-and exhaustive exact-row surfaces.
+`note_reshape8x1`, and `note_reshape1x8`) use the certified deployed-SR1CS path
+described in [fv.md](fv.md). Transfer and shielded ICS-20 withdrawal use
+candidate paths that recompile the exact Go circuits, reject SR1CS and semantic
+manifest drift, and issue metadata/key/witness-bound proof receipts, but do not
+yet claim an independent exact-row refinement. For NoteReshape, handwritten
+protocol semantics and refinement are the public review surface; generated
+`CircuitFacts` and `Capstone` modules are the typed and exhaustive exact-row
+surfaces.
 
 The compliance and shielded-pool property/assumption ledgers remain the source
 for protocol-wide claims beyond this circuit. A whole-circuit proof does not by

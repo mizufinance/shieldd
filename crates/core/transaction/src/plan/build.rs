@@ -101,8 +101,12 @@ impl TransactionPlan {
                     }
                 }
                 (ActionPlan::NoteReshape(plan), Action::NoteReshape(note_reshape)) => {
-                    for auth_sig in note_reshape.auth_sigs.iter_mut().take(plan.spends.len()) {
-                        *auth_sig = spend_auths.next().expect("checked spend auth count");
+                    for (index, auth_sig) in note_reshape.auth_sigs.iter_mut().enumerate() {
+                        if index < plan.spends.len() {
+                            *auth_sig = spend_auths.next().expect("checked spend auth count");
+                        } else {
+                            *auth_sig = plan.synthetic_dummy_auth_sig(index, effect_hash.as_ref());
+                        }
                     }
                 }
                 (

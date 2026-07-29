@@ -1,19 +1,14 @@
 use anyhow::{anyhow, ensure, Context, Error};
 use decaf377::{Fq, Fr};
-use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+use decaf377_rdsa::{Signature, SigningKey, SpendAuth, VerificationKey};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::Balance;
-use shieldd_sdk_keys::symmetric::PayloadKey;
+use shieldd_sdk_keys::symmetric::{PayloadKey, WrappedMemoKey};
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::EffectingData;
 use std::convert::{TryFrom, TryInto};
-
-use crate::note_reshape_padding::{dummy_state_commitment_proof, pad_to_len, HiddenArityPadder};
-use crate::{ShieldedInputPlan, ShieldedOutputPlan};
-#[cfg(any(unix, windows))]
-use decaf377_rdsa::Signature;
 
 #[cfg(any(unix, windows))]
 use super::{NoteReshape, NoteReshapeProof};
@@ -22,6 +17,8 @@ use super::{
     NoteReshapeInputPublic, NoteReshapeOutputBody, NoteReshapeOutputPrivate,
     NoteReshapeOutputPublic, NoteReshapeProofPrivate, NoteReshapeProofPublic,
 };
+use crate::note_reshape_padding::{dummy_state_commitment_proof, pad_to_len, HiddenArityPadder};
+use crate::{ShieldedInputPlan, ShieldedOutputPlan};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(try_from = "pb::NoteReshapePlan", into = "pb::NoteReshapePlan")]
@@ -138,14 +135,20 @@ impl NoteReshapePlan {
             .map(|_| NoteReshapeInputBody {
                 nullifier: shieldd_sdk_sct::Nullifier(Fq::from(0u64)),
                 rk: VerificationKey::from(SigningKey::<SpendAuth>::from(Fr::from(0u64))),
-                encrypted_backref: crate::EncryptedBackref::dummy(),
+                encrypted_backref: crate::EncryptedBackref::try_from(
+                    [0u8; crate::backref::ENCRYPTED_BACKREF_LEN],
+                )
+                .expect("fixed-size placeholder backref is valid"),
             })
             .collect::<Vec<_>>();
         pad_to_len(&mut inputs, family_id.input_count(), |slot| {
             NoteReshapeInputBody {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
                 rk: padder.synthetic_dummy_verification_key(slot),
-                encrypted_backref: crate::EncryptedBackref::dummy(),
+                encrypted_backref: crate::EncryptedBackref::try_from(
+                    [0u8; crate::backref::ENCRYPTED_BACKREF_LEN],
+                )
+                .expect("fixed-size placeholder backref is valid"),
             }
         });
         let mut output_bodies = outputs
@@ -198,6 +201,34 @@ impl NoteReshapePlan {
 
     fn padder(&self) -> HiddenArityPadder {
         Self::padder_for(&self.spends, &self.outputs, self.value_blinding)
+    }
+
+    pub fn synthetic_dummy_auth_sig(
+        &self,
+        slot: usize,
+        effect_hash: &[u8],
+    ) -> Signature<SpendAuth> {
+        self.padder().synthetic_dummy_auth_sig(slot, effect_hash)
+    }
+
+    fn encrypted_output_body(
+        note: crate::Note,
+        fvk: &FullViewingKey,
+        memo_key: &PayloadKey,
+        action_balance_commitment: shieldd_sdk_asset::balance::Commitment,
+    ) -> NoteReshapeOutputBody {
+        let wrapped_memo_key = WrappedMemoKey::encrypt(
+            memo_key,
+            note.ephemeral_secret_key(),
+            note.transmission_key(),
+            &note.diversified_generator(),
+        );
+        let ovk_wrapped_key = note.encrypt_key(fvk.outgoing(), action_balance_commitment);
+        NoteReshapeOutputBody {
+            note_payload: note.payload(),
+            wrapped_memo_key,
+            ovk_wrapped_key,
+        }
     }
 
     pub fn validate_shape(&self) -> anyhow::Result<()> {
@@ -419,6 +450,7 @@ impl NoteReshapePlan {
     ) -> anyhow::Result<NoteReshapeBody> {
         self.validate_invariants()?;
         let padder = self.padder();
+        let action_balance_commitment = self.balance.commit(self.value_blinding);
         let mut inputs = self
             .spends
             .iter()
@@ -432,37 +464,39 @@ impl NoteReshapePlan {
             })
             .collect::<Vec<_>>();
         pad_to_len(&mut inputs, self.family_id().input_count(), |slot| {
+            let nullifier = padder.synthetic_dummy_nullifier(slot);
+            let backref = crate::Backref::new(padder.synthetic_dummy_input_note(slot).commit());
             NoteReshapeInputBody {
-                nullifier: padder.synthetic_dummy_nullifier(slot),
+                nullifier,
                 rk: padder.synthetic_dummy_verification_key(slot),
-                encrypted_backref: crate::EncryptedBackref::dummy(),
+                encrypted_backref: backref.encrypt(&fvk.backref_key(), &nullifier),
             }
         });
         let mut outputs = self
             .outputs
             .iter()
             .map(|output| {
-                let (note_payload, wrapped_memo_key, ovk_wrapped_key) =
-                    output.action_output_parts(fvk.outgoing(), memo_key);
-                NoteReshapeOutputBody {
-                    note_payload,
-                    wrapped_memo_key,
-                    ovk_wrapped_key,
-                }
+                Self::encrypted_output_body(
+                    output.output_note(),
+                    fvk,
+                    memo_key,
+                    action_balance_commitment,
+                )
             })
             .collect::<Vec<_>>();
         pad_to_len(&mut outputs, self.family_id().output_count(), |slot| {
-            NoteReshapeOutputBody {
-                note_payload: padder.synthetic_dummy_output_note(slot).payload(),
-                wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
-                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
-            }
+            Self::encrypted_output_body(
+                padder.synthetic_dummy_output_note(slot),
+                fvk,
+                memo_key,
+                action_balance_commitment,
+            )
         });
 
         Ok(NoteReshapeBody {
             family_id: self.body.family_id,
             anchor,
-            balance_commitment: self.balance.commit(self.value_blinding),
+            balance_commitment: action_balance_commitment,
             inputs,
             outputs,
         })
@@ -487,11 +521,9 @@ impl NoteReshapePlan {
                 auth_sigs.len()
             )));
         }
-        let effect_hash = body.effect_hash();
         let mut auth_sigs = auth_sigs;
         pad_to_len(&mut auth_sigs, self.family_id().auth_sig_count(), |slot| {
-            self.padder()
-                .synthetic_dummy_auth_sig(slot, effect_hash.as_ref())
+            self.synthetic_dummy_auth_sig(slot, body.effect_hash().as_ref())
         });
         let (public, private) =
             self.note_reshape_public_private(fvk, &state_commitment_proofs, anchor)?;

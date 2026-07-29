@@ -1,4 +1,4 @@
-use anyhow::{anyhow, ensure, Error};
+use anyhow::{anyhow, ensure, Context, Error};
 use decaf377::Fq;
 use decaf377::Fr;
 use decaf377_rdsa::{Signature, SpendAuth};
@@ -20,9 +20,10 @@ use crate::{
 };
 use crate::{
     ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalChangePrivate,
-    ShieldedIcs20WithdrawalChangePublic, ShieldedIcs20WithdrawalInputPrivate,
-    ShieldedIcs20WithdrawalInputPublic, ShieldedIcs20WithdrawalProof,
+    ShieldedIcs20WithdrawalChangePublic, ShieldedIcs20WithdrawalInputPublic,
+    ShieldedIcs20WithdrawalOptionalInputPrivate, ShieldedIcs20WithdrawalProof,
     ShieldedIcs20WithdrawalProofPrivate, ShieldedIcs20WithdrawalProofPublic,
+    ShieldedIcs20WithdrawalRequiredInputPrivate,
 };
 
 use super::{ShieldedIcs20WithdrawalBody, ShieldedIcs20WithdrawalFamilyId};
@@ -122,6 +123,7 @@ impl ShieldedIcs20WithdrawalPlan {
             withdrawal,
         };
         plan.body = plan.placeholder_body();
+        plan.validate_invariants()?;
         Ok(plan)
     }
 
@@ -131,6 +133,19 @@ impl ShieldedIcs20WithdrawalPlan {
 
     pub fn balance(&self) -> Balance {
         self.balance.clone()
+    }
+
+    pub fn refresh_body_public_inputs(&mut self) -> anyhow::Result<()> {
+        let first_spend = self
+            .spends
+            .first()
+            .ok_or_else(|| anyhow!("shielded ICS-20 withdrawal requires at least one spend"))?;
+        self.body.balance_commitment = self.balance.commit(self.value_blinding);
+        self.body.target_timestamp = first_spend.target_timestamp;
+        self.body.compliance_anchor = first_spend.compliance_anchor;
+        self.body.asset_anchor = first_spend.asset_anchor;
+        self.body.withdrawal = self.withdrawal.clone();
+        self.validate_invariants()
     }
 
     fn first_spend(&self) -> &ShieldedInputPlan {
@@ -178,6 +193,9 @@ impl ShieldedIcs20WithdrawalPlan {
     }
 
     fn validate_invariants(&self) -> anyhow::Result<()> {
+        self.withdrawal
+            .validate()
+            .context("invalid shielded ICS-20 withdrawal payload")?;
         ensure!(
             self.spends.len() <= PADDED_ICS20_WITHDRAWAL_INPUTS,
             "shielded ICS-20 withdrawal supports at most two spends",
@@ -188,6 +206,26 @@ impl ShieldedIcs20WithdrawalPlan {
             .spends
             .first()
             .ok_or_else(|| anyhow!("shielded ICS-20 withdrawal requires at least one spend"))?;
+        ensure!(
+            self.body.asset_anchor == first_spend.asset_anchor,
+            "shielded ICS-20 withdrawal body asset anchor must match spends",
+        );
+        ensure!(
+            self.body.compliance_anchor == first_spend.compliance_anchor,
+            "shielded ICS-20 withdrawal body compliance anchor must match spends",
+        );
+        ensure!(
+            self.body.target_timestamp == first_spend.target_timestamp,
+            "shielded ICS-20 withdrawal body target timestamp must match spends",
+        );
+        ensure!(
+            self.body.balance_commitment == self.balance.commit(self.value_blinding),
+            "shielded ICS-20 withdrawal body balance commitment must match plan balance",
+        );
+        ensure!(
+            self.body.withdrawal.effect_hash() == self.withdrawal.effect_hash(),
+            "shielded ICS-20 withdrawal body payload must match plan withdrawal",
+        );
         ensure!(
             self.withdrawal.denom.id() == first_spend.note.asset_id(),
             "shielded ICS-20 withdrawal payload asset must match spends",
@@ -213,6 +251,19 @@ impl ShieldedIcs20WithdrawalPlan {
             ensure!(
                 spend.tx_blinding_nonce == first_spend.tx_blinding_nonce,
                 "shielded ICS-20 withdrawal spend tx blinding nonce must match",
+            );
+            ensure!(
+                spend.note.address() == first_spend.note.address(),
+                "shielded ICS-20 withdrawal spends must use the same sender address",
+            );
+            ensure!(
+                spend.compliance_position == first_spend.compliance_position
+                    && spend.compliance_path == first_spend.compliance_path,
+                "shielded ICS-20 withdrawal spends must use the same sender compliance witness",
+            );
+            ensure!(
+                spend.is_regulated == first_spend.is_regulated,
+                "shielded ICS-20 withdrawal spend regulation flags must match",
             );
         }
 
@@ -262,7 +313,10 @@ impl ShieldedIcs20WithdrawalPlan {
                 rk: decaf377_rdsa::VerificationKey::from(decaf377_rdsa::SigningKey::<
                     decaf377_rdsa::SpendAuth,
                 >::from(Fr::from(0u64))),
-                encrypted_backref: crate::EncryptedBackref::dummy(),
+                encrypted_backref: crate::EncryptedBackref::try_from(
+                    [0u8; crate::backref::ENCRYPTED_BACKREF_LEN],
+                )
+                .expect("fixed-size placeholder backref is valid"),
                 compliance_ciphertext: Vec::new(),
             })
             .collect::<Vec<_>>();
@@ -271,7 +325,10 @@ impl ShieldedIcs20WithdrawalPlan {
             TransferInputBody {
                 nullifier: padder.synthetic_dummy_nullifier(slot),
                 rk: padder.synthetic_dummy_verification_key(slot),
-                encrypted_backref: crate::EncryptedBackref::dummy(),
+                encrypted_backref: crate::EncryptedBackref::try_from(
+                    [0u8; crate::backref::ENCRYPTED_BACKREF_LEN],
+                )
+                .expect("fixed-size placeholder backref is valid"),
                 compliance_ciphertext: Vec::new(),
             }
         });
@@ -315,13 +372,9 @@ impl ShieldedIcs20WithdrawalPlan {
         })
     }
 
-    fn withdrawal_effect_hash_limbs(&self) -> (Fq, Fq) {
+    fn withdrawal_effect_hash_limbs(&self) -> [Fq; 4] {
         let effect_hash = self.withdrawal.effect_hash();
-        let bytes = effect_hash.as_bytes();
-        (
-            Fq::from_le_bytes_mod_order(&bytes[..32]),
-            Fq::from_le_bytes_mod_order(&bytes[32..]),
-        )
+        super::withdrawal_effect_hash_limbs(effect_hash.as_bytes())
     }
 
     pub fn shielded_ics20_withdrawal_public_private(
@@ -364,44 +417,50 @@ impl ShieldedIcs20WithdrawalPlan {
             }
         });
 
-        let mut input_privates = self
+        let mut real_input_privates = self
             .spends
             .iter()
             .zip(state_commitment_proofs.iter().cloned())
-            .map(|(spend, state_commitment_proof)| {
-                Ok(ShieldedIcs20WithdrawalInputPrivate {
+            .map(
+                |(spend, state_commitment_proof)| ShieldedIcs20WithdrawalRequiredInputPrivate {
                     state_commitment_proof,
                     spent_note: spend.note.clone(),
                     spend_auth_randomizer: spend.randomizer,
-                    is_dummy: false,
-                    dummy_nullifier_seed: Fq::from(0u64),
-                    dummy_spend_auth_key: Fr::from(0u64),
-                })
-            })
-            .collect::<Result<Vec<_>, crate::ProofError>>()?;
-        pad_to_len(
-            &mut input_privates,
-            PADDED_ICS20_WITHDRAWAL_INPUTS,
-            |slot| {
+                },
+            )
+            .collect::<Vec<_>>()
+            .into_iter();
+        let required_input = real_input_privates
+            .next()
+            .expect("validated withdrawal plans always contain a required spend");
+        let optional_input = real_input_privates.next().map_or_else(
+            || {
+                let slot = 1;
                 let dummy_note = padder.synthetic_dummy_input_note(slot);
-                ShieldedIcs20WithdrawalInputPrivate {
-                    state_commitment_proof: dummy_state_commitment_proof(dummy_note.commit()),
-                    spent_note: dummy_note,
-                    spend_auth_randomizer: padder.synthetic_dummy_spend_auth_randomizer(slot),
+                ShieldedIcs20WithdrawalOptionalInputPrivate {
+                    spend: ShieldedIcs20WithdrawalRequiredInputPrivate {
+                        state_commitment_proof: dummy_state_commitment_proof(dummy_note.commit()),
+                        spent_note: dummy_note,
+                        spend_auth_randomizer: padder.synthetic_dummy_spend_auth_randomizer(slot),
+                    },
                     is_dummy: true,
                     dummy_nullifier_seed: padder.synthetic_dummy_nullifier_seed(slot),
-                    dummy_spend_auth_key: padder.synthetic_dummy_spend_auth_key(slot),
                 }
             },
+            |spend| ShieldedIcs20WithdrawalOptionalInputPrivate {
+                spend,
+                is_dummy: false,
+                dummy_nullifier_seed: Fq::from(0u64),
+            },
         );
+        debug_assert!(real_input_privates.next().is_none());
 
         let change_note = self
             .change_output
             .as_ref()
             .map(|output| output.output_note())
             .unwrap_or_else(|| self.padder().synthetic_dummy_output_note(1));
-        let (withdrawal_effect_hash_lo, withdrawal_effect_hash_hi) =
-            self.withdrawal_effect_hash_limbs();
+        let withdrawal_effect_hash_limbs = self.withdrawal_effect_hash_limbs();
 
         Ok((
             ShieldedIcs20WithdrawalProofPublic {
@@ -417,8 +476,7 @@ impl ShieldedIcs20WithdrawalPlan {
                 },
                 outbound_asset_id: self.withdrawal.denom.id().0,
                 outbound_amount: Fq::from(self.withdrawal.amount),
-                withdrawal_effect_hash_lo,
-                withdrawal_effect_hash_hi,
+                withdrawal_effect_hash_limbs,
             },
             ShieldedIcs20WithdrawalProofPrivate {
                 family_id: self.body.family_id,
@@ -432,7 +490,8 @@ impl ShieldedIcs20WithdrawalPlan {
                 sender_compliance_path: self.first_spend().compliance_path.clone(),
                 sender_compliance_position: self.first_spend().compliance_position,
                 sender_leaf: self.sender_leaf(),
-                inputs: input_privates,
+                required_input,
+                optional_input,
                 change_output: ShieldedIcs20WithdrawalChangePrivate {
                     created_note: change_note,
                 },
@@ -459,38 +518,35 @@ impl ShieldedIcs20WithdrawalPlan {
             .collect::<Vec<_>>();
         let padder = self.padder();
         pad_to_len(&mut inputs, PADDED_ICS20_WITHDRAWAL_INPUTS, |slot| {
+            let dummy_note = padder.synthetic_dummy_input_note(slot);
+            let nullifier = padder.synthetic_dummy_nullifier(slot);
             TransferInputBody {
-                nullifier: padder.synthetic_dummy_nullifier(slot),
+                nullifier,
                 rk: padder.synthetic_dummy_verification_key(slot),
-                encrypted_backref: crate::EncryptedBackref::dummy(),
+                encrypted_backref: crate::Backref::new(dummy_note.commit())
+                    .encrypt(&fvk.backref_key(), &nullifier),
                 compliance_ciphertext: Vec::new(),
             }
         });
 
-        let change_output = if let Some(change_output) = &self.change_output {
-            let (note_payload, wrapped_memo_key, ovk_wrapped_key) =
-                change_output.action_output_parts(fvk.outgoing(), memo_key);
-            ShieldedIcs20WithdrawalChangeBody {
-                note_payload,
-                wrapped_memo_key,
-                ovk_wrapped_key,
-            }
-        } else {
-            let dummy_note = padder.synthetic_dummy_output_note(1);
-            let esk = dummy_note.ephemeral_secret_key();
-            let ovk_wrapped_key =
-                dummy_note.encrypt_key(fvk.outgoing(), self.balance.commit(self.value_blinding));
-            let wrapped_memo_key = WrappedMemoKey::encrypt(
-                memo_key,
-                esk,
-                dummy_note.transmission_key(),
-                &dummy_note.diversified_generator(),
-            );
-            ShieldedIcs20WithdrawalChangeBody {
-                note_payload: dummy_note.payload(),
-                wrapped_memo_key,
-                ovk_wrapped_key,
-            }
+        let change_note = self
+            .change_output
+            .as_ref()
+            .map(ShieldedOutputPlan::output_note)
+            .unwrap_or_else(|| padder.synthetic_dummy_output_note(1));
+        let esk = change_note.ephemeral_secret_key();
+        let ovk_wrapped_key =
+            change_note.encrypt_key(fvk.outgoing(), self.balance.commit(self.value_blinding));
+        let wrapped_memo_key = WrappedMemoKey::encrypt(
+            memo_key,
+            esk,
+            change_note.transmission_key(),
+            &change_note.diversified_generator(),
+        );
+        let change_output = ShieldedIcs20WithdrawalChangeBody {
+            note_payload: change_note.payload(),
+            wrapped_memo_key,
+            ovk_wrapped_key,
         };
 
         Ok(ShieldedIcs20WithdrawalBody {
@@ -507,7 +563,7 @@ impl ShieldedIcs20WithdrawalPlan {
     }
 
     #[cfg(any(unix, windows))]
-    pub fn shielded_ics20_withdrawal(
+    pub fn build_unauth_shielded_ics20_withdrawal(
         &self,
         fvk: &FullViewingKey,
         auth_sigs: Vec<Signature<SpendAuth>>,
@@ -548,11 +604,11 @@ impl ShieldedIcs20WithdrawalPlan {
     ) -> Result<Vec<u8>, crate::ProofError> {
         let (public, private) =
             self.shielded_ics20_withdrawal_public_private(fvk, &state_commitment_proofs, anchor)?;
-        crate::gnark::encode_shielded_ics20_withdrawal_witness_v1(&public, &private)
+        crate::gnark::encode_shielded_ics20_withdrawal_witness_v6(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 
-    pub fn shielded_ics20_withdrawal_with_proof(
+    pub fn build_unauth_shielded_ics20_withdrawal_with_proof(
         &self,
         fvk: &FullViewingKey,
         auth_sigs: Vec<Signature<SpendAuth>>,
@@ -617,7 +673,7 @@ impl TryFrom<pb::ShieldedIcs20WithdrawalPlan> for ShieldedIcs20WithdrawalPlan {
             .try_into()
             .map_err(|_| anyhow!("malformed shielded ICS-20 withdrawal value blinding"))?;
 
-        Ok(Self {
+        let plan = Self {
             body: value
                 .body
                 .ok_or_else(|| anyhow!("missing shielded ICS-20 withdrawal plan body"))?
@@ -639,7 +695,9 @@ impl TryFrom<pb::ShieldedIcs20WithdrawalPlan> for ShieldedIcs20WithdrawalPlan {
                 .withdrawal
                 .ok_or_else(|| anyhow!("missing embedded shielded ICS-20 withdrawal payload"))?
                 .try_into()?,
-        })
+        };
+        plan.validate_invariants()?;
+        Ok(plan)
     }
 }
 
@@ -656,6 +714,57 @@ mod tests {
 
     use super::*;
     use crate::Note;
+
+    fn test_withdrawal(amount: u64) -> Ics20Withdrawal {
+        Ics20Withdrawal {
+            amount: amount.into(),
+            denom: BASE_ASSET_DENOM.clone(),
+            destination_chain_address: "cosmos1destination".to_string(),
+            return_address: test_keys::ADDRESS_0.deref().clone(),
+            timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),
+            timeout_time: 60_000_000_000,
+            source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
+            use_compat_address: false,
+            ics20_memo: String::new(),
+            use_transparent_address: false,
+        }
+    }
+
+    fn two_spends(second_address: &Address) -> (ShieldedInputPlan, ShieldedInputPlan) {
+        let value = Value {
+            amount: 20u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let first_note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
+        let second_note = Note::generate(&mut OsRng, second_address, value);
+        let first = ShieldedInputPlan::new(&mut OsRng, first_note, 0u64.into());
+        let mut second = ShieldedInputPlan::new(&mut OsRng, second_note, 1u64.into());
+        second.asset_anchor = first.asset_anchor;
+        second.compliance_anchor = first.compliance_anchor;
+        second.target_timestamp = first.target_timestamp;
+        second.tx_blinding_nonce = first.tx_blinding_nonce;
+        second.is_regulated = first.is_regulated;
+        second.compliance_path = first.compliance_path.clone();
+        second.compliance_position = first.compliance_position;
+        (first, second)
+    }
+
+    fn one_spend_plan() -> ShieldedIcs20WithdrawalPlan {
+        let value = Value {
+            amount: 40u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
+        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+        ShieldedIcs20WithdrawalPlan::new(
+            ShieldedIcs20WithdrawalFamilyId::Canonical,
+            vec![spend],
+            None,
+            test_withdrawal(40),
+            Fr::from(7u64),
+        )
+        .expect("one-spend withdrawal plan should be valid")
+    }
 
     #[test]
     fn new_plan_builds_padded_body_with_change() {
@@ -698,6 +807,11 @@ mod tests {
 
         assert_eq!(plan.body.inputs.len(), 2);
         assert_eq!(plan.body.withdrawal.effect_hash(), withdrawal.effect_hash());
+        assert!(plan
+            .body
+            .inputs
+            .iter()
+            .all(|input| input.encrypted_backref.len() == crate::backref::ENCRYPTED_BACKREF_LEN));
 
         let body = plan
             .action_body(
@@ -708,6 +822,78 @@ mod tests {
             .expect("body should build");
         assert_eq!(body.inputs.len(), 2);
         assert_eq!(body.withdrawal.effect_hash(), withdrawal.effect_hash());
+        Note::decrypt_key(
+            body.change_output.ovk_wrapped_key.clone(),
+            body.change_output.note_payload.note_commitment,
+            body.balance_commitment,
+            test_keys::FULL_VIEWING_KEY.outgoing(),
+            &body.change_output.note_payload.ephemeral_key,
+        )
+        .expect("withdrawal change key must unwrap with the serialized action commitment");
+        assert!(
+            !body.inputs[1].encrypted_backref.is_empty(),
+            "synthetic input backrefs must be indistinguishable in length from real inputs"
+        );
+        let expected_dummy_note = plan.padder().synthetic_dummy_input_note(1);
+        let decrypted = body.inputs[1]
+            .encrypted_backref
+            .decrypt(
+                &test_keys::FULL_VIEWING_KEY.backref_key(),
+                &body.inputs[1].nullifier,
+            )
+            .expect("decrypt synthetic input backref");
+        assert_eq!(
+            decrypted,
+            Some(crate::Backref::new(expected_dummy_note.commit()))
+        );
+    }
+
+    #[test]
+    fn new_plan_rejects_multi_spend_sender_mismatch() {
+        let (first, second) = two_spends(&test_keys::ADDRESS_1);
+        let err = ShieldedIcs20WithdrawalPlan::new(
+            ShieldedIcs20WithdrawalFamilyId::Canonical,
+            vec![first, second],
+            None,
+            test_withdrawal(40),
+            Fr::from(7u64),
+        )
+        .expect_err("sender mismatch must fail before proving");
+        assert!(err
+            .to_string()
+            .contains("spends must use the same sender address"));
+    }
+
+    #[test]
+    fn new_plan_rejects_multi_spend_compliance_witness_mismatch() {
+        let (first, mut second) = two_spends(&test_keys::ADDRESS_0);
+        second.compliance_position = second.compliance_position.wrapping_add(1);
+        let err = ShieldedIcs20WithdrawalPlan::new(
+            ShieldedIcs20WithdrawalFamilyId::Canonical,
+            vec![first, second],
+            None,
+            test_withdrawal(40),
+            Fr::from(7u64),
+        )
+        .expect_err("sender compliance witness mismatch must fail before proving");
+        assert!(err.to_string().contains("same sender compliance witness"));
+    }
+
+    #[test]
+    fn new_plan_rejects_multi_spend_regulation_mismatch() {
+        let (first, mut second) = two_spends(&test_keys::ADDRESS_0);
+        second.is_regulated = !first.is_regulated;
+        let err = ShieldedIcs20WithdrawalPlan::new(
+            ShieldedIcs20WithdrawalFamilyId::Canonical,
+            vec![first, second],
+            None,
+            test_withdrawal(40),
+            Fr::from(7u64),
+        )
+        .expect_err("regulation mismatch must fail before proving");
+        assert!(err
+            .to_string()
+            .contains("spend regulation flags must match"));
     }
 
     #[test]
@@ -752,5 +938,103 @@ mod tests {
         assert!(err
             .to_string()
             .contains("shielded ICS-20 withdrawal change must be sender-owned"));
+    }
+
+    #[test]
+    fn plan_proto_rejects_stale_body_public_inputs() {
+        let plan = one_spend_plan();
+        let mut proto: pb::ShieldedIcs20WithdrawalPlan = plan.into();
+        proto
+            .body
+            .as_mut()
+            .expect("withdrawal plan body")
+            .target_timestamp += 1;
+
+        let err = ShieldedIcs20WithdrawalPlan::try_from(proto)
+            .expect_err("deserialization must reject a stale plan body");
+        assert!(err
+            .to_string()
+            .contains("body target timestamp must match spends"));
+    }
+
+    #[test]
+    fn plan_construction_and_decode_reject_invalid_withdrawal_payload() {
+        let value = Value {
+            amount: 40u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
+        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+        let mut invalid_withdrawal = test_withdrawal(40);
+        invalid_withdrawal.timeout_time = 0;
+        let err = ShieldedIcs20WithdrawalPlan::new(
+            ShieldedIcs20WithdrawalFamilyId::Canonical,
+            vec![spend],
+            None,
+            invalid_withdrawal,
+            Fr::from(7u64),
+        )
+        .expect_err("plan construction must reject an invalid withdrawal payload");
+        assert!(format!("{err:#}").contains("timeout time must be non-zero"));
+
+        let mut proto: pb::ShieldedIcs20WithdrawalPlan = one_spend_plan().into();
+        proto
+            .withdrawal
+            .as_mut()
+            .expect("plan withdrawal")
+            .timeout_time = 0;
+        proto
+            .body
+            .as_mut()
+            .and_then(|body| body.withdrawal.as_mut())
+            .expect("body withdrawal")
+            .timeout_time = 0;
+        let err = ShieldedIcs20WithdrawalPlan::try_from(proto)
+            .expect_err("plan decoding must reject an invalid withdrawal payload");
+        assert!(format!("{err:#}").contains("timeout time must be non-zero"));
+    }
+
+    #[test]
+    fn body_proto_rejects_wrong_fixed_input_count() {
+        let plan = one_spend_plan();
+        let mut proto: pb::ShieldedIcs20WithdrawalBody = plan.body.into();
+        proto.inputs.pop();
+
+        let err = ShieldedIcs20WithdrawalBody::try_from(proto)
+            .expect_err("body decoding must enforce the fixed family shape");
+        assert!(err.to_string().contains("expects 2 inputs, got 1"));
+    }
+
+    #[test]
+    fn refresh_body_public_inputs_resyncs_enriched_plan() {
+        let mut plan = one_spend_plan();
+        let new_asset_anchor = tct::StateCommitment(Fq::from(0xA55E7u64));
+        let new_compliance_anchor = tct::StateCommitment(Fq::from(0xC0FF1u64));
+        let new_timestamp = plan.spends[0].target_timestamp + 42;
+        plan.spends[0].asset_anchor = new_asset_anchor;
+        plan.spends[0].compliance_anchor = new_compliance_anchor;
+        plan.spends[0].target_timestamp = new_timestamp;
+        plan.withdrawal.ics20_memo = "enriched compliance memo".to_owned();
+
+        let err = plan
+            .validate_invariants()
+            .expect_err("stale body must be rejected before refresh");
+        assert!(err
+            .to_string()
+            .contains("body asset anchor must match spends"));
+
+        plan.refresh_body_public_inputs()
+            .expect("refresh should reconcile the enriched plan");
+        assert_eq!(plan.body.asset_anchor, new_asset_anchor);
+        assert_eq!(plan.body.compliance_anchor, new_compliance_anchor);
+        assert_eq!(plan.body.target_timestamp, new_timestamp);
+        assert_eq!(
+            plan.body.withdrawal.effect_hash(),
+            plan.withdrawal.effect_hash()
+        );
+        assert_eq!(
+            plan.body.balance_commitment,
+            plan.balance.commit(plan.value_blinding)
+        );
     }
 }

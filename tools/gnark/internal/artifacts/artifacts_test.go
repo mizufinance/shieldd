@@ -1,15 +1,32 @@
 package artifacts
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
+
+func testCircuitMetadata() CircuitMetadataJSON {
+	return CircuitMetadataJSON{
+		Schema:                      CircuitMetadataSchema,
+		Curve:                       "bls12-377",
+		Circuit:                     "output",
+		ProvingKeySize:              3,
+		VerifyingKeySize:            4,
+		NbConstraints:               1,
+		NbPublic:                    1,
+		NbSecret:                    1,
+		ProvingKeySHA256Hex:         strings.Repeat("1", 64),
+		VerifyingKeyBinarySHA256Hex: strings.Repeat("2", 64),
+		VerifyingKeyJSONSHA256Hex:   strings.Repeat("3", 64),
+	}
+}
 
 func TestLoadCircuitMetadataBytesRoundTrip(t *testing.T) {
-	metadata, err := LoadCircuitMetadataBytes([]byte(`{
-		"curve":"bls12-377",
-		"circuit":"output",
-		"nb_constraints":1,
-		"nb_public_variables":1,
-		"nb_secret_variables":1
-	}`), "test metadata")
+	encoded, err := EncodeCanonicalJSON(testCircuitMetadata())
+	if err != nil {
+		t.Fatalf("EncodeCanonicalJSON: %v", err)
+	}
+	metadata, err := LoadCircuitMetadataBytes(encoded, "test metadata")
 	if err != nil {
 		t.Fatalf("LoadCircuitMetadataBytes: %v", err)
 	}
@@ -19,14 +36,8 @@ func TestLoadCircuitMetadataBytesRoundTrip(t *testing.T) {
 }
 
 func TestValidateCircuitMetadataForCircuitRejectsNilCCS(t *testing.T) {
-	metadata := &CircuitMetadataJSON{
-		Curve:         "bls12-377",
-		Circuit:       "output",
-		NbConstraints: 1,
-		NbPublic:      1,
-		NbSecret:      1,
-	}
-	if err := ValidateCircuitMetadataForCircuit(metadata, "output", nil); err == nil {
+	metadata := testCircuitMetadata()
+	if err := ValidateCircuitMetadataForCircuit(&metadata, "output", nil); err == nil {
 		t.Fatalf("expected nil ccs to fail validation")
 	}
 }

@@ -57,8 +57,6 @@ import ShielddGnarkFormal.TransferSaltBridge
 import ShielddGnarkFormal.PoseidonEncryptionBridge
 import ShielddGnarkFormal.DleqBridge
 import ShielddGnarkFormal.ThresholdRegulatedBridge
-import ShielddGnarkFormal.Transfer
-import ShielddGnarkFormal.TransferWiringTranscript
 import ShielddGnarkFormal.Deployed.Poseidon6Link
 import ShielddGnarkFormal.Deployed.Poseidon4Link
 import ShielddGnarkFormal.Deployed.Contract

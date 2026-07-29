@@ -51,17 +51,6 @@ type AssetTreeFields struct {
 	Position frontend.Variable
 }
 
-type UserComplianceFields struct {
-	DivGen         Point2D
-	Transmission   Point2D
-	AssetID        frontend.Variable
-	SlotID         frontend.Variable
-	SlotDerivation frontend.Variable
-	D              frontend.Variable
-	Path           [compliance.ComplianceQuadTreeDepth][3]frontend.Variable
-	Position       frontend.Variable
-}
-
 type TransferComplianceProofFields struct {
 	Statement   TransferComplianceStatementFields
 	Challenge   frontend.Variable

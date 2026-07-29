@@ -139,7 +139,7 @@ Files:
 - `internal/primitives/statement_hash.go`: exact gnark statement-hash gadgets
   for the supported families
 - `internal/primitives/statement_hash_test.go`: statement-hash parity and Groth16 round-trip tests
-- `internal/abi/transfer_witness_binary.go`: strict decoder for the canonical `TransferWitnessV1` payload
+- `internal/abi/transfer_witness_binary.go`: strict decoder for the current canonical transfer witness payload
 - `internal/circuits/transfer_circuit.go`: gnark implementation of the shielded-pool transfer circuit
 - `internal/compliance/transfer_encryption.go`: gnark helpers for transfer compliance encryption
 - `internal/abi/shielded_ics20_withdrawal_witness_binary.go`: strict decoder for the canonical shielded ICS-20 withdrawal witness payload
@@ -153,5 +153,5 @@ Files:
 - `artifact-mapping.md`: current Shieldd transfer artifact boundary
 - `run-verify-bench.sh`: local orchestrator for the gnark-vs-Arkworks verifier comparison
 - `internal/primitives/vectors/phase05_vectors.json`: reference vectors generated from Shieldd Rust code
-- `internal/primitives/vectors/transfer_witness_v1.bin`: deterministic regulated `TransferWitnessV1` payload generated from Rust
+- `internal/testfixtures/vectors/transfer_witness_v11.bin`: deterministic current transfer witness payload generated from Rust
 - `rust-vectors/`: standalone Rust utility that generates the reference vectors

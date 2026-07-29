@@ -10,7 +10,7 @@ use crate::gnark::transport::{auto_lib_path, load_bundled_transport, load_librar
 use crate::{
     gnark::{
         transfer_proof_result::parse_transfer_binary_proof_result,
-        transfer_witness::TransferWitnessV1,
+        transfer_witness::TransferWitnessV11,
         transport::{
             load_daemon_transport, load_from_env_paths, prove_with_transport, shutdown_transport,
             GnarkFamilyConfig, GnarkTransport,
@@ -42,15 +42,15 @@ static TRANSFER_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
     shutdown_symbol: TRANSFER_SHUTDOWN_SYMBOL,
 };
 
-pub fn encode_transfer_witness_v1(
+pub fn encode_transfer_witness_v11(
     public: &TransferProofPublic,
     private: &TransferProofPrivate,
 ) -> Result<Vec<u8>> {
-    TransferWitnessV1::from_public_private(public, private)?.encode()
+    TransferWitnessV11::from_public_private(public, private)?.encode()
 }
 
-pub fn decode_transfer_witness_v1(bytes: &[u8]) -> Result<TransferWitnessV1> {
-    TransferWitnessV1::decode(bytes)
+pub fn decode_transfer_witness_v11(bytes: &[u8]) -> Result<TransferWitnessV11> {
+    TransferWitnessV11::decode(bytes)
 }
 
 pub struct GnarkTransferClient {
@@ -72,7 +72,7 @@ enum TransferTransportSource<'a> {
     Bundled {
         lib_path: &'a Path,
         pk_bytes: &'a [u8],
-        pvk: PreparedVerifyingKey<Bls12_377>,
+        vk_json_bytes: &'a [u8],
         metadata: &'a [u8],
     },
 }
@@ -105,12 +105,9 @@ impl GnarkTransferClient {
             TransferTransportSource::Bundled {
                 lib_path,
                 pk_bytes,
-                pvk,
+                vk_json_bytes,
                 metadata,
-            } => (
-                load_bundled_transport(lib_path, pk_bytes, &pvk, metadata, &config)?,
-                pvk,
-            ),
+            } => load_bundled_transport(lib_path, pk_bytes, vk_json_bytes, metadata, &config)?,
         };
         Ok(Self {
             transport,
@@ -156,7 +153,7 @@ impl GnarkTransferClient {
     pub fn from_bundled(
         lib_path: &Path,
         pk_bytes: &[u8],
-        pvk: PreparedVerifyingKey<Bls12_377>,
+        vk_json_bytes: &[u8],
         metadata: &[u8],
     ) -> Result<Self> {
         #[cfg(any(unix, windows))]
@@ -164,13 +161,13 @@ impl GnarkTransferClient {
             Self::load_transport(TransferTransportSource::Bundled {
                 lib_path,
                 pk_bytes,
-                pvk,
+                vk_json_bytes,
                 metadata,
             })
         }
         #[cfg(not(any(unix, windows)))]
         {
-            let _ = (lib_path, pk_bytes, pvk, metadata);
+            let _ = (lib_path, pk_bytes, vk_json_bytes, metadata);
             bail!("gnark bundled library loading is not supported on this platform")
         }
     }
@@ -209,8 +206,9 @@ impl GnarkTransferClient {
         public: &TransferProofPublic,
         private: &TransferProofPrivate,
     ) -> Result<TransferProof> {
-        let witness_model = TransferWitnessV1::from_public_private(public, private)?;
-        let expected_hash = Fq::from_le_bytes_mod_order(&witness_model.claimed_statement_hash);
+        let witness_model = TransferWitnessV11::from_public_private(public, private)?;
+        let expected_hash = Fq::from_bytes_checked(&witness_model.claimed_statement_hash)
+            .map_err(|_| anyhow::anyhow!("transfer witness statement hash is non-canonical"))?;
         let witness = witness_model.encode()?;
         let payload = prove_with_transport(&self.transport, &witness, "transfer")?;
         let (claimed_hash, proof) = translate_transfer_proof_result(&payload)?;
@@ -248,31 +246,62 @@ mod tests {
     use rand::SeedableRng;
 
     #[test]
-    fn transfer_witness_v1_roundtrip() {
+    fn transfer_witness_v11_roundtrip() {
         let (public, private) =
             crate::test_proof_helpers::proof_test_helpers::build_transfer_roundtrip_inputs(true);
         let encoded =
-            encode_transfer_witness_v1(&public, &private).expect("encode transfer witness");
-        let decoded = decode_transfer_witness_v1(&encoded).expect("decode transfer witness");
-        let expected = TransferWitnessV1::from_public_private(&public, &private)
+            encode_transfer_witness_v11(&public, &private).expect("encode transfer witness");
+        assert_eq!(u32::from_le_bytes(encoded[4..8].try_into().unwrap()), 11);
+        let decoded = decode_transfer_witness_v11(&encoded).expect("decode transfer witness");
+        let expected = TransferWitnessV11::from_public_private(&public, &private)
             .expect("build transfer witness");
         assert_eq!(decoded, expected);
     }
 
+    #[test]
+    fn transfer_hidden_arity_witness_v11_roundtrip() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0x0000_0054_5831_5831);
+        let (public, private) = crate::test_proof_helpers::proof_test_helpers::
+            build_transfer_hidden_arity_roundtrip_inputs_with_rng(&mut rng, true, false);
+        assert!(private.optional_input.is_dummy);
+
+        let encoded =
+            encode_transfer_witness_v11(&public, &private).expect("encode hidden-arity witness");
+        let decoded =
+            decode_transfer_witness_v11(&encoded).expect("decode hidden-arity transfer witness");
+        let expected = TransferWitnessV11::from_public_private(&public, &private)
+            .expect("build hidden-arity transfer witness");
+        assert_eq!(decoded, expected);
+    }
+
+    #[test]
+    fn transfer_witness_v11_rejects_legacy_v10_layout() {
+        let (public, private) =
+            crate::test_proof_helpers::proof_test_helpers::build_transfer_roundtrip_inputs(true);
+        let mut encoded =
+            encode_transfer_witness_v11(&public, &private).expect("encode transfer witness");
+        encoded[4..8].copy_from_slice(&10u32.to_le_bytes());
+        let err = decode_transfer_witness_v11(&encoded)
+            .expect_err("version 11 decoder must reject the obsolete version 10 layout");
+        assert!(err
+            .to_string()
+            .contains("unsupported transfer witness version 10"));
+    }
+
     /// Write canonical transfer witness fixtures for the active transfer family.
     /// Run with:
-    /// `cargo test -p shieldd-sdk-shielded-pool -- --ignored bless_transfer_witness_v1_fixtures`
+    /// `cargo test -p shieldd-sdk-shielded-pool -- --ignored bless_transfer_witness_v11_fixtures`
     #[test]
     #[ignore = "bless: regenerate transfer witness fixtures for gnark parity tests"]
-    fn bless_transfer_witness_v1_fixtures() {
+    fn bless_transfer_witness_v11_fixtures() {
         use std::path::PathBuf;
 
         let fixtures = [
-            (0x0000_0054_5832_5832u64, true, "transfer_witness_v1.bin"),
+            (0x0000_0054_5832_5832u64, true, "transfer_witness_v11.bin"),
             (
                 0x0000_0054_5832_5833u64,
                 false,
-                "transfer_witness_v1_unregulated.bin",
+                "transfer_witness_v11_unregulated.bin",
             ),
         ];
 
@@ -285,51 +314,11 @@ mod tests {
             let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
             let (public, private) = crate::test_proof_helpers::proof_test_helpers::
                 build_transfer_roundtrip_inputs_with_rng(&mut rng, is_regulated);
-            let encoded = encode_transfer_witness_v1(&public, &private)
+            let encoded = encode_transfer_witness_v11(&public, &private)
                 .expect("encode transfer witness fixture");
             let path = out_dir.join(filename);
             std::fs::write(&path, &encoded)
                 .unwrap_or_else(|e| panic!("write transfer witness fixture {path:?}: {e}"));
-            eprintln!("wrote {} bytes to {path:?}", encoded.len());
-        }
-    }
-
-    #[test]
-    #[ignore = "debug: write hidden-arity transfer witnesses for gnark replay"]
-    fn bless_transfer_hidden_arity_debug_witnesses() {
-        use std::path::PathBuf;
-
-        let fixtures = [
-            (
-                "transfer_hidden_arity_unregulated_sender_to_other.bin",
-                crate::test_proof_helpers::proof_test_helpers::build_transfer_hidden_arity_roundtrip_inputs_with_rng(
-                    &mut rand::thread_rng(),
-                    false,
-                    false,
-                ),
-            ),
-            (
-                "transfer_hidden_arity_regulated_sender_to_other.bin",
-                crate::test_proof_helpers::proof_test_helpers::build_transfer_hidden_arity_roundtrip_inputs_with_rng(
-                    &mut rand::thread_rng(),
-                    true,
-                    false,
-                ),
-            ),
-        ];
-
-        let out_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../../tools/gnark/internal/primitives/vectors");
-        std::fs::create_dir_all(&out_dir)
-            .unwrap_or_else(|e| panic!("create transfer debug witness dir {out_dir:?}: {e}"));
-
-        for (filename, (public, private)) in fixtures {
-            let encoded = encode_transfer_witness_v1(&public, &private)
-                .expect("encode transfer hidden-arity debug witness");
-            let path = out_dir.join(filename);
-            std::fs::write(&path, &encoded).unwrap_or_else(|e| {
-                panic!("write transfer hidden-arity debug witness {path:?}: {e}")
-            });
             eprintln!("wrote {} bytes to {path:?}", encoded.len());
         }
     }

@@ -9,7 +9,8 @@ effects. Hints are rejected unless their result is fully constrained.
 
 ## Landed NoteReshape result
 
-The canonical V2 witness and circuit remove per-note address representations,
+The canonical version-3 NoteReshape witness and circuit remove per-note address
+representations,
 derive the DTK once, and remove the dummy-RK derivation after extending the
 accepted language to require an external signature for every public RK.
 
@@ -52,8 +53,12 @@ threshold calculation.
 
 Transfer now derives one shared-sender DTK, binds each spend to its canonical
 transmission encoding, and uses canonical created-note transmission encodings.
-The compiled circuit falls from 251,469 to 245,389 constraints: −6,080
-(−2.42%).
+That canonical-context pass reduced the then-current circuit from 251,469 to
+245,389 constraints: −6,080 (−2.42%). Later soundness hardening and ABI cleanup
+changed the relation again; the deployed candidate currently has 227,176
+constraints. The committed manifest and circuit metadata are authoritative for
+the current count, and the intervening mixed-purpose changes are not presented
+as one optimization delta.
 
 ## Scalar multiplication audit
 

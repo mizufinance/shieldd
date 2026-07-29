@@ -105,7 +105,7 @@ enum NoteReshapeTransportSource<'a> {
     Bundled {
         lib_path: &'a Path,
         pk_bytes: &'a [u8],
-        pvk: PreparedVerifyingKey<Bls12_377>,
+        vk_json_bytes: &'a [u8],
         metadata: &'a [u8],
     },
 }
@@ -141,12 +141,9 @@ impl GnarkNoteReshapeClient {
             NoteReshapeTransportSource::Bundled {
                 lib_path,
                 pk_bytes,
-                pvk,
+                vk_json_bytes,
                 metadata,
-            } => (
-                load_bundled_transport(lib_path, pk_bytes, &pvk, metadata, config)?,
-                pvk,
-            ),
+            } => load_bundled_transport(lib_path, pk_bytes, vk_json_bytes, metadata, config)?,
         };
         Ok(Self {
             family_id,
@@ -199,7 +196,7 @@ impl GnarkNoteReshapeClient {
     pub fn from_bundled(
         lib_path: &Path,
         pk_bytes: &[u8],
-        pvk: PreparedVerifyingKey<Bls12_377>,
+        vk_json_bytes: &[u8],
         metadata: &[u8],
         family_id: NoteReshapeFamilyId,
     ) -> Result<Self> {
@@ -210,14 +207,14 @@ impl GnarkNoteReshapeClient {
                 NoteReshapeTransportSource::Bundled {
                     lib_path,
                     pk_bytes,
-                    pvk,
+                    vk_json_bytes,
                     metadata,
                 },
             )
         }
         #[cfg(not(any(unix, windows)))]
         {
-            let _ = (lib_path, pk_bytes, pvk, metadata, family_id);
+            let _ = (lib_path, pk_bytes, vk_json_bytes, metadata, family_id);
             bail!("gnark bundled library loading is not supported on this platform")
         }
     }
@@ -243,7 +240,13 @@ impl GnarkNoteReshapeClient {
         private: &NoteReshapeProofPrivate,
     ) -> Result<NoteReshapeProof> {
         let witness_model = NoteReshapeWitnessV3::from_public_private(public, private)?;
-        let expected_hash = Fq::from_le_bytes_mod_order(&witness_model.claimed_statement_hash);
+        let expected_hash =
+            Fq::from_bytes_checked(&witness_model.claimed_statement_hash).map_err(|_| {
+                anyhow::anyhow!(
+                    "{} witness statement hash is non-canonical",
+                    self.family_id.label()
+                )
+            })?;
         let witness = witness_model.encode()?;
         let payload = prove_with_transport(&self.transport, &witness, self.family_id.label())?;
         let (claimed_hash, proof) = translate_note_reshape_proof_result(&payload, self.family_id)?;

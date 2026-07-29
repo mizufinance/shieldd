@@ -94,7 +94,9 @@ def render(circuit: str) -> str:
         "coverage_manifest_sha256": sha256(FORMAL / f"{circuit}-coverage-manifest.json"),
         "coverage_ir_sha256": sha256(FORMAL / f"{circuit}-deployed-slice-ir.json"),
         "nb_constraints": str(json.loads((artifact_dir / "circuit_metadata.json").read_text())["nb_constraints"]),
-        "verifying_key_sha256_hex": json.loads((artifact_dir / "circuit_metadata.json").read_text())["verifying_key_sha256_hex"],
+        "verifying_key_json_sha256_hex": json.loads(
+            (artifact_dir / "circuit_metadata.json").read_text()
+        )["verifying_key_json_sha256_hex"],
         "deployed_circuit_facts_source_sha256": sha256(contract_dir / "CircuitFacts.lean"),
         "deployed_capstone_source_sha256": sha256(contract_dir / "Capstone.lean"),
         "deployed_role_bindings_source_sha256": sha256(contract_dir / "RoleBindings.lean"),

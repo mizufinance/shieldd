@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -67,19 +66,20 @@ type ArtifactJSON struct {
 }
 
 type CircuitMetadataJSON struct {
-	Curve                 string  `json:"curve"`
-	Circuit               string  `json:"circuit"`
-	CompileMS             float64 `json:"compile_ms"`
-	SetupMS               float64 `json:"setup_ms"`
-	ProvingKeySize        int64   `json:"proving_key_size_bytes"`
-	VerifyingKeySize      int64   `json:"verifying_key_size_bytes"`
-	NbConstraints         int     `json:"nb_constraints"`
-	NbPublic              int     `json:"nb_public_variables"`
-	NbSecret              int     `json:"nb_secret_variables"`
-	ProvingKeySHA256Hex   string  `json:"proving_key_sha256_hex,omitempty"`
-	VerifyingKeySHA256Hex string  `json:"verifying_key_sha256_hex,omitempty"`
-	VerifyingKeyID        string  `json:"verifying_key_id,omitempty"`
+	Schema                      string `json:"schema"`
+	Curve                       string `json:"curve"`
+	Circuit                     string `json:"circuit"`
+	ProvingKeySize              int64  `json:"proving_key_size_bytes"`
+	VerifyingKeySize            int64  `json:"verifying_key_size_bytes"`
+	NbConstraints               int    `json:"nb_constraints"`
+	NbPublic                    int    `json:"nb_public_variables"`
+	NbSecret                    int    `json:"nb_secret_variables"`
+	ProvingKeySHA256Hex         string `json:"proving_key_sha256_hex"`
+	VerifyingKeyBinarySHA256Hex string `json:"verifying_key_binary_sha256_hex"`
+	VerifyingKeyJSONSHA256Hex   string `json:"verifying_key_json_sha256_hex"`
 }
+
+const CircuitMetadataSchema = "shieldd.gnark.circuit_metadata.v1"
 
 func EncodeProofJSON(proof *groth16bls.Proof) ProofJSON {
 	return ProofJSON{
@@ -589,8 +589,8 @@ func LoadCircuitMetadata(dir string) (*CircuitMetadataJSON, error) {
 }
 
 func LoadCircuitMetadataBytes(data []byte, source string) (*CircuitMetadataJSON, error) {
-	var metadata CircuitMetadataJSON
-	if err := json.Unmarshal(data, &metadata); err != nil {
+	metadata, err := DecodeCanonicalCircuitMetadataJSON(data)
+	if err != nil {
 		return nil, fmt.Errorf("decode %s: %w", source, err)
 	}
 	return &metadata, nil
@@ -603,6 +603,9 @@ func ValidateCircuitMetadataForCircuit(metadata *CircuitMetadataJSON, expectedCi
 	if ccs == nil {
 		return fmt.Errorf("missing compiled constraint system")
 	}
+	if metadata.Schema != CircuitMetadataSchema {
+		return fmt.Errorf("unsupported circuit metadata schema %q", metadata.Schema)
+	}
 	if metadata.Curve != "bls12-377" {
 		return fmt.Errorf("artifact curve %q does not match expected bls12-377", metadata.Curve)
 	}
@@ -611,6 +614,9 @@ func ValidateCircuitMetadataForCircuit(metadata *CircuitMetadataJSON, expectedCi
 	}
 	if metadata.NbConstraints <= 0 || metadata.NbPublic <= 0 || metadata.NbSecret <= 0 {
 		return fmt.Errorf("artifact metadata is missing circuit shape; rerun `gnarkctl setup`")
+	}
+	if metadata.ProvingKeySize <= 0 || metadata.VerifyingKeySize <= 0 {
+		return fmt.Errorf("artifact metadata is missing key sizes; rerun `gnarkctl setup`")
 	}
 	gotConstraints := ccs.GetNbConstraints()
 	if metadata.NbConstraints != gotConstraints {
@@ -634,6 +640,29 @@ func ValidateCircuitMetadataForCircuit(metadata *CircuitMetadataJSON, expectedCi
 			"artifact mismatch: compiled circuit has %d secret variables but metadata says %d; rerun `gnarkctl setup`",
 			gotSecret,
 			metadata.NbSecret,
+		)
+	}
+	return nil
+}
+
+func ValidateProvingKeyBytes(metadata *CircuitMetadataJSON, data []byte) error {
+	if metadata == nil {
+		return fmt.Errorf("missing circuit metadata")
+	}
+	if int64(len(data)) != metadata.ProvingKeySize {
+		return fmt.Errorf(
+			"proving key size mismatch: metadata says %d bytes, got %d",
+			metadata.ProvingKeySize,
+			len(data),
+		)
+	}
+	sum := sha256.Sum256(data)
+	actual := hex.EncodeToString(sum[:])
+	if actual != metadata.ProvingKeySHA256Hex {
+		return fmt.Errorf(
+			"proving key hash mismatch: metadata says %s, got %s",
+			metadata.ProvingKeySHA256Hex,
+			actual,
 		)
 	}
 	return nil

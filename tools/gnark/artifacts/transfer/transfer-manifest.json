@@ -5,11 +5,11 @@
     "n_in": 2,
     "n_out": 2
   },
-  "nb_constraints": 245389,
+  "nb_constraints": 227176,
   "nb_public_variables": 2,
-  "nb_secret_variables": 542,
-  "nb_internal_variables": 218892,
-  "sr1cs_sha256_hex": "69fd680c48a608f0521a10f8e1af6570b1ebb22c16d4c9db22a18c5032107d6f",
+  "nb_secret_variables": 452,
+  "nb_internal_variables": 202154,
+  "sr1cs_sha256_hex": "ccc01f1fe7e62d7f1e62dc667c4eec2583e73c643517dc30eb5bfb6e83ee11c1",
   "witness_wires": [
     {
       "wire_id": 1,
@@ -45,7 +45,7 @@
       "wire_id": 6,
       "path": "ComplianceAnchor",
       "visibility": "secret",
-      "constraint_rows": 5
+      "constraint_rows": 4
     },
     {
       "wire_id": 7,
@@ -63,7 +63,7 @@
       "wire_id": 9,
       "path": "IsRegulated",
       "visibility": "secret",
-      "constraint_rows": 1049
+      "constraint_rows": 1048
     },
     {
       "wire_id": 10,
@@ -477,2797 +477,2257 @@
       "wire_id": 78,
       "path": "Sender_DivGen_X",
       "visibility": "secret",
-      "constraint_rows": 11
+      "constraint_rows": 8
     },
     {
       "wire_id": 79,
       "path": "Sender_DivGen_Y",
       "visibility": "secret",
-      "constraint_rows": 8
+      "constraint_rows": 5
     },
     {
       "wire_id": 80,
       "path": "Sender_Transmission_X",
       "visibility": "secret",
-      "constraint_rows": 9
+      "constraint_rows": 6
     },
     {
       "wire_id": 81,
       "path": "Sender_Transmission_Y",
       "visibility": "secret",
-      "constraint_rows": 6
+      "constraint_rows": 3
     },
     {
       "wire_id": 82,
-      "path": "Sender_AssetID",
-      "visibility": "secret",
-      "constraint_rows": 5
-    },
-    {
-      "wire_id": 83,
       "path": "Sender_SlotID",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 84,
+      "wire_id": 83,
       "path": "Sender_SlotDerivation",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 85,
+      "wire_id": 84,
       "path": "Sender_D",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 3
     },
     {
-      "wire_id": 86,
+      "wire_id": 85,
       "path": "Sender_Path_0_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 87,
+      "wire_id": 86,
       "path": "Sender_Path_0_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 88,
+      "wire_id": 87,
       "path": "Sender_Path_0_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 89,
+      "wire_id": 88,
       "path": "Sender_Path_1_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 90,
+      "wire_id": 89,
       "path": "Sender_Path_1_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 91,
+      "wire_id": 90,
       "path": "Sender_Path_1_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 92,
+      "wire_id": 91,
       "path": "Sender_Path_2_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 93,
+      "wire_id": 92,
       "path": "Sender_Path_2_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 94,
+      "wire_id": 93,
       "path": "Sender_Path_2_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 95,
+      "wire_id": 94,
       "path": "Sender_Path_3_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 96,
+      "wire_id": 95,
       "path": "Sender_Path_3_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 97,
+      "wire_id": 96,
       "path": "Sender_Path_3_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 98,
+      "wire_id": 97,
       "path": "Sender_Path_4_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 99,
+      "wire_id": 98,
       "path": "Sender_Path_4_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 100,
+      "wire_id": 99,
       "path": "Sender_Path_4_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 101,
+      "wire_id": 100,
       "path": "Sender_Path_5_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 102,
+      "wire_id": 101,
       "path": "Sender_Path_5_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 103,
+      "wire_id": 102,
       "path": "Sender_Path_5_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 104,
+      "wire_id": 103,
       "path": "Sender_Path_6_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 105,
+      "wire_id": 104,
       "path": "Sender_Path_6_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 106,
+      "wire_id": 105,
       "path": "Sender_Path_6_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 107,
+      "wire_id": 106,
       "path": "Sender_Path_7_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 108,
+      "wire_id": 107,
       "path": "Sender_Path_7_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 109,
+      "wire_id": 108,
       "path": "Sender_Path_7_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 110,
+      "wire_id": 109,
       "path": "Sender_Path_8_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 111,
+      "wire_id": 110,
       "path": "Sender_Path_8_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 112,
+      "wire_id": 111,
       "path": "Sender_Path_8_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 113,
+      "wire_id": 112,
       "path": "Sender_Path_9_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 114,
+      "wire_id": 113,
       "path": "Sender_Path_9_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 115,
+      "wire_id": 114,
       "path": "Sender_Path_9_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 116,
+      "wire_id": 115,
       "path": "Sender_Path_10_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 117,
+      "wire_id": 116,
       "path": "Sender_Path_10_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 118,
+      "wire_id": 117,
       "path": "Sender_Path_10_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 119,
+      "wire_id": 118,
       "path": "Sender_Path_11_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 120,
+      "wire_id": 119,
       "path": "Sender_Path_11_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 121,
+      "wire_id": 120,
       "path": "Sender_Path_11_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 122,
+      "wire_id": 121,
       "path": "Sender_Path_12_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 123,
+      "wire_id": 122,
       "path": "Sender_Path_12_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 124,
+      "wire_id": 123,
       "path": "Sender_Path_12_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 125,
+      "wire_id": 124,
       "path": "Sender_Path_13_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 126,
+      "wire_id": 125,
       "path": "Sender_Path_13_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 127,
+      "wire_id": 126,
       "path": "Sender_Path_13_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 128,
+      "wire_id": 127,
       "path": "Sender_Path_14_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 129,
+      "wire_id": 128,
       "path": "Sender_Path_14_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 130,
+      "wire_id": 129,
       "path": "Sender_Path_14_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 131,
+      "wire_id": 130,
       "path": "Sender_Path_15_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 132,
+      "wire_id": 131,
       "path": "Sender_Path_15_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 133,
+      "wire_id": 132,
       "path": "Sender_Path_15_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 134,
+      "wire_id": 133,
       "path": "Sender_Position",
       "visibility": "secret",
       "constraint_rows": 1
     },
     {
-      "wire_id": 135,
+      "wire_id": 134,
       "path": "Compliance_TransferNonceRoot",
       "visibility": "secret",
       "constraint_rows": 10
     },
     {
-      "wire_id": 136,
+      "wire_id": 135,
       "path": "Compliance_DetectionCiphertext_0",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 137,
+      "wire_id": 136,
       "path": "Compliance_DetectionCiphertext_1",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 138,
+      "wire_id": 137,
       "path": "Compliance_DetectionCiphertext_2",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 139,
+      "wire_id": 138,
       "path": "Compliance_DetectionCiphertext_3",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 140,
+      "wire_id": 139,
       "path": "Compliance_SenderRCore",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 141,
+      "wire_id": 140,
       "path": "Compliance_SenderRExt",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 142,
+      "wire_id": 141,
       "path": "Compliance_OutputRCore",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 143,
+      "wire_id": 142,
       "path": "Compliance_OutputRExt",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 144,
+      "wire_id": 143,
       "path": "Compliance_SenderCore_Epk_X",
       "visibility": "secret",
       "constraint_rows": 7
     },
     {
-      "wire_id": 145,
+      "wire_id": 144,
       "path": "Compliance_SenderCore_Epk_Y",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 146,
+      "wire_id": 145,
       "path": "Compliance_SenderCore_C2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 147,
+      "wire_id": 146,
       "path": "Compliance_SenderCore_Ciphertext_0",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 148,
+      "wire_id": 147,
       "path": "Compliance_SenderCore_Proof_Statement_SubjectDerivation",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 149,
+      "wire_id": 148,
       "path": "Compliance_SenderCore_Proof_Statement_RingIDHash",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 150,
+      "wire_id": 149,
       "path": "Compliance_SenderCore_Proof_Statement_PolicyIDHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 151,
+      "wire_id": 150,
       "path": "Compliance_SenderCore_Proof_Statement_ResourceHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 152,
+      "wire_id": 151,
       "path": "Compliance_SenderCore_Proof_Statement_PermissionHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 153,
+      "wire_id": 152,
       "path": "Compliance_SenderCore_Proof_Statement_Tier",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 154,
+      "wire_id": 153,
       "path": "Compliance_SenderCore_Proof_Statement_TargetTimestamp",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 155,
+      "wire_id": 154,
       "path": "Compliance_SenderCore_Proof_Statement_Salt",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 156,
+      "wire_id": 155,
       "path": "Compliance_SenderCore_Proof_Challenge",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 157,
+      "wire_id": 156,
       "path": "Compliance_SenderCore_Proof_Response",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 158,
+      "wire_id": 157,
       "path": "Compliance_SenderCore_Proof_DerivedPK_X",
       "visibility": "secret",
       "constraint_rows": 520
     },
     {
-      "wire_id": 159,
+      "wire_id": 158,
       "path": "Compliance_SenderCore_Proof_DerivedPK_Y",
       "visibility": "secret",
       "constraint_rows": 514
     },
     {
-      "wire_id": 160,
+      "wire_id": 159,
       "path": "Compliance_SenderCore_Proof_EncCmt_X",
       "visibility": "secret",
       "constraint_rows": 521
     },
     {
-      "wire_id": 161,
+      "wire_id": 160,
       "path": "Compliance_SenderCore_Proof_EncCmt_Y",
       "visibility": "secret",
       "constraint_rows": 515
     },
     {
-      "wire_id": 162,
+      "wire_id": 161,
       "path": "Compliance_SenderCore_Proof_SharedPoint_X",
       "visibility": "secret",
       "constraint_rows": 518
     },
     {
-      "wire_id": 163,
+      "wire_id": 162,
       "path": "Compliance_SenderCore_Proof_SharedPoint_Y",
       "visibility": "secret",
       "constraint_rows": 512
     },
     {
-      "wire_id": 164,
+      "wire_id": 163,
       "path": "Compliance_SenderExt_Epk_X",
       "visibility": "secret",
       "constraint_rows": 7
     },
     {
-      "wire_id": 165,
+      "wire_id": 164,
       "path": "Compliance_SenderExt_Epk_Y",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 166,
+      "wire_id": 165,
       "path": "Compliance_SenderExt_C2",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 167,
+      "wire_id": 166,
       "path": "Compliance_SenderExt_Ciphertext_0",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 168,
+      "wire_id": 167,
       "path": "Compliance_SenderExt_Ciphertext_1",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 169,
+      "wire_id": 168,
       "path": "Compliance_SenderExt_Ciphertext_2",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 170,
+      "wire_id": 169,
       "path": "Compliance_SenderExt_Proof_Statement_SubjectDerivation",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 171,
+      "wire_id": 170,
       "path": "Compliance_SenderExt_Proof_Statement_RingIDHash",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 172,
+      "wire_id": 171,
       "path": "Compliance_SenderExt_Proof_Statement_PolicyIDHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 173,
+      "wire_id": 172,
       "path": "Compliance_SenderExt_Proof_Statement_ResourceHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 174,
+      "wire_id": 173,
       "path": "Compliance_SenderExt_Proof_Statement_PermissionHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 175,
+      "wire_id": 174,
       "path": "Compliance_SenderExt_Proof_Statement_Tier",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 176,
+      "wire_id": 175,
       "path": "Compliance_SenderExt_Proof_Statement_TargetTimestamp",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 177,
+      "wire_id": 176,
       "path": "Compliance_SenderExt_Proof_Statement_Salt",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 178,
+      "wire_id": 177,
       "path": "Compliance_SenderExt_Proof_Challenge",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 179,
+      "wire_id": 178,
       "path": "Compliance_SenderExt_Proof_Response",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 180,
+      "wire_id": 179,
       "path": "Compliance_SenderExt_Proof_DerivedPK_X",
       "visibility": "secret",
       "constraint_rows": 520
     },
     {
-      "wire_id": 181,
+      "wire_id": 180,
       "path": "Compliance_SenderExt_Proof_DerivedPK_Y",
       "visibility": "secret",
       "constraint_rows": 514
     },
     {
-      "wire_id": 182,
+      "wire_id": 181,
       "path": "Compliance_SenderExt_Proof_EncCmt_X",
       "visibility": "secret",
       "constraint_rows": 521
     },
     {
-      "wire_id": 183,
+      "wire_id": 182,
       "path": "Compliance_SenderExt_Proof_EncCmt_Y",
       "visibility": "secret",
       "constraint_rows": 515
     },
     {
-      "wire_id": 184,
+      "wire_id": 183,
       "path": "Compliance_SenderExt_Proof_SharedPoint_X",
       "visibility": "secret",
       "constraint_rows": 518
     },
     {
-      "wire_id": 185,
+      "wire_id": 184,
       "path": "Compliance_SenderExt_Proof_SharedPoint_Y",
       "visibility": "secret",
       "constraint_rows": 512
     },
     {
-      "wire_id": 186,
+      "wire_id": 185,
       "path": "Compliance_OutputCore_Epk_X",
       "visibility": "secret",
       "constraint_rows": 7
     },
     {
-      "wire_id": 187,
+      "wire_id": 186,
       "path": "Compliance_OutputCore_Epk_Y",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 188,
+      "wire_id": 187,
       "path": "Compliance_OutputCore_C2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 189,
+      "wire_id": 188,
       "path": "Compliance_OutputCore_Ciphertext_0",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 190,
+      "wire_id": 189,
       "path": "Compliance_OutputCore_Proof_Statement_SubjectDerivation",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 191,
+      "wire_id": 190,
       "path": "Compliance_OutputCore_Proof_Statement_RingIDHash",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 192,
+      "wire_id": 191,
       "path": "Compliance_OutputCore_Proof_Statement_PolicyIDHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 193,
+      "wire_id": 192,
       "path": "Compliance_OutputCore_Proof_Statement_ResourceHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 194,
+      "wire_id": 193,
       "path": "Compliance_OutputCore_Proof_Statement_PermissionHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 195,
+      "wire_id": 194,
       "path": "Compliance_OutputCore_Proof_Statement_Tier",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 196,
+      "wire_id": 195,
       "path": "Compliance_OutputCore_Proof_Statement_TargetTimestamp",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 197,
+      "wire_id": 196,
       "path": "Compliance_OutputCore_Proof_Statement_Salt",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 198,
+      "wire_id": 197,
       "path": "Compliance_OutputCore_Proof_Challenge",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 199,
+      "wire_id": 198,
       "path": "Compliance_OutputCore_Proof_Response",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 200,
+      "wire_id": 199,
       "path": "Compliance_OutputCore_Proof_DerivedPK_X",
       "visibility": "secret",
       "constraint_rows": 520
     },
     {
-      "wire_id": 201,
+      "wire_id": 200,
       "path": "Compliance_OutputCore_Proof_DerivedPK_Y",
       "visibility": "secret",
       "constraint_rows": 514
     },
     {
-      "wire_id": 202,
+      "wire_id": 201,
       "path": "Compliance_OutputCore_Proof_EncCmt_X",
       "visibility": "secret",
       "constraint_rows": 521
     },
     {
-      "wire_id": 203,
+      "wire_id": 202,
       "path": "Compliance_OutputCore_Proof_EncCmt_Y",
       "visibility": "secret",
       "constraint_rows": 515
     },
     {
-      "wire_id": 204,
+      "wire_id": 203,
       "path": "Compliance_OutputCore_Proof_SharedPoint_X",
       "visibility": "secret",
       "constraint_rows": 518
     },
     {
-      "wire_id": 205,
+      "wire_id": 204,
       "path": "Compliance_OutputCore_Proof_SharedPoint_Y",
       "visibility": "secret",
       "constraint_rows": 512
     },
     {
-      "wire_id": 206,
+      "wire_id": 205,
       "path": "Compliance_OutputExt_Epk_X",
       "visibility": "secret",
       "constraint_rows": 7
     },
     {
-      "wire_id": 207,
+      "wire_id": 206,
       "path": "Compliance_OutputExt_Epk_Y",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 208,
+      "wire_id": 207,
       "path": "Compliance_OutputExt_C2",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 209,
+      "wire_id": 208,
       "path": "Compliance_OutputExt_Ciphertext_0",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 210,
+      "wire_id": 209,
       "path": "Compliance_OutputExt_Ciphertext_1",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 211,
+      "wire_id": 210,
       "path": "Compliance_OutputExt_Ciphertext_2",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 212,
+      "wire_id": 211,
       "path": "Compliance_OutputExt_Proof_Statement_SubjectDerivation",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 213,
+      "wire_id": 212,
       "path": "Compliance_OutputExt_Proof_Statement_RingIDHash",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 214,
+      "wire_id": 213,
       "path": "Compliance_OutputExt_Proof_Statement_PolicyIDHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 215,
+      "wire_id": 214,
       "path": "Compliance_OutputExt_Proof_Statement_ResourceHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 216,
+      "wire_id": 215,
       "path": "Compliance_OutputExt_Proof_Statement_PermissionHash",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 217,
+      "wire_id": 216,
       "path": "Compliance_OutputExt_Proof_Statement_Tier",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 218,
+      "wire_id": 217,
       "path": "Compliance_OutputExt_Proof_Statement_TargetTimestamp",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 219,
+      "wire_id": 218,
       "path": "Compliance_OutputExt_Proof_Statement_Salt",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 220,
+      "wire_id": 219,
       "path": "Compliance_OutputExt_Proof_Challenge",
       "visibility": "secret",
       "constraint_rows": 5
     },
     {
-      "wire_id": 221,
+      "wire_id": 220,
       "path": "Compliance_OutputExt_Proof_Response",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 222,
+      "wire_id": 221,
       "path": "Compliance_OutputExt_Proof_DerivedPK_X",
       "visibility": "secret",
       "constraint_rows": 520
     },
     {
-      "wire_id": 223,
+      "wire_id": 222,
       "path": "Compliance_OutputExt_Proof_DerivedPK_Y",
       "visibility": "secret",
       "constraint_rows": 514
     },
     {
-      "wire_id": 224,
+      "wire_id": 223,
       "path": "Compliance_OutputExt_Proof_EncCmt_X",
       "visibility": "secret",
       "constraint_rows": 521
     },
     {
-      "wire_id": 225,
+      "wire_id": 224,
       "path": "Compliance_OutputExt_Proof_EncCmt_Y",
       "visibility": "secret",
       "constraint_rows": 515
     },
     {
-      "wire_id": 226,
+      "wire_id": 225,
       "path": "Compliance_OutputExt_Proof_SharedPoint_X",
       "visibility": "secret",
       "constraint_rows": 518
     },
     {
-      "wire_id": 227,
+      "wire_id": 226,
       "path": "Compliance_OutputExt_Proof_SharedPoint_Y",
       "visibility": "secret",
       "constraint_rows": 512
     },
     {
-      "wire_id": 228,
-      "path": "Spends_0_Nullifier",
+      "wire_id": 227,
+      "path": "RequiredSpend_Nullifier",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 229,
-      "path": "Spends_0_RK_X",
-      "visibility": "secret",
-      "constraint_rows": 7
-    },
-    {
-      "wire_id": 230,
-      "path": "Spends_0_RK_Y",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 231,
-      "path": "Spends_0_Note_Blinding",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 232,
-      "path": "Spends_0_Note_Amount",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 233,
-      "path": "Spends_0_Note_AssetID",
-      "visibility": "secret",
-      "constraint_rows": 12
-    },
-    {
-      "wire_id": 234,
-      "path": "Spends_0_Note_DivGen_X",
+      "wire_id": 228,
+      "path": "RequiredSpend_RK_X",
       "visibility": "secret",
       "constraint_rows": 6
     },
     {
-      "wire_id": 235,
-      "path": "Spends_0_Note_DivGen_Y",
+      "wire_id": 229,
+      "path": "RequiredSpend_RK_Y",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 236,
-      "path": "Spends_0_Note_TransmissionKeyS",
-      "visibility": "secret",
-      "constraint_rows": 1
-    },
-    {
-      "wire_id": 237,
-      "path": "Spends_0_Note_Transmission_X",
-      "visibility": "secret",
-      "constraint_rows": 1
-    },
-    {
-      "wire_id": 238,
-      "path": "Spends_0_Note_Transmission_Y",
-      "visibility": "secret",
-      "constraint_rows": 1
-    },
-    {
-      "wire_id": 239,
-      "path": "Spends_0_Note_ClueKey",
+      "wire_id": 230,
+      "path": "RequiredSpend_Note_Blinding",
       "visibility": "secret",
       "constraint_rows": 2
     },
     {
-      "wire_id": 240,
-      "path": "Spends_0_StateProof_Commitment",
-      "visibility": "secret",
-      "constraint_rows": 5
-    },
-    {
-      "wire_id": 241,
-      "path": "Spends_0_StateProof_Position",
+      "wire_id": 231,
+      "path": "RequiredSpend_Note_Amount",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 242,
-      "path": "Spends_0_StateProof_Path_0_0",
+      "wire_id": 232,
+      "path": "RequiredSpend_Note_ClueKey",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 233,
+      "path": "RequiredSpend_Note_AssetID",
+      "visibility": "secret",
+      "constraint_rows": 18
+    },
+    {
+      "wire_id": 234,
+      "path": "RequiredSpend_StateProof_Position",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 235,
+      "path": "RequiredSpend_StateProof_Path_0_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 243,
-      "path": "Spends_0_StateProof_Path_0_1",
+      "wire_id": 236,
+      "path": "RequiredSpend_StateProof_Path_0_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 237,
+      "path": "RequiredSpend_StateProof_Path_0_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 238,
+      "path": "RequiredSpend_StateProof_Path_1_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 239,
+      "path": "RequiredSpend_StateProof_Path_1_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 240,
+      "path": "RequiredSpend_StateProof_Path_1_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 241,
+      "path": "RequiredSpend_StateProof_Path_2_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 242,
+      "path": "RequiredSpend_StateProof_Path_2_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 243,
+      "path": "RequiredSpend_StateProof_Path_2_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 244,
-      "path": "Spends_0_StateProof_Path_0_2",
+      "path": "RequiredSpend_StateProof_Path_3_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 245,
-      "path": "Spends_0_StateProof_Path_1_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 246,
-      "path": "Spends_0_StateProof_Path_1_1",
+      "path": "RequiredSpend_StateProof_Path_3_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 246,
+      "path": "RequiredSpend_StateProof_Path_3_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 247,
-      "path": "Spends_0_StateProof_Path_1_2",
+      "path": "RequiredSpend_StateProof_Path_4_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 248,
-      "path": "Spends_0_StateProof_Path_2_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 249,
-      "path": "Spends_0_StateProof_Path_2_1",
+      "path": "RequiredSpend_StateProof_Path_4_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 249,
+      "path": "RequiredSpend_StateProof_Path_4_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 250,
-      "path": "Spends_0_StateProof_Path_2_2",
+      "path": "RequiredSpend_StateProof_Path_5_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 251,
-      "path": "Spends_0_StateProof_Path_3_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 252,
-      "path": "Spends_0_StateProof_Path_3_1",
+      "path": "RequiredSpend_StateProof_Path_5_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 252,
+      "path": "RequiredSpend_StateProof_Path_5_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 253,
-      "path": "Spends_0_StateProof_Path_3_2",
+      "path": "RequiredSpend_StateProof_Path_6_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 254,
-      "path": "Spends_0_StateProof_Path_4_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 255,
-      "path": "Spends_0_StateProof_Path_4_1",
+      "path": "RequiredSpend_StateProof_Path_6_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 255,
+      "path": "RequiredSpend_StateProof_Path_6_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 256,
-      "path": "Spends_0_StateProof_Path_4_2",
+      "path": "RequiredSpend_StateProof_Path_7_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 257,
-      "path": "Spends_0_StateProof_Path_5_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 258,
-      "path": "Spends_0_StateProof_Path_5_1",
+      "path": "RequiredSpend_StateProof_Path_7_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 258,
+      "path": "RequiredSpend_StateProof_Path_7_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 259,
-      "path": "Spends_0_StateProof_Path_5_2",
+      "path": "RequiredSpend_StateProof_Path_8_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 260,
-      "path": "Spends_0_StateProof_Path_6_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 261,
-      "path": "Spends_0_StateProof_Path_6_1",
+      "path": "RequiredSpend_StateProof_Path_8_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 261,
+      "path": "RequiredSpend_StateProof_Path_8_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 262,
-      "path": "Spends_0_StateProof_Path_6_2",
+      "path": "RequiredSpend_StateProof_Path_9_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 263,
-      "path": "Spends_0_StateProof_Path_7_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 264,
-      "path": "Spends_0_StateProof_Path_7_1",
+      "path": "RequiredSpend_StateProof_Path_9_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 264,
+      "path": "RequiredSpend_StateProof_Path_9_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 265,
-      "path": "Spends_0_StateProof_Path_7_2",
+      "path": "RequiredSpend_StateProof_Path_10_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 266,
-      "path": "Spends_0_StateProof_Path_8_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 267,
-      "path": "Spends_0_StateProof_Path_8_1",
+      "path": "RequiredSpend_StateProof_Path_10_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 267,
+      "path": "RequiredSpend_StateProof_Path_10_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 268,
-      "path": "Spends_0_StateProof_Path_8_2",
+      "path": "RequiredSpend_StateProof_Path_11_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 269,
-      "path": "Spends_0_StateProof_Path_9_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 270,
-      "path": "Spends_0_StateProof_Path_9_1",
+      "path": "RequiredSpend_StateProof_Path_11_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 270,
+      "path": "RequiredSpend_StateProof_Path_11_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 271,
-      "path": "Spends_0_StateProof_Path_9_2",
+      "path": "RequiredSpend_StateProof_Path_12_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 272,
-      "path": "Spends_0_StateProof_Path_10_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 273,
-      "path": "Spends_0_StateProof_Path_10_1",
+      "path": "RequiredSpend_StateProof_Path_12_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 273,
+      "path": "RequiredSpend_StateProof_Path_12_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 274,
-      "path": "Spends_0_StateProof_Path_10_2",
+      "path": "RequiredSpend_StateProof_Path_13_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 275,
-      "path": "Spends_0_StateProof_Path_11_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 276,
-      "path": "Spends_0_StateProof_Path_11_1",
+      "path": "RequiredSpend_StateProof_Path_13_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 276,
+      "path": "RequiredSpend_StateProof_Path_13_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 277,
-      "path": "Spends_0_StateProof_Path_11_2",
+      "path": "RequiredSpend_StateProof_Path_14_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 278,
-      "path": "Spends_0_StateProof_Path_12_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 279,
-      "path": "Spends_0_StateProof_Path_12_1",
+      "path": "RequiredSpend_StateProof_Path_14_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 279,
+      "path": "RequiredSpend_StateProof_Path_14_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 280,
-      "path": "Spends_0_StateProof_Path_12_2",
+      "path": "RequiredSpend_StateProof_Path_15_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 281,
-      "path": "Spends_0_StateProof_Path_13_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 282,
-      "path": "Spends_0_StateProof_Path_13_1",
+      "path": "RequiredSpend_StateProof_Path_15_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 282,
+      "path": "RequiredSpend_StateProof_Path_15_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 283,
-      "path": "Spends_0_StateProof_Path_13_2",
+      "path": "RequiredSpend_StateProof_Path_16_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 284,
-      "path": "Spends_0_StateProof_Path_14_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 285,
-      "path": "Spends_0_StateProof_Path_14_1",
+      "path": "RequiredSpend_StateProof_Path_16_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 285,
+      "path": "RequiredSpend_StateProof_Path_16_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 286,
-      "path": "Spends_0_StateProof_Path_14_2",
+      "path": "RequiredSpend_StateProof_Path_17_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 287,
-      "path": "Spends_0_StateProof_Path_15_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 288,
-      "path": "Spends_0_StateProof_Path_15_1",
+      "path": "RequiredSpend_StateProof_Path_17_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 288,
+      "path": "RequiredSpend_StateProof_Path_17_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 289,
-      "path": "Spends_0_StateProof_Path_15_2",
+      "path": "RequiredSpend_StateProof_Path_18_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 290,
-      "path": "Spends_0_StateProof_Path_16_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 291,
-      "path": "Spends_0_StateProof_Path_16_1",
+      "path": "RequiredSpend_StateProof_Path_18_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 291,
+      "path": "RequiredSpend_StateProof_Path_18_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 292,
-      "path": "Spends_0_StateProof_Path_16_2",
+      "path": "RequiredSpend_StateProof_Path_19_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 293,
-      "path": "Spends_0_StateProof_Path_17_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 294,
-      "path": "Spends_0_StateProof_Path_17_1",
+      "path": "RequiredSpend_StateProof_Path_19_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 294,
+      "path": "RequiredSpend_StateProof_Path_19_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 295,
-      "path": "Spends_0_StateProof_Path_17_2",
+      "path": "RequiredSpend_StateProof_Path_20_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 296,
-      "path": "Spends_0_StateProof_Path_18_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 297,
-      "path": "Spends_0_StateProof_Path_18_1",
+      "path": "RequiredSpend_StateProof_Path_20_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 297,
+      "path": "RequiredSpend_StateProof_Path_20_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 298,
-      "path": "Spends_0_StateProof_Path_18_2",
+      "path": "RequiredSpend_StateProof_Path_21_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 299,
-      "path": "Spends_0_StateProof_Path_19_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 300,
-      "path": "Spends_0_StateProof_Path_19_1",
+      "path": "RequiredSpend_StateProof_Path_21_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 300,
+      "path": "RequiredSpend_StateProof_Path_21_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 301,
-      "path": "Spends_0_StateProof_Path_19_2",
+      "path": "RequiredSpend_StateProof_Path_22_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 302,
-      "path": "Spends_0_StateProof_Path_20_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 303,
-      "path": "Spends_0_StateProof_Path_20_1",
+      "path": "RequiredSpend_StateProof_Path_22_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 303,
+      "path": "RequiredSpend_StateProof_Path_22_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 304,
-      "path": "Spends_0_StateProof_Path_20_2",
+      "path": "RequiredSpend_StateProof_Path_23_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 305,
-      "path": "Spends_0_StateProof_Path_21_0",
+      "path": "RequiredSpend_StateProof_Path_23_1",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 8
     },
     {
       "wire_id": 306,
-      "path": "Spends_0_StateProof_Path_21_1",
+      "path": "RequiredSpend_StateProof_Path_23_2",
       "visibility": "secret",
-      "constraint_rows": 8
+      "constraint_rows": 4
     },
     {
       "wire_id": 307,
-      "path": "Spends_0_StateProof_Path_21_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 308,
-      "path": "Spends_0_StateProof_Path_22_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 309,
-      "path": "Spends_0_StateProof_Path_22_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 310,
-      "path": "Spends_0_StateProof_Path_22_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 311,
-      "path": "Spends_0_StateProof_Path_23_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 312,
-      "path": "Spends_0_StateProof_Path_23_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 313,
-      "path": "Spends_0_StateProof_Path_23_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 314,
-      "path": "Spends_0_AuthRandomizer",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 315,
-      "path": "Spends_0_IsDummy",
-      "visibility": "secret",
-      "constraint_rows": 11
-    },
-    {
-      "wire_id": 316,
-      "path": "Spends_0_DummyNullifierSeed",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 317,
-      "path": "Spends_0_DummySpendAuthKey",
+      "path": "RequiredSpend_AuthRandomizer",
       "visibility": "secret",
       "constraint_rows": 1
     },
     {
-      "wire_id": 318,
-      "path": "Spends_1_Nullifier",
+      "wire_id": 308,
+      "path": "OptionalSpend_Nullifier",
       "visibility": "secret",
       "constraint_rows": 3
     },
     {
-      "wire_id": 319,
-      "path": "Spends_1_RK_X",
+      "wire_id": 309,
+      "path": "OptionalSpend_RK_X",
       "visibility": "secret",
-      "constraint_rows": 7
+      "constraint_rows": 6
+    },
+    {
+      "wire_id": 310,
+      "path": "OptionalSpend_RK_Y",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 311,
+      "path": "OptionalSpend_Note_Blinding",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 312,
+      "path": "OptionalSpend_Note_Amount",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 313,
+      "path": "OptionalSpend_Note_ClueKey",
+      "visibility": "secret",
+      "constraint_rows": 2
+    },
+    {
+      "wire_id": 314,
+      "path": "OptionalSpend_StateProof_Position",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
+      "wire_id": 315,
+      "path": "OptionalSpend_StateProof_Path_0_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 316,
+      "path": "OptionalSpend_StateProof_Path_0_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 317,
+      "path": "OptionalSpend_StateProof_Path_0_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 318,
+      "path": "OptionalSpend_StateProof_Path_1_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 319,
+      "path": "OptionalSpend_StateProof_Path_1_1",
+      "visibility": "secret",
+      "constraint_rows": 8
     },
     {
       "wire_id": 320,
-      "path": "Spends_1_RK_Y",
+      "path": "OptionalSpend_StateProof_Path_1_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 321,
-      "path": "Spends_1_Note_Blinding",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 322,
-      "path": "Spends_1_Note_Amount",
+      "path": "OptionalSpend_StateProof_Path_2_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 322,
+      "path": "OptionalSpend_StateProof_Path_2_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 323,
-      "path": "Spends_1_Note_AssetID",
+      "path": "OptionalSpend_StateProof_Path_2_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 324,
-      "path": "Spends_1_Note_DivGen_X",
+      "path": "OptionalSpend_StateProof_Path_3_0",
       "visibility": "secret",
-      "constraint_rows": 6
+      "constraint_rows": 4
     },
     {
       "wire_id": 325,
-      "path": "Spends_1_Note_DivGen_Y",
+      "path": "OptionalSpend_StateProof_Path_3_1",
       "visibility": "secret",
-      "constraint_rows": 3
+      "constraint_rows": 8
     },
     {
       "wire_id": 326,
-      "path": "Spends_1_Note_TransmissionKeyS",
+      "path": "OptionalSpend_StateProof_Path_3_2",
       "visibility": "secret",
-      "constraint_rows": 1
+      "constraint_rows": 4
     },
     {
       "wire_id": 327,
-      "path": "Spends_1_Note_Transmission_X",
+      "path": "OptionalSpend_StateProof_Path_4_0",
       "visibility": "secret",
-      "constraint_rows": 1
+      "constraint_rows": 4
     },
     {
       "wire_id": 328,
-      "path": "Spends_1_Note_Transmission_Y",
+      "path": "OptionalSpend_StateProof_Path_4_1",
       "visibility": "secret",
-      "constraint_rows": 1
+      "constraint_rows": 8
     },
     {
       "wire_id": 329,
-      "path": "Spends_1_Note_ClueKey",
+      "path": "OptionalSpend_StateProof_Path_4_2",
       "visibility": "secret",
-      "constraint_rows": 2
+      "constraint_rows": 4
     },
     {
       "wire_id": 330,
-      "path": "Spends_1_StateProof_Commitment",
+      "path": "OptionalSpend_StateProof_Path_5_0",
       "visibility": "secret",
-      "constraint_rows": 5
+      "constraint_rows": 4
     },
     {
       "wire_id": 331,
-      "path": "Spends_1_StateProof_Position",
+      "path": "OptionalSpend_StateProof_Path_5_1",
       "visibility": "secret",
-      "constraint_rows": 3
+      "constraint_rows": 8
     },
     {
       "wire_id": 332,
-      "path": "Spends_1_StateProof_Path_0_0",
+      "path": "OptionalSpend_StateProof_Path_5_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 333,
-      "path": "Spends_1_StateProof_Path_0_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 334,
-      "path": "Spends_1_StateProof_Path_0_2",
+      "path": "OptionalSpend_StateProof_Path_6_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 334,
+      "path": "OptionalSpend_StateProof_Path_6_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 335,
-      "path": "Spends_1_StateProof_Path_1_0",
+      "path": "OptionalSpend_StateProof_Path_6_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 336,
-      "path": "Spends_1_StateProof_Path_1_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 337,
-      "path": "Spends_1_StateProof_Path_1_2",
+      "path": "OptionalSpend_StateProof_Path_7_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 337,
+      "path": "OptionalSpend_StateProof_Path_7_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 338,
-      "path": "Spends_1_StateProof_Path_2_0",
+      "path": "OptionalSpend_StateProof_Path_7_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 339,
-      "path": "Spends_1_StateProof_Path_2_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 340,
-      "path": "Spends_1_StateProof_Path_2_2",
+      "path": "OptionalSpend_StateProof_Path_8_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 340,
+      "path": "OptionalSpend_StateProof_Path_8_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 341,
-      "path": "Spends_1_StateProof_Path_3_0",
+      "path": "OptionalSpend_StateProof_Path_8_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 342,
-      "path": "Spends_1_StateProof_Path_3_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 343,
-      "path": "Spends_1_StateProof_Path_3_2",
+      "path": "OptionalSpend_StateProof_Path_9_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 343,
+      "path": "OptionalSpend_StateProof_Path_9_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 344,
-      "path": "Spends_1_StateProof_Path_4_0",
+      "path": "OptionalSpend_StateProof_Path_9_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 345,
-      "path": "Spends_1_StateProof_Path_4_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 346,
-      "path": "Spends_1_StateProof_Path_4_2",
+      "path": "OptionalSpend_StateProof_Path_10_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 346,
+      "path": "OptionalSpend_StateProof_Path_10_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 347,
-      "path": "Spends_1_StateProof_Path_5_0",
+      "path": "OptionalSpend_StateProof_Path_10_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 348,
-      "path": "Spends_1_StateProof_Path_5_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 349,
-      "path": "Spends_1_StateProof_Path_5_2",
+      "path": "OptionalSpend_StateProof_Path_11_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 349,
+      "path": "OptionalSpend_StateProof_Path_11_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 350,
-      "path": "Spends_1_StateProof_Path_6_0",
+      "path": "OptionalSpend_StateProof_Path_11_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 351,
-      "path": "Spends_1_StateProof_Path_6_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 352,
-      "path": "Spends_1_StateProof_Path_6_2",
+      "path": "OptionalSpend_StateProof_Path_12_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 352,
+      "path": "OptionalSpend_StateProof_Path_12_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 353,
-      "path": "Spends_1_StateProof_Path_7_0",
+      "path": "OptionalSpend_StateProof_Path_12_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 354,
-      "path": "Spends_1_StateProof_Path_7_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 355,
-      "path": "Spends_1_StateProof_Path_7_2",
+      "path": "OptionalSpend_StateProof_Path_13_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 355,
+      "path": "OptionalSpend_StateProof_Path_13_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 356,
-      "path": "Spends_1_StateProof_Path_8_0",
+      "path": "OptionalSpend_StateProof_Path_13_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 357,
-      "path": "Spends_1_StateProof_Path_8_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 358,
-      "path": "Spends_1_StateProof_Path_8_2",
+      "path": "OptionalSpend_StateProof_Path_14_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 358,
+      "path": "OptionalSpend_StateProof_Path_14_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 359,
-      "path": "Spends_1_StateProof_Path_9_0",
+      "path": "OptionalSpend_StateProof_Path_14_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 360,
-      "path": "Spends_1_StateProof_Path_9_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 361,
-      "path": "Spends_1_StateProof_Path_9_2",
+      "path": "OptionalSpend_StateProof_Path_15_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 361,
+      "path": "OptionalSpend_StateProof_Path_15_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 362,
-      "path": "Spends_1_StateProof_Path_10_0",
+      "path": "OptionalSpend_StateProof_Path_15_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 363,
-      "path": "Spends_1_StateProof_Path_10_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 364,
-      "path": "Spends_1_StateProof_Path_10_2",
+      "path": "OptionalSpend_StateProof_Path_16_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 364,
+      "path": "OptionalSpend_StateProof_Path_16_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 365,
-      "path": "Spends_1_StateProof_Path_11_0",
+      "path": "OptionalSpend_StateProof_Path_16_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 366,
-      "path": "Spends_1_StateProof_Path_11_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 367,
-      "path": "Spends_1_StateProof_Path_11_2",
+      "path": "OptionalSpend_StateProof_Path_17_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 367,
+      "path": "OptionalSpend_StateProof_Path_17_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 368,
-      "path": "Spends_1_StateProof_Path_12_0",
+      "path": "OptionalSpend_StateProof_Path_17_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 369,
-      "path": "Spends_1_StateProof_Path_12_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 370,
-      "path": "Spends_1_StateProof_Path_12_2",
+      "path": "OptionalSpend_StateProof_Path_18_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 370,
+      "path": "OptionalSpend_StateProof_Path_18_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 371,
-      "path": "Spends_1_StateProof_Path_13_0",
+      "path": "OptionalSpend_StateProof_Path_18_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 372,
-      "path": "Spends_1_StateProof_Path_13_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 373,
-      "path": "Spends_1_StateProof_Path_13_2",
+      "path": "OptionalSpend_StateProof_Path_19_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 373,
+      "path": "OptionalSpend_StateProof_Path_19_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 374,
-      "path": "Spends_1_StateProof_Path_14_0",
+      "path": "OptionalSpend_StateProof_Path_19_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 375,
-      "path": "Spends_1_StateProof_Path_14_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 376,
-      "path": "Spends_1_StateProof_Path_14_2",
+      "path": "OptionalSpend_StateProof_Path_20_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 376,
+      "path": "OptionalSpend_StateProof_Path_20_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 377,
-      "path": "Spends_1_StateProof_Path_15_0",
+      "path": "OptionalSpend_StateProof_Path_20_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 378,
-      "path": "Spends_1_StateProof_Path_15_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 379,
-      "path": "Spends_1_StateProof_Path_15_2",
+      "path": "OptionalSpend_StateProof_Path_21_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 379,
+      "path": "OptionalSpend_StateProof_Path_21_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 380,
-      "path": "Spends_1_StateProof_Path_16_0",
+      "path": "OptionalSpend_StateProof_Path_21_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 381,
-      "path": "Spends_1_StateProof_Path_16_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 382,
-      "path": "Spends_1_StateProof_Path_16_2",
+      "path": "OptionalSpend_StateProof_Path_22_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 382,
+      "path": "OptionalSpend_StateProof_Path_22_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 383,
-      "path": "Spends_1_StateProof_Path_17_0",
+      "path": "OptionalSpend_StateProof_Path_22_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 384,
-      "path": "Spends_1_StateProof_Path_17_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 385,
-      "path": "Spends_1_StateProof_Path_17_2",
+      "path": "OptionalSpend_StateProof_Path_23_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 385,
+      "path": "OptionalSpend_StateProof_Path_23_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
       "wire_id": 386,
-      "path": "Spends_1_StateProof_Path_18_0",
+      "path": "OptionalSpend_StateProof_Path_23_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 387,
-      "path": "Spends_1_StateProof_Path_18_1",
+      "path": "OptionalSpend_AuthRandomizer",
       "visibility": "secret",
-      "constraint_rows": 8
+      "constraint_rows": 3
     },
     {
       "wire_id": 388,
-      "path": "Spends_1_StateProof_Path_18_2",
+      "path": "OptionalSpend_IsDummy",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 8
     },
     {
       "wire_id": 389,
-      "path": "Spends_1_StateProof_Path_19_0",
+      "path": "OptionalSpend_DummyNullifierSeed",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 2
     },
     {
       "wire_id": 390,
-      "path": "Spends_1_StateProof_Path_19_1",
+      "path": "ReceiverOutput_NoteCommitment",
       "visibility": "secret",
-      "constraint_rows": 8
+      "constraint_rows": 3
     },
     {
       "wire_id": 391,
-      "path": "Spends_1_StateProof_Path_19_2",
+      "path": "ReceiverOutput_Note_Blinding",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 2
     },
     {
       "wire_id": 392,
-      "path": "Spends_1_StateProof_Path_20_0",
+      "path": "ReceiverOutput_Note_Amount",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 8
     },
     {
       "wire_id": 393,
-      "path": "Spends_1_StateProof_Path_20_1",
+      "path": "ReceiverOutput_Note_ClueKey",
       "visibility": "secret",
-      "constraint_rows": 8
+      "constraint_rows": 2
     },
     {
       "wire_id": 394,
-      "path": "Spends_1_StateProof_Path_20_2",
+      "path": "ReceiverOutput_Recipient_DivGen_X",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 5
     },
     {
       "wire_id": 395,
-      "path": "Spends_1_StateProof_Path_21_0",
+      "path": "ReceiverOutput_Recipient_DivGen_Y",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 2
     },
     {
       "wire_id": 396,
-      "path": "Spends_1_StateProof_Path_21_1",
+      "path": "ReceiverOutput_Recipient_Transmission_X",
       "visibility": "secret",
-      "constraint_rows": 8
+      "constraint_rows": 5
     },
     {
       "wire_id": 397,
-      "path": "Spends_1_StateProof_Path_21_2",
+      "path": "ReceiverOutput_Recipient_Transmission_Y",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 2
     },
     {
       "wire_id": 398,
-      "path": "Spends_1_StateProof_Path_22_0",
+      "path": "ReceiverOutput_Recipient_SlotID",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 3
     },
     {
       "wire_id": 399,
-      "path": "Spends_1_StateProof_Path_22_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 400,
-      "path": "Spends_1_StateProof_Path_22_2",
+      "path": "ReceiverOutput_Recipient_SlotDerivation",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
+      "wire_id": 400,
+      "path": "ReceiverOutput_Recipient_D",
+      "visibility": "secret",
+      "constraint_rows": 3
+    },
+    {
       "wire_id": 401,
-      "path": "Spends_1_StateProof_Path_23_0",
+      "path": "ReceiverOutput_Recipient_Path_0_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 402,
-      "path": "Spends_1_StateProof_Path_23_1",
+      "path": "ReceiverOutput_Recipient_Path_0_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
       "wire_id": 403,
-      "path": "Spends_1_StateProof_Path_23_2",
+      "path": "ReceiverOutput_Recipient_Path_0_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 404,
-      "path": "Spends_1_AuthRandomizer",
+      "path": "ReceiverOutput_Recipient_Path_1_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 405,
-      "path": "Spends_1_IsDummy",
-      "visibility": "secret",
-      "constraint_rows": 11
-    },
-    {
-      "wire_id": 406,
-      "path": "Spends_1_DummyNullifierSeed",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 407,
-      "path": "Spends_1_DummySpendAuthKey",
-      "visibility": "secret",
-      "constraint_rows": 1
-    },
-    {
-      "wire_id": 408,
-      "path": "Outputs_0_NoteCommitment",
-      "visibility": "secret",
-      "constraint_rows": 3
-    },
-    {
-      "wire_id": 409,
-      "path": "Outputs_0_Note_Blinding",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 410,
-      "path": "Outputs_0_Note_Amount",
+      "path": "ReceiverOutput_Recipient_Path_1_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
-      "wire_id": 411,
-      "path": "Outputs_0_Note_AssetID",
+      "wire_id": 406,
+      "path": "ReceiverOutput_Recipient_Path_1_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 412,
-      "path": "Outputs_0_Note_DivGen_X",
+      "wire_id": 407,
+      "path": "ReceiverOutput_Recipient_Path_2_0",
       "visibility": "secret",
-      "constraint_rows": 6
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 408,
+      "path": "ReceiverOutput_Recipient_Path_2_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 409,
+      "path": "ReceiverOutput_Recipient_Path_2_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 410,
+      "path": "ReceiverOutput_Recipient_Path_3_0",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
+      "wire_id": 411,
+      "path": "ReceiverOutput_Recipient_Path_3_1",
+      "visibility": "secret",
+      "constraint_rows": 8
+    },
+    {
+      "wire_id": 412,
+      "path": "ReceiverOutput_Recipient_Path_3_2",
+      "visibility": "secret",
+      "constraint_rows": 4
     },
     {
       "wire_id": 413,
-      "path": "Outputs_0_Note_DivGen_Y",
+      "path": "ReceiverOutput_Recipient_Path_4_0",
       "visibility": "secret",
-      "constraint_rows": 3
+      "constraint_rows": 4
     },
     {
       "wire_id": 414,
-      "path": "Outputs_0_Note_TransmissionKeyS",
+      "path": "ReceiverOutput_Recipient_Path_4_1",
       "visibility": "secret",
-      "constraint_rows": 1
+      "constraint_rows": 8
     },
     {
       "wire_id": 415,
-      "path": "Outputs_0_Note_Transmission_X",
+      "path": "ReceiverOutput_Recipient_Path_4_2",
       "visibility": "secret",
-      "constraint_rows": 6
+      "constraint_rows": 4
     },
     {
       "wire_id": 416,
-      "path": "Outputs_0_Note_Transmission_Y",
+      "path": "ReceiverOutput_Recipient_Path_5_0",
       "visibility": "secret",
-      "constraint_rows": 3
+      "constraint_rows": 4
     },
     {
       "wire_id": 417,
-      "path": "Outputs_0_Note_ClueKey",
+      "path": "ReceiverOutput_Recipient_Path_5_1",
       "visibility": "secret",
-      "constraint_rows": 2
+      "constraint_rows": 8
     },
     {
       "wire_id": 418,
-      "path": "Outputs_0_Recipient_DivGen_X",
+      "path": "ReceiverOutput_Recipient_Path_5_2",
       "visibility": "secret",
-      "constraint_rows": 1
+      "constraint_rows": 4
     },
     {
       "wire_id": 419,
-      "path": "Outputs_0_Recipient_DivGen_Y",
+      "path": "ReceiverOutput_Recipient_Path_6_0",
       "visibility": "secret",
-      "constraint_rows": 1
+      "constraint_rows": 4
     },
     {
       "wire_id": 420,
-      "path": "Outputs_0_Recipient_Transmission_X",
+      "path": "ReceiverOutput_Recipient_Path_6_1",
       "visibility": "secret",
-      "constraint_rows": 1
+      "constraint_rows": 8
     },
     {
       "wire_id": 421,
-      "path": "Outputs_0_Recipient_Transmission_Y",
+      "path": "ReceiverOutput_Recipient_Path_6_2",
       "visibility": "secret",
-      "constraint_rows": 1
+      "constraint_rows": 4
     },
     {
       "wire_id": 422,
-      "path": "Outputs_0_Recipient_AssetID",
+      "path": "ReceiverOutput_Recipient_Path_7_0",
       "visibility": "secret",
-      "constraint_rows": 3
+      "constraint_rows": 4
     },
     {
       "wire_id": 423,
-      "path": "Outputs_0_Recipient_SlotID",
+      "path": "ReceiverOutput_Recipient_Path_7_1",
       "visibility": "secret",
-      "constraint_rows": 3
+      "constraint_rows": 8
     },
     {
       "wire_id": 424,
-      "path": "Outputs_0_Recipient_SlotDerivation",
+      "path": "ReceiverOutput_Recipient_Path_7_2",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 425,
-      "path": "Outputs_0_Recipient_D",
-      "visibility": "secret",
-      "constraint_rows": 3
-    },
-    {
-      "wire_id": 426,
-      "path": "Outputs_0_Recipient_Path_0_0",
+      "path": "ReceiverOutput_Recipient_Path_8_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
-      "wire_id": 427,
-      "path": "Outputs_0_Recipient_Path_0_1",
+      "wire_id": 426,
+      "path": "ReceiverOutput_Recipient_Path_8_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 427,
+      "path": "ReceiverOutput_Recipient_Path_8_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 428,
-      "path": "Outputs_0_Recipient_Path_0_2",
+      "path": "ReceiverOutput_Recipient_Path_9_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 429,
-      "path": "Outputs_0_Recipient_Path_1_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 430,
-      "path": "Outputs_0_Recipient_Path_1_1",
+      "path": "ReceiverOutput_Recipient_Path_9_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 430,
+      "path": "ReceiverOutput_Recipient_Path_9_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 431,
-      "path": "Outputs_0_Recipient_Path_1_2",
+      "path": "ReceiverOutput_Recipient_Path_10_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 432,
-      "path": "Outputs_0_Recipient_Path_2_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 433,
-      "path": "Outputs_0_Recipient_Path_2_1",
+      "path": "ReceiverOutput_Recipient_Path_10_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 433,
+      "path": "ReceiverOutput_Recipient_Path_10_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 434,
-      "path": "Outputs_0_Recipient_Path_2_2",
+      "path": "ReceiverOutput_Recipient_Path_11_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 435,
-      "path": "Outputs_0_Recipient_Path_3_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 436,
-      "path": "Outputs_0_Recipient_Path_3_1",
+      "path": "ReceiverOutput_Recipient_Path_11_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 436,
+      "path": "ReceiverOutput_Recipient_Path_11_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 437,
-      "path": "Outputs_0_Recipient_Path_3_2",
+      "path": "ReceiverOutput_Recipient_Path_12_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 438,
-      "path": "Outputs_0_Recipient_Path_4_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 439,
-      "path": "Outputs_0_Recipient_Path_4_1",
+      "path": "ReceiverOutput_Recipient_Path_12_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 439,
+      "path": "ReceiverOutput_Recipient_Path_12_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 440,
-      "path": "Outputs_0_Recipient_Path_4_2",
+      "path": "ReceiverOutput_Recipient_Path_13_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 441,
-      "path": "Outputs_0_Recipient_Path_5_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 442,
-      "path": "Outputs_0_Recipient_Path_5_1",
+      "path": "ReceiverOutput_Recipient_Path_13_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 442,
+      "path": "ReceiverOutput_Recipient_Path_13_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 443,
-      "path": "Outputs_0_Recipient_Path_5_2",
+      "path": "ReceiverOutput_Recipient_Path_14_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 444,
-      "path": "Outputs_0_Recipient_Path_6_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 445,
-      "path": "Outputs_0_Recipient_Path_6_1",
+      "path": "ReceiverOutput_Recipient_Path_14_1",
       "visibility": "secret",
       "constraint_rows": 8
     },
     {
+      "wire_id": 445,
+      "path": "ReceiverOutput_Recipient_Path_14_2",
+      "visibility": "secret",
+      "constraint_rows": 4
+    },
+    {
       "wire_id": 446,
-      "path": "Outputs_0_Recipient_Path_6_2",
+      "path": "ReceiverOutput_Recipient_Path_15_0",
       "visibility": "secret",
       "constraint_rows": 4
     },
     {
       "wire_id": 447,
-      "path": "Outputs_0_Recipient_Path_7_0",
+      "path": "ReceiverOutput_Recipient_Path_15_1",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 8
     },
     {
       "wire_id": 448,
-      "path": "Outputs_0_Recipient_Path_7_1",
+      "path": "ReceiverOutput_Recipient_Path_15_2",
       "visibility": "secret",
-      "constraint_rows": 8
+      "constraint_rows": 4
     },
     {
       "wire_id": 449,
-      "path": "Outputs_0_Recipient_Path_7_2",
+      "path": "ReceiverOutput_Recipient_Position",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 1
     },
     {
       "wire_id": 450,
-      "path": "Outputs_0_Recipient_Path_8_0",
+      "path": "ChangeOutput_NoteCommitment",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 3
     },
     {
       "wire_id": 451,
-      "path": "Outputs_0_Recipient_Path_8_1",
+      "path": "ChangeOutput_Note_Blinding",
       "visibility": "secret",
-      "constraint_rows": 8
+      "constraint_rows": 2
     },
     {
       "wire_id": 452,
-      "path": "Outputs_0_Recipient_Path_8_2",
+      "path": "ChangeOutput_Note_Amount",
       "visibility": "secret",
-      "constraint_rows": 4
+      "constraint_rows": 3
     },
     {
       "wire_id": 453,
-      "path": "Outputs_0_Recipient_Path_9_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 454,
-      "path": "Outputs_0_Recipient_Path_9_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 455,
-      "path": "Outputs_0_Recipient_Path_9_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 456,
-      "path": "Outputs_0_Recipient_Path_10_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 457,
-      "path": "Outputs_0_Recipient_Path_10_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 458,
-      "path": "Outputs_0_Recipient_Path_10_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 459,
-      "path": "Outputs_0_Recipient_Path_11_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 460,
-      "path": "Outputs_0_Recipient_Path_11_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 461,
-      "path": "Outputs_0_Recipient_Path_11_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 462,
-      "path": "Outputs_0_Recipient_Path_12_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 463,
-      "path": "Outputs_0_Recipient_Path_12_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 464,
-      "path": "Outputs_0_Recipient_Path_12_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 465,
-      "path": "Outputs_0_Recipient_Path_13_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 466,
-      "path": "Outputs_0_Recipient_Path_13_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 467,
-      "path": "Outputs_0_Recipient_Path_13_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 468,
-      "path": "Outputs_0_Recipient_Path_14_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 469,
-      "path": "Outputs_0_Recipient_Path_14_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 470,
-      "path": "Outputs_0_Recipient_Path_14_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 471,
-      "path": "Outputs_0_Recipient_Path_15_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 472,
-      "path": "Outputs_0_Recipient_Path_15_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 473,
-      "path": "Outputs_0_Recipient_Path_15_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 474,
-      "path": "Outputs_0_Recipient_Position",
-      "visibility": "secret",
-      "constraint_rows": 1
-    },
-    {
-      "wire_id": 475,
-      "path": "Outputs_0_IsReceiver",
-      "visibility": "secret",
-      "constraint_rows": 1
-    },
-    {
-      "wire_id": 476,
-      "path": "Outputs_1_NoteCommitment",
-      "visibility": "secret",
-      "constraint_rows": 3
-    },
-    {
-      "wire_id": 477,
-      "path": "Outputs_1_Note_Blinding",
+      "path": "ChangeOutput_Note_ClueKey",
       "visibility": "secret",
       "constraint_rows": 2
-    },
-    {
-      "wire_id": 478,
-      "path": "Outputs_1_Note_Amount",
-      "visibility": "secret",
-      "constraint_rows": 5
-    },
-    {
-      "wire_id": 479,
-      "path": "Outputs_1_Note_AssetID",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 480,
-      "path": "Outputs_1_Note_DivGen_X",
-      "visibility": "secret",
-      "constraint_rows": 6
-    },
-    {
-      "wire_id": 481,
-      "path": "Outputs_1_Note_DivGen_Y",
-      "visibility": "secret",
-      "constraint_rows": 3
-    },
-    {
-      "wire_id": 482,
-      "path": "Outputs_1_Note_TransmissionKeyS",
-      "visibility": "secret",
-      "constraint_rows": 1
-    },
-    {
-      "wire_id": 483,
-      "path": "Outputs_1_Note_Transmission_X",
-      "visibility": "secret",
-      "constraint_rows": 6
-    },
-    {
-      "wire_id": 484,
-      "path": "Outputs_1_Note_Transmission_Y",
-      "visibility": "secret",
-      "constraint_rows": 3
-    },
-    {
-      "wire_id": 485,
-      "path": "Outputs_1_Note_ClueKey",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 486,
-      "path": "Outputs_1_Recipient_DivGen_X",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 487,
-      "path": "Outputs_1_Recipient_DivGen_Y",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 488,
-      "path": "Outputs_1_Recipient_Transmission_X",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 489,
-      "path": "Outputs_1_Recipient_Transmission_Y",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 490,
-      "path": "Outputs_1_Recipient_AssetID",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 491,
-      "path": "Outputs_1_Recipient_SlotID",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 492,
-      "path": "Outputs_1_Recipient_SlotDerivation",
-      "visibility": "secret",
-      "constraint_rows": 2
-    },
-    {
-      "wire_id": 493,
-      "path": "Outputs_1_Recipient_D",
-      "visibility": "secret",
-      "constraint_rows": 3
-    },
-    {
-      "wire_id": 494,
-      "path": "Outputs_1_Recipient_Path_0_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 495,
-      "path": "Outputs_1_Recipient_Path_0_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 496,
-      "path": "Outputs_1_Recipient_Path_0_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 497,
-      "path": "Outputs_1_Recipient_Path_1_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 498,
-      "path": "Outputs_1_Recipient_Path_1_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 499,
-      "path": "Outputs_1_Recipient_Path_1_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 500,
-      "path": "Outputs_1_Recipient_Path_2_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 501,
-      "path": "Outputs_1_Recipient_Path_2_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 502,
-      "path": "Outputs_1_Recipient_Path_2_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 503,
-      "path": "Outputs_1_Recipient_Path_3_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 504,
-      "path": "Outputs_1_Recipient_Path_3_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 505,
-      "path": "Outputs_1_Recipient_Path_3_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 506,
-      "path": "Outputs_1_Recipient_Path_4_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 507,
-      "path": "Outputs_1_Recipient_Path_4_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 508,
-      "path": "Outputs_1_Recipient_Path_4_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 509,
-      "path": "Outputs_1_Recipient_Path_5_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 510,
-      "path": "Outputs_1_Recipient_Path_5_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 511,
-      "path": "Outputs_1_Recipient_Path_5_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 512,
-      "path": "Outputs_1_Recipient_Path_6_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 513,
-      "path": "Outputs_1_Recipient_Path_6_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 514,
-      "path": "Outputs_1_Recipient_Path_6_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 515,
-      "path": "Outputs_1_Recipient_Path_7_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 516,
-      "path": "Outputs_1_Recipient_Path_7_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 517,
-      "path": "Outputs_1_Recipient_Path_7_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 518,
-      "path": "Outputs_1_Recipient_Path_8_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 519,
-      "path": "Outputs_1_Recipient_Path_8_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 520,
-      "path": "Outputs_1_Recipient_Path_8_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 521,
-      "path": "Outputs_1_Recipient_Path_9_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 522,
-      "path": "Outputs_1_Recipient_Path_9_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 523,
-      "path": "Outputs_1_Recipient_Path_9_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 524,
-      "path": "Outputs_1_Recipient_Path_10_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 525,
-      "path": "Outputs_1_Recipient_Path_10_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 526,
-      "path": "Outputs_1_Recipient_Path_10_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 527,
-      "path": "Outputs_1_Recipient_Path_11_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 528,
-      "path": "Outputs_1_Recipient_Path_11_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 529,
-      "path": "Outputs_1_Recipient_Path_11_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 530,
-      "path": "Outputs_1_Recipient_Path_12_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 531,
-      "path": "Outputs_1_Recipient_Path_12_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 532,
-      "path": "Outputs_1_Recipient_Path_12_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 533,
-      "path": "Outputs_1_Recipient_Path_13_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 534,
-      "path": "Outputs_1_Recipient_Path_13_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 535,
-      "path": "Outputs_1_Recipient_Path_13_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 536,
-      "path": "Outputs_1_Recipient_Path_14_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 537,
-      "path": "Outputs_1_Recipient_Path_14_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 538,
-      "path": "Outputs_1_Recipient_Path_14_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 539,
-      "path": "Outputs_1_Recipient_Path_15_0",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 540,
-      "path": "Outputs_1_Recipient_Path_15_1",
-      "visibility": "secret",
-      "constraint_rows": 8
-    },
-    {
-      "wire_id": 541,
-      "path": "Outputs_1_Recipient_Path_15_2",
-      "visibility": "secret",
-      "constraint_rows": 4
-    },
-    {
-      "wire_id": 542,
-      "path": "Outputs_1_Recipient_Position",
-      "visibility": "secret",
-      "constraint_rows": 1
-    },
-    {
-      "wire_id": 543,
-      "path": "Outputs_1_IsReceiver",
-      "visibility": "secret",
-      "constraint_rows": 1
     }
   ],
   "semantic_bindings": [],
@@ -3366,11 +2826,10 @@
     },
     {
       "index": 7,
-      "op": "decaf.assert_equivalent_if",
+      "op": "decaf.assert_equivalent",
       "args": [
         "lhs=sender.transmission.computed",
-        "rhs=sender.transmission",
-        "cond=1"
+        "rhs=sender.transmission"
       ],
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
@@ -3394,8 +2853,8 @@
       "gadget_label": "gadget-imt-gap",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.ImtGap.circuit_sound",
       "start": 8177,
-      "end": 22584,
-      "constraint_count": 14407
+      "end": 22552,
+      "constraint_count": 14375
     },
     {
       "index": 9,
@@ -3403,7 +2862,7 @@
       "args": [
         "div_gen_fq=sender.div_gen_fq",
         "transmission_fq=sender.transmission_fq",
-        "asset_id=sender.asset_id",
+        "asset_id=shared.asset_id",
         "slot_id=sender.slot_id",
         "slot_derivation=sender.slot_derivation",
         "d=sender.d",
@@ -3412,8 +2871,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash5",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
-      "start": 22584,
-      "end": 23014,
+      "start": 22552,
+      "end": 22982,
       "constraint_count": 430
     },
     {
@@ -3428,9 +2887,9 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 23014,
-      "end": 28903,
-      "constraint_count": 5889
+      "start": 22982,
+      "end": 28839,
+      "constraint_count": 5857
     },
     {
       "index": 11,
@@ -3441,8 +2900,8 @@
         "cond=is_regulated"
       ],
       "kind": "glue",
-      "start": 28903,
-      "end": 28905,
+      "start": 28839,
+      "end": 28841,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
@@ -3457,8 +2916,8 @@
       "kind": "gadget",
       "gadget_label": "gadget-ack-two-step",
       "bridge_theorem": "Shieldd.GnarkFormal.AckBridge.ack_sound",
-      "start": 28905,
-      "end": 32515,
+      "start": 28841,
+      "end": 32451,
       "constraint_count": 3610
     },
     {
@@ -3468,58 +2927,19 @@
         "spend0"
       ],
       "kind": "marker",
-      "start": 32515,
-      "end": 32515,
+      "start": 32451,
+      "end": 32451,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
       "index": 14,
-      "op": "assert.boolean",
-      "args": [
-        "var=spend0.is_dummy"
-      ],
-      "kind": "glue",
-      "start": 32515,
-      "end": 32516,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 15,
-      "op": "decaf.compress_to_field",
-      "args": [
-        "in=spend0.note.div_gen",
-        "out=spend0.note.div_gen_fq"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-compress-to-field",
-      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 32516,
-      "end": 33562,
-      "constraint_count": 1046
-    },
-    {
-      "index": 16,
-      "op": "assert.eq",
-      "args": [
-        "lhs=spend0.note.transmission_key_s",
-        "rhs=sender.transmission_fq"
-      ],
-      "kind": "glue",
-      "start": 33562,
-      "end": 33563,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 17,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=spend0.note.blinding",
         "amount=spend0.note.amount",
-        "asset_id=spend0.note.asset_id",
-        "div_gen_fq=spend0.note.div_gen_fq",
+        "asset_id=shared.asset_id",
+        "div_gen_fq=sender.div_gen_fq",
         "transmission_key_s=sender.transmission_fq",
         "clue_key=spend0.note.clue_key",
         "out=spend0.note.commitment.computed"
@@ -3527,45 +2947,31 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash6",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 33563,
-      "end": 33993,
+      "start": 32451,
+      "end": 32881,
       "constraint_count": 430
     },
     {
-      "index": 18,
-      "op": "assert.eq_if",
-      "args": [
-        "lhs=spend0.note.commitment.computed",
-        "rhs=spend0.state_proof.commitment",
-        "cond=spend0.is_not_dummy"
-      ],
-      "kind": "glue",
-      "start": 33993,
-      "end": 33995,
-      "constraint_count": 2,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 19,
+      "index": 15,
       "op": "gadget.nullifier",
       "args": [
         "nk=auth.nk",
-        "commitment=spend0.state_proof.commitment",
+        "commitment=spend0.note.commitment.computed",
         "position=spend0.state_proof.position",
         "out=spend0.nullifier.real"
       ],
       "kind": "gadget",
       "gadget_label": "gadget-nullifier",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
-      "start": 33995,
-      "end": 34305,
+      "start": 32881,
+      "end": 33191,
       "constraint_count": 310
     },
     {
-      "index": 20,
+      "index": 16,
       "op": "gadget.state_commitment_path",
       "args": [
-        "commitment=spend0.state_proof.commitment",
+        "commitment=spend0.note.commitment.computed",
         "position=spend0.state_proof.position",
         "path=spend0.state_proof.path",
         "out=spend0.anchor.computed"
@@ -3573,57 +2979,38 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 34305,
-      "end": 43320,
+      "start": 33191,
+      "end": 42206,
       "constraint_count": 9015
     },
     {
-      "index": 21,
-      "op": "gadget.synthetic_dummy_nullifier",
+      "index": 17,
+      "op": "assert.eq",
       "args": [
-        "seed=spend0.dummy_nullifier_seed",
-        "randomizer=spend0.auth_randomizer",
-        "slot=spend0",
-        "out=spend0.nullifier.synthetic"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash3-specialized",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
-      "start": 43320,
-      "end": 43625,
-      "constraint_count": 305
-    },
-    {
-      "index": 22,
-      "op": "dummy.mux",
-      "args": [
-        "is_dummy=spend0.is_dummy",
-        "real=spend0.nullifier.real",
-        "synthetic=spend0.nullifier.synthetic",
-        "out=spend0.nullifier"
+        "lhs=spend0.nullifier",
+        "rhs=spend0.nullifier.real"
       ],
       "kind": "glue",
-      "start": 43625,
-      "end": 43628,
-      "constraint_count": 3,
-      "classification_note": "allowed selector/range glue segment"
-    },
-    {
-      "index": 23,
-      "op": "assert.eq_if",
-      "args": [
-        "lhs=spend0.anchor.computed",
-        "rhs=anchor",
-        "cond=spend0.is_not_dummy"
-      ],
-      "kind": "glue",
-      "start": 43628,
-      "end": 43630,
-      "constraint_count": 2,
+      "start": 42206,
+      "end": 42207,
+      "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 24,
+      "index": 18,
+      "op": "assert.eq",
+      "args": [
+        "lhs=spend0.anchor.computed",
+        "rhs=anchor"
+      ],
+      "kind": "glue",
+      "start": 42207,
+      "end": 42208,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 19,
       "op": "decaf.randomized_verification_key",
       "args": [
         "ak=shared.ak",
@@ -3633,127 +3020,26 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 43630,
-      "end": 45442,
+      "start": 42208,
+      "end": 44020,
       "constraint_count": 1812
     },
     {
-      "index": 25,
-      "op": "decaf.randomized_verification_key.dummy",
-      "args": [
-        "spend_auth_key=spend0.dummy_spend_auth_key",
-        "randomizer=spend0.auth_randomizer",
-        "out=spend0.rk.dummy"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-rvk",
-      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 45442,
-      "end": 49060,
-      "constraint_count": 3618
-    },
-    {
-      "index": 26,
-      "op": "decaf.assert_equivalent_if",
+      "index": 20,
+      "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend0.rk.computed",
-        "rhs=spend0.rk.claimed",
-        "cond=spend0.is_not_dummy"
+        "rhs=spend0.rk.claimed"
       ],
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 49060,
-      "end": 49066,
-      "constraint_count": 6
-    },
-    {
-      "index": 27,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=spend0.rk.dummy",
-        "rhs=spend0.rk.claimed",
-        "cond=spend0.is_dummy"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 49066,
-      "end": 49071,
-      "constraint_count": 5
-    },
-    {
-      "index": 28,
-      "op": "assert.eq_if",
-      "args": [
-        "lhs=spend0.note.amount",
-        "rhs=0",
-        "cond=spend0.is_dummy"
-      ],
-      "kind": "glue",
-      "start": 49071,
-      "end": 49073,
-      "constraint_count": 2,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 29,
-      "op": "assert.eq",
-      "args": [
-        "lhs=spend0.note.asset_id",
-        "rhs=shared.asset_id"
-      ],
-      "kind": "glue",
-      "start": 49073,
-      "end": 49074,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 30,
-      "op": "assert.eq",
-      "args": [
-        "lhs=sender.asset_id",
-        "rhs=spend0.note.asset_id"
-      ],
-      "kind": "glue",
-      "start": 49074,
-      "end": 49075,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 31,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=sender.div_gen",
-        "rhs=spend0.note.div_gen",
-        "cond=1"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 49075,
-      "end": 49078,
+      "start": 44020,
+      "end": 44023,
       "constraint_count": 3
     },
     {
-      "index": 32,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=sender.transmission",
-        "rhs=spend0.note.transmission",
-        "cond=1"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 49078,
-      "end": 49081,
-      "constraint_count": 3
-    },
-    {
-      "index": 33,
+      "index": 21,
       "op": "decaf.compress_to_field",
       "args": [
         "in=spend0.rk.claimed",
@@ -3762,12 +3048,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 49081,
-      "end": 50127,
+      "start": 44023,
+      "end": 45069,
       "constraint_count": 1046
     },
     {
-      "index": 34,
+      "index": 22,
       "op": "spend.collect",
       "args": [
         "spend0",
@@ -3776,70 +3062,43 @@
         "rk_compressed-\u003estatement.nullifiers_and_rks"
       ],
       "kind": "marker",
-      "start": 50127,
-      "end": 50127,
+      "start": 45069,
+      "end": 45069,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 35,
+      "index": 23,
       "op": "spend.begin",
       "args": [
         "spend1"
       ],
       "kind": "marker",
-      "start": 50127,
-      "end": 50127,
+      "start": 45069,
+      "end": 45069,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 36,
+      "index": 24,
       "op": "assert.boolean",
       "args": [
         "var=spend1.is_dummy"
       ],
       "kind": "glue",
-      "start": 50127,
-      "end": 50128,
+      "start": 45069,
+      "end": 45070,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 37,
-      "op": "decaf.compress_to_field",
-      "args": [
-        "in=spend1.note.div_gen",
-        "out=spend1.note.div_gen_fq"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-compress-to-field",
-      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 50128,
-      "end": 51174,
-      "constraint_count": 1046
-    },
-    {
-      "index": 38,
-      "op": "assert.eq",
-      "args": [
-        "lhs=spend1.note.transmission_key_s",
-        "rhs=sender.transmission_fq"
-      ],
-      "kind": "glue",
-      "start": 51174,
-      "end": 51175,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 39,
+      "index": 25,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=spend1.note.blinding",
         "amount=spend1.note.amount",
-        "asset_id=spend1.note.asset_id",
-        "div_gen_fq=spend1.note.div_gen_fq",
+        "asset_id=shared.asset_id",
+        "div_gen_fq=sender.div_gen_fq",
         "transmission_key_s=sender.transmission_fq",
         "clue_key=spend1.note.clue_key",
         "out=spend1.note.commitment.computed"
@@ -3847,45 +3106,31 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash6",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 51175,
-      "end": 51605,
+      "start": 45070,
+      "end": 45500,
       "constraint_count": 430
     },
     {
-      "index": 40,
-      "op": "assert.eq_if",
-      "args": [
-        "lhs=spend1.note.commitment.computed",
-        "rhs=spend1.state_proof.commitment",
-        "cond=spend1.is_not_dummy"
-      ],
-      "kind": "glue",
-      "start": 51605,
-      "end": 51607,
-      "constraint_count": 2,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 41,
+      "index": 26,
       "op": "gadget.nullifier",
       "args": [
         "nk=auth.nk",
-        "commitment=spend1.state_proof.commitment",
+        "commitment=spend1.note.commitment.computed",
         "position=spend1.state_proof.position",
         "out=spend1.nullifier.real"
       ],
       "kind": "gadget",
       "gadget_label": "gadget-nullifier",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
-      "start": 51607,
-      "end": 51917,
+      "start": 45500,
+      "end": 45810,
       "constraint_count": 310
     },
     {
-      "index": 42,
+      "index": 27,
       "op": "gadget.state_commitment_path",
       "args": [
-        "commitment=spend1.state_proof.commitment",
+        "commitment=spend1.note.commitment.computed",
         "position=spend1.state_proof.position",
         "path=spend1.state_proof.path",
         "out=spend1.anchor.computed"
@@ -3893,12 +3138,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 51917,
-      "end": 60932,
+      "start": 45810,
+      "end": 54825,
       "constraint_count": 9015
     },
     {
-      "index": 43,
+      "index": 28,
       "op": "gadget.synthetic_dummy_nullifier",
       "args": [
         "seed=spend1.dummy_nullifier_seed",
@@ -3909,12 +3154,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash3-specialized",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
-      "start": 60932,
-      "end": 61237,
+      "start": 54825,
+      "end": 55130,
       "constraint_count": 305
     },
     {
-      "index": 44,
+      "index": 29,
       "op": "dummy.mux",
       "args": [
         "is_dummy=spend1.is_dummy",
@@ -3923,13 +3168,13 @@
         "out=spend1.nullifier"
       ],
       "kind": "glue",
-      "start": 61237,
-      "end": 61240,
+      "start": 55130,
+      "end": 55133,
       "constraint_count": 3,
       "classification_note": "allowed selector/range glue segment"
     },
     {
-      "index": 45,
+      "index": 30,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend1.anchor.computed",
@@ -3937,13 +3182,13 @@
         "cond=spend1.is_not_dummy"
       ],
       "kind": "glue",
-      "start": 61240,
-      "end": 61242,
+      "start": 55133,
+      "end": 55135,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 46,
+      "index": 31,
       "op": "decaf.randomized_verification_key",
       "args": [
         "ak=shared.ak",
@@ -3953,27 +3198,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 61242,
-      "end": 63054,
+      "start": 55135,
+      "end": 56947,
       "constraint_count": 1812
     },
     {
-      "index": 47,
-      "op": "decaf.randomized_verification_key.dummy",
-      "args": [
-        "spend_auth_key=spend1.dummy_spend_auth_key",
-        "randomizer=spend1.auth_randomizer",
-        "out=spend1.rk.dummy"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-rvk",
-      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 63054,
-      "end": 66672,
-      "constraint_count": 3618
-    },
-    {
-      "index": 48,
+      "index": 32,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend1.rk.computed",
@@ -3983,27 +3213,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 66672,
-      "end": 66678,
+      "start": 56947,
+      "end": 56953,
       "constraint_count": 6
     },
     {
-      "index": 49,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=spend1.rk.dummy",
-        "rhs=spend1.rk.claimed",
-        "cond=spend1.is_dummy"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 66678,
-      "end": 66683,
-      "constraint_count": 5
-    },
-    {
-      "index": 50,
+      "index": 33,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend1.note.amount",
@@ -4011,69 +3226,13 @@
         "cond=spend1.is_dummy"
       ],
       "kind": "glue",
-      "start": 66683,
-      "end": 66685,
+      "start": 56953,
+      "end": 56955,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 51,
-      "op": "assert.eq",
-      "args": [
-        "lhs=spend1.note.asset_id",
-        "rhs=shared.asset_id"
-      ],
-      "kind": "glue",
-      "start": 66685,
-      "end": 66686,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 52,
-      "op": "assert.eq",
-      "args": [
-        "lhs=sender.asset_id",
-        "rhs=spend1.note.asset_id"
-      ],
-      "kind": "glue",
-      "start": 66686,
-      "end": 66687,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 53,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=sender.div_gen",
-        "rhs=spend1.note.div_gen",
-        "cond=1"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 66687,
-      "end": 66690,
-      "constraint_count": 3
-    },
-    {
-      "index": 54,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=sender.transmission",
-        "rhs=spend1.note.transmission",
-        "cond=1"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 66690,
-      "end": 66693,
-      "constraint_count": 3
-    },
-    {
-      "index": 55,
+      "index": 34,
       "op": "decaf.compress_to_field",
       "args": [
         "in=spend1.rk.claimed",
@@ -4082,12 +3241,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 66693,
-      "end": 67739,
+      "start": 56955,
+      "end": 58001,
       "constraint_count": 1046
     },
     {
-      "index": 56,
+      "index": 35,
       "op": "spend.collect",
       "args": [
         "spend1",
@@ -4096,38 +3255,25 @@
         "rk_compressed-\u003estatement.nullifiers_and_rks"
       ],
       "kind": "marker",
-      "start": 67739,
-      "end": 67739,
+      "start": 58001,
+      "end": 58001,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 57,
+      "index": 36,
       "op": "output.begin",
       "args": [
         "output0"
       ],
       "kind": "marker",
-      "start": 67739,
-      "end": 67739,
+      "start": 58001,
+      "end": 58001,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 58,
-      "op": "assert.eq",
-      "args": [
-        "lhs=output0.is_receiver",
-        "rhs=1"
-      ],
-      "kind": "glue",
-      "start": 67739,
-      "end": 67740,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 59,
+      "index": 37,
       "op": "gadget.is_zero",
       "args": [
         "in=output0.note.amount",
@@ -4136,146 +3282,77 @@
       "kind": "gadget",
       "gadget_label": "gadget-iszero",
       "bridge_theorem": "Shieldd.GnarkFormal.isZeroExtracted_implies_is_zero",
-      "start": 67740,
-      "end": 67742,
+      "start": 58001,
+      "end": 58003,
       "constraint_count": 2
     },
     {
-      "index": 60,
+      "index": 38,
       "op": "decaf.compress_to_field",
       "args": [
-        "in=output0.note.div_gen",
-        "out=output0.note.div_gen_fq"
+        "in=output0.recipient.div_gen",
+        "out=output0.recipient.div_gen_fq"
       ],
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 67742,
-      "end": 68788,
+      "start": 58003,
+      "end": 59049,
       "constraint_count": 1046
     },
     {
-      "index": 61,
+      "index": 39,
       "op": "decaf.compress_to_field",
       "args": [
-        "in=output0.note.transmission",
-        "out=output0.note.transmission_fq"
+        "in=output0.recipient.transmission",
+        "out=output0.recipient.transmission_fq"
       ],
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 68788,
-      "end": 69834,
+      "start": 59049,
+      "end": 60095,
       "constraint_count": 1046
     },
     {
-      "index": 62,
-      "op": "assert.eq",
-      "args": [
-        "lhs=output0.note.transmission_key_s",
-        "rhs=output0.note.transmission_fq"
-      ],
-      "kind": "glue",
-      "start": 69834,
-      "end": 69835,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 63,
+      "index": 40,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=output0.note.blinding",
         "amount=output0.note.amount",
-        "asset_id=output0.note.asset_id",
-        "div_gen_fq=output0.note.div_gen_fq",
-        "transmission_key_s=output0.note.transmission_fq",
+        "asset_id=shared.asset_id",
+        "div_gen_fq=output0.recipient.div_gen_fq",
+        "transmission_key_s=output0.recipient.transmission_fq",
         "clue_key=output0.note.clue_key",
         "out=output0.note.commitment.computed"
       ],
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash6",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 69835,
-      "end": 70265,
+      "start": 60095,
+      "end": 60525,
       "constraint_count": 430
     },
     {
-      "index": 64,
+      "index": 41,
       "op": "assert.eq",
       "args": [
         "lhs=output0.note.commitment.computed",
         "rhs=output0.note_commitment"
       ],
       "kind": "glue",
-      "start": 70265,
-      "end": 70266,
+      "start": 60525,
+      "end": 60526,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 65,
-      "op": "assert.eq",
-      "args": [
-        "lhs=output0.note.asset_id",
-        "rhs=shared.asset_id"
-      ],
-      "kind": "glue",
-      "start": 70266,
-      "end": 70267,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 66,
-      "op": "assert.eq",
-      "args": [
-        "lhs=output0.recipient.asset_id",
-        "rhs=output0.note.asset_id"
-      ],
-      "kind": "glue",
-      "start": 70267,
-      "end": 70268,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 67,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=output0.recipient.div_gen",
-        "rhs=output0.note.div_gen",
-        "cond=1"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 70268,
-      "end": 70271,
-      "constraint_count": 3
-    },
-    {
-      "index": 68,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=output0.recipient.transmission",
-        "rhs=output0.note.transmission",
-        "cond=1"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 70271,
-      "end": 70274,
-      "constraint_count": 3
-    },
-    {
-      "index": 69,
+      "index": 42,
       "op": "gadget.compliance_leaf",
       "args": [
-        "div_gen_fq=output0.note.div_gen_fq",
-        "transmission_fq=output0.note.transmission_fq",
-        "asset_id=output0.recipient.asset_id",
+        "div_gen_fq=output0.recipient.div_gen_fq",
+        "transmission_fq=output0.recipient.transmission_fq",
+        "asset_id=shared.asset_id",
         "slot_id=output0.recipient.slot_id",
         "slot_derivation=output0.recipient.slot_derivation",
         "d=output0.recipient.d",
@@ -4284,12 +3361,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash5",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
-      "start": 70274,
-      "end": 70704,
+      "start": 60526,
+      "end": 60956,
       "constraint_count": 430
     },
     {
-      "index": 70,
+      "index": 43,
       "op": "gadget.compliance_path",
       "args": [
         "leaf=output0.recipient.leaf_commitment",
@@ -4300,12 +3377,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 70704,
-      "end": 76593,
-      "constraint_count": 5889
+      "start": 60956,
+      "end": 66813,
+      "constraint_count": 5857
     },
     {
-      "index": 71,
+      "index": 44,
       "op": "assert.eq_if",
       "args": [
         "lhs=output0.recipient.compliance_root",
@@ -4313,26 +3390,26 @@
         "cond=is_regulated"
       ],
       "kind": "glue",
-      "start": 76593,
-      "end": 76595,
+      "start": 66813,
+      "end": 66815,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 72,
+      "index": 45,
       "op": "assert.eq",
       "args": [
         "lhs=output0.is_dummy",
         "rhs=0"
       ],
       "kind": "glue",
-      "start": 76595,
-      "end": 76596,
+      "start": 66815,
+      "end": 66816,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 73,
+      "index": 46,
       "op": "decaf.ack",
       "args": [
         "ring_pk=effective.ring_pk",
@@ -4342,12 +3419,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-ack-two-step",
       "bridge_theorem": "Shieldd.GnarkFormal.AckBridge.ack_sound",
-      "start": 76596,
-      "end": 80206,
+      "start": 66816,
+      "end": 70426,
       "constraint_count": 3610
     },
     {
-      "index": 74,
+      "index": 47,
       "op": "output.collect",
       "args": [
         "output0",
@@ -4356,286 +3433,57 @@
         "ack-\u003ereceiver_ack"
       ],
       "kind": "marker",
-      "start": 80206,
-      "end": 80206,
+      "start": 70426,
+      "end": 70426,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 75,
+      "index": 48,
       "op": "output.begin",
       "args": [
         "output1"
       ],
       "kind": "marker",
-      "start": 80206,
-      "end": 80206,
+      "start": 70426,
+      "end": 70426,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 76,
-      "op": "assert.eq",
-      "args": [
-        "lhs=output1.is_receiver",
-        "rhs=0"
-      ],
-      "kind": "glue",
-      "start": 80206,
-      "end": 80207,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 77,
-      "op": "gadget.is_zero",
-      "args": [
-        "in=output1.note.amount",
-        "out=output1.is_dummy"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-iszero",
-      "bridge_theorem": "Shieldd.GnarkFormal.isZeroExtracted_implies_is_zero",
-      "start": 80207,
-      "end": 80209,
-      "constraint_count": 2
-    },
-    {
-      "index": 78,
-      "op": "decaf.compress_to_field",
-      "args": [
-        "in=output1.note.div_gen",
-        "out=output1.note.div_gen_fq"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-compress-to-field",
-      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 80209,
-      "end": 81255,
-      "constraint_count": 1046
-    },
-    {
-      "index": 79,
-      "op": "decaf.compress_to_field",
-      "args": [
-        "in=output1.note.transmission",
-        "out=output1.note.transmission_fq"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-compress-to-field",
-      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 81255,
-      "end": 82301,
-      "constraint_count": 1046
-    },
-    {
-      "index": 80,
-      "op": "assert.eq",
-      "args": [
-        "lhs=output1.note.transmission_key_s",
-        "rhs=output1.note.transmission_fq"
-      ],
-      "kind": "glue",
-      "start": 82301,
-      "end": 82302,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 81,
+      "index": 49,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=output1.note.blinding",
         "amount=output1.note.amount",
-        "asset_id=output1.note.asset_id",
-        "div_gen_fq=output1.note.div_gen_fq",
-        "transmission_key_s=output1.note.transmission_fq",
+        "asset_id=shared.asset_id",
+        "div_gen_fq=sender.div_gen_fq",
+        "transmission_key_s=sender.transmission_fq",
         "clue_key=output1.note.clue_key",
         "out=output1.note.commitment.computed"
       ],
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash6",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 82302,
-      "end": 82732,
+      "start": 70426,
+      "end": 70856,
       "constraint_count": 430
     },
     {
-      "index": 82,
+      "index": 50,
       "op": "assert.eq",
       "args": [
         "lhs=output1.note.commitment.computed",
         "rhs=output1.note_commitment"
       ],
       "kind": "glue",
-      "start": 82732,
-      "end": 82733,
+      "start": 70856,
+      "end": 70857,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 83,
-      "op": "assert.eq",
-      "args": [
-        "lhs=output1.note.asset_id",
-        "rhs=shared.asset_id"
-      ],
-      "kind": "glue",
-      "start": 82733,
-      "end": 82734,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 84,
-      "op": "assert.eq",
-      "args": [
-        "lhs=output1.recipient.asset_id",
-        "rhs=output1.note.asset_id"
-      ],
-      "kind": "glue",
-      "start": 82734,
-      "end": 82735,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 85,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=output1.recipient.div_gen",
-        "rhs=output1.note.div_gen",
-        "cond=1"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 82735,
-      "end": 82738,
-      "constraint_count": 3
-    },
-    {
-      "index": 86,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=output1.recipient.transmission",
-        "rhs=output1.note.transmission",
-        "cond=1"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 82738,
-      "end": 82741,
-      "constraint_count": 3
-    },
-    {
-      "index": 87,
-      "op": "gadget.compliance_leaf",
-      "args": [
-        "div_gen_fq=output1.note.div_gen_fq",
-        "transmission_fq=output1.note.transmission_fq",
-        "asset_id=output1.recipient.asset_id",
-        "slot_id=output1.recipient.slot_id",
-        "slot_derivation=output1.recipient.slot_derivation",
-        "d=output1.recipient.d",
-        "out=output1.recipient.leaf_commitment"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash5",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
-      "start": 82741,
-      "end": 83171,
-      "constraint_count": 430
-    },
-    {
-      "index": 88,
-      "op": "gadget.compliance_path",
-      "args": [
-        "leaf=output1.recipient.leaf_commitment",
-        "path=output1.recipient.path",
-        "position=output1.recipient.position",
-        "out=output1.recipient.compliance_root"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-quad-path-24",
-      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 83171,
-      "end": 89060,
-      "constraint_count": 5889
-    },
-    {
-      "index": 89,
-      "op": "assert.eq_if",
-      "args": [
-        "lhs=output1.recipient.compliance_root",
-        "rhs=compliance_anchor",
-        "cond=is_regulated"
-      ],
-      "kind": "glue",
-      "start": 89060,
-      "end": 89062,
-      "constraint_count": 2,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 90,
-      "op": "assert.eq",
-      "args": [
-        "lhs=output1.recipient.asset_id",
-        "rhs=sender.asset_id"
-      ],
-      "kind": "glue",
-      "start": 89062,
-      "end": 89063,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 91,
-      "op": "assert.eq",
-      "args": [
-        "lhs=output1.recipient.d",
-        "rhs=sender.d"
-      ],
-      "kind": "glue",
-      "start": 89063,
-      "end": 89064,
-      "constraint_count": 1,
-      "classification_note": "allowed assertion/copy constraint segment"
-    },
-    {
-      "index": 92,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=output1.recipient.div_gen",
-        "rhs=sender.div_gen",
-        "cond=1"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 89064,
-      "end": 89067,
-      "constraint_count": 3
-    },
-    {
-      "index": 93,
-      "op": "decaf.assert_equivalent_if",
-      "args": [
-        "lhs=output1.recipient.transmission",
-        "rhs=sender.transmission",
-        "cond=1"
-      ],
-      "kind": "gadget",
-      "gadget_label": "gadget-decaf-assert-equivalent",
-      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 89067,
-      "end": 89070,
-      "constraint_count": 3
-    },
-    {
-      "index": 94,
+      "index": 51,
       "op": "output.collect",
       "args": [
         "output1",
@@ -4643,25 +3491,25 @@
         "commitment-\u003estatement.output_commitments"
       ],
       "kind": "marker",
-      "start": 89070,
-      "end": 89070,
+      "start": 70857,
+      "end": 70857,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 95,
+      "index": 52,
       "op": "compliance.begin",
       "args": [
         "tiers=sender_core,sender_ext,output_core,output_ext"
       ],
       "kind": "marker",
-      "start": 89070,
-      "end": 89070,
+      "start": 70857,
+      "end": 70857,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 96,
+      "index": 53,
       "op": "threshold.flag",
       "args": [
         "amount=receiver.amount",
@@ -4669,13 +3517,13 @@
         "out=is_flagged"
       ],
       "kind": "glue",
-      "start": 89070,
-      "end": 89965,
+      "start": 70857,
+      "end": 71752,
       "constraint_count": 895,
       "classification_note": "allowed selector/range glue segment"
     },
     {
-      "index": 97,
+      "index": 54,
       "op": "decaf.compress_to_field",
       "args": [
         "in=compliance.sender_core.epk",
@@ -4684,12 +3532,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 89965,
-      "end": 91011,
+      "start": 71752,
+      "end": 72798,
       "constraint_count": 1046
     },
     {
-      "index": 98,
+      "index": 55,
       "op": "decaf.compress_to_field",
       "args": [
         "in=compliance.sender_ext.epk",
@@ -4698,12 +3546,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 91011,
-      "end": 92057,
+      "start": 72798,
+      "end": 73844,
       "constraint_count": 1046
     },
     {
-      "index": 99,
+      "index": 56,
       "op": "decaf.compress_to_field",
       "args": [
         "in=compliance.output_core.epk",
@@ -4712,12 +3560,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 92057,
-      "end": 93103,
+      "start": 73844,
+      "end": 74890,
       "constraint_count": 1046
     },
     {
-      "index": 100,
+      "index": 57,
       "op": "decaf.compress_to_field",
       "args": [
         "in=compliance.output_ext.epk",
@@ -4726,12 +3574,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 93103,
-      "end": 94149,
+      "start": 74890,
+      "end": 75936,
       "constraint_count": 1046
     },
     {
-      "index": 101,
+      "index": 58,
       "op": "gadget.transfer_salt",
       "args": [
         "label=salt0",
@@ -4741,12 +3589,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon2",
       "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
-      "start": 94149,
-      "end": 94414,
+      "start": 75936,
+      "end": 76201,
       "constraint_count": 265
     },
     {
-      "index": 102,
+      "index": 59,
       "op": "gadget.transfer_salt",
       "args": [
         "label=salt1",
@@ -4756,12 +3604,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon2",
       "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
-      "start": 94414,
-      "end": 94679,
+      "start": 76201,
+      "end": 76466,
       "constraint_count": 265
     },
     {
-      "index": 103,
+      "index": 60,
       "op": "gadget.transfer_salt",
       "args": [
         "label=salt2",
@@ -4771,12 +3619,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon2",
       "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
-      "start": 94679,
-      "end": 94944,
+      "start": 76466,
+      "end": 76731,
       "constraint_count": 265
     },
     {
-      "index": 104,
+      "index": 61,
       "op": "gadget.transfer_salt",
       "args": [
         "label=salt3",
@@ -4786,12 +3634,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon2",
       "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
-      "start": 94944,
-      "end": 95209,
+      "start": 76731,
+      "end": 76996,
       "constraint_count": 265
     },
     {
-      "index": 105,
+      "index": 62,
       "op": "gadget.transfer_salt",
       "args": [
         "label=salt4",
@@ -4801,12 +3649,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon2",
       "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
-      "start": 95209,
-      "end": 95474,
+      "start": 76996,
+      "end": 77261,
       "constraint_count": 265
     },
     {
-      "index": 106,
+      "index": 63,
       "op": "decaf.shared_secret",
       "args": [
         "tier=sender_core",
@@ -4820,12 +3668,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-ack-two-step",
       "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
-      "start": 95474,
-      "end": 104508,
+      "start": 77261,
+      "end": 86295,
       "constraint_count": 9034
     },
     {
-      "index": 107,
+      "index": 64,
       "op": "decaf.shared_secret",
       "args": [
         "tier=sender_ext",
@@ -4839,12 +3687,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-ack-two-step",
       "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
-      "start": 104508,
-      "end": 113541,
+      "start": 86295,
+      "end": 95328,
       "constraint_count": 9033
     },
     {
-      "index": 108,
+      "index": 65,
       "op": "decaf.shared_secret",
       "args": [
         "tier=output_core",
@@ -4858,12 +3706,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-ack-two-step",
       "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
-      "start": 113541,
-      "end": 122574,
+      "start": 95328,
+      "end": 104361,
       "constraint_count": 9033
     },
     {
-      "index": 109,
+      "index": 66,
       "op": "decaf.shared_secret",
       "args": [
         "tier=output_ext",
@@ -4877,12 +3725,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-ack-two-step",
       "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
-      "start": 122574,
-      "end": 131607,
+      "start": 104361,
+      "end": 113394,
       "constraint_count": 9033
     },
     {
-      "index": 110,
+      "index": 67,
       "op": "gadget.poseidon_encryption.detection",
       "args": [
         "regulated=is_regulated",
@@ -4898,12 +3746,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash7",
       "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_sound",
-      "start": 131607,
-      "end": 133991,
+      "start": 113394,
+      "end": 115778,
       "constraint_count": 2384
     },
     {
-      "index": 111,
+      "index": 68,
       "op": "gadget.poseidon_encryption.amount",
       "args": [
         "tier=sender_core",
@@ -4916,12 +3764,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon2",
       "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_sound",
-      "start": 133991,
-      "end": 135304,
+      "start": 115778,
+      "end": 117091,
       "constraint_count": 1313
     },
     {
-      "index": 112,
+      "index": 69,
       "op": "gadget.poseidon_encryption.address",
       "args": [
         "tier=sender_ext",
@@ -4935,12 +3783,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash4",
       "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_sound",
-      "start": 135304,
-      "end": 138163,
+      "start": 117091,
+      "end": 119950,
       "constraint_count": 2859
     },
     {
-      "index": 113,
+      "index": 70,
       "op": "gadget.poseidon_encryption.amount",
       "args": [
         "tier=output_core",
@@ -4953,12 +3801,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon2",
       "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_sound",
-      "start": 138163,
-      "end": 139476,
+      "start": 119950,
+      "end": 121263,
       "constraint_count": 1313
     },
     {
-      "index": 114,
+      "index": 71,
       "op": "gadget.poseidon_encryption.address",
       "args": [
         "tier=output_ext",
@@ -4972,12 +3820,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash4",
       "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_sound",
-      "start": 139476,
-      "end": 142335,
+      "start": 121263,
+      "end": 124122,
       "constraint_count": 2859
     },
     {
-      "index": 115,
+      "index": 72,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=compliance.sender_core.epk",
@@ -4986,12 +3834,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 142335,
-      "end": 142338,
+      "start": 124122,
+      "end": 124125,
       "constraint_count": 3
     },
     {
-      "index": 116,
+      "index": 73,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=compliance.sender_ext.epk",
@@ -5000,12 +3848,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 142338,
-      "end": 142341,
+      "start": 124125,
+      "end": 124128,
       "constraint_count": 3
     },
     {
-      "index": 117,
+      "index": 74,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=compliance.output_core.epk",
@@ -5014,12 +3862,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 142341,
-      "end": 142344,
+      "start": 124128,
+      "end": 124131,
       "constraint_count": 3
     },
     {
-      "index": 118,
+      "index": 75,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=compliance.output_ext.epk",
@@ -5028,12 +3876,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 142344,
-      "end": 142347,
+      "start": 124131,
+      "end": 124134,
       "constraint_count": 3
     },
     {
-      "index": 119,
+      "index": 76,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=sender.ack",
@@ -5042,12 +3890,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 142347,
-      "end": 142350,
+      "start": 124134,
+      "end": 124137,
       "constraint_count": 3
     },
     {
-      "index": 120,
+      "index": 77,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=sender.ack",
@@ -5056,12 +3904,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 142350,
-      "end": 142353,
+      "start": 124137,
+      "end": 124140,
       "constraint_count": 3
     },
     {
-      "index": 121,
+      "index": 78,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=receiver.ack",
@@ -5070,12 +3918,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 142353,
-      "end": 142356,
+      "start": 124140,
+      "end": 124143,
       "constraint_count": 3
     },
     {
-      "index": 122,
+      "index": 79,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=receiver.ack",
@@ -5084,12 +3932,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 142356,
-      "end": 142801,
+      "start": 124143,
+      "end": 124588,
       "constraint_count": 445
     },
     {
-      "index": 123,
+      "index": 80,
       "op": "gadget.metadata_hash",
       "args": [
         "tier=sender_core",
@@ -5098,12 +3946,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash6",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 142801,
-      "end": 143243,
+      "start": 124588,
+      "end": 125030,
       "constraint_count": 442
     },
     {
-      "index": 124,
+      "index": 81,
       "op": "gadget.metadata_hash",
       "args": [
         "tier=sender_ext",
@@ -5112,12 +3960,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash6",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 143243,
-      "end": 143685,
+      "start": 125030,
+      "end": 125472,
       "constraint_count": 442
     },
     {
-      "index": 125,
+      "index": 82,
       "op": "gadget.metadata_hash",
       "args": [
         "tier=output_core",
@@ -5126,12 +3974,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash6",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 143685,
-      "end": 144127,
+      "start": 125472,
+      "end": 125914,
       "constraint_count": 442
     },
     {
-      "index": 126,
+      "index": 83,
       "op": "gadget.metadata_hash",
       "args": [
         "tier=output_ext",
@@ -5140,16 +3988,15 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash6",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 144127,
-      "end": 144127,
+      "start": 125914,
+      "end": 125914,
       "constraint_count": 0
     },
     {
-      "index": 127,
+      "index": 84,
       "op": "gadget.dleq",
       "args": [
         "tier=sender_core",
-        "r=compliance.sender_r_core",
         "derived_pk=compliance.sender_core.proof.derived_pk",
         "shared_point=compliance.sender_core.proof.shared_point",
         "enc_cmt=compliance.sender_core.proof.enc_cmt",
@@ -5160,16 +4007,15 @@
       "kind": "gadget",
       "gadget_label": "gadget-dleq",
       "bridge_theorem": "Shieldd.GnarkFormal.DleqBridge.dleq_sound",
-      "start": 144127,
-      "end": 161961,
+      "start": 125914,
+      "end": 143748,
       "constraint_count": 17834
     },
     {
-      "index": 128,
+      "index": 85,
       "op": "gadget.dleq",
       "args": [
         "tier=sender_ext",
-        "r=compliance.sender_r_ext",
         "derived_pk=compliance.sender_ext.proof.derived_pk",
         "shared_point=compliance.sender_ext.proof.shared_point",
         "enc_cmt=compliance.sender_ext.proof.enc_cmt",
@@ -5180,16 +4026,15 @@
       "kind": "gadget",
       "gadget_label": "gadget-dleq",
       "bridge_theorem": "Shieldd.GnarkFormal.DleqBridge.dleq_sound",
-      "start": 161961,
-      "end": 179795,
+      "start": 143748,
+      "end": 161582,
       "constraint_count": 17834
     },
     {
-      "index": 129,
+      "index": 86,
       "op": "gadget.dleq",
       "args": [
         "tier=output_core",
-        "r=compliance.output_r_core",
         "derived_pk=compliance.output_core.proof.derived_pk",
         "shared_point=compliance.output_core.proof.shared_point",
         "enc_cmt=compliance.output_core.proof.enc_cmt",
@@ -5200,16 +4045,15 @@
       "kind": "gadget",
       "gadget_label": "gadget-dleq",
       "bridge_theorem": "Shieldd.GnarkFormal.DleqBridge.dleq_sound",
-      "start": 179795,
-      "end": 197629,
+      "start": 161582,
+      "end": 179416,
       "constraint_count": 17834
     },
     {
-      "index": 130,
+      "index": 87,
       "op": "gadget.dleq",
       "args": [
         "tier=output_ext",
-        "r=compliance.output_r_ext",
         "derived_pk=compliance.output_ext.proof.derived_pk",
         "shared_point=compliance.output_ext.proof.shared_point",
         "enc_cmt=compliance.output_ext.proof.enc_cmt",
@@ -5220,12 +4064,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-dleq",
       "bridge_theorem": "Shieldd.GnarkFormal.DleqBridge.dleq_sound",
-      "start": 197629,
-      "end": 215463,
+      "start": 179416,
+      "end": 197250,
       "constraint_count": 17834
     },
     {
-      "index": 131,
+      "index": 88,
       "op": "compliance.collect",
       "args": [
         "detection_ciphertext-\u003estatement",
@@ -5233,13 +4077,13 @@
         "dleq_proofs-\u003estatement"
       ],
       "kind": "marker",
-      "start": 215463,
-      "end": 215463,
+      "start": 197250,
+      "end": 197250,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 132,
+      "index": 89,
       "op": "decaf.net_balance_commitment",
       "args": [
         "inputs=input_amounts",
@@ -5251,12 +4095,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-net-balance-commitment2",
       "bridge_theorem": "Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound",
-      "start": 215463,
-      "end": 225217,
+      "start": 197250,
+      "end": 207004,
       "constraint_count": 9754
     },
     {
-      "index": 133,
+      "index": 90,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=balance_commitment.computed",
@@ -5265,12 +4109,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 225217,
-      "end": 225220,
+      "start": 207004,
+      "end": 207007,
       "constraint_count": 3
     },
     {
-      "index": 134,
+      "index": 91,
       "op": "decaf.compress_to_field",
       "args": [
         "in=balance_commitment.computed",
@@ -5279,25 +4123,25 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 225220,
-      "end": 226266,
+      "start": 207007,
+      "end": 208053,
       "constraint_count": 1046
     },
     {
-      "index": 135,
+      "index": 92,
       "op": "statement.assemble",
       "args": [
         "shape=transfer2x2",
         "fields=transfer_statement_fields"
       ],
       "kind": "adapter",
-      "start": 226266,
-      "end": 226266,
+      "start": 208053,
+      "end": 208053,
       "constraint_count": 0,
       "classification_note": "statement vector assembly; expected to carry no constraints"
     },
     {
-      "index": 136,
+      "index": 93,
       "op": "decaf.compress_to_field",
       "args": [
         "in=sender_core.proof.derived_pk",
@@ -5306,12 +4150,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 226266,
-      "end": 227312,
+      "start": 208053,
+      "end": 209099,
       "constraint_count": 1046
     },
     {
-      "index": 137,
+      "index": 94,
       "op": "decaf.compress_to_field",
       "args": [
         "in=sender_core.proof.enc_cmt",
@@ -5320,12 +4164,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 227312,
-      "end": 228358,
+      "start": 209099,
+      "end": 210145,
       "constraint_count": 1046
     },
     {
-      "index": 138,
+      "index": 95,
       "op": "decaf.compress_to_field",
       "args": [
         "in=sender_core.proof.shared_point",
@@ -5334,12 +4178,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 228358,
-      "end": 229404,
+      "start": 210145,
+      "end": 211191,
       "constraint_count": 1046
     },
     {
-      "index": 139,
+      "index": 96,
       "op": "decaf.compress_to_field",
       "args": [
         "in=sender_ext.proof.derived_pk",
@@ -5348,12 +4192,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 229404,
-      "end": 230450,
+      "start": 211191,
+      "end": 212237,
       "constraint_count": 1046
     },
     {
-      "index": 140,
+      "index": 97,
       "op": "decaf.compress_to_field",
       "args": [
         "in=sender_ext.proof.enc_cmt",
@@ -5362,12 +4206,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 230450,
-      "end": 231496,
+      "start": 212237,
+      "end": 213283,
       "constraint_count": 1046
     },
     {
-      "index": 141,
+      "index": 98,
       "op": "decaf.compress_to_field",
       "args": [
         "in=sender_ext.proof.shared_point",
@@ -5376,12 +4220,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 231496,
-      "end": 232542,
+      "start": 213283,
+      "end": 214329,
       "constraint_count": 1046
     },
     {
-      "index": 142,
+      "index": 99,
       "op": "decaf.compress_to_field",
       "args": [
         "in=output_core.proof.derived_pk",
@@ -5390,12 +4234,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 232542,
-      "end": 233588,
+      "start": 214329,
+      "end": 215375,
       "constraint_count": 1046
     },
     {
-      "index": 143,
+      "index": 100,
       "op": "decaf.compress_to_field",
       "args": [
         "in=output_core.proof.enc_cmt",
@@ -5404,12 +4248,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 233588,
-      "end": 234634,
+      "start": 215375,
+      "end": 216421,
       "constraint_count": 1046
     },
     {
-      "index": 144,
+      "index": 101,
       "op": "decaf.compress_to_field",
       "args": [
         "in=output_core.proof.shared_point",
@@ -5418,12 +4262,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 234634,
-      "end": 235680,
+      "start": 216421,
+      "end": 217467,
       "constraint_count": 1046
     },
     {
-      "index": 145,
+      "index": 102,
       "op": "decaf.compress_to_field",
       "args": [
         "in=output_ext.proof.derived_pk",
@@ -5432,12 +4276,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 235680,
-      "end": 236726,
+      "start": 217467,
+      "end": 218513,
       "constraint_count": 1046
     },
     {
-      "index": 146,
+      "index": 103,
       "op": "decaf.compress_to_field",
       "args": [
         "in=output_ext.proof.enc_cmt",
@@ -5446,12 +4290,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 236726,
-      "end": 237772,
+      "start": 218513,
+      "end": 219559,
       "constraint_count": 1046
     },
     {
-      "index": 147,
+      "index": 104,
       "op": "decaf.compress_to_field",
       "args": [
         "in=output_ext.proof.shared_point",
@@ -5460,12 +4304,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 237772,
-      "end": 238818,
+      "start": 219559,
+      "end": 220605,
       "constraint_count": 1046
     },
     {
-      "index": 148,
+      "index": 105,
       "op": "statement.hash",
       "args": [
         "family=transfer",
@@ -5475,36 +4319,36 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash7",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound",
-      "start": 238818,
-      "end": 245388,
+      "start": 220605,
+      "end": 227175,
       "constraint_count": 6570
     },
     {
-      "index": 149,
+      "index": 106,
       "op": "assert.eq",
       "args": [
         "lhs=statement_hash",
         "rhs=claimed_statement_hash"
       ],
       "kind": "glue",
-      "start": 245388,
-      "end": 245389,
+      "start": 227175,
+      "end": 227176,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     }
   ],
   "breakdown": {
-    "total_constraints": 245389,
+    "total_constraints": 227176,
     "constraints_by_kind": {
       "adapter": 0,
-      "gadget": 244443,
-      "glue": 946,
+      "gadget": 226258,
+      "glue": 918,
       "marker": 0
     },
     "segments_by_kind": {
       "adapter": 1,
-      "gadget": 101,
-      "glue": 36,
+      "gadget": 79,
+      "glue": 15,
       "marker": 11
     },
     "unclassified_constraints": 0,

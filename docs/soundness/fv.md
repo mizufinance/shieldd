@@ -74,7 +74,8 @@ The CI boundary enforces:
 - removed per-note address representations and dummy authorization-key fields
   are forbidden by the role manifest and structural regression tests.
 
-The V2 witness contains one private shared asset ID, diversified generator, and
+The version-3 NoteReshape witness contains one private shared asset ID,
+diversified generator, and
 clue key. The circuit derives one DTK and one canonical transmission encoding
 from that context and uses them in every input and output commitment. There is
 no ABI location for a per-note affine transmission, encoded transmission, clue

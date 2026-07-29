@@ -3,7 +3,6 @@ tamarin: 1.12.0
 maude: 3.5.1
 model: crates/core/component/compliance/formal/compliance-active.spthy
 model_sha256: 4ddebb8bd3c4c6f2aa4008432df81213e2765550ac5dd206089049a2205bf3a0
-tamarin_output_sha256: f07b7f60f549494e39c34f153da21139ebc652d549e8881ef46b10b40b2ab44a
 LEMMA DLEQ_BINDING verified
 LEMMA REPLAY_RESISTANCE verified
 LEMMA NO_KEY_CONFUSION verified

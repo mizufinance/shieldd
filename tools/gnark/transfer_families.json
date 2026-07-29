@@ -1,4 +1,5 @@
 {
+  "schema": "shieldd.transfer_families.v1",
   "families": [
     {
       "label": "transfer",

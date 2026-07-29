@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -82,17 +83,25 @@ func usage() {
 // important: export-r1cs followed by export-manifest would compile the same
 // expensive family twice.
 type fvProofReceipt struct {
-	SchemaVersion              uint32 `json:"schema_version"`
-	Circuit                    string `json:"circuit"`
-	SR1CSSHA256Hex             string `json:"sr1cs_sha256_hex"`
-	ProvingKeySHA256Hex        string `json:"proving_key_sha256_hex"`
-	VerifyingKeySHA256Hex      string `json:"verifying_key_sha256_hex"`
-	ProvedAndVerifiedInProcess bool   `json:"proved_and_verified_in_process"`
+	SchemaVersion               uint32 `json:"schema_version"`
+	Circuit                     string `json:"circuit"`
+	WitnessFormatVersion        uint32 `json:"witness_format_version"`
+	WitnessSHA256Hex            string `json:"witness_sha256_hex"`
+	SR1CSSHA256Hex              string `json:"sr1cs_sha256_hex"`
+	ConstraintManifestSHA256Hex string `json:"constraint_manifest_sha256_hex"`
+	CircuitMetadataSHA256Hex    string `json:"circuit_metadata_sha256_hex"`
+	ProvingKeySHA256Hex         string `json:"proving_key_sha256_hex"`
+	VerifyingKeyBinarySHA256Hex string `json:"verifying_key_binary_sha256_hex"`
+	VerifyingKeyJSONSHA256Hex   string `json:"verifying_key_json_sha256_hex"`
+	NbConstraints               int    `json:"nb_constraints"`
+	NbPublicVariables           int    `json:"nb_public_variables"`
+	NbSecretVariables           int    `json:"nb_secret_variables"`
+	ProvedAndVerifiedInProcess  bool   `json:"proved_and_verified_in_process"`
 }
 
 func runExportFV(args []string) error {
 	fs := flag.NewFlagSet("export-fv", flag.ContinueOnError)
-	circuit := fs.String("circuit", "", "registered NoteReshape family label")
+	circuit := fs.String("circuit", "", "registered circuit family label")
 	sr1csPath := fs.String("sr1cs-out", "", "output .sr1cs path")
 	manifestPath := fs.String("manifest-out", "", "output semantic manifest path")
 	prove := fs.Bool("prove", false, "prove and verify with deployed keys in the same compiled process")
@@ -105,11 +114,7 @@ func runExportFV(args []string) error {
 	if *circuit == "" || *sr1csPath == "" || *manifestPath == "" {
 		return fmt.Errorf("--circuit, --sr1cs-out, and --manifest-out are required")
 	}
-	family, ok := generated.NoteReshapeFamilyByLabel(*circuit)
-	if !ok {
-		return fmt.Errorf("export-fv only supports registered NoteReshape families: %q", *circuit)
-	}
-	ccs, manifest, err := circuits.CompileNoteReshapeForFV(family.Label, family.NIn, family.NOut)
+	ccs, manifest, err := compileCircuitForFV(*circuit)
 	if err != nil {
 		return err
 	}
@@ -143,6 +148,10 @@ func runExportFV(args []string) error {
 		if err != nil {
 			return err
 		}
+		witnessVersion, err := witnessFormatVersion(payload)
+		if err != nil {
+			return err
+		}
 		fullWitness, err := frontend.NewWitness(assignment, primitives.ScalarField())
 		if err != nil {
 			return fmt.Errorf("full witness: %w", err)
@@ -173,17 +182,55 @@ func runExportFV(args []string) error {
 		if err != nil {
 			return err
 		}
-		vkHash, err := sha256FileHex(filepath.Join(*artifactDir, "verifying_key.bin"))
+		vkBinaryHash, err := sha256FileHex(filepath.Join(*artifactDir, "verifying_key.bin"))
 		if err != nil {
 			return err
 		}
+		vkJSONHash, err := sha256FileHex(filepath.Join(*artifactDir, "verifying_key.json"))
+		if err != nil {
+			return err
+		}
+		witnessHash := sha256.Sum256(payload)
+		manifestHash, err := sha256FileHex(*manifestPath)
+		if err != nil {
+			return err
+		}
+		metadataPath := filepath.Join(*artifactDir, "circuit_metadata.json")
+		metadata, err := artifacts.LoadCircuitMetadata(*artifactDir)
+		if err != nil {
+			return fmt.Errorf("load circuit metadata: %w", err)
+		}
+		if err := artifacts.ValidateCircuitMetadataForCircuit(metadata, *circuit, ccs); err != nil {
+			return err
+		}
+		metadataHash, err := sha256FileHex(metadataPath)
+		if err != nil {
+			return err
+		}
+		if metadata.ProvingKeySHA256Hex != pkHash {
+			return fmt.Errorf("circuit metadata does not bind proving_key.bin")
+		}
+		if metadata.VerifyingKeyBinarySHA256Hex != vkBinaryHash {
+			return fmt.Errorf("circuit metadata does not bind verifying_key.bin")
+		}
+		if metadata.VerifyingKeyJSONSHA256Hex != vkJSONHash {
+			return fmt.Errorf("circuit metadata does not bind verifying_key.json")
+		}
 		receipt := fvProofReceipt{
-			SchemaVersion:              1,
-			Circuit:                    *circuit,
-			SR1CSSHA256Hex:             fmt.Sprintf("%x", sum[:]),
-			ProvingKeySHA256Hex:        pkHash,
-			VerifyingKeySHA256Hex:      vkHash,
-			ProvedAndVerifiedInProcess: true,
+			SchemaVersion:               3,
+			Circuit:                     *circuit,
+			WitnessFormatVersion:        witnessVersion,
+			WitnessSHA256Hex:            fmt.Sprintf("%x", witnessHash[:]),
+			SR1CSSHA256Hex:              fmt.Sprintf("%x", sum[:]),
+			ConstraintManifestSHA256Hex: manifestHash,
+			CircuitMetadataSHA256Hex:    metadataHash,
+			ProvingKeySHA256Hex:         pkHash,
+			VerifyingKeyBinarySHA256Hex: vkBinaryHash,
+			VerifyingKeyJSONSHA256Hex:   vkJSONHash,
+			NbConstraints:               manifest.NbConstraints,
+			NbPublicVariables:           manifest.NbPublic,
+			NbSecretVariables:           manifest.NbSecret,
+			ProvedAndVerifiedInProcess:  true,
 		}
 		if err := writeJSONFile(*proofReceiptPath, receipt); err != nil {
 			return fmt.Errorf("write proof receipt: %w", err)
@@ -194,6 +241,30 @@ func runExportFV(args []string) error {
 	}
 	fmt.Fprintf(os.Stderr, "wrote FV artifacts for %s (constraints %d)\n", *circuit, manifest.NbConstraints)
 	return nil
+}
+
+func compileCircuitForFV(circuit string) (constraint.ConstraintSystem, *circuits.ConstraintManifest, error) {
+	if family, ok := generated.NoteReshapeFamilyByLabel(circuit); ok {
+		return circuits.CompileNoteReshapeForFV(family.Label, family.NIn, family.NOut)
+	}
+	if _, ok := generated.TransferFamilyByLabel(circuit); ok {
+		return circuits.CompileTransferForFV()
+	}
+	if family, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(circuit); ok {
+		return circuits.CompileShieldedIcs20WithdrawalForFV(family.Label, family.NIn)
+	}
+	return nil, nil, fmt.Errorf("unsupported FV circuit %q", circuit)
+}
+
+func witnessFormatVersion(payload []byte) (uint32, error) {
+	const witnessHeaderLength = 8
+	if len(payload) < witnessHeaderLength {
+		return 0, fmt.Errorf(
+			"witness payload is too short for magic and version: got %d bytes",
+			len(payload),
+		)
+	}
+	return binary.LittleEndian.Uint32(payload[4:witnessHeaderLength]), nil
 }
 
 func sha256FileHex(path string) (string, error) {
@@ -565,10 +636,9 @@ func runSetup(args []string) error {
 	}
 
 	metadata := artifacts.CircuitMetadataJSON{
+		Schema:           artifacts.CircuitMetadataSchema,
 		Curve:            "bls12-377",
 		Circuit:          *circuit,
-		CompileMS:        compileMS,
-		SetupMS:          setupMS,
 		ProvingKeySize:   pkSize,
 		VerifyingKeySize: vkSize,
 	}
@@ -577,7 +647,11 @@ func runSetup(args []string) error {
 	if err != nil {
 		return fmt.Errorf("hash proving key: %w", err)
 	}
-	metadata.VerifyingKeySHA256Hex, err = artifacts.SHA256HexFile(vkJSONPath)
+	metadata.VerifyingKeyBinarySHA256Hex, err = artifacts.SHA256HexFile(vkPath)
+	if err != nil {
+		return fmt.Errorf("hash verifying key binary: %w", err)
+	}
+	metadata.VerifyingKeyJSONSHA256Hex, err = artifacts.SHA256HexFile(vkJSONPath)
 	if err != nil {
 		return fmt.Errorf("hash verifying key json: %w", err)
 	}
@@ -701,7 +775,7 @@ func runCheckVKJSON(args []string) error {
 	if err != nil {
 		return err
 	}
-	want, err := json.Marshal(artifacts.EncodeVerifyingKeyJSON(vk))
+	want, err := artifacts.EncodeCanonicalJSON(artifacts.EncodeVerifyingKeyJSON(vk))
 	if err != nil {
 		return err
 	}
@@ -709,11 +783,11 @@ func runCheckVKJSON(args []string) error {
 	if err != nil {
 		return err
 	}
-	var parsed artifacts.VerifyingKeyJSON
-	if err := json.Unmarshal(raw, &parsed); err != nil {
+	parsed, err := artifacts.DecodeCanonicalVerifyingKeyJSON(raw)
+	if err != nil {
 		return fmt.Errorf("parse verifying_key.json: %w", err)
 	}
-	got, err := json.Marshal(parsed)
+	got, err := artifacts.EncodeCanonicalJSON(parsed)
 	if err != nil {
 		return err
 	}
@@ -778,7 +852,7 @@ func runReplay(args []string) error {
 	switch *circuit {
 	default:
 		if _, ok := generated.TransferFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewTransferCircuitAssignmentFromWitnessV1(payload)
+			assignment, _, err = abi.NewTransferCircuitAssignmentFromWitnessV11(payload)
 			if err != nil {
 				return err
 			}
@@ -794,7 +868,7 @@ func runReplay(args []string) error {
 			break
 		}
 		if family, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV1(payload)
+			assignment, _, err = abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV6(payload)
 			if err != nil {
 				return err
 			}
@@ -1074,14 +1148,18 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 	switch circuit {
 	default:
 		if _, ok := generated.TransferFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeTransferWitnessV1(witnessPayload)
+			decoded, _, err := abi.DecodeTransferWitnessV11(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV1(witnessPayload)
+			statementFields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV11(decoded)
+			if err != nil {
+				return nil, witnessSummary{}, err
+			}
+			assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV11(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
-				StatementFields:      vec32Strings(decoded.StatementFields),
+				StatementFields:      vec32Strings(statementFields),
 			}, err
 		}
 		if _, ok := generated.NoteReshapeFamilyByLabel(circuit); ok {
@@ -1100,14 +1178,18 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 			}, err
 		}
 		if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV1(witnessPayload)
+			decoded, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV6(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV1(witnessPayload)
+			statementFields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV6(decoded)
+			if err != nil {
+				return nil, witnessSummary{}, err
+			}
+			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV6(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
-				StatementFields:      vec32Strings(decoded.StatementFields),
+				StatementFields:      vec32Strings(statementFields),
 			}, err
 		}
 		return nil, witnessSummary{}, fmt.Errorf("unsupported circuit %q", circuit)
@@ -1152,29 +1234,19 @@ func writeVK(path string, vk *groth16bls.VerifyingKey) error {
 }
 
 func loadPK(path string) (*groth16bls.ProvingKey, float64, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, 0, fmt.Errorf("open proving key: %w", err)
-	}
-	defer file.Close()
-	pk := new(groth16bls.ProvingKey)
 	start := time.Now()
-	if _, err := pk.ReadFrom(file); err != nil {
-		return nil, 0, fmt.Errorf("read proving key: %w", err)
+	pk, err := artifacts.LoadProvingKeyStrict(path)
+	if err != nil {
+		return nil, 0, err
 	}
 	return pk, time.Since(start).Seconds() * 1000, nil
 }
 
 func loadVK(path string) (*groth16bls.VerifyingKey, float64, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, 0, fmt.Errorf("open verifying key: %w", err)
-	}
-	defer file.Close()
-	vk := new(groth16bls.VerifyingKey)
 	start := time.Now()
-	if _, err := vk.ReadFrom(file); err != nil {
-		return nil, 0, fmt.Errorf("read verifying key: %w", err)
+	vk, err := artifacts.LoadVerifyingKeyStrict(path)
+	if err != nil {
+		return nil, 0, err
 	}
 	return vk, time.Since(start).Seconds() * 1000, nil
 }

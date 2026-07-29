@@ -6,13 +6,8 @@ fn note_creating_output_count(tx: &Transaction) -> usize {
     let action_outputs = tx
         .actions()
         .map(|action| match action {
-            Action::Transfer(transfer) => transfer
-                .body
-                .outputs
-                .iter()
-                .filter(|output| !output.is_dummy())
-                .count(),
-            Action::NoteReshape(note_reshape) => note_reshape.body.outputs.iter().count(),
+            Action::Transfer(transfer) => transfer.body.outputs.len(),
+            Action::NoteReshape(note_reshape) => note_reshape.body.outputs.len(),
             Action::ShieldedIcs20Withdrawal(_) => 1,
             _ => 0,
         })
@@ -21,15 +16,7 @@ fn note_creating_output_count(tx: &Transaction) -> usize {
     let fee_outputs = tx
         .transaction_body()
         .fee_funding
-        .map(|fee_funding| {
-            fee_funding
-                .transfer
-                .body
-                .outputs
-                .iter()
-                .filter(|output| !output.is_dummy())
-                .count()
-        })
+        .map(|fee_funding| fee_funding.transfer.body.outputs.len())
         .unwrap_or_default();
 
     action_outputs + fee_outputs

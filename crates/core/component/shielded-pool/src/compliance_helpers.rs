@@ -46,17 +46,12 @@ pub fn parse_ephemeral_secret(bytes: &[u8]) -> Result<Option<Fr>> {
     Ok(Some(fr))
 }
 
-/// Parse a tx_blinding_nonce (Fr) from proto bytes.
-pub fn parse_tx_blinding_nonce(bytes: &[u8]) -> Result<Option<Fr>> {
-    if bytes.is_empty() {
-        return Ok(None);
-    }
+/// Parse the required per-transaction compliance nonce.
+pub fn parse_tx_blinding_nonce(bytes: &[u8]) -> Result<Fr> {
     let arr: [u8; 32] = bytes
         .try_into()
         .map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce length"))?;
-    Fr::from_bytes_checked(&arr)
-        .map(Some)
-        .map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce bytes"))
+    Fr::from_bytes_checked(&arr).map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce bytes"))
 }
 
 /// Parse a StateCommitment from an optional proto.
@@ -92,4 +87,33 @@ pub fn default_indexed_leaf() -> shieldd_sdk_compliance::IndexedLeaf {
         0,
         shieldd_sdk_compliance::indexed_tree::FQ_MAX.clone(),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fr_modulus_bytes() -> [u8; 32] {
+        let mut modulus = (-Fr::from(1u64)).to_bytes();
+        for byte in &mut modulus {
+            let (next, carry) = byte.overflowing_add(1);
+            *byte = next;
+            if !carry {
+                break;
+            }
+        }
+        modulus
+    }
+
+    #[test]
+    fn transaction_blinding_nonce_is_required_and_canonical() {
+        assert_eq!(
+            parse_tx_blinding_nonce(&Fr::from(7u64).to_bytes()).expect("canonical nonce"),
+            Fr::from(7u64)
+        );
+        for bytes in [&[][..], &[0u8; 31], &fr_modulus_bytes()] {
+            parse_tx_blinding_nonce(bytes)
+                .expect_err("missing, short, or non-canonical nonce must fail");
+        }
+    }
 }

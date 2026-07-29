@@ -1,7 +1,7 @@
 tool: alloy
 alloy: 6.2.0
 model: crates/core/component/compliance/formal/alloy/transfer-statement-sufficiency.als
-model_sha256: d7eeb96322d6edbd9ca0e4b16b6af8368053a411b0be9be967282ef4b0ac5e27
+model_sha256: 8d79508c9776f5c3e62f7fbf53f860bfa244969de59f4405b8889398f6ee7344
 alloy_output_sha256: 5a525841f66beaf519bce01c1436883a985bae69f9bedd4ac0ed50baa8afa88d
 CHECK NoDoubleSpend no-counterexample
 CHECK NoInflation no-counterexample

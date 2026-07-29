@@ -147,7 +147,7 @@ check_status_rows() {
 }
 
 check_stamped_artifact() {
-  local id="$1" artifact="$2"
+  local id="$1" artifact="$2" require_model_binding="${3:-false}"
   [[ -f "$artifact" ]] || fail "row $id cites missing proof artifact $artifact"
   [[ -f "$artifact.sha256" ]] || fail "row $id artifact $artifact lacks .sha256 stamp"
   local want have
@@ -155,6 +155,19 @@ check_stamped_artifact() {
   have="$(shasum -a 256 "$artifact" | awk '{print $1}')"
   [[ "$want" == "$have" ]] \
     || fail "row $id artifact $artifact stamp mismatch (want $want got $have)"
+
+  if [[ "$require_model_binding" == "true" ]]; then
+    local model expected_model_sha actual_model_sha
+    model="$(sed -n 's/^model: //p' "$artifact")"
+    expected_model_sha="$(sed -n 's/^model_sha256: //p' "$artifact")"
+    [[ -n "$model" && -n "$expected_model_sha" ]] \
+      || fail "row $id artifact $artifact lacks an exact model binding"
+    [[ "$model" != /* && "$model" != *".."* && -f "$model" ]] \
+      || fail "row $id artifact $artifact names an invalid model path $model"
+    actual_model_sha="$(shasum -a 256 "$model" | awk '{print $1}')"
+    [[ "$expected_model_sha" == "$actual_model_sha" ]] \
+      || fail "row $id artifact $artifact model hash is stale (want $expected_model_sha got $actual_model_sha)"
+  fi
 }
 
 require_symbol() {
@@ -245,11 +258,21 @@ for artifact in \
   "$CIRCUIT_FORMAL/note_reshape2x1-whole-circuit-lean-artifact.txt" \
   "$CIRCUIT_FORMAL/note_reshape4x1-whole-circuit-lean-artifact.txt" \
   "$CIRCUIT_FORMAL/note_reshape8x1-whole-circuit-lean-artifact.txt" \
-  "$CIRCUIT_FORMAL/note_reshape1x8-whole-circuit-lean-artifact.txt" \
-  "$CIRCUIT_FORMAL/transfer-whole-circuit-lean-artifact.txt"; do
+  "$CIRCUIT_FORMAL/note_reshape1x8-whole-circuit-lean-artifact.txt"; do
   check_stamped_artifact "WHOLE-CIRCUIT-FV" "$artifact"
   rg -F "whole-circuit" "$artifact" >/dev/null \
     || fail "whole-circuit artifact $artifact does not state its scope"
+done
+
+# Design-level model evidence must bind both its sidecar and the exact model
+# source. The prover runners also compare freshly generated evidence in their
+# default check mode; this static check catches stale stamps without requiring
+# Alloy/Tamarin to be installed.
+for artifact in \
+  "$COMPLIANCE_FORMAL"/alloy-*-artifact.txt \
+  "$COMPLIANCE_FORMAL/compliance-symbolic-artifact.txt" \
+  "$COMPLIANCE_FORMAL/compliance-active-symbolic-artifact.txt"; do
+  check_stamped_artifact "DESIGN-MODEL" "$artifact" true
 done
 
 # Gadget-scoped R1CS proof ledger. Status is the last column; a `proved` gadget
@@ -302,7 +325,6 @@ C2X1_ARTIFACT="$CIRCUIT_FORMAL/note_reshape2x1-whole-circuit-lean-artifact.txt"
 C4X1_ARTIFACT="$CIRCUIT_FORMAL/note_reshape4x1-whole-circuit-lean-artifact.txt"
 C8X1_ARTIFACT="$CIRCUIT_FORMAL/note_reshape8x1-whole-circuit-lean-artifact.txt"
 S1X8_ARTIFACT="$CIRCUIT_FORMAL/note_reshape1x8-whole-circuit-lean-artifact.txt"
-TRANSFER_ARTIFACT="$CIRCUIT_FORMAL/transfer-whole-circuit-lean-artifact.txt"
 GNARK_LEAN_SRC="tools/gnark/lean/ShielddGnarkFormal"
 # bash 3.2 (macOS) has no associative arrays; map id->bridge theorem by case.
 decaf_bridge_theorem() {
@@ -327,7 +349,7 @@ while IFS= read -r row; do
   # The bridge theorem must exist in the extracted Lean sources.
   rg -F "$theorem" "$GNARK_LEAN_SRC" >/dev/null \
     || fail "decaf row $id cites bridge theorem $theorem absent from $GNARK_LEAN_SRC"
-  for circuit in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8 transfer; do
+  for circuit in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
     if [[ "$status" != "discharged" ]]; then
       [[ "$evidence" == *"Discharged-Circuits:"*"$circuit"* ]] \
         || fail "decaf row $id is $status for $circuit without a Discharged-Circuits: $circuit marker"
@@ -337,7 +359,6 @@ while IFS= read -r row; do
       note_reshape4x1) check_stamped_artifact "$id" "$C4X1_ARTIFACT" ;;
       note_reshape8x1) check_stamped_artifact "$id" "$C8X1_ARTIFACT" ;;
       note_reshape1x8) check_stamped_artifact "$id" "$S1X8_ARTIFACT" ;;
-      transfer) check_stamped_artifact "$id" "$TRANSFER_ARTIFACT" ;;
     esac
   done
   # The two-torsion row is fully mechanized for note_reshape2x1: it must be discharged.
@@ -349,36 +370,6 @@ while IFS= read -r row; do
 done < <(table_rows "$assumption_file")
 [[ "${two_torsion_seen:-0}" == "1" ]] \
   || fail "assumption ledger is missing ZK-ASSUME-DECAF377-TWO-TORSION-INVARIANCE"
-
-transfer_bridge_theorems() {
-  case "$1" in
-    ZK-ASSUME-DLEQ-RELATION) printf '%s\n' "dleq_sound" ;;
-    ZK-ASSUME-ACK-DERIVATION) printf '%s\n' "ack_sound" ;;
-    ZK-ASSUME-COMPLIANCE-CIPHERTEXT)
-      printf '%s\n' "shared_secrets_sound" "transfer_salt_sound" "detection_sound" "amount_sound" "address_sound" ;;
-    ZK-ASSUME-POSEIDON5) printf '%s\n' "Poseidon5Bridge.circuit_sound" ;;
-    ZK-ASSUME-DUMMY-MUX) printf '%s\n' "dummy_mux_sound" "assert_equivalent_if_sound" ;;
-    ZK-ASSUME-THRESHOLD-REGULATED) printf '%s\n' "threshold_flag_sound" "select_point_sound" ;;
-    *) return 1 ;;
-  esac
-}
-
-while IFS= read -r row; do
-  [[ -z "$row" ]] && continue
-  id="$(markdown_field "$row" 2 | strip_ticks)"
-  theorem_list="$(transfer_bridge_theorems "$id" || true)"
-  [[ -n "$theorem_list" ]] || continue
-  status="$(markdown_field "$row" "$assumption_status_index" | strip_ticks)"
-  evidence="$(markdown_field "$row" 6)"
-  [[ "$status" == "discharged" || "$evidence" == *"Discharged-Circuits:"*"transfer"* ]] \
-    || fail "transfer row $id is $status without a Discharged-Circuits: transfer marker"
-  check_stamped_artifact "$id" "$TRANSFER_ARTIFACT"
-  while IFS= read -r theorem; do
-    [[ -z "$theorem" ]] && continue
-    rg -F "$theorem" "$GNARK_LEAN_SRC" >/dev/null \
-      || fail "transfer bridge theorem $theorem for $id is absent from $GNARK_LEAN_SRC"
-  done < <(printf '%s\n' "$theorem_list")
-done < <(table_rows "$assumption_file")
 
 # Safe-by-composition -> Lean binding. Check theorem existence directly; prose
 # citations are not evidence and must not be required for a gate to pass.

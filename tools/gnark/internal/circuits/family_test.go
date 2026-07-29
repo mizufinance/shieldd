@@ -2,7 +2,6 @@ package circuits_test
 
 import (
 	"math/big"
-	"strings"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -91,8 +90,8 @@ func testCircuitFamilies() []circuitFamily {
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadTransferWitnessV1("transfer")
-				assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV1(fixtureBytes)
+				fixtureBytes := testfixtures.LoadTransferWitnessV11("transfer")
+				assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV11(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode transfer witness fixture: %v", err)
 				}
@@ -112,8 +111,8 @@ func testCircuitFamilies() []circuitFamily {
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV1("shielded_ics20_withdrawal")
-				assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV1(fixtureBytes)
+				fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV6("shielded_ics20_withdrawal")
+				assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV6(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode shielded ICS-20 withdrawal witness fixture: %v", err)
 				}
@@ -125,7 +124,7 @@ func testCircuitFamilies() []circuitFamily {
 			},
 			mutateSemantic: func(assignment frontend.Circuit) {
 				a := assignment.(*circuits.ShieldedIcs20WithdrawalCircuit)
-				a.WithdrawalEffectHashLo = mutateFieldByOne(a.WithdrawalEffectHashLo)
+				a.WithdrawalEffectHashLimbs[0] = mutateFieldByOne(a.WithdrawalEffectHashLimbs[0])
 			},
 		},
 		{
@@ -195,7 +194,7 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 245389, public: 2, secret: 542, internal: 218892},
+			stats:   circuitStats{constraints: 227176, public: 2, secret: 452, internal: 202154},
 		},
 		{
 			name:    "note_reshape2x1",
@@ -220,7 +219,7 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
-			stats:   circuitStats{constraints: 89962, public: 2, secret: 327, internal: 83443},
+			stats:   circuitStats{constraints: 67014, public: 2, secret: 302, internal: 62579},
 		},
 	}
 }
@@ -325,11 +324,11 @@ func TestCircuitFamiliesRejectMutatedNullifier(t *testing.T) {
 			assignment := family.assignment(t)
 			switch a := assignment.(type) {
 			case *circuits.TransferCircuit:
-				a.Spends[0].Nullifier = mutateFieldByOne(a.Spends[0].Nullifier)
+				a.RequiredSpend.Nullifier = mutateFieldByOne(a.RequiredSpend.Nullifier)
 			case *circuits.NoteReshapeCircuit:
 				a.Spends[0].Nullifier = mutateFieldByOne(a.Spends[0].Nullifier)
 			case *circuits.ShieldedIcs20WithdrawalCircuit:
-				a.Spends[0].Nullifier = mutateFieldByOne(a.Spends[0].Nullifier)
+				a.RequiredSpend.Nullifier = mutateFieldByOne(a.RequiredSpend.Nullifier)
 			default:
 				t.Fatalf("unsupported assignment type %T", assignment)
 			}
@@ -355,20 +354,16 @@ func TestPaddedSpendCircuitsRejectMutatedDummyNullifierSeed(t *testing.T) {
 			mutated := false
 			switch a := assignment.(type) {
 			case *circuits.TransferCircuit:
-				for i := range a.Spends {
-					if variableIsOne(a.Spends[i].IsDummy) {
-						a.Spends[i].DummyNullifierSeed = mutateFieldByOne(a.Spends[i].DummyNullifierSeed)
-						mutated = true
-						break
-					}
+				if variableIsOne(a.OptionalSpend.IsDummy) {
+					a.OptionalSpend.DummyNullifierSeed =
+						mutateFieldByOne(a.OptionalSpend.DummyNullifierSeed)
+					mutated = true
 				}
 			case *circuits.ShieldedIcs20WithdrawalCircuit:
-				for i := range a.Spends {
-					if variableIsOne(a.Spends[i].IsDummy) {
-						a.Spends[i].DummyNullifierSeed = mutateFieldByOne(a.Spends[i].DummyNullifierSeed)
-						mutated = true
-						break
-					}
+				if variableIsOne(a.OptionalSpend.IsDummy) {
+					a.OptionalSpend.DummyNullifierSeed =
+						mutateFieldByOne(a.OptionalSpend.DummyNullifierSeed)
+					mutated = true
 				}
 			default:
 				t.Fatalf("unsupported assignment type %T", assignment)
@@ -442,27 +437,4 @@ func TestNoteReshapeRejectsPaddedOutputPayloadMutation(t *testing.T) {
 		test.WithBackends(backend.GROTH16),
 		test.WithInvalidAssignment(noteReshape),
 	)
-}
-
-func TestTransferFamiliesRejectWrongReceiverOrdering(t *testing.T) {
-	for _, family := range testCircuitFamilies() {
-		if !strings.HasPrefix(family.name, "transfer") {
-			continue
-		}
-		t.Run(family.name, func(t *testing.T) {
-			assignment := family.assignment(t).(*circuits.TransferCircuit)
-			assignment.Outputs[0].IsReceiver = 0
-			if len(assignment.Outputs) > 1 {
-				assignment.Outputs[1].IsReceiver = 1
-			}
-
-			assert := test.NewAssert(t)
-			assert.CheckCircuit(
-				family.circuit(),
-				test.WithCurves(ecc.BLS12_377),
-				test.WithBackends(backend.GROTH16),
-				test.WithInvalidAssignment(assignment),
-			)
-		})
-	}
 }

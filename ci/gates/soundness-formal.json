@@ -29,15 +29,18 @@
       "type": "cargo_local_closure",
       "packages": [
         "shieldd-constraint-coverage",
+        "shieldd-sdk-app",
         "shieldd-sdk-compliance",
-        "shieldd-sdk-shielded-pool"
+        "shieldd-sdk-shielded-pool",
+        "shieldd-sdk-transaction",
+        "shieldd-sdk-view"
       ],
       "tiers": {
         "pull_request": "stamps",
         "merge_group": "full",
         "default": "full"
       },
-      "reason": "local Cargo dependency closure for soundness seams and constraint coverage"
+      "reason": "local Cargo dependency closure for circuit, transaction, view construction, consensus execution, and constraint coverage seams"
     }
   ],
   "explicit_inputs": [
@@ -95,12 +98,17 @@
     {
       "patterns": [
         ".gitignore",
+        "crates/core/app/src/action_handler/transaction.rs",
+        "crates/core/app/src/action_handler/transaction/**",
+        "crates/core/app/src/app/mod.rs",
         "crates/core/component/compliance/formal/**",
         "crates/core/component/shielded-pool/formal/**",
         "crates/core/component/shielded-pool/proofs/fstar/**",
         "docs/soundness/**",
         "scripts/check-constraint-coverage.sh",
+        "scripts/check-circuit-fv.sh",
         "scripts/check-formal-gate-self-tests.sh",
+        "scripts/check-fv-profiles.py",
         "scripts/check-gadget-model-fidelity.sh",
         "scripts/check-lean-circuit-fv.sh",
         "scripts/check-manifest-pin.sh",

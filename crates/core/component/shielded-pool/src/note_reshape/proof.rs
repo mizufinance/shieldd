@@ -1,6 +1,5 @@
 use anyhow::{anyhow, bail, ensure, Result};
 use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, PreparedVerifyingKey, Proof};
-use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
@@ -24,6 +23,10 @@ impl NoteReshapeFamilyId {
 
     pub fn proving_key_bytes(self) -> &'static [u8] {
         shieldd_sdk_proof_params::note_reshape_proving_key_bytes(self.get())
+    }
+
+    pub fn verifying_key_json_bytes(self) -> &'static [u8] {
+        shieldd_sdk_proof_params::note_reshape_verifying_key_json_bytes(self.get())
     }
 
     pub fn circuit_metadata_bytes(self) -> &'static [u8] {
@@ -174,10 +177,10 @@ impl NoteReshapeProof {
     }
 
     fn decoded_proof(&self) -> anyhow::Result<Proof<Bls12_377>> {
-        Proof::deserialize_compressed(&self.inner[..]).map_err(|e| anyhow!(e))
+        crate::groth16_proof::decode(&self.inner)
     }
 
-    pub fn to_batch_item(
+    pub(crate) fn to_batch_item(
         &self,
         public: &NoteReshapeProofPublic,
     ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
@@ -255,7 +258,9 @@ impl TryFrom<pb::ZkNoteReshapeProof> for NoteReshapeProof {
     type Error = anyhow::Error;
 
     fn try_from(value: pb::ZkNoteReshapeProof) -> Result<Self, Self::Error> {
-        Ok(Self { inner: value.inner })
+        let proof = Self { inner: value.inner };
+        proof.decoded_proof()?;
+        Ok(proof)
     }
 }
 

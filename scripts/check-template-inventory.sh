@@ -12,7 +12,7 @@ fail() {
   exit 1
 }
 
-python3 "$GNARK/check_note_reshape_registry.py" >/dev/null
+python3 "$GNARK/check_gnark_family_registries.py" >/dev/null
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 

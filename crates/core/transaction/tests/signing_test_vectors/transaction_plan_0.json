@@ -17,7 +17,8 @@
               },
               "rk": {
                 "inner": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-              }
+              },
+              "encryptedBackref": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
             }
           ],
           "outputs": [
@@ -2850,7 +2851,8 @@
               },
               "rk": {
                 "inner": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-              }
+              },
+              "encryptedBackref": "usJAC8haO7HCBV34fvab9DW9ieEIKizSiPHyu/STwIprEgECxLym2sEN+Ht6pfuO"
             },
             {
               "nullifier": {
@@ -2858,7 +2860,8 @@
               },
               "rk": {
                 "inner": "tumV1YGDUDc34L5HvvG+Wrch6EhjYWa/RLarSheJuQg="
-              }
+              },
+              "encryptedBackref": "4TD8/DZRzghzwgpVPRkzAlzuq/PpH9iqcJ6oJGfyN5CxYUAz0Ok+AFe1cUf5OjLO"
             }
           ],
           "outputs": [
@@ -2872,8 +2875,8 @@
                   "inner": "Bz1vcbR2bXEMs+scyz1TvvSvUGdSvhFYBltwQU4lNfNX66MVR1R2inTbBXTUao2SQPNpCNxEv+wwi2mNI19EuLVVyj3bVXdNSPLyJXpRaTWK1RHmcxktAa1/cUsBbpJmOkwyl457UibF8mPLjez8aYFsjGga30DmA/HK3omp9ZXfcJJZb9F/EE1rWsT3g1847yxZKfSyRRIjMpRSAA0SKR5bz0ceOYL2fD4lTFOkkLQ="
                 }
               },
-              "wrappedMemoKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              "ovkWrappedKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+              "wrappedMemoKey": "6egfNcrNq3+W2KVYQNDj4nQO9TOfAG3JxCidqHpSn6DVzeWkjLfWaC3jdF5DrLvC",
+              "ovkWrappedKey": "1CRT642yAxhsABabPeFLrfvVwFYxttttmH1ZLhMwD+76P1R0SrrqYdZWMx3kSqyw"
             },
             {
               "notePayload": {
@@ -2885,8 +2888,8 @@
                   "inner": "iJuw0B5CvTywmcK8xXpUHLN7qP1iV2HukIKpWSbOTGk8cpYRbelqrlUNP3nIPjhrGRZwwYl2ev2YTzwYkwU2yzUfb7Yv7ya9p80LSFifMZZiTptR1QIobiUqbQrfAXVWv4J4u7Y24hkpHWNPuBq2ClWKnYRaVTlDCam64Xx08yuxlfoSPi/fbZn7bFgORqpapnDmc3P7n0CuMcqV019P+vUrnhfOAo0vFlRz6g1bXHQ="
                 }
               },
-              "wrappedMemoKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              "ovkWrappedKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+              "wrappedMemoKey": "CMASAFyPVPvtLTOjq47KuqxoBHTxpEZNsZ0DtWq0/UiWSIbNSOtYP74n6vJq0k/N",
+              "ovkWrappedKey": "T/yIkB9kptVLH5whKMCwlUsM5rHBhKtNOlYLD3rOMGoq5HKRrHBaI1qdA0ujpVr5"
             }
           ],
           "targetTimestamp": "1700000000",
@@ -3527,7 +3530,8 @@
               },
               "rk": {
                 "inner": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
-              }
+              },
+              "encryptedBackref": "VbAIPCyMSG4HTv3vMX7DM0tCXlp+b60zOyFdqxEbB1sZpMTNu+CoMHeaCum5NmhV"
             },
             {
               "nullifier": {
@@ -3535,7 +3539,8 @@
               },
               "rk": {
                 "inner": "MsZXjEtyU9Pq28CJZhKMMXkKJw8TBjf6XFZbOKIxrhE="
-              }
+              },
+              "encryptedBackref": "FZnCQBdwTORVV7DJzqnozVAhEBv7S5B7EeXRa6Pnvj2XARkXdIInRNEfHUrsjmBO"
             }
           ],
           "outputs": [
@@ -3549,8 +3554,8 @@
                   "inner": "1hmzmCFQ6TUfPbFJJmtaDtquaqMWpZQbFU/JbCXkqlW4851cCWfmMKzpfhqr7AHglD0fmuRNQSeX35G2EVrQn6lvZzgQL7/hSC2YKICl65T5mV+5AywcL7gyrQHHeG6NUUpUISll0nQ61/DkuPmjrshh5efzpz/4qKd+GAI1BcxmHlKKMt5QFpgR1ShKQ0XiBCFNiwAm8UWsXVjDO7WL+KsdE2v1DUwxvt8yErhrrGw="
                 }
               },
-              "wrappedMemoKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              "ovkWrappedKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+              "wrappedMemoKey": "TeHIx8s8+uubCrcqnaum0A3rJSGwuPoAwp/f6zE0QcRjzV1+S9WUS2jp8qqtdIU3",
+              "ovkWrappedKey": "C3TGwKwOP0ENdzyjQHpqtUdYUYz1Qe+BVFLWvs3ppH2E0lxSPJo4Yb8pJ22Gxv8d"
             },
             {
               "notePayload": {
@@ -3562,8 +3567,8 @@
                   "inner": "JYjSBEheehOKvcL0EnF4F+9I+LxcrSSgBuX0+6e8F8cmJnHBkyairedI3wCsbYWvdfqsWCIBiP9sQo5a3aCZmbB5vc8R4xFtY+W4GV/Urj5mLDUJCV6YyHNBEPWjERCLyJQsMbuX0B3vszaaKkoY27tZOg1z1q+axqgsjML/xKVWB7r6lyIru3SlL+umrxz3T5jObxbSc3s9GzkMiuhMTak6pSNeswxK1JPhPJkDalQ="
                 }
               },
-              "wrappedMemoKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-              "ovkWrappedKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+              "wrappedMemoKey": "QbSogXWmGH07uXTE63mtp7JoXF0nu5Man8U2FMvWTuWd1hGVdQMhCceaKzZa8PrL",
+              "ovkWrappedKey": "2zPhq1WwzY4ee1YcDQS62aGhtV5vpmwC+HqTvhbTUutGEfh2+Yq5a6ZyYdPQYFjs"
             }
           ],
           "targetTimestamp": "1700000000",
@@ -4192,17 +4197,17 @@
       "ibcRelayAction": {
         "rawAction": {
           "typeUrl": "/ibc.core.channel.v1.MsgRecvPacket",
-          "value": "CrIBCN6DqowGEgtkZWZhdWx0UG9ydBoJY2hhbm5lbC0wIgtkZWZhdWx0UG9ydCoJY2hhbm5lbC0wMmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOgoI9cXIQBD91b5CQNDOnr+GxeDhGBICCgAaCgj1xchAEP3VvkIijgFzaGllbGRkMTNrZmpqcmo2Zzk1bnJ5NWdubjl1cWVkcXM4d25nZmhrdnVwOXhtZnJ4M3VkZHhtZTU2ZWV5azgydjZ4emZwZXducGRrcXpmdjVtcDh3Zm0yODZtZXU4a210azRwNmh3OWRqZWZ4bG5oZmdhN3Rmd2xxcm00OHNrNGp5NDJjY2ZobHF3Zzlo"
+          "value": "CrIBCN6DqowGEgtkZWZhdWx0UG9ydBoJY2hhbm5lbC0wIgtkZWZhdWx0UG9ydCoJY2hhbm5lbC0wMmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOgoI9cXIQBD+1b5CQNmzural2qqCBRICCgAaCgj1xchAEP7VvkIijgFzaGllbGRkMTNrZmpqcmo2Zzk1bnJ5NWdubjl1cWVkcXM4d25nZmhrdnVwOXhtZnJ4M3VkZHhtZTU2ZWV5azgydjZ4emZwZXducGRrcXpmdjVtcDh3Zm0yODZtZXU4a210azRwNmh3OWRqZWZ4bG5oZmdhN3Rmd2xxcm00OHNrNGp5NDJjY2ZobHF3Zzlo"
         }
       }
     }
   ],
   "transactionParameters": {
-    "expiryHeight": "3616016904",
-    "chainId": "jvkpvqpksv-1314930889433903638",
+    "expiryHeight": "3062482835",
+    "chainId": "zxegirdpksvrqy-1493088943390363832264997246115",
     "fee": {
       "amount": {
-        "lo": "193601141854973817"
+        "lo": "343978839131671284"
       }
     }
   }

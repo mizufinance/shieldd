@@ -20,7 +20,7 @@ pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
 pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 77;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 10;
+pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 12;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 
 pub const fn note_reshape_statement_field_count(n_in: usize, n_out: usize) -> usize {
@@ -513,10 +513,7 @@ pub fn shielded_ics20_withdrawal_statement_fields(
             field: "outbound_amount".to_owned(),
         }
     })?);
-    fields.extend([
-        public.withdrawal_effect_hash_lo,
-        public.withdrawal_effect_hash_hi,
-    ]);
+    fields.extend(public.withdrawal_effect_hash_limbs);
 
     if fields.len() != expected {
         return Err(StatementHashError::InvalidFieldLength {
@@ -558,7 +555,7 @@ pub fn transfer_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> 
 
 pub fn shielded_ics20_withdrawal_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> {
     hash_statement_fields(
-        &shielded_ics20_withdrawal_statement_hash_constant("v1"),
+        &shielded_ics20_withdrawal_statement_hash_constant("v2"),
         shielded_ics20_withdrawal_statement_hash_constant("pad0"),
         shielded_ics20_withdrawal_statement_hash_constant("pad1"),
         fields,

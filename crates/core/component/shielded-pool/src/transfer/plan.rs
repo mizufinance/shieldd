@@ -2,12 +2,12 @@ use anyhow::{anyhow, ensure, Error};
 use decaf377::{Fq, Fr};
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use serde::{Deserialize, Serialize};
-use shieldd_sdk_asset::{asset, Balance};
+use shieldd_sdk_asset::{asset, balance, Balance};
 use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf};
-use shieldd_sdk_keys::Address;
 use shieldd_sdk_keys::{
-    symmetric::{PayloadKey, WrappedMemoKey},
-    FullViewingKey,
+    keys::OutgoingViewingKey,
+    symmetric::{OvkWrappedKey, PayloadKey, WrappedMemoKey},
+    Address, FullViewingKey,
 };
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
@@ -21,8 +21,9 @@ use crate::note_reshape_padding::dummy_spend_auth_sig;
 use crate::note_reshape_padding::dummy_state_commitment_proof;
 use crate::note_reshape_padding::{pad_to_len, HiddenArityPadder};
 use crate::transfer::{
-    Transfer, TransferOutputPrivate, TransferOutputPublic, TransferProof, TransferProofPrivate,
-    TransferProofPublic, TransferSpendPrivate, TransferSpendPublic,
+    Transfer, TransferChangeOutputPrivate, TransferOptionalSpendPrivate, TransferOutputPublic,
+    TransferProof, TransferProofPrivate, TransferProofPublic, TransferReceiverOutputPrivate,
+    TransferSpendPrivate, TransferSpendPublic,
 };
 use crate::transfer::{
     TransferBody, TransferInputBody, TransferOutputBody, PADDED_TRANSFER_INPUTS,
@@ -127,7 +128,7 @@ impl TransferPlan {
     }
 
     pub fn num_outputs(&self) -> usize {
-        self.outputs.len()
+        self.body.outputs.len()
     }
 
     pub fn balance(&self) -> Balance {
@@ -179,10 +180,6 @@ impl TransferPlan {
         self.padder().synthetic_dummy_nullifier_seed(slot)
     }
 
-    fn synthetic_dummy_spend_auth_key(&self, slot: usize) -> Fr {
-        self.padder().synthetic_dummy_spend_auth_key(slot)
-    }
-
     fn synthetic_dummy_spend_auth_randomizer(&self, slot: usize) -> Fr {
         self.padder().synthetic_dummy_spend_auth_randomizer(slot)
     }
@@ -211,24 +208,56 @@ impl TransferPlan {
         self.padder().synthetic_dummy_output_note(slot)
     }
 
+    fn placeholder_bytes(
+        &self,
+        domain: &[u8],
+        slot: usize,
+        commitment: tct::StateCommitment,
+    ) -> [u8; 48] {
+        let mut hash = blake2b_simd::Params::new();
+        hash.hash_length(48).personal(b"ShlddTrPlanPad");
+        let mut state = hash.to_state();
+        state.update(domain);
+        state.update(&(slot as u64).to_le_bytes());
+        state.update(&commitment.0.to_bytes());
+        state.update(&self.value_blinding.to_bytes());
+        state
+            .finalize()
+            .as_bytes()
+            .try_into()
+            .expect("configured placeholder length is 48 bytes")
+    }
+
     fn placeholder_body(&self) -> TransferBody {
         let mut inputs = self
             .spends
             .iter()
-            .map(|_spend| TransferInputBody {
+            .enumerate()
+            .map(|(slot, spend)| TransferInputBody {
                 nullifier: shieldd_sdk_sct::Nullifier(Fq::from(0u64)),
                 rk: decaf377_rdsa::VerificationKey::from(decaf377_rdsa::SigningKey::<
                     decaf377_rdsa::SpendAuth,
                 >::from(Fr::from(0u64))),
-                encrypted_backref: crate::EncryptedBackref::dummy(),
+                encrypted_backref: crate::EncryptedBackref::try_from(self.placeholder_bytes(
+                    b"input-backref",
+                    slot,
+                    spend.note.commit(),
+                ))
+                .expect("placeholder backref has the fixed wire length"),
                 compliance_ciphertext: Vec::new(),
             })
             .collect::<Vec<_>>();
         pad_to_len(&mut inputs, PADDED_TRANSFER_INPUTS, |slot| {
+            let dummy_note = self.synthetic_dummy_input_note(slot);
             TransferInputBody {
                 nullifier: self.synthetic_dummy_nullifier(slot),
                 rk: self.synthetic_dummy_verification_key(slot),
-                encrypted_backref: crate::EncryptedBackref::dummy(),
+                encrypted_backref: crate::EncryptedBackref::try_from(self.placeholder_bytes(
+                    b"input-backref",
+                    slot,
+                    dummy_note.commit(),
+                ))
+                .expect("placeholder backref has the fixed wire length"),
                 compliance_ciphertext: Vec::new(),
             }
         });
@@ -236,19 +265,40 @@ impl TransferPlan {
         let mut outputs = self
             .outputs
             .iter()
-            .map(|output| TransferOutputBody {
-                note_payload: output.output_note().payload(),
-                wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
-                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
-                compliance_ciphertext: Vec::new(),
-                orbis_upload_bundle: Vec::new(),
+            .enumerate()
+            .map(|(slot, output)| {
+                let note_payload = output.output_note().payload();
+                TransferOutputBody {
+                    wrapped_memo_key: WrappedMemoKey(self.placeholder_bytes(
+                        b"memo-key",
+                        slot,
+                        note_payload.note_commitment,
+                    )),
+                    ovk_wrapped_key: OvkWrappedKey(self.placeholder_bytes(
+                        b"ovk-key",
+                        slot,
+                        note_payload.note_commitment,
+                    )),
+                    note_payload,
+                    compliance_ciphertext: Vec::new(),
+                    orbis_upload_bundle: Vec::new(),
+                }
             })
             .collect::<Vec<_>>();
         pad_to_len(&mut outputs, PADDED_TRANSFER_OUTPUTS, |slot| {
+            let note_payload = self.synthetic_dummy_output_note(slot).payload();
             TransferOutputBody {
-                note_payload: self.synthetic_dummy_output_note(slot).payload(),
-                wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
-                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
+                wrapped_memo_key: WrappedMemoKey(self.placeholder_bytes(
+                    b"memo-key",
+                    slot,
+                    note_payload.note_commitment,
+                )),
+                ovk_wrapped_key: OvkWrappedKey(self.placeholder_bytes(
+                    b"ovk-key",
+                    slot,
+                    note_payload.note_commitment,
+                )),
+                note_payload,
                 compliance_ciphertext: Vec::new(),
                 orbis_upload_bundle: Vec::new(),
             }
@@ -287,23 +337,27 @@ impl TransferPlan {
 
     fn validate_invariants(&self) -> anyhow::Result<()> {
         self.body.validate_shape()?;
+        let recomputed_balance = self
+            .spends
+            .iter()
+            .fold(Balance::default(), |mut acc, spend| {
+                acc += spend.balance();
+                acc
+            })
+            + self
+                .outputs
+                .iter()
+                .fold(Balance::default(), |mut acc, output| {
+                    acc += output.balance();
+                    acc
+                });
         ensure!(
-            self.balance
-                == self
-                    .spends
-                    .iter()
-                    .fold(Balance::default(), |mut acc, spend| {
-                        acc += spend.balance();
-                        acc
-                    })
-                    + self
-                        .outputs
-                        .iter()
-                        .fold(Balance::default(), |mut acc, output| {
-                            acc += output.balance();
-                            acc
-                        }),
+            self.balance == recomputed_balance,
             "transfer net balance must equal spends plus outputs",
+        );
+        ensure!(
+            self.body.balance_commitment == recomputed_balance.commit(self.value_blinding),
+            "transfer body balance commitment must match plan balance",
         );
         let first_spend = self
             .spends
@@ -342,6 +396,15 @@ impl TransferPlan {
             ensure!(
                 spend.tx_blinding_nonce == first_spend.tx_blinding_nonce,
                 "transfer spend tx blinding nonce must match",
+            );
+            ensure!(
+                spend.note.address() == sender_address,
+                "transfer spends must use the same sender address",
+            );
+            ensure!(
+                spend.compliance_position == first_spend.compliance_position
+                    && spend.compliance_path == first_spend.compliance_path,
+                "transfer spends must use the same sender compliance witness",
             );
             ensure!(
                 spend.is_regulated == first_spend.is_regulated,
@@ -416,21 +479,29 @@ impl TransferPlan {
             .collect::<Vec<_>>();
         let mut inputs = inputs;
         pad_to_len(&mut inputs, PADDED_TRANSFER_INPUTS, |slot| {
+            let nullifier = self.synthetic_dummy_nullifier(slot);
+            let dummy_note = self.synthetic_dummy_input_note(slot);
             TransferInputBody {
-                nullifier: self.synthetic_dummy_nullifier(slot),
+                nullifier,
                 rk: self.synthetic_dummy_verification_key(slot),
-                encrypted_backref: crate::EncryptedBackref::dummy(),
+                encrypted_backref: crate::Backref::new(dummy_note.commit())
+                    .encrypt(&fvk.backref_key(), &nullifier),
                 compliance_ciphertext: Vec::new(),
             }
         });
 
+        let action_balance_commitment = self.balance.commit(self.value_blinding);
         let outputs = self
             .outputs
             .iter()
             .enumerate()
             .map(|(index, output)| {
-                let (note_payload, wrapped_memo_key, ovk_wrapped_key) =
-                    output.action_output_parts(fvk.outgoing(), memo_key);
+                let (note_payload, wrapped_memo_key, ovk_wrapped_key) = transfer_output_parts(
+                    output.output_note(),
+                    fvk.outgoing(),
+                    memo_key,
+                    action_balance_commitment,
+                );
                 let compliance_bytes = if is_receiver_output_index(index) {
                     receiver_output_transfer_compliance(&compliance.ciphertext, &compliance.bundle)?
                 } else if is_change_output_index(index) {
@@ -450,13 +521,16 @@ impl TransferPlan {
         let mut outputs = outputs;
         pad_to_len(&mut outputs, PADDED_TRANSFER_OUTPUTS, |slot| {
             let dummy_note = self.synthetic_dummy_output_note(slot);
+            let (note_payload, wrapped_memo_key, ovk_wrapped_key) = transfer_output_parts(
+                dummy_note,
+                fvk.outgoing(),
+                memo_key,
+                action_balance_commitment,
+            );
             TransferOutputBody {
-                note_payload: dummy_note.payload(),
-                // Body-level dummy sentinel: proof/public commitments still use the synthetic
-                // note commitment, but consensus/view code can identify padded outputs
-                // without relying on note commitment zeroing.
-                wrapped_memo_key: WrappedMemoKey([0u8; 48]),
-                ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
+                note_payload,
+                wrapped_memo_key,
+                ovk_wrapped_key,
                 compliance_ciphertext: Vec::new(),
                 orbis_upload_bundle: Vec::new(),
             }
@@ -464,7 +538,7 @@ impl TransferPlan {
 
         Ok(TransferBody {
             anchor,
-            balance_commitment: self.balance.commit(self.value_blinding),
+            balance_commitment: action_balance_commitment,
             inputs,
             outputs,
             target_timestamp: self.spends[0].target_timestamp,
@@ -487,25 +561,6 @@ impl TransferPlan {
                 self.spends.len(),
                 state_commitment_proofs.len()
             )));
-        }
-        if self.spends.len() > 1 {
-            let sender = self.spends[0].note.address();
-            for spend in self.spends.iter().skip(1) {
-                if spend.note.address() != sender {
-                    return Err(crate::ProofError::InvalidPublicInput(
-                        "multi-input transfer requires all spends to use the same sender address"
-                            .into(),
-                    ));
-                }
-                if spend.compliance_position != self.spends[0].compliance_position
-                    || spend.compliance_path != self.spends[0].compliance_path
-                {
-                    return Err(crate::ProofError::InvalidPublicInput(
-                        "multi-input transfer requires all spends to use the same sender compliance witness"
-                            .into(),
-                    ));
-                }
-            }
         }
         let sender_leaf = sender_leaf(&self.spends[0]);
         let asset_policy = self
@@ -556,61 +611,54 @@ impl TransferPlan {
             }
         });
 
-        let input_privates = self
-            .spends
-            .iter()
-            .zip(state_commitment_proofs.iter().cloned())
-            .map(|(spend, state_commitment_proof)| {
-                Ok(TransferSpendPrivate {
-                    state_commitment_proof,
-                    spent_note: spend.note.clone(),
-                    spend_auth_randomizer: spend.randomizer,
-                    is_dummy: false,
-                    dummy_nullifier_seed: Fq::from(0u64),
-                    dummy_spend_auth_key: Fr::from(0u64),
-                })
-            })
-            .collect::<Result<Vec<_>, crate::ProofError>>()?;
-        let mut input_privates = input_privates;
-        pad_to_len(&mut input_privates, PADDED_TRANSFER_INPUTS, |slot| {
+        let required_input = TransferSpendPrivate {
+            state_commitment_proof: state_commitment_proofs[0].clone(),
+            spent_note: self.spends[0].note.clone(),
+            spend_auth_randomizer: self.spends[0].randomizer,
+        };
+        let optional_input = if self.spends.len() == PADDED_TRANSFER_INPUTS {
+            TransferOptionalSpendPrivate {
+                spend: TransferSpendPrivate {
+                    state_commitment_proof: state_commitment_proofs[1].clone(),
+                    spent_note: self.spends[1].note.clone(),
+                    spend_auth_randomizer: self.spends[1].randomizer,
+                },
+                is_dummy: false,
+                dummy_nullifier_seed: Fq::from(0u64),
+            }
+        } else {
+            let slot = 1;
             let dummy_note = self.synthetic_dummy_input_note(slot);
             let dummy_proof = dummy_state_commitment_proof(dummy_note.commit());
-            TransferSpendPrivate {
-                state_commitment_proof: dummy_proof,
-                spent_note: dummy_note,
-                spend_auth_randomizer: self.synthetic_dummy_spend_auth_randomizer(slot),
+            TransferOptionalSpendPrivate {
+                spend: TransferSpendPrivate {
+                    state_commitment_proof: dummy_proof,
+                    spent_note: dummy_note,
+                    spend_auth_randomizer: self.synthetic_dummy_spend_auth_randomizer(slot),
+                },
                 is_dummy: true,
                 dummy_nullifier_seed: self.synthetic_dummy_nullifier_seed(slot),
-                dummy_spend_auth_key: self.synthetic_dummy_spend_auth_key(slot),
             }
-        });
+        };
 
-        let output_privates = self
+        let receiver = self
             .outputs
-            .iter()
-            .enumerate()
-            .map(|(index, output)| {
-                let created_note = output.output_note();
-                Ok(TransferOutputPrivate {
-                    recipient_compliance_path: output.compliance_path.clone(),
-                    recipient_compliance_position: output.compliance_position,
-                    recipient_leaf: recipient_leaf(output, &created_note),
-                    is_receiver: is_receiver_output_index(index),
-                    created_note,
-                })
-            })
-            .collect::<Result<Vec<_>, crate::ProofError>>()?;
-        let mut output_privates = output_privates;
-        pad_to_len(&mut output_privates, PADDED_TRANSFER_OUTPUTS, |slot| {
-            let dummy_note = self.synthetic_dummy_output_note(slot);
-            TransferOutputPrivate {
-                recipient_compliance_path: self.spends[0].compliance_path.clone(),
-                recipient_compliance_position: self.spends[0].compliance_position,
-                recipient_leaf: sender_leaf.clone(),
-                is_receiver: false,
-                created_note: dummy_note,
-            }
-        });
+            .first()
+            .expect("validated transfer plan has a receiver output");
+        let receiver_created_note = receiver.output_note();
+        let receiver_output = TransferReceiverOutputPrivate {
+            recipient_compliance_path: receiver.compliance_path.clone(),
+            recipient_compliance_position: receiver.compliance_position,
+            recipient_leaf: recipient_leaf(receiver, &receiver_created_note),
+            created_note: receiver_created_note,
+        };
+        let change_output = TransferChangeOutputPrivate {
+            created_note: self
+                .outputs
+                .get(CHANGE_OUTPUT_INDEX)
+                .map(ShieldedOutputPlan::output_note)
+                .unwrap_or_else(|| self.synthetic_dummy_output_note(CHANGE_OUTPUT_INDEX)),
+        };
 
         Ok((
             TransferProofPublic {
@@ -635,14 +683,16 @@ impl TransferPlan {
                 sender_compliance_position: self.spends[0].compliance_position,
                 sender_leaf,
                 compliance: compliance.private,
-                inputs: input_privates,
-                outputs: output_privates,
+                required_input,
+                optional_input,
+                receiver_output,
+                change_output,
             },
         ))
     }
 
     #[cfg(any(unix, windows))]
-    pub fn transfer(
+    pub fn build_unauth_transfer(
         &self,
         fvk: &FullViewingKey,
         auth_sigs: Vec<Signature<decaf377_rdsa::SpendAuth>>,
@@ -683,11 +733,11 @@ impl TransferPlan {
     ) -> Result<Vec<u8>, crate::ProofError> {
         let (public, private) =
             self.transfer_public_private(fvk, &state_commitment_proofs, anchor)?;
-        crate::gnark::encode_transfer_witness_v1(&public, &private)
+        crate::gnark::encode_transfer_witness_v11(&public, &private)
             .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))
     }
 
-    pub fn transfer_with_proof(
+    pub fn build_unauth_transfer_with_proof(
         &self,
         fvk: &FullViewingKey,
         auth_sigs: Vec<Signature<decaf377_rdsa::SpendAuth>>,
@@ -788,6 +838,23 @@ fn recipient_leaf(output: &ShieldedOutputPlan, created_note: &crate::Note) -> Co
     })
 }
 
+fn transfer_output_parts(
+    note: Note,
+    ovk: &OutgoingViewingKey,
+    memo_key: &PayloadKey,
+    action_balance_commitment: balance::Commitment,
+) -> (crate::NotePayload, WrappedMemoKey, OvkWrappedKey) {
+    let esk = note.ephemeral_secret_key();
+    let wrapped_memo_key = WrappedMemoKey::encrypt(
+        memo_key,
+        esk,
+        note.transmission_key(),
+        &note.diversified_generator(),
+    );
+    let ovk_wrapped_key = note.encrypt_key(ovk, action_balance_commitment);
+    (note.payload(), wrapped_memo_key, ovk_wrapped_key)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -855,6 +922,42 @@ mod tests {
         output.asset_policy = spend.asset_policy.clone();
     }
 
+    fn aligned_spend(
+        first: &ShieldedInputPlan,
+        address: &Address,
+        amount: u64,
+    ) -> ShieldedInputPlan {
+        let mut rng = OsRng;
+        let note = Note::generate(
+            &mut rng,
+            address,
+            Value {
+                amount: Amount::from(amount),
+                asset_id: first.note.asset_id(),
+            },
+        );
+        let mut spend = ShieldedInputPlan::new(&mut rng, note, 1u64.into());
+        spend.target_timestamp = first.target_timestamp;
+        spend.asset_anchor = first.asset_anchor;
+        spend.compliance_anchor = first.compliance_anchor;
+        spend.tx_blinding_nonce = first.tx_blinding_nonce;
+        spend.is_regulated = first.is_regulated;
+        spend.compliance_path = first.compliance_path.clone();
+        spend.compliance_position = first.compliance_position;
+        spend.asset_path = first.asset_path.clone();
+        spend.asset_position = first.asset_position;
+        spend.asset_indexed_leaf = first.asset_indexed_leaf.clone();
+        spend.asset_policy = first.asset_policy.clone();
+        spend
+    }
+
+    fn two_spend_plan() -> TransferPlan {
+        let (first, output, _, _) = transfer_parts(100, 200);
+        let second = aligned_spend(&first, &first.note.address(), 100);
+        TransferPlan::new(vec![first, second], vec![output], Fr::from(5u64))
+            .expect("aligned two-spend transfer plan should be valid")
+    }
+
     #[test]
     fn new_rejects_mismatched_transfer_public_inputs() {
         let (spend, output, _, _) = transfer_parts(100, 100);
@@ -897,6 +1000,72 @@ mod tests {
     }
 
     #[test]
+    fn new_and_decode_reject_multi_spend_sender_mismatch() {
+        let (first, output, _, _) = transfer_parts(100, 200);
+        let second = aligned_spend(&first, &test_keys::ADDRESS_1, 100);
+        let err = TransferPlan::new(vec![first, second], vec![output], Fr::from(5u64))
+            .expect_err("sender mismatch must fail during plan construction");
+        assert!(err
+            .to_string()
+            .contains("transfer spends must use the same sender address"));
+
+        let mut proto: pb::TransferPlan = two_spend_plan().into();
+        let replacement_note = Note::generate(
+            &mut OsRng,
+            &test_keys::ADDRESS_1,
+            Value {
+                amount: Amount::from(100u64),
+                asset_id: *BASE_ASSET_ID,
+            },
+        );
+        proto.spends[1].note = Some(replacement_note.into());
+        let err = TransferPlan::try_from(proto)
+            .expect_err("sender mismatch must fail during plan decoding");
+        assert!(err
+            .to_string()
+            .contains("transfer spends must use the same sender address"));
+    }
+
+    #[test]
+    fn new_and_decode_reject_multi_spend_compliance_witness_mismatch() {
+        let (first, output, _, _) = transfer_parts(100, 200);
+        let mut second = aligned_spend(&first, &first.note.address(), 100);
+        second.compliance_path.layers[0].siblings[0] = Fq::from(123u64).to_bytes().to_vec();
+        let err = TransferPlan::new(vec![first, second], vec![output], Fr::from(5u64))
+            .expect_err("sender compliance path mismatch must fail during plan construction");
+        assert!(err
+            .to_string()
+            .contains("transfer spends must use the same sender compliance witness"));
+
+        let mut proto: pb::TransferPlan = two_spend_plan().into();
+        proto.spends[1].compliance_position = proto.spends[1].compliance_position.wrapping_add(1);
+        let err = TransferPlan::try_from(proto)
+            .expect_err("sender compliance position mismatch must fail during plan decoding");
+        assert!(err
+            .to_string()
+            .contains("transfer spends must use the same sender compliance witness"));
+    }
+
+    #[test]
+    fn plan_proto_rejects_stale_balance_commitment() {
+        let (spend, output, _, _) = transfer_parts(100, 100);
+        let plan = TransferPlan::new(vec![spend], vec![output], Fr::from(5u64))
+            .expect("transfer plan should be valid");
+        let mut proto: pb::TransferPlan = plan.into();
+        proto
+            .body
+            .as_mut()
+            .expect("transfer plan body")
+            .balance_commitment = Some(Balance::default().commit(Fr::from(6u64)).into());
+
+        let err = TransferPlan::try_from(proto)
+            .expect_err("deserialization must reject a stale balance commitment");
+        assert!(err
+            .to_string()
+            .contains("transfer body balance commitment must match plan balance"));
+    }
+
+    #[test]
     fn new_preserves_transfer_public_inputs() {
         let (spend, output, _, _) = transfer_parts(100, 100);
         let plan = TransferPlan::new(vec![spend.clone()], vec![output], Fr::from(5u64))
@@ -905,6 +1074,24 @@ mod tests {
         assert_eq!(plan.body.asset_anchor, spend.asset_anchor);
         assert_eq!(plan.body.compliance_anchor, spend.compliance_anchor);
         assert_eq!(plan.body.target_timestamp, spend.target_timestamp);
+        assert!(plan
+            .body
+            .inputs
+            .iter()
+            .all(|input| input.encrypted_backref.len() == crate::backref::ENCRYPTED_BACKREF_LEN));
+    }
+
+    #[test]
+    fn transfer_input_wire_rejects_empty_backreference() {
+        let (spend, output, _, _) = transfer_parts(100, 100);
+        let plan = TransferPlan::new(vec![spend], vec![output], Fr::from(5u64))
+            .expect("transfer plan should be valid");
+        let mut proto: pb::TransferPlan = plan.into();
+        proto.body.as_mut().expect("transfer plan body").inputs[0]
+            .encrypted_backref
+            .clear();
+
+        assert!(TransferPlan::try_from(proto).is_err());
     }
 
     // Regression: the fee-funding enricher mutates spend/output anchors after
@@ -945,17 +1132,98 @@ mod tests {
     }
 
     #[test]
-    fn receiver_and_change_output_indices_are_explicit() {
+    fn receiver_and_change_output_indices_preserve_plan_order() {
         let (spend, receiver, proof, anchor) = transfer_parts(100, 60);
         let change = change_output(&spend, 40);
         let plan = TransferPlan::new(vec![spend], vec![receiver, change], Fr::from(5u64))
             .expect("transfer plan with change should be valid");
+        let expected_receiver = plan.outputs[0].output_note().commit();
+        let expected_change = plan.outputs[1].output_note().commit();
 
         let (_public, private) = plan
             .transfer_public_private(&test_keys::FULL_VIEWING_KEY, &[proof], anchor)
             .expect("transfer public/private inputs should build");
 
-        assert!(private.outputs[0].is_receiver);
-        assert!(!private.outputs[1].is_receiver);
+        assert_eq!(
+            private.receiver_output.created_note.commit(),
+            expected_receiver
+        );
+        assert_eq!(private.change_output.created_note.commit(), expected_change);
+    }
+
+    #[test]
+    fn transfer_body_hides_padding_and_wraps_all_outputs_under_action_commitment() {
+        let (spend, receiver, _, anchor) = transfer_parts(100, 60);
+        let plan = TransferPlan::new(vec![spend], vec![receiver], Fr::from(5u64))
+            .expect("transfer plan should be valid");
+        let mut rng = OsRng;
+        let memo_key = PayloadKey::random_key(&mut rng);
+        let body = plan
+            .transfer_body(&test_keys::FULL_VIEWING_KEY, &memo_key, anchor)
+            .expect("transfer body should build");
+
+        assert!(body
+            .inputs
+            .iter()
+            .all(|input| input.encrypted_backref.len() == crate::backref::ENCRYPTED_BACKREF_LEN));
+        for input in &body.inputs {
+            assert!(input
+                .encrypted_backref
+                .decrypt(&test_keys::FULL_VIEWING_KEY.backref_key(), &input.nullifier)
+                .expect("backreference should decrypt")
+                .is_some());
+        }
+
+        assert!(body
+            .outputs
+            .iter()
+            .all(|output| output.wrapped_memo_key.0 != [0u8; 48]
+                && output.ovk_wrapped_key.0 != [0u8; 48]));
+
+        let expected_notes = [
+            plan.outputs[0].output_note(),
+            plan.synthetic_dummy_output_note(CHANGE_OUTPUT_INDEX),
+        ];
+        for (output, expected_note) in body.outputs.iter().zip(expected_notes) {
+            let epk = &output.note_payload.ephemeral_key;
+            let shared_secret = Note::decrypt_key(
+                output.ovk_wrapped_key.clone(),
+                output.note_payload.note_commitment,
+                body.balance_commitment,
+                test_keys::FULL_VIEWING_KEY.outgoing(),
+                epk,
+            )
+            .expect("outgoing key should unwrap under the serialized action commitment");
+            let payload_key = PayloadKey::derive(&shared_secret, epk);
+            assert_eq!(
+                output
+                    .wrapped_memo_key
+                    .decrypt_outgoing(&payload_key)
+                    .expect("memo key should unwrap"),
+                memo_key
+            );
+            assert_eq!(
+                Note::decrypt_with_payload_key(
+                    &output.note_payload.encrypted_note,
+                    &payload_key,
+                    epk,
+                )
+                .expect("note should decrypt"),
+                expected_note
+            );
+        }
+
+        let legacy_per_output_commitment = plan.outputs[0]
+            .balance()
+            .commit(plan.outputs[0].value_blinding);
+        let receiver = &body.outputs[0];
+        assert!(Note::decrypt_key(
+            receiver.ovk_wrapped_key.clone(),
+            receiver.note_payload.note_commitment,
+            legacy_per_output_commitment,
+            test_keys::FULL_VIEWING_KEY.outgoing(),
+            &receiver.note_payload.ephemeral_key,
+        )
+        .is_err());
     }
 }

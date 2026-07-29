@@ -672,9 +672,6 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                     execution_context.block_timestamp,
                 )?;
                 for input in &transfer.body.inputs {
-                    if input.is_dummy() {
-                        continue;
-                    }
                     anyhow::ensure!(
                         tx_nullifiers.insert(input.nullifier),
                         "transaction contains duplicate spend nullifier {}",
@@ -688,7 +685,6 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                         .body
                         .outputs
                         .iter()
-                        .filter(|output| !output.is_dummy())
                         .map(|output| output.note_payload.clone()),
                 );
             }
@@ -725,9 +721,6 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
             execution_context.block_timestamp,
         )?;
         for input in &fee_funding.transfer.body.inputs {
-            if input.is_dummy() {
-                continue;
-            }
             anyhow::ensure!(
                 tx_nullifiers.insert(input.nullifier),
                 "transaction contains duplicate spend nullifier {}",
@@ -745,7 +738,6 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                 .body
                 .outputs
                 .iter()
-                .filter(|output| !output.is_dummy())
                 .map(|output| output.note_payload.clone()),
         );
     }
@@ -888,9 +880,6 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                     execution_context.block_timestamp,
                 )?;
                 for input in &transfer.body.inputs {
-                    if input.is_dummy() {
-                        continue;
-                    }
                     anyhow::ensure!(
                         tx_nullifiers.insert(input.nullifier),
                         "transaction contains duplicate spend nullifier {}",
@@ -904,7 +893,6 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                         .body
                         .outputs
                         .iter()
-                        .filter(|output| !output.is_dummy())
                         .map(|output| output.note_payload.clone()),
                 );
             }
@@ -941,9 +929,6 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
             execution_context.block_timestamp,
         )?;
         for input in &fee_funding.transfer.body.inputs {
-            if input.is_dummy() {
-                continue;
-            }
             anyhow::ensure!(
                 tx_nullifiers.insert(input.nullifier),
                 "transaction contains duplicate spend nullifier {}",
@@ -961,7 +946,6 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                 .body
                 .outputs
                 .iter()
-                .filter(|output| !output.is_dummy())
                 .map(|output| output.note_payload.clone()),
         );
     }

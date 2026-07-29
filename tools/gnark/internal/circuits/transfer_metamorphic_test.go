@@ -2,15 +2,19 @@ package circuits_test
 
 import (
 	"math/big"
+	"reflect"
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
+	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
 	"github.com/consensys/gnark/test"
+	decafgnark "github.com/mizufinance/decaf377-go/gnark"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/abi"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
+	"golang.org/x/crypto/blake2b"
 )
 
 type transferMutation struct {
@@ -20,8 +24,8 @@ type transferMutation struct {
 
 func loadTransferAssignment(t *testing.T) *circuits.TransferCircuit {
 	t.Helper()
-	fixtureBytes := testfixtures.LoadTransferWitnessV1("transfer")
-	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV1(fixtureBytes)
+	fixtureBytes := testfixtures.LoadTransferWitnessV11("transfer")
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV11(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode transfer witness fixture: %v", err)
 	}
@@ -31,16 +35,8 @@ func loadTransferAssignment(t *testing.T) *circuits.TransferCircuit {
 
 func validateTransferMutationFixture(t *testing.T, assignment *circuits.TransferCircuit) {
 	t.Helper()
-	// These metamorphic tests assume the fixed 2-input, 2-output transfer fixture
-	// used by the transfer circuit and mutate the first spend/output path directly.
-	if len(assignment.Spends) == 0 {
-		t.Fatalf("transfer witness fixture must contain at least one spend")
-	}
-	if len(assignment.Outputs) < 2 {
-		t.Fatalf("transfer witness fixture must contain at least two outputs")
-	}
-	if len(assignment.Spends[0].StateProof.Path) == 0 {
-		t.Fatalf("transfer witness fixture first spend must contain a state path")
+	if len(assignment.RequiredSpend.StateProof.Path) == 0 {
+		t.Fatalf("transfer witness fixture required spend must contain a state path")
 	}
 }
 
@@ -86,19 +82,16 @@ func pointFromNative(t *testing.T, x, y *big.Int) circuits.Point2D {
 func transferAssignmentWithFalseRegulatedBranch(t *testing.T) *circuits.TransferCircuit {
 	t.Helper()
 
-	fixtureBytes := testfixtures.LoadTransferWitnessV1("transfer")
-	witness, _, err := abi.DecodeTransferWitnessV1(fixtureBytes)
+	fixtureBytes := testfixtures.LoadTransferWitnessV11("transfer")
+	witness, _, err := abi.DecodeTransferWitnessV11(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode transfer witness fixture: %v", err)
 	}
 	if !witness.IsRegulated {
 		t.Fatalf("transfer fixture must start regulated for this regression")
 	}
-	if len(witness.Outputs) == 0 || !witness.Outputs[0].IsReceiver {
-		t.Fatalf("transfer fixture must expose receiver output first")
-	}
 
-	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV1(fixtureBytes)
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV11(fixtureBytes)
 	if err != nil {
 		t.Fatalf("build transfer assignment: %v", err)
 	}
@@ -116,7 +109,7 @@ func transferAssignmentWithFalseRegulatedBranch(t *testing.T) *circuits.Transfer
 	}
 	receiverAck, err := compliance.DeriveACKFromLeafDNative(
 		unregulatedRingPK,
-		primitives.LittleEndianBytesToBigInt(witness.Outputs[0].RecipientD[:]),
+		primitives.LittleEndianBytesToBigInt(witness.ReceiverOutput.RecipientD[:]),
 	)
 	if err != nil {
 		t.Fatalf("derive unregulated receiver ACK: %v", err)
@@ -135,7 +128,7 @@ func transferAssignmentWithFalseRegulatedBranch(t *testing.T) *circuits.Transfer
 	witness.OutputCore.DerivedPKAffine = receiverPoint
 	witness.OutputExt.DerivedPKAffine = receiverPoint
 
-	fields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV1(witness)
+	fields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV11(witness)
 	if err != nil {
 		t.Fatalf("reconstruct transfer statement fields: %v", err)
 	}
@@ -165,15 +158,15 @@ func TestTransferCircuitRejectsRegulatedAssetRoutedAsUnregulated(t *testing.T) {
 }
 
 func TestShieldedIcs20WithdrawalCircuitRejectsRegulatedAssetRoutedAsUnregulated(t *testing.T) {
-	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV1("shielded_ics20_withdrawal")
-	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV1(fixtureBytes)
+	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV6("shielded_ics20_withdrawal")
+	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV6(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode shielded ICS-20 withdrawal fixture: %v", err)
 	}
 	if !witness.IsRegulated {
 		t.Fatalf("shielded ICS-20 withdrawal fixture must start regulated for this regression")
 	}
-	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV1(fixtureBytes)
+	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV6(fixtureBytes)
 	if err != nil {
 		t.Fatalf("build shielded ICS-20 withdrawal assignment: %v", err)
 	}
@@ -188,6 +181,542 @@ func TestShieldedIcs20WithdrawalCircuitRejectsRegulatedAssetRoutedAsUnregulated(
 	}
 }
 
+func withdrawalDummyNullifier(
+	t *testing.T,
+	spend abi.ShieldedIcs20WithdrawalOptionalSpendWitnessV6Binary,
+) *big.Int {
+	t.Helper()
+
+	const slot = 1
+	domainBytes := blake2b.Sum512(
+		[]byte("shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier"),
+	)
+	nullifier, err := primitives.Poseidon377Hash3Native(
+		primitives.LittleEndianBytesToBigInt(domainBytes[:]),
+		[3]*big.Int{
+			primitives.LittleEndianBytesToBigInt(spend.DummyNullifierSeed[:]),
+			primitives.LittleEndianBytesToBigInt(spend.SpendAuthRandomizer[:]),
+			big.NewInt(int64(slot)),
+		},
+	)
+	if err != nil {
+		t.Fatalf("compute synthetic withdrawal nullifier for slot %d: %v", slot, err)
+	}
+	return nullifier
+}
+
+func makeWithdrawalOptionalSpendDummy(
+	t *testing.T,
+	witness *abi.ShieldedIcs20WithdrawalWitnessV6Binary,
+	assignment *circuits.ShieldedIcs20WithdrawalCircuit,
+) {
+	t.Helper()
+
+	spend := &witness.OptionalSpend
+	spend.IsDummy = true
+	spend.SpentNoteAmount = [32]byte{}
+	assignment.OptionalSpend.IsDummy = 1
+	assignment.OptionalSpend.Note.Amount = 0
+
+	dummyNullifier := withdrawalDummyNullifier(t, *spend)
+	spend.Nullifier = le32FromBigInt(t, dummyNullifier)
+	assignment.OptionalSpend.Nullifier = dummyNullifier.String()
+}
+
+func TestShieldedIcs20WithdrawalRequiredSpendOmitsDummyLayout(t *testing.T) {
+	for label, typ := range map[string]reflect.Type{
+		"binary required spend":  reflect.TypeOf(abi.ShieldedIcs20WithdrawalRequiredSpendWitnessV6Binary{}),
+		"circuit required spend": reflect.TypeOf(circuits.ShieldedIcs20WithdrawalRequiredSpendCircuitFields{}),
+	} {
+		for _, prohibited := range []string{"IsDummy", "DummyNullifierSeed", "DummySpendAuthKey"} {
+			if _, ok := typ.FieldByName(prohibited); ok {
+				t.Fatalf("%s must not carry %s", label, prohibited)
+			}
+		}
+	}
+	for label, typ := range map[string]reflect.Type{
+		"binary optional spend":  reflect.TypeOf(abi.ShieldedIcs20WithdrawalOptionalSpendWitnessV6Binary{}),
+		"circuit optional spend": reflect.TypeOf(circuits.ShieldedIcs20WithdrawalOptionalSpendCircuitFields{}),
+	} {
+		for _, required := range []string{"IsDummy", "DummyNullifierSeed"} {
+			if _, ok := typ.FieldByName(required); !ok {
+				t.Fatalf("%s must carry %s", label, required)
+			}
+		}
+		if _, ok := typ.FieldByName("DummySpendAuthKey"); ok {
+			t.Fatalf("%s must not carry a dummy spend authorization key", label)
+		}
+	}
+}
+
+func TestTransferV11UsesRoleSpecificSemanticLayout(t *testing.T) {
+	for label, typ := range map[string]reflect.Type{
+		"binary required spend":  reflect.TypeOf(abi.TransferRequiredSpendWitnessV11Binary{}),
+		"circuit required spend": reflect.TypeOf(circuits.TransferRequiredSpendCircuitFields{}),
+	} {
+		for _, prohibited := range []string{"IsDummy", "DummyNullifierSeed", "DummySpendAuthKey"} {
+			if _, ok := typ.FieldByName(prohibited); ok {
+				t.Fatalf("%s must not carry %s", label, prohibited)
+			}
+		}
+	}
+	for label, entry := range map[string]struct {
+		typ      reflect.Type
+		required []string
+	}{
+		"binary optional spend": {
+			typ:      reflect.TypeOf(abi.TransferOptionalSpendWitnessV11Binary{}),
+			required: []string{"Nullifier", "RKAffine", "IsDummy", "DummyNullifierSeed"},
+		},
+		"circuit optional spend": {
+			typ:      reflect.TypeOf(circuits.TransferOptionalSpendCircuitFields{}),
+			required: []string{"Nullifier", "RK", "IsDummy", "DummyNullifierSeed"},
+		},
+	} {
+		for _, required := range entry.required {
+			if _, ok := entry.typ.FieldByName(required); !ok {
+				t.Fatalf("%s must carry %s", label, required)
+			}
+		}
+		for _, prohibited := range []string{"Spend", "SpentNoteAssetID", "DummySpendAuthKey"} {
+			if _, ok := entry.typ.FieldByName(prohibited); ok {
+				t.Fatalf("%s must not carry %s", label, prohibited)
+			}
+		}
+	}
+	for label, typ := range map[string]reflect.Type{
+		"binary transfer witness": reflect.TypeOf(abi.TransferWitnessV11Binary{}),
+		"transfer circuit":        reflect.TypeOf(circuits.TransferCircuit{}),
+	} {
+		for _, prohibited := range []string{"Spends", "Outputs"} {
+			if _, ok := typ.FieldByName(prohibited); ok {
+				t.Fatalf("%s must expose role-specific fields, not %s", label, prohibited)
+			}
+		}
+		for _, required := range []string{
+			"RequiredSpend",
+			"OptionalSpend",
+			"ReceiverOutput",
+			"ChangeOutput",
+		} {
+			if _, ok := typ.FieldByName(required); !ok {
+				t.Fatalf("%s must carry %s", label, required)
+			}
+		}
+	}
+
+	binaryWitness := reflect.TypeOf(abi.TransferWitnessV11Binary{})
+	for _, prohibited := range []string{
+		"NIn",
+		"NOut",
+		"StatementFields",
+		"BalanceCommitment",
+		"AK",
+		"SenderAssetID",
+	} {
+		if _, ok := binaryWitness.FieldByName(prohibited); ok {
+			t.Fatalf("binary transfer witness must not serialize derived or ignored field %s", prohibited)
+		}
+	}
+
+	for label, typ := range map[string]reflect.Type{
+		"binary required spend":  reflect.TypeOf(abi.TransferRequiredSpendWitnessV11Binary{}),
+		"binary optional spend":  reflect.TypeOf(abi.TransferOptionalSpendWitnessV11Binary{}),
+		"circuit required spend": reflect.TypeOf(circuits.TransferRequiredSpendCircuitFields{}),
+		"circuit optional spend": reflect.TypeOf(circuits.TransferOptionalSpendCircuitFields{}),
+	} {
+		for _, prohibited := range []string{
+			"StateCommitmentCommitment",
+			"SpentNoteAddress",
+			"SpentNoteDiversifiedGenerator",
+			"SpentDiversifiedGenerator",
+			"SpentTransmissionKey",
+		} {
+			if _, ok := typ.FieldByName(prohibited); ok {
+				t.Fatalf("%s must derive shared sender data instead of carrying %s", label, prohibited)
+			}
+		}
+	}
+
+	for label, typ := range map[string]reflect.Type{
+		"binary receiver output":  reflect.TypeOf(abi.TransferReceiverOutputWitnessV11Binary{}),
+		"circuit receiver output": reflect.TypeOf(circuits.TransferReceiverOutputCircuitFields{}),
+	} {
+		for _, prohibited := range []string{
+			"IsReceiver",
+			"CreatedNoteAssetID",
+			"CreatedNoteAddress",
+			"CreatedNoteDiversifiedGenerator",
+			"CreatedTransmissionKey",
+		} {
+			if _, ok := typ.FieldByName(prohibited); ok {
+				t.Fatalf("%s must use the canonical recipient and shared asset, not %s", label, prohibited)
+			}
+		}
+	}
+
+	for label, typ := range map[string]reflect.Type{
+		"binary change output":  reflect.TypeOf(abi.TransferChangeOutputWitnessV11Binary{}),
+		"circuit change output": reflect.TypeOf(circuits.TransferChangeOutputCircuitFields{}),
+	} {
+		for _, prohibited := range []string{
+			"IsReceiver",
+			"CreatedNoteAssetID",
+			"Recipient",
+			"RecipientD",
+			"RecipientCompliancePath",
+			"RecipientTransmissionKey",
+		} {
+			if _, ok := typ.FieldByName(prohibited); ok {
+				t.Fatalf("%s must derive sender change data instead of carrying %s", label, prohibited)
+			}
+		}
+	}
+}
+
+func transferDummyNullifierForSlot(
+	t *testing.T,
+	optional abi.TransferOptionalSpendWitnessV11Binary,
+	slot int,
+) *big.Int {
+	t.Helper()
+
+	domainBytes := blake2b.Sum512([]byte("shieldd.transfer.synthetic_dummy.nullifier"))
+	nullifier, err := primitives.Poseidon377Hash3Native(
+		primitives.LittleEndianBytesToBigInt(domainBytes[:]),
+		[3]*big.Int{
+			primitives.LittleEndianBytesToBigInt(optional.DummyNullifierSeed[:]),
+			primitives.LittleEndianBytesToBigInt(optional.SpendAuthRandomizer[:]),
+			big.NewInt(int64(slot)),
+		},
+	)
+	if err != nil {
+		t.Fatalf("compute synthetic transfer nullifier for slot %d: %v", slot, err)
+	}
+	return nullifier
+}
+
+func transferNetBalanceCommitment(
+	t *testing.T,
+	witness *abi.TransferWitnessV11Binary,
+) gnarkte.Point {
+	t.Helper()
+
+	valueGenerator, err := circuits.ValueGeneratorNative(
+		primitives.LittleEndianBytesToBigInt(witness.RequiredSpend.SpentNoteAssetID[:]),
+	)
+	if err != nil {
+		t.Fatalf("derive transfer value generator: %v", err)
+	}
+	valueBlindingGenerator, err := circuits.ValueBlindingGeneratorNative()
+	if err != nil {
+		t.Fatalf("load transfer value blinding generator: %v", err)
+	}
+
+	sum, err := decafgnark.ScalarMulNative(valueGenerator, big.NewInt(0), 128)
+	if err != nil {
+		t.Fatalf("initialize transfer balance commitment: %v", err)
+	}
+	for index, amount := range [][32]byte{
+		witness.RequiredSpend.SpentNoteAmount,
+		witness.OptionalSpend.SpentNoteAmount,
+	} {
+		amountPoint, err := decafgnark.ScalarMulNative(
+			valueGenerator,
+			primitives.LittleEndianBytesToBigInt(amount[:]),
+			128,
+		)
+		if err != nil {
+			t.Fatalf("compute transfer input %d value point: %v", index, err)
+		}
+		sum, err = decafgnark.PointAddNative(sum, amountPoint)
+		if err != nil {
+			t.Fatalf("add transfer input %d value point: %v", index, err)
+		}
+	}
+	for index, amount := range [][32]byte{
+		witness.ReceiverOutput.CreatedNoteAmount,
+		witness.ChangeOutput.CreatedNoteAmount,
+	} {
+		amountPoint, err := decafgnark.ScalarMulNative(
+			valueGenerator,
+			primitives.LittleEndianBytesToBigInt(amount[:]),
+			128,
+		)
+		if err != nil {
+			t.Fatalf("compute transfer output %d value point: %v", index, err)
+		}
+		negativeAmountPoint := gnarkte.Point{
+			X: new(big.Int).Mod(
+				new(big.Int).Neg(amountPoint.X.(*big.Int)),
+				primitives.ScalarField(),
+			),
+			Y: new(big.Int).Set(amountPoint.Y.(*big.Int)),
+		}
+		sum, err = decafgnark.PointAddNative(sum, negativeAmountPoint)
+		if err != nil {
+			t.Fatalf("subtract transfer output %d value point: %v", index, err)
+		}
+	}
+
+	vectors, err := primitives.LoadPrototypeVectors()
+	if err != nil {
+		t.Fatalf("load prototype vectors: %v", err)
+	}
+	blindingPoint, err := decafgnark.ScalarMulNative(
+		valueBlindingGenerator,
+		primitives.LittleEndianBytesToBigInt(witness.ActionBalanceBlinding[:]),
+		primitives.MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen(),
+	)
+	if err != nil {
+		t.Fatalf("compute transfer balance blinding point: %v", err)
+	}
+	sum, err = decafgnark.PointAddNative(sum, blindingPoint)
+	if err != nil {
+		t.Fatalf("add transfer balance blinding point: %v", err)
+	}
+	return sum
+}
+
+func TestTransferDummySpendRKIsExternallyAuthorized(t *testing.T) {
+	fixtureBytes := testfixtures.LoadTransferWitnessV11("transfer")
+	witness, _, err := abi.DecodeTransferWitnessV11(fixtureBytes)
+	if err != nil {
+		t.Fatalf("decode transfer witness fixture: %v", err)
+	}
+	assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV11(fixtureBytes)
+	if err != nil {
+		t.Fatalf("build transfer assignment: %v", err)
+	}
+	if witness.RequiredSpend.RKAffine == witness.OptionalSpend.RKAffine {
+		t.Fatal("transfer fixture must expose two distinct real spend RKs")
+	}
+
+	const dummySlot = 1
+	optional := &witness.OptionalSpend
+	optional.IsDummy = true
+	optional.SpentNoteAmount = [32]byte{}
+	optional.RKAffine = witness.RequiredSpend.RKAffine
+	dummyNullifier := transferDummyNullifierForSlot(t, *optional, dummySlot)
+	optional.Nullifier = le32FromBigInt(t, dummyNullifier)
+
+	assignment.OptionalSpend.IsDummy = 1
+	assignment.OptionalSpend.Note.Amount = 0
+	assignment.OptionalSpend.RK = assignment.RequiredSpend.RK
+	assignment.OptionalSpend.Nullifier = dummyNullifier.String()
+
+	balanceCommitment := transferNetBalanceCommitment(t, witness)
+	balanceX := balanceCommitment.X.(*big.Int)
+	balanceY := balanceCommitment.Y.(*big.Int)
+	witness.BalanceCommitmentAffine = abi.PointAffineBinary{
+		X: le32FromBigInt(t, balanceX),
+		Y: le32FromBigInt(t, balanceY),
+	}
+	assignment.BalanceCommitment = circuits.Point2D{
+		X: balanceX.String(),
+		Y: balanceY.String(),
+	}
+
+	fields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV11(witness)
+	if err != nil {
+		t.Fatalf("reconstruct transfer statement fields: %v", err)
+	}
+	statementHash, err := primitives.TransferStatementHashNativeForShape(
+		fieldElementStrings(fields),
+		circuits.TransferCircuitInputs,
+		circuits.TransferCircuitOutputs,
+	)
+	if err != nil {
+		t.Fatalf("compute transfer statement hash: %v", err)
+	}
+	assignment.ClaimedStatementHash = statementHash.String()
+
+	if err := test.IsSolved(
+		circuits.NewTransferCircuit(),
+		assignment,
+		ecc.BLS12_377.ScalarField(),
+	); err != nil {
+		t.Fatalf("transfer circuit rejected externally authorized dummy RK: %v", err)
+	}
+}
+
+func setWithdrawalStatementHash(
+	t *testing.T,
+	witness *abi.ShieldedIcs20WithdrawalWitnessV6Binary,
+	assignment *circuits.ShieldedIcs20WithdrawalCircuit,
+	nIn int,
+) {
+	t.Helper()
+
+	fields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV6(witness)
+	if err != nil {
+		t.Fatalf("reconstruct withdrawal statement fields: %v", err)
+	}
+	statementHash, err := primitives.ShieldedIcs20WithdrawalStatementHashNativeForShape(
+		fieldElementStrings(fields),
+		nIn,
+	)
+	if err != nil {
+		t.Fatalf("compute withdrawal statement hash: %v", err)
+	}
+	assignment.ClaimedStatementHash = statementHash.String()
+}
+
+func withdrawalNetBalanceCommitment(
+	t *testing.T,
+	witness *abi.ShieldedIcs20WithdrawalWitnessV6Binary,
+) gnarkte.Point {
+	t.Helper()
+
+	valueGenerator, err := circuits.ValueGeneratorNative(
+		primitives.LittleEndianBytesToBigInt(witness.OutboundAssetID[:]),
+	)
+	if err != nil {
+		t.Fatalf("derive withdrawal value generator: %v", err)
+	}
+	valueBlindingGenerator, err := circuits.ValueBlindingGeneratorNative()
+	if err != nil {
+		t.Fatalf("load withdrawal value blinding generator: %v", err)
+	}
+
+	sum, err := decafgnark.ScalarMulNative(valueGenerator, big.NewInt(0), 128)
+	if err != nil {
+		t.Fatalf("initialize withdrawal balance commitment: %v", err)
+	}
+	for index, spend := range []abi.ShieldedIcs20WithdrawalRequiredSpendWitnessV6Binary{
+		witness.RequiredSpend,
+		witness.OptionalSpend.ShieldedIcs20WithdrawalRequiredSpendWitnessV6Binary,
+	} {
+		amountPoint, err := decafgnark.ScalarMulNative(
+			valueGenerator,
+			primitives.LittleEndianBytesToBigInt(spend.SpentNoteAmount[:]),
+			128,
+		)
+		if err != nil {
+			t.Fatalf("compute withdrawal input %d value point: %v", index, err)
+		}
+		sum, err = decafgnark.PointAddNative(sum, amountPoint)
+		if err != nil {
+			t.Fatalf("add withdrawal input %d value point: %v", index, err)
+		}
+	}
+	for index, amount := range [][32]byte{
+		witness.ChangeOutput.CreatedNoteAmount,
+		witness.OutboundAmount,
+	} {
+		amountPoint, err := decafgnark.ScalarMulNative(
+			valueGenerator,
+			primitives.LittleEndianBytesToBigInt(amount[:]),
+			128,
+		)
+		if err != nil {
+			t.Fatalf("compute withdrawal output %d value point: %v", index, err)
+		}
+		negativeAmountPoint := gnarkte.Point{
+			X: new(big.Int).Mod(
+				new(big.Int).Neg(amountPoint.X.(*big.Int)),
+				primitives.ScalarField(),
+			),
+			Y: new(big.Int).Set(amountPoint.Y.(*big.Int)),
+		}
+		sum, err = decafgnark.PointAddNative(sum, negativeAmountPoint)
+		if err != nil {
+			t.Fatalf("subtract withdrawal output %d value point: %v", index, err)
+		}
+	}
+
+	vectors, err := primitives.LoadPrototypeVectors()
+	if err != nil {
+		t.Fatalf("load prototype vectors: %v", err)
+	}
+	blindingPoint, err := decafgnark.ScalarMulNative(
+		valueBlindingGenerator,
+		primitives.LittleEndianBytesToBigInt(witness.ActionBalanceBlinding[:]),
+		primitives.MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen(),
+	)
+	if err != nil {
+		t.Fatalf("compute withdrawal balance blinding point: %v", err)
+	}
+	sum, err = decafgnark.PointAddNative(sum, blindingPoint)
+	if err != nil {
+		t.Fatalf("add withdrawal balance blinding point: %v", err)
+	}
+	return sum
+}
+
+func setWithdrawalBalanceCommitment(
+	t *testing.T,
+	witness *abi.ShieldedIcs20WithdrawalWitnessV6Binary,
+	assignment *circuits.ShieldedIcs20WithdrawalCircuit,
+) {
+	t.Helper()
+
+	balanceCommitment := withdrawalNetBalanceCommitment(t, witness)
+	balanceX := balanceCommitment.X.(*big.Int)
+	balanceY := balanceCommitment.Y.(*big.Int)
+	witness.BalanceCommitmentAffine = abi.PointAffineBinary{
+		X: le32FromBigInt(t, balanceX),
+		Y: le32FromBigInt(t, balanceY),
+	}
+	assignment.BalanceCommitment = circuits.Point2D{
+		X: balanceX.String(),
+		Y: balanceY.String(),
+	}
+}
+
+func loadWithdrawalFixture(
+	t *testing.T,
+) (
+	*abi.ShieldedIcs20WithdrawalWitnessV6Binary,
+	*circuits.ShieldedIcs20WithdrawalCircuit,
+	int,
+) {
+	t.Helper()
+
+	fixtureBytes := testfixtures.LoadShieldedIcs20WithdrawalWitnessV6(
+		"shielded_ics20_withdrawal",
+	)
+	witness, family, err := abi.DecodeShieldedIcs20WithdrawalWitnessV6(fixtureBytes)
+	if err != nil {
+		t.Fatalf("decode shielded ICS-20 withdrawal fixture: %v", err)
+	}
+	assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV6(
+		fixtureBytes,
+	)
+	if err != nil {
+		t.Fatalf("build shielded ICS-20 withdrawal assignment: %v", err)
+	}
+	if witness.OptionalSpend.IsDummy {
+		t.Fatal("canonical withdrawal mutation fixture must start with a real optional input")
+	}
+	return witness, assignment, family.NIn
+}
+
+func TestShieldedIcs20WithdrawalAcceptsExternalPaddedRK(t *testing.T) {
+	witness, assignment, nIn := loadWithdrawalFixture(t)
+
+	makeWithdrawalOptionalSpendDummy(t, witness, assignment)
+	// Dummy inputs authorize no state in the circuit. Their public RK is
+	// authenticated by the transaction-layer spend signature, so use a
+	// well-formed external key that deliberately does not match this slot's
+	// in-circuit AK randomization.
+	witness.OptionalSpend.RKAffine = witness.AKAffine
+	assignment.OptionalSpend.RK = circuits.Point2D{
+		X: primitives.LittleEndianBytesToBigInt(witness.AKAffine.X[:]).String(),
+		Y: primitives.LittleEndianBytesToBigInt(witness.AKAffine.Y[:]).String(),
+	}
+	setWithdrawalBalanceCommitment(t, witness, assignment)
+	setWithdrawalStatementHash(t, witness, assignment, nIn)
+
+	if err := test.IsSolved(
+		circuits.NewShieldedIcs20WithdrawalCircuit(nIn),
+		assignment,
+		ecc.BLS12_377.ScalarField(),
+	); err != nil {
+		t.Fatalf("withdrawal rejected an external padded RK: %v", err)
+	}
+}
+
 func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 	mutations := []transferMutation{
 		{
@@ -199,38 +728,32 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 		{
 			name: "spend nullifier",
 			mutate: func(c *circuits.TransferCircuit) {
-				c.Spends[0].Nullifier = mutateFieldByOne(c.Spends[0].Nullifier)
+				c.RequiredSpend.Nullifier = mutateFieldByOne(c.RequiredSpend.Nullifier)
 			},
 		},
 		{
 			name: "randomized verification key",
 			mutate: func(c *circuits.TransferCircuit) {
-				c.Spends[0].RK.X = mutateFieldByOne(c.Spends[0].RK.X)
+				c.RequiredSpend.RK.X = mutateFieldByOne(c.RequiredSpend.RK.X)
 			},
 		},
 		{
 			name: "state path",
 			mutate: func(c *circuits.TransferCircuit) {
-				c.Spends[0].StateProof.Path[0][0] = mutateFieldByOne(c.Spends[0].StateProof.Path[0][0])
+				c.RequiredSpend.StateProof.Path[0][0] =
+					mutateFieldByOne(c.RequiredSpend.StateProof.Path[0][0])
 			},
 		},
 		{
 			name: "output note commitment",
 			mutate: func(c *circuits.TransferCircuit) {
-				c.Outputs[0].NoteCommitment = mutateFieldByOne(c.Outputs[0].NoteCommitment)
+				c.ReceiverOutput.NoteCommitment = mutateFieldByOne(c.ReceiverOutput.NoteCommitment)
 			},
 		},
 		{
 			name: "balance commitment",
 			mutate: func(c *circuits.TransferCircuit) {
 				c.BalanceCommitment.X = mutateFieldByOne(c.BalanceCommitment.X)
-			},
-		},
-		{
-			name: "output ordering",
-			mutate: func(c *circuits.TransferCircuit) {
-				c.Outputs[0].IsReceiver = 0
-				c.Outputs[1].IsReceiver = 1
 			},
 		},
 	}

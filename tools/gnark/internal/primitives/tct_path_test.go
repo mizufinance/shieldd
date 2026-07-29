@@ -119,6 +119,12 @@ func TestStateCommitmentPathCircuitMatchesSyntheticFixture(t *testing.T) {
 		Path:         statePathAssignment(path),
 		ExpectedRoot: root.String(),
 	}
+	positionAlias := &stateCommitmentPathCircuit{
+		Commitment:   commitment.String(),
+		Position:     position | (uint64(1) << 48),
+		Path:         statePathAssignment(path),
+		ExpectedRoot: root.String(),
+	}
 
 	assert := test.NewAssert(t)
 	assert.CheckCircuit(
@@ -126,6 +132,7 @@ func TestStateCommitmentPathCircuitMatchesSyntheticFixture(t *testing.T) {
 		test.WithCurves(ecc.BLS12_377),
 		test.WithBackends(backend.GROTH16),
 		test.WithValidAssignment(assignment),
+		test.WithInvalidAssignment(positionAlias),
 	)
 }
 

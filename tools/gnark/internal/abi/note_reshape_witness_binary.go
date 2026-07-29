@@ -112,7 +112,7 @@ func decodeNoteReshapeWitnessV3(payload []byte) (*NoteReshapeWitnessV3Binary, er
 	if witness.ClaimedStatementHash, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.ActionBalanceBlinding, err = read32(reader); err != nil {
+	if witness.ActionBalanceBlinding, err = readFr32(reader); err != nil {
 		return nil, err
 	}
 	if witness.NK, err = read32(reader); err != nil {
@@ -188,7 +188,7 @@ func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (N
 	if out.StateCommitmentAuthPath, err = readTriplePath(reader); err != nil {
 		return out, err
 	}
-	if out.SpendAuthRandomizer, err = read32(reader); err != nil {
+	if out.SpendAuthRandomizer, err = readFr32(reader); err != nil {
 		return out, err
 	}
 	if out.RKAffine, err = readPointAffine(reader); err != nil {
