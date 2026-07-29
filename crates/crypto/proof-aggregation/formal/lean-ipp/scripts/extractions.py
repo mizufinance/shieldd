@@ -9,10 +9,12 @@ import hashlib
 import json
 import os
 import re
+import signal
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable, Sequence
 
@@ -40,6 +42,11 @@ EXTRACTIONS_REPO_PATH = (
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
 EXPECTED_GRAPH_COUNT = 37
+DEFAULT_EXTRACTION_TIMEOUT_SECONDS = 20 * 60
+PROCESS_RSS_LIMIT_BYTES = 6 * 1024**3
+MIN_AVAILABLE_MEMORY_BYTES = 2 * 1024**3
+RESOURCE_POLL_SECONDS = 5.0
+OUTPUT_SPOOL_LIMIT_BYTES = 1024 * 1024
 
 TOP_FIELDS = {"schema_version", "toolchains", "graphs"}
 TOOLCHAIN_FIELDS = {
@@ -87,6 +94,9 @@ PARITY_FIELDS = {"cwd", "argv"}
 
 class ManifestError(ValueError):
     """A fail-closed extraction-manifest validation error."""
+
+
+_ACTIVE_CHILD: subprocess.Popen[bytes] | None = None
 
 
 def sha256_file(path: Path) -> str:
@@ -491,6 +501,142 @@ def _tail(text: str, lines: int = 50) -> str:
     return "\n".join(text.splitlines()[-lines:])
 
 
+def _bounded_extraction_environment(
+    recipe_environment: dict[str, str],
+) -> dict[str, str]:
+    environment = os.environ.copy()
+    environment.update(recipe_environment)
+    environment.update(
+        CARGO_BUILD_JOBS="1",
+        LEAN_NUM_THREADS="1",
+        RAYON_NUM_THREADS="1",
+    )
+    return environment
+
+
+def _read_spooled(stream: Any) -> str:
+    stream.flush()
+    stream.seek(0)
+    return stream.read().decode("utf-8", errors="replace")
+
+
+def _proc_group_rss_bytes(process_group: int) -> int:
+    if os.name != "posix" or not Path("/proc").is_dir():
+        raise ManifestError("process-group RSS monitoring is unavailable")
+    try:
+        page_size = os.sysconf("SC_PAGE_SIZE")
+    except (AttributeError, OSError, ValueError) as error:
+        raise ManifestError("cannot determine process RSS page size") from error
+
+    total = 0
+    found = False
+    try:
+        entries = list(Path("/proc").iterdir())
+    except OSError as error:
+        raise ManifestError("cannot enumerate /proc for RSS monitoring") from error
+    for entry in entries:
+        if not entry.name.isdigit():
+            continue
+        try:
+            stat = (entry / "stat").read_text(encoding="utf-8")
+            closing_paren = stat.rfind(")")
+            if closing_paren < 0:
+                continue
+            fields = stat[closing_paren + 2 :].split()
+            if len(fields) < 3 or int(fields[2]) != process_group:
+                continue
+            statm = (entry / "statm").read_text(encoding="ascii").split()
+            total += int(statm[1]) * page_size
+            found = True
+        except (FileNotFoundError, PermissionError, ProcessLookupError):
+            continue
+        except (IndexError, OSError, UnicodeError, ValueError) as error:
+            raise ManifestError(
+                f"cannot inspect process {entry.name} for RSS monitoring"
+            ) from error
+    if not found:
+        raise ManifestError(
+            f"cannot locate extraction process group {process_group} in /proc"
+        )
+    return total
+
+
+def _available_memory_bytes() -> int:
+    if os.name != "posix":
+        raise ManifestError("available-memory monitoring is unavailable")
+    try:
+        for line in Path("/proc/meminfo").read_text(encoding="ascii").splitlines():
+            if line.startswith("MemAvailable:"):
+                fields = line.split()
+                if len(fields) != 3 or fields[2] != "kB":
+                    break
+                return int(fields[1]) * 1024
+    except (OSError, UnicodeError, ValueError) as error:
+        raise ManifestError("cannot read available memory from /proc/meminfo") from error
+    raise ManifestError("MemAvailable is missing from /proc/meminfo")
+
+
+def _resource_limit_reason(process_group: int) -> str | None:
+    rss = _proc_group_rss_bytes(process_group)
+    if rss > PROCESS_RSS_LIMIT_BYTES:
+        return (
+            f"process-group RSS {rss} exceeds limit "
+            f"{PROCESS_RSS_LIMIT_BYTES}"
+        )
+    available = _available_memory_bytes()
+    if available < MIN_AVAILABLE_MEMORY_BYTES:
+        return (
+            f"available memory {available} is below limit "
+            f"{MIN_AVAILABLE_MEMORY_BYTES}"
+        )
+    return None
+
+
+def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
+    if process.poll() is not None:
+        return
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return
+        try:
+            process.wait(timeout=2)
+            return
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                return
+    else:
+        process.terminate()
+        try:
+            process.wait(timeout=2)
+            return
+        except subprocess.TimeoutExpired:
+            process.kill()
+    try:
+        process.wait(timeout=2)
+    except subprocess.TimeoutExpired as error:
+        raise ManifestError(
+            f"failed to terminate process group rooted at {process.pid}"
+        ) from error
+
+
+def _signal_cleanup(signum: int, _frame: object) -> None:
+    child = _ACTIVE_CHILD
+    if child is not None:
+        _terminate_process_group(child)
+    raise SystemExit(128 + signum)
+
+
+def install_signal_cleanup() -> None:
+    if os.name != "posix":
+        return
+    signal.signal(signal.SIGINT, _signal_cleanup)
+    signal.signal(signal.SIGTERM, _signal_cleanup)
+
+
 def run_command(
     argv: Sequence[str],
     *,
@@ -498,32 +644,74 @@ def run_command(
     env: dict[str, str] | None = None,
     timeout: int | None = None,
     check: bool = True,
+    enforce_resource_limits: bool = False,
+    poll_seconds: float = RESOURCE_POLL_SECONDS,
 ) -> subprocess.CompletedProcess[str]:
+    global _ACTIVE_CHILD
     command = [str(argument) for argument in argv]
-    try:
-        completed = subprocess.run(
+    started = time.monotonic()
+    failure: str | None = None
+    with (
+        tempfile.SpooledTemporaryFile(max_size=OUTPUT_SPOOL_LIMIT_BYTES) as stdout,
+        tempfile.SpooledTemporaryFile(max_size=OUTPUT_SPOOL_LIMIT_BYTES) as stderr,
+    ):
+        process = subprocess.Popen(
             command,
             cwd=cwd,
             env=env,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
+            stdout=stdout,
+            stderr=stderr,
+            start_new_session=os.name == "posix",
         )
-    except subprocess.TimeoutExpired as error:
+        _ACTIVE_CHILD = process
+        try:
+            while process.poll() is None:
+                elapsed = time.monotonic() - started
+                if timeout is not None and elapsed >= timeout:
+                    failure = f"command timed out after {timeout} seconds"
+                    break
+                if enforce_resource_limits:
+                    try:
+                        failure = _resource_limit_reason(process.pid)
+                    except ManifestError as error:
+                        failure = f"resource monitoring failed: {error}"
+                    if failure is not None:
+                        break
+                remaining = None if timeout is None else max(0.0, timeout - elapsed)
+                time.sleep(
+                    poll_seconds
+                    if remaining is None
+                    else min(poll_seconds, remaining)
+                )
+            if failure is not None:
+                _terminate_process_group(process)
+            returncode = process.wait()
+        finally:
+            _ACTIVE_CHILD = None
+        stdout_text = _read_spooled(stdout)
+        stderr_text = _read_spooled(stderr)
+
+    if failure is not None:
         raise ManifestError(
-            f"command timed out\n"
+            f"{failure}\n"
             f"command: {' '.join(command)}\n"
             f"cwd: {cwd}\n"
-            f"stdout:\n{_tail(error.stdout or '')}\n"
-            f"stderr:\n{_tail(error.stderr or '')}"
-        ) from error
-    if check and completed.returncode:
+            f"stdout:\n{_tail(stdout_text)}\n"
+            f"stderr:\n{_tail(stderr_text)}"
+        )
+    completed = subprocess.CompletedProcess(
+        command,
+        returncode,
+        stdout=stdout_text,
+        stderr=stderr_text,
+    )
+    if check and returncode:
         raise ManifestError(
-            f"command failed ({completed.returncode})\n"
+            f"command failed ({returncode})\n"
             f"command: {' '.join(command)}\n"
             f"cwd: {cwd}\n"
-            f"stdout:\n{_tail(completed.stdout)}\n"
-            f"stderr:\n{_tail(completed.stderr)}"
+            f"stdout:\n{_tail(stdout_text)}\n"
+            f"stderr:\n{_tail(stderr_text)}"
         )
     return completed
 
@@ -570,6 +758,7 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
             "compare/regenerate must run inside WSL or another POSIX environment "
             "with the pinned cargo-hax toolchain loaded"
         )
+    input_hashes_before = current_input_hashes(graph)
     raw_paths: list[Path] = []
     for index, extraction in enumerate(graph["extractions"]):
         output_dir = temp_root / f"extraction-{index}"
@@ -578,10 +767,9 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
             str(output_dir) if token == "{output_dir}" else token
             for token in extraction["argv"]
         ]
-        environment = os.environ.copy()
         recipe_env = dict(extraction["env"])
         isolation_kind = recipe_env.pop("SHIELDD_EXTRACTION_ISOLATION", None)
-        environment.update(recipe_env)
+        environment = _bounded_extraction_environment(recipe_env)
         if isolation_kind is None:
             cwd = REPO_ROOT.joinpath(*PurePosixPath(extraction["cwd"]).parts)
         elif isolation_kind == "s3-spike":
@@ -594,6 +782,8 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
             command,
             cwd=cwd,
             env=environment,
+            timeout=DEFAULT_EXTRACTION_TIMEOUT_SECONDS,
+            enforce_resource_limits=True,
         )
         for relative in extraction["raw_outputs"]:
             path = output_dir.joinpath(*PurePosixPath(relative).parts)
@@ -612,6 +802,8 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
         roots=graph["roots"],
         lean_root=LEAN_ROOT,
     )
+    input_hashes_after = current_input_hashes(graph)
+    _assert_inputs_unchanged(graph, input_hashes_before, input_hashes_after)
     return result.content, result.selected_raw_declarations_sha256
 
 
@@ -751,6 +943,75 @@ def current_input_hashes(graph: dict[str, Any]) -> list[str]:
     ]
 
 
+def _assert_inputs_unchanged(
+    graph: dict[str, Any],
+    before: Sequence[str],
+    after: Sequence[str],
+) -> None:
+    if list(before) == list(after):
+        return
+    changed = [
+        item["path"]
+        for item, previous, current in zip(graph["inputs"], before, after)
+        if previous != current
+    ]
+    if len(before) != len(after):
+        changed.append("<input inventory>")
+    raise ManifestError(
+        f"graph {graph['id']}: inputs changed during extraction: "
+        + ", ".join(changed)
+    )
+
+
+def _atomic_write_bytes(path: Path, content: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=path.parent,
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as destination:
+            destination.write(content)
+            destination.flush()
+            os.fsync(destination.fileno())
+        os.replace(temporary, path)
+    finally:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def _restore_file(path: Path, original: bytes | None) -> None:
+    if original is None:
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+    else:
+        _atomic_write_bytes(path, original)
+
+
+def _commit_regeneration(
+    *,
+    output_path: Path,
+    output_content: bytes,
+    manifest_path: Path,
+    manifest_content: bytes,
+) -> None:
+    original_output = output_path.read_bytes() if output_path.is_file() else None
+    original_manifest = manifest_path.read_bytes()
+    try:
+        _atomic_write_bytes(output_path, output_content)
+        _atomic_write_bytes(manifest_path, manifest_content)
+    except BaseException:
+        _restore_file(output_path, original_output)
+        _restore_file(manifest_path, original_manifest)
+        raise
+
+
 def command_regenerate(args: argparse.Namespace) -> int:
     if not args.update_manifest:
         raise ManifestError("regenerate requires --update-manifest")
@@ -764,6 +1025,10 @@ def command_regenerate(args: argparse.Namespace) -> int:
         verify_files=False,
     )
     selected = select_graphs(manifest, args.graph)
+    if len(selected) != 1:
+        raise ManifestError(
+            "regenerate requires exactly one --graph; run graphs separately"
+        )
     updated = copy.deepcopy(manifest)
     updated_graphs = graph_map(updated)
     for graph in selected:
@@ -773,22 +1038,8 @@ def command_regenerate(args: argparse.Namespace) -> int:
         ) as raw_temp:
             content, selected_digest = reproduce_graph(graph, Path(raw_temp))
         input_hashes_after = current_input_hashes(graph)
-        if input_hashes_before != input_hashes_after:
-            changed = [
-                item["path"]
-                for item, before, after in zip(
-                    graph["inputs"],
-                    input_hashes_before,
-                    input_hashes_after,
-                )
-                if before != after
-            ]
-            raise ManifestError(
-                f"graph {graph['id']}: inputs changed during regeneration: "
-                + ", ".join(changed)
-            )
+        _assert_inputs_unchanged(graph, input_hashes_before, input_hashes_after)
         output_path = REPO_ROOT.joinpath(*PurePosixPath(graph["output"]).parts)
-        output_path.write_bytes(content)
         digest = hashlib.sha256(content).hexdigest()
         updated_graph = updated_graphs[graph["id"]]
         for item, input_hash in zip(updated_graph["inputs"], input_hashes_after):
@@ -798,9 +1049,29 @@ def command_regenerate(args: argparse.Namespace) -> int:
             "selected_raw_declarations_sha256"
         ] = selected_digest
         updated_graph["normalization"]["normalized_sha256"] = digest
-        args.manifest.write_bytes(canonical_json(updated))
+        validate_manifest(
+            updated,
+            manifest_path=args.manifest,
+            verify_files=False,
+        )
+        _commit_regeneration(
+            output_path=output_path,
+            output_content=content,
+            manifest_path=args.manifest,
+            manifest_content=canonical_json(updated),
+        )
         print(f"{graph['id']}: regenerated ({digest})", flush=True)
-    validate_manifest(updated, manifest_path=args.manifest)
+    # Scoped regeneration intentionally permits unrelated graphs to remain
+    # stale. The global `check` command still validates the complete inventory.
+    validate_manifest(
+        load_manifest(args.manifest),
+        manifest_path=args.manifest,
+        verify_files=False,
+    )
+    if sha256_file(output_path) != updated_graph["output_sha256"]:
+        raise ManifestError(
+            f"graph {graph['id']}: committed output hash does not match manifest"
+        )
     return 0
 
 
@@ -849,6 +1120,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    install_signal_cleanup()
     args = parser().parse_args(argv)
     try:
         return args.handler(args)

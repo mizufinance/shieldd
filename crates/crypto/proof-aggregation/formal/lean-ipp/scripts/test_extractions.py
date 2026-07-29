@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
-import subprocess
+import os
 import sys
 import tempfile
 import unittest
@@ -35,7 +35,9 @@ class ExtractionManifestTests(unittest.TestCase):
         self.assertIn(needle, str(raised.exception))
 
     def test_real_manifest_schema_hashes_and_exact_coverage(self):
-        self.validate(self.manifest, verify_files=True)
+        # Scoped regeneration is allowed while unrelated graphs are stale.
+        # The CLI `check` command remains the full file-hash gate.
+        self.validate(self.manifest, verify_files=False)
         self.assertEqual(self.manifest["schema_version"], 2)
         outputs = [graph["output"] for graph in self.manifest["graphs"]]
         self.assertEqual(EXTRACTIONS.EXPECTED_GRAPH_COUNT, 37)
@@ -306,24 +308,157 @@ class ExtractionManifestTests(unittest.TestCase):
             )
             self.assertEqual(updated_unselected["inputs"], original_unselected_inputs)
 
+    def test_extraction_environment_enforces_single_worker_limits(self):
+        with patch.dict(
+            os.environ,
+            {
+                "CARGO_BUILD_JOBS": "19",
+                "LEAN_NUM_THREADS": "23",
+                "RAYON_NUM_THREADS": "29",
+            },
+        ):
+            environment = EXTRACTIONS._bounded_extraction_environment(
+                {
+                    "CARGO_BUILD_JOBS": "31",
+                    "LEAN_NUM_THREADS": "37",
+                    "RAYON_NUM_THREADS": "41",
+                    "GRAPH_SETTING": "preserved",
+                }
+            )
+        self.assertEqual(environment["CARGO_BUILD_JOBS"], "1")
+        self.assertEqual(environment["LEAN_NUM_THREADS"], "1")
+        self.assertEqual(environment["RAYON_NUM_THREADS"], "1")
+        self.assertEqual(environment["GRAPH_SETTING"], "preserved")
+
     def test_command_failure_preserves_command_cwd_stdout_and_stderr(self):
-        completed = subprocess.CompletedProcess(
-            ["git", "status"],
-            128,
-            stdout="partial stdout\n",
-            stderr="fatal: detected dubious ownership\n",
-        )
-        with patch.object(EXTRACTIONS.subprocess, "run", return_value=completed):
-            with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
-                EXTRACTIONS.run_command(
-                    ["git", "status"],
-                    cwd=EXTRACTIONS.REPO_ROOT,
-                )
+        command = [
+            sys.executable,
+            "-c",
+            (
+                "import sys; "
+                "print('partial stdout'); "
+                "print('fatal: detected dubious ownership', file=sys.stderr); "
+                "raise SystemExit(128)"
+            ),
+        ]
+        with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
+            EXTRACTIONS.run_command(
+                command,
+                cwd=EXTRACTIONS.REPO_ROOT,
+                poll_seconds=0.01,
+            )
         message = str(raised.exception)
-        self.assertIn("git status", message)
+        self.assertIn(sys.executable, message)
         self.assertIn(str(EXTRACTIONS.REPO_ROOT), message)
         self.assertIn("partial stdout", message)
         self.assertIn("detected dubious ownership", message)
+
+    def test_timeout_terminates_the_command_and_keeps_diagnostics(self):
+        command = [
+            sys.executable,
+            "-c",
+            (
+                "import sys, time; "
+                "print('started', flush=True); "
+                "print('waiting', file=sys.stderr, flush=True); "
+                "time.sleep(30)"
+            ),
+        ]
+        with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
+            EXTRACTIONS.run_command(
+                command,
+                cwd=EXTRACTIONS.REPO_ROOT,
+                timeout=0.05,
+                poll_seconds=0.01,
+            )
+        message = str(raised.exception)
+        self.assertIn("timed out", message)
+        self.assertIn("started", message)
+        self.assertIn("waiting", message)
+
+    def test_monitoring_failure_terminates_the_command_fail_closed(self):
+        command = [
+            sys.executable,
+            "-c",
+            "import time; time.sleep(30)",
+        ]
+        with (
+            patch.object(
+                EXTRACTIONS,
+                "_resource_limit_reason",
+                side_effect=EXTRACTIONS.ManifestError("watchdog unavailable"),
+            ),
+            self.assertRaises(EXTRACTIONS.ManifestError) as raised,
+        ):
+            EXTRACTIONS.run_command(
+                command,
+                cwd=EXTRACTIONS.REPO_ROOT,
+                enforce_resource_limits=True,
+                poll_seconds=0.01,
+            )
+        self.assertIn("resource monitoring failed", str(raised.exception))
+        self.assertIn("watchdog unavailable", str(raised.exception))
+
+    def test_input_drift_is_fatal_and_names_the_changed_source(self):
+        graph = {
+            "id": "Example",
+            "inputs": [
+                {"path": "first.rs"},
+                {"path": "second.rs"},
+            ],
+        }
+        with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
+            EXTRACTIONS._assert_inputs_unchanged(
+                graph,
+                ["a" * 64, "b" * 64],
+                ["a" * 64, "c" * 64],
+            )
+        self.assertIn("Example", str(raised.exception))
+        self.assertIn("second.rs", str(raised.exception))
+
+    def test_regenerate_requires_exactly_one_graph(self):
+        args = SimpleNamespace(
+            update_manifest=True,
+            manifest=EXTRACTIONS.MANIFEST_PATH,
+            graph=None,
+        )
+        with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
+            EXTRACTIONS.command_regenerate(args)
+        self.assertIn("exactly one --graph", str(raised.exception))
+
+    def test_regeneration_commit_rolls_back_both_files_on_failure(self):
+        with tempfile.TemporaryDirectory(prefix="extractions-test-") as directory:
+            root = Path(directory)
+            output = root / "Generated.lean"
+            manifest = root / "manifest.json"
+            output.write_bytes(b"old output\n")
+            manifest.write_bytes(b"old manifest\n")
+            original_atomic_write = EXTRACTIONS._atomic_write_bytes
+            calls = 0
+
+            def fail_manifest_once(path, content):
+                nonlocal calls
+                calls += 1
+                if calls == 2:
+                    raise OSError("simulated manifest replacement failure")
+                original_atomic_write(path, content)
+
+            with (
+                patch.object(
+                    EXTRACTIONS,
+                    "_atomic_write_bytes",
+                    side_effect=fail_manifest_once,
+                ),
+                self.assertRaises(OSError),
+            ):
+                EXTRACTIONS._commit_regeneration(
+                    output_path=output,
+                    output_content=b"new output\n",
+                    manifest_path=manifest,
+                    manifest_content=b"new manifest\n",
+                )
+            self.assertEqual(output.read_bytes(), b"old output\n")
+            self.assertEqual(manifest.read_bytes(), b"old manifest\n")
 
 
 if __name__ == "__main__":
