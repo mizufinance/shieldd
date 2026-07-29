@@ -1,10 +1,10 @@
 # S1 mechanization scope — completed
 
-Status: S1 COMPLETE. `Ipp.S1.s1_soundness` is proved in
-`formal/lean-ipp/Ipp/S1.lean`, audited without project axioms, and gated by
-`just snarkpack-fv`. The two Filecoin-lineage trust rows in
-`formal-handoff.md` are retired in favor of this theorem, two named
-cryptographic assumptions, and the explicit quantitative ROM sub-rows below.
+Status: the abstract S1 theorem is complete, but end-to-end shipping refinement
+is not. `Ipp.S1.s1_soundness` and its contrapositive
+`Ipp.S1.invalid_goal_fork_bound_nonpositive` are audited without project axioms.
+They consume explicit KZG, pairing-commitment, ROM, and query-bound premises.
+The current claim boundary is recorded in the generated `formal-handoff.md`.
 
 ## Completed units
 
@@ -16,8 +16,8 @@ cryptographic assumptions, and the explicit quantitative ROM sub-rows below.
   per-proof Groth16 pairing equation.
 - U5b/U5c/U5d: FS game, combined-replay forking, and deterministic projection;
   the R1--R7 design-review repair trail is recorded in `REPORT-CODEX.md`.
-- U5e: `Ipp.S1.s1_soundness`, consuming the named assumptions and an explicit
-  `BadEventBudget`.
+- U5e: `Ipp.S1.s1_soundness`, consuming the named assumptions and the explicit
+  `Ipp.S1.badEventError` expression.
 
 The forking design was rebuilt around one combined-replay experiment rather
 than independently assembled replay paths. It constructs a strict geometric
@@ -28,26 +28,15 @@ expected-time tightening is future work.
 
 ## U5a quantitative status
 
-Concrete results are `fresh_miss_uniform`, `fresh_miss_mem_le`,
-`structured_log_mem_at_le`, `structured_log_mem_before_le`,
-`structured_log_mem_le`, whole-game query-bound transfer, bad-event union
-algebra, `q0_lower_bound`, and the fork recurrence. The following
-`BadEventBudget` fields remain parametric:
-
-- `answer_collision_bound`: `Q^2/|F|`;
-- `randomizer_rootset_bound`: `Q*dR/(|F|-2)`;
-- `dependency_order_bound`: `mu*Q/|F|`;
-- `round_slot_order_bound`: `mu*Q/|F|`;
-- `kzg_z_bound`: `Q*dZ/|F|`;
-- `round_unqueried_bound`: explicit `bUnq`, parametric by design;
-- `wrapped_good_lower_bound`: source-to-wrapped quantitative transport.
-
-Each is a named assumption sub-row in `formal-handoff.md`; none is hidden by a
-generic ROM claim. The structured-only fixed-set `probEvent` union bound over
-the first `Q = qb + 1` mixed-source ordinals is now proved. Remaining work is
-the adaptive structured pair bound for collisions, accepted-stage log-witness
-and bad-set-cardinality connections, protocol-local dependency/order guessing
-reductions, and the pushforward mass theorem for `wrapFs`.
+Concrete results include whole-game query-bound transfer, bad-event union
+algebra, `q0_lower_bound`, and the fork recurrence. `badEventError` is the sum
+of the proved collision, randomizer-root-set, dependency, round-order, and KZG
+bad-event bounds. A numerical security claim remains unavailable until `qb`,
+the maximum proof count, the nonce-rejection bound, and any future randomized
+batching errors are instantiated. The hash-to-field/ROM bridge is
+kernel-proved for a uniform byte oracle, including the exact 64-byte
+modular-reduction distance. Replacing deployed Blake2b by that oracle and
+constructing the exact accepted production trace remain explicit boundaries.
 
 ## Model boundary
 

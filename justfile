@@ -83,9 +83,38 @@ gnark-proof-tests-slow:
 
 # Run ignored slow SnarkPack parity tests.
 snarkpack-slow:
-    cargo test -p shieldd-sdk-proof-aggregation snarkpack_matches_legacy_batch_across_families_and_counts_slow --lib -- --ignored
-    cargo test -p shieldd-sdk-proof-aggregation snarkpack_matches_single_and_batch_groth16_oracles_slow --lib -- --ignored
-    cargo test -p shieldd-sdk-proof-aggregation-reference reference_property_matches_production_and_batch_oracles_slow --lib -- --ignored
+    #!/usr/bin/env bash
+    set -euo pipefail
+    legacy_log="$(mktemp)"
+    oracle_log="$(mktemp)"
+    interop_log="$(mktemp)"
+    trap 'rm -f "$legacy_log" "$oracle_log" "$interop_log"' EXIT
+    cargo test -p shieldd-sdk-proof-aggregation snarkpack_matches_legacy_batch_across_families_and_counts_slow --lib -- --ignored 2>&1 | tee "$legacy_log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$legacy_log" --expected 1 --label "snarkpack_matches_legacy_batch_across_families_and_counts_slow" --test-name "backend::tests::snarkpack_matches_legacy_batch_across_families_and_counts_slow"
+    cargo test -p shieldd-sdk-proof-aggregation snarkpack_matches_single_and_batch_groth16_oracles_slow --lib -- --ignored 2>&1 | tee "$oracle_log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$oracle_log" --expected 1 --label "snarkpack_matches_single_and_batch_groth16_oracles_slow" --test-name "backend::tests::snarkpack_matches_single_and_batch_groth16_oracles_slow"
+    cargo test -p shieldd-sdk-proof-aggregation-reference slow_two_way_interop_band --lib -- --ignored 2>&1 | tee "$interop_log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$interop_log" --expected 1 --label "slow_two_way_interop_band" --test-name "tests::slow_two_way_interop_band"
+
+# Run the exact ordinary tests anchoring the bounded challenge sampler and its
+# public prover/verifier exhaustion mappings.
+snarkpack-challenge-boundaries:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sampler_log="$(mktemp)"
+    mapping_log="$(mktemp)"
+    trap 'rm -f "$sampler_log" "$mapping_log"' EXIT
+    cargo test -p ark-ip-proofs bounded_challenge_sampler_ --lib 2>&1 | tee "$sampler_log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$sampler_log" --expected 7 --label "bounded_challenge_sampler_" \
+      --test-name "challenge::tests::bounded_challenge_sampler_immediate_success_queries_nonce_zero_once" \
+      --test-name "challenge::tests::bounded_challenge_sampler_retries_rejections_in_nonce_order" \
+      --test-name "challenge::tests::bounded_challenge_sampler_accepts_success_at_max_nonce" \
+      --test-name "challenge::tests::bounded_challenge_sampler_rejection_at_max_fails_closed" \
+      --test-name "challenge::tests::bounded_challenge_sampler_queries_before_incrementing" \
+      --test-name "challenge::tests::bounded_challenge_sampler_preserves_attempt_error_before_exhaustion" \
+      --test-name "challenge::tests::bounded_challenge_sampler_nonce_helpers_match_core_boundaries"
+    cargo test -p ark-ip-proofs shipping_nonce_exhaustion_maps_exact_public_error --lib 2>&1 | tee "$mapping_log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$mapping_log" --expected 1 --label "shipping_nonce_exhaustion_maps_exact_public_error" --test-name "applications::groth16_aggregation::tests::shipping_nonce_exhaustion_maps_exact_public_error"
 
 # Run bounded SnarkPack fuzz harness smoke tests.
 snarkpack-fuzz-smoke:
@@ -106,7 +135,12 @@ snarkpack-formal:
 
 # Enforce SnarkPack valid-vs-adversarial DoS latency and size thresholds.
 snarkpack-dos-gate:
-    cargo test --release -p shieldd-sdk-proof-aggregation snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds --lib -- --ignored --nocapture
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dos_log="$(mktemp)"
+    trap 'rm -f "$dos_log"' EXIT
+    cargo test --release -p shieldd-sdk-proof-aggregation snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds --lib -- --ignored --nocapture 2>&1 | tee "$dos_log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$dos_log" --expected 1 --label "snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds" --test-name "backend::tests::snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds"
 
 # Run the default gnark validation suite.
 gnark-proof-tests: gnark-proof-tests-fast

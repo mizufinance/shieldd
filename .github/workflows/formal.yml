@@ -266,6 +266,37 @@ jobs:
           SNARKPACK_FV_GRAPHS_JSON: ${{ needs.applicability.outputs.snarkpack_graphs }}
         run: nix develop --command just snarkpack-fv
 
+  snarkpack-rust-reference:
+    name: 'snarkpack: rust, reference, and slow interop'
+    needs: applicability
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.snarkpack_run == 'true' &&
+      needs.applicability.outputs.snarkpack_tier == 'full'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+          lfs: true
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          rust-cache-prefix: snarkpack-rust-reference
+      - name: Run production and independent-reference suites
+        run: |
+          set -euo pipefail
+          app_shipping_log="$(mktemp)"
+          trap 'rm -f "$app_shipping_log"' EXIT
+          nix develop --command cargo test -p shieldd-sdk-proof-aggregation --lib
+          nix develop --command cargo test -p shieldd-sdk-proof-aggregation-reference --lib
+          nix develop --command cargo test -p shieldd-sdk-app --lib aggregate_ -- --test-threads=1
+          nix develop --command cargo test -p shieldd-sdk-app --lib app::tests::async_verifier_outcome_retains_its_exact_shipping_input -- --exact --test-threads=1 2>&1 | tee "$app_shipping_log"
+          nix develop --command python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$app_shipping_log" --expected 1 --label "async_verifier_outcome_retains_its_exact_shipping_input" --test-name "app::tests::async_verifier_outcome_retains_its_exact_shipping_input"
+          nix develop --command just snarkpack-challenge-boundaries
+      - name: Run ignored prover and two-way interop band
+        run: nix develop --command just snarkpack-slow
+
   snarkpack-fuzz:
     name: 'snarkpack: fuzz'
     needs: applicability
@@ -461,6 +492,7 @@ jobs:
       - snarkpack-toolchain
       - snarkpack-fstar
       - snarkpack-parity
+      - snarkpack-rust-reference
       - snarkpack-fuzz
       - snarkpack-dos
       - soundness-gate
@@ -489,6 +521,7 @@ jobs:
           TOOLCHAIN: ${{ needs.snarkpack-toolchain.result }}
           FSTAR: ${{ needs.snarkpack-fstar.result }}
           PARITY: ${{ needs.snarkpack-parity.result }}
+          RUST_REFERENCE: ${{ needs.snarkpack-rust-reference.result }}
           FUZZ: ${{ needs.snarkpack-fuzz.result }}
           DOS: ${{ needs.snarkpack-dos.result }}
           GATE: ${{ needs.soundness-gate.result }}
@@ -519,9 +552,14 @@ jobs:
             case "$SNARKPACK_TIER" in
               # static carries no extraction, so the toolchain lanes do not run
               static) ;;
-              extract-changed|extract-all|full)
+              extract-changed|extract-all)
                 required+=(
                   "snarkpack-toolchain=$TOOLCHAIN" "snarkpack-parity=$PARITY"
+                ) ;;
+              full)
+                required+=(
+                  "snarkpack-toolchain=$TOOLCHAIN" "snarkpack-parity=$PARITY"
+                  "snarkpack-rust-reference=$RUST_REFERENCE"
                 ) ;;
               *)
                 echo "unsupported snarkpack tier: $SNARKPACK_TIER" >&2

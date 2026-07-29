@@ -25,11 +25,12 @@ def acceptedChainPoint? {F G1 G2 GT : Type} {μ : Nat}
     (stmt : FsStatement μ F G1 G2 GT) (out : FsResult μ F G1 G2 GT) :
     Nat → Option (ChallengePoint F G1 G2 GT)
   | 0 => some (.randomizer
-      { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+      { comA := out.proof.ComA.1, comB := out.proof.ComB,
+        comC := out.proof.ComA.2 }
       out.transcript.randomizerNonce)
   | 1 => some (.x0
-      { r := out.transcript.randomizer, comA := stmt.ComA.1,
-        comB := stmt.ComB, comC := stmt.ComA.2,
+      { r := out.transcript.randomizer, comA := out.proof.ComA.1,
+        comB := out.proof.ComB, comC := out.proof.ComA.2,
         ipAb := out.proof.ipAb, aggC := out.proof.aggC }
       out.transcript.x0Nonce)
   | k + 2 => if hk : k < μ then

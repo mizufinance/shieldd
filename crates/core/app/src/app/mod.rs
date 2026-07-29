@@ -53,10 +53,15 @@ use shieldd_sdk_governance::component::{Governance, StateReadExt as _, StateWrit
 use shieldd_sdk_ibc::component::{Ibc, StateWriteExt as _};
 use shieldd_sdk_ibc::StateReadExt as _;
 use shieldd_sdk_proof_aggregation::{
-    aggregate_family_profiled, pad_items_to_power_of_two, prepare_verify_inputs, srs_id,
-    verify_family_aggregate_profiled_status, AggregateBuildBackendProfile, AggregateBundle,
-    AggregateStatement, AggregateVerificationProfile, DevSrs, FamilyAggregate, ProofFamilyId,
-    AGGREGATE_PROTOCOL_VERSION, DEFAULT_DEV_SRS_ID,
+    aggregate_family_profiled, app_verify_family_code, app_verify_family_count_core,
+    app_verify_plan_identity_core, app_verify_plan_ids_core, app_verify_plan_padding_core,
+    app_verify_preflight_core, app_verify_reduce_core, app_verify_shipping_call_from_parts,
+    app_verify_shipping_result_from_parts, pad_items_to_power_of_two, prepare_verify_inputs,
+    srs_id, verify_shipping_family_aggregate_profiled_status, AggregateBuildBackendProfile,
+    AggregateBundle, AggregateStatement, AggregateVerificationProfile, AppVerifyCallId,
+    AppVerifyCallResult, AppVerifyExpectedCall, AppVerifyPlanError, AppVerifyPreflightError,
+    AppVerifyReductionError, AppVerifyShippingCall, AppVerifyShippingResult, DevSrs,
+    FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION, DEFAULT_DEV_SRS_ID,
 };
 use shieldd_sdk_proof_params::batch::{self, BatchItem};
 use shieldd_sdk_proto::core::app::v1::TransactionsByHeightResponse;
@@ -134,7 +139,6 @@ struct AggregateDebugRow {
 
 #[derive(Clone, Debug)]
 struct AggregateDebugSegmentFamily {
-    segment_index: usize,
     family_index: usize,
     family_id: ProofFamilyId,
     rows: Vec<AggregateDebugRow>,
@@ -685,6 +689,97 @@ impl AggregateVerifyProfile {
     }
 }
 
+#[derive(Clone)]
+struct AggregateExpectedVerifySegment {
+    segment_index: usize,
+    family_index: usize,
+    family_id: ProofFamilyId,
+    items: Vec<BatchItem>,
+    debug_rows: Vec<AggregateDebugRow>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct AggregateVerifyCallId {
+    order_index: usize,
+    segment_index: usize,
+    family_index: usize,
+    family_id: ProofFamilyId,
+}
+
+#[derive(Clone, Debug)]
+struct AggregateVerifyCall {
+    id: AggregateVerifyCallId,
+    shipping_call: AppVerifyShippingCall,
+    statement: AggregateStatement,
+    aggregate: FamilyAggregate,
+    srs: DevSrs,
+    debug_rows: Vec<AggregateDebugRow>,
+    padded_public_inputs: Vec<Vec<Fq>>,
+}
+
+#[derive(Clone, Debug, Default)]
+struct AggregateVerifyPlan {
+    calls: Vec<AggregateVerifyCall>,
+}
+
+#[derive(Clone, Debug)]
+struct AggregateVerifyProfiledCallOutcome {
+    id: AggregateVerifyCallId,
+    shipping_result: AppVerifyShippingResult,
+    backend_profile: AggregateVerificationProfile,
+}
+
+impl AggregateVerifyProfiledCallOutcome {
+    fn result(&self) -> Result<AggregateVerifyCallResult> {
+        anyhow::ensure!(
+            self.shipping_result.result.id
+                == AppVerifyCallId {
+                    order_index: self.id.order_index,
+                    segment_index: self.id.segment_index,
+                    family_index: self.id.family_index,
+                    family: app_verify_family_code(self.id.family_id),
+                },
+            "aggregate verification result identity does not match its planned call"
+        );
+        Ok(AggregateVerifyCallResult {
+            id: self.id,
+            accepted: self.shipping_result.result.accepted,
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct AggregateVerifyCallResult {
+    id: AggregateVerifyCallId,
+    accepted: bool,
+}
+
+#[derive(Clone, Debug, Default)]
+struct AggregateVerifyReduction {
+    rejected_calls: Vec<AggregateVerifyCallId>,
+}
+
+impl AggregateVerifyReduction {
+    fn acceptance_result(&self) -> Result<()> {
+        if self.rejected_calls.is_empty() {
+            return Ok(());
+        }
+
+        let details = self
+            .rejected_calls
+            .iter()
+            .map(|id| {
+                format!(
+                    "segment={} family_index={} family={:?}",
+                    id.segment_index, id.family_index, id.family_id
+                )
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        anyhow::bail!("SnarkPack verification rejected aggregate bundle ({details})")
+    }
+}
+
 #[derive(Clone, Debug)]
 struct AggregateBundleFamilyEstimate {
     family_id: ProofFamilyId,
@@ -1010,41 +1105,21 @@ impl App {
         rows
     }
 
-    fn aggregate_debug_segment_families(
-        artifacts: &[Arc<TxArtifact>],
-        segment_tx_counts: Option<&[usize]>,
-    ) -> Vec<AggregateDebugSegmentFamily> {
-        let artifact_groups: Vec<&[Arc<TxArtifact>]> = match segment_tx_counts {
-            Some(segment_tx_counts) if !segment_tx_counts.is_empty() => {
-                let mut groups = Vec::with_capacity(segment_tx_counts.len());
-                let mut start = 0usize;
-                for &segment_tx_count in segment_tx_counts {
-                    let end = start + segment_tx_count;
-                    groups.push(&artifacts[start..end]);
-                    start = end;
-                }
-                groups
-            }
-            _ => vec![artifacts],
-        };
-
+    fn aggregate_debug_families(artifacts: &[Arc<TxArtifact>]) -> Vec<AggregateDebugSegmentFamily> {
         let mut segments = Vec::new();
-        for (segment_index, artifact_group) in artifact_groups.into_iter().enumerate() {
-            let proof_items = Self::merge_artifact_proof_items(artifact_group);
-            let mut family_index = 0usize;
-            for family_id in Self::proof_family_ids() {
-                let items = proof_items.get(&family_id).cloned().unwrap_or_default();
-                if items.is_empty() {
-                    continue;
-                }
-                segments.push(AggregateDebugSegmentFamily {
-                    segment_index,
-                    family_index,
-                    family_id,
-                    rows: Self::aggregate_debug_rows_for_family(artifact_group, family_id),
-                });
-                family_index += 1;
+        let proof_items = Self::merge_artifact_proof_items(artifacts);
+        let mut family_index = 0usize;
+        for family_id in Self::proof_family_ids() {
+            let items = proof_items.get(&family_id).cloned().unwrap_or_default();
+            if items.is_empty() {
+                continue;
             }
+            segments.push(AggregateDebugSegmentFamily {
+                family_index,
+                family_id,
+                rows: Self::aggregate_debug_rows_for_family(artifacts, family_id),
+            });
+            family_index += 1;
         }
 
         segments
@@ -1920,7 +1995,7 @@ impl App {
         let srs = DevSrs::default();
         profile.setup_ms = srs_start.elapsed().as_secs_f64() * 1000.0;
         let mut aggregate_tasks = Vec::new();
-        let debug_entries = Self::aggregate_debug_segment_families(artifacts, None);
+        let debug_entries = Self::aggregate_debug_families(artifacts);
 
         for family_id in Self::proof_family_ids() {
             let items = proof_items.get(&family_id).cloned().unwrap_or_default();
@@ -1951,7 +2026,6 @@ impl App {
                 .find(|entry| entry.family_id == family_id)
                 .cloned()
                 .unwrap_or(AggregateDebugSegmentFamily {
-                    segment_index: 0,
                     family_index: 0,
                     family_id,
                     rows: Vec::new(),
@@ -2146,38 +2220,334 @@ impl App {
         Self::ensure_aggregate_bundle_tx_shape(tx).map(|_| ())
     }
 
-    fn expected_aggregate_segments(
+    fn expected_aggregate_verify_segments(
         artifacts: &[Arc<TxArtifact>],
-        segment_tx_counts: Option<&[usize]>,
-    ) -> Vec<(ProofFamilyId, Vec<BatchItem>)> {
+        segment_ranges: &[shieldd_sdk_proof_aggregation::AppVerifySegmentRange],
+    ) -> Vec<AggregateExpectedVerifySegment> {
         let mut expected_segments = Vec::new();
 
-        let artifact_groups: Vec<&[Arc<TxArtifact>]> = match segment_tx_counts {
-            Some(segment_tx_counts) if !segment_tx_counts.is_empty() => {
-                let mut groups = Vec::with_capacity(segment_tx_counts.len());
-                let mut start = 0usize;
-                for &segment_tx_count in segment_tx_counts {
-                    let end = start + segment_tx_count;
-                    groups.push(&artifacts[start..end]);
-                    start = end;
-                }
-                groups
-            }
-            _ => vec![artifacts],
-        };
-
-        for artifact_group in artifact_groups {
+        for segment_range in segment_ranges {
+            let artifact_group = &artifacts[segment_range.start..segment_range.end];
             let proof_items = Self::merge_artifact_proof_items(artifact_group);
+            let mut family_index = 0usize;
             for family_id in Self::proof_family_ids() {
                 let items = proof_items.get(&family_id).cloned().unwrap_or_default();
                 if items.is_empty() {
                     continue;
                 }
-                expected_segments.push((family_id, items));
+                expected_segments.push(AggregateExpectedVerifySegment {
+                    segment_index: segment_range.segment_index,
+                    family_index,
+                    family_id,
+                    items,
+                    debug_rows: Self::aggregate_debug_rows_for_family(artifact_group, family_id),
+                });
+                family_index += 1;
             }
         }
 
         expected_segments
+    }
+
+    fn validate_aggregate_verify_plan_inputs(
+        artifacts: &[Arc<TxArtifact>],
+        bundle: &AggregateBundle,
+        segment_tx_counts: Option<&[usize]>,
+    ) -> Result<Vec<shieldd_sdk_proof_aggregation::AppVerifySegmentRange>> {
+        match app_verify_preflight_core(
+            AGGREGATE_PROTOCOL_VERSION,
+            bundle.version,
+            Self::total_artifact_proof_count(artifacts),
+            DEFAULT_DEV_SRS_ID.to_vec(),
+            bundle.srs_id.clone(),
+            artifacts.len(),
+            segment_tx_counts.is_some(),
+            segment_tx_counts.unwrap_or_default().to_vec(),
+        ) {
+            Ok(ranges) => return Ok(ranges),
+            Err(AppVerifyPreflightError::BadVersion) => {
+                anyhow::bail!("unsupported aggregate bundle version {}", bundle.version);
+            }
+            Err(AppVerifyPreflightError::EmptyProofSet) => {
+                anyhow::bail!("aggregate bundle requires at least one proof");
+            }
+            Err(AppVerifyPreflightError::BadSrsLength) => {
+                anyhow::bail!(
+                    "aggregate bundle SRS id must be 32 bytes, got {}",
+                    bundle.srs_id.len()
+                );
+            }
+            Err(AppVerifyPreflightError::SrsMismatch) => {
+                anyhow::bail!("aggregate bundle SRS id mismatch");
+            }
+            Err(AppVerifyPreflightError::SegmentCoverageOverflow) => {
+                anyhow::bail!(
+                    "aggregate segment coverage overflow while summing transaction counts"
+                );
+            }
+            Err(AppVerifyPreflightError::SegmentCoverageMismatch) => {
+                let covered_artifacts = segment_tx_counts
+                    .unwrap_or_default()
+                    .iter()
+                    .fold(0usize, |covered, count| covered.saturating_add(*count));
+                anyhow::bail!(
+                    "aggregate segment coverage mismatch: expected {}, got {}",
+                    artifacts.len(),
+                    covered_artifacts
+                );
+            }
+        }
+    }
+
+    fn plan_aggregate_bundle_verification(
+        bundle: &AggregateBundle,
+        expected_segments: Vec<AggregateExpectedVerifySegment>,
+        srs: DevSrs,
+    ) -> Result<AggregateVerifyPlan> {
+        if let Err(AppVerifyPlanError::FamilyCountMismatch) =
+            app_verify_family_count_core(expected_segments.len(), bundle.families.len())
+        {
+            anyhow::bail!(
+                "aggregate bundle family count mismatch: expected {}, got {}",
+                expected_segments.len(),
+                bundle.families.len()
+            );
+        }
+
+        let core_ids = app_verify_plan_ids_core(
+            expected_segments
+                .iter()
+                .map(|expected| AppVerifyExpectedCall {
+                    segment_index: expected.segment_index,
+                    family_index: expected.family_index,
+                    family: app_verify_family_code(expected.family_id),
+                })
+                .collect(),
+        );
+        let mut calls = Vec::with_capacity(expected_segments.len());
+        for (order_index, expected_segment) in expected_segments.into_iter().enumerate() {
+            let AggregateExpectedVerifySegment {
+                segment_index,
+                family_index,
+                family_id,
+                items,
+                debug_rows,
+            } = expected_segment;
+            let aggregate = bundle
+                .families
+                .get(order_index)
+                .cloned()
+                .context("missing aggregate family")?;
+            let core_id = core_ids[order_index];
+            match app_verify_plan_identity_core(
+                core_id,
+                app_verify_family_code(aggregate.family_id),
+                items.len(),
+                aggregate.real_count,
+            ) {
+                Ok(_) => {}
+                Err(AppVerifyPlanError::FamilyMismatch) => {
+                    anyhow::bail!(
+                        "aggregate family ordering mismatch: expected {:?}, got {:?}",
+                        family_id,
+                        aggregate.family_id
+                    );
+                }
+                Err(AppVerifyPlanError::RealCountMismatch) => {
+                    anyhow::bail!(
+                        "aggregate real_count mismatch for {:?}: expected {}, got {}",
+                        family_id,
+                        items.len(),
+                        aggregate.real_count
+                    );
+                }
+                Err(AppVerifyPlanError::RealCountOverflow) => {
+                    anyhow::bail!(
+                        "aggregate real_count mismatch for {:?}: expected {}, got {}",
+                        family_id,
+                        items.len(),
+                        aggregate.real_count
+                    );
+                }
+                Err(AppVerifyPlanError::PaddedCountMismatch) => {
+                    unreachable!("identity validation cannot report padding mismatch")
+                }
+                Err(AppVerifyPlanError::PaddedCountOverflow) => {
+                    unreachable!("identity validation cannot report padding overflow")
+                }
+                Err(AppVerifyPlanError::FamilyCountMismatch) => {
+                    unreachable!("identity validation cannot report family-count mismatch")
+                }
+            }
+
+            let prepared_inputs = prepare_verify_inputs(&items, MAX_PADDED_PROOF_COUNT)?;
+            let shipping_call = app_verify_shipping_call_from_parts(
+                core_id,
+                app_verify_family_code(aggregate.family_id),
+                items.len(),
+                aggregate.real_count,
+                prepared_inputs.padded_count,
+                aggregate.padded_count,
+            );
+            match app_verify_plan_padding_core(
+                shipping_call.id,
+                shipping_call.expected_padded_count,
+                shipping_call.bundle_padded_count,
+            ) {
+                Ok(_) => {}
+                Err(AppVerifyPlanError::PaddedCountMismatch) => {
+                    anyhow::bail!(
+                        "aggregate padded_count mismatch for {:?}: expected {}, got {}",
+                        family_id,
+                        prepared_inputs.padded_count,
+                        aggregate.padded_count
+                    );
+                }
+                Err(AppVerifyPlanError::PaddedCountOverflow) => {
+                    anyhow::bail!(
+                        "aggregate padded_count mismatch for {:?}: expected {}, got {}",
+                        family_id,
+                        prepared_inputs.padded_count,
+                        aggregate.padded_count
+                    );
+                }
+                Err(AppVerifyPlanError::FamilyMismatch)
+                | Err(AppVerifyPlanError::RealCountMismatch)
+                | Err(AppVerifyPlanError::RealCountOverflow) => {
+                    unreachable!("padding validation cannot report identity mismatch")
+                }
+                Err(AppVerifyPlanError::FamilyCountMismatch) => {
+                    unreachable!("padding validation cannot report family-count mismatch")
+                }
+            }
+
+            let statement = AggregateStatement::new(
+                AGGREGATE_PROTOCOL_VERSION,
+                family_id,
+                srs_id(&srs),
+                proof_verification_key_for_family(family_id),
+                shipping_call.bundle_real_count,
+                &prepared_inputs.padded_public_inputs,
+            )?;
+            calls.push(AggregateVerifyCall {
+                id: AggregateVerifyCallId {
+                    order_index,
+                    segment_index,
+                    family_index,
+                    family_id,
+                },
+                shipping_call,
+                statement,
+                aggregate,
+                srs,
+                debug_rows,
+                padded_public_inputs: prepared_inputs.padded_public_inputs,
+            });
+        }
+
+        Ok(AggregateVerifyPlan { calls })
+    }
+
+    fn execute_aggregate_verify_call(
+        call: AggregateVerifyCall,
+    ) -> Result<AggregateVerifyProfiledCallOutcome> {
+        let shipping_verification = verify_shipping_family_aggregate_profiled_status(
+            call.shipping_call,
+            &call.statement,
+            proof_verification_key_for_family(call.id.family_id),
+            &call.aggregate.aggregate_proof,
+            &call.srs,
+        )?;
+        let shipping_result = app_verify_shipping_result_from_parts(
+            shipping_verification.input,
+            shipping_verification.profile.accepted,
+        );
+        Ok(AggregateVerifyProfiledCallOutcome {
+            id: call.id,
+            shipping_result,
+            backend_profile: shipping_verification.profile,
+        })
+    }
+
+    fn reduce_aggregate_verify_outcomes(
+        expected_call_ids: &[AggregateVerifyCallId],
+        mut results: Vec<AggregateVerifyCallResult>,
+    ) -> Result<AggregateVerifyReduction> {
+        let expected_core = expected_call_ids
+            .iter()
+            .map(|id| AppVerifyCallId {
+                order_index: id.order_index,
+                segment_index: id.segment_index,
+                family_index: id.family_index,
+                family: app_verify_family_code(id.family_id),
+            })
+            .collect::<Vec<_>>();
+        let result_core = results
+            .iter()
+            .map(|result| AppVerifyCallResult {
+                id: AppVerifyCallId {
+                    order_index: result.id.order_index,
+                    segment_index: result.id.segment_index,
+                    family_index: result.id.family_index,
+                    family: app_verify_family_code(result.id.family_id),
+                },
+                accepted: result.accepted,
+            })
+            .collect::<Vec<_>>();
+        let rejected_core = match app_verify_reduce_core(expected_core, result_core) {
+            Ok(rejected) => rejected,
+            Err(AppVerifyReductionError::OutcomeCountMismatch) => {
+                anyhow::bail!(
+                    "aggregate verification outcome count mismatch: expected {}, got {}",
+                    expected_call_ids.len(),
+                    results.len()
+                );
+            }
+            Err(AppVerifyReductionError::OutcomeIdentityMismatch) => {
+                results.sort_by_key(|result| result.id.order_index);
+                let mismatch = expected_call_ids
+                    .iter()
+                    .zip(&results)
+                    .find(|(expected, result)| {
+                        let result_core = AppVerifyCallId {
+                            order_index: result.id.order_index,
+                            segment_index: result.id.segment_index,
+                            family_index: result.id.family_index,
+                            family: app_verify_family_code(result.id.family_id),
+                        };
+                        let expected_core = AppVerifyCallId {
+                            order_index: expected.order_index,
+                            segment_index: expected.segment_index,
+                            family_index: expected.family_index,
+                            family: app_verify_family_code(expected.family_id),
+                        };
+                        result_core != expected_core
+                    })
+                    .context("aggregate verification core reported an unlocatable mismatch")?;
+                anyhow::bail!(
+                    "aggregate verification outcome identity mismatch: expected {:?}, got {:?}",
+                    mismatch.0,
+                    mismatch.1.id
+                );
+            }
+        };
+
+        let rejected_calls = rejected_core
+            .into_iter()
+            .map(|core_id| {
+                expected_call_ids
+                    .iter()
+                    .find(|id| {
+                        id.order_index == core_id.order_index
+                            && id.segment_index == core_id.segment_index
+                            && id.family_index == core_id.family_index
+                            && app_verify_family_code(id.family_id) == core_id.family
+                    })
+                    .copied()
+                    .context("aggregate verification core returned an unknown rejected call")
+            })
+            .collect::<Result<Vec<_>>>()?;
+        Ok(AggregateVerifyReduction { rejected_calls })
     }
 
     async fn verify_aggregate_bundle_for_artifacts(
@@ -2222,161 +2592,55 @@ impl App {
         let verify_start = Instant::now();
         let mut profile = AggregateVerifyProfile::default();
         let result: Result<()> = async {
-            anyhow::ensure!(
-                bundle.version == AGGREGATE_PROTOCOL_VERSION,
-                "unsupported aggregate bundle version {}",
-                bundle.version
-            );
-
-            let total_proofs = Self::total_artifact_proof_count(artifacts);
-            anyhow::ensure!(
-                total_proofs > 0,
-                "aggregate bundle requires at least one proof"
-            );
-
-            anyhow::ensure!(
-                bundle.srs_id.len() == 32,
-                "aggregate bundle SRS id must be 32 bytes, got {}",
-                bundle.srs_id.len()
-            );
-            anyhow::ensure!(
-                bundle.srs_id == DEFAULT_DEV_SRS_ID,
-                "aggregate bundle SRS id mismatch"
-            );
-
-            if let Some(segment_tx_counts) = segment_tx_counts {
-                anyhow::ensure!(
-                    segment_tx_counts.iter().sum::<usize>() == artifacts.len(),
-                    "aggregate segment coverage mismatch: expected {}, got {}",
-                    artifacts.len(),
-                    segment_tx_counts.iter().sum::<usize>()
-                );
-            }
+            let segment_ranges =
+                Self::validate_aggregate_verify_plan_inputs(artifacts, bundle, segment_tx_counts)?;
 
             let expected_segments_start = Instant::now();
-            let expected_segments = Self::expected_aggregate_segments(artifacts, segment_tx_counts);
-            let debug_segments =
-                Self::aggregate_debug_segment_families(artifacts, segment_tx_counts);
+            let expected_segments =
+                Self::expected_aggregate_verify_segments(artifacts, &segment_ranges);
             profile.expected_segments_ms = expected_segments_start.elapsed().as_secs_f64() * 1000.0;
 
-            anyhow::ensure!(
-                bundle.families.len() == expected_segments.len(),
-                "aggregate bundle family count mismatch: expected {}, got {}",
-                expected_segments.len(),
-                bundle.families.len()
-            );
-
+            let prepare_inputs_start = Instant::now();
             let srs = DevSrs::default();
-            let mut verify_tasks = Vec::new();
-            for (segment_order_index, (family, expected_items)) in
-                expected_segments.into_iter().enumerate()
-            {
-                let aggregate = bundle
-                    .families
-                    .get(verify_tasks.len())
-                    .cloned()
-                    .context("missing aggregate family")?;
+            let plan_result =
+                Self::plan_aggregate_bundle_verification(bundle, expected_segments, srs);
+            profile.prepare_inputs_ms = prepare_inputs_start.elapsed().as_secs_f64() * 1000.0;
+            let plan = plan_result?;
 
-                anyhow::ensure!(
-                    aggregate.family_id == family,
-                    "aggregate family ordering mismatch: expected {:?}, got {:?}",
-                    family,
-                    aggregate.family_id
-                );
-                anyhow::ensure!(
-                    aggregate.real_count == expected_items.len() as u32,
-                    "aggregate real_count mismatch for {:?}: expected {}, got {}",
-                    family,
-                    expected_items.len(),
-                    aggregate.real_count
-                );
-
-                let prepare_inputs_start = Instant::now();
-                let prepared_inputs =
-                    prepare_verify_inputs(&expected_items, MAX_PADDED_PROOF_COUNT)?;
-                profile.prepare_inputs_ms += prepare_inputs_start.elapsed().as_secs_f64() * 1000.0;
-                anyhow::ensure!(
-                    aggregate.padded_count == prepared_inputs.padded_count as u32,
-                    "aggregate padded_count mismatch for {:?}: expected {}, got {}",
-                    family,
-                    prepared_inputs.padded_count,
-                    aggregate.padded_count
-                );
-
-                let debug_entry = debug_segments
-                    .get(segment_order_index)
-                    .cloned()
-                    .context("missing aggregate debug segment")?;
-                let padded_public_inputs = prepared_inputs.padded_public_inputs;
+            let expected_call_ids = plan.calls.iter().map(|call| call.id).collect::<Vec<_>>();
+            let mut verify_tasks = Vec::with_capacity(plan.calls.len());
+            for call in plan.calls {
                 maybe_write_aggregate_debug_dump(
                     "verify",
-                    debug_entry.segment_index,
-                    debug_entry.family_index,
-                    family,
-                    &debug_entry.rows,
-                    &padded_public_inputs,
-                    Some(&aggregate),
+                    call.id.segment_index,
+                    call.id.family_index,
+                    call.id.family_id,
+                    &call.debug_rows,
+                    &call.padded_public_inputs,
+                    Some(&call.aggregate),
                 );
-                let aggregate_proof = aggregate.aggregate_proof;
-                let srs_for_task = srs;
-                let debug_segment_index = debug_entry.segment_index;
-                let debug_family_index = debug_entry.family_index;
-                let statement = AggregateStatement::new(
-                    AGGREGATE_PROTOCOL_VERSION,
-                    family,
-                    srs_id(&srs_for_task),
-                    proof_verification_key_for_family(family),
-                    aggregate.real_count,
-                    &padded_public_inputs,
-                )?;
-
-                verify_tasks.push(tokio::task::spawn_blocking(
-                    move || -> Result<(usize, usize, ProofFamilyId, AggregateVerificationProfile)> {
-                        let backend_profile = verify_family_aggregate_profiled_status(
-                            &statement,
-                            proof_verification_key_for_family(family),
-                            &aggregate_proof,
-                            &srs_for_task,
-                        )?;
-
-                        Ok((
-                            debug_segment_index,
-                            debug_family_index,
-                            family,
-                            backend_profile,
-                        ))
-                    },
-                ));
+                verify_tasks.push(tokio::task::spawn_blocking(move || {
+                    Self::execute_aggregate_verify_call(call)
+                }));
             }
 
-            let mut aggregate_verify_failed = false;
-            let mut rejected_families = Vec::new();
+            let mut outcomes = Vec::with_capacity(verify_tasks.len());
             for task in verify_tasks {
-                let (segment_index, family_index, family_id, backend_profile) = task
+                let outcome = task
                     .await
                     .context("aggregate verification task panicked")??;
-                if !backend_profile.accepted {
-                    aggregate_verify_failed = true;
-                    rejected_families.push((segment_index, family_index, family_id));
-                }
-                profile.merge_backend_profile(&backend_profile);
+                outcomes.push(outcome);
             }
 
-            if aggregate_verify_failed {
-                let details = rejected_families
-                    .into_iter()
-                    .map(|(segment_index, family_index, family_id)| {
-                        format!(
-                            "segment={} family_index={} family={:?}",
-                            segment_index, family_index, family_id
-                        )
-                    })
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                anyhow::bail!("SnarkPack verification rejected aggregate bundle ({details})");
+            let results = outcomes
+                .iter()
+                .map(AggregateVerifyProfiledCallOutcome::result)
+                .collect::<Result<Vec<_>>>()?;
+            let reduction = Self::reduce_aggregate_verify_outcomes(&expected_call_ids, results)?;
+            for outcome in &outcomes {
+                profile.merge_backend_profile(&outcome.backend_profile);
             }
-
-            Ok(())
+            reduction.acceptance_result()
         }
         .await;
 
@@ -6364,6 +6628,7 @@ mod tests {
         AggregateBundle, FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
         DEFAULT_DEV_SRS_ID,
     };
+    use shieldd_sdk_proof_params::batch::BatchItem;
     use shieldd_sdk_proto::DomainType;
     use shieldd_sdk_sct::component::clock::{EpochManager as _, EpochRead as _};
     use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead as _};
@@ -6670,6 +6935,495 @@ mod tests {
         .await?;
 
         Ok((storage, artifacts, bundle, bundle_tx))
+    }
+
+    fn aggregate_verify_test_item(family_id: ProofFamilyId, value: u64) -> BatchItem {
+        let arity = super::proof_verification_key_for_family(family_id)
+            .vk
+            .gamma_abc_g1
+            .len()
+            - 1;
+        BatchItem {
+            proof: ark_groth16::Proof {
+                a: Default::default(),
+                b: Default::default(),
+                c: Default::default(),
+            },
+            public_inputs: vec![Fq::from(value); arity],
+        }
+    }
+
+    fn aggregate_verify_test_artifact(entries: Vec<(ProofFamilyId, BatchItem)>) -> Arc<TxArtifact> {
+        let bundle = AggregateBundle {
+            version: AGGREGATE_PROTOCOL_VERSION,
+            srs_id: DEFAULT_DEV_SRS_ID.to_vec(),
+            families: Vec::new(),
+        };
+        let total_proof_count = entries.len();
+        let mut proof_items = BTreeMap::new();
+        for (family_id, item) in entries {
+            proof_items
+                .entry(family_id)
+                .or_insert_with(Vec::new)
+                .push(item);
+        }
+        Arc::new(TxArtifact {
+            tx: Arc::new(aggregate_bundle_shape_test_tx(bundle, 5)),
+            proof_items,
+            spend_nullifiers: Vec::new(),
+            anchor_pairs: Vec::new(),
+            total_proof_count,
+            historical_validation: None,
+        })
+    }
+
+    #[test]
+    fn aggregate_expected_segments_preserve_segment_and_family_order() {
+        let transfer = ProofFamilyId::Transfer;
+        let note_reshape =
+            ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NoteReshapeFamilyId::TwoByOne);
+        let artifacts = vec![
+            aggregate_verify_test_artifact(vec![
+                (note_reshape, aggregate_verify_test_item(note_reshape, 11)),
+                (transfer, aggregate_verify_test_item(transfer, 12)),
+            ]),
+            aggregate_verify_test_artifact(vec![
+                (transfer, aggregate_verify_test_item(transfer, 21)),
+                (note_reshape, aggregate_verify_test_item(note_reshape, 22)),
+            ]),
+        ];
+
+        let segments = App::expected_aggregate_verify_segments(
+            &artifacts,
+            &[
+                shieldd_sdk_proof_aggregation::AppVerifySegmentRange {
+                    segment_index: 0,
+                    start: 0,
+                    end: 1,
+                },
+                shieldd_sdk_proof_aggregation::AppVerifySegmentRange {
+                    segment_index: 1,
+                    start: 1,
+                    end: 2,
+                },
+            ],
+        );
+        let ids = segments
+            .iter()
+            .enumerate()
+            .map(|(order_index, segment)| super::AggregateVerifyCallId {
+                order_index,
+                segment_index: segment.segment_index,
+                family_index: segment.family_index,
+                family_id: segment.family_id,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            ids,
+            vec![
+                super::AggregateVerifyCallId {
+                    order_index: 0,
+                    segment_index: 0,
+                    family_index: 0,
+                    family_id: transfer,
+                },
+                super::AggregateVerifyCallId {
+                    order_index: 1,
+                    segment_index: 0,
+                    family_index: 1,
+                    family_id: note_reshape,
+                },
+                super::AggregateVerifyCallId {
+                    order_index: 2,
+                    segment_index: 1,
+                    family_index: 0,
+                    family_id: transfer,
+                },
+                super::AggregateVerifyCallId {
+                    order_index: 3,
+                    segment_index: 1,
+                    family_index: 1,
+                    family_id: note_reshape,
+                },
+            ]
+        );
+        assert_eq!(segments[0].items[0].public_inputs[0], Fq::from(12u64));
+        assert_eq!(segments[1].items[0].public_inputs[0], Fq::from(11u64));
+        assert_eq!(segments[2].items[0].public_inputs[0], Fq::from(21u64));
+        assert_eq!(segments[3].items[0].public_inputs[0], Fq::from(22u64));
+    }
+
+    #[test]
+    fn aggregate_verify_planner_preserves_segment_order_and_checks_counts() -> Result<()> {
+        let family_id = ProofFamilyId::Transfer;
+        let expected_segments = vec![
+            super::AggregateExpectedVerifySegment {
+                segment_index: 0,
+                family_index: 0,
+                family_id,
+                items: vec![aggregate_verify_test_item(family_id, 1)],
+                debug_rows: Vec::new(),
+            },
+            super::AggregateExpectedVerifySegment {
+                segment_index: 1,
+                family_index: 0,
+                family_id,
+                items: vec![aggregate_verify_test_item(family_id, 2)],
+                debug_rows: Vec::new(),
+            },
+        ];
+        let bundle = AggregateBundle {
+            version: AGGREGATE_PROTOCOL_VERSION,
+            srs_id: DEFAULT_DEV_SRS_ID.to_vec(),
+            families: vec![
+                FamilyAggregate {
+                    family_id,
+                    real_count: 1,
+                    padded_count: 1,
+                    aggregate_proof: vec![1],
+                },
+                FamilyAggregate {
+                    family_id,
+                    real_count: 1,
+                    padded_count: 1,
+                    aggregate_proof: vec![2],
+                },
+            ],
+        };
+
+        let plan = App::plan_aggregate_bundle_verification(
+            &bundle,
+            expected_segments.clone(),
+            shieldd_sdk_proof_aggregation::DevSrs::default(),
+        )?;
+        assert_eq!(
+            plan.calls.iter().map(|call| call.id).collect::<Vec<_>>(),
+            vec![
+                super::AggregateVerifyCallId {
+                    order_index: 0,
+                    segment_index: 0,
+                    family_index: 0,
+                    family_id,
+                },
+                super::AggregateVerifyCallId {
+                    order_index: 1,
+                    segment_index: 1,
+                    family_index: 0,
+                    family_id,
+                },
+            ]
+        );
+        assert_eq!(plan.calls[0].padded_public_inputs[0][0], Fq::from(1u64));
+        assert_eq!(plan.calls[1].padded_public_inputs[0][0], Fq::from(2u64));
+        assert_eq!(
+            plan.calls[0].shipping_call,
+            app_verify_shipping_call_from_parts(
+                AppVerifyCallId {
+                    order_index: 0,
+                    segment_index: 0,
+                    family_index: 0,
+                    family: app_verify_family_code(family_id),
+                },
+                app_verify_family_code(family_id),
+                1,
+                1,
+                1,
+                1,
+            )
+        );
+
+        let mut missing_family = bundle.clone();
+        missing_family.families.pop();
+        let family_count_error = App::plan_aggregate_bundle_verification(
+            &missing_family,
+            expected_segments.clone(),
+            shieldd_sdk_proof_aggregation::DevSrs::default(),
+        )
+        .expect_err("missing family must reject");
+        assert!(family_count_error
+            .to_string()
+            .contains("aggregate bundle family count mismatch"));
+
+        let mut wrong_order = bundle.clone();
+        wrong_order.families[0].family_id =
+            ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NoteReshapeFamilyId::TwoByOne);
+        let order_error = App::plan_aggregate_bundle_verification(
+            &wrong_order,
+            expected_segments.clone(),
+            shieldd_sdk_proof_aggregation::DevSrs::default(),
+        )
+        .expect_err("wrong family order must reject");
+        assert!(order_error
+            .to_string()
+            .contains("aggregate family ordering mismatch"));
+
+        let mut wrong_real_count = bundle.clone();
+        wrong_real_count.families[0].real_count = 2;
+        let real_count_error = App::plan_aggregate_bundle_verification(
+            &wrong_real_count,
+            expected_segments.clone(),
+            shieldd_sdk_proof_aggregation::DevSrs::default(),
+        )
+        .expect_err("wrong real count must reject");
+        assert!(real_count_error
+            .to_string()
+            .contains("aggregate real_count mismatch"));
+
+        let mut wrong_padded_count = bundle;
+        wrong_padded_count.families[1].padded_count = 2;
+        let padded_count_error = App::plan_aggregate_bundle_verification(
+            &wrong_padded_count,
+            expected_segments,
+            shieldd_sdk_proof_aggregation::DevSrs::default(),
+        )
+        .expect_err("wrong padded count must reject");
+        assert!(padded_count_error
+            .to_string()
+            .contains("aggregate padded_count mismatch"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn aggregate_verify_plan_header_rejects_incomplete_segment_coverage() {
+        let bundle = AggregateBundle {
+            version: AGGREGATE_PROTOCOL_VERSION,
+            srs_id: DEFAULT_DEV_SRS_ID.to_vec(),
+            families: Vec::new(),
+        };
+        let tx = aggregate_bundle_shape_test_tx(bundle.clone(), 5);
+        let artifact = Arc::new(TxArtifact {
+            tx: Arc::new(tx),
+            proof_items: BTreeMap::new(),
+            spend_nullifiers: Vec::new(),
+            anchor_pairs: Vec::new(),
+            total_proof_count: 1,
+            historical_validation: None,
+        });
+
+        let error = App::validate_aggregate_verify_plan_inputs(&[artifact], &bundle, Some(&[0]))
+            .expect_err("incomplete segment coverage must reject");
+        assert!(error
+            .to_string()
+            .contains("aggregate segment coverage mismatch"));
+    }
+
+    #[test]
+    fn aggregate_verify_reducer_is_order_independent_and_rejects_exact_calls() -> Result<()> {
+        let family_id = ProofFamilyId::Transfer;
+        let expected = vec![
+            super::AggregateVerifyCallId {
+                order_index: 0,
+                segment_index: 0,
+                family_index: 0,
+                family_id,
+            },
+            super::AggregateVerifyCallId {
+                order_index: 1,
+                segment_index: 1,
+                family_index: 0,
+                family_id,
+            },
+        ];
+
+        let reduction = App::reduce_aggregate_verify_outcomes(
+            &expected,
+            vec![
+                super::AggregateVerifyCallResult {
+                    id: expected[1],
+                    accepted: true,
+                },
+                super::AggregateVerifyCallResult {
+                    id: expected[0],
+                    accepted: true,
+                },
+            ],
+        )?;
+        reduction.acceptance_result()?;
+
+        let rejected = App::reduce_aggregate_verify_outcomes(
+            &expected,
+            vec![
+                super::AggregateVerifyCallResult {
+                    id: expected[0],
+                    accepted: true,
+                },
+                super::AggregateVerifyCallResult {
+                    id: expected[1],
+                    accepted: false,
+                },
+            ],
+        )?;
+        let rejection = rejected
+            .acceptance_result()
+            .expect_err("one rejected call must reject the bundle");
+        assert!(rejection
+            .to_string()
+            .contains("segment=1 family_index=0 family=Transfer"));
+
+        let duplicate_error = App::reduce_aggregate_verify_outcomes(
+            &expected,
+            vec![
+                super::AggregateVerifyCallResult {
+                    id: expected[0],
+                    accepted: true,
+                },
+                super::AggregateVerifyCallResult {
+                    id: expected[0],
+                    accepted: true,
+                },
+            ],
+        )
+        .expect_err("duplicate outcomes must reject");
+        assert!(duplicate_error
+            .to_string()
+            .contains("aggregate verification outcome identity mismatch"));
+
+        let missing_error = App::reduce_aggregate_verify_outcomes(
+            &expected,
+            vec![super::AggregateVerifyCallResult {
+                id: expected[0],
+                accepted: true,
+            }],
+        )
+        .expect_err("missing outcomes must reject");
+        assert!(missing_error
+            .to_string()
+            .contains("aggregate verification outcome count mismatch"));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn aggregate_bundle_normal_and_profiled_verification_have_result_parity() -> Result<()> {
+        let (_storage, artifacts, bundle, _bundle_tx) = aggregate_fixture(1).await?;
+
+        let normal =
+            App::verify_aggregate_bundle_for_artifacts_raw(&artifacts, &bundle, Some(&[1])).await;
+        let (_profile, profiled) = App::verify_aggregate_bundle_for_artifacts_raw_profiled(
+            &artifacts,
+            &bundle,
+            Some(&[1]),
+        )
+        .await;
+        assert_eq!(normal.is_ok(), profiled.is_ok());
+        normal?;
+        profiled?;
+
+        let mut wrong_count = bundle;
+        wrong_count.families[0].real_count += 1;
+        let normal_error =
+            App::verify_aggregate_bundle_for_artifacts_raw(&artifacts, &wrong_count, Some(&[1]))
+                .await
+                .expect_err("normal verification must reject wrong counts");
+        let (_profile, profiled_result) = App::verify_aggregate_bundle_for_artifacts_raw_profiled(
+            &artifacts,
+            &wrong_count,
+            Some(&[1]),
+        )
+        .await;
+        let profiled_error =
+            profiled_result.expect_err("profiled verification must reject wrong counts");
+        assert_eq!(normal_error.to_string(), profiled_error.to_string());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn async_verifier_outcome_retains_its_exact_shipping_input() -> Result<()> {
+        let (_storage, artifacts, bundle, _bundle_tx) = aggregate_fixture(1).await?;
+        let ranges = App::validate_aggregate_verify_plan_inputs(&artifacts, &bundle, Some(&[1]))?;
+        let expected_segments = App::expected_aggregate_verify_segments(&artifacts, &ranges);
+        let mut plan = App::plan_aggregate_bundle_verification(
+            &bundle,
+            expected_segments,
+            shieldd_sdk_proof_aggregation::DevSrs::default(),
+        )?;
+        let call = plan.calls.remove(0);
+        let expected_id = call.id;
+        let expected_shipping_call = call.shipping_call;
+        let expected_statement = call.statement.clone();
+        let expected_wrapped_proof = call.aggregate.aggregate_proof.clone();
+        let expected_padded_public_inputs = expected_statement
+            .padded_public_input_bytes()
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|field| field.as_bytes().to_vec())
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
+
+        let outcome = App::execute_aggregate_verify_call(call)?;
+
+        assert_eq!(outcome.id, expected_id);
+        assert_eq!(outcome.shipping_result.input.call, expected_shipping_call);
+        assert_eq!(
+            outcome.shipping_result.input.protocol_version,
+            AGGREGATE_PROTOCOL_VERSION
+        );
+        assert_eq!(
+            outcome.shipping_result.input.family,
+            app_verify_family_code(expected_id.family_id)
+        );
+        assert_eq!(
+            outcome.shipping_result.input.srs_id,
+            expected_statement.srs_id()
+        );
+        assert_eq!(
+            outcome.shipping_result.input.vk_digest,
+            expected_statement.vk_digest()
+        );
+        assert_eq!(
+            outcome.shipping_result.input.real_count,
+            expected_statement.real_count()
+        );
+        assert_eq!(
+            outcome.shipping_result.input.padded_count,
+            expected_statement.padded_count()
+        );
+        assert_eq!(
+            outcome.shipping_result.input.public_input_arity,
+            expected_statement.public_input_arity()
+        );
+        assert_eq!(
+            outcome.shipping_result.input.padded_public_inputs,
+            expected_padded_public_inputs
+        );
+        assert_eq!(
+            outcome.shipping_result.input.canonical_statement_bytes,
+            expected_statement.canonical_bytes()
+        );
+        assert_eq!(
+            outcome.shipping_result.input.statement_digest,
+            expected_statement.statement_digest()
+        );
+        assert_eq!(
+            outcome.shipping_result.input.wrapped_proof_bytes,
+            expected_wrapped_proof
+        );
+        assert_eq!(
+            outcome.shipping_result.input.challenge_context,
+            expected_statement.challenge_context().as_bytes()
+        );
+        assert_eq!(
+            outcome.shipping_result.result.accepted,
+            outcome.backend_profile.accepted
+        );
+        assert_eq!(outcome.result()?.accepted, outcome.backend_profile.accepted);
+
+        let mut mismatched = outcome.clone();
+        mismatched.shipping_result.result.id.order_index = mismatched
+            .shipping_result
+            .result
+            .id
+            .order_index
+            .saturating_add(1);
+        assert!(
+            mismatched.result().is_err(),
+            "a shipping result for a different planned call must fail closed"
+        );
+        Ok(())
     }
 
     #[tokio::test]

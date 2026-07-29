@@ -25,12 +25,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
+          "sha256": "acea61c28fe39165dcb1b4deca697a5885184cf63bc0e3378ab1e7f18b03b240"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
+          "sha256": "acea61c28fe39165dcb1b4deca697a5885184cf63bc0e3378ab1e7f18b03b240"
         }
       ],
       "copy_provenance": [],
@@ -89,12 +89,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
+          "sha256": "acea61c28fe39165dcb1b4deca697a5885184cf63bc0e3378ab1e7f18b03b240"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
+          "sha256": "acea61c28fe39165dcb1b4deca697a5885184cf63bc0e3378ab1e7f18b03b240"
         }
       ],
       "copy_provenance": [],
@@ -153,12 +153,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "7b36b2dfeb185a4e541b0215c5b82b5dc068de416aca862dd21d477948c9cb46"
+          "sha256": "24a44ec289a79165905fd0ddfa8b73b8f387685e0c1ac22651af22fae0c19f5b"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "7b36b2dfeb185a4e541b0215c5b82b5dc068de416aca862dd21d477948c9cb46"
+          "sha256": "24a44ec289a79165905fd0ddfa8b73b8f387685e0c1ac22651af22fae0c19f5b"
         }
       ],
       "copy_provenance": [],
@@ -217,12 +217,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         }
       ],
       "copy_provenance": [],
@@ -281,12 +281,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         }
       ],
       "copy_provenance": [],
@@ -345,12 +345,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         }
       ],
       "copy_provenance": [],
@@ -412,12 +412,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "7b36b2dfeb185a4e541b0215c5b82b5dc068de416aca862dd21d477948c9cb46"
+          "sha256": "24a44ec289a79165905fd0ddfa8b73b8f387685e0c1ac22651af22fae0c19f5b"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "7b36b2dfeb185a4e541b0215c5b82b5dc068de416aca862dd21d477948c9cb46"
+          "sha256": "24a44ec289a79165905fd0ddfa8b73b8f387685e0c1ac22651af22fae0c19f5b"
         }
       ],
       "copy_provenance": [],
@@ -533,12 +533,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "7b36b2dfeb185a4e541b0215c5b82b5dc068de416aca862dd21d477948c9cb46"
+          "sha256": "24a44ec289a79165905fd0ddfa8b73b8f387685e0c1ac22651af22fae0c19f5b"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
-          "sha256": "7b36b2dfeb185a4e541b0215c5b82b5dc068de416aca862dd21d477948c9cb46"
+          "sha256": "24a44ec289a79165905fd0ddfa8b73b8f387685e0c1ac22651af22fae0c19f5b"
         }
       ],
       "copy_provenance": [],
@@ -597,12 +597,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
+          "sha256": "acea61c28fe39165dcb1b4deca697a5885184cf63bc0e3378ab1e7f18b03b240"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
+          "sha256": "acea61c28fe39165dcb1b4deca697a5885184cf63bc0e3378ab1e7f18b03b240"
         }
       ],
       "copy_provenance": [],
@@ -663,12 +663,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
+          "sha256": "acea61c28fe39165dcb1b4deca697a5885184cf63bc0e3378ab1e7f18b03b240"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
-          "sha256": "2517b4defc600c7344b2ff13942725d2b31f1ee2bb5e4c3f5c2e4f1ecb4d88d5"
+          "sha256": "acea61c28fe39165dcb1b4deca697a5885184cf63bc0e3378ab1e7f18b03b240"
         }
       ],
       "copy_provenance": [],
@@ -730,12 +730,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         }
       ],
       "copy_provenance": [],
@@ -793,7 +793,16 @@
             "cargo",
             "test",
             "--lib",
-            "ppe_core"
+            "fold_public_inputs_core_parity"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "prepared_ppe"
           ]
         }
       ]
@@ -807,18 +816,19 @@
       "package": "ark-ip-proofs",
       "features": [],
       "roots": [
+        "ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp_challenge_prefix_core",
         "ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp_core"
       ],
       "inputs": [
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         }
       ],
       "copy_provenance": [],
@@ -877,12 +887,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
         }
       ],
       "copy_provenance": [],
@@ -929,26 +939,37 @@
       ]
     },
     {
-      "id": "AggregateVerifier",
+      "id": "AppVerifier",
       "campaign": "s2",
-      "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/AggregateVerifierGenerated.lean",
-      "output_sha256": "bd03eedfb3220f32f20662b60ee3f20b9ffaa276b1dfe0cb7d9f0eed909ee6cd",
+      "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/AppVerifierGenerated.lean",
+      "output_sha256": "f705658b1b236d55c1f0c942dc2b98f984bd89eda593088b30d1d446ad014386",
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
       "roots": [
-        "ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_core"
+        "ark_ip_proofs::app_verifier::app_verify_family_count_core",
+        "ark_ip_proofs::app_verifier::app_verify_normal_acceptance_core",
+        "ark_ip_proofs::app_verifier::app_verify_plan_identity_core",
+        "ark_ip_proofs::app_verifier::app_verify_plan_ids_core",
+        "ark_ip_proofs::app_verifier::app_verify_plan_padding_core",
+        "ark_ip_proofs::app_verifier::app_verify_preflight_core",
+        "ark_ip_proofs::app_verifier::app_verify_repeat_final_rows_core",
+        "ark_ip_proofs::app_verifier::app_verify_shipping_call_from_parts",
+        "ark_ip_proofs::app_verifier::app_verify_shipping_input_from_parts",
+        "ark_ip_proofs::app_verifier::app_verify_shipping_projection_core",
+        "ark_ip_proofs::app_verifier::app_verify_shipping_result_from_parts",
+        "ark_ip_proofs::app_verifier::app_verify_shipping_wrapper_projection_from_parts"
       ],
       "inputs": [
         {
           "role": "copy-source",
-          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+          "sha256": "875fa65aafff69b80281060c6f1ab8db6a04826c6b83a3701b5767863de5d682"
         },
         {
           "role": "parity-test",
-          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "232589a3b4011b73676c31d65631670f071f732ea80b8d7b5a36211c0777fd09"
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+          "sha256": "875fa65aafff69b80281060c6f1ab8db6a04826c6b83a3701b5767863de5d682"
         }
       ],
       "copy_provenance": [],
@@ -964,7 +985,620 @@
             "--output-dir",
             "{output_dir}",
             "aeneas-lean",
-            "--charon-args=--start-from=crate::applications::groth16_aggregation::verify_aggregate_proof_core",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_family_count_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_normal_acceptance_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_plan_identity_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_plan_ids_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_plan_padding_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_preflight_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_repeat_final_rows_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_shipping_call_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_shipping_input_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_shipping_projection_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_shipping_result_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_shipping_wrapper_projection_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        }
+      ],
+      "normalization": {
+        "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
+        "extra_imports": [],
+        "reuse_modules": [],
+        "selected_raw_declarations_sha256": "06e320e2ba2c024b5cb672536e21a36b68092d82c83b402d10dcbe54bdb5c621",
+        "normalized_sha256": "f705658b1b236d55c1f0c942dc2b98f984bd89eda593088b30d1d446ad014386"
+      },
+      "parity": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "app_verifier"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "AggregateAdapter",
+      "campaign": "s2",
+      "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/AggregateAdapterGenerated.lean",
+      "output_sha256": "3ce2af493a803630a0ba72b7bea9ce05e706cfd7bc302c0d6a8177f1bd07845b",
+      "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
+      "package": "ark-ip-proofs",
+      "features": [],
+      "roots": [
+        "ark_ip_proofs::applications::groth16_aggregation::aggregate_adapter_core_input_from_parts",
+        "ark_ip_proofs::applications::groth16_aggregation::aggregate_proof_from_parts",
+        "ark_ip_proofs::applications::groth16_aggregation::combined_checks_core_input_from_parts",
+        "ark_ip_proofs::applications::groth16_aggregation::fold_vector_core",
+        "ark_ip_proofs::applications::groth16_aggregation::prove_tipp_mipp_gipa_core",
+        "ark_ip_proofs::applications::groth16_aggregation::prove_tipp_mipp_gipa_round_core",
+        "ark_ip_proofs::applications::groth16_aggregation::prover_gipa_rounds_to_wire",
+        "ark_ip_proofs::applications::groth16_aggregation::reverse_chronological_core",
+        "ark_ip_proofs::applications::groth16_aggregation::shipping_aggregate_adapter_core_input",
+        "ark_ip_proofs::applications::groth16_aggregation::shipping_prover_execution_from_parts",
+        "ark_ip_proofs::applications::groth16_aggregation::shipping_tipp_mipp_core_input",
+        "ark_ip_proofs::applications::groth16_aggregation::split_vector_at_core",
+        "ark_ip_proofs::applications::groth16_aggregation::tipp_mipp_commitment_from_parts",
+        "ark_ip_proofs::applications::groth16_aggregation::tipp_mipp_core_input_from_parts",
+        "ark_ip_proofs::applications::groth16_aggregation::tipp_mipp_gipa_proof_from_wire_rounds",
+        "ark_ip_proofs::applications::groth16_aggregation::tipp_mipp_proof_from_parts",
+        "ark_ip_proofs::applications::groth16_aggregation::validate_aggregate_proof_data",
+        "ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_adapter_core"
+      ],
+      "inputs": [
+        {
+          "role": "copy-source",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
+        },
+        {
+          "role": "parity-test",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
+        }
+      ],
+      "copy_provenance": [],
+      "extractions": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::aggregate_proof_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::shipping_prover_execution_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::split_vector_at_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::prove_tipp_mipp_gipa_round_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::prove_tipp_mipp_gipa_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::prover_gipa_rounds_to_wire",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::aggregate_adapter_core_input_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::fold_vector_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::reverse_chronological_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::validate_aggregate_proof_data",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::tipp_mipp_commitment_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::tipp_mipp_gipa_proof_from_wire_rounds",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::tipp_mipp_proof_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::shipping_aggregate_adapter_core_input",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::shipping_tipp_mipp_core_input",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::combined_checks_core_input_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::tipp_mipp_core_input_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::verify_aggregate_adapter_core",
             "--lakefile"
           ],
           "raw_outputs": [
@@ -977,10 +1611,12 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [
-          "Ipp.Extracted.CombinedChecksGenerated"
+          "Ipp.Extracted.ChallengeFrameGenerated",
+          "Ipp.Extracted.CombinedChecksGenerated",
+          "Ipp.Extracted.VerifyTippMippGenerated"
         ],
-        "selected_raw_declarations_sha256": "b09056d43f6380e15f2a270ff522d660085a3165202b6be7b94bc7233ccb971d",
-        "normalized_sha256": "bd03eedfb3220f32f20662b60ee3f20b9ffaa276b1dfe0cb7d9f0eed909ee6cd"
+        "selected_raw_declarations_sha256": "e97594f4ecab43c4fc03b28cb637752ed89bdfb4c53578d57e09a5173d5c2e1c",
+        "normalized_sha256": "3ce2af493a803630a0ba72b7bea9ce05e706cfd7bc302c0d6a8177f1bd07845b"
       },
       "parity": [
         {
@@ -989,7 +1625,34 @@
             "cargo",
             "test",
             "--lib",
-            "aggregate_proof_core"
+            "aggregate_adapter_core_"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "aggregate_prover_"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "prover_structural_cores_"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "prover_gipa_core_"
           ]
         }
       ]
@@ -2819,6 +3482,444 @@
             "bls12_377_arkworks_fq_spike",
             "--features",
             "mac-campaign"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ChallengeFrame",
+      "campaign": "s2",
+      "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/ChallengeFrameGenerated.lean",
+      "output_sha256": "7fcbc8dd5ee02027e94a16fd19f4f7858b618211a86a77e6d2eda5c9340abb67",
+      "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
+      "package": "ark-ip-proofs",
+      "features": [],
+      "roots": [
+        "ark_ip_proofs::challenge::challenge_preimage_core",
+        "ark_ip_proofs::challenge::checked_next_challenge_nonce"
+      ],
+      "inputs": [
+        {
+          "role": "copy-source",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+          "sha256": "97be79853adc7ebe25f11fc3178da80c68b2c26a3c1cb841a4838ce76027b545"
+        },
+        {
+          "role": "parity-test",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+          "sha256": "97be79853adc7ebe25f11fc3178da80c68b2c26a3c1cb841a4838ce76027b545"
+        }
+      ],
+      "copy_provenance": [],
+      "extractions": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::challenge::challenge_preimage_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::challenge::checked_next_challenge_nonce",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        }
+      ],
+      "normalization": {
+        "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
+        "extra_imports": [],
+        "reuse_modules": [],
+        "selected_raw_declarations_sha256": "1ccc599364221e6cc017c09ead82ba68c434ca4c854489d15a0ca5d3e1b98634",
+        "normalized_sha256": "7fcbc8dd5ee02027e94a16fd19f4f7858b618211a86a77e6d2eda5c9340abb67"
+      },
+      "parity": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "challenge_preimage_core_is_the_shipping_frame"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "TippMippAdapter",
+      "campaign": "s2",
+      "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/TippMippAdapterGenerated.lean",
+      "output_sha256": "3b0fa2fc9a25501466c79d554ff3782692e38709f460879431b8b6393270a077",
+      "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
+      "package": "ark-ip-proofs",
+      "features": [],
+      "roots": [
+        "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_final_bridge_adapter_core",
+        "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_inner_product_adapter_core",
+        "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_inverse_adapter_core",
+        "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_kzg_adapter_core",
+        "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_msm_check_adapter_core",
+        "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_pairing_check_adapter_core",
+        "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_round_adapter_core",
+        "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_target_check_adapter_core",
+        "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_x0_adapter_core"
+      ],
+      "inputs": [
+        {
+          "role": "copy-source",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
+        },
+        {
+          "role": "parity-test",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
+        }
+      ],
+      "copy_provenance": [],
+      "extractions": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::arkworks_tipp_final_bridge_adapter_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::arkworks_tipp_inner_product_adapter_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::arkworks_tipp_inverse_adapter_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::arkworks_tipp_kzg_adapter_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::arkworks_tipp_msm_check_adapter_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::arkworks_tipp_pairing_check_adapter_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::arkworks_tipp_round_adapter_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::arkworks_tipp_target_check_adapter_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::arkworks_tipp_x0_adapter_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        }
+      ],
+      "normalization": {
+        "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
+        "extra_imports": [],
+        "reuse_modules": [
+          "Ipp.Extracted.VerifyTippMippGenerated"
+        ],
+        "selected_raw_declarations_sha256": "a7b501ca281d59a391875e325a389d18d450ddcece50dd5682c692b02c77be8f",
+        "normalized_sha256": "3b0fa2fc9a25501466c79d554ff3782692e38709f460879431b8b6393270a077"
+      },
+      "parity": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "arkworks_tipp_adapter_core_"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "StructuredScalarPower",
+      "campaign": "s2",
+      "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/StructuredScalarPowerGenerated.lean",
+      "output_sha256": "710c3b77d20e30a0b70af8b35645f09f1df164cedebb7567b9c759f14ee91978",
+      "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
+      "package": "ark-ip-proofs",
+      "features": [],
+      "roots": [
+        "ark_ip_proofs::tipa::structured_scalar_message::structured_scalar_power"
+      ],
+      "inputs": [
+        {
+          "role": "copy-source",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs",
+          "sha256": "28d9b8165f32db0d015d86853596182ace3bd44ff483eb8db3296a230283736e"
+        },
+        {
+          "role": "parity-test",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs",
+          "sha256": "28d9b8165f32db0d015d86853596182ace3bd44ff483eb8db3296a230283736e"
+        }
+      ],
+      "copy_provenance": [],
+      "extractions": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::tipa::structured_scalar_message::structured_scalar_power",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        }
+      ],
+      "normalization": {
+        "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
+        "extra_imports": [],
+        "reuse_modules": [],
+        "selected_raw_declarations_sha256": "882e9646e77e2dcb755939320371276125d12074abac4f50d66c25da46976749",
+        "normalized_sha256": "710c3b77d20e30a0b70af8b35645f09f1df164cedebb7567b9c759f14ee91978"
+      },
+      "parity": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "tipa_ssm_multiexponentiation_inner_product_test"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "SyntheticDivision",
+      "campaign": "s2",
+      "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/SyntheticDivisionGenerated.lean",
+      "output_sha256": "e13c5da887aa2a1afb528ffade02c0aa895c11626a32b115b5ee01bdef6291be",
+      "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
+      "package": "ark-ip-proofs",
+      "features": [],
+      "roots": [
+        "ark_ip_proofs::tipa::synthetic_division_coefficients"
+      ],
+      "inputs": [
+        {
+          "role": "copy-source",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+          "sha256": "24a44ec289a79165905fd0ddfa8b73b8f387685e0c1ac22651af22fae0c19f5b"
+        },
+        {
+          "role": "parity-test",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+          "sha256": "24a44ec289a79165905fd0ddfa8b73b8f387685e0c1ac22651af22fae0c19f5b"
+        }
+      ],
+      "copy_provenance": [],
+      "extractions": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::tipa::synthetic_division_coefficients",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        }
+      ],
+      "normalization": {
+        "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
+        "extra_imports": [],
+        "reuse_modules": [],
+        "selected_raw_declarations_sha256": "9822f15e395ebd55eae253e1e3e3a41536170aba68ada24b23061f8328ac5a64",
+        "normalized_sha256": "e13c5da887aa2a1afb528ffade02c0aa895c11626a32b115b5ee01bdef6291be"
+      },
+      "parity": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "synthetic_division_constructs_exact_monic_linear_quotient"
           ]
         }
       ]

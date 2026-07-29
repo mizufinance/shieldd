@@ -22,11 +22,12 @@ baselines pass without anyone thinking about it, and `AGGREGATE_PROTOCOL_VERSION
 stays put.
 
 **Byte-stability is necessary, not always sufficient.** A passing byte/trace
-baseline proves you did not change the *output*, but it cannot vouch for a change
-that weakens a *validation or soundness check* (e.g. batched vs per-element
-subgroup checks — §8 candidate 1). Such a change can be byte-stable and still
-accept invalid proofs; the gates won't catch it. Any change to how elements are
-*validated* needs an explicit security review on top of byte stability.
+baseline shows that the committed deterministic vectors did not change, but it
+is not a universal equivalence proof and cannot vouch for a change that weakens a
+*validation or soundness check* (e.g. batched vs per-element subgroup checks —
+§8 candidate 1). Such a change can be byte-stable and still accept invalid
+proofs; the gates won't catch it. Any change to how elements are *validated*
+needs an exact equivalence or soundness theorem plus explicit security review.
 
 Category 3 changes what gets hashed for challenges. That voids the existing
 transcript evidence — the argument *"our transcript is byte-shaped like the
@@ -241,20 +242,22 @@ Two optimizations can work against each other:
 1. Bump `AGGREGATE_PROTOCOL_VERSION` (`statement.rs`).
 2. Regenerate both golden baselines via the `--ignored` helpers:
    - `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`
-   - `cargo test -p shieldd-sdk-proof-aggregation-reference regenerate_shieldd_byte_trace_baseline -- --ignored`
+   - `cargo test -p shieldd-sdk-proof-aggregation regenerate_shieldd_byte_trace_baseline -- --ignored`
 3. Record the protocol-version decision in the formal handoff. The invariants
    script enforces the remaining formal-handoff discipline.
 
 ## 6. VALIDATE — the gate set (all green before done)
 
-- `cargo test -p shieldd-sdk-proof-aggregation --lib` — byte baseline,
-  determinism (`aggregation_is_deterministic_for_fixed_inputs`), Groth16 oracle
+- `cargo test -p shieldd-sdk-proof-aggregation --lib` — the production-owned
+  proof + challenge-trace fixture umbrella
+  (`v1_bytes_and_transcript_match_committed_baselines`), determinism
+  (`aggregation_is_deterministic_for_fixed_inputs`), and Groth16 oracle
   agreement (`snarkpack_matches_single_and_batch_groth16_oracles`).
-- `cargo test -p shieldd-sdk-proof-aggregation-reference --lib` — trace
-  baseline, trace equivalence
-  (`production_and_reference_traces_match_declared_levels`), input + verifier
-  mutation matrices (`*_mutant_matrix_is_declared_per_byte_binding_row`,
-  `mutation_matrices_cover_shieldd_byte_trace_rows`).
+- `cargo test -p shieldd-sdk-proof-aggregation-reference --lib` — independent
+  production-proof/reference-verifier and reference-proof/production-verifier
+  acceptance checks. Run `just snarkpack-slow` for the ignored
+  `slow_two_way_interop_band`; the reference crate is not the byte/trace baseline
+  owner.
 - `just snarkpack-fuzz-smoke` — 6 targets, zero crashes.
 - `just snarkpack-invariants`,
   `just snarkpack-formal` — no regression.
@@ -331,9 +334,10 @@ the §4a 10% estimate.
    deferrable: run the hash loop first, then compute each final com as one
    multi-exp over 2·log₂n GT bases (Straus, shared cyclotomic squarings).
    Saves ~(2·log₂n − 1) × 128 GT squarings per commitment (×3, ×2 for the
-   combined TIPP/MIPP transcript). Category 1 (identical GT values, transcript
-   untouched — the trace baseline proves it). Verify `challenge_ms`/
-   `tipp_mipp_ms` share first; below the 10% bar at small n, real at n ≥ 256.
+   combined TIPP/MIPP transcript). Category 1 only after an exact algebraic
+   equivalence proof; the production trace fixture then regression-checks the
+   committed vectors. Verify `challenge_ms`/`tipp_mipp_ms` share first; below the
+   10% bar at small n, real at n ≥ 256.
 
 3. **Confirm GT exponentiation uses cyclotomic squaring throughout.**
    `mul_helper` on `PairingOutput` routes through arkworks' `Group` impl,
@@ -374,12 +378,13 @@ the §4a 10% estimate.
    commit work runs over *identical* elements. Pairing commitments collapse
    algebraically: Π e(A, vᵢ) over the duplicated tail = e(A, Σ vᵢ), trading
    up-to-half the Miller loops for cheap G2 adds of SRS keys (likewise
-   repeated-base MSM terms: sum the scalars). The commitment *values* are
-   bit-identical, so transcript and wire bytes are untouched — category 1,
-   provable by the byte baseline at a padded count. Win is shape-dependent
-   (zero at exact powers of two); measure against the real family-count
-   distribution before building. GIPA's fold rounds don't preserve the
-   duplication past round one, so only the initial commit stage coalesces.
+   repeated-base MSM terms: sum the scalars). The commitment *values* should be
+   bit-identical, so this is a category-1 candidate only after proving the
+   bilinear/linear regrouping; the production fixture regression-checks padded
+   committed vectors. Win is shape-dependent (zero at exact powers of two);
+   measure against the real family-count distribution before building. GIPA's
+   fold rounds don't preserve the duplication past round one, so only the initial
+   commit stage coalesces.
 
 7. **Per-proof final-exp fusion inside one verify (verifier, 2026-07-07).**
    Within a single `verify_family_aggregate`, the two KZG opening checks
@@ -525,13 +530,14 @@ it is never slower than the three-pairing form. The PPE is a fixed-cost stage
 
 **Category 1, byte- and trace-stable.** Verifier-side arithmetic only: same
 accept/reject decision, no wire or Fiat-Shamir byte touched, version unchanged. The
-reference oracle has its own `verify_ppe` and the PPE emits no challenge-trace
-events, so the ShielddByte trace baseline is unaffected. Equivalence is asserted by
-`ppe_optimized_matches_baseline_gt_value` (the optimized expression equals the
-three-pairing GT value over random inputs); end-to-end correctness is additionally
-gated by `snarkpack_matches_single_and_batch_groth16_oracles` and the byte/trace
-baselines. The three-pairing form is retained as `verify_ppe_baseline` (compiled
-only under `bench-baseline`) for the §3b A/B seam.
+reference oracle has its own `verify_ppe`, and the PPE emits no challenge-trace
+events, so the production-owned ShielddByte trace fixture is unaffected.
+Equivalence is asserted by `ppe_optimized_matches_baseline_gt_value` (the
+optimized expression equals the three-pairing GT value over random inputs);
+end-to-end correctness is additionally gated by
+`snarkpack_matches_single_and_batch_groth16_oracles` and the production
+proof/trace fixture umbrella. The three-pairing form is retained as
+`verify_ppe_baseline` (compiled only under `bench-baseline`) for the §3b A/B seam.
 
 `crates/bench/benches/vanilla/snarkpack_prepared_g2.rs` measures per-`G2Prepared::from`
 cost against full verify, bounding the prepare-reuse portion of the saving.

@@ -128,6 +128,43 @@ let smoke_decode_wrapper_is_extracted
     : Core_models.Result.t_Result (t_Slice u8) W.t_AggregateProofBytesError =
   W.decode_wrapped_aggregate_proof wrapped_proof_bytes expected_statement_digest cap
 
+let lemma_wrapper_decode_success_exposes_exact_inner
+      (wrapped_proof_bytes:t_Slice u8)
+      (expected_statement_digest:t_Array u8 (mk_usize 32))
+      (cap:Core_models.Option.t_Option usize)
+      (inner_proof_bytes:t_Slice u8)
+    : Lemma
+      (requires
+        W.decode_wrapped_aggregate_proof
+          wrapped_proof_bytes expected_statement_digest cap
+        ==
+        Core_models.Result.Result_Ok inner_proof_bytes)
+      (ensures
+        exists (inner_range:Core_models.Ops.Range.t_Range usize).
+          W.decode_wrapped_aggregate_proof_inner_range
+              wrapped_proof_bytes expected_statement_digest cap
+          ==
+          Core_models.Result.Result_Ok inner_range
+          /\
+          Core_models.Slice.impl__get #u8
+              #(Core_models.Ops.Range.t_Range usize)
+              wrapped_proof_bytes inner_range
+          ==
+          Core_models.Option.Option_Some inner_proof_bytes)
+= match
+    W.decode_wrapped_aggregate_proof_inner_range
+      wrapped_proof_bytes expected_statement_digest cap
+  with
+  | Core_models.Result.Result_Err _ -> ()
+  | Core_models.Result.Result_Ok inner_range ->
+    (match
+        Core_models.Slice.impl__get #u8
+          #(Core_models.Ops.Range.t_Range usize)
+          wrapped_proof_bytes inner_range
+      with
+      | Core_models.Option.Option_None -> ()
+      | Core_models.Option.Option_Some _ -> ())
+
 let lemma_wrapper_rejects_oversize_before_parsing
       (wrapped_proof_bytes:t_Slice u8)
       (expected_statement_digest:t_Array u8 (mk_usize 32))

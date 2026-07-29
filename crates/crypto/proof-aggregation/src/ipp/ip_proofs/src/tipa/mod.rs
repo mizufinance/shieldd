@@ -1,6 +1,5 @@
 use ark_ec::{pairing::Pairing, CurveGroup, PrimeGroup};
 use ark_ff::{Field, One, UniformRand, Zero};
-use ark_poly::polynomial::{univariate::DensePolynomial, DenseUVPolynomial};
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 #[cfg(test)]
 use ark_std::cfg_iter;
@@ -16,7 +15,10 @@ use std::{marker::PhantomData, ops::MulAssign};
 use rayon::prelude::*;
 
 use crate::{
-    challenge::{challenge_digest, ChallengeContext, ChallengeTraceSink, NoopChallengeTraceSink},
+    challenge::{
+        challenge_digest, sample_bounded_challenge, ChallengeContext, ChallengeTraceSink,
+        NoopChallengeTraceSink,
+    },
     gipa::{GIPAProof, GipaBuildProfile, GIPA},
     Error,
 };
@@ -140,12 +142,17 @@ pub struct SRS<P: Pairing> {
 }
 
 #[derive(Clone, CanonicalSerialize, CanonicalDeserialize)]
-pub struct VerifierSRS<P: Pairing> {
-    pub g: P::G1,
-    pub h: P::G2,
-    pub g_beta: P::G1,
-    pub h_alpha: P::G2,
+pub struct VerifierSRSData<
+    G1: CanonicalSerialize + CanonicalDeserialize,
+    G2: CanonicalSerialize + CanonicalDeserialize,
+> {
+    pub g: G1,
+    pub h: G2,
+    pub g_beta: G1,
+    pub h_alpha: G2,
 }
+
+pub type VerifierSRS<P> = VerifierSRSData<<P as Pairing>::G1, <P as Pairing>::G2>;
 
 #[derive(Clone)]
 pub struct PreparedProvingSrs<P: Pairing> {
@@ -153,6 +160,45 @@ pub struct PreparedProvingSrs<P: Pairing> {
     h_beta_powers_affine: Vec<P::G2Affine>,
     ck_1: Vec<P::G2>,
     ck_2: Vec<P::G1>,
+}
+
+/// Borrowed full-power and even-key view used by the shipping prover.
+struct PreparedProvingSrsProjection<'a, G1, G2, G1Affine, G2Affine> {
+    full_g_alpha_powers: &'a [G1],
+    full_h_beta_powers: &'a [G2],
+    g_alpha_powers_affine: &'a [G1Affine],
+    h_beta_powers_affine: &'a [G2Affine],
+    ck_1: &'a [G2],
+    ck_2: &'a [G1],
+}
+
+/// Projects the even-indexed commitment key without iterator-specific logic.
+fn even_power_projection_core<T: Clone>(powers: &[T]) -> Vec<T> {
+    let mut projected = Vec::with_capacity(powers.len());
+    let mut index = 0usize;
+    while index < powers.len() {
+        projected.push(powers[index].clone());
+        index += 2;
+    }
+    projected
+}
+
+fn prepared_proving_srs_projection_core<'a, G1, G2, G1Affine, G2Affine>(
+    full_g_alpha_powers: &'a [G1],
+    full_h_beta_powers: &'a [G2],
+    g_alpha_powers_affine: &'a [G1Affine],
+    h_beta_powers_affine: &'a [G2Affine],
+    ck_1: &'a [G2],
+    ck_2: &'a [G1],
+) -> PreparedProvingSrsProjection<'a, G1, G2, G1Affine, G2Affine> {
+    PreparedProvingSrsProjection {
+        full_g_alpha_powers,
+        full_h_beta_powers,
+        g_alpha_powers_affine,
+        h_beta_powers_affine,
+        ck_1,
+        ck_2,
+    }
 }
 
 #[cfg(test)]
@@ -171,8 +217,8 @@ const PAIRING_GIPA_RESCALE_THRESHOLD: usize = 64;
 //TODO: Change SRS to return reference iterator - requires changes to TIPA and GIPA signatures
 impl<P: Pairing> SRS<P> {
     pub fn get_commitment_keys(&self) -> (Vec<P::G2>, Vec<P::G1>) {
-        let ck_1 = self.h_beta_powers.iter().step_by(2).cloned().collect();
-        let ck_2 = self.g_alpha_powers.iter().step_by(2).cloned().collect();
+        let ck_1 = even_power_projection_core(&self.h_beta_powers);
+        let ck_2 = even_power_projection_core(&self.g_alpha_powers);
         (ck_1, ck_2)
     }
 
@@ -181,7 +227,7 @@ impl<P: Pairing> SRS<P> {
     }
 
     pub fn get_verifier_key(&self) -> VerifierSRS<P> {
-        VerifierSRS {
+        VerifierSRS::<P> {
             g: self.g_alpha_powers[0].clone(),
             h: self.h_beta_powers[0].clone(),
             g_beta: self.g_beta.clone(),
@@ -194,8 +240,8 @@ impl<P: Pairing> PreparedProvingSrs<P> {
     pub fn new(srs: &SRS<P>) -> Self {
         let g_alpha_powers_affine = <P as Pairing>::G1::normalize_batch(&srs.g_alpha_powers);
         let h_beta_powers_affine = <P as Pairing>::G2::normalize_batch(&srs.h_beta_powers);
-        let ck_1 = srs.h_beta_powers.iter().step_by(2).cloned().collect();
-        let ck_2 = srs.g_alpha_powers.iter().step_by(2).cloned().collect();
+        let ck_1 = even_power_projection_core(&srs.h_beta_powers);
+        let ck_2 = even_power_projection_core(&srs.g_alpha_powers);
         Self {
             g_alpha_powers_affine,
             h_beta_powers_affine,
@@ -214,6 +260,20 @@ impl<P: Pairing> PreparedProvingSrs<P> {
 
     pub fn h_beta_powers_affine(&self) -> &[P::G2Affine] {
         &self.h_beta_powers_affine
+    }
+
+    fn shipping_projection<'a>(
+        &'a self,
+        srs: &'a SRS<P>,
+    ) -> PreparedProvingSrsProjection<'a, P::G1, P::G2, P::G1Affine, P::G2Affine> {
+        prepared_proving_srs_projection_core(
+            &srs.g_alpha_powers,
+            &srs.h_beta_powers,
+            &self.g_alpha_powers_affine,
+            &self.h_beta_powers_affine,
+            &self.ck_1,
+            &self.ck_2,
+        )
     }
 }
 
@@ -340,25 +400,17 @@ where
     })?;
 
     let kzg_challenge_started = std::time::Instant::now();
-    let mut counter_nonce: u64 = 0;
-    let c = loop {
+    let c = sample_bounded_challenge::<_, Error, _>(|nonce| {
         let mut hash_input = Vec::new();
         if let Some(first) = transcript.first() {
             first.serialize_uncompressed(&mut hash_input)?;
         }
         ck_a_final.serialize_uncompressed(&mut hash_input)?;
         ck_b_final.serialize_uncompressed(&mut hash_input)?;
-        if let Some(c) = P::ScalarField::from_random_bytes(&challenge_digest::<D, _>(
-            context,
-            trace,
-            b"tipa.ab.kzg",
-            counter_nonce,
-            &hash_input,
-        )) {
-            break c;
-        };
-        counter_nonce += 1;
-    };
+        Ok(P::ScalarField::from_random_bytes(
+            &challenge_digest::<D, _>(context, trace, b"tipa.ab.kzg", nonce, &hash_input),
+        ))
+    })?;
     profile.kzg_challenge_ms = kzg_challenge_started.elapsed().as_secs_f64() * 1000.0;
 
     let kzg_opening_ck_a_started = std::time::Instant::now();
@@ -548,10 +600,9 @@ where
         profile.commit_com_b_ms += com_b_l_ms + com_b_r_ms;
 
         let challenge_started = std::time::Instant::now();
-        let mut counter_nonce: u64 = 0;
         let default_transcript = Default::default();
         let transcript = r_transcript.last().unwrap_or(&default_transcript);
-        let (c, c_inv) = loop {
+        let (c, c_inv) = sample_bounded_challenge::<_, Error, _>(|nonce| {
             let mut hash_input = Vec::new();
             transcript.serialize_uncompressed(&mut hash_input)?;
             com_1.0.serialize_uncompressed(&mut hash_input)?;
@@ -561,23 +612,14 @@ where
             com_2.1.serialize_uncompressed(&mut hash_input)?;
             com_2.2.serialize_uncompressed(&mut hash_input)?;
             let c: P::ScalarField = u128::from_be_bytes(
-                challenge_digest::<D, _>(
-                    context,
-                    trace,
-                    b"tipa.ab.gipa.round",
-                    counter_nonce,
-                    &hash_input,
-                )
-                .as_slice()[0..16]
+                challenge_digest::<D, _>(context, trace, b"tipa.ab.gipa.round", nonce, &hash_input)
+                    .as_slice()[0..16]
                     .try_into()
                     .unwrap(),
             )
             .into();
-            if let Some(c_inv) = c.inverse() {
-                break (c_inv, c);
-            }
-            counter_nonce += 1;
-        };
+            Ok(c.inverse().map(|c_inv| (c_inv, c)))
+        })?;
         profile.challenge_ms += challenge_started.elapsed().as_secs_f64() * 1000.0;
 
         #[cfg(all(feature = "parallel", not(feature = "bench-baseline")))]
@@ -826,25 +868,21 @@ where
 
         // KZG challenge point
         let kzg_challenge_started = std::time::Instant::now();
-        let mut counter_nonce: u64 = 0;
-        let c = loop {
+        let c = sample_bounded_challenge::<_, Error, _>(|nonce| {
             let mut hash_input = Vec::new();
             if let Some(first) = transcript.first() {
                 first.serialize_uncompressed(&mut hash_input)?;
             }
             ck_a_final.serialize_uncompressed(&mut hash_input)?;
             ck_b_final.serialize_uncompressed(&mut hash_input)?;
-            if let Some(c) = LMC::Scalar::from_random_bytes(&challenge_digest::<D, _>(
+            Ok(LMC::Scalar::from_random_bytes(&challenge_digest::<D, _>(
                 context,
                 trace,
                 kzg_stage_label,
-                counter_nonce,
+                nonce,
                 &hash_input,
-            )) {
-                break c;
-            };
-            counter_nonce += 1;
-        };
+            )))
+        })?;
         profile.kzg_challenge_ms = kzg_challenge_started.elapsed().as_secs_f64() * 1000.0;
 
         // Complete KZG proofs
@@ -968,25 +1006,21 @@ where
         let (ck_a_proof, ck_b_proof) = &proof.final_ck_proof;
 
         // KZG challenge point
-        let mut counter_nonce: u64 = 0;
-        let c = loop {
+        let c = sample_bounded_challenge::<_, Error, _>(|nonce| {
             let mut hash_input = Vec::new();
             if let Some(first) = transcript.first() {
                 first.serialize_uncompressed(&mut hash_input)?;
             }
             ck_a_final.serialize_uncompressed(&mut hash_input)?;
             ck_b_final.serialize_uncompressed(&mut hash_input)?;
-            if let Some(c) = LMC::Scalar::from_random_bytes(&challenge_digest::<D, _>(
+            Ok(LMC::Scalar::from_random_bytes(&challenge_digest::<D, _>(
                 context,
                 trace,
                 kzg_stage_label,
-                counter_nonce,
+                nonce,
                 &hash_input,
-            )) {
-                break c;
-            };
-            counter_nonce += 1;
-        };
+            )))
+        })?;
 
         let r_shift_inverse = r_shift.inverse().ok_or_else(|| {
             Box::new(std::io::Error::new(
@@ -997,7 +1031,7 @@ where
         #[cfg(all(feature = "parallel", not(feature = "bench-baseline")))]
         let (ck_a_result, ck_b_result) = rayon::join(
             || {
-                verify_commitment_key_g2_kzg_opening(
+                verify_commitment_key_g2_kzg_opening::<P>(
                     v_srs,
                     ck_a_final,
                     ck_a_proof,
@@ -1008,7 +1042,7 @@ where
                 .map_err(|err| err.to_string())
             },
             || {
-                verify_commitment_key_g1_kzg_opening(
+                verify_commitment_key_g1_kzg_opening::<P>(
                     v_srs,
                     ck_b_final,
                     ck_b_proof,
@@ -1022,7 +1056,7 @@ where
 
         #[cfg(any(not(feature = "parallel"), feature = "bench-baseline"))]
         let (ck_a_result, ck_b_result) = (
-            verify_commitment_key_g2_kzg_opening(
+            verify_commitment_key_g2_kzg_opening::<P>(
                 v_srs,
                 ck_a_final,
                 ck_a_proof,
@@ -1031,7 +1065,7 @@ where
                 &c,
             )
             .map_err(|err| err.to_string()),
-            verify_commitment_key_g1_kzg_opening(
+            verify_commitment_key_g1_kzg_opening::<P>(
                 v_srs,
                 ck_b_final,
                 ck_b_proof,
@@ -1091,6 +1125,202 @@ pub fn prove_commitment_key_kzg_opening_with_affine<G: CurveGroup>(
     Ok(opening)
 }
 
+/// Coefficients of `(P(X) - P(z)) / (X - z)`, in ascending degree order.
+///
+/// The constant subtraction changes only the zero-degree remainder, so the
+/// quotient is determined by the original coefficients of `P`. Returning an
+/// empty vector for constants makes the helper total; shipping KZG inputs are
+/// nonempty power-of-two coefficient vectors.
+fn synthetic_division_coefficients<F>(coefficients: &[F], point: &F) -> Vec<F>
+where
+    F: Clone + std::ops::Add<Output = F> + std::ops::Mul<Output = F>,
+{
+    if coefficients.len() <= 1 {
+        return Vec::new();
+    }
+
+    let mut descending = Vec::with_capacity(coefficients.len() - 1);
+    let mut index = coefficients.len() - 1;
+    let mut accumulator = coefficients[index].clone();
+    descending.push(accumulator.clone());
+    while index > 1 {
+        index -= 1;
+        accumulator = coefficients[index].clone() + accumulator * point.clone();
+        descending.push(accumulator.clone());
+    }
+    descending.reverse();
+    descending
+}
+
+/// Exact MSM boundary of a prover KZG opening.
+///
+/// Coefficient construction and synthetic division remain ordinary Rust
+/// control flow. Only the affine MSM itself is delegated to the curve
+/// backend, with the complete base and scalar vectors visible at this seam.
+trait KzgOpeningMsmPrimitive<F, A, G, E> {
+    fn msm(&mut self, bases: &[A], scalars: &[F]) -> Result<G, E>;
+}
+
+fn kzg_opening_msm_adapter_core<F, A, G, E, FX>(
+    bases: &[A],
+    scalars: &[F],
+    effect: &mut FX,
+) -> Result<G, E>
+where
+    FX: KzgOpeningMsmPrimitive<F, A, G, E>,
+{
+    effect.msm(bases, scalars)
+}
+
+struct ArkworksKzgOpeningMsm<G: CurveGroup>(PhantomData<fn() -> G>);
+
+impl<G: CurveGroup> Default for ArkworksKzgOpeningMsm<G> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<G: CurveGroup> KzgOpeningMsmPrimitive<G::ScalarField, G::Affine, G, String>
+    for ArkworksKzgOpeningMsm<G>
+{
+    fn msm(&mut self, bases: &[G::Affine], scalars: &[G::ScalarField]) -> Result<G, String> {
+        G::msm(bases, scalars).map_err(|_| "KZG opening MSM length mismatch".to_owned())
+    }
+}
+
+/// Retained values from the production KZG-opening construction. The public
+/// API still projects only `opening`; this record makes the exact polynomial,
+/// evaluation, quotient, and backend result available to extraction.
+#[allow(dead_code)]
+struct KzgOpeningExecution<F, G> {
+    coefficients: Vec<F>,
+    evaluation: F,
+    quotient_coefficients: Vec<F>,
+    opening: G,
+}
+
+fn kzg_opening_execution_from_parts<F, G>(
+    coefficients: Vec<F>,
+    evaluation: F,
+    quotient_coefficients: Vec<F>,
+    opening: G,
+) -> KzgOpeningExecution<F, G> {
+    KzgOpeningExecution {
+        coefficients,
+        evaluation,
+        quotient_coefficients,
+        opening,
+    }
+}
+
+/// External steps used by the complete KZG-opening construction core.
+///
+/// The production implementation below computes coefficients, evaluation,
+/// and synthetic division with the existing Rust helpers. The trait boundary
+/// lets extraction retain each exact call and isolates only the affine MSM.
+trait KzgOpeningPrimitive<F, A, G, E> {
+    fn coefficients(&mut self, transcript: &Vec<F>, r_shift: &F) -> Vec<F>;
+    fn evaluation_and_quotient(
+        &mut self,
+        coefficients: &[F],
+        transcript: &Vec<F>,
+        r_shift: &F,
+        challenge: &F,
+    ) -> (F, Vec<F>);
+    fn msm(&mut self, bases: &[A], scalars: &[F]) -> Result<G, E>;
+}
+
+fn prove_commitment_key_kzg_opening_adapter_core<F, A, G, E, FX>(
+    srs_powers: &[A],
+    transcript: &Vec<F>,
+    r_shift: &F,
+    kzg_challenge: &F,
+    effect: &mut FX,
+) -> Result<KzgOpeningExecution<F, G>, E>
+where
+    F: Clone + Zero,
+    FX: KzgOpeningPrimitive<F, A, G, E>,
+{
+    let coefficients = effect.coefficients(transcript, r_shift);
+    assert_eq!(srs_powers.len(), coefficients.len());
+    let (evaluation, mut quotient_coefficients) =
+        effect.evaluation_and_quotient(&coefficients, transcript, r_shift, kzg_challenge);
+    quotient_coefficients.resize(srs_powers.len(), F::zero());
+    let opening = effect.msm(srs_powers, &quotient_coefficients)?;
+    Ok(kzg_opening_execution_from_parts(
+        coefficients,
+        evaluation,
+        quotient_coefficients,
+        opening,
+    ))
+}
+
+struct ArkworksKzgOpeningEffect<G: CurveGroup> {
+    profile: KzgOpeningBuildProfile,
+    _curve: PhantomData<fn() -> G>,
+}
+
+impl<G: CurveGroup> Default for ArkworksKzgOpeningEffect<G> {
+    fn default() -> Self {
+        Self {
+            profile: KzgOpeningBuildProfile::default(),
+            _curve: PhantomData,
+        }
+    }
+}
+
+impl<G: CurveGroup> KzgOpeningPrimitive<G::ScalarField, G::Affine, G, String>
+    for ArkworksKzgOpeningEffect<G>
+{
+    fn coefficients(
+        &mut self,
+        transcript: &Vec<G::ScalarField>,
+        r_shift: &G::ScalarField,
+    ) -> Vec<G::ScalarField> {
+        let started = std::time::Instant::now();
+        let coefficients = polynomial_coefficients_from_transcript(transcript, r_shift);
+        self.profile.coefficient_build_ms = started.elapsed().as_secs_f64() * 1000.0;
+        coefficients
+    }
+
+    fn evaluation_and_quotient(
+        &mut self,
+        coefficients: &[G::ScalarField],
+        transcript: &Vec<G::ScalarField>,
+        r_shift: &G::ScalarField,
+        challenge: &G::ScalarField,
+    ) -> (G::ScalarField, Vec<G::ScalarField>) {
+        let started = std::time::Instant::now();
+        let eval = start_timer!(|| "polynomial eval");
+        let evaluation =
+            polynomial_evaluation_product_form_from_transcript(transcript, challenge, r_shift);
+        end_timer!(eval);
+
+        let quotient = start_timer!(|| "polynomial quotient");
+        let quotient_coefficients = synthetic_division_coefficients(coefficients, challenge);
+        end_timer!(quotient);
+
+        debug_assert!(
+            coefficients.len() <= 1
+                || coefficients[0] - evaluation + *challenge * quotient_coefficients[0]
+                    == G::ScalarField::zero(),
+            "product-form evaluation must match the extracted coefficient polynomial"
+        );
+        self.profile.eval_quotient_ms = started.elapsed().as_secs_f64() * 1000.0;
+        (evaluation, quotient_coefficients)
+    }
+
+    fn msm(&mut self, bases: &[G::Affine], scalars: &[G::ScalarField]) -> Result<G, String> {
+        let started = std::time::Instant::now();
+        let multiexp = start_timer!(|| "opening multiexp");
+        let mut msm_effect = ArkworksKzgOpeningMsm::<G>::default();
+        let opening = kzg_opening_msm_adapter_core(bases, scalars, &mut msm_effect)?;
+        end_timer!(multiexp);
+        self.profile.opening_msm_ms = started.elapsed().as_secs_f64() * 1000.0;
+        Ok(opening)
+    }
+}
+
 pub fn prove_commitment_key_kzg_opening_with_affine_profiled<G: CurveGroup>(
     srs_powers: &[G::Affine],
     transcript: &Vec<G::ScalarField>,
@@ -1098,39 +1328,17 @@ pub fn prove_commitment_key_kzg_opening_with_affine_profiled<G: CurveGroup>(
     kzg_challenge: &G::ScalarField,
 ) -> Result<(G, KzgOpeningBuildProfile), Error> {
     let total_started = std::time::Instant::now();
-    let mut profile = KzgOpeningBuildProfile::default();
-
-    let coefficient_build_started = std::time::Instant::now();
-    let ck_coefficients = polynomial_coefficients_from_transcript(transcript, r_shift);
-    let ck_polynomial = DensePolynomial::from_coefficients_slice(&ck_coefficients);
-    profile.coefficient_build_ms = coefficient_build_started.elapsed().as_secs_f64() * 1000.0;
-    assert_eq!(srs_powers.len(), ck_polynomial.coeffs.len());
-
-    let eval_quotient_started = std::time::Instant::now();
-    let eval = start_timer!(|| "polynomial eval");
-    let ck_polynomial_c_eval =
-        polynomial_evaluation_product_form_from_transcript(transcript, kzg_challenge, r_shift);
-    end_timer!(eval);
-
-    let quotient = start_timer!(|| "polynomial quotient");
-    let quotient_polynomial = &(&ck_polynomial
-        - &DensePolynomial::from_coefficients_vec(vec![ck_polynomial_c_eval]))
-        / &(DensePolynomial::from_coefficients_vec(vec![-*kzg_challenge, <G::ScalarField>::one()]));
-    end_timer!(quotient);
-
-    let mut quotient_polynomial_coeffs = quotient_polynomial.coeffs;
-    quotient_polynomial_coeffs.resize(srs_powers.len(), <G::ScalarField>::zero());
-    profile.eval_quotient_ms = eval_quotient_started.elapsed().as_secs_f64() * 1000.0;
-
-    let opening_msm_started = std::time::Instant::now();
-    let multiexp = start_timer!(|| "opening multiexp");
-    let opening = G::msm(srs_powers, &quotient_polynomial_coeffs)
-        .map_err(|_| Box::new(std::io::Error::other("KZG opening MSM length mismatch")) as Error)?;
-    end_timer!(multiexp);
-    profile.opening_msm_ms = opening_msm_started.elapsed().as_secs_f64() * 1000.0;
-    profile.total_ms = total_started.elapsed().as_secs_f64() * 1000.0;
-
-    Ok((opening, profile))
+    let mut effect = ArkworksKzgOpeningEffect::<G>::default();
+    let execution = prove_commitment_key_kzg_opening_adapter_core(
+        srs_powers,
+        transcript,
+        r_shift,
+        kzg_challenge,
+        &mut effect,
+    )
+    .map_err(|error| Box::new(std::io::Error::other(error)) as Error)?;
+    effect.profile.total_ms = total_started.elapsed().as_secs_f64() * 1000.0;
+    Ok((execution.opening, effect.profile))
 }
 
 pub(crate) trait PairingEffect<G1, G2, GT> {
@@ -1459,7 +1667,7 @@ mod tests {
     use super::*;
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::{pairing::PairingOutput, PrimeGroup};
+    use ark_ec::{pairing::PairingOutput, PrimeGroup, VariableBaseMSM};
     use ark_ff::Zero;
     use ark_std::rand::{rngs::StdRng, SeedableRng};
     use blake2::Blake2b;
@@ -1482,6 +1690,220 @@ mod tests {
 
     const TEST_SIZE: usize = 8;
 
+    #[derive(Default)]
+    struct RecordingKzgMsm {
+        bases: Vec<u64>,
+        scalars: Vec<u64>,
+        fail: bool,
+    }
+
+    impl KzgOpeningMsmPrimitive<u64, u64, u64, String> for RecordingKzgMsm {
+        fn msm(&mut self, bases: &[u64], scalars: &[u64]) -> Result<u64, String> {
+            self.bases = bases.to_vec();
+            self.scalars = scalars.to_vec();
+            if self.fail {
+                return Err("msm".to_owned());
+            }
+            Ok(bases
+                .iter()
+                .zip(scalars)
+                .map(|(base, scalar)| base.wrapping_mul(*scalar))
+                .fold(0, u64::wrapping_add))
+        }
+    }
+
+    #[derive(Default)]
+    struct RecordingKzgOpening {
+        calls: Vec<&'static str>,
+        msm_bases: Vec<u64>,
+        msm_scalars: Vec<u64>,
+        fail_msm: bool,
+    }
+
+    impl KzgOpeningPrimitive<u64, u64, u64, String> for RecordingKzgOpening {
+        fn coefficients(&mut self, transcript: &Vec<u64>, r_shift: &u64) -> Vec<u64> {
+            self.calls.push("coefficients");
+            vec![transcript[0], *r_shift, transcript[1]]
+        }
+
+        fn evaluation_and_quotient(
+            &mut self,
+            coefficients: &[u64],
+            transcript: &Vec<u64>,
+            r_shift: &u64,
+            challenge: &u64,
+        ) -> (u64, Vec<u64>) {
+            self.calls.push("evaluation-and-quotient");
+            assert_eq!(coefficients, &[2, 5, 3]);
+            assert_eq!(transcript, &[2, 3]);
+            assert_eq!(*r_shift, 5);
+            assert_eq!(*challenge, 7);
+            (11, vec![13, 17])
+        }
+
+        fn msm(&mut self, bases: &[u64], scalars: &[u64]) -> Result<u64, String> {
+            self.calls.push("msm");
+            self.msm_bases = bases.to_vec();
+            self.msm_scalars = scalars.to_vec();
+            if self.fail_msm {
+                Err("msm".to_owned())
+            } else {
+                Ok(19)
+            }
+        }
+    }
+
+    #[test]
+    fn kzg_opening_core_owns_construction_order_and_projection() {
+        let mut effect = RecordingKzgOpening::default();
+        let output = prove_commitment_key_kzg_opening_adapter_core(
+            &[23, 29, 31],
+            &vec![2, 3],
+            &5,
+            &7,
+            &mut effect,
+        )
+        .expect("scripted opening must construct");
+
+        assert_eq!(
+            effect.calls,
+            vec!["coefficients", "evaluation-and-quotient", "msm"]
+        );
+        assert_eq!(effect.msm_bases, vec![23, 29, 31]);
+        assert_eq!(effect.msm_scalars, vec![13, 17, 0]);
+        assert_eq!(output.coefficients, vec![2, 5, 3]);
+        assert_eq!(output.evaluation, 11);
+        assert_eq!(output.quotient_coefficients, vec![13, 17, 0]);
+        assert_eq!(output.opening, 19);
+
+        let mut failing = RecordingKzgOpening {
+            fail_msm: true,
+            ..Default::default()
+        };
+        assert!(matches!(
+            prove_commitment_key_kzg_opening_adapter_core(
+                &[23, 29, 31],
+                &vec![2, 3],
+                &5,
+                &7,
+                &mut failing,
+            ),
+            Err(ref error) if error == "msm"
+        ));
+        assert_eq!(
+            failing.calls,
+            vec!["coefficients", "evaluation-and-quotient", "msm"]
+        );
+    }
+
+    #[test]
+    fn kzg_opening_msm_core_forwards_exact_vectors_and_error() {
+        let mut effect = RecordingKzgMsm::default();
+        assert_eq!(
+            kzg_opening_msm_adapter_core(&[2, 3, 5], &[7, 11, 13], &mut effect),
+            Ok(2 * 7 + 3 * 11 + 5 * 13)
+        );
+        assert_eq!(effect.bases, vec![2, 3, 5]);
+        assert_eq!(effect.scalars, vec![7, 11, 13]);
+
+        let mut failing = RecordingKzgMsm {
+            fail: true,
+            ..Default::default()
+        };
+        assert_eq!(
+            kzg_opening_msm_adapter_core(&[2, 3], &[7, 11], &mut failing),
+            Err("msm".to_owned())
+        );
+        assert_eq!(failing.bases, vec![2, 3]);
+        assert_eq!(failing.scalars, vec![7, 11]);
+    }
+
+    #[test]
+    fn polynomial_coefficients_match_direct_expansion() {
+        type Scalar = <Bls12_377 as Pairing>::ScalarField;
+
+        let transcript = vec![Scalar::from(3u64), Scalar::from(5u64)];
+        let r_shift = Scalar::from(7u64);
+
+        assert_eq!(
+            polynomial_coefficients_from_transcript(&transcript, &r_shift),
+            vec![
+                Scalar::from(1u64),
+                Scalar::from(0u64),
+                Scalar::from(21u64),
+                Scalar::from(0u64),
+                Scalar::from(245u64),
+                Scalar::from(0u64),
+                Scalar::from(5145u64),
+            ]
+        );
+    }
+
+    #[test]
+    fn polynomial_evaluation_product_form_matches_coefficients() {
+        type Scalar = <Bls12_377 as Pairing>::ScalarField;
+
+        let transcript = vec![Scalar::from(3u64), Scalar::from(5u64), Scalar::from(13u64)];
+        let r_shift = Scalar::from(7u64);
+        let z = Scalar::from(11u64);
+        let coefficients = polynomial_coefficients_from_transcript(&transcript, &r_shift);
+        let evaluation = coefficients
+            .iter()
+            .rev()
+            .fold(Scalar::zero(), |accumulator, coefficient| {
+                accumulator * z + coefficient
+            });
+
+        assert_eq!(
+            polynomial_evaluation_product_form_from_transcript(&transcript, &z, &r_shift),
+            evaluation
+        );
+    }
+
+    #[test]
+    fn synthetic_division_constructs_exact_monic_linear_quotient() {
+        type Scalar = <Bls12_377 as Pairing>::ScalarField;
+
+        fn evaluate(coefficients: &[Scalar], point: Scalar) -> Scalar {
+            coefficients
+                .iter()
+                .rev()
+                .fold(Scalar::zero(), |accumulator, coefficient| {
+                    accumulator * point + coefficient
+                })
+        }
+
+        assert!(synthetic_division_coefficients::<Scalar>(&[], &Scalar::from(7u64)).is_empty());
+        assert!(
+            synthetic_division_coefficients(&[Scalar::from(9u64)], &Scalar::from(7u64)).is_empty()
+        );
+
+        let coefficients = vec![
+            Scalar::from(2u64),
+            Scalar::from(3u64),
+            Scalar::from(5u64),
+            Scalar::from(7u64),
+        ];
+        let opening_point = Scalar::from(11u64);
+        let quotient = synthetic_division_coefficients(&coefficients, &opening_point);
+        assert_eq!(
+            quotient,
+            vec![
+                Scalar::from(905u64),
+                Scalar::from(82u64),
+                Scalar::from(7u64),
+            ]
+        );
+
+        let evaluation = evaluate(&coefficients, opening_point);
+        for point in [Scalar::zero(), Scalar::one(), Scalar::from(19u64)] {
+            assert_eq!(
+                evaluate(&coefficients, point) - evaluation,
+                (point - opening_point) * evaluate(&quotient, point)
+            );
+        }
+    }
+
     struct FailingPairingEffect;
 
     impl<G1, G2, GT> PairingEffect<G1, G2, GT> for FailingPairingEffect {
@@ -1491,7 +1913,7 @@ mod tests {
     }
 
     fn assert_kzg_adapter_parity<P: Pairing>() {
-        let v_srs: VerifierSRS<P> = VerifierSRS {
+        let v_srs: VerifierSRS<P> = VerifierSRSData {
             g: P::G1::generator(),
             h: P::G2::generator(),
             g_beta: P::G1::generator(),
@@ -1513,7 +1935,7 @@ mod tests {
             z: challenge.clone(),
             _pairing_output: PhantomData,
         };
-        let delegated_g2 = verify_commitment_key_g2_kzg_opening(
+        let delegated_g2 = verify_commitment_key_g2_kzg_opening::<P>(
             &v_srs,
             &g2_input.ck_final,
             &g2_input.ck_opening,
@@ -1569,7 +1991,7 @@ mod tests {
             z: challenge.clone(),
             _pairing_output: PhantomData,
         };
-        let delegated_invalid_g2 = verify_commitment_key_g2_kzg_opening(
+        let delegated_invalid_g2 = verify_commitment_key_g2_kzg_opening::<P>(
             &v_srs,
             &invalid_g2_final,
             &P::G2::zero(),
@@ -1607,7 +2029,7 @@ mod tests {
             z: challenge.clone(),
             _pairing_output: PhantomData,
         };
-        let delegated_g1 = verify_commitment_key_g1_kzg_opening(
+        let delegated_g1 = verify_commitment_key_g1_kzg_opening::<P>(
             &v_srs,
             &g1_input.ck_final,
             &g1_input.ck_opening,
@@ -1667,7 +2089,7 @@ mod tests {
             z: challenge.clone(),
             _pairing_output: PhantomData,
         };
-        let delegated_invalid_g1 = verify_commitment_key_g1_kzg_opening(
+        let delegated_invalid_g1 = verify_commitment_key_g1_kzg_opening::<P>(
             &v_srs,
             &invalid_g1_final,
             &P::G1::zero(),
@@ -2012,5 +2434,34 @@ mod tests {
         assert!(profile.coefficient_build_ms >= 0.0);
         assert!(profile.eval_quotient_ms >= 0.0);
         assert!(profile.opening_msm_ms >= 0.0);
+    }
+
+    #[test]
+    fn affine_kzg_profiled_projects_exact_quotient_msm() {
+        type G = <Bls12_381 as Pairing>::G1;
+        type F = <Bls12_381 as Pairing>::ScalarField;
+
+        let mut rng = StdRng::seed_from_u64(29u64);
+        let generator = G::generator();
+        let s = F::rand(&mut rng);
+        let powers = structured_generators_scalar_power(31, &generator, &s);
+        let affines = G::normalize_batch(&powers);
+        let transcript = (0..4).map(|_| F::rand(&mut rng)).collect::<Vec<_>>();
+        let r_shift = F::rand(&mut rng);
+        let challenge = F::rand(&mut rng);
+
+        let coefficients = polynomial_coefficients_from_transcript(&transcript, &r_shift);
+        let mut quotient = synthetic_division_coefficients(&coefficients, &challenge);
+        quotient.resize(affines.len(), F::zero());
+        let expected = G::msm(&affines, &quotient).expect("lengths match");
+
+        let (opening, _) = prove_commitment_key_kzg_opening_with_affine_profiled::<G>(
+            &affines,
+            &transcript,
+            &r_shift,
+            &challenge,
+        )
+        .expect("profiled opening must construct");
+        assert_eq!(opening, expected);
     }
 }

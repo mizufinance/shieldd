@@ -395,45 +395,45 @@ variable [Field F]
 variable [AddCommGroup G1] [Module F G1]
 variable [AddCommGroup GT] [Module F GT]
 
-private def modelClone (T : Type) : core.clone.Clone T where
+def modelClone (T : Type) : core.clone.Clone T where
   clone x := .ok x
 
-private def modelDefault (T : Type) [Zero T] : core.default.Default T where
+def modelDefault (T : Type) [Zero T] : core.default.Default T where
   default := .ok 0
 
-private def modelAdd (T : Type) [Add T] :
+def modelAdd (T : Type) [Add T] :
     ark_ip_proofs.core.ops.arith.Add T T T where
   add x y := .ok (x + y)
 
-private def modelSmulAssign (M : Type) [SMul F M] :
+def modelSmulAssign (M : Type) [SMul F M] :
     ark_ip_proofs.core.ops.arith.MulAssign M F where
   mul_assign x c := .ok (c • x)
 
-private def modelOne (T : Type) [One T] [Mul T] :
+def modelOne (T : Type) [One T] [Mul T] :
     ark_ip_proofs.num_traits.identities.One T where
   coreopsarithMulInst := { mul := fun x y => .ok (x * y) }
   one := .ok 1
 
-private def modelMul (T : Type) [Mul T] :
+def modelMul (T : Type) [Mul T] :
     ark_ip_proofs.core.ops.arith.Mul T T T where
   mul x y := .ok (x * y)
 
-private def modelSmul (M : Type) [SMul F M] :
+def modelSmul (M : Type) [SMul F M] :
     ark_ip_proofs.core.ops.arith.Mul M F M where
   mul x c := .ok (c • x)
 
-private def modelSub (T : Type) [Sub T] :
+def modelSub (T : Type) [Sub T] :
     ark_ip_proofs.core.ops.arith.Sub T T T where
   sub x y := .ok (x - y)
 
-private def modelNeg (T : Type) [Neg T] :
+def modelNeg (T : Type) [Neg T] :
     ark_ip_proofs.core.ops.arith.Neg T T where
   neg x := .ok (-x)
 
-private abbrev modelZero (T : Type) [Zero T] [Add T] [DecidableEq T] :=
+abbrev modelZero (T : Type) [Zero T] [Add T] [DecidableEq T] :=
   Ipp.Extracted.zeroModel T
 
-private abbrev modelPairing {G2 PE : Type} [AddCommGroup G2] [Module F G2]
+abbrev modelPairing {G2 PE : Type} [AddCommGroup G2] [Module F G2]
     (e : G1 →ₗ[F] G2 →ₗ[F] GT) (outcome : PE → Option Unit) :=
   Ipp.Extracted.pairingModel e outcome
 
@@ -507,7 +507,7 @@ private theorem foldState_succ_comA_snd {n k : Nat} (raw : Fin n → F)
   rw [foldState, dif_pos hk]
   rfl
 
-private def priorAt {n : Nat} (raw : Fin n → F) (initial : F) : Nat → F
+def priorAt {n : Nat} (raw : Fin n → F) (initial : F) : Nat → F
   | 0 => initial
   | k + 1 => if hk : k < n then raw ⟨k, hk⟩ else initial
 
@@ -631,10 +631,10 @@ def coreInput {G2 : Type} [AddCommGroup G2] [Module F G2] {n : Nat}
     (g gBeta : G1) (h hAlpha : G2) :
     ark_ip_proofs.applications.groth16_aggregation.TippMippCoreInput
       F G1 G2 GT GT G1 :=
-  { com_a := stmt.ComA.1
-    com_b := stmt.ComB
+  { com_a := proof.ComA.1
+    com_b := proof.ComB
     com_t := proof.ipAb
-    com_c := stmt.ComA.2
+    com_c := proof.ComA.2
     com_z := proof.aggC
     ip_ab := proof.ipAb
     agg_c := proof.aggC
@@ -649,6 +649,74 @@ def coreInput {G2 : Type} [AddCommGroup G2] [Module F G2] {n : Nat}
     verifier_h_alpha := hAlpha
     r := transcript.randomizer
     kzg_g2_r_shift := 1 }
+
+/-- The exact algebraic wrapper used by the TIPP/MIPP refinement. Keeping this
+    wrapper named lets production adapters prove a shallow equality to it
+    without normalizing the extracted verifier body. -/
+noncomputable def runTippModel {G2 E FX PE : Type}
+    [AddCommGroup G2] [Module F G2]
+    (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (pairingEffect : ark_ip_proofs.tipa.PairingEffect PE G1 G2 GT)
+    (input : ark_ip_proofs.applications.groth16_aggregation.TippMippCoreInput
+      F G1 G2 GT GT G1)
+    (effect : FX) (pairing : PE) := by
+  letI : DecidableEq GT := Classical.decEq _
+  exact
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core
+      (modelClone F) (modelOne F) (modelAdd F) (modelMul F)
+      (modelClone G1) (modelSmul G1) (modelSub G1) (modelNeg G1)
+      (modelClone G2) (modelSmul G2) (modelSub G2)
+      (modelClone GT) (modelDefault GT) (modelAdd GT) (modelSmulAssign GT)
+      (modelZero GT) (modelClone GT) (modelDefault GT) (modelAdd GT)
+      (modelSmulAssign GT) (modelClone G1) (modelDefault G1) (modelAdd G1)
+      (modelSmulAssign G1) effects pairingEffect input effect pairing
+
+private theorem exists_success_effect_iff
+    {E FX : Type} (valid : Bool) (effect : FX) :
+    (∃ finalEffect,
+      (.ok (.Ok valid, effect) :
+        Result (ark_ip_proofs.core.result.Result Bool E × FX)) =
+        .ok (.Ok true, finalEffect)) ↔
+      valid = true := by
+  cases valid
+  · constructor
+    · rintro ⟨finalEffect, h⟩
+      cases h
+    · intro h
+      cases h
+  · constructor
+    · intro _
+      rfl
+    · intro _
+      exact ⟨effect, rfl⟩
+
+private theorem exists_success_effect_ite_iff
+    {E FX : Type} (condition : Prop) [Decidable condition] (effect : FX) :
+    (∃ finalEffect,
+      (if condition then
+          (.ok (.Ok true, effect) :
+            Result (ark_ip_proofs.core.result.Result Bool E × FX))
+        else .ok (.Ok false, effect)) =
+        .ok (.Ok true, finalEffect)) ↔
+      condition := by
+  by_cases h : condition <;>
+    simp [h, exists_success_effect_iff]
+
+private theorem exists_success_effect_and_ite_iff
+    {E FX : Type} (left right : Prop) [Decidable left] [Decidable right]
+    (effect : FX) :
+    (∃ finalEffect,
+      (if left then
+          if right then
+            (.ok (.Ok true, effect) :
+              Result (ark_ip_proofs.core.result.Result Bool E × FX))
+          else .ok (.Ok false, effect)
+        else .ok (.Ok false, effect)) =
+        .ok (.Ok true, finalEffect)) ↔
+      left ∧ right := by
+  by_cases hl : left <;> by_cases hr : right <;>
+    simp [hl, hr]
 
 set_option maxHeartbeats 1000000 in
 /-- The full extracted TIPP/MIPP leaf verifier succeeds exactly on `LeafData`.
@@ -667,8 +735,8 @@ theorem verify_tipp_mipp_refinement_statement
     (effect0 : FX) (effect : Nat → FX) (effect3 effect4 : FX)
     (inverse : Fin n → F)
     (leftAccepted rightAccepted targetAccepted cAccepted zAccepted : Bool)
-    (hx0 : effects.derive_x0 effect0 transcript.randomizer stmt.ComA.1 stmt.ComB
-      stmt.ComA.2 proof.ipAb proof.aggC =
+    (hx0 : effects.derive_x0 effect0 transcript.randomizer proof.ComA.1 proof.ComB
+      proof.ComA.2 proof.ipAb proof.aggC =
         .ok (.Ok transcript.x0, effect 0))
     (hderive : ∀ k (hk : k < n),
       effects.derive_round (effect k)
@@ -698,42 +766,42 @@ theorem verify_tipp_mipp_refinement_statement
     (hbaseLeft :
       effects.gipaBaseCommitmentEffectSelfG2G1TupleG1G2GTGTGTABTEInst.verify_left
         effect4 ⟨[proof.vFinal]⟩ ⟨[proof.aFinal]⟩
-          (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.1 =
+          (Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comA.1 =
             .ok (.Ok leftAccepted))
     (hbaseRight :
       effects.gipaBaseCommitmentEffectSelfG2G1TupleG1G2GTGTGTABTEInst.verify_right
         effect4 ⟨[proof.wFinal]⟩ ⟨[proof.bFinal]⟩
-          (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comB =
+          (Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comB =
             .ok (.Ok rightAccepted))
     (hbaseTarget :
       effects.gipaBaseCommitmentEffectSelfG2G1TupleG1G2GTGTGTABTEInst.verify_target
         effect4 ⟨[()]⟩ ⟨[stmt.e proof.aFinal proof.bFinal]⟩
-          (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.1 =
+          (Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comT.1 =
             .ok (.Ok targetAccepted))
     (hleft : leftAccepted = true ↔
       stmt.e proof.aFinal proof.vFinal =
-        (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.1)
+        (Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comA.1)
     (hright : rightAccepted = true ↔
       stmt.e proof.wFinal proof.bFinal =
-        (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comB)
+        (Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comB)
     (htarget : targetAccepted = true ↔
       stmt.e proof.aFinal proof.bFinal =
-        (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.1)
+        (Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comT.1)
     (hc : effects.verify_c effect4 ⟨[proof.cFinal]⟩ ⟨[proof.vFinal]⟩
-      (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.2 =
+      (Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comA.2 =
         .ok (.Ok cAccepted))
     (hcAccepted : cAccepted = true ↔
       stmt.e proof.cFinal proof.vFinal =
-        (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.2)
+        (Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comA.2)
     (hz : effects.verify_z effect4 ⟨[proof.cFinal]⟩
       ⟨[Ipp.terminalR transcript.randomizer
         (Ipp.reversedView transcript.roundAnswer)]⟩
-      (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.2 =
+      (Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comT.2 =
         .ok (.Ok zAccepted))
     (hzAccepted : zAccepted = true ↔
       Ipp.terminalR transcript.randomizer
           (Ipp.reversedView transcript.roundAnswer) • proof.cFinal =
-        (Ipp.terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.2)
+        (Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comT.2)
     (hacceptV : stmt.acceptV transcript.kzg
         (Ipp.transcriptCoeffs (Ipp.reversedView transcript.roundAnswer) 1)
         proof.vFinal proof.vOpening ↔
@@ -756,18 +824,13 @@ theorem verify_tipp_mipp_refinement_statement
                 transcript.randomizer⁻¹ i *
                 (transcript.kzg ^ 2) ^ (i : Nat)) • g) h -
           stmt.e proof.wOpening (hAlpha - transcript.kzg • h) = 0) :
-    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core
-        (modelClone F) (modelOne F) (modelAdd F) (modelMul F)
-        (modelClone G1) (modelSmul G1) (modelSub G1) (modelNeg G1)
-        (modelClone G2) (modelSmul G2) (modelSub G2)
-        (modelClone GT) (modelDefault GT) (modelAdd GT) (modelSmulAssign GT)
-        (modelZero GT) (modelClone GT) (modelDefault GT) (modelAdd GT)
-        (modelSmulAssign GT) (modelClone G1) (modelDefault G1) (modelAdd G1)
-        (modelSmulAssign G1) effects (modelPairing stmt.e outcome)
-        (coreInput stmt proof transcript g gBeta h hAlpha) effect0 pairing =
-          .ok (.Ok true, effect4) ↔
-      Ipp.LeafData stmt proof transcript := by
-  have hloop := success_terminal_folds effects proof stmt.ComA stmt.ComB effect
+    (∃ finalEffect,
+      runTippModel effects (modelPairing stmt.e outcome)
+          (coreInput stmt proof transcript g gBeta h hAlpha) effect0 pairing =
+        .ok (.Ok true, finalEffect)) ↔
+    Ipp.LeafData stmt proof transcript := by
+  letI : DecidableEq GT := Classical.decEq _
+  have hloop := success_terminal_folds effects proof proof.ComA proof.ComB effect
     transcript.x0 transcript.x0 transcript.roundAnswer inverse hderive hinvert
     hinverse hnonzero
   simp only [modelClone, modelDefault, modelAdd, modelSmulAssign, finVec] at hloop
@@ -799,7 +862,8 @@ theorem verify_tipp_mipp_refinement_statement
       (modelClone F) (modelOne F) (modelAdd F) (modelMul F)
       ⟨List.ofFn (Ipp.reversedView transcript.roundAnswer)⟩ transcript.randomizer = _ at hs
   simp only [modelClone, modelOne, modelAdd, modelMul] at hs
-  unfold ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core
+  unfold runTippModel
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core
   simp only [coreInput, modelClone, modelOne, modelAdd, modelMul, modelSmul,
     modelSub, modelNeg, modelDefault, modelSmulAssign, Result.bind_ok]
   rw [hx0]
@@ -860,8 +924,8 @@ theorem verify_tipp_mipp_refinement_statement
   rw [← hleft, ← hright, ← htarget, ← hcAccepted, ← hzAccepted,
     hacceptV, hacceptW]
   cases leftAccepted <;> cases rightAccepted <;> cases targetAccepted <;>
-    cases cAccepted <;> cases zAccepted <;> cases outcome pairing <;> simp
-  split <;> simp_all
+    cases cAccepted <;> cases zAccepted <;> cases outcome pairing <;> simp <;>
+    rw [exists_success_effect_and_ite_iff]
 
 end TerminalFolds
 

@@ -77,6 +77,111 @@ private def inputSlice {F : Type} {m n : ℕ}
     (inputs : Fin m → Fin n → F) : Slice (alloc.vec.Vec F) :=
   ⟨List.ofFn (fun i => ⟨List.ofFn (inputs i)⟩)⟩
 
+/- Public names for the exact algebra and slice adapters in the composed
+   aggregate-PPE theorem. Other extracted modules define similar private
+   helpers, so these live in a purpose-specific namespace. -/
+namespace Groth16AdapterModel
+
+def clone (T : Type) : core.clone.Clone T where
+  clone value := .ok value
+
+noncomputable def partialEq (T : Type) :
+    ark_ip_proofs.core.cmp.PartialEq T T where
+  eq left right := by
+    letI := Classical.decEq T
+    exact .ok (decide (left = right))
+
+def fromU64 (F : Type) [NatCast F] :
+    ark_ip_proofs.core.convert.From F MacCampaign.U64 where
+  «from» value := .ok value.val
+
+def add (T : Type) [Add T] :
+    ark_ip_proofs.core.ops.arith.Add T T T where
+  add left right := .ok (left + right)
+
+def sub (T : Type) [Sub T] :
+    ark_ip_proofs.core.ops.arith.Sub T T T where
+  sub left right := .ok (left - right)
+
+def mul (T : Type) [Mul T] :
+    ark_ip_proofs.core.ops.arith.Mul T T T where
+  mul left right := .ok (left * right)
+
+def div (T : Type) [Div T] :
+    ark_ip_proofs.core.ops.arith.Div T T T where
+  div left right := .ok (left / right)
+
+def one (T : Type) [One T] [Mul T] :
+    ark_ip_proofs.num_traits.identities.One T where
+  coreopsarithMulInst := mul T
+  one := .ok 1
+
+noncomputable def zero (T : Type) [Zero T] [Add T] :
+    ark_ip_proofs.num_traits.identities.Zero T where
+  coreopsarithAddInst := add T
+  zero := .ok 0
+  is_zero value := by
+    letI := Classical.decEq T
+    exact .ok (decide (value = 0))
+
+def smul (F G : Type) [SMul F G] :
+    ark_ip_proofs.core.ops.arith.Mul G F G where
+  mul point scalar := .ok (scalar • point)
+
+def neg (G : Type) [Neg G] :
+    ark_ip_proofs.core.ops.arith.Neg G G where
+  neg point := .ok (-point)
+
+def finSlice {T : Type} {n : ℕ} (values : Fin n → T) : Slice T :=
+  ⟨List.ofFn values⟩
+
+def inputSlice {F : Type} {m n : ℕ}
+    (inputs : Fin m → Fin n → F) : Slice (alloc.vec.Vec F) :=
+  ⟨List.ofFn (fun i => ⟨List.ofFn (inputs i)⟩)⟩
+
+end Groth16AdapterModel
+
+private theorem groth16Adapter_clone (T : Type) :
+    Groth16AdapterModel.clone T = cloneModel T := rfl
+
+private theorem groth16Adapter_partialEq (T : Type) :
+    Groth16AdapterModel.partialEq T = partialEqModel T := rfl
+
+private theorem groth16Adapter_fromU64 (F : Type) [NatCast F] :
+    Groth16AdapterModel.fromU64 F = fromU64Model F := rfl
+
+private theorem groth16Adapter_add (T : Type) [Add T] :
+    Groth16AdapterModel.add T = addModel T := rfl
+
+private theorem groth16Adapter_sub (T : Type) [Sub T] :
+    Groth16AdapterModel.sub T = subModel T := rfl
+
+private theorem groth16Adapter_mul (T : Type) [Mul T] :
+    Groth16AdapterModel.mul T = mulModel T := rfl
+
+private theorem groth16Adapter_div (T : Type) [Div T] :
+    Groth16AdapterModel.div T = divModel T := rfl
+
+private theorem groth16Adapter_one (T : Type) [One T] [Mul T] :
+    Groth16AdapterModel.one T = oneModel T := rfl
+
+private theorem groth16Adapter_zero (T : Type) [Zero T] [Add T] :
+    Groth16AdapterModel.zero T = zeroModel T := rfl
+
+private theorem groth16Adapter_smul (F G : Type) [SMul F G] :
+    Groth16AdapterModel.smul F G = smulModel F G := rfl
+
+private theorem groth16Adapter_neg (G : Type) [Neg G] :
+    Groth16AdapterModel.neg G = negModel G := rfl
+
+private theorem groth16Adapter_finSlice
+    {T : Type} {n : ℕ} (values : Fin n → T) :
+    Groth16AdapterModel.finSlice values = finSlice values := rfl
+
+private theorem groth16Adapter_inputSlice
+    {F : Type} {m n : ℕ} (inputs : Fin m → Fin n → F) :
+    Groth16AdapterModel.inputSlice inputs = inputSlice inputs := rfl
+
 private theorem updateAt_eq_set {T : Type} (items : List T) (index : ℕ) (value : T) :
     ark_ip_proofs.alloc.vec.Vec.updateAt items index value = items.set index value := by
   induction items generalizing index with
@@ -852,15 +957,21 @@ theorem verify_combined_ppe_refinement_statement
                         gammaABC (Fin.succ j)))) (preparedValue gammaNeg) +
                 e (normalize (-aggC)) (preparedValue deltaNeg)))) :
     ark_ip_proofs.applications.groth16_aggregation.verify_combined_ppe_core
-        (cloneModel F) (partialEqModel F) (fromU64Model F) (oneModel F)
-        (zeroModel F) (addModel F) (divModel F) (mulModel F) (subModel F)
-        (cloneModel G1) (addModel G1) (smulModel F G1) (negModel G1)
-        (cloneModel G2Prepared) (cloneModel GT) (smulModel F GT) (addModel GT)
-        (partialEqModel GT) effect
+        (Groth16AdapterModel.clone F) (Groth16AdapterModel.partialEq F)
+        (Groth16AdapterModel.fromU64 F) (Groth16AdapterModel.one F)
+        (Groth16AdapterModel.zero F) (Groth16AdapterModel.add F)
+        (Groth16AdapterModel.div F) (Groth16AdapterModel.mul F)
+        (Groth16AdapterModel.sub F)
+        (Groth16AdapterModel.clone G1) (Groth16AdapterModel.add G1)
+        (Groth16AdapterModel.smul F G1) (Groth16AdapterModel.neg G1)
+        (Groth16AdapterModel.clone G2Prepared) (Groth16AdapterModel.clone GT)
+        (Groth16AdapterModel.smul F GT) (Groth16AdapterModel.add GT)
+        (Groth16AdapterModel.partialEq GT) effect
         { alpha_beta := e alpha beta, agg_c := aggC,
           gamma_g2_neg_pc := gammaNeg, delta_g2_neg_pc := deltaNeg,
           ip_ab := ipAb }
-        (finSlice gammaABC) (inputSlice publicInputs) r pairing = .ok true ↔
+        (Groth16AdapterModel.finSlice gammaABC)
+        (Groth16AdapterModel.inputSlice publicInputs) r pairing = .ok true ↔
       outcome pairing = some () ∧
         e ((∑ i : Fin m, r ^ (i : ℕ)) • alpha) beta +
           e (((∑ i : Fin m, r ^ (i : ℕ)) • gammaABC 0) +
@@ -868,6 +979,11 @@ theorem verify_combined_ppe_refinement_statement
                 (∑ i : Fin m, r ^ (i : ℕ) * publicInputs i j) •
                   gammaABC (Fin.succ j)) gamma +
           e aggC delta = ipAb := by
+  simp only [groth16Adapter_clone, groth16Adapter_partialEq,
+    groth16Adapter_fromU64, groth16Adapter_one, groth16Adapter_zero,
+    groth16Adapter_add, groth16Adapter_div, groth16Adapter_mul,
+    groth16Adapter_sub, groth16Adapter_smul, groth16Adapter_neg,
+    groth16Adapter_finSlice, groth16Adapter_inputSlice]
   unfold ark_ip_proofs.applications.groth16_aggregation.verify_combined_ppe_core
   rw [fold_public_inputs_refinement_statement gammaABC publicInputs r hm hm64]
   simp only [Result.bind_ok]

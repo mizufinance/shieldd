@@ -21,14 +21,7 @@ from normalize_aeneas_lean import NORMALIZER_REVISION, normalize_files
 
 SCRIPT_PATH = Path(__file__).resolve()
 LEAN_ROOT = SCRIPT_PATH.parents[1]
-REPO_ROOT = Path(
-    subprocess.run(
-        ["git", "-C", str(LEAN_ROOT), "rev-parse", "--show-toplevel"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-)
+REPO_ROOT = SCRIPT_PATH.parents[6]
 MANIFEST_PATH = (
     REPO_ROOT
     / "crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json"
@@ -46,6 +39,7 @@ EXTRACTIONS_REPO_PATH = (
 )
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
+EXPECTED_GRAPH_COUNT = 37
 
 TOP_FIELDS = {"schema_version", "toolchains", "graphs"}
 TOOLCHAIN_FIELDS = {
@@ -217,8 +211,11 @@ def validate_manifest(
         )
 
     graphs = _expect_list(manifest["graphs"], "manifest.graphs")
-    if len(graphs) != 32:
-        raise ManifestError(f"manifest.graphs: expected 32 records, found {len(graphs)}")
+    if len(graphs) != EXPECTED_GRAPH_COUNT:
+        raise ManifestError(
+            "manifest.graphs: "
+            f"expected {EXPECTED_GRAPH_COUNT} records, found {len(graphs)}"
+        )
     graph_ids: set[str] = set()
     outputs: set[str] = set()
     for index, raw_graph in enumerate(graphs):
@@ -494,6 +491,43 @@ def _tail(text: str, lines: int = 50) -> str:
     return "\n".join(text.splitlines()[-lines:])
 
 
+def run_command(
+    argv: Sequence[str],
+    *,
+    cwd: Path,
+    env: dict[str, str] | None = None,
+    timeout: int | None = None,
+    check: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    command = [str(argument) for argument in argv]
+    try:
+        completed = subprocess.run(
+            command,
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise ManifestError(
+            f"command timed out\n"
+            f"command: {' '.join(command)}\n"
+            f"cwd: {cwd}\n"
+            f"stdout:\n{_tail(error.stdout or '')}\n"
+            f"stderr:\n{_tail(error.stderr or '')}"
+        ) from error
+    if check and completed.returncode:
+        raise ManifestError(
+            f"command failed ({completed.returncode})\n"
+            f"command: {' '.join(command)}\n"
+            f"cwd: {cwd}\n"
+            f"stdout:\n{_tail(completed.stdout)}\n"
+            f"stderr:\n{_tail(completed.stderr)}"
+        )
+    return completed
+
+
 def _isolation_dir(
     graph: dict[str, Any], temp_root: Path, extraction_index: int
 ) -> Path:
@@ -556,20 +590,11 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
             raise ManifestError(
                 f"graph {graph['id']}: unknown extraction isolation {isolation_kind}"
             )
-        completed = subprocess.run(
+        completed = run_command(
             command,
             cwd=cwd,
             env=environment,
-            capture_output=True,
-            text=True,
         )
-        if completed.returncode:
-            raise ManifestError(
-                f"graph {graph['id']} extraction {index} failed "
-                f"({completed.returncode})\n"
-                f"stdout:\n{_tail(completed.stdout)}\n"
-                f"stderr:\n{_tail(completed.stderr)}"
-            )
         for relative in extraction["raw_outputs"]:
             path = output_dir.joinpath(*PurePosixPath(relative).parts)
             if not path.is_file():
@@ -619,28 +644,23 @@ def _git(args: Sequence[str], *, check: bool = True) -> subprocess.CompletedProc
     repo_root = str(REPO_ROOT)
     windows_git = shutil.which("git.exe")
     if os.name == "posix" and windows_git and Path("/proc/sys/fs/binfmt_misc/WSLInterop").exists():
-        converted = subprocess.run(
+        converted = run_command(
             ["wslpath", "-w", repo_root],
+            cwd=REPO_ROOT,
             check=True,
-            capture_output=True,
-            text=True,
             timeout=5,
         )
         executable = windows_git
         repo_root = converted.stdout.strip()
     environment = os.environ.copy()
     environment.update(GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0")
-    try:
-        return subprocess.run(
-            [executable, "-C", repo_root, *args],
-            check=check,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=environment,
-        )
-    except subprocess.TimeoutExpired as error:
-        raise ManifestError(f"git command timed out: {' '.join(args)}") from error
+    return run_command(
+        [executable, "-C", repo_root, *args],
+        cwd=REPO_ROOT,
+        check=check,
+        timeout=60,
+        env=environment,
+    )
 
 
 def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
@@ -692,7 +712,10 @@ def command_check(args: argparse.Namespace) -> int:
     validate_manifest(manifest, manifest_path=args.manifest)
     s2 = sum(graph["campaign"] == "s2" for graph in manifest["graphs"])
     s3 = sum(graph["campaign"] == "s3" for graph in manifest["graphs"])
-    print(f"extractions: ok (32/32 graphs; s2={s2}, s3={s3})")
+    print(
+        "extractions: ok "
+        f"({EXPECTED_GRAPH_COUNT}/{EXPECTED_GRAPH_COUNT} graphs; s2={s2}, s3={s3})"
+    )
     return 0
 
 
@@ -721,23 +744,55 @@ def command_compare(args: argparse.Namespace) -> int:
     return 0 if all_match else 1
 
 
+def current_input_hashes(graph: dict[str, Any]) -> list[str]:
+    return [
+        sha256_file(REPO_ROOT.joinpath(*PurePosixPath(item["path"]).parts))
+        for item in graph["inputs"]
+    ]
+
+
 def command_regenerate(args: argparse.Namespace) -> int:
     if not args.update_manifest:
         raise ManifestError("regenerate requires --update-manifest")
     manifest = load_manifest(args.manifest)
-    validate_manifest(manifest, manifest_path=args.manifest)
+    # Regeneration is the only command allowed to bootstrap a newly declared
+    # output. Its final validation below is strict, so an interrupted or
+    # incomplete regeneration still leaves every normal gate fail-closed.
+    validate_manifest(
+        manifest,
+        manifest_path=args.manifest,
+        verify_files=False,
+    )
     selected = select_graphs(manifest, args.graph)
     updated = copy.deepcopy(manifest)
     updated_graphs = graph_map(updated)
     for graph in selected:
+        input_hashes_before = current_input_hashes(graph)
         with tempfile.TemporaryDirectory(
             prefix=f"shieldd-extract-{graph['id']}-"
         ) as raw_temp:
             content, selected_digest = reproduce_graph(graph, Path(raw_temp))
+        input_hashes_after = current_input_hashes(graph)
+        if input_hashes_before != input_hashes_after:
+            changed = [
+                item["path"]
+                for item, before, after in zip(
+                    graph["inputs"],
+                    input_hashes_before,
+                    input_hashes_after,
+                )
+                if before != after
+            ]
+            raise ManifestError(
+                f"graph {graph['id']}: inputs changed during regeneration: "
+                + ", ".join(changed)
+            )
         output_path = REPO_ROOT.joinpath(*PurePosixPath(graph["output"]).parts)
         output_path.write_bytes(content)
         digest = hashlib.sha256(content).hexdigest()
         updated_graph = updated_graphs[graph["id"]]
+        for item, input_hash in zip(updated_graph["inputs"], input_hashes_after):
+            item["sha256"] = input_hash
         updated_graph["output_sha256"] = digest
         updated_graph["normalization"][
             "selected_raw_declarations_sha256"
@@ -746,6 +801,22 @@ def command_regenerate(args: argparse.Namespace) -> int:
         args.manifest.write_bytes(canonical_json(updated))
         print(f"{graph['id']}: regenerated ({digest})", flush=True)
     validate_manifest(updated, manifest_path=args.manifest)
+    return 0
+
+
+def command_preview(args: argparse.Namespace) -> int:
+    manifest = load_manifest(args.manifest)
+    validate_manifest(manifest, manifest_path=args.manifest)
+    selected = select_graphs(manifest, [args.graph])
+    with tempfile.TemporaryDirectory(
+        prefix=f"shieldd-extract-{selected[0]['id']}-"
+    ) as raw_temp:
+        content, selected_digest = reproduce_graph(selected[0], Path(raw_temp))
+    print(
+        f"selected_raw_declarations_sha256={selected_digest}",
+        file=sys.stderr,
+    )
+    sys.stdout.buffer.write(content)
     return 0
 
 
@@ -771,6 +842,9 @@ def parser() -> argparse.ArgumentParser:
     regenerate.add_argument("--graph", action="append")
     regenerate.add_argument("--update-manifest", action="store_true")
     regenerate.set_defaults(handler=command_regenerate)
+    preview = commands.add_parser("preview")
+    preview.add_argument("--graph", required=True)
+    preview.set_defaults(handler=command_preview)
     return result
 
 

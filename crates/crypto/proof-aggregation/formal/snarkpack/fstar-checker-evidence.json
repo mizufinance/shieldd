@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "checker": {
+    "command": "scripts/snarkpack-formal.sh",
+    "implementation": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py",
+    "result": "pass"
+  },
+  "toolchain": {
+    "fstar": "v2026.05.24",
+    "hax_fstar": "v0.3.7",
+    "z3": "4.14.1"
+  },
+  "source_set": [
+    {
+      "path": "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
+      "sha256": "4ea9bf93cdef46a2b100a4699e18f481d8d338de099dd78b3f6feb99c5095334"
+    },
+    {
+      "path": "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/generated.rs",
+      "sha256": "5b8f9937d3b435c4d6cad397c100bd47439f346ec64ac69ed48627687a5da388"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py",
+      "sha256": "a9604c966f83a62a7364e8f7163ab75fd72d2f569636f6359d56a9c9ef89dd1f"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/ChallengePreimageProofs.fst",
+      "sha256": "fb5f7ad4d1f0866b8733f06babfb0145a82062ea60633018f011df78b8df2a56"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/DigestBindingProofs.fst",
+      "sha256": "e5b2ba60a3957fc104fbeb1d36f02107adbf50df05d0c66fa335ccb07669b20e"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/FamilyRoutingProofs.fst",
+      "sha256": "80489aec1bdc7b275351c5bfbff67ba7d3a299f7187480b815343fa461ff047c"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/FrameLemmas.fst",
+      "sha256": "a28b82728f612c801931659006c8784d91ff144cfb09ea309980b800915ce6d9"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/PreflightProofs.fst",
+      "sha256": "8d89a59c7e76ad9b134008aa5f6c90fc814cb44a249696d5a38f91e2b5b26b26"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/SnarkpackMachineSupport.fst",
+      "sha256": "a8fa9ef2af2c90abbd44ac0d10c5842fdef6e5608c9c4111f3cc9411788f6c96"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/StatementEncodingProofs.fst",
+      "sha256": "db6cf4ed333bbfb67740136756d6c3de5eb7af0f99a35e11199eac0172425612"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/ValidationProofs.fst",
+      "sha256": "a3e849518fdcfc137d9513bdad7ea97d2f6a22053a83b2c2e796b622eac6d3e3"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/WrapperProofs.fst",
+      "sha256": "752995c3092b48888b22c79826fd6b886e924f0853bccfa74b617e55852758ac"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml",
+      "sha256": "00373acb1e4f549417d746c731a5985a2233028fe6390c032e2100648a36faa9"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/src/bundle.rs",
+      "sha256": "179d9cb57023be7f7d4834dd105d9ec2aef89aab90cb67fa22c0c877fd2a8d56"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/src/padding.rs",
+      "sha256": "4ea3753bdb9993a550413f32d762b6ecdd86c70b1977004c1f37be055a45ba1e"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/src/srs.rs",
+      "sha256": "418857b36ed962a409c3563b1dbbbf60c2ed67150f977b64130f40ecd1b7133e"
+    },
+    {
+      "path": "crates/crypto/proof-aggregation/src/statement.rs",
+      "sha256": "ef6442745c2eb9a976556af40ebab2da066f57a6eecd03f9a14f2eda8b34dd5a"
+    },
+    {
+      "path": "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
+      "sha256": "b6ac83e52b906058c0a7845713b7f7213d68014d2d550c75a9ff26833dadf66d"
+    },
+    {
+      "path": "scripts/prepare_snarkpack_fstar_support.py",
+      "sha256": "eb4069573e69fcbbc2a86a84df4f714aacf30944544607c48cf36bc6f2221947"
+    },
+    {
+      "path": "scripts/snarkpack-formal.sh",
+      "sha256": "e43113dd11c293ba02310eba2b479ea6418d26b489a28982a1bedea29412048b"
+    }
+  ],
+  "contract_results": [
+    {
+      "contract_field": "canonicalStatementExact",
+      "result": "pass",
+      "theorem_roots": [
+        "StatementEncodingProofs.lemma_encode_statement_content",
+        "StatementEncodingProofs.lemma_statement_encoding_input_core_projection"
+      ]
+    },
+    {
+      "contract_field": "canonicalStatementInjective",
+      "result": "pass",
+      "theorem_roots": [
+        "StatementEncodingProofs.lemma_encode_statement_injective"
+      ]
+    },
+    {
+      "contract_field": "familyRegistered",
+      "result": "pass",
+      "theorem_roots": [
+        "FamilyRoutingProofs.lemma_family_proto_fields_note_reshape_inverse",
+        "FamilyRoutingProofs.lemma_family_proto_fields_shielded_ics20_withdrawal_inverse",
+        "FamilyRoutingProofs.lemma_family_proto_fields_transfer_inverse",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_cross_subids",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_missing",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_unknown",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_total",
+        "FamilyRoutingProofs.lemma_family_route_rejects_unknown_family",
+        "FamilyRoutingProofs.lemma_family_route_shielded_ics20_withdrawal_total",
+        "FamilyRoutingProofs.lemma_family_route_shielded_rejects_cross_subids",
+        "FamilyRoutingProofs.lemma_family_route_shielded_rejects_missing",
+        "FamilyRoutingProofs.lemma_family_route_shielded_rejects_unknown",
+        "FamilyRoutingProofs.lemma_family_route_transfer_rejects_cross_subids",
+        "FamilyRoutingProofs.lemma_family_route_transfer_total"
+      ]
+    },
+    {
+      "contract_field": "repeatFinalPadding",
+      "result": "pass",
+      "theorem_roots": [
+        "ValidationProofs.lemma_validate_repeat_final_padding_iff"
+      ]
+    },
+    {
+      "contract_field": "validCounts",
+      "result": "pass",
+      "theorem_roots": [
+        "ValidationProofs.lemma_validate_counts_iff",
+        "ValidationProofs.lemma_validate_row_arity_iff_top"
+      ]
+    },
+    {
+      "contract_field": "vkDigestPreimageInjective",
+      "result": "pass",
+      "theorem_roots": [
+        "DigestBindingProofs.lemma_vk_digest_preimage_injective"
+      ]
+    }
+  ]
+}

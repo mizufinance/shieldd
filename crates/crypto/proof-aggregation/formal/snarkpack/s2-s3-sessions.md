@@ -1563,8 +1563,10 @@ Narrows the executed GT serialization/subgroup row and supplies S3-41.
 **GAP-11 — aggregate decode and challenge serializer composition** — `HARD
 (sol)` — `DONE`. `Ipp/AggregateSerialization.lean` proves strict aggregate
 byte injectivity from the exact top-level round trip and states the GAP-14
-traversal gate: full consumption, `4+8μ` GT, `5+2μ` G1, three G2, the
-round-vector frame, and four singleton `IdentityOutput` frames per round.
+layout/component-acceptance gate: exact serialization and byte length,
+`4+8μ` GT, `5+2μ` G1, three G2, and strict acceptance for every packaged
+component. It does not claim a separately extracted cursor-by-cursor decoder
+traversal theorem.
 `Ipp/CanonicalSerializers.lean` proves canonical Fr and uncompressed
 projective-to-affine G1/G2 serializer injectivity.
 `Ipp/ChallengeMessageSerialization.lean` composes those with strict canonical
@@ -1597,8 +1599,9 @@ boundary and state any other consumer explicitly. GAP-12 is not a dependency.
   injectivity proved; canonical Fq12, membership, noncanonical, trailing, and
   zero/identity behavior are covered.
 - **GAP-11 — COMPLETE:** `aggregate_strict_decode_injective` and
-  `aggregate_decoder_traversal_conformance` prove the exact aggregate layout;
-  `challenge_message_serialize_injective` retires
+  `aggregate_layout_component_acceptance_conformance` prove strict byte
+  injectivity, the exact aggregate layout/component inventory, and strict
+  acceptance for every packaged component; `challenge_message_serialize_injective` retires
   `assume.challenge-message-serialization-injective`.
 - **GAP-14 — COMPLETE:** aggregate-boundary Rust fixtures reach
   `backend.rs::deserialize_aggregate_proof` through the strict wrapper and

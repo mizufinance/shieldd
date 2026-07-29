@@ -258,7 +258,7 @@ theorem aggregate_strict_decode_injective (b1 b2 : List UInt8)
 
 /-- GAP-14's traversal gate: strict success covers every component, every
 derived vector frame, and the whole input with no suffix. -/
-theorem aggregate_decoder_traversal_conformance {bytes : List UInt8}
+theorem aggregate_layout_component_acceptance_conformance {bytes : List UInt8}
     {agg : AggregateProof}
     (h : strictAggregateDecode bytes = .ok agg) :
     bytes = serializeCompressed agg ∧
@@ -290,7 +290,7 @@ theorem aggregate_decoder_traversal_conformance {bytes : List UInt8}
 #print axioms G2Component.bytes_eq_of_value_eq
 #print axioms GtComponent.bytes_eq_of_value_eq
 #print axioms aggregate_strict_decode_injective
-#print axioms aggregate_decoder_traversal_conformance
+#print axioms aggregate_layout_component_acceptance_conformance
 
 end
 end Ipp.AggregateSerialization

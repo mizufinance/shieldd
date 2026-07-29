@@ -95,12 +95,17 @@ def BadCollision {μ : Nat} (z : FsRunLog μ F G1 G2 GT) : Prop :=
   ¬ StructuredAnswersInjective (F := F)
       (fsPointTrace z.2).length (flattenFsLog z.2)
 
+/-- Root commitments carried by the proof's randomizer preimage. -/
+def proofRandomizerPayload {μ : Nat} (proof : Proof μ F G1 G2 GT) :
+    RandomizerPayload GT :=
+  { comA := proof.ComA.1, comB := proof.ComB, comC := proof.ComA.2 }
+
 /-- Bad event 2 (`randomizer_rootset_bound`): the sampled randomizer landed in
-the pre-`r` discrepancy root set (`groth16.randomizer`). Modelled by an
-abstract `Set F` so the consumer instantiates it with `discrepancyRootSet d`
-and `discrepancyRootSet_card` for the size. -/
-def BadRandomizer {μ : Nat} (badR : Set F) (z : FsRunLog μ F G1 G2 GT) : Prop :=
-  z.1.transcript.randomizer ∈ badR
+the discrepancy root set selected by the proof-owned commitment payload queried
+before that answer was sampled. -/
+def BadRandomizer {μ : Nat} (badR : RandomizerPayload GT → Set F)
+    (z : FsRunLog μ F G1 G2 GT) : Prop :=
+  z.1.transcript.randomizer ∈ badR (proofRandomizerPayload z.1.proof)
 
 /-- Bad event 3 (`dependency_order_bound`): some in-budget round slot is not
 preceded by both the randomizer and x0 misses (`DependencyOrdered` fails). -/
@@ -129,19 +134,23 @@ challenge acceptance, in-budget chronologically ordered round slots, dependency
 order, and structured-answer injectivity) together with the randomizer- and
 KZG-goodness excluded in U5e. -/
 def RunGoodFull {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
-    (badR badZ : Set F) (z : FsRunLog μ F G1 G2 GT) : Prop :=
+    (badR : RandomizerPayload GT → Set F) (badZ : Set F)
+    (z : FsRunLog μ F G1 G2 GT) : Prop :=
   WrappedRunGood qb stmt (wrappedOf z) (flattenFsLog z.2) ∧
-    z.1.transcript.randomizer ∉ badR ∧ z.1.transcript.kzg ∉ badZ
+    z.1.transcript.randomizer ∉
+      badR (proofRandomizerPayload z.1.proof) ∧
+    z.1.transcript.kzg ∉ badZ
 
 /-- Wrapped-image form of `RunGoodFull`, used as the gate of the final fork
 experiment so root randomizer goodness is retained through extraction. -/
 def WrappedRunGoodFull {μ : Nat} (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
-    (badR badZ : Set F)
+    (badR : RandomizerPayload GT → Set F) (badZ : Set F)
     (z : WrappedFsRun
       (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT) × QueryLog (FsWrappedSpec F)) : Prop :=
   WrappedRunGood qb stmt z.1 z.2 ∧
-    z.1.out.transcript.randomizer ∉ badR ∧
+    z.1.out.transcript.randomizer ∉
+      badR (proofRandomizerPayload z.1.out.proof) ∧
     z.1.out.transcript.kzg ∉ badZ
 
 section FreshMiss
@@ -246,13 +255,17 @@ answer in the mixed structured-miss log. -/
 theorem accepted_badRandomizer_log_witness {μ : Nat}
     (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
-    (badR : Set F) {z : FsRunLog μ F G1 G2 GT}
+    (badR : RandomizerPayload GT → Set F) {z : FsRunLog μ F G1 G2 GT}
     (hz : z ∈ support (fsProbComp stmt adv))
     (hbad : Accepted z ∧ BadRandomizer badR z) :
     ∃ point answer,
-      QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badR := by
+      QueryAnswered z.2 (Sum.inr point) answer ∧
+        match point with
+        | .randomizer payload _ => answer ∈ badR payload
+        | _ => False := by
   refine ⟨.randomizer
-      { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+      { comA := z.1.proof.ComA.1, comB := z.1.proof.ComB,
+        comC := z.1.proof.ComA.2 }
       z.1.transcript.randomizerNonce,
     z.1.transcript.randomizer, ?_, hbad.2⟩
   exact accepted_source_randomizer_query stmt adv hz hbad.1
@@ -331,31 +344,49 @@ theorem kzg_z_bound [Fintype F] {μ : Nat}
           (Fintype.card F : ℝ≥0∞) := by
       gcongr
 
+/-- Point-selected bad set used by the mixed-log union bound. Only randomizer
+queries carry a discrepancy set; every other structured point selects empty. -/
+def randomizerPointBadFinset
+    (badR : RandomizerPayload GT → Finset F) :
+    FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) → Finset F
+  | .randomizer payload _ => badR payload
+  | _ => ∅
+
 /-- Cardinality-bounded form matching
-`BadEventBudget.randomizer_rootset_bound`. The proof bounds the unconditional
-source misses by `1/|F|`, then weakens to the budget's `1/(|F|-2)` form. -/
+`BadEventBudget.randomizer_rootset_bound`. Each pre-randomizer commitment
+payload selects its own root set before its uniform answer is sampled. -/
 theorem randomizer_rootset_bound [Fintype F] {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
-    (badR : Finset F) (dR : Nat) (hcard : badR.card ≤ dR)
+    (badR : RandomizerPayload GT → Finset F) (dR : Nat)
+    (hcard : ∀ payload, (badR payload).card ≤ dR)
     (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
-    Pr[fun z => Accepted z ∧ BadRandomizer (badR : Set F) z |
+    Pr[fun z => Accepted z ∧
+        BadRandomizer (fun payload => (badR payload : Set F)) z |
       fsProbComp stmt adv] ≤
       (((Q qb) * dR : Nat) : ℝ≥0∞) /
         ((Fintype.card F : ℝ≥0∞) - 2) := by
   calc
-    _ ≤ (((Q qb) * badR.card : Nat) : ℝ≥0∞) /
+    _ ≤ (((Q qb) * dR : Nat) : ℝ≥0∞) /
           (Fintype.card F : ℝ≥0∞) := by
       apply le_trans (probEvent_mono (q := fun z =>
         ∃ point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT),
           ∃ answer : F,
-            QueryAnswered z.2 (Sum.inr point) answer ∧ answer ∈ badR) ?_)
-      · exact structured_log_mem_le
-          (fsRandomFunction (FsGame stmt adv)) (Q qb)
-          (fsRandomFunction_isTotalQueryBound (FsGame stmt adv) hbound) badR
+            QueryAnswered z.2 (Sum.inr point) answer ∧
+              answer ∈ randomizerPointBadFinset badR point) ?_)
+      · exact structured_log_dependent_mem_le
+          (fsRandomFunction (FsGame stmt adv)) (Q qb) dR
+          (fsRandomFunction_isTotalQueryBound (FsGame stmt adv) hbound)
+          (randomizerPointBadFinset badR) (by
+            intro point
+            cases point <;> simp [randomizerPointBadFinset, hcard])
       · intro z hz hbad
-        simpa using
-          accepted_badRandomizer_log_witness stmt adv (badR : Set F) hz hbad
+        obtain ⟨point, answer, hquery, hmem⟩ :=
+          accepted_badRandomizer_log_witness stmt adv
+            (fun payload => (badR payload : Set F)) hz hbad
+        refine ⟨point, answer, hquery, ?_⟩
+        cases point <;> simp [randomizerPointBadFinset] at hmem ⊢
+        exact hmem
     _ ≤ (((Q qb) * dR : Nat) : ℝ≥0∞) /
           ((Fintype.card F : ℝ≥0∞) - 2) := by
       gcongr
@@ -366,16 +397,20 @@ theorem randomizer_rootset_bound [Fintype F] {μ : Nat}
 theorem wrapped_good_probability_eq [Fintype F] {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
-    (badR badZ : Finset F) :
+    (badR : RandomizerPayload GT → Finset F) (badZ : Finset F) :
     Pr[fun z => Accepted z ∧
-        RunGoodFull qb stmt (badR : Set F) (badZ : Set F) z |
+        RunGoodFull qb stmt (fun payload => (badR payload : Set F))
+          (badZ : Set F) z |
       fsProbComp stmt adv] =
-    Pr[WrappedRunGoodFull qb stmt (badR : Set F) (badZ : Set F) |
+    Pr[WrappedRunGoodFull qb stmt
+        (fun payload => (badR payload : Set F)) (badZ : Set F) |
       replayFirstRun (wrapFs (FsGame stmt adv))] := by
   calc
     _ = Pr[fun z =>
           WrappedRunGood qb stmt (wrappedOf z) (flattenFsLog z.2) ∧
-            z.1.transcript.randomizer ∉ badR ∧ z.1.transcript.kzg ∉ badZ |
+            z.1.transcript.randomizer ∉
+              badR (proofRandomizerPayload z.1.proof) ∧
+            z.1.transcript.kzg ∉ badZ |
         fsProbComp stmt adv] := by
       congr 1
       funext z
@@ -386,7 +421,8 @@ theorem wrapped_good_probability_eq [Fintype F] {μ : Nat}
     _ = _ := by
       simpa [fsProbComp, WrappedRunGoodFull, wrappedOf] using
         (probEvent_wrapFs_eq (FsGame stmt adv)
-          (WrappedRunGoodFull qb stmt (badR : Set F) (badZ : Set F)))
+          (WrappedRunGoodFull qb stmt
+            (fun payload => (badR payload : Set F)) (badZ : Set F)))
 
 /-- Under the whole-game cap, an accepted run has every round point in the
 structured miss trace and its first occurrence is in budget. -/
@@ -437,7 +473,7 @@ accepting support points. -/
 theorem accepted_not_good_bad {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
-    (badR badZ : Set F)
+    (badR : RandomizerPayload GT → Set F) (badZ : Set F)
     {z : FsRunLog μ F G1 G2 GT}
     (hz : z ∈ support (fsProbComp stmt adv))
     (hacc : Accepted z)
@@ -447,7 +483,8 @@ theorem accepted_not_good_bad {μ : Nat}
       (Accepted z ∧ BadRoundOrder qb z) ∨
       (Accepted z ∧ BadKzg badZ z) ∨ (Accepted z ∧ BadUnqueried qb z) := by
   classical
-  by_cases hR : z.1.transcript.randomizer ∈ badR
+  by_cases hR : z.1.transcript.randomizer ∈
+      badR (proofRandomizerPayload z.1.proof)
   · exact Or.inr (Or.inl ⟨hacc, hR⟩)
   by_cases hZ : z.1.transcript.kzg ∈ badZ
   · exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨hacc, hZ⟩))))
@@ -484,7 +521,7 @@ sum of the six per-event bounds. Union bound over the complement events;
 theorem q0_lower_bound_abstract {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
-    (badR badZ : Set F)
+    (badR : RandomizerPayload GT → Set F) (badZ : Set F)
     (bCol bRnd bDep bOrd bKzg bUnq : ℝ≥0∞)
     (hCol : Pr[fun z => Accepted z ∧ BadCollision z | fsProbComp stmt adv] ≤ bCol)
     (hRnd : Pr[fun z => Accepted z ∧ BadRandomizer badR z | fsProbComp stmt adv] ≤ bRnd)
@@ -559,11 +596,14 @@ with concrete collision/root-set/unqueried bounds and the residual order budget:
 theorem q0_lower_bound [Fintype F] {μ : Nat}
     (qb : Nat) (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (FsSourceSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
-    (badR badZ : Finset F) (dR dZ : Nat)
-    (hRcard : badR.card ≤ dR) (hZcard : badZ.card ≤ dZ)
+    (badR : RandomizerPayload GT → Finset F) (badZ : Finset F)
+    (dR dZ : Nat)
+    (hRcard : ∀ payload, (badR payload).card ≤ dR)
+    (hZcard : badZ.card ≤ dZ)
     (hbound : IsTotalQueryBound (FsGame stmt adv) (Q qb)) :
     Pr[fun z => Accepted z ∧
-        RunGoodFull qb stmt (badR : Set F) (badZ : Set F) z |
+        RunGoodFull qb stmt (fun payload => (badR payload : Set F))
+          (badZ : Set F) z |
       fsProbComp stmt adv] ≥
       Pr[fun z => Accepted z | fsProbComp stmt adv] -
         ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
@@ -572,7 +612,7 @@ theorem q0_lower_bound [Fintype F] {μ : Nat}
               ((((Q qb) ^ 2 : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞) +
                 (((Q qb) * dZ : Nat) : ℝ≥0∞) / (Fintype.card F : ℝ≥0∞))))) := by
   simpa using q0_lower_bound_abstract qb stmt adv
-    (badR : Set F) (badZ : Set F) _ _ _ _ _ 0
+    (fun payload => (badR payload : Set F)) (badZ : Set F) _ _ _ _ _ 0
     (answer_collision_bound qb stmt adv hbound)
     (randomizer_rootset_bound qb stmt adv badR dR hRcard hbound)
     (dependency_order_bound qb stmt adv hbound)

@@ -32,6 +32,13 @@ def negModel (G : Type) [Neg G] :
     ark_ip_proofs.core.ops.arith.Neg G G where
   neg x := .ok (-x)
 
+def defaultModel (T : Type) [Zero T] : core.default.Default T where
+  default := .ok 0
+
+def smulAssignModel (F G : Type) [SMul F G] :
+    ark_ip_proofs.core.ops.arith.MulAssign G F where
+  mul_assign point scalar := .ok (scalar • point)
+
 def oneModel (T : Type) [One T] [Mul T] :
     ark_ip_proofs.num_traits.identities.One T where
   coreopsarithMulInst := mulModel T

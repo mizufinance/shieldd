@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -37,8 +38,9 @@ class ExtractionManifestTests(unittest.TestCase):
         self.validate(self.manifest, verify_files=True)
         self.assertEqual(self.manifest["schema_version"], 2)
         outputs = [graph["output"] for graph in self.manifest["graphs"]]
-        self.assertEqual(len(outputs), 32)
-        self.assertEqual(len(set(outputs)), 32)
+        self.assertEqual(EXTRACTIONS.EXPECTED_GRAPH_COUNT, 37)
+        self.assertEqual(len(outputs), EXTRACTIONS.EXPECTED_GRAPH_COUNT)
+        self.assertEqual(len(set(outputs)), EXTRACTIONS.EXPECTED_GRAPH_COUNT)
         self.assertEqual(
             {Path(output).name for output in outputs},
             {
@@ -153,10 +155,13 @@ class ExtractionManifestTests(unittest.TestCase):
         manifest["graphs"][0]["normalization"]["normalized_sha256"] = "f" * 64
         self.assert_invalid(manifest, "do not match")
 
-    def test_generated_output_shape_and_32_record_coverage_are_required(self):
+    def test_generated_output_shape_and_exact_record_coverage_are_required(self):
         manifest = copy.deepcopy(self.manifest)
         manifest["graphs"].pop()
-        self.assert_invalid(manifest, "expected 32 records")
+        self.assert_invalid(
+            manifest,
+            f"expected {EXTRACTIONS.EXPECTED_GRAPH_COUNT} records",
+        )
 
         manifest = copy.deepcopy(self.manifest)
         manifest["graphs"][0]["output"] = (
@@ -190,8 +195,11 @@ class ExtractionManifestTests(unittest.TestCase):
             for index in range(4)
         ]
         ids = [[graph["id"] for graph in shard] for shard in shards]
-        self.assertEqual([len(shard) for shard in ids], [8, 8, 8, 8])
-        self.assertEqual(len({graph_id for shard in ids for graph_id in shard}), 32)
+        self.assertEqual([len(shard) for shard in ids], [10, 9, 9, 9])
+        self.assertEqual(
+            len({graph_id for shard in ids for graph_id in shard}),
+            EXTRACTIONS.EXPECTED_GRAPH_COUNT,
+        )
         self.assertEqual(
             [
                 graph["id"]
@@ -232,6 +240,90 @@ class ExtractionManifestTests(unittest.TestCase):
                         shard_count=count,
                     )
                 self.assertIn(needle, str(raised.exception))
+
+    def test_regenerate_refreshes_selected_graph_input_hashes(self):
+        selected = self.manifest["graphs"][0]
+        unselected = self.manifest["graphs"][1]
+        manifest = copy.deepcopy(self.manifest)
+        selected_copy = next(
+            graph for graph in manifest["graphs"] if graph["id"] == selected["id"]
+        )
+        selected_copy["inputs"][0]["sha256"] = "f" * 64
+        original_unselected_inputs = copy.deepcopy(
+            next(
+                graph
+                for graph in manifest["graphs"]
+                if graph["id"] == unselected["id"]
+            )["inputs"]
+        )
+
+        with tempfile.TemporaryDirectory(prefix="extractions-test-") as directory:
+            repo_root = Path(directory)
+            manifest_path = repo_root / "manifest.json"
+            for item in selected_copy["inputs"]:
+                path = repo_root.joinpath(*Path(item["path"]).parts)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(f"current:{item['path']}".encode())
+            output = repo_root.joinpath(*Path(selected_copy["output"]).parts)
+            output.parent.mkdir(parents=True, exist_ok=True)
+            manifest_path.write_bytes(EXTRACTIONS.canonical_json(manifest))
+            args = SimpleNamespace(
+                update_manifest=True,
+                manifest=manifest_path,
+                graph=[selected["id"]],
+            )
+
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(EXTRACTIONS, "validate_manifest"),
+                patch.object(
+                    EXTRACTIONS,
+                    "reproduce_graph",
+                    return_value=(b"generated\n", "a" * 64),
+                ),
+            ):
+                EXTRACTIONS.command_regenerate(args)
+
+            updated = EXTRACTIONS.load_manifest(manifest_path)
+            updated_selected = next(
+                graph
+                for graph in updated["graphs"]
+                if graph["id"] == selected["id"]
+            )
+            self.assertEqual(
+                [item["sha256"] for item in updated_selected["inputs"]],
+                [
+                    EXTRACTIONS.sha256_file(
+                        repo_root.joinpath(*Path(item["path"]).parts)
+                    )
+                    for item in selected_copy["inputs"]
+                ],
+            )
+            updated_unselected = next(
+                graph
+                for graph in updated["graphs"]
+                if graph["id"] == unselected["id"]
+            )
+            self.assertEqual(updated_unselected["inputs"], original_unselected_inputs)
+
+    def test_command_failure_preserves_command_cwd_stdout_and_stderr(self):
+        completed = subprocess.CompletedProcess(
+            ["git", "status"],
+            128,
+            stdout="partial stdout\n",
+            stderr="fatal: detected dubious ownership\n",
+        )
+        with patch.object(EXTRACTIONS.subprocess, "run", return_value=completed):
+            with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
+                EXTRACTIONS.run_command(
+                    ["git", "status"],
+                    cwd=EXTRACTIONS.REPO_ROOT,
+                )
+        message = str(raised.exception)
+        self.assertIn("git status", message)
+        self.assertIn(str(EXTRACTIONS.REPO_ROOT), message)
+        self.assertIn("partial stdout", message)
+        self.assertIn("detected dubious ownership", message)
 
 
 if __name__ == "__main__":

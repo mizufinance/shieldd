@@ -10,8 +10,12 @@ a different bug class. The doc is organized in three categories, and each
 category is laid out the same way: **what must hold**, then **the tools that
 verify it**.
 
-- **Algebra** — the RIPP/GIPA/TIPA/KZG equations + folding schedule. Soundness is
-  *assumed* (paper + Filecoin); the tools verify our code refines it.
+- **Algebra** — the RIPP/GIPA/TIPA/KZG equations + folding schedule. Lean proves
+  a quantitative S1 theorem under named KZG false-opening, GIPA fork-knowledge,
+  ROM, and query-bound assumptions. A fixed-call shipping-to-Goal source theorem
+  is kernel-checked under exact boundary contracts, but the manifest
+  `SHIPPING-TO-GOAL` claim remains open because production has not constructed
+  all of those contracts or the adaptive SHA-256 coupling.
 - **Transcript** — what must be Fiat-Shamir-bound, and in what order. The "must
   hold" set comes from the paper, not the code; the tools verify our bytes bind
   exactly that.
@@ -21,9 +25,11 @@ verify it**.
 Each check keeps a stable ID (`ALG-M*` / `TXN-M*` for the "what must hold"
 references, `ALG-I*` / `TXN-I*` for the tools, `X*` for cross-cutting).
 
-**Standing assumption:** SnarkPack/RIPP/Groth16 algebraic soundness is assumed
-from the paper + Filecoin; end-to-end formal verification is out of scope. See
-[Standing assumptions](#standing-assumptions).
+The authoritative claim status is
+[`verification-manifest.json`](../../crates/crypto/proof-aggregation/formal/snarkpack/verification-manifest.json).
+The [formal handoff](../../crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md)
+is its generated human-readable view. An `open` row is a real gap and prevents
+an end-to-end claim.
 
 ---
 
@@ -31,10 +37,11 @@ from the paper + Filecoin; end-to-end formal verification is out of scope. See
 
 ### What must hold
 
-The RIPP/GIPA/TIPA/KZG equations and folding schedule. Soundness of the algebra
-itself is *assumed* (paper + Filecoin, see [Standing
-assumptions](#standing-assumptions)); these references pin down which algorithm
-our code must refine, and the tools below verify it does.
+The RIPP/GIPA/TIPA/KZG equations and folding schedule are specified by
+`Ipp.SnarkPackV1`. The publication S1 root
+`Ipp.S1.invalid_goal_fork_bound_le_extraction_advantage` proves the explicit
+quantitative fork implication under its named experiment-relative assumptions.
+`Ipp.Goal` independently states exact ordered representation and validity.
 
 ### Tools that verify the code matches
 
@@ -51,7 +58,9 @@ falsify that class.
 - **Why:** catches the aggregate accepting what Groth16 rejects (soundness) or
   rejecting valid proofs (completeness) at the integration seam.
 - **State:** implemented. *Limit:* both sides share the arkworks lineage — a
-  shared algebraic bug passes both (that gap is ALG-I4's job).
+  shared algebraic bug passes both. The import-isolated v1/Goal specifications,
+  S1 proof, and S3 arithmetic theorems address parts of that gap; the reference
+  remains a falsification oracle rather than the normative specification.
 
 #### ALG-I2 — Independent reference path
 - **What:** a dev-only, non-published crate `proof-aggregation-reference`
@@ -61,16 +70,21 @@ falsify that class.
   ref-prover/prod-verifier, ref/ref).
 - **Why:** an independently written second implementation catches common-mode bugs
   a same-code test would miss. The Rust-level independent oracle.
-- **State:** implemented; feeds ALG-I1, ALG-I3, TXN-I2, TXN-I3.
+- **State:** implemented as an independent acceptance/interoperability
+  falsification oracle. It is not the normative specification and does not own
+  the v1 byte or transcript fixtures.
 
-#### ALG-I3 — Acceptance and transcript invariants
-- **What:** production and reference cross-verify through the ordinary public API
-  (`production_and_reference_acceptance_parity`). The reference oracle retains
-  its byte baselines, mutation matrices, and transcript-manifest checks; internal
-  production parity checks compare the ordered challenge records directly.
-- **Why:** acceptance parity covers the implementation boundary, while the
-  independent transcript checks catch ordering and binding drift.
-- **State:** implemented; the former public production trace API is retired.
+#### ALG-I3 — Two-way acceptance interoperability
+- **What:** `reference_verifier_accepts_production_prover` and
+  `reference_prover_cross_verifies_with_production` exercise both directions
+  through public proof bytes on the ordinary fixture. The ignored
+  `slow_two_way_interop_band` exercises reference-produced proofs against both
+  verifiers across every registered family and the declared count band.
+- **Why:** acceptance parity across independently written implementations covers
+  the public implementation boundary without making the reference crate the
+  protocol specification.
+- **State:** implemented. Production-owned byte and challenge-trace stability is
+  checked separately by TXN-I4.
 
 ---
 
@@ -88,12 +102,15 @@ implementation's hashed set is a code fact (checked by TXN-I3); whether that set
 is *sufficient* is a review judgement recorded here.
 
 **Common framing (every stage)** — `challenge_preimage`
-([`challenge.rs:131`](../../crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs)):
+([`challenge.rs`](../../crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs)):
 `domain‖len-prefixed stage label‖challenge_context[32]‖u64_le(nonce)‖messages`.
-The 32-byte context is `SHA256` over the statement digest — it binds the
-**statement only** (version, family, SRS id, VK digest, padded public inputs), not
-the proof commitments / inner products / randomizer; those are bound (or not) by
-the stage `messages`.
+The 32-byte context is exactly
+`SHA256(CHALLENGE_CONTEXT_DOMAIN || statement_digest)`. The statement digest is
+itself `SHA256(STATEMENT_DIGEST_DOMAIN || canonical_statement_bytes)`, and those
+canonical bytes include the VK digest. Thus the context binds the **statement
+only** (version, family, SRS id, VK digest, counts, padding rule, and ordered
+padded public inputs), not the proof commitments, inner products, or randomizer;
+those are bound by the stage `messages`.
 
 Stages on the Groth16 path:
 
@@ -107,15 +124,17 @@ Stages on the Groth16 path:
 
 The reference set follows the SnarkPack paper / Bellperson v2 combined TIPP/MIPP
 proof shape: a single GIPA recursion seeded by `x0`, with the AB pairing relation
-and the C multiexponentiation relation sharing one transcript. The reference
-oracle includes verifier mutants for omitting `x0`, for omitting the final
-bridge, and for failing the combined-round cross-binding; all must reject valid
-proofs.
+and the C multiexponentiation relation sharing one transcript. The formal
+`SnarkPackV1`/Fiat–Shamir specifications and typed serializer theorems are the
+normative evidence for this structure; the Rust reference crate is only an
+independent acceptance/interoperability oracle.
 
 Library-generic labels can still exist for non-aggregation callers, but they are
-not part of the Shieldd aggregate transcript reference set. The coverage
-assertion fails if the Groth16 aggregation path routes through a generic or split
-label instead of the `tipp-mipp.*` stages above.
+not part of the Shieldd aggregate transcript reference set. The production trace
+fixture records the exact on-path labels for its committed vectors; the general
+claim that these are the right and complete stages comes from the formal v1
+specification and composition obligations, not from a historical reference-crate
+coverage test.
 
 #### TXN-M3 — Statement binding & padding soundness
 The aggregate statement is the root of trust the transcript hangs off. Two
@@ -127,23 +146,23 @@ proves "all `padded_count` slots verify under the family VK." The statement
 binds `real_count` into the digest, and the padded slots beyond `real_count` are
 forced — *before* verification — to be exact copies of the last real slot
 (repeat-final), with `padded_count` a power of two and `real_count ≤ padded_count`
-([`statement.rs:415-557`](../../crates/crypto/proof-aggregation/src/statement.rs)).
+([`statement.rs`](../../crates/crypto/proof-aggregation/src/statement.rs)).
 Therefore:
 - A padded slot cannot smuggle an invalid proof: it is equality-checked against a
   real slot, so it contributes no new relation, only a duplicated valid one.
 - An invalid real proof cannot hide: the real slots are a subset of the verified
   `padded_count` set.
-- The **one-real-proof** aggregate (`real_count = 1`, padded up to a power of two
-  with copies of that one proof) is sound by the same argument — it is just
-  "verify one proof." This is why Shieldd safely permits it where Filecoin's
-  `< 2` rejection is a production *policy*, not a missing security fix.
+- The **one-real-proof** aggregate has canonical `padded_count = 1`, so there are
+  no synthetic padding slots; it is just "verify one proof." This is why Shieldd
+  safely permits it where Filecoin's `< 2` rejection is a production *policy*,
+  not a missing security fix.
 
 **Verifying-key allowlisting.** The verifier never trusts a VK carried in the
 bundle. The consensus boundary maps a closed `ProofFamilyId` enum to a compiled-in
 `&'static PreparedVerifyingKey`
-([`app/mod.rs:156-164`](../../crates/core/app/src/app/mod.rs)), and preflight
+([`app/mod.rs`](../../crates/core/app/src/app/mod.rs)), and preflight
 checks `statement.vk_digest() == digest(canonical_pvk)` before any backend work
-([`preflight.rs:160-161`](../../crates/crypto/proof-aggregation/src/preflight.rs)).
+([`preflight.rs`](../../crates/crypto/proof-aggregation/src/preflight.rs)).
 The inner numeric `family_id` carried in `NoteReshape`/`ShieldedIcs20Withdrawal`
 bodies is attacker-controlled, and the registry lookups it feeds (`spec()`,
 `proof_verification_key()`) **panic** on an unknown id. That panic is unreachable
@@ -172,52 +191,62 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
   encoder, SRS/VK digest preimage builders, wrapper framing/cap, count/arity
   validation, padding canonicality, preflight gate, family routing, FS challenge
   preimage) into F* and mechanically proves statement-encoding **injectivity**
-  (distinct statements ⇒ distinct preimage), digest reduction (a digest collision
-  reduces to a SHA-256 collision), padding canonicality, wrapper cap completeness,
-  preflight ordering, family-route totality/injectivity, and bounded
-  non-malleability.
-- **Why:** the load-bearing binding property — a malicious proposer must not craft
-  two statements that hash to the same challenge. A proof over the real
-  byte-producing code, so it cannot drift from what ships.
-- **State:** complete for the current extracted target set; no `open` rows.
-  Artifacts under
+  (distinct statements imply distinct canonical preimages), digest reduction
+  (equal digests of distinct canonical preimages produce a SHA-256 collision),
+  padding canonicality, wrapper cap completeness, preflight ordering,
+  family-route totality/injectivity, and bounded non-malleability. These byte
+  theorems do not prove SHA-256 collision resistance.
+- **Why:** the mechanically proved part rules out ambiguity before hashing. The
+  remaining possibility that distinct canonical preimages share a digest is
+  accounted for separately by `SHA256-SECURITY`.
+- **State:** the F* theorem sources cover the current target set, but their
+  source-digest-pinned checker rows are authoritative only after the exact
+  `hax-fstar` lane passes. A changed source marks those rows `stale`; it is not
+  permissible to restamp them from tests or inspection. Artifacts under
   [`formal/snarkpack/fstar/`](../../crates/crypto/proof-aggregation/formal/snarkpack/fstar);
   gated by `just snarkpack-formal`, content-stamped by the invariants gate.
 
-#### TXN-I2 — Mutation matrices
-- **What:** an **input-mutant** matrix mutates each binding field (VK digest,
-  public-input value/order, padding, counts, SRS id) and asserts the verifier
-  rejects; a **verifier-mutant** matrix builds verifiers that omit/reorder
-  challenge inputs and asserts they reject valid proofs. Coverage assertions force
-  both matrices to cover every Shieldd byte-trace row.
-- **Why:** directly executes the SnarkPack v2 bug classes — a field that looks
-  bound but isn't, and a transcript step that doesn't matter. Every *traced* input
-  is proven load-bearing.
-- **State:** implemented. *Limit:* can only test traced inputs; the current
-  Groth16 path traces the adopted `x0`, combined round, final bridge, and KZG
-  challenge rows.
+#### TXN-I2 — Binding rejection regressions
+- **What:** targeted production tests reject bad counts, row arity, padding, SRS
+  identity, VK digest, wrapper digest, wrapper length, and family routing. The
+  independent reference verifier additionally rejects an invalid public boundary
+  and wrapper digest.
+- **Why:** these executable checks pin important failure paths and catch accidental
+  weakening at the Rust boundary.
+- **State:** implemented as targeted regressions. They are not an exhaustive
+  per-field mutation matrix and are not evidence that every transcript input is
+  independently load-bearing.
 
-#### TXN-I3 — Transcript completeness structural assertion
-- **What:** `transcript_completeness_*` tests in `proof-aggregation-reference`
-  capture the real prover preimage per stage and assert its framed structure
-  matches the TXN-M2 observed set, in order; a coverage assertion forces every
-  on-path stage to have a model entry.
-- **Why:** TXN-I2 proves every traced input matters; this names the reference set
-  so omissions are explicit — the structural side of the v1/Frozen-Heart class.
-- **State:** implemented as `composed`. Checks the hashed set against the adopted
-  TXN-M2 reference table, including the combined `x0` seed and final bridge.
+#### TXN-I3 — Typed transcript framing proof
+- **What:** `challenge_message_serialize_injective` proves strict canonical
+  serialization for the randomizer, x0, GIPA-round, final-bridge, and KZG
+  messages; `challenge_preimage_typed_injective` composes that with stage,
+  context, and nonce framing. TXN-I1 connects the extraction-friendly Rust
+  constructors to their F* byte contracts.
+- **Why:** this makes collisions between distinct typed transcript points reduce
+  to the explicitly named hash assumptions instead of relying on a test-only
+  mutation catalogue.
+- **State:** the serializer and ideal-game theorems are proved. Construction of
+  the deployed production challenge trace and its adaptive game coupling remain
+  open manifest claims.
 
 #### TXN-I4 — Byte-equivalence golden baselines
-- **What:** two committed, version-tagged golden artifacts — an aggregate-proof
-  byte baseline (`aggregate_bytes_match_committed_baseline`) and a ShielddByte
-  transcript-trace baseline (`shieldd_byte_trace_matches_committed_baseline`).
-  Both regenerate deterministically from fixed `(family, count, seed)` vectors and
-  fail on any drift; each version tag must equal `AGGREGATE_PROTOCOL_VERSION`.
+- **What:** the production crate owns two committed, version-tagged golden
+  artifacts: the aggregate-proof byte fixture and the ShielddByte
+  challenge-trace fixture. The ordinary
+  `v1_bytes_and_transcript_match_committed_baselines` test checks both. Its traced
+  path also asserts that the test-instrumented prover emits the exact inner proof
+  wrapped by the production call and that prover and verifier challenge records
+  agree. Both fixtures regenerate deterministically from fixed
+  `(family, count, seed)` vectors and fail on drift; each version tag must equal
+  `AGGREGATE_PROTOCOL_VERSION`.
 - **Why:** makes silently changing wire/transcript bytes impossible — "preserve
   bytes vs version the protocol" becomes a mechanical gate (the optimization
   byte-lock, X3).
-- **State:** implemented. *Scope:* Shieldd-reference vs Shieldd-optimized only —
-  no cross-curve byte equivalence to Filecoin (BLS12-381 vs BLS12-377).
+- **State:** implemented. *Scope:* deterministic production v1 proof and
+  transcript bytes only. The reference crate cross-verifies those public proof
+  bytes but does not define or maintain either fixture; there is no cross-curve
+  byte equivalence claim to Filecoin (BLS12-381 vs BLS12-377).
 
 #### TXN-I5 — Fuzzing
 - **What:** stable proptests (in-gate smoke) plus cargo-fuzz/libFuzzer targets in
@@ -251,13 +280,17 @@ Not tied to one domain; they protect the whole stack.
   the bench crate's [bench-thresholds.md](../../crates/bench/bench-thresholds.md).
 
 ### X2 — Assumption register (ledger governance)
-- **What:** the typed evidence ledger in `formal-handoff.md`: every fact is
-  `proved / refined / composed / assumed / open`; each `assumed` row needs a
-  recorded postcondition + removal path; coverage is invariant-gated.
+- **What:** `verification-manifest.json` lists exact theorem roots,
+  dependencies, statuses, assumptions, audit modules, and allowed kernel
+  axioms. `formal-handoff.md` and the theorem dependency graph are generated
+  from it.
 - **Why:** not a test — it makes "proven vs assumed" auditable and prevents an
   assumption from silently widening.
-- **State:** 19 proved / 1 refined / 6 composed / 13 assumed / 0 open.
-- **Fixture:** [formal-handoff.md](../../crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.md).
+- **State:** invariant-gated and intentionally remains red while the manifest
+  contains any open claim or stale contract evidence. It currently records
+  24 proved claims, 2 tested claims, and 13 open claims; the open claims are
+  enumerated under [Completion state](#completion-state).
+- **Fixture:** [verification-manifest.json](../../crates/crypto/proof-aggregation/formal/snarkpack/verification-manifest.json).
 
 ### X3 — Optimization byte-lock
 - **What:** any optimization must preserve the Shieldd byte trace (TXN-I4
@@ -265,29 +298,59 @@ Not tied to one domain; they protect the whole stack.
   bytes. Category 1/2/3 rule in [design.md](design.md#optimization-byte-lock).
 - **Why:** the optimization loop and refactors cannot drift the protocol.
 - **State:** enforced by the TXN-I4 baselines + `AGGREGATE_PROTOCOL_VERSION`.
-  Full process: [optimization-playbook.md](../../crates/crypto/proof-aggregation/optimization-playbook.md).
+  For an intentional byte change, bump `AGGREGATE_PROTOCOL_VERSION`, regenerate
+  both TXN-I4 artifacts with their ignored regeneration tests, review the
+  resulting proof and transcript bytes, and run the slow two-way reference
+  interop lane. Full optimization process:
+  [optimization-playbook.md](../../crates/crypto/proof-aggregation/optimization-playbook.md).
 
 ---
 
 ## Standing assumptions
 
-Deliberately **not** verified here:
-SnarkPack/RIPP/Groth16 algebraic soundness (assumed from the paper + Filecoin),
-arkworks field/group/pairing/MSM correctness, SHA-256 collision/preimage
-resistance, the random-oracle model for Fiat-Shamir, BLS12-377 group laws, and
-hax semantic preservation. End-to-end FV is out of scope. ALG-I4 is the only check
-that cross-checks the algebraic/transcript assumption (exhaustively over its
-bounded shape domain); the rest are external-audit-or-replace. Each assumption is
-typed with a postcondition and removal path in X2's ledger.
+The remaining assumptions are enumerated—not summarized away—in
+`verification-manifest.json`. They include separate SHA-256 and Blake2b
+advantages, the adversary query budget, experiment-relative KZG false-opening
+and GIPA fork-knowledge bounds, translator preservation, exact VK/field/proof
+and challenge-message serialization postconditions, and the live
+`ARKWORKS-PROVER-CURVE-OPERATIONS` assumption. Its current status is `assumed`;
+the boundary covers each
+unextracted prover scalar multiplication, MSM, pairing, and KZG-opening kernel;
+constructing the outer `ShippingProverContract` is still an open claim. Each
+assumption has an owner, exact postcondition, evidence, and closure route. The
+ideal byte-oracle-to-field-oracle reduction is proved in Lean with the exact
+64-byte modular-reduction statistical-distance term; only its deployed execution
+boundary remains open.
 
 ## Completion state
 
-Scope is locked; the completion path is evidence maintenance, not new proof.
+The campaign has a proved independent Goal projection, real-prefix semantics,
+quantitative S1 contrapositive, aggregate layout/component-acceptance theorem
+(`DECODER-LAYOUT-CONFORMANCE`), a concrete Arkworks accepted-adapter contract,
+ideal fixed-input shipping-hash coupling, and kernel-checked conditional
+composition. Seven symbolic cost recurrences are proved, but
+`COST-MODEL-CONFORMANCE` is open: those coefficients have not yet been derived
+from the concrete v1 prover and verifier paths.
 
-- All implementation-boundary rows in `formal-handoff.md` are `proved`;
-  RIPP-mapping rows `refined`; no `open` rows remain.
-- Statement-encoding injectivity, digest reduction, SRS/VK preimage binding,
-  wrapper cap completeness, preflight ordering, family routing, padding
-  canonicality, and challenge-preimage injectivity are mechanically proved.
-- No raw verifier bypass remains; DoS/perf thresholds hold in CI after refactors;
-  every assumption is narrowly scoped.
+It is **not** publication-level end-to-end FV. `SHIPPING-TO-GOAL` and
+`FULL-ADAPTIVE-END-TO-END-FV` are both open. The manifest currently has these
+13 gaps:
+
+1. `KZG-LEAF-REDUCTION`
+2. `GIPA-FORK-KNOWLEDGE-REDUCTION`
+3. `SHIPPING-TO-GOAL`
+4. `STATEMENT-PROJECTION-CONSTRUCTION`
+5. `CANONICAL-STATEMENT-BINDING`
+6. `SHIPPING-PROVER-REFINEMENT`
+7. `RUST-CALL-CONSTRUCTION`
+8. `DEPLOYED-HASH-TRACE-CONSTRUCTION`
+9. `ADAPTIVE-SHA256-COUPLING`
+10. `ADAPTIVE-ADVERSARY-COUPLING`
+11. `BUNDLE-LEVEL-COMPOSITION`
+12. `FULL-ADAPTIVE-END-TO-END-FV`
+13. `COST-MODEL-CONFORMANCE`
+
+Stale F* or extraction evidence also keeps the closure gate red even when a
+claim's source theorem is kernel-checked. The generated
+[theorem graph](../../crates/crypto/proof-aggregation/formal/snarkpack/theorem-dependency-graph.md)
+shows their dependency paths.

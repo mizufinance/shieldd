@@ -2,6 +2,8 @@ use anyhow::{anyhow, ensure, Result};
 use decaf377::Fq;
 use shieldd_sdk_proof_params::batch::BatchItem;
 
+use crate::app_verifier::app_verify_repeat_final_rows_core;
+
 pub const PADDING_RULE_DOMAIN: &[u8] = b"shieldd.snarkpack.padding.repeat-final-row.v1\0";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -54,17 +56,12 @@ pub fn prepare_verify_inputs(
         "padded proof count {padded_count} exceeds max {max_padded_count}"
     );
 
-    let mut padded_public_inputs = items
+    let public_inputs = items
         .iter()
         .map(|item| item.public_inputs.clone())
         .collect::<Vec<_>>();
-    let last = padded_public_inputs
-        .last()
-        .cloned()
-        .ok_or_else(|| anyhow!("missing final public inputs for deterministic padding"))?;
-    while padded_public_inputs.len() < padded_count {
-        padded_public_inputs.push(last.clone());
-    }
+    let padded_public_inputs = app_verify_repeat_final_rows_core(public_inputs, padded_count)
+        .map_err(|_| anyhow!("missing final public inputs for deterministic padding"))?;
 
     Ok(PreparedVerifyInputs {
         real_count: items.len(),

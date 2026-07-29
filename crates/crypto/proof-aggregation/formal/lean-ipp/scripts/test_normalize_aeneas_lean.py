@@ -177,6 +177,59 @@ def s3_07_arkworks_fq_spike.root (x : Std.U64) := do
         self.assertIn("MacCampaign.Array.to_slice", result)
         self.assertNotIn("Std.Array.to_slice", result)
 
+    def test_challenge_frame_root_uses_fixed_arrays_and_u8_literals(self):
+        source = self.write(
+            "raw.lean",
+            raw(
+                "function",
+                """\
+def challenge.challenge_preimage_core
+    (context : Array Std.U8 32#usize) := do
+  let tag := Array.make 1#usize [115#u8]
+  let _ ← lift (Array.to_slice context)
+  lift (Array.to_slice tag)""",
+            ),
+        )
+        completed, output = self.run_normalize(
+            [source],
+            roots=("ark_ip_proofs::challenge::challenge_preimage_core",),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = output.read_text(encoding="utf-8")
+        self.assertIn("MacCampaign.Array UInt8 32#usize", result)
+        self.assertIn("MacCampaign.Array.make 1#usize [UInt8.ofNat 115]", result)
+        self.assertIn("MacCampaign.Array.to_slice", result)
+
+    def test_challenge_frame_graph_keeps_fixed_arrays_with_nonce_helper(self):
+        source = self.write(
+            "raw.lean",
+            raw(
+                "function",
+                """\
+def challenge.challenge_preimage_core
+    (context : Array Std.U8 32#usize) := do
+  lift (Array.to_slice context)
+
+def challenge.checked_next_challenge_nonce
+    (nonce : Std.U64) := do
+  if nonce = core.num.U64.MAX
+  then ok none
+  else ok (some nonce)""",
+            ),
+        )
+        completed, output = self.run_normalize(
+            [source],
+            roots=(
+                "ark_ip_proofs::challenge::challenge_preimage_core",
+                "ark_ip_proofs::challenge::checked_next_challenge_nonce",
+            ),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = output.read_text(encoding="utf-8")
+        self.assertIn("MacCampaign.Array UInt8 32#usize", result)
+        self.assertIn("MacCampaign.Array.to_slice context", result)
+        self.assertIn("core.num.U64.MAX", result)
+
     def test_s2_temporary_slice_drops_fixed_array_ascription(self):
         source = self.write(
             "raw.lean",
@@ -360,7 +413,10 @@ structure spike.Trait where
 @[discriminant]
 def spike.helper := 1
 
-def spike.root : spike.Alias := spike.helper""",
+@[reducible, rust_trait_impl "core::cmp::PartialEq<[@T], [@U]>"]
+def spike.implHelper := spike.helper
+
+def spike.root : spike.Alias := spike.implHelper""",
             ),
         )
         completed, output = self.run_normalize(
@@ -372,9 +428,11 @@ def spike.root : spike.Alias := spike.helper""",
         self.assertIn("@[reducible]\ndef spike.Alias", result)
         self.assertNotIn("rust_type", result)
         self.assertNotIn("rust_trait", result)
+        self.assertNotIn("rust_trait_impl", result)
         self.assertNotIn("discriminant", result)
         self.assertNotIn("structure spike.Trait", result)
         self.assertIn("def spike.helper", result)
+        self.assertIn("@[reducible]\ndef spike.implHelper", result)
 
     def test_shared_runtime_declarations_replace_raw_copies(self):
         source = self.write(
@@ -565,16 +623,20 @@ def spike.root (x y : MacCampaign.U64) (a b : MacCampaign.U128) := by
             raw(
                 "function",
                 """\
-def spike.root (i : Aeneas.Std.Usize) := do
+def spike.root (i : Aeneas.Std.Usize) (word : Std.U32) := do
+  let maximum ← lift (UScalar.cast .Usize core.num.U32.MAX)
   let exponent ← lift (UScalar.cast .U32 i)
   let power ← core.num.Usize.pow 2#usize exponent
   let logarithm ← core.num.Usize.ilog2 power
-  core.num.Usize.is_power_of_two logarithm""",
+  let isPower ← core.num.Usize.is_power_of_two logarithm
+  ok (maximum, word, isPower)""",
             ),
         )
         completed, output = self.run_normalize([source])
         self.assertEqual(completed.returncode, 0, completed.stderr)
         result = output.read_text(encoding="utf-8")
+        self.assertIn("(word : Std.U32)", result)
+        self.assertIn("MacCampaign.castUsize core.num.U32.MAX", result)
         self.assertIn("UScalar.cast .U32 i", result)
         for spelling in (
             "core.num.Usize.pow 2#usize exponent",
@@ -589,6 +651,17 @@ def spike.root (i : Aeneas.Std.Usize) := do
             raw(
                 "function",
                 "def spike.root (i : Aeneas.Std.Usize) := core.num.Usize.rotate i",
+            ),
+        )
+        completed, _ = self.run_normalize([source])
+        self.assertNotEqual(completed.returncode, 0)
+
+    def test_unlisted_u32_runtime_function_fails_closed(self):
+        source = self.write(
+            "raw.lean",
+            raw(
+                "function",
+                "def spike.root (i : Std.U32) := core.num.U32.rotate i",
             ),
         )
         completed, _ = self.run_normalize([source])

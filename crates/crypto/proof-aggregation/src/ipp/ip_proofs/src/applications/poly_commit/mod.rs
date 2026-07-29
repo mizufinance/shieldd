@@ -65,7 +65,7 @@ impl<P: Pairing> KZG<P> {
         let g_alpha_powers = structured_generators_scalar_power(degree + 1, &g, &alpha);
         Ok((
             <P as Pairing>::G1::normalize_batch(&g_alpha_powers),
-            VerifierSRS {
+            VerifierSRS::<P> {
                 g: g.clone(),
                 h: h.clone(),
                 g_beta: g * beta,

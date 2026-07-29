@@ -1,0 +1,1111 @@
+from __future__ import annotations
+
+import copy
+import hashlib
+import importlib.util
+import json
+import sys
+import tempfile
+import unittest
+from contextlib import redirect_stderr
+from io import StringIO
+from pathlib import Path
+from unittest.mock import patch
+
+
+SCRIPT = Path(__file__).with_name("verification_manifest.py")
+SPEC = importlib.util.spec_from_file_location("verification_manifest", SCRIPT)
+assert SPEC and SPEC.loader
+VERIFICATION = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = VERIFICATION
+SPEC.loader.exec_module(VERIFICATION)
+
+
+class VerificationManifestTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.manifest = VERIFICATION.load_manifest()
+
+    def test_real_manifest_is_nonempty_and_complete(self):
+        # The checker artifact pins this validator's own source and is therefore
+        # necessarily stale while this test file is exercising validator edits.
+        # Production callers retain the fail-closed default and validate it.
+        summary = VERIFICATION.validate_repository(
+            self.manifest, require_checker_artifact=False
+        )
+        self.assertGreater(summary.audit_capstones, 0)
+        self.assertGreater(summary.claims, 0)
+        self.assertGreater(summary.assumptions, 0)
+
+    def test_operation_register_is_complete_and_fail_closed(self):
+        register = VERIFICATION.load_operation_register()
+        VERIFICATION.validate_operation_register(register)
+
+        candidate_missing_role = copy.deepcopy(register)
+        del candidate_missing_role["candidates"][0]["deltas"]["setup"]
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(candidate_missing_role)
+        self.assertIn("prover, verifier, and setup", str(raised.exception))
+
+        unproved_frontier = copy.deepcopy(register)
+        unproved_frontier["formal_pareto_frontier"] = [
+            unproved_frontier["research_order"][0]
+        ]
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(unproved_frontier)
+        self.assertIn("without a proved model", str(raised.exception))
+
+        promoted = copy.deepcopy(register)
+        promoted["candidates"][0]["status"] = "proved-model"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_operation_register(promoted)
+        self.assertIn(
+            "structured audited equivalence/refinement",
+            str(raised.exception),
+        )
+
+    def test_missing_audit_module_fails_closed(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["audit_modules"][0]["path"] = "Ipp/DeletedAudit.lean"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_repository(manifest)
+        self.assertIn("missing audit module", str(raised.exception))
+
+    def test_statement_contract_evidence_is_digest_pinned_and_complete(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["statement_binding_evidence"][0]["sources"][0]["sha256"] = "0" * 64
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_contract_evidence(
+                manifest, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn("sha256 differs", str(raised.exception))
+
+        manifest = copy.deepcopy(self.manifest)
+        manifest["statement_binding_evidence"][1]["contract_field"] = (
+            manifest["statement_binding_evidence"][0]["contract_field"]
+        )
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_contract_evidence(
+                manifest, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn("coverage differs", str(raised.exception))
+
+        manifest = copy.deepcopy(self.manifest)
+        external = next(
+            item
+            for item in manifest["statement_binding_evidence"]
+            if item["kind"] == "external"
+        )
+        self.assertIn("| `stale` |", VERIFICATION.render_markdown(manifest))
+        for claim in manifest["claims"]:
+            claim["status"] = "proved"
+            if claim["root"].startswith("UNPROVED."):
+                claim["root"] = f"Ipp.Test.{claim['id'].lower()}"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.require_closed_verification(manifest)
+        self.assertIn("stale contract evidence", str(raised.exception))
+
+        external["checker"]["last_result"] = "pass"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_contract_evidence(
+                manifest, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn(
+            "cannot claim pass without a registered proof-producing artifact",
+            str(raised.exception),
+        )
+
+        external["checker"]["last_result"] = "not-run"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_contract_evidence(
+                manifest, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn("must be pass, stale, or assumed", str(raised.exception))
+
+    def test_statement_contract_source_fields_match_evidence_schema(self):
+        contract = (
+            VERIFICATION.REPO_ROOT
+            / "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/ShippingV1.lean"
+        )
+        self.assertEqual(
+            VERIFICATION.statement_binding_contract_fields(contract),
+            VERIFICATION.CONTRACT_DATA_FIELDS
+            | VERIFICATION.CONTRACT_EVIDENCE_FIELDS,
+        )
+
+        with tempfile.TemporaryDirectory(
+            prefix="snarkpack-contract-fields-"
+        ) as directory:
+            missing = Path(directory) / "Missing.lean"
+            missing.write_text("structure Different where\n  x : Nat\n")
+            with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                VERIFICATION.statement_binding_contract_fields(missing)
+            self.assertIn(
+                "StatementBindingContract declaration is missing",
+                str(raised.exception),
+            )
+
+    def test_fstar_and_aeneas_hax_roles_cannot_be_collapsed_or_repointed(self):
+        for role_id in ("hax-fstar", "hax-aeneas"):
+            with self.subTest(role_id=role_id):
+                manifest = copy.deepcopy(self.manifest)
+                role = next(
+                    role
+                    for role in manifest["toolchain_roles"]
+                    if role["id"] == role_id
+                )
+                role["pin"] = "same-unverified-pin"
+                with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                    VERIFICATION.validate_toolchain_roles(
+                        manifest, VERIFICATION.REPO_ROOT
+                    )
+                self.assertIn("does not match", str(raised.exception))
+
+    def test_empty_audit_and_duplicate_claim_roots_fail_closed(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["audit_modules"] = []
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_repository(manifest)
+        self.assertIn("audit_modules must be nonempty", str(raised.exception))
+
+        manifest = copy.deepcopy(self.manifest)
+        manifest["claims"][1]["root"] = manifest["claims"][0]["root"]
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_repository(manifest)
+        self.assertIn("duplicate claim root", str(raised.exception))
+
+    def test_claim_ledger_cannot_drop_publication_capstone(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["claims"] = [
+            claim
+            for claim in manifest["claims"]
+            if claim["id"] != "FULL-ADAPTIVE-END-TO-END-FV"
+        ]
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_repository(manifest)
+        self.assertIn("claim ledger digest", str(raised.exception))
+
+    def test_claim_ledger_cannot_silently_weaken_dependencies(self):
+        for field, value in (
+            ("dependencies", "S1-QUANTITATIVE-SOUNDNESS"),
+            ("assumptions", "SHA256-SECURITY"),
+        ):
+            with self.subTest(field=field, value=value):
+                manifest = copy.deepcopy(self.manifest)
+                claim = next(
+                    item
+                    for item in manifest["claims"]
+                    if item["id"] == "SHIPPING-TO-GOAL"
+                )
+                claim[field].remove(value)
+                with self.assertRaises(
+                    VERIFICATION.VerificationError
+                ) as raised:
+                    VERIFICATION.validate_repository(manifest)
+                self.assertIn("claim ledger digest", str(raised.exception))
+
+    def test_verification_contract_cannot_silently_weaken_gates(self):
+        mutations = []
+
+        missing_reference = copy.deepcopy(self.manifest)
+        missing_reference["required_repository_inputs"].remove(
+            "crates/crypto/proof-aggregation-reference/Cargo.toml"
+        )
+        mutations.append(("required input", missing_reference))
+
+        expanded_axioms = copy.deepcopy(self.manifest)
+        expanded_axioms["allowed_axioms"].append("False.elim")
+        mutations.append(("axiom allowlist", expanded_axioms))
+
+        missing_audit = copy.deepcopy(self.manifest)
+        missing_audit["audit_modules"].pop()
+        mutations.append(("audit inventory", missing_audit))
+
+        missing_spec = copy.deepcopy(self.manifest)
+        missing_spec["spec_roots"].pop()
+        mutations.append(("spec isolation", missing_spec))
+
+        for label, manifest in mutations:
+            with self.subTest(label=label):
+                with self.assertRaises(
+                    VERIFICATION.VerificationError
+                ) as raised:
+                    VERIFICATION.validate_repository(manifest)
+                self.assertIn(
+                    "verification contract digest", str(raised.exception)
+                )
+
+    def test_full_verification_gate_rejects_open_or_unproved_claims(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["claims"][0]["status"] = "open"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.require_closed_verification(manifest)
+        self.assertIn(manifest["claims"][0]["id"], str(raised.exception))
+
+        manifest = copy.deepcopy(self.manifest)
+        manifest["claims"][0]["root"] = "UNPROVED.placeholder"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.require_closed_verification(manifest)
+        self.assertIn(manifest["claims"][0]["id"], str(raised.exception))
+
+    def test_full_verification_gate_rejects_status_downgrades(self):
+        evidence = {
+            "contract_field": "field",
+            "checker": {
+                "required_result": "pass",
+                "last_result": "pass",
+            },
+        }
+        for status in ("tested", "reviewed", "assumed", "rejected"):
+            with self.subTest(status=status):
+                manifest = {
+                    "claims": [
+                        {
+                            "id": "PUBLICATION-BLOCKER",
+                            "root": "Ipp.Fake.notAudited",
+                            "status": status,
+                        }
+                    ],
+                    "statement_binding_evidence": [evidence],
+                }
+                with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                    VERIFICATION.require_closed_verification(manifest)
+                self.assertIn("PUBLICATION-BLOCKER", str(raised.exception))
+
+    def test_spec_import_closure_rejects_extracted_modules(self):
+        with tempfile.TemporaryDirectory(prefix="snarkpack-spec-import-") as directory:
+            lean_root = Path(directory)
+            ipp = lean_root / "Ipp"
+            ipp.mkdir()
+            (ipp / "Goal.lean").write_text(
+                "import Ipp.Helper\n", encoding="utf-8"
+            )
+            (ipp / "Helper.lean").write_text(
+                "import Ipp.Extracted.Bad\n", encoding="utf-8"
+            )
+            with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                VERIFICATION.validate_import_closure(
+                    lean_root,
+                    ["Ipp.Goal"],
+                    ["Ipp.Extracted"],
+                )
+            self.assertIn("forbidden import", str(raised.exception))
+
+        declarations = (
+            "import Ipp.Extracted.Bad -- trailing comment\n",
+            "public import Ipp.Extracted.Bad\n",
+        )
+        for declaration in declarations:
+            with self.subTest(declaration=declaration):
+                with tempfile.TemporaryDirectory(
+                    prefix="snarkpack-decorated-import-"
+                ) as directory:
+                    lean_root = Path(directory)
+                    ipp = lean_root / "Ipp"
+                    ipp.mkdir()
+                    (ipp / "Goal.lean").write_text(
+                        declaration, encoding="utf-8"
+                    )
+                    with self.assertRaises(
+                        VERIFICATION.VerificationError
+                    ) as raised:
+                        VERIFICATION.validate_import_closure(
+                            lean_root,
+                            ["Ipp.Goal"],
+                            ["Ipp.Extracted"],
+                        )
+                    self.assertIn("forbidden import", str(raised.exception))
+
+    def test_spec_import_closure_traverses_non_ipp_local_modules(self):
+        with tempfile.TemporaryDirectory(
+            prefix="snarkpack-local-import-"
+        ) as directory:
+            lean_root = Path(directory)
+            ipp = lean_root / "Ipp"
+            ipp.mkdir()
+            (ipp / "Goal.lean").write_text(
+                "import LocalHelper\n", encoding="utf-8"
+            )
+            (lean_root / "LocalHelper.lean").write_text(
+                "import Ipp.Extracted.Bad\n", encoding="utf-8"
+            )
+            with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                VERIFICATION.validate_import_closure(
+                    lean_root,
+                    ["Ipp.Goal"],
+                    ["Ipp.Extracted"],
+                )
+            self.assertIn("forbidden import", str(raised.exception))
+
+    def test_fstar_evidence_roots_require_full_declarations(self):
+        manifest = copy.deepcopy(self.manifest)
+        entry = next(
+            item
+            for item in manifest["statement_binding_evidence"]
+            if item["kind"] == "fstar"
+        )
+        leaf = entry["theorem_roots"][0].rsplit(".", 1)[-1]
+        entry["theorem_roots"][0] = f"WrongNamespace.{leaf}"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_contract_evidence(
+                manifest, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn("theorem root is absent", str(raised.exception))
+
+    def test_fstar_pass_requires_generated_checker_artifact(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["fstar_checker_evidence"] = {
+            "path": "does/not/exist.json",
+            "sha256": "0" * 64,
+        }
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_contract_evidence(
+                manifest, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn("F* checker evidence", str(raised.exception))
+
+    def test_fstar_module_inventory_rejects_missing_and_unexpected_modules(self):
+        def fixture(
+            directory: str, modules: tuple[str, ...]
+        ) -> tuple[dict[str, object], Path]:
+            root = Path(directory)
+            verifier = (
+                root
+                / "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
+                "verification_manifest.py"
+            )
+            verifier.parent.mkdir(parents=True)
+            verifier.write_text("# inventory fixture\n", encoding="utf-8")
+            toolchain = (
+                root
+                / "crates/crypto/proof-aggregation/formal/snarkpack/"
+                "toolchain.toml"
+            )
+            toolchain.parent.mkdir(parents=True)
+            toolchain.write_text("", encoding="utf-8")
+            proof_root = toolchain.parent / "fstar"
+            proof_root.mkdir()
+            for module in modules:
+                (proof_root / module).write_text(
+                    f"module {Path(module).stem}\n", encoding="utf-8"
+                )
+            manifest: dict[str, object] = {
+                "statement_binding_evidence": [
+                    {
+                        "contract_field": "fixture",
+                        "kind": "fstar",
+                        "theorem_roots": ["Fixture.root"],
+                        "sources": [],
+                        "checker": {"command": "scripts/snarkpack-formal.sh"},
+                    }
+                ]
+            }
+            return manifest, root
+
+        cases = (
+            (
+                "missing",
+                VERIFICATION.FSTAR_MODULE_INVENTORY[:-1],
+                "missing: WrapperProofs.fst",
+            ),
+            (
+                "unexpected",
+                VERIFICATION.FSTAR_MODULE_INVENTORY + ("UnexpectedProofs.fst",),
+                "unexpected: UnexpectedProofs.fst",
+            ),
+        )
+        for label, modules, expected in cases:
+            with self.subTest(label=label):
+                with tempfile.TemporaryDirectory(
+                    prefix=f"snarkpack-fstar-{label}-"
+                ) as directory:
+                    manifest, root = fixture(directory, modules)
+                    with self.assertRaises(
+                        VERIFICATION.VerificationError
+                    ) as raised:
+                        VERIFICATION.expected_fstar_checker_evidence(
+                            manifest, root
+                        )
+                    self.assertIn("F* module inventory differs", str(raised.exception))
+                    self.assertIn(expected, str(raised.exception))
+
+    def test_extraction_output_list_requires_exact_nonempty_coverage(self):
+        extraction_manifest = (
+            VERIFICATION.REPO_ROOT
+            / "crates/crypto/proof-aggregation/formal/snarkpack/"
+            "lean-extraction-manifest.json"
+        )
+        payload = json.loads(extraction_manifest.read_text(encoding="utf-8"))
+        self.assertEqual(len(VERIFICATION.extraction_outputs()), 37)
+        with tempfile.TemporaryDirectory(prefix="snarkpack-extraction-list-") as directory:
+            path = Path(directory) / "manifest.json"
+            payload["graphs"].pop()
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                VERIFICATION.extraction_outputs(path)
+            self.assertIn("expected 37 extraction outputs", str(raised.exception))
+
+    def test_audit_sources_are_manifest_pinned_before_log_parsing(self):
+        roots = ["Ipp.first", "Ipp.second"]
+        digest = hashlib.sha256(
+            "".join(f"{root}\n" for root in roots).encode("utf-8")
+        ).hexdigest()
+        manifest = {
+            "audit_modules": [
+                {
+                    "path": "Ipp/ProofAudit.lean",
+                    "expected_capstones": len(roots),
+                    "capstone_roots_sha256": digest,
+                    "required_roots": roots,
+                }
+            ]
+        }
+        with tempfile.TemporaryDirectory(prefix="snarkpack-audit-pins-") as directory:
+            lean_root = Path(directory)
+            ipp_root = lean_root / "Ipp"
+            ipp_root.mkdir()
+            audit = ipp_root / "ProofAudit.lean"
+            audit.write_text(
+                "-- #print axioms Ipp.line_comment_spoof\n"
+                "/- #print axioms Ipp.block_comment_spoof\n"
+                "   /- #print axioms Ipp.nested_comment_spoof -/\n"
+                "-/\n"
+                '#eval IO.println "#print axioms Ipp.string_spoof"\n'
+                + "\n".join(f"#print axioms {root}" for root in roots)
+                + "\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                VERIFICATION.manifest_audit_roots(
+                    manifest, lean_root=lean_root
+                ),
+                roots,
+            )
+            diagnostics = VERIFICATION.manifest_audit_diagnostics(
+                manifest, lean_root=lean_root
+            )
+            self.assertEqual(
+                [(item.root, item.source, item.line, item.column) for item in diagnostics],
+                [
+                    ("Ipp.first", "Ipp/ProofAudit.lean", 6, 0),
+                    ("Ipp.second", "Ipp/ProofAudit.lean", 7, 0),
+                ],
+            )
+
+            audit.write_text(
+                f"#print axioms {roots[0]}\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                VERIFICATION.manifest_audit_roots(
+                    manifest, lean_root=lean_root
+                )
+            self.assertIn("contains 1 capstones; expected 2", str(raised.exception))
+
+            audit.write_text(
+                "#print axioms Ipp.first\n#print axioms Ipp.substituted\n",
+                encoding="utf-8",
+            )
+            with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                VERIFICATION.manifest_audit_roots(
+                    manifest, lean_root=lean_root
+                )
+            self.assertIn(
+                "capstone roots differ from the fixed manifest",
+                str(raised.exception),
+            )
+
+    def test_audit_log_command_checks_source_pins_before_reading_log(self):
+        manifest = {"allowed_axioms": ["propext"]}
+        missing_log = Path("does-not-exist-audit.log")
+        stderr = StringIO()
+        with (
+            patch.object(VERIFICATION, "load_manifest", return_value=manifest),
+            patch.object(
+                VERIFICATION,
+                "manifest_audit_diagnostics",
+                side_effect=VERIFICATION.VerificationError(
+                    "audit source differs from fixed pins"
+                ),
+            ) as validate_diagnostics,
+            redirect_stderr(stderr),
+        ):
+            self.assertEqual(
+                VERIFICATION.main(["audit-log", str(missing_log)]),
+                2,
+            )
+        validate_diagnostics.assert_called_once_with(manifest)
+        self.assertIn("audit source differs from fixed pins", stderr.getvalue())
+        self.assertNotIn(str(missing_log), stderr.getvalue())
+
+    def test_axiom_log_cannot_pass_with_no_expected_diagnostics(self):
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.audit_log_summary(
+                "",
+                expected_diagnostics=[],
+                allowed_axioms={"propext"},
+            )
+        self.assertIn("expected_diagnostics must be nonempty", str(raised.exception))
+
+    def test_axiom_log_ignores_non_audit_module_results(self):
+        text = (
+            "info: Ipp/Imported.lean:1:0: 'unrelated' depends on axioms: [bad]\n"
+            "info: Ipp/ProofAudit.lean:2:0: 'audited' depends on axioms: "
+            "[propext,\n Classical.choice]\n"
+        )
+        self.assertEqual(
+            VERIFICATION.audit_log_summary(
+                text,
+                expected_diagnostics=[
+                    VERIFICATION.AuditDiagnostic(
+                        "audited", "Ipp/ProofAudit.lean", 2, 0
+                    )
+                ],
+                allowed_axioms={"propext", "Classical.choice"},
+            ),
+            "1 capstones; axioms allowlisted",
+        )
+
+    def test_axiom_log_rejects_unprefixed_spoof_output(self):
+        text = (
+            "\ufeff'first' depends on axioms: [propext,\n Classical.choice]\n"
+            "'second' does not depend on any axioms\n"
+        )
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.audit_log_summary(
+                text,
+                expected_diagnostics=[
+                    VERIFICATION.AuditDiagnostic(
+                        "first", "Ipp/ProofAudit.lean", 1, 0
+                    ),
+                    VERIFICATION.AuditDiagnostic(
+                        "second", "Ipp/ProofAudit.lean", 2, 0
+                    ),
+                ],
+                allowed_axioms={"propext", "Classical.choice"},
+            )
+        self.assertIn("roots differ from the fixed manifest", str(raised.exception))
+
+    def test_axiom_log_rejects_spoofed_compiler_location(self):
+        text = (
+            "info: Ipp/ProofAudit.lean:9:0: 'audited' "
+            "does not depend on any axioms\n"
+        )
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.audit_log_summary(
+                text,
+                expected_diagnostics=[
+                    VERIFICATION.AuditDiagnostic(
+                        "audited", "Ipp/ProofAudit.lean", 8, 0
+                    )
+                ],
+                allowed_axioms={"propext"},
+            )
+        self.assertIn(
+            "do not originate at the pinned #print axioms commands",
+            str(raised.exception),
+        )
+
+    def test_axiom_log_requires_the_exact_manifest_roots(self):
+        text = (
+            "info: Ipp/ProofAudit.lean:2:0: 'different' "
+            "does not depend on any axioms\n"
+        )
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.audit_log_summary(
+                text,
+                expected_diagnostics=[
+                    VERIFICATION.AuditDiagnostic(
+                        "required", "Ipp/ProofAudit.lean", 2, 0
+                    )
+                ],
+                allowed_axioms={"propext"},
+            )
+        self.assertIn("roots differ from the fixed manifest", str(raised.exception))
+
+    def test_dependency_graph_footer_tracks_manifest_status(self):
+        manifest = copy.deepcopy(self.manifest)
+        rendered = VERIFICATION.render_dependency_graph(manifest)
+        open_ids = [
+            claim["id"]
+            for claim in manifest["claims"]
+            if not claim["id"].startswith("COST-")
+            and (
+                claim["status"] == "open"
+                or claim["root"].startswith("UNPROVED.")
+            )
+        ]
+        self.assertTrue(open_ids)
+        self.assertIn(
+            "Open graph claims: " + ", ".join(f"`{claim_id}`" for claim_id in open_ids),
+            rendered,
+        )
+
+        for claim in manifest["claims"]:
+            if not claim["id"].startswith("COST-"):
+                claim["status"] = "proved"
+                if claim["root"].startswith("UNPROVED."):
+                    claim["root"] = f"Ipp.Test.{claim['id'].lower()}"
+        rendered = VERIFICATION.render_dependency_graph(manifest)
+        self.assertIn("No graph claims are open.", rendered)
+        self.assertNotIn("remains open", rendered)
+
+    def test_required_repository_inputs_fail_when_reference_or_fuzz_input_is_missing(self):
+        with tempfile.TemporaryDirectory(prefix="snarkpack-required-input-") as directory:
+            root = Path(directory)
+            present = root / "reference" / "Cargo.toml"
+            present.parent.mkdir()
+            present.write_text("[package]\n", encoding="utf-8")
+            with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                VERIFICATION.validate_required_inputs(
+                    ["reference/Cargo.toml", "fuzz/Cargo.toml"], root
+                )
+            self.assertIn("missing required repository input", str(raised.exception))
+
+    def test_byte_drift_guidance_must_point_to_a_live_versioning_anchor(self):
+        with tempfile.TemporaryDirectory(prefix="snarkpack-versioning-guide-") as directory:
+            root = Path(directory)
+            backend = root / "crates/crypto/proof-aggregation/src/backend.rs"
+            guide = root / "docs/snarkpack/verification.md"
+            backend.parent.mkdir(parents=True)
+            guide.parent.mkdir(parents=True)
+            target = "docs/snarkpack/verification.md#x3--optimization-byte-lock"
+            backend.write_text(target, encoding="utf-8")
+            guide.write_text(
+                "### X3 — Optimization byte-lock\n", encoding="utf-8"
+            )
+            VERIFICATION.validate_versioning_guidance(root)
+
+            guide.write_text("# renamed\n", encoding="utf-8")
+            with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                VERIFICATION.validate_versioning_guidance(root)
+            self.assertIn("X3 anchor", str(raised.exception))
+
+            guide.write_text(
+                "### X3 — Optimization byte-lock\n", encoding="utf-8"
+            )
+            backend.write_text(
+                "formal/snarkpack/adaptation-register.md", encoding="utf-8"
+            )
+            with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                VERIFICATION.validate_versioning_guidance(root)
+            self.assertIn("live versioning procedure", str(raised.exception))
+
+    def test_lean_source_axiom_injection_fails_closed(self):
+        declarations = (
+            "axiom unapproved : False\n",
+            "private axiom unapproved : False\n",
+            "@[implemented_by replacement]\naxiom unapproved : False\n",
+            "constant unapproved : False\n",
+        )
+        for declaration in declarations:
+            with self.subTest(declaration=declaration):
+                with tempfile.TemporaryDirectory(
+                    prefix="snarkpack-axiom-"
+                ) as directory:
+                    lean_root = Path(directory)
+                    ipp_root = lean_root / "Ipp"
+                    ipp_root.mkdir()
+                    (ipp_root / "Injected.lean").write_text(
+                        declaration, encoding="utf-8"
+                    )
+                    with self.assertRaises(
+                        VERIFICATION.VerificationError
+                    ) as raised:
+                        VERIFICATION.validate_lean_source_tokens(lean_root)
+                    self.assertIn(
+                        "source-level axiom declaration",
+                        str(raised.exception),
+                    )
+
+    def test_summary_enforces_rust_reference_lane_for_full_tier(self):
+        workflow = (
+            VERIFICATION.REPO_ROOT / ".github/workflows/formal.yml"
+        ).read_text(encoding="utf-8")
+        summary = workflow.split("\n  summary:\n", maxsplit=1)[1]
+        self.assertIn("- snarkpack-rust-reference", summary)
+        self.assertIn(
+            "RUST_REFERENCE: "
+            "${{ needs.snarkpack-rust-reference.result }}",
+            summary,
+        )
+        self.assertIn(
+            '"snarkpack-rust-reference=$RUST_REFERENCE"',
+            summary,
+        )
+
+    def test_all_filtered_slow_and_dos_recipes_require_exactly_one_test(self):
+        justfile = (VERIFICATION.REPO_ROOT / "justfile").read_text(
+            encoding="utf-8"
+        )
+        labels = (
+            "snarkpack_matches_legacy_batch_across_families_and_counts_slow",
+            "snarkpack_matches_single_and_batch_groth16_oracles_slow",
+            "slow_two_way_interop_band",
+            "snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds",
+            "bounded_challenge_sampler_",
+            "shipping_nonce_exhaustion_maps_exact_public_error",
+        )
+        for label in labels:
+            with self.subTest(label=label):
+                self.assertIn(f'--label "{label}"', justfile)
+
+    def test_v1_byte_lock_requires_proof_and_trace_baselines(self):
+        backend = (
+            VERIFICATION.REPO_ROOT
+            / "crates/crypto/proof-aggregation/src/backend.rs"
+        ).read_text(encoding="utf-8")
+        trace_fixture = (
+            VERIFICATION.REPO_ROOT
+            / "crates/crypto/proof-aggregation/tests/fixtures/"
+            "shieldd_byte_trace_baseline.txt"
+        )
+        self.assertRegex(
+            backend,
+            r"#\[test\]\s*fn "
+            r"v1_bytes_and_transcript_match_committed_baselines\s*\(",
+        )
+        self.assertIn(
+            "regenerate_shieldd_byte_trace_baseline", backend
+        )
+        self.assertTrue(trace_fixture.is_file())
+        byte_lock = next(
+            claim
+            for claim in self.manifest["claims"]
+            if claim["id"] == "V1-BYTE-LOCK"
+        )
+        self.assertEqual(
+            byte_lock["root"],
+            "v1_bytes_and_transcript_match_committed_baselines",
+        )
+        VERIFICATION.validate_v1_byte_lock_source(backend, byte_lock["root"])
+        ignored_backend = backend.replace(
+            "#[test]\n    fn "
+            "v1_bytes_and_transcript_match_committed_baselines",
+            "#[test]\n    #[ignore]\n    fn "
+            "v1_bytes_and_transcript_match_committed_baselines",
+            1,
+        )
+        self.assertNotEqual(ignored_backend, backend)
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_v1_byte_lock_source(
+                ignored_backend, byte_lock["root"]
+            )
+        self.assertIn("must not be ignored", str(raised.exception))
+
+        disabled_backend = backend.replace(
+            "#[test]\n    fn "
+            "v1_bytes_and_transcript_match_committed_baselines",
+            "#[cfg(any())]\n    #[test]\n    fn "
+            "v1_bytes_and_transcript_match_committed_baselines",
+            1,
+        )
+        self.assertNotEqual(disabled_backend, backend)
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_v1_byte_lock_source(
+                disabled_backend, byte_lock["root"]
+            )
+        self.assertIn("attributes differ", str(raised.exception))
+
+        emptied_umbrella = backend.replace(
+            "fn v1_bytes_and_transcript_match_committed_baselines() {\n"
+            "        assert_aggregate_bytes_match_committed_baseline();\n"
+            "        assert_shieldd_byte_trace_matches_committed_baseline();\n"
+            "    }",
+            "fn v1_bytes_and_transcript_match_committed_baselines() {}\n"
+            "\n"
+            "    fn unaudited_baseline_calls() {\n"
+            "        assert_aggregate_bytes_match_committed_baseline();\n"
+            "        assert_shieldd_byte_trace_matches_committed_baseline();\n"
+            "    }",
+            1,
+        )
+        self.assertNotEqual(emptied_umbrella, backend)
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_v1_byte_lock_source(
+                emptied_umbrella, byte_lock["root"]
+            )
+        self.assertIn("directly and exclusively", str(raised.exception))
+
+        fixture_root = (
+            VERIFICATION.REPO_ROOT
+            / "crates/crypto/proof-aggregation/tests/fixtures"
+        )
+        byte_contents = (
+            fixture_root / "aggregate_bytes_baseline.txt"
+        ).read_text(encoding="utf-8")
+        trace_contents = (
+            fixture_root / "shieldd_byte_trace_baseline.txt"
+        ).read_text(encoding="utf-8")
+        VERIFICATION.validate_v1_baseline_fixtures(
+            byte_contents, trace_contents
+        )
+
+        removed_vector = "\n".join(
+            line
+            for line in trace_contents.splitlines()
+            if not line.startswith("vector 23 ")
+            and not line.startswith("23.")
+        ) + "\n"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_v1_baseline_fixtures(
+                byte_contents, removed_vector
+            )
+        self.assertIn("vector inventory differs", str(raised.exception))
+
+        regenerated_without_version_bump = byte_contents.replace(
+            "0 Transfer count=1 seed=9001 ",
+            "0 Transfer count=1 seed=9001 00",
+            1,
+        )
+        self.assertNotEqual(regenerated_without_version_bump, byte_contents)
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_v1_baseline_fixtures(
+                regenerated_without_version_bump, trace_contents
+            )
+        self.assertIn(
+            "changed without updating the independent v1 protocol lock",
+            str(raised.exception),
+        )
+
+    def test_bounded_sampler_pins_test_and_shipping_call_sites(self):
+        VERIFICATION.validate_bounded_challenge_sampler(
+            self.manifest, VERIFICATION.REPO_ROOT
+        )
+        relative, (expected_from_zero, expected_from_nonce) = next(
+            iter(VERIFICATION.SHIPPING_NONCE_CALL_INVENTORY.items())
+        )
+        source = VERIFICATION.REPO_ROOT.joinpath(
+            *Path(relative).parts
+        ).read_text(encoding="utf-8")
+        VERIFICATION.validate_shipping_nonce_source(
+            relative,
+            source,
+            expected_from_zero=expected_from_zero,
+            expected_from_nonce=expected_from_nonce,
+        )
+        bypass = source + "\ncounter_nonce = counter_nonce + 1;\n"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_shipping_nonce_source(
+                relative,
+                bypass,
+                expected_from_zero=expected_from_zero,
+                expected_from_nonce=expected_from_nonce,
+            )
+        self.assertIn("direct nonce arithmetic", str(raised.exception))
+
+        extracted_relative, extracted = next(
+            iter(
+                VERIFICATION.EXTRACTED_CHECKED_SUCCESSOR_INVENTORY.items()
+            )
+        )
+        extracted_source = VERIFICATION.REPO_ROOT.joinpath(
+            *Path(extracted_relative).parts
+        ).read_text(encoding="utf-8")
+        VERIFICATION.validate_extracted_checked_successor_source(
+            extracted_relative,
+            extracted_source,
+            function=extracted["function"],
+            expected_calls=extracted["expected_calls"],
+            tests=extracted["tests"],
+        )
+
+        extra_checked_call = (
+            extracted_source
+            + "\nfn unaudited_nonce_loop(nonce: u64) {\n"
+            + "    let _ = checked_next_challenge_nonce(nonce);\n"
+            + "}\n"
+        )
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_extracted_checked_successor_source(
+                extracted_relative,
+                extra_checked_call,
+                function=extracted["function"],
+                expected_calls=extracted["expected_calls"],
+                tests=extracted["tests"],
+            )
+        self.assertIn(
+            "checked-successor call inventory differs",
+            str(raised.exception),
+        )
+
+        open_at_exhaustion = extracted_source.replace(
+            "None => return Err(AggregateAdapterCoreError::NonceExhausted),",
+            "None => break,",
+            1,
+        )
+        self.assertNotEqual(open_at_exhaustion, extracted_source)
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_extracted_checked_successor_source(
+                extracted_relative,
+                open_at_exhaustion,
+                function=extracted["function"],
+                expected_calls=extracted["expected_calls"],
+                tests=extracted["tests"],
+            )
+        self.assertIn("fail-closed branch", str(raised.exception))
+
+        missing_audit_root = copy.deepcopy(self.manifest)
+        for audit in missing_audit_root["audit_modules"]:
+            if extracted["audit_root"] in audit["required_roots"]:
+                audit["required_roots"].remove(extracted["audit_root"])
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_bounded_challenge_sampler(
+                missing_audit_root, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn(
+            "checked-successor audit root", str(raised.exception)
+        )
+
+        extracted_test = extracted["tests"][0]
+        disabled_extracted_test = extracted_source.replace(
+            '    #[cfg(not(feature = "bench-baseline"))]\n'
+            "    #[test]\n"
+            f"    fn {extracted_test}",
+            "    #[cfg(any())]\n"
+            '    #[cfg(not(feature = "bench-baseline"))]\n'
+            "    #[test]\n"
+            f"    fn {extracted_test}",
+            1,
+        )
+        self.assertNotEqual(disabled_extracted_test, extracted_source)
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_extracted_checked_successor_source(
+                extracted_relative,
+                disabled_extracted_test,
+                function=extracted["function"],
+                expected_calls=extracted["expected_calls"],
+                tests=extracted["tests"],
+            )
+        self.assertIn("attributes differ", str(raised.exception))
+
+        challenge_path = (
+            VERIFICATION.REPO_ROOT
+            / "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
+            "challenge.rs"
+        )
+        challenge = challenge_path.read_text(encoding="utf-8")
+        test_name = VERIFICATION.BOUNDED_SAMPLER_TESTS[0]
+        disabled = challenge.replace(
+            "#[test]\n    fn "
+            + test_name,
+            "#[cfg(any())]\n    #[test]\n    fn "
+            + test_name,
+            1,
+        )
+        self.assertNotEqual(disabled, challenge)
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.require_unignored_rust_test(
+                disabled, test_name
+            )
+        self.assertIn("attributes differ", str(raised.exception))
+
+    def test_parity_output_must_execute_at_least_one_test(self):
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.require_positive_test_execution(
+                "running 0 tests\n\ntest result: ok.\n",
+                command="cargo test stale_filter",
+            )
+        self.assertIn("executed zero tests", str(raised.exception))
+        self.assertEqual(
+            VERIFICATION.require_positive_test_execution(
+                "running 0 tests\nrunning 2 tests\n",
+                command="cargo test --workspace",
+            ),
+            2,
+        )
+
+    def test_parity_manifest_rejects_empty_and_unknown_selections(self):
+        with tempfile.TemporaryDirectory(
+            prefix="snarkpack-parity-"
+        ) as directory:
+            root = Path(directory)
+            crate = root / "crate"
+            crate.mkdir()
+            payload = {
+                "graphs": [
+                    {
+                        "id": "g",
+                        "parity": [
+                            {
+                                "cwd": "crate",
+                                "argv": ["cargo", "test", "--lib", "g"],
+                            }
+                        ],
+                    }
+                ]
+            }
+            self.assertEqual(
+                VERIFICATION.validated_parity_commands(payload, root),
+                [("crate", ("cargo", "test", "--lib", "g"))],
+            )
+            with self.assertRaises(
+                VERIFICATION.VerificationError
+            ) as raised:
+                VERIFICATION.validated_parity_commands(
+                    payload, root, selected_graphs=["missing"]
+                )
+            self.assertIn(
+                "unknown parity graph selection", str(raised.exception)
+            )
+
+            payload["graphs"][0]["parity"] = []
+            with self.assertRaises(
+                VERIFICATION.VerificationError
+            ) as raised:
+                VERIFICATION.validated_parity_commands(payload, root)
+            self.assertIn("has no parity command", str(raised.exception))
+
+    def test_slow_interop_output_must_execute_exactly_one_test(self):
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.require_exact_test_execution(
+                "running 0 tests\n",
+                command="cargo test slow_two_way_interop_band",
+                expected=1,
+            )
+        self.assertIn("executed zero tests", str(raised.exception))
+
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.require_exact_test_execution(
+                "running 2 tests\n",
+                command="cargo test slow_two_way_interop_band",
+                expected=1,
+            )
+        self.assertIn("expected exactly 1", str(raised.exception))
+
+        self.assertEqual(
+            VERIFICATION.require_exact_test_execution(
+                "running 1 test\n"
+                "test tests::slow_two_way_interop_band ... ok\n"
+                "running 0 tests\n",
+                command="cargo test slow_two_way_interop_band",
+                expected=1,
+                expected_names=["tests::slow_two_way_interop_band"],
+            ),
+            1,
+        )
+
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.require_exact_test_execution(
+                "running 1 test\n"
+                "test tests::unrelated_but_matching_count ... ok\n",
+                command="cargo test slow_two_way_interop_band",
+                expected=1,
+                expected_names=["tests::slow_two_way_interop_band"],
+            )
+        self.assertIn("test identities differ", str(raised.exception))
+
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.require_exact_test_execution(
+                "running 1 test\n"
+                "test tests::slow_two_way_interop_band ... ok\n"
+                "test tests::slow_two_way_interop_band ... ok\n",
+                command="cargo test slow_two_way_interop_band",
+                expected=1,
+                expected_names=["tests::slow_two_way_interop_band"],
+            )
+        self.assertIn("duplicate identities", str(raised.exception))
+
+
+if __name__ == "__main__":
+    unittest.main()

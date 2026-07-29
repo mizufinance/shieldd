@@ -5,13 +5,13 @@ use std::time::Instant;
 use anyhow::{ensure, Result};
 use ark_groth16::PreparedVerifyingKey;
 use ark_ip_proofs::applications::groth16_aggregation::{
-    aggregate_proofs, aggregate_proofs_profiled, verify_aggregate_proof,
-    verify_aggregate_proof_profiled, AggregateProof, AggregateProofBuildProfile,
-    AggregateProofVerificationProfile,
+    aggregate_proofs, aggregate_proofs_profiled, validate_aggregate_proof,
+    verify_validated_aggregate_proof, verify_validated_aggregate_proof_profiled, AggregateProof,
+    AggregateProofBuildProfile, AggregateProofVerificationProfile, ValidatedAggregateProof,
 };
 #[cfg(test)]
 use ark_ip_proofs::applications::groth16_aggregation::{
-    aggregate_proofs_with_trace, verify_aggregate_proof_with_trace,
+    aggregate_proofs_with_trace, verify_validated_aggregate_proof_with_trace,
 };
 use ark_ip_proofs::challenge::ChallengeContext;
 #[cfg(test)]
@@ -26,8 +26,10 @@ use crate::{
     aggregate_proof_wrapper::{
         encode_wrapped_aggregate_proof, AggregateProofBytesError, MAX_AGGREGATE_PROOF_BYTES,
     },
+    app_verifier::{AppVerifyShippingCall, AppVerifyShippingInput},
     preflight::{
-        preflight_aggregate_verify, AggregatePreflightInput, VerifiedAggregateBackendCall,
+        preflight_aggregate_verify, preflight_shipping_aggregate_verify, AggregatePreflightInput,
+        VerifiedAggregateBackendCall,
     },
     srs::DevSrs,
     statement::{AggregateStatement, AggregateStatementError},
@@ -111,6 +113,15 @@ pub struct AggregateVerificationProfile {
     pub core_total_ms: f64,
     pub total_ms: f64,
     pub accepted: bool,
+}
+
+/// Backend profile paired with the exact byte-level input authenticated by the
+/// production shipping preflight.
+#[doc(hidden)]
+#[derive(Clone, Debug)]
+pub struct ShippingAggregateVerification {
+    pub input: AppVerifyShippingInput,
+    pub profile: AggregateVerificationProfile,
 }
 
 impl Default for AggregateVerificationProfile {
@@ -217,10 +228,13 @@ pub fn set_rayon_threads_per_batch_for_bench(n: usize) {
     RAYON_THREADS_PER_BATCH.store(n, Ordering::Relaxed);
 }
 
-pub(crate) fn deserialize_aggregate_proof<D: Digest>(
+pub(crate) fn deserialize_aggregate_proof<D: Digest + Send + Sync>(
     aggregate_proof_bytes: &[u8],
-) -> Result<AggregateProof<Bls12_377, D>, AggregateVerifyError> {
-    deserialize_compressed_strict::<AggregateProof<Bls12_377, D>>(aggregate_proof_bytes)
+) -> Result<ValidatedAggregateProof<Bls12_377, D>, AggregateVerifyError> {
+    let proof =
+        deserialize_compressed_strict::<AggregateProof<Bls12_377, D>>(aggregate_proof_bytes)
+            .map_err(|err| AggregateVerifyError::MalformedProofBytes(err.to_string()))?;
+    validate_aggregate_proof(&proof)
         .map_err(|err| AggregateVerifyError::MalformedProofBytes(err.to_string()))
 }
 
@@ -364,6 +378,27 @@ impl SnarkpackBackend {
             srs,
         })?;
         Self::verify_preflighted_family_aggregate_profiled_status(call)
+    }
+
+    pub(crate) fn verify_shipping_family_aggregate_profiled_status(
+        application_call: AppVerifyShippingCall,
+        statement: &AggregateStatement,
+        pvk: &PreparedVerifyingKey<Bls12_377>,
+        aggregate_proof_bytes: &[u8],
+        srs: &DevSrs,
+    ) -> Result<ShippingAggregateVerification, AggregateVerifyError> {
+        let verified = preflight_shipping_aggregate_verify(
+            application_call,
+            AggregatePreflightInput {
+                statement,
+                pvk,
+                aggregate_proof_bytes,
+                srs,
+            },
+        )?;
+        let (backend_call, input) = verified.into_parts();
+        let profile = Self::verify_preflighted_family_aggregate_profiled_status(backend_call)?;
+        Ok(ShippingAggregateVerification { input, profile })
     }
 
     fn verify_preflighted_family_aggregate_profiled_status(
@@ -573,7 +608,7 @@ impl SnarkpackBackend {
     }
 }
 
-pub(crate) fn aggregate_with_digest<D: Digest>(
+pub(crate) fn aggregate_with_digest<D: Digest + Send + Sync>(
     challenge_context: &ChallengeContext,
     items: &[BatchItem],
     srs: &DevSrs,
@@ -598,7 +633,7 @@ pub(crate) fn aggregate_with_digest_with_trace<D, S>(
     srs: &DevSrs,
 ) -> Result<Vec<u8>>
 where
-    D: Digest,
+    D: Digest + Send + Sync,
     S: ChallengeTraceSink,
 {
     let inner_product_srs = srs.inner_product_srs_for_count(items.len())?;
@@ -614,7 +649,7 @@ where
     Ok(bytes)
 }
 
-pub(crate) fn aggregate_with_digest_profiled<D: Digest>(
+pub(crate) fn aggregate_with_digest_profiled<D: Digest + Send + Sync>(
     items: &[BatchItem],
     srs: &DevSrs,
     challenge_context: &ChallengeContext,
@@ -637,7 +672,7 @@ pub(crate) fn aggregate_with_digest_profiled<D: Digest>(
     }
 }
 
-fn aggregate_with_digest_profiled_core<D: Digest>(
+fn aggregate_with_digest_profiled_core<D: Digest + Send + Sync>(
     challenge_context: &ChallengeContext,
     items: &[BatchItem],
     srs: &DevSrs,
@@ -710,7 +745,7 @@ fn apply_core_build_profile(
     profile.backend_tipp_mipp_kzg_opening_ck_w_ms = core_profile.tipp_mipp_kzg_opening_ck_w_ms;
 }
 
-pub(crate) fn verify_with_digest<D: Digest>(
+pub(crate) fn verify_with_digest<D: Digest + Send + Sync>(
     challenge_context: &ChallengeContext,
     pvk: &PreparedVerifyingKey<Bls12_377>,
     aggregate_proof_bytes: &[u8],
@@ -718,7 +753,7 @@ pub(crate) fn verify_with_digest<D: Digest>(
     srs: &DevSrs,
 ) -> Result<bool, AggregateVerifyError> {
     let aggregate = deserialize_aggregate_proof::<D>(aggregate_proof_bytes)?;
-    verify_aggregate_proof::<Bls12_377, D>(
+    verify_validated_aggregate_proof::<Bls12_377, D>(
         challenge_context,
         srs.verifier_srs()
             .map_err(|err| AggregateVerifyError::BadPadding(err.to_string()))?,
@@ -739,11 +774,11 @@ pub(crate) fn verify_with_digest_with_trace<D, S>(
     srs: &DevSrs,
 ) -> Result<bool, AggregateVerifyError>
 where
-    D: Digest,
+    D: Digest + Send + Sync,
     S: ChallengeTraceSink,
 {
     let aggregate = deserialize_aggregate_proof::<D>(aggregate_proof_bytes)?;
-    verify_aggregate_proof_with_trace::<Bls12_377, D, S>(
+    verify_validated_aggregate_proof_with_trace::<Bls12_377, D, S>(
         challenge_context,
         trace,
         srs.verifier_srs()
@@ -755,7 +790,7 @@ where
     .map_err(|e| AggregateVerifyError::BackendRejected(e.to_string()))
 }
 
-pub(crate) fn verify_with_digest_profiled<D: Digest>(
+pub(crate) fn verify_with_digest_profiled<D: Digest + Send + Sync>(
     challenge_context: &ChallengeContext,
     pvk: &PreparedVerifyingKey<Bls12_377>,
     aggregate_proof_bytes: &[u8],
@@ -768,7 +803,7 @@ pub(crate) fn verify_with_digest_profiled<D: Digest>(
     let aggregate = deserialize_aggregate_proof::<D>(aggregate_proof_bytes)?;
     let deserialize_ms = deserialize_started.elapsed().as_secs_f64() * 1000.0;
 
-    let core_profile = verify_aggregate_proof_profiled::<Bls12_377, D>(
+    let core_profile = verify_validated_aggregate_proof_profiled::<Bls12_377, D>(
         challenge_context,
         srs.verifier_srs()
             .map_err(|err| AggregateVerifyError::BadPadding(err.to_string()))?,
@@ -808,9 +843,9 @@ mod tests {
         pairing::{Pairing, PairingOutput},
         AffineRepr, CurveGroup, PrimeGroup,
     };
-    use ark_ff::{UniformRand, Zero};
+    use ark_ff::{Field, PrimeField, UniformRand, Zero};
     use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, PreparedVerifyingKey};
-    use ark_ip_proofs::challenge::VecChallengeTraceSink;
+    use ark_ip_proofs::challenge::{ChallengeTraceEntry, VecChallengeTraceSink};
     use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
     use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
     use ark_serialize::CanonicalDeserialize;
@@ -830,6 +865,58 @@ mod tests {
     };
 
     use super::*;
+
+    #[test]
+    fn bls12_377_fr_from_random_bytes_documents_shipping_reduction_boundary() {
+        type Fr = <Bls12_377 as Pairing>::ScalarField;
+
+        let mut digest = [0u8; 64];
+        digest[0] = 1;
+        digest[31] = 0xe0;
+        digest[32] = 2;
+        digest[63] = 0xa5;
+
+        let actual =
+            Fr::from_random_bytes(&digest).expect("the shipping decaf377 scalar decoder is total");
+        let two_to_256 = Fr::from(2u64).pow([256u64]);
+        let expected = Fr::from_le_bytes_mod_order(&digest[..32])
+            + Fr::from_le_bytes_mod_order(&digest[32..]) * two_to_256;
+        assert_eq!(
+            actual, expected,
+            "the shipping decoder reduces the complete 64-byte digest"
+        );
+
+        let mut high_bits_cleared = digest;
+        high_bits_cleared[31] &= 0x1f;
+        assert_ne!(
+            Fr::from_random_bytes(&digest),
+            Fr::from_random_bytes(&high_bits_cleared),
+            "decaf377 does not mask the high three bits of byte 31"
+        );
+
+        let mut suffix_cleared = digest;
+        suffix_cleared[32..].fill(0);
+        assert_ne!(
+            Fr::from_random_bytes(&digest),
+            Fr::from_random_bytes(&suffix_cleared),
+            "bytes 32 through 63 are consumed by the shipping decoder"
+        );
+
+        let modulus = Fr::MODULUS;
+        let mut modulus_digest = [0u8; 64];
+        for (index, limb) in modulus.as_ref().iter().enumerate() {
+            modulus_digest[index * 8..(index + 1) * 8].copy_from_slice(&limb.to_le_bytes());
+        }
+        assert_eq!(
+            Fr::from_random_bytes(&modulus_digest),
+            Some(Fr::zero()),
+            "the modulus is reduced to zero instead of being rejected"
+        );
+        assert!(
+            Fr::from_random_bytes(&[u8::MAX; 64]).is_some(),
+            "every 64-byte Blake2b digest is accepted by the shipping decoder"
+        );
+    }
 
     /// The optimized PPE expression in `verify_ppe` — `e(α,β)^{r_sum}` reused as a
     /// GT exponentiation plus two pairings against the prepared `-γ`/`-δ` line
@@ -989,6 +1076,27 @@ mod tests {
             padded_public_inputs,
         )
         .expect("statement should build")
+    }
+
+    fn shipping_call(
+        family_id: ProofFamilyId,
+        real_count: usize,
+        padded_count: usize,
+    ) -> AppVerifyShippingCall {
+        let family = crate::app_verify_family_code(family_id);
+        crate::app_verify_shipping_call_from_parts(
+            crate::AppVerifyCallId {
+                order_index: 0,
+                segment_index: 0,
+                family_index: 0,
+                family,
+            },
+            family,
+            real_count,
+            real_count as u32,
+            padded_count,
+            padded_count as u32,
+        )
     }
 
     type BackendG1 = <Bls12_377 as Pairing>::G1;
@@ -1335,6 +1443,109 @@ mod tests {
     }
 
     #[test]
+    fn shipping_backend_result_materializes_the_exact_authenticated_input() {
+        let (pvk, items) = sample_items();
+        let srs = DevSrs::default();
+        let padded_items =
+            pad_items_to_power_of_two(&items, srs.max_padded_count as usize).expect("padding");
+        let family_id = ProofFamilyId::Transfer;
+        let statement = statement_for_items(family_id, &pvk, items.len(), &padded_items, &srs);
+        let wrapped = aggregate_family(&statement, &pvk, &padded_items, &srs)
+            .expect("aggregation should succeed");
+        let inner = decode_wrapped_aggregate_proof(&wrapped, statement.statement_digest(), None)
+            .expect("wrapper should decode");
+        let mut serialized_vk = Vec::new();
+        pvk.vk
+            .serialize_compressed(&mut serialized_vk)
+            .expect("VK should serialize");
+
+        let verified = SnarkpackBackend::verify_shipping_family_aggregate_profiled_status(
+            shipping_call(family_id, items.len(), padded_items.len()),
+            &statement,
+            &pvk,
+            &wrapped,
+            &srs,
+        )
+        .expect("shipping aggregate should verify");
+
+        assert!(verified.profile.accepted);
+        assert_eq!(
+            verified.input.family,
+            crate::app_verify_family_code(family_id)
+        );
+        assert_eq!(verified.input.protocol_version, AGGREGATE_PROTOCOL_VERSION);
+        assert_eq!(verified.input.srs_id, statement.srs_id());
+        assert_eq!(verified.input.serialized_vk, serialized_vk);
+        assert_eq!(verified.input.vk_digest, statement.vk_digest());
+        assert_eq!(verified.input.real_count, statement.real_count());
+        assert_eq!(verified.input.padded_count, statement.padded_count());
+        assert_eq!(
+            verified.input.public_input_arity,
+            statement.public_input_arity()
+        );
+        assert_eq!(
+            verified.input.padded_public_inputs,
+            statement
+                .padded_public_input_bytes()
+                .iter()
+                .map(|row| row
+                    .iter()
+                    .map(|field| field.as_bytes().to_vec())
+                    .collect::<Vec<_>>())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            verified.input.canonical_statement_bytes,
+            statement.canonical_bytes()
+        );
+        assert_eq!(
+            verified.input.statement_digest,
+            statement.statement_digest()
+        );
+        assert_eq!(verified.input.wrapped_proof_bytes, wrapped);
+        assert_eq!(verified.input.inner_proof_bytes, inner);
+        assert_eq!(
+            verified.input.challenge_context,
+            statement.challenge_context().as_bytes()
+        );
+    }
+
+    #[test]
+    fn shipping_preflight_rejects_cross_call_substitution_after_wire_checks() {
+        let (pvk, items) = sample_items();
+        let srs = DevSrs::default();
+        let padded_items =
+            pad_items_to_power_of_two(&items, srs.max_padded_count as usize).expect("padding");
+        let family_id = ProofFamilyId::Transfer;
+        let statement = statement_for_items(family_id, &pvk, items.len(), &padded_items, &srs);
+        let wrapped = aggregate_family(&statement, &pvk, &padded_items, &srs)
+            .expect("aggregation should succeed");
+        let wrong_family =
+            ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical);
+
+        let error = SnarkpackBackend::verify_shipping_family_aggregate_profiled_status(
+            shipping_call(wrong_family, items.len(), padded_items.len()),
+            &statement,
+            &pvk,
+            &wrapped,
+            &srs,
+        )
+        .expect_err("an unrelated application call must not materialize");
+        assert_eq!(error, AggregateVerifyError::StatementDigestMismatch);
+
+        let oversized = vec![0u8; MAX_AGGREGATE_PROOF_BYTES + 1];
+        let error = SnarkpackBackend::verify_shipping_family_aggregate_profiled_status(
+            shipping_call(wrong_family, items.len(), padded_items.len()),
+            &statement,
+            &pvk,
+            &oversized,
+            &srs,
+        )
+        .expect_err("wire-size rejection must retain its earlier failure position");
+        assert!(matches!(error, AggregateVerifyError::OversizeBytes(_)));
+    }
+
+    #[test]
     fn strict_boundary_rejects_nested_component_aliases_and_malformed_bytes() {
         let (pvk, items) = sample_items();
         let srs = DevSrs::default();
@@ -1358,7 +1569,11 @@ mod tests {
 
         let decoded = deserialize_aggregate_proof::<TransferTranscriptDigest>(&inner)
             .expect("valid aggregate should decode through the reached boundary");
-        assert_eq!(compressed_bytes(&decoded), inner);
+        fn assert_validated_boundary<D: Digest + Send + Sync>(
+            _: &ValidatedAggregateProof<Bls12_377, D>,
+        ) {
+        }
+        assert_validated_boundary(&decoded);
 
         let reject = |mutated_inner: Vec<u8>, label: &str| {
             let mutated =
@@ -1380,6 +1595,68 @@ mod tests {
                 .expect("round count frame should be eight bytes"),
         ) as usize;
         let final_g2_offset = rounds_offset + 8 + rounds * 4736;
+        let first_ab_identity_len_offset = rounds_offset + 8 + 2 * gt_len;
+
+        // Identity commitments are wire-level vectors, but the v1 verifier
+        // accepts only the singleton shape emitted by the prover. Both of
+        // these encodings are canonically decodable and therefore exercise
+        // the post-decode shape gate rather than the strict byte decoder.
+        let mut zero_identity = inner.to_vec();
+        zero_identity[first_ab_identity_len_offset..first_ab_identity_len_offset + 8]
+            .copy_from_slice(&0u64.to_le_bytes());
+        zero_identity
+            .drain(first_ab_identity_len_offset + 8..first_ab_identity_len_offset + 8 + gt_len);
+        assert!(
+            AggregateProof::<Bls12_377, TransferTranscriptDigest>::deserialize_compressed(
+                &zero_identity[..]
+            )
+            .is_ok(),
+            "zero-length identity output remains canonically decodable"
+        );
+        let mut malformed_trace = VecChallengeTraceSink::default();
+        let shape_error = verify_with_digest_with_trace::<TransferTranscriptDigest, _>(
+            statement.challenge_context(),
+            &mut malformed_trace,
+            &pvk,
+            &zero_identity,
+            statement.padded_public_inputs(),
+            &srs,
+        )
+        .expect_err("shape validation must reject before verification");
+        assert!(matches!(
+            shape_error,
+            AggregateVerifyError::MalformedProofBytes(_)
+        ));
+        assert!(
+            malformed_trace.entries().is_empty(),
+            "shape validation must run before challenge hashing"
+        );
+        reject(
+            zero_identity,
+            "zero-length identity output should be malformed proof bytes",
+        );
+
+        let mut multi_identity = inner.to_vec();
+        multi_identity[first_ab_identity_len_offset..first_ab_identity_len_offset + 8]
+            .copy_from_slice(&2u64.to_le_bytes());
+        let identity_element = multi_identity
+            [first_ab_identity_len_offset + 8..first_ab_identity_len_offset + 8 + gt_len]
+            .to_vec();
+        multi_identity.splice(
+            first_ab_identity_len_offset + 8 + gt_len..first_ab_identity_len_offset + 8 + gt_len,
+            identity_element,
+        );
+        assert!(
+            AggregateProof::<Bls12_377, TransferTranscriptDigest>::deserialize_compressed(
+                &multi_identity[..]
+            )
+            .is_ok(),
+            "multi-element identity output remains canonically decodable"
+        );
+        reject(
+            multi_identity,
+            "multi-element identity output should be malformed proof bytes",
+        );
 
         // A compressed flag mutation in the nested agg_c G1 component.
         let mut malformed_flags = inner.to_vec();
@@ -1907,6 +2184,10 @@ mod tests {
         env!("CARGO_MANIFEST_DIR"),
         "/tests/fixtures/aggregate_bytes_baseline.txt"
     );
+    const TRACE_BASELINE_PATH: &str = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/shieldd_byte_trace_baseline.txt"
+    );
 
     fn baseline_vectors() -> Vec<(ProofFamilyId, usize, u64)> {
         let mut vectors = Vec::new();
@@ -1952,6 +2233,134 @@ mod tests {
         out
     }
 
+    fn challenge_trace_for_digest<D>(
+        statement: &AggregateStatement,
+        pvk: &PreparedVerifyingKey<Bls12_377>,
+        padded_items: &[BatchItem],
+        srs: &DevSrs,
+        expected_inner: &[u8],
+    ) -> Vec<ChallengeTraceEntry>
+    where
+        D: Digest + Send + Sync,
+    {
+        let mut prover_trace = VecChallengeTraceSink::default();
+        let traced_inner = aggregate_with_digest_with_trace::<D, _>(
+            statement.challenge_context(),
+            &mut prover_trace,
+            padded_items,
+            srs,
+        )
+        .expect("traced aggregation should succeed");
+        assert_eq!(
+            traced_inner, expected_inner,
+            "traced core must produce the inner proof wrapped by production"
+        );
+
+        let mut verifier_trace = VecChallengeTraceSink::default();
+        let accepted = verify_with_digest_with_trace::<D, _>(
+            statement.challenge_context(),
+            &mut verifier_trace,
+            pvk,
+            &traced_inner,
+            statement.padded_public_inputs(),
+            srs,
+        )
+        .expect("traced verification should run");
+        assert!(accepted, "traced verification should accept");
+        assert_eq!(
+            prover_trace.entries(),
+            verifier_trace.entries(),
+            "prover and verifier must consume identical ordered transcript bytes"
+        );
+        prover_trace.into_entries()
+    }
+
+    fn challenge_trace_for_vector(
+        family_id: ProofFamilyId,
+        count: usize,
+        seed: u64,
+    ) -> Vec<ChallengeTraceEntry> {
+        let (pvk, items) = sample_items_with_count(seed, count);
+        let srs = DevSrs::default();
+        let padded_items =
+            pad_items_to_power_of_two(&items, srs.max_padded_count as usize).expect("padding");
+        let statement = statement_for_items(family_id, &pvk, items.len(), &padded_items, &srs);
+        let wrapped = aggregate_family(&statement, &pvk, &padded_items, &srs)
+            .expect("production aggregation should succeed");
+        let inner = decode_wrapped_aggregate_proof(&wrapped, statement.statement_digest(), None)
+            .expect("production wrapper should decode");
+
+        match family_id {
+            ProofFamilyId::Transfer => challenge_trace_for_digest::<TransferTranscriptDigest>(
+                &statement,
+                &pvk,
+                &padded_items,
+                &srs,
+                inner,
+            ),
+            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::TwoByOne) => {
+                challenge_trace_for_digest::<
+                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
+                >(&statement, &pvk, &padded_items, &srs, inner)
+            }
+            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::OneByEight) => {
+                challenge_trace_for_digest::<
+                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
+                >(&statement, &pvk, &padded_items, &srs, inner)
+            }
+            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::EightByOne) => {
+                challenge_trace_for_digest::<
+                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
+                >(&statement, &pvk, &padded_items, &srs, inner)
+            }
+            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::FourByOne) => {
+                challenge_trace_for_digest::<
+                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
+                >(&statement, &pvk, &padded_items, &srs, inner)
+            }
+            ProofFamilyId::NoteReshape(other) => {
+                panic!("unregistered note reshape baseline family {}", other.get())
+            }
+            ProofFamilyId::ShieldedIcs20Withdrawal(_) => {
+                challenge_trace_for_digest::<ShieldedIcs20WithdrawalTranscriptDigest>(
+                    &statement,
+                    &pvk,
+                    &padded_items,
+                    &srs,
+                    inner,
+                )
+            }
+        }
+    }
+
+    fn render_trace_baseline() -> String {
+        let mut out = String::new();
+        out.push_str("# SnarkPack prover/verifier challenge-byte trace baseline.\n");
+        out.push_str("# Regenerate: cargo test -p shieldd-sdk-proof-aggregation regenerate_shieldd_byte_trace_baseline -- --ignored\n");
+        out.push_str(
+            "# Row: <vector>.<entry> stage=<hex> nonce=<u64> preimage=<hex> digest=<hex>\n",
+        );
+        out.push_str(&format!("version {AGGREGATE_PROTOCOL_VERSION}\n"));
+        for (vector, (family_id, count, seed)) in baseline_vectors().into_iter().enumerate() {
+            let entries = challenge_trace_for_vector(family_id, count, seed);
+            out.push_str(&format!(
+                "vector {vector} {} count={count} seed={seed} entries={}\n",
+                family_token(family_id),
+                entries.len(),
+            ));
+            for (entry_index, entry) in entries.into_iter().enumerate() {
+                out.push_str(&format!(
+                    "{vector}.{entry_index} stage={} nonce={} preimage={} digest={}\n",
+                    hex::encode(entry.stage_label),
+                    entry.nonce,
+                    hex::encode(entry.preimage),
+                    hex::encode(entry.digest),
+                ));
+            }
+        }
+        out
+    }
+
     fn committed_baseline_version(contents: &str) -> Option<u32> {
         contents
             .lines()
@@ -1959,8 +2368,7 @@ mod tests {
             .and_then(|v| v.trim().parse().ok())
     }
 
-    #[test]
-    fn aggregate_bytes_match_committed_baseline() {
+    fn assert_aggregate_bytes_match_committed_baseline() {
         let committed = std::fs::read_to_string(BYTE_BASELINE_PATH).unwrap_or_else(|e| {
             panic!("missing aggregate byte baseline at {BYTE_BASELINE_PATH}: {e}; regenerate with `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`")
         });
@@ -1977,7 +2385,7 @@ mod tests {
         let current = render_byte_baseline();
         assert_eq!(
             committed, current,
-            "aggregate-proof bytes drifted from the committed baseline. An optimization must preserve bytes or take the protocol-version path: bump AGGREGATE_PROTOCOL_VERSION, regenerate via `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`, and add an adaptation-register row."
+            "aggregate-proof bytes drifted from the committed baseline. An optimization must preserve bytes or follow the versioning procedure in docs/snarkpack/verification.md#x3--optimization-byte-lock."
         );
     }
 
@@ -1986,6 +2394,35 @@ mod tests {
     fn regenerate_aggregate_byte_baseline() {
         let rendered = render_byte_baseline();
         std::fs::write(BYTE_BASELINE_PATH, rendered).expect("write byte baseline");
+    }
+
+    fn assert_shieldd_byte_trace_matches_committed_baseline() {
+        let committed = std::fs::read_to_string(TRACE_BASELINE_PATH).unwrap_or_else(|e| {
+            panic!("missing challenge trace baseline at {TRACE_BASELINE_PATH}: {e}; regenerate with `cargo test -p shieldd-sdk-proof-aggregation regenerate_shieldd_byte_trace_baseline -- --ignored`")
+        });
+        assert_eq!(
+            committed_baseline_version(&committed),
+            Some(AGGREGATE_PROTOCOL_VERSION),
+            "trace baseline version must match AGGREGATE_PROTOCOL_VERSION"
+        );
+        assert_eq!(
+            committed,
+            render_trace_baseline(),
+            "challenge transcript bytes drifted from the committed baseline; follow docs/snarkpack/verification.md#x3--optimization-byte-lock"
+        );
+    }
+
+    #[test]
+    fn v1_bytes_and_transcript_match_committed_baselines() {
+        assert_aggregate_bytes_match_committed_baseline();
+        assert_shieldd_byte_trace_matches_committed_baseline();
+    }
+
+    #[test]
+    #[ignore = "writes the committed challenge trace baseline after a sanctioned version change"]
+    fn regenerate_shieldd_byte_trace_baseline() {
+        let rendered = render_trace_baseline();
+        std::fs::write(TRACE_BASELINE_PATH, rendered).expect("write trace baseline");
     }
 
     #[test]

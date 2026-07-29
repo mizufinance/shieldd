@@ -55,7 +55,8 @@ check_reference_crate_boundary() {
   local manifest="crates/crypto/proof-aggregation-reference/Cargo.toml"
   local crate_dir="crates/crypto/proof-aggregation-reference"
 
-  [[ -f "$manifest" ]] || return
+  [[ -f "$manifest" ]] || fail "reference crate manifest is missing"
+  [[ -d "$crate_dir/src" ]] || fail "reference crate source is missing"
 
   rg -F '"crates/crypto/proof-aggregation-reference"' Cargo.toml >/dev/null \
     || fail "reference crate must be listed as a workspace member"
@@ -85,7 +86,7 @@ check_reference_crate_boundary() {
   production_reference_imports="$(
     rg -n 'shieldd-sdk-proof-aggregation-reference|proof_aggregation_reference|proof-aggregation-reference' \
       "${production_scan_paths[@]}" \
-      | rg -v '^Cargo.toml:|^crates/crypto/proof-aggregation-reference/|^crates/crypto/proof-aggregation-fuzz/|\.md:|\.txt:' || true
+      | rg -v '^Cargo.toml:|^crates[\\/]crypto[\\/]proof-aggregation-reference[\\/]|^crates[\\/]crypto[\\/]proof-aggregation-fuzz[\\/]|\.md:|\.txt:' || true
   )"
   if [[ -n "$production_reference_imports" ]]; then
     echo "$production_reference_imports" >&2
@@ -97,7 +98,8 @@ check_fuzz_crate_boundary() {
   local manifest="crates/crypto/proof-aggregation-fuzz/Cargo.toml"
   local crate_dir="crates/crypto/proof-aggregation-fuzz"
 
-  [[ -f "$manifest" ]] || return
+  [[ -f "$manifest" ]] || fail "fuzz crate manifest is missing"
+  [[ -d "$crate_dir" ]] || fail "fuzz crate is missing"
 
   rg -F '"crates/crypto/proof-aggregation-fuzz"' Cargo.toml >/dev/null \
     || fail "fuzz crate must be listed as a workspace member"
@@ -179,7 +181,7 @@ fi
 
 direct_digest_sites="$(
   rg -n "D::digest|Digest::digest" crates/crypto/proof-aggregation/src/ipp/ip_proofs/src \
-    | grep -v "src/ipp/ip_proofs/src/challenge.rs" || true
+    | rg -v 'src[\\/]ipp[\\/]ip_proofs[\\/]src[\\/]challenge\.rs:' || true
 )"
 if [[ -n "$direct_digest_sites" ]]; then
   echo "$direct_digest_sites" >&2
@@ -189,7 +191,7 @@ fi
 duplicate_codec_sites="$(
   rg -n "fn (encode_.*statement|statement_.*encode|decode_.*aggregate_proof|encode_.*aggregate_proof|decode_wrapped|encode_wrapped)" \
     crates/crypto/proof-aggregation/src \
-    | rg -v "crates/crypto/proof-aggregation/src/(statement.rs|aggregate_proof_wrapper.rs):" || true
+    | rg -v 'crates[\\/]crypto[\\/]proof-aggregation[\\/]src[\\/](statement\.rs|aggregate_proof_wrapper\.rs):' || true
 )"
 if [[ -n "$duplicate_codec_sites" ]]; then
   echo "$duplicate_codec_sites" >&2

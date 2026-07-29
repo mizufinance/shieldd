@@ -135,6 +135,20 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertEqual(decision.tier, "stamps")
 
+    def test_handwritten_snarkpack_lean_inputs_select_full_tier(self) -> None:
+        paths = (
+            "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Goal.lean",
+            "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/ProofAudit.lean",
+            "crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean",
+            "crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.snarkpack, "pull_request", [path], []
+                )
+                self.assertEqual((decision.status, decision.tier), ("run", "full"))
+
     def test_one_graph_input_selects_only_that_graph(self) -> None:
         manifest = self.synthetic_manifest(
             ("GraphA", "src/a.rs"), ("GraphB", "src/b.rs")

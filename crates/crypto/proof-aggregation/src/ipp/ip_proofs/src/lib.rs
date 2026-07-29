@@ -4,6 +4,8 @@ use std::{
     ops::MulAssign,
 };
 
+#[doc(hidden)]
+pub mod app_verifier;
 pub mod applications;
 pub mod challenge;
 pub mod gipa;

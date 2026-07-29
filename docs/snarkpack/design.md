@@ -63,10 +63,13 @@ That lineage is **provenance and a comparison aid, not a production-security
 baseline** — audit scope is the full local implementation, not a diff against
 arkworks.
 
-Algebraic soundness of SnarkPack/RIPP/Groth16 is a **standing assumption** taken
-from the published paper and the audited Filecoin (Bellperson v0.21.0)
-implementation. We do not re-prove it; we check that our code faithfully refines
-it (see [verification.md](verification.md)).
+The local Lean development proves a quantitative S1 soundness implication for
+the abstract v1 verifier under named KZG false-opening, GIPA fork-knowledge,
+ROM, and query-bound assumptions. The published paper and Filecoin
+implementation remain provenance and review inputs, not a substitute for the
+independent `Ipp.Goal` or `Ipp.SnarkPackV1` specifications. The conditional
+shipping-to-v1 theorem is proved, but constructing all of its contracts from a
+concrete production call remains open; see [verification.md](verification.md).
 
 ## 3. Modifications we made (and why)
 
@@ -78,14 +81,16 @@ Upstream targets BLS12-381; Shieldd runs on BLS12-377 to match the rest of the
 proving stack. **Consequence:** no cross-curve byte equivalence to Filecoin is
 possible or claimed; Filecoin is a *discipline* reference, not a byte oracle.
 
-### Hand-rolled SHA-256 Fiat-Shamir
-We replaced the upstream transcript with our own SHA-256 challenge construction
+### Domain-separated Blake2b Fiat-Shamir
+We replaced the upstream transcript with our own Blake2b challenge construction
 ([`src/ipp/ip_proofs/src/challenge.rs`](../../crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs)).
 Every challenge preimage is domain-separated, length-prefixed, stage-labeled, and
-nonce-bound. **Why:** we own these bytes outright, so they carry the heaviest
-verification weight; the construction follows the Filecoin v2 transcript
-discipline (bind everything, fixed order, domain-separated) that fixed the
-SnarkPack v1 / Frozen-Heart omission bugs.
+nonce-bound. SHA-256 separately computes the VK digest and statement digest; the
+challenge context is exactly
+`SHA256(CHALLENGE_CONTEXT_DOMAIN || statement_digest)`. **Why:** we own these
+bytes outright, so they carry the heaviest verification weight; the construction
+follows the Filecoin v2 transcript discipline (bind everything, fixed order,
+domain-separated) that fixed the SnarkPack v1 / Frozen-Heart omission bugs.
 
 ### Statement binding
 A canonical aggregate-statement encoding
@@ -95,7 +100,11 @@ digest, real and padded counts, the canonical padding rule, and the ordered
 padded public inputs into the Fiat-Shamir context. **Why:** a malicious proposer
 must not be able to replace, reorder, omit, or mismatch any public statement
 material and still produce an accepted aggregate. Distinct statements must not
-share a transcript preimage (proved injective — see verification.md).
+share a canonical encoding: injectivity of that encoding is the mechanically
+proved byte property. Equality after either SHA-256 digest is a different claim
+and is charged to the explicit SHA-256 collision assumption; it is not implied
+by encoding injectivity. Concrete production construction of the full formal
+statement projection is still open; see [verification.md](verification.md).
 
 ### Repeat-final padding
 Inputs are padded to the next power of two by **repeating the final real proof**

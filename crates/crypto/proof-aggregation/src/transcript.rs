@@ -148,21 +148,105 @@ mod tests {
     use std::collections::BTreeSet;
 
     use crate::ProofFamilyId;
-    use shieldd_sdk_shielded_pool::NoteReshapeFamilyId;
+    use blake2::{
+        digest::{FixedOutput, Update},
+        Blake2b,
+    };
+    use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
 
-    use super::transcript_family_domain;
+    use ark_ip_proofs::challenge::{challenge_preimage, ChallengeContext};
+
+    use super::{
+        transcript_family_domain, NoteReshapeTranscriptDigest,
+        ShieldedIcs20WithdrawalTranscriptDigest, TransferTranscriptDigest,
+    };
+
+    fn assert_digest_prefix<D>(family: ProofFamilyId, challenge_frame: &[u8])
+    where
+        D: Default + FixedOutput + Update,
+    {
+        let mut actual = D::default();
+        actual.update(challenge_frame);
+        let actual = actual.finalize_fixed();
+
+        let mut expected = Blake2b::default();
+        expected.update(transcript_family_domain(family).as_ref());
+        expected.update(challenge_frame);
+        let expected = expected.finalize_fixed();
+
+        assert_eq!(actual.as_slice(), expected.as_slice());
+    }
 
     #[test]
-    fn transcript_family_domains_are_unique() {
+    fn transcript_family_domains_are_exact_and_unique() {
+        let expected = [
+            (
+                ProofFamilyId::Transfer,
+                "shieldd.snarkpack.transfer.v1".as_bytes(),
+            ),
+            (
+                ProofFamilyId::NoteReshape(NoteReshapeFamilyId::TwoByOne),
+                "shieldd.snarkpack.note_reshape2x1.v1".as_bytes(),
+            ),
+            (
+                ProofFamilyId::NoteReshape(NoteReshapeFamilyId::OneByEight),
+                "shieldd.snarkpack.note_reshape1x8.v1".as_bytes(),
+            ),
+            (
+                ProofFamilyId::NoteReshape(NoteReshapeFamilyId::EightByOne),
+                "shieldd.snarkpack.note_reshape8x1.v1".as_bytes(),
+            ),
+            (
+                ProofFamilyId::NoteReshape(NoteReshapeFamilyId::FourByOne),
+                "shieldd.snarkpack.note_reshape4x1.v1".as_bytes(),
+            ),
+            (
+                ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
+                "shieldd.snarkpack.shielded_ics20_withdrawal.v1".as_bytes(),
+            ),
+        ];
         let mut domains = BTreeSet::new();
-        let mut families = vec![ProofFamilyId::Transfer];
-        families.extend(
-            NoteReshapeFamilyId::ALL
-                .into_iter()
-                .map(ProofFamilyId::NoteReshape),
-        );
-        for family in families {
-            assert!(domains.insert(transcript_family_domain(family)));
+        for (family, expected_domain) in expected {
+            let domain = transcript_family_domain(family);
+            assert_eq!(domain.as_ref(), expected_domain);
+            assert!(domains.insert(domain));
         }
+    }
+
+    #[test]
+    fn every_registered_digest_hashes_family_domain_then_challenge_frame() {
+        let context = ChallengeContext::from_statement_digest([0x53; 32]);
+        let frame = challenge_preimage(
+            &context,
+            b"aggregate.randomizer",
+            0x0807_0605_0403_0201,
+            b"commitment bytes",
+        );
+
+        assert_digest_prefix::<TransferTranscriptDigest>(ProofFamilyId::Transfer, &frame);
+        assert_digest_prefix::<NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>>(
+            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::TwoByOne),
+            &frame,
+        );
+        assert_digest_prefix::<
+            NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
+        >(
+            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::OneByEight),
+            &frame,
+        );
+        assert_digest_prefix::<
+            NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
+        >(
+            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::EightByOne),
+            &frame,
+        );
+        assert_digest_prefix::<NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>>(
+            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::FourByOne),
+            &frame,
+        );
+        assert_digest_prefix::<ShieldedIcs20WithdrawalTranscriptDigest>(
+            ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
+            &frame,
+        );
     }
 }

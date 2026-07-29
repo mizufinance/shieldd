@@ -103,6 +103,20 @@
     },
     {
       "patterns": [
+        "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/**",
+        "crates/crypto/proof-aggregation/formal/lean-ipp/*.lean",
+        "crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json",
+        "crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain"
+      ],
+      "tiers": {
+        "pull_request": "full",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "hand-written Lean specification, audit, dependency, or toolchain input requires a kernel build"
+    },
+    {
+      "patterns": [
         "crates/bench/bench-thresholds.md",
         "crates/core/app/src/app/mod.rs",
         "crates/crypto/proof-aggregation/formal/**",

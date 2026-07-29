@@ -6,7 +6,8 @@ LEAN_DIR="$ROOT/crates/crypto/proof-aggregation/formal/lean-ipp"
 EXTRACTIONS="$LEAN_DIR/scripts/extractions.py"
 NORMALIZER="$LEAN_DIR/scripts/normalize_aeneas_lean.py"
 MANIFEST="$ROOT/crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json"
-MODE="${SNARKPACK_FV_MODE:-all}"
+VERIFICATION_MANIFEST="$LEAN_DIR/scripts/verification_manifest.py"
+MODE="${SNARKPACK_FV_MODE:-full}"
 cd "$ROOT"
 
 fail() {
@@ -57,14 +58,16 @@ if ! command -v rg >/dev/null 2>&1; then
 fi
 
 run_static() {
-  echo "snarkpack FV: extraction manifest and freshness"
+  echo "snarkpack FV: fixed verification and extraction manifests"
+  python3 "$VERIFICATION_MANIFEST" validate
   python3 "$EXTRACTIONS" check
 
   echo "snarkpack FV: normalizer tests and idempotence"
   python3 -m unittest discover -s "$LEAN_DIR/scripts" -p 'test_*.py'
   while IFS= read -r generated; do
+    generated="${generated%$'\r'}"
     python3 "$NORMALIZER" --check "$generated" >/dev/null
-  done < <(find "$LEAN_DIR/Ipp/Extracted" -maxdepth 1 -type f -name '*Generated.lean' -print | sort)
+  done < <(python3 "$VERIFICATION_MANIFEST" outputs)
 
   echo "snarkpack FV: forbidden Lean tokens"
   local forbidden
@@ -74,36 +77,11 @@ run_static() {
     fail "Ipp contains sorry, admit, or native_decide"
   fi
 
-  local declared_axioms
-  declared_axioms="$(
-    rg -n '^[[:space:]]*axiom[[:space:]]' "$LEAN_DIR/Ipp" \
-      | grep -v '/Ipp/Algebra.lean:' || true
-  )"
-  if [[ -n "$declared_axioms" ]]; then
-    echo "$declared_axioms" >&2
-    fail "axiom declared outside Ipp/Algebra.lean"
-  fi
-
   echo "snarkpack FV: runtime invariants"
   bash "$ROOT/scripts/check-snarkpack-runtime-invariants.sh"
 
   echo "snarkpack FV: F*/hax/handoff invariants"
-  local invariant_output invariant_status
-  set +e
-  invariant_output="$(bash "$ROOT/scripts/check-snarkpack-invariants.sh" 2>&1)"
-  invariant_status=$?
-  set -e
-  if ((invariant_status != 0)); then
-    local ws6_failure="snarkpack invariant failed: assumption row arkworks MSM implementation computes intended linear combination lacks an explicit postcondition"
-    if [[ "$invariant_output" == "$ws6_failure" ]]; then
-      echo "snarkpack FV: deferred WS6 handoff row: arkworks MSM postcondition"
-    else
-      echo "$invariant_output" >&2
-      fail "formal invariant script failed"
-    fi
-  else
-    printf '%s\n' "$invariant_output"
-  fi
+  bash "$ROOT/scripts/check-snarkpack-invariants.sh"
 }
 
 selected_graphs=()
@@ -153,31 +131,38 @@ run_extract() {
 }
 
 run_parity() {
-  python3 - "$MANIFEST" "$@" <<'PY'
+  python3 "$EXTRACTIONS" check
+  python3 - "$MANIFEST" "$VERIFICATION_MANIFEST" "$@" <<'PY'
 import json
 import subprocess
 import sys
 from pathlib import Path
 
 manifest_path = Path(sys.argv[1])
-selected = set(sys.argv[2:])
+sys.path.insert(0, str(Path(sys.argv[2]).parent))
+import verification_manifest
+
+selected = set(sys.argv[3:])
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 repo = Path.cwd()
-commands = []
-seen = set()
-for graph in manifest["graphs"]:
-    if selected and graph["id"] not in selected:
-        continue
-    for parity in graph["parity"]:
-        key = (parity["cwd"], tuple(parity["argv"]))
-        if key in seen:
-            continue
-        seen.add(key)
-        commands.append(key)
+commands = verification_manifest.validated_parity_commands(
+    manifest, repo, selected_graphs=selected
+)
 
 for cwd, argv in commands:
     print(f"snarkpack FV parity: {cwd}: {' '.join(argv)}", flush=True)
-    subprocess.run(list(argv), cwd=repo / cwd, check=True)
+    completed = subprocess.run(
+        list(argv),
+        cwd=repo / cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    print(completed.stdout, end="", flush=True)
+    completed.check_returncode()
+    verification_manifest.require_positive_test_execution(
+        completed.stdout, command=f"{cwd}: {' '.join(argv)}"
+    )
 print(f"snarkpack FV parity: {len(commands)} unique command(s)", flush=True)
 PY
 }
@@ -201,37 +186,9 @@ configure_lake() {
 
 audit_build_log() {
   local audit_log="$1"
-  local expected_results audit_summary
-  expected_results="$(grep -h -c '^#print axioms ' "$LEAN_DIR"/Ipp/ProofAudit*.lean | awk '{ total += $1 } END { print total + 0 }')"
-  audit_summary="$(
-    python3 - "$audit_log" "$expected_results" <<'PY'
-import re
-import sys
-from pathlib import Path
-
-text = Path(sys.argv[1]).read_text(encoding="utf-8")
-expected = int(sys.argv[2])
-if "sorryAx" in text:
-    raise SystemExit("ProofAudit contains sorryAx")
-with_axioms = re.findall(r"depends on axioms: \[(.*?)\]", text, flags=re.DOTALL)
-without_axioms = re.findall(r"does not depend on any axioms", text)
-actual = len(with_axioms) + len(without_axioms)
-if actual != expected:
-    raise SystemExit(f"ProofAudit produced {actual} axiom results; expected {expected}")
-allowed = {"propext", "Classical.choice", "Quot.sound"}
-observed = {
-    axiom.strip()
-    for block in with_axioms
-    for axiom in block.split(",")
-    if axiom.strip()
-}
-unexpected = sorted(observed - allowed)
-if unexpected:
-    raise SystemExit("ProofAudit contains non-allowlisted axioms: " + ", ".join(unexpected))
-print(f"{actual} capstones; axioms allowlisted")
-PY
-  )" || {
-    cat "$audit_log" >&2
+  local audit_summary
+  audit_summary="$(python3 "$VERIFICATION_MANIFEST" audit-log "$audit_log" 2>&1)" || {
+    echo "$audit_summary" >&2
     fail "ProofAudit axiom parser rejected the audit"
   }
 
@@ -244,24 +201,26 @@ run_lean() {
   local audit_log
   audit_log="$(mktemp)"
   trap 'rm -f "$audit_log"' RETURN
-  echo "snarkpack FV: single-process, single-threaded Ipp build and proof audit"
+  echo "snarkpack FV: single-process, single-threaded proof audit build"
   set +e
   (
     cd "$LEAN_DIR"
-    "${lake_command[@]}" build Ipp
+    "${lake_command[@]}" build Ipp.ProofAudit Ipp.ProofAuditMiller
   ) 2>&1 | tee "$audit_log"
   local build_status="${PIPESTATUS[0]}"
   set -e
-  ((build_status == 0)) || fail "Ipp did not build"
+  ((build_status == 0)) || fail "ProofAudit modules did not build"
   audit_build_log "$audit_log"
   rm -f "$audit_log"
   trap - RETURN
 }
 
 main() {
+  local require_publication_closure=0
   case "$MODE" in
     static)
       run_static
+      require_publication_closure=1
       ;;
     extract-changed)
       run_extract changed
@@ -288,11 +247,17 @@ main() {
       run_extract all
       run_parity
       run_lean
+      require_publication_closure=1
       ;;
     *)
       fail "SNARKPACK_FV_MODE must be static, extract-changed, extract-all, parity-changed, parity-all, lean, or full (got $MODE)"
       ;;
   esac
+
+  if ((require_publication_closure)); then
+    echo "snarkpack FV: publication closure"
+    python3 "$VERIFICATION_MANIFEST" check
+  fi
 
   echo "snarkpack FV gate ok ($MODE)"
 }

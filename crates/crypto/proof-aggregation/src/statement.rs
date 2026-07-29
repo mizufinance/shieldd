@@ -5,9 +5,11 @@ use ark_ip_proofs::challenge::ChallengeContext;
 use ark_serialize::CanonicalSerialize;
 use decaf377::{Bls12_377, Fq};
 use sha2::{Digest as _, Sha256};
-use shieldd_sdk_proto::core::transaction::v1 as pb;
 
-use crate::{padding::PADDING_RULE_DOMAIN, ProofFamilyId, DEV_SRS_BACKEND_ID, DEV_SRS_CURVE_ID};
+use crate::{
+    bundle::family_proto_fields, padding::PADDING_RULE_DOMAIN, ProofFamilyId, DEV_SRS_BACKEND_ID,
+    DEV_SRS_CURVE_ID,
+};
 
 pub const AGGREGATE_PROTOCOL_VERSION: u32 = 2;
 
@@ -179,7 +181,9 @@ pub struct AggregateStatement {
     vk_digest: [u8; 32],
     real_count: u32,
     padded_count: u32,
+    public_input_arity: u32,
     padded_public_inputs: Vec<Vec<Fq>>,
+    padded_public_input_bytes: StatementPaddedRows,
     canonical_bytes: Vec<u8>,
     statement_digest: [u8; 32],
     challenge_context: ChallengeContext,
@@ -217,28 +221,25 @@ impl AggregateStatement {
         )?;
         validate_row_arity(padded_public_inputs, expected_arity)?;
 
-        let family = family_encoding(family_id);
-        let vk_digest = aggregate_verification_key_digest(pvk)?;
-        let input = StatementEncodingInput {
+        let serialized_vk = aggregate_verification_key_bytes(pvk)?;
+        let vk_digest = aggregate_verification_key_digest_from_bytes(&serialized_vk)?;
+        let public_input_arity =
+            u32::try_from(expected_arity).map_err(|_| AggregateStatementError::OversizeBytes {
+                field: "public_input_arity",
+                max: u32::MAX as usize,
+                got: expected_arity,
+            })?;
+        let padded_public_inputs_bytes = field_rows_to_bytes(padded_public_inputs)?;
+        let input = statement_encoding_input_core(
             version,
-            curve_id: DEV_SRS_CURVE_ID.as_bytes().to_vec(),
-            backend_id: DEV_SRS_BACKEND_ID.as_bytes().to_vec(),
-            proof_family_id: family.proof_family_id,
-            note_reshape_family_id: family.note_reshape_family_id,
-            shielded_ics20_withdrawal_family_id: family.shielded_ics20_withdrawal_family_id,
+            family_id,
             srs_id,
             vk_digest,
             real_count,
             padded_count,
-            public_input_arity: u32::try_from(expected_arity).map_err(|_| {
-                AggregateStatementError::OversizeBytes {
-                    field: "public_input_arity",
-                    max: u32::MAX as usize,
-                    got: expected_arity,
-                }
-            })?,
-            padded_public_inputs: field_rows_to_bytes(padded_public_inputs)?,
-        };
+            public_input_arity,
+            padded_public_inputs_bytes.clone(),
+        );
         let canonical_bytes = encode_statement(&input)?;
         let statement_digest = statement_digest_from_canonical(&canonical_bytes);
         let challenge_context = ChallengeContext::from_statement_digest(statement_digest);
@@ -249,7 +250,9 @@ impl AggregateStatement {
             vk_digest,
             real_count,
             padded_count,
+            public_input_arity,
             padded_public_inputs: padded_public_inputs.to_vec(),
+            padded_public_input_bytes: padded_public_inputs_bytes,
             canonical_bytes,
             statement_digest,
             challenge_context,
@@ -276,8 +279,16 @@ impl AggregateStatement {
         self.padded_count
     }
 
+    pub(crate) fn public_input_arity(&self) -> u32 {
+        self.public_input_arity
+    }
+
     pub fn padded_public_inputs(&self) -> &[Vec<Fq>] {
         &self.padded_public_inputs
+    }
+
+    pub(crate) fn padded_public_input_bytes(&self) -> &StatementPaddedRows {
+        &self.padded_public_input_bytes
     }
 
     pub fn canonical_bytes(&self) -> &[u8] {
@@ -293,14 +304,55 @@ impl AggregateStatement {
     }
 }
 
+/// Pure production projection from validated, serialized inputs into the
+/// canonical statement encoder.
+pub(crate) fn statement_encoding_input_core(
+    version: u32,
+    family_id: ProofFamilyId,
+    srs_id: [u8; 32],
+    vk_digest: [u8; 32],
+    real_count: u32,
+    padded_count: u32,
+    public_input_arity: u32,
+    padded_public_inputs: StatementPaddedRows,
+) -> StatementEncodingInput {
+    let family = family_proto_fields(family_id);
+    StatementEncodingInput {
+        version,
+        curve_id: DEV_SRS_CURVE_ID.as_bytes().to_vec(),
+        backend_id: DEV_SRS_BACKEND_ID.as_bytes().to_vec(),
+        proof_family_id: family.family_id,
+        note_reshape_family_id: family.note_reshape_family_id,
+        shielded_ics20_withdrawal_family_id: family.shielded_ics20_withdrawal_family_id,
+        srs_id,
+        vk_digest,
+        real_count,
+        padded_count,
+        public_input_arity,
+        padded_public_inputs,
+    }
+}
+
 pub fn aggregate_verification_key_digest(
     pvk: &PreparedVerifyingKey<Bls12_377>,
 ) -> Result<[u8; 32], AggregateStatementError> {
+    let vk_bytes = aggregate_verification_key_bytes(pvk)?;
+    aggregate_verification_key_digest_from_bytes(&vk_bytes)
+}
+
+pub(crate) fn aggregate_verification_key_bytes(
+    pvk: &PreparedVerifyingKey<Bls12_377>,
+) -> Result<Vec<u8>, AggregateStatementError> {
     let mut vk_bytes = Vec::new();
     pvk.vk
         .serialize_compressed(&mut vk_bytes)
         .map_err(|err| AggregateStatementError::EncodingFailed(err.to_string()))?;
+    Ok(vk_bytes)
+}
 
+pub(crate) fn aggregate_verification_key_digest_from_bytes(
+    vk_bytes: &[u8],
+) -> Result<[u8; 32], AggregateStatementError> {
     let digest_preimage = vk_digest_preimage(&vk_bytes)?;
 
     let mut hasher = Sha256::new();
@@ -576,21 +628,6 @@ fn field_rows_to_bytes(rows: &[Vec<Fq>]) -> Result<StatementPaddedRows, Aggregat
         })
         .collect::<Result<Vec<_>, _>>()
         .map(StatementPaddedRows::new)
-}
-
-#[derive(Clone, Copy)]
-struct FamilyEncoding {
-    proof_family_id: u32,
-    note_reshape_family_id: u32,
-    shielded_ics20_withdrawal_family_id: u32,
-}
-
-fn family_encoding(family_id: ProofFamilyId) -> FamilyEncoding {
-    FamilyEncoding {
-        proof_family_id: pb::ProofFamilyId::from(family_id) as u32,
-        note_reshape_family_id: family_id.note_reshape_family_id(),
-        shielded_ics20_withdrawal_family_id: family_id.shielded_ics20_withdrawal_family_id(),
-    }
 }
 
 fn append_u32_field(bytes: &mut Vec<u8>, value: u32) {
