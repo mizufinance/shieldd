@@ -135,8 +135,8 @@ func testCircuitFamilies() []circuitFamily {
 			},
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV2("note_reshape2x1")
-				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(fixtureBytes)
+				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV3("note_reshape2x1")
+				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV3(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode note reshape witness fixture: %v", err)
 				}
@@ -156,8 +156,8 @@ func testCircuitFamilies() []circuitFamily {
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
 			assignment: func(t *testing.T) frontend.Circuit {
 				t.Helper()
-				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV2("note_reshape1x8")
-				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(fixtureBytes)
+				fixtureBytes := testfixtures.LoadNoteReshapeWitnessV3("note_reshape1x8")
+				assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV3(fixtureBytes)
 				if err != nil {
 					t.Fatalf("decode note reshape witness fixture: %v", err)
 				}
@@ -389,8 +389,8 @@ func TestPaddedSpendCircuitsRejectMutatedDummyNullifierSeed(t *testing.T) {
 }
 
 func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
-	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV2("note_reshape1x8")
-	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(fixtureBytes)
+	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV3("note_reshape1x8")
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV3(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode note reshape witness fixture: %v", err)
 	}
@@ -417,8 +417,8 @@ func TestNoteReshapeRejectsDummyOutputCommitmentMutation(t *testing.T) {
 }
 
 func TestNoteReshapeRejectsPaddedOutputPayloadMutation(t *testing.T) {
-	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV2("note_reshape1x8")
-	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(fixtureBytes)
+	fixtureBytes := testfixtures.LoadNoteReshapeWitnessV3("note_reshape1x8")
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV3(fixtureBytes)
 	if err != nil {
 		t.Fatalf("decode note reshape witness fixture: %v", err)
 	}

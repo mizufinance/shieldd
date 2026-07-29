@@ -121,7 +121,7 @@ theorem spend0Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape4x1CircuitFacts rho)
     (real : syntheticSpends0IsDummy rho = 0) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress4x1.shared rho)
       (spend0NoteCommitmentInputs0 rho)
       (spend0NoteCommitmentInputs1 rho)
@@ -269,7 +269,7 @@ theorem spend1Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape4x1CircuitFacts rho)
     (real : syntheticSpends1IsDummy rho = 0) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress4x1.shared rho)
       (spend1NoteCommitmentInputs0 rho)
       (spend1NoteCommitmentInputs1 rho)
@@ -417,7 +417,7 @@ theorem spend2Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape4x1CircuitFacts rho)
     (real : syntheticSpends2IsDummy rho = 0) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress4x1.shared rho)
       (spend2NoteCommitmentInputs0 rho)
       (spend2NoteCommitmentInputs1 rho)
@@ -565,7 +565,7 @@ theorem spend3Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape4x1CircuitFacts rho)
     (real : syntheticSpends3IsDummy rho = 0) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress4x1.shared rho)
       (spend3NoteCommitmentInputs0 rho)
       (spend3NoteCommitmentInputs1 rho)
@@ -701,7 +701,7 @@ theorem output0NoteCommitmentAsserted
 theorem output0Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape4x1CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress4x1.shared rho)
       (output0NoteCommitmentInputs0 rho)
       (output0NoteCommitmentInputs1 rho)

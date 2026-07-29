@@ -139,6 +139,7 @@ class GateApplicabilityTests(unittest.TestCase):
         paths = (
             "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/Semantics.lean",
             "tools/gnark/lean/ShielddGnarkFormal/Poseidon6Spec.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Fixed6.lean",
             "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Vectors.lean",
             "tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape4x1Refinement.lean",
             "tools/gnark/lean/ShielddGnarkFormal/Deployed/Generated/NoteReshape4x1Spend1.lean",
@@ -152,6 +153,22 @@ class GateApplicabilityTests(unittest.TestCase):
                     self.soundness, "pull_request", [path], []
                 )
                 self.assertEqual((decision.status, decision.tier), ("run", "typed"))
+
+    def test_formal_workflow_handles_every_declared_soundness_tier(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        run_case = workflow[
+            workflow.index('case "$TIER" in') : workflow.index(
+                "# ------------------------------------------------------------------ summary"
+            )
+        ]
+        for tier in self.soundness.tiers:
+            if tier == "skip":
+                continue
+            with self.subTest(tier=tier):
+                self.assertIn(f"{tier})", run_case)
+        self.assertNotIn('SOUNDNESS_TIER" !=', workflow)
 
     def test_one_graph_input_selects_only_that_graph(self) -> None:
         manifest = self.synthetic_manifest(

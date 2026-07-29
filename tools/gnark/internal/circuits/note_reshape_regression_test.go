@@ -25,8 +25,8 @@ import (
 
 func loadNoteReshapeRegressionAssignment(t *testing.T, label string) *circuits.NoteReshapeCircuit {
 	t.Helper()
-	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(
-		testfixtures.LoadNoteReshapeWitnessV2(label),
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV3(
+		testfixtures.LoadNoteReshapeWitnessV3(label),
 	)
 	if err != nil {
 		t.Fatalf("decode %s witness fixture: %v", label, err)
@@ -246,13 +246,20 @@ func TestNoteReshapeFamiliesRejectWrongFamilyDomain(t *testing.T) {
 	for _, family := range generated.NoteReshapeFamilies {
 		t.Run(family.Label, func(t *testing.T) {
 			assignment := loadNoteReshapeRegressionAssignment(t, family.Label)
-			witness, _, err := abi.DecodeNoteReshapeWitnessV2(
-				testfixtures.LoadNoteReshapeWitnessV2(family.Label),
+			witness, _, err := abi.DecodeNoteReshapeWitnessV3(
+				testfixtures.LoadNoteReshapeWitnessV3(family.Label),
 			)
 			if err != nil {
 				t.Fatalf("decode %s fixture: %v", family.Label, err)
 			}
-			wrongHash, err := noteReshapeDomainHashNative(fieldElementStrings(witness.StatementFields), "note_reshape_wrong_family")
+			fields, err := abi.ReconstructedNoteReshapeStatementFieldsFromWitnessV3(witness)
+			if err != nil {
+				t.Fatalf("reconstruct %s statement fields: %v", family.Label, err)
+			}
+			wrongHash, err := noteReshapeDomainHashNative(
+				fieldElementStrings(fields),
+				"note_reshape_wrong_family",
+			)
 			if err != nil {
 				t.Fatalf("compute wrong-family hash: %v", err)
 			}
@@ -309,7 +316,7 @@ func TestNoteReshapeStatementsHaveNoActiveCountFieldsAfterRedesign(t *testing.T)
 }
 
 func TestNoteReshape1x8HasNoOutputDummyWitnessOrManifestOperationsAfterRedesign(t *testing.T) {
-	if _, ok := reflect.TypeOf(abi.NoteReshapeOutputWitnessV2Binary{}).FieldByName("IsDummy"); ok {
+	if _, ok := reflect.TypeOf(abi.NoteReshapeOutputWitnessV3Binary{}).FieldByName("IsDummy"); ok {
 		t.Fatal("1x8 witness still exposes an output dummy flag")
 	}
 	if _, ok := reflect.TypeOf(circuits.NoteReshapeSpendCircuitFields{}).FieldByName("IsDummy"); ok {

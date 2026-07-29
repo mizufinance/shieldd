@@ -86,7 +86,7 @@ artifact_for() {
 
 witness_for() {
   local circuit="$1"
-  printf '%s/internal/testfixtures/vectors/%s_witness_v2.bin\n' "$GNARK_DIR" "$circuit"
+  printf '%s/internal/testfixtures/vectors/%s_witness_v3.bin\n' "$GNARK_DIR" "$circuit"
 }
 
 module_for() {
@@ -116,6 +116,20 @@ fresh_dir="$tmp_dir/compiled"
 mkdir -p "$fresh_dir"
 export GOCACHE="${GOCACHE:-$tmp_dir/go-cache}"
 
+lean_build() {
+  local target="$1"
+  local safe_target="${target//[^[:alnum:]._-]/_}"
+  local log="$fresh_dir/lean-build-$safe_target.log"
+  if ! (
+    cd "$LEAN_DIR"
+    lake build "$target"
+  ) >"$log" 2>&1; then
+    cat "$log" >&2
+    fail "Lean build failed: $target"
+  fi
+  echo "    built $target"
+}
+
 echo "==> registry parity"
 python3 "$GNARK_DIR/check_note_reshape_registry.py"
 
@@ -123,28 +137,46 @@ echo "==> compile all four NoteReshape families once"
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
   export_fv_args=()
-  if [[ "$MODE" == "release" ]]; then
+  if [[ "$MODE" == "release" ]] && grep -qx "$circuit" <<< "$selected_circuits"; then
     export_fv_args=(
       --prove
       --witness "$(witness_for "$circuit")"
       --artifact-dir "$(artifact_for "$circuit")"
+      --proof-receipt-out "$fresh_dir/$circuit-proof-receipt.json"
     )
   fi
-  (
+  export_log="$fresh_dir/$circuit-export-fv.log"
+  if ! (
     cd "$GNARK_DIR"
     go run ./cmd/gnarkctl export-fv \
       --circuit "$circuit" \
       --sr1cs-out "$fresh_dir/$circuit.sr1cs" \
       --manifest-out "$fresh_dir/$circuit-manifest.json" \
-      ${export_fv_args[@]+"${export_fv_args[@]}"} >/dev/null
-  )
+      ${export_fv_args[@]+"${export_fv_args[@]}"}
+  ) >"$export_log" 2>&1; then
+    cat "$export_log" >&2
+    fail "FV export failed for $circuit"
+  fi
+  constraint_count="$(python3 -c \
+    'import json,sys; print(json.load(open(sys.argv[1]))["nb_constraints"])' \
+    "$fresh_dir/$circuit-manifest.json")"
+  if [[ "$MODE" == "release" ]] && grep -qx "$circuit" <<< "$selected_circuits"; then
+    echo "    $circuit: $constraint_count constraints; deployed proof verified"
+  else
+    echo "    $circuit: $constraint_count constraints"
+  fi
 done < <(printf '%s\n' "${FAMILIES[@]}")
 
 echo "==> normalized IR, exact coverage, generated contracts"
-FV_FRESH_DIR="$fresh_dir" \
+coverage_log="$fresh_dir/constraint-coverage.log"
+if ! FV_FRESH_DIR="$fresh_dir" \
   "$ROOT/scripts/check-constraint-coverage.sh" \
-  --require-full-deployed \
-  $(printf '%s\n' "${FAMILIES[@]}")
+    --require-full-deployed \
+    $(printf '%s\n' "${FAMILIES[@]}") >"$coverage_log" 2>&1; then
+  cat "$coverage_log" >&2
+  fail "normalized IR or exact constraint coverage failed"
+fi
+tail -n 1 "$coverage_log"
 
 echo "==> template inventory"
 python3 "$ROOT/tools/gnark/lean/gen/gen_template_inventory.py" \
@@ -182,8 +214,12 @@ python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_balance_seating.py" --check
 echo "==> formal gate self-tests"
 "$ROOT/scripts/check-formal-gate-self-tests.sh"
 
-echo "==> Poseidon377 generated-vector parity"
-"$ROOT/scripts/check_poseidon377_parity.sh" vectors
+poseidon_parity_mode=vectors
+if [[ "$MODE" == "release" ]]; then
+  poseidon_parity_mode=full
+fi
+echo "==> Poseidon377 generated parity ($poseidon_parity_mode)"
+"$ROOT/scripts/check_poseidon377_parity.sh" "$poseidon_parity_mode"
 
 echo "==> emitted-Lean hygiene"
 "$ROOT/scripts/check-structured-lc-lint.sh"
@@ -265,41 +301,43 @@ echo "==> exact facts, semantic seams, and handwritten canonical-address adapter
   lake exe cache get >/dev/null 2>&1 || true
   while IFS= read -r circuit; do
     [[ -z "$circuit" ]] && continue
-    lake build "ShielddGnarkFormal.Deployed.Contracts.$(module_for "$circuit").CircuitFacts"
-    lake build "ShielddGnarkFormal.Deployed.Contracts.$(module_for "$circuit").SemanticSeams"
+    lean_build "ShielddGnarkFormal.Deployed.Contracts.$(module_for "$circuit").CircuitFacts"
+    lean_build "ShielddGnarkFormal.Deployed.Contracts.$(module_for "$circuit").SemanticSeams"
   done <<< "$selected_circuits"
-  lake build ShielddGnarkFormal.NoteReshapeCanonical
-  lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress2x1
-  lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress1x8
-  lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress4x1
-  lake build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress8x1
+  lean_build ShielddGnarkFormal.NoteReshapeCanonical
+  lean_build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress2x1
+  lean_build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress1x8
+  lean_build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress4x1
+  lean_build ShielddGnarkFormal.Deployed.NoteReshapeCanonicalAddress8x1
   if grep -qx 'note_reshape2x1' <<< "$selected_circuits"; then
-    lake build ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
+    lean_build ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
   fi
   if grep -qx 'note_reshape1x8' <<< "$selected_circuits"; then
-    lake build ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness
+    lean_build ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness
   fi
   if grep -qx 'note_reshape4x1' <<< "$selected_circuits"; then
-    lake build ShielddGnarkFormal.Deployed.NoteReshape4x1Soundness
+    lean_build ShielddGnarkFormal.Deployed.NoteReshape4x1Soundness
   fi
   if grep -qx 'note_reshape8x1' <<< "$selected_circuits"; then
-    lake build ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness
+    lean_build ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness
   fi
 )
 
 run_benchmarks
 
 echo "==> typed obligation coverage and theorem bindings"
-FV_FRESH_DIR="$fresh_dir" \
+typed_coverage_log="$fresh_dir/typed-constraint-coverage.log"
+if ! FV_FRESH_DIR="$fresh_dir" \
   "$ROOT/scripts/check-constraint-coverage.sh" \
-  --require-full-deployed --check-typed-bindings \
-  $selected_circuits
+    --require-full-deployed --check-typed-bindings \
+    $selected_circuits >"$typed_coverage_log" 2>&1; then
+  cat "$typed_coverage_log" >&2
+  fail "typed obligation coverage or theorem bindings failed"
+fi
+tail -n 1 "$typed_coverage_log"
 
 echo "==> final theorem axioms"
-(
-  cd "$LEAN_DIR"
-  lake build oleanAxiomAudit
-)
+lean_build oleanAxiomAudit
 axiom_args=(
   --lean-dir "$LEAN_DIR"
   --root-module ShielddGnarkFormal.Deployed.PrimeOrderCertificate
@@ -358,14 +396,19 @@ python3 "$LEAN_DIR/gen/olean_axiom_audit.py" "${axiom_args[@]}" \
 
 if [[ "$MODE" == "release" ]]; then
   echo "==> StructuredLC generated-contract compile"
-  "$ROOT/scripts/check-structured-lc-generation.sh"
-  echo "==> Poseidon377 Lean parity"
-  "$ROOT/scripts/check_poseidon377_parity.sh" full
-  echo "==> deployed PK/VK prove-verify and release checks"
+  structured_log="$fresh_dir/structured-lc-generation.log"
+  if ! "$ROOT/scripts/check-structured-lc-generation.sh" \
+    >"$structured_log" 2>&1; then
+    cat "$structured_log" >&2
+    fail "StructuredLC generated-contract compile failed"
+  fi
+  tail -n 1 "$structured_log"
+  echo "==> deployed PK/VK proof receipts and release checks"
   while IFS= read -r circuit; do
     [[ -z "$circuit" ]] && continue
     "$ROOT/scripts/check-vk-derivation.sh" "$circuit" \
-      --sr1cs "$fresh_dir/$circuit.sr1cs" --prove
+      --sr1cs "$fresh_dir/$circuit.sr1cs" \
+      --proof-receipt "$fresh_dir/$circuit-proof-receipt.json"
   done <<< "$selected_circuits"
   "$ROOT/scripts/check-soundness-invariants.sh"
 fi

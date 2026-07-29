@@ -213,7 +213,7 @@ gate_battery() {
     run_gate "prover-round-trip" \
       env -C "$GNARK_DIR" go run ./cmd/gnarkctl replay \
       --circuit "$circuit" \
-      --witness "$GNARK_DIR/internal/testfixtures/vectors/${circuit}_witness_v2.bin" \
+      --witness "$GNARK_DIR/internal/testfixtures/vectors/${circuit}_witness_v3.bin" \
       --artifact-dir "$artifact_dir" \
       --mode prove
   fi

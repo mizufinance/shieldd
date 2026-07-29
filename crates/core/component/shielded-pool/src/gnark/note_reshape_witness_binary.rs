@@ -1,18 +1,18 @@
 use anyhow::{bail, Context, Result};
 
 use crate::gnark::{
-    binary::{encode_triple_path_32, encode_vec_32, put_bytes, put_u32, put_u64, BinaryCursor},
+    binary::{encode_triple_path_32, put_bytes, put_u32, put_u64, BinaryCursor},
     note_reshape_witness::{
-        NoteReshapeOutputWitnessV2, NoteReshapeSharedNoteContextWitnessV2,
-        NoteReshapeSpendWitnessV2, NoteReshapeWitnessV2,
+        NoteReshapeOutputWitnessV3, NoteReshapeSharedNoteContextWitnessV3,
+        NoteReshapeSpendWitnessV3, NoteReshapeWitnessV3,
     },
     typed::encode_point_affine,
 };
 
 const NOTE_RESHAPE_WITNESS_MAGIC: &[u8; 4] = b"PNWG";
-const NOTE_RESHAPE_WITNESS_VERSION: u32 = 2;
+const NOTE_RESHAPE_WITNESS_VERSION: u32 = 3;
 
-impl NoteReshapeWitnessV2 {
+impl NoteReshapeWitnessV3 {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, NOTE_RESHAPE_WITNESS_MAGIC);
@@ -22,11 +22,8 @@ impl NoteReshapeWitnessV2 {
         put_u32(&mut buf, self.n_in);
         put_u32(&mut buf, self.n_out);
         put_bytes(&mut buf, &self.anchor);
-        put_bytes(&mut buf, &self.balance_commitment);
         put_bytes(&mut buf, &self.claimed_statement_hash);
-        encode_vec_32(&mut buf, &self.statement_fields)?;
         put_bytes(&mut buf, &self.action_balance_blinding);
-        put_bytes(&mut buf, &self.ak);
         put_bytes(&mut buf, &self.nk);
         put_bytes(&mut buf, &self.shared.asset_id);
         put_bytes(&mut buf, &self.shared.clue_key);
@@ -72,13 +69,10 @@ impl NoteReshapeWitnessV2 {
         let n_in = cursor.read_u32()?;
         let n_out = cursor.read_u32()?;
         let anchor = cursor.read_fixed::<32>()?;
-        let balance_commitment = cursor.read_fixed::<32>()?;
         let claimed_statement_hash = cursor.read_fixed::<32>()?;
-        let statement_fields = cursor.read_vec_32()?;
         let action_balance_blinding = cursor.read_fixed::<32>()?;
-        let ak = cursor.read_fixed::<32>()?;
         let nk = cursor.read_fixed::<32>()?;
-        let shared = NoteReshapeSharedNoteContextWitnessV2 {
+        let shared = NoteReshapeSharedNoteContextWitnessV3 {
             asset_id: cursor.read_fixed::<32>()?,
             clue_key: cursor.read_fixed::<32>()?,
             diversified_generator_affine: cursor.read_point_affine()?,
@@ -115,11 +109,8 @@ impl NoteReshapeWitnessV2 {
             n_in,
             n_out,
             anchor,
-            balance_commitment,
             claimed_statement_hash,
-            statement_fields,
             action_balance_blinding,
-            ak,
             nk,
             shared,
             spends,
@@ -132,7 +123,7 @@ impl NoteReshapeWitnessV2 {
 
 fn encode_spend(
     buf: &mut Vec<u8>,
-    spend: &NoteReshapeSpendWitnessV2,
+    spend: &NoteReshapeSpendWitnessV3,
     synthetic_private_padding: bool,
 ) -> Result<()> {
     if synthetic_private_padding {
@@ -153,7 +144,7 @@ fn encode_spend(
 fn decode_spend(
     cursor: &mut BinaryCursor<'_>,
     synthetic_private_padding: bool,
-) -> Result<NoteReshapeSpendWitnessV2> {
+) -> Result<NoteReshapeSpendWitnessV3> {
     let (is_dummy, dummy_nullifier_seed) = if synthetic_private_padding {
         let is_dummy = match cursor.read_u32()? {
             0 => false,
@@ -164,7 +155,7 @@ fn decode_spend(
     } else {
         (false, [0u8; 32])
     };
-    Ok(NoteReshapeSpendWitnessV2 {
+    Ok(NoteReshapeSpendWitnessV3 {
         is_dummy,
         nullifier: cursor.read_fixed::<32>()?,
         dummy_nullifier_seed,
@@ -178,14 +169,14 @@ fn decode_spend(
     })
 }
 
-fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV2) {
+fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV3) {
     put_bytes(buf, &output.note_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
 }
 
-fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitnessV2> {
-    Ok(NoteReshapeOutputWitnessV2 {
+fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitnessV3> {
+    Ok(NoteReshapeOutputWitnessV3 {
         note_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,

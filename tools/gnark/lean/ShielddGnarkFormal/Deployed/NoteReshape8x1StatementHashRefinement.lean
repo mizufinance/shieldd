@@ -68,19 +68,24 @@ theorem actionClaimedStatementHash
         ← Generated.NoteReshape8x1Spend6.claimedNullifierSelected rho facts,
         ← Generated.NoteReshape8x1Spend7.claimedNullifierSelected rho facts
       ]
-      simp only [
-        action, output0,
-        NoteReshapeCanonical.statementFields,
-        NoteReshapeCanonical.inputStatementFields,
-        input0Nullifier, input1Nullifier, input2Nullifier, input3Nullifier,
-        input4Nullifier, input5Nullifier, input6Nullifier, input7Nullifier,
-        List.map, List.append, Action.policy, Action.anchor, Action.outputs,
-        Action.inputs, Output.commitment
-      ]
-      rw [
-        input0Nullifier, input1Nullifier, input2Nullifier, input3Nullifier,
-        input4Nullifier, input5Nullifier, input6Nullifier, input7Nullifier
-      ]
-      rfl
+      apply congrArg₂ NoteReshapeCanonical.statementHash
+      · rfl
+      · simp [
+          action, output0,
+          NoteReshapeCanonical.statementFields,
+          NoteReshapeCanonical.inputStatementFields,
+          Protocol.NoteReshape.Concrete.statementFields,
+          Protocol.NoteReshape.Concrete.inputStatementFields
+        ]
+        exact ⟨
+          (input0Nullifier rho).symm,
+          (input1Nullifier rho).symm,
+          (input2Nullifier rho).symm,
+          (input3Nullifier rho).symm,
+          (input4Nullifier rho).symm,
+          (input5Nullifier rho).symm,
+          (input6Nullifier rho).symm,
+          (input7Nullifier rho).symm
+        ⟩
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape8x1Refinement.C

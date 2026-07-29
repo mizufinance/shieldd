@@ -1,11 +1,5 @@
 import ShielddGnarkFormal.Protocol.NoteReshape.Semantics
 import ShielddGnarkFormal.Poseidon377
-import ShielddGnarkFormal.Poseidon1Spec
-import ShielddGnarkFormal.Poseidon2Spec
-import ShielddGnarkFormal.Poseidon3Spec
-import ShielddGnarkFormal.Poseidon4Spec
-import ShielddGnarkFormal.Poseidon6Spec
-import ShielddGnarkFormal.Poseidon7Spec
 import ShielddGnarkFormal.ChoiceFreeZMod
 
 /-!
@@ -112,7 +106,7 @@ def scalarOrder : Nat :=
   2111115437357092606062206234695386632838870926408408195193685246394721360383
 
 def dtkIvkModQ (nullifierKey authorizationKeyEncoding : F) : F :=
-  Poseidon2Spec.permSpec2
+  Poseidon377.hash2
     Poseidon377.ivkDomain nullifierKey authorizationKeyEncoding
 
 def dtk
@@ -163,14 +157,14 @@ def stateChildren (cur s0 s1 s2 b0 b1 : F) : F × F × F × F :=
 def stateCommitmentStep
     (domain cur s0 s1 s2 b0 b1 : F) : F :=
   let children := stateChildren cur s0 s1 s2 b0 b1
-  Poseidon4Spec.permSpec4
+  Poseidon377.hash4
     domain children.1 children.2.1 children.2.2.1 children.2.2.2
 
 def stateCommitmentRecover
     (commitment : F) (path : Path24) (b0 b1 : Nat → F) : Nat → F
   | 0 =>
       stateCommitmentStep (stateCommitmentDomain + 1)
-        (Poseidon1Spec.permSpec1 stateCommitmentDomain commitment)
+        (Poseidon377.hash1 stateCommitmentDomain commitment)
         (pathSibling path 0 0) (pathSibling path 0 1) (pathSibling path 0 2)
         (b0 0) (b1 0)
   | level + 1 =>
@@ -204,7 +198,7 @@ def noteCommitment
     (shared : SharedContext F)
     (blinding amount commitment : F) : Prop :=
   commitment =
-    Poseidon6Spec.permSpec6 noteCommitmentDomain
+    Poseidon377.hash6 noteCommitmentDomain
       blinding amount shared.assetId shared.diversifiedGeneratorEncoding
         shared.transmissionEncoding shared.clueKey
 
@@ -231,12 +225,12 @@ def realNullifier
     (authorization : AuthorizationContext F)
     (input : RealInput F Path24) : Prop :=
   input.nullifier =
-    Poseidon3Spec.permSpec3 Poseidon377.nullifierDomain
+    Poseidon377.hash3 Poseidon377.nullifierDomain
       authorization.nullifierKey input.commitment input.statePosition
 
 def dummyNullifier (input : DummyInput F) : Prop :=
   input.nullifier =
-    Poseidon3Spec.permSpec3 syntheticDummyNullifierDomain
+    Poseidon377.hash3 syntheticDummyNullifierDomain
       input.nullifierSeed input.randomizer input.slotIndex
 
 def randomizedKeyReal
@@ -291,7 +285,7 @@ def statementField (fields : List F) (index : Nat) (padding : F) : F :=
   fields.getD index padding
 
 def statementFirstBlock (policy : FamilyPolicy) (fields : List F) : F :=
-  Poseidon7Spec.permSpec7 (statementDomain policy)
+  Poseidon377.hash7 (statementDomain policy)
     (statementField fields 0 (statementPad0 policy))
     (statementField fields 1 (statementPad1 policy))
     (statementField fields 2 (statementPad0 policy))
@@ -305,7 +299,7 @@ def statementHash (policy : FamilyPolicy) (fields : List F) : F :=
   match policy with
   | .reshape2x1 => first
   | .reshape1x8 =>
-      Poseidon7Spec.permSpec7 (statementDomain policy) first
+      Poseidon377.hash7 (statementDomain policy) first
         (statementField fields 7 (statementPad0 policy))
         (statementField fields 8 (statementPad1 policy))
         (statementField fields 9 (statementPad0 policy))
@@ -313,7 +307,7 @@ def statementHash (policy : FamilyPolicy) (fields : List F) : F :=
         (statementField fields 11 (statementPad0 policy))
         (statementPad1 policy)
   | .reshape4x1 =>
-      Poseidon7Spec.permSpec7 (statementDomain policy) first
+      Poseidon377.hash7 (statementDomain policy) first
         (statementField fields 7 (statementPad0 policy))
         (statementField fields 8 (statementPad1 policy))
         (statementField fields 9 (statementPad0 policy))
@@ -322,14 +316,14 @@ def statementHash (policy : FamilyPolicy) (fields : List F) : F :=
         (statementPad1 policy)
   | .reshape8x1 =>
       let second :=
-        Poseidon7Spec.permSpec7 (statementDomain policy) first
+        Poseidon377.hash7 (statementDomain policy) first
           (statementField fields 7 (statementPad0 policy))
           (statementField fields 8 (statementPad1 policy))
           (statementField fields 9 (statementPad0 policy))
           (statementField fields 10 (statementPad1 policy))
           (statementField fields 11 (statementPad0 policy))
           (statementField fields 12 (statementPad1 policy))
-      Poseidon7Spec.permSpec7 (statementDomain policy) second
+      Poseidon377.hash7 (statementDomain policy) second
         (statementField fields 13 (statementPad0 policy))
         (statementField fields 14 (statementPad1 policy))
         (statementField fields 15 (statementPad0 policy))

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
-	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
 
@@ -38,20 +37,20 @@ func testWitnessFamilies() []witnessFamily {
 		{
 			name: "note_reshape2x1",
 			payload: func(t *testing.T) []byte {
-				return testfixtures.LoadNoteReshapeWitnessV2("note_reshape2x1")
+				return testfixtures.LoadNoteReshapeWitnessV3("note_reshape2x1")
 			},
 			decode: func(payload []byte) error {
-				_, _, err := DecodeNoteReshapeWitnessV2(payload)
+				_, _, err := DecodeNoteReshapeWitnessV3(payload)
 				return err
 			},
 		},
 		{
 			name: "note_reshape1x8",
 			payload: func(t *testing.T) []byte {
-				return testfixtures.LoadNoteReshapeWitnessV2("note_reshape1x8")
+				return testfixtures.LoadNoteReshapeWitnessV3("note_reshape1x8")
 			},
 			decode: func(payload []byte) error {
-				_, _, err := DecodeNoteReshapeWitnessV2(payload)
+				_, _, err := DecodeNoteReshapeWitnessV3(payload)
 				return err
 			},
 		},
@@ -92,9 +91,17 @@ func TestWitnessFamiliesRejectTruncatedPayload(t *testing.T) {
 	}
 }
 
+func TestNoteReshapeV3RejectsLegacyVersion(t *testing.T) {
+	payload := testfixtures.LoadNoteReshapeWitnessV3("note_reshape2x1")
+	binary.LittleEndian.PutUint32(payload[4:8], 2)
+	if _, _, err := DecodeNoteReshapeWitnessV3(payload); err == nil {
+		t.Fatal("V3 decoder must reject the obsolete V2 layout")
+	}
+}
+
 func TestNoteReshapeWitnessPaddingABI(t *testing.T) {
-	fixedPayload := testfixtures.LoadNoteReshapeWitnessV2("note_reshape2x1")
-	fixed, fixedFamily, err := DecodeNoteReshapeWitnessV2(fixedPayload)
+	fixedPayload := testfixtures.LoadNoteReshapeWitnessV3("note_reshape2x1")
+	fixed, fixedFamily, err := DecodeNoteReshapeWitnessV3(fixedPayload)
 	if err != nil {
 		t.Fatalf("decode fixed-family witness: %v", err)
 	}
@@ -107,8 +114,8 @@ func TestNoteReshapeWitnessPaddingABI(t *testing.T) {
 		}
 	}
 
-	syntheticPayload := testfixtures.LoadNoteReshapeWitnessV2("note_reshape4x1")
-	synthetic, syntheticFamily, err := DecodeNoteReshapeWitnessV2(syntheticPayload)
+	syntheticPayload := testfixtures.LoadNoteReshapeWitnessV3("note_reshape4x1")
+	synthetic, syntheticFamily, err := DecodeNoteReshapeWitnessV3(syntheticPayload)
 	if err != nil {
 		t.Fatalf("decode synthetic-family witness: %v", err)
 	}
@@ -119,30 +126,28 @@ func TestNoteReshapeWitnessPaddingABI(t *testing.T) {
 		t.Fatal("4x1 fixture must carry a private dummy selector")
 	}
 
-	flagOffset := 24 + 3*32 + 4 +
-		primitives.NoteReshapeStatementFieldCount(syntheticFamily.NIn, syntheticFamily.NOut)*32 +
-		3*32 + 2*32 + 2*32
+	flagOffset := 24 + 8*32
 	malformed := append([]byte(nil), syntheticPayload...)
 	malformed[flagOffset] = 2
-	if _, _, err := DecodeNoteReshapeWitnessV2(malformed); err == nil {
+	if _, _, err := DecodeNoteReshapeWitnessV3(malformed); err == nil {
 		t.Fatal("synthetic-family witness must reject a non-boolean private padding flag")
 	}
 }
 
-func TestNoteReshapeV2RejectsSplitAddressRepresentationPayload(t *testing.T) {
+func TestNoteReshapeV3RejectsSplitAddressRepresentationPayload(t *testing.T) {
 	payload := append(
 		[]byte(nil),
-		testfixtures.LoadNoteReshapeWitnessV2("note_reshape4x1")...,
+		testfixtures.LoadNoteReshapeWitnessV3("note_reshape4x1")...,
 	)
 
 	// Simulate the obsolete per-note asset, diversified generator, affine
-	// transmission, transmission encoding, and clue-key fields. V2 has one
+	// transmission, transmission encoding, and clue-key fields. V3 has one
 	// canonical shared context, so there is no position at which an independent
 	// representation can be decoded.
 	payload = append(payload, make([]byte, 32+64+64+32+32)...)
 	binary.LittleEndian.PutUint32(payload[8:12], uint32(len(payload)))
 
-	if _, _, err := DecodeNoteReshapeWitnessV2(payload); err == nil {
-		t.Fatal("V2 must reject an appended split address representation")
+	if _, _, err := DecodeNoteReshapeWitnessV3(payload); err == nil {
+		t.Fatal("V3 must reject an appended split address representation")
 	}
 }

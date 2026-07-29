@@ -421,7 +421,7 @@ theorem output0NoteCommitmentAsserted
 theorem spend0RealCommitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress2x1.shared rho)
       (spend0NoteCommitmentInputs0 rho)
       (spend0NoteCommitmentInputs1 rho)
@@ -476,7 +476,7 @@ theorem spend0RealCommitment
 theorem spend1RealCommitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress2x1.shared rho)
       (spend1NoteCommitmentInputs0 rho)
       (spend1NoteCommitmentInputs1 rho)
@@ -531,7 +531,7 @@ theorem spend1RealCommitment
 theorem output0Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape2x1CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress2x1.shared rho)
       (output0NoteCommitmentInputs0 rho)
       (output0NoteCommitmentInputs1 rho)
@@ -612,6 +612,7 @@ theorem actionInputCommitments
   simp [
     inputCommitments, action, input0, input1,
     NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.realCommitment,
+    Protocol.NoteReshape.Concrete.realCommitment,
     spend0RealCommitment rho facts, spend1RealCommitment rho facts
   ]
 
@@ -623,7 +624,8 @@ theorem actionOutputCommitments
       (action rho) := by
   simpa [
     outputCommitments, action, output0,
-    NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.outputCommitment
+    NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.outputCommitment,
+    Protocol.NoteReshape.Concrete.outputCommitment
   ] using output0Commitment rho facts
 
 theorem spend0NullifierHash
@@ -756,8 +758,10 @@ theorem spend0RealNullifier
     NoteReshapeCanonical.realNullifier
       (NoteReshapeCanonicalAddress2x1.authorization rho) (input0 rho) := by
   unfold NoteReshapeCanonical.realNullifier
+  unfold Protocol.NoteReshape.Concrete.realNullifier
   simp only [input0, NoteReshapeCanonicalAddress2x1.authorization]
   rw [spend0NullifierAsserted rho facts, spend0NullifierHash rho facts]
+  rfl
 
 theorem spend1RealNullifier
     (rho : Nat → DeployedF)
@@ -765,8 +769,10 @@ theorem spend1RealNullifier
     NoteReshapeCanonical.realNullifier
       (NoteReshapeCanonicalAddress2x1.authorization rho) (input1 rho) := by
   unfold NoteReshapeCanonical.realNullifier
+  unfold Protocol.NoteReshape.Concrete.realNullifier
   simp only [input1, NoteReshapeCanonicalAddress2x1.authorization]
   rw [spend1NullifierAsserted rho facts, spend1NullifierHash rho facts]
+  rfl
 
 theorem spend0AnchorAsserted
     (rho : Nat → DeployedF)

@@ -11,13 +11,13 @@ SPEC_FILES=(
   "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Basic.lean"
   "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Sponge.lean"
   "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Vectors.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Fixed1.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Fixed2.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Fixed3.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Fixed4.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Fixed6.lean"
+  "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Fixed7.lean"
   "tools/gnark/lean/ShielddGnarkFormal/ChoiceFreeZMod.lean"
-  "tools/gnark/lean/ShielddGnarkFormal/Poseidon1Spec.lean"
-  "tools/gnark/lean/ShielddGnarkFormal/Poseidon2Spec.lean"
-  "tools/gnark/lean/ShielddGnarkFormal/Poseidon3Spec.lean"
-  "tools/gnark/lean/ShielddGnarkFormal/Poseidon4Spec.lean"
-  "tools/gnark/lean/ShielddGnarkFormal/Poseidon6Spec.lean"
-  "tools/gnark/lean/ShielddGnarkFormal/Poseidon7Spec.lean"
   "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/Semantics.lean"
   "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/Concrete.lean"
   "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/CircuitFacts.lean"
@@ -44,7 +44,7 @@ python3 "$ROOT/tools/gnark/lean/gen/check_lean_import_closure.py" \
   --root ShielddGnarkFormal.Protocol.NoteReshape.Concrete \
   --root ShielddGnarkFormal.Protocol.NoteReshape.CircuitFacts \
   --root ShielddGnarkFormal.Protocol.NoteReshape.Refinement \
-  --forbid-regex '(^|\\.)(Deployed|Generated|Extracted)(\\.|$)|Bridge$|NoteReshapeCanonical$' \
+  --forbid-regex '(^|\\.)(Deployed|Generated|Extracted)(\\.|$)|Bridge$|NoteReshapeCanonical$|Poseidon(1|2|3|4|6|7)Spec$' \
   || fail "protocol semantics import closure reaches a circuit-owned module"
 reject_rg_matches "protocol representation independence" \
   -n '(wireSeating|wire index|manifest|sr1cs|trace)' "$PROTOCOL_DIR" \

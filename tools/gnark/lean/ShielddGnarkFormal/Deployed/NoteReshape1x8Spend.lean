@@ -87,8 +87,10 @@ theorem spend0RealNullifier
     NoteReshapeCanonical.realNullifier
       (NoteReshapeCanonicalAddress1x8.authorization rho) (input0 rho) := by
   unfold NoteReshapeCanonical.realNullifier
+  unfold Protocol.NoteReshape.Concrete.realNullifier
   simp only [input0, NoteReshapeCanonicalAddress1x8.authorization]
   rw [spend0NullifierAsserted rho facts, spend0NullifierHash rho facts]
+  rfl
 
 theorem spend0AnchorAsserted
     (rho : Nat → DeployedF)

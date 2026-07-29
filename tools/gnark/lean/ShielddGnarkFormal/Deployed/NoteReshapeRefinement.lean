@@ -130,82 +130,39 @@ theorem noteCommitment_of_circuitInterpretation
     (h :
       NoteReshapeCanonical.noteCommitment
         shared blinding amount commitment) :
-    Concrete.noteCommitment shared blinding amount commitment := by
-  simpa [
-    NoteReshapeCanonical.noteCommitment,
-    NoteReshapeCanonical.noteCommitmentDomain,
-    Concrete.noteCommitment,
-    Concrete.noteCommitmentDomain,
-    Poseidon6Bridge.permSpec6
-  ] using h
+    Concrete.noteCommitment shared blinding amount commitment :=
+  h
 
 theorem statePositionFromBits_eq
     (b0 b1 : Nat → F) (level : Nat) :
     NoteReshapeCanonical.statePositionFromBits b0 b1 level =
-      Concrete.statePositionFromBits b0 b1 level := by
-  induction level with
-  | zero => rfl
-  | succ level ih =>
-      simp only [
-        NoteReshapeCanonical.statePositionFromBits,
-        Concrete.statePositionFromBits,
-        ih
-      ]
+      Concrete.statePositionFromBits b0 b1 level :=
+  rfl
 
 theorem stateCommitmentRecover_eq
     (commitment : F) (path : Path24) (b0 b1 : Nat → F) (level : Nat) :
     NoteReshapeCanonical.stateCommitmentRecover
         commitment path b0 b1 level =
-      Concrete.stateCommitmentRecover commitment path b0 b1 level := by
-  induction level with
-  | zero =>
-      rfl
-  | succ level ih =>
-      simp only [
-        NoteReshapeCanonical.stateCommitmentRecover,
-        Concrete.stateCommitmentRecover,
-        ih
-      ]
-      rfl
+      Concrete.stateCommitmentRecover commitment path b0 b1 level :=
+  rfl
 
 theorem member_of_circuitInterpretation
     (anchor : F) (input : RealInput F Path24)
     (h : NoteReshapeCanonical.member anchor input) :
-    Concrete.member anchor input := by
-  rcases h with ⟨b0, b1, hbits0, hbits1, hposition, hroot⟩
-  refine ⟨b0, b1, hbits0, hbits1, ?_, ?_⟩
-  · rw [← statePositionFromBits_eq]
-    exact hposition
-  · rw [
-      Concrete.stateCommitmentRoot,
-      ← stateCommitmentRecover_eq,
-      ← NoteReshapeCanonical.stateCommitmentRoot
-    ]
-    exact hroot
+    Concrete.member anchor input :=
+  h
 
 theorem realNullifier_of_circuitInterpretation
     (authorization : AuthorizationContext F) (input : RealInput F Path24)
     (h : NoteReshapeCanonical.realNullifier authorization input) :
-    Concrete.realNullifier authorization input := by
-  simpa [
-    NoteReshapeCanonical.realNullifier,
-    Concrete.realNullifier,
-    Poseidon3Bridge.permSpec3,
-    Poseidon3Bridge.nullifierDomainLit,
-    Poseidon377.nullifierDomain
-  ] using h
+    Concrete.realNullifier authorization input :=
+  h
 
 theorem dummyNullifier_of_circuitInterpretation
     (input : DummyInput F)
     (h : NoteReshapeCanonical.dummyNullifier input) :
-    Concrete.dummyNullifier input := by
-  simpa [
-    NoteReshapeCanonical.dummyNullifier,
-    NoteReshapeCanonical.syntheticDummyNullifierDomain,
-    Concrete.dummyNullifier,
-    Concrete.syntheticDummyNullifierDomain,
-    Poseidon3Bridge.permSpec3
-  ] using h
+    Concrete.dummyNullifier input :=
+  h
 
 theorem diversifiedTransmissionKey_of_circuitSpec
     (nullifierKey : F)
@@ -315,34 +272,20 @@ theorem conservation_of_circuitInterpretation
 theorem statementHash_eq
     (policy : FamilyPolicy) (fields : List F) :
     NoteReshapeCanonical.statementHash policy fields =
-      Concrete.statementHash policy fields := by
-  cases policy <;> rfl
+      Concrete.statementHash policy fields :=
+  rfl
 
 theorem inputStatementFields_eq
     (inputs : List (Input F Path24)) (rkFqs : List F) :
     NoteReshapeCanonical.inputStatementFields inputs rkFqs =
-      Concrete.inputStatementFields inputs rkFqs := by
-  induction inputs generalizing rkFqs with
-  | nil => cases rkFqs <;> rfl
-  | cons input inputs ih =>
-      cases rkFqs with
-      | nil => rfl
-      | cons rk rkFqs =>
-          simp only [
-            NoteReshapeCanonical.inputStatementFields,
-            Concrete.inputStatementFields,
-            ih
-          ]
+      Concrete.inputStatementFields inputs rkFqs :=
+  rfl
 
 theorem statementFields_eq
     (action : Action F Path24) (balanceFq : F) (rkFqs : List F) :
     NoteReshapeCanonical.statementFields action balanceFq rkFqs =
-      Concrete.statementFields action balanceFq rkFqs := by
-  simp only [
-    NoteReshapeCanonical.statementFields,
-    Concrete.statementFields,
-    inputStatementFields_eq
-  ]
+      Concrete.statementFields action balanceFq rkFqs :=
+  rfl
 
 theorem forall₂_compressesTo_of_circuitSpec
     {inputs : List (Input F Path24)} {outputs : List F}

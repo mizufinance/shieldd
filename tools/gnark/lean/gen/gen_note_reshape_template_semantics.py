@@ -13,6 +13,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from poseidon_constants import rounds as poseidon_round_constants
 from write_if_changed import write_if_changed
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -225,21 +226,10 @@ def tuple_expr(parts: list[str]) -> str:
 
 
 def poseidon3_rounds() -> list[tuple[str, list[int]]]:
-    source = (LEAN / "ShielddGnarkFormal/Poseidon3Spec.lean").read_text()
-    body = source.split("def permSpec3", 1)[1].split("\n\nend ", 1)[0]
-    rounds = []
-    for line in body.splitlines():
-        line = line.strip()
-        if not line.startswith("let gate_"):
-            continue
-        kind = "fr4" if " := fr4 " in line else "pr4"
-        constants = [int(value) for value in re.findall(r"\((\d+)\s*:F\)", line)][-4:]
-        if len(constants) != 4:
-            raise SystemExit(f"cannot parse Poseidon3 round constants: {line}")
-        rounds.append((kind, constants))
-    if len(rounds) != 39:
-        raise SystemExit(f"expected 39 Poseidon3 rounds, found {len(rounds)}")
-    return rounds
+    return [
+        (kind, list(constants))
+        for kind, constants in poseidon_round_constants(3)
+    ]
 
 
 def render_poseidon3_trace() -> str:

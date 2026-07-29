@@ -16,10 +16,10 @@ mod typed;
 
 pub use artifacts::GnarkArtifactMetadata;
 pub use note_reshape::{
-    decode_note_reshape_witness_v2, encode_note_reshape_witness_v2,
+    decode_note_reshape_witness_v3, encode_note_reshape_witness_v3,
     translate_note_reshape_proof_result, GnarkNoteReshapeClient,
 };
-pub use note_reshape_witness::NoteReshapeWitnessV2;
+pub use note_reshape_witness::NoteReshapeWitnessV3;
 pub use shielded_ics20_withdrawal::{
     decode_shielded_ics20_withdrawal_witness_v1, encode_shielded_ics20_withdrawal_witness_v1,
     translate_shielded_ics20_withdrawal_proof_result, GnarkShieldedIcs20WithdrawalClient,
@@ -30,6 +30,7 @@ pub use transfer::{
     GnarkTransferClient,
 };
 pub use transfer_witness::TransferWitnessV1;
+pub(crate) use typed::point_affine_compress_to_field_bytes;
 pub use typed::{ComplianceLeafBinary, IndexedLeafBinary, MerklePathBinary, PointAffineBytes};
 
 #[cfg(all(test, any(unix, windows)))]
@@ -152,7 +153,7 @@ mod soundness_fixture_tests {
 
     use crate::{
         gnark::{
-            encode_note_reshape_witness_v2, encode_shielded_ics20_withdrawal_witness_v1,
+            encode_note_reshape_witness_v3, encode_shielded_ics20_withdrawal_witness_v1,
             encode_transfer_witness_v1,
         },
         test_proof_helpers::proof_test_helpers,
@@ -193,8 +194,8 @@ mod soundness_fixture_tests {
                 NoteReshapeFamilyId::TwoByOne,
             );
         write_fixture(
-            "note_reshape2x1_witness_v2.bin",
-            encode_note_reshape_witness_v2(&note_reshape_public, &note_reshape_private)
+            "note_reshape2x1_witness_v3.bin",
+            encode_note_reshape_witness_v3(&note_reshape_public, &note_reshape_private)
                 .expect("encode note reshape witness"),
         );
 
@@ -205,8 +206,8 @@ mod soundness_fixture_tests {
                 NoteReshapeFamilyId::OneByEight,
             );
         write_fixture(
-            "note_reshape1x8_witness_v2.bin",
-            encode_note_reshape_witness_v2(&one_to_many_public, &one_to_many_private)
+            "note_reshape1x8_witness_v3.bin",
+            encode_note_reshape_witness_v3(&one_to_many_public, &one_to_many_private)
                 .expect("encode note reshape witness"),
         );
 
@@ -214,12 +215,12 @@ mod soundness_fixture_tests {
             (
                 NoteReshapeFamilyId::FourByOne,
                 0x0000_0043_3458_3101,
-                "note_reshape4x1_witness_v2.bin",
+                "note_reshape4x1_witness_v3.bin",
             ),
             (
                 NoteReshapeFamilyId::EightByOne,
                 0x0000_0043_3858_3101,
-                "note_reshape8x1_witness_v2.bin",
+                "note_reshape8x1_witness_v3.bin",
             ),
         ] {
             let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
@@ -229,7 +230,7 @@ mod soundness_fixture_tests {
                 );
             write_fixture(
                 filename,
-                encode_note_reshape_witness_v2(&public, &private)
+                encode_note_reshape_witness_v3(&public, &private)
                     .expect("encode note reshape witness"),
             );
         }

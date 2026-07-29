@@ -21,9 +21,9 @@ def p17 (a : Poseidon3Spec.F) : Poseidon3Spec.F :=
   let a8 := a4 * a4
   let a16 := a8 * a8
   a16 * a
-def fr4 := Poseidon3Spec.fr4
-def pr4 := Poseidon3Spec.pr4
-def permSpec3 := Poseidon3Spec.permSpec3
+def fr4 := Poseidon377.Fixed3.fr4
+def pr4 := Poseidon377.Fixed3.pr4
+def permSpec3 := Poseidon377.hash3
 
 open Shieldd.GnarkFormal.Extracted.Nullifier
   (F Order poseidonFullRound_4_4 poseidonPartialRound_4_4 poseidonPerm3 circuit)
@@ -31,7 +31,7 @@ open Shieldd.GnarkFormal.Extracted.Nullifier
 theorem fullRound_4_4_uncps [Fact (Nat.Prime Order)]
     (st cs : List.Vector F 4) (k : List.Vector F 4 → Prop) :
     poseidonFullRound_4_4 st cs k ↔ k (fr4 st cs) := by
-  unfold poseidonFullRound_4_4 fr4 Poseidon3Spec.fr4 Poseidon3Spec.p17
+  unfold poseidonFullRound_4_4 fr4 Poseidon377.Fixed3.fr4 Poseidon377.Fixed3.p17
   simp only [Extracted.Nullifier.Gates, GatesGnark9, GatesGnark8, GatesDef.add, GatesDef.mul,
     exists_eq_left]
   rfl
@@ -39,7 +39,7 @@ theorem fullRound_4_4_uncps [Fact (Nat.Prime Order)]
 theorem partialRound_4_4_uncps [Fact (Nat.Prime Order)]
     (st cs : List.Vector F 4) (k : List.Vector F 4 → Prop) :
     poseidonPartialRound_4_4 st cs k ↔ k (pr4 st cs) := by
-  unfold poseidonPartialRound_4_4 pr4 Poseidon3Spec.pr4 Poseidon3Spec.p17
+  unfold poseidonPartialRound_4_4 pr4 Poseidon377.Fixed3.pr4 Poseidon377.Fixed3.p17
   simp only [Extracted.Nullifier.Gates, GatesGnark9, GatesGnark8, GatesDef.add, GatesDef.mul,
     exists_eq_left]
   rfl
@@ -47,7 +47,7 @@ theorem partialRound_4_4_uncps [Fact (Nat.Prime Order)]
 theorem perm3_uncps [Fact (Nat.Prime Order)] (Domain In0 In1 In2 : F) (k : F → Prop) :
     poseidonPerm3 Domain In0 In1 In2 k
       ↔ k (permSpec3 Domain In0 In1 In2) := by
-  unfold poseidonPerm3 permSpec3
+  unfold poseidonPerm3 permSpec3 Poseidon377.hash3 Poseidon377.Fixed3.hash
   simp only [fullRound_4_4_uncps, partialRound_4_4_uncps]
   rfl
 
@@ -67,14 +67,5 @@ theorem circuit_sound [Fact (Nat.Prime Order)]
   rw [perm3_uncps]
   rintro ⟨heq, _⟩
   simpa [Extracted.Nullifier.Gates, GatesGnark9, GatesGnark8, GatesDef.eq, eq_comm] using heq
-
--- Parity: the in-circuit rate-3 permutation spec agrees with the M1 de-opaqued
--- `Poseidon377.hash3`/`nullifierSpec` on a pinned vector — computational evidence
--- that the extracted nullifier circuit computes the canonical Poseidon rate-3 hash.
-#guard (permSpec3 nullifierDomainLit 2 3 5).val ==
-  (Poseidon377.hash3 Poseidon377.nullifierDomain 2 3 5).val
-
-#guard (permSpec3 nullifierDomainLit 2 3 5).val ==
-  (Shieldd.GnarkFormal.nullifierSpec 2 3 5).val
 
 end Shieldd.GnarkFormal.Poseidon3Bridge

@@ -8,18 +8,15 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
-func NewNoteReshapeCircuitAssignmentFromWitnessV2(payload []byte) (*circuits.NoteReshapeCircuit, generated.NoteReshapeFamilySpec, error) {
-	witness, family, err := DecodeNoteReshapeWitnessV2(payload)
+func NewNoteReshapeCircuitAssignmentFromWitnessV3(payload []byte) (*circuits.NoteReshapeCircuit, generated.NoteReshapeFamilySpec, error) {
+	witness, family, err := DecodeNoteReshapeWitnessV3(payload)
 	if err != nil {
-		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("decode NoteReshapeWitnessV2: %w", err)
-	}
-	if len(witness.StatementFields) != expectedNoteReshapeStatementFieldCount(family.NIn, family.NOut) {
-		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("expected %d note reshape statement fields, got %d", expectedNoteReshapeStatementFieldCount(family.NIn, family.NOut), len(witness.StatementFields))
+		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("decode NoteReshapeWitnessV3: %w", err)
 	}
 	if len(witness.Spends) != family.NIn || len(witness.Outputs) != family.NOut {
 		return nil, generated.NoteReshapeFamilySpec{}, fmt.Errorf("note reshape witness counts mismatch: spends=%d outputs=%d expected=%dx%d", len(witness.Spends), len(witness.Outputs), family.NIn, family.NOut)
 	}
-	auth, err := newNoteReshapeAuthSharedFields(witness.NK, witness.AK, witness.AKAffine)
+	auth, err := newNoteReshapeAuthSharedFields(witness.NK, witness.AKAffine)
 	if err != nil {
 		return nil, generated.NoteReshapeFamilySpec{}, err
 	}
@@ -55,11 +52,11 @@ func NewNoteReshapeCircuitAssignmentFromWitnessV2(payload []byte) (*circuits.Not
 	return assignment, family, nil
 }
 
-func expectedNoteReshapeStatementFieldCount(nIn, nOut int) int {
-	return primitives.NoteReshapeStatementFieldCount(nIn, nOut)
-}
-
-func newNoteReshapeAuthSharedFields(nk [32]byte, akCompressed [32]byte, akAffine PointAffineBinary) (circuits.TransferAuthSharedFields, error) {
+func newNoteReshapeAuthSharedFields(nk [32]byte, akAffine PointAffineBinary) (circuits.TransferAuthSharedFields, error) {
+	akCompressed, err := pointAffineToField(akAffine)
+	if err != nil {
+		return circuits.TransferAuthSharedFields{}, fmt.Errorf("compress note reshape authorization key: %w", err)
+	}
 	ivkReduced, quotientA, err := incomingViewingKeyReductionFromBinary(nk, akCompressed)
 	if err != nil {
 		return circuits.TransferAuthSharedFields{}, fmt.Errorf("compute note reshape ivk reduction from binary witness: %w", err)
@@ -72,7 +69,7 @@ func newNoteReshapeAuthSharedFields(nk [32]byte, akCompressed [32]byte, akAffine
 	}, nil
 }
 
-func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV2Binary) (circuits.NoteReshapeSpendCircuitFields, error) {
+func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV3Binary) (circuits.NoteReshapeSpendCircuitFields, error) {
 	statePath, err := statePathFromBinary(witness.StateCommitmentAuthPath)
 	if err != nil {
 		return circuits.NoteReshapeSpendCircuitFields{}, fmt.Errorf("decode note reshape spend state commitment auth path: %w", err)
@@ -89,7 +86,7 @@ func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV2Binary) 
 	}, nil
 }
 
-func newNoteReshapeOutputCircuitFields(witness *NoteReshapeOutputWitnessV2Binary) circuits.NoteReshapeOutputCircuitFields {
+func newNoteReshapeOutputCircuitFields(witness *NoteReshapeOutputWitnessV3Binary) circuits.NoteReshapeOutputCircuitFields {
 	return circuits.NoteReshapeOutputCircuitFields{
 		NoteCommitment: fqString(witness.NoteCommitment),
 		Note: circuits.NoteReshapeNoteCircuitFields{

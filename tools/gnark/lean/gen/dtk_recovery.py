@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from generated_contract_source import read_source
+from poseidon_constants import rounds as poseidon_round_constants
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,7 +24,6 @@ DTK = FORMAL / "Deployed/Dtk"
 OUTPUT_DTK = DTK
 EXTRACTED_DEPLOYED = FORMAL / "Extracted/Deployed"
 SR1CS = ROOT.parent / "artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
-POSEIDON2 = FORMAL / "Poseidon2Spec.lean"
 
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 ROW_COUNT = 6077
@@ -3135,18 +3135,10 @@ def row_wires(rows: list[tuple[list[tuple[str, int]], ...]]) -> set[int]:
 
 
 def poseidon_constants() -> dict[str, list[str]]:
-    constants: dict[str, list[str]] = {}
-    for line in POSEIDON2.read_text().splitlines():
-        match = re.search(r"let gate_(\d+) := (?:fr3|pr3).*vec!\[(.*)\]", line)
-        if not match:
-            continue
-        values = re.findall(r"\((\d+):F\)", match.group(2))
-        if len(values) != 3:
-            raise ValueError(f"Poseidon2 gate {match.group(1)} has {len(values)} constants")
-        constants[match.group(1)] = values
-    if sorted(map(int, constants)) != list(range(39)):
-        raise ValueError("failed to parse all Poseidon2 round constants")
-    return constants
+    return {
+        str(index): [str(value) for value in values]
+        for index, (_, values) in enumerate(poseidon_round_constants(2))
+    }
 
 
 def emit_poseidon_segment(

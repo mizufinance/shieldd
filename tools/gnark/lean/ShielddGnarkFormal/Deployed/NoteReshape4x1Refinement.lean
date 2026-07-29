@@ -438,6 +438,7 @@ theorem actionInputCommitments
       inputCommitments, action, input0, input1, input2, input3,
       realInput0, realInput1, realInput2, realInput3,
       NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.realCommitment,
+      Protocol.NoteReshape.Concrete.realCommitment,
       h0, h1, h2, h3,
       Generated.NoteReshape4x1Commitments.spend0Commitment rho facts,
       Generated.NoteReshape4x1Commitments.spend1Commitment rho facts,
@@ -454,6 +455,7 @@ theorem actionOutputCommitments
   simp [
     outputCommitments, action, output0,
     NoteReshapeCanonical.circuitPrimitives, NoteReshapeCanonical.outputCommitment,
+    Protocol.NoteReshape.Concrete.outputCommitment,
     Generated.NoteReshape4x1Commitments.output0Commitment rho facts
   ]
 

@@ -138,7 +138,7 @@ def render_bound(prefix: str, claimed: str) -> str:
 theorem {prefix}Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress1x8.shared rho)
       ({prefix}NoteCommitmentInputs0 rho)
       ({prefix}NoteCommitmentInputs1 rho)

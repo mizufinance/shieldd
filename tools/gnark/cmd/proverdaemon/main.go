@@ -94,7 +94,7 @@ func init() {
 				return circuits.NewNoteReshapeCircuit(family.Label, family.NIn, family.NOut)
 			},
 			newAssignment: func(payload []byte) (frontend.Circuit, error) {
-				assignment, witnessFamily, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(payload)
+				assignment, witnessFamily, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV3(payload)
 				if err != nil {
 					return nil, err
 				}
@@ -340,7 +340,7 @@ func packTransferProofResult(witnessPayload []byte, proof *groth16bls.Proof, pro
 }
 
 func packNoteReshapeProofResult(witnessPayload []byte, proof *groth16bls.Proof, proveMS float64) ([]byte, error) {
-	witness, _, err := abi.DecodeNoteReshapeWitnessV2(witnessPayload)
+	witness, _, err := abi.DecodeNoteReshapeWitnessV3(witnessPayload)
 	if err != nil {
 		return nil, fmt.Errorf("decode note reshape witness: %w", err)
 	}

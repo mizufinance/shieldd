@@ -11,17 +11,19 @@ set -euo pipefail
 #               VK hash the metadata does;
 #   2. source — the circuit recompiled from the pinned source emits an
 #               .sr1cs byte-identical to the deployed artifact .sr1cs;
-#   3. keys   — (--prove) a prove+verify round trip using the DEPLOYED
-#               proving/verifying keys against the recompiled constraint
-#               system: keys generated from any other constraint system
-#               fail this with overwhelming probability. This is the link
-#               that actually binds key material to the pinned rows.
+#   3. keys   — either (--prove) a prove+verify round trip using the DEPLOYED
+#               proving/verifying keys, or (--proof-receipt) validation of a
+#               receipt emitted after export-fv proved against the exact
+#               in-memory constraint system that wrote the fresh .sr1cs.
+#               Keys generated from any other constraint system fail with
+#               overwhelming probability.
 #
 # Together these close the "proved the model, trusted the plumbing" gap for
 # key derivation (ZK-ASSUME-GNARK-FRONTEND-BACKEND, plumbing half). This is
 # a NEW check; it modifies no existing gate.
 #
-# Usage: scripts/check-vk-derivation.sh <circuit> [--prove]
+# Usage: scripts/check-vk-derivation.sh <circuit>
+#          [--sr1cs <path>] [--prove | --proof-receipt <path>]
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GNARK_DIR="$ROOT/tools/gnark"
@@ -30,9 +32,11 @@ fail() { echo "check-vk-derivation: RED: $*" >&2; exit 1; }
 note() { echo "check-vk-derivation: $*"; }
 
 circuit="${1:-}"; shift || true
-[[ -n "$circuit" ]] || fail "usage: check-vk-derivation.sh <circuit> [--prove]"
+[[ -n "$circuit" ]] \
+  || fail "usage: check-vk-derivation.sh <circuit> [--sr1cs <path>] [--prove | --proof-receipt <path>]"
 run_prove=0
 fresh_sr1cs=""
+proof_receipt=""
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --prove) run_prove=1 ;;
@@ -41,10 +45,17 @@ while [[ "$#" -gt 0 ]]; do
       [[ "$#" -gt 0 ]] || fail "--sr1cs requires a path"
       fresh_sr1cs="$1"
       ;;
+    --proof-receipt)
+      shift
+      [[ "$#" -gt 0 ]] || fail "--proof-receipt requires a path"
+      proof_receipt="$1"
+      ;;
     *) fail "unknown argument $1" ;;
   esac
   shift
 done
+[[ "$run_prove" -eq 0 || -z "$proof_receipt" ]] \
+  || fail "--prove and --proof-receipt are mutually exclusive"
 
 adir="$GNARK_DIR/artifacts/$circuit"
 meta="$adir/circuit_metadata.json"
@@ -96,13 +107,13 @@ cmp -s "$fresh_sr1cs" "$adir/$circuit.sr1cs" \
   || fail "recompiled .sr1cs differs from deployed artifact (source drift)"
 note "recompiled .sr1cs byte-identical to deployed artifact"
 
-# 3. deployed keys prove+verify against the recompiled constraint system
+# 3. deployed keys prove+verify against the recompiled constraint system.
 if [[ "$run_prove" -eq 1 ]]; then
   case "$circuit" in
-    note_reshape2x1) witness_name="note_reshape2x1_witness_v2.bin" ;;
-    note_reshape4x1) witness_name="note_reshape4x1_witness_v2.bin" ;;
-    note_reshape8x1) witness_name="note_reshape8x1_witness_v2.bin" ;;
-    note_reshape1x8) witness_name="note_reshape1x8_witness_v2.bin" ;;
+    note_reshape2x1) witness_name="note_reshape2x1_witness_v3.bin" ;;
+    note_reshape4x1) witness_name="note_reshape4x1_witness_v3.bin" ;;
+    note_reshape8x1) witness_name="note_reshape8x1_witness_v3.bin" ;;
+    note_reshape1x8) witness_name="note_reshape1x8_witness_v3.bin" ;;
     *) witness_name="${circuit}_witness_v1.bin" ;;
   esac
   witness="$GNARK_DIR/internal/testfixtures/vectors/$witness_name"
@@ -112,6 +123,50 @@ if [[ "$run_prove" -eq 1 ]]; then
       --artifact-dir "$adir" --mode prove ) \
     || fail "deployed keys failed prove+verify against the recompiled circuit"
   note "deployed keys prove+verify against the recompiled constraint system"
+elif [[ -n "$proof_receipt" ]]; then
+  [[ -f "$proof_receipt" ]] || fail "missing proof receipt $proof_receipt"
+  receipt_values="$(python3 - "$proof_receipt" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    receipt = json.load(handle)
+expected = {
+    "schema_version",
+    "circuit",
+    "sr1cs_sha256_hex",
+    "proving_key_sha256_hex",
+    "verifying_key_sha256_hex",
+    "proved_and_verified_in_process",
+}
+if set(receipt) != expected:
+    raise SystemExit(f"unexpected proof receipt fields: {sorted(receipt)}")
+if receipt["schema_version"] != 1:
+    raise SystemExit(f"unsupported proof receipt schema {receipt['schema_version']!r}")
+if receipt["proved_and_verified_in_process"] is not True:
+    raise SystemExit("receipt does not attest successful in-process prove+verify")
+for field in (
+    "circuit",
+    "sr1cs_sha256_hex",
+    "proving_key_sha256_hex",
+    "verifying_key_sha256_hex",
+):
+    print(receipt[field])
+PY
+)" || fail "invalid proof receipt $proof_receipt"
+  receipt_circuit="$(sed -n '1p' <<< "$receipt_values")"
+  receipt_sr1cs="$(sed -n '2p' <<< "$receipt_values")"
+  receipt_pk="$(sed -n '3p' <<< "$receipt_values")"
+  receipt_vk="$(sed -n '4p' <<< "$receipt_values")"
+  [[ "$receipt_circuit" == "$circuit" ]] \
+    || fail "proof receipt circuit $receipt_circuit does not match $circuit"
+  [[ "$receipt_sr1cs" == "$(sha "$fresh_sr1cs")" ]] \
+    || fail "proof receipt does not bind the fresh .sr1cs"
+  [[ "$receipt_pk" == "$(sha "$adir/proving_key.bin")" ]] \
+    || fail "proof receipt does not bind deployed proving_key.bin"
+  [[ "$receipt_vk" == "$(sha "$adir/verifying_key.bin")" ]] \
+    || fail "proof receipt does not bind deployed verifying_key.bin"
+  note "in-process proof receipt binds fresh .sr1cs and deployed key bytes"
 else
   note "key<->constraint-system binding NOT exercised (rerun with --prove)"
 fi

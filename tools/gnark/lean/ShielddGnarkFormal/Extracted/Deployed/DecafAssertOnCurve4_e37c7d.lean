@@ -2,7 +2,7 @@ import ProvenZk.Gates
 
 set_option linter.unusedVariables false
 set_option maxRecDepth 100000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 50000000
 
 /-! Auto-generated deployed-slice relation for `decaf.assert_on_curve` (size 4).
 Flat R1CS rows of the gnark partial-evaluated gadget, constants verbatim.

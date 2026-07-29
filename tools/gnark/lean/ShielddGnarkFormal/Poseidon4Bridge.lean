@@ -29,9 +29,9 @@ def p17 (a : Poseidon4Spec.F) : Poseidon4Spec.F :=
   let a8 := a4 * a4
   let a16 := a8 * a8
   a16 * a
-def fr5 := Poseidon4Spec.fr5
-def pr5 := Poseidon4Spec.pr5
-def permSpec4 := Poseidon4Spec.permSpec4
+def fr5 := Poseidon377.Fixed4.fr5
+def pr5 := Poseidon377.Fixed4.pr5
+def permSpec4 := Poseidon377.hash4
 
 open Shieldd.GnarkFormal.Extracted.PoseidonHash4 (F Order)
 
@@ -42,7 +42,7 @@ open Shieldd.GnarkFormal.Extracted.PoseidonHash4
 theorem fullRound_5_5_uncps [Fact (Nat.Prime Order)]
     (st cs : List.Vector F 5) (k : List.Vector F 5 → Prop) :
     poseidonFullRound_5_5 st cs k ↔ k (fr5 st cs) := by
-  unfold poseidonFullRound_5_5 fr5 Poseidon4Spec.fr5 Poseidon4Spec.p17
+  unfold poseidonFullRound_5_5 fr5 Poseidon377.Fixed4.fr5 Poseidon377.Fixed4.p17
   simp only [Extracted.PoseidonHash4.Gates, GatesGnark9, GatesGnark8, GatesDef.add, GatesDef.mul,
     exists_eq_left]
   rfl
@@ -50,7 +50,7 @@ theorem fullRound_5_5_uncps [Fact (Nat.Prime Order)]
 theorem partialRound_5_5_uncps [Fact (Nat.Prime Order)]
     (st cs : List.Vector F 5) (k : List.Vector F 5 → Prop) :
     poseidonPartialRound_5_5 st cs k ↔ k (pr5 st cs) := by
-  unfold poseidonPartialRound_5_5 pr5 Poseidon4Spec.pr5 Poseidon4Spec.p17
+  unfold poseidonPartialRound_5_5 pr5 Poseidon377.Fixed4.pr5 Poseidon377.Fixed4.p17
   simp only [Extracted.PoseidonHash4.Gates, GatesGnark9, GatesGnark8, GatesDef.add, GatesDef.mul,
     exists_eq_left]
   rfl
@@ -58,7 +58,7 @@ theorem partialRound_5_5_uncps [Fact (Nat.Prime Order)]
 theorem perm4_uncps [Fact (Nat.Prime Order)] (Domain In0 In1 In2 In3 : F) (k : F → Prop) :
     poseidonPerm4 Domain In0 In1 In2 In3 k
       ↔ k (permSpec4 Domain In0 In1 In2 In3) := by
-  unfold poseidonPerm4 permSpec4
+  unfold poseidonPerm4 permSpec4 Poseidon377.hash4 Poseidon377.Fixed4.hash
   simp only [fullRound_5_5_uncps, partialRound_5_5_uncps]
   rfl
 
@@ -72,11 +72,6 @@ theorem circuit_sound [Fact (Nat.Prime Order)]
   rw [perm4_uncps]
   rintro ⟨heq, _⟩
   simpa [Extracted.PoseidonHash4.Gates, GatesGnark9, GatesGnark8, GatesDef.eq, eq_comm] using heq
-
--- Parity: the in-circuit rate-4 permutation spec agrees with the M1 de-opaqued
--- `Poseidon377.hash4` on a pinned vector — computational evidence that
--- `permSpec4 = hash4`, so the extracted circuit computes the canonical Poseidon.
-#guard (permSpec4 (99 : F) 2 3 5 7).val == (Poseidon377.hash4 99 2 3 5 7).val
 
 end PoseidonHash4
 

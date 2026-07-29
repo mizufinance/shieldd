@@ -331,7 +331,7 @@ mod tests {
             ),
             (
                 include_str!("../gnark/note_reshape_witness.rs"),
-                vec!["NoteReshapeOutputWitnessV2"],
+                vec!["NoteReshapeOutputWitnessV3"],
             ),
         ] {
             for name in names {

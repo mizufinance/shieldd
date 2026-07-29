@@ -245,7 +245,7 @@ def render_bound(
 theorem {prefix}Commitment
     (rho : Nat → DeployedF)
     (facts : {config.module}CircuitFacts rho){real_parameter} :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress{config.module.removeprefix('NoteReshape')}.shared rho)
       ({prefix}NoteCommitmentInputs0 rho)
       ({prefix}NoteCommitmentInputs1 rho)

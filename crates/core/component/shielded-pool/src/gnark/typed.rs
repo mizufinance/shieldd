@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use ark_ec::{AffineRepr, CurveGroup};
+use ark_ff::One;
 use shieldd_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath};
 
 use crate::gnark::binary::{put_bytes, put_u32, BinaryCursor, MAX_MERKLE_PATH_LAYERS};
@@ -171,4 +172,24 @@ pub(crate) fn point_affine_bytes(point: decaf377::Element) -> Result<PointAffine
         x: x.to_bytes(),
         y: y.to_bytes(),
     })
+}
+
+pub(crate) fn point_affine_compress_to_field_bytes(point: &PointAffineBytes) -> [u8; 32] {
+    fn abs(value: decaf377::Fq) -> decaf377::Fq {
+        if value.to_bytes()[0] & 1 == 0 {
+            value
+        } else {
+            -value
+        }
+    }
+
+    let x = decaf377::Fq::from_le_bytes_mod_order(&point.x);
+    let y = decaf377::Fq::from_le_bytes_mod_order(&point.y);
+    let t = x * y;
+    let u1 = (x + t) * (x - t);
+    let a_minus_d = -decaf377::Fq::from(3022u64);
+    let (_, v) =
+        decaf377::Fq::sqrt_ratio_zeta(&decaf377::Fq::one(), &(u1 * a_minus_d * x.square()));
+    let u2 = abs(v * u1);
+    abs(a_minus_d * v * (u2 - t) * x).to_bytes()
 }

@@ -23,18 +23,11 @@ def stateCommitmentDomain : F :=
 
 theorem stateStep_eq_deployed
     (domain cur s0 s1 s2 b0 b1 : F) :
-    NoteReshapeCanonical.stateCommitmentStep domain cur s0 s1 s2 b0 b1 =
+    Protocol.NoteReshape.Concrete.stateCommitmentStep
+        domain cur s0 s1 s2 b0 b1 =
       Deployed.StateCommitmentPathChoiceFree.recoverStep
         Poseidon4Bridge.permSpec4 domain cur s0 s1 s2 b0 b1 := by
-  have hchildren :
-      NoteReshapeCanonical.stateChildren cur s0 s1 s2 b0 b1 =
-        Deployed.StateCommitmentPathChoiceFree.children cur s0 s1 s2 b0 b1 := by
-    unfold NoteReshapeCanonical.stateChildren
-      Deployed.StateCommitmentPathChoiceFree.children
-    congr 1
-  unfold NoteReshapeCanonical.stateCommitmentStep
-    Deployed.StateCommitmentPathChoiceFree.recoverStep
-  rw [hchildren]
+  rfl
 
 theorem stateRecover_eq_deployed
     (commitment : F)
@@ -42,21 +35,21 @@ theorem stateRecover_eq_deployed
     (b0 b1 : Nat → F)
     (level : Nat)
     (hlevel : level < 24) :
-    NoteReshapeCanonical.stateCommitmentRecover
+    Protocol.NoteReshape.Concrete.stateCommitmentRecover
         commitment membershipPath b0 b1 level =
       Deployed.StateCommitmentPathChoiceFree.recoverPrefix
         Poseidon4Bridge.permSpec4
         (fun k => stateCommitmentDomain + (k : F) + 1)
         (Poseidon1Bridge.permSpec1
           stateCommitmentDomain commitment)
-        (fun k => NoteReshapeCanonical.pathSibling membershipPath k 0)
-        (fun k => NoteReshapeCanonical.pathSibling membershipPath k 1)
-        (fun k => NoteReshapeCanonical.pathSibling membershipPath k 2)
+        (fun k => Protocol.NoteReshape.Concrete.pathSibling membershipPath k 0)
+        (fun k => Protocol.NoteReshape.Concrete.pathSibling membershipPath k 1)
+        (fun k => Protocol.NoteReshape.Concrete.pathSibling membershipPath k 2)
         b0 b1 level := by
   induction level with
   | zero =>
       simp only [
-        NoteReshapeCanonical.stateCommitmentRecover,
+        Protocol.NoteReshape.Concrete.stateCommitmentRecover,
         Deployed.StateCommitmentPathChoiceFree.recoverPrefix
       ]
       rw [stateStep_eq_deployed]
@@ -64,12 +57,15 @@ theorem stateRecover_eq_deployed
   | succ level ih =>
       have hprevious : level < 24 := Nat.lt_trans (Nat.lt_succ_self level) hlevel
       simp only [
-        NoteReshapeCanonical.stateCommitmentRecover,
+        Protocol.NoteReshape.Concrete.stateCommitmentRecover,
         Deployed.StateCommitmentPathChoiceFree.recoverPrefix
       ]
       rw [ih hprevious, stateStep_eq_deployed]
       congr 1
-      simp [NoteReshapeCanonical.stateCommitmentDomain, stateCommitmentDomain]
+      simp [
+        Protocol.NoteReshape.Concrete.stateCommitmentDomain,
+        stateCommitmentDomain
+      ]
       ring
 
 end Shieldd.GnarkFormal.NoteReshapeStateBridge

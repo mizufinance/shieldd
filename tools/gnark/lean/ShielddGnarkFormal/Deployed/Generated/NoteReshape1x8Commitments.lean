@@ -108,7 +108,7 @@ theorem spend0NoteCommitmentAsserted
 theorem spend0Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress1x8.shared rho)
       (spend0NoteCommitmentInputs0 rho)
       (spend0NoteCommitmentInputs1 rho)
@@ -242,7 +242,7 @@ theorem output0NoteCommitmentAsserted
 theorem output0Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress1x8.shared rho)
       (output0NoteCommitmentInputs0 rho)
       (output0NoteCommitmentInputs1 rho)
@@ -376,7 +376,7 @@ theorem output1NoteCommitmentAsserted
 theorem output1Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress1x8.shared rho)
       (output1NoteCommitmentInputs0 rho)
       (output1NoteCommitmentInputs1 rho)
@@ -510,7 +510,7 @@ theorem output2NoteCommitmentAsserted
 theorem output2Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress1x8.shared rho)
       (output2NoteCommitmentInputs0 rho)
       (output2NoteCommitmentInputs1 rho)
@@ -644,7 +644,7 @@ theorem output3NoteCommitmentAsserted
 theorem output3Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress1x8.shared rho)
       (output3NoteCommitmentInputs0 rho)
       (output3NoteCommitmentInputs1 rho)
@@ -778,7 +778,7 @@ theorem output4NoteCommitmentAsserted
 theorem output4Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress1x8.shared rho)
       (output4NoteCommitmentInputs0 rho)
       (output4NoteCommitmentInputs1 rho)
@@ -912,7 +912,7 @@ theorem output5NoteCommitmentAsserted
 theorem output5Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress1x8.shared rho)
       (output5NoteCommitmentInputs0 rho)
       (output5NoteCommitmentInputs1 rho)
@@ -1046,7 +1046,7 @@ theorem output6NoteCommitmentAsserted
 theorem output6Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress1x8.shared rho)
       (output6NoteCommitmentInputs0 rho)
       (output6NoteCommitmentInputs1 rho)
@@ -1180,7 +1180,7 @@ theorem output7NoteCommitmentAsserted
 theorem output7Commitment
     (rho : Nat → DeployedF)
     (facts : NoteReshape1x8CircuitFacts rho) :
-    NoteReshapeCanonical.noteCommitment
+    Protocol.NoteReshape.Concrete.noteCommitment
       (NoteReshapeCanonicalAddress1x8.shared rho)
       (output7NoteCommitmentInputs0 rho)
       (output7NoteCommitmentInputs1 rho)

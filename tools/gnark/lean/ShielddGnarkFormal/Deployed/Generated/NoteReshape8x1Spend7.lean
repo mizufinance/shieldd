@@ -280,8 +280,10 @@ theorem realNullifier
       (NoteReshapeCanonicalAddress8x1.authorization rho)
       (realInput7 rho) := by
   unfold NoteReshapeCanonical.realNullifier
+  unfold Protocol.NoteReshape.Concrete.realNullifier
   simp only [realInput7, NoteReshapeCanonicalAddress8x1.authorization]
   rw [claimedNullifierReal rho facts real, realNullifierHash rho facts]
+  rfl
 
 theorem dummyAmountZero
     (rho : Nat → DeployedF)
@@ -313,9 +315,10 @@ theorem dummyNullifier
     (dummyFlag : rho 669 = 1) :
     NoteReshapeCanonical.dummyNullifier (dummyInput7 rho) := by
   unfold NoteReshapeCanonical.dummyNullifier
+  unfold Protocol.NoteReshape.Concrete.dummyNullifier
   simp only [dummyInput7]
   rw [claimedNullifierDummy rho facts dummyFlag, dummyNullifierHash rho facts]
-  simp
+  rfl
 
 def computedRk (rho : Nat → DeployedF) : Decaf377Assumptions.Point :=
   ⟨spend7RkReal0 rho, spend7RkReal1 rho⟩

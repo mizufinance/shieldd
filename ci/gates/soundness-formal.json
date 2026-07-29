@@ -51,6 +51,7 @@
         "tools/gnark/lean/ShielddGnarkFormal/Poseidon6Spec.lean",
         "tools/gnark/lean/ShielddGnarkFormal/Poseidon7Spec.lean",
         "tools/gnark/lean/ShielddGnarkFormal/Poseidon377*",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/**",
         "tools/gnark/lean/ShielddGnarkFormal/ChoiceFreeZMod*",
         "tools/gnark/lean/ShielddGnarkFormal/NoteReshapeCanonical.lean",
         "tools/gnark/lean/ShielddGnarkFormal/NoteReshape*Bridge.lean",

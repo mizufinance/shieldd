@@ -541,10 +541,10 @@ jobs:
           elif [[ "$SOUNDNESS_STATUS" == skip ]]; then
             echo "soundness explained skip: $SOUNDNESS_EXPLANATION"
           else
-            if [[ "$SOUNDNESS_TIER" != stamps && "$SOUNDNESS_TIER" != full ]]; then
-              echo "unsupported soundness tier: $SOUNDNESS_TIER" >&2
-              exit 1
-            fi
+            # A successful applicability job has already validated the tier
+            # against ci/gates/soundness-formal.json. Every runnable soundness
+            # tier selects the same result lanes, so duplicating the tier enum
+            # here can only drift from the declaration.
             required+=(
               "soundness-gate=$GATE" "soundness-seam-and-pin=$SEAM"
               "soundness-vk-derivation=$VK" "soundness-lean-circuit-fv=$LEAN"

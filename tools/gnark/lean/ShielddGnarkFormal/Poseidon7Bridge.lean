@@ -25,9 +25,9 @@ def row8
       Poseidon7Spec.F) : Poseidon7Spec.F :=
   c0 * x0 + c1 * x1 + c2 * x2 + c3 * x3 + c4 * x4 + c5 * x5 +
     c6 * x6 + c7 * x7
-def fr8 := Poseidon7Spec.fr8
-def pr8 := Poseidon7Spec.pr8
-def permSpec7 := Poseidon7Spec.permSpec7
+def fr8 := Poseidon377.Fixed7.fr8
+def pr8 := Poseidon377.Fixed7.pr8
+def permSpec7 := Poseidon377.hash7
 
 open Shieldd.GnarkFormal.Extracted.PoseidonHash7
 def hash7Spec (Domain In0 In1 In2 In3 In4 In5 In6 : F) : F :=
@@ -78,8 +78,8 @@ theorem natCastSum8MulEq
 theorem fullRound_8_8_uncps [Fact (Nat.Prime Order)]
     (st cs : List.Vector F 8) (k : List.Vector F 8 → Prop) :
     poseidonFullRound_8_8 st cs k ↔ k (fr8 st cs) := by
-  unfold poseidonFullRound_8_8 fr8 Poseidon7Spec.fr8
-    Poseidon7Spec.row8 Poseidon7Spec.p17
+  unfold poseidonFullRound_8_8 fr8 Poseidon377.Fixed7.fr8
+    Poseidon377.Fixed7.row8 Poseidon377.Fixed7.p17
   simp only [Extracted.PoseidonHash7.Gates, GatesGnark9, GatesGnark8, GatesDef.add, GatesDef.mul,
     exists_eq_left]
   rfl
@@ -87,8 +87,8 @@ theorem fullRound_8_8_uncps [Fact (Nat.Prime Order)]
 theorem partialRound_8_8_uncps [Fact (Nat.Prime Order)]
     (st cs : List.Vector F 8) (k : List.Vector F 8 → Prop) :
     poseidonPartialRound_8_8 st cs k ↔ k (pr8 st cs) := by
-  unfold poseidonPartialRound_8_8 pr8 Poseidon7Spec.pr8
-    Poseidon7Spec.row8 Poseidon7Spec.p17
+  unfold poseidonPartialRound_8_8 pr8 Poseidon377.Fixed7.pr8
+    Poseidon377.Fixed7.row8 Poseidon377.Fixed7.p17
   simp only [Extracted.PoseidonHash7.Gates, GatesGnark9, GatesGnark8, GatesDef.add, GatesDef.mul,
     exists_eq_left]
   rfl
@@ -97,7 +97,7 @@ theorem perm7_uncps [Fact (Nat.Prime Order)]
     (Domain In0 In1 In2 In3 In4 In5 In6 : F) (k : F → Prop) :
     poseidonPerm7 Domain In0 In1 In2 In3 In4 In5 In6 k
       ↔ k (permSpec7 Domain In0 In1 In2 In3 In4 In5 In6) := by
-  unfold poseidonPerm7 permSpec7
+  unfold poseidonPerm7 permSpec7 Poseidon377.hash7 Poseidon377.Fixed7.hash
   simp only [fullRound_8_8_uncps, partialRound_8_8_uncps]
   rfl
 
@@ -117,8 +117,5 @@ theorem circuit_sound_eq [Fact (Nat.Prime Order)]
   rw [perm7_uncps]
   rintro ⟨heq, _⟩
   simpa [Extracted.PoseidonHash7.Gates, GatesGnark9, GatesGnark8, GatesDef.eq, eq_comm] using heq
-
-#guard (hash7Spec Poseidon377.hash7Domain 1 2 3 4 5 6 7).val =
-  4343785876047570911133173947224221823797937726350094165458715664628871658969
 
 end Shieldd.GnarkFormal.Poseidon7Bridge

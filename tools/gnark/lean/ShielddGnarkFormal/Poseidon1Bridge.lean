@@ -18,14 +18,11 @@ def p17 (a : Poseidon1Spec.F) : Poseidon1Spec.F :=
   let a8 := a4 * a4
   let a16 := a8 * a8
   a16 * a
-def fr2 := Poseidon1Spec.fr2
-def pr2 := Poseidon1Spec.pr2
-def permSpec1 := Poseidon1Spec.permSpec1
+def fr2 := Poseidon377.Fixed1.fr2
+def pr2 := Poseidon377.Fixed1.pr2
+def permSpec1 := Poseidon377.hash1
 
 open Shieldd.GnarkFormal.Extracted.PoseidonHash1
-
-def hash1Spec (Domain In0 : F) : F :=
-  Poseidon377.hash1 Domain In0
 
 theorem circuit_sound [Fact (Nat.Prime Order)]
     (Domain In0 Out : F) :
@@ -45,7 +42,7 @@ to `k` applied to the composed round spec at the sponge output coordinate. -/
 theorem fullRound_2_2_uncps [Fact (Nat.Prime Order)]
     (st cs : List.Vector F 2) (k : List.Vector F 2 → Prop) :
     poseidonFullRound_2_2 st cs k ↔ k (fr2 st cs) := by
-  unfold poseidonFullRound_2_2 fr2 Poseidon1Spec.fr2 Poseidon1Spec.p17
+  unfold poseidonFullRound_2_2 fr2 Poseidon377.Fixed1.fr2 Poseidon377.Fixed1.p17
   simp only [Extracted.PoseidonHash1.Gates, GatesGnark9, GatesGnark8, GatesDef.add, GatesDef.mul,
     exists_eq_left]
   rfl
@@ -53,20 +50,15 @@ theorem fullRound_2_2_uncps [Fact (Nat.Prime Order)]
 theorem partialRound_2_2_uncps [Fact (Nat.Prime Order)]
     (st cs : List.Vector F 2) (k : List.Vector F 2 → Prop) :
     poseidonPartialRound_2_2 st cs k ↔ k (pr2 st cs) := by
-  unfold poseidonPartialRound_2_2 pr2 Poseidon1Spec.pr2 Poseidon1Spec.p17
+  unfold poseidonPartialRound_2_2 pr2 Poseidon377.Fixed1.pr2 Poseidon377.Fixed1.p17
   simp only [Extracted.PoseidonHash1.Gates, GatesGnark9, GatesGnark8, GatesDef.add, GatesDef.mul,
     exists_eq_left]
   rfl
 
 theorem perm1_uncps [Fact (Nat.Prime Order)] (Domain In0 : F) (k : F → Prop) :
     poseidonPerm1 Domain In0 k ↔ k (permSpec1 Domain In0) := by
-  unfold poseidonPerm1 permSpec1
+  unfold poseidonPerm1 permSpec1 Poseidon377.hash1 Poseidon377.Fixed1.hash
   simp only [fullRound_2_2_uncps, partialRound_2_2_uncps]
   rfl
-
-#guard (hash1Spec 13 2).val =
-  (Poseidon377.hash1 13 2).val
-
-#guard (permSpec1 13 2).val = (Poseidon377.hash1 13 2).val
 
 end Shieldd.GnarkFormal.Poseidon1Bridge

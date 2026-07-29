@@ -376,6 +376,18 @@ func TransferStatementHashNativeForShape(
 	)
 }
 
+func NoteReshapeStatementHashNativeForShape(
+	fields []*big.Int,
+	label string,
+	nIn, nOut int,
+) (*big.Int, error) {
+	return transferStatementHashNative(
+		fields,
+		label,
+		NoteReshapeStatementFieldCount(nIn, nOut),
+	)
+}
+
 func ShieldedIcs20WithdrawalStatementHashNativeForShape(
 	fields []*big.Int,
 	nIn int,

@@ -52,18 +52,20 @@ theorem actionClaimedStatementHash
         ← Generated.NoteReshape4x1Spend2.claimedNullifierSelected rho facts,
         ← Generated.NoteReshape4x1Spend3.claimedNullifierSelected rho facts
       ]
-      simp only [
-        action, output0,
-        NoteReshapeCanonical.statementFields,
-        NoteReshapeCanonical.inputStatementFields,
-        input0Nullifier, input1Nullifier, input2Nullifier, input3Nullifier,
-        List.map, List.append, Action.policy, Action.anchor, Action.outputs,
-        Action.inputs, Output.commitment
-      ]
-      rw [
-        input0Nullifier, input1Nullifier,
-        input2Nullifier, input3Nullifier
-      ]
-      rfl
+      apply congrArg₂ NoteReshapeCanonical.statementHash
+      · rfl
+      · simp [
+          action, output0,
+          NoteReshapeCanonical.statementFields,
+          NoteReshapeCanonical.inputStatementFields,
+          Protocol.NoteReshape.Concrete.statementFields,
+          Protocol.NoteReshape.Concrete.inputStatementFields
+        ]
+        exact ⟨
+          (input0Nullifier rho).symm,
+          (input1Nullifier rho).symm,
+          (input2Nullifier rho).symm,
+          (input3Nullifier rho).symm
+        ⟩
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape4x1Refinement.C

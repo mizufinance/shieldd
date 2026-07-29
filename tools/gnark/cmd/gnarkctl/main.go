@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -80,6 +81,15 @@ func usage() {
 // gate from one frontend compile. Keeping this operation in one process is
 // important: export-r1cs followed by export-manifest would compile the same
 // expensive family twice.
+type fvProofReceipt struct {
+	SchemaVersion              uint32 `json:"schema_version"`
+	Circuit                    string `json:"circuit"`
+	SR1CSSHA256Hex             string `json:"sr1cs_sha256_hex"`
+	ProvingKeySHA256Hex        string `json:"proving_key_sha256_hex"`
+	VerifyingKeySHA256Hex      string `json:"verifying_key_sha256_hex"`
+	ProvedAndVerifiedInProcess bool   `json:"proved_and_verified_in_process"`
+}
+
 func runExportFV(args []string) error {
 	fs := flag.NewFlagSet("export-fv", flag.ContinueOnError)
 	circuit := fs.String("circuit", "", "registered NoteReshape family label")
@@ -88,6 +98,7 @@ func runExportFV(args []string) error {
 	prove := fs.Bool("prove", false, "prove and verify with deployed keys in the same compiled process")
 	witnessPath := fs.String("witness", "", "witness binary path for --prove")
 	artifactDir := fs.String("artifact-dir", "", "deployed key artifact directory for --prove")
+	proofReceiptPath := fs.String("proof-receipt-out", "", "proof receipt path required with --prove")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -121,8 +132,8 @@ func runExportFV(args []string) error {
 		return err
 	}
 	if *prove {
-		if *witnessPath == "" || *artifactDir == "" {
-			return fmt.Errorf("--witness and --artifact-dir are required with --prove")
+		if *witnessPath == "" || *artifactDir == "" || *proofReceiptPath == "" {
+			return fmt.Errorf("--witness, --artifact-dir, and --proof-receipt-out are required with --prove")
 		}
 		payload, err := os.ReadFile(*witnessPath)
 		if err != nil {
@@ -158,9 +169,58 @@ func runExportFV(args []string) error {
 		if err := groth16.Verify(proof, vk, publicWitness); err != nil {
 			return fmt.Errorf("verify: %w", err)
 		}
+		pkHash, err := sha256FileHex(filepath.Join(*artifactDir, "proving_key.bin"))
+		if err != nil {
+			return err
+		}
+		vkHash, err := sha256FileHex(filepath.Join(*artifactDir, "verifying_key.bin"))
+		if err != nil {
+			return err
+		}
+		receipt := fvProofReceipt{
+			SchemaVersion:              1,
+			Circuit:                    *circuit,
+			SR1CSSHA256Hex:             fmt.Sprintf("%x", sum[:]),
+			ProvingKeySHA256Hex:        pkHash,
+			VerifyingKeySHA256Hex:      vkHash,
+			ProvedAndVerifiedInProcess: true,
+		}
+		if err := writeJSONFile(*proofReceiptPath, receipt); err != nil {
+			return fmt.Errorf("write proof receipt: %w", err)
+		}
 		fmt.Fprintf(os.Stderr, "deployed keys prove-verify ok for %s\n", *circuit)
+	} else if *proofReceiptPath != "" {
+		return fmt.Errorf("--proof-receipt-out requires --prove")
 	}
 	fmt.Fprintf(os.Stderr, "wrote FV artifacts for %s (constraints %d)\n", *circuit, manifest.NbConstraints)
+	return nil
+}
+
+func sha256FileHex(path string) (string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("open %s for hashing: %w", path, err)
+	}
+	defer file.Close()
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return "", fmt.Errorf("hash %s: %w", path, err)
+	}
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
+}
+
+func writeJSONFile(path string, value any) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create output directory: %w", err)
+	}
+	data, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode JSON: %w", err)
+	}
+	data = append(data, '\n')
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -726,7 +786,7 @@ func runReplay(args []string) error {
 			break
 		}
 		if family, ok := generated.NoteReshapeFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(payload)
+			assignment, _, err = abi.NewNoteReshapeCircuitAssignmentFromWitnessV3(payload)
 			if err != nil {
 				return err
 			}
@@ -1025,14 +1085,18 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 			}, err
 		}
 		if _, ok := generated.NoteReshapeFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeNoteReshapeWitnessV2(witnessPayload)
+			decoded, _, err := abi.DecodeNoteReshapeWitnessV3(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV2(witnessPayload)
+			statementFields, err := abi.ReconstructedNoteReshapeStatementFieldsFromWitnessV3(decoded)
+			if err != nil {
+				return nil, witnessSummary{}, err
+			}
+			assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV3(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
-				StatementFields:      vec32Strings(decoded.StatementFields),
+				StatementFields:      vec32Strings(statementFields),
 			}, err
 		}
 		if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(circuit); ok {

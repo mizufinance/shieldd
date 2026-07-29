@@ -2,8 +2,10 @@ package abi
 
 import (
 	"bytes"
+	"math/big"
 	"testing"
 
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
 
@@ -56,17 +58,33 @@ func TestRustGoStatementFieldDifferential(t *testing.T) {
 		{name: "note_reshape8x1", label: "note_reshape8x1"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			witness, _, err := DecodeNoteReshapeWitnessV2(
-				testfixtures.LoadNoteReshapeWitnessV2(tc.label),
+			witness, _, err := DecodeNoteReshapeWitnessV3(
+				testfixtures.LoadNoteReshapeWitnessV3(tc.label),
 			)
 			if err != nil {
 				t.Fatalf("decode note reshape witness: %v", err)
 			}
-			reconstructed, err := ReconstructedNoteReshapeStatementFieldsFromWitnessV2(witness)
+			reconstructed, err := ReconstructedNoteReshapeStatementFieldsFromWitnessV3(witness)
 			if err != nil {
 				t.Fatalf("reconstruct note reshape statement fields: %v", err)
 			}
-			assertStatementFieldsMatch(t, tc.name, reconstructed, witness.StatementFields)
+			nativeFields := make([]*big.Int, len(reconstructed))
+			for i, field := range reconstructed {
+				nativeFields[i] = primitives.LittleEndianBytesToBigInt(field[:])
+			}
+			hash, err := primitives.NoteReshapeStatementHashNativeForShape(
+				nativeFields,
+				tc.label,
+				int(witness.NIn),
+				int(witness.NOut),
+			)
+			if err != nil {
+				t.Fatalf("hash reconstructed note reshape statement fields: %v", err)
+			}
+			claimed := primitives.LittleEndianBytesToBigInt(witness.ClaimedStatementHash[:])
+			if hash.Cmp(claimed) != 0 {
+				t.Fatalf("%s reconstructed statement hash mismatch:\ngot=%s\nwant=%s", tc.name, hash, claimed)
+			}
 		})
 	}
 }

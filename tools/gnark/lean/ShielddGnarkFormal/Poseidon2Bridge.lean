@@ -20,9 +20,9 @@ def p17 (a : Poseidon2Spec.F) : Poseidon2Spec.F :=
   let a8 := a4 * a4
   let a16 := a8 * a8
   a16 * a
-def fr3 := Poseidon2Spec.fr3
-def pr3 := Poseidon2Spec.pr3
-def permSpec2 := Poseidon2Spec.permSpec2
+def fr3 := Poseidon377.Fixed2.fr3
+def pr3 := Poseidon377.Fixed2.pr3
+def permSpec2 := Poseidon377.hash2
 
 open Shieldd.GnarkFormal.Extracted.Poseidon2
   (F Order poseidonFullRound_3_3 poseidonPartialRound_3_3 poseidonPerm2)
@@ -30,7 +30,7 @@ open Shieldd.GnarkFormal.Extracted.Poseidon2
 theorem fullRound_3_3_uncps [Fact (Nat.Prime Order)]
     (st cs : List.Vector F 3) (k : List.Vector F 3 → Prop) :
     poseidonFullRound_3_3 st cs k ↔ k (fr3 st cs) := by
-  unfold poseidonFullRound_3_3 fr3 Poseidon2Spec.fr3 Poseidon2Spec.p17
+  unfold poseidonFullRound_3_3 fr3 Poseidon377.Fixed2.fr3 Poseidon377.Fixed2.p17
   simp only [Extracted.Poseidon2.Gates, GatesGnark9, GatesGnark8, GatesDef.add, GatesDef.mul,
     exists_eq_left]
   rfl
@@ -38,7 +38,7 @@ theorem fullRound_3_3_uncps [Fact (Nat.Prime Order)]
 theorem partialRound_3_3_uncps [Fact (Nat.Prime Order)]
     (st cs : List.Vector F 3) (k : List.Vector F 3 → Prop) :
     poseidonPartialRound_3_3 st cs k ↔ k (pr3 st cs) := by
-  unfold poseidonPartialRound_3_3 pr3 Poseidon2Spec.pr3 Poseidon2Spec.p17
+  unfold poseidonPartialRound_3_3 pr3 Poseidon377.Fixed2.pr3 Poseidon377.Fixed2.p17
   simp only [Extracted.Poseidon2.Gates, GatesGnark9, GatesGnark8, GatesDef.add, GatesDef.mul,
     exists_eq_left]
   rfl
@@ -46,15 +46,8 @@ theorem partialRound_3_3_uncps [Fact (Nat.Prime Order)]
 theorem perm2_uncps [Fact (Nat.Prime Order)] (Domain In0 In1 : F) (k : F → Prop) :
     poseidonPerm2 Domain In0 In1 k
       ↔ k (permSpec2 Domain In0 In1) := by
-  unfold poseidonPerm2 permSpec2
+  unfold poseidonPerm2 permSpec2 Poseidon377.hash2 Poseidon377.Fixed2.hash
   simp only [fullRound_3_3_uncps, partialRound_3_3_uncps]
   rfl
-
--- Parity: the in-circuit permutation spec `permSpec2` agrees with the M1
--- de-opaqued `Poseidon377.hash2` (pinned against the gnark/Go ground truth) on
--- the rate-2 test vector — computational evidence that `permSpec2 = hash2`, so
--- the extracted circuit computes the canonical Poseidon.
-#guard (permSpec2 Poseidon377.ivkDomain 7 11).val ==
-  1441550953274438655341915812961996192754361092794905114725623381154107556137
 
 end Shieldd.GnarkFormal.Poseidon2Bridge
