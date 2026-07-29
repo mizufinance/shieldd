@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import io
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -105,6 +106,29 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         path = package_pattern[:-2] + "src/lib.rs"
         decision = GATE.classify(self.orbis, "pull_request", [path], rules)
+        self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
+        self.assertIn("declared skips", decision.explanation)
+        self.assertIn("outside the declared closure", decision.matched[0]["reason"])
+
+    def test_known_package_outside_snarkpack_closure_is_explained_skip(
+        self,
+    ) -> None:
+        source = next(
+            item
+            for item in self.snarkpack.derived_inputs
+            if item["type"] == "cargo_local_closure"
+        )
+        rules = GATE.cargo_closure_rules(
+            self.root, source, "pull_request"
+        )
+        outside = rules[1]
+        package_pattern = next(
+            pattern for pattern in outside.patterns if pattern.endswith("/**")
+        )
+        path = package_pattern[:-2] + "src/lib.rs"
+        decision = GATE.classify(
+            self.snarkpack, "pull_request", [path], rules
+        )
         self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
         self.assertIn("declared skips", decision.explanation)
         self.assertIn("outside the declared closure", decision.matched[0]["reason"])
@@ -224,15 +248,164 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual(queue.tier, "full")
         self.assertEqual(pr.unknown_files, ("new-area/input.bin",))
 
-    def test_documentation_only_change_is_explained_skip(self) -> None:
-        decision = GATE.classify(
-            self.snarkpack,
-            "pull_request",
-            ["docs/architecture/unrelated.md"],
-            [],
+    def test_audited_unrelated_changes_skip_both_formal_families(self) -> None:
+        for path in (
+            "README.md",
+            "deployments/compose/README.md",
+            "docs/architecture/unrelated.md",
+        ):
+            for declaration in (self.snarkpack, self.soundness):
+                with self.subTest(path=path, gate=declaration.gate):
+                    decision = GATE.classify(
+                        declaration,
+                        "pull_request",
+                        [path],
+                        [],
+                    )
+                    self.assertEqual(
+                        (decision.status, decision.tier),
+                        ("skip", "skip"),
+                    )
+                    self.assertIn("declared skips", decision.explanation)
+
+    def test_shipping_application_boundary_never_uses_outside_package_skip(
+        self,
+    ) -> None:
+        source = next(
+            item
+            for item in self.snarkpack.derived_inputs
+            if item["type"] == "cargo_local_closure"
         )
-        self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
-        self.assertIn("declared skips", decision.explanation)
+        rules = GATE.cargo_closure_rules(
+            self.root, source, "pull_request"
+        )
+        paths = (
+            "crates/core/app/Cargo.toml",
+            "crates/core/app/src/action_handler/actions.rs",
+            "crates/core/app/src/app/mod.rs",
+            "crates/core/app/src/app/preconsensus.rs",
+            "crates/core/app/src/app/validation_support.rs",
+            "crates/core/app/src/server/consensus.rs",
+            "crates/core/app/src/stateless_cache.rs",
+        )
+        for path in paths:
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.snarkpack,
+                    "pull_request",
+                    [path],
+                    rules,
+                )
+                self.assertEqual((decision.status, decision.tier), ("run", "full"))
+
+    def test_single_star_does_not_cross_a_path_separator(self) -> None:
+        self.assertTrue(GATE._matches("Ipp/Goal.lean", ("Ipp/*.lean",)))
+        self.assertFalse(
+            GATE._matches("Ipp/Extracted/Generated.lean", ("Ipp/*.lean",))
+        )
+        self.assertTrue(
+            GATE._matches("Ipp/Extracted/Generated.lean", ("Ipp/**",))
+        )
+
+    def test_every_snarkpack_lane_is_applicability_gated(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        lanes = re.findall(
+            r"(?ms)^  (snarkpack-[a-z0-9-]+):\n"
+            r"(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+            workflow,
+        )
+        self.assertEqual(
+            {lane for lane, _ in lanes},
+            {
+                "snarkpack-static",
+                "snarkpack-toolchain",
+                "snarkpack-fstar",
+                "snarkpack-parity",
+                "snarkpack-rust-reference",
+                "snarkpack-fuzz",
+                "snarkpack-dos",
+            },
+        )
+        for lane, body in lanes:
+            with self.subTest(lane=lane):
+                self.assertIn("needs: applicability", body)
+                self.assertIn(
+                    "needs.applicability.outputs.snarkpack_run == 'true'",
+                    body,
+                )
+
+    def test_every_soundness_lane_is_applicability_gated(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        lanes = re.findall(
+            r"(?ms)^  (soundness-[a-z0-9-]+):\n"
+            r"(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+            workflow,
+        )
+        self.assertEqual(
+            {lane for lane, _ in lanes},
+            {
+                "soundness-gate",
+                "soundness-seam-and-pin",
+                "soundness-vk-derivation",
+                "soundness-alloy",
+                "soundness-lean-circuit-fv",
+            },
+        )
+        for lane, body in lanes:
+            with self.subTest(lane=lane):
+                self.assertIn("needs: applicability", body)
+                self.assertIn(
+                    "needs.applicability.outputs.soundness_run == 'true'",
+                    body,
+                )
+
+    def test_formal_workflow_does_not_run_on_standalone_branch_pushes(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        triggers = re.search(
+            r"(?ms)^on:\n(.*?)(?=^concurrency:\n)",
+            workflow,
+        )
+        self.assertIsNotNone(triggers)
+        assert triggers is not None
+        self.assertIn("  pull_request:", triggers.group(1))
+        self.assertNotRegex(triggers.group(1), r"(?m)^  push:")
+
+    def test_downstream_jobs_checkout_the_frozen_candidate_sha(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        applicability, downstream = workflow.split(
+            "\n  # ---------------------------------------------------------------- snarkpack\n",
+            maxsplit=1,
+        )
+        self.assertIn("candidate_sha: ${{ steps.candidate.outputs.sha }}", applicability)
+        self.assertEqual(applicability.count("ref: ${{ env.CANDIDATE_REF }}"), 1)
+        self.assertNotIn("ref: ${{ env.CANDIDATE_REF }}", downstream)
+        self.assertGreaterEqual(
+            downstream.count(
+                "ref: ${{ needs.applicability.outputs.candidate_sha }}"
+            ),
+            12,
+        )
+
+    def test_reusable_scheduled_run_honors_its_target_ref(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "CANDIDATE_REF: ${{ inputs.target_ref || '' }}",
+            workflow,
+        )
+        self.assertNotIn(
+            "github.event_name == 'workflow_call') && inputs.target_ref",
+            workflow,
+        )
 
     def test_schedule_and_workflow_call_do_not_resolve_derived_inputs(self) -> None:
         for event in ("schedule", "workflow_call"):

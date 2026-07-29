@@ -9,6 +9,11 @@ name: formal
 #
 # The scheduled-only provers live in soundness-provers.yml, which has no
 # pull_request trigger, so they never appear as skipped checks here.
+#
+# There is deliberately no `push` trigger: a standalone feature branch starts
+# no formal workflow. Pull requests still run the cheap applicability/summary
+# contract so branch protection receives a conclusive status, while every
+# expensive lane below is guarded by that classifier.
 
 on:
   workflow_call:
@@ -39,7 +44,11 @@ permissions:
   contents: read
 
 env:
-  CANDIDATE_REF: ${{ (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch') && inputs.target_ref || '' }}
+  # Reusable workflows retain the caller's event name (for example
+  # `schedule`), so select an explicitly supplied target independently of the
+  # event. PR and merge-queue runs have no target_ref and use their checked-out
+  # candidate commit.
+  CANDIDATE_REF: ${{ inputs.target_ref || '' }}
   SNARKPACK_FUZZ_TOOLCHAIN: nightly-2025-09-30
   CARGO_FUZZ_VERSION: 0.13.2
 
@@ -51,6 +60,7 @@ jobs:
     env:
       RUSTUP_TOOLCHAIN: stable
     outputs:
+      candidate_sha: ${{ steps.candidate.outputs.sha }}
       snarkpack_status: ${{ steps.snarkpack.outputs.status }}
       snarkpack_tier: ${{ steps.snarkpack.outputs.tier }}
       snarkpack_run: ${{ steps.snarkpack.outputs.run }}
@@ -65,6 +75,17 @@ jobs:
         with:
           ref: ${{ env.CANDIDATE_REF }}
           fetch-depth: 0
+      - name: Freeze the candidate commit
+        id: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          candidate_sha="$(git rev-parse --verify HEAD^{commit})"
+          [[ "$candidate_sha" =~ ^[0-9a-f]{40}$ ]] || {
+            echo "invalid candidate commit: $candidate_sha" >&2
+            exit 1
+          }
+          echo "sha=$candidate_sha" >> "$GITHUB_OUTPUT"
       # GITHUB_OUTPUT is per-step, so both classifications can write `tier`
       # without colliding; they are read back as steps.<id>.outputs.tier.
       - name: Classify snarkpack applicability
@@ -113,7 +134,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -137,7 +158,7 @@ jobs:
       needs.applicability.outputs.snarkpack_run == 'true' &&
       needs.applicability.outputs.snarkpack_tier != 'static'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:
@@ -155,7 +176,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
       # actions/checkout adds safe.directory under a *temporary* HOME and then
       # restores it, so the exemption is gone by the time a step shells out to
@@ -169,8 +190,20 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: crates/crypto/proof-aggregation/formal/lean-ipp/.lake
-          key: lean-ipp-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/**/*.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}
+          key: lean-ipp-v2-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/**/*.lean') }}
+          restore-keys: |
+            lean-ipp-v2-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-
+      - name: Restore extraction build cache
+        id: extraction_cache
+        if: matrix.lane == 'extract'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: target
+          key: snarkpack-extract-v2-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml') }}-${{ hashFiles('crates/crypto/proof-aggregation/src/**/*.rs', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/*.py', 'crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json') }}
+          restore-keys: |
+            snarkpack-extract-v2-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml') }}-
       - name: Run toolchain lane
+        id: toolchain_lane
         shell: bash
         env:
           APPLICABILITY_TIER: ${{ needs.applicability.outputs.snarkpack_tier }}
@@ -196,6 +229,84 @@ jobs:
               exit 1
               ;;
           esac
+      # A stale vendored extraction must keep this job red. Regenerate only
+      # graphs whose declared source/output hashes prove them stale, one graph
+      # per process, then upload the reviewed candidate tree for a follow-up
+      # commit. This never turns a failed comparison into a passing gate.
+      - name: Materialize stale extraction candidates
+        id: extraction_recovery
+        if: failure() && matrix.lane == 'extract'
+        shell: bash
+        run: |
+          set -euo pipefail
+          extractor=crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py
+          declared_count="$(
+            python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path(
+              "crates/crypto/proof-aggregation/formal/snarkpack/"
+              "lean-extraction-manifest.json"
+          ).read_text(encoding="utf-8"))
+          print(len(manifest["graphs"]))
+          PY
+          )"
+          regenerated=()
+          declare -A seen=()
+          while true; do
+            stale_output="$(python3 "$extractor" stale)"
+            stale_graphs=()
+            if [[ -n "$stale_output" ]]; then
+              mapfile -t stale_graphs <<< "$stale_output"
+            fi
+            ((${#stale_graphs[@]} > 0)) || break
+            graph="${stale_graphs[0]}"
+            if [[ -n "${seen[$graph]:-}" ]]; then
+              echo "graph remained stale after regeneration: $graph" >&2
+              exit 1
+            fi
+            seen["$graph"]=1
+            regenerated+=("$graph")
+            ((${#regenerated[@]} <= declared_count)) || {
+              echo "stale-graph recovery exceeded declared inventory" >&2
+              exit 1
+            }
+            python3 "$extractor" regenerate \
+              --graph "$graph" \
+              --update-manifest
+          done
+          ((${#regenerated[@]} > 0)) || {
+            echo "extraction failed without source/output hash drift; no recovery artifact" >&2
+            exit 1
+          }
+          python3 "$extractor" check
+          compare_args=()
+          for graph in "${regenerated[@]}"; do
+            compare_args+=(--graph "$graph")
+          done
+          python3 "$extractor" compare "${compare_args[@]}"
+      - name: Upload regenerated extraction candidates
+        if: failure() && matrix.lane == 'extract' && steps.extraction_recovery.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: snarkpack-regenerated-extractions
+          path: |
+            crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/*Generated.lean
+            crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json
+          if-no-files-found: error
+      # The comparison remains red when recovery was needed, but the successful
+      # serialized compiler work is still safe to reuse on the follow-up commit.
+      - name: Save extraction build cache
+        if: >-
+          always() &&
+          matrix.lane == 'extract' &&
+          steps.extraction_cache.outputs.cache-hit != 'true' &&
+          (steps.toolchain_lane.outcome == 'success' ||
+            steps.extraction_recovery.outcome == 'success')
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: target
+          key: snarkpack-extract-v2-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml') }}-${{ hashFiles('crates/crypto/proof-aggregation/src/**/*.rs', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/*.py', 'crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json') }}
 
   # Runs outside the FV toolchain image on purpose — see snarkpack-toolchain.
   # snarkpack-formal.sh re-checks every version it is given against
@@ -209,7 +320,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: snarkpack-formal
@@ -241,7 +352,15 @@ jobs:
           nix profile install "$hax_dir#hax" "$hax_dir#hax-engine"
           echo "HAX_PROOF_LIBS_HOME=$hax_dir/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
       - name: Run SnarkPack F* gate
+        env:
+          SNARKPACK_FSTAR_EVIDENCE_UPDATE: "1"
         run: nix develop --command just snarkpack-formal
+      - name: Upload checked F* evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: snarkpack-fstar-checker-evidence
+          path: crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json
+          if-no-files-found: error
 
   snarkpack-parity:
     name: 'snarkpack: parity'
@@ -255,7 +374,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -278,7 +397,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -306,7 +425,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: snarkpack-fuzz
@@ -316,7 +435,7 @@ jobs:
           cargo +"$SNARKPACK_FUZZ_TOOLCHAIN" install cargo-fuzz --locked --version "$CARGO_FUZZ_VERSION"
       - name: Run fuzz smoke
         env:
-          SNARKPACK_FUZZ_RUNS: ${{ (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
+          SNARKPACK_FUZZ_RUNS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
         run: nix develop --command just snarkpack-fuzz-smoke
 
   snarkpack-dos:
@@ -328,7 +447,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: snarkpack-dos
@@ -346,7 +465,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Check soundness invariants
@@ -363,7 +482,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
         with:
@@ -386,7 +505,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
         with:
@@ -413,7 +532,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache: "false"
@@ -439,7 +558,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ env.CANDIDATE_REF }}
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
       - name: Cache Lean dependencies
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4

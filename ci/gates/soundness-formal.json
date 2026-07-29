@@ -45,7 +45,9 @@
         ".cargo/config.toml",
         ".github/actions/setup-nix-rust/**",
         ".github/workflows/fv-toolchain-image.yml",
+        ".github/workflows/formal-scheduled.yml",
         ".github/workflows/formal.yml",
+        ".github/workflows/soundness-provers.yml",
         "Cargo.lock",
         "Cargo.toml",
         "ci/gates/soundness-formal.json",
@@ -98,11 +100,24 @@
     {
       "patterns": [
         ".github/ISSUE_TEMPLATE/**",
+        ".github/**",
+        ".config/**",
+        "AGENTS.md",
+        "CLAUDE.md",
         "LICENSE",
         "LICENSE-*",
-        "docs/**"
+        "README.md",
+        "assets/**",
+        "ci/**",
+        "clippy.toml",
+        "deny.toml",
+        "deployments/**",
+        "dist-workspace.toml",
+        "docs/**",
+        "poc/**",
+        "testnets/**"
       ],
-      "reason": "documentation-only path outside the declared soundness contract"
+      "reason": "audited non-runtime path outside the declared soundness contract"
     }
   ]
 }

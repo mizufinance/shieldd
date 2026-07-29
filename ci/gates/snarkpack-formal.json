@@ -83,6 +83,8 @@
       "patterns": [
         ".github/actions/setup-nix-rust/**",
         ".github/workflows/formal.yml",
+        ".github/workflows/formal-scheduled.yml",
+        ".github/workflows/snarkpack-fv-toolchain-image.yml",
         "ci/gates/snarkpack-formal.json",
         "flake.lock",
         "flake.nix",
@@ -91,6 +93,7 @@
         "scripts/check-snarkpack-runtime-invariants.sh",
         "scripts/ci/gate-applicability.py",
         "scripts/ci/test_gate_applicability.py",
+        "scripts/run-snarkpack-fv-safe.ps1",
         "scripts/snarkpack-formal.sh",
         "scripts/snarkpack-fv.sh"
       ],
@@ -103,7 +106,24 @@
     },
     {
       "patterns": [
-        "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/**",
+        "crates/core/app/Cargo.toml",
+        "crates/core/app/src/action_handler/actions.rs",
+        "crates/core/app/src/app/mod.rs",
+        "crates/core/app/src/app/preconsensus.rs",
+        "crates/core/app/src/app/validation_support.rs",
+        "crates/core/app/src/server/consensus.rs",
+        "crates/core/app/src/stateless_cache.rs"
+      ],
+      "tiers": {
+        "pull_request": "full",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "production application boundary that constructs, persists, orders, decodes, or dispatches SnarkPack shipping calls"
+    },
+    {
+      "patterns": [
+        "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/*.lean",
         "crates/crypto/proof-aggregation/formal/lean-ipp/*.lean",
         "crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json",
         "crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain"
@@ -118,7 +138,6 @@
     {
       "patterns": [
         "crates/bench/bench-thresholds.md",
-        "crates/core/app/src/app/mod.rs",
         "crates/crypto/proof-aggregation/formal/**",
         "docs/snarkpack/**"
       ],
@@ -134,11 +153,24 @@
     {
       "patterns": [
         ".github/ISSUE_TEMPLATE/**",
+        ".github/**",
+        ".config/**",
+        "AGENTS.md",
+        "CLAUDE.md",
         "LICENSE",
         "LICENSE-*",
-        "docs/**"
+        "README.md",
+        "assets/**",
+        "ci/**",
+        "clippy.toml",
+        "deny.toml",
+        "deployments/**",
+        "dist-workspace.toml",
+        "docs/**",
+        "poc/**",
+        "testnets/**"
       ],
-      "reason": "documentation-only path outside the declared SnarkPack contract"
+      "reason": "audited non-runtime path outside the declared SnarkPack contract"
     }
   ]
 }

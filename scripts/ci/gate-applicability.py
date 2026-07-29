@@ -654,8 +654,40 @@ def derived_rules(
     return rules
 
 
+def _path_pattern_matches(path: str, pattern: str) -> bool:
+    """Match repository globs without allowing `*` to cross path separators."""
+    path_parts = path.split("/")
+    pattern_parts = pattern.split("/")
+    memo: dict[tuple[int, int], bool] = {}
+
+    def visit(path_index: int, pattern_index: int) -> bool:
+        key = (path_index, pattern_index)
+        if key in memo:
+            return memo[key]
+        if pattern_index == len(pattern_parts):
+            result = path_index == len(path_parts)
+        elif pattern_parts[pattern_index] == "**":
+            result = visit(path_index, pattern_index + 1) or (
+                path_index < len(path_parts)
+                and visit(path_index + 1, pattern_index)
+            )
+        else:
+            result = (
+                path_index < len(path_parts)
+                and fnmatch.fnmatchcase(
+                    path_parts[path_index],
+                    pattern_parts[pattern_index],
+                )
+                and visit(path_index + 1, pattern_index + 1)
+            )
+        memo[key] = result
+        return result
+
+    return visit(0, 0)
+
+
 def _matches(path: str, patterns: Iterable[str]) -> bool:
-    return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+    return any(_path_pattern_matches(path, pattern) for pattern in patterns)
 
 
 def classify(
