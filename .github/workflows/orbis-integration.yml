@@ -45,7 +45,7 @@ jobs:
   flow:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 45
     concurrency:
       group: orbis-integration-host-stack-v1
