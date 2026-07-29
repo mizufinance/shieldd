@@ -64,10 +64,23 @@ run_static() {
 
   echo "snarkpack FV: normalizer tests and idempotence"
   python3 -m unittest discover -s "$LEAN_DIR/scripts" -p 'test_*.py'
-  while IFS= read -r generated; do
+  local generated_output_text
+  if ! generated_output_text="$(python3 "$VERIFICATION_MANIFEST" outputs)"; then
+    fail "could not enumerate the declared generated outputs"
+  fi
+  local generated_outputs=()
+  if [[ -n "$generated_output_text" ]]; then
+    mapfile -t generated_outputs <<< "$generated_output_text"
+  fi
+  ((${#generated_outputs[@]} > 0)) ||
+    fail "generated-output inventory is empty"
+  local generated
+  for generated in "${generated_outputs[@]}"; do
     generated="${generated%$'\r'}"
+    [[ -f "$generated" ]] ||
+      fail "declared generated output is missing: $generated"
     python3 "$NORMALIZER" --check "$generated" >/dev/null
-  done < <(python3 "$VERIFICATION_MANIFEST" outputs)
+  done
 
   echo "snarkpack FV: forbidden Lean tokens"
   local forbidden
@@ -86,8 +99,9 @@ run_static() {
 
 selected_graphs=()
 load_changed_graphs() {
+  local graph_output
   if [[ -n "${SNARKPACK_FV_GRAPHS_JSON:-}" ]]; then
-    mapfile -t selected_graphs < <(
+    if ! graph_output="$(
       python3 - "${SNARKPACK_FV_GRAPHS_JSON}" <<'PY'
 import json
 import sys
@@ -98,14 +112,26 @@ if not isinstance(value, list) or not all(isinstance(item, str) for item in valu
 for item in value:
     print(item)
 PY
-    )
+    )"; then
+      fail "could not parse SNARKPACK_FV_GRAPHS_JSON"
+    fi
+    selected_graphs=()
+    if [[ -n "$graph_output" ]]; then
+      mapfile -t selected_graphs <<< "$graph_output"
+    fi
     return
   fi
   [[ -n "${SNARKPACK_FV_BASE:-}" ]] \
     || fail "SNARKPACK_FV_BASE or SNARKPACK_FV_GRAPHS_JSON is required"
-  mapfile -t selected_graphs < <(
+  if ! graph_output="$(
     python3 "$EXTRACTIONS" affected --base "$SNARKPACK_FV_BASE"
-  )
+  )"; then
+    fail "could not determine affected extraction graphs"
+  fi
+  selected_graphs=()
+  if [[ -n "$graph_output" ]]; then
+    mapfile -t selected_graphs <<< "$graph_output"
+  fi
 }
 
 run_extract() {

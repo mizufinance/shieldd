@@ -27,6 +27,10 @@ def app_verifier.app_verify_family_count_core
     ok (core.result.Result.Err
       app_verifier.AppVerifyPlanError.FamilyCountMismatch)
   else ok (core.result.Result.Ok ())
+@[irreducible]
+def app_verifier.APP_VERIFY_PROTOCOL_VERSION : Std.U32 := 2#u32
+def app_verifier.app_verify_protocol_version_core : Result Std.U32 := do
+  ok app_verifier.APP_VERIFY_PROTOCOL_VERSION
 structure app_verifier.AppVerifyFamilyCode where
   proof_family_id : Std.U32
   note_reshape_family_id : Std.U32

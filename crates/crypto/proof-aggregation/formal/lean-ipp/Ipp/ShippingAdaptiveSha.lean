@@ -1,4 +1,4 @@
-import Ipp.ShippingAdaptive
+import Ipp.ShippingV1
 
 /-!
 Adaptive SHA-256 binding reduction for shipping inputs.

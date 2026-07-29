@@ -16,7 +16,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path, PurePosixPath
-from typing import Any, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 
 from normalize_aeneas_lean import NORMALIZER_REVISION, normalize_files
 
@@ -47,6 +47,25 @@ PROCESS_RSS_LIMIT_BYTES = 6 * 1024**3
 MIN_AVAILABLE_MEMORY_BYTES = 2 * 1024**3
 RESOURCE_POLL_SECONDS = 5.0
 OUTPUT_SPOOL_LIMIT_BYTES = 1024 * 1024
+WORKSPACE_SOURCE_PATHS = (
+    ".cargo/config.toml",
+    "Cargo.lock",
+    "Cargo.toml",
+    "rust-toolchain.toml",
+    "crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json",
+    "crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean",
+    "crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain",
+)
+CRATE_CONFIG_NAMES = (
+    "Cargo.lock",
+    "Cargo.toml",
+    "rust-toolchain",
+    "rust-toolchain.toml",
+    ".cargo/config",
+    ".cargo/config.toml",
+)
+IGNORED_CRATE_SOURCE_DIRS = {".git", "proofs", "target"}
+LOCAL_PATH_DEPENDENCY = re.compile(r"""\bpath\s*=\s*["']([^"']+)["']""")
 
 TOP_FIELDS = {"schema_version", "toolchains", "graphs"}
 TOOLCHAIN_FIELDS = {
@@ -73,6 +92,7 @@ GRAPH_FIELDS = {
     "normalization",
     "parity",
 }
+OPTIONAL_GRAPH_FIELDS = {"source_sha256"}
 INPUT_FIELDS = {"role", "path", "sha256"}
 COPY_FIELDS = {
     "local_path",
@@ -200,6 +220,7 @@ def validate_manifest(
     manifest: dict[str, Any],
     *,
     verify_files: bool = True,
+    verify_canonical_file: bool = True,
     manifest_path: Path = MANIFEST_PATH,
 ) -> None:
     _exact_fields(manifest, TOP_FIELDS, "manifest")
@@ -232,7 +253,8 @@ def validate_manifest(
         graph = _expect_object(raw_graph, f"manifest.graphs[{index}]")
         graph_id = graph.get("id", f"index {index}")
         where = f"graph {graph_id}"
-        _exact_fields(graph, GRAPH_FIELDS, where)
+        present_optional = OPTIONAL_GRAPH_FIELDS & graph.keys()
+        _exact_fields(graph, GRAPH_FIELDS | present_optional, where)
         graph_id = _string(graph["id"], f"{where}.id")
         if graph_id in graph_ids:
             raise ManifestError(f"{where}.id: duplicate graph id")
@@ -250,6 +272,8 @@ def validate_manifest(
             raise ManifestError(f"{where}.output: duplicate output")
         outputs.add(output)
         output_hash = _hash(graph["output_sha256"], f"{where}.output_sha256")
+        if "source_sha256" in graph:
+            _hash(graph["source_sha256"], f"{where}.source_sha256")
         _repo_path(graph["crate_manifest"], f"{where}.crate_manifest", must_exist=verify_files)
         _string(graph["package"], f"{where}.package")
 
@@ -457,7 +481,11 @@ def validate_manifest(
                 + "; ".join(details)
             )
 
-    if manifest_path.exists() and manifest_path == MANIFEST_PATH:
+    if (
+        verify_canonical_file
+        and manifest_path.exists()
+        and manifest_path == MANIFEST_PATH
+    ):
         raw = manifest_path.read_bytes()
         if raw != canonical_json(manifest):
             raise ManifestError(f"{manifest_path}: JSON is not canonical pretty JSON")
@@ -808,8 +836,23 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
 
 
 def compare_graph(graph: dict[str, Any]) -> tuple[bool, str]:
+    source_before = current_graph_source_snapshot(graph)
+    source_sha256 = source_snapshot_sha256(source_before)
+    expected_source_sha256 = graph.get("source_sha256")
+    if source_sha256 != expected_source_sha256:
+        return (
+            False,
+            f"{graph['id']}: source fingerprint drift\n"
+            f"  committed={expected_source_sha256 or '<missing>'}\n"
+            f"  current={source_sha256}",
+        )
     with tempfile.TemporaryDirectory(prefix=f"shieldd-extract-{graph['id']}-") as raw_temp:
         content, selected_digest = reproduce_graph(graph, Path(raw_temp))
+    _assert_source_snapshot_unchanged(
+        graph,
+        source_before,
+        current_graph_source_snapshot(graph),
+    )
     committed_path = REPO_ROOT.joinpath(*PurePosixPath(graph["output"]).parts)
     committed = committed_path.read_bytes()
     normalized_hash = hashlib.sha256(content).hexdigest()
@@ -902,6 +945,11 @@ def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
 def command_check(args: argparse.Namespace) -> int:
     manifest = load_manifest(args.manifest)
     validate_manifest(manifest, manifest_path=args.manifest)
+    stale = stale_graph_ids(manifest)
+    if stale:
+        raise ManifestError(
+            "stale extraction graph(s): " + ", ".join(stale)
+        )
     s2 = sum(graph["campaign"] == "s2" for graph in manifest["graphs"])
     s3 = sum(graph["campaign"] == "s3" for graph in manifest["graphs"])
     print(
@@ -916,6 +964,85 @@ def command_affected(args: argparse.Namespace) -> int:
     validate_manifest(manifest, manifest_path=args.manifest)
     for graph_id in affected_graph_ids(manifest, args.base):
         print(graph_id)
+    return 0
+
+
+def stale_graph_ids(manifest: dict[str, Any]) -> list[str]:
+    """Return graphs whose complete source fingerprint or output changed."""
+    validate_manifest(manifest, verify_files=False)
+    declared_outputs = {
+        graph["output"]
+        for graph in manifest["graphs"]
+    }
+    generated_dir = REPO_ROOT.joinpath(*PurePosixPath(EXTRACTED_REPO_DIR).parts)
+    actual_outputs = {
+        path.relative_to(REPO_ROOT).as_posix()
+        for path in generated_dir.glob("*Generated.lean")
+    }
+    unexpected = sorted(actual_outputs - declared_outputs)
+    if unexpected:
+        raise ManifestError(
+            "unexpected generated output(s): " + ", ".join(unexpected)
+        )
+
+    stale: list[str] = []
+    for graph in manifest["graphs"]:
+        expected_inputs = [item["sha256"] for item in graph["inputs"]]
+        actual_inputs = current_input_hashes(graph)
+        expected_source = graph.get("source_sha256")
+        actual_source = current_graph_source_sha256(graph)
+        output_path = REPO_ROOT.joinpath(
+            *PurePosixPath(graph["output"]).parts
+        )
+        output_matches = (
+            output_path.is_file()
+            and sha256_file(output_path) == graph["output_sha256"]
+        )
+        if (
+            actual_inputs != expected_inputs
+            or actual_source != expected_source
+            or not output_matches
+        ):
+            stale.append(graph["id"])
+    return stale
+
+
+def command_stale(args: argparse.Namespace) -> int:
+    manifest = load_manifest(args.manifest)
+    for graph_id in stale_graph_ids(manifest):
+        print(graph_id)
+    return 0
+
+
+def extraction_source_directories(manifest: dict[str, Any]) -> list[str]:
+    """Return every crate directory covered by an extraction fingerprint."""
+    directories: set[str] = set()
+    for graph in manifest["graphs"]:
+        crate_manifest = REPO_ROOT.joinpath(
+            *PurePosixPath(graph["crate_manifest"]).parts
+        ).resolve()
+        for directory in _local_crate_directories(crate_manifest):
+            directories.add(directory.relative_to(REPO_ROOT).as_posix())
+    return sorted(directories)
+
+
+def command_source_directories(args: argparse.Namespace) -> int:
+    manifest = load_manifest(args.manifest)
+    # Applicability runs before stale generated evidence is refreshed.  This
+    # command needs the manifest's shape and current crate closure, not matching
+    # source/output hashes; requiring fresh hashes here would prevent CI from
+    # selecting the very extraction lane that repairs them.
+    validate_manifest(
+        manifest,
+        verify_files=False,
+        manifest_path=args.manifest,
+    )
+    payload = {
+        "schema_version": 1,
+        "graphs": sorted(graph["id"] for graph in manifest["graphs"]),
+        "directories": extraction_source_directories(manifest),
+    }
+    sys.stdout.buffer.write(canonical_json(payload))
     return 0
 
 
@@ -941,6 +1068,145 @@ def current_input_hashes(graph: dict[str, Any]) -> list[str]:
         sha256_file(REPO_ROOT.joinpath(*PurePosixPath(item["path"]).parts))
         for item in graph["inputs"]
     ]
+
+
+def graph_source_paths(graph: dict[str, Any]) -> list[Path]:
+    repo_paths = {
+        EXTRACTIONS_REPO_PATH,
+        NORMALIZER_REPO_PATH,
+        RUNTIME_REPO_PATH,
+        graph["crate_manifest"],
+        *(item["path"] for item in graph["inputs"]),
+        *WORKSPACE_SOURCE_PATHS,
+    }
+    for path in conservative_crate_source_paths(graph):
+        repo_paths.add(path.relative_to(REPO_ROOT).as_posix())
+    for module in graph["normalization"]["reuse_modules"]:
+        repo_paths.add(
+            (
+                Path("crates/crypto/proof-aggregation/formal/lean-ipp")
+                .joinpath(*module.split("."))
+                .with_suffix(".lean")
+                .as_posix()
+            )
+        )
+    return [
+        REPO_ROOT.joinpath(*PurePosixPath(path).parts)
+        for path in sorted(repo_paths)
+    ]
+
+
+def _is_within_repo(path: Path) -> bool:
+    try:
+        path.relative_to(REPO_ROOT)
+    except ValueError:
+        return False
+    return True
+
+
+def _local_crate_directories(crate_manifest: Path) -> list[Path]:
+    """Return the crate and all repository-local path dependency crates."""
+    pending = [crate_manifest.parent.resolve()]
+    visited: set[Path] = set()
+    while pending:
+        crate_dir = pending.pop()
+        if crate_dir in visited:
+            continue
+        if not _is_within_repo(crate_dir):
+            raise ManifestError(
+                f"crate source escapes repository: {crate_dir}"
+            )
+        manifest_path = crate_dir / "Cargo.toml"
+        if not manifest_path.is_file():
+            raise ManifestError(f"missing crate manifest: {manifest_path}")
+        visited.add(crate_dir)
+        try:
+            manifest_text = manifest_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise ManifestError(f"{manifest_path}: {exc}") from exc
+        for relative in LOCAL_PATH_DEPENDENCY.findall(manifest_text):
+            dependency_dir = (crate_dir / relative).resolve()
+            dependency_manifest = dependency_dir / "Cargo.toml"
+            if not dependency_manifest.is_file():
+                raise ManifestError(
+                    f"{manifest_path}: missing local path dependency "
+                    f"{dependency_manifest}"
+                )
+            pending.append(dependency_dir)
+    return sorted(visited)
+
+
+def conservative_crate_source_paths(graph: dict[str, Any]) -> list[Path]:
+    """Collect Rust/config inputs which may affect the extracted crate."""
+    crate_manifest = REPO_ROOT.joinpath(
+        *PurePosixPath(graph["crate_manifest"]).parts
+    ).resolve()
+    result: set[Path] = set()
+    for crate_dir in _local_crate_directories(crate_manifest):
+        for path in crate_dir.rglob("*.rs"):
+            relative = path.relative_to(crate_dir)
+            if not (IGNORED_CRATE_SOURCE_DIRS & set(relative.parts)):
+                result.add(path)
+        ancestor = crate_dir
+        while _is_within_repo(ancestor):
+            for relative in CRATE_CONFIG_NAMES:
+                candidate = ancestor.joinpath(*PurePosixPath(relative).parts)
+                if candidate.is_file():
+                    result.add(candidate)
+            if ancestor == REPO_ROOT:
+                break
+            ancestor = ancestor.parent
+    return sorted(result)
+
+
+def current_graph_source_snapshot(graph: dict[str, Any]) -> dict[str, str]:
+    """Hash the commit and every repository source consumed by one graph."""
+    head = _git(["rev-parse", "HEAD"]).stdout.strip()
+    if not COMMIT.fullmatch(head):
+        raise ManifestError(
+            f"graph {graph['id']}: git rev-parse returned invalid HEAD {head!r}"
+        )
+    snapshot = {"git:HEAD": head}
+    for path in graph_source_paths(graph):
+        try:
+            label = path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            label = str(path)
+        snapshot[label] = sha256_file(path)
+    return snapshot
+
+
+def source_snapshot_sha256(snapshot: dict[str, str]) -> str:
+    # HEAD is part of the in-flight freeze check, but not cache identity:
+    # unrelated commits must not invalidate otherwise identical graphs.
+    content_snapshot = {
+        path: digest
+        for path, digest in snapshot.items()
+        if path != "git:HEAD"
+    }
+    return hashlib.sha256(canonical_json(content_snapshot)).hexdigest()
+
+
+def current_graph_source_sha256(graph: dict[str, Any]) -> str:
+    return source_snapshot_sha256(current_graph_source_snapshot(graph))
+
+
+def _assert_source_snapshot_unchanged(
+    graph: dict[str, Any],
+    before: dict[str, str],
+    after: dict[str, str],
+) -> None:
+    if before == after:
+        return
+    changed = sorted(
+        key
+        for key in before.keys() | after.keys()
+        if before.get(key) != after.get(key)
+    )
+    raise ManifestError(
+        f"graph {graph['id']}: source changed during extraction: "
+        + ", ".join(changed)
+    )
 
 
 def _assert_inputs_unchanged(
@@ -1000,12 +1266,15 @@ def _commit_regeneration(
     output_content: bytes,
     manifest_path: Path,
     manifest_content: bytes,
+    post_commit_check: Callable[[], None] | None = None,
 ) -> None:
     original_output = output_path.read_bytes() if output_path.is_file() else None
     original_manifest = manifest_path.read_bytes()
     try:
         _atomic_write_bytes(output_path, output_content)
         _atomic_write_bytes(manifest_path, manifest_content)
+        if post_commit_check is not None:
+            post_commit_check()
     except BaseException:
         _restore_file(output_path, original_output)
         _restore_file(manifest_path, original_manifest)
@@ -1032,6 +1301,9 @@ def command_regenerate(args: argparse.Namespace) -> int:
     updated = copy.deepcopy(manifest)
     updated_graphs = graph_map(updated)
     for graph in selected:
+        source_snapshot = current_graph_source_snapshot(graph)
+        source_sha256 = source_snapshot_sha256(source_snapshot)
+        manifest_sha256 = sha256_file(args.manifest)
         input_hashes_before = current_input_hashes(graph)
         with tempfile.TemporaryDirectory(
             prefix=f"shieldd-extract-{graph['id']}-"
@@ -1039,11 +1311,21 @@ def command_regenerate(args: argparse.Namespace) -> int:
             content, selected_digest = reproduce_graph(graph, Path(raw_temp))
         input_hashes_after = current_input_hashes(graph)
         _assert_inputs_unchanged(graph, input_hashes_before, input_hashes_after)
+        _assert_source_snapshot_unchanged(
+            graph,
+            source_snapshot,
+            current_graph_source_snapshot(graph),
+        )
+        if sha256_file(args.manifest) != manifest_sha256:
+            raise ManifestError(
+                f"graph {graph['id']}: extraction manifest changed during extraction"
+            )
         output_path = REPO_ROOT.joinpath(*PurePosixPath(graph["output"]).parts)
         digest = hashlib.sha256(content).hexdigest()
         updated_graph = updated_graphs[graph["id"]]
         for item, input_hash in zip(updated_graph["inputs"], input_hashes_after):
             item["sha256"] = input_hash
+        updated_graph["source_sha256"] = source_sha256
         updated_graph["output_sha256"] = digest
         updated_graph["normalization"][
             "selected_raw_declarations_sha256"
@@ -1053,14 +1335,33 @@ def command_regenerate(args: argparse.Namespace) -> int:
             updated,
             manifest_path=args.manifest,
             verify_files=False,
+            verify_canonical_file=False,
         )
+        _assert_source_snapshot_unchanged(
+            graph,
+            source_snapshot,
+            current_graph_source_snapshot(graph),
+        )
+        if sha256_file(args.manifest) != manifest_sha256:
+            raise ManifestError(
+                f"graph {graph['id']}: extraction manifest changed before commit"
+            )
         _commit_regeneration(
             output_path=output_path,
             output_content=content,
             manifest_path=args.manifest,
             manifest_content=canonical_json(updated),
+            post_commit_check=lambda: _assert_source_snapshot_unchanged(
+                graph,
+                source_snapshot,
+                current_graph_source_snapshot(graph),
+            ),
         )
-        print(f"{graph['id']}: regenerated ({digest})", flush=True)
+        print(
+            f"{graph['id']}: regenerated ({digest}); "
+            f"source_sha256={source_sha256}",
+            flush=True,
+        )
     # Scoped regeneration intentionally permits unrelated graphs to remain
     # stale. The global `check` command still validates the complete inventory.
     validate_manifest(
@@ -1102,6 +1403,12 @@ def parser() -> argparse.ArgumentParser:
     affected = commands.add_parser("affected")
     affected.add_argument("--base", required=True)
     affected.set_defaults(handler=command_affected)
+
+    stale = commands.add_parser("stale")
+    stale.set_defaults(handler=command_stale)
+
+    source_directories = commands.add_parser("source-directories")
+    source_directories.set_defaults(handler=command_source_directories)
 
     compare = commands.add_parser("compare")
     compare.add_argument("--graph", action="append")

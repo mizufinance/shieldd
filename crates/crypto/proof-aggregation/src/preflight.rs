@@ -5,9 +5,9 @@ use decaf377::{Bls12_377, Fq};
 use crate::{
     aggregate_proof_wrapper::{decode_wrapped_aggregate_proof, MAX_AGGREGATE_PROOF_BYTES},
     app_verifier::{
-        app_verify_family_code, app_verify_shipping_input_from_parts,
-        app_verify_shipping_wrapper_projection_from_parts, AppVerifyShippingCall,
-        AppVerifyShippingInput,
+        app_verify_family_code, app_verify_protocol_version_core,
+        app_verify_shipping_input_from_parts, app_verify_shipping_wrapper_projection_from_parts,
+        AppVerifyShippingCall, AppVerifyShippingInput,
     },
     backend::AggregateVerifyError,
     srs::{srs_id, DevSrs},
@@ -15,7 +15,7 @@ use crate::{
         aggregate_verification_key_bytes, aggregate_verification_key_digest_from_bytes,
         AggregateStatement,
     },
-    ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
+    ProofFamilyId,
 };
 
 pub struct AggregatePreflightInput<'a> {
@@ -223,11 +223,9 @@ pub(crate) fn preflight_shipping_aggregate_verify<'a>(
     let statement = input.statement;
     let wrapped_proof_bytes = input.aggregate_proof_bytes;
     let backend_call = preflight_aggregate_verify(input)?;
-    let padded_public_inputs = statement
-        .padded_public_input_bytes()
-        .iter()
-        .map(|row| row.iter().map(|field| field.as_bytes().to_vec()).collect())
-        .collect();
+    let rows = statement.shipping_rows();
+    debug_assert_eq!(rows.fields, backend_call.padded_public_inputs());
+    let padded_public_inputs = rows.serialized.to_nested_bytes();
     let wrapper = app_verify_shipping_wrapper_projection_from_parts(
         statement.statement_digest().to_vec(),
         wrapped_proof_bytes.to_vec(),
@@ -235,14 +233,14 @@ pub(crate) fn preflight_shipping_aggregate_verify<'a>(
     );
     let shipping_input = app_verify_shipping_input_from_parts(
         application_call,
-        AGGREGATE_PROTOCOL_VERSION,
+        app_verify_protocol_version_core(),
         app_verify_family_code(statement.family_id()),
         backend_call.authenticated_srs_id.to_vec(),
         backend_call.serialized_vk.clone(),
         statement.vk_digest().to_vec(),
-        statement.real_count(),
-        statement.padded_count(),
-        statement.public_input_arity(),
+        rows.real_count,
+        rows.padded_count,
+        rows.public_input_arity,
         padded_public_inputs,
         statement.canonical_bytes().to_vec(),
         wrapper,

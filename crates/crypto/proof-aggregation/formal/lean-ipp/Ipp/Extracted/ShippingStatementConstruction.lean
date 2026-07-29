@@ -18,6 +18,19 @@ noncomputable section
 
 abbrev Bytes := Ipp.ShippingV1.Bytes
 
+/-- Authenticated wire version used by the shipping Rust constructor.  The
+generated `app_verify_protocol_version_core` root pins this value to the
+production constant.  It is distinct from the formal protocol name
+`SnarkPackV1`. -/
+def aggregateProtocolVersion : Nat := 2
+
+/-- The extracted production accessor fixes the authenticated wire version;
+formal construction cannot choose a different version. -/
+@[simp] theorem extracted_protocol_version_exact :
+    app_verifier.app_verify_protocol_version_core =
+      .ok (⟨aggregateProtocolVersion⟩ : Std.U32) := by
+  rfl
+
 /-- Byte shape received by the production statement constructor before field
 elements are decoded. -/
 def paddedRowsBytes
@@ -96,7 +109,8 @@ structure ConstructorArgumentsRepresent
     (execution : ConstructorExecution)
     (input : Ipp.ShippingV1.ShippingV1Input
       μ F G1 G2 GT Row DecodedProof) : Prop where
-  protocolVersion : execution.protocolVersion.val = 1
+  protocolVersion :
+    execution.protocolVersion.val = aggregateProtocolVersion
   family :
     Ipp.Extracted.AppVerifierStateMachine.RepresentsShippingFamily
       execution.family input.family
@@ -633,6 +647,7 @@ theorem supported_constructor_projects_exact_statement
       boundary.projectionContract input hsupported⟩
 
 #print axioms ConstructorExecution.outputExact
+#print axioms extracted_protocol_version_exact
 #print axioms accepted_constructor_retains_shipping_input
 #print axioms supported_shipping_input_has_retained_output
 #print axioms ExactSemanticBoundary.bindingContract

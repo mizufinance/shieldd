@@ -364,6 +364,73 @@ class VerificationManifestTests(unittest.TestCase):
             )
         self.assertIn("F* checker evidence", str(raised.exception))
 
+    def test_stale_fstar_rows_require_an_exact_checked_import(self):
+        fstar_rows = [
+            entry
+            for entry in self.manifest["statement_binding_evidence"]
+            if entry["kind"] == "fstar"
+        ]
+        self.assertTrue(fstar_rows)
+        self.assertTrue(
+            all(entry["checker"]["last_result"] == "stale"
+                for entry in fstar_rows)
+        )
+
+        artifact = VERIFICATION._canonical_json(
+            VERIFICATION.expected_fstar_checker_evidence(
+                self.manifest, VERIFICATION.REPO_ROOT
+            )
+        ).encode("utf-8")
+        promoted = VERIFICATION.promoted_fstar_manifest(
+            self.manifest, artifact, VERIFICATION.REPO_ROOT
+        )
+        self.assertTrue(
+            all(
+                entry["checker"]["last_result"] == "pass"
+                for entry in promoted["statement_binding_evidence"]
+                if entry["kind"] == "fstar"
+            )
+        )
+        self.assertEqual(
+            promoted["fstar_checker_evidence"]["sha256"],
+            hashlib.sha256(artifact).hexdigest(),
+        )
+
+        forged = json.loads(artifact)
+        forged["checker"]["result"] = "failed"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.promoted_fstar_manifest(
+                self.manifest,
+                VERIFICATION._canonical_json(forged).encode("utf-8"),
+                VERIFICATION.REPO_ROOT,
+            )
+        self.assertIn(
+            "differs from the current pinned", str(raised.exception)
+        )
+
+    def test_checker_result_is_state_not_immutable_contract(self):
+        stale = VERIFICATION._verification_contract_payload(self.manifest)
+        passed_manifest = copy.deepcopy(self.manifest)
+        for entry in passed_manifest["statement_binding_evidence"]:
+            if entry["kind"] == "fstar":
+                entry["checker"]["last_result"] = "pass"
+        passed = VERIFICATION._verification_contract_payload(
+            passed_manifest
+        )
+        self.assertEqual(stale, passed)
+
+        weakened = copy.deepcopy(passed_manifest)
+        fstar = next(
+            entry
+            for entry in weakened["statement_binding_evidence"]
+            if entry["kind"] == "fstar"
+        )
+        fstar["theorem_roots"].pop()
+        self.assertNotEqual(
+            passed,
+            VERIFICATION._verification_contract_payload(weakened),
+        )
+
     def test_fstar_module_inventory_rejects_missing_and_unexpected_modules(self):
         def fixture(
             directory: str, modules: tuple[str, ...]

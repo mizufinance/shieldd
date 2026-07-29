@@ -43,6 +43,7 @@
     {
       "type": "lean_extraction_manifest",
       "path": "crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json",
+      "source_inventory": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py",
       "global_inputs": [
         ".cargo/config.toml",
         "Cargo.lock",
@@ -155,6 +156,7 @@
         ".github/ISSUE_TEMPLATE/**",
         ".github/**",
         ".config/**",
+        ".envrc.example",
         "AGENTS.md",
         "CLAUDE.md",
         "LICENSE",

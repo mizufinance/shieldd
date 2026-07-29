@@ -102,6 +102,7 @@
         ".github/ISSUE_TEMPLATE/**",
         ".github/**",
         ".config/**",
+        ".envrc.example",
         "AGENTS.md",
         "CLAUDE.md",
         "LICENSE",

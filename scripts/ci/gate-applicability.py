@@ -253,6 +253,7 @@ def load_declaration(path: Path, expected_gate: str | None = None) -> Declaratio
             expected = {
                 "type",
                 "path",
+                "source_inventory",
                 "global_inputs",
                 "graph_tiers",
                 "global_tiers",
@@ -260,16 +261,25 @@ def load_declaration(path: Path, expected_gate: str | None = None) -> Declaratio
             }
             if set(item) != expected:
                 raise ClassificationError(f"{where} has invalid fields")
+            source_inventory = normalize_repo_path(
+                item["source_inventory"], f"{where}.source_inventory"
+            )
+            global_inputs = tuple(
+                normalize_repo_path(value, f"{where}.global_inputs")
+                for value in _strings(
+                    item["global_inputs"], f"{where}.global_inputs"
+                )
+            )
+            if source_inventory not in global_inputs:
+                raise ClassificationError(
+                    f"{where}.source_inventory must also be a global input"
+                )
             derived.append(
                 {
                     "type": kind,
                     "path": normalize_repo_path(item["path"], f"{where}.path"),
-                    "global_inputs": tuple(
-                        normalize_repo_path(value, f"{where}.global_inputs")
-                        for value in _strings(
-                            item["global_inputs"], f"{where}.global_inputs"
-                        )
-                    ),
+                    "source_inventory": source_inventory,
+                    "global_inputs": global_inputs,
                     "graph_tiers": _tier_map(
                         item["graph_tiers"], f"{where}.graph_tiers", tiers
                     ),
@@ -604,6 +614,119 @@ def _git_json_file(root: Path, revision: str, path: str) -> Any | None:
         ) from error
 
 
+def extraction_source_directory_rule(
+    root: Path,
+    source: dict[str, Any],
+    manifest: Any,
+    event: str,
+) -> InputRule:
+    inventory_path = root / source["source_inventory"]
+    manifest_path = root / source["path"]
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(inventory_path),
+                "--manifest",
+                str(manifest_path),
+                "source-directories",
+            ],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ClassificationError(
+            f"extraction source inventory failed: {error}"
+        ) from error
+    if completed.returncode:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise ClassificationError(
+            "extraction source inventory failed: "
+            + (detail or str(completed.returncode))
+        )
+    try:
+        payload = _object(
+            json.loads(completed.stdout), "extraction source inventory"
+        )
+    except json.JSONDecodeError as error:
+        raise ClassificationError(
+            f"extraction source inventory returned malformed JSON: {error}"
+        ) from error
+    if set(payload) != {"schema_version", "graphs", "directories"}:
+        raise ClassificationError(
+            "extraction source inventory has invalid fields"
+        )
+    if payload["schema_version"] != 1:
+        raise ClassificationError(
+            "extraction source inventory schema_version must be 1"
+        )
+    graph_ids = tuple(
+        sorted(
+            _string(graph.get("id"), "extraction manifest graph id")
+            for graph in _object(manifest, "extraction manifest").get(
+                "graphs", ()
+            )
+        )
+    )
+    inventory_graphs = tuple(
+        sorted(
+            normalize_repo_path(value, "extraction source inventory graph")
+            for value in _strings(
+                payload["graphs"], "extraction source inventory graphs"
+            )
+        )
+    )
+    if len(set(inventory_graphs)) != len(inventory_graphs):
+        raise ClassificationError(
+            "extraction source inventory contains duplicate graph ids"
+        )
+    if inventory_graphs != graph_ids:
+        raise ClassificationError(
+            "extraction source inventory graph ids do not match the manifest"
+        )
+    directories = tuple(
+        sorted(
+            normalize_repo_path(
+                value, "extraction source inventory directory"
+            )
+            for value in _strings(
+                payload["directories"],
+                "extraction source inventory directories",
+            )
+        )
+    )
+    if len(set(directories)) != len(directories):
+        raise ClassificationError(
+            "extraction source inventory contains duplicate directories"
+        )
+    missing = [
+        directory
+        for directory in directories
+        if not (root / directory).is_dir()
+    ]
+    if missing:
+        raise ClassificationError(
+            "extraction source inventory references missing directories: "
+            + ", ".join(missing)
+        )
+    return InputRule(
+        patterns=tuple(f"{directory}/**" for directory in directories),
+        tier=tier_for(
+            source["global_tiers"],
+            event,
+            "extraction source directory closure",
+        ),
+        reason=(
+            f"{source['reason']}: complete extracted-crate and local "
+            "path-dependency source closure"
+        ),
+        graphs=graph_ids,
+    )
+
+
 def derived_rules(
     root: Path,
     declaration: Declaration,
@@ -637,6 +760,14 @@ def derived_rules(
                 event,
                 verify_root=root,
                 label=source["path"],
+            )
+        )
+        rules.append(
+            extraction_source_directory_rule(
+                root,
+                source,
+                current,
+                event,
             )
         )
         if base:

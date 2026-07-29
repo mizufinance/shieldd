@@ -236,13 +236,7 @@ theorem extracted_shipping_result_success_retains_exact
         hexec)
   rw [← houtput]
 
-/-! ### Repeat-final row-padding specification
-
-The extracted loop is connected to this model after `AppVerifierGenerated` is
-regenerated with `app_verify_repeat_final_rows_core` as a root.  Keeping the
-model here makes the three acceptance-relevant postconditions explicit without
-guessing declarations in the generated file.
--/
+/-! ### Repeat-final row-padding refinement -/
 
 /-- Last element of a statically nonempty list, exposed without a proof
 argument so that it matches the value cloned by the Rust core. -/
@@ -349,6 +343,182 @@ theorem repeatFinalRowsExpected_suffix_exact
           output.drop rows.length =
             List.replicate (target - rows.length) last :=
   (repeatFinalRowsExpected_success rows output target hexec).suffixExact
+
+@[simp] theorem getElem?_cons_lastIndex_repeatFinalLast
+    {T : Type}
+    (head : T) (tail : List T) :
+    (head :: tail)[(head :: tail).length - 1]? =
+      some (repeatFinalLast head tail) := by
+  have hindex :
+      (head :: tail).length - 1 = tail.length := by
+    simp
+  rw [hindex]
+  induction tail generalizing head with
+  | nil => rfl
+  | cons next tail ih =>
+      simpa [repeatFinalLast] using ih next
+
+/-- Finite execution of the extracted padding loop.  The clone postcondition
+is exact: the production row clone may fail, but every successful clone must
+return the same immutable row. -/
+theorem extracted_repeat_final_rows_loopFuel_exact
+    {T : Type}
+    (cloneInst : core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (rows : List T) (last : T) (gap : Nat) :
+    loopFuel
+        (fun state =>
+          app_verifier.app_verify_repeat_final_rows_core_loop.body
+            cloneInst ⟨rows.length + gap⟩ last state)
+        (gap + 1) (⟨rows⟩ : alloc.vec.Vec T) =
+      .ok ⟨rows ++ List.replicate gap last⟩ := by
+  induction gap generalizing rows with
+  | zero =>
+      simp [loopFuel,
+        app_verifier.app_verify_repeat_final_rows_core_loop.body]
+  | succ gap ih =>
+      simp only [loopFuel]
+      rw [show
+        app_verifier.app_verify_repeat_final_rows_core_loop.body
+            cloneInst ⟨rows.length + Nat.succ gap⟩ last
+              (⟨rows⟩ : alloc.vec.Vec T) =
+          .ok (.cont ⟨rows ++ [last]⟩) by
+        simp [app_verifier.app_verify_repeat_final_rows_core_loop.body,
+          hclone]]
+      have htarget :
+          (⟨rows.length + Nat.succ gap⟩ : Std.Usize) =
+            ⟨(rows ++ [last]).length + gap⟩ := by
+        congr
+        simp
+        omega
+      rw [htarget]
+      simpa [List.replicate_succ, List.append_assoc] using
+        (ih (rows ++ [last]))
+
+/-- The noncomputable extracted loop is fixed by its finite execution
+witness, so the production loop cannot hide a divergent or alternate result. -/
+theorem extracted_repeat_final_rows_loop_exact
+    {T : Type}
+    (cloneInst : core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (rows : List T) (last : T) (gap : Nat) :
+    app_verifier.app_verify_repeat_final_rows_core_loop
+        cloneInst ⟨rows⟩ ⟨rows.length + gap⟩ last =
+      .ok ⟨rows ++ List.replicate gap last⟩ := by
+  unfold app_verifier.app_verify_repeat_final_rows_core_loop
+  apply loop_eq_of_fuel (by simp)
+  exact extracted_repeat_final_rows_loopFuel_exact
+    cloneInst hclone rows last gap
+
+/-- Exact result shape of the Rust padding core, including both fail-closed
+branches. -/
+def repeatFinalRowsExtractedExpected
+    {T : Type}
+    (rows : List T) (target : Nat) :
+    core.result.Result (alloc.vec.Vec T)
+      app_verifier.AppVerifyRowPaddingError :=
+  match rows with
+  | [] =>
+      if target = 0 then .Ok ⟨[]⟩
+      else .Err
+        app_verifier.AppVerifyRowPaddingError.EmptyRowsForNonzeroTarget
+  | head :: tail =>
+      if (head :: tail).length ≤ target then
+        .Ok ⟨(head :: tail) ++
+          List.replicate
+            (target - (head :: tail).length)
+            (repeatFinalLast head tail)⟩
+      else
+        .Err app_verifier.AppVerifyRowPaddingError.TargetSmallerThanInput
+
+/-- The generated production root refines the pure repeat-final model.  This
+is the extraction boundary used by statement construction; it is not a
+hand-maintained alternate implementation. -/
+theorem extracted_repeat_final_rows_core_exact
+    {T : Type}
+    (cloneInst : core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (rows : List T) (target : Nat) :
+    app_verifier.app_verify_repeat_final_rows_core
+        cloneInst ⟨rows⟩ ⟨target⟩ =
+      .ok (repeatFinalRowsExtractedExpected rows target) := by
+  cases rows with
+  | nil =>
+      by_cases htarget : target = 0
+      · subst target
+        rfl
+      · simp [app_verifier.app_verify_repeat_final_rows_core,
+          repeatFinalRowsExtractedExpected, htarget]
+  | cons head tail =>
+      by_cases hsmall : target < (head :: tail).length
+      · simp [app_verifier.app_verify_repeat_final_rows_core,
+          repeatFinalRowsExtractedExpected, hsmall,
+          Nat.not_le_of_gt hsmall]
+      · have hle : (head :: tail).length ≤ target :=
+          Nat.le_of_not_gt hsmall
+        have htarget :
+            (head :: tail).length +
+                (target - (head :: tail).length) =
+              target :=
+          Nat.add_sub_of_le hle
+        have hloop :
+            app_verifier.app_verify_repeat_final_rows_core_loop
+                cloneInst ⟨head :: tail⟩ ⟨target⟩
+                  (repeatFinalLast head tail) =
+              .ok ⟨(head :: tail) ++
+                List.replicate
+                  (target - (head :: tail).length)
+                  (repeatFinalLast head tail)⟩ := by
+          rw [← htarget]
+          exact extracted_repeat_final_rows_loop_exact
+            cloneInst hclone (head :: tail)
+              (repeatFinalLast head tail)
+              (target - (head :: tail).length)
+        simp [app_verifier.app_verify_repeat_final_rows_core,
+          repeatFinalRowsExtractedExpected, hsmall, hle,
+          Std.Usize.checked_sub, hclone, hloop]
+
+/-- Every successful generated execution has exactly the pure model's output,
+which supplies exact length, caller-order prefix, and repeat-final suffix. -/
+theorem extracted_repeat_final_rows_success_refines
+    {T : Type}
+    (cloneInst : core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (rows output : alloc.vec.Vec T) (target : Std.Usize)
+    (hexec :
+      app_verifier.app_verify_repeat_final_rows_core cloneInst rows target =
+        .ok (.Ok output)) :
+    repeatFinalRowsExpected rows.val target.val = some output.val := by
+  rw [extracted_repeat_final_rows_core_exact
+    cloneInst hclone rows.val target.val] at hexec
+  cases hrows : rows.val with
+  | nil =>
+      by_cases htarget : target.val = 0
+      · simp [repeatFinalRowsExtractedExpected, repeatFinalRowsExpected,
+          hrows, htarget] at hexec ⊢
+        exact congrArg alloc.vec.Vec.val (core.result.Result.Ok.inj hexec)
+      · simp [repeatFinalRowsExtractedExpected, hrows, htarget] at hexec
+  | cons head tail =>
+      by_cases hle : (head :: tail).length ≤ target.val
+      · simp [repeatFinalRowsExtractedExpected, repeatFinalRowsExpected,
+          hrows, hle] at hexec ⊢
+        exact congrArg alloc.vec.Vec.val (core.result.Result.Ok.inj hexec)
+      · simp [repeatFinalRowsExtractedExpected, hrows, hle] at hexec
+
+/-- A successful generated execution directly exposes the complete padding
+postcondition consumed by shipping statement binding. -/
+theorem extracted_repeat_final_rows_success_postcondition
+    {T : Type}
+    (cloneInst : core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (rows output : alloc.vec.Vec T) (target : Std.Usize)
+    (hexec :
+      app_verifier.app_verify_repeat_final_rows_core cloneInst rows target =
+        .ok (.Ok output)) :
+    RepeatFinalRowsPostcondition rows.val target.val output.val :=
+  repeatFinalRowsExpected_success rows.val output.val target.val
+    (extracted_repeat_final_rows_success_refines
+      cloneInst hclone rows output target hexec)
 
 theorem identityModel_ok_iff
     (id : CallId) (bundleFamily : FamilyCode)
@@ -598,6 +768,11 @@ theorem app_acceptance_binds_shipping_input
 #print axioms extracted_shipping_input_success_exact
 #print axioms extracted_shipping_result_from_parts_exact
 #print axioms extracted_shipping_result_success_retains_exact
+#print axioms extracted_repeat_final_rows_loopFuel_exact
+#print axioms extracted_repeat_final_rows_loop_exact
+#print axioms extracted_repeat_final_rows_core_exact
+#print axioms extracted_repeat_final_rows_success_refines
+#print axioms extracted_repeat_final_rows_success_postcondition
 #print axioms extracted_plan_identity_ok_iff
 #print axioms extracted_plan_padding_ok_iff
 #print axioms extracted_shipping_projection_ok

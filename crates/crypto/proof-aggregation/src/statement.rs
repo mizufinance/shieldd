@@ -11,7 +11,8 @@ use crate::{
     DEV_SRS_CURVE_ID,
 };
 
-pub const AGGREGATE_PROTOCOL_VERSION: u32 = 2;
+pub const AGGREGATE_PROTOCOL_VERSION: u32 =
+    ark_ip_proofs::app_verifier::APP_VERIFY_PROTOCOL_VERSION;
 
 const STATEMENT_DIGEST_DOMAIN: &[u8] = b"shieldd.snarkpack.statement_digest.v1\0";
 const VK_DIGEST_DOMAIN: &[u8] = b"shieldd.snarkpack.vk_digest.v1\0";
@@ -158,6 +159,16 @@ impl StatementPaddedRows {
     pub(crate) fn as_slice(&self) -> &[StatementPublicInputRow] {
         &self.rows
     }
+
+    /// Owning byte projection required by the extracted shipping-input record.
+    /// The statement keeps this canonical typed form; the copy is made only
+    /// when preflight transfers ownership to that record.
+    pub(crate) fn to_nested_bytes(&self) -> Vec<Vec<Vec<u8>>> {
+        self.rows
+            .iter()
+            .map(|row| row.iter().map(|field| field.as_bytes().to_vec()).collect())
+            .collect()
+    }
 }
 
 impl From<Vec<Vec<Vec<u8>>>> for StatementPaddedRows {
@@ -187,6 +198,16 @@ pub struct AggregateStatement {
     canonical_bytes: Vec<u8>,
     statement_digest: [u8; 32],
     challenge_context: ChallengeContext,
+}
+
+/// Allocation-free view of the exact rows authenticated by a statement and
+/// projected into the shipping preflight record.
+pub(crate) struct AggregateStatementRows<'a> {
+    pub real_count: u32,
+    pub padded_count: u32,
+    pub public_input_arity: u32,
+    pub fields: &'a [Vec<Fq>],
+    pub serialized: &'a StatementPaddedRows,
 }
 
 impl AggregateStatement {
@@ -229,7 +250,7 @@ impl AggregateStatement {
                 max: u32::MAX as usize,
                 got: expected_arity,
             })?;
-        let padded_public_inputs_bytes = field_rows_to_bytes(padded_public_inputs)?;
+        let padded_public_inputs_bytes = statement_row_bytes_core(padded_public_inputs)?;
         let input = statement_encoding_input_core(
             version,
             family_id,
@@ -289,6 +310,16 @@ impl AggregateStatement {
 
     pub(crate) fn padded_public_input_bytes(&self) -> &StatementPaddedRows {
         &self.padded_public_input_bytes
+    }
+
+    pub(crate) fn shipping_rows(&self) -> AggregateStatementRows<'_> {
+        AggregateStatementRows {
+            real_count: self.real_count,
+            padded_count: self.padded_count,
+            public_input_arity: self.public_input_arity,
+            fields: &self.padded_public_inputs,
+            serialized: &self.padded_public_input_bytes,
+        }
     }
 
     pub fn canonical_bytes(&self) -> &[u8] {
@@ -612,7 +643,11 @@ fn statement_digest_from_canonical(canonical_bytes: &[u8]) -> [u8; 32] {
     hasher.finalize().into()
 }
 
-fn field_rows_to_bytes(rows: &[Vec<Fq>]) -> Result<StatementPaddedRows, AggregateStatementError> {
+/// Exact Arkworks serialization boundary for the padded rows committed by the
+/// canonical statement and later copied into the shipping preflight record.
+pub(crate) fn statement_row_bytes_core(
+    rows: &[Vec<Fq>],
+) -> Result<StatementPaddedRows, AggregateStatementError> {
     rows.iter()
         .map(|row| {
             row.iter()

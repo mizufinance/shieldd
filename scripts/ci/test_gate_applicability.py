@@ -214,6 +214,54 @@ class GateApplicabilityTests(unittest.TestCase):
                 self.assertEqual(decision.tier, "extract-all")
                 self.assertEqual(decision.graphs, ("GraphA", "GraphB"))
 
+    def test_complete_extraction_source_closure_selects_extract_all(
+        self,
+    ) -> None:
+        rules = GATE.derived_rules(
+            self.root,
+            self.snarkpack,
+            "pull_request",
+            None,
+        )
+        manifest = json.loads(
+            (
+                self.root
+                / "crates/crypto/proof-aggregation/formal/snarkpack/"
+                "lean-extraction-manifest.json"
+            ).read_text(encoding="utf-8")
+        )
+        graph_ids = tuple(sorted(graph["id"] for graph in manifest["graphs"]))
+        previously_missed = (
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/mod.rs",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/poly_commit/mod.rs",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/poly_commit/transparent.rs",
+            "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+            "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+            "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+            "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+            "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/future_source.rs",
+        )
+        for path in previously_missed:
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.snarkpack,
+                    "pull_request",
+                    [path],
+                    rules,
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier),
+                    ("run", "extract-all"),
+                )
+                self.assertEqual(decision.graphs, graph_ids)
+                self.assertIn(
+                    "complete extracted-crate and local path-dependency "
+                    "source closure",
+                    decision.matched[-1]["reason"],
+                )
+
     def test_malformed_or_missing_manifest_blocks(self) -> None:
         with self.assertRaises(GATE.ClassificationError):
             self.lean_rules({"schema_version": 2, "graphs": "invalid"})
@@ -251,6 +299,7 @@ class GateApplicabilityTests(unittest.TestCase):
     def test_audited_unrelated_changes_skip_both_formal_families(self) -> None:
         for path in (
             "README.md",
+            ".envrc.example",
             "deployments/compose/README.md",
             "docs/architecture/unrelated.md",
         ):
@@ -405,6 +454,15 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertNotIn(
             "github.event_name == 'workflow_call') && inputs.target_ref",
             workflow,
+        )
+
+    def test_nix_cache_key_includes_flake_lock(self) -> None:
+        action = (
+            self.root / ".github/actions/setup-nix-rust/action.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "hashFiles(inputs.nix-cache-glob, 'flake.lock')",
+            action,
         )
 
     def test_schedule_and_workflow_call_do_not_resolve_derived_inputs(self) -> None:

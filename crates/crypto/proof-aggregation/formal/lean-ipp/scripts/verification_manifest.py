@@ -4,10 +4,13 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
+import os
 import re
 import sys
+import tempfile
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -80,10 +83,10 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "12a282b9a89fe9ef277a4885b063034dd52a1b03c75e7ed8c8eb8cdda84a83a8"
+    "0f6f9896fc8ade5bc7f8cc642912638ba58a935653ad3d0caaedd2b7b96ef175"
 )
 ASSUMPTION_LEDGER_SHA256 = (
-    "debb884d5bcb37b7e1105296796d03a91d7509b64bc050702ac7792ca2451d33"
+    "497bc754d498b86e04033a4b5deb26648bac3b137c51fe7e8b8616c9f8f4cce1"
 )
 V1_PROTOCOL_VERSION = 2
 V1_BYTE_BASELINE_SHA256 = (
@@ -110,7 +113,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "statement_binding_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "db6110af019ea6416213fa8e1d312f713149b36a50078697b6a0f971ae94efef"
+    "e495f6260429ade4417adfb1a6550c6acc1a18d75f557fd8470662d19c25eba6"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -151,7 +154,7 @@ EXTRACTED_CHECKED_SUCCESSOR_INVENTORY = {
         "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
         "applications/groth16_aggregation.rs"
     ): {
-        "function": "verify_aggregate_adapter_core_from_nonce",
+        "function": "verify_aggregate_adapter_execution_core_from_nonce",
         "expected_calls": 1,
         "tests": (
             "aggregate_adapter_core_retries_and_installs_one_randomizer",
@@ -226,7 +229,7 @@ EXTERNAL_RUST_EVIDENCE_ROOTS = {
         "crates/crypto/proof-aggregation/src/backend.rs",
     ),
     "realPrefixExact": (
-        "Rust.proof_aggregation.padding.prepare_verify_inputs",
+        "Rust.proof_aggregation.padding.prepare_verify_public_input_rows",
         "crates/crypto/proof-aggregation/src/padding.rs",
     ),
 }
@@ -286,6 +289,23 @@ def statement_binding_contract_fields(path: Path) -> set[str]:
 
 def _canonical_json(payload: Any) -> str:
     return json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
+
+
+def _verification_contract_payload(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Return the immutable evidence contract protected by the gate owner.
+
+    ``last_result`` is an evidence-state observation, not part of the contract:
+    the checked artifact and closure gate validate it separately. Excluding
+    only that field lets a checked importer promote stale F* rows without
+    editing this validator (which would invalidate the artifact it imports).
+    """
+    payload = {
+        field: copy.deepcopy(manifest.get(field))
+        for field in VERIFICATION_CONTRACT_FIELDS
+    }
+    for entry in payload["statement_binding_evidence"]:
+        entry["checker"].pop("last_result", None)
+    return payload
 
 
 def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:
@@ -1295,7 +1315,7 @@ def validate_extracted_checked_successor_source(
     required_fragments = {
         "candidate query": (
             r"\.derive_randomizer\s*\(\s*nonce\s*,\s*"
-            r"&input\.randomizer_message\s*\)"
+            r"&randomizer_message\s*\)"
         ),
         "attempt-error precedence": (
             r"Err\s*\(\s*error\s*\)\s*=>\s*return\s+Err\s*\(\s*"
@@ -1306,10 +1326,8 @@ def validate_extracted_checked_successor_source(
             r"\brandomizer_is_admissible\s*\(\s*&randomizer\s*\)"
         ),
         "accepted randomizer installation": (
-            r"input\.combined\.r\s*=\s*randomizer\.clone\s*\(\s*\)"
-        ),
-        "TIPP randomizer installation": (
-            r"input\.combined\.tipp_mipp\.r\s*=\s*randomizer\.clone\s*\(\s*\)"
+            r"combined\s*=\s*install_aggregate_randomizer_core\s*\(\s*"
+            r"combined\s*,\s*randomizer\.clone\s*\(\s*\)\s*\)"
         ),
         "checked successor assignment": (
             r"nonce\s*=\s*match\s+checked_next_challenge_nonce\s*"
@@ -1338,6 +1356,24 @@ def validate_extracted_checked_successor_source(
         raise VerificationError(
             f"{function} no longer queries and accepts before advancing"
         )
+
+    installation = rust_function_body(
+        text, "install_aggregate_randomizer_core"
+    )
+    for label, pattern in {
+        "combined PPE randomizer": (
+            r"combined\.r\s*=\s*randomizer\.clone\s*\(\s*\)"
+        ),
+        "TIPP/MIPP randomizer": (
+            r"combined\.tipp_mipp\.r\s*=\s*randomizer"
+        ),
+        "installed input return": r"\bcombined\s*$",
+    }.items():
+        if re.search(pattern, installation, re.MULTILINE) is None:
+            raise VerificationError(
+                "install_aggregate_randomizer_core lacks its pinned "
+                f"{label}"
+            )
 
     for test_name in tests:
         require_unignored_rust_test(
@@ -1467,6 +1503,19 @@ def expected_fstar_checker_evidence(
 def validate_fstar_checker_evidence(
     manifest: dict[str, Any], repo_root: Path
 ) -> None:
+    stale_fields = [
+        entry["contract_field"]
+        for entry in _require_nonempty_list(
+            manifest, "statement_binding_evidence"
+        )
+        if entry.get("kind") == "fstar"
+        and entry.get("checker", {}).get("last_result") != "pass"
+    ]
+    if stale_fields:
+        raise VerificationError(
+            "F* checker evidence is stale for current sources: "
+            + ", ".join(stale_fields)
+        )
     pointer = manifest.get("fstar_checker_evidence")
     if not isinstance(pointer, dict) or set(pointer) != {"path", "sha256"}:
         raise VerificationError(
@@ -1494,6 +1543,100 @@ def validate_fstar_checker_evidence(
             "F* checker evidence differs from the pinned command, toolchain, "
             "source set, theorem roots, or pass results"
         )
+
+
+def promoted_fstar_manifest(
+    manifest: dict[str, Any],
+    artifact: bytes,
+    repo_root: Path,
+) -> dict[str, Any]:
+    """Validate a checker artifact and return its fail-closed manifest update."""
+    try:
+        payload = json.loads(artifact)
+        decoded = artifact.decode("utf-8")
+    except (UnicodeError, json.JSONDecodeError) as error:
+        raise VerificationError(
+            f"cannot read candidate F* checker evidence: {error}"
+        ) from error
+    if decoded != _canonical_json(payload):
+        raise VerificationError(
+            "candidate F* checker evidence must use canonical pretty JSON"
+        )
+    if payload != expected_fstar_checker_evidence(manifest, repo_root):
+        raise VerificationError(
+            "candidate F* checker evidence differs from the current pinned "
+            "command, toolchain, source set, theorem roots, or pass results"
+        )
+
+    promoted = copy.deepcopy(manifest)
+    for entry in _require_nonempty_list(
+        promoted, "statement_binding_evidence"
+    ):
+        if entry.get("kind") == "fstar":
+            entry["checker"]["last_result"] = "pass"
+    relative = FSTAR_CHECKER_EVIDENCE_PATH.relative_to(REPO_ROOT).as_posix()
+    promoted["fstar_checker_evidence"] = {
+        "path": relative,
+        "sha256": hashlib.sha256(artifact).hexdigest(),
+    }
+    validate_contract_evidence(
+        promoted, repo_root, require_checker_artifact=False
+    )
+    return promoted
+
+
+def _atomic_write(path: Path, content: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as output:
+            temporary = Path(output.name)
+            output.write(content)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary, path)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def import_fstar_checker_evidence(
+    manifest_path: Path,
+    artifact_path: Path,
+    repo_root: Path,
+) -> dict[str, Any]:
+    """Import a checked artifact, then promote its manifest rows atomically.
+
+    The artifact is replaced first. A crash between the two replacements leaves
+    the old manifest pointer mismatched and therefore red, never falsely green.
+    """
+    manifest = load_manifest(manifest_path)
+    artifact = artifact_path.read_bytes()
+    promoted = promoted_fstar_manifest(manifest, artifact, repo_root)
+    evidence_target = repo_root.joinpath(
+        *PurePosixPath(promoted["fstar_checker_evidence"]["path"]).parts
+    )
+    _atomic_write(evidence_target, artifact)
+
+    # Freeze the source set across the import boundary. If it moved after the
+    # checker produced the artifact, leave the old manifest red.
+    if json.loads(artifact) != expected_fstar_checker_evidence(
+        promoted, repo_root
+    ):
+        raise VerificationError(
+            "F* sources changed while importing checker evidence"
+        )
+    validate_fstar_checker_evidence(promoted, repo_root)
+    _atomic_write(
+        manifest_path, _canonical_json(promoted).encode("utf-8")
+    )
+    return promoted
 
 
 def require_positive_test_execution(output: str, *, command: str) -> int:
@@ -1753,12 +1896,15 @@ def validate_contract_evidence(
             raise VerificationError(
                 f"{where}.checker.last_result must be pass, stale, or assumed"
             )
-        if entry["kind"] in {"fstar", "lean"} and (
-            required_result != "pass" or checker["last_result"] != "pass"
-        ):
-            raise VerificationError(
-                f"{where} proof evidence must match its generated pass artifact"
-            )
+        if entry["kind"] in {"fstar", "lean"}:
+            if required_result != "pass":
+                raise VerificationError(
+                    f"{where} proof evidence must require pass"
+                )
+            if checker["last_result"] not in {"pass", "stale"}:
+                raise VerificationError(
+                    f"{where} proof evidence must be pass or stale"
+                )
         if entry["kind"] == "external":
             assumed_by = ASSUMED_CONTRACT_FIELDS.get(field)
             if required_result == "assumed":
@@ -2079,10 +2225,7 @@ def validate_repository(
             )
         validate_import_closure(actual_lean_root, [module], forbidden)
 
-    verification_contract = {
-        field: manifest.get(field)
-        for field in VERIFICATION_CONTRACT_FIELDS
-    }
+    verification_contract = _verification_contract_payload(manifest)
     verification_contract_digest = hashlib.sha256(
         _canonical_json(verification_contract).encode("utf-8")
     ).hexdigest()
@@ -2590,6 +2733,8 @@ def parser() -> argparse.ArgumentParser:
     fstar_evidence = commands.add_parser("fstar-evidence")
     fstar_evidence.add_argument("--check", type=Path)
     fstar_evidence.add_argument("--output", type=Path)
+    import_fstar = commands.add_parser("import-fstar-evidence")
+    import_fstar.add_argument("--artifact", type=Path, required=True)
     return result
 
 
@@ -2711,6 +2856,15 @@ def main(argv: list[str] | None = None) -> int:
                         "with SNARKPACK_FSTAR_EVIDENCE_UPDATE=1"
                     )
                 print(f"{args.check} matches the pinned F* checker result")
+        elif args.command == "import-fstar-evidence":
+            promoted = import_fstar_checker_evidence(
+                MANIFEST_PATH, args.artifact, REPO_ROOT
+            )
+            print(
+                "imported F* checker evidence and promoted "
+                f"{sum(entry['kind'] == 'fstar' for entry in promoted['statement_binding_evidence'])} "
+                "contract rows"
+            )
         return 0
     except (OSError, UnicodeError, VerificationError) as error:
         print(f"verification manifest: error: {error}", file=sys.stderr)

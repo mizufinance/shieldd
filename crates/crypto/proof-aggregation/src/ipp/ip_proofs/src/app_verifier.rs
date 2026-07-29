@@ -3,6 +3,15 @@
 //! Rich proof and statement values stay at the application edge. This module
 //! owns every acceptance-relevant scalar comparison and tagged reduction.
 
+/// Wire version authenticated by the shipping aggregate statement.
+pub const APP_VERIFY_PROTOCOL_VERSION: u32 = 2;
+
+/// Extraction root used by the shipping-input constructor.
+#[doc(hidden)]
+pub fn app_verify_protocol_version_core() -> u32 {
+    APP_VERIFY_PROTOCOL_VERSION
+}
+
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct AppVerifyFamilyCode {
@@ -519,6 +528,15 @@ pub fn app_verify_normal_acceptance_core(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shipping_protocol_version_root_is_current() {
+        assert_eq!(app_verify_protocol_version_core(), 2);
+        assert_eq!(
+            app_verify_protocol_version_core(),
+            APP_VERIFY_PROTOCOL_VERSION
+        );
+    }
 
     fn family(tag: u32) -> AppVerifyFamilyCode {
         AppVerifyFamilyCode {

@@ -42,7 +42,20 @@ pub fn prepare_verify_inputs(
     items: &[BatchItem],
     max_padded_count: usize,
 ) -> Result<PreparedVerifyInputs> {
-    if items.is_empty() {
+    let public_inputs = items
+        .iter()
+        .map(|item| item.public_inputs.clone())
+        .collect::<Vec<_>>();
+    prepare_verify_public_input_rows(public_inputs, max_padded_count)
+}
+
+/// Pure row projection used by the shipping verifier. The input vector is the
+/// caller-order real prefix and is consumed by the repeat-final padding core.
+pub(crate) fn prepare_verify_public_input_rows(
+    public_inputs: Vec<Vec<Fq>>,
+    max_padded_count: usize,
+) -> Result<PreparedVerifyInputs> {
+    if public_inputs.is_empty() {
         return Ok(PreparedVerifyInputs {
             real_count: 0,
             padded_count: 0,
@@ -50,21 +63,18 @@ pub fn prepare_verify_inputs(
         });
     }
 
-    let padded_count = items.len().next_power_of_two();
+    let real_count = public_inputs.len();
+    let padded_count = real_count.next_power_of_two();
     ensure!(
         padded_count <= max_padded_count,
         "padded proof count {padded_count} exceeds max {max_padded_count}"
     );
 
-    let public_inputs = items
-        .iter()
-        .map(|item| item.public_inputs.clone())
-        .collect::<Vec<_>>();
     let padded_public_inputs = app_verify_repeat_final_rows_core(public_inputs, padded_count)
         .map_err(|_| anyhow!("missing final public inputs for deterministic padding"))?;
 
     Ok(PreparedVerifyInputs {
-        real_count: items.len(),
+        real_count,
         padded_count,
         padded_public_inputs,
     })
@@ -76,7 +86,9 @@ mod tests {
     use decaf377::Fq;
     use shieldd_sdk_proof_params::batch::BatchItem;
 
-    use super::{pad_items_to_power_of_two, prepare_verify_inputs};
+    use super::{
+        pad_items_to_power_of_two, prepare_verify_inputs, prepare_verify_public_input_rows,
+    };
 
     fn dummy_item(value: u64) -> BatchItem {
         BatchItem {
@@ -129,5 +141,24 @@ mod tests {
                 .map(|item| item.public_inputs)
                 .collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn row_projection_preserves_caller_order_before_repeat_final_suffix() {
+        let source = vec![
+            vec![Fq::from(1u64)],
+            vec![Fq::from(2u64)],
+            vec![Fq::from(3u64)],
+        ];
+        let prepared =
+            prepare_verify_public_input_rows(source.clone(), 8).expect("row projection succeeds");
+
+        assert_eq!(prepared.real_count, source.len());
+        assert_eq!(prepared.padded_count, 4);
+        assert_eq!(
+            &prepared.padded_public_inputs[..source.len()],
+            source.as_slice()
+        );
+        assert_eq!(prepared.padded_public_inputs[3], source[2]);
     }
 }

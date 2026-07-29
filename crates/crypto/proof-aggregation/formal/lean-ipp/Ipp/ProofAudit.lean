@@ -1,5 +1,6 @@
 import Ipp.S1
 import Ipp.S1Computational
+import Ipp.S1Bls12377SecurityGames
 import Ipp.Goal
 import Ipp.SnarkPackV1
 import Ipp.SnarkPackV1Refinement
@@ -8,10 +9,10 @@ import Ipp.Cost
 import Ipp.ShippingScalarReduction
 import Ipp.ShippingHashExecutionTrace
 import Ipp.ShippingToGoal
-import Ipp.ShippingAdaptive
 import Ipp.ShippingAdaptiveSha
-import Ipp.ShippingAdaptiveToGoal
+import Ipp.ShippingMultiStatement
 import Ipp.Extracted.AppVerifierStateMachine
+import Ipp.Extracted.ShippingRowConstruction
 import Ipp.Extracted.ShippingStatementConstruction
 import Ipp.Extracted.AggregateVerifierPairingAdapter
 import Ipp.Extracted.ShippingVerifierComposition
@@ -74,10 +75,20 @@ in `Ipp.ProofAuditMiller` because it declares overlapping extracted globals.
 #print axioms Ipp.S1.s1PairingBad_iff_components
 #print axioms Ipp.S1.s1KzgBad_probability_le_lane_sum
 #print axioms Ipp.S1.s1PairingBad_probability_le_component_sum
-#print axioms Ipp.S1.S1ExtractionSecurity.ofComponentBounds
-#print axioms Ipp.S1.kzg_false_opening_to_bls12377_security
+#print axioms Ipp.S1.s1KzgVBad_iff_kzgVFalseOpeningGameWin
+#print axioms Ipp.S1.s1KzgWBad_iff_kzgWFalseOpeningGameWin
+#print axioms Ipp.S1.s1RootOpeningBad_iff_gipaRootOpeningGameWin
+#print axioms Ipp.S1.s1ProductLaneBad_iff_gipaProductLaneGameWin
+#print axioms Ipp.S1.s1KzgVBad_probability_eq_gameWin
+#print axioms Ipp.S1.s1KzgWBad_probability_eq_gameWin
+#print axioms Ipp.S1.s1RootOpeningBad_probability_eq_gameWin
+#print axioms Ipp.S1.s1ProductLaneBad_probability_eq_gameWin
+#print axioms Ipp.S1.kzg_false_opening_to_game_security
 #print axioms Ipp.S1.gipa_fork_knowledge_reduction
 #print axioms Ipp.S1.S1ExtractionSecurity.ofDeployedAssumptions
+#print axioms Ipp.S1.kzg_false_opening_to_bls12377_security
+#print axioms Ipp.S1.gipa_fork_knowledge_to_bls12377_security
+#print axioms Ipp.S1.S1ExtractionSecurity.ofBls12377GameAssumptions
 
 -- Independent goal, v1 projection, and symbolic cost model
 #print axioms Ipp.Goal.no_omission_or_reordering
@@ -89,14 +100,19 @@ in `Ipp.ProofAuditMiller` because it declares overlapping extracted globals.
 #print axioms Ipp.SnarkPackV1.Refinement.hasValidRepresentation_iff
 #print axioms Ipp.SnarkPackV1.Refinement.hasValidRealPrefixRepresentation_iff
 #print axioms Ipp.SnarkPackV1.Refinement.invalid_realPrefix_implies_invalid_padded
-#print axioms Ipp.ShippingAdaptive.idealExperiment_eq_threaded
-#print axioms Ipp.ShippingAdaptive.adaptive_invalidAcceptance_le_of_reachable_fixedCall
-#print axioms Ipp.ShippingAdaptive.sharedProgram_isTotalQueryBound
 #print axioms Ipp.ShippingAdaptiveSha.acceptedAlias_implies_collision
 #print axioms Ipp.ShippingAdaptiveSha.adaptive_shipping_sha256_collision_reduction
 #print axioms Ipp.ShippingAdaptiveSha.adaptive_real_acceptance_le_ideal_add_hash_losses
-#print axioms Ipp.ShippingAdaptiveToGoal.FixedCallS1Instance.forkExpression_le_extraction
-#print axioms Ipp.ShippingAdaptiveToGoal.adaptive_shipping_invalid_acceptance_quantitative
+#print axioms Ipp.ShippingMultiStatement.globalQueryEncoding_ofRegistered
+#print axioms Ipp.ShippingMultiStatement.globalQueryEncoding_fixed_key_injective
+#print axioms Ipp.ShippingMultiStatement.globalFsVerifier_support_proof_eq
+#print axioms Ipp.ShippingMultiStatement.OutcomeAt.roundQuery?_of_lt
+#print axioms Ipp.ShippingMultiStatement.PackedOutcome.at?_self
+#print axioms Ipp.ShippingMultiStatement.multiStatementFsGame_isTotalQueryBound
+#print axioms Ipp.ShippingMultiStatement.leastInvalidOutcome?_mem
+#print axioms Ipp.ShippingMultiStatement.bundle_acceptance_implies_least_invalid_acceptance
+#print axioms Ipp.ShippingMultiStatement.rawForkSucceededAt_le_explicit_game_advantage
+#print axioms Ipp.ShippingMultiStatement.FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh
 #print axioms Ipp.SnarkPackV1.HonestProver.honest_complete
 #print axioms Ipp.Extracted.ShippingProver.shipping_prover_refines_honest_complete
 #print axioms Ipp.Cost.prover_miller_terms
@@ -125,9 +141,20 @@ in `Ipp.ProofAuditMiller` because it declares overlapping extracted globals.
 #print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_shipping_wrapper_projection_from_parts_exact
 #print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_shipping_input_success_retains_wrapper
 #print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_shipping_input_success_exact
+#print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_repeat_final_rows_loopFuel_exact
+#print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_repeat_final_rows_loop_exact
+#print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_repeat_final_rows_core_exact
+#print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_repeat_final_rows_success_refines
+#print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_repeat_final_rows_success_postcondition
 #print axioms Ipp.Extracted.AppVerifierStateMachine.shippingFamilyCode_represents
 #print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_shipping_projection_ok
 #print axioms Ipp.Extracted.AppVerifierStateMachine.app_acceptance_binds_shipping_input
+#print axioms Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction.ofExtractedSuccess
+#print axioms Ipp.Extracted.ShippingRowConstruction.validCounts
+#print axioms Ipp.Extracted.ShippingRowConstruction.realPrefixExact
+#print axioms Ipp.Extracted.ShippingRowConstruction.repeatFinalPadding
+#print axioms Ipp.Extracted.ShippingRowConstruction.preserves_order_and_padding
+#print axioms Ipp.Extracted.ShippingStatementConstruction.extracted_protocol_version_exact
 #print axioms Ipp.Extracted.ShippingStatementConstruction.ConstructorExecution.outputExact
 #print axioms Ipp.Extracted.ShippingStatementConstruction.accepted_constructor_retains_shipping_input
 #print axioms Ipp.Extracted.ShippingStatementConstruction.supported_shipping_input_has_retained_output

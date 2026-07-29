@@ -73,8 +73,8 @@ struct ChallengeTraceRecord {
 }
 
 impl BufferedChallengeTraceSink {
-    fn replay_into<S: ChallengeTraceSink>(self, trace: &mut S) {
-        for record in self.records {
+    fn replay_into<S: ChallengeTraceSink>(&self, trace: &mut S) {
+        for record in &self.records {
             trace.record(
                 record.stage_label,
                 record.nonce,
@@ -93,6 +93,18 @@ impl ChallengeTraceSink for BufferedChallengeTraceSink {
             preimage: preimage.to_vec(),
             digest: digest.to_vec(),
         });
+    }
+}
+
+struct RetainedChallengeTraceSink<'a, S> {
+    downstream: &'a mut S,
+    retained: &'a mut BufferedChallengeTraceSink,
+}
+
+impl<S: ChallengeTraceSink> ChallengeTraceSink for RetainedChallengeTraceSink<'_, S> {
+    fn record(&mut self, stage_label: &'static [u8], nonce: u64, preimage: &[u8], digest: &[u8]) {
+        self.downstream.record(stage_label, nonce, preimage, digest);
+        self.retained.record(stage_label, nonce, preimage, digest);
     }
 }
 
@@ -439,6 +451,16 @@ trait AggregateRandomizerEffect<F, E> {
     fn derive_randomizer(&mut self, nonce: u64, randomizer_message: &[u8]) -> Result<Option<F>, E>;
 }
 
+/// Runtime-only observation of randomizer sampling duration.
+///
+/// The semantic adapter is generic over this effect, keeping `Instant`, `f64`,
+/// and profile accumulation outside the extracted execution record.
+#[cfg(not(feature = "bench-baseline"))]
+trait AggregateRandomizerTiming {
+    fn begin(&mut self);
+    fn end(&mut self);
+}
+
 #[cfg(not(feature = "bench-baseline"))]
 struct AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT> {
     randomizer_message: Vec<u8>,
@@ -479,6 +501,59 @@ struct AggregateAdapterCoreOutput<F, RFX, FX> {
     accepted: bool,
     randomizer_effect: RFX,
     tipp_mipp_effect: FX,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)]
+struct AggregateAdapterExecutionOutput<I, F, RFX, FX, TX> {
+    input: I,
+    initial_nonce: u64,
+    accepted_nonce: u64,
+    core: AggregateAdapterCoreOutput<F, RFX, FX>,
+    tipp_mipp: TX,
+}
+
+/// Owned, acceptance-relevant result of the concrete shipping adapter.
+///
+/// Runtime timing and buffered trace storage are deliberately excluded. The
+/// caller retains those observations in a separate, non-extracted envelope.
+#[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)]
+struct ShippingAdapterSemanticExecution<I, F, TX> {
+    adapter_input: I,
+    initial_nonce: u64,
+    accepted_nonce: u64,
+    randomizer: F,
+    checks: (bool, bool),
+    tipp_mipp: TX,
+    accepted: bool,
+}
+
+/// Generic effect bundle consumed by the adapter core.
+///
+/// `run_arkworks_adapter_semantic` is the production-used extraction boundary
+/// that installs the four concrete Arkworks effects into this bundle.
+#[cfg(not(feature = "bench-baseline"))]
+struct AggregateAdapterEffects<RFX, FX, PE, PPE> {
+    randomizer: RFX,
+    tipp_mipp: FX,
+    tipp_pairing: PE,
+    prepared_ppe_pairing: PPE,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn aggregate_adapter_effects_from_parts<RFX, FX, PE, PPE>(
+    randomizer: RFX,
+    tipp_mipp: FX,
+    tipp_pairing: PE,
+    prepared_ppe_pairing: PPE,
+) -> AggregateAdapterEffects<RFX, FX, PE, PPE> {
+    AggregateAdapterEffects {
+        randomizer,
+        tipp_mipp,
+        tipp_pairing,
+        prepared_ppe_pairing,
+    }
 }
 
 #[cfg(not(feature = "bench-baseline"))]
@@ -527,13 +602,174 @@ where
     PE: PairingEffect<G1, G2, GT> + Sync + Send,
     PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
 {
-    verify_aggregate_adapter_core_from_nonce(
+    verify_aggregate_adapter_execution_core(
+        input,
+        randomizer_effect,
+        tipp_mipp_effect,
+        tipp_pairing,
+        ppe_pairing,
+    )
+    .map(|output| output.core)
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn verify_aggregate_adapter_execution_core<
+    F,
+    G1,
+    G2,
+    G2Prepared,
+    GT,
+    ABT,
+    CT,
+    E,
+    RFX,
+    FX,
+    PE,
+    PPE,
+>(
+    input: AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+    randomizer_effect: RFX,
+    tipp_mipp_effect: FX,
+    tipp_pairing: PE,
+    ppe_pairing: PPE,
+) -> Result<
+    AggregateAdapterExecutionOutput<
+        AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+        F,
+        RFX,
+        FX,
+        TippMippCoreOutput<F, GT, ABT, CT>,
+    >,
+    AggregateAdapterCoreError<E>,
+>
+where
+    F: Clone
+        + PartialEq
+        + From<u64>
+        + One
+        + Zero
+        + Add<Output = F>
+        + std::ops::Div<Output = F>
+        + Mul<Output = F>
+        + Sub<Output = F>
+        + Sync
+        + Send,
+    G1: Clone
+        + Add<Output = G1>
+        + Mul<F, Output = G1>
+        + Sub<Output = G1>
+        + Neg<Output = G1>
+        + Sync
+        + Send,
+    G2: Clone + Mul<F, Output = G2> + Sub<Output = G2> + Sync + Send,
+    G2Prepared: Clone + Send,
+    GT: Clone
+        + Default
+        + Add<Output = GT>
+        + Mul<F, Output = GT>
+        + MulAssign<F>
+        + Zero
+        + PartialEq
+        + Sync
+        + Send,
+    ABT: Clone + Default + Add<Output = ABT> + MulAssign<F> + Sync + Send,
+    CT: Clone + Default + Add<Output = CT> + MulAssign<F> + Sync + Send,
+    E: Send,
+    RFX: AggregateRandomizerEffect<F, E>,
+    FX: TippMippEffect<F, G1, G2, GT, ABT, CT, E> + Send,
+    PE: PairingEffect<G1, G2, GT> + Sync + Send,
+    PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
+{
+    verify_aggregate_adapter_execution_core_from_nonce(
         input,
         randomizer_effect,
         tipp_mipp_effect,
         tipp_pairing,
         ppe_pairing,
         0,
+    )
+}
+
+/// Delegate through the exact effect bundle installed by the production
+/// verifier. The output still retains the consumed input and all accepted-path
+/// state required by the Lean adapter contract.
+#[cfg(not(feature = "bench-baseline"))]
+fn verify_installed_aggregate_adapter_core<
+    F,
+    G1,
+    G2,
+    G2Prepared,
+    GT,
+    ABT,
+    CT,
+    E,
+    RFX,
+    FX,
+    PE,
+    PPE,
+>(
+    input: AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+    effects: AggregateAdapterEffects<RFX, FX, PE, PPE>,
+) -> Result<
+    AggregateAdapterExecutionOutput<
+        AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+        F,
+        RFX,
+        FX,
+        TippMippCoreOutput<F, GT, ABT, CT>,
+    >,
+    AggregateAdapterCoreError<E>,
+>
+where
+    F: Clone
+        + PartialEq
+        + From<u64>
+        + One
+        + Zero
+        + Add<Output = F>
+        + std::ops::Div<Output = F>
+        + Mul<Output = F>
+        + Sub<Output = F>
+        + Sync
+        + Send,
+    G1: Clone
+        + Add<Output = G1>
+        + Mul<F, Output = G1>
+        + Sub<Output = G1>
+        + Neg<Output = G1>
+        + Sync
+        + Send,
+    G2: Clone + Mul<F, Output = G2> + Sub<Output = G2> + Sync + Send,
+    G2Prepared: Clone + Send,
+    GT: Clone
+        + Default
+        + Add<Output = GT>
+        + Mul<F, Output = GT>
+        + MulAssign<F>
+        + Zero
+        + PartialEq
+        + Sync
+        + Send,
+    ABT: Clone + Default + Add<Output = ABT> + MulAssign<F> + Sync + Send,
+    CT: Clone + Default + Add<Output = CT> + MulAssign<F> + Sync + Send,
+    E: Send,
+    RFX: AggregateRandomizerEffect<F, E>,
+    FX: TippMippEffect<F, G1, G2, GT, ABT, CT, E> + Send,
+    PE: PairingEffect<G1, G2, GT> + Sync + Send,
+    PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
+{
+    let AggregateAdapterEffects {
+        randomizer,
+        tipp_mipp,
+        tipp_pairing,
+        prepared_ppe_pairing,
+    } = effects;
+    verify_aggregate_adapter_execution_core(
+        input,
+        randomizer,
+        tipp_mipp,
+        tipp_pairing,
+        prepared_ppe_pairing,
     )
 }
 
@@ -552,8 +788,8 @@ fn verify_aggregate_adapter_core_from_nonce<
     PE,
     PPE,
 >(
-    mut input: AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
-    mut randomizer_effect: RFX,
+    input: AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+    randomizer_effect: RFX,
     tipp_mipp_effect: FX,
     tipp_pairing: PE,
     ppe_pairing: PPE,
@@ -597,19 +833,103 @@ where
     PE: PairingEffect<G1, G2, GT> + Sync + Send,
     PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
 {
+    verify_aggregate_adapter_execution_core_from_nonce(
+        input,
+        randomizer_effect,
+        tipp_mipp_effect,
+        tipp_pairing,
+        ppe_pairing,
+        nonce,
+    )
+    .map(|output| output.core)
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn verify_aggregate_adapter_execution_core_from_nonce<
+    F,
+    G1,
+    G2,
+    G2Prepared,
+    GT,
+    ABT,
+    CT,
+    E,
+    RFX,
+    FX,
+    PE,
+    PPE,
+>(
+    input: AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+    mut randomizer_effect: RFX,
+    tipp_mipp_effect: FX,
+    tipp_pairing: PE,
+    ppe_pairing: PPE,
+    nonce: u64,
+) -> Result<
+    AggregateAdapterExecutionOutput<
+        AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+        F,
+        RFX,
+        FX,
+        TippMippCoreOutput<F, GT, ABT, CT>,
+    >,
+    AggregateAdapterCoreError<E>,
+>
+where
+    F: Clone
+        + PartialEq
+        + From<u64>
+        + One
+        + Zero
+        + Add<Output = F>
+        + std::ops::Div<Output = F>
+        + Mul<Output = F>
+        + Sub<Output = F>
+        + Sync
+        + Send,
+    G1: Clone
+        + Add<Output = G1>
+        + Mul<F, Output = G1>
+        + Sub<Output = G1>
+        + Neg<Output = G1>
+        + Sync
+        + Send,
+    G2: Clone + Mul<F, Output = G2> + Sub<Output = G2> + Sync + Send,
+    G2Prepared: Clone + Send,
+    GT: Clone
+        + Default
+        + Add<Output = GT>
+        + Mul<F, Output = GT>
+        + MulAssign<F>
+        + Zero
+        + PartialEq
+        + Sync
+        + Send,
+    ABT: Clone + Default + Add<Output = ABT> + MulAssign<F> + Sync + Send,
+    CT: Clone + Default + Add<Output = CT> + MulAssign<F> + Sync + Send,
+    E: Send,
+    RFX: AggregateRandomizerEffect<F, E>,
+    FX: TippMippEffect<F, G1, G2, GT, ABT, CT, E> + Send,
+    PE: PairingEffect<G1, G2, GT> + Sync + Send,
+    PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
+{
+    let initial_nonce = nonce;
+    let AggregateAdapterCoreInput {
+        randomizer_message,
+        combined,
+    } = input;
+    let mut combined = combined;
     let mut nonce = nonce;
     loop {
-        let candidate = match randomizer_effect.derive_randomizer(nonce, &input.randomizer_message)
-        {
+        let candidate = match randomizer_effect.derive_randomizer(nonce, &randomizer_message) {
             Ok(candidate) => candidate,
             Err(error) => return Err(AggregateAdapterCoreError::RandomizerFailure(error)),
         };
         if let Some(randomizer) = candidate {
             if randomizer_is_admissible(&randomizer) {
-                input.combined.r = randomizer.clone();
-                input.combined.tipp_mipp.r = randomizer.clone();
-                let output = match verify_combined_checks_core(
-                    input.combined,
+                combined = install_aggregate_randomizer_core(combined, randomizer.clone());
+                let output = match verify_combined_checks_execution_core(
+                    combined,
                     tipp_mipp_effect,
                     tipp_pairing,
                     ppe_pairing,
@@ -619,12 +939,28 @@ where
                         return Err(AggregateAdapterCoreError::CombinedFailure(error));
                     }
                 };
-                return Ok(AggregateAdapterCoreOutput {
-                    randomizer,
-                    checks: output.checks,
-                    accepted: output.checks.0 && output.checks.1,
-                    randomizer_effect,
-                    tipp_mipp_effect: output.tipp_mipp_effect,
+                let CombinedChecksExecutionOutput {
+                    input: combined,
+                    core:
+                        CombinedChecksCoreOutput {
+                            checks,
+                            tipp_mipp_effect,
+                        },
+                    tipp_mipp,
+                } = output;
+                let input = aggregate_adapter_core_input_from_parts(randomizer_message, combined);
+                return Ok(AggregateAdapterExecutionOutput {
+                    input,
+                    initial_nonce,
+                    accepted_nonce: nonce,
+                    core: AggregateAdapterCoreOutput {
+                        randomizer,
+                        checks,
+                        accepted: checks.0 && checks.1,
+                        randomizer_effect,
+                        tipp_mipp_effect,
+                    },
+                    tipp_mipp,
                 });
             }
         }
@@ -633,6 +969,23 @@ where
             None => return Err(AggregateAdapterCoreError::NonceExhausted),
         };
     }
+}
+
+/// Install one accepted randomizer into both concrete verifier projections.
+///
+/// Keeping this mutation in a pure constructor makes it impossible for the
+/// combined PPE and TIPP/MIPP checks to observe different randomizers.
+#[cfg(not(feature = "bench-baseline"))]
+fn install_aggregate_randomizer_core<F, G1, G2, G2Prepared, GT, ABT, CT>(
+    mut combined: CombinedChecksCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+    randomizer: F,
+) -> CombinedChecksCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>
+where
+    F: Clone,
+{
+    combined.r = randomizer.clone();
+    combined.tipp_mipp.r = randomizer;
+    combined
 }
 
 #[cfg(not(feature = "bench-baseline"))]
@@ -712,8 +1065,15 @@ struct CombinedChecksCoreOutput<FX> {
 }
 
 #[cfg(not(feature = "bench-baseline"))]
+struct CombinedChecksExecutionOutput<I, FX, TX> {
+    input: I,
+    core: CombinedChecksCoreOutput<FX>,
+    tipp_mipp: TX,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
 fn verify_combined_ppe_core<F, G1, G2Prepared, GT, E>(
-    ppe: CombinedChecksPpeInput<G1, G2Prepared, GT>,
+    ppe: &CombinedChecksPpeInput<G1, G2Prepared, GT>,
     gamma_abc_g1: &[G1],
     public_inputs: &[Vec<F>],
     r: &F,
@@ -737,13 +1097,13 @@ where
     let (r_sum, g_ic) = fold_public_inputs_core(gamma_abc_g1, public_inputs, r);
     verify_ppe_core(
         PreparedPpeVerifierCoreInput {
-            alpha_beta: ppe.alpha_beta,
+            alpha_beta: ppe.alpha_beta.clone(),
             r_sum,
             g_ic,
-            agg_c: ppe.agg_c,
-            gamma_g2_neg_pc: ppe.gamma_g2_neg_pc,
-            delta_g2_neg_pc: ppe.delta_g2_neg_pc,
-            ip_ab: ppe.ip_ab,
+            agg_c: ppe.agg_c.clone(),
+            gamma_g2_neg_pc: ppe.gamma_g2_neg_pc.clone(),
+            delta_g2_neg_pc: ppe.delta_g2_neg_pc.clone(),
+            ip_ab: ppe.ip_ab.clone(),
         },
         pairing,
     )
@@ -756,6 +1116,61 @@ fn verify_combined_checks_core<F, G1, G2, G2Prepared, GT, ABT, CT, E, FX, PE, PP
     tipp_pairing: PE,
     ppe_pairing: PPE,
 ) -> Result<CombinedChecksCoreOutput<FX>, CombinedChecksError<E>>
+where
+    F: Clone
+        + PartialEq
+        + From<u64>
+        + One
+        + Zero
+        + Add<Output = F>
+        + std::ops::Div<Output = F>
+        + Mul<Output = F>
+        + Sub<Output = F>
+        + Sync
+        + Send,
+    G1: Clone
+        + Add<Output = G1>
+        + Mul<F, Output = G1>
+        + Sub<Output = G1>
+        + Neg<Output = G1>
+        + Sync
+        + Send,
+    G2: Clone + Mul<F, Output = G2> + Sub<Output = G2> + Sync + Send,
+    G2Prepared: Clone + Send,
+    GT: Clone
+        + Default
+        + Add<Output = GT>
+        + Mul<F, Output = GT>
+        + MulAssign<F>
+        + Zero
+        + PartialEq
+        + Sync
+        + Send,
+    ABT: Clone + Default + Add<Output = ABT> + MulAssign<F> + Sync + Send,
+    CT: Clone + Default + Add<Output = CT> + MulAssign<F> + Sync + Send,
+    E: Send,
+    FX: TippMippEffect<F, G1, G2, GT, ABT, CT, E> + Send,
+    PE: PairingEffect<G1, G2, GT> + Sync + Send,
+    PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
+{
+    verify_combined_checks_execution_core(input, effect, tipp_pairing, ppe_pairing)
+        .map(|output| output.core)
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn verify_combined_checks_execution_core<F, G1, G2, G2Prepared, GT, ABT, CT, E, FX, PE, PPE>(
+    input: CombinedChecksCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+    effect: FX,
+    tipp_pairing: PE,
+    ppe_pairing: PPE,
+) -> Result<
+    CombinedChecksExecutionOutput<
+        CombinedChecksCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+        FX,
+        TippMippCoreOutput<F, GT, ABT, CT>,
+    >,
+    CombinedChecksError<E>,
+>
 where
     F: Clone
         + PartialEq
@@ -830,56 +1245,68 @@ where
     let (tipp_result, ppe_valid) = rayon::join(
         move || {
             let mut effect = effect;
-            let result =
-                verify_tipp_mipp_core(tipp_mipp, &mut effect, &tipp_pairing).map_err(|error| {
-                    CombinedChecksError {
-                        kind: 2,
-                        actual_rounds: 0,
-                        expected_rounds: 0,
-                        tipp_mipp_error: Some(error),
-                    }
+            let result = verify_tipp_mipp_execution_core(&tipp_mipp, &mut effect, &tipp_pairing)
+                .map_err(|error| CombinedChecksError {
+                    kind: 2,
+                    actual_rounds: 0,
+                    expected_rounds: 0,
+                    tipp_mipp_error: Some(error),
                 });
-            (result, effect)
+            (result, effect, tipp_mipp)
         },
         move || {
             let ppe_valid =
-                verify_combined_ppe_core(ppe, &gamma_abc_g1, &public_inputs, &r, &ppe_pairing);
-            ppe_valid
+                verify_combined_ppe_core(&ppe, &gamma_abc_g1, &public_inputs, &r, &ppe_pairing);
+            (ppe_valid, ppe, gamma_abc_g1, public_inputs, r)
         },
     );
 
     #[cfg(any(not(feature = "parallel"), feature = "bench-baseline", hax_compilation))]
     let (tipp_result, ppe_valid) = {
         let mut effect = effect;
-        let tipp_result =
-            verify_tipp_mipp_core(tipp_mipp, &mut effect, &tipp_pairing).map_err(|error| {
-                CombinedChecksError {
-                    kind: 2,
-                    actual_rounds: 0,
-                    expected_rounds: 0,
-                    tipp_mipp_error: Some(error),
-                }
+        let tipp_result = verify_tipp_mipp_execution_core(&tipp_mipp, &mut effect, &tipp_pairing)
+            .map_err(|error| CombinedChecksError {
+                kind: 2,
+                actual_rounds: 0,
+                expected_rounds: 0,
+                tipp_mipp_error: Some(error),
             });
         let ppe_valid =
-            verify_combined_ppe_core(ppe, &gamma_abc_g1, &public_inputs, &r, &ppe_pairing);
-        ((tipp_result, effect), ppe_valid)
+            verify_combined_ppe_core(&ppe, &gamma_abc_g1, &public_inputs, &r, &ppe_pairing);
+        (
+            (tipp_result, effect, tipp_mipp),
+            (ppe_valid, ppe, gamma_abc_g1, public_inputs, r),
+        )
     };
 
-    let (tipp_result, effect) = tipp_result;
-    let tipp_valid = tipp_result?;
-    Ok(CombinedChecksCoreOutput {
-        checks: (tipp_valid, ppe_valid),
-        tipp_mipp_effect: effect,
+    let (tipp_result, effect, tipp_mipp_input) = tipp_result;
+    let (ppe_valid, ppe, gamma_abc_g1, public_inputs, r) = ppe_valid;
+    let tipp_mipp = tipp_result?;
+    let tipp_valid = tipp_mipp.accepted;
+    Ok(CombinedChecksExecutionOutput {
+        input: CombinedChecksCoreInput {
+            tipp_mipp: tipp_mipp_input,
+            gamma_abc_g1,
+            public_inputs,
+            r,
+            ppe,
+        },
+        core: CombinedChecksCoreOutput {
+            checks: (tipp_valid, ppe_valid),
+            tipp_mipp_effect: effect,
+        },
+        tipp_mipp,
     })
 }
 
 /// Challenge values produced by the verifier before the leaf checks.
 ///
-/// Round challenges retain the reversed order consumed by the KZG checks; the
-/// formal projection maps them back to derivation chronology.
+/// Both challenge orders are retained explicitly: chronology is the deployed
+/// oracle-query order, while wire order is consumed by the two KZG checks.
 struct TippMippChallengeTrace<F> {
     x0: F,
-    round_challenges_reversed: Vec<F>,
+    round_challenges_chrono: Vec<F>,
+    round_challenges_wire: Vec<F>,
     final_bridge: F,
     kzg: F,
 }
@@ -897,6 +1324,25 @@ struct TippMippChallengePrefix<F, GT, ABT, CT> {
     com_t: ABT,
     com_c: GT,
     com_z: CT,
+}
+
+/// Leaf checks reached after a successful verifier challenge prefix.
+///
+/// `None` means the check was not reached because an earlier check returned
+/// false. This preserves the shipping failure order in the retained record.
+struct TippMippLeafChecks {
+    ck_v: bool,
+    ck_w: bool,
+    base: bool,
+    c: Option<bool>,
+    z: Option<bool>,
+}
+
+/// Retained result of the production TIPP/MIPP verifier core.
+struct TippMippCoreOutput<F, GT, ABT, CT> {
+    challenge_prefix: TippMippChallengePrefix<F, GT, ABT, CT>,
+    leaf_checks: TippMippLeafChecks,
+    accepted: bool,
 }
 
 /// Execute the production challenge/fold prefix in its exact failure order.
@@ -994,6 +1440,7 @@ where
         return Err(error);
     }
 
+    let round_challenges_chrono = raw_transcript_chrono.clone();
     raw_transcript_chrono.reverse();
     inv_transcript_chrono.reverse();
 
@@ -1008,7 +1455,8 @@ where
     Ok(TippMippChallengePrefix {
         challenges: TippMippChallengeTrace {
             x0: trace_x0,
-            round_challenges_reversed: raw_transcript_chrono,
+            round_challenges_chrono,
+            round_challenges_wire: raw_transcript_chrono,
             final_bridge,
             kzg: kzg_challenge,
         },
@@ -1022,11 +1470,11 @@ where
     })
 }
 
-fn verify_tipp_mipp_core<F, G1, G2, GT, ABT, CT, E, FX, PE>(
-    input: TippMippCoreInput<F, G1, G2, GT, ABT, CT>,
+fn verify_tipp_mipp_execution_core<F, G1, G2, GT, ABT, CT, E, FX, PE>(
+    input: &TippMippCoreInput<F, G1, G2, GT, ABT, CT>,
     effect: &mut FX,
     pairing: &PE,
-) -> Result<bool, E>
+) -> Result<TippMippCoreOutput<F, GT, ABT, CT>, E>
 where
     F: Clone + One + Add<Output = F> + Mul<Output = F> + Sync,
     G1: Clone + Mul<F, Output = G1> + Sub<Output = G1> + Neg<Output = G1> + Sync,
@@ -1046,13 +1494,14 @@ where
         com_t,
         com_c,
         com_z,
-    } = verify_tipp_mipp_challenge_prefix_core(&input, effect)?;
+    } = verify_tipp_mipp_challenge_prefix_core(input, effect)?;
     let TippMippChallengeTrace {
         x0: _x0_challenge,
-        round_challenges_reversed,
+        round_challenges_chrono: _round_challenges_chrono,
+        round_challenges_wire,
         final_bridge: _final_bridge_challenge,
         kzg: kzg_challenge,
-    } = challenges;
+    } = &challenges;
 
     let ck_v_final = input.proof.final_ck.0.clone();
     let ck_w_final = input.proof.final_ck.1.clone();
@@ -1068,9 +1517,9 @@ where
                 input.verifier_h.clone(),
                 ck_v_final.clone(),
                 ck_v_proof.clone(),
-                &round_challenges_reversed,
+                round_challenges_wire,
                 &input.kzg_g2_r_shift,
-                &kzg_challenge,
+                kzg_challenge,
                 pairing,
             )
         },
@@ -1083,7 +1532,7 @@ where
                 ck_w_proof.clone(),
                 &inverse_challenges_reversed,
                 &randomizer_inverse,
-                &kzg_challenge,
+                kzg_challenge,
                 pairing,
             )
         },
@@ -1097,9 +1546,9 @@ where
             input.verifier_h.clone(),
             ck_v_final.clone(),
             ck_v_proof.clone(),
-            &round_challenges_reversed,
+            round_challenges_wire,
             &input.kzg_g2_r_shift,
-            &kzg_challenge,
+            kzg_challenge,
             pairing,
         ),
         verify_commitment_key_g1_kzg_opening_core(
@@ -1110,7 +1559,7 @@ where
             ck_w_proof.clone(),
             &inverse_challenges_reversed,
             &randomizer_inverse,
-            &kzg_challenge,
+            kzg_challenge,
             pairing,
         ),
     );
@@ -1129,9 +1578,9 @@ where
             ck_t: vec![()],
             a: a_base[0].clone(),
             b: b_base[0].clone(),
-            com_a,
-            com_b,
-            com_t,
+            com_a: com_a.clone(),
+            com_b: com_b.clone(),
+            com_t: com_t.clone(),
         },
         effect,
     );
@@ -1140,19 +1589,95 @@ where
         BaseCommitmentResult::Err(error) => return Err(error),
     };
     if !base_valid {
-        return Ok(false);
+        return Ok(TippMippCoreOutput {
+            challenge_prefix: TippMippChallengePrefix {
+                challenges,
+                inverse_challenges_reversed,
+                randomizer_inverse,
+                com_a,
+                com_b,
+                com_t,
+                com_c,
+                com_z,
+            },
+            leaf_checks: TippMippLeafChecks {
+                ck_v: ck_v_valid,
+                ck_w: ck_w_valid,
+                base: false,
+                c: None,
+                z: None,
+            },
+            accepted: false,
+        });
     }
 
     let c_valid = effect.verify_c(&c_base, &ck_v_base, &com_c)?;
     if !c_valid {
-        return Ok(false);
+        return Ok(TippMippCoreOutput {
+            challenge_prefix: TippMippChallengePrefix {
+                challenges,
+                inverse_challenges_reversed,
+                randomizer_inverse,
+                com_a,
+                com_b,
+                com_t,
+                com_c,
+                com_z,
+            },
+            leaf_checks: TippMippLeafChecks {
+                ck_v: ck_v_valid,
+                ck_w: ck_w_valid,
+                base: true,
+                c: Some(false),
+                z: None,
+            },
+            accepted: false,
+        });
     }
 
     let final_r =
-        structured_scalar_final_from_raw_transcript_inner(&round_challenges_reversed, &input.r);
+        structured_scalar_final_from_raw_transcript_inner(round_challenges_wire, &input.r);
     let z_valid = effect.verify_z(&c_base, &[final_r], &com_z)?;
 
-    Ok(ck_v_valid && ck_w_valid && base_valid && c_valid && z_valid)
+    let accepted = ck_v_valid && ck_w_valid && base_valid && c_valid && z_valid;
+    Ok(TippMippCoreOutput {
+        challenge_prefix: TippMippChallengePrefix {
+            challenges,
+            inverse_challenges_reversed,
+            randomizer_inverse,
+            com_a,
+            com_b,
+            com_t,
+            com_c,
+            com_z,
+        },
+        leaf_checks: TippMippLeafChecks {
+            ck_v: ck_v_valid,
+            ck_w: ck_w_valid,
+            base: true,
+            c: Some(true),
+            z: Some(z_valid),
+        },
+        accepted,
+    })
+}
+
+fn verify_tipp_mipp_core<F, G1, G2, GT, ABT, CT, E, FX, PE>(
+    input: TippMippCoreInput<F, G1, G2, GT, ABT, CT>,
+    effect: &mut FX,
+    pairing: &PE,
+) -> Result<bool, E>
+where
+    F: Clone + One + Add<Output = F> + Mul<Output = F> + Sync,
+    G1: Clone + Mul<F, Output = G1> + Sub<Output = G1> + Neg<Output = G1> + Sync,
+    G2: Clone + Mul<F, Output = G2> + Sub<Output = G2> + Sync,
+    GT: Clone + Default + Add<Output = GT> + MulAssign<F> + Zero + Sync,
+    ABT: Clone + Default + Add<Output = ABT> + MulAssign<F> + Sync,
+    CT: Clone + Default + Add<Output = CT> + MulAssign<F> + Sync,
+    FX: TippMippEffect<F, G1, G2, GT, ABT, CT, E>,
+    PE: PairingEffect<G1, G2, GT> + Sync,
+{
+    verify_tipp_mipp_execution_core(&input, effect, pairing).map(|output| output.accepted)
 }
 
 /// Inputs whose transition schedule is owned by the aggregate prover rather
@@ -1261,6 +1786,7 @@ where
 {
     gipa_input: ProverGipaCoreInput<F, G1, G2, GT>,
     gipa_output: ProverGipaCoreOutput<F, G1, G2, GT, ABT, CT>,
+    x0: F,
     randomizer_inverse: F,
     final_bridge: F,
     kzg_challenge: F,
@@ -1279,29 +1805,206 @@ type ArkworksShippingProverExecution<P, D> = ShippingProverExecution<
     D,
 >;
 
-/// Full retained projection of the shipping aggregate prover.
-///
-/// The TIPP/MIPP execution already owns the final wire proof. This outer
-/// record binds it to the exact initial commitments and the successful
-/// randomizer query instead of discarding those construction facts before
-/// the public proof is returned.
-#[allow(dead_code)]
-struct ShippingAggregateProverExecution<F, GT, PX> {
-    initial_commitments: (GT, GT, GT),
-    randomizer: ProverRandomizerCoreOutput<F>,
-    tipp_mipp: PX,
+/// Ordered source points consumed by the shipping aggregate prover.
+struct OrderedSourceProofs<G1, G2> {
+    a: Vec<G1>,
+    b: Vec<G2>,
+    c: Vec<G1>,
 }
 
-fn shipping_aggregate_prover_execution_from_parts<F, GT, PX>(
+fn ordered_source_proofs_core<P: Pairing>(
+    proofs: &[Proof<P>],
+) -> OrderedSourceProofs<P::G1, P::G2> {
+    let mut a = Vec::with_capacity(proofs.len());
+    let mut b = Vec::with_capacity(proofs.len());
+    let mut c = Vec::with_capacity(proofs.len());
+    let mut index = 0usize;
+    while index < proofs.len() {
+        a.push(proofs[index].a.into());
+        b.push(proofs[index].b.into());
+        c.push(proofs[index].c.into());
+        index += 1;
+    }
+    OrderedSourceProofs { a, b, c }
+}
+
+/// Exact proving-SRS views consumed by GIPA and both KZG opening lanes.
+///
+/// These are semantic protocol inputs, not retained runtime diagnostics. The
+/// slices remain borrowed so the boundary does not clone the proving SRS.
+struct ShippingProvingSrsProjection<'a, G1, G2, G1Affine, G2Affine> {
+    full_g_alpha_powers: &'a [G1],
+    full_h_beta_powers: &'a [G2],
+    g_alpha_powers_affine: &'a [G1Affine],
+    h_beta_powers_affine: &'a [G2Affine],
+    ck_1: &'a [G2],
+    ck_2: &'a [G1],
+}
+
+fn shipping_proving_srs_projection_from_parts<'a, G1, G2, G1Affine, G2Affine>(
+    full_g_alpha_powers: &'a [G1],
+    full_h_beta_powers: &'a [G2],
+    g_alpha_powers_affine: &'a [G1Affine],
+    h_beta_powers_affine: &'a [G2Affine],
+    ck_1: &'a [G2],
+    ck_2: &'a [G1],
+) -> ShippingProvingSrsProjection<'a, G1, G2, G1Affine, G2Affine> {
+    ShippingProvingSrsProjection {
+        full_g_alpha_powers,
+        full_h_beta_powers,
+        g_alpha_powers_affine,
+        h_beta_powers_affine,
+        ck_1,
+        ck_2,
+    }
+}
+
+/// Typed challenge values in deployed prover chronology.
+struct ShippingProverChallengeTrace<F> {
+    randomizer: F,
+    randomizer_nonce: u64,
+    x0: F,
+    rounds_chrono: Vec<F>,
+    final_bridge: F,
+    kzg: F,
+}
+
+fn shipping_prover_challenge_trace_from_parts<F: Clone, G1, G2, GT, ABT, CT, D>(
+    randomizer: &ProverRandomizerCoreOutput<F>,
+    tipp_mipp: &ShippingProverExecution<F, G1, G2, GT, ABT, CT, D>,
+) -> ShippingProverChallengeTrace<F>
+where
+    G1: CanonicalSerialize + CanonicalDeserialize,
+    G2: CanonicalSerialize + CanonicalDeserialize,
+    GT: CanonicalSerialize + CanonicalDeserialize,
+    ABT: CanonicalSerialize + CanonicalDeserialize,
+    CT: CanonicalSerialize + CanonicalDeserialize,
+    D: Send + Sync,
+{
+    ShippingProverChallengeTrace {
+        randomizer: randomizer.randomizer.clone(),
+        randomizer_nonce: randomizer.nonce,
+        x0: tipp_mipp.x0.clone(),
+        rounds_chrono: tipp_mipp.gipa_output.raw_transcript_chrono.clone(),
+        final_bridge: tipp_mipp.final_bridge.clone(),
+        kzg: tipp_mipp.kzg_challenge.clone(),
+    }
+}
+
+/// Extraction boundary for one successful shipping aggregate-prover run.
+///
+/// Every field affects the protocol result. Timers, profiles, and buffered
+/// byte-trace records remain in the runtime caller and cannot escape through
+/// this record.
+#[allow(dead_code)]
+struct ShippingAggregateProverSemanticExecution<'a, F, G1, G2, G1Affine, G2Affine, GT, ABT, CT, D>
+where
+    G1: CanonicalSerialize + CanonicalDeserialize,
+    G2: CanonicalSerialize + CanonicalDeserialize,
+    GT: CanonicalSerialize + CanonicalDeserialize,
+    ABT: CanonicalSerialize + CanonicalDeserialize,
+    CT: CanonicalSerialize + CanonicalDeserialize,
+    D: Send + Sync,
+{
+    source_proofs: OrderedSourceProofs<G1, G2>,
+    proving_srs: ShippingProvingSrsProjection<'a, G1, G2, G1Affine, G2Affine>,
     initial_commitments: (GT, GT, GT),
     randomizer: ProverRandomizerCoreOutput<F>,
-    tipp_mipp: PX,
-) -> ShippingAggregateProverExecution<F, GT, PX> {
-    ShippingAggregateProverExecution {
+    challenges: ShippingProverChallengeTrace<F>,
+    tipp_mipp: ShippingProverExecution<F, G1, G2, GT, ABT, CT, D>,
+}
+
+/// Production-used semantic composition point for the shipping prover.
+///
+/// Challenge chronology is projected from the same successful GIPA/KZG
+/// execution that owns the returned wire proof. Callers cannot pair an
+/// unrelated typed trace with that proof.
+#[allow(clippy::too_many_arguments)]
+fn shipping_aggregate_prover_semantic_execution_from_parts<
+    'a,
+    F,
+    G1,
+    G2,
+    G1Affine,
+    G2Affine,
+    GT,
+    ABT,
+    CT,
+    D,
+>(
+    source_proofs: OrderedSourceProofs<G1, G2>,
+    full_g_alpha_powers: &'a [G1],
+    full_h_beta_powers: &'a [G2],
+    g_alpha_powers_affine: &'a [G1Affine],
+    h_beta_powers_affine: &'a [G2Affine],
+    ck_1: &'a [G2],
+    ck_2: &'a [G1],
+    initial_commitments: (GT, GT, GT),
+    randomizer: ProverRandomizerCoreOutput<F>,
+    tipp_mipp: ShippingProverExecution<F, G1, G2, GT, ABT, CT, D>,
+) -> ShippingAggregateProverSemanticExecution<'a, F, G1, G2, G1Affine, G2Affine, GT, ABT, CT, D>
+where
+    F: Clone,
+    G1: CanonicalSerialize + CanonicalDeserialize,
+    G2: CanonicalSerialize + CanonicalDeserialize,
+    GT: CanonicalSerialize + CanonicalDeserialize,
+    ABT: CanonicalSerialize + CanonicalDeserialize,
+    CT: CanonicalSerialize + CanonicalDeserialize,
+    D: Send + Sync,
+{
+    let proving_srs = shipping_proving_srs_projection_from_parts(
+        full_g_alpha_powers,
+        full_h_beta_powers,
+        g_alpha_powers_affine,
+        h_beta_powers_affine,
+        ck_1,
+        ck_2,
+    );
+    let challenges = shipping_prover_challenge_trace_from_parts(&randomizer, &tipp_mipp);
+    ShippingAggregateProverSemanticExecution {
+        source_proofs,
+        proving_srs,
         initial_commitments,
         randomizer,
+        challenges,
         tipp_mipp,
     }
+}
+
+/// Exact public-proof projection from the retained semantic execution.
+fn shipping_aggregate_prover_semantic_returned_proof<
+    F,
+    G1,
+    G2,
+    G1Affine,
+    G2Affine,
+    GT,
+    ABT,
+    CT,
+    D,
+>(
+    execution: ShippingAggregateProverSemanticExecution<
+        '_,
+        F,
+        G1,
+        G2,
+        G1Affine,
+        G2Affine,
+        GT,
+        ABT,
+        CT,
+        D,
+    >,
+) -> AggregateProofData<G1, G2, GT, ABT, CT, D>
+where
+    G1: CanonicalSerialize + CanonicalDeserialize,
+    G2: CanonicalSerialize + CanonicalDeserialize,
+    GT: CanonicalSerialize + CanonicalDeserialize,
+    ABT: CanonicalSerialize + CanonicalDeserialize,
+    CT: CanonicalSerialize + CanonicalDeserialize,
+    D: Send + Sync,
+{
+    execution.tipp_mipp.proof
 }
 
 #[derive(Debug)]
@@ -1634,7 +2337,7 @@ where
             effect_error: Some(effect_error),
         })?;
     let mut prior_raw_challenge = x0.clone();
-    let mut last_raw_challenge = x0;
+    let mut last_raw_challenge = x0.clone();
     let mut rounds_chrono = Vec::new();
     let mut raw_transcript_chrono = Vec::new();
     let mut inv_transcript_chrono = Vec::new();
@@ -1729,6 +2432,7 @@ pub struct TippMippBuildProfile {
 struct ArkworksProverGipaEffect<'a, P: Pairing, D: Digest + Send + Sync, S: ChallengeTraceSink> {
     context: &'a ChallengeContext,
     trace: &'a mut S,
+    x0: Option<P::ScalarField>,
     profile: TippMippBuildProfile,
     _pairing: PhantomData<fn() -> P>,
     _digest: PhantomData<fn() -> D>,
@@ -1758,7 +2462,10 @@ where
         ip_ab: &PairingOutput<P>,
         agg_c: &P::G1,
     ) -> Result<P::ScalarField, String> {
-        arkworks_tipp_x0_adapter_core(self, randomizer, com_a, com_b, com_c, ip_ab, agg_c)
+        let x0 =
+            arkworks_tipp_x0_adapter_core(self, randomizer, com_a, com_b, com_c, ip_ab, agg_c)?;
+        self.x0 = Some(x0.clone());
+        Ok(x0)
     }
 
     fn commit_round(
@@ -1873,6 +2580,7 @@ where
 fn shipping_prover_execution_from_parts<F, G1, G2, GT, ABT, CT, D>(
     gipa_input: ProverGipaCoreInput<F, G1, G2, GT>,
     gipa_output: ProverGipaCoreOutput<F, G1, G2, GT, ABT, CT>,
+    x0: F,
     randomizer_inverse: F,
     final_bridge: F,
     kzg_challenge: F,
@@ -1906,6 +2614,7 @@ where
     ShippingProverExecution {
         gipa_input,
         gipa_output,
+        x0,
         randomizer_inverse,
         final_bridge,
         kzg_challenge,
@@ -1992,7 +2701,7 @@ where
     let mut profile = TippMippBuildProfile::default();
 
     let gipa_started = Instant::now();
-    let (gipa_input, gipa_output, mut gipa_profile) = prove_tipp_mipp_gipa_profiled::<P, D, S>(
+    let (gipa_input, gipa_output, x0, mut gipa_profile) = prove_tipp_mipp_gipa_profiled::<P, D, S>(
         context, trace, a, b_r, c, r_vec, ck_1, ck_2_r_inv, r, com, ip_ab, agg_c,
     )?;
     profile.gipa_ms = gipa_started.elapsed().as_secs_f64() * 1000.0;
@@ -2064,6 +2773,7 @@ where
     let execution = shipping_prover_execution_from_parts::<_, _, _, _, _, _, D>(
         gipa_input,
         gipa_output,
+        x0,
         r_inverse,
         final_bridge,
         kzg_challenge,
@@ -2098,6 +2808,7 @@ fn prove_tipp_mipp_gipa_profiled<P, D, S>(
             IdentityOutput<PairingOutput<P>>,
             IdentityOutput<P::G1>,
         >,
+        P::ScalarField,
         TippMippBuildProfile,
     ),
     Error,
@@ -2112,6 +2823,7 @@ where
         let mut effect = ArkworksProverGipaEffect::<P, D, S> {
             context,
             trace,
+            x0: None,
             profile: TippMippBuildProfile::default(),
             _pairing: PhantomData,
             _digest: PhantomData,
@@ -2143,8 +2855,13 @@ where
                 message,
             )) as Error
         })?;
+        let x0 = effect.x0.take().ok_or_else(|| {
+            Box::new(std::io::Error::other(
+                "successful prover GIPA execution did not retain x0",
+            )) as Error
+        })?;
         effect.profile.total_ms = total_started.elapsed().as_secs_f64() * 1000.0;
-        return Ok((input, output, effect.profile));
+        return Ok((input, output, x0, effect.profile));
     }
 }
 
@@ -3113,6 +3830,7 @@ where
     let CombinedChecksCoreOutput {
         checks,
         tipp_mipp_effect,
+        ..
     } = output;
     drop(tipp_mipp_effect);
     tipp_trace.replay_into(trace);
@@ -3309,19 +4027,11 @@ where
     let mut profile = AggregateProofBuildProfile::default();
 
     let point_extract_started = Instant::now();
-    let a = proofs
-        .iter()
-        .map(|proof| proof.a.into())
-        .collect::<Vec<P::G1>>();
-    let b = proofs
-        .iter()
-        .map(|proof| proof.b.into())
-        .collect::<Vec<P::G2>>();
-    let c = proofs
-        .iter()
-        .map(|proof| proof.c.into())
-        .collect::<Vec<P::G1>>();
+    let source_proofs = ordered_source_proofs_core(proofs);
     profile.point_extract_ms = point_extract_started.elapsed().as_secs_f64() * 1000.0;
+    let a = &source_proofs.a;
+    let b = &source_proofs.b;
+    let c = &source_proofs.c;
 
     let prepared_srs_started = Instant::now();
     let prepared_srs = ip_srs.prepare_for_proving();
@@ -3335,7 +4045,7 @@ where
     reset_pairing_profile_accumulator();
     let commitment_started = Instant::now();
     let ((com_a, com_b, com_c), (com_a_ms, com_b_ms, com_c_ms)) =
-        initial_commitments_profiled::<P>(&a, &b, &c, ck_1, ck_2)?;
+        initial_commitments_profiled::<P>(a, b, c, ck_1, ck_2)?;
     profile.com_a_ms = com_a_ms;
     profile.com_b_ms = com_b_ms;
     profile.com_c_ms = com_c_ms;
@@ -3345,7 +4055,7 @@ where
     let randomizer_execution = {
         let mut effect = ArkworksProverRandomizerEffect::<P, D, S> {
             context,
-            trace,
+            trace: &mut *trace,
             _pairing: PhantomData,
             _digest: PhantomData,
         };
@@ -3368,11 +4078,11 @@ where
     profile.weighted_b_ms = weighted_b_started.elapsed().as_secs_f64() * 1000.0;
 
     let ip_ab_started = Instant::now();
-    let ip_ab = PairingInnerProduct::<P>::inner_product(&a, &b_r)?;
+    let ip_ab = PairingInnerProduct::<P>::inner_product(a, &b_r)?;
     profile.ip_ab_ms = ip_ab_started.elapsed().as_secs_f64() * 1000.0;
 
     let agg_c_started = Instant::now();
-    let agg_c = MultiexponentiationInnerProduct::<P::G1>::inner_product(&c, &r_vec)?;
+    let agg_c = MultiexponentiationInnerProduct::<P::G1>::inner_product(c, &r_vec)?;
     profile.agg_c_ms = agg_c_started.elapsed().as_secs_f64() * 1000.0;
 
     let ck_2_r_inv_started = Instant::now();
@@ -3393,9 +4103,9 @@ where
         prove_tipp_mipp_buffered_profiled::<P, D>(
             context,
             &prepared_srs,
-            &a,
+            a,
             &b_r,
-            &c,
+            c,
             &r_vec,
             ck_1,
             &ck_2_r_inv,
@@ -3404,18 +4114,184 @@ where
             &ip_ab,
             &agg_c,
         )?;
-    tipp_mipp_trace.replay_into(trace);
     profile.tipp_mipp_ms = tipp_mipp_ms;
     apply_tipp_mipp_profile(&mut profile, &tipp_mipp_profile);
     apply_pairing_profile(&mut profile, &pairing_profile_snapshot());
-    profile.total_ms = started.elapsed().as_secs_f64() * 1000.0;
-
-    let execution = shipping_aggregate_prover_execution_from_parts(
+    let execution = shipping_aggregate_prover_semantic_execution_from_parts(
+        source_proofs,
+        &ip_srs.g_alpha_powers,
+        &ip_srs.h_beta_powers,
+        prepared_srs.g_alpha_powers_affine(),
+        prepared_srs.h_beta_powers_affine(),
+        ck_1,
+        ck_2,
         (com_a, com_b, com_c),
         randomizer_execution,
         prover_execution,
     );
-    Ok((execution.tipp_mipp.proof, profile))
+    tipp_mipp_trace.replay_into(trace);
+    let proof = shipping_aggregate_prover_semantic_returned_proof(execution);
+    profile.total_ms = started.elapsed().as_secs_f64() * 1000.0;
+    Ok((proof, profile))
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+struct ShippingVerifierEffectState {
+    context: ChallengeContext,
+    randomizer_trace: BufferedChallengeTraceSink,
+    tipp_mipp_trace: BufferedChallengeTraceSink,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_verifier_effect_state_from_parts(
+    context: ChallengeContext,
+    randomizer_trace: BufferedChallengeTraceSink,
+    tipp_mipp_trace: BufferedChallengeTraceSink,
+) -> ShippingVerifierEffectState {
+    ShippingVerifierEffectState {
+        context,
+        randomizer_trace,
+        tipp_mipp_trace,
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+type ArkworksShippingAdapterSemanticExecution<P: Pairing> = ShippingAdapterSemanticExecution<
+    AggregateAdapterCoreInput<
+        P::ScalarField,
+        P::G1,
+        P::G2,
+        P::G2Prepared,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        P::G1,
+    >,
+    P::ScalarField,
+    TippMippCoreOutput<P::ScalarField, PairingOutput<P>, PairingOutput<P>, P::G1>,
+>;
+
+/// Run the exact four Arkworks effects installed by the shipping verifier.
+///
+/// The returned value owns only acceptance-relevant state. Trace storage and
+/// timing stay behind caller-owned effects and cannot escape into this record.
+#[cfg(not(feature = "bench-baseline"))]
+fn run_arkworks_adapter_semantic<P, D, RS, TS, TM>(
+    input: AggregateAdapterCoreInput<
+        P::ScalarField,
+        P::G1,
+        P::G2,
+        P::G2Prepared,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        P::G1,
+    >,
+    context: &ChallengeContext,
+    randomizer_trace: &mut RS,
+    tipp_mipp_trace: &mut TS,
+    timing: &mut TM,
+) -> Result<ArkworksShippingAdapterSemanticExecution<P>, AggregateAdapterCoreError<String>>
+where
+    P: Pairing,
+    D: Digest + Send + Sync,
+    RS: ChallengeTraceSink,
+    TS: ChallengeTraceSink + Send,
+    TM: AggregateRandomizerTiming,
+{
+    let effects = aggregate_adapter_effects_from_parts(
+        ArkworksAggregateRandomizerEffect::<P, D, _, _> {
+            context,
+            trace: randomizer_trace,
+            timing,
+            _pairing: PhantomData,
+            _digest: PhantomData,
+        },
+        ArkworksTippMippEffect::<P, D, _> {
+            context,
+            trace: tipp_mipp_trace,
+            _pairing: PhantomData,
+            _digest: PhantomData,
+        },
+        ArkworksPairingEffect::<P>::default(),
+        ArkworksPreparedPairingEffect::<P>::default(),
+    );
+    let output = verify_installed_aggregate_adapter_core(input, effects)?;
+    let AggregateAdapterExecutionOutput {
+        input,
+        initial_nonce,
+        accepted_nonce,
+        core:
+            AggregateAdapterCoreOutput {
+                randomizer,
+                checks,
+                accepted,
+                randomizer_effect,
+                tipp_mipp_effect,
+            },
+        tipp_mipp,
+    } = output;
+    drop(randomizer_effect);
+    drop(tipp_mipp_effect);
+    Ok(ShippingAdapterSemanticExecution {
+        adapter_input: input,
+        initial_nonce,
+        accepted_nonce,
+        randomizer,
+        checks,
+        tipp_mipp,
+        accepted,
+    })
+}
+
+/// Runtime envelope around the extracted semantic adapter result.
+///
+/// Buffered traces and profile timing are observational diagnostics. Their
+/// numeric values include instrumentation overhead and are not parity claims.
+#[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)]
+struct ShippingAggregateVerifierExecution<I, F, TX> {
+    semantic: ShippingAdapterSemanticExecution<I, F, TX>,
+    initial_effect_state: ShippingVerifierEffectState,
+    final_effect_state: ShippingVerifierEffectState,
+    randomizer_ms: f64,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_aggregate_verifier_execution_from_parts<I, F, TX>(
+    semantic: ShippingAdapterSemanticExecution<I, F, TX>,
+    initial_effect_state: ShippingVerifierEffectState,
+    final_effect_state: ShippingVerifierEffectState,
+    randomizer_ms: f64,
+) -> ShippingAggregateVerifierExecution<I, F, TX> {
+    ShippingAggregateVerifierExecution {
+        semantic,
+        initial_effect_state,
+        final_effect_state,
+        randomizer_ms,
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_aggregate_verifier_profile_from_execution<I, F, TX, S>(
+    execution: ShippingAggregateVerifierExecution<I, F, TX>,
+    trace: &mut S,
+    started: Instant,
+) -> AggregateProofVerificationProfile
+where
+    S: ChallengeTraceSink,
+{
+    execution
+        .final_effect_state
+        .tipp_mipp_trace
+        .replay_into(trace);
+    let core_total_ms = started.elapsed().as_secs_f64() * 1000.0;
+    AggregateProofVerificationProfile {
+        challenge_ms: execution.randomizer_ms,
+        tipp_mipp_ms: (core_total_ms - execution.randomizer_ms).max(0.0),
+        public_input_fold_ms: 0.0,
+        ppe_ms: 0.0,
+        core_total_ms,
+        accepted: execution.semantic.accepted,
+    }
 }
 
 #[cfg(not(feature = "bench-baseline"))]
@@ -3445,47 +4321,39 @@ where
         ip_verifier_srs,
         randomizer_message,
     );
+    let initial_effect_state = shipping_verifier_effect_state_from_parts(
+        context.clone(),
+        BufferedChallengeTraceSink::default(),
+        BufferedChallengeTraceSink::default(),
+    );
+    let mut randomizer_trace = BufferedChallengeTraceSink::default();
     let mut tipp_trace = BufferedChallengeTraceSink::default();
-    let output = verify_aggregate_adapter_core(
-        input,
-        ArkworksAggregateRandomizerEffect::<P, D, S> {
+    let mut timing = AggregateRandomizerProfileTiming::default();
+    let semantic = {
+        let mut retained_randomizer_trace = RetainedChallengeTraceSink {
+            downstream: &mut *trace,
+            retained: &mut randomizer_trace,
+        };
+        run_arkworks_adapter_semantic::<P, D, _, _, _>(
+            input,
             context,
-            trace: &mut *trace,
-            elapsed_ms: 0.0,
-            _pairing: PhantomData,
-            _digest: PhantomData,
-        },
-        ArkworksTippMippEffect::<P, D, _> {
-            context,
-            trace: &mut tipp_trace,
-            _pairing: PhantomData,
-            _digest: PhantomData,
-        },
-        ArkworksPairingEffect::<P>::default(),
-        ArkworksPreparedPairingEffect::<P>::default(),
-    )
-    .map_err(aggregate_adapter_core_error)?;
-
-    let AggregateAdapterCoreOutput {
-        accepted,
-        randomizer_effect,
-        tipp_mipp_effect,
-        ..
-    } = output;
-    let challenge_ms = randomizer_effect.elapsed_ms;
-    drop(randomizer_effect);
-    drop(tipp_mipp_effect);
-    tipp_trace.replay_into(trace);
-
-    let core_total_ms = started.elapsed().as_secs_f64() * 1000.0;
-    Ok(AggregateProofVerificationProfile {
-        challenge_ms,
-        tipp_mipp_ms: (core_total_ms - challenge_ms).max(0.0),
-        public_input_fold_ms: 0.0,
-        ppe_ms: 0.0,
-        core_total_ms,
-        accepted,
-    })
+            &mut retained_randomizer_trace,
+            &mut tipp_trace,
+            &mut timing,
+        )
+        .map_err(aggregate_adapter_core_error)?
+    };
+    let final_effect_state =
+        shipping_verifier_effect_state_from_parts(context.clone(), randomizer_trace, tipp_trace);
+    let execution = shipping_aggregate_verifier_execution_from_parts(
+        semantic,
+        initial_effect_state,
+        final_effect_state,
+        timing.elapsed_ms,
+    );
+    Ok(shipping_aggregate_verifier_profile_from_execution(
+        execution, trace, started,
+    ))
 }
 
 #[doc(hidden)]
@@ -3905,33 +4773,55 @@ where
 }
 
 #[cfg(not(feature = "bench-baseline"))]
-struct ArkworksAggregateRandomizerEffect<'a, P, D, S>
+#[derive(Default)]
+struct AggregateRandomizerProfileTiming {
+    started: Option<Instant>,
+    elapsed_ms: f64,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+impl AggregateRandomizerTiming for AggregateRandomizerProfileTiming {
+    fn begin(&mut self) {
+        self.started = Some(Instant::now());
+    }
+
+    fn end(&mut self) {
+        if let Some(started) = self.started.take() {
+            self.elapsed_ms += started.elapsed().as_secs_f64() * 1000.0;
+        }
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+struct ArkworksAggregateRandomizerEffect<'a, P, D, S, T>
 where
     P: Pairing,
     D: Digest + Send + Sync,
     S: ChallengeTraceSink,
+    T: AggregateRandomizerTiming,
 {
     context: &'a ChallengeContext,
     trace: &'a mut S,
-    elapsed_ms: f64,
+    timing: &'a mut T,
     _pairing: PhantomData<P>,
     _digest: PhantomData<D>,
 }
 
 #[cfg(not(feature = "bench-baseline"))]
-impl<P, D, S> AggregateRandomizerEffect<P::ScalarField, String>
-    for ArkworksAggregateRandomizerEffect<'_, P, D, S>
+impl<P, D, S, T> AggregateRandomizerEffect<P::ScalarField, String>
+    for ArkworksAggregateRandomizerEffect<'_, P, D, S, T>
 where
     P: Pairing,
     D: Digest + Send + Sync,
     S: ChallengeTraceSink,
+    T: AggregateRandomizerTiming,
 {
     fn derive_randomizer(
         &mut self,
         nonce: u64,
         randomizer_message: &[u8],
     ) -> Result<Option<P::ScalarField>, String> {
-        let started = Instant::now();
+        self.timing.begin();
         let candidate = P::ScalarField::from_random_bytes(&challenge_digest::<D, _>(
             self.context,
             self.trace,
@@ -3939,7 +4829,7 @@ where
             nonce,
             randomizer_message,
         ));
-        self.elapsed_ms += started.elapsed().as_secs_f64() * 1000.0;
+        self.timing.end();
         Ok(candidate)
     }
 }
@@ -4685,7 +5575,7 @@ mod tests {
     }
 
     #[test]
-    fn initial_commitment_projection_preserves_tuple_and_error_order() {
+    fn aggregate_prover_initial_commitment_projection_preserves_tuple_and_error_order() {
         let a = [1u64, 2];
         let b = [3u64, 4];
         let c = [5u64, 6];
@@ -4844,20 +5734,99 @@ mod tests {
 
     #[test]
     fn shipping_aggregate_prover_projection_retains_prelude_and_wire_execution() {
-        let execution = shipping_aggregate_prover_execution_from_parts(
+        let full_g = [2u64, 3];
+        let full_h = [5u64, 7];
+        let affine_g = [11u64, 13];
+        let affine_h = [17u64, 19];
+        let ck_1 = [23u64];
+        let ck_2 = [29u64];
+        let tipp_mipp = shipping_prover_execution_from_parts::<
+            u64,
+            u64,
+            u64,
+            u64,
+            IdentityOutput<u64>,
+            IdentityOutput<u64>,
+            (),
+        >(
+            ProverGipaCoreInput {
+                a: vec![31],
+                b: vec![37],
+                c: vec![41],
+                public_values: vec![43],
+                ck_v: vec![23],
+                ck_w: vec![29],
+                randomizer: 17,
+                com_a: 11,
+                com_b: 12,
+                com_c: 13,
+                ip_ab: 61,
+                agg_c: 67,
+            },
+            ProverGipaCoreOutput {
+                rounds_chrono: Vec::new(),
+                rounds_wire: Vec::new(),
+                raw_transcript_chrono: vec![47],
+                raw_transcript_wire: vec![47],
+                inv_transcript_chrono: vec![49],
+                inv_transcript_wire: vec![49],
+                last_raw_challenge: 47,
+                final_ck: (71, 73),
+                final_messages: (79, 83, 89),
+                final_public_value: 97,
+            },
+            43,
+            101,
+            53,
+            59,
+            103,
+            107,
+        );
+        let execution = shipping_aggregate_prover_semantic_execution_from_parts(
+            OrderedSourceProofs {
+                a: vec![31u64],
+                b: vec![37u64],
+                c: vec![41u64],
+            },
+            &full_g,
+            &full_h,
+            &affine_g,
+            &affine_h,
+            &ck_1,
+            &ck_2,
             (11u64, 12u64, 13u64),
             ProverRandomizerCoreOutput {
                 randomizer: 17u64,
                 nonce: 19,
                 message: vec![23, 29],
             },
-            31u64,
+            tipp_mipp,
         );
+        assert_eq!(execution.source_proofs.a, vec![31]);
+        assert_eq!(execution.source_proofs.b, vec![37]);
+        assert_eq!(execution.source_proofs.c, vec![41]);
+        assert_eq!(execution.proving_srs.full_g_alpha_powers, &full_g);
+        assert_eq!(execution.proving_srs.full_h_beta_powers, &full_h);
+        assert_eq!(execution.proving_srs.g_alpha_powers_affine, &affine_g);
+        assert_eq!(execution.proving_srs.h_beta_powers_affine, &affine_h);
+        assert_eq!(execution.proving_srs.ck_1, &ck_1);
+        assert_eq!(execution.proving_srs.ck_2, &ck_2);
         assert_eq!(execution.initial_commitments, (11, 12, 13));
         assert_eq!(execution.randomizer.randomizer, 17);
         assert_eq!(execution.randomizer.nonce, 19);
         assert_eq!(execution.randomizer.message, vec![23, 29]);
-        assert_eq!(execution.tipp_mipp, 31);
+        assert_eq!(execution.challenges.x0, 43);
+        assert_eq!(execution.challenges.rounds_chrono, vec![47]);
+        assert_eq!(execution.challenges.final_bridge, 53);
+        assert_eq!(execution.challenges.kzg, 59);
+        assert_eq!(execution.tipp_mipp.ck_v_kzg_opening, 103);
+        assert_eq!(execution.tipp_mipp.ck_w_kzg_opening, 107);
+        let proof = shipping_aggregate_prover_semantic_returned_proof(execution);
+        assert_eq!(proof.com_a, 11);
+        assert_eq!(proof.com_b, 12);
+        assert_eq!(proof.com_c, 13);
+        assert_eq!(proof.ip_ab, 61);
+        assert_eq!(proof.agg_c, 67);
     }
 
     #[derive(Default)]
@@ -5273,7 +6242,11 @@ mod tests {
         assert_eq!(sampled.len(), 5);
         assert_eq!(prefix.challenges.x0, sampled[0]);
         assert_eq!(
-            prefix.challenges.round_challenges_reversed,
+            prefix.challenges.round_challenges_chrono,
+            vec![sampled[1], sampled[2]]
+        );
+        assert_eq!(
+            prefix.challenges.round_challenges_wire,
             vec![sampled[2], sampled[1]]
         );
         assert_eq!(prefix.challenges.final_bridge, sampled[3]);

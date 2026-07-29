@@ -7,7 +7,8 @@ The algebraic `S1` lemmas predate this interface and assume globally injective
 pairing commitments and universally binding KZG equations.  Those propositions
 are false for concrete finite groups: security only says an efficient
 experiment reaches a bad accepted fork with small probability.  This module
-states that experiment explicitly and charges its two losses in the S1 bound.
+states four explicit computational games and retains their independent losses
+in the S1 bound.
 -/
 
 open OracleSpec OracleComp ENNReal Function
@@ -411,10 +412,9 @@ theorem s1PairingBad_iff_components {μ : Nat}
         · exact ⟨hkzg, fun h => hopen h.1⟩
         · exact ⟨hkzg, fun h => hproduct h.2⟩
 
-/-- Exact computational-security interface consumed by S1.  Each loss bounds
-one explicit bad event in the same full-depth fork experiment.  Supplying this
-structure does not by itself prove that `witnessOf` is efficiently computable
-or derive either bound from a standard assumption. -/
+/-- Derived carrier consumed by the S1 probability argument.  Publication
+roots construct it from the four explicit game-security interfaces below;
+its combined fields are not an external cryptographic assumption boundary. -/
 structure S1ExtractionSecurity [Fintype F] {μ : Nat}
     [IsUniformSpec (FsWrappedSpec F)]
     [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
@@ -519,11 +519,309 @@ theorem s1PairingBad_probability_le_component_sum [Fintype F]
         (S1RootOpeningBad stmt witnessOf)
         (S1ProductLaneBad stmt witnessOf)
 
-/-- Build the S1 security interface from four independently instantiated
-component bounds.  These are the exact theorem parameters still required from
-concrete deployed-security reductions; verifier correctness and bilinearity
-alone do not construct them. -/
-def S1ExtractionSecurity.ofComponentBounds [Fintype F]
+/-- The data visible to the four computational games.  The projection erases
+the verifier result wrapper and retains only the aggregate proof, its exact
+Fiat--Shamir transcript, and the fork query log.  In particular, none of the
+four game wins is defined in terms of an `S1*Bad` predicate. -/
+structure S1ForkGameLeaf (F G1 G2 GT : Type) (μ : Nat) where
+  proof : Proof μ F G1 G2 GT
+  transcript : FsTranscript μ F
+
+abbrev S1ForkGameTree (F G1 G2 GT : Type) (μ depth : Nat) :=
+  RunTree (FsWrappedSpec F) (S1ForkGameLeaf F G1 G2 GT μ) depth
+
+abbrev S1ForkGameOutput (F G1 G2 GT : Type) (μ : Nat) :=
+  Option (S1ForkGameTree F G1 G2 GT μ μ)
+
+def s1ForkGameLeafOfRun {μ : Nat}
+    (run : S1WrappedRun F G1 G2 GT μ) :
+    S1ForkGameLeaf F G1 G2 GT μ where
+  proof := run.out.proof
+  transcript := run.out.transcript
+
+/-- Erase every fork leaf to the proof/transcript artifact presented to the
+computational challenger. -/
+def projectS1ForkTree {μ : Nat} :
+    {depth : Nat} →
+      RunTree (FsWrappedSpec F) (S1WrappedRun F G1 G2 GT μ) depth →
+        S1ForkGameTree F G1 G2 GT μ depth
+  | 0, .leaf run =>
+      .leaf (s1ForkGameLeafOfRun run.1, run.2)
+  | _ + 1, .node children =>
+      .node (fun k => projectS1ForkTree (children k))
+
+@[simp] theorem projectS1ForkTree_root {μ depth : Nat}
+    (tree :
+      RunTree (FsWrappedSpec F) (S1WrappedRun F G1 G2 GT μ) depth) :
+    (projectS1ForkTree tree).root.1 =
+      s1ForkGameLeafOfRun tree.root.1 := by
+  induction tree with
+  | leaf run => rfl
+  | node children ih => exact ih 0
+
+def projectS1ForkOutput {μ : Nat} :
+    S1ForkOutput F G1 G2 GT μ →
+      S1ForkGameOutput F G1 G2 GT μ
+  | none => none
+  | some tree => some (projectS1ForkTree tree)
+
+/-- A projected fork contains an accepted false opening in the deployed
+G2/V terminal-key lane. -/
+def KzgVFalseOpeningGameTreeWin {μ depth : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) :
+    S1ForkGameTree F G1 G2 GT μ depth → Prop
+  | .leaf run =>
+      KzgVFalseOpening stmt run.1.proof run.1.transcript
+  | .node children =>
+      ∃ k, KzgVFalseOpeningGameTreeWin stmt (children k)
+
+/-- A projected fork contains an accepted false opening in the deployed
+G1/W terminal-key lane. -/
+def KzgWFalseOpeningGameTreeWin {μ depth : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) :
+    S1ForkGameTree F G1 G2 GT μ depth → Prop
+  | .leaf run =>
+      KzgWFalseOpening stmt run.1.proof run.1.transcript
+  | .node children =>
+      ∃ k, KzgWFalseOpeningGameTreeWin stmt (children k)
+
+/-- Every projected leaf has the transcript-defined structured terminal
+keys.  This is the success gate inherited by both GIPA knowledge games. -/
+def S1ForkGameKzgGood {μ depth : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (tree : S1ForkGameTree F G1 G2 GT μ depth) : Prop :=
+  tree.All (fun run =>
+    KzgLeafStructured stmt run.1.proof run.1.transcript)
+
+/-- The extracted root witness opens the two proof-owned GIPA roots. -/
+def GipaRootOpeningGameRelation {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ)
+    (tree : S1ForkGameTree F G1 G2 GT μ μ) : Prop :=
+  let root := tree.root.1
+  let witness := witnessOf (proofRandomizerPayload root.proof)
+  Ipp.SnarkPackV1.Refinement.RootOpensAt
+    stmt root.proof.ComA root.proof.ComB witness
+
+/-- The proof-owned product commitment agrees with the product induced by
+the extracted roots and the randomizer in the projected root transcript. -/
+def GipaProductLaneGameRelation {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ)
+    (tree : S1ForkGameTree F G1 G2 GT μ μ) : Prop :=
+  let root := tree.root.1
+  let r := root.transcript.randomizer
+  let witness := witnessOf (proofRandomizerPayload root.proof)
+  u4TCommitMap (F := F) (root.proof.ipAb, root.proof.aggC) =
+    u4TCommitMap (F := F)
+      (ipm (F := F) (u4TLanePairing stmt.e)
+        (fun i => ((witness.items i).a, (witness.items i).c))
+        (fun i =>
+          (r ^ (i : Nat) • (witness.items i).b,
+            r ^ (i : Nat))))
+
+def KzgVFalseOpeningGameWin {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) :
+    S1ForkGameOutput F G1 G2 GT μ → Prop
+  | none => False
+  | some tree => KzgVFalseOpeningGameTreeWin stmt tree
+
+def KzgWFalseOpeningGameWin {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) :
+    S1ForkGameOutput F G1 G2 GT μ → Prop
+  | none => False
+  | some tree => KzgWFalseOpeningGameTreeWin stmt tree
+
+def GipaRootOpeningGameWin {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) :
+    S1ForkGameOutput F G1 G2 GT μ → Prop
+  | none => False
+  | some tree =>
+      S1ForkGameKzgGood stmt tree ∧
+        ¬GipaRootOpeningGameRelation stmt witnessOf tree
+
+def GipaProductLaneGameWin {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) :
+    S1ForkGameOutput F G1 G2 GT μ → Prop
+  | none => False
+  | some tree =>
+      S1ForkGameKzgGood stmt tree ∧
+        GipaRootOpeningGameRelation stmt witnessOf tree ∧
+          ¬GipaProductLaneGameRelation stmt witnessOf tree
+
+private theorem treeHasKzgVFalseOpening_iff_gameProjection
+    {μ depth : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (tree :
+      RunTree (FsWrappedSpec F)
+        (S1WrappedRun F G1 G2 GT μ) depth) :
+    TreeHasKzgVFalseOpening stmt tree ↔
+      KzgVFalseOpeningGameTreeWin stmt
+        (projectS1ForkTree tree) := by
+  induction tree with
+  | leaf run => rfl
+  | node children ih =>
+      constructor
+      · rintro ⟨k, hbad⟩
+        exact ⟨k, (ih k).mp hbad⟩
+      · rintro ⟨k, hwin⟩
+        exact ⟨k, (ih k).mpr hwin⟩
+
+private theorem treeHasKzgWFalseOpening_iff_gameProjection
+    {μ depth : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (tree :
+      RunTree (FsWrappedSpec F)
+        (S1WrappedRun F G1 G2 GT μ) depth) :
+    TreeHasKzgWFalseOpening stmt tree ↔
+      KzgWFalseOpeningGameTreeWin stmt
+        (projectS1ForkTree tree) := by
+  induction tree with
+  | leaf run => rfl
+  | node children ih =>
+      constructor
+      · rintro ⟨k, hbad⟩
+        exact ⟨k, (ih k).mp hbad⟩
+      · rintro ⟨k, hwin⟩
+        exact ⟨k, (ih k).mpr hwin⟩
+
+private theorem allKzgLeafStructured_iff_gameProjection
+    {μ depth : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (tree :
+      RunTree (FsWrappedSpec F)
+        (S1WrappedRun F G1 G2 GT μ) depth) :
+    tree.All (fun run =>
+        KzgLeafStructured stmt run.1.out.proof
+          run.1.out.transcript) ↔
+      S1ForkGameKzgGood stmt (projectS1ForkTree tree) := by
+  induction tree with
+  | leaf run => rfl
+  | node children ih =>
+      constructor
+      · intro hall k
+        exact (ih k).mp (hall k)
+      · intro hall k
+        exact (ih k).mpr (hall k)
+
+private theorem s1KzgGood_iff_gameProjection {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (tree :
+      RunTree (FsWrappedSpec F)
+        (S1WrappedRun F G1 G2 GT μ) μ) :
+    S1KzgGood stmt tree ↔
+      S1ForkGameKzgGood stmt (projectS1ForkTree tree) :=
+  allKzgLeafStructured_iff_gameProjection stmt tree
+
+private theorem s1RootOpeningGood_iff_gameProjection {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ)
+    (tree :
+      RunTree (FsWrappedSpec F)
+        (S1WrappedRun F G1 G2 GT μ) μ) :
+    S1RootOpeningGood stmt witnessOf tree ↔
+      GipaRootOpeningGameRelation stmt witnessOf
+        (projectS1ForkTree tree) := by
+  unfold S1RootOpeningGood GipaRootOpeningGameRelation
+  rw [projectS1ForkTree_root]
+  rfl
+
+private theorem s1ProductLaneGood_iff_gameProjection {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ)
+    (tree :
+      RunTree (FsWrappedSpec F)
+        (S1WrappedRun F G1 G2 GT μ) μ) :
+    S1ProductLaneGood stmt witnessOf tree ↔
+      GipaProductLaneGameRelation stmt witnessOf
+        (projectS1ForkTree tree) := by
+  unfold S1ProductLaneGood GipaProductLaneGameRelation
+  rw [projectS1ForkTree_root]
+  rfl
+
+/-- Exact pointwise reduction from the S1 G2/V false-opening event to its
+game win. -/
+theorem s1KzgVBad_iff_kzgVFalseOpeningGameWin {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (output : S1ForkOutput F G1 G2 GT μ) :
+    S1KzgVBad stmt output ↔
+      KzgVFalseOpeningGameWin stmt (projectS1ForkOutput output) := by
+  cases output with
+  | none => rfl
+  | some tree =>
+      exact treeHasKzgVFalseOpening_iff_gameProjection stmt tree
+
+/-- Exact pointwise reduction from the S1 G1/W false-opening event to its
+game win. -/
+theorem s1KzgWBad_iff_kzgWFalseOpeningGameWin {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (output : S1ForkOutput F G1 G2 GT μ) :
+    S1KzgWBad stmt output ↔
+      KzgWFalseOpeningGameWin stmt (projectS1ForkOutput output) := by
+  cases output with
+  | none => rfl
+  | some tree =>
+      exact treeHasKzgWFalseOpening_iff_gameProjection stmt tree
+
+/-- Exact pointwise reduction from S1 root-extraction failure to the GIPA
+root-opening game win. -/
+theorem s1RootOpeningBad_iff_gipaRootOpeningGameWin {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ)
+    (output : S1ForkOutput F G1 G2 GT μ) :
+    S1RootOpeningBad stmt witnessOf output ↔
+      GipaRootOpeningGameWin stmt witnessOf
+        (projectS1ForkOutput output) := by
+  cases output with
+  | none => rfl
+  | some tree =>
+      change
+        (S1KzgGood stmt tree ∧
+            ¬S1RootOpeningGood stmt witnessOf tree) ↔
+          (S1ForkGameKzgGood stmt (projectS1ForkTree tree) ∧
+            ¬GipaRootOpeningGameRelation stmt witnessOf
+              (projectS1ForkTree tree))
+      rw [s1KzgGood_iff_gameProjection,
+        s1RootOpeningGood_iff_gameProjection]
+
+/-- Exact pointwise reduction from S1 product-lane inconsistency to the GIPA
+product-lane game win. -/
+theorem s1ProductLaneBad_iff_gipaProductLaneGameWin {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ)
+    (output : S1ForkOutput F G1 G2 GT μ) :
+    S1ProductLaneBad stmt witnessOf output ↔
+      GipaProductLaneGameWin stmt witnessOf
+        (projectS1ForkOutput output) := by
+  cases output with
+  | none => rfl
+  | some tree =>
+      change
+        (S1KzgGood stmt tree ∧
+            S1RootOpeningGood stmt witnessOf tree ∧
+              ¬S1ProductLaneGood stmt witnessOf tree) ↔
+          (S1ForkGameKzgGood stmt (projectS1ForkTree tree) ∧
+            GipaRootOpeningGameRelation stmt witnessOf
+              (projectS1ForkTree tree) ∧
+              ¬GipaProductLaneGameRelation stmt witnessOf
+                (projectS1ForkTree tree))
+      rw [s1KzgGood_iff_gameProjection,
+        s1RootOpeningGood_iff_gameProjection,
+        s1ProductLaneGood_iff_gameProjection]
+
+/-- Concrete G2/V false-opening experiment derived from the full S1 fork
+program. -/
+noncomputable def kzgVFalseOpeningGame [Fintype F]
     [IsUniformSpec (FsWrappedSpec F)]
     [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
     [unifSpec ⊂ₒ FsWrappedSpec F]
@@ -535,42 +833,167 @@ def S1ExtractionSecurity.ofComponentBounds [Fintype F]
     (qb : (FsWrappedSpec F).Domain → Nat)
     (badZ : Finset F)
     (witnessOf :
-      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ)
-    (epsilonKzgV epsilonKzgW
-      epsilonRootOpening epsilonProductLane : ℝ≥0∞)
-    (kzgVBad_le :
-      Pr[S1KzgVBad stmt |
-        s1ForkExperiment stmt adv qb badZ witnessOf] ≤ epsilonKzgV)
-    (kzgWBad_le :
-      Pr[S1KzgWBad stmt |
-        s1ForkExperiment stmt adv qb badZ witnessOf] ≤ epsilonKzgW)
-    (rootOpeningBad_le :
-      Pr[S1RootOpeningBad stmt witnessOf |
-        s1ForkExperiment stmt adv qb badZ witnessOf] ≤ epsilonRootOpening)
-    (productLaneBad_le :
-      Pr[S1ProductLaneBad stmt witnessOf |
-        s1ForkExperiment stmt adv qb badZ witnessOf] ≤ epsilonProductLane) :
-    S1ExtractionSecurity stmt adv qb badZ where
-  witnessOf := witnessOf
-  epsilonKzg := epsilonKzgV + epsilonKzgW
-  epsilonPairing := epsilonRootOpening + epsilonProductLane
-  kzgBad_le :=
-    le_trans
-      (s1KzgBad_probability_le_lane_sum
-        stmt adv qb badZ witnessOf)
-      (add_le_add kzgVBad_le kzgWBad_le)
-  pairingBad_le :=
-    le_trans
-      (s1PairingBad_probability_le_component_sum
-        stmt adv qb badZ witnessOf)
-      (add_le_add rootOpeningBad_le productLaneBad_le)
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) :
+    OracleComp (FsWrappedSpec F)
+      (S1ForkGameOutput F G1 G2 GT μ) :=
+  projectS1ForkOutput <$>
+    s1ForkExperiment stmt adv qb badZ witnessOf
 
-/-- Exact external security contract for the two deployed KZG opening lanes.
-The contract is deliberately stated on the full S1 fork experiment: the
-formal development owns the reduction from the combined S1 event to these
-two lane events, while the computational KZG assumption owns only their
-probability bounds. -/
-structure DeployedKzgLaneSecurity [Fintype F] {μ : Nat}
+/-- Concrete G1/W false-opening experiment derived from the full S1 fork
+program. -/
+noncomputable def kzgWFalseOpeningGame [Fintype F]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) :
+    OracleComp (FsWrappedSpec F)
+      (S1ForkGameOutput F G1 G2 GT μ) :=
+  projectS1ForkOutput <$>
+    s1ForkExperiment stmt adv qb badZ witnessOf
+
+/-- Concrete GIPA root-opening extraction experiment. -/
+noncomputable def gipaRootOpeningGame [Fintype F]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) :
+    OracleComp (FsWrappedSpec F)
+      (S1ForkGameOutput F G1 G2 GT μ) :=
+  projectS1ForkOutput <$>
+    s1ForkExperiment stmt adv qb badZ witnessOf
+
+/-- Concrete GIPA product-lane consistency experiment. -/
+noncomputable def gipaProductLaneGame [Fintype F]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) :
+    OracleComp (FsWrappedSpec F)
+      (S1ForkGameOutput F G1 G2 GT μ) :=
+  projectS1ForkOutput <$>
+    s1ForkExperiment stmt adv qb badZ witnessOf
+
+theorem s1KzgVBad_probability_eq_gameWin [Fintype F]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) :
+    Pr[S1KzgVBad stmt |
+        s1ForkExperiment stmt adv qb badZ witnessOf] =
+      Pr[KzgVFalseOpeningGameWin stmt |
+        kzgVFalseOpeningGame stmt adv qb badZ witnessOf] := by
+  rw [kzgVFalseOpeningGame, probEvent_map]
+  apply probEvent_ext
+  intro output _
+  simpa [Function.comp_def] using
+    (s1KzgVBad_iff_kzgVFalseOpeningGameWin stmt output)
+
+theorem s1KzgWBad_probability_eq_gameWin [Fintype F]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) :
+    Pr[S1KzgWBad stmt |
+        s1ForkExperiment stmt adv qb badZ witnessOf] =
+      Pr[KzgWFalseOpeningGameWin stmt |
+        kzgWFalseOpeningGame stmt adv qb badZ witnessOf] := by
+  rw [kzgWFalseOpeningGame, probEvent_map]
+  apply probEvent_ext
+  intro output _
+  simpa [Function.comp_def] using
+    (s1KzgWBad_iff_kzgWFalseOpeningGameWin stmt output)
+
+theorem s1RootOpeningBad_probability_eq_gameWin [Fintype F]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) :
+    Pr[S1RootOpeningBad stmt witnessOf |
+        s1ForkExperiment stmt adv qb badZ witnessOf] =
+      Pr[GipaRootOpeningGameWin stmt witnessOf |
+        gipaRootOpeningGame stmt adv qb badZ witnessOf] := by
+  rw [gipaRootOpeningGame, probEvent_map]
+  apply probEvent_ext
+  intro output _
+  simpa [Function.comp_def] using
+    (s1RootOpeningBad_iff_gipaRootOpeningGameWin
+      stmt witnessOf output)
+
+theorem s1ProductLaneBad_probability_eq_gameWin [Fintype F]
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) :
+    Pr[S1ProductLaneBad stmt witnessOf |
+        s1ForkExperiment stmt adv qb badZ witnessOf] =
+      Pr[GipaProductLaneGameWin stmt witnessOf |
+        gipaProductLaneGame stmt adv qb badZ witnessOf] := by
+  rw [gipaProductLaneGame, probEvent_map]
+  apply probEvent_ext
+  intro output _
+  simpa [Function.comp_def] using
+    (s1ProductLaneBad_iff_gipaProductLaneGameWin
+      stmt witnessOf output)
+
+/-- External deployed KZG security is assumed only as a bound on the
+concrete G2/V false-opening game win. -/
+structure KzgVFalseOpeningGameSecurity [Fintype F] {μ : Nat}
     [IsUniformSpec (FsWrappedSpec F)]
     [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
     [unifSpec ⊂ₒ FsWrappedSpec F]
@@ -582,19 +1005,71 @@ structure DeployedKzgLaneSecurity [Fintype F] {μ : Nat}
     (badZ : Finset F)
     (witnessOf :
       PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) where
-  epsilonV : ℝ≥0∞
-  epsilonW : ℝ≥0∞
-  vBad_le :
-    Pr[S1KzgVBad stmt |
-      s1ForkExperiment stmt adv qb badZ witnessOf] ≤ epsilonV
-  wBad_le :
-    Pr[S1KzgWBad stmt |
-      s1ForkExperiment stmt adv qb badZ witnessOf] ≤ epsilonW
+  epsilon : ℝ≥0∞
+  gameWin_le :
+    Pr[KzgVFalseOpeningGameWin stmt |
+      kzgVFalseOpeningGame stmt adv qb badZ witnessOf] ≤ epsilon
 
-/-- The accepted KZG failure charged by S1 is bounded by the two exact
-deployed-lane assumptions. No global binding or injectivity proposition is
-introduced. -/
-theorem kzg_false_opening_to_bls12377_security [Fintype F]
+/-- External deployed KZG security is assumed only as a bound on the
+concrete G1/W false-opening game win. -/
+structure KzgWFalseOpeningGameSecurity [Fintype F] {μ : Nat}
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) where
+  epsilon : ℝ≥0∞
+  gameWin_le :
+    Pr[KzgWFalseOpeningGameWin stmt |
+      kzgWFalseOpeningGame stmt adv qb badZ witnessOf] ≤ epsilon
+
+/-- External GIPA knowledge security is assumed only as a bound on the
+root-opening extraction game win. -/
+structure GipaRootOpeningGameSecurity [Fintype F] {μ : Nat}
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) where
+  epsilon : ℝ≥0∞
+  gameWin_le :
+    Pr[GipaRootOpeningGameWin stmt witnessOf |
+      gipaRootOpeningGame stmt adv qb badZ witnessOf] ≤ epsilon
+
+/-- External GIPA knowledge security is assumed only as a bound on the
+product-lane consistency game win. -/
+structure GipaProductLaneGameSecurity [Fintype F] {μ : Nat}
+    [IsUniformSpec (FsWrappedSpec F)]
+    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
+    [unifSpec ⊂ₒ FsWrappedSpec F]
+    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
+      (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    (badZ : Finset F)
+    (witnessOf :
+      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) where
+  epsilon : ℝ≥0∞
+  gameWin_le :
+    Pr[GipaProductLaneGameWin stmt witnessOf |
+      gipaProductLaneGame stmt adv qb badZ witnessOf] ≤ epsilon
+
+/-- Kernel reduction from the combined S1 KZG event to the two explicit
+deployed false-opening games. -/
+theorem kzg_false_opening_to_game_security [Fintype F]
     [IsUniformSpec (FsWrappedSpec F)]
     [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
     [unifSpec ⊂ₒ FsWrappedSpec F]
@@ -607,42 +1082,26 @@ theorem kzg_false_opening_to_bls12377_security [Fintype F]
     (badZ : Finset F)
     (witnessOf :
       PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ)
-    (security :
-      DeployedKzgLaneSecurity stmt adv qb badZ witnessOf) :
+    (securityV :
+      KzgVFalseOpeningGameSecurity stmt adv qb badZ witnessOf)
+    (securityW :
+      KzgWFalseOpeningGameSecurity stmt adv qb badZ witnessOf) :
     Pr[S1KzgBad stmt |
         s1ForkExperiment stmt adv qb badZ witnessOf] ≤
-      security.epsilonV + security.epsilonW :=
-  le_trans
+      securityV.epsilon + securityW.epsilon := by
+  apply le_trans
     (s1KzgBad_probability_le_lane_sum
       stmt adv qb badZ witnessOf)
-    (add_le_add security.vBad_le security.wBad_le)
+  apply add_le_add
+  · rw [s1KzgVBad_probability_eq_gameWin
+      stmt adv qb badZ witnessOf]
+    exact securityV.gameWin_le
+  · rw [s1KzgWBad_probability_eq_gameWin
+      stmt adv qb badZ witnessOf]
+    exact securityW.gameWin_le
 
-/-- Exact external knowledge-security contract for the two GIPA fork
-components. The witness selector is fixed before the randomizer query and is
-shared by both component events. -/
-structure DeployedGipaForkKnowledgeSecurity [Fintype F] {μ : Nat}
-    [IsUniformSpec (FsWrappedSpec F)]
-    [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
-    [unifSpec ⊂ₒ FsWrappedSpec F]
-    [unifSpec ˡ⊂ₒ FsWrappedSpec F]
-    (stmt : FsStatement μ F G1 G2 GT)
-    (adv : OracleComp (FsSourceSpec F G1 G2 GT)
-      (Proof μ F G1 G2 GT))
-    (qb : (FsWrappedSpec F).Domain → Nat)
-    (badZ : Finset F)
-    (witnessOf :
-      PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ) where
-  epsilonRootOpening : ℝ≥0∞
-  epsilonProductLane : ℝ≥0∞
-  rootOpeningBad_le :
-    Pr[S1RootOpeningBad stmt witnessOf |
-      s1ForkExperiment stmt adv qb badZ witnessOf] ≤ epsilonRootOpening
-  productLaneBad_le :
-    Pr[S1ProductLaneBad stmt witnessOf |
-      s1ForkExperiment stmt adv qb badZ witnessOf] ≤ epsilonProductLane
-
-/-- The GIPA fork-knowledge failure charged by S1 is bounded by the exact
-root-opening and product-lane knowledge assumptions. -/
+/-- Kernel reduction from the combined S1 GIPA event to the root-opening and
+product-lane knowledge games. -/
 theorem gipa_fork_knowledge_reduction [Fintype F]
     [IsUniformSpec (FsWrappedSpec F)]
     [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
@@ -656,18 +1115,26 @@ theorem gipa_fork_knowledge_reduction [Fintype F]
     (badZ : Finset F)
     (witnessOf :
       PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ)
-    (security :
-      DeployedGipaForkKnowledgeSecurity stmt adv qb badZ witnessOf) :
+    (rootSecurity :
+      GipaRootOpeningGameSecurity stmt adv qb badZ witnessOf)
+    (productSecurity :
+      GipaProductLaneGameSecurity stmt adv qb badZ witnessOf) :
     Pr[S1PairingBad stmt witnessOf |
         s1ForkExperiment stmt adv qb badZ witnessOf] ≤
-      security.epsilonRootOpening + security.epsilonProductLane :=
-  le_trans
+      rootSecurity.epsilon + productSecurity.epsilon := by
+  apply le_trans
     (s1PairingBad_probability_le_component_sum
       stmt adv qb badZ witnessOf)
-    (add_le_add security.rootOpeningBad_le security.productLaneBad_le)
+  apply add_le_add
+  · rw [s1RootOpeningBad_probability_eq_gameWin
+      stmt adv qb badZ witnessOf]
+    exact rootSecurity.gameWin_le
+  · rw [s1ProductLaneBad_probability_eq_gameWin
+      stmt adv qb badZ witnessOf]
+    exact productSecurity.gameWin_le
 
-/-- Assemble the S1 extraction interface from the two named deployed
-computational contracts. -/
+/-- Assemble the S1 extraction interface from four independently bounded
+computational games.  The four losses remain syntactically separate. -/
 def S1ExtractionSecurity.ofDeployedAssumptions [Fintype F]
     [IsUniformSpec (FsWrappedSpec F)]
     [∀ j, SampleableType ((FsWrappedSpec F).Range j)]
@@ -681,19 +1148,24 @@ def S1ExtractionSecurity.ofDeployedAssumptions [Fintype F]
     (badZ : Finset F)
     (witnessOf :
       PreRandomizerWitness (G1 := G1) (G2 := G2) (GT := GT) μ)
-    (kzg : DeployedKzgLaneSecurity stmt adv qb badZ witnessOf)
-    (gipa :
-      DeployedGipaForkKnowledgeSecurity stmt adv qb badZ witnessOf) :
+    (kzgV :
+      KzgVFalseOpeningGameSecurity stmt adv qb badZ witnessOf)
+    (kzgW :
+      KzgWFalseOpeningGameSecurity stmt adv qb badZ witnessOf)
+    (gipaRoot :
+      GipaRootOpeningGameSecurity stmt adv qb badZ witnessOf)
+    (gipaProduct :
+      GipaProductLaneGameSecurity stmt adv qb badZ witnessOf) :
     S1ExtractionSecurity stmt adv qb badZ where
   witnessOf := witnessOf
-  epsilonKzg := kzg.epsilonV + kzg.epsilonW
-  epsilonPairing := gipa.epsilonRootOpening + gipa.epsilonProductLane
+  epsilonKzg := kzgV.epsilon + kzgW.epsilon
+  epsilonPairing := gipaRoot.epsilon + gipaProduct.epsilon
   kzgBad_le :=
-    kzg_false_opening_to_bls12377_security
-      stmt adv qb badZ witnessOf kzg
+    kzg_false_opening_to_game_security
+      stmt adv qb badZ witnessOf kzgV kzgW
   pairingBad_le :=
     gipa_fork_knowledge_reduction
-      stmt adv qb badZ witnessOf gipa
+      stmt adv qb badZ witnessOf gipaRoot gipaProduct
 
 /-- The existing fork argument, separated from any binding idealization. -/
 theorem s1Fork_success_lower_bound [Fintype F]
