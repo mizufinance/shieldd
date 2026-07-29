@@ -157,7 +157,7 @@ jobs:
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.snarkpack_run == 'true' &&
       needs.applicability.outputs.snarkpack_tier != 'static'
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 360
     strategy:
       fail-fast: false
