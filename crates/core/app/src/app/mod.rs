@@ -6670,6 +6670,7 @@ mod tests {
 
     use anyhow::{anyhow, Context, Result};
     use ark_ff::Zero;
+    use ark_serialize::CanonicalSerialize;
     use cnidarium::{StateDelta, StateRead, StateWrite, TempStorage};
     use decaf377::{Fq, Fr};
     use decaf377_rdsa as rdsa;
@@ -6687,7 +6688,8 @@ mod tests {
     use shieldd_sdk_mock_consensus::TestNode;
     use shieldd_sdk_num::Amount;
     use shieldd_sdk_proof_aggregation::{
-        AggregateBundle, FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
+        app_verify_family_code, app_verify_shipping_call_from_parts, AggregateBundle,
+        AppVerifyCallId, FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
         DEFAULT_DEV_SRS_ID,
     };
     use shieldd_sdk_proof_params::batch::BatchItem;
@@ -7406,15 +7408,23 @@ mod tests {
         let expected_shipping_call = call.shipping_call;
         let expected_statement = call.statement.clone();
         let expected_wrapped_proof = call.aggregate.aggregate_proof.clone();
-        let expected_padded_public_inputs = expected_statement
-            .padded_public_input_bytes()
-            .iter()
-            .map(|row| {
-                row.iter()
-                    .map(|field| field.as_bytes().to_vec())
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>();
+        let mut expected_padded_public_inputs =
+            Vec::with_capacity(expected_statement.padded_public_inputs().len());
+        for row in expected_statement.padded_public_inputs() {
+            let mut serialized_row = Vec::with_capacity(row.len());
+            for field in row {
+                let mut bytes = Vec::new();
+                field.serialize_compressed(&mut bytes)?;
+                serialized_row.push(bytes);
+            }
+            expected_padded_public_inputs.push(serialized_row);
+        }
+        let expected_public_input_arity = u32::try_from(
+            expected_padded_public_inputs
+                .first()
+                .context("aggregate statement must retain one padded public-input row")?
+                .len(),
+        )?;
 
         let outcome = App::execute_aggregate_verify_call(call)?;
 
@@ -7446,7 +7456,7 @@ mod tests {
         );
         assert_eq!(
             outcome.shipping_result.input.public_input_arity,
-            expected_statement.public_input_arity()
+            expected_public_input_arity
         );
         assert_eq!(
             outcome.shipping_result.input.padded_public_inputs,

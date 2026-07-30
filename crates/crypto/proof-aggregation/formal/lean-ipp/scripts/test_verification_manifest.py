@@ -122,6 +122,78 @@ class VerificationManifestTests(unittest.TestCase):
             )
         self.assertIn("must be pass, stale, or assumed", str(raised.exception))
 
+    def test_only_stale_rows_may_enter_source_recheck_mode(self):
+        manifest = copy.deepcopy(self.manifest)
+        stale = next(
+            entry
+            for entry in manifest["statement_binding_evidence"]
+            if entry["checker"]["last_result"] == "stale"
+        )
+        stale["sources"][0]["sha256"] = "0" * 64
+
+        VERIFICATION.validate_contract_evidence(
+            manifest,
+            VERIFICATION.REPO_ROOT,
+            require_checker_artifact=False,
+            allow_stale_source_drift=True,
+        )
+
+        stale["checker"]["last_result"] = "pass"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_contract_evidence(
+                manifest,
+                VERIFICATION.REPO_ROOT,
+                require_checker_artifact=False,
+                allow_stale_source_drift=True,
+            )
+        self.assertIn("sha256 differs", str(raised.exception))
+
+    def test_stale_digest_metadata_does_not_change_fstar_cache_identity(self):
+        manifest = copy.deepcopy(self.manifest)
+        stale_rows = [
+            entry
+            for entry in manifest["statement_binding_evidence"]
+            if entry["checker"]["last_result"] == "stale"
+        ]
+        for kind in ("fstar", "external"):
+            with self.subTest(kind=kind):
+                candidate = copy.deepcopy(manifest)
+                stale = next(entry for entry in stale_rows if entry["kind"] == kind)
+                before = VERIFICATION.fstar_ci_cache_fingerprints(
+                    candidate, VERIFICATION.REPO_ROOT
+                )
+                matching = next(
+                    entry
+                    for entry in candidate["statement_binding_evidence"]
+                    if entry["contract_field"] == stale["contract_field"]
+                )
+                matching["sources"][0]["sha256"] = "0" * 64
+                after = VERIFICATION.fstar_ci_cache_fingerprints(
+                    candidate, VERIFICATION.REPO_ROOT
+                )
+                self.assertEqual(before, after)
+
+    def test_stale_recheck_requires_current_input_fingerprint_coverage(self):
+        manifest = copy.deepcopy(self.manifest)
+        stale = next(
+            entry
+            for entry in manifest["statement_binding_evidence"]
+            if entry["checker"]["last_result"] == "stale"
+            and entry["kind"] == "external"
+        )
+        uncovered = "README.md"
+        stale["sources"][0]["path"] = uncovered
+        stale["sources"][0]["sha256"] = "0" * 64
+
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_contract_evidence(
+                manifest,
+                VERIFICATION.REPO_ROOT,
+                require_checker_artifact=False,
+                allow_stale_source_drift=True,
+            )
+        self.assertIn("current F* module or global-input fingerprint", str(raised.exception))
+
     def test_statement_contract_source_fields_match_evidence_schema(self):
         contract = (
             VERIFICATION.REPO_ROOT
@@ -1049,9 +1121,16 @@ class VerificationManifestTests(unittest.TestCase):
             "${{ needs.snarkpack-rust-reference.result }}",
             summary,
         )
+        enforcer = (
+            VERIFICATION.REPO_ROOT / "scripts/ci/enforce_formal_result.py"
+        ).read_text(encoding="utf-8")
         self.assertIn(
-            'snarkpack-rust-reference "$RUST_REFERENCE"',
-            summary,
+            '"snarkpack-rust-reference": value("RUST_REFERENCE_RUN")',
+            enforcer,
+        )
+        self.assertIn(
+            '"snarkpack-rust-reference": value("RUST_REFERENCE")',
+            enforcer,
         )
 
     def test_all_filtered_slow_and_dos_recipes_require_exactly_one_test(self):

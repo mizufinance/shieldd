@@ -648,6 +648,286 @@ class ExtractionManifestTests(unittest.TestCase):
             git.assert_called_once_with(["rev-parse", "HEAD"])
             digest.assert_called_once()
 
+    def _recovery_wave_fixture(
+        self,
+        repo_root: Path,
+        *,
+        cyclic: bool = False,
+        self_dependent: bool = False,
+    ):
+        manifest = copy.deepcopy(self.manifest)
+        first, second = manifest["graphs"][:2]
+        old_contents = {
+            first["id"]: b"old first output\n",
+            second["id"]: b"old second output\n",
+        }
+        recovered_contents = {
+            first["id"]: b"recovered first output\n",
+            second["id"]: b"recovered second output\n",
+        }
+        output_paths = {}
+        for graph in (first, second):
+            output_path = repo_root.joinpath(*Path(graph["output"]).parts)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(old_contents[graph["id"]])
+            output_paths[graph["id"]] = output_path
+
+        old_hashes = {
+            graph_id: EXTRACTIONS.hashlib.sha256(content).hexdigest()
+            for graph_id, content in old_contents.items()
+        }
+        snapshots = {
+            first["id"]: {
+                "git:HEAD": "a" * 40,
+                "recipe:graph": EXTRACTIONS.extraction_recipe_sha256(first),
+                "crate/src/lib.rs": "b" * 64,
+            },
+            second["id"]: {
+                "git:HEAD": "a" * 40,
+                "recipe:graph": EXTRACTIONS.extraction_recipe_sha256(second),
+                "crate/src/lib.rs": "b" * 64,
+                first["output"]: old_hashes[first["id"]],
+            },
+        }
+        if cyclic:
+            snapshots[first["id"]][second["output"]] = old_hashes[second["id"]]
+        if self_dependent:
+            for graph in (first, second):
+                snapshots[graph["id"]][graph["output"]] = old_hashes[graph["id"]]
+
+        input_hashes = {
+            graph["id"]: ["c" * 64 for _item in graph["inputs"]]
+            for graph in (first, second)
+        }
+        artifacts = []
+        for index, graph in enumerate((first, second)):
+            content = recovered_contents[graph["id"]]
+            record = EXTRACTIONS._recovery_record(
+                manifest=manifest,
+                graph=graph,
+                source_snapshot=snapshots[graph["id"]],
+                input_hashes=input_hashes[graph["id"]],
+                content=content,
+                selected_digest=("d" if index == 0 else "e") * 64,
+            )
+            artifact = repo_root / f"artifact-{graph['id']}"
+            EXTRACTIONS._write_recovery_artifact(
+                artifact,
+                record=record,
+                output_content=content,
+            )
+            artifacts.append(artifact)
+
+        manifest_path = repo_root / "manifest.json"
+        manifest_path.write_bytes(EXTRACTIONS.canonical_json(manifest))
+
+        def current_snapshot(graph, _toolchains, *, cache=None):
+            del cache
+            snapshot = dict(snapshots[graph["id"]])
+            for dependency in (first, second):
+                output = dependency["output"]
+                if output in snapshot:
+                    snapshot[output] = EXTRACTIONS.sha256_file(
+                        output_paths[dependency["id"]]
+                    )
+            return snapshot
+
+        def current_inputs(graph, *, cache=None):
+            del cache
+            return input_hashes[graph["id"]]
+
+        return {
+            "manifest": manifest,
+            "manifest_path": manifest_path,
+            "graphs": (first, second),
+            "artifacts": artifacts,
+            "output_paths": output_paths,
+            "old_contents": old_contents,
+            "recovered_contents": recovered_contents,
+            "current_snapshot": current_snapshot,
+            "current_inputs": current_inputs,
+        }
+
+    def test_strict_recovery_batch_rejects_generated_output_dependency(self):
+        with tempfile.TemporaryDirectory(prefix="extractions-wave-") as directory:
+            repo_root = Path(directory)
+            fixture = self._recovery_wave_fixture(repo_root)
+            args = SimpleNamespace(
+                manifest=fixture["manifest_path"],
+                artifact=fixture["artifacts"],
+                maximal_compatible=False,
+            )
+            original_manifest = fixture["manifest_path"].read_bytes()
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_graph_source_snapshot",
+                    side_effect=fixture["current_snapshot"],
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_input_hashes",
+                    side_effect=fixture["current_inputs"],
+                ),
+                self.assertRaises(EXTRACTIONS.ManifestError) as raised,
+            ):
+                EXTRACTIONS.command_import_recovery(args)
+
+            self.assertIn("source changed during extraction", str(raised.exception))
+            self.assertEqual(
+                fixture["manifest_path"].read_bytes(),
+                original_manifest,
+            )
+            for graph in fixture["graphs"]:
+                self.assertEqual(
+                    fixture["output_paths"][graph["id"]].read_bytes(),
+                    fixture["old_contents"][graph["id"]],
+                )
+
+    def test_maximal_compatible_recovery_imports_dependency_first_wave(self):
+        with tempfile.TemporaryDirectory(prefix="extractions-wave-") as directory:
+            repo_root = Path(directory)
+            fixture = self._recovery_wave_fixture(repo_root)
+            first, second = fixture["graphs"]
+            args = SimpleNamespace(
+                manifest=fixture["manifest_path"],
+                artifact=fixture["artifacts"],
+                maximal_compatible=True,
+            )
+            output = io.StringIO()
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_graph_source_snapshot",
+                    side_effect=fixture["current_snapshot"],
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_input_hashes",
+                    side_effect=fixture["current_inputs"],
+                ),
+                patch("sys.stdout", output),
+            ):
+                self.assertEqual(EXTRACTIONS.command_import_recovery(args), 0)
+
+            self.assertEqual(
+                fixture["output_paths"][first["id"]].read_bytes(),
+                fixture["recovered_contents"][first["id"]],
+            )
+            self.assertEqual(
+                fixture["output_paths"][second["id"]].read_bytes(),
+                fixture["old_contents"][second["id"]],
+            )
+            updated = EXTRACTIONS.load_manifest(fixture["manifest_path"])
+            self.assertEqual(
+                updated["graphs"][0]["output_sha256"],
+                EXTRACTIONS.hashlib.sha256(
+                    fixture["recovered_contents"][first["id"]]
+                ).hexdigest(),
+            )
+            self.assertEqual(
+                updated["graphs"][1]["output_sha256"],
+                fixture["manifest"]["graphs"][1]["output_sha256"],
+            )
+            report = output.getvalue()
+            self.assertIn(f"{first['id']}: imported recovery", report)
+            self.assertIn(
+                f"{second['id']}: skipped recovery for this wave",
+                report,
+            )
+            self.assertIn(first["output"], report)
+
+    def test_maximal_compatible_recovery_rejects_empty_wave(self):
+        with tempfile.TemporaryDirectory(prefix="extractions-wave-") as directory:
+            repo_root = Path(directory)
+            fixture = self._recovery_wave_fixture(
+                repo_root,
+                self_dependent=True,
+            )
+            args = SimpleNamespace(
+                manifest=fixture["manifest_path"],
+                artifact=fixture["artifacts"],
+                maximal_compatible=True,
+            )
+            original_manifest = fixture["manifest_path"].read_bytes()
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_graph_source_snapshot",
+                    side_effect=fixture["current_snapshot"],
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_input_hashes",
+                    side_effect=fixture["current_inputs"],
+                ),
+                self.assertRaises(EXTRACTIONS.ManifestError) as raised,
+            ):
+                EXTRACTIONS.command_import_recovery(args)
+
+            self.assertIn("maximal-compatible wave is empty", str(raised.exception))
+            self.assertEqual(
+                fixture["manifest_path"].read_bytes(),
+                original_manifest,
+            )
+            for graph in fixture["graphs"]:
+                self.assertEqual(
+                    fixture["output_paths"][graph["id"]].read_bytes(),
+                    fixture["old_contents"][graph["id"]],
+                )
+
+    def test_maximal_compatible_recovery_rolls_back_post_swap_source_drift(self):
+        with tempfile.TemporaryDirectory(prefix="extractions-wave-") as directory:
+            repo_root = Path(directory)
+            fixture = self._recovery_wave_fixture(repo_root)
+            first = fixture["graphs"][0]
+            args = SimpleNamespace(
+                manifest=fixture["manifest_path"],
+                artifact=[fixture["artifacts"][0]],
+                maximal_compatible=True,
+            )
+            original_manifest = fixture["manifest_path"].read_bytes()
+
+            def drifting_snapshot(graph, toolchains, *, cache=None):
+                snapshot = fixture["current_snapshot"](
+                    graph, toolchains, cache=cache
+                )
+                if (
+                    fixture["output_paths"][first["id"]].read_bytes()
+                    == fixture["recovered_contents"][first["id"]]
+                ):
+                    snapshot["crate/src/lib.rs"] = "f" * 64
+                return snapshot
+
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_graph_source_snapshot",
+                    side_effect=drifting_snapshot,
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_input_hashes",
+                    side_effect=fixture["current_inputs"],
+                ),
+                self.assertRaises(EXTRACTIONS.ManifestError) as raised,
+            ):
+                EXTRACTIONS.command_import_recovery(args)
+
+            self.assertIn("source changed during extraction", str(raised.exception))
+            self.assertEqual(
+                fixture["manifest_path"].read_bytes(),
+                original_manifest,
+            )
+            self.assertEqual(
+                fixture["output_paths"][first["id"]].read_bytes(),
+                fixture["old_contents"][first["id"]],
+            )
+
     def test_recovery_artifact_import_is_incremental_and_atomic(self):
         manifest = copy.deepcopy(self.manifest)
         graph = manifest["graphs"][0]

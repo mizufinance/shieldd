@@ -366,14 +366,21 @@ def _verification_contract_payload(manifest: dict[str, Any]) -> dict[str, Any]:
 def _fstar_environment_contract_payload(
     manifest: dict[str, Any],
 ) -> dict[str, Any]:
-    """Project out F* module bytes tracked by per-module fingerprints."""
+    """Project out F* bytes tracked by current-input evidence records."""
+    stale_fields = {
+        entry.get("contract_field")
+        for entry in manifest["statement_binding_evidence"]
+        if entry.get("checker", {}).get("last_result") == "stale"
+    }
     payload = _verification_contract_payload(manifest)
     for entry in payload["statement_binding_evidence"]:
-        if entry.get("kind") != "fstar":
+        if (
+            entry.get("kind") != "fstar"
+            and entry.get("contract_field") not in stale_fields
+        ):
             continue
         for source in entry["sources"]:
-            if source["path"].endswith(".fst"):
-                source["sha256"] = "<per-module-input-fingerprint>"
+            source["sha256"] = "<current-fstar-input-fingerprint>"
     return payload
 
 
@@ -2189,6 +2196,13 @@ def promoted_fstar_manifest(
     ):
         if entry.get("kind") == "fstar":
             entry["checker"]["last_result"] = "pass"
+        if (
+            entry.get("kind") == "fstar"
+            or entry.get("checker", {}).get("last_result") == "stale"
+        ):
+            for source in entry["sources"]:
+                current = _fstar_source_record(repo_root, source["path"])
+                source["sha256"] = current["sha256"]
     relative = FSTAR_CHECKER_EVIDENCE_PATH.relative_to(REPO_ROOT).as_posix()
     promoted["fstar_checker_evidence"] = {
         "path": relative,
@@ -2411,6 +2425,7 @@ def validate_contract_evidence(
     repo_root: Path,
     *,
     require_checker_artifact: bool = True,
+    allow_stale_source_drift: bool = False,
 ) -> None:
     contract_source = (
         repo_root
@@ -2427,6 +2442,9 @@ def validate_contract_evidence(
         )
 
     fstar_specs = validate_fstar_module_graph(manifest, repo_root)
+    fstar_tracked_sources = {
+        spec.path for spec in fstar_specs.values()
+    } | set(manifest["fstar_modules"]["global_inputs"])
     entries = _require_nonempty_list(manifest, "statement_binding_evidence")
     observed_fields: list[str] = []
     # `stale` records a proof-producing boundary that has not passed for the
@@ -2488,9 +2506,21 @@ def validate_contract_evidence(
             path = repo_root.joinpath(*relative.parts)
             if not path.is_file():
                 raise VerificationError(f"missing statement-contract source: {path}")
+            stale_recheck = (
+                allow_stale_source_drift
+                and entry.get("checker", {}).get("last_result") == "stale"
+            )
+            if (
+                (entry["kind"] == "fstar" or stale_recheck)
+                and source["path"] not in fstar_tracked_sources
+            ):
+                raise VerificationError(
+                    f"{source_where}.path is not covered by the current F* "
+                    "module or global-input fingerprint"
+                )
             content = path.read_bytes()
             digest = hashlib.sha256(content).hexdigest()
-            if source["sha256"] != digest:
+            if source["sha256"] != digest and not stale_recheck:
                 raise VerificationError(
                     f"{source_where}.sha256 differs for {source['path']}"
                 )
@@ -3559,6 +3589,7 @@ def main(argv: list[str] | None = None) -> int:
                 manifest,
                 REPO_ROOT,
                 require_checker_artifact=False,
+                allow_stale_source_drift=True,
             )
             requested = _requested_fstar_modules(
                 args.requested_json, manifest, REPO_ROOT
@@ -3576,6 +3607,7 @@ def main(argv: list[str] | None = None) -> int:
                 manifest,
                 REPO_ROOT,
                 require_checker_artifact=False,
+                allow_stale_source_drift=True,
             )
             if args.check is not None and args.output is not None:
                 raise VerificationError("--check and --output are mutually exclusive")
@@ -3615,6 +3647,7 @@ def main(argv: list[str] | None = None) -> int:
                 manifest,
                 REPO_ROOT,
                 require_checker_artifact=False,
+                allow_stale_source_drift=True,
             )
             nonstale = sorted(
                 entry["contract_field"]
@@ -3639,6 +3672,7 @@ def main(argv: list[str] | None = None) -> int:
                 manifest,
                 REPO_ROOT,
                 require_checker_artifact=False,
+                allow_stale_source_drift=True,
             )
             environment_sha256, exact_sha256 = (
                 fstar_ci_cache_fingerprints(manifest, REPO_ROOT)

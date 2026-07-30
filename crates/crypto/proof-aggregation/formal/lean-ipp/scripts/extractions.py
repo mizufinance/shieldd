@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Iterable, Sequence
 
@@ -163,6 +164,19 @@ class SourceSnapshotCache:
         if resolved not in self._file_hashes:
             self._file_hashes[resolved] = sha256_file(resolved)
         return self._file_hashes[resolved]
+
+
+@dataclass(frozen=True)
+class RecoveryCandidate:
+    """One validated recovery and the repository state it was built from."""
+
+    graph_id: str
+    graph: dict[str, Any]
+    record: dict[str, Any]
+    content: bytes
+    output_path: Path
+    source_snapshot: dict[str, str]
+    current_output_sha256: str | None
 
 
 _ACTIVE_CHILD: subprocess.Popen[bytes] | None = None
@@ -1670,6 +1684,85 @@ def _artifact_graph_id(artifact_dir: Path) -> str:
     return _string(record.get("graph_id"), f"{record_path}.graph_id")
 
 
+def _maximal_compatible_recovery_wave(
+    candidates: Sequence[RecoveryCandidate],
+) -> tuple[list[RecoveryCandidate], dict[str, tuple[str, ...]]]:
+    """Choose a producer-first maximal set with no stale output dependency."""
+    changing_outputs: dict[str, tuple[str, str]] = {}
+    for candidate in candidates:
+        recovered_sha256 = candidate.record["output_sha256"]
+        if candidate.current_output_sha256 == recovered_sha256:
+            continue
+        output = candidate.graph["output"]
+        if output in changing_outputs:
+            raise ManifestError(f"duplicate recovery output: {output}")
+        changing_outputs[output] = (candidate.graph_id, recovered_sha256)
+
+    by_id = {candidate.graph_id: candidate for candidate in candidates}
+    conflicts: dict[str, set[str]] = {
+        candidate.graph_id: set() for candidate in candidates
+    }
+    directed_reasons: list[tuple[str, str, str]] = []
+    for candidate in candidates:
+        artifact_snapshot = candidate.record["source_snapshot"]
+        for output, (producer_id, recovered_sha256) in sorted(
+            changing_outputs.items()
+        ):
+            expected_sha256 = artifact_snapshot.get(output)
+            if expected_sha256 is None or expected_sha256 == recovered_sha256:
+                continue
+            conflicts[candidate.graph_id].add(producer_id)
+            conflicts[producer_id].add(candidate.graph_id)
+            directed_reasons.append(
+                (
+                    candidate.graph_id,
+                    producer_id,
+                    (
+                        f"{output} from {producer_id} changes "
+                        f"{expected_sha256} -> {recovered_sha256}"
+                    ),
+                )
+            )
+
+    # Consumers with no stale dependency on any offered producer form the
+    # dependency-first seed. Greedily adding every still-compatible recovery
+    # then makes the result maximal without preferring a stale consumer over
+    # the generated output that future recovery waves need.
+    selected_ids = {
+        candidate.graph_id
+        for candidate in candidates
+        if not any(
+            consumer_id == candidate.graph_id
+            for consumer_id, _producer_id, _reason in directed_reasons
+        )
+    }
+    for graph_id in sorted(by_id):
+        if graph_id in selected_ids or graph_id in conflicts[graph_id]:
+            continue
+        if conflicts[graph_id].isdisjoint(selected_ids):
+            selected_ids.add(graph_id)
+
+    selected = [
+        candidate
+        for candidate in candidates
+        if candidate.graph_id in selected_ids
+    ]
+    skipped: dict[str, tuple[str, ...]] = {}
+    for graph_id in sorted(set(by_id) - selected_ids):
+        reasons = []
+        for consumer_id, producer_id, reason in directed_reasons:
+            if consumer_id == graph_id and producer_id in selected_ids:
+                reasons.append(reason)
+            elif producer_id == graph_id and consumer_id in selected_ids:
+                reasons.append(
+                    f"{consumer_id} was built from the old bytes of {reason}"
+                )
+            elif consumer_id == graph_id == producer_id:
+                reasons.append(reason)
+        skipped[graph_id] = tuple(sorted(set(reasons)))
+    return selected, skipped
+
+
 def command_regenerate(args: argparse.Namespace) -> int:
     update_manifest = bool(getattr(args, "update_manifest", False))
     artifact_dir = getattr(args, "artifact", None)
@@ -1799,13 +1892,10 @@ def command_import_recovery(args: argparse.Namespace) -> int:
     if not artifacts:
         raise ManifestError("import-recovery requires at least one --artifact")
     graphs = graph_map(manifest)
-    updated = copy.deepcopy(manifest)
-    updated_graphs = graph_map(updated)
     manifest_sha256 = sha256_file(args.manifest)
     cache = SourceSnapshotCache()
     seen: set[str] = set()
-    output_updates: list[tuple[Path, bytes]] = []
-    source_snapshots: dict[str, dict[str, str]] = {}
+    candidates: list[RecoveryCandidate] = []
 
     for artifact_dir in artifacts:
         graph_id = _artifact_graph_id(artifact_dir)
@@ -1854,12 +1944,49 @@ def command_import_recovery(args: argparse.Namespace) -> int:
             raise ManifestError(
                 f"recovery {graph_id}: declared inputs changed after artifact"
             )
-        source_snapshots[graph_id] = current_snapshot
-        _apply_recovery_record(updated_graphs[graph_id], record)
         output_path = REPO_ROOT.joinpath(
             *PurePosixPath(graph["output"]).parts
         )
-        output_updates.append((output_path, content))
+        current_output_sha256 = (
+            sha256_file(output_path) if output_path.is_file() else None
+        )
+        candidates.append(
+            RecoveryCandidate(
+                graph_id=graph_id,
+                graph=graph,
+                record=record,
+                content=content,
+                output_path=output_path,
+                source_snapshot=current_snapshot,
+                current_output_sha256=current_output_sha256,
+            )
+        )
+
+    skipped: dict[str, tuple[str, ...]] = {}
+    selected = candidates
+    if bool(getattr(args, "maximal_compatible", False)):
+        selected, skipped = _maximal_compatible_recovery_wave(candidates)
+        if not selected:
+            details = "; ".join(
+                f"{graph_id}: {', '.join(reasons)}"
+                for graph_id, reasons in sorted(skipped.items())
+            )
+            raise ManifestError(
+                "import-recovery maximal-compatible wave is empty"
+                + (f": {details}" if details else "")
+            )
+
+    updated = copy.deepcopy(manifest)
+    updated_graphs = graph_map(updated)
+    output_updates: list[tuple[Path, bytes]] = []
+    imported_ids: set[str] = set()
+    source_snapshots: dict[str, dict[str, str]] = {}
+    for candidate in selected:
+        graph_id = candidate.graph_id
+        imported_ids.add(graph_id)
+        source_snapshots[graph_id] = candidate.source_snapshot
+        _apply_recovery_record(updated_graphs[graph_id], candidate.record)
+        output_updates.append((candidate.output_path, candidate.content))
 
     validate_recovery_manifest(
         updated,
@@ -1879,7 +2006,7 @@ def command_import_recovery(args: argparse.Namespace) -> int:
 
     def post_commit_check() -> None:
         after_cache = SourceSnapshotCache()
-        for graph_id in seen:
+        for graph_id in imported_ids:
             graph = graphs[graph_id]
             _assert_source_snapshot_unchanged(
                 graph,
@@ -1902,7 +2029,13 @@ def command_import_recovery(args: argparse.Namespace) -> int:
         manifest_content=canonical_json(updated),
         post_commit_check=post_commit_check,
     )
-    for graph_id in sorted(seen):
+    for graph_id, reasons in sorted(skipped.items()):
+        print(
+            f"{graph_id}: skipped recovery for this wave: "
+            + "; ".join(reasons),
+            flush=True,
+        )
+    for graph_id in sorted(imported_ids):
         print(
             f"{graph_id}: imported recovery "
             f"({updated_graphs[graph_id]['output_sha256']})",
@@ -1977,6 +2110,14 @@ def parser() -> argparse.ArgumentParser:
 
     import_recovery = commands.add_parser("import-recovery")
     import_recovery.add_argument("--artifact", action="append", type=Path)
+    import_recovery.add_argument(
+        "--maximal-compatible",
+        action="store_true",
+        help=(
+            "import the dependency-first compatible recovery wave and defer "
+            "artifacts built from generated outputs that this wave changes"
+        ),
+    )
     import_recovery.set_defaults(handler=command_import_recovery)
 
     preview = commands.add_parser("preview")
