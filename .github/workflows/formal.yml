@@ -205,8 +205,9 @@ jobs:
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 50
     strategy:
+      # Blacksmith is elastic; keep this matrix uncapped so intentionally red
+      # recovery entries cannot strand a second dispatch wave.
       fail-fast: false
-      max-parallel: 16
       matrix:
         graph: ${{ fromJSON(needs.applicability.outputs.snarkpack_extract_run == 'true' && needs.applicability.outputs.snarkpack_extract_graphs || '["__not_selected__"]') }}
     container:

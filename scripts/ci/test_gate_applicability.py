@@ -668,7 +668,6 @@ class GateApplicabilityTests(unittest.TestCase):
                 "needs.snarkpack-extract.result == 'success'",
                 body,
             )
-        self.assertIn("max-parallel: 16", workflow)
         self.assertNotIn("snarkpack-toolchain:", workflow)
         extraction_attestation_key = (
             "snarkpack-extraction-pass-v1-${{ runner.os }}-"
@@ -905,6 +904,29 @@ class GateApplicabilityTests(unittest.TestCase):
             r"(?ms)^    needs:\n(?:      - .+\n)*"
             r"      - snarkpack-extraction-recovery\n",
         )
+
+    def test_snarkpack_extraction_matrix_is_uncapped_and_collects_failures(
+        self,
+    ) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        lanes = dict(
+            re.findall(
+                r"(?ms)^  (snarkpack-[a-z0-9-]+):\n"
+                r"(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+                workflow,
+            )
+        )
+        extraction = lanes["snarkpack-extract"]
+        strategy = re.search(
+            r"(?ms)^    strategy:\n(.*?)(?=^    [A-Za-z0-9_-]+:)",
+            extraction,
+        )
+        self.assertIsNotNone(strategy)
+        assert strategy is not None
+        self.assertIn("fail-fast: false", strategy.group(1))
+        self.assertNotIn("max-parallel:", strategy.group(1))
 
     def test_heavy_snarkpack_lanes_use_exact_success_attestations(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
