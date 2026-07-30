@@ -79,6 +79,26 @@ class ImpactPlannerTests(unittest.TestCase):
         self.assertFalse(result.fuzz)
         self.assertFalse(result.dos)
 
+    def test_summary_gate_change_runs_static_without_proof_builds(self) -> None:
+        result = IMPACT.plan(
+            ROOT,
+            event="pull_request",
+            status="run",
+            changed=(
+                "scripts/ci/enforce_formal_result.py",
+                "scripts/ci/test_enforce_formal_result.py",
+            ),
+            declared_graphs=(),
+        )
+        self.assertTrue(result.static)
+        self.assertEqual(result.extraction_graphs, ())
+        self.assertEqual(result.lean_modules, ())
+        self.assertEqual(result.fstar_proofs, ())
+        self.assertFalse(result.parity)
+        self.assertFalse(result.rust_reference)
+        self.assertFalse(result.fuzz)
+        self.assertFalse(result.dos)
+
     def test_changed_graph_does_not_force_unrelated_proof_builds(self) -> None:
         graph = IMPACT.extraction_graph_ids(ROOT)[0]
         result = IMPACT.plan(
