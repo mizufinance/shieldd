@@ -1,7 +1,6 @@
 use std::{
     fmt,
     path::{Path, PathBuf},
-    sync::Arc,
 };
 
 use anyhow::{Context as _, Result};
@@ -24,8 +23,6 @@ use shieldd_sdk_proto::{
     },
 };
 use tendermint::{abci, Time};
-use tokio::sync::Mutex;
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ErrorKind {
     InvalidArgument,
@@ -82,9 +79,8 @@ impl std::error::Error for ServiceError {
     }
 }
 
-#[derive(Clone)]
 pub struct ExecutionService {
-    inner: Arc<Mutex<Option<HostExecution>>>,
+    execution: Option<HostExecution>,
 }
 
 impl ExecutionService {
@@ -111,12 +107,12 @@ impl ExecutionService {
 
     pub fn new(storage: Storage) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(Some(HostExecution::new(storage)))),
+            execution: Some(HostExecution::new(storage)),
         }
     }
 
     pub async fn init_genesis(
-        &self,
+        &mut self,
         request: InitGenesisRequest,
     ) -> std::result::Result<InitGenesisResponse, ServiceError> {
         let genesis = request
@@ -125,8 +121,7 @@ impl ExecutionService {
             .and_then(AppState::try_from)
             .map_err(ServiceError::invalid_argument)?;
 
-        let mut inner = self.inner.lock().await;
-        let execution = inner.as_mut().ok_or_else(ServiceError::closed)?;
+        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         execution
             .init_genesis(genesis)
             .await
@@ -135,13 +130,12 @@ impl ExecutionService {
     }
 
     pub async fn begin_block(
-        &self,
+        &mut self,
         request: BeginBlockRequest,
     ) -> std::result::Result<BeginBlockResponse, ServiceError> {
         let block = decode_host_block(request).map_err(ServiceError::invalid_argument)?;
 
-        let mut inner = self.inner.lock().await;
-        let execution = inner.as_mut().ok_or_else(ServiceError::closed)?;
+        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
             .begin_block(block)
             .await
@@ -153,11 +147,10 @@ impl ExecutionService {
     }
 
     pub async fn deposit(
-        &self,
+        &mut self,
         request: DepositRequest,
     ) -> std::result::Result<DepositResponse, ServiceError> {
-        let mut inner = self.inner.lock().await;
-        let execution = inner.as_mut().ok_or_else(ServiceError::closed)?;
+        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
             .deposit(request)
             .await
@@ -169,8 +162,7 @@ impl ExecutionService {
         &self,
         request: CheckTxRequest,
     ) -> std::result::Result<CheckTxResponse, ServiceError> {
-        let inner = self.inner.lock().await;
-        let execution = inner.as_ref().ok_or_else(ServiceError::closed)?;
+        let execution = self.execution.as_ref().ok_or_else(ServiceError::closed)?;
         let response = execution
             .check_tx(&request.tx)
             .await
@@ -180,11 +172,10 @@ impl ExecutionService {
     }
 
     pub async fn deliver_tx(
-        &self,
+        &mut self,
         request: DeliverTxRequest,
     ) -> std::result::Result<DeliverTxResponse, ServiceError> {
-        let mut inner = self.inner.lock().await;
-        let execution = inner.as_mut().ok_or_else(ServiceError::closed)?;
+        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
             .deliver_tx(&request.tx)
             .await
@@ -194,11 +185,10 @@ impl ExecutionService {
     }
 
     pub async fn end_block(
-        &self,
+        &mut self,
         request: EndBlockRequest,
     ) -> std::result::Result<EndBlockResponse, ServiceError> {
-        let mut inner = self.inner.lock().await;
-        let execution = inner.as_mut().ok_or_else(ServiceError::closed)?;
+        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
             .end_block(request.height)
             .await
@@ -210,11 +200,10 @@ impl ExecutionService {
     }
 
     pub async fn commit(
-        &self,
+        &mut self,
         _request: CommitRequest,
     ) -> std::result::Result<CommitResponse, ServiceError> {
-        let mut inner = self.inner.lock().await;
-        let execution = inner.as_mut().ok_or_else(ServiceError::closed)?;
+        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         let response = execution
             .commit()
             .await
@@ -225,11 +214,10 @@ impl ExecutionService {
     }
 
     pub async fn rollback(
-        &self,
+        &mut self,
         _request: RollbackRequest,
     ) -> std::result::Result<RollbackResponse, ServiceError> {
-        let mut inner = self.inner.lock().await;
-        let execution = inner.as_mut().ok_or_else(ServiceError::closed)?;
+        let execution = self.execution.as_mut().ok_or_else(ServiceError::closed)?;
         execution.rollback();
         Ok(RollbackResponse {})
     }
@@ -238,8 +226,7 @@ impl ExecutionService {
         &self,
         _request: ExportGenesisRequest,
     ) -> std::result::Result<ExportGenesisResponse, ServiceError> {
-        let inner = self.inner.lock().await;
-        let execution = inner.as_ref().ok_or_else(ServiceError::closed)?;
+        let execution = self.execution.as_ref().ok_or_else(ServiceError::closed)?;
         let genesis: proto_app::GenesisAppState = execution
             .export_genesis()
             .await
@@ -250,8 +237,8 @@ impl ExecutionService {
         })
     }
 
-    pub async fn close(&self) -> std::result::Result<(), ServiceError> {
-        let execution = self.inner.lock().await.take();
+    pub async fn close(&mut self) -> std::result::Result<(), ServiceError> {
+        let execution = self.execution.take();
         if let Some(execution) = execution {
             execution.release().await;
         }
@@ -337,10 +324,7 @@ fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::Arc;
-
     use super::*;
-    use tokio::sync::oneshot;
 
     #[test]
     fn decode_host_block_converts_valid_time() {
@@ -392,30 +376,16 @@ mod tests {
         assert_eq!(coin.amount, "42");
     }
 
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn operations_wait_for_the_execution_lock() {
+    #[tokio::test]
+    async fn close_releases_storage_and_rejects_later_operations() {
         let directory = tempfile::tempdir().expect("temporary database directory");
-        let service = Arc::new(
-            ExecutionService::open(directory.path())
-                .await
-                .expect("open execution service"),
-        );
-        let guard = service.inner.lock().await;
-        let (started_tx, started_rx) = oneshot::channel();
-        let waiting_service = service.clone();
-        let waiting = tokio::spawn(async move {
-            started_tx.send(()).expect("signal task start");
-            waiting_service.rollback(RollbackRequest {}).await
-        });
-
-        started_rx.await.expect("task started");
-        tokio::task::yield_now().await;
-        assert!(!waiting.is_finished());
-
-        drop(guard);
-        waiting
+        let mut service = ExecutionService::open(directory.path())
             .await
-            .expect("task joined")
+            .expect("open execution service");
+
+        service
+            .rollback(RollbackRequest {})
+            .await
             .expect("rollback completed");
         service.close().await.expect("close execution service");
 
@@ -424,5 +394,10 @@ mod tests {
             .await
             .expect_err("closed service rejects calls");
         assert_eq!(error.kind(), ErrorKind::FailedPrecondition);
+
+        let mut reopened = ExecutionService::open(directory.path())
+            .await
+            .expect("storage was released");
+        reopened.close().await.expect("close reopened service");
     }
 }

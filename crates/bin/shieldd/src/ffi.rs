@@ -34,7 +34,7 @@ pub struct ShielddHandle {
 
 struct Handle {
     runtime: Runtime,
-    service: ExecutionService,
+    service: tokio::sync::Mutex<ExecutionService>,
 }
 
 #[repr(C)]
@@ -160,7 +160,10 @@ pub extern "C" fn shieldd_open(
         let service = runtime
             .block_on(ExecutionService::open(PathBuf::from(db_path)))
             .map_err(FfiError::service)?;
-        let handle = Box::into_raw(Box::new(Handle { runtime, service })) as *mut ShielddHandle;
+        let handle = Box::into_raw(Box::new(Handle {
+            runtime,
+            service: tokio::sync::Mutex::new(service),
+        })) as *mut ShielddHandle;
         unsafe {
             out_handle.write(handle);
         }
@@ -182,9 +185,10 @@ pub extern "C" fn shieldd_call(
         }
         let request = unsafe { input_bytes(request, request_len)? };
         let handle = unsafe { &*(handle.cast::<Handle>()) };
-        handle
-            .runtime
-            .block_on(dispatch(&handle.service, method, request))
+        handle.runtime.block_on(async {
+            let mut service = handle.service.lock().await;
+            dispatch(&mut service, method, request).await
+        })
     })
 }
 
@@ -197,6 +201,7 @@ pub extern "C" fn shieldd_close(handle: *mut ShielddHandle) -> ShielddResult {
 
         let handle = unsafe { Box::from_raw(handle.cast::<Handle>()) };
         let Handle { runtime, service } = *handle;
+        let mut service = service.into_inner();
         runtime
             .block_on(service.close())
             .map_err(FfiError::service)?;
@@ -247,7 +252,7 @@ unsafe fn input_bytes<'a>(data: *const u8, len: usize) -> std::result::Result<&'
 }
 
 async fn dispatch(
-    service: &ExecutionService,
+    service: &mut ExecutionService,
     method: u32,
     request: &[u8],
 ) -> std::result::Result<Vec<u8>, FfiError> {
@@ -399,6 +404,31 @@ mod tests {
         assert_eq!(unknown.status, STATUS_INVALID_ARGUMENT);
         assert!(error_text(&unknown).contains("unknown Shieldd method"));
         free_result(unknown);
+        close(handle);
+    }
+
+    #[test]
+    fn calls_sharing_a_handle_are_serialized() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        let handle_address = handle as usize;
+
+        let threads = (0..8)
+            .map(|_| {
+                std::thread::spawn(move || {
+                    let handle = handle_address as *mut ShielddHandle;
+                    for _ in 0..16 {
+                        let result = shieldd_call(handle, METHOD_ROLLBACK, ptr::null(), 0);
+                        assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
+                        free_result(result);
+                    }
+                })
+            })
+            .collect::<Vec<_>>();
+
+        for thread in threads {
+            thread.join().expect("call thread completed");
+        }
         close(handle);
     }
 

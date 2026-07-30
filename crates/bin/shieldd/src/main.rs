@@ -61,6 +61,7 @@ async fn start(db: PathBuf, bind: SocketAddr) -> anyhow::Result<()> {
             db.display()
         )
     })?;
+    let grpc = GrpcExecutionClient::new(service);
 
     tracing::info!(
         app_version = APP_VERSION,
@@ -70,15 +71,13 @@ async fn start(db: PathBuf, bind: SocketAddr) -> anyhow::Result<()> {
     );
 
     let server_result = Server::builder()
-        .add_service(ExecutionClientServiceServer::new(GrpcExecutionClient::new(
-            service.clone(),
-        )))
+        .add_service(ExecutionClientServiceServer::new(grpc.clone()))
         .serve_with_shutdown(bind, shutdown_signal())
         .await
         .map_err(|error| {
             anyhow::anyhow!("Shieldd execution-client server failed on {bind}: {error:?}")
         });
-    let close_result = service
+    let close_result = grpc
         .close()
         .await
         .context("failed to close Shieldd execution service");
