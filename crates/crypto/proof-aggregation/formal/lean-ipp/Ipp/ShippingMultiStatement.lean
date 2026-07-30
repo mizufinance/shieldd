@@ -285,6 +285,21 @@ structure SelectionAt (Call : Type) (μ : Nat) where
       Ipp.Bls12377.g2PrimeSubgroup
       Ipp.Bls12377.ArkPairingOutput
 
+/-- On a production-reachable set at one exact proof size, the retained
+shipping statement key determines the formal verifier statement.
+
+This is deliberately not a field of `SelectionAt`: an arbitrary adaptive
+adversary may construct unrelated values.  The shipping construction layer
+must prove this predicate only for selections reachable from its extracted
+production path. -/
+def KeyDeterminesStatementAt {Call : Type} {μ : Nat}
+    (reachable : SelectionAt Call μ → Prop) : Prop :=
+  ∀ left right,
+    reachable left →
+      reachable right →
+        left.logicalKey = right.logicalKey →
+          left.statement = right.statement
+
 /-- Heterogeneous statement selection, partitioned by the exact round count. -/
 abbrev PackedSelection (Call : Type) :=
   Sigma (SelectionAt Call)
@@ -476,6 +491,33 @@ def at? {Call : Type} (μ : Nat) :
     at? μ (⟨μ, output⟩ : PackedOutcome Call) = some output := by
   simp [at?]
 
+/-- Project only the selected shipping input from one heterogeneous output at
+an exact proof size. -/
+def selectionAt? {Call : Type} (μ : Nat)
+    (output : PackedOutcome Call) : Option (SelectionAt Call μ) :=
+  (at? μ output).map OutcomeAt.selection
+
+@[simp] theorem selectionAt?_self {Call : Type} (μ : Nat)
+    (output : OutcomeAt Call μ) :
+    selectionAt? μ (⟨μ, output⟩ : PackedOutcome Call) =
+      some output.selection := by
+  simp [selectionAt?]
+
+/-- A successful exact-size selection projection retains the logical key of
+the original heterogeneous output. -/
+theorem selectionAt?_logicalKey {Call : Type} {μ : Nat}
+    {output : PackedOutcome Call}
+    {selection : SelectionAt Call μ}
+    (hselection : selectionAt? μ output = some selection) :
+    selection.logicalKey = output.logicalKey := by
+  rcases output with ⟨ν, output⟩
+  by_cases hμ : ν = μ
+  · subst ν
+    simp [selectionAt?] at hselection
+    subst selection
+    rfl
+  · simp [selectionAt?, at?, hμ] at hselection
+
 end PackedOutcome
 
 /-- The selected-`μ` partition event. -/
@@ -635,6 +677,23 @@ def multiStatementFsProbComp {Call : Type}
     OracleComp (Ipp.FsWrappedSpec Ipp.Bls12377.Fr)
       (MultiStatementRunLog Call) :=
   replayFirstRun (multiStatementForkMain game)
+
+/-- One exact-size selection is production-reachable when it is projected
+from a run of the complete shared-cache program.  This includes all
+adversarial pre-selection queries and the selected verifier execution. -/
+def ReplayReachableSelectionAt {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (μ : Nat) (selection : SelectionAt Call μ) : Prop :=
+  ∃ run : MultiStatementRunLog Call,
+    run ∈ support (multiStatementFsProbComp game) ∧
+      run.1.out.selectionAt? μ = some selection
+
+/-- Exact production-reachable functionality obligation consumed by the
+common-formal-statement replay theorem. -/
+def ProductionKeyDeterminesStatementAt {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (μ : Nat) : Prop :=
+  KeyDeterminesStatementAt (ReplayReachableSelectionAt game μ)
 
 /-- Dynamically locate the first cache miss for the selected output's
 round-`level` structured query.  Adversarial queries before selection remain
@@ -880,6 +939,35 @@ def ForkCarriesLogicalKey {Call : Type} {depth : Nat}
       (MultiStatementWrappedRun Call) depth) : Prop :=
   tree.All (fun run => run.1.out.logicalKey = key)
 
+/-- One replay tree carries a common formal verifier statement while leaving
+the selected production call, proof, encoded response fields, and verifier
+result branch-local. -/
+def ForkCarriesFormalStatement {Call : Type} {depth μ : Nat}
+    (statement :
+      Ipp.FsStatement μ Ipp.Bls12377.Fr
+        Ipp.Bls12377.g1PrimeSubgroup
+        Ipp.Bls12377.g2PrimeSubgroup
+        Ipp.Bls12377.ArkPairingOutput)
+    (tree : Ipp.RunTree (Ipp.FsWrappedSpec Ipp.Bls12377.Fr)
+      (MultiStatementWrappedRun Call) depth) : Prop :=
+  tree.All (fun run =>
+    ∃ selection : SelectionAt Call μ,
+      run.1.out.selectionAt? μ = some selection ∧
+        selection.statement = statement)
+
+/-- Combine two pointwise replay-tree facts without changing the tree shape. -/
+theorem runTree_all_and
+    {Call : Type} {depth : Nat}
+    {P Q : MultiStatementRunLog Call → Prop}
+    {tree : RawMultiStatementForkTree Call depth}
+    (hP : tree.All P) (hQ : tree.All Q) :
+    tree.All (fun run => P run ∧ Q run) := by
+  induction tree with
+  | leaf _ => exact ⟨hP, hQ⟩
+  | node children ih =>
+      intro k
+      exact ih k (hP k) (hQ k)
+
 /-- Concrete global replay experiment for one depth.  The round selector is
 computed from each wrapped branch after its statement selection, so arbitrary
 adversarial prequeries remain part of the selected miss ordinal. -/
@@ -1055,6 +1143,28 @@ theorem rawForkLogicalKeySelectionLossAt_eq_zero
         (rawMultiStatementForkExperimentAt_support_carries_logicalKey
           game invalid queryBounds μ hbaseReach hresult)
 
+/-- A constructed fork has one common formal statement and invalid accepted
+branches.  Only the statement is fixed: proofs, opaque production calls,
+transcript responses, and verifier outputs remain branch-local. -/
+def RawForkHasCommonInvalidStatement {Call : Type} {μ : Nat}
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (tree : RawMultiStatementForkTree Call μ) : Prop :=
+  ∃ statement :
+      Ipp.FsStatement μ Ipp.Bls12377.Fr
+        Ipp.Bls12377.g1PrimeSubgroup
+        Ipp.Bls12377.g2PrimeSubgroup
+        Ipp.Bls12377.ArkPairingOutput,
+    ForkCarriesFormalStatement statement tree ∧
+      tree.All (InvalidAcceptedAt invalid μ)
+
+/-- Common-formal-statement success event for the concrete raw replay. -/
+def RawForkFormalStatementSucceededAt {Call : Type}
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (μ : Nat) :
+    Option (RawMultiStatementForkTree Call μ) → Prop
+  | none => False
+  | some tree => RawForkHasCommonInvalidStatement invalid tree
+
 /-- One raw fork tree preserves one exact selected statement across every
 branch.  This is an event to be proved from the raw experiment, not a
 constructor argument supplied to that experiment. -/
@@ -1062,8 +1172,7 @@ def RawForkCarriesSelectionAt {Call : Type} {μ : Nat}
     (selected : SelectionAt Call μ)
     (tree : RawMultiStatementForkTree Call μ) : Prop :=
   tree.All (fun run =>
-    (PackedOutcome.at? μ run.1.out).map OutcomeAt.selection =
-      some selected)
+    run.1.out.selectionAt? μ = some selected)
 
 /-- Common-selection invalid-acceptance event extracted from the raw global
 fork.  A statement-selection/fork loss, if any, is the proved gap between the
@@ -1094,8 +1203,7 @@ case is already excluded by `InvalidAcceptedAt`. -/
 def RawForkHasSelectionDisagreement {Call : Type} {μ : Nat}
     (tree : RawMultiStatementForkTree Call μ) : Prop :=
   ∃ selected : SelectionAt Call μ,
-    (PackedOutcome.at? μ tree.root.1.out).map OutcomeAt.selection =
-        some selected ∧
+    tree.root.1.out.selectionAt? μ = some selected ∧
       ¬ RawForkCarriesSelectionAt selected tree
 
 /-- Statement-selection disagreement as an event on the concrete raw-fork
@@ -1115,8 +1223,7 @@ theorem invalidAcceptedAt_projects_invalid_selection
     {run : MultiStatementRunLog Call}
     (hrun : InvalidAcceptedAt invalid μ run) :
     ∃ selected : SelectionAt Call μ,
-      (PackedOutcome.at? μ run.1.out).map OutcomeAt.selection =
-          some selected ∧
+      run.1.out.selectionAt? μ = some selected ∧
         invalid μ selected := by
   rcases run with ⟨wrapped, log⟩
   rcases wrapped with ⟨packed, trace⟩
@@ -1187,6 +1294,131 @@ theorem rawMultiStatementForkExperimentAt_support_all_invalidAccepted
       multiStatementRoundSlot
         (queryBounds (Sum.inr ())) level run)
     (InvalidAcceptedAt invalid μ) hbaseReach htree
+
+/-- Production key-to-statement functionality lifts the already-proved
+zero-logical-key-loss property to one common formal statement throughout a
+successful raw tree.
+
+The premise is restricted to selections reachable in the complete
+shared-cache program.  It neither constrains an arbitrary adversary value nor
+fixes the statement before adversarial oracle access. -/
+theorem rawMultiStatementForkExperimentAt_support_hasCommonInvalidStatement
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (μ : Nat)
+    (hbaseReach : ∀ level, level < μ →
+      Ipp.CfReachable (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run))
+    (hdetermines : ProductionKeyDeterminesStatementAt game μ)
+    {tree : RawMultiStatementForkTree Call μ}
+    (htree : some tree ∈ support
+      (rawMultiStatementForkExperimentAt
+        game invalid queryBounds μ)) :
+    RawForkHasCommonInvalidStatement invalid tree := by
+  classical
+  have hall :=
+    rawMultiStatementForkExperimentAt_support_all_invalidAccepted
+      game invalid queryBounds μ hbaseReach htree
+  have hlogical :=
+    rawMultiStatementForkExperimentAt_support_carries_logicalKey
+      game invalid queryBounds μ hbaseReach htree
+  have hconsistent :
+      Ipp.TreeConsistent (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun level run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run)
+        (InvalidAcceptedAt invalid μ) 0 none tree := by
+    change some tree ∈ support
+      (Ipp.forkTreeCombined μ (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun level run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run)
+        (InvalidAcceptedAt invalid μ)
+        μ (Nat.le_refl μ)) at htree
+    exact Ipp.forkTreeCombined_support_props
+      μ (multiStatementForkMain game) queryBounds (Sum.inr ())
+      (fun level run =>
+        multiStatementRoundSlot
+          (queryBounds (Sum.inr ())) level run)
+      (InvalidAcceptedAt invalid μ) hbaseReach htree
+  have hsupport :
+      tree.All (fun run =>
+        run ∈ support (multiStatementFsProbComp game)) := by
+    simpa [multiStatementFsProbComp] using
+      (Ipp.TreeConsistent.all_support
+        (multiStatementForkMain game) queryBounds (Sum.inr ())
+        (fun level run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run)
+        (InvalidAcceptedAt invalid μ) hconsistent)
+  obtain ⟨rootSelection, hrootProjection, _⟩ :=
+    invalidAcceptedAt_projects_invalid_selection
+      invalid μ hall.root
+  have hrootReachable :
+      ReplayReachableSelectionAt game μ rootSelection :=
+    ⟨tree.root, hsupport.root, hrootProjection⟩
+  refine ⟨rootSelection.statement, ?_, hall⟩
+  have hcombined :=
+    runTree_all_and (runTree_all_and hall hsupport) hlogical
+  exact hcombined.imp (fun run hrun => by
+    obtain ⟨selection, hprojection, _⟩ :=
+      invalidAcceptedAt_projects_invalid_selection
+        invalid μ hrun.1.1
+    have hselectionReachable :
+        ReplayReachableSelectionAt game μ selection :=
+      ⟨run, hrun.1.2, hprojection⟩
+    have hselectionKey :
+        selection.logicalKey = run.1.out.logicalKey :=
+      PackedOutcome.selectionAt?_logicalKey hprojection
+    have hrootKey :
+        rootSelection.logicalKey = tree.root.1.out.logicalKey :=
+      PackedOutcome.selectionAt?_logicalKey hrootProjection
+    have hkey :
+        selection.logicalKey = rootSelection.logicalKey :=
+      hselectionKey.trans (hrun.2.trans hrootKey.symm)
+    exact
+      ⟨selection, hprojection,
+        hdetermines selection rootSelection
+          hselectionReachable hrootReachable hkey⟩)
+
+/-- Under the exact production-reachable key functionality invariant, every
+constructed raw tree is already a common-formal-statement tree.  Thus no
+statement-selection loss remains; branch-local proofs, calls, and responses
+are preserved by the event on the right. -/
+theorem rawFork_isSome_le_formalStatementSucceededAt
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (μ : Nat)
+    (hbaseReach : ∀ level, level < μ →
+      Ipp.CfReachable (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run))
+    (hdetermines : ProductionKeyDeterminesStatementAt game μ) :
+    Pr[fun tree : Option (RawMultiStatementForkTree Call μ) =>
+        tree.isSome |
+      rawMultiStatementForkExperimentAt game invalid queryBounds μ] ≤
+      Pr[RawForkFormalStatementSucceededAt invalid μ |
+        rawMultiStatementForkExperimentAt game invalid queryBounds μ] := by
+  apply probEvent_mono
+  intro result hresult hsome
+  rcases result with _ | tree
+  · simp at hsome
+  · exact
+      rawMultiStatementForkExperimentAt_support_hasCommonInvalidStatement
+        game invalid queryBounds μ hbaseReach hdetermines hresult
 
 /-- The exact common-selection loss of the raw replay construction.  This is
 neither a caller-chosen constant nor the original acceptance probability: it
@@ -1386,10 +1618,162 @@ structure DerivedMultiStatementForkLoss where
   statementSelection : ℝ≥0∞
   forkReplay : ℝ≥0∞
 
+/-- Exact schedule obligations needed by the generic combined-replay bound
+for one selected proof size.
+
+These are execution properties of the complete shared-cache program.  In
+particular, `slotOrder` is stated for the actual global replay tree and does
+not replace its cache with a fixed-statement cache. -/
+structure RawForkScheduleContract
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (μ : Nat) where
+  baseReach : ∀ level, level < μ →
+    Ipp.CfReachable (multiStatementForkMain game)
+      queryBounds (Sum.inr ())
+      (fun run =>
+        multiStatementRoundSlot
+          (queryBounds (Sum.inr ())) level run)
+  selectorTotal : ∀ {first},
+    first ∈ support
+        (replayFirstRun (multiStatementForkMain game)) →
+      InvalidAcceptedAt invalid μ first →
+      ∀ level, level < μ →
+        ∃ slot,
+          multiStatementRoundSlot
+              (queryBounds (Sum.inr ())) level first.1 =
+            some slot
+  slotOrder : ∀ {depth} (hdepth : depth < μ)
+    {tree : RawMultiStatementForkTree Call depth}
+    {outerLog : QueryLog (Ipp.FsWrappedSpec Ipp.Bls12377.Fr)},
+    (some tree, outerLog) ∈ support (replayFirstRun
+      (Ipp.forkTreeCombined μ (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun level run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run)
+        (InvalidAcceptedAt invalid μ)
+        depth (Nat.le_of_lt hdepth))) →
+    ∀ {selected next},
+      multiStatementRoundSlot
+          (queryBounds (Sum.inr ()))
+          (Ipp.combinedLevel μ depth hdepth) tree.root.1 =
+        some selected →
+      Ipp.treeFirstSlot
+          (fun level run =>
+            multiStatementRoundSlot
+              (queryBounds (Sum.inr ())) level run)
+          μ depth tree =
+        some next →
+      selected < next
+
+/-- The generic fork recurrence, exact global-cache schedule, and reachable
+key-to-statement functionality already lower-bound the new common-formal-
+statement event.
+
+This discharges the old whole-`SelectionAt` agreement step: proofs and calls
+may vary across branches.  The remaining reduction obligation starts from a
+single formal `FsStatement` tree and may target the existing S1 extraction
+games without pretending that pre-selection queries came from a fresh cache. -/
+theorem perMuForkTransform_le_formalStatementSucceededAt
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (parameters : PerMuForkParameters)
+    (μ : Nat)
+    (hqueryBound :
+      parameters.queryBound = queryBounds (Sum.inr ()))
+    (schedule :
+      RawForkScheduleContract game invalid queryBounds μ)
+    (hdetermines : ProductionKeyDeterminesStatementAt game μ) :
+    perMuForkTransform parameters μ
+        Pr[InvalidAcceptedAt invalid μ |
+          multiStatementFsProbComp game] ≤
+      Pr[RawForkFormalStatementSucceededAt invalid μ |
+        rawMultiStatementForkExperimentAt
+          game invalid queryBounds μ] := by
+  classical
+  let step :=
+    Ipp.forkTreeStep
+      (queryBounds (Sum.inr ()) + 1)
+      Ipp.Bls12377.scalarModulus
+  have hbase :
+      Pr[InvalidAcceptedAt invalid μ |
+          multiStatementFsProbComp game] -
+          Ipp.S1.badEventError
+            (F := Ipp.Bls12377.Fr)
+            parameters.queryBound
+            (2 ^ μ - 1) parameters.terminalBadCard ≤
+        Pr[InvalidAcceptedAt invalid μ |
+          multiStatementFsProbComp game] :=
+    tsub_le_self
+  have hmono :
+      (step^[μ])
+          (Pr[InvalidAcceptedAt invalid μ |
+              multiStatementFsProbComp game] -
+            Ipp.S1.badEventError
+              (F := Ipp.Bls12377.Fr)
+              parameters.queryBound
+              (2 ^ μ - 1) parameters.terminalBadCard) ≤
+        (step^[μ])
+          Pr[InvalidAcceptedAt invalid μ |
+            multiStatementFsProbComp game] :=
+    (Ipp.forkTreeStep_monotone
+      (queryBounds (Sum.inr ()) + 1)
+      Ipp.Bls12377.scalarModulus).iterate μ hbase
+  have hfork :
+      (step^[μ])
+          Pr[InvalidAcceptedAt invalid μ |
+            multiStatementFsProbComp game] ≤
+        Pr[fun tree : Option (RawMultiStatementForkTree Call μ) =>
+            tree.isSome |
+          rawMultiStatementForkExperimentAt
+            game invalid queryBounds μ] := by
+    simpa [step, multiStatementFsProbComp,
+      rawMultiStatementForkExperimentAt, Ipp.Bls12377.Fr, ZMod.card] using
+      (Ipp.forkTree_bound μ
+        (multiStatementForkMain game) queryBounds (Sum.inr ())
+        (fun level run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run)
+        (InvalidAcceptedAt invalid μ)
+        schedule.baseReach schedule.selectorTotal schedule.slotOrder)
+  calc
+    perMuForkTransform parameters μ
+          Pr[InvalidAcceptedAt invalid μ |
+            multiStatementFsProbComp game] =
+        (step^[μ])
+          (Pr[InvalidAcceptedAt invalid μ |
+              multiStatementFsProbComp game] -
+            Ipp.S1.badEventError
+              (F := Ipp.Bls12377.Fr)
+              parameters.queryBound
+              (2 ^ μ - 1) parameters.terminalBadCard) := by
+      simp [perMuForkTransform, step, hqueryBound]
+    _ ≤ (step^[μ])
+          Pr[InvalidAcceptedAt invalid μ |
+            multiStatementFsProbComp game] := hmono
+    _ ≤ Pr[fun tree : Option (RawMultiStatementForkTree Call μ) =>
+          tree.isSome |
+        rawMultiStatementForkExperimentAt
+          game invalid queryBounds μ] := hfork
+    _ ≤ Pr[RawForkFormalStatementSucceededAt invalid μ |
+        rawMultiStatementForkExperimentAt
+          game invalid queryBounds μ] :=
+      rawFork_isSome_le_formalStatementSucceededAt
+        game invalid queryBounds μ schedule.baseReach hdetermines
+
 /-- Precise theorem target for the future multi-statement forking proof.
 
-This is a transformed, per-partition lower bound on the fork event.  It is not
-an assumption that invalid shipping acceptance is already small. -/
+This is a transformed, per-partition lower bound on a fork carrying one common
+formal statement.  The proof and opaque shipping call remain branch-local, as
+they do for the adversary output in fixed-statement S1.  It is not an
+assumption that invalid shipping acceptance is already small. -/
 def MultiStatementForkingHolds
     {Call : Type}
     (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
@@ -1405,13 +1789,17 @@ def MultiStatementForkingHolds
         perMuForkTransform (parameters μ) μ
             Pr[InvalidAcceptedAt invalid μ |
               multiStatementFsProbComp game] ≤
-          Pr[RawForkSucceededAt invalid μ |
+          Pr[RawForkFormalStatementSucceededAt invalid μ |
             rawMultiStatementForkExperimentAt game invalid queryBounds μ] +
             (losses μ).statementSelection + (losses μ).forkReplay
 
 /-- Exact reduction target from the concrete raw replay experiment into named
-per-`μ` computational extraction games.  The common-selection event must be
-proved from raw branches; it cannot be supplied in a cooked tree constructor. -/
+per-`μ` computational extraction games.
+
+The source event fixes only the formal `FsStatement`; selected proofs, opaque
+shipping calls, and verifier outputs remain branch-local.  The target game
+must therefore perform the cache-preserving global-to-S1 reduction rather
+than restarting a fresh fixed-statement oracle after selection. -/
 def RawForkExtractionReductionHolds
     {Call : Type}
     {Evidence : Nat → Type}
@@ -1421,13 +1809,11 @@ def RawForkExtractionReductionHolds
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (activeMu : Finset Nat)
     (extractionExperiment : (μ : Nat) → ProbComp (Evidence μ))
-    (extractionWins : (μ : Nat) → Evidence μ → Prop)
-    (losses : Nat → DerivedMultiStatementForkLoss) : Prop :=
+    (extractionWins : (μ : Nat) → Evidence μ → Prop) : Prop :=
   ∀ μ ∈ activeMu,
-    Pr[RawForkSucceededAt invalid μ |
+    Pr[RawForkFormalStatementSucceededAt invalid μ |
         rawMultiStatementForkExperimentAt game invalid queryBounds μ] ≤
-      Pr[extractionWins μ | extractionExperiment μ] +
-        (losses μ).statementSelection + (losses μ).forkReplay
+      Pr[extractionWins μ | extractionExperiment μ]
 
 /-- External computational assumptions may bound only the explicit
 per-`μ` extraction games.  They cannot directly assume a shipping-verifier or
@@ -1441,9 +1827,10 @@ structure PerMuExtractionGameSecurity
   game_le : ∀ μ ∈ activeMu,
     Pr[extractionWins μ | extractionExperiment μ] ≤ advantage μ
 
-/-- A proved raw-fork-to-game reduction composes pointwise with explicit
-computational game bounds while preserving the derived selection/replay loss. -/
-theorem rawForkSucceededAt_le_explicit_game_advantage
+/-- A proved common-formal-statement raw-fork reduction composes pointwise
+with an explicit computational game bound.  No fixed-cache restart or
+whole-`SelectionAt` equality is introduced by this composition. -/
+theorem rawForkFormalStatementSucceededAt_le_explicit_game_advantage
     {Call : Type}
     {Evidence : Nat → Type}
     (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
@@ -1453,22 +1840,97 @@ theorem rawForkSucceededAt_le_explicit_game_advantage
     (activeMu : Finset Nat)
     (extractionExperiment : (μ : Nat) → ProbComp (Evidence μ))
     (extractionWins : (μ : Nat) → Evidence μ → Prop)
-    (losses : Nat → DerivedMultiStatementForkLoss)
     (reduction :
       RawForkExtractionReductionHolds game invalid queryBounds activeMu
-        extractionExperiment extractionWins losses)
+        extractionExperiment extractionWins)
     (security :
       PerMuExtractionGameSecurity activeMu
         extractionExperiment extractionWins)
     (μ : Nat) (hμ : μ ∈ activeMu) :
-    Pr[RawForkSucceededAt invalid μ |
+    Pr[RawForkFormalStatementSucceededAt invalid μ |
         rawMultiStatementForkExperimentAt game invalid queryBounds μ] ≤
+      security.advantage μ := by
+  exact le_trans (reduction μ hμ) (security.game_le μ hμ)
+
+/-- Strong per-size endpoint when the shipping schedule and reachable
+key-to-statement functionality are proved exactly.
+
+The first inequality is the actual global-cache fork construction; the second
+is the explicit common-statement-to-extraction-game reduction.  Thus this
+composition neither assumes common `SelectionAt` values nor replaces the
+pre-selection cache with a fresh fixed-statement cache. -/
+theorem perMuForkTransform_le_explicit_game_advantage_of_schedule
+    {Call : Type}
+    {Evidence : Nat → Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (activeMu : Finset Nat)
+    (parameters : Nat → PerMuForkParameters)
+    (extractionExperiment : (μ : Nat) → ProbComp (Evidence μ))
+    (extractionWins : (μ : Nat) → Evidence μ → Prop)
+    (reduction :
+      RawForkExtractionReductionHolds game invalid queryBounds activeMu
+        extractionExperiment extractionWins)
+    (security :
+      PerMuExtractionGameSecurity activeMu
+        extractionExperiment extractionWins)
+    (μ : Nat) (hμ : μ ∈ activeMu)
+    (hqueryBound :
+      (parameters μ).queryBound = queryBounds (Sum.inr ()))
+    (schedule :
+      RawForkScheduleContract game invalid queryBounds μ)
+    (hdetermines : ProductionKeyDeterminesStatementAt game μ) :
+    perMuForkTransform (parameters μ) μ
+        Pr[InvalidAcceptedAt invalid μ |
+          multiStatementFsProbComp game] ≤
+      security.advantage μ := by
+  exact le_trans
+    (perMuForkTransform_le_formalStatementSucceededAt
+      game invalid queryBounds (parameters μ) μ
+      hqueryBound schedule hdetermines)
+    (rawForkFormalStatementSucceededAt_le_explicit_game_advantage
+      game invalid queryBounds activeMu extractionExperiment
+      extractionWins reduction security μ hμ)
+
+/-- End-to-end per-size composition of the generic fork transform, the
+cache-preserving common-statement reduction, and the explicit extraction-game
+security bound.  Every non-cryptographic loss remains visible exactly once. -/
+theorem perMuForkTransform_le_explicit_game_advantage
+    {Call : Type}
+    {Evidence : Nat → Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (activeMu : Finset Nat)
+    (parameters : Nat → PerMuForkParameters)
+    (losses : Nat → DerivedMultiStatementForkLoss)
+    (extractionExperiment : (μ : Nat) → ProbComp (Evidence μ))
+    (extractionWins : (μ : Nat) → Evidence μ → Prop)
+    (forking :
+      MultiStatementForkingHolds game invalid activeMu queryBounds
+        parameters losses)
+    (reduction :
+      RawForkExtractionReductionHolds game invalid queryBounds activeMu
+        extractionExperiment extractionWins)
+    (security :
+      PerMuExtractionGameSecurity activeMu
+        extractionExperiment extractionWins)
+    (μ : Nat) (hμ : μ ∈ activeMu) :
+    perMuForkTransform (parameters μ) μ
+        Pr[InvalidAcceptedAt invalid μ |
+          multiStatementFsProbComp game] ≤
       security.advantage μ +
         (losses μ).statementSelection + (losses μ).forkReplay := by
-  exact le_trans (reduction μ hμ)
-    (add_le_add
-      (add_le_add (security.game_le μ hμ) le_rfl)
-      le_rfl)
+  have hfork := (forking.2 μ hμ).2
+  have hgame :=
+    rawForkFormalStatementSucceededAt_le_explicit_game_advantage
+      game invalid queryBounds activeMu extractionExperiment
+      extractionWins reduction security μ hμ
+  exact le_trans hfork
+    (add_le_add (add_le_add hgame le_rfl) le_rfl)
 
 namespace FreshCacheCounterexample
 
@@ -1525,7 +1987,10 @@ end FreshCacheCounterexample
 #print axioms rawFork_all_invalid_common_or_selectionDisagrees
 #print axioms rawMultiStatementForkExperimentAt_support_all_invalidAccepted
 #print axioms rawFork_isSome_le_succeeded_add_selectionLoss
-#print axioms rawForkSucceededAt_le_explicit_game_advantage
+#print axioms perMuForkTransform_le_formalStatementSucceededAt
+#print axioms rawForkFormalStatementSucceededAt_le_explicit_game_advantage
+#print axioms perMuForkTransform_le_explicit_game_advantage_of_schedule
+#print axioms perMuForkTransform_le_explicit_game_advantage
 #print axioms FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh
 
 end

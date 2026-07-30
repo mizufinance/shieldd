@@ -374,7 +374,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "sha256": "c759bc3fa75ba8a9b0cdc2c25e847d7197fd70f05ffffc3df393c53dab7fee79"
+          "sha256": "bd4dc7a87b2766e04355a8d09f4555b29525f7c6517da3d950999372ef7849ba"
         }
       ],
       "toolchain_role": "external",
@@ -668,8 +668,8 @@
     },
     {
       "path": "Ipp/ProofAuditConstruction.lean",
-      "expected_capstones": 89,
-      "capstone_roots_sha256": "37668fbbcb058fe2ccb74a4d5cb0ec1fba366bb68e59b42fd54939103a681fb7",
+      "expected_capstones": 90,
+      "capstone_roots_sha256": "92434a71dcbe27b0fea3fe05973fa80e6adaddeffe8cbd07d681a9a04d022082",
       "required_roots": [
         "Ipp.ShippingV1.vkDigestPreimage_injective",
         "Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction.ofExtractedSuccess",
@@ -721,6 +721,7 @@
         "Ipp.ShippingPreflightProjection.ShippingPlannedCall.shippingResultSerializedRowsExact",
         "Ipp.ShippingPreflightProjection.accepted_preflight_rows_materialize_statement",
         "Ipp.ShippingPreflightProjection.ShippingPlannedCall.resultRowsMaterializeStatement",
+        "Ipp.ShippingPreflightProjection.concrete_output_preflight_rows_materialize_statement",
         "Ipp.Extracted.ShippingBundleComposition.ShippingCallExecutionBoundary.toAccepted",
         "Ipp.Extracted.ShippingBundleComposition.ShippingBundleCallWitness.refinesV1",
         "Ipp.Extracted.ShippingBundleComposition.accepted_bundle_lifts_per_call_claim",
@@ -743,8 +744,8 @@
     },
     {
       "path": "Ipp/ProofAuditProver.lean",
-      "expected_capstones": 7,
-      "capstone_roots_sha256": "33ce0eba9e004925098b797c5e9ace0349b1f311eef6f7bbd2dbd6f6e879e542",
+      "expected_capstones": 9,
+      "capstone_roots_sha256": "54a548fe03f629e790eb810f9ab1fd3b6ac6de7963eed7c11c464d203fcb76bb",
       "required_roots": [
         "Ipp.Extracted.ShippingProver.shipping_prover_refines_honest_complete",
         "Ipp.Extracted.ShippingProverRefinement.executedOpening_keyEquation",
@@ -752,7 +753,9 @@
         "Ipp.Extracted.ShippingProverExecutionTrace.ContinuingRoundEvidence.body_cont",
         "Ipp.Extracted.ShippingProverExecutionTrace.body_done",
         "Ipp.Extracted.ShippingProverExecutionTrace.ExternalRoundSchedule.toSuccessfulLoopTrace",
-        "Ipp.Extracted.ShippingProverExecutionTrace.gipaExecutionBoundary_of_externalRoundSchedule"
+        "Ipp.Extracted.ShippingProverExecutionTrace.gipaExecutionBoundary_of_externalRoundSchedule",
+        "Ipp.Extracted.ShippingProverContractConstruction.randomizerPowers_of_inputProjection",
+        "Ipp.Extracted.ShippingProverContractConstruction.shippingProverContract_of_retainedExecution"
       ]
     },
     {
@@ -771,8 +774,8 @@
     },
     {
       "path": "Ipp/ProofAuditAdaptive.lean",
-      "expected_capstones": 30,
-      "capstone_roots_sha256": "d0e791fa6ee266c868bce42ed93638e5a7949fc1c8515cc380f3f66b7a2e8933",
+      "expected_capstones": 38,
+      "capstone_roots_sha256": "0c38552f21ba13be1cd5926dfa6a394ec5cfcec72f6b45cb429016d69e5742de",
       "required_roots": [
         "Ipp.ShippingAdaptiveSha.acceptedAlias_implies_collision",
         "Ipp.ShippingAdaptiveSha.deployedShaImpl_sha256_query",
@@ -790,9 +793,12 @@
         "Ipp.ShippingMultiStatement.PackedOutcome.at?_self",
         "Ipp.ShippingMultiStatement.multiStatementFsGame_isTotalQueryBound",
         "Ipp.ShippingMultiStatement.multiStatementFsGame_selectedFraming_queryBounded",
+        "Ipp.ShippingMultiStatement.PackedOutcome.selectionAt?_self",
+        "Ipp.ShippingMultiStatement.PackedOutcome.selectionAt?_logicalKey",
         "Ipp.ShippingMultiStatement.packedOutcome_roundQuery?_statement",
         "Ipp.ShippingMultiStatement.multiStatementRoundSlot_query_at_trace",
         "Ipp.ShippingMultiStatement.logicalKey_eq_of_shared_selected_slot",
+        "Ipp.ShippingMultiStatement.runTree_all_and",
         "Ipp.ShippingMultiStatement.leastInvalidOutcome?_mem",
         "Ipp.ShippingMultiStatement.bundle_acceptance_implies_least_invalid_acceptance",
         "Ipp.ShippingMultiStatement.treeConsistent_all_logicalKey_eq_root",
@@ -801,15 +807,20 @@
         "Ipp.ShippingMultiStatement.invalidAcceptedAt_projects_invalid_selection",
         "Ipp.ShippingMultiStatement.rawFork_all_invalid_common_or_selectionDisagrees",
         "Ipp.ShippingMultiStatement.rawMultiStatementForkExperimentAt_support_all_invalidAccepted",
+        "Ipp.ShippingMultiStatement.rawMultiStatementForkExperimentAt_support_hasCommonInvalidStatement",
+        "Ipp.ShippingMultiStatement.rawFork_isSome_le_formalStatementSucceededAt",
         "Ipp.ShippingMultiStatement.rawFork_isSome_le_succeeded_add_selectionLoss",
-        "Ipp.ShippingMultiStatement.rawForkSucceededAt_le_explicit_game_advantage",
+        "Ipp.ShippingMultiStatement.perMuForkTransform_le_formalStatementSucceededAt",
+        "Ipp.ShippingMultiStatement.rawForkFormalStatementSucceededAt_le_explicit_game_advantage",
+        "Ipp.ShippingMultiStatement.perMuForkTransform_le_explicit_game_advantage_of_schedule",
+        "Ipp.ShippingMultiStatement.perMuForkTransform_le_explicit_game_advantage",
         "Ipp.ShippingMultiStatement.FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh"
       ]
     },
     {
       "path": "Ipp/ProofAuditShippingAdaptive.lean",
-      "expected_capstones": 48,
-      "capstone_roots_sha256": "6ef2fb6b0130133de1bca39fa11456723d0163c0efd4e237e095bbfbe13b4f32",
+      "expected_capstones": 53,
+      "capstone_roots_sha256": "935cf1fee7cd4ade1ab76dad1bc50694c55ccaea9cfa7d4297cc57975cee696f",
       "required_roots": [
         "Ipp.ShippingAdaptiveCall.acceptedShippingAlias_implies_shaBad",
         "Ipp.ShippingAdaptiveCall.deployedShippingAcceptedAlias_le_sha256Advantage",
@@ -846,7 +857,12 @@
         "Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing.inducedFiberLifted_event_le_globalFs_add_modReduction",
         "Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing.GlobalFsProgramConstruction.inducedFiberLifted_event_le_multiStatementFsGame_add_modReduction",
         "Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing.GlobalFsProgramConstruction.inducedFiberLifted_event_le_multiStatementFsProbComp_add_modReduction",
-        "Ipp.Extracted.ShippingBundleAdaptiveComposition.accepted_bundle_projects_invalid_projectedFsGame"
+        "Ipp.Extracted.ShippingBundleAdaptiveComposition.accepted_bundle_projects_invalid_projectedFsGame",
+        "Ipp.Extracted.ShippingProductionKeyFunctionality.ProductionStatementMaterializer.keyDeterminesStatementAt",
+        "Ipp.Extracted.ShippingProductionKeyFunctionality.OutputDerivedStatementMaterialization.materializedBundleSelection",
+        "Ipp.Extracted.ShippingProductionKeyFunctionality.OutputDerivedStatementMaterialization.materializedSelection",
+        "Ipp.Extracted.ShippingProductionKeyFunctionality.OutputDerivedStatementMaterialization.keyDeterminesStatementAt",
+        "Ipp.Extracted.ShippingProductionKeyFunctionality.productionKeyDeterminesStatementAt_of_outputDerived"
       ]
     },
     {
@@ -1114,7 +1130,7 @@
         "ARKWORKS-VERIFIER-SRS-ID-LOAD",
         "ARKWORKS-PREPARED-VK-AIC-PROJECTION"
       ],
-      "evidence": "Open beyond the exact retained construction. The refreshed AppVerifier graph and extracted_repeat_final_rows_success_postcondition derive exact padded length, caller-order prefix, and repeat-final suffix from the production-used core. Concrete support carries one ExecutionCoupledRowConstruction whose padding execution and serialized padded matrix belong to the same accepted constructor. ShippingCallMaterialization definitionally derives the formal input and planned call from that constructor output, and shippingRefinementInputs isolates exact semantic alignment rather than permitting separately selected statement/proof fields. ExactSemanticBoundary derives ValidCounts, RealPrefixExact, RepeatFinalPadding, and the projection contract from the coupled construction; VK-digest preimage injectivity is Lean-proved from fixed length framing. Production preflight now calls the registered app_verify_shipping_preflight_core with one AppVerifyShippingRowsProjection. That core owns app_verify_shipping_input_from_parts and retains the exact backend row fields beside the same counts, serialized rows, backend call, and returned shipping input; the former outer debug_assert-only row link is gone. Its generated equation is stale pending CI. Remaining work instantiates AcceptedPreflightConstruction from that equation, maps Arkworks field serialization to the formal rows, instantiates strict decoding plus ARKWORKS-PREPARED-VK-ROUTE-DECODE and ARKWORKS-VERIFIER-SRS-ID-LOAD, proves executable-statement/proof alignment, and proves prepared gammaABC plus each ordered row is the concrete Aic. The claim remains open until those production boundaries are instantiated; statementOf cannot remain unconstrained.",
+      "evidence": "Open beyond the exact retained construction. The refreshed AppVerifier graph and extracted_repeat_final_rows_success_postcondition derive exact padded length, caller-order prefix, and repeat-final suffix from the production-used core. Concrete support carries one ExecutionCoupledRowConstruction whose padding execution and serialized padded matrix belong to the same accepted constructor. ShippingCallMaterialization definitionally derives the formal input and planned call from that constructor output, and shippingRefinementInputs isolates exact semantic alignment rather than permitting separately selected statement/proof fields. ExactSemanticBoundary derives ValidCounts, RealPrefixExact, RepeatFinalPadding, and the projection contract from the coupled construction; VK-digest preimage injectivity is Lean-proved from fixed length framing. concrete_output_preflight_rows_materialize_statement now derives the accepted preflight construction, selected VK/SRS, Aic, ordered rows, and padding facts from one ConcreteOutputDerivedCall, so downstream callers cannot supply independent preflight or VK/SRS witnesses. Production preflight calls the registered app_verify_shipping_preflight_core with one AppVerifyShippingRowsProjection. That core owns app_verify_shipping_input_from_parts and retains the exact backend row fields beside the same counts, serialized rows, backend call, and returned shipping input; the former outer debug_assert-only row link is gone. Its generated equation is stale pending CI. Remaining work constructs ConcreteOutputDerivedCall from that accepted generated equation, maps Arkworks field serialization to the formal rows, instantiates strict decoding plus ARKWORKS-PREPARED-VK-ROUTE-DECODE and ARKWORKS-VERIFIER-SRS-ID-LOAD, proves executable-statement/proof alignment, and proves prepared gammaABC plus each ordered row is the concrete Aic. The claim remains open until those production boundaries are instantiated; statementOf cannot remain unconstrained.",
       "status": "open"
     },
     {
@@ -1162,7 +1178,7 @@
         "ARKWORKS-CHALLENGE-SERIALIZATION",
         "WELL-FORMED-PROVING-SRS"
       ],
-      "evidence": "The Lean source theorem remains conditional over ShippingProverContract. The live aggregate_proofs_profiled_with_trace caller now passes its exact caller-order A/B/C points, SRS arrays, derived PreparedProvingSrs affine arrays and commitment keys, initial commitments, successful randomizer execution, and complete GIPA/KZG execution directly through the production-used generic shipping_aggregate_prover_semantic_execution_from_parts extraction root. This avoids asking Aeneas to translate a redundant Pairing-associated-type wrapper while preserving the exact returned proof. ShippingProverExecutionTrace no longer accepts a whole-loop result equation: ContinuingRoundEvidence records only deterministic splits plus the two commitment, chronological challenge, and inverse effect equations; GipaAlgebra.round_exact derives each generated continuing step, and ExternalRoundSchedule.toSuccessfulLoopTrace constructs the finite loop trace inductively. The new gipaExecutionBoundary_of_externalRoundSchedule constructs the whole GipaExecutionBoundary from granular chronological round evidence and derives SuccessfulLoopTrace internally; callers can no longer supply that trace as an operational premise. The production-used prover_gipa_semantic_execution_core owns the exact prove_tipp_mipp_gipa_core call, consumes x0 from that same effect instance, and retains compact chronological evidence for every round; callers can no longer combine an unrelated input, output, x0, or transcript. Its generated equation is stale pending CI extraction. Closure now requires converting the retained rounds_chrono plus concrete Arkworks effect postconditions into ExternalRoundSchedule, deriving KZG acceptance under WellFormedProvingSrs, and internally constructing ShippingProverContract; no production completeness claim is made until then.",
+      "evidence": "The Lean source theorem remains conditional over ShippingProverContract. The live aggregate_proofs_profiled_with_trace caller now passes its exact caller-order A/B/C points, SRS arrays, derived PreparedProvingSrs affine arrays and commitment keys, initial commitments, successful randomizer execution, and complete GIPA/KZG execution directly through the production-used generic shipping_aggregate_prover_semantic_execution_from_parts extraction root. ShippingProverExecutionTrace no longer accepts a whole-loop result equation: ContinuingRoundEvidence records only deterministic splits plus the two commitment, chronological challenge, and inverse effect equations; GipaAlgebra.round_exact derives each generated continuing step, and ExternalRoundSchedule.toSuccessfulLoopTrace constructs the finite loop trace inductively. gipaExecutionBoundary_of_externalRoundSchedule constructs the whole GipaExecutionBoundary from that granular schedule. ShippingProverContractConstruction.shippingProverContract_of_retainedExecution now derives the complete contract from the retained concrete GIPA input/output projections, the external round schedule, challenge boundary, full-power WellFormedProvingSrs, and exact V/W verifier equations. It derives both KZG acceptance fields, the initial commitments, ipAb, aggC, and randomizer powers rather than accepting those semantic conclusions from the caller. The production-used prover_gipa_semantic_execution_core owns the exact prove_tipp_mipp_gipa_core call, consumes x0 from that same effect instance, and retains compact chronological evidence for every round; its generated equation is stale pending CI extraction. Closure now requires translating retained rounds_chrono and concrete Arkworks challenge/input/output/opening equations into the constructor's granular fields, plus the wire-emission and setup postconditions. No production completeness claim is made until those equations construct ShippingProverContract.",
       "status": "open"
     },
     {
@@ -1248,7 +1264,7 @@
         "SHA256-SECURITY",
         "BLAKE2B-ROM-SECURITY"
       ],
-      "evidence": "Open at production instantiation and the remaining exact-statement selection refactor. ShippingMultiStatement supplies the heterogeneous call package, globally tagged query encoder, exact global FsVerifier support, least-invalid accepted bundle-call selection, a raw fork-success event bounded by explicit game advantages, and a counterexample rejecting the prior fresh-fixed-call route. globalInvalidAccepted_le_sum_activeMu decomposes the complete adaptive invalid-acceptance event on actual game support into declared finite proof-size partitions without restarting the shared cache; globalInvalidAccepted_le_sum_partition_bounds composes heterogeneous per-size bounds, and globalInvalidAccepted_le_card_mul_partition_bound exposes the exact activeMu.card multiplicative size-selection loss for a uniform bound. rawFork_all_invalid_common_or_selectionDisagrees proves that every successfully gated replay tree either has one common invalid entire SelectionAt or exhibits an explicit root-versus-branch selection disagreement, and rawFork_isSome_le_succeeded_add_selectionLoss charges exactly that disagreement. Independently, logicalKey_eq_of_shared_selected_slot and treeConsistent_all_logicalKey_eq_root show that the replay prefix fixes the selected globally framed statement key throughout every tree; rawForkLogicalKeySelectionLossAt_eq_zero proves this logical-key component has exactly zero loss despite adaptive prequeries and the shared cache. Exact SelectionAt equality is intentionally not claimed because branch-local proof, response, and opaque-call fields may vary after a fork. Closure must relate equal production logical keys to equal formal FsStatement values and redefine common-statement extraction to permit branch-local proofs/calls; then only actual statement substitution, not legitimate proof variance, is charged. ShippingAdaptiveReindex and the byte/field/global-FS couplings retain arbitrary preselection queries in one coherent cache and charge modReductionBudget Q_fs once. GlobalFsProgramConstruction identifies a structured program with MultiStatementFsGame and transports the same query bound without a fresh-cache premise. Production construction, one deployed materialization/execution, once-only Blake2b replacement, and the reached-query SHA invariant remain downstream obligations.",
+      "evidence": "Open at concrete production instantiation and the common-statement-to-S1 extraction reduction. ShippingMultiStatement supplies the heterogeneous call package, globally tagged query encoder, exact global FsVerifier support, least-invalid accepted bundle-call selection, and a counterexample rejecting the prior fresh-fixed-call route. globalInvalidAccepted_le_sum_activeMu decomposes the complete adaptive invalid-acceptance event on actual game support into declared finite proof-size partitions without restarting the shared cache; globalInvalidAccepted_le_sum_partition_bounds composes heterogeneous per-size bounds, and globalInvalidAccepted_le_card_mul_partition_bound exposes the exact activeMu.card multiplicative size-selection loss for a uniform bound. logicalKey_eq_of_shared_selected_slot and treeConsistent_all_logicalKey_eq_root show that the replay prefix fixes the selected globally framed statement key throughout every tree; rawForkLogicalKeySelectionLossAt_eq_zero proves this logical-key component has exactly zero loss despite adaptive prequeries and the shared cache. ShippingProductionKeyFunctionality now reduces ProductionKeyDeterminesStatementAt to one deterministic fail-closed key-to-statement materializer equation for every output-derived production call plus one replay-output-origin equation; arbitrary SelectionAt values and adversary prequeries remain unconstrained. rawMultiStatementForkExperimentAt_support_hasCommonInvalidStatement then lifts common logical keys to one common formal FsStatement while keeping proof, call, responses, and verifier results branch-local. perMuForkTransform_le_formalStatementSucceededAt composes the actual shared-cache fork schedule with that common-statement event. RawForkExtractionReductionHolds and rawForkFormalStatementSucceededAt_le_explicit_game_advantage now start from that common formal statement, rather than requiring whole SelectionAt equality. Closure must instantiate the concrete materializer/origin equations and prove the cache-preserving common-statement reduction into the existing per-mu S1 extraction games; neither is accepted as a computational assumption. ShippingAdaptiveReindex and the byte/field/global-FS couplings retain arbitrary preselection queries in one coherent cache and charge modReductionBudget Q_fs once. GlobalFsProgramConstruction identifies a structured program with MultiStatementFsGame and transports the same query bound without a fresh-cache premise. Production construction, one deployed materialization/execution, once-only Blake2b replacement, and the reached-query SHA invariant remain downstream obligations.",
       "status": "open"
     },
     {

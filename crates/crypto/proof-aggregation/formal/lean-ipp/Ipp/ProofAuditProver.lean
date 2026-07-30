@@ -1,5 +1,6 @@
 import Ipp.ShippingProverRefinement
 import Ipp.ShippingProverExecutionTrace
+import Ipp.ShippingProverContractConstruction
 
 #print axioms Ipp.Extracted.ShippingProver.shipping_prover_refines_honest_complete
 #print axioms Ipp.Extracted.ShippingProverRefinement.executedOpening_keyEquation
@@ -8,3 +9,5 @@ import Ipp.ShippingProverExecutionTrace
 #print axioms Ipp.Extracted.ShippingProverExecutionTrace.body_done
 #print axioms Ipp.Extracted.ShippingProverExecutionTrace.ExternalRoundSchedule.toSuccessfulLoopTrace
 #print axioms Ipp.Extracted.ShippingProverExecutionTrace.gipaExecutionBoundary_of_externalRoundSchedule
+#print axioms Ipp.Extracted.ShippingProverContractConstruction.randomizerPowers_of_inputProjection
+#print axioms Ipp.Extracted.ShippingProverContractConstruction.shippingProverContract_of_retainedExecution

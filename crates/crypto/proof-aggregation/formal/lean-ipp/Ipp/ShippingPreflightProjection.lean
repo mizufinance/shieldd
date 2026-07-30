@@ -1,5 +1,6 @@
 import Ipp.ShippingStatementProjection
 import Ipp.Extracted.ShippingBundleComposition
+import Ipp.Extracted.ShippingCallMaterialization
 
 /-!
 Per-call bridge from a successful shipping preflight projection to the formal
@@ -31,6 +32,7 @@ noncomputable section
 open Aeneas Aeneas.Std Result
 open ark_ip_proofs
 open Ipp.Extracted.ShippingBundleComposition
+open Ipp.Extracted.ShippingCallMaterialization
 open Ipp.Extracted.ShippingStatementConstruction
 open Ipp.ShippingStatementProjection
 
@@ -192,6 +194,77 @@ structure SelectedVkSrs
   srsIdentityLoad :
     operations.loadSrs input.srsId = some srs
 
+/-- The output-derived concrete call already carries the accepted constructor
+execution and its coupled repeat-final rows.  Projecting those fields removes
+the need for a second, independently supplied preflight witness. -/
+def concreteOutputPreflightConstruction
+    {D : Type} {μ arity : Nat}
+    {wire :
+      WireRowDecoder μ
+        (Fin arity → Ipp.Bls12377.Fr)}
+    {bytes :
+      BindingOperations μ
+        (Fin arity → Ipp.Bls12377.Fr) (ValidatedProof D)}
+    {operations :
+      SemanticOperations μ arity Ipp.Bls12377.Fr
+        Ipp.Bls12377.g1PrimeSubgroup Ipp.Bls12377.g2PrimeSubgroup
+        Ipp.Bls12377.ArkPairingOutput (ValidatedProof D)}
+    {runtime : ConcreteShippingRuntime}
+    {boundary :
+      ExactSemanticBoundary wire bytes
+        (executableSemanticOperations runtime.hbilinear operations)}
+    (construction :
+      ConcreteOutputDerivedCall wire bytes operations runtime boundary) :
+    AcceptedPreflightConstruction wire
+      construction.materialization.input where
+  execution := construction.execution
+  constructorProjection :=
+    construction.materialization.argumentsRepresent
+  rows := construction.rows
+
+/-- VK and SRS selection for the concrete output-derived call is fixed by the
+same exact semantic boundary as its statement.  It is not a separately
+selectable operational premise. -/
+noncomputable def concreteOutputSelectedVkSrs
+    {D : Type} {μ arity : Nat}
+    {wire :
+      WireRowDecoder μ
+        (Fin arity → Ipp.Bls12377.Fr)}
+    {bytes :
+      BindingOperations μ
+        (Fin arity → Ipp.Bls12377.Fr) (ValidatedProof D)}
+    {operations :
+      SemanticOperations μ arity Ipp.Bls12377.Fr
+        Ipp.Bls12377.g1PrimeSubgroup Ipp.Bls12377.g2PrimeSubgroup
+        Ipp.Bls12377.ArkPairingOutput (ValidatedProof D)}
+    {runtime : ConcreteShippingRuntime}
+    {boundary :
+      ExactSemanticBoundary wire bytes
+        (executableSemanticOperations runtime.hbilinear operations)}
+    (construction :
+      ConcreteOutputDerivedCall wire bytes operations runtime boundary) :
+    SelectedVkSrs
+      (executableSemanticOperations runtime.hbilinear operations)
+      construction.materialization.input where
+  familyRegistered :=
+    boundary.familyRoutingRegistered construction.materialization.input
+      construction.supported
+  preparedVk :=
+    boundary.vkMaterial construction.materialization.input
+      construction.supported
+  vkDigestRoute :=
+    boundary.vkDigestRouteExecution construction.materialization.input
+      construction.supported
+  serializedVkDecode :=
+    boundary.serializedVkDecodeExecution construction.materialization.input
+      construction.supported
+  srs :=
+    boundary.srsMaterial construction.materialization.input
+      construction.supported
+  srsIdentityLoad :=
+    boundary.srsLoadExecution construction.materialization.input
+      construction.supported
+
 /-- Compose exact preflight rows with independently selected VK/SRS material.
 The only padding proof in the result comes from the extracted production
 repeat-final core. -/
@@ -290,6 +363,41 @@ theorem ShippingPlannedCall.resultRowsMaterializeStatement
       call.shippingResultSerializedRowsExact rows,
       call.shippingResultRowsDecodeExact⟩
 
+/-- Concrete output-derived capstone for the retained preflight path.
+
+The accepted constructor execution, repeat-final rows, prepared VK, and SRS
+are all projected from `construction`.  Consequently the only remaining
+boundary is constructing that concrete record from the generated production
+preflight equation and the named Arkworks byte/loader postconditions. -/
+theorem concrete_output_preflight_rows_materialize_statement
+    {D : Type} {μ arity : Nat}
+    {wire :
+      WireRowDecoder μ
+        (Fin arity → Ipp.Bls12377.Fr)}
+    {bytes :
+      BindingOperations μ
+        (Fin arity → Ipp.Bls12377.Fr) (ValidatedProof D)}
+    {operations :
+      SemanticOperations μ arity Ipp.Bls12377.Fr
+        Ipp.Bls12377.g1PrimeSubgroup Ipp.Bls12377.g2PrimeSubgroup
+        Ipp.Bls12377.ArkPairingOutput (ValidatedProof D)}
+    {runtime : ConcreteShippingRuntime}
+    {boundary :
+      ExactSemanticBoundary wire bytes
+        (executableSemanticOperations runtime.hbilinear operations)}
+    (construction :
+      ConcreteOutputDerivedCall wire bytes operations runtime boundary) :
+    RetainedProjectionFacts wire
+        (executableSemanticOperations runtime.hbilinear operations)
+        construction.materialization.input ∧
+      wire.decodePaddedRows
+          (construction.rows.paddedRows.val.map
+            construction.rows.encodeRow) =
+        some construction.materialization.input.publicRows := by
+  exact accepted_preflight_rows_materialize_statement
+    (concreteOutputPreflightConstruction construction)
+    (concreteOutputSelectedVkSrs construction)
+
 #print axioms serialized_rows_decode_exact
 #print axioms AcceptedPreflightConstruction.ofPlannedCall
 #print axioms AcceptedPreflightConstruction.supported
@@ -298,6 +406,9 @@ theorem ShippingPlannedCall.resultRowsMaterializeStatement
 #print axioms AcceptedPreflightConstruction.toRetainedCallMaterialization
 #print axioms accepted_preflight_rows_materialize_statement
 #print axioms ShippingPlannedCall.resultRowsMaterializeStatement
+#print axioms concreteOutputPreflightConstruction
+#print axioms concreteOutputSelectedVkSrs
+#print axioms concrete_output_preflight_rows_materialize_statement
 
 end
 
