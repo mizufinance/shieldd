@@ -163,7 +163,20 @@ formal_handoff=crates/crypto/proof-aggregation/formal/snarkpack/formal-handoff.m
 operation_handoff=crates/crypto/proof-aggregation/formal/snarkpack/operation-reduction-register.md
 dependency_graph=crates/crypto/proof-aggregation/formal/snarkpack/theorem-dependency-graph.md
 python="${PYTHON:-python3}"
-"$python" "$verification_manifest" validate
+verification_manifest_args=(validate)
+for pending_kind in fstar lean external; do
+  case "$pending_kind" in
+    fstar) pending_env="${SNARKPACK_ALLOW_PENDING_FSTAR_CONTRACT_REFRESH:-0}" ;;
+    lean) pending_env="${SNARKPACK_ALLOW_PENDING_LEAN_CONTRACT_REFRESH:-0}" ;;
+    external) pending_env="${SNARKPACK_ALLOW_PENDING_EXTERNAL_CONTRACT_REFRESH:-0}" ;;
+  esac
+  case "$pending_env" in
+    0) ;;
+    1) verification_manifest_args+=(--allow-pending-contract-kind "$pending_kind") ;;
+    *) fail "pending $pending_kind contract refresh flag must be 0 or 1" ;;
+  esac
+done
+"$python" "$verification_manifest" "${verification_manifest_args[@]}"
 "$python" "$verification_manifest" render --check "$formal_handoff"
 "$python" "$verification_manifest" render-operations --check "$operation_handoff"
 "$python" "$verification_manifest" render-graph --check "$dependency_graph"

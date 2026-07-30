@@ -960,6 +960,7 @@
         "ark_ip_proofs::app_verifier::app_verify_shipping_call_from_parts",
         "ark_ip_proofs::app_verifier::app_verify_shipping_input_from_parts",
         "ark_ip_proofs::app_verifier::app_verify_shipping_into_parts_core",
+        "ark_ip_proofs::app_verifier::app_verify_shipping_preflight_core",
         "ark_ip_proofs::app_verifier::app_verify_shipping_projection_core",
         "ark_ip_proofs::app_verifier::app_verify_shipping_result_from_parts",
         "ark_ip_proofs::app_verifier::app_verify_shipping_rows_from_parts",
@@ -1219,6 +1220,25 @@
             "--output-dir",
             "{output_dir}",
             "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_shipping_preflight_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
             "--charon-args=--start-from=crate::app_verifier::app_verify_shipping_projection_core",
             "--lakefile"
           ],
@@ -1342,10 +1362,13 @@
         "ark_ip_proofs::applications::groth16_aggregation::ordered_source_proofs_core",
         "ark_ip_proofs::applications::groth16_aggregation::prove_tipp_mipp_gipa_core",
         "ark_ip_proofs::applications::groth16_aggregation::prove_tipp_mipp_gipa_round_core",
+        "ark_ip_proofs::applications::groth16_aggregation::prover_gipa_round_effect_evidence_core",
         "ark_ip_proofs::applications::groth16_aggregation::prover_gipa_rounds_to_wire",
+        "ark_ip_proofs::applications::groth16_aggregation::prover_gipa_semantic_execution_core",
         "ark_ip_proofs::applications::groth16_aggregation::reverse_chronological_core",
         "ark_ip_proofs::applications::groth16_aggregation::run_arkworks_adapter_semantic",
         "ark_ip_proofs::applications::groth16_aggregation::run_shipping_verifier_semantic_core",
+        "ark_ip_proofs::applications::groth16_aggregation::shipping_adapter_semantic_execution_from_parts",
         "ark_ip_proofs::applications::groth16_aggregation::shipping_aggregate_adapter_core_input",
         "ark_ip_proofs::applications::groth16_aggregation::shipping_aggregate_prover_semantic_execution_core",
         "ark_ip_proofs::applications::groth16_aggregation::shipping_aggregate_prover_semantic_execution_from_parts",
@@ -1503,6 +1526,44 @@
             "{output_dir}",
             "aeneas-lean",
             "--charon-args=--start-from=crate::applications::groth16_aggregation::prove_tipp_mipp_gipa_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::prover_gipa_round_effect_evidence_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::prover_gipa_semantic_execution_core",
             "--lakefile"
           ],
           "raw_outputs": [
@@ -1807,6 +1868,25 @@
             "{output_dir}",
             "aeneas-lean",
             "--charon-args=--start-from=crate::applications::groth16_aggregation::shipping_aggregate_prover_semantic_returned_proof",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::shipping_adapter_semantic_execution_from_parts",
             "--lakefile"
           ],
           "raw_outputs": [

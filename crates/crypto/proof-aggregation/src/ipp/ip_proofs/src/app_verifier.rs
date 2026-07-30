@@ -110,6 +110,18 @@ pub struct AppVerifyShippingResult {
     pub result: AppVerifyCallResult,
 }
 
+/// A backend call paired with the exact field rows and shipping input produced
+/// by one successful pure constructor execution.
+///
+/// This generic record does not validate the backend call.
+#[doc(hidden)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AppVerifyShippingPreflight<BackendCall, Fields> {
+    pub backend_call: BackendCall,
+    pub padded_public_input_fields: Fields,
+    pub shipping_input: AppVerifyShippingInput,
+}
+
 /// Allocation-free projection of the statement rows consumed by shipping
 /// preflight. Generic carriers keep Arkworks values outside this crate while
 /// retaining exact source identity in extraction.
@@ -333,6 +345,55 @@ pub fn app_verify_shipping_input_from_parts(
         wrapped_proof_bytes: wrapper.wrapped_proof_bytes,
         inner_proof_bytes: wrapper.inner_proof_bytes,
         challenge_context,
+    })
+}
+
+/// Construct the shipping input and retain it beside the supplied backend
+/// call and source field rows. Counts and serialized rows come from the same
+/// row projection. Production invokes this only after backend preflight
+/// succeeds.
+#[doc(hidden)]
+#[allow(clippy::too_many_arguments)]
+pub fn app_verify_shipping_preflight_core<BackendCall, Fields>(
+    backend_call: BackendCall,
+    rows: AppVerifyShippingRowsProjection<Fields, Vec<Vec<Vec<u8>>>>,
+    call: AppVerifyShippingCall,
+    protocol_version: u32,
+    family: AppVerifyFamilyCode,
+    srs_id: Vec<u8>,
+    serialized_vk: Vec<u8>,
+    vk_digest: Vec<u8>,
+    canonical_statement_bytes: Vec<u8>,
+    wrapper: AppVerifyShippingWrapperProjection,
+    challenge_context: Vec<u8>,
+) -> Result<AppVerifyShippingPreflight<BackendCall, Fields>, AppVerifyShippingInputError> {
+    let real_count = rows.real_count;
+    let padded_count = rows.padded_count;
+    let public_input_arity = rows.public_input_arity;
+    let padded_public_input_fields = rows.fields;
+    let padded_public_inputs = rows.serialized;
+    let shipping_input = match app_verify_shipping_input_from_parts(
+        call,
+        protocol_version,
+        family,
+        srs_id,
+        serialized_vk,
+        vk_digest,
+        real_count,
+        padded_count,
+        public_input_arity,
+        padded_public_inputs,
+        canonical_statement_bytes,
+        wrapper,
+        challenge_context,
+    ) {
+        Ok(input) => input,
+        Err(error) => return Err(error),
+    };
+    Ok(AppVerifyShippingPreflight {
+        backend_call,
+        padded_public_input_fields,
+        shipping_input,
     })
 }
 
@@ -923,17 +984,17 @@ mod tests {
             4,
             4,
         );
-        let input = app_verify_shipping_input_from_parts(
+        let row_fields = vec![vec![0xb1, 0xb2], vec![0xc1, 0xc2]];
+        let row_bytes = vec![vec![vec![0x41], vec![0x42]], vec![vec![0x51], vec![0x52]]];
+        let preflight = app_verify_shipping_preflight_core(
+            vec![0xa1, 0xa2],
+            app_verify_shipping_rows_from_parts(3, 4, 2, row_fields.clone(), row_bytes.clone()),
             call,
             2,
             family(7),
             vec![0x11; 32],
             vec![0x22, 0x23],
             vec![0x33; 32],
-            3,
-            4,
-            2,
-            vec![vec![vec![0x41], vec![0x42]], vec![vec![0x51], vec![0x52]]],
             vec![0x61, 0x62],
             app_verify_shipping_wrapper_projection_from_parts(
                 vec![0x71; 32],
@@ -943,6 +1004,9 @@ mod tests {
             vec![0x91; 32],
         )
         .expect("matching shipping input");
+        let input = preflight.shipping_input.clone();
+        assert_eq!(preflight.backend_call, vec![0xa1, 0xa2]);
+        assert_eq!(preflight.padded_public_input_fields, row_fields);
         assert_eq!(input.call, call);
         assert_eq!(input.protocol_version, 2);
         assert_eq!(input.family, family(7));
@@ -952,10 +1016,7 @@ mod tests {
         assert_eq!(input.real_count, 3);
         assert_eq!(input.padded_count, 4);
         assert_eq!(input.public_input_arity, 2);
-        assert_eq!(
-            input.padded_public_inputs,
-            vec![vec![vec![0x41], vec![0x42]], vec![vec![0x51], vec![0x52]],]
-        );
+        assert_eq!(input.padded_public_inputs, row_bytes);
         assert_eq!(input.canonical_statement_bytes, vec![0x61, 0x62]);
         assert_eq!(input.statement_digest, vec![0x71; 32]);
         assert_eq!(input.wrapped_proof_bytes, vec![0x81, 0x82, 0x83]);
@@ -967,9 +1028,9 @@ mod tests {
         assert_eq!(result.result.id, call.id);
         assert!(result.result.accepted);
 
-        let backend = vec![0xa1, 0xa2];
-        let parts = app_verify_shipping_into_parts_core(backend.clone(), input.clone());
-        assert_eq!(parts, (backend, input));
+        let parts =
+            app_verify_shipping_into_parts_core(preflight.backend_call, preflight.shipping_input);
+        assert_eq!(parts, (vec![0xa1, 0xa2], input));
     }
 
     #[test]

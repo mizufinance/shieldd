@@ -59,8 +59,42 @@ fi
 
 run_static() {
   echo "snarkpack FV: fixed verification and extraction manifests"
-  python3 "$VERIFICATION_MANIFEST" validate
-  python3 "$EXTRACTIONS" check
+  local manifest_args=(validate)
+  local pending_kind
+  local pending_env
+  for pending_kind in fstar lean external; do
+    case "$pending_kind" in
+      fstar) pending_env="${SNARKPACK_ALLOW_PENDING_FSTAR_CONTRACT_REFRESH:-0}" ;;
+      lean) pending_env="${SNARKPACK_ALLOW_PENDING_LEAN_CONTRACT_REFRESH:-0}" ;;
+      external) pending_env="${SNARKPACK_ALLOW_PENDING_EXTERNAL_CONTRACT_REFRESH:-0}" ;;
+    esac
+    case "$pending_env" in
+      0) ;;
+      1) manifest_args+=(--allow-pending-contract-kind "$pending_kind") ;;
+      *) fail "pending $pending_kind contract refresh flag must be 0 or 1" ;;
+    esac
+  done
+  python3 "$VERIFICATION_MANIFEST" "${manifest_args[@]}"
+  local extraction_args=(check)
+  if [[ -n "${SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON:-}" ]]; then
+    local delegated_graph_text
+    if ! delegated_graph_text="$(
+      parse_json_string_array \
+        SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON \
+        "${SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON}"
+    )"; then
+      fail "could not parse delegated stale extraction graphs"
+    fi
+    local delegated_graphs=()
+    if [[ -n "$delegated_graph_text" ]]; then
+      mapfile -t delegated_graphs <<< "$delegated_graph_text"
+    fi
+    local delegated_graph
+    for delegated_graph in "${delegated_graphs[@]}"; do
+      extraction_args+=(--allow-stale-graph "$delegated_graph")
+    done
+  fi
+  python3 "$EXTRACTIONS" "${extraction_args[@]}"
 
   echo "snarkpack FV: normalizer tests and idempotence"
   python3 -m unittest discover -s "$LEAN_DIR/scripts" -p 'test_*.py'

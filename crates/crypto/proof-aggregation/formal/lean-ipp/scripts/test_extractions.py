@@ -376,6 +376,74 @@ class ExtractionManifestTests(unittest.TestCase):
             EXTRACTIONS.command_check(args)
         self.assertIn("stale extraction graph", str(raised.exception))
 
+    def test_check_delegates_only_explicit_stale_graphs(self):
+        graph_ids = [
+            self.manifest["graphs"][0]["id"],
+            self.manifest["graphs"][1]["id"],
+        ]
+        args = SimpleNamespace(
+            manifest=EXTRACTIONS.MANIFEST_PATH,
+            allow_stale_graph=[graph_ids[0]],
+        )
+        with (
+            patch.object(EXTRACTIONS, "load_manifest", return_value=self.manifest),
+            patch.object(EXTRACTIONS, "validate_recovery_manifest"),
+            patch.object(
+                EXTRACTIONS,
+                "stale_graph_ids",
+                return_value=graph_ids,
+            ),
+            self.assertRaises(EXTRACTIONS.ManifestError) as raised,
+        ):
+            EXTRACTIONS.command_check(args)
+        self.assertIn(graph_ids[1], str(raised.exception))
+
+        args.allow_stale_graph = graph_ids
+        with (
+            patch.object(EXTRACTIONS, "load_manifest", return_value=self.manifest),
+            patch.object(EXTRACTIONS, "validate_recovery_manifest"),
+            patch.object(
+                EXTRACTIONS,
+                "stale_graph_ids",
+                return_value=graph_ids,
+            ),
+        ):
+            self.assertEqual(EXTRACTIONS.command_check(args), 0)
+
+    def test_check_delegates_an_incomplete_source_only_by_exact_graph_id(self):
+        manifest = copy.deepcopy(self.manifest)
+        first = manifest["graphs"][0]
+        second = manifest["graphs"][1]
+        first.pop("source_sha256", None)
+        args = SimpleNamespace(
+            manifest=EXTRACTIONS.MANIFEST_PATH,
+            allow_stale_graph=[first["id"]],
+        )
+        with (
+            patch.object(EXTRACTIONS, "load_manifest", return_value=manifest),
+            patch.object(EXTRACTIONS, "validate_recovery_manifest"),
+            patch.object(
+                EXTRACTIONS,
+                "stale_graph_ids",
+                return_value=[first["id"]],
+            ),
+        ):
+            self.assertEqual(EXTRACTIONS.command_check(args), 0)
+
+        args.allow_stale_graph = [second["id"]]
+        with (
+            patch.object(EXTRACTIONS, "load_manifest", return_value=manifest),
+            patch.object(EXTRACTIONS, "validate_recovery_manifest"),
+            patch.object(
+                EXTRACTIONS,
+                "stale_graph_ids",
+                return_value=[first["id"]],
+            ),
+            self.assertRaises(EXTRACTIONS.ManifestError) as raised,
+        ):
+            EXTRACTIONS.command_check(args)
+        self.assertIn(first["id"], str(raised.exception))
+
     def test_stale_graphs_reject_unexpected_generated_output(self):
         with tempfile.TemporaryDirectory(prefix="extractions-test-") as directory:
             repo_root = Path(directory)

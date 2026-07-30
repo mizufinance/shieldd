@@ -179,6 +179,15 @@ jobs:
       - name: Run static FV invariants
         env:
           SNARKPACK_FV_MODE: static
+          # A stale row may bypass its committed source/checker evidence only
+          # when this same run schedules that row kind's exact replacement
+          # lane. One lane cannot mask another kind's stale evidence.
+          SNARKPACK_ALLOW_PENDING_FSTAR_CONTRACT_REFRESH: ${{ needs.applicability.outputs.snarkpack_fstar_run == 'true' && '1' || '0' }}
+          SNARKPACK_ALLOW_PENDING_LEAN_CONTRACT_REFRESH: ${{ needs.applicability.outputs.snarkpack_lean_run == 'true' && '1' || '0' }}
+          SNARKPACK_ALLOW_PENDING_EXTERNAL_CONTRACT_REFRESH: ${{ needs.applicability.outputs.snarkpack_rust_reference_run == 'true' && '1' || '0' }}
+          # Staleness remains fatal unless the exact affected graph is already
+          # delegated to this run's extraction matrix.
+          SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON: ${{ needs.applicability.outputs.snarkpack_extract_run == 'true' && needs.applicability.outputs.snarkpack_extract_graphs || '[]' }}
         run: >-
           python3 scripts/ci/run_with_annotation.py
           --title "SnarkPack static FV"
@@ -392,10 +401,15 @@ jobs:
 
   snarkpack-lean:
     name: 'snarkpack: lean affected closure'
-    needs: applicability
+    needs: [applicability, snarkpack-extract]
     if: >-
+      always() &&
       needs.applicability.result == 'success' &&
-      needs.applicability.outputs.snarkpack_lean_run == 'true'
+      needs.applicability.outputs.snarkpack_lean_run == 'true' &&
+      (
+        needs.applicability.outputs.snarkpack_extract_run != 'true' ||
+        needs.snarkpack-extract.result == 'success'
+      )
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 180
     container:
@@ -684,10 +698,15 @@ jobs:
 
   snarkpack-parity:
     name: 'snarkpack: parity'
-    needs: applicability
+    needs: [applicability, snarkpack-extract]
     if: >-
+      always() &&
       needs.applicability.result == 'success' &&
-      needs.applicability.outputs.snarkpack_parity_run == 'true'
+      needs.applicability.outputs.snarkpack_parity_run == 'true' &&
+      (
+        needs.applicability.outputs.snarkpack_extract_run != 'true' ||
+        needs.snarkpack-extract.result == 'success'
+      )
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 25
     steps:

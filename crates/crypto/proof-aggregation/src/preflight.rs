@@ -1,12 +1,15 @@
 use ark_groth16::PreparedVerifyingKey;
-use ark_ip_proofs::challenge::ChallengeContext;
+use ark_ip_proofs::{
+    app_verifier::{app_verify_shipping_preflight_core, AppVerifyShippingPreflight},
+    challenge::ChallengeContext,
+};
 use decaf377::{Bls12_377, Fq};
 
 use crate::{
     aggregate_proof_wrapper::{decode_wrapped_aggregate_proof, MAX_AGGREGATE_PROOF_BYTES},
     app_verifier::{
         app_verify_family_code, app_verify_protocol_version_core,
-        app_verify_shipping_input_from_parts, app_verify_shipping_into_parts_core,
+        app_verify_shipping_into_parts_core, app_verify_shipping_rows_from_parts,
         app_verify_shipping_wrapper_projection_from_parts, AppVerifyShippingCall,
         AppVerifyShippingInput,
     },
@@ -95,13 +98,15 @@ pub struct VerifiedAggregateBackendCall<'a> {
 /// by the same successful preflight.
 #[doc(hidden)]
 pub(crate) struct VerifiedShippingAggregateBackendCall<'a> {
-    backend_call: VerifiedAggregateBackendCall<'a>,
-    shipping_input: AppVerifyShippingInput,
+    projection: AppVerifyShippingPreflight<VerifiedAggregateBackendCall<'a>, &'a [Vec<Fq>]>,
 }
 
 impl<'a> VerifiedShippingAggregateBackendCall<'a> {
     pub(crate) fn into_parts(self) -> (VerifiedAggregateBackendCall<'a>, AppVerifyShippingInput) {
-        app_verify_shipping_into_parts_core(self.backend_call, self.shipping_input)
+        app_verify_shipping_into_parts_core(
+            self.projection.backend_call,
+            self.projection.shipping_input,
+        )
     }
 }
 
@@ -224,34 +229,36 @@ pub(crate) fn preflight_shipping_aggregate_verify<'a>(
     let statement = input.statement;
     let wrapped_proof_bytes = input.aggregate_proof_bytes;
     let backend_call = preflight_aggregate_verify(input)?;
-    let rows = statement.shipping_rows();
-    debug_assert_eq!(rows.fields, backend_call.padded_public_inputs());
-    let padded_public_inputs = rows.serialized.to_nested_bytes();
+    let statement_rows = statement.shipping_rows();
+    let rows = app_verify_shipping_rows_from_parts(
+        statement_rows.real_count,
+        statement_rows.padded_count,
+        statement_rows.public_input_arity,
+        backend_call.padded_public_inputs(),
+        statement_rows.serialized.to_nested_bytes(),
+    );
+    let authenticated_srs_id = backend_call.authenticated_srs_id;
+    let serialized_vk = backend_call.serialized_vk.clone();
     let wrapper = app_verify_shipping_wrapper_projection_from_parts(
         statement.statement_digest().to_vec(),
         wrapped_proof_bytes.to_vec(),
         backend_call.inner_proof_bytes().to_vec(),
     );
-    let shipping_input = app_verify_shipping_input_from_parts(
+    let projection = app_verify_shipping_preflight_core(
+        backend_call,
+        rows,
         application_call,
         app_verify_protocol_version_core(),
         app_verify_family_code(statement.family_id()),
-        backend_call.authenticated_srs_id.to_vec(),
-        backend_call.serialized_vk.clone(),
+        authenticated_srs_id.to_vec(),
+        serialized_vk,
         statement.vk_digest().to_vec(),
-        rows.real_count,
-        rows.padded_count,
-        rows.public_input_arity,
-        padded_public_inputs,
         statement.canonical_bytes().to_vec(),
         wrapper,
         statement.challenge_context().as_bytes().to_vec(),
     )
     .map_err(|_| AggregateVerifyError::StatementDigestMismatch)?;
-    Ok(VerifiedShippingAggregateBackendCall {
-        backend_call,
-        shipping_input,
-    })
+    Ok(VerifiedShippingAggregateBackendCall { projection })
 }
 
 fn require_preflight_checks(

@@ -1,4 +1,5 @@
 import Ipp.Extracted.AppVerifierShipping
+import Ipp.Extracted.ShippingRowConstruction
 import Ipp.ShippingV1
 
 /-!
@@ -218,9 +219,59 @@ theorem accepted_constructor_retains_shipping_input
   · simpa only [hout] using representation.innerProofBytes
   · simpa only [hout] using representation.challengeContext
 
+/-- One repeat-final execution whose source rows, padded rows, and serialized
+matrix all belong to the same accepted shipping-input constructor execution.
+The projection fields remain the narrow outer-caller/Arkworks boundary. -/
+structure ExecutionCoupledRowConstruction
+    {μ : Nat} {F G1 G2 GT Row DecodedProof : Type}
+    [CommSemiring F] [AddCommMonoid G1] [Module F G1]
+    [AddCommMonoid G2] [Module F G2]
+    [AddCommMonoid GT] [Module F GT]
+    (execution : ConstructorExecution)
+    (input : Ipp.ShippingV1.ShippingV1Input
+      μ F G1 G2 GT Row DecodedProof) where
+  cloneInst : core.clone.Clone Row
+  cloneExact : ∀ row, cloneInst.clone row = .ok row
+  sourceRows : alloc.vec.Vec Row
+  paddedRows : alloc.vec.Vec Row
+  sourceNonempty : sourceRows.val ≠ []
+  realCountExact : input.realCount = sourceRows.val.length
+  realRowsExact :
+    ∀ i : Fin input.realCount,
+      sourceRows.val[i.val]? = some (input.realRows i)
+  paddedRowsExact :
+    ∀ i : Fin (2 ^ μ),
+      paddedRows.val[i.val]? = some (input.publicRows i)
+  encodeRow : Row → List (List UInt8)
+  serializedPaddedRowsExact :
+    paddedRowsBytes execution.paddedPublicInputs =
+      paddedRows.val.map encodeRow
+  paddingExecution :
+    app_verifier.app_verify_repeat_final_rows_core
+        cloneInst sourceRows ⟨2 ^ μ⟩ =
+      .ok (.Ok paddedRows)
+
+/-- Forget only the constructor serialization link after the execution-coupled
+witness has supplied the exact extracted padding execution. -/
+def ExecutionCoupledRowConstruction.toExactRowConstruction
+    {μ : Nat} {F G1 G2 GT Row DecodedProof : Type}
+    [CommSemiring F] [AddCommMonoid G1] [Module F G1]
+    [AddCommMonoid G2] [Module F G2]
+    [AddCommMonoid GT] [Module F GT]
+    {execution : ConstructorExecution}
+    {input : Ipp.ShippingV1.ShippingV1Input
+      μ F G1 G2 GT Row DecodedProof}
+    (rows : ExecutionCoupledRowConstruction execution input) :
+    Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction input :=
+  Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction.ofExtractedSuccess
+    input rows.cloneInst rows.cloneExact rows.sourceRows rows.paddedRows
+    rows.sourceNonempty rows.realCountExact rows.realRowsExact
+    rows.paddedRowsExact rows.paddingExecution
+
 /-- Inputs supported by the concrete contract are exactly those backed by a
-successful extracted constructor invocation and an exact argument
-projection. -/
+successful extracted constructor invocation, its exact argument projection,
+and one repeat-final execution coupled to that constructor's serialized row
+matrix. -/
 def SupportedShippingInput
     {μ arity : Nat} {F G1 G2 GT Row DecodedProof : Type}
     [CommSemiring F] [AddCommMonoid G1] [Module F G1]
@@ -231,7 +282,23 @@ def SupportedShippingInput
       μ F G1 G2 GT Row DecodedProof) : Prop :=
   ∃ execution : ConstructorExecution,
     ConstructorArgumentsRepresent (arity := arity)
-      wire execution input
+      wire execution input ∧
+    ExecutionCoupledRowConstruction execution input
+
+/-- Exact row construction is data carried by concrete support, not a free
+semantic postcondition of the statement contract. -/
+theorem supported_shipping_input_row_construction
+    {μ arity : Nat} {F G1 G2 GT Row DecodedProof : Type}
+    [CommSemiring F] [AddCommMonoid G1] [Module F G1]
+    [AddCommMonoid G2] [Module F G2]
+    [AddCommMonoid GT] [Module F GT]
+    {wire : WireRowDecoder μ Row}
+    {input : Ipp.ShippingV1.ShippingV1Input
+      μ F G1 G2 GT Row DecodedProof}
+    (hsupported : SupportedShippingInput (arity := arity) wire input) :
+    Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction input := by
+  rcases hsupported with ⟨_execution, _representation, rows⟩
+  exact rows.toExactRowConstruction
 
 /-- Every supported input is therefore retained in the actual output of at
 least one successful extracted constructor run. -/
@@ -247,7 +314,7 @@ theorem supported_shipping_input_has_retained_output
     ∃ execution : ConstructorExecution,
       OutputRetainsShippingInput (arity := arity)
         wire execution input := by
-  rcases hsupported with ⟨execution, representation⟩
+  rcases hsupported with ⟨execution, representation, _rows⟩
   exact ⟨execution,
     accepted_constructor_retains_shipping_input representation⟩
 
@@ -443,14 +510,6 @@ structure ExactSemanticBoundary
     bytes.encodePublicClaim left.publicClaim =
       bytes.encodePublicClaim right.publicClaim →
     left.publicClaim = right.publicClaim
-  vkDigestFramingInjective : ∀
-      (left right :
-        FormalShippingInput μ arity F G1 G2 GT DecodedProof),
-    SupportedShippingInput (arity := arity) wire left →
-    SupportedShippingInput (arity := arity) wire right →
-    Ipp.ShippingV1.vkDigestPreimage left.serializedVk =
-      Ipp.ShippingV1.vkDigestPreimage right.serializedVk →
-    left.serializedVk = right.serializedVk
   vkDigestShaExecution : ∀
       (input : FormalShippingInput μ arity F G1 G2 GT DecodedProof),
     SupportedShippingInput (arity := arity) wire input →
@@ -479,18 +538,6 @@ structure ExactSemanticBoundary
       (input : FormalShippingInput μ arity F G1 G2 GT DecodedProof),
     SupportedShippingInput (arity := arity) wire input →
       bytes.decodeProof input.innerProofBytes = some input.decodedProof
-  acceptedCounts : ∀
-      (input : FormalShippingInput μ arity F G1 G2 GT DecodedProof),
-    SupportedShippingInput (arity := arity) wire input →
-      Ipp.ShippingV1.ValidCounts input
-  callerOrderRealPrefix : ∀
-      (input : FormalShippingInput μ arity F G1 G2 GT DecodedProof),
-    SupportedShippingInput (arity := arity) wire input →
-      Ipp.ShippingV1.RealPrefixExact input
-  repeatFinalPadding : ∀
-      (input : FormalShippingInput μ arity F G1 G2 GT DecodedProof),
-    SupportedShippingInput (arity := arity) wire input →
-      Ipp.ShippingV1.RepeatFinalPadding input
   vkMaterial : ∀
       (input : FormalShippingInput μ arity F G1 G2 GT DecodedProof),
     SupportedShippingInput (arity := arity) wire input →
@@ -550,15 +597,22 @@ def ExactSemanticBoundary.bindingContract
     canonicalStatementExact := boundary.canonicalStatementConstruction
     canonicalStatementInjective :=
       boundary.canonicalStatementEncodingInjective
-    vkDigestPreimageInjective := boundary.vkDigestFramingInjective
+    vkDigestPreimageInjective := fun _left _right _hleft _hright =>
+      Ipp.ShippingV1.vkDigestPreimage_injective
     vkDigestExact := boundary.vkDigestShaExecution
     statementDigestExact := boundary.statementDigestShaExecution
     challengeContextExact := boundary.challengeContextShaExecution
     wrapperExact := boundary.wrapperDecodeExecution
     proofDecodeExact := boundary.aggregateProofDecodeExecution
-    validCounts := boundary.acceptedCounts
-    realPrefixExact := boundary.callerOrderRealPrefix
-    repeatFinalPadding := boundary.repeatFinalPadding
+    validCounts := fun input hsupported =>
+      Ipp.Extracted.ShippingRowConstruction.validCounts
+        (supported_shipping_input_row_construction hsupported)
+    realPrefixExact := fun input hsupported =>
+      Ipp.Extracted.ShippingRowConstruction.realPrefixExact
+        (supported_shipping_input_row_construction hsupported)
+    repeatFinalPadding := fun input hsupported =>
+      Ipp.Extracted.ShippingRowConstruction.repeatFinalPadding
+        (supported_shipping_input_row_construction hsupported)
   }
 
 /-- Construct the semantic projection contract.  The statement side is the
@@ -611,11 +665,10 @@ def ExactSemanticBoundary.projectionContract
           hroute, hdecode, haic]
   }
 
-/-- A successful supported constructor run receives both contracts, and its
-statement projection is exact.  This is the concrete Rust-call construction
-capstone; its only hypotheses are the constructor support witness and the
-individually named boundary package above. -/
-theorem supported_constructor_projects_exact_statement
+/-- Assemble the byte-binding and statement-projection contracts from one
+execution-coupled support witness and the individually named semantic boundary.
+Concrete Rust construction must still instantiate that boundary. -/
+theorem supported_boundary_assembles_exact_statement
     {μ arity : Nat} {F G1 G2 GT DecodedProof : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2]
@@ -639,9 +692,12 @@ theorem supported_constructor_projects_exact_statement
       boundary.projectionContract.Projects input := by
   exact ⟨hsupported,
     semantics.represents input,
-    boundary.acceptedCounts input hsupported,
-    boundary.callerOrderRealPrefix input hsupported,
-    boundary.repeatFinalPadding input hsupported,
+    Ipp.Extracted.ShippingRowConstruction.validCounts
+      (supported_shipping_input_row_construction hsupported),
+    Ipp.Extracted.ShippingRowConstruction.realPrefixExact
+      (supported_shipping_input_row_construction hsupported),
+    Ipp.Extracted.ShippingRowConstruction.repeatFinalPadding
+      (supported_shipping_input_row_construction hsupported),
     Ipp.ShippingV1.shipping_input_projects_exact_statement
       semantics.projection boundary.bindingContract
       boundary.projectionContract input hsupported⟩
@@ -649,10 +705,12 @@ theorem supported_constructor_projects_exact_statement
 #print axioms ConstructorExecution.outputExact
 #print axioms extracted_protocol_version_exact
 #print axioms accepted_constructor_retains_shipping_input
+#print axioms ExecutionCoupledRowConstruction.toExactRowConstruction
+#print axioms supported_shipping_input_row_construction
 #print axioms supported_shipping_input_has_retained_output
 #print axioms ExactSemanticBoundary.bindingContract
 #print axioms ExactSemanticBoundary.projectionContract
-#print axioms supported_constructor_projects_exact_statement
+#print axioms supported_boundary_assembles_exact_statement
 
 end
 

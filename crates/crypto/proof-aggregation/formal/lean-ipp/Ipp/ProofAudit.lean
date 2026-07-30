@@ -5,17 +5,12 @@ import Ipp.Goal
 import Ipp.SnarkPackV1
 import Ipp.SnarkPackV1Refinement
 import Ipp.HonestProver
-import Ipp.Cost
 import Ipp.ShippingScalarReduction
 import Ipp.ShippingHashExecutionTrace
 import Ipp.ShippingToGoal
 import Ipp.Extracted.AppVerifierStateMachine
-import Ipp.Extracted.ShippingRowConstruction
-import Ipp.Extracted.ShippingStatementConstruction
 import Ipp.Extracted.AggregateVerifierPairingAdapter
 import Ipp.Extracted.ShippingVerifierComposition
-import Ipp.Extracted.ShippingBundleComposition
-import Ipp.Extracted.ShippingProver
 import Ipp.Extracted.ChallengeFrame
 import Ipp.Extracted.TippMippChallengeExecution
 import Ipp.Extracted.ArkworksFqBytesBridge
@@ -49,9 +44,9 @@ import Ipp.ChallengeMessageSerialization
 
 /-!
 Audit surface for campaign capstones compatible with the canonical Fq12
-extraction graph. Adaptive and reduction roots use dedicated audit modules;
-the independently regenerated Miller graph uses `Ipp.ProofAuditMiller`
-because it declares overlapping extracted globals.
+extraction graph. Adaptive, reduction, prover, construction, and cost roots
+use dedicated audit modules. The independently regenerated Miller graph uses
+`Ipp.ProofAuditMiller` because it declares overlapping extracted globals.
 -/
 
 -- S1
@@ -100,14 +95,6 @@ because it declares overlapping extracted globals.
 #print axioms Ipp.SnarkPackV1.Refinement.hasValidRealPrefixRepresentation_iff
 #print axioms Ipp.SnarkPackV1.Refinement.invalid_realPrefix_implies_invalid_padded
 #print axioms Ipp.SnarkPackV1.HonestProver.honest_complete
-#print axioms Ipp.Extracted.ShippingProver.shipping_prover_refines_honest_complete
-#print axioms Ipp.Cost.prover_miller_terms
-#print axioms Ipp.Cost.prover_final_exponentiations
-#print axioms Ipp.Cost.prover_primary_fold_scalar_muls
-#print axioms Ipp.Cost.prover_kzg_msm_terms
-#print axioms Ipp.Cost.verifier_gt_subgroup_validations
-#print axioms Ipp.Cost.verifier_gt_exponentiations
-#print axioms Ipp.Cost.verifier_final_exponentiations
 
 -- Extracted application planner and acceptance state machine
 #print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_family_code_matches_eq_model
@@ -135,19 +122,6 @@ because it declares overlapping extracted globals.
 #print axioms Ipp.Extracted.AppVerifierStateMachine.shippingFamilyCode_represents
 #print axioms Ipp.Extracted.AppVerifierStateMachine.extracted_shipping_projection_ok
 #print axioms Ipp.Extracted.AppVerifierStateMachine.app_acceptance_binds_shipping_input
-#print axioms Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction.ofExtractedSuccess
-#print axioms Ipp.Extracted.ShippingRowConstruction.validCounts
-#print axioms Ipp.Extracted.ShippingRowConstruction.realPrefixExact
-#print axioms Ipp.Extracted.ShippingRowConstruction.repeatFinalPadding
-#print axioms Ipp.Extracted.ShippingRowConstruction.preserves_order_and_padding
-#print axioms Ipp.Extracted.ShippingStatementConstruction.extracted_protocol_version_exact
-#print axioms Ipp.Extracted.ShippingStatementConstruction.ConstructorExecution.outputExact
-#print axioms Ipp.Extracted.ShippingStatementConstruction.accepted_constructor_retains_shipping_input
-#print axioms Ipp.Extracted.ShippingStatementConstruction.supported_shipping_input_has_retained_output
-#print axioms Ipp.Extracted.ShippingStatementConstruction.ExactSemanticBoundary.bindingContract
-#print axioms Ipp.Extracted.ShippingStatementConstruction.ExactSemanticBoundary.projectionContract
-#print axioms Ipp.Extracted.ShippingStatementConstruction.supported_constructor_projects_exact_statement
-
 -- Concrete shipping input, adapter, and deployed-hash composition
 #print axioms Ipp.ShippingV1.shipping_statement_binds_public_claim
 #print axioms Ipp.ShippingV1.verified_call_binds_unique_shipping_input
@@ -168,10 +142,6 @@ because it declares overlapping extracted globals.
 #print axioms Ipp.Extracted.ShippingVerifierComposition.AcceptedShippingExecutionAt.appFacts
 #print axioms Ipp.Extracted.ShippingVerifierComposition.AcceptedShippingExecutionAt.refines
 #print axioms Ipp.Extracted.ShippingVerifierComposition.ShippingCallData.acceptedAt_refines_v1
-#print axioms Ipp.Extracted.ShippingBundleComposition.ShippingCallExecutionBoundary.toAccepted
-#print axioms Ipp.Extracted.ShippingBundleComposition.ShippingBundleCallWitness.refinesV1
-#print axioms Ipp.Extracted.ShippingBundleComposition.accepted_bundle_lifts_per_call_claim
-#print axioms Ipp.Extracted.ShippingBundleComposition.accepted_shipping_bundle_refines_all_v1
 #print axioms Ipp.Extracted.ChallengeFrame.challenge_preimage_core_exact
 #print axioms Ipp.Extracted.TippMippChallengeExecution.sampleEquations_of_calls
 #print axioms Ipp.Extracted.TippMippChallengeExecution.acceptedExecutionSamples_of_calls

@@ -26,12 +26,26 @@ class VerificationManifestTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.manifest = VERIFICATION.load_manifest()
 
+    def manifest_with_current_contract_sources(self):
+        manifest = copy.deepcopy(self.manifest)
+        for entry in manifest["statement_binding_evidence"]:
+            for source in entry["sources"]:
+                path = VERIFICATION.REPO_ROOT.joinpath(
+                    *Path(source["path"]).parts
+                )
+                source["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+        return manifest
+
     def test_real_manifest_is_nonempty_and_complete(self):
         # The checker artifact pins this validator's own source and is therefore
         # necessarily stale while this test file is exercising validator edits.
         # Production callers retain the fail-closed default and validate it.
         summary = VERIFICATION.validate_repository(
-            self.manifest, require_checker_artifact=False
+            self.manifest,
+            require_checker_artifact=False,
+            allow_pending_contract_kinds=(
+                VERIFICATION.PENDING_CONTRACT_REFRESH_KINDS
+            ),
         )
         self.assertGreater(summary.audit_capstones, 0)
         self.assertGreater(summary.claims, 0)
@@ -72,7 +86,7 @@ class VerificationManifestTests(unittest.TestCase):
         self.assertIn("missing audit module", str(raised.exception))
 
     def test_statement_contract_evidence_is_digest_pinned_and_complete(self):
-        manifest = copy.deepcopy(self.manifest)
+        manifest = self.manifest_with_current_contract_sources()
         manifest["statement_binding_evidence"][0]["sources"][0]["sha256"] = "0" * 64
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
             VERIFICATION.validate_contract_evidence(
@@ -80,7 +94,7 @@ class VerificationManifestTests(unittest.TestCase):
             )
         self.assertIn("sha256 differs", str(raised.exception))
 
-        manifest = copy.deepcopy(self.manifest)
+        manifest = self.manifest_with_current_contract_sources()
         manifest["statement_binding_evidence"][1]["contract_field"] = (
             manifest["statement_binding_evidence"][0]["contract_field"]
         )
@@ -90,7 +104,7 @@ class VerificationManifestTests(unittest.TestCase):
             )
         self.assertIn("coverage differs", str(raised.exception))
 
-        manifest = copy.deepcopy(self.manifest)
+        manifest = self.manifest_with_current_contract_sources()
         external = next(
             item
             for item in manifest["statement_binding_evidence"]
@@ -123,7 +137,7 @@ class VerificationManifestTests(unittest.TestCase):
         self.assertIn("must be pass, stale, or assumed", str(raised.exception))
 
     def test_only_stale_rows_may_enter_source_recheck_mode(self):
-        manifest = copy.deepcopy(self.manifest)
+        manifest = self.manifest_with_current_contract_sources()
         stale = next(
             entry
             for entry in manifest["statement_binding_evidence"]
@@ -131,11 +145,25 @@ class VerificationManifestTests(unittest.TestCase):
         )
         stale["sources"][0]["sha256"] = "0" * 64
 
+        wrong_kind = next(
+            kind
+            for kind in VERIFICATION.PENDING_CONTRACT_REFRESH_KINDS
+            if kind != stale["kind"]
+        )
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_contract_evidence(
+                manifest,
+                VERIFICATION.REPO_ROOT,
+                require_checker_artifact=False,
+                allow_stale_source_drift_kinds=(wrong_kind,),
+            )
+        self.assertIn("sha256 differs", str(raised.exception))
+
         VERIFICATION.validate_contract_evidence(
             manifest,
             VERIFICATION.REPO_ROOT,
             require_checker_artifact=False,
-            allow_stale_source_drift=True,
+            allow_stale_source_drift_kinds=(stale["kind"],),
         )
 
         stale["checker"]["last_result"] = "pass"
@@ -144,7 +172,7 @@ class VerificationManifestTests(unittest.TestCase):
                 manifest,
                 VERIFICATION.REPO_ROOT,
                 require_checker_artifact=False,
-                allow_stale_source_drift=True,
+                allow_stale_source_drift_kinds=(stale["kind"],),
             )
         self.assertIn("sha256 differs", str(raised.exception))
 
@@ -174,12 +202,12 @@ class VerificationManifestTests(unittest.TestCase):
                 self.assertEqual(before, after)
 
     def test_stale_recheck_requires_current_input_fingerprint_coverage(self):
-        manifest = copy.deepcopy(self.manifest)
+        manifest = self.manifest_with_current_contract_sources()
         stale = next(
             entry
             for entry in manifest["statement_binding_evidence"]
             if entry["checker"]["last_result"] == "stale"
-            and entry["kind"] == "external"
+            and entry["kind"] == "fstar"
         )
         uncovered = "README.md"
         stale["sources"][0]["path"] = uncovered
@@ -190,7 +218,7 @@ class VerificationManifestTests(unittest.TestCase):
                 manifest,
                 VERIFICATION.REPO_ROOT,
                 require_checker_artifact=False,
-                allow_stale_source_drift=True,
+                allow_stale_source_drift_kinds=("fstar",),
             )
         self.assertIn("current F* module or global-input fingerprint", str(raised.exception))
 
@@ -433,7 +461,7 @@ class VerificationManifestTests(unittest.TestCase):
             self.assertIn("forbidden import", str(raised.exception))
 
     def test_fstar_evidence_roots_require_full_declarations(self):
-        manifest = copy.deepcopy(self.manifest)
+        manifest = self.manifest_with_current_contract_sources()
         entry = next(
             item
             for item in manifest["statement_binding_evidence"]
@@ -448,7 +476,7 @@ class VerificationManifestTests(unittest.TestCase):
         self.assertIn("theorem root is absent", str(raised.exception))
 
     def test_fstar_pass_requires_generated_checker_artifact(self):
-        manifest = copy.deepcopy(self.manifest)
+        manifest = self.manifest_with_current_contract_sources()
         manifest["fstar_checker_evidence"] = {
             "path": "does/not/exist.json",
             "sha256": "0" * 64,
@@ -1273,6 +1301,93 @@ class VerificationManifestTests(unittest.TestCase):
             "changed without updating the independent v1 protocol lock",
             str(raised.exception),
         )
+
+    def test_public_seed_keeps_deployed_srs_soundness_open(self):
+        VERIFICATION.validate_deployed_srs_soundness(
+            self.manifest, VERIFICATION.REPO_ROOT
+        )
+
+        promoted = copy.deepcopy(self.manifest)
+        srs_claim = next(
+            claim
+            for claim in promoted["claims"]
+            if claim["id"] == VERIFICATION.DEPLOYED_SRS_CLAIM_ID
+        )
+        srs_claim["status"] = "proved"
+        srs_claim["root"] = "Ipp.Test.deployed_srs_sound"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_deployed_srs_soundness(
+                promoted, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn(
+            "cannot close while production derives", str(raised.exception)
+        )
+
+        disconnected = copy.deepcopy(self.manifest)
+        kzg = next(
+            claim
+            for claim in disconnected["claims"]
+            if claim["id"] == "KZG-LEAF-REDUCTION"
+        )
+        kzg["dependencies"].remove(VERIFICATION.DEPLOYED_SRS_CLAIM_ID)
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_deployed_srs_soundness(
+                disconnected, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn(
+            "must depend on DEPLOYED-SRS-SOUNDNESS",
+            str(raised.exception),
+        )
+
+    def test_srs_claim_cannot_close_by_only_hiding_the_public_seed(self):
+        promoted = copy.deepcopy(self.manifest)
+        srs_claim = next(
+            claim
+            for claim in promoted["claims"]
+            if claim["id"] == VERIFICATION.DEPLOYED_SRS_CLAIM_ID
+        )
+        srs_claim["status"] = "proved"
+        srs_claim["root"] = "Ipp.Test.deployed_srs_sound"
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            srs_path = (
+                root / "crates/crypto/proof-aggregation/src/srs.rs"
+            )
+            app_path = root / "crates/core/app/src/app/mod.rs"
+            srs_path.parent.mkdir(parents=True)
+            app_path.parent.mkdir(parents=True)
+            srs_path.write_text(
+                "fn load_registered_srs() {}\n", encoding="utf-8"
+            )
+            app_path.write_text(
+                "fn install_registered_srs() {}\n", encoding="utf-8"
+            )
+            with self.assertRaises(
+                VERIFICATION.VerificationError
+            ) as raised:
+                VERIFICATION.validate_deployed_srs_soundness(promoted, root)
+        self.assertIn(
+            "machine-checked secure-SRS artifact/registry evidence schema",
+            str(raised.exception),
+        )
+
+    def test_pending_contract_refresh_flag_is_explicit(self):
+        args = VERIFICATION.parser().parse_args(
+            [
+                "validate",
+                "--allow-pending-contract-kind",
+                "fstar",
+                "--allow-pending-contract-kind",
+                "lean",
+            ]
+        )
+        self.assertEqual(
+            args.allow_pending_contract_kind,
+            ["fstar", "lean"],
+        )
+        default = VERIFICATION.parser().parse_args(["validate"])
+        self.assertEqual(default.allow_pending_contract_kind, [])
 
     def test_bounded_sampler_pins_test_and_shipping_call_sites(self):
         VERIFICATION.validate_bounded_challenge_sampler(

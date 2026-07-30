@@ -1057,17 +1057,51 @@ def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
 
 def command_check(args: argparse.Namespace) -> int:
     manifest = load_manifest(args.manifest)
-    validate_manifest(manifest, manifest_path=args.manifest)
-    stale = stale_graph_ids(manifest)
-    if stale:
+    allowed_stale = tuple(getattr(args, "allow_stale_graph", ()))
+    if len(allowed_stale) != len(set(allowed_stale)):
+        raise ManifestError("duplicate --allow-stale-graph")
+    # File freshness is checked below as one graph-level result so CI may
+    # explicitly delegate only its selected stale graphs to extraction jobs.
+    # Recovery validation permits an absent source fingerprint, but only this
+    # command's exact allowed-stale set can keep that graph from failing below.
+    # With no delegation, the normal strict manifest schema remains mandatory.
+    if allowed_stale:
+        validate_recovery_manifest(
+            manifest,
+            manifest_path=args.manifest,
+            verify_files=False,
+        )
+    else:
+        validate_manifest(
+            manifest,
+            manifest_path=args.manifest,
+            verify_files=False,
+        )
+    declared = {graph["id"] for graph in manifest["graphs"]}
+    unknown = sorted(set(allowed_stale) - declared)
+    if unknown:
         raise ManifestError(
-            "stale extraction graph(s): " + ", ".join(stale)
+            "unknown allowed stale extraction graph(s): "
+            + ", ".join(unknown)
+        )
+    stale = stale_graph_ids(
+        manifest,
+        repair_incomplete_sources=bool(allowed_stale),
+    )
+    unexpected_stale = sorted(set(stale) - set(allowed_stale))
+    if unexpected_stale:
+        raise ManifestError(
+            "stale extraction graph(s): " + ", ".join(unexpected_stale)
         )
     s2 = sum(graph["campaign"] == "s2" for graph in manifest["graphs"])
     s3 = sum(graph["campaign"] == "s3" for graph in manifest["graphs"])
+    delegated = (
+        f"; delegated={','.join(stale)}" if stale else ""
+    )
     print(
         "extractions: ok "
-        f"({EXPECTED_GRAPH_COUNT}/{EXPECTED_GRAPH_COUNT} graphs; s2={s2}, s3={s3})"
+        f"({EXPECTED_GRAPH_COUNT}/{EXPECTED_GRAPH_COUNT} graphs; "
+        f"s2={s2}, s3={s3}{delegated})"
     )
     return 0
 
@@ -2084,6 +2118,7 @@ def parser() -> argparse.ArgumentParser:
     commands = result.add_subparsers(dest="command", required=True)
 
     check = commands.add_parser("check")
+    check.add_argument("--allow-stale-graph", action="append", default=[])
     check.set_defaults(handler=command_check)
 
     affected = commands.add_parser("affected")

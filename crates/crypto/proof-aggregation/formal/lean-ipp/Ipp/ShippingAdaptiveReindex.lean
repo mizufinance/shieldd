@@ -1,5 +1,6 @@
 import Ipp.ShippingAdaptiveOrigin
 import Ipp.RandomOracleReindex
+import VCVio.OracleComp.SimSemantics.StateT.StateProjection
 
 /-!
 Adaptive byte-query reindexing for origin-retaining shipping verification.
@@ -8,11 +9,11 @@ The concrete dependent run is projected only at the probability-library
 boundary.  Its low output still contains the exact selected statement key,
 formal statement, proof, transcript, and verifier result.
 
-Reindexing is performed on a subtype of the queries reached by the complete
-preselection-plus-verifier program.  Injectivity is therefore required only
-on that reached set and is supplied by the existing SHA-collision-free
-interface.  This module does not replace deployed Blake2b by a random oracle;
-the ROM hop remains a separate computational advantage.
+Verifier reindexing is performed on a subtype of reached structured queries.
+The unrestricted adversary remains in a separate raw-byte branch; it is never
+assumed to query only serialized protocol points.  Both branches share one
+byte-keyed cache.  This module does not replace deployed Blake2b by a random
+oracle; the ROM hop remains a separate computational advantage.
 -/
 
 open OracleSpec OracleComp ENNReal
@@ -48,6 +49,13 @@ noncomputable def OriginRun.formalOutcome
     verifierResult := run.output
   }⟩
 
+@[simp] theorem OriginRun.formalOutcome_mu
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    (run : OriginRun sha256 blake2b) :
+    run.formalOutcome.1 = run.selected.μ := by
+  rfl
+
 @[simp] theorem OriginRun.formalOutcome_selection
     {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
     {blake2b : List UInt8 → DigestBytes}
@@ -62,6 +70,15 @@ noncomputable def OriginRun.formalOutcome
     {blake2b : List UInt8 → DigestBytes}
     (run : OriginRun sha256 blake2b) :
     run.formalOutcome.accept = run.output.accept := by
+  rfl
+
+/-- The low projection retains the complete formal verifier result, including
+the exact proof, transcript, error ordering result, and acceptance bit. -/
+@[simp] theorem OriginRun.formalOutcome_verifierResult
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    (run : OriginRun sha256 blake2b) :
+    run.formalOutcome.2.verifierResult = run.output := by
   rfl
 
 /-- Whole origin program with only its output universe lowered.  Every oracle
@@ -96,16 +113,16 @@ theorem projectedOriginByteProgram_fsBound
 
 /-! ## Reached-query domain and collision-free byte encoding -/
 
-/-- Structured queries reached in one complete adaptive execution. -/
+/-- Structured verifier queries reached in one complete adaptive execution. -/
 abbrev ReachedGlobalFsQuery (reached : Set GlobalFsQuery) :=
-  { query : GlobalFsQuery // query ∈ reached }
+  { q : GlobalFsQuery // q ∈ reached }
 
 /-- Exact byte encoding restricted to the reached structured domain. -/
 def reachedByteEncoding
     (serialization : GlobalQuerySerialization)
     (reached : Set GlobalFsQuery) :
     ReachedGlobalFsQuery reached → List UInt8 :=
-  fun query => serialization.byteEncoding query.1
+  fun q => serialization.byteEncoding q.1
 
 /-- Reached-set injectivity becomes ordinary injectivity on the subtype, which
 is the form required by lazy-random-oracle cache reindexing. -/
@@ -127,6 +144,18 @@ abbrev ReachedAdaptiveFieldSourceSpec
     (Sha256OracleSpec +
       (ReachedGlobalFsQuery reached →ₒ Fr))
 
+/-- Sound source for the complete adaptive program.
+
+The left branch retains every adversarial byte query verbatim.  Only verifier
+challenge queries use the annotated right branch.  Interpreters below route
+both raw Blake2b queries and annotated challenge queries through one byte-keyed
+cache, so an adversarial prequery of a later challenge preimage is a genuine
+cache hit rather than an independent oracle call. -/
+abbrev HybridAdaptiveSourceSpec
+    (reached : Set GlobalFsQuery) :=
+  GlobalByteSourceSpec +
+    (ReachedGlobalFsQuery reached →ₒ Fr)
+
 /-- Exactly the field queries in the reached annotated source. -/
 def IsReachedFieldQuery
     {reached : Set GlobalFsQuery} :
@@ -138,16 +167,35 @@ instance instDecidablePredIsReachedFieldQuery
     {reached : Set GlobalFsQuery} :
     DecidablePred
       (@IsReachedFieldQuery reached) := by
-  intro query
-  cases query with
+  intro q
+  cases q with
   | inl _ =>
       exact isFalse (by simp [IsReachedFieldQuery])
-  | inr query =>
-      cases query with
+  | inr q =>
+      cases q with
       | inl _ =>
           exact isFalse (by simp [IsReachedFieldQuery])
       | inr _ =>
           exact isTrue trivial
+
+/-- Every Blake2b byte query and every annotated verifier query consumes the
+same global Fiat--Shamir budget.  Ambient and SHA-256 queries consume neither
+part of that budget. -/
+def IsHybridFsQuery
+    {reached : Set GlobalFsQuery} :
+    (HybridAdaptiveSourceSpec reached).Domain → Prop
+  | .inl q => IsFsQuery q
+  | .inr _ => True
+
+instance instDecidablePredIsHybridFsQuery
+    {reached : Set GlobalFsQuery} :
+    DecidablePred (@IsHybridFsQuery reached) := by
+  intro q
+  cases q with
+  | inl q =>
+      exact instDecidablePredIsFsQuery q
+  | inr _ =>
+      exact isTrue trivial
 
 /-- Forward ambient sampling into the concrete byte source. -/
 def reachedUnifToRawByteFwd
@@ -172,11 +220,11 @@ def reachedFieldToRawByteFwd
     (reached : Set GlobalFsQuery) :
     QueryImpl (ReachedGlobalFsQuery reached →ₒ Fr)
       (OracleComp GlobalByteSourceSpec) :=
-  fun query =>
+  fun q =>
     Ipp.ShippingScalarReduction.reduceFr <$>
       (GlobalByteSourceSpec).query
         (.inr (.inr
-          (reachedByteEncoding serialization reached query)))
+          (reachedByteEncoding serialization reached q)))
 
 /-- Erase structured annotations while retaining every ambient, SHA, and
 Blake2b query in one program. -/
@@ -188,6 +236,17 @@ def reachedFieldToRawByteImpl
   reachedUnifToRawByteFwd +
     (reachedShaToRawByteFwd +
       reachedFieldToRawByteFwd serialization reached)
+
+/-- Erase the sound hybrid annotation.  The complete adversary byte program is
+forwarded through the identity branch; only typed verifier challenges are
+serialized and reduced. -/
+def hybridToRawByteImpl
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery) :
+    QueryImpl (HybridAdaptiveSourceSpec reached)
+      (OracleComp GlobalByteSourceSpec) :=
+  QueryImpl.id' GlobalByteSourceSpec +
+    reachedFieldToRawByteFwd serialization reached
 
 /-! ## A left inverse and exact query-budget transport -/
 
@@ -236,8 +295,8 @@ noncomputable def decodeReachedQuery?
     (bytes : List UInt8) :
     Option (ReachedGlobalFsQuery reached) :=
   if h :
-      ∃ query : ReachedGlobalFsQuery reached,
-        reachedByteEncoding serialization reached query = bytes
+      ∃ q : ReachedGlobalFsQuery reached,
+        reachedByteEncoding serialization reached q = bytes
   then some (Classical.choose h)
   else none
 
@@ -246,11 +305,11 @@ theorem decodeReachedQuery?_encode
     (reached : Set GlobalFsQuery)
     (hcollisionFree :
       ReachableGlobalSerializationInjective serialization reached)
-    (query : ReachedGlobalFsQuery reached) :
+    (q : ReachedGlobalFsQuery reached) :
     decodeReachedQuery? serialization reached
-        (reachedByteEncoding serialization reached query) =
-      some query := by
-  rw [decodeReachedQuery?, dif_pos ⟨query, rfl⟩]
+        (reachedByteEncoding serialization reached q) =
+      some q := by
+  rw [decodeReachedQuery?, dif_pos ⟨q, rfl⟩]
   congr 1
   apply reachedByteEncoding_injective
     serialization reached hcollisionFree
@@ -258,8 +317,8 @@ theorem decodeReachedQuery?_encode
     (show
       ∃ candidate : ReachedGlobalFsQuery reached,
         reachedByteEncoding serialization reached candidate =
-          reachedByteEncoding serialization reached query
-      from ⟨query, rfl⟩)
+          reachedByteEncoding serialization reached q
+      from ⟨q, rfl⟩)
 
 /-- Invert raw queries back into the reached annotated source.  The fallback
 digest is irrelevant to the left-inverse theorem because forward-erased field
@@ -287,10 +346,10 @@ noncomputable def rawBlake2bToReachedFieldFwd
   fun bytes =>
     match decodeReachedQuery? serialization reached bytes with
     | none => pure (digestSection 0)
-    | some query =>
+    | some q =>
         digestSection <$>
           (ReachedAdaptiveFieldSourceSpec reached).query
-            (.inr (.inr query))
+            (.inr (.inr q))
 
 noncomputable def rawByteToReachedFieldImpl
     (serialization : GlobalQuerySerialization)
@@ -311,14 +370,14 @@ theorem rawByteToReached_comp_reachedFieldToRaw_eq_id
     rawByteToReachedFieldImpl serialization reached ∘ₛ
         reachedFieldToRawByteImpl serialization reached =
       QueryImpl.id' (ReachedAdaptiveFieldSourceSpec reached) := by
-  funext query
-  cases query with
+  funext q
+  cases q with
   | inl point =>
       simp [QueryImpl.compose, reachedFieldToRawByteImpl,
         reachedUnifToRawByteFwd, rawByteToReachedFieldImpl,
         rawUnifToReachedFieldFwd]
-  | inr query =>
-      cases query with
+  | inr q =>
+      cases q with
       | inl input =>
           simp [QueryImpl.compose, reachedFieldToRawByteImpl,
             reachedShaToRawByteFwd, rawByteToReachedFieldImpl,
@@ -354,16 +413,16 @@ theorem rawByteToReached_simulate_reachedFieldToRaw
 theorem rawByteToReachedField_step_charged
     (serialization : GlobalQuerySerialization)
     (reached : Set GlobalFsQuery)
-    (query : GlobalByteSourceSpec.Domain)
-    (hquery : IsFsQuery query) :
+    (q : GlobalByteSourceSpec.Domain)
+    (hquery : IsFsQuery q) :
     IsQueryBoundP
-      (rawByteToReachedFieldImpl serialization reached query)
+      (rawByteToReachedFieldImpl serialization reached q)
       (@IsReachedFieldQuery reached) 1 := by
-  cases query with
+  cases q with
   | inl _ =>
       simp [IsFsQuery] at hquery
-  | inr query =>
-      cases query with
+  | inr q =>
+      cases q with
       | inl _ =>
           simp [IsFsQuery] at hquery
       | inr bytes =>
@@ -375,17 +434,17 @@ theorem rawByteToReachedField_step_charged
 theorem rawByteToReachedField_step_uncharged
     (serialization : GlobalQuerySerialization)
     (reached : Set GlobalFsQuery)
-    (query : GlobalByteSourceSpec.Domain)
-    (hquery : ¬ IsFsQuery query) :
+    (q : GlobalByteSourceSpec.Domain)
+    (hquery : ¬ IsFsQuery q) :
     IsQueryBoundP
-      (rawByteToReachedFieldImpl serialization reached query)
+      (rawByteToReachedFieldImpl serialization reached q)
       (@IsReachedFieldQuery reached) 0 := by
-  cases query with
+  cases q with
   | inl _ =>
       simp [rawByteToReachedFieldImpl,
         rawUnifToReachedFieldFwd, IsReachedFieldQuery]
-  | inr query =>
-      cases query with
+  | inr q =>
+      cases q with
       | inl _ =>
           simp [rawByteToReachedFieldImpl,
             rawShaToReachedFieldFwd, IsReachedFieldQuery]
@@ -442,29 +501,63 @@ theorem rawByte_queryBound_of_reachedField_queryBound
         program)
       IsFsQuery Q_fs := by
   apply hfield.simulateQ_of_step
-  · intro query hquery
-    cases query with
+  · intro q hquery
+    cases q with
     | inl _ =>
         simp [IsReachedFieldQuery] at hquery
-    | inr query =>
-        cases query with
+    | inr q =>
+        cases q with
         | inl _ =>
             simp [IsReachedFieldQuery] at hquery
         | inr point =>
             simp [reachedFieldToRawByteImpl,
               reachedFieldToRawByteFwd, IsFsQuery]
-  · intro query hquery
-    cases query with
+  · intro q hquery
+    cases q with
     | inl _ =>
         simp [reachedFieldToRawByteImpl,
           reachedUnifToRawByteFwd, IsFsQuery]
-    | inr query =>
-        cases query with
+    | inr q =>
+        cases q with
         | inl _ =>
             simp [reachedFieldToRawByteImpl,
               reachedShaToRawByteFwd, IsFsQuery]
         | inr _ =>
             simp [IsReachedFieldQuery] at hquery
+
+/-- Erasing the hybrid annotation preserves the one total Fiat--Shamir
+budget.  Raw adversary Blake2b queries and typed verifier queries each become
+exactly one raw Blake2b query; ambient and SHA queries remain uncharged. -/
+theorem rawByte_queryBound_of_hybrid_queryBound
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    {Output : Type}
+    (program : OracleComp (HybridAdaptiveSourceSpec reached) Output)
+    (Q_fs : Nat)
+    (hhybrid :
+      IsQueryBoundP program
+        (@IsHybridFsQuery reached) Q_fs) :
+    IsQueryBoundP
+      (simulateQ
+        (hybridToRawByteImpl serialization reached)
+        program)
+      IsFsQuery Q_fs := by
+  apply hhybrid.simulateQ_of_step
+  · intro q hquery
+    cases q with
+    | inl rawQuery =>
+        simp [IsHybridFsQuery] at hquery
+        simpa [hybridToRawByteImpl, hquery]
+    | inr point =>
+        simp [hybridToRawByteImpl,
+          reachedFieldToRawByteFwd, IsFsQuery]
+  · intro q hquery
+    cases q with
+    | inl rawQuery =>
+        simp [IsHybridFsQuery] at hquery
+        simpa [hybridToRawByteImpl, hquery]
+    | inr _ =>
+        simp [IsHybridFsQuery] at hquery
 
 /-! ## Deterministic SHA resolution and global structured target -/
 
@@ -478,8 +571,8 @@ def reachedFieldToGlobalFsImpl
   globalFsUnifFwd +
     ((fun input : Ipp.ShippingV1.Bytes =>
       pure (sha256 input)) +
-      (fun query : ReachedGlobalFsQuery reached =>
-        (GlobalFsSourceSpec).query (.inr query.1)))
+      (fun q : ReachedGlobalFsQuery reached =>
+        (GlobalFsSourceSpec).query (.inr q.1)))
 
 /-- The same `Q_fs` bound survives deterministic SHA resolution and subtype
 erasure. -/
@@ -499,37 +592,38 @@ theorem globalFs_queryBound_of_reachedField_queryBound
         program)
       IsGlobalFieldQuery Q_fs := by
   apply hfield.simulateQ_of_step
-  · intro query hquery
-    cases query with
+  · intro q hquery
+    cases q with
     | inl _ =>
         simp [IsReachedFieldQuery] at hquery
-    | inr query =>
-        cases query with
+    | inr q =>
+        cases q with
         | inl _ =>
             simp [IsReachedFieldQuery] at hquery
         | inr _ =>
             simp [reachedFieldToGlobalFsImpl,
               IsGlobalFieldQuery]
-  · intro query hquery
-    cases query with
+  · intro q hquery
+    cases q with
     | inl _ =>
         simp [reachedFieldToGlobalFsImpl,
           globalFsUnifFwd, IsGlobalFieldQuery]
-    | inr query =>
-        cases query with
+    | inr q =>
+        cases q with
         | inl _ =>
             simp [reachedFieldToGlobalFsImpl,
               IsGlobalFieldQuery]
         | inr _ =>
             simp [IsReachedFieldQuery] at hquery
 
-/-- Exact annotation boundary for the complete origin program.
+/-- Exact sound annotation boundary for the complete origin program.
 
-`raw_exact` is a program equality, not a ROM or collision-resistance
-assumption.  It states that the reached structured program erases to the
-actual origin program after the latter's exact low projection.  Constructing
-this field requires the concrete challenge serializer/execution equations.
--/
+`raw_exact` leaves the adversary's arbitrary byte queries in the hybrid
+program and annotates only verifier challenges.  This avoids an impossible
+surjectivity requirement on `globalQueryEncoding`.  `totalFsQueryBound` is an
+operational proof obligation of the concrete annotation construction: it must
+be derived from that construction and uses the same whole-program `Q_fs` as
+the raw execution, counting both opaque Blake2b and typed verifier queries. -/
 structure OriginByteReindexing
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (blake2b : List UInt8 → DigestBytes)
@@ -542,22 +636,24 @@ structure OriginByteReindexing
         sha256 blake2b adversary Q_sha Q_fs) where
   reached : Set GlobalFsQuery
   serialization : GlobalQuerySerialization
-  collisionFree :
-    ReachableGlobalSerializationInjective serialization reached
-  fieldProgram :
-    OracleComp (ReachedAdaptiveFieldSourceSpec reached)
+  hybridProgram :
+    OracleComp (HybridAdaptiveSourceSpec reached)
       OriginFormalOutcome
   raw_exact :
     simulateQ
-        (reachedFieldToRawByteImpl serialization reached)
-        fieldProgram =
+        (hybridToRawByteImpl serialization reached)
+        hybridProgram =
       projectedOriginByteProgram sha256 blake2b adversary
+  totalFsQueryBound :
+    IsQueryBoundP hybridProgram
+      (@IsHybridFsQuery reached) Q_fs
 
 namespace OriginByteReindexing
 
-/-- The annotated program inherits the exact byte-side `Q_fs`; no fresh field
-budget is introduced. -/
-theorem fieldQueryBound
+/-- The sound hybrid annotation carries the same total `Q_fs`; in particular,
+opaque adversarial prequeries are never omitted from modular-reduction or ROM
+accounting. -/
+theorem hybridQueryBound
     {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
     {blake2b : List UInt8 → DigestBytes}
     {adversary :
@@ -570,18 +666,37 @@ theorem fieldQueryBound
     (boundary :
       OriginByteReindexing
         sha256 blake2b adversary Q_sha Q_fs budgets) :
-    IsQueryBoundP boundary.fieldProgram
-      (@IsReachedFieldQuery boundary.reached) Q_fs := by
-  have hraw :=
-    projectedOriginByteProgram_fsBound
-      sha256 blake2b adversary Q_sha Q_fs budgets
-  rw [← boundary.raw_exact] at hraw
-  exact reachedField_queryBound_of_rawByte_queryBound
+    IsQueryBoundP boundary.hybridProgram
+      (@IsHybridFsQuery boundary.reached) Q_fs :=
+  boundary.totalFsQueryBound
+
+/-- Erasure exposes the same total bound in the raw byte domain. -/
+theorem erasedQueryBound
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    {adversary :
+      OracleComp GlobalByteSourceSpec
+        (OriginSelectedCall sha256 blake2b)}
+    {Q_sha Q_fs : Nat}
+    {budgets :
+      DistinctQueryBudgets
+        sha256 blake2b adversary Q_sha Q_fs}
+    (boundary :
+      OriginByteReindexing
+        sha256 blake2b adversary Q_sha Q_fs budgets) :
+    IsQueryBoundP
+      (simulateQ
+        (hybridToRawByteImpl
+          boundary.serialization boundary.reached)
+        boundary.hybridProgram)
+      IsFsQuery Q_fs :=
+  rawByte_queryBound_of_hybrid_queryBound
     boundary.serialization boundary.reached
-    boundary.collisionFree boundary.fieldProgram Q_fs hraw
+    boundary.hybridProgram Q_fs boundary.hybridQueryBound
 
-/-- Full structured program after exact SHA resolution. -/
-def globalProgram
+/-- After exact erasure, the hybrid accounting is the accounting of the
+actual whole origin program. -/
+theorem projectedOriginQueryBound
     {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
     {blake2b : List UInt8 → DigestBytes}
     {adversary :
@@ -594,50 +709,11 @@ def globalProgram
     (boundary :
       OriginByteReindexing
         sha256 blake2b adversary Q_sha Q_fs budgets) :
-    OracleComp GlobalFsSourceSpec OriginFormalOutcome :=
-  simulateQ
-    (reachedFieldToGlobalFsImpl sha256 boundary.reached)
-    boundary.fieldProgram
-
-theorem globalProgram_queryBound
-    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
-    {blake2b : List UInt8 → DigestBytes}
-    {adversary :
-      OracleComp GlobalByteSourceSpec
-        (OriginSelectedCall sha256 blake2b)}
-    {Q_sha Q_fs : Nat}
-    {budgets :
-      DistinctQueryBudgets
-        sha256 blake2b adversary Q_sha Q_fs}
-    (boundary :
-      OriginByteReindexing
-        sha256 blake2b adversary Q_sha Q_fs budgets) :
-    IsQueryBoundP boundary.globalProgram
-      IsGlobalFieldQuery Q_fs :=
-  globalFs_queryBound_of_reachedField_queryBound
-    sha256 boundary.reached boundary.fieldProgram Q_fs
-    boundary.fieldQueryBound
-
-/-- Construct the exact target consumed by the full-source modular-reduction
-theorem. -/
-def structuredFieldProgram
-    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
-    {blake2b : List UInt8 → DigestBytes}
-    {adversary :
-      OracleComp GlobalByteSourceSpec
-        (OriginSelectedCall sha256 blake2b)}
-    {Q_sha Q_fs : Nat}
-    {budgets :
-      DistinctQueryBudgets
-        sha256 blake2b adversary Q_sha Q_fs}
-    (boundary :
-      OriginByteReindexing
-        sha256 blake2b adversary Q_sha Q_fs budgets) :
-    StructuredFieldProgram OriginFormalOutcome := {
-  program := boundary.globalProgram
-  Q_fs := Q_fs
-  queryBound := boundary.globalProgram_queryBound
-}
+    IsQueryBoundP
+      (projectedOriginByteProgram sha256 blake2b adversary)
+      IsFsQuery Q_fs := by
+  rw [← boundary.raw_exact]
+  exact boundary.erasedQueryBound
 
 end OriginByteReindexing
 
@@ -674,14 +750,14 @@ theorem rawCacheToReachedFieldCache_cacheQuery
     (hcollisionFree :
       ReachableGlobalSerializationInjective serialization reached)
     (cache : RawBlake2bCache)
-    (query : ReachedGlobalFsQuery reached)
+    (q : ReachedGlobalFsQuery reached)
     (digest : DigestBytes) :
     rawCacheToReachedFieldCache serialization reached
         (cache.cacheQuery
-          (reachedByteEncoding serialization reached query)
+          (reachedByteEncoding serialization reached q)
           digest) =
       (rawCacheToReachedFieldCache serialization reached cache)
-        .cacheQuery query
+        .cacheQuery q
           (Ipp.ShippingScalarReduction.reduceFr digest) := by
   unfold rawCacheToReachedFieldCache
   rw [Ipp.RandomOracleReindex.pullbackCache_cacheQuery
@@ -690,14 +766,14 @@ theorem rawCacheToReachedFieldCache_cacheQuery
   exact Ipp.RandomOracleMap.mapCache_cacheQuery
     (fun _ digest =>
       Ipp.ShippingScalarReduction.reduceFr digest)
-    _ query digest
+    _ q digest
 
 @[simp] theorem rawCacheToReachedFieldCache_empty
     (serialization : GlobalQuerySerialization)
     (reached : Set GlobalFsQuery) :
     rawCacheToReachedFieldCache serialization reached ∅ = ∅ := by
   apply OracleSpec.QueryCache.ext
-  intro query
+  intro q
   rfl
 
 /-- Uniform ambient sampling with raw Blake2b cache state. -/
@@ -777,7 +853,7 @@ def rawIdealReachedExperiment
       (reachedFieldToRawByteImpl serialization reached)
       program)).run' ∅
 
-/-- Structured reduced-digest execution of the same complete program. -/
+/-- Structured reduced-digest execution of an all-typed subprogram. -/
 def reachedMappedExperiment
     [SampleableType DigestBytes]
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
@@ -789,6 +865,424 @@ def reachedMappedExperiment
   (simulateQ
     (reachedMappedSourceImpl sha256 reached)
     program).run' ∅
+
+/-- The raw ideal interpreter composed with exact structured-query erasure.
+Naming this handler exposes the state projection used for the whole adaptive
+program, including queries issued before statement selection. -/
+def rawIdealReachedSourceImpl
+    [SampleableType DigestBytes]
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery) :
+    QueryImpl (ReachedAdaptiveFieldSourceSpec reached)
+      (StateT RawBlake2bCache ProbComp) :=
+  rawIdealByteImpl sha256 ∘ₛ
+    reachedFieldToRawByteImpl serialization reached
+
+/-- Each raw ideal-oracle step projects exactly to the reached structured
+step.  Fresh raw digests are reduced before insertion into the projected
+cache; cache hits and updates commute by collision-free query encoding. -/
+theorem rawIdealReachedSourceImpl_step_project
+    [SampleableType DigestBytes]
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    (hcollisionFree :
+      ReachableGlobalSerializationInjective serialization reached)
+    (q : (ReachedAdaptiveFieldSourceSpec reached).Domain)
+    (cache : RawBlake2bCache) :
+    Prod.map id
+        (rawCacheToReachedFieldCache serialization reached) <$>
+      ((rawIdealReachedSourceImpl
+        sha256 serialization reached q).run cache) =
+    ((reachedMappedSourceImpl sha256 reached q).run
+      (rawCacheToReachedFieldCache serialization reached cache)) := by
+  cases q with
+  | inl point =>
+      simp [rawIdealReachedSourceImpl, QueryImpl.compose,
+        reachedFieldToRawByteImpl, reachedUnifToRawByteFwd,
+        rawIdealByteImpl, rawIdealAmbientImpl,
+        reachedMappedSourceImpl, reachedMappedAmbientImpl,
+        StateT.run_map, StateT.run_lift, Functor.map_map, Prod.map]
+  | inr q =>
+      cases q with
+      | inl input =>
+          simp [rawIdealReachedSourceImpl, QueryImpl.compose,
+            reachedFieldToRawByteImpl, reachedShaToRawByteFwd,
+            rawIdealByteImpl, rawIdealShaImpl,
+            reachedMappedSourceImpl, reachedMappedShaImpl,
+            StateT.run_map, StateT.run_lift, Functor.map_map, Prod.map]
+      | inr point =>
+          have hprojected :
+              rawCacheToReachedFieldCache serialization reached cache
+                  point =
+                Ipp.ShippingScalarReduction.reduceFr <$>
+                  cache
+                    (reachedByteEncoding
+                      serialization reached point) := by
+            rfl
+          cases hcached :
+              cache
+                (reachedByteEncoding serialization reached point) with
+          | none =>
+              have hmapped :
+                  rawCacheToReachedFieldCache serialization reached cache
+                      point =
+                    none := by
+                rw [hprojected, hcached]
+                rfl
+              simp only [rawIdealReachedSourceImpl,
+                QueryImpl.compose, reachedFieldToRawByteImpl,
+                QueryImpl.add_apply_inr,
+                reachedFieldToRawByteFwd, rawIdealByteImpl,
+                reachedMappedSourceImpl, reachedMappedFieldImpl,
+                simulateQ_map,
+                simulateQ_spec_query]
+              rw [QueryImpl.withCaching_run_none _ hcached,
+                QueryImpl.withCaching_run_none _ hmapped]
+              simp only [StateT.run_map, Functor.map_map,
+                Prod.map, id_eq, Function.comp_apply]
+              apply congrArg
+              funext digest
+              rw [rawCacheToReachedFieldCache_cacheQuery
+                serialization reached hcollisionFree]
+          | some digest =>
+              have hmapped :
+                  rawCacheToReachedFieldCache serialization reached cache
+                      point =
+                    some
+                      (Ipp.ShippingScalarReduction.reduceFr digest) := by
+                rw [hprojected, hcached]
+                rfl
+              simp only [rawIdealReachedSourceImpl,
+                QueryImpl.compose, reachedFieldToRawByteImpl,
+                QueryImpl.add_apply_inr,
+                reachedFieldToRawByteFwd, rawIdealByteImpl,
+                reachedMappedSourceImpl, reachedMappedFieldImpl,
+                simulateQ_map,
+                simulateQ_spec_query]
+              rw [QueryImpl.withCaching_run_some _ hcached,
+                QueryImpl.withCaching_run_some _ hmapped]
+              simp
+
+/-- Program-level form of `rawIdealReachedSourceImpl_step_project` for an
+all-typed source.  It is exact equality of probability computations, but it is
+not the unrestricted shipping-origin theorem: arbitrary adversarial byte
+queries require the sound hybrid source below. -/
+theorem rawIdealReachedExperiment_eq_reachedMappedExperiment
+    [SampleableType DigestBytes]
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    (hcollisionFree :
+      ReachableGlobalSerializationInjective serialization reached)
+    {Output : Type}
+    (program :
+      OracleComp (ReachedAdaptiveFieldSourceSpec reached) Output) :
+    rawIdealReachedExperiment
+        sha256 serialization reached program =
+      reachedMappedExperiment sha256 reached program := by
+  unfold rawIdealReachedExperiment reachedMappedExperiment
+  rw [← QueryImpl.simulateQ_compose]
+  change
+    (simulateQ
+      (rawIdealReachedSourceImpl sha256 serialization reached)
+      program).run' ∅ =
+    (simulateQ
+      (reachedMappedSourceImpl sha256 reached)
+      program).run' ∅
+  simpa only [rawCacheToReachedFieldCache_empty] using
+    OracleComp.run'_simulateQ_eq_of_query_map_eq
+      (rawIdealReachedSourceImpl sha256 serialization reached)
+      (reachedMappedSourceImpl sha256 reached)
+      (rawCacheToReachedFieldCache serialization reached)
+      (rawIdealReachedSourceImpl_step_project
+        sha256 serialization reached hcollisionFree)
+      program ∅
+
+/-! ## Sound whole-origin hybrid -/
+
+/-- The complete origin program with concrete SHA-256 and a uniform lazy
+byte oracle in place of deployed Blake2b.  This is the ideal endpoint of the
+separate deployed-hash ROM replacement; it does not assert that replacement. -/
+def projectedOriginIdealByteExperiment
+    [SampleableType DigestBytes]
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (blake2b : List UInt8 → DigestBytes)
+    (adversary :
+      OracleComp GlobalByteSourceSpec
+        (OriginSelectedCall sha256 blake2b)) :
+    ProbComp OriginFormalOutcome :=
+  (simulateQ (rawIdealByteImpl sha256)
+    (projectedOriginByteProgram sha256 blake2b adversary)).run' ∅
+
+/-- Interpret the hybrid source through one raw Blake2b cache.  Both the
+opaque adversary branch and the annotated verifier branch reach
+`rawIdealByteImpl`; consequently equal byte preimages share one cache cell. -/
+def hybridRawIdealSourceImpl
+    [SampleableType DigestBytes]
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery) :
+    QueryImpl (HybridAdaptiveSourceSpec reached)
+      (StateT RawBlake2bCache ProbComp) :=
+  rawIdealByteImpl sha256 ∘ₛ
+    hybridToRawByteImpl serialization reached
+
+/-- Both hybrid query forms use the same lazy Blake2b implementation and the
+same byte key.  The typed form differs only by postprocessing the cached digest
+with `reduceFr`. -/
+theorem hybridRawIdealSourceImpl_shared_blake2b
+    [SampleableType DigestBytes]
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    (bytes : List UInt8)
+    (q : ReachedGlobalFsQuery reached) :
+    hybridRawIdealSourceImpl
+          sha256 serialization reached
+          (.inl (.inr (.inr bytes))) =
+        Blake2bOracleSpec.randomOracle bytes ∧
+      hybridRawIdealSourceImpl
+          sha256 serialization reached (.inr q) =
+        Ipp.ShippingScalarReduction.reduceFr <$>
+          Blake2bOracleSpec.randomOracle
+            (reachedByteEncoding serialization reached q) := by
+  constructor
+  · simp [hybridRawIdealSourceImpl, QueryImpl.compose,
+      hybridToRawByteImpl, rawIdealByteImpl]
+  · simp [hybridRawIdealSourceImpl, QueryImpl.compose,
+      hybridToRawByteImpl, reachedFieldToRawByteFwd,
+      rawIdealByteImpl, simulateQ_map, simulateQ_spec_query]
+
+/-- Output experiment for the sound hybrid annotation. -/
+def hybridRawIdealExperiment
+    [SampleableType DigestBytes]
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    {Output : Type}
+    (program : OracleComp (HybridAdaptiveSourceSpec reached) Output) :
+    ProbComp Output :=
+  (simulateQ
+    (hybridRawIdealSourceImpl sha256 serialization reached)
+    program).run' ∅
+
+/-- A raw prequery at a typed verifier preimage populates the exact cache cell
+later consulted by that typed query.  This is an intended alias, not a
+serialization collision. -/
+theorem rawCache_prequery_hits_typed
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    (cache : RawBlake2bCache)
+    (q : ReachedGlobalFsQuery reached)
+    (digest : DigestBytes) :
+    (cache.cacheQuery
+      (reachedByteEncoding serialization reached q)
+      digest)
+        (reachedByteEncoding serialization reached q) =
+      some digest :=
+  QueryCache.cacheQuery_self _ _ _
+
+namespace OriginByteReindexing
+
+/-- Exact whole-program annotation: arbitrary adversarial bytes are retained,
+typed verifier challenges are serialized, and both are then interpreted by
+the same raw ideal cache. -/
+theorem projectedOriginIdealByteExperiment_eq_hybridRawIdeal
+    [SampleableType DigestBytes]
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    {adversary :
+      OracleComp GlobalByteSourceSpec
+        (OriginSelectedCall sha256 blake2b)}
+    {Q_sha Q_fs : Nat}
+    {budgets :
+      DistinctQueryBudgets
+        sha256 blake2b adversary Q_sha Q_fs}
+    (boundary :
+      OriginByteReindexing
+        sha256 blake2b adversary Q_sha Q_fs budgets) :
+    projectedOriginIdealByteExperiment sha256 blake2b adversary =
+      hybridRawIdealExperiment
+        sha256 boundary.serialization boundary.reached
+        boundary.hybridProgram := by
+  unfold projectedOriginIdealByteExperiment hybridRawIdealExperiment
+  rw [← boundary.raw_exact]
+  rw [← QueryImpl.simulateQ_compose]
+
+end OriginByteReindexing
+
+/-- Project the global reduced-field cache to the reached query subtype and
+drop the quantitative comparison flag. -/
+def globalReducedCacheToReachedFieldCache
+    (reached : Set GlobalFsQuery)
+    (state :
+      Ipp.ShippingMultiStatement.GlobalScalarCacheState) :
+    ReachedFieldCache reached :=
+  Ipp.RandomOracleReindex.pullbackCache
+    (fun q : ReachedGlobalFsQuery reached => q.1)
+    state.1
+
+theorem globalReducedCacheToReachedFieldCache_cacheQuery
+    (reached : Set GlobalFsQuery)
+    (state :
+      Ipp.ShippingMultiStatement.GlobalScalarCacheState)
+    (q : ReachedGlobalFsQuery reached)
+    (value : Fr) :
+    globalReducedCacheToReachedFieldCache reached
+        (state.1.cacheQuery q.1 value, state.2) =
+      (globalReducedCacheToReachedFieldCache reached state)
+        .cacheQuery q value := by
+  unfold globalReducedCacheToReachedFieldCache
+  apply Ipp.RandomOracleReindex.pullbackCache_cacheQuery
+  intro left right heq
+  exact Subtype.ext heq
+
+@[simp] theorem globalReducedCacheToReachedFieldCache_empty
+    (reached : Set GlobalFsQuery) :
+    globalReducedCacheToReachedFieldCache reached (∅, false) = ∅ := by
+  apply OracleSpec.QueryCache.ext
+  intro q
+  rfl
+
+/-- Interpret an all-typed reached source through the global reduced field
+source.  This helper does not erase unrestricted adversarial byte queries. -/
+def globalReducedReachedSourceImpl
+    [SampleableType DigestBytes]
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (reached : Set GlobalFsQuery) :
+    QueryImpl (ReachedAdaptiveFieldSourceSpec reached)
+      (StateT
+        Ipp.ShippingMultiStatement.GlobalScalarCacheState
+        ProbComp) :=
+  globalReducedFsSourceImpl ∘ₛ
+    reachedFieldToGlobalFsImpl sha256 reached
+
+/-- Dropping the global comparison flag and restricting its cache to the
+reached subtype gives exactly the mapped reached interpreter, query by
+query. -/
+theorem globalReducedReachedSourceImpl_step_project
+    [SampleableType DigestBytes]
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (reached : Set GlobalFsQuery)
+    (q : (ReachedAdaptiveFieldSourceSpec reached).Domain)
+    (state :
+      Ipp.ShippingMultiStatement.GlobalScalarCacheState) :
+    Prod.map id
+        (globalReducedCacheToReachedFieldCache reached) <$>
+      ((globalReducedReachedSourceImpl
+        sha256 reached q).run state) =
+    ((reachedMappedSourceImpl sha256 reached q).run
+      (globalReducedCacheToReachedFieldCache reached state)) := by
+  cases q with
+  | inl point =>
+      simp [globalReducedReachedSourceImpl, QueryImpl.compose,
+        reachedFieldToGlobalFsImpl, globalFsUnifFwd,
+        globalReducedFsSourceImpl,
+        ambientSamplingWithGlobalScalarCache,
+        reachedMappedSourceImpl, reachedMappedAmbientImpl,
+        StateT.run_map, StateT.run_lift, Functor.map_map,
+        Prod.map, globalReducedCacheToReachedFieldCache]
+  | inr q =>
+      cases q with
+      | inl input =>
+          simp [globalReducedReachedSourceImpl, QueryImpl.compose,
+            reachedFieldToGlobalFsImpl,
+            reachedMappedSourceImpl, reachedMappedShaImpl,
+            StateT.run_map, StateT.run_lift, Functor.map_map,
+            Prod.map, globalReducedCacheToReachedFieldCache]
+      | inr point =>
+          rcases state with ⟨cache, bad⟩
+          have hprojected :
+              globalReducedCacheToReachedFieldCache
+                  reached (cache, bad) point =
+                cache point.1 := by
+            rfl
+          cases hcached : cache point.1 with
+          | none =>
+              have hmapped :
+                  globalReducedCacheToReachedFieldCache
+                      reached (cache, bad) point =
+                    none := by
+                rw [hprojected, hcached]
+              simp only [globalReducedReachedSourceImpl,
+                QueryImpl.compose, reachedFieldToGlobalFsImpl,
+                QueryImpl.add_apply_inr,
+                globalReducedFsSourceImpl,
+                Ipp.ShippingScalarReduction.reducedCachingOracleImpl,
+                reachedMappedSourceImpl, reachedMappedFieldImpl,
+                Ipp.RandomOracleMap.mappedRandomOracle,
+                simulateQ_spec_query]
+              rw [QueryImpl.withCachingAux_apply, hcached,
+                QueryImpl.withCaching_run_none _ hmapped]
+              simp only [StateT.run_map, Functor.map_map,
+                Prod.map, id_eq, Function.comp_apply]
+              apply congrArg
+              funext digest
+              rw [globalReducedCacheToReachedFieldCache_cacheQuery]
+          | some value =>
+              have hmapped :
+                  globalReducedCacheToReachedFieldCache
+                      reached (cache, bad) point =
+                    some value := by
+                rw [hprojected, hcached]
+              simp only [globalReducedReachedSourceImpl,
+                QueryImpl.compose, reachedFieldToGlobalFsImpl,
+                QueryImpl.add_apply_inr,
+                globalReducedFsSourceImpl,
+                Ipp.ShippingScalarReduction.reducedCachingOracleImpl,
+                reachedMappedSourceImpl, reachedMappedFieldImpl,
+                Ipp.RandomOracleMap.mappedRandomOracle,
+                simulateQ_spec_query]
+              rw [QueryImpl.withCachingAux_apply, hcached,
+                QueryImpl.withCaching_run_some _ hmapped]
+              simp
+
+/-- Output equality for an all-typed program between the global reduced
+interpreter and reached mapped interpreter. -/
+theorem globalReducedReached_run'_eq_reachedMappedExperiment
+    [SampleableType DigestBytes]
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (reached : Set GlobalFsQuery)
+    {Output : Type}
+    (program :
+      OracleComp (ReachedAdaptiveFieldSourceSpec reached) Output) :
+    (simulateQ globalReducedFsSourceImpl
+      (simulateQ
+        (reachedFieldToGlobalFsImpl sha256 reached)
+        program)).run' (∅, false) =
+      reachedMappedExperiment sha256 reached program := by
+  unfold reachedMappedExperiment
+  rw [← QueryImpl.simulateQ_compose]
+  change
+    (simulateQ
+      (globalReducedReachedSourceImpl sha256 reached)
+      program).run' (∅, false) =
+    (simulateQ
+      (reachedMappedSourceImpl sha256 reached)
+      program).run' ∅
+  simpa only [globalReducedCacheToReachedFieldCache_empty] using
+    OracleComp.run'_simulateQ_eq_of_query_map_eq
+      (globalReducedReachedSourceImpl sha256 reached)
+      (reachedMappedSourceImpl sha256 reached)
+      (globalReducedCacheToReachedFieldCache reached)
+      (globalReducedReachedSourceImpl_step_project
+        sha256 reached)
+      program (∅, false)
+
+/-!
+## Deliberate boundary
+
+There is intentionally no theorem from the unrestricted hybrid origin to
+`globalReducedFsSourceExperiment`.  Such a theorem would have to preserve the
+full digest returned to an arbitrary raw prequery while making the reduced
+value used by an aliased typed query uniform.  The next sound hop therefore
+needs a byte-keyed, fiber-lifted uniform-digest oracle (shared by both query
+forms) and a global fork game that retains those raw keys.  The structured-only
+helpers above remain valid for programs whose entire query source is already
+typed; they must not be applied to `OriginByteReindexing.hybridProgram`.
+-/
 
 end
 

@@ -1,5 +1,6 @@
 import Ipp.FsFork
 import Ipp.ForkTree
+import Ipp.Bls12377PairingAdapter
 import Ipp.ShippingHashGame
 
 /-!
@@ -24,6 +25,18 @@ open scoped OracleSpec.PrimitiveQuery ENNReal BigOperators
 namespace Ipp.ShippingMultiStatement
 
 noncomputable section
+
+open Ipp.Bls12377
+
+local instance : Fact baseModulus.Prime :=
+  ⟨arithmeticFacts.basePrime⟩
+local instance : Fact scalarModulus.Prime :=
+  ⟨arithmeticFacts.scalarPrime⟩
+local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+  ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
+local instance : Fintype Fq2 :=
+  Fintype.ofEquiv
+    (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
 
 /-- The two production-selected byte components shared by every challenge in
 one statement.  `familyDomain` is the already-registered Blake2b prefix;
@@ -57,10 +70,10 @@ structure GlobalShippingQuery where
 deriving DecidableEq
 
 /-- Exact deployed Blake2b input for a global query. -/
-def globalQueryEncoding (query : GlobalShippingQuery) : List UInt8 :=
-  query.encoded.familyDomain ++
+def globalQueryEncoding (q : GlobalShippingQuery) : List UInt8 :=
+  q.encoded.familyDomain ++
     Ipp.ShippingHashGame.shippingAttemptPreimage
-      query.encoded.challengeContext query.attempt
+      q.encoded.challengeContext q.attempt
 
 /-- Construct a global query after production family registration has supplied
 its exact transcript-domain bytes and the concrete statement projection has
@@ -198,19 +211,19 @@ structure GlobalQuerySerialization where
   encodeGt : Ipp.Bls12377.ArkPairingOutput →
     Ipp.ChallengeMessageSerialization.CanonicalGt
   toByteAttempt : GlobalFsQuery → GlobalShippingQuery
-  statement_exact : ∀ query,
-    (toByteAttempt query).statement = query.statement
-  encoded_exact : ∀ query,
-    (toByteAttempt query).encoded = query.encoded
-  point_exact : ∀ query,
+  statement_exact : ∀ q,
+    (toByteAttempt q).statement = q.statement
+  encoded_exact : ∀ q,
+    (toByteAttempt q).encoded = q.encoded
+  point_exact : ∀ q,
     Ipp.ShippingHashGame.shippingAttemptPoint
-        (toByteAttempt query).attempt =
-      mapChallengePointGt encodeGt query.point
+        (toByteAttempt q).attempt =
+      mapChallengePointGt encodeGt q.point
 
 def GlobalQuerySerialization.byteEncoding
     (serialization : GlobalQuerySerialization)
-    (query : GlobalFsQuery) : List UInt8 :=
-  globalQueryEncoding (serialization.toByteAttempt query)
+    (q : GlobalFsQuery) : List UInt8 :=
+  globalQueryEncoding (serialization.toByteAttempt q)
 
 /-- Joint injectivity required only on queries reachable in one complete
 adaptive execution.  Its proof decomposes into registered-family
@@ -236,6 +249,14 @@ abbrev GlobalFieldOracleSpec :=
 the same shape consumed by `FsFork.fsRandomFunction` and `ForkTree`. -/
 abbrev GlobalFsSourceSpec :=
   unifSpec + GlobalFieldOracleSpec
+
+local instance globalFsSourceUniform :
+    IsUniformSpec GlobalFsSourceSpec :=
+  IsUniformSpec.ofFintypeInhabited _
+
+local instance fsWrappedUniform :
+    IsUniformSpec (Ipp.FsWrappedSpec Ipp.Bls12377.Fr) :=
+  IsUniformSpec.ofFintypeInhabited _
 
 /-- One formal statement/proof choice in the explicit `μ` partition.  The
 opaque production `call` is retained in fork outputs.  `logicalKey` preserves
@@ -479,7 +500,7 @@ def MultiStatementFsGame {Call : Type}
 
 /-- Verify one already-selected heterogeneous call without leaving the shared
 oracle program. -/
-def verifyPackedSelection {Call : Type}
+def verifyPackedSelection {Call : Type} :
     PackedSelection Call →
       OracleComp GlobalFsSourceSpec (PackedOutcome Call)
   | ⟨μ, selection⟩ => do
@@ -492,7 +513,7 @@ def verifyPackedSelection {Call : Type}
 /-- Sequentially verify a planned heterogeneous bundle.  This recursion lives
 inside one oracle computation; answers queried for earlier calls remain in
 the same cache for every later call. -/
-def verifyPackedBundle {Call : Type}
+def verifyPackedBundle {Call : Type} :
     List (PackedSelection Call) →
       OracleComp GlobalFsSourceSpec (List (PackedOutcome Call))
   | [] => pure []
@@ -519,7 +540,7 @@ theorem multiStatementFsGame_isTotalQueryBound
       OracleComp GlobalFsSourceSpec (PackedSelection Call))
     (adversaryQueries verifierQueries : Nat)
     (hadversary : IsTotalQueryBound adversary adversaryQueries)
-    (hverifier : ∀ μ selection,
+    (hverifier : ∀ (μ : Nat) (selection : SelectionAt Call μ),
       IsTotalQueryBound
         (globalFsVerifier (μ := μ) selection) verifierQueries) :
     IsTotalQueryBound
@@ -548,7 +569,7 @@ theorem multiStatementFsGame_selectedFraming_queryBounded
       OracleComp GlobalFsSourceSpec (PackedSelection Call))
     (adversaryQueries verifierQueries : Nat)
     (hadversary : IsTotalQueryBound adversary adversaryQueries)
-    (hverifier : ∀ μ selection,
+    (hverifier : ∀ (μ : Nat) (selection : SelectionAt Call μ),
       IsTotalQueryBound
         (globalFsVerifier (μ := μ) selection) verifierQueries) :
     IsTotalQueryBound
@@ -602,7 +623,7 @@ def multiStatementFsProbComp {Call : Type}
     (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call)) :
     OracleComp (Ipp.FsWrappedSpec Ipp.Bls12377.Fr)
       (MultiStatementRunLog Call) :=
-  Ipp.replayFirstRun (multiStatementForkMain game)
+  replayFirstRun (multiStatementForkMain game)
 
 /-- Dynamically locate the first cache miss for the selected output's
 round-`level` structured query.  Adversarial queries before selection remain
@@ -613,9 +634,9 @@ def multiStatementRoundSlot {Call : Type}
     Option (Fin (queryBound + 1)) := by
   match run.out.roundQuery? level with
   | none => exact none
-  | some query =>
-      if hmem : query ∈ run.trace then
-        let index := run.trace.findIdx (· == query)
+  | some q =>
+      if hmem : q ∈ run.trace then
+        let index := run.trace.findIdx (· == q)
         if hindex : index < queryBound + 1 then
           exact some ⟨index, hindex⟩
         else
@@ -667,6 +688,25 @@ theorem leastInvalidOutcome?_mem {Call : Type}
         simp
       · exact List.mem_cons_of_mem head (ih h)
 
+/-- Every selected least-invalid output satisfies the invalidity predicate. -/
+theorem leastInvalidOutcome?_invalid {Call : Type}
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
+    {outputs : List (PackedOutcome Call)}
+    {output : PackedOutcome Call}
+    (h : leastInvalidOutcome? invalid outputs = some output) :
+    InvalidOutput invalid output := by
+  induction outputs with
+  | nil =>
+      simp [leastInvalidOutcome?] at h
+  | cons head tail ih =>
+      simp only [leastInvalidOutcome?] at h
+      split at h
+      · rename_i hhead
+        simp only [Option.some.injEq] at h
+        subst output
+        exact hhead
+      · exact ih h
+
 /-- All shipping calls returned acceptance. -/
 def BundleAcceptsAll {Call : Type}
     (outputs : List (PackedOutcome Call)) : Prop :=
@@ -685,18 +725,9 @@ theorem bundle_acceptance_implies_least_invalid_acceptance
     (hall : BundleAcceptsAll outputs) :
     InvalidOutput invalid output ∧ output.accept = true := by
   have hmem := leastInvalidOutcome?_mem invalid hleast
-  refine ⟨?_, hall output hmem⟩
-  induction outputs with
-  | nil =>
-      simp [leastInvalidOutcome?] at hleast
-  | cons head tail ih =>
-      simp only [leastInvalidOutcome?] at hleast
-      split at hleast
-      · rename_i hinvalid
-        simp only [Option.some.injEq] at hleast
-        subst output
-        exact hinvalid
-      · exact ih hleast
+  exact
+    ⟨leastInvalidOutcome?_invalid invalid hleast,
+      hall output hmem⟩
 
 /-- Invalid acceptance restricted to one explicit `μ` partition. -/
 def InvalidAcceptedAt {Call : Type}

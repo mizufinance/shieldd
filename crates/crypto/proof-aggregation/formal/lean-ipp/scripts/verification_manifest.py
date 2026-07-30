@@ -84,6 +84,9 @@ FSTAR_OPEN_MODULE = re.compile(
 )
 EXTRACTION_GRAPH_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 VALID_CLAIM_STATUSES = {"proved", "tested", "open"}
+PENDING_CONTRACT_REFRESH_KINDS = frozenset(
+    {"external", "fstar", "lean"}
+)
 CLOSED_TESTED_CLAIM_IDS = {
     "BOUNDED-CHALLENGE-SAMPLER",
     "V1-BYTE-LOCK",
@@ -93,10 +96,10 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "087d026aa0c7867244c512be825705247625808b02eddb89e9f7c6e0a576e143"
+    "6e00e4a0ab7091659533d20f20c110bffacea91e674d6b844145309fb8164c7c"
 )
 ASSUMPTION_LEDGER_SHA256 = (
-    "d3e4be465b8987f998cac20c22bdd416c04cdd3118e97e4d17a618ddef4672f3"
+    "c274055eb26163b541868a2cbed586f2f8e9df6c075aab2f4639dc0a49b8455d"
 )
 V1_PROTOCOL_VERSION = 2
 V1_BYTE_BASELINE_SHA256 = (
@@ -104,6 +107,10 @@ V1_BYTE_BASELINE_SHA256 = (
 )
 V1_TRACE_BASELINE_SHA256 = (
     "e2f05c697268e2e2cf60174110a38fa711e11525e590eda384878994c5727fb3"
+)
+DEPLOYED_SRS_CLAIM_ID = "DEPLOYED-SRS-SOUNDNESS"
+DEPLOYED_SRS_OPEN_ROOT = (
+    "UNPROVED.deployed_srs_unknown_trapdoor_and_registry_binding"
 )
 V1_BASELINE_FAMILIES = (
     "Transfer",
@@ -124,7 +131,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "statement_binding_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "df8c4413bcbb421d19abb6da6844608dba63945e0dd24261de033fe61e9efcec"
+    "8c440c5493ec5ef6f4449c7e368b7b796adaa713b14989b65eed5eec7f6ece4a"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -164,10 +171,6 @@ FSTAR_GLOBAL_INPUT_INVENTORY = (
         "shielded_ics20_withdrawal/generated.rs"
     ),
     "crates/crypto/proof-aggregation/Cargo.toml",
-    (
-        "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
-        "verification_manifest.py"
-    ),
     "crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml",
     "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
     "crates/crypto/proof-aggregation/src/bundle.rs",
@@ -181,7 +184,6 @@ FSTAR_GLOBAL_INPUT_INVENTORY = (
     "flake.nix",
     "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
     "rust-toolchain.toml",
-    "scripts/ci/snarkpack_fv_impact.py",
     "scripts/prepare_snarkpack_fstar_support.py",
     "scripts/snarkpack-formal.sh",
 )
@@ -275,10 +277,6 @@ EXTERNAL_RUST_EVIDENCE_ROOTS = {
     "proofDecodeExact": (
         "Rust.proof_aggregation.backend.deserialize_aggregate_proof",
         "crates/crypto/proof-aggregation/src/backend.rs",
-    ),
-    "realPrefixExact": (
-        "Rust.proof_aggregation.padding.prepare_verify_public_input_rows",
-        "crates/crypto/proof-aggregation/src/padding.rs",
     ),
 }
 ASSUMED_CONTRACT_FIELDS = {
@@ -1394,6 +1392,70 @@ def validate_bounded_challenge_sampler(
             )
 
 
+def validate_deployed_srs_soundness(
+    manifest: dict[str, Any], repo_root: Path
+) -> None:
+    """Keep the publication claim red until secure deployment evidence exists."""
+    claims = {
+        claim["id"]: claim
+        for claim in _require_nonempty_list(manifest, "claims")
+        if isinstance(claim, dict) and isinstance(claim.get("id"), str)
+    }
+    claim = claims.get(DEPLOYED_SRS_CLAIM_ID)
+    if claim is None:
+        raise VerificationError(
+            f"missing required claim: {DEPLOYED_SRS_CLAIM_ID}"
+        )
+    kzg = claims.get("KZG-LEAF-REDUCTION")
+    if (
+        kzg is None
+        or DEPLOYED_SRS_CLAIM_ID not in kzg.get("dependencies", [])
+    ):
+        raise VerificationError(
+            "KZG-LEAF-REDUCTION must depend on DEPLOYED-SRS-SOUNDNESS"
+        )
+
+    srs_path = repo_root / "crates/crypto/proof-aggregation/src/srs.rs"
+    app_path = repo_root / "crates/core/app/src/app/mod.rs"
+    for path in (srs_path, app_path):
+        if not path.is_file():
+            raise VerificationError(f"missing deployed SRS owner: {path}")
+    srs_code = rust_code_without_comments_and_strings(
+        srs_path.read_text(encoding="utf-8")
+    )
+    app_code = rust_code_without_comments_and_strings(
+        app_path.read_text(encoding="utf-8")
+    )
+    reproducible_setup = (
+        re.search(
+            r"\bconst\s+DEV_SRS_SEED\s*:\s*\[u8;\s*32\]\s*=",
+            srs_code,
+        )
+        is not None
+        and re.search(
+            r"\bChaCha20Rng::from_seed\s*\(\s*DEV_SRS_SEED\s*\)",
+            srs_code,
+        )
+        is not None
+        and re.search(r"\bsetup_inner_product\s*::<", srs_code) is not None
+        and re.search(r"\bDevSrs::default\s*\(\s*\)", app_code) is not None
+    )
+    if reproducible_setup and (
+        claim.get("status") != "open"
+        or claim.get("root") != DEPLOYED_SRS_OPEN_ROOT
+    ):
+        raise VerificationError(
+            "DEPLOYED-SRS-SOUNDNESS cannot close while production derives "
+            "the KZG setup from the public DEV_SRS_SEED"
+        )
+    if claim.get("status") == "proved":
+        raise VerificationError(
+            "DEPLOYED-SRS-SOUNDNESS cannot close without a machine-checked "
+            "secure-SRS artifact/registry evidence schema; add that schema "
+            "and its fail-closed validator as part of the SRS migration"
+        )
+
+
 def validate_shipping_nonce_source(
     relative: str,
     text: str,
@@ -2425,8 +2487,22 @@ def validate_contract_evidence(
     repo_root: Path,
     *,
     require_checker_artifact: bool = True,
-    allow_stale_source_drift: bool = False,
+    allow_stale_source_drift_kinds: Iterable[str] = (),
 ) -> None:
+    requested_stale_kinds = tuple(allow_stale_source_drift_kinds)
+    if len(requested_stale_kinds) != len(set(requested_stale_kinds)):
+        raise VerificationError(
+            "duplicate allowed pending contract evidence kind"
+        )
+    allowed_stale_kinds = frozenset(requested_stale_kinds)
+    unknown_stale_kinds = sorted(
+        allowed_stale_kinds - PENDING_CONTRACT_REFRESH_KINDS
+    )
+    if unknown_stale_kinds:
+        raise VerificationError(
+            "unknown allowed pending contract evidence kind(s): "
+            + ", ".join(unknown_stale_kinds)
+        )
     contract_source = (
         repo_root
         / "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/ShippingV1.lean"
@@ -2507,11 +2583,11 @@ def validate_contract_evidence(
             if not path.is_file():
                 raise VerificationError(f"missing statement-contract source: {path}")
             stale_recheck = (
-                allow_stale_source_drift
+                entry["kind"] in allowed_stale_kinds
                 and entry.get("checker", {}).get("last_result") == "stale"
             )
             if (
-                (entry["kind"] == "fstar" or stale_recheck)
+                entry["kind"] == "fstar"
                 and source["path"] not in fstar_tracked_sources
             ):
                 raise VerificationError(
@@ -2817,7 +2893,21 @@ def validate_repository(
     repo_root: Path = REPO_ROOT,
     lean_root: Path | None = None,
     require_checker_artifact: bool = True,
+    allow_pending_contract_kinds: Iterable[str] = (),
 ) -> ValidationSummary:
+    pending_contract_kinds = tuple(allow_pending_contract_kinds)
+    if len(pending_contract_kinds) != len(set(pending_contract_kinds)):
+        raise VerificationError(
+            "duplicate allowed pending contract evidence kind"
+        )
+    unknown_pending_contract_kinds = sorted(
+        set(pending_contract_kinds) - PENDING_CONTRACT_REFRESH_KINDS
+    )
+    if unknown_pending_contract_kinds:
+        raise VerificationError(
+            "unknown allowed pending contract evidence kind(s): "
+            + ", ".join(unknown_pending_contract_kinds)
+        )
     if manifest.get("schema_version") != 1:
         raise VerificationError("schema_version must be 1")
     actual_lean_root = lean_root or (
@@ -2922,6 +3012,7 @@ def validate_repository(
 
     validate_v1_byte_lock(manifest, repo_root)
     validate_bounded_challenge_sampler(manifest, repo_root)
+    validate_deployed_srs_soundness(manifest, repo_root)
 
     claim_ledger_digest = hashlib.sha256(
         _canonical_json(claims).encode("utf-8")
@@ -2982,7 +3073,11 @@ def validate_repository(
     validate_contract_evidence(
         manifest,
         repo_root,
-        require_checker_artifact=require_checker_artifact,
+        require_checker_artifact=(
+            require_checker_artifact
+            and "fstar" not in pending_contract_kinds
+        ),
+        allow_stale_source_drift_kinds=pending_contract_kinds,
     )
     validate_operation_register(load_operation_register())
 
@@ -3478,7 +3573,17 @@ def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser()
     commands = result.add_subparsers(dest="command", required=True)
     commands.add_parser("check")
-    commands.add_parser("validate")
+    validate = commands.add_parser("validate")
+    validate.add_argument(
+        "--allow-pending-contract-kind",
+        action="append",
+        choices=sorted(PENDING_CONTRACT_REFRESH_KINDS),
+        default=[],
+        help=(
+            "accept source drift only for already-stale evidence rows of this "
+            "kind; repeat only for kinds whose proof/evidence lane is scheduled"
+        ),
+    )
     commands.add_parser("outputs")
     commands.add_parser("audit-modules")
     audit = commands.add_parser("audit-log")
@@ -3536,7 +3641,12 @@ def main(argv: list[str] | None = None) -> int:
                 "evidence rows"
             )
         elif args.command == "validate":
-            summary = validate_repository(manifest)
+            summary = validate_repository(
+                manifest,
+                allow_pending_contract_kinds=(
+                    args.allow_pending_contract_kind
+                ),
+            )
             print(
                 "verification manifest structurally ok: "
                 f"{summary.audit_capstones} capstones, "
@@ -3625,7 +3735,9 @@ def main(argv: list[str] | None = None) -> int:
                 manifest,
                 REPO_ROOT,
                 require_checker_artifact=False,
-                allow_stale_source_drift=True,
+                allow_stale_source_drift_kinds=(
+                    PENDING_CONTRACT_REFRESH_KINDS
+                ),
             )
             requested = _requested_fstar_modules(
                 args.requested_json, manifest, REPO_ROOT
@@ -3643,7 +3755,9 @@ def main(argv: list[str] | None = None) -> int:
                 manifest,
                 REPO_ROOT,
                 require_checker_artifact=False,
-                allow_stale_source_drift=True,
+                allow_stale_source_drift_kinds=(
+                    PENDING_CONTRACT_REFRESH_KINDS
+                ),
             )
             if args.check is not None and args.output is not None:
                 raise VerificationError("--check and --output are mutually exclusive")
@@ -3683,7 +3797,9 @@ def main(argv: list[str] | None = None) -> int:
                 manifest,
                 REPO_ROOT,
                 require_checker_artifact=False,
-                allow_stale_source_drift=True,
+                allow_stale_source_drift_kinds=(
+                    PENDING_CONTRACT_REFRESH_KINDS
+                ),
             )
             nonstale = sorted(
                 entry["contract_field"]
@@ -3708,7 +3824,9 @@ def main(argv: list[str] | None = None) -> int:
                 manifest,
                 REPO_ROOT,
                 require_checker_artifact=False,
-                allow_stale_source_drift=True,
+                allow_stale_source_drift_kinds=(
+                    PENDING_CONTRACT_REFRESH_KINDS
+                ),
             )
             environment_sha256, exact_sha256 = (
                 fstar_ci_cache_fingerprints(manifest, REPO_ROOT)

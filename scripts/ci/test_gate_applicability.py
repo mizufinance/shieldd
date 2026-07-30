@@ -442,11 +442,57 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn(
             f"SNARKPACK_FV_GRAPHS_JSON: {filtered_graphs}", workflow
         )
+        exact_pending_contract_lanes = {
+            "FSTAR": "fstar",
+            "LEAN": "lean",
+            "EXTERNAL": "rust_reference",
+        }
+        for kind, lane in exact_pending_contract_lanes.items():
+            with self.subTest(pending_contract_kind=kind):
+                self.assertIn(
+                    "SNARKPACK_ALLOW_PENDING_"
+                    f"{kind}_CONTRACT_REFRESH: "
+                    "${{ needs.applicability.outputs.snarkpack_"
+                    f"{lane}_run == 'true' && '1' || '0' }}",
+                    workflow,
+                )
+        self.assertNotIn(
+            "SNARKPACK_ALLOW_PENDING_CONTRACT_REFRESH:",
+            workflow,
+        )
+        self.assertIn(
+            "SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON: "
+            "${{ needs.applicability.outputs.snarkpack_extract_run == "
+            "'true' && needs.applicability.outputs."
+            "snarkpack_extract_graphs || '[]' }}",
+            workflow,
+        )
         self.assertNotIn(
             "GRAPH_SELECTION: "
             "${{ needs.applicability.outputs.snarkpack_graphs }}",
             workflow,
         )
+        for lane in ("snarkpack-lean", "snarkpack-parity"):
+            body = dict(
+                re.findall(
+                    r"(?ms)^  (snarkpack-[a-z0-9-]+):\n"
+                    r"(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+                    workflow,
+                )
+            )[lane]
+            self.assertIn(
+                "needs: [applicability, snarkpack-extract]",
+                body,
+            )
+            self.assertIn(
+                "needs.applicability.outputs.snarkpack_extract_run "
+                "!= 'true'",
+                body,
+            )
+            self.assertIn(
+                "needs.snarkpack-extract.result == 'success'",
+                body,
+            )
         self.assertIn("max-parallel: 16", workflow)
         self.assertNotIn("snarkpack-toolchain:", workflow)
         extraction_attestation_key = (

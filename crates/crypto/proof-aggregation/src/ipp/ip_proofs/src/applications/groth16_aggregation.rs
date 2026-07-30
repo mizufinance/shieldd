@@ -515,10 +515,46 @@ struct AggregateAdapterExecutionOutput<I, F, RFX, FX, TX> {
     tipp_mipp: TX,
 }
 
+/// Exact successful randomizer query retained by the shipping adapter.
+#[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)]
+struct ShippingAcceptedRandomizerCall<F> {
+    initial_nonce: u64,
+    accepted_nonce: u64,
+    message: Vec<u8>,
+    value: F,
+}
+
+/// One successful deployed TIPP/MIPP challenge query.
+#[allow(dead_code)]
+struct ShippingAcceptedChallengeCall<F> {
+    accepted_nonce: u64,
+    message: Vec<u8>,
+    value: F,
+}
+
+/// Successful verifier challenge calls in deployed query order.
+#[allow(dead_code)]
+struct ShippingAcceptedTippMippChallengeTrace<F> {
+    x0: Option<ShippingAcceptedChallengeCall<F>>,
+    rounds_chrono: Vec<ShippingAcceptedChallengeCall<F>>,
+    final_bridge: Option<ShippingAcceptedChallengeCall<F>>,
+    kzg: Option<ShippingAcceptedChallengeCall<F>>,
+}
+
+fn empty_accepted_tipp_mipp_trace<F>() -> ShippingAcceptedTippMippChallengeTrace<F> {
+    ShippingAcceptedTippMippChallengeTrace {
+        x0: None,
+        rounds_chrono: Vec::new(),
+        final_bridge: None,
+        kzg: None,
+    }
+}
+
 /// Owned, acceptance-relevant result of the concrete shipping adapter.
 ///
-/// Runtime timing and buffered trace storage are deliberately excluded. The
-/// caller retains those observations in a separate, non-extracted envelope.
+/// The call records retain accepted values, nonces, messages, and chronology;
+/// buffered digest traces remain in the caller envelope.
 #[cfg(not(feature = "bench-baseline"))]
 #[allow(dead_code)]
 struct ShippingAdapterSemanticExecution<I, F, TX> {
@@ -526,9 +562,36 @@ struct ShippingAdapterSemanticExecution<I, F, TX> {
     initial_nonce: u64,
     accepted_nonce: u64,
     randomizer: F,
+    accepted_randomizer_call: ShippingAcceptedRandomizerCall<F>,
+    accepted_tipp_mipp_challenge_trace: ShippingAcceptedTippMippChallengeTrace<F>,
     checks: (bool, bool),
     tipp_mipp: TX,
     accepted: bool,
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_adapter_semantic_execution_from_parts<I, F, TX>(
+    adapter_input: I,
+    initial_nonce: u64,
+    accepted_nonce: u64,
+    randomizer: F,
+    accepted_randomizer_call: ShippingAcceptedRandomizerCall<F>,
+    accepted_tipp_mipp_challenge_trace: ShippingAcceptedTippMippChallengeTrace<F>,
+    checks: (bool, bool),
+    tipp_mipp: TX,
+    accepted: bool,
+) -> ShippingAdapterSemanticExecution<I, F, TX> {
+    ShippingAdapterSemanticExecution {
+        adapter_input,
+        initial_nonce,
+        accepted_nonce,
+        randomizer,
+        accepted_randomizer_call,
+        accepted_tipp_mipp_challenge_trace,
+        checks,
+        tipp_mipp,
+        accepted,
+    }
 }
 
 /// Generic effect bundle consumed by the adapter core.
@@ -1753,6 +1816,82 @@ trait ProverGipaEffect<F, G1, G2, GT, ABT, CT, E> {
     );
 }
 
+/// Effect adapter that retains the root challenge while delegating every
+/// external operation to the production effect.
+///
+/// The adapter is internal to the semantic execution root. It changes neither
+/// the operation order nor the effect's transcript writes.
+struct RetainedProverGipaEffect<FX, F> {
+    inner: FX,
+    x0: Option<F>,
+}
+
+impl<F, G1, G2, GT, ABT, CT, E, FX> ProverGipaEffect<F, G1, G2, GT, ABT, CT, E>
+    for RetainedProverGipaEffect<FX, F>
+where
+    F: Clone,
+    FX: ProverGipaEffect<F, G1, G2, GT, ABT, CT, E>,
+{
+    fn derive_x0(
+        &mut self,
+        randomizer: &F,
+        com_a: &GT,
+        com_b: &GT,
+        com_c: &GT,
+        ip_ab: &GT,
+        agg_c: &G1,
+    ) -> Result<F, E> {
+        let x0 = self
+            .inner
+            .derive_x0(randomizer, com_a, com_b, com_c, ip_ab, agg_c)?;
+        self.x0 = Some(x0.clone());
+        Ok(x0)
+    }
+
+    fn commit_round(
+        a: &[G1],
+        b: &[G2],
+        c: &[G1],
+        public_values: &[F],
+        ck_v: &[G2],
+        ck_w: &[G1],
+    ) -> Result<TippMippCoreCommitment<GT, ABT, CT>, E> {
+        FX::commit_round(a, b, c, public_values, ck_v, ck_w)
+    }
+
+    fn derive_round(
+        &mut self,
+        prior_raw_challenge: &F,
+        left: &TippMippCoreCommitment<GT, ABT, CT>,
+        right: &TippMippCoreCommitment<GT, ABT, CT>,
+    ) -> Result<F, E> {
+        self.inner.derive_round(prior_raw_challenge, left, right)
+    }
+
+    fn invert_round(&self, challenge: &F) -> Result<F, E> {
+        self.inner.invert_round(challenge)
+    }
+
+    #[cfg(not(hax_compilation))]
+    fn record_commit_profile(&mut self, left_ms: f64, right_ms: f64) {
+        self.inner.record_commit_profile(left_ms, right_ms);
+    }
+
+    #[cfg(not(hax_compilation))]
+    fn record_fold_profile(
+        &mut self,
+        a_ms: f64,
+        b_ms: f64,
+        c_ms: f64,
+        public_values_ms: f64,
+        ck_v_ms: f64,
+        ck_w_ms: f64,
+    ) {
+        self.inner
+            .record_fold_profile(a_ms, b_ms, c_ms, public_values_ms, ck_v_ms, ck_w_ms);
+    }
+}
+
 // Chronological fields are consumed by the extraction refinement; shipping
 // serialization consumes the corresponding reversed wire fields.
 #[allow(dead_code)]
@@ -1776,6 +1915,35 @@ struct ProverGipaCoreOutput<F, G1, G2, GT, ABT, CT> {
     final_public_value: F,
 }
 
+/// Compact evidence for the external operations executed by one GIPA round.
+///
+/// The six input vectors are reconstructed deterministically from the initial
+/// GIPA input and the preceding folds. Retaining only the prior challenge,
+/// commitment outputs, raw challenge, and inverse keeps this boundary
+/// logarithmic in the aggregate size.
+#[allow(dead_code)]
+#[derive(Clone)]
+struct ProverGipaRoundEffectEvidence<F, GT, ABT, CT> {
+    prior_raw_challenge: F,
+    left: TippMippCoreCommitment<GT, ABT, CT>,
+    right: TippMippCoreCommitment<GT, ABT, CT>,
+    raw_challenge: F,
+    inverse: F,
+}
+
+/// One successful production-used call of the GIPA core.
+///
+/// Unlike a from-parts projection, this record can only be returned after the
+/// same effect instance has executed `derive_x0`, every continuing round, and
+/// all inversions. It contains no timers or profiling data.
+#[allow(dead_code)]
+struct ProverGipaSemanticExecution<F, G1, G2, GT, ABT, CT> {
+    input: ProverGipaCoreInput<F, G1, G2, GT>,
+    output: ProverGipaCoreOutput<F, G1, G2, GT, ABT, CT>,
+    x0: F,
+    rounds_chrono: Vec<ProverGipaRoundEffectEvidence<F, GT, ABT, CT>>,
+}
+
 /// Complete data boundary from one successful shipping aggregate-prover run.
 ///
 /// The production proof is assembled only from this record. The record keeps
@@ -1794,6 +1962,7 @@ where
 {
     gipa_input: ProverGipaCoreInput<F, G1, G2, GT>,
     gipa_output: ProverGipaCoreOutput<F, G1, G2, GT, ABT, CT>,
+    gipa_round_effects_chrono: Vec<ProverGipaRoundEffectEvidence<F, GT, ABT, CT>>,
     x0: F,
     randomizer_inverse: F,
     final_bridge: F,
@@ -2461,6 +2630,109 @@ where
     })
 }
 
+/// Project the exact chronological external results retained by a successful
+/// GIPA call.
+///
+/// The core constructs all three input slices in lockstep. This helper checks
+/// that invariant again before indexing so a stale or independently assembled
+/// result cannot be promoted to semantic execution evidence.
+fn prover_gipa_round_effect_evidence_core<F, GT, ABT, CT>(
+    x0: &F,
+    rounds_chrono: &[(
+        TippMippCoreCommitment<GT, ABT, CT>,
+        TippMippCoreCommitment<GT, ABT, CT>,
+    )],
+    raw_transcript_chrono: &[F],
+    inv_transcript_chrono: &[F],
+) -> Option<Vec<ProverGipaRoundEffectEvidence<F, GT, ABT, CT>>>
+where
+    F: Clone,
+    GT: Clone,
+    ABT: Clone,
+    CT: Clone,
+{
+    if rounds_chrono.len() != raw_transcript_chrono.len()
+        || rounds_chrono.len() != inv_transcript_chrono.len()
+    {
+        return None;
+    }
+
+    let mut prior = x0.clone();
+    let mut evidence = Vec::with_capacity(rounds_chrono.len());
+    let mut index = 0usize;
+    while index < rounds_chrono.len() {
+        let raw_challenge = raw_transcript_chrono[index].clone();
+        evidence.push(ProverGipaRoundEffectEvidence {
+            prior_raw_challenge: prior,
+            left: rounds_chrono[index].0.clone(),
+            right: rounds_chrono[index].1.clone(),
+            raw_challenge: raw_challenge.clone(),
+            inverse: inv_transcript_chrono[index].clone(),
+        });
+        prior = raw_challenge;
+        index += 1;
+    }
+    Some(evidence)
+}
+
+/// Production-used, timing-free semantic root for one successful GIPA call.
+///
+/// This function, rather than a later from-parts constructor, owns the call to
+/// `prove_tipp_mipp_gipa_core`. The returned `x0` and round evidence therefore
+/// come from the same mutable effect instance and the same successful call.
+fn prover_gipa_semantic_execution_core<F, G1, G2, GT, ABT, CT, E, FX>(
+    input: ProverGipaCoreInput<F, G1, G2, GT>,
+    effect: FX,
+) -> Result<(ProverGipaSemanticExecution<F, G1, G2, GT, ABT, CT>, FX), ProverGipaCoreError<E>>
+where
+    F: Clone + Mul<F, Output = F> + Add<Output = F> + Sync,
+    G1: Clone + Mul<F, Output = G1> + Add<Output = G1> + Sync,
+    G2: Clone + Mul<F, Output = G2> + Add<Output = G2> + Sync,
+    GT: Clone + Send + Sync,
+    ABT: Clone + Send + Sync,
+    CT: Clone + Send + Sync,
+    E: Send,
+    FX: ProverGipaEffect<F, G1, G2, GT, ABT, CT, E>,
+{
+    let mut retained_effect = RetainedProverGipaEffect {
+        inner: effect,
+        x0: None,
+    };
+    let output = prove_tipp_mipp_gipa_core(input.clone(), &mut retained_effect)?;
+    let x0 = match retained_effect.x0.take() {
+        Some(x0) => x0,
+        None => {
+            return Err(ProverGipaCoreError {
+                kind: 6,
+                effect_error: None,
+            })
+        }
+    };
+    let rounds_chrono = match prover_gipa_round_effect_evidence_core(
+        &x0,
+        &output.rounds_chrono,
+        &output.raw_transcript_chrono,
+        &output.inv_transcript_chrono,
+    ) {
+        Some(rounds) => rounds,
+        None => {
+            return Err(ProverGipaCoreError {
+                kind: 7,
+                effect_error: None,
+            })
+        }
+    };
+    Ok((
+        ProverGipaSemanticExecution {
+            input,
+            output,
+            x0,
+            rounds_chrono,
+        },
+        retained_effect.inner,
+    ))
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct TippMippBuildProfile {
     pub total_ms: f64,
@@ -2487,7 +2759,6 @@ pub struct TippMippBuildProfile {
 struct ArkworksProverGipaEffect<'a, P: Pairing, D: Digest + Send + Sync, S: ChallengeTraceSink> {
     context: &'a ChallengeContext,
     trace: &'a mut S,
-    x0: Option<P::ScalarField>,
     profile: TippMippBuildProfile,
     _pairing: PhantomData<fn() -> P>,
     _digest: PhantomData<fn() -> D>,
@@ -2517,10 +2788,7 @@ where
         ip_ab: &PairingOutput<P>,
         agg_c: &P::G1,
     ) -> Result<P::ScalarField, String> {
-        let x0 =
-            arkworks_tipp_x0_adapter_core(self, randomizer, com_a, com_b, com_c, ip_ab, agg_c)?;
-        self.x0 = Some(x0.clone());
-        Ok(x0)
+        arkworks_tipp_x0_adapter_core(self, randomizer, com_a, com_b, com_c, ip_ab, agg_c)
     }
 
     fn commit_round(
@@ -2633,9 +2901,7 @@ where
 /// boundary. All wire fields are assembled from the retained GIPA execution;
 /// callers cannot supply an unrelated proof beside that execution.
 fn shipping_prover_execution_from_parts<F, G1, G2, GT, ABT, CT, D>(
-    gipa_input: ProverGipaCoreInput<F, G1, G2, GT>,
-    gipa_output: ProverGipaCoreOutput<F, G1, G2, GT, ABT, CT>,
-    x0: F,
+    gipa_execution: ProverGipaSemanticExecution<F, G1, G2, GT, ABT, CT>,
     randomizer_inverse: F,
     final_bridge: F,
     kzg_challenge: F,
@@ -2650,6 +2916,12 @@ where
     CT: Clone + CanonicalSerialize + CanonicalDeserialize,
     D: Send + Sync,
 {
+    let ProverGipaSemanticExecution {
+        input: gipa_input,
+        output: gipa_output,
+        x0,
+        rounds_chrono: gipa_round_effects_chrono,
+    } = gipa_execution;
     let wire_rounds = prover_gipa_rounds_to_wire(gipa_output.rounds_wire.clone());
     let gipa_proof = tipp_mipp_gipa_proof_from_wire_rounds(wire_rounds);
     let tipp_mipp_proof = tipp_mipp_proof_from_parts(
@@ -2669,6 +2941,7 @@ where
     ShippingProverExecution {
         gipa_input,
         gipa_output,
+        gipa_round_effects_chrono,
         x0,
         randomizer_inverse,
         final_bridge,
@@ -2756,7 +3029,7 @@ where
     let mut profile = TippMippBuildProfile::default();
 
     let gipa_started = Instant::now();
-    let (gipa_input, gipa_output, x0, mut gipa_profile) = prove_tipp_mipp_gipa_profiled::<P, D, S>(
+    let (gipa_execution, mut gipa_profile) = prove_tipp_mipp_gipa_profiled::<P, D, S>(
         context, trace, a, b_r, c, r_vec, ck_1, ck_2_r_inv, r, com, ip_ab, agg_c,
     )?;
     profile.gipa_ms = gipa_started.elapsed().as_secs_f64() * 1000.0;
@@ -2771,23 +3044,27 @@ where
     profile.rescale_ck2_ms = gipa_profile.rescale_ck2_ms;
 
     let transcript_inverse_started = Instant::now();
-    let raw_transcript = &gipa_output.raw_transcript_wire;
-    let inv_transcript = &gipa_output.inv_transcript_wire;
+    let raw_transcript = &gipa_execution.output.raw_transcript_wire;
+    let inv_transcript = &gipa_execution.output.inv_transcript_wire;
     profile.transcript_inverse_ms = transcript_inverse_started.elapsed().as_secs_f64() * 1000.0;
 
     let final_bridge_started = Instant::now();
     let final_bridge = derive_final_bridge::<P, D, S>(
         context,
         trace,
-        &gipa_output.last_raw_challenge,
-        &gipa_output.final_ck,
-        &gipa_output.final_messages,
+        &gipa_execution.output.last_raw_challenge,
+        &gipa_execution.output.final_ck,
+        &gipa_execution.output.final_messages,
     )?;
     profile.final_bridge_ms = final_bridge_started.elapsed().as_secs_f64() * 1000.0;
 
     let kzg_challenge_started = Instant::now();
-    let kzg_challenge =
-        derive_kzg_challenge::<P, D, S>(context, trace, &final_bridge, &gipa_output.final_ck)?;
+    let kzg_challenge = derive_kzg_challenge::<P, D, S>(
+        context,
+        trace,
+        &final_bridge,
+        &gipa_execution.output.final_ck,
+    )?;
     profile.kzg_challenge_ms = kzg_challenge_started.elapsed().as_secs_f64() * 1000.0;
 
     let r_inverse = r.inverse().ok_or_else(|| {
@@ -2826,9 +3103,7 @@ where
     profile.total_ms = total_started.elapsed().as_secs_f64() * 1000.0;
 
     let execution = shipping_prover_execution_from_parts::<_, _, _, _, _, _, D>(
-        gipa_input,
-        gipa_output,
-        x0,
+        gipa_execution,
         r_inverse,
         final_bridge,
         kzg_challenge,
@@ -2854,8 +3129,7 @@ fn prove_tipp_mipp_gipa_profiled<P, D, S>(
     agg_c: &P::G1,
 ) -> Result<
     (
-        ProverGipaCoreInput<P::ScalarField, P::G1, P::G2, PairingOutput<P>>,
-        ProverGipaCoreOutput<
+        ProverGipaSemanticExecution<
             P::ScalarField,
             P::G1,
             P::G2,
@@ -2863,7 +3137,6 @@ fn prove_tipp_mipp_gipa_profiled<P, D, S>(
             IdentityOutput<PairingOutput<P>>,
             IdentityOutput<P::G1>,
         >,
-        P::ScalarField,
         TippMippBuildProfile,
     ),
     Error,
@@ -2875,10 +3148,9 @@ where
 {
     let total_started = Instant::now();
     {
-        let mut effect = ArkworksProverGipaEffect::<P, D, S> {
+        let effect = ArkworksProverGipaEffect::<P, D, S> {
             context,
             trace,
-            x0: None,
             profile: TippMippBuildProfile::default(),
             _pairing: PhantomData,
             _digest: PhantomData,
@@ -2897,26 +3169,30 @@ where
             ip_ab: ip_ab.clone(),
             agg_c: agg_c.clone(),
         };
-        let output = prove_tipp_mipp_gipa_core(input.clone(), &mut effect).map_err(|error| {
-            let message = match (error.kind, error.effect_error) {
-                (0, _) => {
-                    "combined TIPP/MIPP inputs must have equal power-of-two length".to_owned()
+        let (execution, mut effect) =
+            prover_gipa_semantic_execution_core(input, effect).map_err(|error| {
+                let ProverGipaCoreError { kind, effect_error } = error;
+                let message = match (kind, effect_error) {
+                    (0, _) => {
+                        "combined TIPP/MIPP inputs must have equal power-of-two length".to_owned()
+                    }
+                    (6, _) => "successful prover GIPA execution did not retain x0".to_owned(),
+                    (7, _) => "successful prover GIPA execution had inconsistent round evidence"
+                        .to_owned(),
+                    (_, Some(error)) => error,
+                    (kind, None) => format!("prover GIPA schedule error {kind}"),
+                };
+                if kind == 6 || kind == 7 {
+                    Box::new(std::io::Error::other(message)) as Error
+                } else {
+                    Box::new(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        message,
+                    )) as Error
                 }
-                (_, Some(error)) => error,
-                (kind, None) => format!("prover GIPA schedule error {kind}"),
-            };
-            Box::new(std::io::Error::new(
-                std::io::ErrorKind::InvalidInput,
-                message,
-            )) as Error
-        })?;
-        let x0 = effect.x0.take().ok_or_else(|| {
-            Box::new(std::io::Error::other(
-                "successful prover GIPA execution did not retain x0",
-            )) as Error
-        })?;
+            })?;
         effect.profile.total_ms = total_started.elapsed().as_secs_f64() * 1000.0;
-        return Ok((input, output, x0, effect.profile));
+        return Ok((execution, effect.profile));
     }
 }
 
@@ -3193,6 +3469,25 @@ where
     D: Digest + Send + Sync,
     S: ChallengeTraceSink,
 {
+    Ok(derive_scalar_challenge_sample::<P, D, S>(context, trace, stage_label, messages)?.value)
+}
+
+struct ScalarChallengeSample<F> {
+    accepted_nonce: u64,
+    value: F,
+}
+
+fn derive_scalar_challenge_sample<P, D, S>(
+    context: &ChallengeContext,
+    trace: &mut S,
+    stage_label: &'static [u8],
+    messages: &[u8],
+) -> Result<ScalarChallengeSample<P::ScalarField>, Error>
+where
+    P: Pairing,
+    D: Digest + Send + Sync,
+    S: ChallengeTraceSink,
+{
     sample_bounded_challenge::<_, Error, _>(|nonce| {
         Ok(P::ScalarField::from_random_bytes(&challenge_digest::<D, _>(
             context,
@@ -3201,7 +3496,11 @@ where
             nonce,
             messages,
         ))
-        .filter(|challenge| !challenge.is_zero()))
+        .filter(|challenge| !challenge.is_zero())
+        .map(|value| ScalarChallengeSample {
+            accepted_nonce: nonce,
+            value,
+        }))
     })
 }
 
@@ -3527,6 +3826,7 @@ where
 struct ArkworksTippMippEffect<'a, P: Pairing, D: Digest + Send + Sync, S: ChallengeTraceSink> {
     context: &'a ChallengeContext,
     trace: &'a mut S,
+    accepted_trace: ShippingAcceptedTippMippChallengeTrace<P::ScalarField>,
     _pairing: PhantomData<fn() -> P>,
     _digest: PhantomData<fn() -> D>,
 }
@@ -3595,8 +3895,28 @@ impl<'a, P: Pairing, D: Digest + Send + Sync, S: ChallengeTraceSink>
         messages: &[u8],
     ) -> Result<P::ScalarField, String> {
         let stage_label = tipp_mipp_challenge_stage_label(stage);
-        derive_scalar_challenge::<P, D, S>(self.context, self.trace, stage_label, messages)
-            .map_err(|error| error.to_string())
+        let sample = derive_scalar_challenge_sample::<P, D, S>(
+            self.context,
+            self.trace,
+            stage_label,
+            messages,
+        )
+        .map_err(|error| error.to_string())?;
+        let value = sample.value.clone();
+        let call = ShippingAcceptedChallengeCall {
+            accepted_nonce: sample.accepted_nonce,
+            message: messages.to_vec(),
+            value: sample.value,
+        };
+        match stage {
+            TippMippChallengeStage::X0 => self.accepted_trace.x0 = Some(call),
+            TippMippChallengeStage::Round => self.accepted_trace.rounds_chrono.push(call),
+            TippMippChallengeStage::FinalBridge => {
+                self.accepted_trace.final_bridge = Some(call);
+            }
+            TippMippChallengeStage::Kzg => self.accepted_trace.kzg = Some(call),
+        }
+        Ok(value)
     }
 
     fn inverse(&self, value: &P::ScalarField) -> Option<P::ScalarField> {
@@ -3771,6 +4091,7 @@ where
     let mut effect = ArkworksTippMippEffect::<P, D, _> {
         context,
         trace: &mut trace,
+        accepted_trace: empty_accepted_tipp_mipp_trace(),
         _pairing: PhantomData,
         _digest: PhantomData,
     };
@@ -3872,6 +4193,7 @@ where
     let effect = ArkworksTippMippEffect::<P, D, _> {
         context,
         trace: &mut tipp_trace,
+        accepted_trace: empty_accepted_tipp_mipp_trace(),
         _pairing: PhantomData,
         _digest: PhantomData,
     };
@@ -4265,6 +4587,7 @@ where
         ArkworksTippMippEffect::<P, D, _> {
             context,
             trace: tipp_mipp_trace,
+            accepted_trace: empty_accepted_tipp_mipp_trace(),
             _pairing: PhantomData,
             _digest: PhantomData,
         },
@@ -4287,16 +4610,24 @@ where
         tipp_mipp,
     } = output;
     drop(randomizer_effect);
-    drop(tipp_mipp_effect);
-    Ok(ShippingAdapterSemanticExecution {
-        adapter_input: input,
+    let ArkworksTippMippEffect { accepted_trace, .. } = tipp_mipp_effect;
+    let accepted_randomizer_call = ShippingAcceptedRandomizerCall {
+        initial_nonce,
+        accepted_nonce,
+        message: input.randomizer_message.clone(),
+        value: randomizer.clone(),
+    };
+    Ok(shipping_adapter_semantic_execution_from_parts(
+        input,
         initial_nonce,
         accepted_nonce,
         randomizer,
+        accepted_randomizer_call,
+        accepted_trace,
         checks,
         tipp_mipp,
         accepted,
-    })
+    ))
 }
 
 /// Acceptance-relevant verifier state retained around the semantic adapter.
@@ -5324,6 +5655,7 @@ where
     let mut effect = ArkworksTippMippEffect::<P, D, S> {
         context,
         trace,
+        accepted_trace: empty_accepted_tipp_mipp_trace(),
         _pairing: PhantomData,
         _digest: PhantomData,
     };
@@ -5859,33 +6191,36 @@ mod tests {
             IdentityOutput<u64>,
             (),
         >(
-            ProverGipaCoreInput {
-                a: vec![31],
-                b: vec![37],
-                c: vec![41],
-                public_values: vec![43],
-                ck_v: vec![23],
-                ck_w: vec![29],
-                randomizer: 17,
-                com_a: 11,
-                com_b: 12,
-                com_c: 13,
-                ip_ab: 61,
-                agg_c: 67,
-            },
-            ProverGipaCoreOutput {
+            ProverGipaSemanticExecution {
+                input: ProverGipaCoreInput {
+                    a: vec![31],
+                    b: vec![37],
+                    c: vec![41],
+                    public_values: vec![43],
+                    ck_v: vec![23],
+                    ck_w: vec![29],
+                    randomizer: 17,
+                    com_a: 11,
+                    com_b: 12,
+                    com_c: 13,
+                    ip_ab: 61,
+                    agg_c: 67,
+                },
+                output: ProverGipaCoreOutput {
+                    rounds_chrono: Vec::new(),
+                    rounds_wire: Vec::new(),
+                    raw_transcript_chrono: Vec::new(),
+                    raw_transcript_wire: Vec::new(),
+                    inv_transcript_chrono: Vec::new(),
+                    inv_transcript_wire: Vec::new(),
+                    last_raw_challenge: 43,
+                    final_ck: (71, 73),
+                    final_messages: (79, 83, 89),
+                    final_public_value: 97,
+                },
+                x0: 43,
                 rounds_chrono: Vec::new(),
-                rounds_wire: Vec::new(),
-                raw_transcript_chrono: vec![47],
-                raw_transcript_wire: vec![47],
-                inv_transcript_chrono: vec![49],
-                inv_transcript_wire: vec![49],
-                last_raw_challenge: 47,
-                final_ck: (71, 73),
-                final_messages: (79, 83, 89),
-                final_public_value: 97,
             },
-            43,
             101,
             53,
             59,
@@ -5926,7 +6261,7 @@ mod tests {
         assert_eq!(execution.randomizer.nonce, 19);
         assert_eq!(execution.randomizer.message, vec![23, 29]);
         assert_eq!(execution.challenges.x0, 43);
-        assert_eq!(execution.challenges.rounds_chrono, vec![47]);
+        assert!(execution.challenges.rounds_chrono.is_empty());
         assert_eq!(execution.challenges.final_bridge, 53);
         assert_eq!(execution.challenges.kzg, 59);
         assert_eq!(execution.tipp_mipp.ck_v_kzg_opening, 103);
@@ -6050,6 +6385,47 @@ mod tests {
         assert_eq!(output.rounds_chrono.len(), 2);
         assert_eq!(output.rounds_wire[0].0.ab.0, output.rounds_chrono[1].0.ab.0);
         assert_eq!(output.rounds_wire[1].0.ab.0, output.rounds_chrono[0].0.ab.0);
+    }
+
+    #[test]
+    fn prover_gipa_semantic_execution_owns_call_and_round_effect_chronology() {
+        let effect = ScriptedProverGipaEffect;
+        let (execution, _) = prover_gipa_semantic_execution_core(
+            ProverGipaCoreInput {
+                a: vec![1, 2, 3, 4],
+                b: vec![10, 20, 30, 40],
+                c: vec![5, 6, 7, 8],
+                public_values: vec![2, 3, 4, 5],
+                ck_v: vec![11, 12, 13, 14],
+                ck_w: vec![21, 22, 23, 24],
+                randomizer: 7,
+                com_a: 31,
+                com_b: 32,
+                com_c: 33,
+                ip_ab: 34,
+                agg_c: 35,
+            },
+            effect,
+        )
+        .expect("valid power-of-two execution");
+
+        assert_eq!(execution.x0, 13);
+        assert_eq!(execution.input.a, vec![1, 2, 3, 4]);
+        assert_eq!(execution.rounds_chrono.len(), 2);
+        assert_eq!(execution.rounds_chrono[0].prior_raw_challenge, 13);
+        assert_eq!(execution.rounds_chrono[0].raw_challenge, 14);
+        assert_eq!(execution.rounds_chrono[0].inverse, 114);
+        assert_eq!(
+            execution.rounds_chrono[0].left.ab.0,
+            execution.output.rounds_chrono[0].0.ab.0
+        );
+        assert_eq!(
+            execution.rounds_chrono[0].right.ab.0,
+            execution.output.rounds_chrono[0].1.ab.0
+        );
+        assert_eq!(execution.rounds_chrono[1].prior_raw_challenge, 14);
+        assert_eq!(execution.rounds_chrono[1].raw_challenge, 15);
+        assert_eq!(execution.rounds_chrono[1].inverse, 115);
     }
 
     #[cfg(not(feature = "bench-baseline"))]
@@ -6248,6 +6624,7 @@ mod tests {
         let mut effect = ArkworksTippMippEffect::<P, Blake2b, _> {
             context: &context,
             trace: &mut trace,
+            accepted_trace: empty_accepted_tipp_mipp_trace(),
             _pairing: PhantomData,
             _digest: PhantomData,
         };
@@ -6330,15 +6707,17 @@ mod tests {
             .expect("zero fixture has singleton identity outputs");
         let context = ChallengeContext::from_statement_digest([0u8; 32]);
         let mut trace = crate::challenge::VecChallengeTraceSink::default();
-        let prefix = {
+        let (prefix, accepted_trace) = {
             let mut effect = ArkworksTippMippEffect::<P, Blake2b, _> {
                 context: &context,
                 trace: &mut trace,
+                accepted_trace: empty_accepted_tipp_mipp_trace(),
                 _pairing: PhantomData,
                 _digest: PhantomData,
             };
-            verify_tipp_mipp_challenge_prefix_core(&input, &mut effect)
-                .expect("zero fixture challenge prefix must construct")
+            let prefix = verify_tipp_mipp_challenge_prefix_core(&input, &mut effect)
+                .expect("zero fixture challenge prefix must construct");
+            (prefix, effect.accepted_trace)
         };
 
         let sampled = trace
@@ -6361,6 +6740,61 @@ mod tests {
         );
         assert_eq!(prefix.challenges.final_bridge, sampled[3]);
         assert_eq!(prefix.challenges.kzg, sampled[4]);
+
+        let mut accepted_calls = vec![(
+            TippMippChallengeStage::X0,
+            accepted_trace.x0.as_ref().expect("x0 call is retained"),
+        )];
+        accepted_calls.extend(
+            accepted_trace
+                .rounds_chrono
+                .iter()
+                .map(|call| (TippMippChallengeStage::Round, call)),
+        );
+        accepted_calls.push((
+            TippMippChallengeStage::FinalBridge,
+            accepted_trace
+                .final_bridge
+                .as_ref()
+                .expect("final bridge call is retained"),
+        ));
+        accepted_calls.push((
+            TippMippChallengeStage::Kzg,
+            accepted_trace.kzg.as_ref().expect("KZG call is retained"),
+        ));
+        assert_eq!(accepted_calls.len(), 5);
+        assert_eq!(
+            accepted_calls
+                .iter()
+                .map(|(_, call)| call.value.clone())
+                .collect::<Vec<_>>(),
+            sampled
+        );
+        assert_eq!(
+            accepted_calls
+                .iter()
+                .map(|(stage, _)| *stage)
+                .collect::<Vec<_>>(),
+            vec![
+                TippMippChallengeStage::X0,
+                TippMippChallengeStage::Round,
+                TippMippChallengeStage::Round,
+                TippMippChallengeStage::FinalBridge,
+                TippMippChallengeStage::Kzg,
+            ]
+        );
+        for ((stage, call), record) in accepted_calls.iter().zip(trace.entries()) {
+            assert_eq!(call.accepted_nonce, record.nonce);
+            assert_eq!(
+                crate::challenge::challenge_preimage(
+                    &context,
+                    tipp_mipp_challenge_stage_label(*stage),
+                    call.accepted_nonce,
+                    &call.message,
+                ),
+                record.preimage
+            );
+        }
         assert_eq!(
             trace
                 .entries()
@@ -6835,6 +7269,7 @@ mod tests {
             ArkworksTippMippEffect::<Bls12_381, Blake2b, _> {
                 context: &context,
                 trace: &mut tipp_trace,
+                accepted_trace: empty_accepted_tipp_mipp_trace(),
                 _pairing: PhantomData,
                 _digest: PhantomData,
             },
@@ -7102,6 +7537,7 @@ mod tests {
         let mut effect = ArkworksTippMippEffect::<P, Blake2b, _> {
             context: &context,
             trace: &mut core_trace,
+            accepted_trace: empty_accepted_tipp_mipp_trace(),
             _pairing: PhantomData,
             _digest: PhantomData,
         };

@@ -9,6 +9,7 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from pathlib import Path
@@ -38,6 +39,10 @@ FSTAR_VERIFIER = Path(
 )
 FSTAR_ROOT = Path(
     "crates/crypto/proof-aggregation/formal/snarkpack/fstar"
+)
+LEAN_ENVIRONMENT_MANIFEST = Path(
+    "crates/crypto/proof-aggregation/formal/snarkpack/"
+    "aeneas-toolchain.toml"
 )
 
 CANDIDATE_EVENTS = {"pull_request", "merge_group"}
@@ -72,33 +77,20 @@ LEAN_GLOBAL_INPUTS = {
     (LEAN_ROOT / "lakefile.lean").as_posix(),
     (LEAN_ROOT / "lake-manifest.json").as_posix(),
     (LEAN_ROOT / "lean-toolchain").as_posix(),
-    (
-        "crates/crypto/proof-aggregation/formal/snarkpack/"
-        "aeneas-toolchain.toml"
-    ),
-}
-LEAN_AUDIT_CONTROL_INPUTS = {
-    ".github/workflows/formal.yml",
-    "ci/gates/snarkpack-formal.json",
-    FSTAR_MANIFEST.as_posix(),
-    FSTAR_VERIFIER.as_posix(),
-    "justfile",
-    "scripts/ci/gate-applicability.py",
-    "scripts/ci/run_with_annotation.py",
-    "scripts/ci/snarkpack_fv_impact.py",
-    "scripts/ci/snarkpack_lean_attestation.py",
-    "scripts/snarkpack-fv.sh",
 }
 FSTAR_GLOBAL_INPUTS = {
     "flake.lock",
     "flake.nix",
     "scripts/prepare_snarkpack_fstar_support.py",
     "scripts/snarkpack-formal.sh",
-    FSTAR_VERIFIER.as_posix(),
     (
         "crates/crypto/proof-aggregation/formal/snarkpack/"
         "toolchain.toml"
     ),
+}
+FSTAR_NONPROOF_CONTROL_INPUTS = {
+    FSTAR_VERIFIER.as_posix(),
+    "scripts/ci/snarkpack_fv_impact.py",
 }
 LEAN_MODULE_TOKEN = r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*"
 IMPORT_RE = re.compile(
@@ -341,6 +333,46 @@ def fstar_manifest_control_changed(root: Path, base: str) -> bool:
         return True
 
 
+def _lean_environment_control_projection(
+    manifest: dict[str, object],
+) -> dict[str, str]:
+    toolchain = manifest.get("toolchain")
+    if not isinstance(toolchain, dict):
+        raise ImpactError("Aeneas toolchain manifest lacks [toolchain]")
+    lean = toolchain.get("lean")
+    image_digest = toolchain.get("image_digest")
+    if not isinstance(lean, str) or not lean:
+        raise ImpactError("Aeneas toolchain manifest has invalid Lean pin")
+    if (
+        not isinstance(image_digest, str)
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", image_digest) is None
+    ):
+        raise ImpactError(
+            "Aeneas toolchain manifest has invalid image digest"
+        )
+    return {"image_digest": image_digest, "lean": lean}
+
+
+def lean_environment_control_changed(root: Path, base: str) -> bool:
+    path = root / LEAN_ENVIRONMENT_MANIFEST
+    try:
+        current = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError, ImpactError):
+        return True
+    previous_result = _run_git(
+        root, ["show", f"{base}:{LEAN_ENVIRONMENT_MANIFEST.as_posix()}"]
+    )
+    if previous_result.returncode:
+        return True
+    try:
+        previous = tomllib.loads(str(previous_result.stdout))
+        return _lean_environment_control_projection(
+            current
+        ) != _lean_environment_control_projection(previous)
+    except (tomllib.TOMLDecodeError, ImpactError):
+        return True
+
+
 def _lean_module(path: Path) -> str:
     try:
         relative = path.relative_to(LEAN_ROOT)
@@ -526,6 +558,7 @@ def plan(
     unknown_files: Iterable[str] = (),
     retired_graphs: Iterable[str] = (),
     fstar_manifest_control_change: bool = False,
+    lean_environment_control_change: bool = False,
 ) -> ImpactPlan:
     if event not in SUPPORTED_EVENTS:
         raise ImpactError(f"unsupported event {event!r}")
@@ -565,9 +598,11 @@ def plan(
     graph_set.intersection_update(all_graphs)
     parity_graph_set = set(graph_set)
 
-    lean_global = any(
-        path in LEAN_GLOBAL_INPUTS or path in LEAN_AUDIT_CONTROL_INPUTS
-        for path in paths
+    # CI and audit-parser controls are checked by the static lane. They never
+    # schedule a kernel build when no Lean source or Lean environment changed.
+    lean_global = any(path in LEAN_GLOBAL_INPUTS for path in paths) or (
+        LEAN_ENVIRONMENT_MANIFEST.as_posix() in paths
+        and lean_environment_control_change
     )
     lean_modules = affected_lean_modules(root, paths, force_audit=lean_global)
 
@@ -582,7 +617,9 @@ def plan(
     for index, item in enumerate(global_inputs):
         if not isinstance(item, dict) or not isinstance(item.get("path"), str):
             raise ImpactError(f"F* evidence global_inputs[{index}] is invalid")
-        fstar_inputs.add(_normalized_path(item["path"]))
+        normalized = _normalized_path(item["path"])
+        if normalized not in FSTAR_NONPROOF_CONTROL_INPUTS:
+            fstar_inputs.add(normalized)
     proof_prefix = f"{FSTAR_ROOT.as_posix()}/"
     proof_root_changes = tuple(
         path
@@ -727,6 +764,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         retired: tuple[str, ...] = ()
         fstar_control_change = False
+        lean_environment_change = False
         if args.event in CANDIDATE_EVENTS and args.base:
             retired = tuple(
                 sorted(
@@ -738,6 +776,10 @@ def main(argv: list[str] | None = None) -> int:
                 fstar_control_change = fstar_manifest_control_changed(
                     ROOT, args.base
                 )
+            if LEAN_ENVIRONMENT_MANIFEST.as_posix() in paths:
+                lean_environment_change = lean_environment_control_changed(
+                    ROOT, args.base
+                )
         result = plan(
             ROOT,
             event=args.event,
@@ -747,6 +789,7 @@ def main(argv: list[str] | None = None) -> int:
             unknown_files=unknown,
             retired_graphs=retired,
             fstar_manifest_control_change=fstar_control_change,
+            lean_environment_control_change=lean_environment_change,
         )
         if args.github_output:
             write_github_output(args.github_output, result)

@@ -149,6 +149,84 @@ class ImpactPlannerTests(unittest.TestCase):
         self.assertEqual(result.fstar_proofs, ())
         self.assertFalse(result.rust_reference)
 
+    def test_split_fv_domains_do_not_invalidate_monolithic_audit(self) -> None:
+        cases = (
+            (
+                "Ipp/Extracted/ShippingStatementConstruction.lean",
+                "Ipp.ProofAuditConstruction",
+            ),
+            (
+                "Ipp/Extracted/ShippingCallConstruction.lean",
+                "Ipp.ProofAuditConstruction",
+            ),
+            (
+                "Ipp/Extracted/ShippingCallMaterialization.lean",
+                "Ipp.ProofAuditConstruction",
+            ),
+            (
+                "Ipp/Extracted/ShippingVerifierHashProjection.lean",
+                "Ipp.ProofAuditConstruction",
+            ),
+            (
+                "Ipp/Extracted/ShippingBundleMaterialization.lean",
+                "Ipp.ProofAuditConstruction",
+            ),
+            (
+                "Ipp/ShippingProverRefinement.lean",
+                "Ipp.ProofAuditProver",
+            ),
+            (
+                "Ipp/ShippingProverExecutionTrace.lean",
+                "Ipp.ProofAuditProver",
+            ),
+            (
+                "Ipp/Extracted/ShippingProver.lean",
+                "Ipp.ProofAuditProver",
+            ),
+            (
+                "Ipp/ShippingAdaptiveReindex.lean",
+                "Ipp.ProofAuditShippingAdaptive",
+            ),
+            (
+                "Ipp/ShippingAdaptiveByteFieldCoupling.lean",
+                "Ipp.ProofAuditShippingAdaptive",
+            ),
+            (
+                "Ipp/ShippingAdaptiveGlobalFsCoupling.lean",
+                "Ipp.ProofAuditShippingAdaptive",
+            ),
+            (
+                "Ipp/ShippingAdaptiveOriginSha.lean",
+                "Ipp.ProofAuditAdaptive",
+            ),
+            (
+                "Ipp/S1Bls12377ReductionInterfaces.lean",
+                "Ipp.ProofAuditReductions",
+            ),
+            (
+                "Ipp/S1Bls12377FixedStatementKzg.lean",
+                "Ipp.ProofAuditReductions",
+            ),
+            (
+                "Ipp/ArkworksTippKzgBoundary.lean",
+                "Ipp.ProofAuditReductions",
+            ),
+        )
+        for relative, expected_audit in cases:
+            with self.subTest(relative=relative):
+                result = IMPACT.plan(
+                    ROOT,
+                    event="pull_request",
+                    status="run",
+                    changed=(
+                        "crates/crypto/proof-aggregation/formal/lean-ipp/"
+                        f"{relative}",
+                    ),
+                    declared_graphs=(),
+                )
+                self.assertIn(expected_audit, result.lean_modules)
+                self.assertNotIn("Ipp.ProofAudit", result.lean_modules)
+
     def test_lean_import_parser_accepts_the_real_tree(self) -> None:
         modules, imports = IMPACT.lean_import_graph(ROOT)
         self.assertEqual(set(imports), set(modules))
@@ -417,11 +495,7 @@ class ImpactPlannerTests(unittest.TestCase):
         )
         self.assertTrue(result.static)
         self.assertEqual(result.extraction_graphs, ())
-        modules, _ = IMPACT.lean_import_graph(ROOT)
-        self.assertEqual(
-            set(result.lean_modules),
-            set(IMPACT.lean_audit_modules(modules)),
-        )
+        self.assertEqual(result.lean_modules, ())
         self.assertEqual(result.fstar_proofs, ())
         self.assertFalse(result.fstar_force_all)
         self.assertFalse(result.parity)
@@ -429,7 +503,7 @@ class ImpactPlannerTests(unittest.TestCase):
         self.assertFalse(result.fuzz)
         self.assertFalse(result.dos)
 
-    def test_lean_attestation_helper_change_forces_every_audit_root(self) -> None:
+    def test_lean_attestation_helper_change_is_static_only(self) -> None:
         result = IMPACT.plan(
             ROOT,
             event="pull_request",
@@ -437,10 +511,86 @@ class ImpactPlannerTests(unittest.TestCase):
             changed=("scripts/ci/snarkpack_lean_attestation.py",),
             declared_graphs=(),
         )
+        self.assertTrue(result.static)
+        self.assertEqual(result.lean_modules, ())
+
+    def test_fv_control_changes_do_not_schedule_proof_builds(self) -> None:
+        controls = (
+            ".github/workflows/formal.yml",
+            "ci/gates/snarkpack-formal.json",
+            IMPACT.FSTAR_VERIFIER.as_posix(),
+            "justfile",
+            "scripts/ci/gate-applicability.py",
+            "scripts/ci/run_with_annotation.py",
+            "scripts/ci/snarkpack_fv_impact.py",
+            "scripts/ci/snarkpack_lean_attestation.py",
+            "scripts/check-snarkpack-invariants.sh",
+            "scripts/snarkpack-fv.sh",
+        )
+        for path in controls:
+            with self.subTest(path=path):
+                result = IMPACT.plan(
+                    ROOT,
+                    event="pull_request",
+                    status="run",
+                    changed=(path,),
+                    declared_graphs=(),
+                )
+                self.assertTrue(result.static)
+                self.assertEqual(result.extraction_graphs, ())
+                self.assertEqual(result.lean_modules, ())
+                self.assertEqual(result.fstar_proofs, ())
+
+    def test_nonlean_aeneas_pin_change_does_not_build_lean(self) -> None:
+        result = IMPACT.plan(
+            ROOT,
+            event="pull_request",
+            status="run",
+            changed=(IMPACT.LEAN_ENVIRONMENT_MANIFEST.as_posix(),),
+            declared_graphs=(),
+            lean_environment_control_change=False,
+        )
+        self.assertTrue(result.static)
+        self.assertEqual(result.lean_modules, ())
+
+    def test_lean_environment_projection_change_forces_audits(self) -> None:
+        result = IMPACT.plan(
+            ROOT,
+            event="pull_request",
+            status="run",
+            changed=(IMPACT.LEAN_ENVIRONMENT_MANIFEST.as_posix(),),
+            declared_graphs=(),
+            lean_environment_control_change=True,
+        )
         modules, _ = IMPACT.lean_import_graph(ROOT)
         self.assertEqual(
             set(result.lean_modules),
             set(IMPACT.lean_audit_modules(modules)),
+        )
+
+    def test_lean_environment_projection_ignores_extractor_only_pins(self) -> None:
+        current = {
+            "toolchain": {
+                "lean": "leanprover/lean4:v4.30.0",
+                "image_digest": "sha256:" + "1" * 64,
+                "rust": "1.89.0",
+                "hax_commit": "old",
+                "charon_commit": "old",
+                "aeneas_commit": "old",
+            }
+        }
+        extractor_changed = json.loads(json.dumps(current))
+        extractor_changed["toolchain"]["hax_commit"] = "new"
+        extractor_changed["toolchain"]["charon_commit"] = "new"
+        extractor_changed["toolchain"]["aeneas_commit"] = "new"
+        self.assertEqual(
+            IMPACT._lean_environment_control_projection(current),
+            IMPACT._lean_environment_control_projection(extractor_changed),
+        )
+        extractor_changed["toolchain"]["lean"] = "leanprover/lean4:v4.31.0"
+        self.assertNotEqual(
+            IMPACT._lean_environment_control_projection(current),
+            IMPACT._lean_environment_control_projection(extractor_changed),
         )
 
     def test_github_outputs_are_compact_json(self) -> None:

@@ -25,8 +25,11 @@ pub const DEFAULT_DEV_SRS_ID: [u8; 32] = [
     0x74, 0x43, 0x1a, 0xbf, 0x24, 0xf3, 0x5e, 0xd3, 0xbc, 0x9e, 0xb4, 0x6e, 0x99, 0xe0, 0xa3, 0xd2,
     0xbd, 0xa7, 0x2e, 0x98, 0x16, 0x21, 0x98, 0x8f, 0xa5, 0x48, 0xae, 0x80, 0x80, 0x2a, 0x4d, 0xe0,
 ];
+// Public deterministic fixture seed. The resulting alpha/beta values are
+// reproducible, so this setup cannot support a KZG soundness claim.
 const DEV_SRS_SEED: [u8; 32] = [0x50; 32];
 
+/// Deterministic development SRS; not an adversarially sound trusted setup.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DevSrs {
     pub max_padded_count: u32,

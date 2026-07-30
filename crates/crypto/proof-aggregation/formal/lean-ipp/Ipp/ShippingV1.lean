@@ -43,6 +43,23 @@ def statementDigestPreimage (canonicalStatement : Bytes) : Bytes :=
 def challengeContextPreimage (statementDigest : Bytes) : Bytes :=
   challengeContextDomain ++ statementDigest
 
+/-- Length framing makes the verification-key digest preimage injective
+without any cryptographic assumption. -/
+theorem vkDigestPreimage_injective :
+    Function.Injective vkDigestPreimage := by
+  intro left right heq
+  unfold vkDigestPreimage at heq
+  have htail :
+      Ipp.ChallengeEncoding.u32LE left.length ++ left =
+        Ipp.ChallengeEncoding.u32LE right.length ++ right :=
+    List.append_left_cancel heq
+  have hlength : left.length = right.length := by
+    have hencodedLength := congrArg List.length htail
+    simp [Ipp.ChallengeEncoding.u32LE] at hencodedLength
+    omega
+  rw [hlength] at htail
+  exact List.append_left_cancel htail
+
 /-- One concrete collision in the deployed SHA-256 function. -/
 def Sha256Collision (sha256 : Bytes → Bytes) (left right : Bytes) : Prop :=
   left ≠ right ∧ sha256 left = sha256 right

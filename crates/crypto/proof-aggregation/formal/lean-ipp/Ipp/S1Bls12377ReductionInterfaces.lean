@@ -7,9 +7,10 @@ The KZG target relations expose false-opening tuples rather than an S1 bad
 predicate.  The GIPA targets expose the witness returned by a pre-randomizer
 extractor.  Their mapped programs still run the S1 fork experiment; this module
 does not define the eventual setup-sampling security experiments.  Nothing here
-asserts that a reduction or extractor is executable or efficient: oracle-query
-bounds are recorded exactly, while concrete polynomial-time implementations
-remain external closure obligations.
+turns proposition-level decidability into executable code: the KZG selectors
+consume an exact Boolean leaf classifier, and constructing that classifier
+from production remains explicit.  Oracle-query bounds are recorded exactly;
+concrete local polynomial-time evidence remains a separate closure obligation.
 -/
 
 open OracleSpec OracleComp ENNReal Function
@@ -217,6 +218,294 @@ structure Bls12377KzgWForkReduction {μ : Nat}
       match extract output with
       | none => False
       | some forgery => Bls12377KzgWForgery.Wins stmt forgery
+
+/-! ## Deterministic leaf selectors -/
+
+/-- Semantic Boolean decisions used by the deterministic fork-tree search.
+
+The exactness fields make the selector theorems sound, but this record does
+not certify executability or running time.  In particular, a classically
+chosen Boolean function is not production evidence.  Shipping closure needs a
+separate extracted concrete-target classifier and structural cost proof. -/
+structure Bls12377KzgLeafClassifier {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ) where
+  vBad :
+    S1ForkGameLeaf
+      Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput μ → Bool
+  wBad :
+    S1ForkGameLeaf
+      Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput μ → Bool
+  vBad_iff :
+    ∀ leaf, vBad leaf = true ↔
+      KzgVFalseOpening stmt leaf.proof leaf.transcript
+  wBad_iff :
+    ∀ leaf, wBad leaf = true ↔
+      KzgWFalseOpening stmt leaf.proof leaf.transcript
+
+/-- Deterministically keep the first present result in child order. -/
+def bls12377FirstSome4 {α : Type}
+    (results : Fin 4 → Option α) : Option α :=
+  match results 0 with
+  | some result => some result
+  | none =>
+      match results 1 with
+      | some result => some result
+      | none =>
+          match results 2 with
+          | some result => some result
+          | none => results 3
+
+/-- A result returned by the four-way selector came from one child. -/
+theorem bls12377FirstSome4_some {α : Type}
+    (results : Fin 4 → Option α) (result : α)
+    (hresult : bls12377FirstSome4 results = some result) :
+    ∃ child, results child = some result := by
+  cases h0 : results 0 with
+  | none =>
+      cases h1 : results 1 with
+      | none =>
+          cases h2 : results 2 with
+          | none =>
+              exact ⟨3, by
+                simpa [bls12377FirstSome4, h0, h1, h2] using hresult⟩
+          | some result2 =>
+              have heq : result2 = result := by
+                simpa [bls12377FirstSome4, h0, h1, h2] using hresult
+              exact ⟨2, by simpa [heq] using h2⟩
+      | some result1 =>
+          have heq : result1 = result := by
+            simpa [bls12377FirstSome4, h0, h1] using hresult
+          exact ⟨1, by simpa [heq] using h1⟩
+  | some result0 =>
+      have heq : result0 = result := by
+        simpa [bls12377FirstSome4, h0] using hresult
+      exact ⟨0, by simpa [heq] using h0⟩
+
+/-- If a child returned a result, the deterministic four-way selector returns
+some result (possibly an earlier child's result). -/
+theorem bls12377FirstSome4_exists {α : Type}
+    (results : Fin 4 → Option α)
+    (hexists : ∃ child result, results child = some result) :
+    ∃ result, bls12377FirstSome4 results = some result := by
+  obtain ⟨child, result, hresult⟩ := hexists
+  fin_cases child
+  · exact ⟨result, by simp [bls12377FirstSome4, hresult]⟩
+  · cases h0 : results 0 with
+    | none =>
+        exact ⟨result, by
+          simp [bls12377FirstSome4, h0, hresult]⟩
+    | some result0 =>
+        exact ⟨result0, by simp [bls12377FirstSome4, h0]⟩
+  · cases h0 : results 0 with
+    | some result0 =>
+        exact ⟨result0, by simp [bls12377FirstSome4, h0]⟩
+    | none =>
+        cases h1 : results 1 with
+        | some result1 =>
+            exact ⟨result1, by
+              simp [bls12377FirstSome4, h0, h1]⟩
+        | none =>
+            exact ⟨result, by
+              simp [bls12377FirstSome4, h0, h1, hresult]⟩
+  · cases h0 : results 0 with
+    | some result0 =>
+        exact ⟨result0, by simp [bls12377FirstSome4, h0]⟩
+    | none =>
+        cases h1 : results 1 with
+        | some result1 =>
+            exact ⟨result1, by
+              simp [bls12377FirstSome4, h0, h1]⟩
+        | none =>
+            cases h2 : results 2 with
+            | some result2 =>
+                exact ⟨result2, by
+                  simp [bls12377FirstSome4, h0, h1, h2]⟩
+            | none =>
+                exact ⟨result, by
+                  simp [bls12377FirstSome4, h0, h1, h2, hresult]⟩
+
+/-- Search a projected fork in canonical child order for a V-lane false
+opening.  The search is structural and makes no oracle queries. -/
+def bls12377SelectKzgVForgery {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (classifier : Bls12377KzgLeafClassifier stmt) :
+    {depth : Nat} →
+      S1ForkGameTree
+        Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput μ depth →
+      Option (Bls12377KzgVForgery μ)
+  | 0, .leaf run =>
+      if classifier.vBad run.1 = true then
+        some (bls12377KzgVForgeryOfLeaf run.1)
+      else
+        none
+  | _ + 1, .node children =>
+      bls12377FirstSome4 (fun child =>
+        bls12377SelectKzgVForgery
+          stmt classifier (children child))
+
+/-- W-lane structural search. -/
+def bls12377SelectKzgWForgery {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (classifier : Bls12377KzgLeafClassifier stmt) :
+    {depth : Nat} →
+      S1ForkGameTree
+        Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput μ depth →
+      Option (Bls12377KzgWForgery μ)
+  | 0, .leaf run =>
+      if classifier.wBad run.1 = true then
+        some (bls12377KzgWForgeryOfLeaf run.1)
+      else
+        none
+  | _ + 1, .node children =>
+      bls12377FirstSome4 (fun child =>
+        bls12377SelectKzgWForgery
+          stmt classifier (children child))
+
+/-- Every V result produced by the structural selector wins the exact
+challenger-visible forgery relation. -/
+theorem bls12377SelectKzgVForgery_sound {μ depth : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (classifier : Bls12377KzgLeafClassifier stmt)
+    (tree :
+      S1ForkGameTree
+        Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput μ depth)
+    (forgery : Bls12377KzgVForgery μ)
+    (hselect :
+      bls12377SelectKzgVForgery stmt classifier tree = some forgery) :
+    Bls12377KzgVForgery.Wins stmt forgery := by
+  induction tree with
+  | leaf run =>
+      by_cases hbad : classifier.vBad run.1 = true
+      · simp [bls12377SelectKzgVForgery, hbad] at hselect
+        subst forgery
+        exact bls12377KzgVForgeryOfLeaf_wins stmt run.1
+          ((classifier.vBad_iff run.1).mp hbad)
+      · simp [bls12377SelectKzgVForgery, hbad] at hselect
+  | node children ih =>
+      obtain ⟨child, hchild⟩ :=
+        bls12377FirstSome4_some _ _ hselect
+      exact ih child hchild
+
+/-- Every W result produced by the structural selector wins. -/
+theorem bls12377SelectKzgWForgery_sound {μ depth : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (classifier : Bls12377KzgLeafClassifier stmt)
+    (tree :
+      S1ForkGameTree
+        Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput μ depth)
+    (forgery : Bls12377KzgWForgery μ)
+    (hselect :
+      bls12377SelectKzgWForgery stmt classifier tree = some forgery) :
+    Bls12377KzgWForgery.Wins stmt forgery := by
+  induction tree with
+  | leaf run =>
+      by_cases hbad : classifier.wBad run.1 = true
+      · simp [bls12377SelectKzgWForgery, hbad] at hselect
+        subst forgery
+        exact bls12377KzgWForgeryOfLeaf_wins stmt run.1
+          ((classifier.wBad_iff run.1).mp hbad)
+      · simp [bls12377SelectKzgWForgery, hbad] at hselect
+  | node children ih =>
+      obtain ⟨child, hchild⟩ :=
+        bls12377FirstSome4_some _ _ hselect
+      exact ih child hchild
+
+/-- A winning V tree is never missed by the exact Boolean classifier and
+structural search. -/
+theorem bls12377SelectKzgVForgery_complete {μ depth : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (classifier : Bls12377KzgLeafClassifier stmt)
+    (tree :
+      S1ForkGameTree
+        Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput μ depth)
+    (hwin : KzgVFalseOpeningGameTreeWin stmt tree) :
+    ∃ forgery,
+      bls12377SelectKzgVForgery stmt classifier tree = some forgery := by
+  induction tree with
+  | leaf run =>
+      have hbad : classifier.vBad run.1 = true :=
+        (classifier.vBad_iff run.1).mpr hwin
+      exact ⟨bls12377KzgVForgeryOfLeaf run.1, by
+        simp [bls12377SelectKzgVForgery, hbad]⟩
+  | node children ih =>
+      obtain ⟨child, hchild⟩ := hwin
+      obtain ⟨forgery, hforgery⟩ := ih child hchild
+      exact bls12377FirstSome4_exists _
+        ⟨child, forgery, hforgery⟩
+
+/-- W-lane selector completeness. -/
+theorem bls12377SelectKzgWForgery_complete {μ depth : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (classifier : Bls12377KzgLeafClassifier stmt)
+    (tree :
+      S1ForkGameTree
+        Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput μ depth)
+    (hwin : KzgWFalseOpeningGameTreeWin stmt tree) :
+    ∃ forgery,
+      bls12377SelectKzgWForgery stmt classifier tree = some forgery := by
+  induction tree with
+  | leaf run =>
+      have hbad : classifier.wBad run.1 = true :=
+        (classifier.wBad_iff run.1).mpr hwin
+      exact ⟨bls12377KzgWForgeryOfLeaf run.1, by
+        simp [bls12377SelectKzgWForgery, hbad]⟩
+  | node children ih =>
+      obtain ⟨child, hchild⟩ := hwin
+      obtain ⟨forgery, hforgery⟩ := ih child hchild
+      exact bls12377FirstSome4_exists _
+        ⟨child, forgery, hforgery⟩
+
+/-- Deterministic semantic V reducer obtained from an exact classifier. -/
+def bls12377ConcreteKzgVForkReduction {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (classifier : Bls12377KzgLeafClassifier stmt) :
+    Bls12377KzgVForkReduction stmt where
+  extract
+    | none => none
+    | some tree => bls12377SelectKzgVForgery stmt classifier tree
+  preserves := by
+    intro output hwin
+    cases output with
+    | none => exact False.elim hwin
+    | some tree =>
+        obtain ⟨forgery, hselect⟩ :=
+          bls12377SelectKzgVForgery_complete
+            stmt classifier tree hwin
+        have hwins :=
+          bls12377SelectKzgVForgery_sound
+            stmt classifier tree forgery hselect
+        change
+          match bls12377SelectKzgVForgery stmt classifier tree with
+          | none => False
+          | some result => Bls12377KzgVForgery.Wins stmt result
+        rw [hselect]
+        exact hwins
+
+/-- Deterministic semantic W reducer obtained from an exact classifier. -/
+def bls12377ConcreteKzgWForkReduction {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (classifier : Bls12377KzgLeafClassifier stmt) :
+    Bls12377KzgWForkReduction stmt where
+  extract
+    | none => none
+    | some tree => bls12377SelectKzgWForgery stmt classifier tree
+  preserves := by
+    intro output hwin
+    cases output with
+    | none => exact False.elim hwin
+    | some tree =>
+        obtain ⟨forgery, hselect⟩ :=
+          bls12377SelectKzgWForgery_complete
+            stmt classifier tree hwin
+        have hwins :=
+          bls12377SelectKzgWForgery_sound
+            stmt classifier tree forgery hselect
+        change
+          match bls12377SelectKzgWForgery stmt classifier tree with
+          | none => False
+          | some result => Bls12377KzgWForgery.Wins stmt result
+        rw [hselect]
+        exact hwins
 
 def Bls12377KzgVForgeryGameWin {μ : Nat}
     (stmt : Bls12377ReductionStatement μ) :
@@ -502,6 +791,128 @@ noncomputable def bls12377GipaProductLaneGame {μ : Nat}
   bls12377GipaChallengeOfOutput extractor <$>
     gipaProductLaneGame stmt adv qb badZ extractor.extract
 
+/-! ## Concrete accepted-fork GIPA target -/
+
+/-- Exact formal verifier acceptance on every projected fork leaf.
+
+This is the accepted-fork relation required by the standalone GIPA knowledge
+game.  It is independent of the root-opening and product-lane failure events:
+neither `S1ForkGameKzgGood` nor either knowledge-game win is used in its
+definition. -/
+def Bls12377GipaForkAccepts {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (tree :
+      S1ForkGameTree
+        Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput μ μ) : Prop :=
+  tree.All (fun run =>
+    FsAccepts stmt run.1.proof run.1.transcript)
+
+/-- Root-opening failure restricted to a concretely accepted fork. -/
+def Bls12377GipaAcceptedRootOpeningGameWin {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ) :
+    Option (Bls12377GipaKnowledgeChallenge μ) → Prop
+  | none => False
+  | some challenge =>
+      Bls12377GipaForkAccepts stmt challenge.tree ∧
+        Bls12377GipaRootOpeningGameWin stmt (some challenge)
+
+/-- Product-lane failure restricted to the same concretely accepted fork. -/
+def Bls12377GipaAcceptedProductLaneGameWin {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ) :
+    Option (Bls12377GipaKnowledgeChallenge μ) → Prop
+  | none => False
+  | some challenge =>
+      Bls12377GipaForkAccepts stmt challenge.tree ∧
+        Bls12377GipaProductLaneGameWin stmt (some challenge)
+
+/-- Projecting a supported S1 fork preserves full verifier acceptance on
+every leaf.  Acceptance comes from the fork's independent
+`WrappedRunGoodFull` gate and the supported execution of `FsGame`; no GIPA bad
+event appears as a premise. -/
+private theorem projectS1ForkTree_accepts
+    {μ depth : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (adv : Bls12377ReductionAdversary μ)
+    (qb : (FsWrappedSpec Fr).Domain → Nat)
+    (badZ : Finset Fr)
+    (extractor : Bls12377GipaExtractor μ)
+    (tree :
+      RunTree (FsWrappedSpec Fr)
+        (S1WrappedRun
+          Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput μ) depth)
+    (hsupport : tree.All (fun run =>
+      run ∈ support (replayFirstRun (s1ForkMain stmt adv))))
+    (hgood :
+      tree.All (s1ForkLeafOk stmt qb badZ extractor.extract)) :
+    (projectS1ForkTree tree).All (fun run =>
+      FsAccepts stmt run.1.proof run.1.transcript) := by
+  induction tree with
+  | leaf run =>
+      exact wrapped_support_accepts stmt adv hsupport hgood.1.1
+  | node children ih =>
+      intro child
+      exact ih child (hsupport child) (hgood child)
+
+/-- Every present output in the concrete projected GIPA fork experiment is an
+accepted fork.  This supplies the support side of the standalone target
+bridge without `acceptsFork := True`. -/
+theorem bls12377GipaProjectedFork_support_accepts {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (adv : Bls12377ReductionAdversary μ)
+    (qb : (FsWrappedSpec Fr).Domain → Nat)
+    (badZ : Finset Fr)
+    (extractor : Bls12377GipaExtractor μ)
+    {output : Bls12377ReductionForkOutput μ}
+    (hsupport :
+      output ∈ support
+        (gipaRootOpeningGame
+          stmt adv qb badZ extractor.extract)) :
+    match output with
+    | none => True
+    | some tree => Bls12377GipaForkAccepts stmt tree := by
+  rw [gipaRootOpeningGame, support_map] at hsupport
+  obtain ⟨rawOutput, hraw, hproject⟩ := hsupport
+  subst output
+  cases rawOutput with
+  | none => trivial
+  | some tree =>
+      have hconsistent :=
+        forkTreeCombined_support_props μ
+          (s1ForkMain stmt adv) qb (Sum.inr ())
+          (s1ForkSelector qb)
+          (s1ForkLeafOk stmt qb badZ extractor.extract)
+          (fun level _ => fs_roundSlot_reachable stmt adv qb level)
+          (by simpa [s1ForkExperiment] using hraw)
+      exact projectS1ForkTree_accepts
+        stmt adv qb badZ extractor tree
+        hconsistent.all_support hconsistent.all_leafOk
+
+/-- Materializing the extractor witness preserves the accepted-fork support
+fact. -/
+theorem bls12377GipaChallenge_support_accepts {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (adv : Bls12377ReductionAdversary μ)
+    (qb : (FsWrappedSpec Fr).Domain → Nat)
+    (badZ : Finset Fr)
+    (extractor : Bls12377GipaExtractor μ)
+    {output : Option (Bls12377GipaKnowledgeChallenge μ)}
+    (hsupport :
+      output ∈ support
+        (bls12377GipaRootOpeningGame
+          stmt adv qb badZ extractor)) :
+    match output with
+    | none => True
+    | some challenge =>
+        Bls12377GipaForkAccepts stmt challenge.tree := by
+  rw [bls12377GipaRootOpeningGame, support_map] at hsupport
+  obtain ⟨forkOutput, hfork, hproject⟩ := hsupport
+  subst output
+  cases forkOutput with
+  | none => trivial
+  | some tree =>
+      exact bls12377GipaProjectedFork_support_accepts
+        stmt adv qb badZ extractor hfork
+
 theorem gipaRootOpeningGame_probability_eq_explicit {μ : Nat}
     (stmt : Bls12377ReductionStatement μ)
     (adv : Bls12377ReductionAdversary μ)
@@ -535,6 +946,64 @@ theorem gipaProductLaneGame_probability_eq_explicit {μ : Nat}
   simpa [Function.comp_def] using
     (gipaProductLaneGameWin_iff_explicitChallenge
       stmt extractor output)
+
+/-- On the concrete fork experiment, adding the exact accepted-fork
+conjunct does not change the root-opening event distribution. -/
+theorem bls12377GipaRoot_probability_eq_accepted {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (adv : Bls12377ReductionAdversary μ)
+    (qb : (FsWrappedSpec Fr).Domain → Nat)
+    (badZ : Finset Fr)
+    (extractor : Bls12377GipaExtractor μ) :
+    Pr[Bls12377GipaRootOpeningGameWin stmt |
+        bls12377GipaRootOpeningGame stmt adv qb badZ extractor] =
+      Pr[Bls12377GipaAcceptedRootOpeningGameWin stmt |
+        bls12377GipaRootOpeningGame stmt adv qb badZ extractor] := by
+  apply probEvent_ext
+  intro output hsupport
+  cases output with
+  | none => rfl
+  | some challenge =>
+      have haccepts :
+          Bls12377GipaForkAccepts stmt challenge.tree :=
+        bls12377GipaChallenge_support_accepts
+          stmt adv qb badZ extractor hsupport
+      change
+        Bls12377GipaRootOpeningGameWin stmt (some challenge) ↔
+          Bls12377GipaForkAccepts stmt challenge.tree ∧
+            Bls12377GipaRootOpeningGameWin stmt (some challenge)
+      exact ⟨fun h => ⟨haccepts, h⟩, fun h => h.2⟩
+
+/-- The product-lane experiment has the same accepted-fork distribution. -/
+theorem bls12377GipaProduct_probability_eq_accepted {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (adv : Bls12377ReductionAdversary μ)
+    (qb : (FsWrappedSpec Fr).Domain → Nat)
+    (badZ : Finset Fr)
+    (extractor : Bls12377GipaExtractor μ) :
+    Pr[Bls12377GipaProductLaneGameWin stmt |
+        bls12377GipaProductLaneGame stmt adv qb badZ extractor] =
+      Pr[Bls12377GipaAcceptedProductLaneGameWin stmt |
+        bls12377GipaProductLaneGame stmt adv qb badZ extractor] := by
+  have hprogram :
+      bls12377GipaProductLaneGame stmt adv qb badZ extractor =
+        bls12377GipaRootOpeningGame stmt adv qb badZ extractor := by
+    rfl
+  rw [hprogram]
+  apply probEvent_ext
+  intro output hsupport
+  cases output with
+  | none => rfl
+  | some challenge =>
+      have haccepts :
+          Bls12377GipaForkAccepts stmt challenge.tree :=
+        bls12377GipaChallenge_support_accepts
+          stmt adv qb badZ extractor hsupport
+      change
+        Bls12377GipaProductLaneGameWin stmt (some challenge) ↔
+          Bls12377GipaForkAccepts stmt challenge.tree ∧
+            Bls12377GipaProductLaneGameWin stmt (some challenge)
+      exact ⟨fun h => ⟨haccepts, h⟩, fun h => h.2⟩
 
 /-- Materializing the root-opening extractor witness adds no oracle queries. -/
 theorem bls12377GipaRootOpeningGame_isTotalQueryBound_iff {μ : Nat}
@@ -639,6 +1108,111 @@ theorem gipa_fork_knowledge_to_explicit_bls12377_games
     rw [gipaProductLaneGame_probability_eq_explicit
       stmt adv qb badZ extractor]
     exact productSecurity.gameWin_le
+
+/-! ## Pre-fork extractor selection -/
+
+/-- Knowledge-security interface with the quantifiers in their required
+order: the original proof-producing adversary is fixed first, then one
+extractor is selected, and only then are the fork experiment and its
+accepted-fork target games constructed.
+
+The two probability fields are computational assumptions about the explicit
+accepted-fork games.  They do not mention a shipping verifier, an S1 bad-event
+predicate, or `Ipp.Goal`.  A deployment must additionally attach a local
+polynomial-time certificate to every selected extractor; local running time
+is not represented by `OracleComp.IsTotalQueryBound`. -/
+structure Bls12377GipaPreForkKnowledgeSecurity {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ) where
+  epsilonRoot : Nat → ℝ≥0∞
+  epsilonProduct : Nat → ℝ≥0∞
+  extractorFor :
+    Bls12377ReductionAdversary μ → Bls12377GipaExtractor μ
+  root_gameWin_le :
+    ∀ (adv : Bls12377ReductionAdversary μ)
+      (qb : (FsWrappedSpec Fr).Domain → Nat)
+      (badZ : Finset Fr) (queryBudget : Nat),
+      IsTotalQueryBound
+          (bls12377GipaRootOpeningGame
+            stmt adv qb badZ (extractorFor adv)) queryBudget →
+        Pr[Bls12377GipaAcceptedRootOpeningGameWin stmt |
+          bls12377GipaRootOpeningGame
+            stmt adv qb badZ (extractorFor adv)] ≤
+          epsilonRoot queryBudget
+  product_gameWin_le :
+    ∀ (adv : Bls12377ReductionAdversary μ)
+      (qb : (FsWrappedSpec Fr).Domain → Nat)
+      (badZ : Finset Fr) (queryBudget : Nat),
+      IsTotalQueryBound
+          (bls12377GipaProductLaneGame
+            stmt adv qb badZ (extractorFor adv)) queryBudget →
+        Pr[Bls12377GipaAcceptedProductLaneGameWin stmt |
+          bls12377GipaProductLaneGame
+            stmt adv qb badZ (extractorFor adv)] ≤
+          epsilonProduct queryBudget
+
+/-- Non-circular GIPA reduction capstone.
+
+The extractor is `security.extractorFor adv`, so it is chosen from the
+original adversary before `s1ForkExperiment` is formed.  The result charges
+the exact S1 pairing bad event to the two concrete accepted-fork knowledge
+games and transports the query budget through the witness-only maps without
+adding queries. -/
+theorem gipa_fork_knowledge_to_prefork_accepted_bls12377_games
+    {μ : Nat}
+    (stmt : Bls12377ReductionStatement μ)
+    (adv : Bls12377ReductionAdversary μ)
+    (qb : (FsWrappedSpec Fr).Domain → Nat)
+    (badZ : Finset Fr)
+    (security : Bls12377GipaPreForkKnowledgeSecurity stmt)
+    (queryBudget : Nat)
+    (hbound :
+      IsTotalQueryBound
+        (gipaRootOpeningGame stmt adv qb badZ
+          (security.extractorFor adv).extract) queryBudget) :
+    Pr[S1PairingBad stmt (security.extractorFor adv).extract |
+        s1ForkExperiment stmt adv qb badZ
+          (security.extractorFor adv).extract] ≤
+      security.epsilonRoot queryBudget +
+        security.epsilonProduct queryBudget := by
+  let extractor := security.extractorFor adv
+  have hroot :
+      IsTotalQueryBound
+        (bls12377GipaRootOpeningGame
+          stmt adv qb badZ extractor) queryBudget :=
+    (bls12377GipaRootOpeningGame_isTotalQueryBound_iff
+      stmt adv qb badZ extractor queryBudget).2 hbound
+  have hproductBase :
+      IsTotalQueryBound
+        (gipaProductLaneGame
+          stmt adv qb badZ extractor.extract) queryBudget := by
+    simpa [gipaRootOpeningGame, gipaProductLaneGame] using hbound
+  have hproduct :
+      IsTotalQueryBound
+        (bls12377GipaProductLaneGame
+          stmt adv qb badZ extractor) queryBudget :=
+    (bls12377GipaProductLaneGame_isTotalQueryBound_iff
+      stmt adv qb badZ extractor queryBudget).2 hproductBase
+  apply gipa_fork_knowledge_to_explicit_bls12377_games
+    stmt adv qb badZ extractor
+  · exact {
+      epsilon := security.epsilonRoot queryBudget
+      queryBudget := queryBudget
+      queryBound := hroot
+      gameWin_le := by
+        rw [bls12377GipaRoot_probability_eq_accepted
+          stmt adv qb badZ extractor]
+        exact security.root_gameWin_le adv qb badZ queryBudget hroot
+    }
+  · exact {
+      epsilon := security.epsilonProduct queryBudget
+      queryBudget := queryBudget
+      queryBound := hproduct
+      gameWin_le := by
+        rw [bls12377GipaProduct_probability_eq_accepted
+          stmt adv qb badZ extractor]
+        exact security.product_gameWin_le
+          adv qb badZ queryBudget hproduct
+    }
 
 end
 

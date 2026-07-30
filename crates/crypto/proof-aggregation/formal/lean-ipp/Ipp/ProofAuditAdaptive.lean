@@ -1,4 +1,5 @@
 import Ipp.ShippingAdaptiveSha
+import Ipp.ShippingAdaptiveOriginSha
 import Ipp.ShippingMultiStatement
 
 /-!
@@ -13,6 +14,9 @@ forking proofs do not rebuild the extracted Arkworks audit surface.
 #print axioms Ipp.ShippingAdaptiveSha.simulateQ_deployedSha_query
 #print axioms Ipp.ShippingAdaptiveSha.adaptive_shipping_sha256_collision_reduction
 #print axioms Ipp.ShippingAdaptiveSha.adaptive_real_acceptance_le_ideal_add_hash_losses
+#print axioms Ipp.ShippingAdaptiveOriginSha.materializedAliasByteProgram_matches_deployed
+#print axioms Ipp.ShippingAdaptiveOriginSha.acceptedMaterializedAlias_implies_shaCollision
+#print axioms Ipp.ShippingAdaptiveOriginSha.adaptive_materialized_shipping_sha256_collision_reduction
 #print axioms Ipp.ShippingMultiStatement.globalQueryEncoding_ofRegistered
 #print axioms Ipp.ShippingMultiStatement.globalQueryEncoding_fixed_key_injective
 #print axioms Ipp.ShippingMultiStatement.SelectionAt.globalQueryEncoding_eq_shipping
