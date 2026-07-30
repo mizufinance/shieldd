@@ -62,6 +62,25 @@ class ImpactPlannerTests(unittest.TestCase):
         )
         self.assertEqual(result.extraction_graphs, ())
 
+    def test_current_extraction_evidence_import_does_not_reextract(self) -> None:
+        manifest = json.loads(
+            (ROOT / IMPACT.EXTRACTION_MANIFEST).read_text(encoding="utf-8")
+        )
+        output = manifest["graphs"][0]["output"]
+        result = IMPACT.plan(
+            ROOT,
+            event="pull_request",
+            status="run",
+            changed=(IMPACT.EXTRACTION_MANIFEST.as_posix(), output),
+            declared_graphs=(),
+        )
+        self.assertEqual(result.extraction_graphs, ())
+        self.assertFalse(result.parity)
+        self.assertIn(
+            IMPACT._lean_module(Path(output)),
+            result.lean_modules,
+        )
+
     def test_docs_only_change_runs_static_without_builds(self) -> None:
         result = IMPACT.plan(
             ROOT,

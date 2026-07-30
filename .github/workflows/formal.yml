@@ -1111,6 +1111,75 @@ jobs:
           path: ${{ runner.temp }}/snarkpack-dos-pass
           key: snarkpack-dos-pass-v1-${{ runner.os }}-${{ steps.dos_fingerprint.outputs.sha256 }}
 
+  # Structural validation is allowed to acknowledge evidence that an exact
+  # selected lane is refreshing. Publication closure is different: it runs
+  # only after every selected lane passed and accepts committed evidence only.
+  # This keeps evidence-only follow-up commits lightweight while preventing an
+  # in-flight CI artifact from silently becoming publication evidence.
+  snarkpack-publication:
+    name: 'snarkpack: publication closure'
+    if: >-
+      always() &&
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.snarkpack_status == 'run' &&
+      needs.snarkpack-static.result == 'success' &&
+      (
+        needs.applicability.outputs.snarkpack_extract_run != 'true' ||
+        needs.snarkpack-extract.result == 'success'
+      ) &&
+      (
+        needs.applicability.outputs.snarkpack_lean_run != 'true' ||
+        needs.snarkpack-lean.result == 'success'
+      ) &&
+      (
+        needs.applicability.outputs.snarkpack_fstar_run != 'true' ||
+        needs.snarkpack-fstar.result == 'success'
+      ) &&
+      (
+        needs.applicability.outputs.snarkpack_parity_run != 'true' ||
+        needs.snarkpack-parity.result == 'success'
+      ) &&
+      (
+        needs.applicability.outputs.snarkpack_rust_reference_run != 'true' ||
+        (
+          needs.snarkpack-rust-reference.result == 'success' &&
+          needs.snarkpack-slow.result == 'success'
+        )
+      ) &&
+      (
+        needs.applicability.outputs.snarkpack_fuzz_run != 'true' ||
+        needs.snarkpack-fuzz.result == 'success'
+      ) &&
+      (
+        needs.applicability.outputs.snarkpack_dos_run != 'true' ||
+        needs.snarkpack-dos.result == 'success'
+      )
+    needs:
+      - applicability
+      - snarkpack-static
+      - snarkpack-extract
+      - snarkpack-lean
+      - snarkpack-fstar
+      - snarkpack-parity
+      - snarkpack-rust-reference
+      - snarkpack-slow
+      - snarkpack-fuzz
+      - snarkpack-dos
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
+          lfs: true
+      - name: Require closed committed SnarkPack evidence
+        env:
+          SNARKPACK_FV_MODE: publication
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack publication closure"
+          -- bash scripts/snarkpack-fv.sh
+
   # ---------------------------------------------------------------- soundness
 
   soundness-gate:
@@ -1274,6 +1343,7 @@ jobs:
       - snarkpack-slow
       - snarkpack-fuzz
       - snarkpack-dos
+      - snarkpack-publication
       - soundness-gate
       - soundness-seam-and-pin
       - soundness-vk-derivation
@@ -1313,6 +1383,7 @@ jobs:
           SLOW: ${{ needs.snarkpack-slow.result }}
           FUZZ: ${{ needs.snarkpack-fuzz.result }}
           DOS: ${{ needs.snarkpack-dos.result }}
+          PUBLICATION: ${{ needs.snarkpack-publication.result }}
           GATE: ${{ needs.soundness-gate.result }}
           SEAM: ${{ needs.soundness-seam-and-pin.result }}
           VK: ${{ needs.soundness-vk-derivation.result }}

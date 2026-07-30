@@ -63,6 +63,7 @@ def enforce() -> None:
         "snarkpack-slow": value("SLOW"),
         "snarkpack-fuzz": value("FUZZ"),
         "snarkpack-dos": value("DOS"),
+        "snarkpack-publication": value("PUBLICATION"),
     }
 
     if snarkpack_status == "block":
@@ -72,6 +73,11 @@ def enforce() -> None:
     if snarkpack_status == "skip":
         for label, selected in selections.items():
             require_not_selected(selected, label)
+        if results["snarkpack-publication"] != "skipped":
+            raise ValueError(
+                "SnarkPack skip unexpectedly ran publication closure: "
+                f"{results['snarkpack-publication']}"
+            )
         print(f"snarkpack explained skip: {snarkpack_explanation}")
     elif snarkpack_status == "run":
         if selections["snarkpack-static"] != "true":
@@ -90,6 +96,9 @@ def enforce() -> None:
             selections["snarkpack-rust-reference"],
             "snarkpack-slow",
             results["snarkpack-slow"],
+        )
+        required.append(
+            ("snarkpack-publication", results["snarkpack-publication"])
         )
     else:
         raise ValueError(

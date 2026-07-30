@@ -207,6 +207,112 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual((decision.status, decision.tier), ("run", "extract-changed"))
         self.assertEqual(decision.graphs, ("GraphA",))
 
+    def test_extraction_manifest_evidence_refresh_is_not_semantic(self) -> None:
+        previous = self.synthetic_manifest(("GraphA", "src/a.rs"))
+        current = json.loads(json.dumps(previous))
+        previous_graph = previous["graphs"][0]
+        current_graph = current["graphs"][0]
+        previous_graph["source_sha256"] = "0" * 64
+        current_graph["source_sha256"] = "1" * 64
+        previous_graph["output_sha256"] = "2" * 64
+        current_graph["output_sha256"] = "3" * 64
+        previous_graph["inputs"][0]["sha256"] = "4" * 64
+        current_graph["inputs"][0]["sha256"] = "5" * 64
+        previous_graph["normalization"].update(
+            {
+                "selected_raw_declarations_sha256": "6" * 64,
+                "normalized_sha256": "2" * 64,
+            }
+        )
+        current_graph["normalization"].update(
+            {
+                "selected_raw_declarations_sha256": "7" * 64,
+                "normalized_sha256": "3" * 64,
+            }
+        )
+        graphs, shared = GATE.extraction_manifest_semantic_changes(
+            current,
+            previous,
+            current_label="current",
+            previous_label="previous",
+        )
+        self.assertEqual(graphs, frozenset())
+        self.assertFalse(shared)
+
+    def test_extraction_manifest_root_change_selects_exact_graph(self) -> None:
+        previous = self.synthetic_manifest(
+            ("GraphA", "src/a.rs"), ("GraphB", "src/b.rs")
+        )
+        current = json.loads(json.dumps(previous))
+        current["graphs"][0]["roots"] = ["crate::changed"]
+        graphs, shared = GATE.extraction_manifest_semantic_changes(
+            current,
+            previous,
+            current_label="current",
+            previous_label="previous",
+        )
+        self.assertEqual(graphs, frozenset({"GraphA"}))
+        self.assertFalse(shared)
+
+    def test_extraction_manifest_toolchain_change_selects_all(self) -> None:
+        previous = self.synthetic_manifest(
+            ("GraphA", "src/a.rs"), ("GraphB", "src/b.rs")
+        )
+        current = json.loads(json.dumps(previous))
+        current["toolchains"]["lean"] = "changed"
+        graphs, shared = GATE.extraction_manifest_semantic_changes(
+            current,
+            previous,
+            current_label="current",
+            previous_label="previous",
+        )
+        self.assertEqual(graphs, frozenset({"GraphA", "GraphB"}))
+        self.assertTrue(shared)
+
+    def test_current_generated_output_is_static_not_extraction(self) -> None:
+        manifest = self.synthetic_manifest(("GraphA", "src/a.rs"))
+        rules = GATE.lean_manifest_rules_from_data(
+            manifest,
+            self.lean_source,
+            "pull_request",
+            verify_root=None,
+            label="fixture manifest",
+            include_manifest_input=False,
+            stale_output_graphs=frozenset(),
+            evidence_tier="static",
+        )
+        decision = GATE.classify(
+            self.snarkpack,
+            "pull_request",
+            ["generated/GraphA.lean"],
+            rules,
+        )
+        self.assertEqual((decision.status, decision.tier), ("run", "static"))
+        self.assertEqual(decision.graphs, ())
+
+    def test_stale_generated_output_selects_exact_graph(self) -> None:
+        manifest = self.synthetic_manifest(("GraphA", "src/a.rs"))
+        rules = GATE.lean_manifest_rules_from_data(
+            manifest,
+            self.lean_source,
+            "pull_request",
+            verify_root=None,
+            label="fixture manifest",
+            include_manifest_input=False,
+            stale_output_graphs=frozenset({"GraphA"}),
+            evidence_tier="static",
+        )
+        decision = GATE.classify(
+            self.snarkpack,
+            "pull_request",
+            ["generated/GraphA.lean"],
+            rules,
+        )
+        self.assertEqual(
+            (decision.status, decision.tier), ("run", "extract-changed")
+        )
+        self.assertEqual(decision.graphs, ("GraphA",))
+
     def test_workflow_unsafe_graph_id_blocks_classification(self) -> None:
         manifest = self.synthetic_manifest(
             ('Graph"; echo injected', "src/a.rs"),
@@ -409,9 +515,12 @@ class GateApplicabilityTests(unittest.TestCase):
                 "snarkpack-slow",
                 "snarkpack-fuzz",
                 "snarkpack-dos",
+                "snarkpack-publication",
             },
         )
         for lane, body in lanes:
+            if lane == "snarkpack-publication":
+                continue
             with self.subTest(lane=lane):
                 self.assertRegex(
                     body,
@@ -422,6 +531,72 @@ class GateApplicabilityTests(unittest.TestCase):
                     r"needs\.applicability\.outputs\."
                     r"snarkpack_[a-z_]+_run == 'true'",
                 )
+
+    def test_snarkpack_publication_closes_selected_lane_results(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        lanes = dict(
+            re.findall(
+                r"(?ms)^  (snarkpack-[a-z0-9-]+):\n"
+                r"(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+                workflow,
+            )
+        )
+        publication = lanes["snarkpack-publication"]
+        self.assertIn(
+            "needs.applicability.outputs.snarkpack_status == 'run'",
+            publication,
+        )
+        self.assertIn(
+            "needs.snarkpack-static.result == 'success'",
+            publication,
+        )
+        selected_results = {
+            "extract": "snarkpack-extract",
+            "lean": "snarkpack-lean",
+            "fstar": "snarkpack-fstar",
+            "parity": "snarkpack-parity",
+            "fuzz": "snarkpack-fuzz",
+            "dos": "snarkpack-dos",
+        }
+        for selection, lane in selected_results.items():
+            with self.subTest(publication_lane=lane):
+                self.assertIn(
+                    "needs.applicability.outputs."
+                    f"snarkpack_{selection}_run != 'true'",
+                    publication,
+                )
+                self.assertIn(
+                    f"needs.{lane}.result == 'success'",
+                    publication,
+                )
+        self.assertIn(
+            "needs.applicability.outputs.snarkpack_rust_reference_run "
+            "!= 'true'",
+            publication,
+        )
+        self.assertIn(
+            "needs.snarkpack-rust-reference.result == 'success'",
+            publication,
+        )
+        self.assertIn(
+            "needs.snarkpack-slow.result == 'success'",
+            publication,
+        )
+        self.assertIn("SNARKPACK_FV_MODE: publication", publication)
+
+        summary = re.search(
+            r"(?ms)^  summary:\n(.*)\Z",
+            workflow,
+        )
+        self.assertIsNotNone(summary)
+        assert summary is not None
+        self.assertIn("- snarkpack-publication", summary.group(1))
+        self.assertIn(
+            "PUBLICATION: ${{ needs.snarkpack-publication.result }}",
+            summary.group(1),
+        )
 
     def test_snarkpack_workflow_uses_exact_impact_outputs(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(

@@ -388,7 +388,6 @@ main() {
   case "$MODE" in
     static)
       run_static
-      require_publication_closure=1
       ;;
     extract-changed)
       run_extract changed
@@ -426,6 +425,9 @@ main() {
         run_lean_audit_refresh "${selected_lean_modules[@]}"
       fi
       ;;
+    publication)
+      require_publication_closure=1
+      ;;
     full)
       run_static
       run_extract all
@@ -434,7 +436,7 @@ main() {
       require_publication_closure=1
       ;;
     *)
-      fail "SNARKPACK_FV_MODE must be static, extract-changed, extract-all, parity-changed, parity-all, lean-changed, lean-audit-changed, lean, or full (got $MODE)"
+      fail "SNARKPACK_FV_MODE must be static, extract-changed, extract-all, parity-changed, parity-all, lean-changed, lean-audit-changed, lean, publication, or full (got $MODE)"
       ;;
   esac
 

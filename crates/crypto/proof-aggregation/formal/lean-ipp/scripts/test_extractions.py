@@ -516,6 +516,173 @@ class ExtractionManifestTests(unittest.TestCase):
                     )
                 self.assertIn(needle, str(raised.exception))
 
+    def test_compare_tolerates_unselected_missing_source_fingerprint(self):
+        manifest = copy.deepcopy(self.manifest)
+        selected = manifest["graphs"][0]
+        unselected = manifest["graphs"][1]
+        unselected.pop("source_sha256")
+        args = SimpleNamespace(
+            manifest=Path("recovery-manifest.json"),
+            graph=[selected["id"]],
+            shard_index=None,
+            shard_count=None,
+        )
+        with (
+            patch.object(EXTRACTIONS, "load_manifest", return_value=manifest),
+            patch.object(
+                EXTRACTIONS,
+                "compare_graph",
+                return_value=(True, "ok"),
+            ) as compare,
+            patch("sys.stdout", io.StringIO()),
+        ):
+            self.assertEqual(EXTRACTIONS.command_compare(args), 0)
+        compare.assert_called_once_with(selected, manifest["toolchains"])
+
+    def test_compare_rejects_selected_missing_source_with_graph_name(self):
+        manifest = copy.deepcopy(self.manifest)
+        selected = manifest["graphs"][0]
+        selected.pop("source_sha256")
+        args = SimpleNamespace(
+            manifest=Path("recovery-manifest.json"),
+            graph=[selected["id"]],
+            shard_index=None,
+            shard_count=None,
+        )
+        output = io.StringIO()
+        with (
+            patch.object(EXTRACTIONS, "load_manifest", return_value=manifest),
+            patch.object(EXTRACTIONS, "reproduce_graph") as reproduce,
+            patch("sys.stdout", output),
+        ):
+            self.assertEqual(EXTRACTIONS.command_compare(args), 1)
+        reproduce.assert_not_called()
+        self.assertIn(selected["id"], output.getvalue())
+        self.assertIn("missing source_sha256", output.getvalue())
+
+    def test_compare_rejects_selected_stale_input_before_reproduction(self):
+        graph = copy.deepcopy(self.manifest["graphs"][0])
+        stale_path = graph["inputs"][0]["path"]
+        with (
+            patch.object(
+                EXTRACTIONS.SourceSnapshotCache,
+                "file_sha256",
+                return_value="f" * 64,
+            ),
+            patch.object(EXTRACTIONS.Path, "is_file", return_value=True),
+            patch.object(EXTRACTIONS, "reproduce_graph") as reproduce,
+        ):
+            matches, report = EXTRACTIONS.compare_graph(
+                graph, self.manifest["toolchains"]
+            )
+        reproduce.assert_not_called()
+        self.assertFalse(matches)
+        self.assertIn(graph["id"], report)
+        self.assertIn(f"stale declared input {stale_path}", report)
+
+    def test_compare_rejects_selected_missing_and_stale_output(self):
+        graph = copy.deepcopy(self.manifest["graphs"][0])
+        expected_inputs = iter(item["sha256"] for item in graph["inputs"])
+        with tempfile.TemporaryDirectory(
+            prefix="extractions-compare-output-"
+        ) as directory:
+            repo_root = Path(directory)
+            for item in graph["inputs"]:
+                input_path = repo_root.joinpath(*Path(item["path"]).parts)
+                input_path.parent.mkdir(parents=True, exist_ok=True)
+                input_path.write_bytes(b"input\n")
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS.SourceSnapshotCache,
+                    "file_sha256",
+                    side_effect=lambda _path: next(expected_inputs),
+                ),
+            ):
+                matches, report = EXTRACTIONS.compare_graph(
+                    graph, self.manifest["toolchains"]
+                )
+            self.assertFalse(matches)
+            self.assertIn(graph["id"], report)
+            self.assertIn("missing declared output", report)
+
+            output_path = repo_root.joinpath(*Path(graph["output"]).parts)
+            output_path.parent.mkdir(parents=True)
+            output_path.write_bytes(b"stale output\n")
+            expected_inputs = iter(item["sha256"] for item in graph["inputs"])
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS.SourceSnapshotCache,
+                    "file_sha256",
+                    side_effect=lambda _path: next(expected_inputs),
+                ),
+            ):
+                matches, report = EXTRACTIONS.compare_graph(
+                    graph, self.manifest["toolchains"]
+                )
+            self.assertFalse(matches)
+            self.assertIn(graph["id"], report)
+            self.assertIn("stale declared output", report)
+
+    def test_compare_reproduces_only_after_selected_evidence_matches(self):
+        graph = copy.deepcopy(self.manifest["graphs"][0])
+        committed = b"generated output\n"
+        graph["output_sha256"] = EXTRACTIONS.hashlib.sha256(
+            committed
+        ).hexdigest()
+        graph["normalization"]["normalized_sha256"] = graph["output_sha256"]
+        source_snapshot = {
+            "git:HEAD": "b" * 40,
+            "selected-source": "c" * 64,
+        }
+        graph["source_sha256"] = EXTRACTIONS.source_snapshot_sha256(
+            source_snapshot
+        )
+        expected_inputs = iter(
+            item["sha256"] for item in graph["inputs"]
+        )
+        with tempfile.TemporaryDirectory(
+            prefix="extractions-compare-success-"
+        ) as directory:
+            repo_root = Path(directory)
+            for item in graph["inputs"]:
+                input_path = repo_root.joinpath(*Path(item["path"]).parts)
+                input_path.parent.mkdir(parents=True, exist_ok=True)
+                input_path.write_bytes(b"input\n")
+            output_path = repo_root.joinpath(*Path(graph["output"]).parts)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(committed)
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS.SourceSnapshotCache,
+                    "file_sha256",
+                    side_effect=lambda _path: next(expected_inputs),
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_graph_source_snapshot",
+                    return_value=source_snapshot,
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "reproduce_graph",
+                    return_value=(
+                        committed,
+                        graph["normalization"][
+                            "selected_raw_declarations_sha256"
+                        ],
+                    ),
+                ) as reproduce,
+            ):
+                matches, report = EXTRACTIONS.compare_graph(
+                    graph, self.manifest["toolchains"]
+                )
+        reproduce.assert_called_once()
+        self.assertTrue(matches, report)
+        self.assertIn("byte-identical", report)
+
     def test_regenerate_refreshes_selected_graph_input_hashes(self):
         selected = self.manifest["graphs"][0]
         unselected = self.manifest["graphs"][1]

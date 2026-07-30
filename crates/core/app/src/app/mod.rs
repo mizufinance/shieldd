@@ -56,12 +56,13 @@ use shieldd_sdk_proof_aggregation::{
     aggregate_family_profiled, app_verify_family_code, app_verify_family_count_core,
     app_verify_plan_identity_core, app_verify_plan_ids_core, app_verify_plan_padding_core,
     app_verify_preflight_core, app_verify_reduce_core, app_verify_shipping_call_from_parts,
-    app_verify_shipping_result_from_parts, pad_items_to_power_of_two, prepare_verify_inputs,
-    srs_id, verify_shipping_family_aggregate_profiled_status, AggregateBuildBackendProfile,
+    app_verify_shipping_result_from_parts, load_active_production_srs, load_production_srs_for_id,
+    pad_items_to_power_of_two, prepare_verify_inputs, srs_id,
+    verify_shipping_family_aggregate_profiled_status, AggregateBuildBackendProfile,
     AggregateBundle, AggregateStatement, AggregateVerificationProfile, AppVerifyCallId,
     AppVerifyCallResult, AppVerifyExpectedCall, AppVerifyPlanError, AppVerifyPreflightError,
     AppVerifyReductionError, AppVerifyShippingCall, AppVerifyShippingResult, DevSrs,
-    FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION, DEFAULT_DEV_SRS_ID,
+    FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
 };
 use shieldd_sdk_proof_params::batch::{self, BatchItem};
 use shieldd_sdk_proto::core::app::v1::TransactionsByHeightResponse;
@@ -128,6 +129,34 @@ pub const MAX_EVIDENCE_SIZE_BYTES: usize = 30 * 1024;
 const MAX_PADDED_PROOF_COUNT: usize = 32_768;
 const AGGREGATE_DEBUG_DIR_ENV: &str = "SHIELDD_AGGREGATE_DEBUG_DIR";
 static AGGREGATE_DEBUG_SEQ: AtomicU64 = AtomicU64::new(0);
+
+fn shipping_srs() -> Result<DevSrs> {
+    #[cfg(any(test, feature = "fuzzing"))]
+    {
+        Ok(DevSrs::default())
+    }
+    #[cfg(not(any(test, feature = "fuzzing")))]
+    {
+        load_active_production_srs()
+    }
+}
+
+fn shipping_srs_for_id(requested_id: &[u8]) -> Result<DevSrs> {
+    #[cfg(any(test, feature = "fuzzing"))]
+    {
+        let srs = DevSrs::default();
+        let expected_id = srs_id(&srs);
+        anyhow::ensure!(
+            requested_id == expected_id.as_slice(),
+            "test/fuzz SnarkPack SRS id mismatch"
+        );
+        Ok(srs)
+    }
+    #[cfg(not(any(test, feature = "fuzzing")))]
+    {
+        load_production_srs_for_id(requested_id)
+    }
+}
 
 #[derive(Clone, Debug)]
 struct AggregateDebugRow {
@@ -2034,7 +2063,7 @@ impl App {
         let mut profile = AggregateBuildProfile::default();
         profile.merge_items_ms = merge_start.elapsed().as_secs_f64() * 1000.0;
         let srs_start = Instant::now();
-        let srs = DevSrs::default();
+        let srs = shipping_srs()?;
         profile.setup_ms = srs_start.elapsed().as_secs_f64() * 1000.0;
         let mut aggregate_tasks = Vec::new();
         let debug_entries = Self::aggregate_debug_families(artifacts);
@@ -2050,7 +2079,7 @@ impl App {
             let padded_items = pad_items_to_power_of_two(&items, MAX_PADDED_PROOF_COUNT)?;
             profile.padding_ms += padding_start.elapsed().as_secs_f64() * 1000.0;
             let padded_count = padded_items.len() as u32;
-            let srs_for_task = srs;
+            let srs_for_task = srs.clone();
             let padded_public_inputs = padded_items
                 .iter()
                 .map(|item| item.public_inputs.clone())
@@ -2214,7 +2243,7 @@ impl App {
         }
 
         let srs_start = Instant::now();
-        let srs = DevSrs::default();
+        let srs = shipping_srs()?;
         let setup_ms = srs_start.elapsed().as_secs_f64() * 1000.0;
         let tx_build_start = Instant::now();
         let bundle_tx = self
@@ -2295,12 +2324,13 @@ impl App {
         artifacts: &[Arc<TxArtifact>],
         bundle: &AggregateBundle,
         segment_tx_counts: Option<&[usize]>,
+        srs: &DevSrs,
     ) -> Result<Vec<shieldd_sdk_proof_aggregation::AppVerifySegmentRange>> {
         match app_verify_preflight_core(
             AGGREGATE_PROTOCOL_VERSION,
             bundle.version,
             Self::total_artifact_proof_count(artifacts),
-            DEFAULT_DEV_SRS_ID.to_vec(),
+            srs_id(srs).to_vec(),
             bundle.srs_id.clone(),
             artifacts.len(),
             segment_tx_counts.is_some(),
@@ -2481,7 +2511,7 @@ impl App {
                 shipping_call,
                 statement,
                 aggregate,
-                srs,
+                srs: srs.clone(),
                 debug_rows,
                 padded_public_inputs: prepared_inputs.padded_public_inputs,
             });
@@ -2634,8 +2664,13 @@ impl App {
         let verify_start = Instant::now();
         let mut profile = AggregateVerifyProfile::default();
         let result: Result<()> = async {
-            let segment_ranges =
-                Self::validate_aggregate_verify_plan_inputs(artifacts, bundle, segment_tx_counts)?;
+            let srs = shipping_srs_for_id(&bundle.srs_id)?;
+            let segment_ranges = Self::validate_aggregate_verify_plan_inputs(
+                artifacts,
+                bundle,
+                segment_tx_counts,
+                &srs,
+            )?;
 
             let expected_segments_start = Instant::now();
             let expected_segments =
@@ -2643,7 +2678,6 @@ impl App {
             profile.expected_segments_ms = expected_segments_start.elapsed().as_secs_f64() * 1000.0;
 
             let prepare_inputs_start = Instant::now();
-            let srs = DevSrs::default();
             let plan_result =
                 Self::plan_aggregate_bundle_verification(bundle, expected_segments, srs);
             profile.prepare_inputs_ms = prepare_inputs_start.elapsed().as_secs_f64() * 1000.0;
@@ -3261,10 +3295,11 @@ impl App {
         let (families, segment_tx_counts, _) =
             Self::build_segmented_family_aggregates_for_artifacts(artifacts, segment_tx_count)
                 .await?;
+        let srs = shipping_srs()?;
         Ok((
             AggregateBundle {
                 version: AGGREGATE_PROTOCOL_VERSION,
-                srs_id: srs_id(&DevSrs::default()).to_vec(),
+                srs_id: srs_id(&srs).to_vec(),
                 families,
             },
             segment_tx_counts,
@@ -3278,10 +3313,11 @@ impl App {
         let (families, segment_tx_counts, profile) =
             Self::build_segmented_family_aggregates_for_artifacts(artifacts, segment_tx_count)
                 .await?;
+        let srs = shipping_srs()?;
         Ok((
             AggregateBundle {
                 version: AGGREGATE_PROTOCOL_VERSION,
-                srs_id: srs_id(&DevSrs::default()).to_vec(),
+                srs_id: srs_id(&srs).to_vec(),
                 families,
             },
             segment_tx_counts,
@@ -3299,10 +3335,11 @@ impl App {
                 segment_tx_counts,
             )
             .await?;
+        let srs = shipping_srs()?;
         Ok((
             AggregateBundle {
                 version: AGGREGATE_PROTOCOL_VERSION,
-                srs_id: srs_id(&DevSrs::default()).to_vec(),
+                srs_id: srs_id(&srs).to_vec(),
                 families,
             },
             segment_tx_counts,
@@ -7265,8 +7302,13 @@ mod tests {
             historical_validation: None,
         });
 
-        let error = App::validate_aggregate_verify_plan_inputs(&[artifact], &bundle, Some(&[0]))
-            .expect_err("incomplete segment coverage must reject");
+        let error = App::validate_aggregate_verify_plan_inputs(
+            &[artifact],
+            &bundle,
+            Some(&[0]),
+            &DevSrs::default(),
+        )
+        .expect_err("incomplete segment coverage must reject");
         assert!(error
             .to_string()
             .contains("aggregate segment coverage mismatch"));
@@ -7396,7 +7438,12 @@ mod tests {
     #[tokio::test]
     async fn async_verifier_outcome_retains_its_exact_shipping_input() -> Result<()> {
         let (_storage, artifacts, bundle, _bundle_tx) = aggregate_fixture(1).await?;
-        let ranges = App::validate_aggregate_verify_plan_inputs(&artifacts, &bundle, Some(&[1]))?;
+        let ranges = App::validate_aggregate_verify_plan_inputs(
+            &artifacts,
+            &bundle,
+            Some(&[1]),
+            &DevSrs::default(),
+        )?;
         let expected_segments = App::expected_aggregate_verify_segments(&artifacts, &ranges);
         let mut plan = App::plan_aggregate_bundle_verification(
             &bundle,

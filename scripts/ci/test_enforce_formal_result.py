@@ -42,6 +42,7 @@ def full_environment() -> dict[str, str]:
             "SLOW": "success",
             "FUZZ": "success",
             "DOS": "success",
+            "PUBLICATION": "success",
             "GATE": "success",
             "SEAM": "success",
             "VK": "success",
@@ -85,6 +86,7 @@ class EnforceFormalResultTests(unittest.TestCase):
             "DOS_RUN",
         ):
             env[name] = "false"
+        env["PUBLICATION"] = "skipped"
         result = run_summary(env)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("snarkpack explained skip", result.stdout)
@@ -102,6 +104,37 @@ class EnforceFormalResultTests(unittest.TestCase):
         result = run_summary(env)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("snarkpack-slow=skipped", result.stderr)
+
+    def test_publication_closure_is_required_for_snarkpack(self) -> None:
+        env = full_environment()
+        env["PUBLICATION"] = "skipped"
+        result = run_summary(env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("snarkpack-publication=skipped", result.stderr)
+
+    def test_snarkpack_skip_must_not_run_publication(self) -> None:
+        env = full_environment()
+        env["SNARKPACK_STATUS"] = "skip"
+        env["SNARKPACK_TIER"] = "none"
+        env["SOUNDNESS_STATUS"] = "skip"
+        env["SOUNDNESS_TIER"] = "none"
+        for name in (
+            "STATIC_RUN",
+            "EXTRACT_RUN",
+            "SNARKPACK_LEAN_RUN",
+            "FSTAR_RUN",
+            "PARITY_RUN",
+            "RUST_REFERENCE_RUN",
+            "FUZZ_RUN",
+            "DOS_RUN",
+        ):
+            env[name] = "false"
+        result = run_summary(env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "SnarkPack skip unexpectedly ran publication closure",
+            result.stderr,
+        )
 
     def test_invalid_selection_is_fatal(self) -> None:
         env = full_environment()

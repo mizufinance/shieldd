@@ -949,25 +949,35 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
 def compare_graph(
     graph: dict[str, Any], toolchains: dict[str, Any]
 ) -> tuple[bool, str]:
-    source_before = current_graph_source_snapshot(graph, toolchains)
-    source_sha256 = source_snapshot_sha256(source_before)
-    expected_source_sha256 = graph["source_sha256"]
-    if source_sha256 != expected_source_sha256:
+    graph_id = graph["id"]
+    try:
+        source_before = _validate_selected_graph_evidence(graph, toolchains)
+    except ManifestError as error:
+        return False, str(error)
+    try:
+        with tempfile.TemporaryDirectory(
+            prefix=f"shieldd-extract-{graph_id}-"
+        ) as raw_temp:
+            content, selected_digest = reproduce_graph(graph, Path(raw_temp))
+    except (ManifestError, OSError) as error:
         return (
             False,
-            f"{graph['id']}: source fingerprint drift\n"
-            f"  committed={expected_source_sha256}\n"
-            f"  current={source_sha256}",
+            f"{graph_id}: reproduction failed\n"
+            f"  {error}",
         )
-    with tempfile.TemporaryDirectory(prefix=f"shieldd-extract-{graph['id']}-") as raw_temp:
-        content, selected_digest = reproduce_graph(graph, Path(raw_temp))
-    _assert_source_snapshot_unchanged(
-        graph,
-        source_before,
-        current_graph_source_snapshot(graph, toolchains),
-    )
-    committed_path = REPO_ROOT.joinpath(*PurePosixPath(graph["output"]).parts)
-    committed = committed_path.read_bytes()
+    try:
+        _assert_source_snapshot_unchanged(
+            graph,
+            source_before,
+            current_graph_source_snapshot(graph, toolchains),
+        )
+        committed = _read_selected_graph_output(graph)
+    except (ManifestError, OSError) as error:
+        return (
+            False,
+            f"{graph_id}: evidence changed during reproduction\n"
+            f"  {error}",
+        )
     normalized_hash = hashlib.sha256(content).hexdigest()
     expected_selected_digest = graph["normalization"][
         "selected_raw_declarations_sha256"
@@ -985,6 +995,83 @@ def compare_graph(
         details.append(f"  selected digest expected={expected_selected_digest}")
         details.append(f"  selected digest actual={selected_digest}")
     return False, "\n".join(details)
+
+
+def _read_selected_graph_output(graph: dict[str, Any]) -> bytes:
+    graph_id = graph["id"]
+    output_path = REPO_ROOT.joinpath(
+        *PurePosixPath(graph["output"]).parts
+    )
+    if not output_path.is_file():
+        raise ManifestError(
+            f"{graph_id}: missing declared output {graph['output']}"
+        )
+    try:
+        committed = output_path.read_bytes()
+    except OSError as error:
+        raise ManifestError(
+            f"{graph_id}: cannot read declared output {graph['output']}: {error}"
+        ) from error
+    actual_hash = hashlib.sha256(committed).hexdigest()
+    expected_hash = graph["output_sha256"]
+    if actual_hash != expected_hash:
+        raise ManifestError(
+            f"{graph_id}: stale declared output {graph['output']}\n"
+            f"  committed={expected_hash}\n"
+            f"  current={actual_hash}"
+        )
+    return committed
+
+
+def _validate_selected_graph_evidence(
+    graph: dict[str, Any], toolchains: dict[str, Any]
+) -> dict[str, str]:
+    """Validate all committed evidence needed to compare one selected graph."""
+    graph_id = graph["id"]
+    expected_source_sha256 = graph.get("source_sha256")
+    if expected_source_sha256 is None:
+        raise ManifestError(f"{graph_id}: missing source_sha256")
+
+    cache = SourceSnapshotCache()
+    for item in graph["inputs"]:
+        input_path = REPO_ROOT.joinpath(
+            *PurePosixPath(item["path"]).parts
+        )
+        if not input_path.is_file():
+            raise ManifestError(
+                f"{graph_id}: missing declared input {item['path']}"
+            )
+        try:
+            actual_hash = cache.file_sha256(input_path)
+        except OSError as error:
+            raise ManifestError(
+                f"{graph_id}: cannot hash declared input {item['path']}: {error}"
+            ) from error
+        expected_hash = item["sha256"]
+        if actual_hash != expected_hash:
+            raise ManifestError(
+                f"{graph_id}: stale declared input {item['path']}\n"
+                f"  committed={expected_hash}\n"
+                f"  current={actual_hash}"
+            )
+
+    _read_selected_graph_output(graph)
+    try:
+        source_before = current_graph_source_snapshot(
+            graph, toolchains, cache=cache
+        )
+    except (ManifestError, OSError) as error:
+        raise ManifestError(
+            f"{graph_id}: cannot compute source fingerprint: {error}"
+        ) from error
+    source_sha256 = source_snapshot_sha256(source_before)
+    if source_sha256 != expected_source_sha256:
+        raise ManifestError(
+            f"{graph_id}: source fingerprint drift\n"
+            f"  committed={expected_source_sha256}\n"
+            f"  current={source_sha256}"
+        )
+    return source_before
 
 
 def _git(args: Sequence[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -1210,7 +1297,14 @@ def command_source_directories(args: argparse.Namespace) -> int:
 
 def command_compare(args: argparse.Namespace) -> int:
     manifest = load_manifest(args.manifest)
-    validate_manifest(manifest, manifest_path=args.manifest)
+    # Recovery may leave unrelated graphs without source stamps. Validate the
+    # global schema without accepting any selected graph's missing or stale
+    # evidence; compare_graph enforces that evidence before reproduction.
+    validate_recovery_manifest(
+        manifest,
+        verify_files=False,
+        manifest_path=args.manifest,
+    )
     selected = select_graphs(
         manifest,
         args.graph,

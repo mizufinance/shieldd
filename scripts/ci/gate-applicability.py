@@ -519,6 +519,9 @@ def lean_manifest_rules_from_data(
     *,
     verify_root: Path | None,
     label: str,
+    include_manifest_input: bool = True,
+    stale_output_graphs: frozenset[str] | None = None,
+    evidence_tier: str | None = None,
 ) -> list[InputRule]:
     raw = _object(manifest, label)
     if raw.get("schema_version") != 2:
@@ -543,8 +546,8 @@ def lean_manifest_rules_from_data(
                 f"{label} contains duplicate graph id {graph_id!r}"
             )
         graph_ids.add(graph_id)
+        output = _manifest_path(graph.get("output"), f"{where}.output")
         paths = {
-            _manifest_path(graph.get("output"), f"{where}.output"),
             _manifest_path(graph.get("crate_manifest"), f"{where}.crate_manifest"),
         }
         inputs = graph.get("inputs")
@@ -572,7 +575,11 @@ def lean_manifest_rules_from_data(
         if not isinstance(parity, list) or not parity:
             raise ClassificationError(f"{where}.parity must be a non-empty array")
         if verify_root is not None:
-            missing = sorted(path for path in paths if not (verify_root / path).is_file())
+            missing = sorted(
+                path
+                for path in paths | {output}
+                if not (verify_root / path).is_file()
+            )
             if missing:
                 raise ClassificationError(
                     f"{where} references missing file(s): {', '.join(missing)}"
@@ -585,9 +592,32 @@ def lean_manifest_rules_from_data(
                 graphs=(graph_id,),
             )
         )
+        output_is_stale = (
+            stale_output_graphs is None or graph_id in stale_output_graphs
+        )
+        rules.append(
+            InputRule(
+                patterns=(output,),
+                tier=(
+                    graph_tier
+                    if output_is_stale
+                    else evidence_tier or graph_tier
+                ),
+                reason=(
+                    f"{source['reason']}: stale generated output {graph_id}"
+                    if output_is_stale
+                    else (
+                        f"{source['reason']}: current committed extraction "
+                        f"evidence {graph_id}"
+                    )
+                ),
+                graphs=(graph_id,) if output_is_stale else (),
+            )
+        )
 
     global_paths = set(source["global_inputs"])
-    global_paths.add(source["path"])
+    if include_manifest_input:
+        global_paths.add(source["path"])
     global_paths.update(normalizers)
     if verify_root is not None:
         missing = sorted(
@@ -623,6 +653,128 @@ def _git_json_file(root: Path, revision: str, path: str) -> Any | None:
         raise ClassificationError(
             f"malformed base manifest {revision}:{path}: {error}"
         ) from error
+
+
+def _extraction_graphs_by_id(
+    manifest: Any,
+    label: str,
+) -> dict[str, dict[str, Any]]:
+    raw = _object(manifest, label)
+    graphs = raw.get("graphs")
+    if not isinstance(graphs, list) or not graphs:
+        raise ClassificationError(f"{label}.graphs must be a non-empty array")
+    result: dict[str, dict[str, Any]] = {}
+    for index, value in enumerate(graphs):
+        graph = _object(value, f"{label}.graphs[{index}]")
+        graph_id = _graph_id(graph.get("id"), f"{label}.graphs[{index}].id")
+        if graph_id in result:
+            raise ClassificationError(
+                f"{label} contains duplicate graph id {graph_id!r}"
+            )
+        result[graph_id] = graph
+    return result
+
+
+def extraction_recipe_projection(graph: dict[str, Any]) -> dict[str, Any]:
+    """Return graph instructions without regenerated evidence fields."""
+    projected = json.loads(json.dumps(graph))
+    projected.pop("source_sha256", None)
+    projected.pop("output_sha256", None)
+    inputs = projected.get("inputs")
+    if not isinstance(inputs, list):
+        raise ClassificationError("extraction graph inputs must be an array")
+    for index, value in enumerate(inputs):
+        item = _object(value, f"extraction graph inputs[{index}]")
+        item.pop("sha256", None)
+    normalization = _object(
+        projected.get("normalization"), "extraction graph normalization"
+    )
+    normalization.pop("selected_raw_declarations_sha256", None)
+    normalization.pop("normalized_sha256", None)
+    return projected
+
+
+def extraction_manifest_semantic_changes(
+    current: Any,
+    previous: Any | None,
+    *,
+    current_label: str,
+    previous_label: str,
+) -> tuple[frozenset[str], bool]:
+    """Return recipe-changed graphs and whether shared extraction state changed."""
+    current_raw = _object(current, current_label)
+    current_graphs = _extraction_graphs_by_id(current_raw, current_label)
+    if previous is None:
+        return frozenset(current_graphs), True
+    previous_raw = _object(previous, previous_label)
+    previous_graphs = _extraction_graphs_by_id(previous_raw, previous_label)
+    shared_changed = (
+        current_raw.get("schema_version") != previous_raw.get("schema_version")
+        or current_raw.get("toolchains") != previous_raw.get("toolchains")
+        or current_graphs.keys() != previous_graphs.keys()
+    )
+    if shared_changed:
+        return frozenset(current_graphs.keys() | previous_graphs.keys()), True
+    changed = frozenset(
+        graph_id
+        for graph_id in current_graphs
+        if extraction_recipe_projection(current_graphs[graph_id])
+        != extraction_recipe_projection(previous_graphs[graph_id])
+    )
+    return changed, False
+
+
+def extraction_stale_graphs(
+    root: Path,
+    source: dict[str, Any],
+    manifest: Any,
+) -> frozenset[str]:
+    """Validate the committed graph attestations and return only stale ids."""
+    inventory_path = root / source["source_inventory"]
+    manifest_path = root / source["path"]
+    graph_ids = frozenset(
+        _extraction_graphs_by_id(
+            manifest, "current extraction manifest"
+        )
+    )
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(inventory_path),
+                "--manifest",
+                str(manifest_path),
+                "stale",
+            ],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ClassificationError(
+            f"extraction evidence validation failed: {error}"
+        ) from error
+    if completed.returncode:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise ClassificationError(
+            "extraction evidence validation failed: "
+            + (detail or str(completed.returncode))
+        )
+    stale: list[str] = []
+    for line in completed.stdout.splitlines():
+        graph_id = _graph_id(line, "stale extraction graph")
+        if graph_id not in graph_ids:
+            raise ClassificationError(
+                f"stale extraction inventory returned unknown graph {graph_id}"
+            )
+        stale.append(graph_id)
+    if len(set(stale)) != len(stale):
+        raise ClassificationError(
+            "stale extraction inventory contains duplicate graph ids"
+        )
+    return frozenset(stale)
 
 
 def extraction_source_directory_rule(
@@ -743,6 +895,8 @@ def derived_rules(
     declaration: Declaration,
     event: str,
     base: str | None,
+    *,
+    changed_files: Iterable[str] | None = None,
 ) -> list[InputRule]:
     if event not in CANDIDATE_EVENTS:
         raise ClassificationError(
@@ -764,6 +918,61 @@ def derived_rules(
             raise ClassificationError(
                 f"malformed extraction manifest {source['path']}: {error}"
             ) from error
+        previous = (
+            _git_json_file(root, base, source["path"])
+            if base
+            else None
+        )
+        current_graphs = _extraction_graphs_by_id(
+            current, source["path"]
+        )
+        previous_graphs = (
+            _extraction_graphs_by_id(
+                previous, f"{base}:{source['path']}"
+            )
+            if previous is not None
+            else {}
+        )
+        evidence_paths = {
+            source["path"],
+            *(
+                _manifest_path(
+                    graph.get("output"),
+                    f"graph {graph_id}.output",
+                )
+                for graphs in (current_graphs, previous_graphs)
+                for graph_id, graph in graphs.items()
+            ),
+        }
+        if changed_files is None:
+            # Direct callers that do not provide a candidate diff retain the
+            # conservative historical behavior without an expensive scan.
+            stale_graphs = frozenset(current_graphs)
+        else:
+            normalized_changes = frozenset(
+                normalize_repo_path(path, "changed path")
+                for path in changed_files
+            )
+            stale_graphs = (
+                extraction_stale_graphs(root, source, current)
+                if normalized_changes & evidence_paths
+                else frozenset()
+            )
+        semantic_graphs, shared_change = extraction_manifest_semantic_changes(
+            current,
+            previous,
+            current_label=source["path"],
+            previous_label=(
+                f"{base}:{source['path']}"
+                if base
+                else f"missing base:{source['path']}"
+            ),
+        )
+        evidence_tier = "static"
+        if evidence_tier not in declaration.tiers:
+            raise ClassificationError(
+                "lean extraction evidence requires a declared static tier"
+            )
         rules.extend(
             lean_manifest_rules_from_data(
                 current,
@@ -771,6 +980,46 @@ def derived_rules(
                 event,
                 verify_root=root,
                 label=source["path"],
+                include_manifest_input=False,
+                stale_output_graphs=stale_graphs,
+                evidence_tier=evidence_tier,
+            )
+        )
+        manifest_graphs = semantic_graphs | stale_graphs
+        manifest_tier = (
+            tier_for(
+                source["global_tiers"],
+                event,
+                "shared extraction manifest change",
+            )
+            if shared_change
+            else (
+                tier_for(
+                    source["graph_tiers"],
+                    event,
+                    "graph extraction manifest change",
+                )
+                if manifest_graphs
+                else evidence_tier
+            )
+        )
+        rules.append(
+            InputRule(
+                patterns=(source["path"],),
+                tier=manifest_tier,
+                reason=(
+                    f"{source['reason']}: shared recipe/toolchain state"
+                    if shared_change
+                    else (
+                        f"{source['reason']}: changed or stale graph state"
+                        if manifest_graphs
+                        else (
+                            f"{source['reason']}: current committed "
+                            "extraction evidence"
+                        )
+                    )
+                ),
+                graphs=tuple(sorted(manifest_graphs)),
             )
         )
         rules.append(
@@ -781,18 +1030,19 @@ def derived_rules(
                 event,
             )
         )
-        if base:
-            previous = _git_json_file(root, base, source["path"])
-            if previous is not None:
-                rules.extend(
-                    lean_manifest_rules_from_data(
-                        previous,
-                        source,
-                        event,
-                        verify_root=None,
-                        label=f"{base}:{source['path']}",
-                    )
+        if previous is not None:
+            rules.extend(
+                lean_manifest_rules_from_data(
+                    previous,
+                    source,
+                    event,
+                    verify_root=None,
+                    label=f"{base}:{source['path']}",
+                    include_manifest_input=False,
+                    stale_output_graphs=stale_graphs,
+                    evidence_tier=evidence_tier,
                 )
+            )
     return rules
 
 
@@ -1033,7 +1283,13 @@ def main(argv: list[str] | None = None) -> int:
                 if args.changed_file
                 else changed_files(root, args.base, args.head)
             )
-            rules = derived_rules(root, declaration, args.event, args.base)
+            rules = derived_rules(
+                root,
+                declaration,
+                args.event,
+                args.base,
+                changed_files=files,
+            )
             decision = classify(declaration, args.event, files, rules)
     except ClassificationError as error:
         decision = blocked(error)
