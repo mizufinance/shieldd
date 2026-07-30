@@ -1,0 +1,24 @@
+import Ipp.ShippingAdaptiveAcceptedReplay
+
+/-!
+Audit surface for the executable accepted-only adaptive replay.
+
+These roots cover the invalidity/extractor-independent fork and its pure
+fail-closed projection. Probability dominance between stronger and weaker
+fork gates is audited separately by `ProofAuditAdaptiveReplayDominance`.
+-/
+
+#print axioms Ipp.ShippingMultiStatement.invalidAcceptedAt_implies_selectedAcceptedAt
+#print axioms Ipp.ShippingMultiStatement.selectedAcceptedAt_exposes_outcome
+#print axioms Ipp.ShippingMultiStatement.selectedAcceptedAt_projects_selection
+#print axioms Ipp.ShippingMultiStatement.projectVerifierTreeAt?_leaf_of_at
+#print axioms Ipp.ShippingMultiStatement.projectVerifierTreeAt?_isSome_of_all_selectedAccepted
+#print axioms Ipp.ShippingMultiStatement.projectVerifierTreeAt?_eq_projectCommonStatementTree
+#print axioms Ipp.ShippingMultiStatement.projectAcceptedRawForkAt?_isSome_of_all_selectedAccepted
+#print axioms Ipp.ShippingMultiStatement.projectAcceptedRawForkAt?_eq_projectCommonStatementTree
+#print axioms Ipp.ShippingMultiStatement.acceptedMultiStatementForkExperimentAt_support_all_selectedAccepted
+#print axioms Ipp.ShippingMultiStatement.acceptedMultiStatementForkExperimentAt_support_projectable
+#print axioms Ipp.ShippingMultiStatement.acceptedMultiStatementForkExperimentAt_support_hasCommonStatement
+#print axioms Ipp.ShippingMultiStatement.projectCommonStatementTree_gipaForkAccepts_of_selectedAccepted
+#print axioms Ipp.ShippingMultiStatement.acceptedMultiStatementForkExperimentAt_support_projection_exact_and_accepts
+#print axioms Ipp.ShippingMultiStatement.supportedForkTree_consistent_under_weaker_gate

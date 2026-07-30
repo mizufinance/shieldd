@@ -219,8 +219,8 @@ outer caller.
 
 The planner completes first.  Every local verifier run retains its exact
 chronological trace and output under one shared answer function.  The
-scheduler log may interleave those local traces, but is cache-equivalent to
-their plan-order concatenation.  Outcomes remain in planner order because
+scheduler log is cache-equivalent to the planner trace followed by a
+permutation of the local traces.  Outcomes remain in planner order because
 the caller consumes the join handles in that order.
 
 This record is required only for an accepted output.  Error, rejection, and
@@ -267,7 +267,8 @@ structure AcceptedConcurrentBundleSerialization
   schedulerLog : QueryLog GlobalFsSourceSpec
   schedulerCacheEquivalent :
     SharedAnswerCacheEquivalent answer schedulerLog
-      ((perCallRuns.map Prod.snd).flatten)
+      (plannerLog ++
+        (perCallRuns.map Prod.snd).flatten)
   leastExact :
     leastInvalidOutcome? invalid
         (perCallRuns.map Prod.fst) =

@@ -1,0 +1,14 @@
+import Ipp.Extracted.ShippingBundleConcurrentBridge
+
+/-!
+Kernel-audit roots for the accepted concurrent bundle bridge.
+-/
+
+#print axioms Ipp.Extracted.ShippingBundleConcurrentBridge.ObservationRunExact.callLocalChronologicalTraceExact
+#print axioms Ipp.Extracted.ShippingBundleConcurrentBridge.AcceptedConcurrentRunBridge.observationSelectionsExact
+#print axioms Ipp.Extracted.ShippingBundleConcurrentBridge.AcceptedConcurrentRunBridge.packedRunMatches
+#print axioms Ipp.Extracted.ShippingBundleConcurrentBridge.AcceptedConcurrentRunBridge.perCallExact
+#print axioms Ipp.Extracted.ShippingBundleConcurrentBridge.AcceptedConcurrentRunBridge.runtimeOutputAccepted
+#print axioms Ipp.Extracted.ShippingBundleConcurrentBridge.AcceptedConcurrentRunBridge.runtimeOutputOrigin
+#print axioms Ipp.Extracted.ShippingBundleConcurrentBridge.AcceptedConcurrentRunBridge.toAcceptedConcurrentBundleSerialization
+#print axioms Ipp.Extracted.ShippingBundleConcurrentBridge.AcceptedConcurrentRunBridge.canonicalOutputExact

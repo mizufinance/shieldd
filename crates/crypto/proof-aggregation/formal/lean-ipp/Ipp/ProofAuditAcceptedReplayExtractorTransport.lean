@@ -1,0 +1,14 @@
+import Ipp.ShippingAdaptiveAcceptedReplayExtractorTransport
+
+/-!
+Axiom audit for the fixed-setup accepted-replay extractor transport.
+-/
+
+#print axioms Ipp.ShippingMultiStatement.acceptedReplayGipaExtractorAtParameters_extract
+#print axioms Ipp.ShippingMultiStatement.acceptedReplayGipaAttemptOfRaw?_eq_commonFork
+#print axioms Ipp.ShippingMultiStatement.acceptedReplayGipaChallengeOfRaw_eq_commonFork
+#print axioms Ipp.ShippingMultiStatement.cachePreservingGipaRootWin_iff_acceptedReplayChallenge
+#print axioms Ipp.ShippingMultiStatement.cachePreservingGipaProductWin_iff_acceptedReplayChallenge
+#print axioms Ipp.ShippingMultiStatement.cachePreservingGipaRootWin_implies_acceptedReplayGipaRootWin
+#print axioms Ipp.ShippingMultiStatement.cachePreservingGipaProductWin_implies_acceptedReplayGipaProductWin
+#print axioms Ipp.ShippingMultiStatement.securitySelectedAdaptiveGipaExtractor_extract
