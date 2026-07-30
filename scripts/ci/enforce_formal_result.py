@@ -14,12 +14,17 @@ def value(name: str) -> str:
     return current
 
 
-def require_selection(
+def require_lane(
     required: list[tuple[str, str]], selected: str, label: str, result: str
 ) -> None:
     if selected == "true":
         required.append((label, result))
-    elif selected != "false":
+    elif selected == "false":
+        if result != "skipped":
+            raise ValueError(
+                f"unselected {label} lane returned {result}; expected skipped"
+            )
+    else:
         raise ValueError(f"invalid impact selection for {label}: {selected}")
 
 
@@ -73,6 +78,13 @@ def enforce() -> None:
     if snarkpack_status == "skip":
         for label, selected in selections.items():
             require_not_selected(selected, label)
+            require_lane(required, selected, label, results[label])
+        require_lane(
+            required,
+            selections["snarkpack-rust-reference"],
+            "snarkpack-slow",
+            results["snarkpack-slow"],
+        )
         if results["snarkpack-publication"] != "skipped":
             raise ValueError(
                 "SnarkPack skip unexpectedly ran publication closure: "
@@ -90,8 +102,8 @@ def enforce() -> None:
         }:
             raise ValueError(f"unsupported snarkpack tier: {snarkpack_tier}")
         for label, selected in selections.items():
-            require_selection(required, selected, label, results[label])
-        require_selection(
+            require_lane(required, selected, label, results[label])
+        require_lane(
             required,
             selections["snarkpack-rust-reference"],
             "snarkpack-slow",

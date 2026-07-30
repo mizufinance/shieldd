@@ -252,8 +252,8 @@ jobs:
           set -euo pipefail
           fingerprint="$(
             python3 \
-              crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py \
-              ci-fingerprint --graph "$SELECTED_GRAPH"
+              scripts/ci/snarkpack_extraction_attestation.py \
+              current --graph "$SELECTED_GRAPH"
           )"
           [[ "$fingerprint" =~ ^[0-9a-f]{64}$ ]] || {
             echo "invalid extraction CI fingerprint: $fingerprint" >&2
@@ -314,6 +314,7 @@ jobs:
           steps.extraction_pass_cache.outputs.cache-hit != 'true' &&
           (
             steps.extraction_source_stamp.outputs.state == 'missing' ||
+            steps.extraction_fingerprint.outcome == 'failure' ||
             steps.extraction_compare.outcome == 'failure'
           )
         timeout-minutes: 22
@@ -338,6 +339,48 @@ jobs:
           name: snarkpack-extraction-graph-${{ matrix.graph }}-${{ needs.applicability.outputs.candidate_sha }}-${{ github.run_attempt }}
           path: ${{ steps.extraction_recovery.outputs.artifact }}
           if-no-files-found: error
+      - name: Fingerprint the recovered graph's future checked state
+        id: extraction_recovery_fingerprint
+        if: >-
+          always() &&
+          steps.extraction_recovery.outcome == 'success'
+        shell: bash
+        env:
+          RECOVERY_ARTIFACT: ${{ steps.extraction_recovery.outputs.artifact }}
+        run: |
+          set -euo pipefail
+          fingerprint="$(
+            python3 \
+              scripts/ci/snarkpack_extraction_attestation.py \
+              recovery --artifact "$RECOVERY_ARTIFACT"
+          )"
+          [[ "$fingerprint" =~ ^[0-9a-f]{64}$ ]] || {
+            echo "invalid recovered extraction CI fingerprint: $fingerprint" >&2
+            exit 1
+          }
+          echo "sha256=$fingerprint" >> "$GITHUB_OUTPUT"
+      - name: Materialize recovered graph attestation
+        if: >-
+          always() &&
+          steps.extraction_recovery_fingerprint.outcome == 'success'
+        shell: bash
+        env:
+          FINGERPRINT: ${{ steps.extraction_recovery_fingerprint.outputs.sha256 }}
+          SELECTED_GRAPH: ${{ matrix.graph }}
+        run: |
+          set -euo pipefail
+          marker_dir="$RUNNER_TEMP/snarkpack-extraction-pass-$SELECTED_GRAPH"
+          mkdir -p "$marker_dir"
+          printf '%s\n' "$FINGERPRINT" > "$marker_dir/fingerprint"
+      - name: Save recovered graph attestation for the imported tree
+        if: >-
+          always() &&
+          steps.extraction_recovery_fingerprint.outcome == 'success'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-extraction-pass-${{ matrix.graph }}
+          key: snarkpack-extraction-pass-v1-${{ runner.os }}-${{ matrix.graph }}-${{ steps.extraction_recovery_fingerprint.outputs.sha256 }}
       - name: Save the exact successful extraction compiler cache
         if: >-
           steps.extraction_compare.outcome == 'success' &&
@@ -1391,10 +1434,9 @@ jobs:
       - soundness-lean-circuit-fv
     runs-on: ubuntu-24.04
     steps:
-      # Asserts only what the job `if:` conditions cannot already guarantee:
-      # that each gate produced a tier we understand, and that the lanes that
-      # tier selects succeeded. Asserting the complement (that unselected lanes
-      # report `skipped`) would just restate those `if:`s.
+      # Fail closed over both sides of the impact decision: every selected lane
+      # must succeed and every unselected lane must report `skipped`. This makes
+      # an accidentally broadened or broken job `if:` visible in the summary.
       - name: Enforce the formal result contract
         shell: bash
         env:

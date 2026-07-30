@@ -98,7 +98,9 @@ run_static() {
 
   echo "snarkpack FV: normalizer tests and idempotence"
   python3 -m unittest discover -s "$LEAN_DIR/scripts" -p 'test_*.py'
+  python3 "$ROOT/scripts/ci/test_enforce_formal_result.py"
   python3 "$ROOT/scripts/ci/test_gate_applicability.py"
+  python3 "$ROOT/scripts/ci/test_snarkpack_extraction_attestation.py"
   python3 "$ROOT/scripts/ci/test_snarkpack_fv_impact.py"
   python3 "$ROOT/scripts/ci/test_snarkpack_lane_fingerprint.py"
   python3 "$ROOT/scripts/ci/test_snarkpack_lean_attestation.py"

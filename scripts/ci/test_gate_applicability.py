@@ -180,10 +180,12 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertEqual((decision.status, decision.tier), ("run", "full"))
 
-    def test_lean_attestation_helpers_are_static_gate_inputs(self) -> None:
+    def test_attestation_helpers_are_static_gate_inputs(self) -> None:
         for path in (
             "scripts/ci/snarkpack_lean_attestation.py",
             "scripts/ci/test_snarkpack_lean_attestation.py",
+            "scripts/ci/snarkpack_extraction_attestation.py",
+            "scripts/ci/test_snarkpack_extraction_attestation.py",
         ):
             with self.subTest(path=path):
                 decision = GATE.classify(
@@ -193,6 +195,23 @@ class GateApplicabilityTests(unittest.TestCase):
                     (decision.status, decision.tier),
                     ("run", "static"),
                 )
+
+    def test_future_github_workflow_and_action_changes_are_static_inputs(
+        self,
+    ) -> None:
+        for path in (
+            ".github/workflows/new-snarkpack-lane.yml",
+            ".github/actions/new-snarkpack-helper/action.yml",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.snarkpack, "pull_request", [path], []
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier),
+                    ("run", "static"),
+                )
+                self.assertFalse(decision.unknown_files)
 
     def test_one_graph_input_selects_only_that_graph(self) -> None:
         manifest = self.synthetic_manifest(
@@ -837,6 +856,7 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         self.assertIn(
             "steps.extraction_source_stamp.outputs.state == 'missing' ||\n"
+            "            steps.extraction_fingerprint.outcome == 'failure' ||\n"
             "            steps.extraction_compare.outcome == 'failure'",
             workflow,
         )
