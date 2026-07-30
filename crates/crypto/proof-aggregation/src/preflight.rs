@@ -234,7 +234,7 @@ pub(crate) fn preflight_shipping_aggregate_verify<'a>(
         statement_rows.real_count,
         statement_rows.padded_count,
         statement_rows.public_input_arity,
-        backend_call.padded_public_inputs(),
+        statement_rows.fields,
         statement_rows.serialized.to_nested_bytes(),
     );
     let authenticated_srs_id = backend_call.authenticated_srs_id;

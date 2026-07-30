@@ -304,16 +304,8 @@ impl AggregateStatement {
         self.padded_count
     }
 
-    pub(crate) fn public_input_arity(&self) -> u32 {
-        self.public_input_arity
-    }
-
     pub fn padded_public_inputs(&self) -> &[Vec<Fq>] {
         &self.padded_public_inputs
-    }
-
-    pub(crate) fn padded_public_input_bytes(&self) -> &StatementPaddedRows {
-        &self.padded_public_input_bytes
     }
 
     pub(crate) fn shipping_rows(&self) -> AggregateStatementRows<'_> {

@@ -1616,17 +1616,11 @@ mod tests {
         assert_eq!(input.vk_digest, statement.vk_digest());
         assert_eq!(input.real_count, statement.real_count());
         assert_eq!(input.padded_count, statement.padded_count());
-        assert_eq!(input.public_input_arity, statement.public_input_arity());
+        let statement_rows = statement.shipping_rows();
+        assert_eq!(input.public_input_arity, statement_rows.public_input_arity);
         assert_eq!(
             input.padded_public_inputs,
-            statement
-                .padded_public_input_bytes()
-                .iter()
-                .map(|row| row
-                    .iter()
-                    .map(|field| field.as_bytes().to_vec())
-                    .collect::<Vec<_>>())
-                .collect::<Vec<_>>()
+            statement_rows.serialized.to_nested_bytes()
         );
         assert_eq!(input.canonical_statement_bytes, statement.canonical_bytes());
         assert_eq!(input.statement_digest, statement.statement_digest());
