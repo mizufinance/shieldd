@@ -614,20 +614,24 @@ class GateApplicabilityTests(unittest.TestCase):
             with self.subTest(fstar_boundary_input=manifest_path):
                 self.assertIn(manifest_path, workflow)
         self.assertIn(
-            "elif [[ \"$SNARKPACK_STATUS\" == run ]]; then",
+            "--status \"$SNARKPACK_STATUS\"",
+            workflow,
+        )
+        summary = (
+            self.root / "scripts/ci/enforce_formal_result.py"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "run: python3 scripts/ci/enforce_formal_result.py",
             workflow,
         )
         self.assertIn(
-            'if [[ "$STATIC_RUN" != true ]]; then',
-            workflow,
+            'if selections["snarkpack-static"] != "true":',
+            summary,
         )
         self.assertIn(
-            'require_not_selected "$STATIC_RUN" snarkpack-static',
-            workflow,
-        )
-        self.assertIn(
-            'require_not_selected "$DOS_RUN" snarkpack-dos',
-            workflow,
+            "for label, selected in selections.items():\n"
+            "            require_not_selected(selected, label)",
+            summary,
         )
         self.assertRegex(
             workflow,
@@ -647,23 +651,24 @@ class GateApplicabilityTests(unittest.TestCase):
             )
         )
         attested = {
-            "snarkpack-parity": ("parity", "parity"),
+            "snarkpack-parity": ("parity", "parity", 4),
             "snarkpack-rust-reference": (
                 "rust_reference",
                 "rust-reference",
+                16,
             ),
-            "snarkpack-slow": ("slow", "slow"),
-            "snarkpack-fuzz": ("fuzz", "fuzz"),
-            "snarkpack-dos": ("dos", "dos"),
+            "snarkpack-slow": ("slow", "slow", 16),
+            "snarkpack-fuzz": ("fuzz", "fuzz", 8),
+            "snarkpack-dos": ("dos", "dos", 8),
         }
-        for lane, (step_id, key_label) in attested.items():
+        for lane, (step_id, key_label, runner_vcpus) in attested.items():
             with self.subTest(lane=lane):
                 body = lanes[lane]
                 key_prefix = (
                     f"snarkpack-{key_label}-pass-v1-${{{{ runner.os }}}}-"
                 )
                 self.assertIn(
-                    "runs-on: blacksmith-16vcpu-ubuntu-2404",
+                    f"runs-on: blacksmith-{runner_vcpus}vcpu-ubuntu-2404",
                     body,
                 )
                 self.assertIn(

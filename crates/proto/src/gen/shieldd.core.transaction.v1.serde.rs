@@ -42,6 +42,9 @@ impl serde::Serialize for Action {
                 action::Action::ShieldedIcs20Withdrawal(v) => {
                     struct_ser.serialize_field("shieldedIcs20Withdrawal", v)?;
                 }
+                action::Action::ShieldedHostWithdrawal(v) => {
+                    struct_ser.serialize_field("shieldedHostWithdrawal", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -73,6 +76,8 @@ impl<'de> serde::Deserialize<'de> for Action {
             "aggregateBundle",
             "shielded_ics20_withdrawal",
             "shieldedIcs20Withdrawal",
+            "shielded_host_withdrawal",
+            "shieldedHostWithdrawal",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -87,6 +92,7 @@ impl<'de> serde::Deserialize<'de> for Action {
             ComplianceRegisterUser,
             AggregateBundle,
             ShieldedIcs20Withdrawal,
+            ShieldedHostWithdrawal,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -119,6 +125,7 @@ impl<'de> serde::Deserialize<'de> for Action {
                             "complianceRegisterUser" | "compliance_register_user" => Ok(GeneratedField::ComplianceRegisterUser),
                             "aggregateBundle" | "aggregate_bundle" => Ok(GeneratedField::AggregateBundle),
                             "shieldedIcs20Withdrawal" | "shielded_ics20_withdrawal" => Ok(GeneratedField::ShieldedIcs20Withdrawal),
+                            "shieldedHostWithdrawal" | "shielded_host_withdrawal" => Ok(GeneratedField::ShieldedHostWithdrawal),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -209,6 +216,13 @@ impl<'de> serde::Deserialize<'de> for Action {
                                 return Err(serde::de::Error::duplicate_field("shieldedIcs20Withdrawal"));
                             }
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::ShieldedIcs20Withdrawal)
+;
+                        }
+                        GeneratedField::ShieldedHostWithdrawal => {
+                            if action__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("shieldedHostWithdrawal"));
+                            }
+                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::ShieldedHostWithdrawal)
 ;
                         }
                         GeneratedField::__SkipField__ => {
@@ -480,6 +494,9 @@ impl serde::Serialize for ActionView {
                 action_view::ActionView::ShieldedIcs20Withdrawal(v) => {
                     struct_ser.serialize_field("shieldedIcs20Withdrawal", v)?;
                 }
+                action_view::ActionView::ShieldedHostWithdrawal(v) => {
+                    struct_ser.serialize_field("shieldedHostWithdrawal", v)?;
+                }
             }
         }
         struct_ser.end()
@@ -511,6 +528,8 @@ impl<'de> serde::Deserialize<'de> for ActionView {
             "aggregateBundle",
             "shielded_ics20_withdrawal",
             "shieldedIcs20Withdrawal",
+            "shielded_host_withdrawal",
+            "shieldedHostWithdrawal",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -525,6 +544,7 @@ impl<'de> serde::Deserialize<'de> for ActionView {
             ComplianceRegisterUser,
             AggregateBundle,
             ShieldedIcs20Withdrawal,
+            ShieldedHostWithdrawal,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -557,6 +577,7 @@ impl<'de> serde::Deserialize<'de> for ActionView {
                             "complianceRegisterUser" | "compliance_register_user" => Ok(GeneratedField::ComplianceRegisterUser),
                             "aggregateBundle" | "aggregate_bundle" => Ok(GeneratedField::AggregateBundle),
                             "shieldedIcs20Withdrawal" | "shielded_ics20_withdrawal" => Ok(GeneratedField::ShieldedIcs20Withdrawal),
+                            "shieldedHostWithdrawal" | "shielded_host_withdrawal" => Ok(GeneratedField::ShieldedHostWithdrawal),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -647,6 +668,13 @@ impl<'de> serde::Deserialize<'de> for ActionView {
                                 return Err(serde::de::Error::duplicate_field("shieldedIcs20Withdrawal"));
                             }
                             action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::ShieldedIcs20Withdrawal)
+;
+                        }
+                        GeneratedField::ShieldedHostWithdrawal => {
+                            if action_view__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("shieldedHostWithdrawal"));
+                            }
+                            action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::ShieldedHostWithdrawal)
 ;
                         }
                         GeneratedField::__SkipField__ => {

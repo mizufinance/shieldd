@@ -236,6 +236,22 @@ impl TransactionViewExt for TransactionView {
                     );
                     ["Ics20 Withdrawal", &action]
                 }
+                shieldd_sdk_transaction::ActionView::ShieldedHostWithdrawal(withdrawal) => {
+                    let withdrawal = match withdrawal {
+                        shieldd_sdk_shielded_pool::ShieldedHostWithdrawalView::Visible {
+                            withdrawal,
+                            ..
+                        } => &withdrawal.body.withdrawal,
+                        shieldd_sdk_shielded_pool::ShieldedHostWithdrawalView::Opaque {
+                            withdrawal,
+                        } => &withdrawal.body.withdrawal,
+                    };
+                    action = format!(
+                        "{} of {} to {}",
+                        withdrawal.value.amount, withdrawal.value.asset_id, withdrawal.recipient,
+                    );
+                    ["Host Withdrawal", &action]
+                }
                 shieldd_sdk_transaction::ActionView::ProposalSubmit(proposal_submit) => {
                     action = format!(
                         "Submit Governance Proposal #{}",

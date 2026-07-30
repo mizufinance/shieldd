@@ -234,6 +234,9 @@ pub struct DeliverTxResponse {
     /// Module or subsystem that produced a non-zero code.
     #[prost(string, tag = "8")]
     pub codespace: ::prost::alloc::string::String,
+    /// Host-chain withdrawals requested by the executed transaction.
+    #[prost(message, repeated, tag = "9")]
+    pub withdrawals: ::prost::alloc::vec::Vec<Withdrawal>,
 }
 impl ::prost::Name for DeliverTxResponse {
     const NAME: &'static str = "DeliverTxResponse";
@@ -243,6 +246,26 @@ impl ::prost::Name for DeliverTxResponse {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.execution_client.v1.DeliverTxResponse".into()
+    }
+}
+/// Withdrawal describes a coin the host chain should send to a recipient.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct Withdrawal {
+    /// Host-chain recipient address.
+    #[prost(string, tag = "1")]
+    pub recipient: ::prost::alloc::string::String,
+    /// Coin withdrawn from Shieldd.
+    #[prost(message, optional, tag = "2")]
+    pub coin: ::core::option::Option<super::super::super::cosmos::base::v1beta1::Coin>,
+}
+impl ::prost::Name for Withdrawal {
+    const NAME: &'static str = "Withdrawal";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.Withdrawal".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.Withdrawal".into()
     }
 }
 /// EndBlockRequest identifies the host-chain block being finalized.
