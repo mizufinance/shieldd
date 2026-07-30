@@ -115,6 +115,22 @@ class RunWithAnnotationTests(unittest.TestCase):
         self.assertIn("final marker", line)
         self.assertIn("truncated", line)
 
+    def test_diagnostic_keeps_nested_command_context(self) -> None:
+        diagnostic = WRAPPER.select_diagnostic(
+            "\n".join(
+                [
+                    "command failed (2)",
+                    "command: cargo hax into aeneas-lean --lakefile",
+                    "cwd: /workspace/ark-ip-proofs",
+                    *(f"ordinary line {index}" for index in range(20)),
+                    "fatal: extraction failed",
+                ]
+            ),
+            2,
+        )
+        self.assertIn("command: cargo hax into aeneas-lean --lakefile", diagnostic)
+        self.assertIn("cwd: /workspace/ark-ip-proofs", diagnostic)
+
     def test_missing_executable_returns_127_without_leaking_argv(self) -> None:
         missing = "definitely-missing-secret-command-483921"
         result = subprocess.run(

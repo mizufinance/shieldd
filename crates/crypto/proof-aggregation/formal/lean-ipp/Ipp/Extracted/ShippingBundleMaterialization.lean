@@ -167,6 +167,27 @@ theorem OutputDerivedPlannedCall.acceptedResultExact
       reducerAccepted
   exact call.acceptedResultExact_of_unique (unique.2 id planned)
 
+/-- Exact source-level projection still required from the outer verifier call.
+
+`app_verify_shipping_result_from_parts` retains the constructor-derived input
+and the boolean supplied by its caller, but its extracted equation does not
+show that a `true` boolean came from an accepted adapter execution.  This
+interface states only that missing control-flow fact.  It does not mention a
+formal verifier result, Fiat--Shamir acceptance, invalidity, or a security
+bound. -/
+structure OutputDerivedPlannedCall.BackendAcceptanceProjection
+    {declared : alloc.vec.Vec ExpectedCall}
+    {expected : alloc.vec.Vec CallId}
+    {results : alloc.vec.Vec CallResult}
+    {id : CallId}
+    (call : OutputDerivedPlannedCall declared expected results id) : Prop where
+  acceptedExecution :
+    call.shippingAccepted = true →
+      ∃ transcript : Ipp.FsTranscript call.μ Ipp.Bls12377.Fr,
+        Nonempty
+          (ShippingCallExecutionBoundary
+            call.construction.shippingData transcript)
+
 /-- Exact semantic equations needed to turn an output-derived production call
 into a global multi-statement selection. They bind the installed input to the
 statement/proof fields but contain no verifier result. -/
@@ -305,6 +326,21 @@ structure OutputDerivedShippingBundle
     ∀ (id : CallId) (planned : id ∈ expected.val),
       OutputDerivedSelectionAlignment (call id planned)
 
+/-- Bundle-wide installation of the exact backend-acceptance projection.
+
+The production extraction root must construct this record from the ordered
+outer call outcomes.  The record is deliberately separate from semantic
+alignment: statement/proof construction cannot manufacture an accepted
+backend execution. -/
+structure OutputDerivedShippingBundle.BackendAcceptanceProjection
+    {declared : alloc.vec.Vec ExpectedCall}
+    {expected : alloc.vec.Vec CallId}
+    {results : alloc.vec.Vec CallResult}
+    (bundle : OutputDerivedShippingBundle declared expected results) : Prop where
+  perCall :
+    ∀ (id : CallId) (planned : id ∈ expected.val),
+      (bundle.call id planned).BackendAcceptanceProjection
+
 /-- Exact extracted bundle lifting, specialized to the output-derived Rust
 result bit. This invokes the common reducer combinator once, so every planned
 identifier is handled under the same concrete result vector. -/
@@ -328,6 +364,73 @@ theorem OutputDerivedShippingBundle.allRecordedResultsAccepted
   have plannedExact : planned' = planned := Subsingleton.elim _ _
   simpa only [plannedExact] using
     (bundle.call id planned).acceptedResultExact_of_unique unique
+
+/-- Once the reducer accepts, the missing source projection exposes one raw
+accepted backend call boundary for every exact planned call.  Planning and
+reducer facts remain derived separately by this module.  No formal
+Fiat--Shamir conclusion is derived here. -/
+theorem OutputDerivedShippingBundle.allAcceptedBackendExecutions
+    {declared : alloc.vec.Vec ExpectedCall}
+    {expected : alloc.vec.Vec CallId}
+    {results : alloc.vec.Vec CallResult}
+    (bundle : OutputDerivedShippingBundle declared expected results)
+    (projection : bundle.BackendAcceptanceProjection)
+    (reducerAccepted :
+      app_verifier.app_verify_normal_acceptance_core expected results =
+        .ok (.Ok true)) :
+    ∀ (id : CallId) (planned : id ∈ expected.val),
+      ∃ transcript :
+          Ipp.FsTranscript (bundle.call id planned).μ Ipp.Bls12377.Fr,
+        Nonempty
+          (ShippingCallExecutionBoundary
+            (bundle.call id planned).construction.shippingData
+            transcript) := by
+  intro id planned
+  exact
+    (projection.perCall id planned).acceptedExecution
+      (bundle.allRecordedResultsAccepted reducerAccepted id planned)
+
+/-- The source projection, planner membership, and reducer equation construct
+the existing raw accepted shipping-execution record.  This closes all
+application state-machine plumbing while still making no formal-verifier
+claim. -/
+theorem OutputDerivedShippingBundle.allAcceptedShippingExecutions
+    {declared : alloc.vec.Vec ExpectedCall}
+    {expected : alloc.vec.Vec CallId}
+    {results : alloc.vec.Vec CallResult}
+    (bundle : OutputDerivedShippingBundle declared expected results)
+    (projection : bundle.BackendAcceptanceProjection)
+    (reducerAccepted :
+      app_verifier.app_verify_normal_acceptance_core expected results =
+        .ok (.Ok true)) :
+    ∀ (id : CallId) (planned : id ∈ expected.val),
+      ∃ transcript :
+          Ipp.FsTranscript (bundle.call id planned).μ Ipp.Bls12377.Fr,
+        Nonempty
+          (AcceptedShippingExecutionAt
+            (bundle.call id planned).construction.shippingData
+            transcript) := by
+  intro id planned
+  let call := bundle.call id planned
+  rcases
+      bundle.allAcceptedBackendExecutions projection reducerAccepted
+        id planned with
+    ⟨transcript, ⟨boundary⟩⟩
+  have planned' :
+      call.construction.shippingData.call.id ∈
+        call.construction.shippingData.expected.val := by
+    rw [call.expectedExact, call.idExact]
+    exact planned
+  have reducerAccepted' :
+      app_verifier.app_verify_normal_acceptance_core
+          call.construction.shippingData.expected
+          call.construction.shippingData.results =
+        .ok (.Ok true) := by
+    rw [call.expectedExact, call.resultsExact]
+    exact reducerAccepted
+  exact
+    ⟨transcript,
+      ⟨boundary.toAccepted planned' reducerAccepted'⟩⟩
 
 /-- Planner-ordered heterogeneous global-oracle selections. -/
 noncomputable def OutputDerivedShippingBundle.selections
@@ -485,6 +588,102 @@ structure SharedCacheBundleExecutionContract
   globalFsRun :
     outputs ∈ support (MultiStatementBundleFsGame adversary)
   orderedExact : bundle.PackedRunMatches outputs
+
+/-- Exact operational equations whose composition is
+`SharedCacheBundleExecutionContract`.
+
+The split is load-bearing:
+
+* `selectedExact` is the outer adaptive/planner execution equation;
+* `verifierExact` is the one-program execution of the complete ordered list;
+* `orderedExact` is the production-result projection.
+
+None of these fields states invalidity, acceptance probability, or a
+soundness conclusion.  Existing generated state-machine equations establish
+constructor and reducer facts, but do not currently produce the first two
+fields. -/
+structure SharedCacheBundleExecutionEquation
+    {declared : alloc.vec.Vec ExpectedCall}
+    {expected : alloc.vec.Vec CallId}
+    {results : alloc.vec.Vec CallResult}
+    (bundle : OutputDerivedShippingBundle declared expected results)
+    (adversary :
+      OracleComp GlobalFsSourceSpec
+        (List (PackedSelection CallId))) where
+  outputs : List (PackedOutcome CallId)
+  selectedExact :
+    bundle.selections ∈ support adversary
+  verifierExact :
+    outputs ∈ support (verifyPackedBundle bundle.selections)
+  orderedExact : bundle.PackedRunMatches outputs
+
+/-- One packed verifier output always retains the exact dependent selection
+supplied to that invocation. -/
+theorem verifyPackedSelection_support_selectionExact
+    {Call : Type}
+    (selected : PackedSelection Call)
+    {output : PackedOutcome Call}
+    (emitted :
+      output ∈ support (verifyPackedSelection selected)) :
+    output.selection = selected := by
+  rcases selected with ⟨μ, selected⟩
+  rw [verifyPackedSelection, support_bind] at emitted
+  simp only [Set.mem_iUnion] at emitted
+  obtain ⟨result, _resultEmitted, outputExact⟩ := emitted
+  simp only [support_pure, Set.mem_singleton_iff] at outputExact
+  subst output
+  rfl
+
+/-- Sequential packed verification preserves the complete input selection
+list, including its order and dependent proof-size indices. -/
+theorem verifyPackedBundle_support_selectionsExact
+    {Call : Type}
+    (selections : List (PackedSelection Call))
+    {outputs : List (PackedOutcome Call)}
+    (emitted :
+      outputs ∈ support (verifyPackedBundle selections)) :
+    outputs.map PackedOutcome.selection = selections := by
+  induction selections generalizing outputs with
+  | nil =>
+      simp only [verifyPackedBundle, support_pure,
+        Set.mem_singleton_iff] at emitted
+      subst outputs
+      rfl
+  | cons selected rest ih =>
+      rw [verifyPackedBundle, support_bind] at emitted
+      simp only [Set.mem_iUnion] at emitted
+      obtain ⟨output, outputEmitted, restExecution⟩ := emitted
+      rw [support_bind] at restExecution
+      simp only [Set.mem_iUnion] at restExecution
+      obtain ⟨restOutputs, restEmitted, outputsExact⟩ := restExecution
+      simp only [support_pure, Set.mem_singleton_iff] at outputsExact
+      subst outputs
+      simp only [List.map_cons]
+      rw [verifyPackedSelection_support_selectionExact
+        selected outputEmitted, ih restEmitted]
+
+/-- The three exact operational equations construct the former packed
+whole-run contract without an acceptance or security premise. -/
+noncomputable def SharedCacheBundleExecutionEquation.toContract
+    {declared : alloc.vec.Vec ExpectedCall}
+    {expected : alloc.vec.Vec CallId}
+    {results : alloc.vec.Vec CallResult}
+    {bundle : OutputDerivedShippingBundle declared expected results}
+    {adversary :
+      OracleComp GlobalFsSourceSpec
+        (List (PackedSelection CallId))}
+    (equation :
+      SharedCacheBundleExecutionEquation bundle adversary) :
+    SharedCacheBundleExecutionContract bundle adversary where
+  outputs := equation.outputs
+  globalFsRun := by
+    unfold MultiStatementBundleFsGame
+    rw [support_bind]
+    simp only [Set.mem_iUnion]
+    exact
+      ⟨bundle.selections, equation.selectedExact,
+        equation.verifierExact⟩
+  orderedExact := equation.orderedExact
 
 /-- A `Forall₂` execution relation maps membership on the production side to
 membership of one exactly related formal result. -/
@@ -693,11 +892,16 @@ theorem accepted_bundle_projects_invalid_shared_cache_outcome
 #print axioms OutputDerivedPlannedCall.familyDomain_registered
 #print axioms OutputDerivedPlannedCall.selectionExact
 #print axioms OutputDerivedShippingBundle.allRecordedResultsAccepted
+#print axioms OutputDerivedShippingBundle.allAcceptedBackendExecutions
+#print axioms OutputDerivedShippingBundle.allAcceptedShippingExecutions
 #print axioms OutputDerivedShippingBundle.selections_length
 #print axioms OutputDerivedShippingBundle.recordedCalls_selections
 #print axioms OutputDerivedShippingBundle.recordedPackedCall_mem
 #print axioms OutputDerivedShippingBundle.PackedRunMatches.selectionsExact
 #print axioms OutputDerivedShippingBundle.PackedRunMatches.acceptancesExact
+#print axioms verifyPackedSelection_support_selectionExact
+#print axioms verifyPackedBundle_support_selectionsExact
+#print axioms SharedCacheBundleExecutionEquation.toContract
 #print axioms forall₂_exists_related_right
 #print axioms leastInvalidSelection?_mem
 #print axioms leastInvalidSelection?_invalid

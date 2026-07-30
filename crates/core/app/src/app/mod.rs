@@ -6725,7 +6725,7 @@ mod tests {
     use shieldd_sdk_num::Amount;
     use shieldd_sdk_proof_aggregation::{
         app_verify_family_code, app_verify_shipping_call_from_parts, AggregateBundle,
-        AppVerifyCallId, FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
+        AppVerifyCallId, DevSrs, FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
         DEFAULT_DEV_SRS_ID,
     };
     use shieldd_sdk_proof_params::batch::BatchItem;

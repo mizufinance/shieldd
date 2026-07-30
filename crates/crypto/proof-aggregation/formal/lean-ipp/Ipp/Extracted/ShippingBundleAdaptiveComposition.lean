@@ -287,6 +287,40 @@ theorem accepted_bundle_projects_invalid_projectedFsGame
   refine ⟨execution.outputs, execution.globalFsRun, ?_⟩
   simp [outputLeast]
 
+/-- Operational-equation form of the adaptive endpoint.
+
+This is the form to be consumed by the eventual production/extraction root:
+the root supplies exact selection, whole-list verifier execution, and ordered
+result equations, and the existing deterministic composition builds the
+packed run contract internally. -/
+theorem accepted_bundle_projects_invalid_projectedFsGame_of_executionEquation
+    {declared : Aeneas.Std.alloc.vec.Vec ExpectedCall}
+    {expected : Aeneas.Std.alloc.vec.Vec CallId}
+    {results : Aeneas.Std.alloc.vec.Vec CallResult}
+    (bundle : OutputDerivedShippingBundle declared expected results)
+    (reducerAccepted :
+      app_verifier.app_verify_normal_acceptance_core expected results =
+        .ok (.Ok true))
+    (invalid : (μ : Nat) → SelectionAt CallId μ → Prop)
+    {selection : PackedSelection CallId}
+    (least :
+      leastInvalidSelection? invalid bundle.selections = some selection)
+    (adversary :
+      OracleComp GlobalFsSourceSpec
+        (List (PackedSelection CallId)))
+    (execution :
+      SharedCacheBundleExecutionEquation bundle adversary)
+    (fallback : PackedOutcome CallId) :
+    ∃ output ∈
+        support
+          (projectedLeastInvalidBundleFsGame
+            adversary invalid fallback),
+      output.selection = selection ∧
+        InvalidAccepted invalid output :=
+  accepted_bundle_projects_invalid_projectedFsGame
+    bundle reducerAccepted invalid least adversary
+      execution.toContract fallback
+
 #print axioms leastInvalidSelection?_map_outcomes
 #print axioms leastInvalidSelection?_prefix
 #print axioms leastInvalidOutcome?_exact_of_selectionsExact
@@ -295,6 +329,7 @@ theorem accepted_bundle_projects_invalid_projectedFsGame
 #print axioms accepted_bundle_projects_exact_least_invalid_globalFsOutcome
 #print axioms projectedLeastInvalidBundleFsGame_programShape
 #print axioms accepted_bundle_projects_invalid_projectedFsGame
+#print axioms accepted_bundle_projects_invalid_projectedFsGame_of_executionEquation
 
 end
 

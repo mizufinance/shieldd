@@ -1553,6 +1553,26 @@ def validate_deployed_srs_soundness(
         raise VerificationError(
             "registered deployed_srs_evidence has unexpected or missing fields"
         )
+    if re.search(
+        r"\bconst\s+ACTIVE_PRODUCTION_SRS_ID\s*:\s*"
+        r"Option\s*<\s*\[u8;\s*32\]\s*>\s*=\s*None\s*;",
+        srs_code,
+    ) is not None:
+        raise VerificationError(
+            "registered SRS evidence cannot use an inactive production id"
+        )
+    if (
+        re.search(
+            r"\bconst\s+PRODUCTION_SRS_REGISTRY\s*:\s*"
+            r"&\s*\[\s*ProductionSrsRegistryEntry\s*\]\s*=\s*&\s*\[\s*\]\s*;",
+            srs_code,
+        )
+        is not None
+        or re.search(r"\bProductionSrsRegistryEntry\s*\{", srs_code) is None
+    ):
+        raise VerificationError(
+            "registered SRS evidence requires a nonempty production registry"
+        )
     setup_binding_root = evidence.get("setup_binding_root")
     if (
         not isinstance(setup_binding_root, str)

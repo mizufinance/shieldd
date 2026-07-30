@@ -220,6 +220,155 @@ theorem acceptedExecutionSamples_of_transcriptExecution
 
 #print axioms acceptedExecutionSamples_of_transcriptExecution
 
+/-- One accepted extracted adapter execution exposes exactly the two
+operational witnesses needed by the deployed hash-trace bridge.
+
+The adapter result equation is the production control-flow fact.  Exact
+message and installed-TIPP equalities are data projections, while
+`AcceptedRunCallProjection` is the narrow concrete-effect postcondition that
+recovers the calls made by the already successful TIPP run.  No formal
+verifier acceptance, transcript equality, or hash conclusion is assumed. -/
+theorem acceptedOperationalCalls_of_adapterRun
+    {RFX FX PE PPE : Type} {n : Nat}
+    (primitive : Primitive FX)
+    (serialization : Serialization primitive)
+    (stmt : Ipp.FsStatement n Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput)
+    (proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput)
+    (transcript : Ipp.FsTranscript n Fr)
+    (randomizerEffects :
+      applications.groth16_aggregation.AggregateRandomizerEffect
+        RFX Fr String)
+    (input :
+      applications.groth16_aggregation.AggregateAdapterCoreInput
+        Fr g1PrimeSubgroup g2PrimeSubgroup PreparedG2 ArkPairingOutput
+          ArkPairingOutput g1PrimeSubgroup)
+    (g gBeta : g1PrimeSubgroup)
+    (h hAlpha : g2PrimeSubgroup)
+    (tippPairing :
+      tipa.PairingEffect PE g1PrimeSubgroup g2PrimeSubgroup
+        ArkPairingOutput)
+    (ppeEffect :
+      applications.groth16_aggregation.PreparedPairingEffect
+        PPE g1PrimeSubgroup PreparedG2 ArkPairingOutput)
+    (randomizerEffect finalRandomizerEffect : RFX)
+    (effect finalEffect : FX)
+    (tippPairingState : PE)
+    (ppePairingState : PPE)
+    (randomizerMessageExact :
+      input.randomizer_message =
+        ⟨Ipp.ShippingArkworksHash.adapterPointMessage serialization
+          (.randomizer {
+            comA := proof.ComA.1
+            comB := proof.ComB
+            comC := proof.ComA.2
+          } 0)⟩)
+    (installedTippExact :
+      (Ipp.Extracted.AggregateAdapter.installRandomizer
+        input.combined transcript.randomizer).tipp_mipp =
+        Ipp.Extracted.VerifyTippMipp.coreInput
+          stmt proof {
+            randomizer := transcript.randomizer
+            randomizerNonce := 0
+            x0 := 0
+            x0Nonce := 0
+            roundPrev := fun _ => 0
+            roundAnswer := fun _ => 0
+            roundNonce := fun _ => 0
+            bridge := 0
+            bridgeNonce := 0
+            kzg := 0
+            kzgNonce := 0
+          } g gBeta h hAlpha)
+    (runProjection :
+      AcceptedRunCallProjection primitive serialization stmt proof
+        transcript.randomizer g gBeta h hAlpha tippPairing tippPairingState)
+    (adapterRun :
+      Ipp.Extracted.AggregateAdapter.run randomizerEffects
+          (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+            (@Ipp.Extracted.TippMippAdapter.partialEq
+              ArkPairingOutput (Classical.decEq _))
+            (@Ipp.Extracted.TippMippAdapter.partialEq
+              g1PrimeSubgroup (Classical.decEq _)))
+          tippPairing ppeEffect input randomizerEffect effect
+          tippPairingState ppePairingState =
+        .ok (.Ok {
+          randomizer := transcript.randomizer
+          checks := (true, true)
+          accepted := true
+          randomizer_effect := finalRandomizerEffect
+          tipp_mipp_effect := finalEffect
+        })) :
+    ∃ randomizerCall :
+        Ipp.Extracted.AggregateAdapter.AcceptedRandomizerCall
+          randomizerEffects
+          ⟨Ipp.ShippingArkworksHash.adapterPointMessage serialization
+            (.randomizer {
+              comA := proof.ComA.1
+              comB := proof.ComB
+              comC := proof.ComA.2
+            } 0)⟩
+          transcript.randomizer finalRandomizerEffect,
+      Nonempty
+        (RunChallengeTrace primitive serialization proof
+          transcript.randomizer effect finalEffect) := by
+  let tippEffects :=
+    Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+      (@Ipp.Extracted.TippMippAdapter.partialEq
+        ArkPairingOutput (Classical.decEq _))
+      (@Ipp.Extracted.TippMippAdapter.partialEq
+        g1PrimeSubgroup (Classical.decEq _))
+  obtain ⟨randomizerCall, combinedRun⟩ :=
+    Ipp.Extracted.AggregateAdapter.accepted_randomizer_call
+      randomizerEffects tippEffects tippPairing ppeEffect input
+      randomizerEffect finalRandomizerEffect effect finalEffect
+      tippPairingState ppePairingState transcript.randomizer adapterRun
+  obtain ⟨_expected, _nonempty, _power, _ilog, _rounds,
+      tippRun, _ppeRun⟩ :=
+    Ipp.Extracted.CombinedChecks.accepted_path
+      tippEffects tippPairing ppeEffect
+      (Ipp.Extracted.AggregateAdapter.installRandomizer
+        input.combined transcript.randomizer)
+      effect finalEffect tippPairingState ppePairingState combinedRun
+  have tippRunExact :
+      Ipp.Extracted.CombinedChecks.runTipp tippEffects tippPairing
+          (Ipp.Extracted.VerifyTippMipp.coreInput
+            stmt proof {
+              randomizer := transcript.randomizer
+              randomizerNonce := 0
+              x0 := 0
+              x0Nonce := 0
+              roundPrev := fun _ => 0
+              roundAnswer := fun _ => 0
+              roundNonce := fun _ => 0
+              bridge := 0
+              bridgeNonce := 0
+              kzg := 0
+              kzgNonce := 0
+            } g gBeta h hAlpha)
+          effect tippPairingState =
+        .ok (.Ok true, finalEffect) := by
+    rw [← installedTippExact]
+    exact tippRun
+  have randomizerCallExact :
+      Ipp.Extracted.AggregateAdapter.AcceptedRandomizerCall
+        randomizerEffects
+        ⟨Ipp.ShippingArkworksHash.adapterPointMessage serialization
+          (.randomizer {
+            comA := proof.ComA.1
+            comB := proof.ComB
+            comC := proof.ComA.2
+          } 0)⟩
+        transcript.randomizer finalRandomizerEffect := by
+    rw [randomizerMessageExact] at randomizerCall
+    simpa [alloc.vec.Vec.deref] using randomizerCall
+  exact
+    ⟨randomizerCallExact,
+      runProjection.callsOfAccepted effect finalEffect tippRunExact⟩
+
+#print axioms acceptedOperationalCalls_of_adapterRun
+
 end
 
 end Ipp.Extracted.TippMippChallengeExecution

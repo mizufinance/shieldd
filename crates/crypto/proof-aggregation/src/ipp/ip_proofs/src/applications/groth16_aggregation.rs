@@ -1,7 +1,4 @@
-use ark_ec::{
-    pairing::{Pairing, PairingOutput},
-    CurveGroup,
-};
+use ark_ec::pairing::{Pairing, PairingOutput};
 use ark_ff::{Field, One, Zero};
 #[cfg(any(test, feature = "bench-baseline"))]
 use ark_groth16::VerifyingKey;
@@ -19,11 +16,12 @@ use std::{
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 
+#[cfg(not(feature = "bench-baseline"))]
+use crate::challenge::checked_next_challenge_nonce;
 use crate::{
     challenge::{
-        challenge_digest, checked_next_challenge_nonce, sample_bounded_challenge,
-        sample_bounded_challenge_from_nonce, ChallengeContext, ChallengeNonceExhausted,
-        ChallengeTraceSink, NoopChallengeTraceSink,
+        challenge_digest, sample_bounded_challenge, sample_bounded_challenge_from_nonce,
+        ChallengeContext, ChallengeNonceExhausted, ChallengeTraceSink, NoopChallengeTraceSink,
     },
     gipa::{
         fold_output, verify_base_commitment_core, BaseCommitmentCoreInput, BaseCommitmentEffect,
@@ -5394,6 +5392,7 @@ where
 
 /// Pure, extraction-friendly construction of the complete shipping verifier
 /// input after strict aggregate-proof validation.
+#[cfg(not(feature = "bench-baseline"))]
 fn shipping_aggregate_adapter_core_input<F, G1, G2, G2Prepared, GT, D>(
     randomizer_message: Vec<u8>,
     ip_verifier_srs: &VerifierSRSData<G1, G2>,

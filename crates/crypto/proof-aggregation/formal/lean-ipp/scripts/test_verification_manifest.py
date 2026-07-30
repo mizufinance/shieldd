@@ -1385,6 +1385,47 @@ class VerificationManifestTests(unittest.TestCase):
             str(raised.exception),
         )
 
+    def test_registered_evidence_rejects_an_inactive_registry(self):
+        promoted = copy.deepcopy(self.manifest)
+        srs_claim = next(
+            claim
+            for claim in promoted["claims"]
+            if claim["id"] == VERIFICATION.DEPLOYED_SRS_CLAIM_ID
+        )
+        srs_claim["status"] = "proved"
+        srs_claim["root"] = "Ipp.Test.deployed_srs_sound"
+        evidence = promoted["deployed_srs_evidence"]
+        evidence.update(
+            {
+                "status": "registered",
+                "registry_source_sha256": "0" * 64,
+                "application_source_sha256": "0" * 64,
+                "setup_binding_root": srs_claim["root"],
+                "artifact": {
+                    "path": "registered.srs",
+                    "sha256": "0" * 64,
+                    "srs_id": "0" * 64,
+                    "max_padded_count": 32_768,
+                },
+                "ceremony": {
+                    "owner": "Example owner",
+                    "transcript_path": "transcript.bin",
+                    "transcript_sha256": "0" * 64,
+                    "verification_path": "verification.json",
+                    "verification_sha256": "0" * 64,
+                    "checker_result": "verified",
+                },
+            }
+        )
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_deployed_srs_soundness(
+                promoted, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn(
+            "cannot use an inactive production id",
+            str(raised.exception),
+        )
+
     def test_pending_contract_refresh_flag_is_explicit(self):
         args = VERIFICATION.parser().parse_args(
             [

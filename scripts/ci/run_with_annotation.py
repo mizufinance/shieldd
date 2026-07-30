@@ -55,7 +55,8 @@ DECISIVE = re.compile(
     error|failed|failure|fatal|panic|exception|traceback|assert|
     timed?\s*out|timeout|out\s+of\s+memory|\boom\b|killed|
     stale|mismatch|not\s+found|no\s+such|denied|dubious|
-    exit(?:ed)?(?:\s+with)?(?:\s+code|\s+status)
+    exit(?:ed)?(?:\s+with)?(?:\s+code|\s+status)|
+    ^\s*(?:command|cwd)\s*:
     """
 )
 
