@@ -64,6 +64,11 @@ run_static() {
 
   echo "snarkpack FV: normalizer tests and idempotence"
   python3 -m unittest discover -s "$LEAN_DIR/scripts" -p 'test_*.py'
+  python3 "$ROOT/scripts/ci/test_gate_applicability.py"
+  python3 "$ROOT/scripts/ci/test_snarkpack_fv_impact.py"
+  python3 "$ROOT/scripts/ci/test_snarkpack_lane_fingerprint.py"
+  python3 "$ROOT/scripts/ci/test_snarkpack_lean_attestation.py"
+  python3 "$ROOT/scripts/ci/test_run_with_annotation.py"
   local generated_output_text
   if ! generated_output_text="$(python3 "$VERIFICATION_MANIFEST" outputs)"; then
     fail "could not enumerate the declared generated outputs"
@@ -98,23 +103,39 @@ run_static() {
 }
 
 selected_graphs=()
-load_changed_graphs() {
-  local graph_output
-  if [[ -n "${SNARKPACK_FV_GRAPHS_JSON:-}" ]]; then
-    if ! graph_output="$(
-      python3 - "${SNARKPACK_FV_GRAPHS_JSON}" <<'PY'
+parse_json_string_array() {
+  local variable_name="$1"
+  local value="$2"
+  local parsed
+  if ! parsed="$(
+    python3 - "$variable_name" "$value" <<'PY'
 import json
 import sys
 
-value = json.loads(sys.argv[1])
-if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-    raise SystemExit("SNARKPACK_FV_GRAPHS_JSON must be an array of graph ids")
+name = sys.argv[1]
+value = json.loads(sys.argv[2])
+if (
+    not isinstance(value, list)
+    or not all(isinstance(item, str) and item for item in value)
+    or len(value) != len(set(value))
+):
+    raise SystemExit(f"{name} must be an array of unique non-empty strings")
 for item in value:
     print(item)
 PY
-    )"; then
-      fail "could not parse SNARKPACK_FV_GRAPHS_JSON"
-    fi
+  )"; then
+    fail "could not parse $variable_name"
+  fi
+  printf '%s' "$parsed"
+}
+
+load_changed_graphs() {
+  local graph_output
+  if [[ -n "${SNARKPACK_FV_GRAPHS_JSON:-}" ]]; then
+    graph_output="$(
+      parse_json_string_array \
+        SNARKPACK_FV_GRAPHS_JSON "${SNARKPACK_FV_GRAPHS_JSON}"
+    )"
     selected_graphs=()
     if [[ -n "$graph_output" ]]; then
       mapfile -t selected_graphs <<< "$graph_output"
@@ -212,8 +233,16 @@ configure_lake() {
 
 audit_build_log() {
   local audit_log="$1"
+  shift
+  local audit_args=(audit-log "$audit_log")
+  local audit_module
+  for audit_module in "$@"; do
+    audit_args+=(--module "$audit_module")
+  done
   local audit_summary
-  audit_summary="$(python3 "$VERIFICATION_MANIFEST" audit-log "$audit_log" 2>&1)" || {
+  audit_summary="$(
+    python3 "$VERIFICATION_MANIFEST" "${audit_args[@]}" 2>&1
+  )" || {
     echo "$audit_summary" >&2
     fail "ProofAudit axiom parser rejected the audit"
   }
@@ -221,22 +250,67 @@ audit_build_log() {
   echo "snarkpack FV audit: $audit_summary"
 }
 
+selected_lean_modules=()
+load_changed_lean_modules() {
+  [[ -n "${SNARKPACK_LEAN_MODULES_JSON:-}" ]] \
+    || fail "SNARKPACK_LEAN_MODULES_JSON is required for lean-changed"
+  local module_output
+  module_output="$(
+    parse_json_string_array \
+      SNARKPACK_LEAN_MODULES_JSON "${SNARKPACK_LEAN_MODULES_JSON}"
+  )"
+  selected_lean_modules=()
+  if [[ -n "$module_output" ]]; then
+    mapfile -t selected_lean_modules <<< "$module_output"
+  fi
+}
+
 run_lean() {
   configure_lake
   export LEAN_NUM_THREADS=1
+  local modules=("$@")
+  if ((${#modules[@]} == 0)); then
+    local audit_module_output
+    if ! audit_module_output="$(
+      python3 "$VERIFICATION_MANIFEST" audit-modules
+    )"; then
+      fail "could not enumerate declared Lean audit modules"
+    fi
+    modules=()
+    if [[ -n "$audit_module_output" ]]; then
+      mapfile -t modules <<< "$audit_module_output"
+    fi
+    ((${#modules[@]} > 0)) ||
+      fail "declared Lean audit module inventory is empty"
+  fi
   local audit_log
   audit_log="$(mktemp)"
   trap 'rm -f "$audit_log"' RETURN
-  echo "snarkpack FV: single-process, single-threaded proof audit build"
+  echo "snarkpack FV: single-process, single-threaded affected Lean closure"
+  local module
+  local audit_modules=()
+  for module in "${modules[@]}"; do
+    [[ "$module" =~ ^Ipp(\.[A-Za-z_][A-Za-z0-9_]*)+$ ]] \
+      || fail "invalid Lean module selected by impact planner: $module"
+    if [[ "$module" =~ ^Ipp\.ProofAudit[A-Za-z0-9_]*$ ]]; then
+      audit_modules+=("$module")
+    fi
+  done
+  printf 'snarkpack FV: lake build' | tee -a "$audit_log"
+  printf ' %q' "${modules[@]}" | tee -a "$audit_log"
+  printf '\n' | tee -a "$audit_log"
   set +e
   (
     cd "$LEAN_DIR"
-    "${lake_command[@]}" build Ipp.ProofAudit Ipp.ProofAuditMiller
-  ) 2>&1 | tee "$audit_log"
+    "${lake_command[@]}" build "${modules[@]}"
+  ) 2>&1 | tee -a "$audit_log"
   local build_status="${PIPESTATUS[0]}"
   set -e
-  ((build_status == 0)) || fail "ProofAudit modules did not build"
-  audit_build_log "$audit_log"
+  ((build_status == 0)) ||
+    fail "affected Lean module closure did not build"
+  if ((${#audit_modules[@]} > 0)); then
+    audit_build_log "$audit_log" "${audit_modules[@]}"
+  fi
   rm -f "$audit_log"
   trap - RETURN
 }
@@ -268,6 +342,14 @@ main() {
     lean)
       run_lean
       ;;
+    lean-changed)
+      load_changed_lean_modules
+      if ((${#selected_lean_modules[@]} == 0)); then
+        echo "snarkpack FV: no Lean modules affected"
+      else
+        run_lean "${selected_lean_modules[@]}"
+      fi
+      ;;
     full)
       run_static
       run_extract all
@@ -276,7 +358,7 @@ main() {
       require_publication_closure=1
       ;;
     *)
-      fail "SNARKPACK_FV_MODE must be static, extract-changed, extract-all, parity-changed, parity-all, lean, or full (got $MODE)"
+      fail "SNARKPACK_FV_MODE must be static, extract-changed, extract-all, parity-changed, parity-all, lean-changed, lean, or full (got $MODE)"
       ;;
   esac
 

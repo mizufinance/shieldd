@@ -1,0 +1,27 @@
+import Ipp.ShippingAdaptiveSha
+import Ipp.ShippingMultiStatement
+
+/-!
+Audit surface for extraction-independent adaptive shipping proofs.
+
+Keeping these roots separate means changes to adaptive SHA or multi-statement
+forking proofs do not rebuild the extracted Arkworks audit surface.
+-/
+
+#print axioms Ipp.ShippingAdaptiveSha.acceptedAlias_implies_collision
+#print axioms Ipp.ShippingAdaptiveSha.deployedShaImpl_sha256_query
+#print axioms Ipp.ShippingAdaptiveSha.simulateQ_deployedSha_query
+#print axioms Ipp.ShippingAdaptiveSha.adaptive_shipping_sha256_collision_reduction
+#print axioms Ipp.ShippingAdaptiveSha.adaptive_real_acceptance_le_ideal_add_hash_losses
+#print axioms Ipp.ShippingMultiStatement.globalQueryEncoding_ofRegistered
+#print axioms Ipp.ShippingMultiStatement.globalQueryEncoding_fixed_key_injective
+#print axioms Ipp.ShippingMultiStatement.SelectionAt.globalQueryEncoding_eq_shipping
+#print axioms Ipp.ShippingMultiStatement.globalFsVerifier_support_proof_eq
+#print axioms Ipp.ShippingMultiStatement.OutcomeAt.roundQuery?_of_lt
+#print axioms Ipp.ShippingMultiStatement.PackedOutcome.at?_self
+#print axioms Ipp.ShippingMultiStatement.multiStatementFsGame_isTotalQueryBound
+#print axioms Ipp.ShippingMultiStatement.multiStatementFsGame_selectedFraming_queryBounded
+#print axioms Ipp.ShippingMultiStatement.leastInvalidOutcome?_mem
+#print axioms Ipp.ShippingMultiStatement.bundle_acceptance_implies_least_invalid_acceptance
+#print axioms Ipp.ShippingMultiStatement.rawForkSucceededAt_le_explicit_game_advantage
+#print axioms Ipp.ShippingMultiStatement.FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh

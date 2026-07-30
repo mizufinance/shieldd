@@ -328,9 +328,8 @@ The campaign has a proved independent Goal projection, real-prefix semantics,
 quantitative S1 contrapositive, aggregate layout/component-acceptance theorem
 (`DECODER-LAYOUT-CONFORMANCE`), a concrete Arkworks accepted-adapter contract,
 ideal fixed-input shipping-hash coupling, and kernel-checked conditional
-composition. Seven symbolic cost recurrences are proved, but
-`COST-MODEL-CONFORMANCE` is open: those coefficients have not yet been derived
-from the concrete v1 prover and verifier paths.
+composition. Concrete backend operation-count research is tracked separately
+and is not accepted as a substitute for semantic FV closure.
 
 It is **not** publication-level end-to-end FV. `SHIPPING-TO-GOAL` and
 `FULL-ADAPTIVE-END-TO-END-FV` are both open. The manifest currently has these
@@ -344,13 +343,41 @@ It is **not** publication-level end-to-end FV. `SHIPPING-TO-GOAL` and
 6. `SHIPPING-PROVER-REFINEMENT`
 7. `RUST-CALL-CONSTRUCTION`
 8. `DEPLOYED-HASH-TRACE-CONSTRUCTION`
-9. `ADAPTIVE-SHA256-COUPLING`
-10. `ADAPTIVE-ADVERSARY-COUPLING`
-11. `BUNDLE-LEVEL-COMPOSITION`
-12. `FULL-ADAPTIVE-END-TO-END-FV`
-13. `COST-MODEL-CONFORMANCE`
+9. `ADAPTIVE-SHARED-ORACLE-SKELETON`
+10. `ADAPTIVE-SHA256-COUPLING`
+11. `ADAPTIVE-ADVERSARY-COUPLING`
+12. `BUNDLE-LEVEL-COMPOSITION`
+13. `FULL-ADAPTIVE-END-TO-END-FV`
 
 Stale F* or extraction evidence also keeps the closure gate red even when a
 claim's source theorem is kernel-checked. The generated
 [theorem graph](../../crates/crypto/proof-aggregation/formal/snarkpack/theorem-dependency-graph.md)
 shows their dependency paths.
+
+## CI execution policy
+
+Pull requests first compute an exact SnarkPack impact plan. Changes outside the
+declared SnarkPack boundary select no heavy lane, and changes with no Lean or
+F* impact select no proof build. Extraction runs one declared graph per isolated
+Blacksmith runner. Lean fingerprints each selected module with its transitive
+imports, restores prior per-module attestations, and sends only stale modules to
+one single-threaded `lake build` invocation. F* checks only the stale reverse
+closure of its declared module DAG. Successful source-specific caches are
+immutable, while failed work may populate only a lower-priority progress cache.
+
+Generated Lean and F* checker evidence remain checked-in, source-fingerprinted
+artifacts, but repository JSON is not itself a reusable CI success attestation
+and cannot suppress a changed graph or proof module. Only immutable exact-key
+attestations written after a checker succeeds may skip repeated work. A Lean
+marker binds one module and all of its imports; extraction and F* markers bind
+their exact source, recipe, toolchain, selected closure, and generated output
+where applicable. Missing, stale, duplicate, unexpected, or unsafe identifiers
+fail closed. Parity, Rust/reference, each ignored slow test, fuzz, and release
+DoS use the same rule over their exact local Cargo dependency closure.
+Scheduled and manually requested full verification bypass success records and
+execute the suites again.
+
+Full extraction, whole Lean audits, F*, fuzz, ignored slow interoperability, and
+release DoS suites run in CI. Local work uses the bounded single-flight runner:
+one process, one Lean thread or Cargo job, memory monitoring, a fixed timeout,
+and no same-session retry after forced termination.

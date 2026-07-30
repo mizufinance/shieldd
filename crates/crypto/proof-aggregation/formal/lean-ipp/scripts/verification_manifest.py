@@ -73,6 +73,16 @@ FSTAR_DECLARATION = re.compile(
     r"^(?:let|val)[ \t]+(?:rec[ \t]+)?([A-Za-z_][A-Za-z0-9_']*)\b",
     re.MULTILINE,
 )
+FSTAR_MODULE_ALIAS = re.compile(
+    r"^[ \t]*module[ \t]+[A-Za-z_][A-Za-z0-9_']*[ \t]*=[ \t]*"
+    r"([A-Za-z_][A-Za-z0-9_.']*)",
+    re.MULTILINE,
+)
+FSTAR_OPEN_MODULE = re.compile(
+    r"^[ \t]*open[ \t]+([A-Za-z_][A-Za-z0-9_.']*)",
+    re.MULTILINE,
+)
+EXTRACTION_GRAPH_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 VALID_CLAIM_STATUSES = {"proved", "tested", "open"}
 CLOSED_TESTED_CLAIM_IDS = {
     "BOUNDED-CHALLENGE-SAMPLER",
@@ -83,10 +93,10 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "0f6f9896fc8ade5bc7f8cc642912638ba58a935653ad3d0caaedd2b7b96ef175"
+    "d1ebdc6b5dd82bb03d0b22784134b57a66165cb49effada2f1f5f7d9d614d256"
 )
 ASSUMPTION_LEDGER_SHA256 = (
-    "497bc754d498b86e04033a4b5deb26648bac3b137c51fe7e8b8616c9f8f4cce1"
+    "d3e4be465b8987f998cac20c22bdd416c04cdd3118e97e4d17a618ddef4672f3"
 )
 V1_PROTOCOL_VERSION = 2
 V1_BYTE_BASELINE_SHA256 = (
@@ -107,13 +117,14 @@ V1_BASELINE_COUNTS = (1, 2, 4, 8)
 VERIFICATION_CONTRACT_FIELDS = (
     "required_repository_inputs",
     "toolchain_roles",
+    "fstar_modules",
     "audit_modules",
     "allowed_axioms",
     "spec_roots",
     "statement_binding_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "e495f6260429ade4417adfb1a6550c6acc1a18d75f557fd8470662d19c25eba6"
+    "966d49c5f4ee10e0f0f4f0d5301fbe794c318070b21ebbde6fe4c7b1a5fcce3c"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -136,6 +147,43 @@ FSTAR_MODULE_INVENTORY = (
     "StatementEncodingProofs.fst",
     "ValidationProofs.fst",
     "WrapperProofs.fst",
+)
+FSTAR_CI_CONTROL_INPUTS = (
+    ".github/workflows/formal.yml",
+    "scripts/ci/run_with_annotation.py",
+)
+FSTAR_GLOBAL_MODULE_INVENTORY = ("SnarkpackMachineSupport",)
+FSTAR_GLOBAL_INPUT_INVENTORY = (
+    ".cargo/config.toml",
+    "Cargo.lock",
+    "Cargo.toml",
+    "crates/core/component/shielded-pool/Cargo.toml",
+    "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
+    (
+        "crates/core/component/shielded-pool/src/"
+        "shielded_ics20_withdrawal/generated.rs"
+    ),
+    "crates/crypto/proof-aggregation/Cargo.toml",
+    (
+        "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
+        "verification_manifest.py"
+    ),
+    "crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml",
+    "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
+    "crates/crypto/proof-aggregation/src/bundle.rs",
+    "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
+    "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+    "crates/crypto/proof-aggregation/src/padding.rs",
+    "crates/crypto/proof-aggregation/src/preflight.rs",
+    "crates/crypto/proof-aggregation/src/srs.rs",
+    "crates/crypto/proof-aggregation/src/statement.rs",
+    "flake.lock",
+    "flake.nix",
+    "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
+    "rust-toolchain.toml",
+    "scripts/ci/snarkpack_fv_impact.py",
+    "scripts/prepare_snarkpack_fstar_support.py",
+    "scripts/snarkpack-formal.sh",
 )
 SHIPPING_NONCE_CALL_INVENTORY = {
     "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs": (2, 0),
@@ -267,6 +315,13 @@ class ValidationSummary:
     unchecked_contract_evidence: int
 
 
+@dataclass(frozen=True)
+class FstarModuleSpec:
+    name: str
+    path: str
+    dependencies: tuple[str, ...]
+
+
 def statement_binding_contract_fields(path: Path) -> set[str]:
     try:
         source = path.read_text(encoding="utf-8")
@@ -305,6 +360,20 @@ def _verification_contract_payload(manifest: dict[str, Any]) -> dict[str, Any]:
     }
     for entry in payload["statement_binding_evidence"]:
         entry["checker"].pop("last_result", None)
+    return payload
+
+
+def _fstar_environment_contract_payload(
+    manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """Project out F* module bytes tracked by per-module fingerprints."""
+    payload = _verification_contract_payload(manifest)
+    for entry in payload["statement_binding_evidence"]:
+        if entry.get("kind") != "fstar":
+            continue
+        for source in entry["sources"]:
+            if source["path"].endswith(".fst"):
+                source["sha256"] = "<per-module-input-fingerprint>"
     return payload
 
 
@@ -452,13 +521,25 @@ def validated_parity_commands(
         if not isinstance(graph, dict):
             raise VerificationError(f"extraction graph {index} must be an object")
         graph_id = graph.get("id")
-        if not isinstance(graph_id, str) or not graph_id:
-            raise VerificationError(f"extraction graph {index} has no id")
+        if (
+            not isinstance(graph_id, str)
+            or EXTRACTION_GRAPH_ID.fullmatch(graph_id) is None
+        ):
+            raise VerificationError(
+                f"extraction graph {index} has an unsafe id"
+            )
         if graph_id in by_id:
             raise VerificationError(f"duplicate extraction graph id: {graph_id}")
         by_id[graph_id] = graph
 
-    selected = set(selected_graphs)
+    selected_values = list(selected_graphs)
+    if any(
+        not isinstance(graph_id, str)
+        or EXTRACTION_GRAPH_ID.fullmatch(graph_id) is None
+        for graph_id in selected_values
+    ):
+        raise VerificationError("parity graph selection contains an unsafe id")
+    selected = set(selected_values)
     unknown = sorted(selected - set(by_id))
     if unknown:
         raise VerificationError(
@@ -631,6 +712,63 @@ def manifest_audit_roots(
             manifest, lean_root=lean_root
         )
     ]
+
+
+def manifest_audit_module_sources(
+    manifest: dict[str, Any],
+) -> dict[str, str]:
+    """Map each declared Lean audit module to its canonical source path."""
+    sources_by_module: dict[str, str] = {}
+    for index, entry in enumerate(
+        _require_nonempty_list(manifest, "audit_modules")
+    ):
+        if not isinstance(entry, dict):
+            raise VerificationError(f"audit_modules[{index}] must be an object")
+        relative = _safe_relative_path(
+            entry.get("path"), field=f"audit_modules[{index}].path"
+        )
+        if relative.suffix != ".lean":
+            raise VerificationError(
+                f"audit_modules[{index}].path must end in .lean"
+            )
+        module = ".".join(relative.with_suffix("").parts)
+        if module in sources_by_module:
+            raise VerificationError(f"duplicate audit module name: {module}")
+        sources_by_module[module] = relative.as_posix()
+    return sources_by_module
+
+
+def selected_manifest_audit_diagnostics(
+    manifest: dict[str, Any],
+    modules: Iterable[str],
+    *,
+    lean_root: Path = LEAN_ROOT,
+) -> list[AuditDiagnostic]:
+    """Return pinned diagnostics for exactly the requested audit modules."""
+    requested = tuple(modules)
+    if len(set(requested)) != len(requested):
+        raise VerificationError("requested audit modules contain duplicates")
+
+    diagnostics = manifest_audit_diagnostics(manifest, lean_root=lean_root)
+    if not requested:
+        return diagnostics
+
+    sources_by_module = manifest_audit_module_sources(manifest)
+
+    unknown = sorted(set(requested) - set(sources_by_module))
+    if unknown:
+        raise VerificationError(
+            "requested unknown audit module(s): " + ", ".join(unknown)
+        )
+    selected_sources = {sources_by_module[module] for module in requested}
+    selected = [
+        diagnostic
+        for diagnostic in diagnostics
+        if diagnostic.source in selected_sources
+    ]
+    if not selected:
+        raise VerificationError("requested audit diagnostic set is empty")
+    return selected
 
 
 def validate_required_inputs(paths: list[Any], repo_root: Path) -> None:
@@ -1399,65 +1537,73 @@ def validate_lean_source_tokens(lean_root: Path) -> None:
             raise VerificationError(f"source-level axiom declaration in {path}")
 
 
-def expected_fstar_checker_evidence(
-    manifest: dict[str, Any], repo_root: Path
-) -> dict[str, Any]:
-    entries = [
-        entry
-        for entry in _require_nonempty_list(
-            manifest, "statement_binding_evidence"
-        )
-        if entry.get("kind") == "fstar"
-    ]
-    if not entries:
-        raise VerificationError("F* checker evidence has no contract rows")
+def _fstar_proof_root(repo_root: Path) -> Path:
+    return (
+        repo_root
+        / "crates/crypto/proof-aggregation/formal/snarkpack/fstar"
+    )
 
-    source_set: dict[str, str] = {}
-    contract_results: list[dict[str, Any]] = []
-    commands: set[str] = set()
-    for entry in entries:
-        commands.add(entry["checker"]["command"])
-        contract_results.append(
-            {
-                "contract_field": entry["contract_field"],
-                "result": "pass",
-                "theorem_roots": sorted(entry["theorem_roots"]),
-            }
-        )
-        for source in entry["sources"]:
-            previous = source_set.setdefault(source["path"], source["sha256"])
-            if previous != source["sha256"]:
-                raise VerificationError(
-                    "F* evidence source has conflicting digests: "
-                    f"{source['path']}"
-                )
-    if commands != {"scripts/snarkpack-formal.sh"}:
+
+def _fstar_module_topological_order(
+    specs: dict[str, FstarModuleSpec],
+) -> tuple[str, ...]:
+    reverse: dict[str, set[str]] = {name: set() for name in specs}
+    indegree = {
+        name: len(spec.dependencies) for name, spec in specs.items()
+    }
+    for name, spec in specs.items():
+        for dependency in spec.dependencies:
+            reverse[dependency].add(name)
+    ready = sorted(name for name, degree in indegree.items() if degree == 0)
+    ordered: list[str] = []
+    while ready:
+        name = ready.pop(0)
+        ordered.append(name)
+        for consumer in sorted(reverse[name]):
+            indegree[consumer] -= 1
+            if indegree[consumer] == 0:
+                ready.append(consumer)
+                ready.sort()
+    if len(ordered) != len(specs):
+        raise VerificationError("cycle detected in the F* module dependency graph")
+    return tuple(ordered)
+
+
+def validate_fstar_module_graph(
+    manifest: dict[str, Any],
+    repo_root: Path,
+    *,
+    require_global_inputs: bool = True,
+) -> dict[str, FstarModuleSpec]:
+    section = manifest.get("fstar_modules")
+    if not isinstance(section, dict) or set(section) != {
+        "global_inputs",
+        "global_modules",
+        "modules",
+    }:
         raise VerificationError(
-            "F* contract rows must use scripts/snarkpack-formal.sh"
+            "fstar_modules must contain global_inputs, global_modules, and modules"
         )
+    global_inputs = section["global_inputs"]
+    if (
+        not isinstance(global_inputs, list)
+        or tuple(global_inputs) != FSTAR_GLOBAL_INPUT_INVENTORY
+    ):
+        raise VerificationError("F* global input inventory differs")
+    global_modules = section["global_modules"]
+    if (
+        not isinstance(global_modules, list)
+        or tuple(global_modules) != FSTAR_GLOBAL_MODULE_INVENTORY
+    ):
+        raise VerificationError("F* global module inventory differs")
 
-    verifier_path = (
-        "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
-        "verification_manifest.py"
-    )
-    toolchain_path = (
-        "crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml"
-    )
-    for relative in (verifier_path, toolchain_path):
-        source_set[relative] = hashlib.sha256(
-            repo_root.joinpath(*PurePosixPath(relative).parts).read_bytes()
-        ).hexdigest()
-
-    proof_root_relative = (
-        "crates/crypto/proof-aggregation/formal/snarkpack/fstar"
-    )
-    proof_root = repo_root.joinpath(
-        *PurePosixPath(proof_root_relative).parts
-    )
+    proof_root = _fstar_proof_root(repo_root)
     if not proof_root.is_dir():
         raise VerificationError(f"missing F* proof root: {proof_root}")
     actual_modules = tuple(
-        path.name for path in sorted(proof_root.glob("*.fst"))
+        path.relative_to(proof_root).as_posix()
+        for path in sorted(proof_root.rglob("*"))
+        if path.is_file()
     )
     if actual_modules != FSTAR_MODULE_INVENTORY:
         missing = sorted(set(FSTAR_MODULE_INVENTORY) - set(actual_modules))
@@ -1467,37 +1613,501 @@ def expected_fstar_checker_evidence(
             + (f"; missing: {', '.join(missing)}" if missing else "")
             + (f"; unexpected: {', '.join(unexpected)}" if unexpected else "")
         )
-    for module in FSTAR_MODULE_INVENTORY:
-        relative = f"{proof_root_relative}/{module}"
-        source_set[relative] = hashlib.sha256(
-            repo_root.joinpath(*PurePosixPath(relative).parts).read_bytes()
-        ).hexdigest()
 
+    declared = section["modules"]
+    if not isinstance(declared, list) or not declared:
+        raise VerificationError("fstar_modules.modules must be nonempty")
+    specs: dict[str, FstarModuleSpec] = {}
+    for index, item in enumerate(declared):
+        where = f"fstar_modules.modules[{index}]"
+        if not isinstance(item, dict) or set(item) != {
+            "name",
+            "path",
+            "dependencies",
+        }:
+            raise VerificationError(f"{where} fields differ")
+        name = item["name"]
+        path = item["path"]
+        dependencies = item["dependencies"]
+        if not isinstance(name, str) or not name:
+            raise VerificationError(f"{where}.name must be nonempty")
+        if name in specs:
+            raise VerificationError(f"duplicate F* module declaration: {name}")
+        expected_path = (
+            "crates/crypto/proof-aggregation/formal/snarkpack/fstar/"
+            f"{name}.fst"
+        )
+        if path != expected_path:
+            raise VerificationError(
+                f"{where}.path must be the canonical path {expected_path}"
+            )
+        if (
+            not isinstance(dependencies, list)
+            or any(not isinstance(value, str) or not value for value in dependencies)
+            or len(set(dependencies)) != len(dependencies)
+            or dependencies != sorted(dependencies)
+        ):
+            raise VerificationError(
+                f"{where}.dependencies must be sorted unique module names"
+            )
+        specs[name] = FstarModuleSpec(name, path, tuple(dependencies))
+
+    expected_names = {Path(path).stem for path in FSTAR_MODULE_INVENTORY}
+    if set(specs) != expected_names:
+        missing = sorted(expected_names - set(specs))
+        unexpected = sorted(set(specs) - expected_names)
+        raise VerificationError(
+            "declared F* module inventory differs"
+            + (f"; missing: {', '.join(missing)}" if missing else "")
+            + (f"; unexpected: {', '.join(unexpected)}" if unexpected else "")
+        )
+    for name, spec in specs.items():
+        unknown = sorted(set(spec.dependencies) - set(specs))
+        if unknown:
+            raise VerificationError(
+                f"F* module {name} has unknown dependencies: "
+                + ", ".join(unknown)
+            )
+        if name in spec.dependencies:
+            raise VerificationError(f"F* module {name} depends on itself")
+
+        path = repo_root.joinpath(*PurePosixPath(spec.path).parts)
+        code = fstar_code_without_comments_and_strings(
+            path.read_text(encoding="utf-8")
+        )
+        modules = FSTAR_MODULE.findall(code)
+        if modules != [name]:
+            raise VerificationError(
+                f"{spec.path} must declare exactly module {name}; found {modules}"
+            )
+        observed = {
+            target
+            for target in FSTAR_MODULE_ALIAS.findall(code)
+            if target in specs
+        }
+        observed.update(
+            target
+            for target in FSTAR_OPEN_MODULE.findall(code)
+            if target in specs
+        )
+        for candidate in specs:
+            if candidate != name and re.search(
+                rf"\b{re.escape(candidate)}[ \t]*\.", code
+            ):
+                observed.add(candidate)
+        if observed != set(spec.dependencies):
+            missing = sorted(observed - set(spec.dependencies))
+            unexpected = sorted(set(spec.dependencies) - observed)
+            raise VerificationError(
+                f"F* dependencies differ for {name}"
+                + (f"; undeclared: {', '.join(missing)}" if missing else "")
+                + (
+                    f"; declared but unused: {', '.join(unexpected)}"
+                    if unexpected
+                    else ""
+                )
+            )
+
+    _fstar_module_topological_order(specs)
+    if require_global_inputs:
+        for relative in global_inputs:
+            safe = _safe_relative_path(relative, field="fstar_modules.global_inputs")
+            path = repo_root.joinpath(*safe.parts)
+            if not path.is_file():
+                raise VerificationError(f"missing F* global input: {path}")
+    return specs
+
+
+def _fstar_contract_roots_by_module(
+    manifest: dict[str, Any],
+    specs: dict[str, FstarModuleSpec],
+) -> dict[str, list[str]]:
+    roots_by_module = {name: [] for name in specs}
+    for entry in _require_nonempty_list(
+        manifest, "statement_binding_evidence"
+    ):
+        if entry.get("kind") != "fstar":
+            continue
+        owner_paths = {
+            source.get("path")
+            for source in entry.get("sources", [])
+            if isinstance(source, dict)
+        }
+        for root in entry.get("theorem_roots", []):
+            owner = root.split(".", maxsplit=1)[0]
+            if owner not in specs:
+                raise VerificationError(
+                    f"F* theorem root has no declared module owner: {root}"
+                )
+            if specs[owner].path not in owner_paths:
+                raise VerificationError(
+                    f"F* theorem root owner is not source-pinned: {root}"
+                )
+            roots_by_module[owner].append(root)
+    for roots in roots_by_module.values():
+        roots.sort()
+    return roots_by_module
+
+
+def _fstar_source_record(repo_root: Path, relative: str) -> dict[str, str]:
+    safe = _safe_relative_path(relative, field="F* evidence source")
+    path = repo_root.joinpath(*safe.parts)
+    if not path.is_file():
+        raise VerificationError(f"missing F* evidence source: {path}")
+    return {
+        "path": relative,
+        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+    }
+
+
+def _fstar_expected_components(
+    manifest: dict[str, Any],
+    repo_root: Path,
+) -> tuple[
+    dict[str, Any],
+    dict[str, dict[str, Any]],
+    list[dict[str, Any]],
+    tuple[str, ...],
+]:
+    specs = validate_fstar_module_graph(manifest, repo_root)
+    roots_by_module = _fstar_contract_roots_by_module(manifest, specs)
+    section = manifest["fstar_modules"]
+    toolchain_path = (
+        "crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml"
+    )
     toolchain = tomllib.loads(
         repo_root.joinpath(*PurePosixPath(toolchain_path).parts).read_text(
             encoding="utf-8"
         )
     )["toolchain"]
-    return {
-        "schema_version": 1,
-        "checker": {
-            "command": "scripts/snarkpack-formal.sh",
-            "implementation": verifier_path,
-            "result": "pass",
-        },
+    environment_body = {
+        "global_inputs": [
+            _fstar_source_record(repo_root, relative)
+            for relative in section["global_inputs"]
+        ],
+        "global_modules": [
+            {
+                "module": name,
+                **_fstar_source_record(repo_root, specs[name].path),
+            }
+            for name in section["global_modules"]
+        ],
         "toolchain": {
             "fstar": toolchain["fstar"],
             "hax_fstar": toolchain["hax_fstar"],
             "z3": toolchain["z3"],
         },
-        "source_set": [
-            {"path": path, "sha256": digest}
-            for path, digest in sorted(source_set.items())
-        ],
-        "contract_results": sorted(
-            contract_results, key=lambda result: result["contract_field"]
-        ),
+        "verification_contract_sha256": hashlib.sha256(
+            _canonical_json(
+                _fstar_environment_contract_payload(manifest)
+            ).encode("utf-8")
+        ).hexdigest(),
     }
+    environment = {
+        **environment_body,
+        "sha256": hashlib.sha256(
+            _canonical_json(environment_body).encode("utf-8")
+        ).hexdigest(),
+    }
+
+    ordered = _fstar_module_topological_order(specs)
+    records: dict[str, dict[str, Any]] = {}
+    for name in ordered:
+        spec = specs[name]
+        source = _fstar_source_record(repo_root, spec.path)
+        basis = {
+            "dependencies": [
+                {
+                    "module": dependency,
+                    "input_fingerprint": records[dependency][
+                        "input_fingerprint"
+                    ],
+                }
+                for dependency in spec.dependencies
+            ],
+            "environment_sha256": environment["sha256"],
+            "module": name,
+            "path": spec.path,
+            "source_sha256": source["sha256"],
+            "theorem_roots": roots_by_module[name],
+        }
+        records[name] = {
+            **basis,
+            "input_fingerprint": hashlib.sha256(
+                _canonical_json(basis).encode("utf-8")
+            ).hexdigest(),
+            "result": "pass",
+        }
+
+    contract_results: list[dict[str, Any]] = []
+    for entry in _require_nonempty_list(
+        manifest, "statement_binding_evidence"
+    ):
+        if entry.get("kind") != "fstar":
+            continue
+        modules = sorted(
+            {root.split(".", maxsplit=1)[0] for root in entry["theorem_roots"]}
+        )
+        contract_results.append(
+            {
+                "contract_field": entry["contract_field"],
+                "modules": modules,
+                "result": "pass",
+                "theorem_roots": sorted(entry["theorem_roots"]),
+            }
+        )
+    contract_results.sort(key=lambda result: result["contract_field"])
+    return environment, records, contract_results, ordered
+
+
+def expected_fstar_checker_evidence(
+    manifest: dict[str, Any], repo_root: Path
+) -> dict[str, Any]:
+    environment, records, contract_results, _ = _fstar_expected_components(
+        manifest, repo_root
+    )
+    return {
+        "schema_version": 2,
+        "checker": {
+            "command": "scripts/snarkpack-formal.sh",
+            "implementation": (
+                "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
+                "verification_manifest.py"
+            ),
+            "result": "pass",
+        },
+        "environment": environment,
+        "module_results": [
+            records[name] for name in sorted(records)
+        ],
+        "contract_results": contract_results,
+    }
+
+
+def stale_fstar_checker_evidence(
+    manifest: dict[str, Any], repo_root: Path
+) -> dict[str, Any]:
+    payload = copy.deepcopy(
+        expected_fstar_checker_evidence(manifest, repo_root)
+    )
+    payload["checker"]["result"] = "stale"
+    for record in payload["module_results"]:
+        record["result"] = "stale"
+    for result in payload["contract_results"]:
+        result["result"] = "stale"
+    return payload
+
+
+def fstar_ci_cache_fingerprints(
+    manifest: dict[str, Any], repo_root: Path
+) -> tuple[str, str]:
+    """Return environment-prefix and exact-success F* cache identities."""
+    expected = expected_fstar_checker_evidence(manifest, repo_root)
+    controls = [
+        _fstar_source_record(repo_root, relative)
+        for relative in FSTAR_CI_CONTROL_INPUTS
+    ]
+    environment_payload = {
+        "schema_version": 1,
+        "environment": expected["environment"],
+        "controls": controls,
+    }
+    environment_sha256 = hashlib.sha256(
+        _canonical_json(environment_payload).encode("utf-8")
+    ).hexdigest()
+    exact_payload = {
+        "schema_version": 1,
+        "environment_sha256": environment_sha256,
+        "expected_evidence": expected,
+    }
+    exact_sha256 = hashlib.sha256(
+        _canonical_json(exact_payload).encode("utf-8")
+    ).hexdigest()
+    return environment_sha256, exact_sha256
+
+
+def _reusable_fstar_module_records(
+    base: dict[str, Any] | None,
+    expected: dict[str, Any],
+) -> set[str]:
+    if (
+        not isinstance(base, dict)
+        or base.get("schema_version") != 2
+        or base.get("checker") != expected["checker"]
+        or base.get("environment") != expected["environment"]
+        or not isinstance(base.get("module_results"), list)
+    ):
+        return set()
+    expected_by_name = {
+        record["module"]: record for record in expected["module_results"]
+    }
+    observed: dict[str, dict[str, Any]] = {}
+    for record in base["module_results"]:
+        if (
+            not isinstance(record, dict)
+            or not isinstance(record.get("module"), str)
+            or record["module"] in observed
+        ):
+            return set()
+        observed[record["module"]] = record
+    return {
+        name
+        for name, record in expected_by_name.items()
+        if observed.get(name) == record
+    }
+
+
+def _normalize_fstar_module_names(
+    values: Iterable[str],
+    specs: dict[str, FstarModuleSpec],
+    *,
+    label: str,
+) -> set[str]:
+    normalized: list[str] = []
+    for value in values:
+        if not isinstance(value, str) or not value:
+            raise VerificationError(f"{label} must contain nonempty strings")
+        name = value[:-4] if value.endswith(".fst") else value
+        if "/" in name or "\\" in name or name not in specs:
+            raise VerificationError(f"{label} contains unknown F* module: {value}")
+        normalized.append(name)
+    if len(normalized) != len(set(normalized)):
+        raise VerificationError(f"{label} contains duplicate F* modules")
+    return set(normalized)
+
+
+def affected_fstar_modules(
+    manifest: dict[str, Any],
+    repo_root: Path,
+    *,
+    requested: Iterable[str],
+    force_all: bool = False,
+) -> tuple[str, ...]:
+    """Return the changed F* roots and their reverse dependency closure."""
+    specs = validate_fstar_module_graph(manifest, repo_root)
+    selected = _normalize_fstar_module_names(
+        requested, specs, label="requested proof list"
+    )
+    if force_all or selected & set(manifest["fstar_modules"]["global_modules"]):
+        selected = set(specs)
+    reverse: dict[str, set[str]] = {name: set() for name in specs}
+    for name, spec in specs.items():
+        for dependency in spec.dependencies:
+            reverse[dependency].add(name)
+    pending = list(selected)
+    while pending:
+        dependency = pending.pop()
+        for consumer in reverse[dependency]:
+            if consumer not in selected:
+                selected.add(consumer)
+                pending.append(consumer)
+    return tuple(
+        name
+        for name in _fstar_module_topological_order(specs)
+        if name in selected
+    )
+
+
+def plan_fstar_modules(
+    manifest: dict[str, Any],
+    repo_root: Path,
+    *,
+    base: dict[str, Any] | None,
+    requested: Iterable[str],
+    force_all: bool = False,
+) -> tuple[str, ...]:
+    specs = validate_fstar_module_graph(manifest, repo_root)
+    affected = set(
+        affected_fstar_modules(
+            manifest,
+            repo_root,
+            requested=requested,
+            force_all=force_all,
+        )
+    )
+    expected = expected_fstar_checker_evidence(manifest, repo_root)
+    reusable = _reusable_fstar_module_records(base, expected)
+    # Repository evidence may reuse unchanged dependencies, but it is not CI
+    # attestation and must never suppress an explicitly changed module.
+    selected = (set(specs) - reusable) | affected
+
+    roots_by_field = {
+        entry["contract_field"]: {
+            root.split(".", maxsplit=1)[0]
+            for root in entry["theorem_roots"]
+        }
+        for entry in _require_nonempty_list(
+            manifest, "statement_binding_evidence"
+        )
+        if entry.get("kind") == "fstar"
+    }
+    for entry in manifest["statement_binding_evidence"]:
+        if (
+            entry.get("kind") == "fstar"
+            and entry.get("checker", {}).get("last_result") != "pass"
+        ):
+            selected.update(roots_by_field[entry["contract_field"]])
+
+    global_modules = set(manifest["fstar_modules"]["global_modules"])
+    if selected & global_modules:
+        selected.update(specs)
+
+    reverse: dict[str, set[str]] = {name: set() for name in specs}
+    for name, spec in specs.items():
+        for dependency in spec.dependencies:
+            reverse[dependency].add(name)
+    pending = list(selected)
+    while pending:
+        dependency = pending.pop()
+        for consumer in reverse[dependency]:
+            if consumer not in selected:
+                selected.add(consumer)
+                pending.append(consumer)
+
+    return tuple(
+        name
+        for name in _fstar_module_topological_order(specs)
+        if name in selected
+    )
+
+
+def merged_fstar_checker_evidence(
+    manifest: dict[str, Any],
+    repo_root: Path,
+    *,
+    base: dict[str, Any] | None,
+    requested: Iterable[str],
+    checked: Iterable[str],
+    force_all: bool = False,
+) -> dict[str, Any]:
+    specs = validate_fstar_module_graph(manifest, repo_root)
+    required = plan_fstar_modules(
+        manifest,
+        repo_root,
+        base=base,
+        requested=requested,
+        force_all=force_all,
+    )
+    checked_names = _normalize_fstar_module_names(
+        checked, specs, label="checked proof list"
+    )
+    if checked_names != set(required):
+        missing = sorted(set(required) - checked_names)
+        unexpected = sorted(checked_names - set(required))
+        raise VerificationError(
+            "checked F* module set differs from the fail-closed plan"
+            + (f"; missing: {', '.join(missing)}" if missing else "")
+            + (f"; unexpected: {', '.join(unexpected)}" if unexpected else "")
+        )
+    expected = expected_fstar_checker_evidence(manifest, repo_root)
+    reusable = _reusable_fstar_module_records(base, expected)
+    unbacked = sorted(set(specs) - checked_names - reusable)
+    if unbacked:
+        raise VerificationError(
+            "F* evidence has current modules with neither a checked nor reusable "
+            "result: " + ", ".join(unbacked)
+        )
+    return expected
 
 
 def validate_fstar_checker_evidence(
@@ -1511,11 +2121,6 @@ def validate_fstar_checker_evidence(
         if entry.get("kind") == "fstar"
         and entry.get("checker", {}).get("last_result") != "pass"
     ]
-    if stale_fields:
-        raise VerificationError(
-            "F* checker evidence is stale for current sources: "
-            + ", ".join(stale_fields)
-        )
     pointer = manifest.get("fstar_checker_evidence")
     if not isinstance(pointer, dict) or set(pointer) != {"path", "sha256"}:
         raise VerificationError(
@@ -1538,10 +2143,20 @@ def validate_fstar_checker_evidence(
         ) from error
     if content.decode("utf-8") != _canonical_json(payload):
         raise VerificationError("F* checker evidence must use canonical pretty JSON")
-    if payload != expected_fstar_checker_evidence(manifest, repo_root):
+    expected = (
+        stale_fstar_checker_evidence(manifest, repo_root)
+        if stale_fields
+        else expected_fstar_checker_evidence(manifest, repo_root)
+    )
+    if payload != expected:
         raise VerificationError(
             "F* checker evidence differs from the pinned command, toolchain, "
             "source set, theorem roots, or pass results"
+        )
+    if stale_fields:
+        raise VerificationError(
+            "F* checker evidence is stale for current sources: "
+            + ", ".join(stale_fields)
         )
 
 
@@ -1717,22 +2332,62 @@ def validate_toolchain_roles(manifest: dict[str, Any], repo_root: Path) -> None:
         repo_root
         / "crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml"
     )
+    aeneas_toolchain_path = (
+        repo_root
+        / "crates/crypto/proof-aggregation/formal/snarkpack/"
+        "aeneas-toolchain.toml"
+    )
     extraction_path = (
         repo_root
         / "crates/crypto/proof-aggregation/formal/snarkpack/"
         "lean-extraction-manifest.json"
     )
     toolchain = tomllib.loads(toolchain_path.read_text(encoding="utf-8"))["toolchain"]
+    aeneas_toolchain = tomllib.loads(
+        aeneas_toolchain_path.read_text(encoding="utf-8")
+    )["toolchain"]
     extraction = json.loads(extraction_path.read_text(encoding="utf-8"))["toolchains"]
     fstar_pin = toolchain.get("hax_fstar")
-    aeneas_pin = toolchain.get("hax_aeneas_commit")
-    if by_id["hax-fstar"]["pin"] != fstar_pin or extraction.get("hax_tag") != fstar_pin:
+    aeneas_pin = aeneas_toolchain.get("hax_commit")
+    aeneas_image_digest = aeneas_toolchain.get("image_digest")
+    if by_id["hax-fstar"]["pin"] != fstar_pin:
         raise VerificationError("F* hax role does not match its named toolchain pins")
     if (
         by_id["hax-aeneas"]["pin"] != aeneas_pin
         or extraction.get("hax_commit") != aeneas_pin
     ):
         raise VerificationError("Aeneas hax role does not match its named toolchain pins")
+    for field in (
+        "rust",
+        "lean",
+        "charon_commit",
+        "aeneas_commit",
+    ):
+        if extraction.get(field) != aeneas_toolchain.get(field):
+            raise VerificationError(
+                f"Aeneas {field} does not match its named toolchain lock"
+            )
+    if (
+        not isinstance(aeneas_image_digest, str)
+        or re.fullmatch(r"sha256:[0-9a-f]{64}", aeneas_image_digest) is None
+        or extraction.get("image_digest") != aeneas_image_digest
+    ):
+        raise VerificationError(
+            "Aeneas image digest does not match its named toolchain lock"
+        )
+    formal_workflow = (
+        repo_root / ".github/workflows/formal.yml"
+    ).read_text(encoding="utf-8")
+    image_digests = re.findall(
+        r"shieldd-snarkpack-fv-toolchain@(sha256:[0-9a-f]{64})",
+        formal_workflow,
+    )
+    if len(image_digests) != 2 or set(image_digests) != {
+        aeneas_image_digest
+    }:
+        raise VerificationError(
+            "formal workflow Aeneas images differ from the named image lock"
+        )
 
     evidence_paths = {
         "hax-fstar": repo_root / ".github/workflows/formal.yml",
@@ -1771,6 +2426,7 @@ def validate_contract_evidence(
             f"missing={missing}, unexpected={unexpected}"
         )
 
+    fstar_specs = validate_fstar_module_graph(manifest, repo_root)
     entries = _require_nonempty_list(manifest, "statement_binding_evidence")
     observed_fields: list[str] = []
     # `stale` records a proof-producing boundary that has not passed for the
@@ -1847,6 +2503,11 @@ def validate_contract_evidence(
             if entry["kind"] == "fstar" and root not in declared_fstar_roots:
                 raise VerificationError(f"{where} theorem root is absent: {root}")
             if entry["kind"] == "fstar":
+                owner = root.split(".", maxsplit=1)[0]
+                if owner not in fstar_specs:
+                    raise VerificationError(
+                        f"{where} theorem root has no F* module owner: {root}"
+                    )
                 continue
             expected_rust = EXTERNAL_RUST_EVIDENCE_ROOTS.get(field)
             if expected_rust is not None:
@@ -1887,6 +2548,13 @@ def validate_contract_evidence(
             raise VerificationError(f"{where}.checker fields differ")
         if not isinstance(checker["command"], str) or not checker["command"]:
             raise VerificationError(f"{where}.checker.command must be nonempty")
+        if (
+            entry["kind"] == "fstar"
+            and checker["command"] != "scripts/snarkpack-formal.sh"
+        ):
+            raise VerificationError(
+                f"{where}.checker.command must be scripts/snarkpack-formal.sh"
+            )
         required_result = checker["required_result"]
         if required_result not in {"pass", "assumed"}:
             raise VerificationError(
@@ -1938,6 +2606,7 @@ def validate_contract_evidence(
         )
     if len(observed_fields) != len(set(observed_fields)):
         raise VerificationError("statement binding evidence contains duplicate fields")
+    _fstar_contract_roots_by_module(manifest, fstar_specs)
     if require_checker_artifact:
         validate_fstar_checker_evidence(manifest, repo_root)
 
@@ -2323,7 +2992,7 @@ def audit_log_summary(
         raise VerificationError("ProofAudit contains sorryAx")
 
     result_pattern = re.compile(
-        r"^info: (Ipp[\\/]ProofAudit(?:Miller)?\.lean):(\d+):(\d+): "
+        r"^info: (Ipp[\\/]ProofAudit[A-Za-z0-9_]*\.lean):(\d+):(\d+): "
         r"'([^'\r\n]+)' "
         r"(?:depends on axioms: \[(.*?)\]|does not depend on any axioms)",
         flags=re.DOTALL | re.MULTILINE,
@@ -2708,14 +3377,47 @@ def render_dependency_graph(manifest: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _optional_fstar_base(path: Path | None) -> dict[str, Any] | None:
+    candidate = path or FSTAR_CHECKER_EVIDENCE_PATH
+    try:
+        payload = json.loads(candidate.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _requested_fstar_modules(
+    value: str | None,
+    manifest: dict[str, Any],
+    repo_root: Path,
+) -> tuple[str, ...]:
+    specs = validate_fstar_module_graph(manifest, repo_root)
+    if value is None:
+        return tuple(sorted(specs))
+    try:
+        decoded = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise VerificationError(
+            f"requested F* proof JSON is malformed: {error}"
+        ) from error
+    if not isinstance(decoded, list):
+        raise VerificationError("requested F* proof JSON must be an array")
+    names = _normalize_fstar_module_names(
+        decoded, specs, label="requested proof list"
+    )
+    return tuple(sorted(names))
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser()
     commands = result.add_subparsers(dest="command", required=True)
     commands.add_parser("check")
     commands.add_parser("validate")
     commands.add_parser("outputs")
+    commands.add_parser("audit-modules")
     audit = commands.add_parser("audit-log")
     audit.add_argument("path", type=Path)
+    audit.add_argument("--module", action="append", default=[])
     test_log = commands.add_parser("test-log")
     test_log.add_argument("path", type=Path)
     test_log.add_argument("--expected", type=int, required=True)
@@ -2730,9 +3432,23 @@ def parser() -> argparse.ArgumentParser:
     render_graph = commands.add_parser("render-graph")
     render_graph.add_argument("--check", type=Path)
     render_graph.add_argument("--output", type=Path)
+    fstar_plan = commands.add_parser("fstar-plan")
+    fstar_plan.add_argument("--base", type=Path)
+    fstar_plan.add_argument("--requested-json")
+    fstar_plan.add_argument("--force-all", action="store_true")
     fstar_evidence = commands.add_parser("fstar-evidence")
     fstar_evidence.add_argument("--check", type=Path)
     fstar_evidence.add_argument("--output", type=Path)
+    fstar_evidence.add_argument("--base", type=Path)
+    fstar_evidence.add_argument("--requested-json")
+    fstar_evidence.add_argument("--force-all", action="store_true")
+    fstar_evidence.add_argument("--checked-module", action="append", default=[])
+    stale_fstar = commands.add_parser("render-stale-fstar-evidence")
+    stale_fstar.add_argument("--output", type=Path, required=True)
+    fstar_cache_key = commands.add_parser("fstar-ci-cache-key")
+    fstar_cache_key.add_argument("--github-output", type=Path)
+    validate_fstar_artifact = commands.add_parser("validate-fstar-artifact")
+    validate_fstar_artifact.add_argument("--artifact", type=Path, required=True)
     import_fstar = commands.add_parser("import-fstar-evidence")
     import_fstar.add_argument("--artifact", type=Path, required=True)
     return result
@@ -2766,8 +3482,14 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "outputs":
             for output in extraction_outputs():
                 print(output)
+        elif args.command == "audit-modules":
+            manifest_audit_diagnostics(manifest)
+            for module in manifest_audit_module_sources(manifest):
+                print(module)
         elif args.command == "audit-log":
-            expected_diagnostics = manifest_audit_diagnostics(manifest)
+            expected_diagnostics = selected_manifest_audit_diagnostics(
+                manifest, args.module
+            )
             print(
                 audit_log_summary(
                     args.path.read_text(encoding="utf-8"),
@@ -2832,23 +3554,55 @@ def main(argv: list[str] | None = None) -> int:
                         f"{args.check} is stale; regenerate from {MANIFEST_PATH}"
                     )
                 print(f"{args.check} matches verification manifest")
+        elif args.command == "fstar-plan":
+            validate_contract_evidence(
+                manifest,
+                REPO_ROOT,
+                require_checker_artifact=False,
+            )
+            requested = _requested_fstar_modules(
+                args.requested_json, manifest, REPO_ROOT
+            )
+            for module in plan_fstar_modules(
+                manifest,
+                REPO_ROOT,
+                base=_optional_fstar_base(args.base),
+                requested=requested,
+                force_all=args.force_all,
+            ):
+                print(f"{module}.fst")
         elif args.command == "fstar-evidence":
             validate_contract_evidence(
                 manifest,
                 REPO_ROOT,
                 require_checker_artifact=False,
             )
-            rendered = _canonical_json(
-                expected_fstar_checker_evidence(manifest, REPO_ROOT)
-            )
             if args.check is not None and args.output is not None:
                 raise VerificationError("--check and --output are mutually exclusive")
             if args.output is not None:
-                args.output.write_text(rendered, encoding="utf-8")
+                requested = _requested_fstar_modules(
+                    args.requested_json, manifest, REPO_ROOT
+                )
+                payload = merged_fstar_checker_evidence(
+                    manifest,
+                    REPO_ROOT,
+                    base=_optional_fstar_base(args.base),
+                    requested=requested,
+                    checked=args.checked_module,
+                    force_all=args.force_all,
+                )
+                rendered = _canonical_json(payload)
+                _atomic_write(args.output, rendered.encode("utf-8"))
                 print(f"wrote {args.output}")
             elif args.check is None:
+                rendered = _canonical_json(
+                    expected_fstar_checker_evidence(manifest, REPO_ROOT)
+                )
                 print(rendered, end="")
             else:
+                rendered = _canonical_json(
+                    expected_fstar_checker_evidence(manifest, REPO_ROOT)
+                )
                 actual = args.check.read_text(encoding="utf-8")
                 if actual != rendered:
                     raise VerificationError(
@@ -2856,6 +3610,57 @@ def main(argv: list[str] | None = None) -> int:
                         "with SNARKPACK_FSTAR_EVIDENCE_UPDATE=1"
                     )
                 print(f"{args.check} matches the pinned F* checker result")
+        elif args.command == "render-stale-fstar-evidence":
+            validate_contract_evidence(
+                manifest,
+                REPO_ROOT,
+                require_checker_artifact=False,
+            )
+            nonstale = sorted(
+                entry["contract_field"]
+                for entry in manifest["statement_binding_evidence"]
+                if entry.get("kind") == "fstar"
+                and entry.get("checker", {}).get("last_result") != "stale"
+            )
+            if nonstale:
+                raise VerificationError(
+                    "cannot render stale F* evidence while manifest rows are "
+                    "not stale: " + ", ".join(nonstale)
+                )
+            _atomic_write(
+                args.output,
+                _canonical_json(
+                    stale_fstar_checker_evidence(manifest, REPO_ROOT)
+                ).encode("utf-8"),
+            )
+            print(f"wrote stale F* evidence to {args.output}")
+        elif args.command == "fstar-ci-cache-key":
+            validate_contract_evidence(
+                manifest,
+                REPO_ROOT,
+                require_checker_artifact=False,
+            )
+            environment_sha256, exact_sha256 = (
+                fstar_ci_cache_fingerprints(manifest, REPO_ROOT)
+            )
+            lines = (
+                f"environment_sha256={environment_sha256}",
+                f"exact_sha256={exact_sha256}",
+            )
+            if args.github_output is not None:
+                with args.github_output.open(
+                    "a", encoding="utf-8", newline="\n"
+                ) as output:
+                    for line in lines:
+                        output.write(line + "\n")
+            print("\n".join(lines))
+        elif args.command == "validate-fstar-artifact":
+            promoted_fstar_manifest(
+                manifest,
+                args.artifact.read_bytes(),
+                REPO_ROOT,
+            )
+            print(f"validated current F* checker artifact: {args.artifact}")
         elif args.command == "import-fstar-evidence":
             promoted = import_fstar_checker_evidence(
                 MANIFEST_PATH, args.artifact, REPO_ROOT

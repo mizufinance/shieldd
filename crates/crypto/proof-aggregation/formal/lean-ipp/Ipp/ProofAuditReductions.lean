@@ -1,0 +1,18 @@
+import Ipp.S1Bls12377ReductionInterfaces
+
+#print axioms Ipp.S1.bls12377KzgVForgeryOfLeaf_wins
+#print axioms Ipp.S1.bls12377KzgWForgeryOfLeaf_wins
+#print axioms Ipp.S1.bls12377KzgVGameWin_exists_forgery
+#print axioms Ipp.S1.bls12377KzgWGameWin_exists_forgery
+#print axioms Ipp.S1.bls12377KzgVGameWin_le_forgeryGameWin
+#print axioms Ipp.S1.bls12377KzgWGameWin_le_forgeryGameWin
+#print axioms Ipp.S1.bls12377KzgVForgeryGame_isTotalQueryBound_iff
+#print axioms Ipp.S1.bls12377KzgWForgeryGame_isTotalQueryBound_iff
+#print axioms Ipp.S1.kzg_false_opening_to_explicit_bls12377_forgery_games
+#print axioms Ipp.S1.gipaRootOpeningGameWin_iff_explicitChallenge
+#print axioms Ipp.S1.gipaProductLaneGameWin_iff_explicitChallenge
+#print axioms Ipp.S1.gipaRootOpeningGame_probability_eq_explicit
+#print axioms Ipp.S1.gipaProductLaneGame_probability_eq_explicit
+#print axioms Ipp.S1.bls12377GipaRootOpeningGame_isTotalQueryBound_iff
+#print axioms Ipp.S1.bls12377GipaProductLaneGame_isTotalQueryBound_iff
+#print axioms Ipp.S1.gipa_fork_knowledge_to_explicit_bls12377_games

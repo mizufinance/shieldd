@@ -50,6 +50,7 @@
         "Cargo.toml",
         "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/AeneasRuntime.lean",
         "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py",
+        "crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml",
         "rust-toolchain.toml"
       ],
       "graph_tiers": {
@@ -71,6 +72,7 @@
         ".cargo/config.toml",
         "Cargo.lock",
         "Cargo.toml",
+        "deployments/containerfiles/Dockerfile.snarkpack-fv-toolchain",
         "rust-toolchain.toml"
       ],
       "tiers": {
@@ -93,17 +95,26 @@
         "scripts/check-snarkpack-invariants.sh",
         "scripts/check-snarkpack-runtime-invariants.sh",
         "scripts/ci/gate-applicability.py",
+        "scripts/ci/snarkpack_lane_fingerprint.py",
+        "scripts/ci/test_snarkpack_lane_fingerprint.py",
+        "scripts/ci/snarkpack_fv_impact.py",
+        "scripts/ci/snarkpack_lean_attestation.py",
         "scripts/ci/test_gate_applicability.py",
+        "scripts/ci/test_snarkpack_fv_impact.py",
+        "scripts/ci/test_snarkpack_lean_attestation.py",
+        "scripts/ci/run_with_annotation.py",
+        "scripts/ci/test_run_with_annotation.py",
+        "scripts/prepare_snarkpack_fstar_support.py",
         "scripts/run-snarkpack-fv-safe.ps1",
         "scripts/snarkpack-formal.sh",
         "scripts/snarkpack-fv.sh"
       ],
       "tiers": {
-        "pull_request": "extract-all",
+        "pull_request": "static",
         "merge_group": "full",
         "default": "full"
       },
-      "reason": "workflow, environment, classifier, or invoked gate implementation"
+      "reason": "workflow, classifier, diagnostic, or invoked gate implementation"
     },
     {
       "patterns": [

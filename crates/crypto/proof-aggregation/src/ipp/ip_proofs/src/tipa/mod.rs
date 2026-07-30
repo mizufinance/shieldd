@@ -162,16 +162,6 @@ pub struct PreparedProvingSrs<P: Pairing> {
     ck_2: Vec<P::G1>,
 }
 
-/// Borrowed full-power and even-key view used by the shipping prover.
-struct PreparedProvingSrsProjection<'a, G1, G2, G1Affine, G2Affine> {
-    full_g_alpha_powers: &'a [G1],
-    full_h_beta_powers: &'a [G2],
-    g_alpha_powers_affine: &'a [G1Affine],
-    h_beta_powers_affine: &'a [G2Affine],
-    ck_1: &'a [G2],
-    ck_2: &'a [G1],
-}
-
 /// Projects the even-indexed commitment key without iterator-specific logic.
 fn even_power_projection_core<T: Clone>(powers: &[T]) -> Vec<T> {
     let mut projected = Vec::with_capacity(powers.len());
@@ -181,24 +171,6 @@ fn even_power_projection_core<T: Clone>(powers: &[T]) -> Vec<T> {
         index += 2;
     }
     projected
-}
-
-fn prepared_proving_srs_projection_core<'a, G1, G2, G1Affine, G2Affine>(
-    full_g_alpha_powers: &'a [G1],
-    full_h_beta_powers: &'a [G2],
-    g_alpha_powers_affine: &'a [G1Affine],
-    h_beta_powers_affine: &'a [G2Affine],
-    ck_1: &'a [G2],
-    ck_2: &'a [G1],
-) -> PreparedProvingSrsProjection<'a, G1, G2, G1Affine, G2Affine> {
-    PreparedProvingSrsProjection {
-        full_g_alpha_powers,
-        full_h_beta_powers,
-        g_alpha_powers_affine,
-        h_beta_powers_affine,
-        ck_1,
-        ck_2,
-    }
 }
 
 #[cfg(test)]
@@ -260,20 +232,6 @@ impl<P: Pairing> PreparedProvingSrs<P> {
 
     pub fn h_beta_powers_affine(&self) -> &[P::G2Affine] {
         &self.h_beta_powers_affine
-    }
-
-    fn shipping_projection<'a>(
-        &'a self,
-        srs: &'a SRS<P>,
-    ) -> PreparedProvingSrsProjection<'a, P::G1, P::G2, P::G1Affine, P::G2Affine> {
-        prepared_proving_srs_projection_core(
-            &srs.g_alpha_powers,
-            &srs.h_beta_powers,
-            &self.g_alpha_powers_affine,
-            &self.h_beta_powers_affine,
-            &self.ck_1,
-            &self.ck_2,
-        )
     }
 }
 

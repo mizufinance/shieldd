@@ -9,8 +9,6 @@ import Ipp.Cost
 import Ipp.ShippingScalarReduction
 import Ipp.ShippingHashExecutionTrace
 import Ipp.ShippingToGoal
-import Ipp.ShippingAdaptiveSha
-import Ipp.ShippingMultiStatement
 import Ipp.Extracted.AppVerifierStateMachine
 import Ipp.Extracted.ShippingRowConstruction
 import Ipp.Extracted.ShippingStatementConstruction
@@ -50,9 +48,10 @@ import Ipp.CanonicalSerializers
 import Ipp.ChallengeMessageSerialization
 
 /-!
-Single audit surface for every campaign capstone compatible with the canonical
-Fq12 extraction graph. The independently regenerated Miller graph is audited
-in `Ipp.ProofAuditMiller` because it declares overlapping extracted globals.
+Audit surface for campaign capstones compatible with the canonical Fq12
+extraction graph. Adaptive and reduction roots use dedicated audit modules;
+the independently regenerated Miller graph uses `Ipp.ProofAuditMiller`
+because it declares overlapping extracted globals.
 -/
 
 -- S1
@@ -100,19 +99,6 @@ in `Ipp.ProofAuditMiller` because it declares overlapping extracted globals.
 #print axioms Ipp.SnarkPackV1.Refinement.hasValidRepresentation_iff
 #print axioms Ipp.SnarkPackV1.Refinement.hasValidRealPrefixRepresentation_iff
 #print axioms Ipp.SnarkPackV1.Refinement.invalid_realPrefix_implies_invalid_padded
-#print axioms Ipp.ShippingAdaptiveSha.acceptedAlias_implies_collision
-#print axioms Ipp.ShippingAdaptiveSha.adaptive_shipping_sha256_collision_reduction
-#print axioms Ipp.ShippingAdaptiveSha.adaptive_real_acceptance_le_ideal_add_hash_losses
-#print axioms Ipp.ShippingMultiStatement.globalQueryEncoding_ofRegistered
-#print axioms Ipp.ShippingMultiStatement.globalQueryEncoding_fixed_key_injective
-#print axioms Ipp.ShippingMultiStatement.globalFsVerifier_support_proof_eq
-#print axioms Ipp.ShippingMultiStatement.OutcomeAt.roundQuery?_of_lt
-#print axioms Ipp.ShippingMultiStatement.PackedOutcome.at?_self
-#print axioms Ipp.ShippingMultiStatement.multiStatementFsGame_isTotalQueryBound
-#print axioms Ipp.ShippingMultiStatement.leastInvalidOutcome?_mem
-#print axioms Ipp.ShippingMultiStatement.bundle_acceptance_implies_least_invalid_acceptance
-#print axioms Ipp.ShippingMultiStatement.rawForkSucceededAt_le_explicit_game_advantage
-#print axioms Ipp.ShippingMultiStatement.FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh
 #print axioms Ipp.SnarkPackV1.HonestProver.honest_complete
 #print axioms Ipp.Extracted.ShippingProver.shipping_prover_refines_honest_complete
 #print axioms Ipp.Cost.prover_miller_terms

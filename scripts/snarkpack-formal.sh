@@ -169,6 +169,77 @@ FSTAR
   python3 scripts/prepare_snarkpack_fstar_support.py "$FSTAR_HAX_PROOF_LIBS"
 }
 
+VERIFICATION_DRIVER="crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py"
+FSTAR_EVIDENCE="$FORMAL_DIR/fstar-checker-evidence.json"
+FSTAR_PLAN_FILE="$(mktemp)"
+FSTAR_CANDIDATE_FILE="$(mktemp)"
+cleanup() {
+  rm -f "$FSTAR_PLAN_FILE" "$FSTAR_CANDIDATE_FILE"
+}
+trap cleanup EXIT
+
+FSTAR_REQUEST_ARGS=()
+FSTAR_BASE_ARGS=()
+if [ -n "${SNARKPACK_FSTAR_BASE_EVIDENCE:-}" ]; then
+  [ -f "$SNARKPACK_FSTAR_BASE_EVIDENCE" ] ||
+    fail "F* base evidence is missing: $SNARKPACK_FSTAR_BASE_EVIDENCE"
+  FSTAR_BASE_ARGS+=(--base "$SNARKPACK_FSTAR_BASE_EVIDENCE")
+fi
+if [ -n "${SNARKPACK_FSTAR_PROOFS_JSON:-}" ]; then
+  FSTAR_REQUEST_ARGS+=(--requested-json "$SNARKPACK_FSTAR_PROOFS_JSON")
+else
+  FSTAR_REQUEST_ARGS+=(--force-all)
+fi
+if [ "${SNARKPACK_FSTAR_FORCE_ALL:-0}" = "1" ]; then
+  FSTAR_REQUEST_ARGS+=(--force-all)
+fi
+python3 "$VERIFICATION_DRIVER" \
+  fstar-plan \
+  "${FSTAR_BASE_ARGS[@]}" \
+  "${FSTAR_REQUEST_ARGS[@]}" \
+  >"$FSTAR_PLAN_FILE"
+mapfile -t FSTAR_PROOFS <"$FSTAR_PLAN_FILE"
+FSTAR_CHECKED_ARGS=()
+
+validate_fstar_boundary_cache() {
+  local expected=(
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Aggregate_proof_wrapper.fst
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Bundle.fst
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Padding.fst
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Preflight.fst
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Srs.fst
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Statement.fst
+    crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/fstar/extraction/Ark_ip_proofs.Challenge.fst
+    crates/core/component/shielded-pool/proofs/fstar/extraction/Anyhow.fst
+    crates/core/component/shielded-pool/proofs/fstar/extraction/Shieldd_sdk_shielded_pool.Note_reshape.Generated.fst
+    crates/core/component/shielded-pool/proofs/fstar/extraction/Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.fst
+  )
+  local observed=()
+  mapfile -t observed < <(
+    find \
+      crates/crypto/proof-aggregation/proofs/fstar/extraction \
+      crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/fstar/extraction \
+      crates/core/component/shielded-pool/proofs/fstar/extraction \
+      -type f \( -name '*.fst' -o -name '*.fsti' \) \
+      -print 2>/dev/null | sort
+  )
+  mapfile -t expected < <(printf '%s\n' "${expected[@]}" | sort)
+  ((${#observed[@]} == ${#expected[@]})) ||
+    fail "F* boundary cache has an unexpected file count"
+  local index
+  for index in "${!expected[@]}"; do
+    [ "${observed[$index]}" = "${expected[$index]}" ] ||
+      fail "F* boundary cache inventory mismatch"
+    [ -s "${expected[$index]}" ] ||
+      fail "F* boundary cache contains an empty file: ${expected[$index]}"
+  done
+}
+
+if ((${#FSTAR_PROOFS[@]} > 0)); then
+if [ "${SNARKPACK_FSTAR_BOUNDARY_CACHE_HIT:-0}" = "1" ]; then
+  echo "snarkpack formal: using exact checked F* boundary cache"
+  validate_fstar_boundary_cache
+else
 pushd crates/crypto/proof-aggregation >/dev/null
 echo "snarkpack formal: extracting proof-aggregation statement boundary"
 cargo hax into \
@@ -247,6 +318,8 @@ let impl_ShieldedIcs20WithdrawalFamilyId__get
   | ShieldedIcs20WithdrawalFamilyId value -> value
 FSTAR
 popd >/dev/null
+validate_fstar_boundary_cache
+fi
 
 prepare_fstar_inputs "$(find_hax_proof_libs)"
 
@@ -262,18 +335,24 @@ FSTAR_FLAGS=(
   --include "$FORMAL_DIR/fstar"
 )
 
-for proof in "$FORMAL_DIR"/fstar/*.fst; do
+for proof_name in "${FSTAR_PROOFS[@]}"; do
+  proof="$FORMAL_DIR/fstar/$proof_name"
+  [ -f "$proof" ] || fail "planned F* proof is missing: $proof"
   "$FSTAR" "${FSTAR_FLAGS[@]}" "$proof"
+  FSTAR_CHECKED_ARGS+=(--checked-module "$proof_name")
 done
+fi
 
-FSTAR_EVIDENCE="$FORMAL_DIR/fstar-checker-evidence.json"
 if [ "${SNARKPACK_FSTAR_EVIDENCE_UPDATE:-0}" = "1" ]; then
-  python3 \
-    crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py \
-    fstar-evidence --output "$FSTAR_EVIDENCE"
+  python3 "$VERIFICATION_DRIVER" \
+    fstar-evidence \
+    "${FSTAR_BASE_ARGS[@]}" \
+    "${FSTAR_REQUEST_ARGS[@]}" \
+    "${FSTAR_CHECKED_ARGS[@]}" \
+    --output "$FSTAR_CANDIDATE_FILE"
+  mv "$FSTAR_CANDIDATE_FILE" "$FSTAR_EVIDENCE"
 else
-  python3 \
-    crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py \
+  python3 "$VERIFICATION_DRIVER" \
     fstar-evidence --check "$FSTAR_EVIDENCE"
 fi
 

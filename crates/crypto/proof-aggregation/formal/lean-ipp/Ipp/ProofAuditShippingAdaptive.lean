@@ -1,0 +1,7 @@
+import Ipp.ShippingAdaptiveCall
+
+#print axioms Ipp.ShippingAdaptiveCall.acceptedShippingAlias_implies_shaBad
+#print axioms Ipp.ShippingAdaptiveCall.deployedShippingAcceptedAlias_le_sha256Advantage
+#print axioms Ipp.ShippingAdaptiveCall.productionFamilyDomain_registered
+#print axioms Ipp.ShippingAdaptiveCall.productionSelection_refines_shipping_input
+#print axioms Ipp.ShippingAdaptiveCall.productionSelection_globalQueryEncoding_eq_shipping

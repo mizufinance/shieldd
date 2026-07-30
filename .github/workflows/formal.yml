@@ -66,6 +66,18 @@ jobs:
       snarkpack_run: ${{ steps.snarkpack.outputs.run }}
       snarkpack_explanation: ${{ steps.snarkpack.outputs.explanation }}
       snarkpack_graphs: ${{ steps.snarkpack.outputs.graphs }}
+      snarkpack_static_run: ${{ steps.snarkpack_impact.outputs.static_run }}
+      snarkpack_extract_run: ${{ steps.snarkpack_impact.outputs.extract_run }}
+      snarkpack_extract_graphs: ${{ steps.snarkpack_impact.outputs.extract_graphs }}
+      snarkpack_lean_run: ${{ steps.snarkpack_impact.outputs.lean_run }}
+      snarkpack_lean_modules: ${{ steps.snarkpack_impact.outputs.lean_modules }}
+      snarkpack_fstar_run: ${{ steps.snarkpack_impact.outputs.fstar_run }}
+      snarkpack_fstar_proofs: ${{ steps.snarkpack_impact.outputs.fstar_proofs }}
+      snarkpack_fstar_force_all: ${{ steps.snarkpack_impact.outputs.fstar_force_all }}
+      snarkpack_parity_run: ${{ steps.snarkpack_impact.outputs.parity_run }}
+      snarkpack_rust_reference_run: ${{ steps.snarkpack_impact.outputs.rust_reference_run }}
+      snarkpack_fuzz_run: ${{ steps.snarkpack_impact.outputs.fuzz_run }}
+      snarkpack_dos_run: ${{ steps.snarkpack_impact.outputs.dos_run }}
       soundness_status: ${{ steps.soundness.outputs.status }}
       soundness_tier: ${{ steps.soundness.outputs.tier }}
       soundness_run: ${{ steps.soundness.outputs.run }}
@@ -122,13 +134,38 @@ jobs:
             args+=(--base "$BASE_SHA")
           fi
           python3 scripts/ci/gate-applicability.py "${args[@]}"
+      - name: Plan the exact SnarkPack FV dependency closure
+        id: snarkpack_impact
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || '' }}
+          SNARKPACK_STATUS: ${{ steps.snarkpack.outputs.status }}
+          SNARKPACK_GRAPHS: ${{ steps.snarkpack.outputs.graphs }}
+          SNARKPACK_UNKNOWN_FILES: ${{ steps.snarkpack.outputs.unknown_files }}
+        run: |
+          set -euo pipefail
+          args=(
+            --event "$GITHUB_EVENT_NAME"
+            --status "$SNARKPACK_STATUS"
+            --head "${{ steps.candidate.outputs.sha }}"
+            --graphs-json "$SNARKPACK_GRAPHS"
+            --unknown-files-json "$SNARKPACK_UNKNOWN_FILES"
+            --github-output "$GITHUB_OUTPUT"
+            --pretty
+          )
+          if [[ -n "$BASE_SHA" ]]; then
+            args+=(--base "$BASE_SHA")
+          fi
+          python3 scripts/ci/snarkpack_fv_impact.py "${args[@]}"
 
   # ---------------------------------------------------------------- snarkpack
 
   snarkpack-static:
     name: 'snarkpack: static'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.snarkpack_run == 'true'
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.snarkpack_static_run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -142,30 +179,28 @@ jobs:
       - name: Run static FV invariants
         env:
           SNARKPACK_FV_MODE: static
-        run: nix develop --command just snarkpack-fv
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack static FV"
+          -- nix develop --command just snarkpack-fv
 
-  # Extraction lanes only. The F* gate deliberately does NOT run here: this
-  # image pins hax at c8e27c5945 for the aeneas-lean backend's `--lakefile`
-  # support, while formal/snarkpack/toolchain.toml pins hax v0.3.7 (an older
-  # tag) for the F* proofs. Those two versions genuinely disagree, and before
-  # the lanes were folded into one container they lived in separate
-  # environments. `snarkpack-fstar` below restores that separation.
-  snarkpack-toolchain:
-    name: 'snarkpack: toolchain (${{ matrix.lane }})'
+  # Aeneas extraction is graph-addressed: one graph and one extraction process
+  # per Blacksmith runner. Independent graph failures therefore cannot discard
+  # successful recovery artifacts.
+  snarkpack-extract:
+    name: 'snarkpack: extract (${{ matrix.graph }})'
     needs: applicability
     if: >-
       needs.applicability.result == 'success' &&
-      needs.applicability.outputs.snarkpack_run == 'true' &&
-      needs.applicability.outputs.snarkpack_tier != 'static'
+      needs.applicability.outputs.snarkpack_extract_run == 'true'
     runs-on: blacksmith-16vcpu-ubuntu-2404
-    timeout-minutes: 360
+    timeout-minutes: 50
     strategy:
       fail-fast: false
+      max-parallel: 16
       matrix:
-        lane: ${{ fromJSON(needs.applicability.outputs.snarkpack_tier == 'full' && '["extract","lean"]' || '["extract"]') }}
+        graph: ${{ fromJSON(needs.applicability.outputs.snarkpack_extract_run == 'true' && needs.applicability.outputs.snarkpack_extract_graphs || '["__not_selected__"]') }}
     container:
-      # Built by snarkpack-fv-toolchain-image.yml, which prints this digest in
-      # its run summary. Repin here whenever that workflow publishes a new one.
       image: ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:63fb57a0c07de6c4a3ded67410b26a2804d090a3ae51929708c8e4650a686282
       credentials:
         username: ${{ github.actor }}
@@ -178,153 +213,349 @@ jobs:
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
-      # actions/checkout adds safe.directory under a *temporary* HOME and then
-      # restores it, so the exemption is gone by the time a step shells out to
-      # git. This container runs as root while the workspace is owned by the
-      # runner uid, so extractions.py's `git rev-parse` fails with exit 128 on
-      # dubious ownership.
       - name: Trust the workspace inside the container
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - name: Restore Lean build cache
-        if: matrix.lane == 'lean'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      - name: Fingerprint this graph's exact checked state
+        id: extraction_fingerprint
+        shell: bash
+        env:
+          SELECTED_GRAPH: ${{ matrix.graph }}
+        run: |
+          set -euo pipefail
+          fingerprint="$(
+            python3 \
+              crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py \
+              ci-fingerprint --graph "$SELECTED_GRAPH"
+          )"
+          [[ "$fingerprint" =~ ^[0-9a-f]{64}$ ]] || {
+            echo "invalid extraction CI fingerprint: $fingerprint" >&2
+            exit 1
+          }
+          echo "sha256=$fingerprint" >> "$GITHUB_OUTPUT"
+      - name: Restore exact successful graph attestation
+        id: extraction_pass_cache
+        if: >-
+          github.event_name == 'pull_request' ||
+          github.event_name == 'merge_group'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          path: crates/crypto/proof-aggregation/formal/lean-ipp/.lake
-          key: lean-ipp-v2-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/**/*.lean') }}
-          restore-keys: |
-            lean-ipp-v2-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-
+          path: ${{ runner.temp }}/snarkpack-extraction-pass-${{ matrix.graph }}
+          key: snarkpack-extraction-pass-v1-${{ runner.os }}-${{ matrix.graph }}-${{ steps.extraction_fingerprint.outputs.sha256 }}
+      - name: Validate restored graph attestation
+        if: steps.extraction_pass_cache.outputs.cache-hit == 'true'
+        shell: bash
+        env:
+          EXPECTED_FINGERPRINT: ${{ steps.extraction_fingerprint.outputs.sha256 }}
+          SELECTED_GRAPH: ${{ matrix.graph }}
+        run: |
+          set -euo pipefail
+          marker="$RUNNER_TEMP/snarkpack-extraction-pass-$SELECTED_GRAPH/fingerprint"
+          test -f "$marker"
+          test "$(cat "$marker")" = "$EXPECTED_FINGERPRINT"
       - name: Restore extraction build cache
         id: extraction_cache
-        if: matrix.lane == 'extract'
+        if: steps.extraction_pass_cache.outputs.cache-hit != 'true'
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: target
-          key: snarkpack-extract-v2-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml') }}-${{ hashFiles('crates/crypto/proof-aggregation/src/**/*.rs', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/*.py', 'crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json') }}
+          key: snarkpack-extract-v4-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml') }}-${{ hashFiles('crates/crypto/proof-aggregation/src/**/*.rs', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py') }}
           restore-keys: |
-            snarkpack-extract-v2-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml') }}-
-      - name: Run toolchain lane
-        id: toolchain_lane
+            snarkpack-extract-v4-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml') }}-${{ hashFiles('crates/crypto/proof-aggregation/src/**/*.rs', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py') }}-progress-
+            snarkpack-extract-v4-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml') }}-
+      - name: Compare the selected extraction graph
+        id: extraction_compare
+        if: steps.extraction_pass_cache.outputs.cache-hit != 'true'
+        timeout-minutes: 22
+        env:
+          SELECTED_GRAPH: ${{ matrix.graph }}
+          SNARKPACK_FV_MODE: extract-changed
+          SNARKPACK_FV_GRAPHS_JSON: '["${{ matrix.graph }}"]'
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack extraction ${{ matrix.graph }}"
+          -- just snarkpack-fv
+      - name: Materialize this graph's recovery artifact
+        id: extraction_recovery
+        if: >-
+          failure() &&
+          steps.extraction_compare.outcome == 'failure'
+        timeout-minutes: 22
         shell: bash
         env:
-          APPLICABILITY_TIER: ${{ needs.applicability.outputs.snarkpack_tier }}
-          LANE: ${{ matrix.lane }}
-          SNARKPACK_FV_GRAPHS_JSON: ${{ needs.applicability.outputs.snarkpack_graphs }}
+          SELECTED_GRAPH: ${{ matrix.graph }}
         run: |
           set -euo pipefail
-          case "$LANE" in
-            extract)
-              export SNARKPACK_FV_MODE="$(
-                [[ "$APPLICABILITY_TIER" == extract-changed ]] &&
-                  echo extract-changed || echo extract-all
-              )"
-              just snarkpack-fv
-              ;;
-            lean)
-              export LEAN_NUM_THREADS=1
-              export SNARKPACK_FV_MODE=lean
-              just snarkpack-fv
-              ;;
-            *)
-              echo "unsupported toolchain lane: $LANE" >&2
-              exit 1
-              ;;
-          esac
-      # A stale vendored extraction must keep this job red. Regenerate only
-      # graphs whose declared source/output hashes prove them stale, one graph
-      # per process, then upload the reviewed candidate tree for a follow-up
-      # commit. This never turns a failed comparison into a passing gate.
-      - name: Materialize stale extraction candidates
-        id: extraction_recovery
-        if: failure() && matrix.lane == 'extract'
+          artifact="$RUNNER_TEMP/snarkpack-recovery-$SELECTED_GRAPH"
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack extraction recovery $SELECTED_GRAPH" \
+            -- python3 \
+              crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py \
+              regenerate --graph "$SELECTED_GRAPH" --artifact "$artifact"
+          echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
+      - name: Upload this graph's recovery artifact
+        if: >-
+          failure() &&
+          steps.extraction_compare.outcome == 'failure' &&
+          steps.extraction_recovery.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: snarkpack-extraction-graph-${{ matrix.graph }}-${{ needs.applicability.outputs.candidate_sha }}-${{ github.run_attempt }}
+          path: ${{ steps.extraction_recovery.outputs.artifact }}
+          if-no-files-found: error
+      - name: Save the exact successful extraction compiler cache
+        if: >-
+          steps.extraction_compare.outcome == 'success' &&
+          steps.extraction_cache.outputs.cache-hit != 'true' &&
+          matrix.graph == fromJSON(needs.applicability.outputs.snarkpack_extract_graphs)[0]
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: target
+          key: snarkpack-extract-v4-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml') }}-${{ hashFiles('crates/crypto/proof-aggregation/src/**/*.rs', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py') }}
+      - name: Materialize successful graph attestation
+        if: steps.extraction_compare.outcome == 'success'
+        shell: bash
+        env:
+          FINGERPRINT: ${{ steps.extraction_fingerprint.outputs.sha256 }}
+          SELECTED_GRAPH: ${{ matrix.graph }}
+        run: |
+          set -euo pipefail
+          marker_dir="$RUNNER_TEMP/snarkpack-extraction-pass-$SELECTED_GRAPH"
+          mkdir -p "$marker_dir"
+          printf '%s\n' "$FINGERPRINT" > "$marker_dir/fingerprint"
+      - name: Save exact successful graph attestation
+        if: steps.extraction_compare.outcome == 'success'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-extraction-pass-${{ matrix.graph }}
+          key: snarkpack-extraction-pass-v1-${{ runner.os }}-${{ matrix.graph }}-${{ steps.extraction_fingerprint.outputs.sha256 }}
+      - name: Save one source-specific extraction progress cache
+        if: >-
+          failure() &&
+          steps.extraction_compare.outcome == 'failure' &&
+          matrix.graph == fromJSON(needs.applicability.outputs.snarkpack_extract_graphs)[0]
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: target
+          key: snarkpack-extract-v4-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml') }}-${{ hashFiles('crates/crypto/proof-aggregation/src/**/*.rs', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py') }}-progress-${{ github.run_id }}-${{ github.run_attempt }}
+
+  snarkpack-extraction-recovery:
+    name: 'snarkpack: merge extraction recovery'
+    needs: [applicability, snarkpack-extract]
+    if: >-
+      always() &&
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.snarkpack_extract_run == 'true' &&
+      needs.snarkpack-extract.result == 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
+          lfs: true
+      - name: Download every successful graph recovery
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: snarkpack-extraction-graph-*-${{ needs.applicability.outputs.candidate_sha }}-${{ github.run_attempt }}
+          path: recovery-artifacts
+      - name: Atomically merge compatible graph recoveries
         shell: bash
         run: |
           set -euo pipefail
-          extractor=crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py
-          declared_count="$(
-            python3 - <<'PY'
-          import json
-          from pathlib import Path
-          manifest = json.loads(Path(
-              "crates/crypto/proof-aggregation/formal/snarkpack/"
-              "lean-extraction-manifest.json"
-          ).read_text(encoding="utf-8"))
-          print(len(manifest["graphs"]))
-          PY
-          )"
-          regenerated=()
-          declare -A seen=()
-          while true; do
-            stale_output="$(python3 "$extractor" stale)"
-            stale_graphs=()
-            if [[ -n "$stale_output" ]]; then
-              mapfile -t stale_graphs <<< "$stale_output"
-            fi
-            ((${#stale_graphs[@]} > 0)) || break
-            graph="${stale_graphs[0]}"
-            if [[ -n "${seen[$graph]:-}" ]]; then
-              echo "graph remained stale after regeneration: $graph" >&2
-              exit 1
-            fi
-            seen["$graph"]=1
-            regenerated+=("$graph")
-            ((${#regenerated[@]} <= declared_count)) || {
-              echo "stale-graph recovery exceeded declared inventory" >&2
-              exit 1
-            }
-            python3 "$extractor" regenerate \
-              --graph "$graph" \
-              --update-manifest
-          done
-          ((${#regenerated[@]} > 0)) || {
-            echo "extraction failed without source/output hash drift; no recovery artifact" >&2
+          mapfile -t artifacts < <(
+            find recovery-artifacts -type f -name recovery.json \
+              -printf '%h\n' | sort -u
+          )
+          ((${#artifacts[@]} > 0)) || {
+            echo "no successful extraction recovery artifacts were produced" >&2
             exit 1
           }
-          python3 "$extractor" check
-          compare_args=()
-          for graph in "${regenerated[@]}"; do
-            compare_args+=(--graph "$graph")
+          args=()
+          for artifact in "${artifacts[@]}"; do
+            args+=(--artifact "$artifact")
           done
-          python3 "$extractor" compare "${compare_args[@]}"
-      - name: Upload regenerated extraction candidates
-        if: failure() && matrix.lane == 'extract' && steps.extraction_recovery.outcome == 'success'
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack extraction recovery merge" \
+            -- python3 \
+              crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py \
+              import-recovery "${args[@]}"
+      - name: Upload the atomically merged candidate tree
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: snarkpack-regenerated-extractions
+          name: snarkpack-extraction-merged-${{ needs.applicability.outputs.candidate_sha }}-${{ github.run_attempt }}
           path: |
             crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/*Generated.lean
             crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json
           if-no-files-found: error
-      # The comparison remains red when recovery was needed, but the successful
-      # serialized compiler work is still safe to reuse on the follow-up commit.
-      - name: Save extraction build cache
+
+  snarkpack-lean:
+    name: 'snarkpack: lean affected closure'
+    needs: applicability
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.snarkpack_lean_run == 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 180
+    container:
+      image: ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:63fb57a0c07de6c4a3ded67410b26a2804d090a3ae51929708c8e4650a686282
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
+          lfs: true
+      - name: Trust the workspace inside the container
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Fingerprint each selected Lean module and its dependencies
+        id: lean_fingerprint
+        env:
+          LEAN_MODULES_JSON: ${{ needs.applicability.outputs.snarkpack_lean_modules }}
+        run: >-
+          python3 scripts/ci/snarkpack_lean_attestation.py fingerprint
+          --modules-json "$LEAN_MODULES_JSON"
+          --github-output "$GITHUB_OUTPUT"
+      - name: Restore an exact or prior serialized Lean cache
+        id: lean_cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: crates/crypto/proof-aggregation/formal/lean-ipp/.lake
+          key: lean-ipp-v6-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-${{ steps.lean_fingerprint.outputs.state_sha256 }}
+          restore-keys: |
+            lean-ipp-v6-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-
+      - name: Validate restored markers and plan only pending Lean modules
+        id: lean_plan
+        shell: bash
+        env:
+          EXACT_CACHE: ${{ steps.lean_cache.outputs.cache-hit == 'true' && '1' || '0' }}
+          FORCE_ALL: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch') && '1' || '0' }}
+          LEAN_MODULES_JSON: ${{ needs.applicability.outputs.snarkpack_lean_modules }}
+        run: |
+          set -euo pipefail
+          args=(
+            plan
+            --modules-json "$LEAN_MODULES_JSON"
+            --github-output "$GITHUB_OUTPUT"
+          )
+          if [[ "$EXACT_CACHE" == 1 ]]; then
+            args+=(--exact-cache)
+          fi
+          if [[ "$FORCE_ALL" == 1 ]]; then
+            args+=(--force-all)
+          fi
+          python3 scripts/ci/snarkpack_lean_attestation.py "${args[@]}"
+      - name: Build only pending modules in one serialized Lean invocation
+        id: lean_build
+        if: steps.lean_plan.outputs.pending == 'true'
+        env:
+          LEAN_NUM_THREADS: "1"
+          SNARKPACK_FV_MODE: lean-changed
+          SNARKPACK_LEAN_MODULES_JSON: ${{ steps.lean_plan.outputs.pending_modules }}
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack pending Lean modules"
+          -- just snarkpack-fv
+      - name: Atomically attest modules only after their build succeeds
         if: >-
-          always() &&
-          matrix.lane == 'extract' &&
-          steps.extraction_cache.outputs.cache-hit != 'true' &&
-          (steps.toolchain_lane.outcome == 'success' ||
-            steps.extraction_recovery.outcome == 'success')
+          steps.lean_plan.outputs.pending == 'true' &&
+          steps.lean_build.outcome == 'success'
+        env:
+          PENDING_LEAN_MODULES_JSON: ${{ steps.lean_plan.outputs.pending_modules }}
+        run: >-
+          python3 scripts/ci/snarkpack_lean_attestation.py record
+          --modules-json "$PENDING_LEAN_MODULES_JSON"
+      - name: Validate the complete current Lean attestation
+        id: lean_attestation
+        if: >-
+          steps.lean_plan.outputs.pending == 'false' ||
+          steps.lean_build.outcome == 'success'
+        env:
+          LEAN_MODULES_JSON: ${{ needs.applicability.outputs.snarkpack_lean_modules }}
+        run: >-
+          python3 scripts/ci/snarkpack_lean_attestation.py plan
+          --modules-json "$LEAN_MODULES_JSON"
+          --exact-cache
+      - name: Save the exact successful per-module Lean cache
+        if: >-
+          steps.lean_attestation.outcome == 'success' &&
+          steps.lean_cache.outputs.cache-hit != 'true'
+        continue-on-error: true
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
-          path: target
-          key: snarkpack-extract-v2-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml') }}-${{ hashFiles('crates/crypto/proof-aggregation/src/**/*.rs', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/*.py', 'crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json') }}
+          path: crates/crypto/proof-aggregation/formal/lean-ipp/.lake
+          key: lean-ipp-v6-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-${{ steps.lean_fingerprint.outputs.state_sha256 }}
+      - name: Save source-specific Lean progress after a proof failure
+        if: >-
+          failure() &&
+          steps.lean_build.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: crates/crypto/proof-aggregation/formal/lean-ipp/.lake
+          key: lean-ipp-v6-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-progress-${{ github.run_id }}-${{ github.run_attempt }}
 
-  # Runs outside the FV toolchain image on purpose — see snarkpack-toolchain.
+  # Runs outside the Aeneas FV image on purpose.
   # snarkpack-formal.sh re-checks every version it is given against
   # formal/snarkpack/toolchain.toml, so a drifted pin here fails loudly.
   snarkpack-fstar:
     name: 'snarkpack: fstar'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.snarkpack_run == 'true'
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.snarkpack_fstar_run == 'true'
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
+      - name: Fingerprint exact F* checker state
+        id: fstar_fingerprint
+        run: >-
+          python3
+          crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py
+          fstar-ci-cache-key --github-output "$GITHUB_OUTPUT"
+      - name: Restore CI-attested F* evidence
+        id: fstar_pass_cache
+        if: needs.applicability.outputs.snarkpack_fstar_force_all != 'true'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-fstar-pass
+          key: snarkpack-fstar-pass-v1-${{ runner.os }}-${{ steps.fstar_fingerprint.outputs.environment_sha256 }}-${{ steps.fstar_fingerprint.outputs.exact_sha256 }}
+          restore-keys: |
+            snarkpack-fstar-pass-v1-${{ runner.os }}-${{ steps.fstar_fingerprint.outputs.environment_sha256 }}-
+      - name: Reuse exact current F* attestation without rebuilding
+        if: steps.fstar_pass_cache.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/snarkpack-fstar-pass/fstar-checker-evidence.json"
+          python3 \
+            crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py \
+            validate-fstar-artifact --artifact "$artifact"
+          cp "$artifact" \
+            crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json
+      - name: Select prior CI evidence as the incremental F* base
+        if: steps.fstar_pass_cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/snarkpack-fstar-pass/fstar-checker-evidence.json"
+          if [[ -f "$artifact" ]]; then
+            echo "SNARKPACK_FSTAR_BASE_EVIDENCE=$artifact" >> "$GITHUB_ENV"
+          fi
       - uses: ./.github/actions/setup-nix-rust
+        if: steps.fstar_pass_cache.outputs.cache-hit != 'true'
         with:
           rust-cache-prefix: snarkpack-formal
       - name: Install pinned Z3
+        if: steps.fstar_pass_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -334,6 +565,7 @@ jobs:
           unzip -q /tmp/z3.zip -d "$HOME/.local/opt"
           echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
       - name: Install pinned F*
+        if: steps.fstar_pass_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -343,6 +575,7 @@ jobs:
           tar -xzf /tmp/fstar.tar.gz -C "$HOME/.local/opt"
           echo "$HOME/.local/opt/fstar/bin" >> "$GITHUB_PATH"
       - name: Install pinned hax
+        if: steps.fstar_pass_cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -351,14 +584,65 @@ jobs:
           git clone --depth 1 --branch hax-lib-v0.3.7 https://github.com/cryspen/hax "$hax_dir"
           nix profile install "$hax_dir#hax" "$hax_dir#hax-engine"
           echo "HAX_PROOF_LIBS_HOME=$hax_dir/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
+      - name: Restore exact F* Rust-boundary extraction cache
+        id: fstar_boundary_cache
+        if: steps.fstar_pass_cache.outputs.cache-hit != 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            crates/crypto/proof-aggregation/proofs/fstar/extraction
+            crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/fstar/extraction
+            crates/core/component/shielded-pool/proofs/fstar/extraction
+          key: snarkpack-fstar-boundary-v1-${{ runner.os }}-${{ hashFiles('.cargo/config.toml', 'Cargo.lock', 'Cargo.toml', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/Cargo.toml', 'crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml', 'crates/core/component/shielded-pool/Cargo.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml', 'scripts/snarkpack-formal.sh', 'crates/crypto/proof-aggregation/src/**/*.rs', 'crates/core/component/shielded-pool/src/**/*.rs') }}
       - name: Run SnarkPack F* gate
+        id: fstar_check
+        if: steps.fstar_pass_cache.outputs.cache-hit != 'true'
         env:
           SNARKPACK_FSTAR_EVIDENCE_UPDATE: "1"
-        run: nix develop --command just snarkpack-formal
+          SNARKPACK_FSTAR_PROOFS_JSON: ${{ needs.applicability.outputs.snarkpack_fstar_proofs }}
+          SNARKPACK_FSTAR_BOUNDARY_CACHE_HIT: ${{ steps.fstar_boundary_cache.outputs.cache-hit == 'true' && '1' || '0' }}
+          # Reusable scheduled runs retain the caller's event name. Those and
+          # manual full runs must re-check every module even when committed
+          # per-module evidence is current.
+          SNARKPACK_FSTAR_FORCE_ALL: ${{ needs.applicability.outputs.snarkpack_fstar_force_all == 'true' && '1' || '0' }}
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack F*"
+          -- nix develop --command scripts/snarkpack-formal.sh
+      - name: Validate newly checked F* evidence
+        id: fstar_artifact_validation
+        if: steps.fstar_check.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 \
+            crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py \
+            validate-fstar-artifact \
+            --artifact \
+            crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json
+      - name: Materialize exact successful F* attestation
+        if: steps.fstar_artifact_validation.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cache_dir="$RUNNER_TEMP/snarkpack-fstar-pass"
+          mkdir -p "$cache_dir"
+          cp \
+            crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json \
+            "$cache_dir/fstar-checker-evidence.json"
+      - name: Save exact successful F* attestation
+        if: steps.fstar_artifact_validation.outcome == 'success'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-fstar-pass
+          key: snarkpack-fstar-pass-v1-${{ runner.os }}-${{ steps.fstar_fingerprint.outputs.environment_sha256 }}-${{ steps.fstar_fingerprint.outputs.exact_sha256 }}
       - name: Upload checked F* evidence
+        if: >-
+          steps.fstar_pass_cache.outputs.cache-hit == 'true' ||
+          steps.fstar_artifact_validation.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: snarkpack-fstar-checker-evidence
+          name: snarkpack-fstar-checker-evidence-${{ needs.applicability.outputs.candidate_sha }}-${{ github.run_attempt }}
           path: crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json
           if-no-files-found: error
 
@@ -367,8 +651,7 @@ jobs:
     needs: applicability
     if: >-
       needs.applicability.result == 'success' &&
-      needs.applicability.outputs.snarkpack_run == 'true' &&
-      contains(fromJSON('["extract-changed","extract-all","full"]'), needs.applicability.outputs.snarkpack_tier)
+      needs.applicability.outputs.snarkpack_parity_run == 'true'
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 25
     steps:
@@ -376,22 +659,77 @@ jobs:
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
+      - name: Fingerprint exact parity lane inputs
+        id: parity_fingerprint
+        shell: bash
+        env:
+          GRAPH_SELECTION: ${{ needs.applicability.outputs.snarkpack_extract_graphs }}
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/snarkpack_lane_fingerprint.py \
+            --lane parity \
+            --context "$GRAPH_SELECTION" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Restore exact successful parity attestation
+        id: parity_pass_cache
+        if: needs.applicability.outputs.snarkpack_fstar_force_all != 'true'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-parity-pass
+          key: snarkpack-parity-pass-v1-${{ runner.os }}-${{ steps.parity_fingerprint.outputs.sha256 }}
+      - name: Validate restored parity attestation
+        if: steps.parity_pass_cache.outputs.cache-hit == 'true'
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ steps.parity_fingerprint.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          marker="$RUNNER_TEMP/snarkpack-parity-pass/sha256"
+          [[ -f "$marker" ]] || {
+            echo "restored parity attestation has no marker" >&2
+            exit 1
+          }
+          [[ "$(cat "$marker")" == "$EXPECTED_SHA256" ]] || {
+            echo "restored parity attestation does not match current inputs" >&2
+            exit 1
+          }
       - uses: ./.github/actions/setup-nix-rust
+        if: steps.parity_pass_cache.outputs.cache-hit != 'true'
         with:
           rust-cache-prefix: snarkpack-parity
       - name: Run Rust/reference parity once
+        id: parity_check
+        if: steps.parity_pass_cache.outputs.cache-hit != 'true'
         env:
-          SNARKPACK_FV_MODE: ${{ needs.applicability.outputs.snarkpack_tier == 'extract-changed' && 'parity-changed' || 'parity-all' }}
-          SNARKPACK_FV_GRAPHS_JSON: ${{ needs.applicability.outputs.snarkpack_graphs }}
-        run: nix develop --command just snarkpack-fv
+          SNARKPACK_FV_MODE: parity-changed
+          SNARKPACK_FV_GRAPHS_JSON: ${{ needs.applicability.outputs.snarkpack_extract_graphs }}
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack parity"
+          -- nix develop --command just snarkpack-fv
+      - name: Materialize successful parity attestation
+        if: steps.parity_check.outcome == 'success'
+        shell: bash
+        env:
+          CURRENT_SHA256: ${{ steps.parity_fingerprint.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          cache_dir="$RUNNER_TEMP/snarkpack-parity-pass"
+          mkdir -p "$cache_dir"
+          printf '%s\n' "$CURRENT_SHA256" > "$cache_dir/sha256"
+      - name: Save exact successful parity attestation
+        if: steps.parity_check.outcome == 'success'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-parity-pass
+          key: snarkpack-parity-pass-v1-${{ runner.os }}-${{ steps.parity_fingerprint.outputs.sha256 }}
 
   snarkpack-rust-reference:
-    name: 'snarkpack: rust, reference, and slow interop'
+    name: 'snarkpack: rust and reference'
     needs: applicability
     if: >-
       needs.applicability.result == 'success' &&
-      needs.applicability.outputs.snarkpack_run == 'true' &&
-      needs.applicability.outputs.snarkpack_tier == 'full'
+      needs.applicability.outputs.snarkpack_rust_reference_run == 'true'
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 90
     steps:
@@ -399,60 +737,324 @@ jobs:
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
+      - name: Fingerprint exact Rust/reference lane inputs
+        id: rust_reference_fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/snarkpack_lane_fingerprint.py \
+            --lane rust-reference \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Restore exact successful Rust/reference attestation
+        id: rust_reference_pass_cache
+        if: needs.applicability.outputs.snarkpack_fstar_force_all != 'true'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-rust-reference-pass
+          key: snarkpack-rust-reference-pass-v1-${{ runner.os }}-${{ steps.rust_reference_fingerprint.outputs.sha256 }}
+      - name: Validate restored Rust/reference attestation
+        if: steps.rust_reference_pass_cache.outputs.cache-hit == 'true'
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ steps.rust_reference_fingerprint.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          marker="$RUNNER_TEMP/snarkpack-rust-reference-pass/sha256"
+          [[ -f "$marker" ]] || {
+            echo "restored Rust/reference attestation has no marker" >&2
+            exit 1
+          }
+          [[ "$(cat "$marker")" == "$EXPECTED_SHA256" ]] || {
+            echo "restored Rust/reference attestation does not match current inputs" >&2
+            exit 1
+          }
       - uses: ./.github/actions/setup-nix-rust
+        if: steps.rust_reference_pass_cache.outputs.cache-hit != 'true'
         with:
           rust-cache-prefix: snarkpack-rust-reference
       - name: Run production and independent-reference suites
+        id: rust_reference_check
+        if: steps.rust_reference_pass_cache.outputs.cache-hit != 'true'
         run: |
           set -euo pipefail
           app_shipping_log="$(mktemp)"
           trap 'rm -f "$app_shipping_log"' EXIT
-          nix develop --command cargo test -p shieldd-sdk-proof-aggregation --lib
-          nix develop --command cargo test -p shieldd-sdk-proof-aggregation-reference --lib
-          nix develop --command cargo test -p shieldd-sdk-app --lib aggregate_ -- --test-threads=1
-          nix develop --command cargo test -p shieldd-sdk-app --lib app::tests::async_verifier_outcome_retains_its_exact_shipping_input -- --exact --test-threads=1 2>&1 | tee "$app_shipping_log"
-          nix develop --command python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$app_shipping_log" --expected 1 --label "async_verifier_outcome_retains_its_exact_shipping_input" --test-name "app::tests::async_verifier_outcome_retains_its_exact_shipping_input"
-          nix develop --command just snarkpack-challenge-boundaries
-      - name: Run ignored prover and two-way interop band
-        run: nix develop --command just snarkpack-slow
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack production Rust suite" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-proof-aggregation --lib
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack independent reference suite" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-proof-aggregation-reference --lib
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack application aggregate suite" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-app --lib aggregate_ -- --test-threads=1
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack shipping-input retention" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-app --lib \
+              app::tests::async_verifier_outcome_retains_its_exact_shipping_input \
+              -- --exact --test-threads=1 2>&1 | tee "$app_shipping_log"
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack shipping-input test evidence" \
+            -- nix develop --command python3 \
+              crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py \
+              test-log "$app_shipping_log" \
+              --expected 1 \
+              --label "async_verifier_outcome_retains_its_exact_shipping_input" \
+              --test-name "app::tests::async_verifier_outcome_retains_its_exact_shipping_input"
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack challenge boundaries" \
+            -- nix develop --command just snarkpack-challenge-boundaries
+      - name: Materialize successful Rust/reference attestation
+        if: steps.rust_reference_check.outcome == 'success'
+        shell: bash
+        env:
+          CURRENT_SHA256: ${{ steps.rust_reference_fingerprint.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          cache_dir="$RUNNER_TEMP/snarkpack-rust-reference-pass"
+          mkdir -p "$cache_dir"
+          printf '%s\n' "$CURRENT_SHA256" > "$cache_dir/sha256"
+      - name: Save exact successful Rust/reference attestation
+        if: steps.rust_reference_check.outcome == 'success'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-rust-reference-pass
+          key: snarkpack-rust-reference-pass-v1-${{ runner.os }}-${{ steps.rust_reference_fingerprint.outputs.sha256 }}
+
+  snarkpack-slow:
+    name: 'snarkpack: slow (${{ matrix.test }})'
+    needs: applicability
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.snarkpack_rust_reference_run == 'true'
+    runs-on: blacksmith-16vcpu-ubuntu-2404
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        test: [legacy, oracle, interop]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
+          lfs: true
+      - name: Fingerprint exact slow-test lane inputs
+        id: slow_fingerprint
+        shell: bash
+        env:
+          TEST_NAME: ${{ matrix.test }}
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/snarkpack_lane_fingerprint.py \
+            --lane slow \
+            --context "$TEST_NAME" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Restore exact successful slow-test attestation
+        id: slow_pass_cache
+        if: needs.applicability.outputs.snarkpack_fstar_force_all != 'true'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-slow-pass
+          key: snarkpack-slow-pass-v1-${{ runner.os }}-${{ matrix.test }}-${{ steps.slow_fingerprint.outputs.sha256 }}
+      - name: Validate restored slow-test attestation
+        if: steps.slow_pass_cache.outputs.cache-hit == 'true'
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ steps.slow_fingerprint.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          marker="$RUNNER_TEMP/snarkpack-slow-pass/sha256"
+          [[ -f "$marker" ]] || {
+            echo "restored slow-test attestation has no marker" >&2
+            exit 1
+          }
+          [[ "$(cat "$marker")" == "$EXPECTED_SHA256" ]] || {
+            echo "restored slow-test attestation does not match current inputs" >&2
+            exit 1
+          }
+      - uses: ./.github/actions/setup-nix-rust
+        if: steps.slow_pass_cache.outputs.cache-hit != 'true'
+        with:
+          rust-cache-prefix: snarkpack-slow-${{ matrix.test }}
+      - name: Run one positively counted ignored test
+        id: slow_check
+        if: steps.slow_pass_cache.outputs.cache-hit != 'true'
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack slow ${{ matrix.test }}"
+          -- nix develop --command just snarkpack-slow-one ${{ matrix.test }}
+      - name: Materialize successful slow-test attestation
+        if: steps.slow_check.outcome == 'success'
+        shell: bash
+        env:
+          CURRENT_SHA256: ${{ steps.slow_fingerprint.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          cache_dir="$RUNNER_TEMP/snarkpack-slow-pass"
+          mkdir -p "$cache_dir"
+          printf '%s\n' "$CURRENT_SHA256" > "$cache_dir/sha256"
+      - name: Save exact successful slow-test attestation
+        if: steps.slow_check.outcome == 'success'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-slow-pass
+          key: snarkpack-slow-pass-v1-${{ runner.os }}-${{ matrix.test }}-${{ steps.slow_fingerprint.outputs.sha256 }}
 
   snarkpack-fuzz:
     name: 'snarkpack: fuzz'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.snarkpack_run == 'true'
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.snarkpack_fuzz_run == 'true'
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
+      - name: Fingerprint exact fuzz lane inputs
+        id: fuzz_fingerprint
+        shell: bash
+        env:
+          FUZZ_RUNS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/snarkpack_lane_fingerprint.py \
+            --lane fuzz \
+            --context "$FUZZ_RUNS" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Restore exact successful fuzz attestation
+        id: fuzz_pass_cache
+        if: needs.applicability.outputs.snarkpack_fstar_force_all != 'true'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-fuzz-pass
+          key: snarkpack-fuzz-pass-v1-${{ runner.os }}-${{ steps.fuzz_fingerprint.outputs.sha256 }}
+      - name: Validate restored fuzz attestation
+        if: steps.fuzz_pass_cache.outputs.cache-hit == 'true'
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ steps.fuzz_fingerprint.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          marker="$RUNNER_TEMP/snarkpack-fuzz-pass/sha256"
+          [[ -f "$marker" ]] || {
+            echo "restored fuzz attestation has no marker" >&2
+            exit 1
+          }
+          [[ "$(cat "$marker")" == "$EXPECTED_SHA256" ]] || {
+            echo "restored fuzz attestation does not match current inputs" >&2
+            exit 1
+          }
       - uses: ./.github/actions/setup-nix-rust
+        if: steps.fuzz_pass_cache.outputs.cache-hit != 'true'
         with:
           rust-cache-prefix: snarkpack-fuzz
       - name: Install exact cargo-fuzz
+        if: steps.fuzz_pass_cache.outputs.cache-hit != 'true'
         run: |
           rustup toolchain install "$SNARKPACK_FUZZ_TOOLCHAIN" --profile minimal
           cargo +"$SNARKPACK_FUZZ_TOOLCHAIN" install cargo-fuzz --locked --version "$CARGO_FUZZ_VERSION"
       - name: Run fuzz smoke
+        id: fuzz_check
+        if: steps.fuzz_pass_cache.outputs.cache-hit != 'true'
         env:
           SNARKPACK_FUZZ_RUNS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
-        run: nix develop --command just snarkpack-fuzz-smoke
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack fuzz"
+          -- nix develop --command just snarkpack-fuzz-smoke
+      - name: Materialize successful fuzz attestation
+        if: steps.fuzz_check.outcome == 'success'
+        shell: bash
+        env:
+          CURRENT_SHA256: ${{ steps.fuzz_fingerprint.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          cache_dir="$RUNNER_TEMP/snarkpack-fuzz-pass"
+          mkdir -p "$cache_dir"
+          printf '%s\n' "$CURRENT_SHA256" > "$cache_dir/sha256"
+      - name: Save exact successful fuzz attestation
+        if: steps.fuzz_check.outcome == 'success'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-fuzz-pass
+          key: snarkpack-fuzz-pass-v1-${{ runner.os }}-${{ steps.fuzz_fingerprint.outputs.sha256 }}
 
   snarkpack-dos:
     name: 'snarkpack: dos'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.snarkpack_run == 'true'
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.snarkpack_dos_run == 'true'
     runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
+      - name: Fingerprint exact DoS lane inputs
+        id: dos_fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/snarkpack_lane_fingerprint.py \
+            --lane dos \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Restore exact successful DoS attestation
+        id: dos_pass_cache
+        if: needs.applicability.outputs.snarkpack_fstar_force_all != 'true'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-dos-pass
+          key: snarkpack-dos-pass-v1-${{ runner.os }}-${{ steps.dos_fingerprint.outputs.sha256 }}
+      - name: Validate restored DoS attestation
+        if: steps.dos_pass_cache.outputs.cache-hit == 'true'
+        shell: bash
+        env:
+          EXPECTED_SHA256: ${{ steps.dos_fingerprint.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          marker="$RUNNER_TEMP/snarkpack-dos-pass/sha256"
+          [[ -f "$marker" ]] || {
+            echo "restored DoS attestation has no marker" >&2
+            exit 1
+          }
+          [[ "$(cat "$marker")" == "$EXPECTED_SHA256" ]] || {
+            echo "restored DoS attestation does not match current inputs" >&2
+            exit 1
+          }
       - uses: ./.github/actions/setup-nix-rust
+        if: steps.dos_pass_cache.outputs.cache-hit != 'true'
         with:
           rust-cache-prefix: snarkpack-dos
       - name: Run DoS thresholds
-        run: nix develop --command just snarkpack-dos-gate
+        id: dos_check
+        if: steps.dos_pass_cache.outputs.cache-hit != 'true'
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack DoS"
+          -- nix develop --command just snarkpack-dos-gate
+      - name: Materialize successful DoS attestation
+        if: steps.dos_check.outcome == 'success'
+        shell: bash
+        env:
+          CURRENT_SHA256: ${{ steps.dos_fingerprint.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          cache_dir="$RUNNER_TEMP/snarkpack-dos-pass"
+          mkdir -p "$cache_dir"
+          printf '%s\n' "$CURRENT_SHA256" > "$cache_dir/sha256"
+      - name: Save exact successful DoS attestation
+        if: steps.dos_check.outcome == 'success'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ${{ runner.temp }}/snarkpack-dos-pass
+          key: snarkpack-dos-pass-v1-${{ runner.os }}-${{ steps.dos_fingerprint.outputs.sha256 }}
 
   # ---------------------------------------------------------------- soundness
 
@@ -608,10 +1210,13 @@ jobs:
     needs:
       - applicability
       - snarkpack-static
-      - snarkpack-toolchain
+      - snarkpack-extract
+      - snarkpack-extraction-recovery
+      - snarkpack-lean
       - snarkpack-fstar
       - snarkpack-parity
       - snarkpack-rust-reference
+      - snarkpack-slow
       - snarkpack-fuzz
       - snarkpack-dos
       - soundness-gate
@@ -633,14 +1238,24 @@ jobs:
           SNARKPACK_STATUS: ${{ needs.applicability.outputs.snarkpack_status }}
           SNARKPACK_TIER: ${{ needs.applicability.outputs.snarkpack_tier }}
           SNARKPACK_EXPLANATION: ${{ needs.applicability.outputs.snarkpack_explanation }}
+          STATIC_RUN: ${{ needs.applicability.outputs.snarkpack_static_run }}
+          EXTRACT_RUN: ${{ needs.applicability.outputs.snarkpack_extract_run }}
+          SNARKPACK_LEAN_RUN: ${{ needs.applicability.outputs.snarkpack_lean_run }}
+          FSTAR_RUN: ${{ needs.applicability.outputs.snarkpack_fstar_run }}
+          PARITY_RUN: ${{ needs.applicability.outputs.snarkpack_parity_run }}
+          RUST_REFERENCE_RUN: ${{ needs.applicability.outputs.snarkpack_rust_reference_run }}
+          FUZZ_RUN: ${{ needs.applicability.outputs.snarkpack_fuzz_run }}
+          DOS_RUN: ${{ needs.applicability.outputs.snarkpack_dos_run }}
           SOUNDNESS_STATUS: ${{ needs.applicability.outputs.soundness_status }}
           SOUNDNESS_TIER: ${{ needs.applicability.outputs.soundness_tier }}
           SOUNDNESS_EXPLANATION: ${{ needs.applicability.outputs.soundness_explanation }}
           STATIC: ${{ needs.snarkpack-static.result }}
-          TOOLCHAIN: ${{ needs.snarkpack-toolchain.result }}
+          EXTRACT: ${{ needs.snarkpack-extract.result }}
+          SNARKPACK_LEAN: ${{ needs.snarkpack-lean.result }}
           FSTAR: ${{ needs.snarkpack-fstar.result }}
           PARITY: ${{ needs.snarkpack-parity.result }}
           RUST_REFERENCE: ${{ needs.snarkpack-rust-reference.result }}
+          SLOW: ${{ needs.snarkpack-slow.result }}
           FUZZ: ${{ needs.snarkpack-fuzz.result }}
           DOS: ${{ needs.snarkpack-dos.result }}
           GATE: ${{ needs.soundness-gate.result }}
@@ -656,35 +1271,68 @@ jobs:
           fi
 
           required=()
+          require_if_selected() {
+            local selected="$1"
+            local label="$2"
+            local result="$3"
+            if [[ "$selected" == true ]]; then
+              required+=("$label=$result")
+            elif [[ "$selected" != false ]]; then
+              echo "invalid impact selection for $label: $selected" >&2
+              exit 1
+            fi
+          }
+          require_not_selected() {
+            local selected="$1"
+            local label="$2"
+            if [[ "$selected" != false ]]; then
+              echo "SnarkPack skip unexpectedly selected $label: $selected" >&2
+              exit 1
+            fi
+          }
 
           # --- snarkpack ---
           if [[ "$SNARKPACK_STATUS" == block ]]; then
             echo "snarkpack applicability blocked: $SNARKPACK_EXPLANATION" >&2
             exit 1
           elif [[ "$SNARKPACK_STATUS" == skip ]]; then
+            require_not_selected "$STATIC_RUN" snarkpack-static
+            require_not_selected "$EXTRACT_RUN" snarkpack-extract
+            require_not_selected "$SNARKPACK_LEAN_RUN" snarkpack-lean
+            require_not_selected "$FSTAR_RUN" snarkpack-fstar
+            require_not_selected "$PARITY_RUN" snarkpack-parity
+            require_not_selected \
+              "$RUST_REFERENCE_RUN" snarkpack-rust-reference
+            require_not_selected "$FUZZ_RUN" snarkpack-fuzz
+            require_not_selected "$DOS_RUN" snarkpack-dos
             echo "snarkpack explained skip: $SNARKPACK_EXPLANATION"
-          else
-            required+=(
-              "snarkpack-static=$STATIC" "snarkpack-fstar=$FSTAR"
-              "snarkpack-fuzz=$FUZZ" "snarkpack-dos=$DOS"
-            )
+          elif [[ "$SNARKPACK_STATUS" == run ]]; then
+            if [[ "$STATIC_RUN" != true ]]; then
+              echo "SnarkPack run selected no static integrity gate" >&2
+              exit 1
+            fi
             case "$SNARKPACK_TIER" in
-              # static carries no extraction, so the toolchain lanes do not run
-              static) ;;
-              extract-changed|extract-all)
-                required+=(
-                  "snarkpack-toolchain=$TOOLCHAIN" "snarkpack-parity=$PARITY"
-                ) ;;
-              full)
-                required+=(
-                  "snarkpack-toolchain=$TOOLCHAIN" "snarkpack-parity=$PARITY"
-                  "snarkpack-rust-reference=$RUST_REFERENCE"
-                ) ;;
+              static|extract-changed|extract-all|full) ;;
               *)
                 echo "unsupported snarkpack tier: $SNARKPACK_TIER" >&2
                 exit 1
                 ;;
             esac
+            require_if_selected "$STATIC_RUN" snarkpack-static "$STATIC"
+            require_if_selected "$EXTRACT_RUN" snarkpack-extract "$EXTRACT"
+            require_if_selected \
+              "$SNARKPACK_LEAN_RUN" snarkpack-lean "$SNARKPACK_LEAN"
+            require_if_selected "$FSTAR_RUN" snarkpack-fstar "$FSTAR"
+            require_if_selected "$PARITY_RUN" snarkpack-parity "$PARITY"
+            require_if_selected \
+              "$RUST_REFERENCE_RUN" \
+              snarkpack-rust-reference "$RUST_REFERENCE"
+            require_if_selected "$RUST_REFERENCE_RUN" snarkpack-slow "$SLOW"
+            require_if_selected "$FUZZ_RUN" snarkpack-fuzz "$FUZZ"
+            require_if_selected "$DOS_RUN" snarkpack-dos "$DOS"
+          else
+            echo "invalid SnarkPack applicability status: $SNARKPACK_STATUS" >&2
+            exit 1
           fi
 
           # --- soundness ---

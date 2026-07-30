@@ -1,0 +1,132 @@
+from __future__ import annotations
+
+import importlib.util
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+
+SCRIPT = Path(__file__).with_name("snarkpack_lane_fingerprint.py")
+SPEC = importlib.util.spec_from_file_location(
+    "snarkpack_lane_fingerprint", SCRIPT
+)
+assert SPEC is not None and SPEC.loader is not None
+FINGERPRINT = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = FINGERPRINT
+SPEC.loader.exec_module(FINGERPRINT)
+
+
+class SnarkPackLaneFingerprintTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.directory = tempfile.TemporaryDirectory()
+        self.root = Path(self.directory.name)
+        subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)
+        subprocess.run(
+            ["git", "config", "user.email", "test@example.invalid"],
+            cwd=self.root,
+            check=True,
+        )
+        subprocess.run(
+            ["git", "config", "user.name", "Test"],
+            cwd=self.root,
+            check=True,
+        )
+        (self.root / "control").mkdir()
+        (self.root / "crate/src").mkdir(parents=True)
+        (self.root / "control/workflow.yml").write_text(
+            "jobs: {}\n", encoding="utf-8"
+        )
+        (self.root / "crate/Cargo.toml").write_text(
+            "[package]\nname='fixture'\nversion='0.1.0'\n",
+            encoding="utf-8",
+        )
+        (self.root / "crate/src/lib.rs").write_text(
+            "pub fn value() -> u8 { 1 }\n", encoding="utf-8"
+        )
+        self._commit("initial")
+
+    def tearDown(self) -> None:
+        self.directory.cleanup()
+
+    def _commit(self, message: str) -> None:
+        subprocess.run(["git", "add", "-A"], cwd=self.root, check=True)
+        subprocess.run(
+            ["git", "commit", "-qm", message], cwd=self.root, check=True
+        )
+
+    def _fingerprint(self, *contexts: str) -> str:
+        return FINGERPRINT.tracked_fingerprint(
+            self.root,
+            "fuzz",
+            (Path("control"), Path("crate")),
+            contexts,
+        )
+
+    def test_fingerprint_is_deterministic_and_order_independent(self) -> None:
+        first = self._fingerprint("16")
+        second = FINGERPRINT.tracked_fingerprint(
+            self.root,
+            "fuzz",
+            (Path("crate"), Path("control"), Path("crate")),
+            ("16",),
+        )
+        self.assertEqual(first, second)
+        self.assertRegex(first, r"^[0-9a-f]{64}$")
+
+    def test_context_change_invalidates_attestation(self) -> None:
+        self.assertNotEqual(self._fingerprint("16"), self._fingerprint("256"))
+
+    def test_tracked_dependency_change_invalidates_attestation(self) -> None:
+        before = self._fingerprint("16")
+        (self.root / "crate/src/lib.rs").write_text(
+            "pub fn value() -> u8 { 2 }\n", encoding="utf-8"
+        )
+        self._commit("change dependency")
+        self.assertNotEqual(before, self._fingerprint("16"))
+
+    def test_dirty_tracked_input_fails_closed(self) -> None:
+        (self.root / "crate/src/lib.rs").write_text(
+            "pub fn value() -> u8 { 2 }\n", encoding="utf-8"
+        )
+        with self.assertRaisesRegex(
+            FINGERPRINT.FingerprintError,
+            "differ from the frozen candidate commit",
+        ):
+            self._fingerprint("16")
+
+    def test_missing_or_untracked_required_input_fails_closed(self) -> None:
+        with self.assertRaisesRegex(
+            FINGERPRINT.FingerprintError, "required lane input is missing"
+        ):
+            FINGERPRINT.tracked_fingerprint(
+                self.root, "dos", (Path("missing"),)
+            )
+        untracked = self.root / "untracked.txt"
+        untracked.write_text("not committed\n", encoding="utf-8")
+        with self.assertRaisesRegex(
+            FINGERPRINT.FingerprintError, "has no tracked files"
+        ):
+            FINGERPRINT.tracked_fingerprint(
+                self.root, "dos", (Path("untracked.txt"),)
+            )
+
+    def test_every_heavy_lane_has_declared_roots_and_controls(self) -> None:
+        self.assertEqual(
+            set(FINGERPRINT.LANE_PACKAGES),
+            {"parity", "rust-reference", "slow", "fuzz", "dos"},
+        )
+        self.assertEqual(
+            set(FINGERPRINT.LANE_PACKAGES),
+            set(FINGERPRINT.LANE_CONTROLS),
+        )
+        self.assertIn(
+            Path(".github/workflows/formal.yml"),
+            FINGERPRINT.COMMON_CONTROLS,
+        )
+        self.assertIn(FINGERPRINT.SELF, FINGERPRINT.COMMON_CONTROLS)
+
+
+if __name__ == "__main__":
+    unittest.main()

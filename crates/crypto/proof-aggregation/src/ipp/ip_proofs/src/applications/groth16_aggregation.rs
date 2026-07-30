@@ -254,6 +254,7 @@ pub struct TippMippGipaProofData<
     _digest: PhantomData<D>,
 }
 
+#[cfg(test)]
 type TippMippGipaProof<P, D> = TippMippGipaProofData<
     PairingOutput<P>,
     IdentityOutput<PairingOutput<P>>,
@@ -295,6 +296,7 @@ pub struct TippMippProofData<
     _digest: PhantomData<D>,
 }
 
+#[cfg(test)]
 type TippMippProof<P, D> = TippMippProofData<
     <P as Pairing>::G1,
     <P as Pairing>::G2,
@@ -531,8 +533,8 @@ struct ShippingAdapterSemanticExecution<I, F, TX> {
 
 /// Generic effect bundle consumed by the adapter core.
 ///
-/// `run_arkworks_adapter_semantic` is the production-used extraction boundary
-/// that installs the four concrete Arkworks effects into this bundle.
+/// `run_arkworks_adapter_semantic` installs the four concrete Arkworks effects;
+/// the shipping verifier semantic core retains its surrounding caller state.
 #[cfg(not(feature = "bench-baseline"))]
 struct AggregateAdapterEffects<RFX, FX, PE, PPE> {
     randomizer: RFX,
@@ -557,6 +559,7 @@ fn aggregate_adapter_effects_from_parts<RFX, FX, PE, PPE>(
 }
 
 #[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)] // Formal extraction root; production uses the retained execution form.
 fn verify_aggregate_adapter_core<F, G1, G2, G2Prepared, GT, ABT, CT, E, RFX, FX, PE, PPE>(
     input: AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
     randomizer_effect: RFX,
@@ -774,6 +777,7 @@ where
 }
 
 #[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)] // Formal accepted-path theorem projects this bounded retry core.
 fn verify_aggregate_adapter_core_from_nonce<
     F,
     G1,
@@ -1110,6 +1114,7 @@ where
 }
 
 #[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)] // Formal extraction root; production uses the retained execution form.
 fn verify_combined_checks_core<F, G1, G2, G2Prepared, GT, ABT, CT, E, FX, PE, PPE>(
     input: CombinedChecksCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
     effect: FX,
@@ -1330,6 +1335,7 @@ struct TippMippChallengePrefix<F, GT, ABT, CT> {
 ///
 /// `None` means the check was not reached because an earlier check returned
 /// false. This preserves the shipping failure order in the retained record.
+#[allow(dead_code)] // Fields are consumed by the generated formal projection.
 struct TippMippLeafChecks {
     ck_v: bool,
     ck_w: bool,
@@ -1339,6 +1345,7 @@ struct TippMippLeafChecks {
 }
 
 /// Retained result of the production TIPP/MIPP verifier core.
+#[allow(dead_code)] // Retained trace fields are consumed by formal extraction.
 struct TippMippCoreOutput<F, GT, ABT, CT> {
     challenge_prefix: TippMippChallengePrefix<F, GT, ABT, CT>,
     leaf_checks: TippMippLeafChecks,
@@ -1662,6 +1669,7 @@ where
     })
 }
 
+#[allow(dead_code)] // Formal extraction root; production uses the retained execution form.
 fn verify_tipp_mipp_core<F, G1, G2, GT, ABT, CT, E, FX, PE>(
     input: TippMippCoreInput<F, G1, G2, GT, ABT, CT>,
     effect: &mut FX,
@@ -1805,6 +1813,20 @@ type ArkworksShippingProverExecution<P, D> = ShippingProverExecution<
     D,
 >;
 
+type ArkworksShippingAggregateProverSemanticExecution<'a, P, D> =
+    ShippingAggregateProverSemanticExecution<
+        'a,
+        <P as Pairing>::ScalarField,
+        <P as Pairing>::G1,
+        <P as Pairing>::G2,
+        <P as Pairing>::G1Affine,
+        <P as Pairing>::G2Affine,
+        PairingOutput<P>,
+        IdentityOutput<PairingOutput<P>>,
+        IdentityOutput<<P as Pairing>::G1>,
+        D,
+    >;
+
 /// Ordered source points consumed by the shipping aggregate prover.
 struct OrderedSourceProofs<G1, G2> {
     a: Vec<G1>,
@@ -1832,6 +1854,7 @@ fn ordered_source_proofs_core<P: Pairing>(
 ///
 /// These are semantic protocol inputs, not retained runtime diagnostics. The
 /// slices remain borrowed so the boundary does not clone the proving SRS.
+#[allow(dead_code)] // Fields are consumed by the generated formal projection.
 struct ShippingProvingSrsProjection<'a, G1, G2, G1Affine, G2Affine> {
     full_g_alpha_powers: &'a [G1],
     full_h_beta_powers: &'a [G2],
@@ -1860,6 +1883,7 @@ fn shipping_proving_srs_projection_from_parts<'a, G1, G2, G1Affine, G2Affine>(
 }
 
 /// Typed challenge values in deployed prover chronology.
+#[allow(dead_code)] // Fields are consumed by the generated formal projection.
 struct ShippingProverChallengeTrace<F> {
     randomizer: F,
     randomizer_nonce: u64,
@@ -1969,6 +1993,37 @@ where
         challenges,
         tipp_mipp,
     }
+}
+
+/// Project the exact production SRS instances into one semantic prover run.
+///
+/// The profiled caller supplies the ordered proofs, commitments, and successful
+/// protocol executions that it just computed. Runtime timing stays outside.
+fn shipping_aggregate_prover_semantic_execution_core<'a, P, D>(
+    source_proofs: OrderedSourceProofs<P::G1, P::G2>,
+    ip_srs: &'a SRS<P>,
+    prepared_srs: &'a PreparedProvingSrs<P>,
+    initial_commitments: (PairingOutput<P>, PairingOutput<P>, PairingOutput<P>),
+    randomizer: ProverRandomizerCoreOutput<P::ScalarField>,
+    tipp_mipp: ArkworksShippingProverExecution<P, D>,
+) -> ArkworksShippingAggregateProverSemanticExecution<'a, P, D>
+where
+    P: Pairing,
+    D: Send + Sync,
+{
+    let (ck_1, ck_2) = prepared_srs.commitment_keys();
+    shipping_aggregate_prover_semantic_execution_from_parts(
+        source_proofs,
+        &ip_srs.g_alpha_powers,
+        &ip_srs.h_beta_powers,
+        prepared_srs.g_alpha_powers_affine(),
+        prepared_srs.h_beta_powers_affine(),
+        ck_1,
+        ck_2,
+        initial_commitments,
+        randomizer,
+        tipp_mipp,
+    )
 }
 
 /// Exact public-proof projection from the retained semantic execution.
@@ -4117,14 +4172,10 @@ where
     profile.tipp_mipp_ms = tipp_mipp_ms;
     apply_tipp_mipp_profile(&mut profile, &tipp_mipp_profile);
     apply_pairing_profile(&mut profile, &pairing_profile_snapshot());
-    let execution = shipping_aggregate_prover_semantic_execution_from_parts(
+    let execution = shipping_aggregate_prover_semantic_execution_core(
         source_proofs,
-        &ip_srs.g_alpha_powers,
-        &ip_srs.h_beta_powers,
-        prepared_srs.g_alpha_powers_affine(),
-        prepared_srs.h_beta_powers_affine(),
-        ck_1,
-        ck_2,
+        ip_srs,
+        &prepared_srs,
         (com_a, com_b, com_c),
         randomizer_execution,
         prover_execution,
@@ -4136,6 +4187,7 @@ where
 }
 
 #[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)] // Retained state is consumed by the generated formal projection.
 struct ShippingVerifierEffectState {
     context: ChallengeContext,
     randomizer_trace: BufferedChallengeTraceSink,
@@ -4156,18 +4208,23 @@ fn shipping_verifier_effect_state_from_parts(
 }
 
 #[cfg(not(feature = "bench-baseline"))]
-type ArkworksShippingAdapterSemanticExecution<P: Pairing> = ShippingAdapterSemanticExecution<
+type ArkworksShippingAdapterSemanticExecution<P> = ShippingAdapterSemanticExecution<
     AggregateAdapterCoreInput<
-        P::ScalarField,
-        P::G1,
-        P::G2,
-        P::G2Prepared,
+        <P as Pairing>::ScalarField,
+        <P as Pairing>::G1,
+        <P as Pairing>::G2,
+        <P as Pairing>::G2Prepared,
         PairingOutput<P>,
         PairingOutput<P>,
-        P::G1,
+        <P as Pairing>::G1,
     >,
-    P::ScalarField,
-    TippMippCoreOutput<P::ScalarField, PairingOutput<P>, PairingOutput<P>, P::G1>,
+    <P as Pairing>::ScalarField,
+    TippMippCoreOutput<
+        <P as Pairing>::ScalarField,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        <P as Pairing>::G1,
+    >,
 >;
 
 /// Run the exact four Arkworks effects installed by the shipping verifier.
@@ -4242,37 +4299,113 @@ where
     })
 }
 
-/// Runtime envelope around the extracted semantic adapter result.
+/// Acceptance-relevant verifier state retained around the semantic adapter.
 ///
-/// Buffered traces and profile timing are observational diagnostics. Their
-/// numeric values include instrumentation overhead and are not parity claims.
+/// Profile timing remains in the runtime caller. The two effect states retain
+/// the exact context and trace chronology needed to connect that call to the
+/// deployed challenge game.
 #[cfg(not(feature = "bench-baseline"))]
-#[allow(dead_code)]
-struct ShippingAggregateVerifierExecution<I, F, TX> {
+#[allow(dead_code)] // Effect states are consumed by the generated formal projection.
+struct ShippingVerifierSemanticExecution<I, F, TX> {
     semantic: ShippingAdapterSemanticExecution<I, F, TX>,
     initial_effect_state: ShippingVerifierEffectState,
     final_effect_state: ShippingVerifierEffectState,
-    randomizer_ms: f64,
 }
 
 #[cfg(not(feature = "bench-baseline"))]
-fn shipping_aggregate_verifier_execution_from_parts<I, F, TX>(
+fn shipping_verifier_semantic_execution_from_parts<I, F, TX>(
     semantic: ShippingAdapterSemanticExecution<I, F, TX>,
     initial_effect_state: ShippingVerifierEffectState,
     final_effect_state: ShippingVerifierEffectState,
-    randomizer_ms: f64,
-) -> ShippingAggregateVerifierExecution<I, F, TX> {
-    ShippingAggregateVerifierExecution {
+) -> ShippingVerifierSemanticExecution<I, F, TX> {
+    ShippingVerifierSemanticExecution {
         semantic,
         initial_effect_state,
         final_effect_state,
-        randomizer_ms,
     }
 }
 
 #[cfg(not(feature = "bench-baseline"))]
+type ArkworksShippingVerifierSemanticExecution<P> = ShippingVerifierSemanticExecution<
+    AggregateAdapterCoreInput<
+        <P as Pairing>::ScalarField,
+        <P as Pairing>::G1,
+        <P as Pairing>::G2,
+        <P as Pairing>::G2Prepared,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        <P as Pairing>::G1,
+    >,
+    <P as Pairing>::ScalarField,
+    TippMippCoreOutput<
+        <P as Pairing>::ScalarField,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        <P as Pairing>::G1,
+    >,
+>;
+
+/// Run one shipping verifier call and retain its exact semantic effect states.
+///
+/// The timing effect remains caller-owned, so the extracted result contains no
+/// `Instant`, floating-point duration, or profile-only field.
+#[cfg(not(feature = "bench-baseline"))]
+fn run_shipping_verifier_semantic_core<P, D, S, TM>(
+    input: AggregateAdapterCoreInput<
+        P::ScalarField,
+        P::G1,
+        P::G2,
+        P::G2Prepared,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        P::G1,
+    >,
+    context: &ChallengeContext,
+    trace: &mut S,
+    timing: &mut TM,
+) -> Result<ArkworksShippingVerifierSemanticExecution<P>, AggregateAdapterCoreError<String>>
+where
+    P: Pairing,
+    D: Digest + Send + Sync,
+    S: ChallengeTraceSink,
+    TM: AggregateRandomizerTiming,
+{
+    let initial_effect_state = shipping_verifier_effect_state_from_parts(
+        context.clone(),
+        BufferedChallengeTraceSink::default(),
+        BufferedChallengeTraceSink::default(),
+    );
+    let mut randomizer_trace = BufferedChallengeTraceSink::default();
+    let mut tipp_mipp_trace = BufferedChallengeTraceSink::default();
+    let semantic = {
+        let mut retained_randomizer_trace = RetainedChallengeTraceSink {
+            downstream: trace,
+            retained: &mut randomizer_trace,
+        };
+        run_arkworks_adapter_semantic::<P, D, _, _, _>(
+            input,
+            context,
+            &mut retained_randomizer_trace,
+            &mut tipp_mipp_trace,
+            timing,
+        )?
+    };
+    let final_effect_state = shipping_verifier_effect_state_from_parts(
+        context.clone(),
+        randomizer_trace,
+        tipp_mipp_trace,
+    );
+    Ok(shipping_verifier_semantic_execution_from_parts(
+        semantic,
+        initial_effect_state,
+        final_effect_state,
+    ))
+}
+
+#[cfg(not(feature = "bench-baseline"))]
 fn shipping_aggregate_verifier_profile_from_execution<I, F, TX, S>(
-    execution: ShippingAggregateVerifierExecution<I, F, TX>,
+    execution: ShippingVerifierSemanticExecution<I, F, TX>,
+    randomizer_ms: f64,
     trace: &mut S,
     started: Instant,
 ) -> AggregateProofVerificationProfile
@@ -4285,8 +4418,8 @@ where
         .replay_into(trace);
     let core_total_ms = started.elapsed().as_secs_f64() * 1000.0;
     AggregateProofVerificationProfile {
-        challenge_ms: execution.randomizer_ms,
-        tipp_mipp_ms: (core_total_ms - execution.randomizer_ms).max(0.0),
+        challenge_ms: randomizer_ms,
+        tipp_mipp_ms: (core_total_ms - randomizer_ms).max(0.0),
         public_input_fold_ms: 0.0,
         ppe_ms: 0.0,
         core_total_ms,
@@ -4321,38 +4454,15 @@ where
         ip_verifier_srs,
         randomizer_message,
     );
-    let initial_effect_state = shipping_verifier_effect_state_from_parts(
-        context.clone(),
-        BufferedChallengeTraceSink::default(),
-        BufferedChallengeTraceSink::default(),
-    );
-    let mut randomizer_trace = BufferedChallengeTraceSink::default();
-    let mut tipp_trace = BufferedChallengeTraceSink::default();
     let mut timing = AggregateRandomizerProfileTiming::default();
-    let semantic = {
-        let mut retained_randomizer_trace = RetainedChallengeTraceSink {
-            downstream: &mut *trace,
-            retained: &mut randomizer_trace,
-        };
-        run_arkworks_adapter_semantic::<P, D, _, _, _>(
-            input,
-            context,
-            &mut retained_randomizer_trace,
-            &mut tipp_trace,
-            &mut timing,
-        )
-        .map_err(aggregate_adapter_core_error)?
-    };
-    let final_effect_state =
-        shipping_verifier_effect_state_from_parts(context.clone(), randomizer_trace, tipp_trace);
-    let execution = shipping_aggregate_verifier_execution_from_parts(
-        semantic,
-        initial_effect_state,
-        final_effect_state,
-        timing.elapsed_ms,
-    );
+    let execution =
+        run_shipping_verifier_semantic_core::<P, D, _, _>(input, context, trace, &mut timing)
+            .map_err(aggregate_adapter_core_error)?;
     Ok(shipping_aggregate_verifier_profile_from_execution(
-        execution, trace, started,
+        execution,
+        timing.elapsed_ms,
+        trace,
+        started,
     ))
 }
 
@@ -5090,7 +5200,7 @@ where
     ))
 }
 
-#[cfg(not(feature = "bench-baseline"))]
+#[cfg(all(test, not(feature = "bench-baseline")))]
 fn combined_checks_core_input_validated<P, D>(
     pvk: &PreparedVerifyingKey<P>,
     public_inputs: &[Vec<P::ScalarField>],

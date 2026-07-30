@@ -161,6 +161,29 @@ class VerificationManifestTests(unittest.TestCase):
                     )
                 self.assertIn("does not match", str(raised.exception))
 
+    def test_aeneas_image_digest_is_bound_to_extraction_and_workflow(self):
+        toolchain = VERIFICATION.tomllib.loads(
+            (
+                VERIFICATION.REPO_ROOT
+                / "crates/crypto/proof-aggregation/formal/snarkpack/"
+                "aeneas-toolchain.toml"
+            ).read_text(encoding="utf-8")
+        )["toolchain"]
+        extraction = json.loads(
+            (
+                VERIFICATION.REPO_ROOT
+                / "crates/crypto/proof-aggregation/formal/snarkpack/"
+                "lean-extraction-manifest.json"
+            ).read_text(encoding="utf-8")
+        )["toolchains"]
+        self.assertEqual(
+            toolchain["image_digest"],
+            extraction["image_digest"],
+        )
+        VERIFICATION.validate_toolchain_roles(
+            self.manifest, VERIFICATION.REPO_ROOT
+        )
+
     def test_empty_audit_and_duplicate_claim_roots_fail_closed(self):
         manifest = copy.deepcopy(self.manifest)
         manifest["audit_modules"] = []
@@ -408,6 +431,134 @@ class VerificationManifestTests(unittest.TestCase):
             "differs from the current pinned", str(raised.exception)
         )
 
+    def test_fstar_module_graph_is_explicit_and_exact(self):
+        specs = VERIFICATION.validate_fstar_module_graph(
+            self.manifest, VERIFICATION.REPO_ROOT
+        )
+        self.assertEqual(
+            specs["ChallengePreimageProofs"].dependencies,
+            ("FrameLemmas",),
+        )
+        self.assertEqual(
+            specs["StatementEncodingProofs"].dependencies,
+            ("FrameLemmas",),
+        )
+        self.assertEqual(
+            specs["DigestBindingProofs"].dependencies,
+            ("FrameLemmas", "StatementEncodingProofs"),
+        )
+        self.assertEqual(
+            self.manifest["fstar_modules"]["global_modules"],
+            ["SnarkpackMachineSupport"],
+        )
+
+    def test_fstar_plan_never_trusts_evidence_over_changed_module_hints(self):
+        manifest = copy.deepcopy(self.manifest)
+        for entry in manifest["statement_binding_evidence"]:
+            if entry["kind"] == "fstar":
+                entry["checker"]["last_result"] = "pass"
+        current = VERIFICATION.expected_fstar_checker_evidence(
+            manifest, VERIFICATION.REPO_ROOT
+        )
+
+        # Checked-in JSON is useful for dependency reuse, but cannot attest
+        # that CI checked a changed module.
+        self.assertEqual(
+            set(
+                VERIFICATION.plan_fstar_modules(
+                    manifest,
+                    VERIFICATION.REPO_ROOT,
+                    base=current,
+                    requested=("StatementEncodingProofs.fst",),
+                )
+            ),
+            {"StatementEncodingProofs", "DigestBindingProofs"},
+        )
+
+        def without(module):
+            candidate = copy.deepcopy(current)
+            candidate["module_results"] = [
+                result
+                for result in candidate["module_results"]
+                if result["module"] != module
+            ]
+            return candidate
+
+        self.assertEqual(
+            set(
+                VERIFICATION.plan_fstar_modules(
+                    manifest,
+                    VERIFICATION.REPO_ROOT,
+                    base=without("FrameLemmas"),
+                    requested=(),
+                )
+            ),
+            {
+                "FrameLemmas",
+                "ChallengePreimageProofs",
+                "StatementEncodingProofs",
+                "DigestBindingProofs",
+            },
+        )
+        self.assertEqual(
+            set(
+                VERIFICATION.plan_fstar_modules(
+                    manifest,
+                    VERIFICATION.REPO_ROOT,
+                    base=without("StatementEncodingProofs"),
+                    requested=(),
+                )
+            ),
+            {"StatementEncodingProofs", "DigestBindingProofs"},
+        )
+        self.assertEqual(
+            VERIFICATION.plan_fstar_modules(
+                manifest,
+                VERIFICATION.REPO_ROOT,
+                base=without("FamilyRoutingProofs"),
+                requested=(),
+            ),
+            ("FamilyRoutingProofs",),
+        )
+        self.assertEqual(
+            set(
+                VERIFICATION.plan_fstar_modules(
+                    manifest,
+                    VERIFICATION.REPO_ROOT,
+                    base=without("SnarkpackMachineSupport"),
+                    requested=(),
+                )
+            ),
+            set(manifest["fstar_modules"]["modules"][index]["name"]
+                for index in range(len(manifest["fstar_modules"]["modules"]))),
+        )
+
+    def test_fstar_evidence_merge_rejects_an_unchecked_stale_module(self):
+        manifest = copy.deepcopy(self.manifest)
+        for entry in manifest["statement_binding_evidence"]:
+            if entry["kind"] == "fstar":
+                entry["checker"]["last_result"] = "pass"
+        current = VERIFICATION.expected_fstar_checker_evidence(
+            manifest, VERIFICATION.REPO_ROOT
+        )
+        stale = copy.deepcopy(current)
+        stale["module_results"] = [
+            result
+            for result in stale["module_results"]
+            if result["module"] != "ValidationProofs"
+        ]
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.merged_fstar_checker_evidence(
+                manifest,
+                VERIFICATION.REPO_ROOT,
+                base=stale,
+                requested=(),
+                checked=(),
+            )
+        self.assertIn(
+            "checked F* module set differs", str(raised.exception)
+        )
+
     def test_checker_result_is_state_not_immutable_contract(self):
         stale = VERIFICATION._verification_contract_payload(self.manifest)
         passed_manifest = copy.deepcopy(self.manifest)
@@ -457,6 +608,25 @@ class VerificationManifestTests(unittest.TestCase):
                     f"module {Path(module).stem}\n", encoding="utf-8"
                 )
             manifest: dict[str, object] = {
+                "fstar_modules": {
+                    "global_inputs": list(
+                        VERIFICATION.FSTAR_GLOBAL_INPUT_INVENTORY
+                    ),
+                    "global_modules": list(
+                        VERIFICATION.FSTAR_GLOBAL_MODULE_INVENTORY
+                    ),
+                    "modules": [
+                        {
+                            "name": Path(module).stem,
+                            "path": (
+                                "crates/crypto/proof-aggregation/formal/"
+                                f"snarkpack/fstar/{module}"
+                            ),
+                            "dependencies": [],
+                        }
+                        for module in modules
+                    ],
+                },
                 "statement_binding_evidence": [
                     {
                         "contract_field": "fixture",
@@ -479,6 +649,11 @@ class VerificationManifestTests(unittest.TestCase):
                 "unexpected",
                 VERIFICATION.FSTAR_MODULE_INVENTORY + ("UnexpectedProofs.fst",),
                 "unexpected: UnexpectedProofs.fst",
+            ),
+            (
+                "unexpected-interface",
+                VERIFICATION.FSTAR_MODULE_INVENTORY + ("FrameLemmas.fsti",),
+                "unexpected: FrameLemmas.fsti",
             ),
         )
         for label, modules, expected in cases:
@@ -590,7 +765,7 @@ class VerificationManifestTests(unittest.TestCase):
             patch.object(VERIFICATION, "load_manifest", return_value=manifest),
             patch.object(
                 VERIFICATION,
-                "manifest_audit_diagnostics",
+                "selected_manifest_audit_diagnostics",
                 side_effect=VERIFICATION.VerificationError(
                     "audit source differs from fixed pins"
                 ),
@@ -601,9 +776,65 @@ class VerificationManifestTests(unittest.TestCase):
                 VERIFICATION.main(["audit-log", str(missing_log)]),
                 2,
             )
-        validate_diagnostics.assert_called_once_with(manifest)
+        validate_diagnostics.assert_called_once_with(manifest, [])
         self.assertIn("audit source differs from fixed pins", stderr.getvalue())
         self.assertNotIn(str(missing_log), stderr.getvalue())
+
+    def test_audit_diagnostics_can_select_one_exact_manifest_module(self):
+        roots = {
+            "Ipp/ProofAudit.lean": "Ipp.base",
+            "Ipp/ProofAuditAdaptive.lean": "Ipp.adaptive",
+        }
+        manifest = {
+            "audit_modules": [
+                {
+                    "path": source,
+                    "expected_capstones": 1,
+                    "capstone_roots_sha256": hashlib.sha256(
+                        f"{root}\n".encode("utf-8")
+                    ).hexdigest(),
+                    "required_roots": [root],
+                }
+                for source, root in roots.items()
+            ]
+        }
+        with tempfile.TemporaryDirectory(
+            prefix="snarkpack-audit-selection-"
+        ) as directory:
+            lean_root = Path(directory)
+            for source, root in roots.items():
+                path = lean_root / source
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    f"#print axioms {root}\n", encoding="utf-8"
+                )
+            selected = VERIFICATION.selected_manifest_audit_diagnostics(
+                manifest,
+                ["Ipp.ProofAuditAdaptive"],
+                lean_root=lean_root,
+            )
+            self.assertEqual(
+                [(item.root, item.source) for item in selected],
+                [("Ipp.adaptive", "Ipp/ProofAuditAdaptive.lean")],
+            )
+            with self.assertRaisesRegex(
+                VERIFICATION.VerificationError,
+                "requested unknown audit module",
+            ):
+                VERIFICATION.selected_manifest_audit_diagnostics(
+                    manifest,
+                    ["Ipp.ProofAuditUnknown"],
+                    lean_root=lean_root,
+                )
+            with self.assertRaisesRegex(
+                VERIFICATION.VerificationError,
+                "contain duplicates",
+            ):
+                VERIFICATION.selected_manifest_audit_diagnostics(
+                    manifest,
+                    ["Ipp.ProofAudit", "Ipp.ProofAudit"],
+                    lean_root=lean_root,
+                )
 
     def test_axiom_log_cannot_pass_with_no_expected_diagnostics(self):
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
@@ -632,6 +863,28 @@ class VerificationManifestTests(unittest.TestCase):
             ),
             "1 capstones; axioms allowlisted",
         )
+
+    def test_axiom_log_does_not_accept_near_named_audit_module(self):
+        text = (
+            "info: Ipp/ProofAuditAdaptiveExtra.lean:2:0: 'audited' "
+            "does not depend on any axioms\n"
+        )
+        with self.assertRaisesRegex(
+            VERIFICATION.VerificationError,
+            "do not originate at the pinned",
+        ):
+            VERIFICATION.audit_log_summary(
+                text,
+                expected_diagnostics=[
+                    VERIFICATION.AuditDiagnostic(
+                        "audited",
+                        "Ipp/ProofAuditAdaptive.lean",
+                        2,
+                        0,
+                    )
+                ],
+                allowed_axioms={"propext"},
+            )
 
     def test_axiom_log_rejects_unprefixed_spoof_output(self):
         text = (
@@ -797,7 +1050,7 @@ class VerificationManifestTests(unittest.TestCase):
             summary,
         )
         self.assertIn(
-            '"snarkpack-rust-reference=$RUST_REFERENCE"',
+            'snarkpack-rust-reference "$RUST_REFERENCE"',
             summary,
         )
 
@@ -805,15 +1058,22 @@ class VerificationManifestTests(unittest.TestCase):
         justfile = (VERIFICATION.REPO_ROOT / "justfile").read_text(
             encoding="utf-8"
         )
-        labels = (
+        modular_slow_labels = (
             "snarkpack_matches_legacy_batch_across_families_and_counts_slow",
             "snarkpack_matches_single_and_batch_groth16_oracles_slow",
             "slow_two_way_interop_band",
+        )
+        self.assertEqual(justfile.count('--label "$filter"'), 1)
+        for label in modular_slow_labels:
+            with self.subTest(label=label):
+                self.assertIn(f"filter={label}", justfile)
+
+        literal_labels = (
             "snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds",
             "bounded_challenge_sampler_",
             "shipping_nonce_exhaustion_maps_exact_public_error",
         )
-        for label in labels:
+        for label in literal_labels:
             with self.subTest(label=label):
                 self.assertIn(f'--label "{label}"', justfile)
 
@@ -1115,6 +1375,20 @@ class VerificationManifestTests(unittest.TestCase):
             self.assertIn(
                 "unknown parity graph selection", str(raised.exception)
             )
+            payload["graphs"][0]["id"] = "g\nunsafe"
+            with self.assertRaises(
+                VERIFICATION.VerificationError
+            ) as raised:
+                VERIFICATION.validated_parity_commands(payload, root)
+            self.assertIn("unsafe id", str(raised.exception))
+            payload["graphs"][0]["id"] = "g"
+            with self.assertRaises(
+                VERIFICATION.VerificationError
+            ) as raised:
+                VERIFICATION.validated_parity_commands(
+                    payload, root, selected_graphs=["g;unsafe"]
+                )
+            self.assertIn("unsafe id", str(raised.exception))
 
             payload["graphs"][0]["parity"] = []
             with self.assertRaises(

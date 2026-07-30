@@ -2,7 +2,7 @@
   "schema_version": 1,
   "fstar_checker_evidence": {
     "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
-    "sha256": "e9d25d107d51b8b94957fb516fea7d7be7e419f52a2a1c71cf9dbb44b9b144de"
+    "sha256": "bb814d6f7d161f667f6f21dc4e7b0e5dd10ab4fad7f34615d1a3d61f5d12f13b"
   },
   "required_repository_inputs": [
     "crates/crypto/proof-aggregation-reference/Cargo.toml",
@@ -24,6 +24,91 @@
       "evidence": "deployments/containerfiles/Dockerfile.snarkpack-fv-toolchain"
     }
   ],
+  "fstar_modules": {
+    "global_inputs": [
+      ".cargo/config.toml",
+      "Cargo.lock",
+      "Cargo.toml",
+      "crates/core/component/shielded-pool/Cargo.toml",
+      "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
+      "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/generated.rs",
+      "crates/crypto/proof-aggregation/Cargo.toml",
+      "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py",
+      "crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml",
+      "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
+      "crates/crypto/proof-aggregation/src/bundle.rs",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+      "crates/crypto/proof-aggregation/src/padding.rs",
+      "crates/crypto/proof-aggregation/src/preflight.rs",
+      "crates/crypto/proof-aggregation/src/srs.rs",
+      "crates/crypto/proof-aggregation/src/statement.rs",
+      "flake.lock",
+      "flake.nix",
+      "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
+      "rust-toolchain.toml",
+      "scripts/ci/snarkpack_fv_impact.py",
+      "scripts/prepare_snarkpack_fstar_support.py",
+      "scripts/snarkpack-formal.sh"
+    ],
+    "global_modules": [
+      "SnarkpackMachineSupport"
+    ],
+    "modules": [
+      {
+        "name": "ChallengePreimageProofs",
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/ChallengePreimageProofs.fst",
+        "dependencies": [
+          "FrameLemmas"
+        ]
+      },
+      {
+        "name": "DigestBindingProofs",
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/DigestBindingProofs.fst",
+        "dependencies": [
+          "FrameLemmas",
+          "StatementEncodingProofs"
+        ]
+      },
+      {
+        "name": "FamilyRoutingProofs",
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/FamilyRoutingProofs.fst",
+        "dependencies": []
+      },
+      {
+        "name": "FrameLemmas",
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/FrameLemmas.fst",
+        "dependencies": []
+      },
+      {
+        "name": "PreflightProofs",
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/PreflightProofs.fst",
+        "dependencies": []
+      },
+      {
+        "name": "SnarkpackMachineSupport",
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/SnarkpackMachineSupport.fst",
+        "dependencies": []
+      },
+      {
+        "name": "StatementEncodingProofs",
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/StatementEncodingProofs.fst",
+        "dependencies": [
+          "FrameLemmas"
+        ]
+      },
+      {
+        "name": "ValidationProofs",
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/ValidationProofs.fst",
+        "dependencies": []
+      },
+      {
+        "name": "WrapperProofs",
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/WrapperProofs.fst",
+        "dependencies": []
+      }
+    ]
+  },
   "statement_binding_evidence": [
     {
       "contract_field": "familyRegistered",
@@ -75,7 +160,7 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "e43113dd11c293ba02310eba2b479ea6418d26b489a28982a1bedea29412048b"
+          "sha256": "614deb382c14dfea1c866ce3173afe9b5c6033b033c5eb6d91cddaa6545e7962"
         }
       ],
       "toolchain_role": "hax-fstar",
@@ -123,7 +208,7 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "e43113dd11c293ba02310eba2b479ea6418d26b489a28982a1bedea29412048b"
+          "sha256": "614deb382c14dfea1c866ce3173afe9b5c6033b033c5eb6d91cddaa6545e7962"
         }
       ],
       "toolchain_role": "hax-fstar",
@@ -158,7 +243,7 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "e43113dd11c293ba02310eba2b479ea6418d26b489a28982a1bedea29412048b"
+          "sha256": "614deb382c14dfea1c866ce3173afe9b5c6033b033c5eb6d91cddaa6545e7962"
         }
       ],
       "toolchain_role": "hax-fstar",
@@ -185,7 +270,7 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "e43113dd11c293ba02310eba2b479ea6418d26b489a28982a1bedea29412048b"
+          "sha256": "614deb382c14dfea1c866ce3173afe9b5c6033b033c5eb6d91cddaa6545e7962"
         }
       ],
       "toolchain_role": "hax-fstar",
@@ -320,7 +405,7 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "e43113dd11c293ba02310eba2b479ea6418d26b489a28982a1bedea29412048b"
+          "sha256": "614deb382c14dfea1c866ce3173afe9b5c6033b033c5eb6d91cddaa6545e7962"
         }
       ],
       "toolchain_role": "hax-fstar",
@@ -374,7 +459,7 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "e43113dd11c293ba02310eba2b479ea6418d26b489a28982a1bedea29412048b"
+          "sha256": "614deb382c14dfea1c866ce3173afe9b5c6033b033c5eb6d91cddaa6545e7962"
         }
       ],
       "toolchain_role": "hax-fstar",
@@ -388,8 +473,8 @@
   "audit_modules": [
     {
       "path": "Ipp/ProofAudit.lean",
-      "expected_capstones": 323,
-      "capstone_roots_sha256": "7d3c426d37e0c2f7b5d42e9f50314051417f38d16e071bfb7bf1e73737bcdcb5",
+      "expected_capstones": 310,
+      "capstone_roots_sha256": "9f8f1e58631eb2494591e88f5371f1117c2e6d16ef50c2f28f016032874e906d",
       "required_roots": [
         "Ipp.S1.s1_soundness",
         "Ipp.S1.invalid_goal_fork_bound_nonpositive",
@@ -431,19 +516,6 @@
         "Ipp.SnarkPackV1.Refinement.hasValidRepresentation_iff",
         "Ipp.SnarkPackV1.Refinement.hasValidRealPrefixRepresentation_iff",
         "Ipp.SnarkPackV1.Refinement.invalid_realPrefix_implies_invalid_padded",
-        "Ipp.ShippingAdaptiveSha.acceptedAlias_implies_collision",
-        "Ipp.ShippingAdaptiveSha.adaptive_shipping_sha256_collision_reduction",
-        "Ipp.ShippingAdaptiveSha.adaptive_real_acceptance_le_ideal_add_hash_losses",
-        "Ipp.ShippingMultiStatement.globalQueryEncoding_ofRegistered",
-        "Ipp.ShippingMultiStatement.globalQueryEncoding_fixed_key_injective",
-        "Ipp.ShippingMultiStatement.globalFsVerifier_support_proof_eq",
-        "Ipp.ShippingMultiStatement.OutcomeAt.roundQuery?_of_lt",
-        "Ipp.ShippingMultiStatement.PackedOutcome.at?_self",
-        "Ipp.ShippingMultiStatement.multiStatementFsGame_isTotalQueryBound",
-        "Ipp.ShippingMultiStatement.leastInvalidOutcome?_mem",
-        "Ipp.ShippingMultiStatement.bundle_acceptance_implies_least_invalid_acceptance",
-        "Ipp.ShippingMultiStatement.rawForkSucceededAt_le_explicit_game_advantage",
-        "Ipp.ShippingMultiStatement.FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh",
         "Ipp.SnarkPackV1.HonestProver.honest_complete",
         "Ipp.Extracted.ShippingProver.shipping_prover_refines_honest_complete",
         "Ipp.Extracted.AppVerifierStateMachine.extracted_family_code_matches_eq_model",
@@ -571,6 +643,65 @@
       ]
     },
     {
+      "path": "Ipp/ProofAuditReductions.lean",
+      "expected_capstones": 16,
+      "capstone_roots_sha256": "472456563b1456d8ef6c66aa317be25d5a4752dc0c4ae55731b244f90e5b5e38",
+      "required_roots": [
+        "Ipp.S1.bls12377KzgVForgeryOfLeaf_wins",
+        "Ipp.S1.bls12377KzgWForgeryOfLeaf_wins",
+        "Ipp.S1.bls12377KzgVGameWin_exists_forgery",
+        "Ipp.S1.bls12377KzgWGameWin_exists_forgery",
+        "Ipp.S1.bls12377KzgVGameWin_le_forgeryGameWin",
+        "Ipp.S1.bls12377KzgWGameWin_le_forgeryGameWin",
+        "Ipp.S1.bls12377KzgVForgeryGame_isTotalQueryBound_iff",
+        "Ipp.S1.bls12377KzgWForgeryGame_isTotalQueryBound_iff",
+        "Ipp.S1.kzg_false_opening_to_explicit_bls12377_forgery_games",
+        "Ipp.S1.gipaRootOpeningGameWin_iff_explicitChallenge",
+        "Ipp.S1.gipaProductLaneGameWin_iff_explicitChallenge",
+        "Ipp.S1.gipaRootOpeningGame_probability_eq_explicit",
+        "Ipp.S1.gipaProductLaneGame_probability_eq_explicit",
+        "Ipp.S1.bls12377GipaRootOpeningGame_isTotalQueryBound_iff",
+        "Ipp.S1.bls12377GipaProductLaneGame_isTotalQueryBound_iff",
+        "Ipp.S1.gipa_fork_knowledge_to_explicit_bls12377_games"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditAdaptive.lean",
+      "expected_capstones": 17,
+      "capstone_roots_sha256": "53cba443ac144c40ce4a062953d6963f2d0b9f61d68f608dbdbf11160110d9dd",
+      "required_roots": [
+        "Ipp.ShippingAdaptiveSha.acceptedAlias_implies_collision",
+        "Ipp.ShippingAdaptiveSha.deployedShaImpl_sha256_query",
+        "Ipp.ShippingAdaptiveSha.simulateQ_deployedSha_query",
+        "Ipp.ShippingAdaptiveSha.adaptive_shipping_sha256_collision_reduction",
+        "Ipp.ShippingAdaptiveSha.adaptive_real_acceptance_le_ideal_add_hash_losses",
+        "Ipp.ShippingMultiStatement.globalQueryEncoding_ofRegistered",
+        "Ipp.ShippingMultiStatement.globalQueryEncoding_fixed_key_injective",
+        "Ipp.ShippingMultiStatement.SelectionAt.globalQueryEncoding_eq_shipping",
+        "Ipp.ShippingMultiStatement.globalFsVerifier_support_proof_eq",
+        "Ipp.ShippingMultiStatement.OutcomeAt.roundQuery?_of_lt",
+        "Ipp.ShippingMultiStatement.PackedOutcome.at?_self",
+        "Ipp.ShippingMultiStatement.multiStatementFsGame_isTotalQueryBound",
+        "Ipp.ShippingMultiStatement.multiStatementFsGame_selectedFraming_queryBounded",
+        "Ipp.ShippingMultiStatement.leastInvalidOutcome?_mem",
+        "Ipp.ShippingMultiStatement.bundle_acceptance_implies_least_invalid_acceptance",
+        "Ipp.ShippingMultiStatement.rawForkSucceededAt_le_explicit_game_advantage",
+        "Ipp.ShippingMultiStatement.FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditShippingAdaptive.lean",
+      "expected_capstones": 5,
+      "capstone_roots_sha256": "4ff77df8cd5042f908d96c4314185d4f9eba676ed5155dfcda46882b69b3279e",
+      "required_roots": [
+        "Ipp.ShippingAdaptiveCall.acceptedShippingAlias_implies_shaBad",
+        "Ipp.ShippingAdaptiveCall.deployedShippingAcceptedAlias_le_sha256Advantage",
+        "Ipp.ShippingAdaptiveCall.productionFamilyDomain_registered",
+        "Ipp.ShippingAdaptiveCall.productionSelection_refines_shipping_input",
+        "Ipp.ShippingAdaptiveCall.productionSelection_globalQueryEncoding_eq_shipping"
+      ]
+    },
+    {
       "path": "Ipp/ProofAuditMiller.lean",
       "expected_capstones": 3,
       "capstone_roots_sha256": "7c89cb19a10fab8240e43f23371923a8d0e46d951dc744f71b9585167d640e9d",
@@ -651,7 +782,7 @@
     },
     {
       "id": "KZG-LEAF-REDUCTION",
-      "statement": "The exact S1 V- and W-lane false-opening events are transformed into wins of two standalone KZG games; separate shipping-boundary reductions instantiate those games with the deployed BLS12-377 setup and efficient adversaries.",
+      "statement": "The exact S1 V- and W-lane false-opening events are first transformed into mapped challenger-visible forgery projections; separate reductions must then instantiate standalone games with the deployed BLS12-377 setup and efficient adversaries.",
       "root": "UNPROVED.kzg_false_opening_to_deployed_bls12377_games",
       "dependencies": [
         "S1-QUANTITATIVE-SOUNDNESS"
@@ -660,12 +791,12 @@
         "ARKWORKS-KZG-VERIFIER-EQUATIONS",
         "BLS12-377-PAIRING-BILINEARITY"
       ],
-      "evidence": "Open at the efficient deployed reductions and bounds. S1Computational defines separate KzgVFalseOpeningGame and KzgWFalseOpeningGame events, exact iff/probability bridges for both S1 lanes, and the generic kzg_false_opening_to_game_security composition. S1Bls12377SecurityGames instantiates the concrete curve types and composes supplied game-security records in kzg_false_opening_to_bls12377_security and ofBls12377GameAssumptions. These new roots are inventoried in ProofAudit but remain pending the Lean audit, and they do not construct efficient adversaries, identify the deployed setup distribution, or instantiate either epsilon.",
+      "evidence": "Open at the standalone setup games, concrete efficient reducers, and cryptographic bounds. S1Bls12377ReductionInterfaces defines challenger-visible V/W forgery tuples containing z, coefficients, claimed key, and opening; their win relations check acceptV/acceptW and inequality from the structured SRS MSM without mentioning an S1 bad predicate. Bad leaves produce such tuples, explicit reducer records carry the pointwise preservation obligation, and the mapped programs add no oracle queries. Those programs still run the S1 fork experiment: kzg_false_opening_to_explicit_bls12377_forgery_games therefore establishes an intermediate mapped projection, not a standalone setup-sampling security game. The roots are inventoried for CI audit. Closure still requires executable polynomial-time leaf selectors/reducers, a proved bridge to the deployed setup distribution, and concrete epsilon bounds.",
       "status": "open"
     },
     {
       "id": "GIPA-FORK-KNOWLEDGE-REDUCTION",
-      "statement": "The exact S1 root-opening and product-lane failures are transformed into wins of two standalone GIPA games, then separately instantiated with efficient deployed pairing-commitment adversaries without asserting injectivity of the dimension-reducing commitment map.",
+      "statement": "The exact S1 root-opening and product-lane failures are first transformed into mapped challenger-visible knowledge projections; separate reductions must then instantiate standalone deployed pairing-commitment games with an efficient extractor, without asserting injectivity of the dimension-reducing commitment map.",
       "root": "UNPROVED.gipa_fork_knowledge_reduction",
       "dependencies": [
         "S1-QUANTITATIVE-SOUNDNESS"
@@ -673,7 +804,7 @@
       "assumptions": [
         "BLS12-377-PAIRING-BILINEARITY"
       ],
-      "evidence": "Open at efficient extraction, deployed adversaries, and bounds. S1Computational defines separate GipaRootOpeningGame and GipaProductLaneGame events, exact iff/probability bridges for both S1 components, and the generic gipa_fork_knowledge_reduction composition. S1Bls12377SecurityGames instantiates the concrete curve types and composes supplied game-security records in gipa_fork_knowledge_to_bls12377_security and ofBls12377GameAssumptions. These roots are inventoried in ProofAudit but remain pending the Lean audit; they do not construct the witness extractor or instantiate either epsilon.",
+      "evidence": "Open at standalone commitment-parameter games, polynomial-time extraction, and cryptographic bounds. S1Bls12377ReductionInterfaces exposes a pre-randomizer extractor interface, materializes its witness in challenger-visible root-opening and product-lane challenges, proves exact pointwise and probability bridges, and proves the mapped projections add no oracle queries. The win relations do not contain an S1 or shipping conclusion, but the mapped programs in gipa_fork_knowledge_to_explicit_bls12377_games still run the S1 fork experiment and are only intermediate projections. The roots are inventoried for CI audit. Closure still requires a concrete polynomial-time extractor for the deployed pairing commitment, its resource proof, a proved bridge to the deployed parameter distribution, and both epsilon bounds.",
       "status": "open"
     },
     {
@@ -861,7 +992,7 @@
         "ARKWORKS-CHALLENGE-SERIALIZATION",
         "WELL-FORMED-PROVING-SRS"
       ],
-      "evidence": "The Lean source theorem remains conditional over ShippingProverContract. Production retains caller-order A/B/C points, full and prepared SRS arrays and even keys, initial commitments, accepted randomizer/nonce, x0, chronological rounds, bridge, KZG challenge, the complete GIPA/KZG execution, and the exact returned proof. The extraction inventory now registers initial_commitment_operands_core, shipping_aggregate_prover_semantic_execution_from_parts, and shipping_aggregate_prover_semantic_returned_proof; their generated equations are stale pending CI. The semantic record excludes Instant, f64, profile, and buffered trace types. CI must prove the regenerated equations compose into SuccessfulLoopTrace, KZG acceptance under WellFormedProvingSrs, and an internally constructed ShippingProverContract; no production completeness claim is made until then.",
+      "evidence": "The Lean source theorem remains conditional over ShippingProverContract. The live aggregate_proofs_profiled_with_trace caller now passes its exact caller-order A/B/C points, SRS, derived PreparedProvingSrs, initial commitments, successful randomizer execution, and complete GIPA/KZG execution through the registered shipping_aggregate_prover_semantic_execution_core. That timing-free core projects the full SRS arrays, prepared affine arrays, even commitment keys, challenge chronology, and exact returned proof into one semantic record. Its generated equation is stale pending CI extraction. Closure still requires deriving SuccessfulLoopTrace and KZG acceptance under WellFormedProvingSrs and constructing ShippingProverContract internally; no production completeness claim is made until then.",
       "status": "open"
     },
     {
@@ -883,7 +1014,7 @@
         "ARKWORKS-AGGREGATE-PROOF-DECODE",
         "ARKWORKS-PREPARED-VK-AIC-PROJECTION"
       ],
-      "evidence": "Open at semantic construction, not byte-level retention or padding semantics. AcceptedShippingCallFacts contains the exact extracted call constructor equation; the refreshed AppVerifier graph pins protocol version 2, scalar and wrapper projection, and the generated repeat-final row core. The production-used run_arkworks_adapter_semantic root is registered for Aeneas extraction, but its generated equation is stale pending CI and therefore proves no concrete adapter refinement yet; no profile-number parity is claimed. ShippingRowConstruction proves exact counts/order/padding conditional on the Fq/list projection. Remaining construction is the caller/serialization projection, complete ShippingCallData linkage, strict wrapper/proof decoding, prepared-VK and curve objects, SRS projection, serializers/effects, challenge/KZG contracts, and composition of the regenerated semantic adapter root.",
+      "evidence": "Open at semantic construction, not byte-level retention or padding semantics. AcceptedShippingCallFacts contains the exact extracted call constructor equation; the refreshed AppVerifier graph pins protocol version 2, scalar and wrapper projection, and the generated repeat-final row core. The live verify_aggregate_proof_adapter_with_trace caller now delegates to the registered timing-free run_shipping_verifier_semantic_core, which installs the exact Arkworks effects and returns adapter input, nonces, checks, protocol result, acceptance, and initial/final effect state; its generated equation is stale pending CI and proves no concrete adapter refinement yet. ShippingRowConstruction proves exact counts/order/padding conditional on the Fq/list projection. Remaining construction is the caller/serialization projection, complete ShippingCallData linkage, strict wrapper/proof decoding, prepared-VK and curve objects, SRS projection, serializers/effects, challenge/KZG contracts, and composition of the regenerated semantic roots.",
       "status": "open"
     },
     {
@@ -900,16 +1031,16 @@
         "ARKWORKS-FR-DIGEST-REDUCTION",
         "DEPLOYED-BLAKE2B-EXECUTION"
       ],
-      "evidence": "Open pending regeneration and Lean composition. The production verifier now retains initial/final effect state, initial and accepted nonce, installed adapter input, randomizer, chronological and wire-order round challenges, bridge, KZG value, ordered leaf checks, and final acceptance. A tee preserves the existing immediately observable randomizer trace on error paths while retaining it for refinement. The registered AggregateAdapter and VerifyTippMipp extraction inventories include the new roots, but all groth16_aggregation graphs are intentionally stale and CI-only after the local extraction budget was consumed. Remaining work regenerates those graphs, constructs AcceptedRunCallProjection and AcceptedExecutionSamples, and instantiates deployed Blake2b/Fr-reduction postconditions.",
+      "evidence": "Open pending regeneration and Lean composition. The live verify_aggregate_proof_adapter_with_trace caller delegates to the registered run_shipping_verifier_semantic_core, which constructs the initial state, installs the exact Arkworks effects, and retains the randomizer and TIPP/MIPP challenge traces together with the adapter input, nonces, ordered checks, acceptance, and final state. The randomizer tee preserves immediate observation on error paths; TIPP/MIPP traces remain buffered and replay only after success. Timing stays outside the extracted record. The generated equation is stale pending CI. Remaining work constructs AcceptedRunCallProjection and AcceptedExecutionSamples from that equation and instantiates exact deployed Blake2b and Fr-reduction postconditions.",
       "status": "open"
     },
     {
       "id": "ADAPTIVE-SHARED-ORACLE-SKELETON",
-      "statement": "An adversary may query one global, family-and-context-domain-separated oracle before selecting a heterogeneous statement and proof; selection and verification remain one shared program with an additive adversary-plus-verifier query bound.",
-      "root": "Ipp.ShippingMultiStatement.multiStatementFsGame_isTotalQueryBound",
+      "statement": "An adversary may query one global oracle before selecting a heterogeneous statement and proof; selection and verification remain one shared program with an additive adversary-plus-verifier query bound, and every selected-verifier query has the exact registered family and retained context framing.",
+      "root": "Ipp.ShippingMultiStatement.multiStatementFsGame_selectedFraming_queryBounded",
       "dependencies": [],
       "assumptions": [],
-      "evidence": "The replacement source model uses one dependent per-mu selection package and one global oracle across pre-selection queries and verification. It retains the exact selected call and statement key in every fork-tree run and includes a finite two-point counterexample to the discarded fresh-fixed-call maximum. The local guarded Lean build reached only cold dependencies before its 15-minute safety timeout, so kernel acceptance and the production/global-oracle coupling remain CI obligations.",
+      "evidence": "The replacement source model uses one dependent per-mu selection package and one global oracle across pre-selection queries and verification. SelectionAt structurally ties selected-verifier queries to the registered family transcript domain and retained logical challenge context, and the composite root carries those invariants with the additive query bound. ShippingAdaptiveCall now projects one extracted production call to a PackedSelection ShippingStatementKey and proves the projected statement, proof, registered family domain, and challenge context are exact. This projection erases the concrete CallData, effects, and raw execution identity; it is not an injective embedding or a production-outcome coupling. The model still does not constrain arbitrary adversarial prequeries or package the complete heterogeneous production execution; the reached-query collision-free invariant and whole-program coupling remain open.",
       "status": "open"
     },
     {
@@ -922,9 +1053,9 @@
       ],
       "assumptions": [
         "SHA256-SECURITY",
-        "ADVERSARY-QUERY-BOUND"
+        "ADAPTIVE-SHA-QUERY-BOUND"
       ],
-      "evidence": "Open. The current fixed-input Sha256CollisionSecurity.bad_le field applies badMass to a proposition, so it is a deterministic 0-or-1 case split rather than a computational collision advantage. No shared adaptive experiment yet records adversary-selected SHA-256 preimages and reduces an accepted alias to collision resistance.",
+      "evidence": "The source model runs an OracleComp adversary with explicit SHA queries through the deployed deterministic StatementBindingContract.sha256 implementation and requires IsTotalQueryBound for that exact source program. ShippingAdaptiveCall removes the adversary-labelled acceptance bit for one concrete production call: the adversary returns only a supported intended input, the experiment runs shippingRealCallVerifier, and a raw AcceptedCallOutput alias reduces to the exact three-lane SHA collision event and its declared advantage. Closure still requires packing adaptively selected heterogeneous production calls into the shared experiment and proving the reached-query SHA accounting once across that whole program; until then this claim retains an UNPROVED root.",
       "status": "open"
     },
     {
@@ -940,10 +1071,11 @@
       ],
       "assumptions": [
         "ADVERSARY-QUERY-BOUND",
+        "ADAPTIVE-SHA-QUERY-BOUND",
         "SHA256-SECURITY",
         "BLAKE2B-ROM-SECURITY"
       ],
-      "evidence": "Open at the production instantiation and multi-statement forking theorem. ShippingMultiStatement supplies the heterogeneous call package, globally tagged query encoder, exact global FsVerifier support, least-invalid accepted bundle-call selection, a raw fork-success event bounded by explicit game advantages, and a counterexample rejecting the prior fresh-fixed-call route. The discarded cooked fork-tree and fixed-cache routes are not evidence. Closure still requires the whole deployed byte-oracle program to global-field-oracle coupling, adaptive SHA-256 and Blake2b reductions, and extraction from the raw multi-statement fork event.",
+      "evidence": "Open at the whole-program production instantiation and multi-statement forking theorem. ShippingMultiStatement supplies the heterogeneous call package, globally tagged query encoder, exact global FsVerifier support, least-invalid accepted bundle-call selection, a raw fork-success event bounded by explicit game advantages, and a counterexample rejecting the prior fresh-fixed-call route. ShippingAdaptiveCall gives an exact per-call formal projection and a real accepted-output SHA reduction, but it erases concrete call identity and does not yet package an adaptively chosen list of dependent Rust calls into one deployed byte-oracle execution. The whole experiment needs two distinct budgets: ADVERSARY-QUERY-BOUND for the wrapped field-oracle/fork queries and ADAPTIVE-SHA-QUERY-BOUND for the SHA source and production binding calls. The discarded cooked fork-tree and fixed-cache routes are not evidence. Closure still requires that heterogeneous whole-program coupling, a once-only Blake2b reduction, the reached-query SHA invariant, and extraction from the raw multi-statement fork event.",
       "status": "open"
     },
     {
@@ -989,12 +1121,13 @@
       ],
       "assumptions": [
         "ADVERSARY-QUERY-BOUND",
+        "ADAPTIVE-SHA-QUERY-BOUND",
         "KZG-FALSE-OPENING-SECURITY",
         "GIPA-FORK-KNOWLEDGE-SOUNDNESS",
         "SHA256-SECURITY",
         "BLAKE2B-ROM-SECURITY"
       ],
-      "evidence": "Open by construction. This publication-level claim remains red until the concrete Rust-call constructor, full statement projection, deployed challenge trace, KZG leaf and GIPA fork reductions, adaptive SHA-256 and Blake2b couplings, bundle composition, shipping prover refinement, current F* evidence, and all required suites close. The impossible universal finite-group binding premises are not accepted as closure evidence.",
+      "evidence": "Open by construction. This publication-level claim remains red until the concrete Rust-call constructor, full statement projection, deployed challenge trace, KZG leaf and GIPA fork reductions, adaptive SHA-256 and Blake2b couplings, bundle composition, shipping prover refinement, current F* evidence, and all required suites close. Its final bound must retain both the wrapped field-oracle/fork query budget and the separate whole-program SHA query budget. The impossible universal finite-group binding premises are not accepted as closure evidence.",
       "status": "open"
     },
     {
@@ -1098,7 +1231,7 @@
     {
       "id": "SHA256-SECURITY",
       "owner": "Cryptography platform",
-      "postcondition": "For the declared adaptive shipping experiment and query budget, the probability that an efficient adversary produces two distinct concrete VK, canonical-statement, or challenge-context preimages with the same SHA-256 digest is at most epsilonSha256.",
+      "postcondition": "For the declared adaptive shipping experiment and its Q_sha budget, the probability that an efficient adversary produces two distinct concrete VK, canonical-statement, or challenge-context preimages with the same SHA-256 digest is at most epsilonSha256.",
       "evidence": "Production uses SHA-256 at the VK, canonical-statement, and challenge-context binding sites. The Lean fixed-input ShippingShaCollision disjunction identifies the required collision shapes, but its badMass encoding is only a deterministic 0-or-1 case split and is not itself this computational assumption.",
       "closure": "Define the adaptive SHA-256 experiment over adversary-selected production bytes, reduce every accepted binding alias to a pair of distinct equal-digest preimages, and instantiate epsilonSha256 and the query budget.",
       "status": "assumed"
@@ -1106,32 +1239,40 @@
     {
       "id": "ADVERSARY-QUERY-BOUND",
       "owner": "SnarkPack security analysis",
-      "postcondition": "The adversary makes at most Q of qb random-oracle queries at every wrapped domain used by the fork theorem.",
+      "postcondition": "The adversary makes at most Q_fs according to qb at every wrapped field-oracle domain used by the fork theorem.",
       "evidence": "Ipp.S1.s1_computational_soundness and both computational contrapositive roots require IsTotalQueryBound explicitly.",
       "closure": "Instantiate qb from a declared adversary budget and maximum aggregate size before publishing a numerical security level.",
       "status": "assumed"
     },
     {
+      "id": "ADAPTIVE-SHA-QUERY-BOUND",
+      "owner": "SnarkPack security analysis",
+      "postcondition": "At the fixed-call layer, IsTotalQueryBound holds with Q_sha for the exact Ipp.ShippingAdaptiveSha.AdaptiveShaSourceSpec adversary; final heterogeneous composition extends Q_sha to every SHA-256 query made by adversarial preselection and production VK, canonical-statement, and challenge-context construction without resetting the budget between calls.",
+      "evidence": "Ipp.ShippingAdaptiveSha.CollisionSecurity and Ipp.ShippingAdaptiveCall.CollisionSecurity retain an IsTotalQueryBound witness for the exact SHA-querying OracleComp source. This budget is distinct from the wrapped field-oracle qb in ADVERSARY-QUERY-BOUND. The fixed-call model does not yet derive the whole-program extension.",
+      "closure": "Derive one Q_sha bound for the complete heterogeneous byte program, including every production binding-site SHA-256 execution, and instantiate epsilonSha256 at that exact budget before publishing a numerical security level.",
+      "status": "assumed"
+    },
+    {
       "id": "KZG-FALSE-OPENING-SECURITY",
       "owner": "SnarkPack protocol and setup",
-      "postcondition": "For the standalone KzgVFalseOpeningGame and KzgWFalseOpeningGame instantiated with the deployed BLS12-377 setup distribution and the efficient adversaries produced by the shipping reductions, the two game-winning probabilities are at most epsilonKzgV and epsilonKzgW.",
-      "evidence": "The source-level iff and probability bridges transform exact S1 lane events into the two game-winning events; they are pending the Lean audit. This assumption bounds only the standalone games and does not assume an S1 or shipping acceptance conclusion.",
-      "closure": "Construct the efficient deployed adversaries for both games, prove their running-time and query bounds, identify the exact setup distribution, and instantiate epsilonKzgV and epsilonKzgW.",
+      "postcondition": "For separately defined standalone V- and W-lane forgery experiments over the deployed BLS12-377 setup distribution, reached by concrete polynomial-time reducers satisfying Bls12377KzgVForkReduction and Bls12377KzgWForkReduction, the two forgery-winning probabilities are at most epsilonKzgV and epsilonKzgW.",
+      "evidence": "The current formal targets contain only z, coefficients, claimed key, and opening, and their win relations check the opening relation and structured-SRS inequality. Kernel theorems reach mapped projections that still run the S1 fork experiment and preserve its oracle-query bound; they do not yet define or reach the standalone setup-sampling experiments bounded by this assumption. The assumption itself does not assert an S1 or shipping acceptance conclusion.",
+      "closure": "Implement both leaf selectors/reducers, prove their pointwise contracts and polynomial running time, define the exact deployed setup-sampling experiments, prove the distribution-preserving bridges from the mapped projections, and instantiate epsilonKzgV and epsilonKzgW.",
       "status": "assumed"
     },
     {
       "id": "GIPA-FORK-KNOWLEDGE-SOUNDNESS",
       "owner": "SnarkPack protocol",
-      "postcondition": "For the standalone GipaRootOpeningGame and GipaProductLaneGame instantiated with the deployed commitment parameters and the efficient adversaries produced by the shipping reductions, the two game-winning probabilities are at most epsilonRootOpening and epsilonProductLane.",
-      "evidence": "The source-level iff and probability bridges transform the exact S1 component events into these two game-winning events; they are pending the Lean audit. This assumption bounds only the standalone games and never asserts injectivity or a shipping acceptance conclusion.",
-      "closure": "Define the efficient witness extractor and deployed adversaries for both games, prove their running-time and query bounds, identify the exact parameter distribution, and instantiate both epsilons.",
+      "postcondition": "For separately defined standalone root-opening and product-lane experiments over the deployed commitment-parameter distribution, reached using one concrete polynomial-time Bls12377GipaExtractor, the two challenge-winning probabilities are at most epsilonRootOpening and epsilonProductLane.",
+      "evidence": "The current extractor interface sees only proof-owned commitments fixed before the randomizer query, and its witness is materialized in each challenger-visible challenge. Kernel theorems give pointwise and probability bridges to mapped projections that still run the S1 fork experiment and preserve its oracle-query bound; they do not yet define or reach the standalone parameter-sampling experiments bounded by this assumption. No injectivity of the dimension-reducing commitment map or shipping acceptance conclusion is assumed.",
+      "closure": "Construct the deployed witness extractor, prove its polynomial running time and pre-randomizer visibility, define the exact commitment-parameter sampling experiments, prove the distribution-preserving bridges from the mapped projections, and instantiate both epsilons.",
       "status": "assumed"
     },
     {
       "id": "AENEAS-TRANSLATOR",
       "owner": "Formal methods toolchain",
       "postcondition": "Pinned hax and Aeneas translation preserves the semantics of every declared Rust extraction root and its checked failure behavior.",
-      "evidence": "Every graph declared in the extraction manifest is byte-pinned and regenerated with the dedicated hax-aeneas role.",
+      "evidence": "The extraction manifest fixes each graph's source roots, exact start-from commands, dedicated hax-aeneas toolchain role, normalizer revision, and normalized generated-output digest. CI additionally fingerprints the complete current graph recipe and rejects stale generated output; semantic preservation of the translator itself remains this explicit assumption.",
       "closure": "Validate the translator or replace the assumption with proof-producing translation certificates.",
       "status": "assumed"
     },
@@ -1147,7 +1288,7 @@
       "id": "FSTAR-CHECKER",
       "owner": "Formal methods toolchain",
       "postcondition": "Acceptance by the pinned F* 2026.05.24 checker establishes every source-digest-pinned F* theorem root listed in the statement-binding evidence.",
-      "evidence": "scripts/snarkpack-formal.sh checks the exact F*, hax, and Z3 pins, verifies every named full F* declaration, and compares a generated checker artifact binding the command, toolchain, source set, theorem roots, and pass results. The current F* contract rows have a pinned all-modules pass; the three deployed SHA-construction rows are separate external evidence and remain stale.",
+      "evidence": "scripts/snarkpack-formal.sh checks the exact F*, hax, and Z3 pins and emits a source-bound checker artifact for the selected dependency closure. The checked-in F* rows and artifact are deliberately stale during recovery; only a CI-produced current artifact may promote them to pass. The deployed SHA-construction rows are separate external evidence and remain stale.",
       "closure": "Rerun the pinned hax v0.3.7, F* 2026.05.24, and Z3 4.14.1 lane on the current digests, then separately retain or discharge checker trust.",
       "status": "assumed"
     },

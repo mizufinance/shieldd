@@ -1,7 +1,6 @@
 [toolchain]
 rust = "1.89"
 hax_fstar = "v0.3.7"
-hax_aeneas_commit = "c8e27c5945f7fc5791939cff7c1277f4ab768fe1"
 fstar = "v2026.05.24"
 z3 = "4.14.1"
 ocaml = "5.1.1"

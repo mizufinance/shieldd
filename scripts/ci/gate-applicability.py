@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -17,6 +18,7 @@ SCHEMA_VERSION = 1
 CANDIDATE_EVENTS = {"pull_request", "merge_group"}
 UNCONDITIONAL_EVENTS = {"schedule", "workflow_call", "workflow_dispatch"}
 SUPPORTED_EVENTS = CANDIDATE_EVENTS | UNCONDITIONAL_EVENTS
+GRAPH_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 
 
 class ClassificationError(RuntimeError):
@@ -80,6 +82,15 @@ def _string(value: Any, where: str) -> str:
     if not isinstance(value, str) or not value:
         raise ClassificationError(f"{where} must be a non-empty string")
     return value
+
+
+def _graph_id(value: Any, where: str) -> str:
+    graph_id = _string(value, where)
+    if not GRAPH_ID.fullmatch(graph_id):
+        raise ClassificationError(
+            f"{where} must match [A-Za-z][A-Za-z0-9_]*"
+        )
+    return graph_id
 
 
 def _strings(value: Any, where: str) -> tuple[str, ...]:
@@ -526,7 +537,7 @@ def lean_manifest_rules_from_data(
     for index, value in enumerate(graphs_value):
         where = f"{label}.graphs[{index}]"
         graph = _object(value, where)
-        graph_id = _string(graph.get("id"), f"{where}.id")
+        graph_id = _graph_id(graph.get("id"), f"{where}.id")
         if graph_id in graph_ids:
             raise ClassificationError(
                 f"{label} contains duplicate graph id {graph_id!r}"
@@ -665,7 +676,7 @@ def extraction_source_directory_rule(
         )
     graph_ids = tuple(
         sorted(
-            _string(graph.get("id"), "extraction manifest graph id")
+            _graph_id(graph.get("id"), "extraction manifest graph id")
             for graph in _object(manifest, "extraction manifest").get(
                 "graphs", ()
             )
@@ -673,7 +684,7 @@ def extraction_source_directory_rule(
     )
     inventory_graphs = tuple(
         sorted(
-            normalize_repo_path(value, "extraction source inventory graph")
+            _graph_id(value, "extraction source inventory graph")
             for value in _strings(
                 payload["graphs"], "extraction source inventory graphs"
             )
@@ -941,6 +952,12 @@ def write_github_output(path: Path, decision: Decision) -> None:
         "run": str(decision.status == "run").lower(),
         "explanation": decision.explanation,
         "graphs": json.dumps(list(decision.graphs), separators=(",", ":")),
+        "changed_files": json.dumps(
+            list(decision.changed_files), separators=(",", ":")
+        ),
+        "unknown_files": json.dumps(
+            list(decision.unknown_files), separators=(",", ":")
+        ),
     }
     try:
         with path.open("a", encoding="utf-8", newline="\n") as output:

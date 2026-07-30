@@ -9,14 +9,49 @@ adversarial probability experiment.  SHA-256 collision resistance remains
 an explicit, query-budget-indexed computational assumption.
 -/
 
-open OracleComp ENNReal
-open scoped ENNReal
+open OracleSpec OracleComp ENNReal
+open scoped OracleSpec.PrimitiveQuery ENNReal
 
 namespace Ipp.ShippingAdaptiveSha
 
 noncomputable section
 
 open Ipp.ShippingV1
+
+/-- The deployed SHA-256 call interface exposed to the adaptive adversary. -/
+abbrev Sha256OracleSpec :=
+  Bytes →ₒ Bytes
+
+/-- Adversarial randomness and deployed SHA-256 calls share one source
+program, so the declared total query budget covers the complete adaptive
+execution rather than indexing an already-produced probability computation. -/
+abbrev AdaptiveShaSourceSpec :=
+  unifSpec + Sha256OracleSpec
+
+/-- Execute every SHA query with the exact deterministic function retained by
+the shipping binding contract, while forwarding adversarial randomness to
+`ProbComp`. -/
+def deployedShaImpl (sha256 : Bytes → Bytes) :
+    QueryImpl AdaptiveShaSourceSpec ProbComp :=
+  (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp)) +
+    (fun input : Bytes => pure (sha256 input))
+
+@[simp] theorem deployedShaImpl_sha256_query
+    (sha256 : Bytes → Bytes) (input : Bytes) :
+    deployedShaImpl sha256 (Sum.inr input) =
+      (pure (sha256 input) : ProbComp Bytes) := by
+  rfl
+
+/-- `simulateQ` replaces one explicit adaptive SHA query by exactly the
+deployed deterministic SHA execution. -/
+@[simp] theorem simulateQ_deployedSha_query
+    (sha256 : Bytes → Bytes) (input : Bytes) :
+    simulateQ (deployedShaImpl sha256)
+        (liftM ((AdaptiveShaSourceSpec).query (Sum.inr input)) :
+          OracleComp AdaptiveShaSourceSpec Bytes) =
+      (pure (sha256 input) : ProbComp Bytes) := by
+  rw [simulateQ_spec_query]
+  exact deployedShaImpl_sha256_query sha256 input
 
 /-- One adversarial substitution attempt after both inputs have passed the
 production binding contract. The accepted bit is the shipping verifier's
@@ -60,6 +95,21 @@ def Collision
   fun attempt =>
     ShippingShaCollision contract attempt.reference attempt.candidate
 
+/-- The deployed adaptive SHA experiment.  The adversary performs explicit
+SHA queries in `AdaptiveShaSourceSpec`; `simulateQ` replaces each one by the
+concrete deterministic `StatementBindingContract.sha256` execution. -/
+def deployedShaExperiment
+    {μ : Nat} {F G1 G2 GT Row DecodedProof : Type}
+    [CommSemiring F] [AddCommMonoid G1] [Module F G1]
+    [AddCommMonoid G2] [Module F G2]
+    [AddCommMonoid GT] [Module F GT]
+    {contract :
+      StatementBindingContract μ F G1 G2 GT Row DecodedProof}
+    (adversary :
+      OracleComp AdaptiveShaSourceSpec (Attempt contract)) :
+    ProbComp (Attempt contract) :=
+  simulateQ (deployedShaImpl contract.sha256) adversary
+
 /-- Every accepted alias produces two distinct concrete preimages with one
 equal deployed SHA-256 digest. -/
 theorem acceptedAlias_implies_collision
@@ -77,8 +127,9 @@ theorem acceptedAlias_implies_collision
     attempt.referenceSupported attempt.candidateSupported halias.2
 
 /-- External collision-resistance postcondition for one adaptive experiment.
-The query budget is an index of the assumption rather than a hidden global
-constant. -/
+The budget is connected to the actual SHA-querying source program by
+`IsTotalQueryBound`; it is not a phantom index on an already-produced
+`ProbComp`. -/
 structure CollisionSecurity
     {μ : Nat} {F G1 G2 GT Row DecodedProof : Type}
     [CommSemiring F] [AddCommMonoid G1] [Module F G1]
@@ -86,11 +137,13 @@ structure CollisionSecurity
     [AddCommMonoid GT] [Module F GT]
     {contract :
       StatementBindingContract μ F G1 G2 GT Row DecodedProof}
-    (adversary : ProbComp (Attempt contract))
+    (adversary :
+      OracleComp AdaptiveShaSourceSpec (Attempt contract))
     (queryBudget : Nat) where
+  queryBound : IsTotalQueryBound adversary queryBudget
   epsilon : ℝ≥0∞
   collision_le :
-    Pr[Collision | adversary] ≤ epsilon
+    Pr[Collision | deployedShaExperiment adversary] ≤ epsilon
 
 /-- Adaptive accepted substitutions are bounded by the exact SHA-256
 collision advantage for the same experiment and declared query budget. -/
@@ -101,12 +154,14 @@ theorem adaptive_shipping_sha256_collision_reduction
     [AddCommMonoid GT] [Module F GT]
     {contract :
       StatementBindingContract μ F G1 G2 GT Row DecodedProof}
-    (adversary : ProbComp (Attempt contract))
+    (adversary :
+      OracleComp AdaptiveShaSourceSpec (Attempt contract))
     (queryBudget : Nat)
     (security : CollisionSecurity adversary queryBudget) :
-    Pr[AcceptedAlias | adversary] ≤ security.epsilon := by
+    Pr[AcceptedAlias | deployedShaExperiment adversary] ≤
+      security.epsilon := by
   calc
-    _ ≤ Pr[Collision | adversary] := by
+    _ ≤ Pr[Collision | deployedShaExperiment adversary] := by
       apply probEvent_mono
       intro attempt _ halias
       exact acceptedAlias_implies_collision attempt halias
@@ -171,6 +226,8 @@ theorem adaptive_real_acceptance_le_ideal_add_hash_losses
       ac_rfl
 
 #print axioms acceptedAlias_implies_collision
+#print axioms deployedShaImpl_sha256_query
+#print axioms simulateQ_deployedSha_query
 #print axioms adaptive_shipping_sha256_collision_reduction
 #print axioms adaptive_real_acceptance_le_ideal_add_hash_losses
 

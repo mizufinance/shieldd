@@ -25,10 +25,19 @@ SPEC.loader.exec_module(EXTRACTIONS)
 class ExtractionManifestTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.manifest = EXTRACTIONS.load_manifest()
+        cls.raw_manifest = EXTRACTIONS.load_manifest()
+        cls.manifest = copy.deepcopy(cls.raw_manifest)
+        # The checked-in manifest is being recovered graph-by-graph. Unit tests
+        # exercise the final strict schema without fabricating generated output.
+        for graph in cls.manifest["graphs"]:
+            graph.setdefault("source_sha256", "0" * 64)
 
     def validate(self, manifest, *, verify_files: bool = False) -> None:
-        EXTRACTIONS.validate_manifest(manifest, verify_files=verify_files)
+        EXTRACTIONS.validate_manifest(
+            manifest,
+            verify_files=verify_files,
+            verify_canonical_file=False,
+        )
 
     def assert_invalid(self, manifest, needle: str, *, verify_files: bool = False) -> None:
         with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
@@ -91,6 +100,37 @@ class ExtractionManifestTests(unittest.TestCase):
                 manifest["toolchains"][key] = value
                 self.assert_invalid(manifest, f"toolchains.{key}")
 
+    def test_image_digest_is_validated_and_bound_into_every_source_stamp(self):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["toolchains"]["image_digest"] = "latest"
+        self.assert_invalid(manifest, "toolchains.image_digest")
+
+        graph = self.manifest["graphs"][0]
+        original = EXTRACTIONS.current_graph_source_sha256(
+            graph, self.manifest["toolchains"]
+        )
+        changed_toolchains = copy.deepcopy(self.manifest["toolchains"])
+        changed_toolchains["image_digest"] = "sha256:" + "0" * 64
+        changed = EXTRACTIONS.current_graph_source_sha256(
+            graph, changed_toolchains
+        )
+        self.assertNotEqual(original, changed)
+
+    def test_ci_success_fingerprint_binds_declared_and_actual_graph_state(self):
+        graph = self.manifest["graphs"][0]
+        cache = EXTRACTIONS.SourceSnapshotCache()
+        original = EXTRACTIONS.graph_ci_success_fingerprint(
+            graph, self.manifest["toolchains"], cache=cache
+        )
+        changed = copy.deepcopy(graph)
+        changed["output_sha256"] = "0" * 64
+        self.assertNotEqual(
+            original,
+            EXTRACTIONS.graph_ci_success_fingerprint(
+                changed, self.manifest["toolchains"], cache=cache
+            ),
+        )
+
     def test_schema_one_is_rejected(self):
         manifest = copy.deepcopy(self.manifest)
         manifest["schema_version"] = 1
@@ -104,6 +144,15 @@ class ExtractionManifestTests(unittest.TestCase):
         manifest = copy.deepcopy(self.manifest)
         manifest["graphs"][1]["output"] = manifest["graphs"][0]["output"]
         self.assert_invalid(manifest, "duplicate output")
+
+    def test_graph_ids_use_the_workflow_safe_identifier_grammar(self):
+        for graph_id in ("bad-id", "bad id", "../bad", 'bad"graph', "1Bad"):
+            with self.subTest(graph_id=graph_id):
+                manifest = copy.deepcopy(self.manifest)
+                manifest["graphs"][0]["id"] = graph_id
+                self.assert_invalid(
+                    manifest, "expected [A-Za-z][A-Za-z0-9_]*"
+                )
 
     def test_absolute_backslash_and_parent_paths_are_rejected(self):
         for path in (
@@ -163,14 +212,12 @@ class ExtractionManifestTests(unittest.TestCase):
             },
         )
 
-    def test_optional_source_fingerprint_is_schema_compatible_and_validated(self):
+    def test_source_fingerprint_is_required_and_validated(self):
         manifest = copy.deepcopy(self.manifest)
-        manifest["graphs"][0]["source_sha256"] = "a" * 64
-        EXTRACTIONS.validate_manifest(
-            manifest,
-            verify_files=False,
-            verify_canonical_file=False,
-        )
+        del manifest["graphs"][0]["source_sha256"]
+        self.assert_invalid(manifest, "missing source_sha256")
+
+        manifest = copy.deepcopy(self.manifest)
         manifest["graphs"][0]["source_sha256"] = "not-a-hash"
         self.assert_invalid(manifest, "source_sha256")
 
@@ -245,7 +292,7 @@ class ExtractionManifestTests(unittest.TestCase):
         }
         expected_hashes[first["id"]][0] = "f" * 64
 
-        def current_hashes(graph):
+        def current_hashes(graph, **_kwargs):
             return expected_hashes[graph["id"]]
 
         def output_hash(path):
@@ -273,7 +320,7 @@ class ExtractionManifestTests(unittest.TestCase):
                 [first["id"], second["id"]],
             )
 
-    def test_stale_graphs_fail_closed_on_missing_or_changed_source_fingerprint(self):
+    def test_recovery_stale_marks_missing_or_changed_source_fingerprint(self):
         first = self.manifest["graphs"][0]
         second = self.manifest["graphs"][1]
         manifest = copy.deepcopy(self.manifest)
@@ -283,11 +330,11 @@ class ExtractionManifestTests(unittest.TestCase):
         manifest["graphs"][1]["source_sha256"] = "b" * 64
 
         with (
-            patch.object(EXTRACTIONS, "validate_manifest"),
+            patch.object(EXTRACTIONS, "validate_recovery_manifest"),
             patch.object(
                 EXTRACTIONS,
                 "current_input_hashes",
-                side_effect=lambda graph: [
+                side_effect=lambda graph, **_kwargs: [
                     item["sha256"] for item in graph["inputs"]
                 ],
             ),
@@ -307,7 +354,10 @@ class ExtractionManifestTests(unittest.TestCase):
             ),
         ):
             self.assertEqual(
-                EXTRACTIONS.stale_graph_ids(manifest)[:2],
+                EXTRACTIONS.stale_graph_ids(
+                    manifest,
+                    repair_incomplete_sources=True,
+                )[:2],
                 [first["id"], second["id"]],
             )
 
@@ -429,6 +479,12 @@ class ExtractionManifestTests(unittest.TestCase):
                 manifest=manifest_path,
                 graph=[selected["id"]],
             )
+            source_snapshot = {
+                "git:HEAD": "b" * 40,
+                "recipe:graph": EXTRACTIONS.extraction_recipe_sha256(
+                    selected_copy
+                ),
+            }
 
             with (
                 patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
@@ -441,7 +497,7 @@ class ExtractionManifestTests(unittest.TestCase):
                 patch.object(
                     EXTRACTIONS,
                     "current_graph_source_snapshot",
-                    return_value={"git:HEAD": "b" * 40},
+                    return_value=source_snapshot,
                 ),
             ):
                 EXTRACTIONS.command_regenerate(args)
@@ -463,9 +519,7 @@ class ExtractionManifestTests(unittest.TestCase):
             )
             self.assertEqual(
                 updated_selected["source_sha256"],
-                EXTRACTIONS.source_snapshot_sha256(
-                    {"git:HEAD": "b" * 40}
-                ),
+                EXTRACTIONS.source_snapshot_sha256(source_snapshot),
             )
             updated_unselected = next(
                 graph
@@ -569,6 +623,158 @@ class ExtractionManifestTests(unittest.TestCase):
             EXTRACTIONS.source_snapshot_sha256(first),
             EXTRACTIONS.source_snapshot_sha256(changed),
         )
+
+    def test_source_snapshot_cache_hashes_head_and_shared_files_once(self):
+        with tempfile.TemporaryDirectory(prefix="extractions-cache-") as directory:
+            source = Path(directory) / "shared.rs"
+            source.write_bytes(b"shared source\n")
+            cache = EXTRACTIONS.SourceSnapshotCache()
+            git_result = SimpleNamespace(stdout=f"{'a' * 40}\n")
+            original_sha256 = EXTRACTIONS.sha256_file
+            with (
+                patch.object(EXTRACTIONS, "_git", return_value=git_result) as git,
+                patch.object(
+                    EXTRACTIONS,
+                    "sha256_file",
+                    wraps=original_sha256,
+                ) as digest,
+            ):
+                self.assertEqual(cache.head(), "a" * 40)
+                self.assertEqual(cache.head(), "a" * 40)
+                self.assertEqual(
+                    cache.file_sha256(source),
+                    cache.file_sha256(source),
+                )
+            git.assert_called_once_with(["rev-parse", "HEAD"])
+            digest.assert_called_once()
+
+    def test_recovery_artifact_import_is_incremental_and_atomic(self):
+        manifest = copy.deepcopy(self.manifest)
+        graph = manifest["graphs"][0]
+        del manifest["graphs"][1]["source_sha256"]
+        input_hashes = ["c" * 64 for _item in graph["inputs"]]
+        source_snapshot = {
+            "git:HEAD": "a" * 40,
+            "recipe:graph": EXTRACTIONS.extraction_recipe_sha256(graph),
+            "crate/src/lib.rs": "b" * 64,
+        }
+        content = b"recovered generated output\n"
+        record = EXTRACTIONS._recovery_record(
+            manifest=manifest,
+            graph=graph,
+            source_snapshot=source_snapshot,
+            input_hashes=input_hashes,
+            content=content,
+            selected_digest="d" * 64,
+        )
+
+        with tempfile.TemporaryDirectory(prefix="extractions-import-") as directory:
+            repo_root = Path(directory)
+            manifest_path = repo_root / "manifest.json"
+            manifest_path.write_bytes(EXTRACTIONS.canonical_json(manifest))
+            output_path = repo_root.joinpath(*Path(graph["output"]).parts)
+            output_path.parent.mkdir(parents=True)
+            output_path.write_bytes(b"old generated output\n")
+            artifact = repo_root / "artifact"
+            EXTRACTIONS._write_recovery_artifact(
+                artifact,
+                record=record,
+                output_content=content,
+            )
+            args = SimpleNamespace(
+                manifest=manifest_path,
+                artifact=[artifact],
+            )
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_graph_source_snapshot",
+                    return_value=source_snapshot,
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_input_hashes",
+                    return_value=input_hashes,
+                ),
+            ):
+                self.assertEqual(EXTRACTIONS.command_import_recovery(args), 0)
+
+            updated = EXTRACTIONS.load_manifest(manifest_path)
+            updated_graph = updated["graphs"][0]
+            self.assertEqual(output_path.read_bytes(), content)
+            self.assertEqual(
+                updated_graph["source_sha256"],
+                EXTRACTIONS.source_snapshot_sha256(source_snapshot),
+            )
+            self.assertEqual(updated_graph["output_sha256"], record["output_sha256"])
+            self.assertNotIn("source_sha256", updated["graphs"][1])
+            EXTRACTIONS.validate_recovery_manifest(
+                updated,
+                manifest_path=manifest_path,
+                verify_files=False,
+            )
+            with self.assertRaises(EXTRACTIONS.ManifestError):
+                EXTRACTIONS.validate_manifest(
+                    updated,
+                    manifest_path=manifest_path,
+                    verify_files=False,
+                )
+
+    def test_recovery_import_rejects_stale_artifact_without_mutation(self):
+        manifest = copy.deepcopy(self.manifest)
+        graph = manifest["graphs"][0]
+        input_hashes = ["c" * 64 for _item in graph["inputs"]]
+        artifact_snapshot = {
+            "git:HEAD": "a" * 40,
+            "recipe:graph": EXTRACTIONS.extraction_recipe_sha256(graph),
+            "crate/src/lib.rs": "b" * 64,
+        }
+        current_snapshot = dict(artifact_snapshot)
+        current_snapshot["crate/src/lib.rs"] = "e" * 64
+        content = b"recovered generated output\n"
+        record = EXTRACTIONS._recovery_record(
+            manifest=manifest,
+            graph=graph,
+            source_snapshot=artifact_snapshot,
+            input_hashes=input_hashes,
+            content=content,
+            selected_digest="d" * 64,
+        )
+
+        with tempfile.TemporaryDirectory(prefix="extractions-import-") as directory:
+            repo_root = Path(directory)
+            manifest_path = repo_root / "manifest.json"
+            original_manifest = EXTRACTIONS.canonical_json(manifest)
+            manifest_path.write_bytes(original_manifest)
+            output_path = repo_root.joinpath(*Path(graph["output"]).parts)
+            output_path.parent.mkdir(parents=True)
+            original_output = b"old generated output\n"
+            output_path.write_bytes(original_output)
+            artifact = repo_root / "artifact"
+            EXTRACTIONS._write_recovery_artifact(
+                artifact,
+                record=record,
+                output_content=content,
+            )
+            args = SimpleNamespace(
+                manifest=manifest_path,
+                artifact=[artifact],
+            )
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_graph_source_snapshot",
+                    return_value=current_snapshot,
+                ),
+                self.assertRaises(EXTRACTIONS.ManifestError) as raised,
+            ):
+                EXTRACTIONS.command_import_recovery(args)
+
+            self.assertIn("source changed after artifact", str(raised.exception))
+            self.assertEqual(manifest_path.read_bytes(), original_manifest)
+            self.assertEqual(output_path.read_bytes(), original_output)
 
     def test_command_failure_preserves_command_cwd_stdout_and_stderr(self):
         command = [
@@ -720,6 +926,45 @@ class ExtractionManifestTests(unittest.TestCase):
                     manifest_content=b"new manifest\n",
                 )
             self.assertEqual(output.read_bytes(), b"old output\n")
+            self.assertEqual(manifest.read_bytes(), b"old manifest\n")
+
+    def test_recovery_commit_rolls_back_every_output_and_manifest(self):
+        with tempfile.TemporaryDirectory(prefix="extractions-test-") as directory:
+            root = Path(directory)
+            first = root / "FirstGenerated.lean"
+            second = root / "SecondGenerated.lean"
+            manifest = root / "manifest.json"
+            first.write_bytes(b"old first\n")
+            second.write_bytes(b"old second\n")
+            manifest.write_bytes(b"old manifest\n")
+            original_atomic_write = EXTRACTIONS._atomic_write_bytes
+            calls = 0
+
+            def fail_manifest_once(path, content):
+                nonlocal calls
+                calls += 1
+                if calls == 3:
+                    raise OSError("simulated recovery manifest failure")
+                original_atomic_write(path, content)
+
+            with (
+                patch.object(
+                    EXTRACTIONS,
+                    "_atomic_write_bytes",
+                    side_effect=fail_manifest_once,
+                ),
+                self.assertRaises(OSError),
+            ):
+                EXTRACTIONS._commit_recoveries(
+                    output_updates=[
+                        (first, b"new first\n"),
+                        (second, b"new second\n"),
+                    ],
+                    manifest_path=manifest,
+                    manifest_content=b"new manifest\n",
+                )
+            self.assertEqual(first.read_bytes(), b"old first\n")
+            self.assertEqual(second.read_bytes(), b"old second\n")
             self.assertEqual(manifest.read_bytes(), b"old manifest\n")
 
     def test_regeneration_commit_rolls_back_if_source_changes_after_swap(self):

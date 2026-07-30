@@ -245,6 +245,14 @@ structure SelectionAt (Call : Type) (μ : Nat) where
   call : Call
   logicalKey : ShippingStatementKey
   encodedKey : EncodedFamilyContext
+  /-- The byte prefix used by every selected challenge is exactly the
+  registered transcript domain of the selected logical family. -/
+  familyDomain_exact :
+    logicalKey.family.transcriptDomain = some encodedKey.familyDomain
+  /-- The byte context used by every selected challenge is exactly the
+  SHA-derived context retained in the selected logical statement key. -/
+  challengeContext_exact :
+    encodedKey.challengeContext = logicalKey.challengeContext
   statement :
     Ipp.FsStatement μ Ipp.Bls12377.Fr
       Ipp.Bls12377.g1PrimeSubgroup
@@ -271,6 +279,42 @@ def encodedKey {Call : Type}
   selection.2.encodedKey
 
 end PackedSelection
+
+/-- Every inhabitant of `SelectionAt` carries the exact registered
+family-domain and SHA-derived challenge context used by its global queries.
+This is structural: an adaptive adversary cannot return a mismatched pair. -/
+def SelectionAt.EncodingExact {Call : Type} {μ : Nat}
+    (selection : SelectionAt Call μ) : Prop :=
+  selection.logicalKey.family.transcriptDomain =
+      some selection.encodedKey.familyDomain ∧
+    selection.encodedKey.challengeContext =
+      selection.logicalKey.challengeContext
+
+@[simp] theorem SelectionAt.encodingExact
+    {Call : Type} {μ : Nat}
+    (selection : SelectionAt Call μ) :
+    selection.EncodingExact :=
+  ⟨selection.familyDomain_exact, selection.challengeContext_exact⟩
+
+/-- A selected global query encodes to the exact production
+family-domain-separated Blake2b preimage. -/
+@[simp] theorem SelectionAt.globalQueryEncoding_eq_shipping
+    {Call : Type} {μ : Nat}
+    (selection : SelectionAt Call μ)
+    (attempt : Ipp.ShippingHashGame.ShippingAttempt) :
+    globalQueryEncoding {
+        statement := selection.logicalKey
+        encoded := selection.encodedKey
+        attempt := attempt
+      } =
+      Ipp.ShippingHashGame.shippingBlake2bPreimage
+        selection.logicalKey.family
+        selection.logicalKey.challengeContext
+        (Ipp.ShippingHashGame.shippingAttemptPoint attempt) := by
+  simp [globalQueryEncoding,
+    Ipp.ShippingHashGame.shippingAttemptPreimage,
+    Ipp.ShippingHashGame.shippingBlake2bPreimage,
+    selection.familyDomain_exact, selection.challengeContext_exact]
 
 /-- Forward ambient sampling into the one global adaptive source. -/
 def globalFsUnifFwd :
@@ -492,6 +536,44 @@ theorem multiStatementFsGame_isTotalQueryBound
   · intro result
     exact trivial
   · simp
+
+/-- Composite adaptive-game capstone: every query made by the selected
+verifier has the exact registered family prefix and retained SHA challenge
+context, while the complete adversary-plus-verifier program is bounded by the
+declared additive query budget. Arbitrary adversarial prequeries require the
+separate reached-query invariant used by the final coupling. -/
+theorem multiStatementFsGame_selectedFraming_queryBounded
+    {Call : Type}
+    (adversary :
+      OracleComp GlobalFsSourceSpec (PackedSelection Call))
+    (adversaryQueries verifierQueries : Nat)
+    (hadversary : IsTotalQueryBound adversary adversaryQueries)
+    (hverifier : ∀ μ selection,
+      IsTotalQueryBound
+        (globalFsVerifier (μ := μ) selection) verifierQueries) :
+    IsTotalQueryBound
+        (MultiStatementFsGame adversary)
+        (adversaryQueries + verifierQueries) ∧
+      ∀ μ (selection : SelectionAt Call μ),
+        selection.EncodingExact ∧
+          ∀ attempt : Ipp.ShippingHashGame.ShippingAttempt,
+            globalQueryEncoding {
+                statement := selection.logicalKey
+                encoded := selection.encodedKey
+                attempt := attempt
+              } =
+              Ipp.ShippingHashGame.shippingBlake2bPreimage
+                selection.logicalKey.family
+                selection.logicalKey.challengeContext
+                (Ipp.ShippingHashGame.shippingAttemptPoint attempt) := by
+  refine
+    ⟨multiStatementFsGame_isTotalQueryBound adversary
+      adversaryQueries verifierQueries hadversary hverifier, ?_⟩
+  intro μ selection
+  exact
+    ⟨selection.encodingExact,
+      fun attempt =>
+        selection.globalQueryEncoding_eq_shipping attempt⟩
 
 /-- Wrapped output retaining the chronological structured miss trace needed
 to locate the selected statement's GIPA round slots after adversarial
@@ -841,10 +923,12 @@ end FreshCacheCounterexample
 
 #print axioms globalQueryEncoding_ofRegistered
 #print axioms globalQueryEncoding_fixed_key_injective
+#print axioms SelectionAt.globalQueryEncoding_eq_shipping
 #print axioms globalFsVerifier_support_proof_eq
 #print axioms OutcomeAt.roundQuery?_of_lt
 #print axioms PackedOutcome.at?_self
 #print axioms multiStatementFsGame_isTotalQueryBound
+#print axioms multiStatementFsGame_selectedFraming_queryBounded
 #print axioms rawForkSucceededAt_le_explicit_game_advantage
 #print axioms FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh
 

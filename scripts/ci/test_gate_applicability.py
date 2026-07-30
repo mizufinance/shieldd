@@ -152,7 +152,14 @@ class GateApplicabilityTests(unittest.TestCase):
                 decision = GATE.classify(
                     self.snarkpack, "pull_request", [path], []
                 )
-                self.assertEqual(decision.tier, "extract-all")
+                self.assertEqual(
+                    decision.tier,
+                    (
+                        "static"
+                        if path in {"flake.nix", "flake.lock"}
+                        else "extract-all"
+                    ),
+                )
             with self.subTest(path=path, gate="soundness"):
                 decision = GATE.classify(
                     self.soundness, "pull_request", [path], []
@@ -173,6 +180,20 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertEqual((decision.status, decision.tier), ("run", "full"))
 
+    def test_lean_attestation_helpers_are_static_gate_inputs(self) -> None:
+        for path in (
+            "scripts/ci/snarkpack_lean_attestation.py",
+            "scripts/ci/test_snarkpack_lean_attestation.py",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.snarkpack, "pull_request", [path], []
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier),
+                    ("run", "static"),
+                )
+
     def test_one_graph_input_selects_only_that_graph(self) -> None:
         manifest = self.synthetic_manifest(
             ("GraphA", "src/a.rs"), ("GraphB", "src/b.rs")
@@ -185,6 +206,16 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         self.assertEqual((decision.status, decision.tier), ("run", "extract-changed"))
         self.assertEqual(decision.graphs, ("GraphA",))
+
+    def test_workflow_unsafe_graph_id_blocks_classification(self) -> None:
+        manifest = self.synthetic_manifest(
+            ('Graph"; echo injected', "src/a.rs"),
+        )
+        with self.assertRaisesRegex(
+            GATE.ClassificationError,
+            r"must match \[A-Za-z\]\[A-Za-z0-9_\]\*",
+        ):
+            self.lean_rules(manifest)
 
     def test_deleted_former_input_is_found_from_base_manifest(self) -> None:
         current = self.synthetic_manifest(("GraphA", "src/current.rs"))
@@ -369,20 +400,318 @@ class GateApplicabilityTests(unittest.TestCase):
             {lane for lane, _ in lanes},
             {
                 "snarkpack-static",
-                "snarkpack-toolchain",
+                "snarkpack-extract",
+                "snarkpack-extraction-recovery",
+                "snarkpack-lean",
                 "snarkpack-fstar",
                 "snarkpack-parity",
                 "snarkpack-rust-reference",
+                "snarkpack-slow",
                 "snarkpack-fuzz",
                 "snarkpack-dos",
             },
         )
         for lane, body in lanes:
             with self.subTest(lane=lane):
-                self.assertIn("needs: applicability", body)
-                self.assertIn(
-                    "needs.applicability.outputs.snarkpack_run == 'true'",
+                self.assertRegex(
                     body,
+                    r"needs: (?:applicability|\[applicability,[^\]]+\])",
+                )
+                self.assertRegex(
+                    body,
+                    r"needs\.applicability\.outputs\."
+                    r"snarkpack_[a-z_]+_run == 'true'",
+                )
+
+    def test_snarkpack_workflow_uses_exact_impact_outputs(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "python3 scripts/ci/snarkpack_fv_impact.py", workflow
+        )
+        self.assertIn(
+            "LEAN_MODULES_JSON: "
+            "${{ needs.applicability.outputs.snarkpack_lean_modules }}",
+            workflow,
+        )
+        filtered_graphs = (
+            "${{ needs.applicability.outputs.snarkpack_extract_graphs }}"
+        )
+        self.assertIn(f"GRAPH_SELECTION: {filtered_graphs}", workflow)
+        self.assertIn(
+            f"SNARKPACK_FV_GRAPHS_JSON: {filtered_graphs}", workflow
+        )
+        self.assertNotIn(
+            "GRAPH_SELECTION: "
+            "${{ needs.applicability.outputs.snarkpack_graphs }}",
+            workflow,
+        )
+        self.assertIn("max-parallel: 16", workflow)
+        self.assertNotIn("snarkpack-toolchain:", workflow)
+        extraction_attestation_key = (
+            "snarkpack-extraction-pass-v1-${{ runner.os }}-"
+            "${{ matrix.graph }}-"
+            "${{ steps.extraction_fingerprint.outputs.sha256 }}"
+        )
+        self.assertEqual(
+            workflow.count(extraction_attestation_key),
+            2,
+        )
+        self.assertIn(
+            "if: steps.extraction_pass_cache.outputs.cache-hit != 'true'\n"
+            "        timeout-minutes: 22",
+            workflow,
+        )
+        self.assertIn(
+            "if: steps.extraction_compare.outcome == 'success'\n"
+            "        shell: bash",
+            workflow,
+        )
+        self.assertIn(
+            "Validate restored graph attestation",
+            workflow,
+        )
+        self.assertIn(
+            "id: extraction_pass_cache\n"
+            "        if: >-\n"
+            "          github.event_name == 'pull_request' ||\n"
+            "          github.event_name == 'merge_group'",
+            workflow,
+        )
+        lean_key = (
+            "lean-ipp-v6-${{ runner.os }}-${{ "
+            "hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/"
+            "lake-manifest.json', "
+            "'crates/crypto/proof-aggregation/formal/lean-ipp/"
+            "lakefile.lean', "
+            "'crates/crypto/proof-aggregation/formal/lean-ipp/"
+            "lean-toolchain') }}"
+        )
+        self.assertEqual(workflow.count(lean_key), 4)
+        self.assertIn(
+            "python3 scripts/ci/snarkpack_lean_attestation.py fingerprint",
+            workflow,
+        )
+        self.assertIn(
+            "Validate restored markers and plan only pending Lean modules",
+            workflow,
+        )
+        self.assertIn(
+            "steps.lean_plan.outputs.pending == 'true'",
+            workflow,
+        )
+        self.assertIn(
+            "SNARKPACK_LEAN_MODULES_JSON: "
+            "${{ steps.lean_plan.outputs.pending_modules }}",
+            workflow,
+        )
+        script = (self.root / "scripts/snarkpack-fv.sh").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            '"${lake_command[@]}" build "${modules[@]}"',
+            script,
+        )
+        self.assertNotIn(
+            '"${lake_command[@]}" build "$module"',
+            script,
+        )
+        self.assertIn(
+            'python3 "$VERIFICATION_MANIFEST" audit-modules',
+            script,
+        )
+        self.assertIn(
+            '^Ipp\\.ProofAudit[A-Za-z0-9_]*$',
+            script,
+        )
+        self.assertIn(
+            "Atomically attest modules only after their build succeeds",
+            workflow,
+        )
+        self.assertIn(
+            "--modules-json \"$PENDING_LEAN_MODULES_JSON\"",
+            workflow,
+        )
+        self.assertIn(
+            "Validate the complete current Lean attestation",
+            workflow,
+        )
+        self.assertIn(
+            "--exact-cache",
+            workflow,
+        )
+        self.assertIn(
+            "id: fstar_pass_cache\n"
+            "        if: needs.applicability.outputs."
+            "snarkpack_fstar_force_all != 'true'",
+            workflow,
+        )
+        self.assertIn(
+            "github.event_name == 'schedule' || "
+            "github.event_name == 'workflow_call' || "
+            "github.event_name == 'workflow_dispatch'",
+            workflow,
+        )
+        fstar_attestation_key = (
+            "snarkpack-fstar-pass-v1-${{ runner.os }}-"
+            "${{ steps.fstar_fingerprint.outputs.environment_sha256 }}-"
+            "${{ steps.fstar_fingerprint.outputs.exact_sha256 }}"
+        )
+        self.assertEqual(workflow.count(fstar_attestation_key), 2)
+        self.assertIn(
+            "Reuse exact current F* attestation without rebuilding",
+            workflow,
+        )
+        self.assertIn("Validate newly checked F* evidence", workflow)
+        self.assertIn(
+            "-- nix develop --command scripts/snarkpack-formal.sh",
+            workflow,
+        )
+        self.assertNotIn(
+            "-- nix develop --command just snarkpack-formal",
+            workflow,
+        )
+        self.assertIn(
+            "if: steps.fstar_artifact_validation.outcome == 'success'",
+            workflow,
+        )
+        self.assertGreaterEqual(
+            workflow.count(
+                "failure() &&\n"
+                "          steps.extraction_compare.outcome == 'failure'"
+            ),
+            3,
+        )
+        self.assertIn(
+            "failure() &&\n"
+            "          steps.lean_build.outcome == 'failure'",
+            workflow,
+        )
+        self.assertIn(
+            "SNARKPACK_FSTAR_FORCE_ALL: "
+            "${{ needs.applicability.outputs.snarkpack_fstar_force_all "
+            "== 'true' && '1' || '0' }}",
+            workflow,
+        )
+        self.assertIn(
+            "SNARKPACK_FSTAR_BOUNDARY_CACHE_HIT: "
+            "${{ steps.fstar_boundary_cache.outputs.cache-hit == 'true' "
+            "&& '1' || '0' }}",
+            workflow,
+        )
+        self.assertIn(
+            "snarkpack-fstar-boundary-v1-${{ runner.os }}-",
+            workflow,
+        )
+        for manifest_path in (
+            ".cargo/config.toml",
+            "Cargo.toml",
+            "crates/crypto/proof-aggregation/Cargo.toml",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
+            "crates/core/component/shielded-pool/Cargo.toml",
+        ):
+            with self.subTest(fstar_boundary_input=manifest_path):
+                self.assertIn(manifest_path, workflow)
+        self.assertIn(
+            "elif [[ \"$SNARKPACK_STATUS\" == run ]]; then",
+            workflow,
+        )
+        self.assertIn(
+            'if [[ "$STATIC_RUN" != true ]]; then',
+            workflow,
+        )
+        self.assertIn(
+            'require_not_selected "$STATIC_RUN" snarkpack-static',
+            workflow,
+        )
+        self.assertIn(
+            'require_not_selected "$DOS_RUN" snarkpack-dos',
+            workflow,
+        )
+        self.assertRegex(
+            workflow,
+            r"(?ms)^    needs:\n(?:      - .+\n)*"
+            r"      - snarkpack-extraction-recovery\n",
+        )
+
+    def test_heavy_snarkpack_lanes_use_exact_success_attestations(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        lanes = dict(
+            re.findall(
+                r"(?ms)^  (snarkpack-[a-z0-9-]+):\n"
+                r"(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+                workflow,
+            )
+        )
+        attested = {
+            "snarkpack-parity": ("parity", "parity"),
+            "snarkpack-rust-reference": (
+                "rust_reference",
+                "rust-reference",
+            ),
+            "snarkpack-slow": ("slow", "slow"),
+            "snarkpack-fuzz": ("fuzz", "fuzz"),
+            "snarkpack-dos": ("dos", "dos"),
+        }
+        for lane, (step_id, key_label) in attested.items():
+            with self.subTest(lane=lane):
+                body = lanes[lane]
+                key_prefix = (
+                    f"snarkpack-{key_label}-pass-v1-${{{{ runner.os }}}}-"
+                )
+                self.assertIn(
+                    "runs-on: blacksmith-16vcpu-ubuntu-2404",
+                    body,
+                )
+                self.assertIn(
+                    f"id: {step_id}_fingerprint",
+                    body,
+                )
+                self.assertIn(
+                    f"id: {step_id}_pass_cache",
+                    body,
+                )
+                self.assertIn(
+                    "uses: actions/cache/restore@"
+                    "0057852bfaa89a56745cba8c7296529d2fc39830",
+                    body,
+                )
+                self.assertIn(
+                    "uses: actions/cache/save@"
+                    "0057852bfaa89a56745cba8c7296529d2fc39830",
+                    body,
+                )
+                self.assertEqual(body.count(key_prefix), 2)
+                self.assertNotIn("restore-keys:", body)
+                self.assertIn(
+                    "if: needs.applicability.outputs."
+                    "snarkpack_fstar_force_all != 'true'",
+                    body,
+                )
+                cache_miss = (
+                    f"if: steps.{step_id}_pass_cache.outputs."
+                    "cache-hit != 'true'"
+                )
+                self.assertGreaterEqual(body.count(cache_miss), 2)
+                self.assertIn(
+                    f"id: {step_id}_check\n        {cache_miss}",
+                    body,
+                )
+                self.assertIn(
+                    f"if: steps.{step_id}_check.outcome == 'success'",
+                    body,
+                )
+                self.assertIn(
+                    "python3 scripts/ci/snarkpack_lane_fingerprint.py",
+                    body,
+                )
+                self.assertIn(f"--lane {key_label}", body)
+                self.assertLess(
+                    body.index("uses: actions/cache/restore@"),
+                    body.index("uses: ./.github/actions/setup-nix-rust"),
                 )
 
     def test_every_soundness_lane_is_applicability_gated(self) -> None:

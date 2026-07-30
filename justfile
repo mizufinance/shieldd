@@ -83,18 +83,39 @@ gnark-proof-tests-slow:
 
 # Run ignored slow SnarkPack parity tests.
 snarkpack-slow:
+    just snarkpack-slow-one legacy
+    just snarkpack-slow-one oracle
+    just snarkpack-slow-one interop
+
+# Run one positively counted ignored SnarkPack test for modular CI evidence.
+snarkpack-slow-one test:
     #!/usr/bin/env bash
     set -euo pipefail
-    legacy_log="$(mktemp)"
-    oracle_log="$(mktemp)"
-    interop_log="$(mktemp)"
-    trap 'rm -f "$legacy_log" "$oracle_log" "$interop_log"' EXIT
-    cargo test -p shieldd-sdk-proof-aggregation snarkpack_matches_legacy_batch_across_families_and_counts_slow --lib -- --ignored 2>&1 | tee "$legacy_log"
-    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$legacy_log" --expected 1 --label "snarkpack_matches_legacy_batch_across_families_and_counts_slow" --test-name "backend::tests::snarkpack_matches_legacy_batch_across_families_and_counts_slow"
-    cargo test -p shieldd-sdk-proof-aggregation snarkpack_matches_single_and_batch_groth16_oracles_slow --lib -- --ignored 2>&1 | tee "$oracle_log"
-    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$oracle_log" --expected 1 --label "snarkpack_matches_single_and_batch_groth16_oracles_slow" --test-name "backend::tests::snarkpack_matches_single_and_batch_groth16_oracles_slow"
-    cargo test -p shieldd-sdk-proof-aggregation-reference slow_two_way_interop_band --lib -- --ignored 2>&1 | tee "$interop_log"
-    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$interop_log" --expected 1 --label "slow_two_way_interop_band" --test-name "tests::slow_two_way_interop_band"
+    log="$(mktemp)"
+    trap 'rm -f "$log"' EXIT
+    case "{{test}}" in
+      legacy)
+        package=shieldd-sdk-proof-aggregation
+        filter=snarkpack_matches_legacy_batch_across_families_and_counts_slow
+        exact_name=backend::tests::snarkpack_matches_legacy_batch_across_families_and_counts_slow
+        ;;
+      oracle)
+        package=shieldd-sdk-proof-aggregation
+        filter=snarkpack_matches_single_and_batch_groth16_oracles_slow
+        exact_name=backend::tests::snarkpack_matches_single_and_batch_groth16_oracles_slow
+        ;;
+      interop)
+        package=shieldd-sdk-proof-aggregation-reference
+        filter=slow_two_way_interop_band
+        exact_name=tests::slow_two_way_interop_band
+        ;;
+      *)
+        echo "unknown SnarkPack slow test: {{test}}" >&2
+        exit 2
+        ;;
+    esac
+    cargo test -p "$package" "$filter" --lib -- --ignored --test-threads=1 2>&1 | tee "$log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$log" --expected 1 --label "$filter" --test-name "$exact_name"
 
 # Run the exact ordinary tests anchoring the bounded challenge sampler and its
 # public prover/verifier exhaustion mappings.
