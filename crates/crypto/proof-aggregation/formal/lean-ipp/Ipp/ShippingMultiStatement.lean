@@ -479,6 +479,13 @@ def SelectedMu {Call : Type} (μ : Nat) :
     PackedOutcome Call → Prop
   | ⟨ν, _⟩ => ν = μ
 
+/-- Every heterogeneous output belongs to its own dependent-size partition. -/
+@[simp] theorem selectedMu_index {Call : Type}
+    (output : PackedOutcome Call) :
+    SelectedMu output.1 output := by
+  cases output
+  rfl
+
 /-- Multi-statement Fiat--Shamir game.
 
 The first bind runs the adversary inside `GlobalFsSourceSpec`; only after that
@@ -823,6 +830,103 @@ def ActiveMuCovers {Call : Type}
   ∀ run ∈ support (multiStatementFsProbComp game),
     run.1.out.1 ∈ activeMu
 
+/-- Invalid acceptance of the complete adaptive game, before partitioning by
+the adversarially selected proof size. -/
+def GlobalInvalidAccepted {Call : Type}
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop) :
+    MultiStatementRunLog Call → Prop :=
+  fun run => InvalidAccepted invalid run.1.out
+
+/-- On the support of a covered game, global invalid acceptance is exactly the
+union of the declared finite `μ` partitions.  The adversary and verifier
+remain inside the original shared-cache execution; this theorem does not
+restart either phase. -/
+theorem globalInvalidAccepted_iff_exists_activeMu_on_support
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
+    (activeMu : Finset Nat)
+    (hcover : ActiveMuCovers game activeMu)
+    (run : MultiStatementRunLog Call)
+    (hrun : run ∈ support (multiStatementFsProbComp game)) :
+    GlobalInvalidAccepted invalid run ↔
+      ∃ μ ∈ activeMu, InvalidAcceptedAt invalid μ run := by
+  constructor
+  · intro hinvalid
+    refine ⟨run.1.out.1, hcover run hrun, ?_⟩
+    exact ⟨selectedMu_index run.1.out, hinvalid⟩
+  · rintro ⟨_, _, hpartition⟩
+    exact hpartition.2
+
+/-- Finite partition bound for the complete adaptive invalid-acceptance event.
+There is no fresh-cache or fixed-statement premise: all statement-selection
+behavior is retained in each `InvalidAcceptedAt` probability. -/
+theorem globalInvalidAccepted_le_sum_activeMu
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
+    (activeMu : Finset Nat)
+    (hcover : ActiveMuCovers game activeMu) :
+    Pr[GlobalInvalidAccepted invalid | multiStatementFsProbComp game] ≤
+      ∑ μ ∈ activeMu,
+        Pr[InvalidAcceptedAt invalid μ | multiStatementFsProbComp game] := by
+  calc
+    Pr[GlobalInvalidAccepted invalid | multiStatementFsProbComp game] =
+        Pr[fun run => ∃ μ ∈ activeMu, InvalidAcceptedAt invalid μ run |
+          multiStatementFsProbComp game] := by
+      apply probEvent_congr'
+      · intro run hrun
+        exact
+          globalInvalidAccepted_iff_exists_activeMu_on_support
+            game invalid activeMu hcover run hrun
+      · rfl
+    _ ≤ ∑ μ ∈ activeMu,
+          Pr[InvalidAcceptedAt invalid μ | multiStatementFsProbComp game] :=
+      probEvent_exists_finset_le_sum activeMu
+        (multiStatementFsProbComp game) (InvalidAcceptedAt invalid)
+
+/-- Compose arbitrary per-size bounds without taking a maximum.  This keeps
+the exact heterogeneous size distribution visible in the final expression. -/
+theorem globalInvalidAccepted_le_sum_partition_bounds
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
+    (activeMu : Finset Nat)
+    (hcover : ActiveMuCovers game activeMu)
+    (bound : Nat → ℝ≥0∞)
+    (hpartition : ∀ μ ∈ activeMu,
+      Pr[InvalidAcceptedAt invalid μ | multiStatementFsProbComp game] ≤
+        bound μ) :
+    Pr[GlobalInvalidAccepted invalid | multiStatementFsProbComp game] ≤
+      ∑ μ ∈ activeMu, bound μ := by
+  exact
+    le_trans
+      (globalInvalidAccepted_le_sum_activeMu
+        game invalid activeMu hcover)
+      (Finset.sum_le_sum fun μ hμ => hpartition μ hμ)
+
+/-- If every active size has the same bound, adaptive size selection costs at
+most the explicit number of active partitions. -/
+theorem globalInvalidAccepted_le_card_mul_partition_bound
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
+    (activeMu : Finset Nat)
+    (hcover : ActiveMuCovers game activeMu)
+    (bound : ℝ≥0∞)
+    (hpartition : ∀ μ ∈ activeMu,
+      Pr[InvalidAcceptedAt invalid μ | multiStatementFsProbComp game] ≤
+        bound) :
+    Pr[GlobalInvalidAccepted invalid | multiStatementFsProbComp game] ≤
+      (activeMu.card : ℝ≥0∞) * bound := by
+  calc
+    Pr[GlobalInvalidAccepted invalid | multiStatementFsProbComp game] ≤
+        ∑ _μ ∈ activeMu, bound :=
+      globalInvalidAccepted_le_sum_partition_bounds
+        game invalid activeMu hcover (fun _ => bound) hpartition
+    _ = (activeMu.card : ℝ≥0∞) * bound := by
+      rw [Finset.sum_const, nsmul_eq_mul]
+
 /-- Explicit losses derived by the future multi-statement fork proof.  The
 final theorem may use only a concrete value produced by that proof; callers
 cannot provide this structure as a security premise. -/
@@ -958,8 +1062,13 @@ end FreshCacheCounterexample
 #print axioms globalFsVerifier_support_proof_eq
 #print axioms OutcomeAt.roundQuery?_of_lt
 #print axioms PackedOutcome.at?_self
+#print axioms selectedMu_index
 #print axioms multiStatementFsGame_isTotalQueryBound
 #print axioms multiStatementFsGame_selectedFraming_queryBounded
+#print axioms globalInvalidAccepted_iff_exists_activeMu_on_support
+#print axioms globalInvalidAccepted_le_sum_activeMu
+#print axioms globalInvalidAccepted_le_sum_partition_bounds
+#print axioms globalInvalidAccepted_le_card_mul_partition_bound
 #print axioms rawForkSucceededAt_le_explicit_game_advantage
 #print axioms FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh
 

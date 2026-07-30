@@ -10,8 +10,10 @@ use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
 use ark_std::rand::Rng;
 use digest::Digest;
 use std::{
+    fmt,
     marker::PhantomData,
     ops::{Add, Mul, MulAssign, Neg, Sub},
+    sync::Arc,
     time::Instant,
 };
 
@@ -21,6 +23,11 @@ use rayon::prelude::*;
 #[cfg(not(feature = "bench-baseline"))]
 use crate::challenge::checked_next_challenge_nonce;
 use crate::{
+    app_verifier::{
+        app_verify_shipping_backend_call_result, app_verify_shipping_backend_result_from_parts,
+        app_verify_shipping_backend_result_into_parts, AppVerifyCallId, AppVerifyCallResult,
+        AppVerifyShippingBackendResult,
+    },
     challenge::{
         challenge_digest, sample_bounded_challenge, sample_bounded_challenge_from_nonce,
         ChallengeContext, ChallengeNonceExhausted, ChallengeTraceSink, NoopChallengeTraceSink,
@@ -4251,6 +4258,68 @@ pub struct AggregateProofVerificationProfile {
     pub accepted: bool,
 }
 
+/// Runtime profile paired with the semantic execution from which it was built.
+#[cfg(not(feature = "bench-baseline"))]
+struct ShippingVerifierProfiledSemanticExecution<I, F, TX> {
+    profile: AggregateProofVerificationProfile,
+    execution: ShippingVerifierSemanticExecution<I, F, TX>,
+}
+
+/// Opaque production ownership of the exact semantic execution/result pair.
+///
+/// Application and backend code can transport this value but cannot forge a
+/// replacement acceptance bit or inspect Arkworks execution state.
+#[doc(hidden)]
+pub struct ShippingVerifierExecutionCarrier<P: Pairing> {
+    #[cfg(not(feature = "bench-baseline"))]
+    retained: Arc<ArkworksShippingVerifierSemanticExecution<P>>,
+    #[cfg(feature = "bench-baseline")]
+    retained: Arc<BenchmarkShippingVerifierExecution>,
+    _pairing: PhantomData<fn() -> P>,
+}
+
+impl<P: Pairing> Clone for ShippingVerifierExecutionCarrier<P> {
+    fn clone(&self) -> Self {
+        Self {
+            retained: Arc::clone(&self.retained),
+            _pairing: PhantomData,
+        }
+    }
+}
+
+impl<P: Pairing> fmt::Debug for ShippingVerifierExecutionCarrier<P> {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ShippingVerifierExecutionCarrier")
+            .finish_non_exhaustive()
+    }
+}
+
+#[cfg(feature = "bench-baseline")]
+#[derive(Debug)]
+struct BenchmarkShippingVerifierExecution {
+    accepted: bool,
+}
+
+/// Shipping-only profiled result retaining the exact verifier execution.
+#[doc(hidden)]
+pub struct ShippingAggregateProofVerification<P: Pairing> {
+    profile: AggregateProofVerificationProfile,
+    backend_result: AppVerifyShippingBackendResult<ShippingVerifierExecutionCarrier<P>>,
+}
+
+impl<P: Pairing> ShippingAggregateProofVerification<P> {
+    #[doc(hidden)]
+    pub fn into_parts(
+        self,
+    ) -> (
+        AggregateProofVerificationProfile,
+        AppVerifyShippingBackendResult<ShippingVerifierExecutionCarrier<P>>,
+    ) {
+        (self.profile, self.backend_result)
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct AggregateProofBuildProfile {
     pub point_extract_ms: f64,
@@ -4615,6 +4684,36 @@ fn shipping_verifier_semantic_execution_from_parts<I, F, TX>(
     }
 }
 
+/// First-order shipping result projection used by production before profiling
+/// or opaque ownership transport.
+///
+/// This is the extraction root for the missing result inversion. It has no
+/// Arkworks trait bound or runtime-only value, and the accepted bit is read
+/// only from the exact semantic execution consumed into the result carrier.
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_verifier_semantic_backend_result_core<I, F, TX>(
+    call_id: AppVerifyCallId,
+    execution: ShippingVerifierSemanticExecution<I, F, TX>,
+) -> AppVerifyShippingBackendResult<ShippingVerifierSemanticExecution<I, F, TX>> {
+    let result = AppVerifyCallResult {
+        id: call_id,
+        accepted: execution.semantic.accepted,
+    };
+    app_verify_shipping_backend_result_from_parts(execution, result)
+}
+
+#[cfg(feature = "bench-baseline")]
+fn benchmark_shipping_verifier_backend_result_core(
+    call_id: AppVerifyCallId,
+    execution: BenchmarkShippingVerifierExecution,
+) -> AppVerifyShippingBackendResult<BenchmarkShippingVerifierExecution> {
+    let result = AppVerifyCallResult {
+        id: call_id,
+        accepted: execution.accepted,
+    };
+    app_verify_shipping_backend_result_from_parts(execution, result)
+}
+
 #[cfg(not(feature = "bench-baseline"))]
 type ArkworksShippingVerifierSemanticExecution<P> = ShippingVerifierSemanticExecution<
     AggregateAdapterCoreInput<
@@ -4634,6 +4733,30 @@ type ArkworksShippingVerifierSemanticExecution<P> = ShippingVerifierSemanticExec
         <P as Pairing>::G1,
     >,
 >;
+
+#[cfg(not(feature = "bench-baseline"))]
+fn retain_shipping_verifier_backend_result<P: Pairing>(
+    exact: AppVerifyShippingBackendResult<ArkworksShippingVerifierSemanticExecution<P>>,
+) -> AppVerifyShippingBackendResult<ShippingVerifierExecutionCarrier<P>> {
+    let (execution, result) = app_verify_shipping_backend_result_into_parts(exact);
+    let carrier = ShippingVerifierExecutionCarrier {
+        retained: Arc::new(execution),
+        _pairing: PhantomData,
+    };
+    app_verify_shipping_backend_result_from_parts(carrier, result)
+}
+
+#[cfg(feature = "bench-baseline")]
+fn retain_benchmark_shipping_verifier_backend_result<P: Pairing>(
+    exact: AppVerifyShippingBackendResult<BenchmarkShippingVerifierExecution>,
+) -> AppVerifyShippingBackendResult<ShippingVerifierExecutionCarrier<P>> {
+    let (execution, result) = app_verify_shipping_backend_result_into_parts(exact);
+    let carrier = ShippingVerifierExecutionCarrier {
+        retained: Arc::new(execution),
+        _pairing: PhantomData,
+    };
+    app_verify_shipping_backend_result_from_parts(carrier, result)
+}
 
 /// Run one shipping verifier call and retain its exact semantic effect states.
 ///
@@ -4698,7 +4821,7 @@ fn shipping_aggregate_verifier_profile_from_execution<I, F, TX, S>(
     randomizer_ms: f64,
     trace: &mut S,
     started: Instant,
-) -> AggregateProofVerificationProfile
+) -> ShippingVerifierProfiledSemanticExecution<I, F, TX>
 where
     S: ChallengeTraceSink,
 {
@@ -4707,14 +4830,15 @@ where
         .tipp_mipp_trace
         .replay_into(trace);
     let core_total_ms = started.elapsed().as_secs_f64() * 1000.0;
-    AggregateProofVerificationProfile {
+    let profile = AggregateProofVerificationProfile {
         challenge_ms: randomizer_ms,
         tipp_mipp_ms: (core_total_ms - randomizer_ms).max(0.0),
         public_input_fold_ms: 0.0,
         ppe_ms: 0.0,
         core_total_ms,
         accepted: execution.semantic.accepted,
-    }
+    };
+    ShippingVerifierProfiledSemanticExecution { profile, execution }
 }
 
 #[cfg(not(feature = "bench-baseline"))]
@@ -4725,7 +4849,22 @@ fn verify_aggregate_proof_adapter_with_trace<P, D, S>(
     pvk: &PreparedVerifyingKey<P>,
     public_inputs: &[Vec<P::ScalarField>],
     proof: &ValidatedAggregateProof<P, D>,
-) -> Result<AggregateProofVerificationProfile, Error>
+) -> Result<
+    ShippingVerifierProfiledSemanticExecution<
+        AggregateAdapterCoreInput<
+            P::ScalarField,
+            P::G1,
+            P::G2,
+            P::G2Prepared,
+            PairingOutput<P>,
+            PairingOutput<P>,
+            P::G1,
+        >,
+        P::ScalarField,
+        TippMippCoreOutput<P::ScalarField, PairingOutput<P>, PairingOutput<P>, P::G1>,
+    >,
+    Error,
+>
 where
     P: Pairing,
     D: Digest + Send + Sync,
@@ -4803,7 +4942,7 @@ where
             public_inputs,
             proof,
         )
-        .map(|profile| profile.accepted);
+        .map(|execution| execution.profile.accepted);
     }
 
     #[cfg(feature = "bench-baseline")]
@@ -4915,7 +5054,8 @@ where
             pvk,
             public_inputs,
             proof,
-        );
+        )
+        .map(|execution| execution.profile);
     }
 
     #[cfg(feature = "bench-baseline")]
@@ -4943,6 +5083,66 @@ where
             ppe_ms,
             core_total_ms: started.elapsed().as_secs_f64() * 1000.0,
             accepted: tipp_mipp_valid && ppe_valid,
+        })
+    }
+}
+
+/// Shipping-only verifier entry retaining the exact semantic execution behind
+/// the backend result consumed by the application.
+#[doc(hidden)]
+pub fn verify_validated_aggregate_proof_shipping_profiled<P, D>(
+    call_id: AppVerifyCallId,
+    context: &ChallengeContext,
+    ip_verifier_srs: &VerifierSRS<P>,
+    pvk: &PreparedVerifyingKey<P>,
+    public_inputs: &[Vec<P::ScalarField>],
+    proof: &ValidatedAggregateProof<P, D>,
+) -> Result<ShippingAggregateProofVerification<P>, Error>
+where
+    P: Pairing,
+    D: Digest + Send + Sync,
+{
+    #[cfg(not(feature = "bench-baseline"))]
+    {
+        let mut trace = NoopChallengeTraceSink;
+        let execution = verify_aggregate_proof_adapter_with_trace(
+            context,
+            &mut trace,
+            ip_verifier_srs,
+            pvk,
+            public_inputs,
+            proof,
+        )?;
+        let exact = shipping_verifier_semantic_backend_result_core(call_id, execution.execution);
+        let backend_result = retain_shipping_verifier_backend_result::<P>(exact);
+        let mut profile = execution.profile;
+        profile.accepted = app_verify_shipping_backend_call_result(&backend_result).accepted;
+        return Ok(ShippingAggregateProofVerification {
+            profile,
+            backend_result,
+        });
+    }
+
+    #[cfg(feature = "bench-baseline")]
+    {
+        let mut profile = verify_validated_aggregate_proof_profiled(
+            context,
+            ip_verifier_srs,
+            pvk,
+            public_inputs,
+            proof,
+        )?;
+        let exact = benchmark_shipping_verifier_backend_result_core(
+            call_id,
+            BenchmarkShippingVerifierExecution {
+                accepted: profile.accepted,
+            },
+        );
+        let backend_result = retain_benchmark_shipping_verifier_backend_result::<P>(exact);
+        profile.accepted = app_verify_shipping_backend_call_result(&backend_result).accepted;
+        Ok(ShippingAggregateProofVerification {
+            profile,
+            backend_result,
         })
     }
 }
@@ -5820,7 +6020,7 @@ mod tests {
     #[cfg(not(feature = "bench-baseline"))]
     use ark_bls12_377::Bls12_377;
     use ark_bls12_381::Bls12_381;
-    use ark_ec::{pairing::Pairing, AdditiveGroup, PrimeGroup};
+    use ark_ec::{pairing::Pairing, AdditiveGroup, CurveGroup, PrimeGroup};
     use ark_ff::{Field, UniformRand, Zero};
     use ark_groth16::{prepare_verifying_key, VerifyingKey};
     use ark_std::rand::{rngs::StdRng, SeedableRng};

@@ -56,12 +56,12 @@ use shieldd_sdk_proof_aggregation::{
     aggregate_family_profiled, app_verify_family_code, app_verify_family_count_core,
     app_verify_plan_identity_core, app_verify_plan_ids_core, app_verify_plan_padding_core,
     app_verify_preflight_core, app_verify_reduce_core, app_verify_shipping_call_from_parts,
-    app_verify_shipping_result_from_parts, pad_items_to_power_of_two, prepare_verify_inputs,
-    srs_id, verify_shipping_family_aggregate_profiled_status, AggregateBuildBackendProfile,
+    pad_items_to_power_of_two, prepare_verify_inputs, srs_id,
+    verify_shipping_family_aggregate_profiled_status, AggregateBuildBackendProfile,
     AggregateBundle, AggregateStatement, AggregateVerificationProfile, AppVerifyCallId,
     AppVerifyCallResult, AppVerifyExpectedCall, AppVerifyPlanError, AppVerifyPreflightError,
-    AppVerifyReductionError, AppVerifyShippingCall, AppVerifyShippingResult, DevSrs,
-    FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
+    AppVerifyReductionError, AppVerifyShippingCall, DevSrs, FamilyAggregate, ProofFamilyId,
+    ShippingAggregateVerification, AGGREGATE_PROTOCOL_VERSION,
 };
 use shieldd_sdk_proof_params::batch::{self, BatchItem};
 use shieldd_sdk_proto::core::app::v1::TransactionsByHeightResponse;
@@ -143,13 +143,11 @@ fn shipping_srs() -> Result<DevSrs> {
 fn shipping_srs_for_id(requested_id: &[u8]) -> Result<DevSrs> {
     #[cfg(any(test, feature = "fuzzing"))]
     {
-        let srs = DevSrs::default();
-        let expected_id = srs_id(&srs);
         anyhow::ensure!(
-            requested_id == expected_id.as_slice(),
+            requested_id == shieldd_sdk_proof_aggregation::DEFAULT_DEV_SRS_ID.as_slice(),
             "test/fuzz SnarkPack SRS id mismatch"
         );
-        Ok(srs)
+        Ok(DevSrs::default())
     }
     #[cfg(not(any(test, feature = "fuzzing")))]
     {
@@ -756,14 +754,14 @@ struct AggregateVerifyPlan {
 #[derive(Clone, Debug)]
 struct AggregateVerifyProfiledCallOutcome {
     id: AggregateVerifyCallId,
-    shipping_result: AppVerifyShippingResult,
-    backend_profile: AggregateVerificationProfile,
+    shipping_verification: ShippingAggregateVerification,
 }
 
 impl AggregateVerifyProfiledCallOutcome {
     fn result(&self) -> Result<AggregateVerifyCallResult> {
+        let shipping_result = self.shipping_verification.shipping_result();
         anyhow::ensure!(
-            self.shipping_result.result.id
+            shipping_result.result.id
                 == AppVerifyCallId {
                     order_index: self.id.order_index,
                     segment_index: self.id.segment_index,
@@ -774,7 +772,7 @@ impl AggregateVerifyProfiledCallOutcome {
         );
         Ok(AggregateVerifyCallResult {
             id: self.id,
-            accepted: self.shipping_result.result.accepted,
+            accepted: shipping_result.result.accepted,
         })
     }
 }
@@ -2529,14 +2527,9 @@ impl App {
             &call.aggregate.aggregate_proof,
             &call.srs,
         )?;
-        let shipping_result = app_verify_shipping_result_from_parts(
-            shipping_verification.input,
-            shipping_verification.profile.accepted,
-        );
         Ok(AggregateVerifyProfiledCallOutcome {
             id: call.id,
-            shipping_result,
-            backend_profile: shipping_verification.profile,
+            shipping_verification,
         })
     }
 
@@ -2713,7 +2706,7 @@ impl App {
                 .collect::<Result<Vec<_>>>()?;
             let reduction = Self::reduce_aggregate_verify_outcomes(&expected_call_ids, results)?;
             for outcome in &outcomes {
-                profile.merge_backend_profile(&outcome.backend_profile);
+                profile.merge_backend_profile(&outcome.shipping_verification.profile);
             }
             reduction.acceptance_result()
         }
@@ -7473,73 +7466,62 @@ mod tests {
         )?;
 
         let outcome = App::execute_aggregate_verify_call(call)?;
+        let shipping_result = outcome.shipping_verification.shipping_result();
 
         assert_eq!(outcome.id, expected_id);
-        assert_eq!(outcome.shipping_result.input.call, expected_shipping_call);
+        assert_eq!(shipping_result.input.call, expected_shipping_call);
         assert_eq!(
-            outcome.shipping_result.input.protocol_version,
+            shipping_result.input.protocol_version,
             AGGREGATE_PROTOCOL_VERSION
         );
         assert_eq!(
-            outcome.shipping_result.input.family,
+            shipping_result.input.family,
             app_verify_family_code(expected_id.family_id)
         );
+        assert_eq!(shipping_result.input.srs_id, expected_statement.srs_id());
         assert_eq!(
-            outcome.shipping_result.input.srs_id,
-            expected_statement.srs_id()
-        );
-        assert_eq!(
-            outcome.shipping_result.input.vk_digest,
+            shipping_result.input.vk_digest,
             expected_statement.vk_digest()
         );
         assert_eq!(
-            outcome.shipping_result.input.real_count,
+            shipping_result.input.real_count,
             expected_statement.real_count()
         );
         assert_eq!(
-            outcome.shipping_result.input.padded_count,
+            shipping_result.input.padded_count,
             expected_statement.padded_count()
         );
         assert_eq!(
-            outcome.shipping_result.input.public_input_arity,
+            shipping_result.input.public_input_arity,
             expected_public_input_arity
         );
         assert_eq!(
-            outcome.shipping_result.input.padded_public_inputs,
+            shipping_result.input.padded_public_inputs,
             expected_padded_public_inputs
         );
         assert_eq!(
-            outcome.shipping_result.input.canonical_statement_bytes,
+            shipping_result.input.canonical_statement_bytes,
             expected_statement.canonical_bytes()
         );
         assert_eq!(
-            outcome.shipping_result.input.statement_digest,
+            shipping_result.input.statement_digest,
             expected_statement.statement_digest()
         );
         assert_eq!(
-            outcome.shipping_result.input.wrapped_proof_bytes,
+            shipping_result.input.wrapped_proof_bytes,
             expected_wrapped_proof
         );
         assert_eq!(
-            outcome.shipping_result.input.challenge_context,
+            shipping_result.input.challenge_context,
             expected_statement.challenge_context().as_bytes()
         );
         assert_eq!(
-            outcome.shipping_result.result.accepted,
-            outcome.backend_profile.accepted
+            shipping_result.result.accepted,
+            outcome.shipping_verification.profile.accepted
         );
-        assert_eq!(outcome.result()?.accepted, outcome.backend_profile.accepted);
-
-        let mut mismatched = outcome.clone();
-        mismatched.shipping_result.result.id.order_index = mismatched
-            .shipping_result
-            .result
-            .id
-            .order_index
-            .saturating_add(1);
-        assert!(
-            mismatched.result().is_err(),
-            "a shipping result for a different planned call must fail closed"
+        assert_eq!(
+            outcome.result()?.accepted,
+            outcome.shipping_verification.profile.accepted
         );
         Ok(())
     }
@@ -7884,7 +7866,7 @@ mod tests {
                 .expect_err("bad SRS id must fail verification");
         assert!(srs_error
             .to_string()
-            .contains("aggregate bundle SRS id mismatch"));
+            .contains("test/fuzz SnarkPack SRS id mismatch"));
 
         let mut empty_families = bundle.clone();
         empty_families.families.clear();
@@ -7918,8 +7900,11 @@ mod tests {
         wrong_full_length_srs_id[0] ^= 0x01;
 
         for (srs_id, expected_error) in [
-            (vec![0; 3], "aggregate bundle SRS id must be 32 bytes"),
-            (wrong_full_length_srs_id, "aggregate bundle SRS id mismatch"),
+            (vec![0; 3], "test/fuzz SnarkPack SRS id mismatch"),
+            (
+                wrong_full_length_srs_id,
+                "test/fuzz SnarkPack SRS id mismatch",
+            ),
         ] {
             let bundle = AggregateBundle {
                 version: AGGREGATE_PROTOCOL_VERSION,

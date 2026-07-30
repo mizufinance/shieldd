@@ -53,11 +53,90 @@ structure AcceptedAdapterContract
         (Ipp.Extracted.AggregateAdapter.installRandomizer
           input.combined transcript.randomizer)
         ppe_pairing = .ok true →
-      stmt.e ((∑ i : Fin (2 ^ n),
+        stmt.e ((∑ i : Fin (2 ^ n),
           transcript.randomizer ^ (i : Nat)) • stmt.alpha) stmt.beta +
         stmt.e (∑ i : Fin (2 ^ n),
           transcript.randomizer ^ (i : Nat) • stmt.Aic i) stmt.gamma +
         stmt.e proof.aggC stmt.delta = proof.ipAb
+
+/-- Acceptance by one concrete extracted adapter run needs semantic
+postconditions only for the TIPP/MIPP and PPE calls that run actually made.
+This is the execution-indexed form of `AcceptedAdapterContract`; it does not
+generalize an effect-state equation to unexecuted initial states. -/
+theorem adapter_core_acceptance_implies_snarkPackV1_at
+    {F G1 G2 G2Prepared GT E RFX FX PE PPE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {n : Nat} (stmt : Ipp.FsStatement n F G1 G2 GT)
+    (proof : Ipp.Proof n F G1 G2 GT) (transcript : Ipp.FsTranscript n F)
+    (randomizerEffects :
+      ark_ip_proofs.applications.groth16_aggregation.AggregateRandomizerEffect
+        RFX F E)
+    (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : ark_ip_proofs.tipa.PairingEffect PE G1 G2 GT)
+    (ppeEffect : ark_ip_proofs.applications.groth16_aggregation.PreparedPairingEffect
+      PPE G1 G2Prepared GT)
+    (input : ark_ip_proofs.applications.groth16_aggregation.AggregateAdapterCoreInput
+      F G1 G2 G2Prepared GT GT G1)
+    (randomizerEffect finalRandomizerEffect : RFX)
+    (effect finalEffect : FX) (tipp_pairing : PE) (ppe_pairing : PPE)
+    (tipp :
+      Ipp.Extracted.CombinedChecks.runTipp effects tippPairing
+          (Ipp.Extracted.AggregateAdapter.installRandomizer
+            input.combined transcript.randomizer).tipp_mipp
+          effect tipp_pairing =
+        .ok (.Ok true, finalEffect) →
+      transcript.x0 ≠ 0 ∧
+        (∀ i, transcript.roundAnswer i ≠ 0) ∧
+        transcript.bridge ≠ 0 ∧ transcript.kzg ≠ 0 ∧
+        Ipp.LeafData stmt proof transcript)
+    (ppe :
+      Ipp.Extracted.CombinedChecks.runPpe ppeEffect
+          (Ipp.Extracted.AggregateAdapter.installRandomizer
+            input.combined transcript.randomizer)
+          ppe_pairing = .ok true →
+        stmt.e ((∑ i : Fin (2 ^ n),
+            transcript.randomizer ^ (i : Nat)) • stmt.alpha) stmt.beta +
+          stmt.e (∑ i : Fin (2 ^ n),
+            transcript.randomizer ^ (i : Nat) • stmt.Aic i) stmt.gamma +
+          stmt.e proof.aggC stmt.delta = proof.ipAb)
+    (haccept :
+      Ipp.Extracted.AggregateAdapter.run randomizerEffects effects tippPairing
+          ppeEffect input randomizerEffect effect tipp_pairing ppe_pairing =
+        .ok (.Ok {
+          randomizer := transcript.randomizer
+          checks := (true, true)
+          accepted := true
+          randomizer_effect := finalRandomizerEffect
+          tipp_mipp_effect := finalEffect
+        })) :
+    Ipp.SnarkPackV1.Accepts stmt proof transcript := by
+  rcases Ipp.Extracted.AggregateAdapter.accepted_path
+      randomizerEffects effects tippPairing ppeEffect input
+      randomizerEffect finalRandomizerEffect effect finalEffect
+      tipp_pairing ppe_pairing transcript.randomizer haccept with
+    ⟨hrandomizer, hnotone, _, _, _, hcombined⟩
+  have hsemantics :=
+    Ipp.Extracted.CombinedChecks.accepted_implies_semantics
+      effects tippPairing ppeEffect
+      (Ipp.Extracted.AggregateAdapter.installRandomizer
+        input.combined transcript.randomizer)
+      effect finalEffect tipp_pairing ppe_pairing
+      (transcript.x0 ≠ 0 ∧
+        (∀ i, transcript.roundAnswer i ≠ 0) ∧
+        transcript.bridge ≠ 0 ∧ transcript.kzg ≠ 0 ∧
+        Ipp.LeafData stmt proof transcript)
+      (stmt.e ((∑ i : Fin (2 ^ n),
+          transcript.randomizer ^ (i : Nat)) • stmt.alpha) stmt.beta +
+        stmt.e (∑ i : Fin (2 ^ n),
+          transcript.randomizer ^ (i : Nat) • stmt.Aic i) stmt.gamma +
+        stmt.e proof.aggC stmt.delta = proof.ipAb)
+      hcombined tipp ppe
+  rcases hsemantics.1 with
+    ⟨hx0, hrounds, hbridge, hkzg, hleaf⟩
+  exact ⟨hrandomizer, hnotone, hx0, hrounds, hbridge, hkzg, hleaf,
+    hsemantics.2⟩
 
 /-- Acceptance by the extracted production adapter refines the independent
 SnarkPack-v1 relation. The only remaining adapter boundary is the semantic
@@ -93,32 +172,13 @@ theorem adapter_core_acceptance_implies_snarkPackV1
           tipp_mipp_effect := finalEffect
         })) :
     Ipp.SnarkPackV1.Accepts stmt proof transcript := by
-  rcases Ipp.Extracted.AggregateAdapter.accepted_path
-      randomizerEffects effects tippPairing ppeEffect input
-      randomizerEffect finalRandomizerEffect effect finalEffect
-      tipp_pairing ppe_pairing transcript.randomizer haccept with
-    ⟨hrandomizer, hnotone, _, _, _, hcombined⟩
-  have hsemantics :=
-    Ipp.Extracted.CombinedChecks.accepted_implies_semantics
-      effects tippPairing ppeEffect
-      (Ipp.Extracted.AggregateAdapter.installRandomizer
-        input.combined transcript.randomizer)
-      effect finalEffect tipp_pairing ppe_pairing
-      (transcript.x0 ≠ 0 ∧
-        (∀ i, transcript.roundAnswer i ≠ 0) ∧
-        transcript.bridge ≠ 0 ∧ transcript.kzg ≠ 0 ∧
-        Ipp.LeafData stmt proof transcript)
-      (stmt.e ((∑ i : Fin (2 ^ n),
-          transcript.randomizer ^ (i : Nat)) • stmt.alpha) stmt.beta +
-        stmt.e (∑ i : Fin (2 ^ n),
-          transcript.randomizer ^ (i : Nat) • stmt.Aic i) stmt.gamma +
-        stmt.e proof.aggC stmt.delta = proof.ipAb)
-      hcombined (contract.tipp effect finalEffect) contract.ppe
-  rcases hsemantics.1 with
-    ⟨hx0, hrounds, hbridge, hkzg, hleaf⟩
-  exact ⟨hrandomizer, hnotone, hx0, hrounds, hbridge, hkzg, hleaf,
-    hsemantics.2⟩
+  exact adapter_core_acceptance_implies_snarkPackV1_at
+    stmt proof transcript randomizerEffects effects tippPairing ppeEffect
+    input randomizerEffect finalRandomizerEffect effect finalEffect
+    tipp_pairing ppe_pairing
+    (contract.tipp effect finalEffect) contract.ppe haccept
 
+#print axioms adapter_core_acceptance_implies_snarkPackV1_at
 #print axioms adapter_core_acceptance_implies_snarkPackV1
 
 end

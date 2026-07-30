@@ -99,9 +99,8 @@ structure ShippingBundleCallWitness
   refinement : ShippingVerifierRefinementContracts data
   applicationDeclaredExact : refinement.application.declared = declared
   challengeAnswers :
-    ∀ initialEffect : data.tippState,
-      ArkworksChallengeOracleAnswers data.primitive data.serialization
-        data.proof transcript initialEffect
+    ArkworksChallengeOracleAnswers data.primitive data.serialization
+      data.proof transcript execution.effect
 
 /-- One exact planned call selected from the bundle's concrete plan and
 result vectors.  Static application construction is stored here; no adapter
@@ -174,9 +173,8 @@ structure ShippingPerCallRefinement
     ShippingCallExecutionBoundary call.data call.transcript
   external : ShippingVerifierExternalContracts call.data
   challengeAnswers :
-    ∀ initialEffect : call.data.tippState,
-      ArkworksChallengeOracleAnswers call.data.primitive
-        call.data.serialization call.data.proof call.transcript initialEffect
+    ArkworksChallengeOracleAnswers call.data.primitive
+      call.data.serialization call.data.proof call.transcript execution.effect
 
 /-- Assemble the internal per-call composition record from an exact planned
 call and its individually named refinement data.  This is construction, not a

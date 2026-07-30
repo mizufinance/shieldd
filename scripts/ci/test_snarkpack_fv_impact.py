@@ -168,70 +168,85 @@ class ImpactPlannerTests(unittest.TestCase):
         self.assertEqual(result.fstar_proofs, ())
         self.assertFalse(result.rust_reference)
 
-    def test_split_fv_domains_do_not_invalidate_monolithic_audit(self) -> None:
+    def test_split_fv_domains_follow_reverse_import_closure(self) -> None:
         cases = (
             (
                 "Ipp/Extracted/ShippingStatementConstruction.lean",
                 "Ipp.ProofAuditConstruction",
+                False,
             ),
             (
                 "Ipp/Extracted/ShippingCallConstruction.lean",
                 "Ipp.ProofAuditConstruction",
+                False,
             ),
             (
                 "Ipp/Extracted/ShippingCallMaterialization.lean",
                 "Ipp.ProofAuditConstruction",
+                False,
             ),
             (
                 "Ipp/Extracted/ShippingVerifierHashProjection.lean",
                 "Ipp.ProofAuditConstruction",
+                True,
             ),
             (
                 "Ipp/Extracted/ShippingBundleMaterialization.lean",
                 "Ipp.ProofAuditConstruction",
+                False,
             ),
             (
                 "Ipp/ShippingProverRefinement.lean",
                 "Ipp.ProofAuditProver",
+                False,
             ),
             (
                 "Ipp/ShippingProverExecutionTrace.lean",
                 "Ipp.ProofAuditProver",
+                False,
             ),
             (
                 "Ipp/Extracted/ShippingProver.lean",
                 "Ipp.ProofAuditProver",
+                False,
             ),
             (
                 "Ipp/ShippingAdaptiveReindex.lean",
                 "Ipp.ProofAuditShippingAdaptive",
+                False,
             ),
             (
                 "Ipp/ShippingAdaptiveByteFieldCoupling.lean",
                 "Ipp.ProofAuditShippingAdaptive",
+                False,
             ),
             (
                 "Ipp/ShippingAdaptiveGlobalFsCoupling.lean",
                 "Ipp.ProofAuditShippingAdaptive",
+                False,
             ),
             (
                 "Ipp/ShippingAdaptiveOriginSha.lean",
                 "Ipp.ProofAuditAdaptive",
+                False,
             ),
             (
                 "Ipp/S1Bls12377ReductionInterfaces.lean",
                 "Ipp.ProofAuditReductions",
+                False,
             ),
             (
                 "Ipp/S1Bls12377FixedStatementKzg.lean",
                 "Ipp.ProofAuditReductions",
+                False,
             ),
             (
                 "Ipp/ArkworksTippKzgBoundary.lean",
                 "Ipp.ProofAuditReductions",
+                False,
             ),
         )
-        for relative, expected_audit in cases:
+        for relative, expected_audit, reaches_monolithic_audit in cases:
             with self.subTest(relative=relative):
                 result = IMPACT.plan(
                     ROOT,
@@ -244,7 +259,10 @@ class ImpactPlannerTests(unittest.TestCase):
                     declared_graphs=(),
                 )
                 self.assertIn(expected_audit, result.lean_modules)
-                self.assertNotIn("Ipp.ProofAudit", result.lean_modules)
+                if reaches_monolithic_audit:
+                    self.assertIn("Ipp.ProofAudit", result.lean_modules)
+                else:
+                    self.assertNotIn("Ipp.ProofAudit", result.lean_modules)
 
     def test_lean_import_parser_accepts_the_real_tree(self) -> None:
         modules, imports = IMPACT.lean_import_graph(ROOT)

@@ -33,6 +33,17 @@ private theorem nonce_eq_of_same_sample
     Option.some.inj (hleft.symm.trans hright)
   exact congrArg Prod.snd hpairs
 
+private theorem value_eq_of_same_sample
+    {left right : Fr} {leftNonce rightNonce : Nat}
+    {sample : Option (Fr × Nat)}
+    (hleft : sample = some (left, leftNonce))
+    (hright : sample = some (right, rightNonce)) :
+    left = right := by
+  have hpairs :
+      (left, leftNonce) = (right, rightNonce) :=
+    Option.some.inj (hleft.symm.trans hright)
+  exact congrArg Prod.fst hpairs
+
 private theorem executionPrior_eq_extractedPrior
     {n : Nat} (raw : Fin n → Fr) (initial : Fr) (k : Nat) :
     Ipp.ShippingHashExecutionTrace.priorAt raw initial k =
@@ -219,6 +230,254 @@ theorem acceptedExecutionSamples_of_transcriptExecution
     hroundPrev
 
 #print axioms acceptedExecutionSamples_of_transcriptExecution
+
+/-- The challenge calls retained by one successful extracted run are the calls
+for the transcript produced by the deterministic shipping byte program.
+
+The run trace supplies the state transitions and returned field values.  The
+TIPP hash-effect postcondition maps each successful primitive call to the
+exact deployed sampler, while `TranscriptExecution` supplies the same sampler
+equation for the transcript emitted by `shippingTranscriptOptionOracle`.
+Determinism therefore identifies every returned value.  Round values are
+identified chronologically because the round preimage contains the preceding
+challenge.
+
+This theorem does not assume transcript equality or verifier acceptance.
+Nonzero facts are kept as separate inputs because the primitive postcondition
+describes hash/decoder execution only; callers obtain them from the successful
+bounded sampler or the existing shipping admissibility contract. -/
+theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
+    {FX : Type} {n : Nat}
+    {primitive : Primitive FX}
+    {serialization : Serialization primitive}
+    (contract :
+      Ipp.ShippingArkworksHash.SerializationContract serialization)
+    (family : Ipp.ShippingV1.Family)
+    (context : Ipp.ChallengeEncoding.Context)
+    (fuel : Nat)
+    (blake2b : List UInt8 → Ipp.ShippingHashGame.DigestBytes)
+    (tippSemantics :
+      Ipp.ShippingArkworksHash.Blake2bTippEffectPostcondition
+        contract family context fuel blake2b)
+    (stmt : Ipp.FsStatement n Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput)
+    (proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput)
+    (transcript : Ipp.FsTranscript n Fr)
+    (transcriptExecution :
+      Ipp.ShippingHashExecutionTrace.TranscriptExecution blake2b
+        (Ipp.ShippingArkworksHash.preimage contract family context)
+        stmt proof transcript)
+    (effect0 finalEffect : FX)
+    (run :
+      RunChallengeTrace primitive serialization proof transcript.randomizer
+        effect0 finalEffect)
+    (hrandomizer : transcript.randomizer ≠ 0)
+    (hx0Nonzero : transcript.x0 ≠ 0)
+    (hroundNonzero : ∀ i, transcript.roundAnswer i ≠ 0)
+    (hbridgeNonzero : transcript.bridge ≠ 0)
+    (hkzgNonzero : transcript.kzg ≠ 0) :
+    Ipp.Extracted.AggregateVerifier.ArkworksTippChallengeTrace
+      primitive serialization stmt proof transcript effect0 := by
+  obtain ⟨x0Nonce, hx0Source⟩ :=
+    tippSemantics.x0 effect0 (run.effect 0) transcript.randomizer
+      proof.ComA.1 proof.ComB proof.ComA.2 proof.ipAb proof.aggC
+      run.x0Value run.x0
+  have hx0Oracle :
+      Ipp.ShippingArkworksHash.deployedPointSample
+          contract family context fuel blake2b
+          (fun nonce => .x0 {
+            r := transcript.randomizer
+            comA := proof.ComA.1
+            comB := proof.ComB
+            comC := proof.ComA.2
+            ipAb := proof.ipAb
+            aggC := proof.aggC
+          } nonce)
+          Ipp.nonzeroB =
+        some (transcript.x0, transcript.x0Nonce) := by
+    simpa [Ipp.ShippingArkworksHash.deployedPointSample,
+      Ipp.ShippingHashExecutionTrace.pointSample] using
+      transcriptExecution.x0
+  have hx0Value : run.x0Value = transcript.x0 :=
+    value_eq_of_same_sample hx0Source hx0Oracle
+  have hroundValue : ∀ k (hk : k < n),
+      run.roundValue ⟨k, hk⟩ =
+        transcript.roundAnswer ⟨k, hk⟩ := by
+    intro k
+    induction k using Nat.strong_induction_on with
+    | h k ih =>
+        intro hk
+        have hprior :
+            Ipp.Extracted.VerifyTippMipp.priorAt
+                run.roundValue run.x0Value k =
+              Ipp.Extracted.VerifyTippMipp.priorAt
+                transcript.roundAnswer transcript.x0 k := by
+          cases k with
+          | zero =>
+              simpa only [Ipp.Extracted.VerifyTippMipp.priorAt] using
+                hx0Value
+          | succ previous =>
+              have hprevious : previous < n :=
+                Nat.lt_trans (Nat.lt_succ_self previous) hk
+              simp only [Ipp.Extracted.VerifyTippMipp.priorAt]
+              rw [dif_pos hprevious, dif_pos hprevious]
+              exact
+                ih previous (Nat.lt_succ_self previous) hprevious
+        obtain ⟨roundNonce, hroundSourceRaw⟩ :=
+          tippSemantics.round
+            (run.effect k) (run.effect (k + 1))
+            (Ipp.Extracted.VerifyTippMipp.priorAt
+              run.roundValue run.x0Value k)
+            (Ipp.Extracted.VerifyTippMipp.extractedRounds
+              proof.rounds (Fin.rev ⟨k, hk⟩)).1
+            (Ipp.Extracted.VerifyTippMipp.extractedRounds
+              proof.rounds (Fin.rev ⟨k, hk⟩)).2
+            (run.roundValue ⟨k, hk⟩)
+            (run.round k hk)
+        have hroundSource :
+            Ipp.ShippingArkworksHash.deployedPointSample
+                contract family context fuel blake2b
+                (fun nonce => .round
+                  (Ipp.Extracted.VerifyTippMipp.priorAt
+                    transcript.roundAnswer transcript.x0 k)
+                  (proof.rounds ⟨k, hk⟩) nonce)
+                Ipp.nonzeroB =
+              some (run.roundValue ⟨k, hk⟩, roundNonce) := by
+          rw [hprior] at hroundSourceRaw
+          simpa only [
+            Ipp.ShippingArkworksHash.roundComsOfCommitments_extractedRounds_rev] using
+            hroundSourceRaw
+        have hroundPrev :
+            transcript.roundPrev ⟨k, hk⟩ =
+              Ipp.Extracted.VerifyTippMipp.priorAt
+                transcript.roundAnswer transcript.x0 k := by
+          calc
+            transcript.roundPrev ⟨k, hk⟩ =
+                Ipp.ShippingHashExecutionTrace.priorAt
+                  transcript.roundAnswer transcript.x0 k :=
+              transcriptExecution.roundPrev ⟨k, hk⟩
+            _ = Ipp.Extracted.VerifyTippMipp.priorAt
+                  transcript.roundAnswer transcript.x0 k :=
+              executionPrior_eq_extractedPrior
+                transcript.roundAnswer transcript.x0 k
+        have hroundOracleRaw := transcriptExecution.round ⟨k, hk⟩
+        rw [hroundPrev] at hroundOracleRaw
+        have hroundOracle :
+            Ipp.ShippingArkworksHash.deployedPointSample
+                contract family context fuel blake2b
+                (fun nonce => .round
+                  (Ipp.Extracted.VerifyTippMipp.priorAt
+                    transcript.roundAnswer transcript.x0 k)
+                  (proof.rounds ⟨k, hk⟩) nonce)
+                Ipp.nonzeroB =
+              some
+                (transcript.roundAnswer ⟨k, hk⟩,
+                  transcript.roundNonce ⟨k, hk⟩) := by
+          simpa [Ipp.ShippingArkworksHash.deployedPointSample,
+            Ipp.ShippingHashExecutionTrace.pointSample] using
+            hroundOracleRaw
+        exact value_eq_of_same_sample hroundSource hroundOracle
+  have hroundFunction :
+      run.roundValue = transcript.roundAnswer := by
+    funext i
+    exact hroundValue i.val i.isLt
+  obtain ⟨bridgeNonce, hbridgeSourceRaw⟩ :=
+    tippSemantics.bridge
+      (run.effect n) run.bridgeEffect
+      (Ipp.Extracted.VerifyTippMipp.priorAt
+        run.roundValue run.x0Value n)
+      (proof.vFinal, proof.wFinal)
+      (proof.aFinal, proof.bFinal, proof.cFinal)
+      run.bridgeValue run.bridge
+  have hbridgeSource :
+      Ipp.ShippingArkworksHash.deployedPointSample
+          contract family context fuel blake2b
+          (fun nonce => .bridge {
+            lastRawChallenge :=
+              Ipp.Extracted.VerifyTippMipp.priorAt
+                transcript.roundAnswer transcript.x0 n
+            vFinal := proof.vFinal
+            wFinal := proof.wFinal
+            aFinal := proof.aFinal
+            bFinal := proof.bFinal
+            cFinal := proof.cFinal
+          } nonce)
+          Ipp.nonzeroB =
+        some (run.bridgeValue, bridgeNonce) := by
+    simpa only [hroundFunction, hx0Value] using hbridgeSourceRaw
+  have hbridgeOracleRaw := transcriptExecution.bridge
+  rw [executionPrior_eq_extractedPrior
+    transcript.roundAnswer transcript.x0 n] at hbridgeOracleRaw
+  have hbridgeOracle :
+      Ipp.ShippingArkworksHash.deployedPointSample
+          contract family context fuel blake2b
+          (fun nonce => .bridge {
+            lastRawChallenge :=
+              Ipp.Extracted.VerifyTippMipp.priorAt
+                transcript.roundAnswer transcript.x0 n
+            vFinal := proof.vFinal
+            wFinal := proof.wFinal
+            aFinal := proof.aFinal
+            bFinal := proof.bFinal
+            cFinal := proof.cFinal
+          } nonce)
+          Ipp.nonzeroB =
+        some (transcript.bridge, transcript.bridgeNonce) := by
+    simpa [Ipp.ShippingArkworksHash.deployedPointSample,
+      Ipp.ShippingHashExecutionTrace.pointSample] using
+      hbridgeOracleRaw
+  have hbridgeValue : run.bridgeValue = transcript.bridge :=
+    value_eq_of_same_sample hbridgeSource hbridgeOracle
+  obtain ⟨kzgNonce, hkzgSourceRaw⟩ :=
+    tippSemantics.kzg run.bridgeEffect finalEffect
+      run.bridgeValue (proof.vFinal, proof.wFinal)
+      run.kzgValue run.kzg
+  have hkzgSource :
+      Ipp.ShippingArkworksHash.deployedPointSample
+          contract family context fuel blake2b
+          (fun nonce => .kzg {
+            bridgeChallenge := transcript.bridge
+            vFinal := proof.vFinal
+            wFinal := proof.wFinal
+          } nonce)
+          Ipp.nonzeroB =
+        some (run.kzgValue, kzgNonce) := by
+    simpa only [hbridgeValue] using hkzgSourceRaw
+  have hkzgOracle :
+      Ipp.ShippingArkworksHash.deployedPointSample
+          contract family context fuel blake2b
+          (fun nonce => .kzg {
+            bridgeChallenge := transcript.bridge
+            vFinal := proof.vFinal
+            wFinal := proof.wFinal
+          } nonce)
+          Ipp.nonzeroB =
+        some (transcript.kzg, transcript.kzgNonce) := by
+    simpa [Ipp.ShippingArkworksHash.deployedPointSample,
+      Ipp.ShippingHashExecutionTrace.pointSample] using
+      transcriptExecution.kzg
+  have hkzgValue : run.kzgValue = transcript.kzg :=
+    value_eq_of_same_sample hkzgSource hkzgOracle
+  exact {
+    effect := run.effect
+    effect3 := run.bridgeEffect
+    effect4 := finalEffect
+    x0 := by simpa only [hx0Value] using run.x0
+    round := by
+      intro k hk
+      simpa only [hx0Value, hroundFunction] using run.round k hk
+    bridge := by
+      simpa only [hx0Value, hroundFunction, hbridgeValue] using run.bridge
+    kzg := by simpa only [hbridgeValue, hkzgValue] using run.kzg
+    randomizer_nonzero := hrandomizer
+    x0_nonzero := hx0Nonzero
+    round_nonzero := hroundNonzero
+    bridge_nonzero := hbridgeNonzero
+    kzg_nonzero := hkzgNonzero
+  }
+
+#print axioms arkworksTrace_of_runChallengeTrace_and_transcriptExecution
 
 /-- One accepted extracted adapter execution exposes exactly the two
 operational witnesses needed by the deployed hash-trace bridge.

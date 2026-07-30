@@ -595,6 +595,110 @@ theorem arkworks_tipp_refinement_from_primitives
   exact ⟨trace.x0_nonzero, trace.round_nonzero, trace.bridge_nonzero,
     trace.kzg_nonzero, hleaf⟩
 
+/-- One concrete accepted shipping adapter run refines SnarkPack v1 using the
+challenge trace at the run's actual initial effect state.
+
+The generic `ArkworksTippChallengeContract` remains useful for callers proving
+a reusable adapter contract.  Shipping acceptance does not need that stronger
+quantification: the extracted adapter result fixes `effect` and
+`finalEffect`, and `adapter_core_acceptance_implies_snarkPackV1_at` consumes
+the semantic postconditions only for those executed sub-verifier calls. -/
+theorem arkworks_shipping_run_acceptance_implies_snarkPackV1
+    {RFX FX PE PPE : Type}
+    {n arity : Nat}
+    (hbilinear : PublishedPairingBilinear)
+    (primitive : Ipp.Extracted.TippMippAdapter.Primitive
+      FX Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput)
+    (serialization :
+      Ipp.Extracted.TippMippAdapter.SerializationContract primitive)
+    (kernel : ArkworksTippKernelContract hbilinear primitive)
+    (baseStmt : Ipp.FsStatement n Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput)
+    (proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput)
+    (transcript : Ipp.FsTranscript n Fr)
+    (randomizerEffects :
+      applications.groth16_aggregation.AggregateRandomizerEffect RFX Fr String)
+    (input : applications.groth16_aggregation.AggregateAdapterCoreInput
+      Fr g1PrimeSubgroup g2PrimeSubgroup PreparedG2 ArkPairingOutput
+        ArkPairingOutput g1PrimeSubgroup)
+    (g gBeta : g1PrimeSubgroup) (h hAlpha : g2PrimeSubgroup)
+    (gammaABC : Fin (arity + 1) → g1PrimeSubgroup)
+    (publicInputs : Fin (2 ^ n) → Fin arity → Fr)
+    (randomizerMessage : List UInt8)
+    (randomizerEffect finalRandomizerEffect : RFX)
+    (effect finalEffect : FX) (tipp_pairing : PE) (ppe_pairing : PPE)
+    (tippOutcome : PE → Option Unit) (ppeOutcome : PPE → Option Unit)
+    (trace :
+      ArkworksTippChallengeTrace primitive serialization
+        (statementWithExecutablePairing hbilinear baseStmt)
+        proof transcript effect)
+    (kzg : ArkworksTippKzgContract hbilinear baseStmt proof transcript
+      g gBeta h hAlpha tipp_pairing tippOutcome)
+    (projection : AdapterInputProjection hbilinear baseStmt proof transcript
+      input g gBeta h hAlpha gammaABC publicInputs randomizerMessage)
+    (haccept :
+      Ipp.Extracted.AggregateAdapter.run randomizerEffects
+          (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+            (@Ipp.Extracted.TippMippAdapter.partialEq ArkPairingOutput
+              (Classical.decEq _))
+            (@Ipp.Extracted.TippMippAdapter.partialEq g1PrimeSubgroup
+              (Classical.decEq _)))
+          (tippPairingEffect hbilinear tippOutcome)
+          (preparedPairingEffect hbilinear ppeOutcome)
+          input randomizerEffect effect tipp_pairing ppe_pairing =
+        .ok (.Ok {
+          randomizer := transcript.randomizer
+          checks := (true, true)
+          accepted := true
+          randomizer_effect := finalRandomizerEffect
+          tipp_mipp_effect := finalEffect
+        })) :
+    Ipp.SnarkPackV1.Accepts
+      (statementWithExecutablePairing hbilinear baseStmt) proof transcript := by
+  apply
+    Ipp.Extracted.AggregateVerifier.adapter_core_acceptance_implies_snarkPackV1_at
+      (statementWithExecutablePairing hbilinear baseStmt) proof transcript
+      randomizerEffects
+      (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+        (@Ipp.Extracted.TippMippAdapter.partialEq ArkPairingOutput
+          (Classical.decEq _))
+        (@Ipp.Extracted.TippMippAdapter.partialEq g1PrimeSubgroup
+          (Classical.decEq _)))
+      (tippPairingEffect hbilinear tippOutcome)
+      (preparedPairingEffect hbilinear ppeOutcome)
+      input randomizerEffect finalRandomizerEffect effect finalEffect
+      tipp_pairing ppe_pairing
+  · intro hrun
+    have hcore := hrun
+    rw [projection.tipp] at hcore
+    have hexists :
+        ∃ nextEffect,
+          Ipp.Extracted.CombinedChecks.runTipp
+              (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+                (@Ipp.Extracted.TippMippAdapter.partialEq ArkPairingOutput
+                  (Classical.decEq _))
+                (@Ipp.Extracted.TippMippAdapter.partialEq g1PrimeSubgroup
+                  (Classical.decEq _)))
+              (tippPairingEffect hbilinear tippOutcome)
+              (Ipp.Extracted.VerifyTippMipp.coreInput
+                (statementWithExecutablePairing hbilinear baseStmt)
+                proof transcript g gBeta h hAlpha)
+              effect tipp_pairing =
+            .ok (.Ok true, nextEffect) :=
+      ⟨finalEffect, hcore⟩
+    have hleaf :=
+      (arkworks_tipp_primitive_refinement_statement hbilinear primitive
+        serialization kernel baseStmt proof transcript g gBeta h hAlpha
+        tipp_pairing tippOutcome effect trace kzg.acceptV kzg.acceptW).mp
+          hexists
+    exact ⟨trace.x0_nonzero, trace.round_nonzero, trace.bridge_nonzero,
+      trace.kzg_nonzero, hleaf⟩
+  · intro accepted
+    exact
+      ((installed_ppe_true_iff ppeOutcome ppe_pairing projection).mp
+        accepted).2
+  · exact haccept
+
 /-- The concrete adapter contract is assembled from the two semantic
 sub-verifier refinements. Delegation and randomizer installation are no longer
 premises: they are consequences of `AggregateAdapter.accepted_path`. -/
@@ -878,6 +982,7 @@ theorem arkworks_canonical_input_acceptance_implies_snarkPackV1
 
 #print axioms arkworks_tipp_primitive_refinement_statement
 #print axioms arkworks_tipp_refinement_from_primitives
+#print axioms arkworks_shipping_run_acceptance_implies_snarkPackV1
 #print axioms arkworks_acceptedAdapterContract
 #print axioms arkworks_shipping_acceptance_implies_snarkPackV1
 #print axioms arkworks_canonical_input_acceptance_implies_snarkPackV1

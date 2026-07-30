@@ -195,6 +195,40 @@ structure ArkworksChallengeOracleAnswers
           transcript.bridge (proof.vFinal, proof.wFinal)⟩ =
       .ok (.Ok transcript.kzg, kzgEffect)
 
+/-- Add the sampler's nonzero facts to the challenge answers for one concrete
+initial effect state. -/
+def ArkworksChallengeOracleAnswers.toTrace
+    {FX : Type} {μ : Nat}
+    {primitive : Ipp.Extracted.TippMippAdapter.Primitive
+      FX Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput}
+    {serialization :
+      Ipp.Extracted.TippMippAdapter.SerializationContract primitive}
+    {proof : Ipp.Proof μ Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput}
+    {transcript : Ipp.FsTranscript μ Fr}
+    {initialEffect : FX}
+    (answers :
+      ArkworksChallengeOracleAnswers primitive serialization proof transcript
+        initialEffect)
+    (hadmissible : ShippingTranscriptAdmissible transcript)
+    (statement : Ipp.FsStatement μ Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput) :
+    Ipp.Extracted.AggregateVerifier.ArkworksTippChallengeTrace
+      primitive serialization statement proof transcript initialEffect := {
+  effect := answers.effect
+  effect3 := answers.bridgeEffect
+  effect4 := answers.kzgEffect
+  x0 := answers.x0
+  round := answers.round
+  bridge := answers.bridge
+  kzg := answers.kzg
+  randomizer_nonzero := hadmissible.randomizer
+  x0_nonzero := hadmissible.x0
+  round_nonzero := hadmissible.round
+  bridge_nonzero := hadmissible.bridge
+  kzg_nonzero := hadmissible.kzg
+}
+
 /-- The existing leaf-refinement interface is derived from fieldwise oracle
 answers and sampler admissibility.  In particular, sequencing is not a caller
 premise: it is the sequence consumed by the extracted verifier proof. -/
@@ -216,20 +250,8 @@ def ArkworksChallengeOracleAnswers.contract
       ArkPairingOutput) :
     Ipp.Extracted.AggregateVerifier.ArkworksTippChallengeContract
       primitive serialization statement proof transcript where
-  trace effect0 := {
-    effect := (answers effect0).effect
-    effect3 := (answers effect0).bridgeEffect
-    effect4 := (answers effect0).kzgEffect
-    x0 := (answers effect0).x0
-    round := (answers effect0).round
-    bridge := (answers effect0).bridge
-    kzg := (answers effect0).kzg
-    randomizer_nonzero := hadmissible.randomizer
-    x0_nonzero := hadmissible.x0
-    round_nonzero := hadmissible.round
-    bridge_nonzero := hadmissible.bridge
-    kzg_nonzero := hadmissible.kzg
-  }
+  trace effect0 :=
+    (answers effect0).toTrace hadmissible statement
 
 /-- The production pure TIPP/MIPP constructor yields exactly the formal core
 input once the strict decoder postcondition is instantiated. Verifier-SRS
@@ -692,9 +714,8 @@ theorem accepted_app_adapter_call_refines_shipping_v1
     (tippPairing : PE) (ppePairing : PPE)
     (tippOutcome : PE → Option Unit) (ppeOutcome : PPE → Option Unit)
     (challengeAnswers :
-      ∀ initialEffect : FX,
-        ArkworksChallengeOracleAnswers primitive serialization proof transcript
-          initialEffect)
+      ArkworksChallengeOracleAnswers primitive serialization proof transcript
+        effect)
     (challengeAdmissible : ShippingTranscriptAdmissible transcript)
     (kzg : Ipp.Extracted.AggregateVerifier.ArkworksTippKzgContract
       hbilinear baseStmt proof transcript
@@ -808,16 +829,15 @@ theorem accepted_app_adapter_call_refines_shipping_v1
         }) := by
     rw [hmessage] at hadapter
     simpa only [hconstructed, Result.bind_ok] using hadapter
-  let challenges :
-      Ipp.Extracted.AggregateVerifier.ArkworksTippChallengeContract
+  let challengeTrace :
+      Ipp.Extracted.AggregateVerifier.ArkworksTippChallengeTrace
         primitive serialization
         (Ipp.Bls12377.statementWithExecutablePairing hbilinear baseStmt)
-        proof transcript :=
-    ArkworksChallengeOracleAnswers.contract challengeAnswers
-      challengeAdmissible
+        proof transcript effect :=
+    challengeAnswers.toTrace challengeAdmissible
       (Ipp.Bls12377.statementWithExecutablePairing hbilinear baseStmt)
   have hv1 :=
-    Ipp.Extracted.AggregateVerifier.arkworks_shipping_acceptance_implies_snarkPackV1
+    Ipp.Extracted.AggregateVerifier.arkworks_shipping_run_acceptance_implies_snarkPackV1
         hbilinear primitive serialization kernel baseStmt proof transcript
         randomizerEffects
         (productionAdapterInput hbilinear baseStmt proof transcript
@@ -826,7 +846,7 @@ theorem accepted_app_adapter_call_refines_shipping_v1
         srs.g srs.g_beta srs.h srs.h_alpha gammaABC input.publicRows
         randomizerMessage
         randomizerEffect finalRandomizerEffect effect finalEffect
-        tippPairing ppePairing tippOutcome ppeOutcome challenges kzg
+        tippPairing ppePairing tippOutcome ppeOutcome challengeTrace kzg
         adapterProjection hadapter'
   exact {
     app := app
@@ -1006,9 +1026,8 @@ theorem AcceptedShippingExecutionAt.refines
     (execution : AcceptedShippingExecutionAt data transcript)
     (refinement : ShippingVerifierRefinementContracts data)
     (challengeAnswers :
-      ∀ initialEffect : data.tippState,
-        ArkworksChallengeOracleAnswers data.primitive data.serialization
-          data.proof transcript initialEffect) :
+      ArkworksChallengeOracleAnswers data.primitive data.serialization
+        data.proof transcript execution.effect) :
     AcceptedShippingV1Call data.expected data.results data.call data.hbilinear
       data.projection data.contract data.input data.baseStmt data.proof
       transcript data.gammaABC data.srs
@@ -1040,9 +1059,8 @@ theorem ShippingCallData.acceptedAt_view
     (refinement : ShippingVerifierRefinementContracts data)
     (challengeAnswers :
       ∀ execution : AcceptedShippingExecutionAt data transcript,
-        ∀ initialEffect : data.tippState,
-          ArkworksChallengeOracleAnswers data.primitive data.serialization
-            data.proof transcript initialEffect) :
+        ArkworksChallengeOracleAnswers data.primitive data.serialization
+          data.proof transcript execution.effect) :
     AcceptedShippingV1Call data.expected data.results data.call data.hbilinear
       data.projection data.contract data.input data.baseStmt data.proof
       transcript data.gammaABC data.srs
@@ -1058,9 +1076,8 @@ theorem ShippingCallData.acceptedAt_refines_v1
     (refinement : ShippingVerifierRefinementContracts data)
     (challengeAnswers :
       ∀ execution : AcceptedShippingExecutionAt data transcript,
-        ∀ initialEffect : data.tippState,
-          ArkworksChallengeOracleAnswers data.primitive data.serialization
-            data.proof transcript initialEffect) :
+        ArkworksChallengeOracleAnswers data.primitive data.serialization
+          data.proof transcript execution.effect) :
     Ipp.SnarkPackV1.Accepts data.statement data.proof transcript :=
   (data.acceptedAt_view haccepted refinement challengeAnswers).accepts
 

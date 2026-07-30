@@ -547,10 +547,40 @@ structure DeployedChallengePrimitiveContract
       (_hsupport :
         output ∈ support
           (shippingRealCallVerifier data contract blake2b))
-      (execution : RawAcceptedExecution data output.transcript)
-      (initialEffect : data.tippState),
+      (execution : RawAcceptedExecution data output.transcript),
       DeployedChallengeTrace data contract blake2b output.transcript
-        initialEffect
+        execution.effect
+
+/-- Exact deployed-hash evidence recoverable from one accepted production
+execution.
+
+This is the per-execution proposition used to construct
+`DeployedChallengePrimitiveContract`, whose fields quantify over supported
+accepted executions but no longer quantify over unexecuted effect states.
+-/
+def AcceptedExecutionChallengePrimitiveContract
+    {D : Type} {μ arity : Nat}
+    (data : CallData D μ arity)
+    (contract :
+      Ipp.ShippingArkworksHash.SerializationContract data.serialization)
+    (blake2b : List UInt8 → Ipp.ShippingHashGame.DigestBytes)
+    (output :
+      Ipp.FsResult μ Fr g1PrimeSubgroup g2PrimeSubgroup
+        ArkPairingOutput)
+    (execution : RawAcceptedExecution data output.transcript) : Prop :=
+  deployedPointSample data contract blake2b
+      (fun nonce => .randomizer
+        { comA := data.proof.ComA.1
+          comB := data.proof.ComB
+          comC := data.proof.ComA.2 }
+        nonce)
+      Ipp.randomizerAcceptedB =
+      some
+        (output.transcript.randomizer,
+          output.transcript.randomizerNonce) ∧
+    Nonempty
+      (DeployedChallengeTrace data contract blake2b output.transcript
+        execution.effect)
 
 /-- Acceptance is not merely a formal verifier bit. It additionally carries
 the raw routed application and concrete adapter execution for that transcript;
@@ -761,6 +791,136 @@ theorem shippingReal_transcriptExecution
       (shippingReal_transcriptOption_eq_some data contract blake2b output
         houtput execution)
 
+/-- One raw accepted adapter run, the deterministic
+`shippingTranscriptOptionOracle` execution that emitted its transcript, and
+the exact deployed Blake2b/Arkworks field-decoder postconditions construct all
+deployed challenge evidence at the run's real effect state.
+
+No transcript equality or formal acceptance predicate is a premise.  The
+transcript execution is derived from support of the deterministic shipping
+program; the randomizer and TIPP call records are recovered from the accepted
+adapter equation. -/
+theorem acceptedExecution_challengePrimitiveContract
+    {D : Type} {μ arity : Nat}
+    (data : CallData D μ arity)
+    (contract :
+      Ipp.ShippingArkworksHash.SerializationContract data.serialization)
+    (blake2b : List UInt8 → Ipp.ShippingHashGame.DigestBytes)
+    (randomizerSemantics :
+      Ipp.ShippingArkworksHash.Blake2bRandomizerEffectPostcondition
+        contract data.randomizerEffects data.input.family
+        data.input.challengeContext data.statement.rejectionFuel blake2b)
+    (tippSemantics :
+      Ipp.ShippingArkworksHash.Blake2bTippEffectPostcondition
+        contract data.input.family data.input.challengeContext
+        data.statement.rejectionFuel blake2b)
+    (refinement : RefinementContracts data)
+    (output :
+      Ipp.FsResult μ Fr g1PrimeSubgroup g2PrimeSubgroup
+        ArkPairingOutput)
+    (hsupport :
+      output ∈ support
+        (shippingRealCallVerifier data contract blake2b))
+    (execution : RawAcceptedExecution data output.transcript)
+    (runProjection :
+      Ipp.Extracted.TippMippChallengeExecution.AcceptedRunCallProjection
+        data.primitive data.serialization data.statement data.proof
+        output.transcript.randomizer
+        data.srs.g data.srs.g_beta data.srs.h data.srs.h_alpha
+        (Ipp.Bls12377.tippPairingEffect
+          data.hbilinear data.tippOutcome)
+        execution.tippPairing) :
+    AcceptedExecutionChallengePrimitiveContract
+      data contract blake2b output execution := by
+  have transcriptExecution :=
+    shippingReal_transcriptExecution
+      data contract blake2b output hsupport execution
+  obtain ⟨randomizerCall, ⟨run⟩⟩ :=
+    execution.operationalCalls
+      (refinement.external.decoded output.transcript execution)
+      runProjection
+  have admissible :=
+    refinement.external.challengeAdmissible output.transcript execution
+  let calls :
+      Ipp.Extracted.AggregateVerifier.ArkworksTippChallengeTrace
+        data.primitive data.serialization data.statement data.proof
+        output.transcript execution.effect :=
+    Ipp.Extracted.TippMippChallengeExecution.arkworksTrace_of_runChallengeTrace_and_transcriptExecution
+        contract data.input.family data.input.challengeContext
+        data.statement.rejectionFuel blake2b tippSemantics
+        data.statement data.proof output.transcript transcriptExecution
+        execution.effect execution.finalEffect run
+        admissible.randomizer admissible.x0 admissible.round
+        admissible.bridge admissible.kzg
+  let samples :=
+    Ipp.Extracted.TippMippChallengeExecution.acceptedExecutionSamples_of_transcriptExecution
+        contract data.randomizerEffects data.input.family
+        data.input.challengeContext data.statement.rejectionFuel blake2b
+        randomizerSemantics tippSemantics data.statement data.proof
+        output.transcript transcriptExecution
+        execution.finalRandomizerEffect randomizerCall execution.effect calls
+  constructor
+  · simpa [deployedPointSample, callEncoder,
+      Ipp.ShippingArkworksHash.deployedPointSample] using
+      samples.randomizerAtTranscript
+  · exact
+      DeployedChallengeTrace.nonempty_ofAcceptedExecutionSamples
+        contract blake2b samples
+
+/-- The deployed challenge contract follows uniformly for every supported raw
+accepted execution once the two exact hash/decoder postconditions and the
+accepted-run call projection are supplied.
+
+The only choice below forgets concrete effect-state witnesses behind
+`Nonempty`; it does not choose a transcript or acceptance result. -/
+theorem deployedChallengePrimitiveContract_of_postconditions
+    {D : Type} {μ arity : Nat}
+    (data : CallData D μ arity)
+    (contract :
+      Ipp.ShippingArkworksHash.SerializationContract data.serialization)
+    (blake2b : List UInt8 → Ipp.ShippingHashGame.DigestBytes)
+    (randomizerSemantics :
+      Ipp.ShippingArkworksHash.Blake2bRandomizerEffectPostcondition
+        contract data.randomizerEffects data.input.family
+        data.input.challengeContext data.statement.rejectionFuel blake2b)
+    (tippSemantics :
+      Ipp.ShippingArkworksHash.Blake2bTippEffectPostcondition
+        contract data.input.family data.input.challengeContext
+        data.statement.rejectionFuel blake2b)
+    (refinement : RefinementContracts data)
+    (runProjection :
+      ∀ (output :
+          Ipp.FsResult μ Fr g1PrimeSubgroup g2PrimeSubgroup
+            ArkPairingOutput)
+        (_hsupport :
+          output ∈ support
+            (shippingRealCallVerifier data contract blake2b))
+        (execution : RawAcceptedExecution data output.transcript),
+        Ipp.Extracted.TippMippChallengeExecution.AcceptedRunCallProjection
+          data.primitive data.serialization data.statement data.proof
+          output.transcript.randomizer
+          data.srs.g data.srs.g_beta data.srs.h data.srs.h_alpha
+          (Ipp.Bls12377.tippPairingEffect
+            data.hbilinear data.tippOutcome)
+          execution.tippPairing) :
+    DeployedChallengePrimitiveContract data contract blake2b := by
+  refine {
+    randomizerSample := ?_
+    trace := ?_
+  }
+  · intro output hsupport execution
+    exact
+      (acceptedExecution_challengePrimitiveContract
+        data contract blake2b randomizerSemantics tippSemantics refinement
+        output hsupport execution
+        (runProjection output hsupport execution)).1
+  · intro output hsupport execution
+    exact Classical.choice
+      (acceptedExecution_challengePrimitiveContract
+        data contract blake2b randomizerSemantics tippSemantics refinement
+        output hsupport execution
+        (runProjection output hsupport execution)).2
+
 /-- Three concrete SHA-256 collision sites: VK digest, statement digest, and
 challenge-context derivation. -/
 def shaBad
@@ -908,9 +1068,7 @@ theorem acceptedCallOutput_refines_shipping_v1
   rcases haccepted with ⟨rawExecution⟩
   have view :=
     rawExecution.refines refinement
-      (fun initialEffect =>
-        (deployed.trace output hsupport rawExecution
-          initialEffect).answers)
+      (deployed.trace output hsupport rawExecution).answers
   exact ⟨view.represents.1, view.represents.2,
     view.accepts, view.app.validCounts,
     data.contract.realPrefixExact data.input refinement.external.supported,
@@ -1255,6 +1413,8 @@ theorem shippingRealCall_acceptance_le_fsProbComp
 #print axioms shippingReal_transcriptExecution
 #print axioms DeployedChallengeTrace.nonempty_ofAcceptedExecutionSamples
 #print axioms DeployedChallengeTrace.answers
+#print axioms acceptedExecution_challengePrimitiveContract
+#print axioms deployedChallengePrimitiveContract_of_postconditions
 #print axioms shippingIdeal_resultOrigin
 #print axioms idealCallAcceptance_le_shippingIdeal
 #print axioms acceptedCallOutput_refines_shipping_v1

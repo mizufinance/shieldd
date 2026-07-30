@@ -110,6 +110,26 @@ pub struct AppVerifyShippingResult {
     pub result: AppVerifyCallResult,
 }
 
+/// One backend result retaining the exact execution that produced its bit.
+///
+/// The execution is opaque at the application boundary. Production constructs
+/// this record from the semantic verifier execution before profiling or async
+/// task transport can discard that execution.
+#[doc(hidden)]
+#[derive(Clone, Debug)]
+pub struct AppVerifyShippingBackendResult<Execution> {
+    execution: Execution,
+    result: AppVerifyCallResult,
+}
+
+/// Application result paired with the backend execution that supplied it.
+#[doc(hidden)]
+#[derive(Clone, Debug)]
+pub struct AppVerifyShippingExecutedResult<Execution> {
+    shipping_result: AppVerifyShippingResult,
+    backend_result: AppVerifyShippingBackendResult<Execution>,
+}
+
 /// A backend call paired with the exact field rows and shipping input produced
 /// by one successful pure constructor execution.
 ///
@@ -408,6 +428,72 @@ pub fn app_verify_shipping_result_from_parts(
         input,
         result: AppVerifyCallResult { id, accepted },
     }
+}
+
+/// Internal constructor used only after a semantic execution has produced the
+/// complete call result. Shipping code must not construct this from a bare
+/// acceptance bit.
+pub(crate) fn app_verify_shipping_backend_result_from_parts<Execution>(
+    execution: Execution,
+    result: AppVerifyCallResult,
+) -> AppVerifyShippingBackendResult<Execution> {
+    AppVerifyShippingBackendResult { execution, result }
+}
+
+/// Copy the exact tagged result without exposing or discarding its execution.
+pub(crate) fn app_verify_shipping_backend_call_result<Execution>(
+    backend: &AppVerifyShippingBackendResult<Execution>,
+) -> AppVerifyCallResult {
+    backend.result
+}
+
+/// Move the exact execution and tagged result across an opaque runtime
+/// ownership boundary without reconstructing either value.
+pub(crate) fn app_verify_shipping_backend_result_into_parts<Execution>(
+    backend: AppVerifyShippingBackendResult<Execution>,
+) -> (Execution, AppVerifyCallResult) {
+    (backend.execution, backend.result)
+}
+
+/// Construct the application result from the exact retained backend result.
+///
+/// Identity is checked again at this boundary, so an unrelated retained
+/// execution fails closed instead of being attached to the supplied input.
+#[doc(hidden)]
+pub fn app_verify_shipping_result_from_backend_result<Execution>(
+    input: AppVerifyShippingInput,
+    backend_result: AppVerifyShippingBackendResult<Execution>,
+) -> Result<AppVerifyShippingExecutedResult<Execution>, AppVerifyShippingInputError> {
+    if backend_result.result.id != input.call.id {
+        return Err(AppVerifyShippingInputError::CallIdentityMismatch);
+    }
+    let shipping_result = AppVerifyShippingResult {
+        input,
+        result: backend_result.result,
+    };
+    Ok(AppVerifyShippingExecutedResult {
+        shipping_result,
+        backend_result,
+    })
+}
+
+/// Borrow the application result while retaining its exact backend execution.
+#[doc(hidden)]
+pub fn app_verify_shipping_executed_result_result<Execution>(
+    executed: &AppVerifyShippingExecutedResult<Execution>,
+) -> &AppVerifyShippingResult {
+    &executed.shipping_result
+}
+
+/// Consume the application result and its exact retained backend execution.
+#[doc(hidden)]
+pub fn app_verify_shipping_executed_result_into_parts<Execution>(
+    executed: AppVerifyShippingExecutedResult<Execution>,
+) -> (
+    AppVerifyShippingResult,
+    AppVerifyShippingBackendResult<Execution>,
+) {
+    (executed.shipping_result, executed.backend_result)
 }
 
 /// Exact successful projection from the shipping preflight carrier into the
@@ -1027,6 +1113,44 @@ mod tests {
         assert_eq!(result.input, input);
         assert_eq!(result.result.id, call.id);
         assert!(result.result.accepted);
+
+        let backend_result = app_verify_shipping_backend_result_from_parts(
+            vec![0xd1, 0xd2],
+            AppVerifyCallResult {
+                id: call.id,
+                accepted: true,
+            },
+        );
+        let executed =
+            app_verify_shipping_result_from_backend_result(input.clone(), backend_result)
+                .expect("matching retained backend result");
+        let executed_result = app_verify_shipping_executed_result_result(&executed);
+        assert_eq!(executed_result.input, input);
+        assert_eq!(executed_result.result.id, call.id);
+        assert!(executed_result.result.accepted);
+        let (_, retained) = app_verify_shipping_executed_result_into_parts(executed);
+        assert_eq!(
+            app_verify_shipping_backend_call_result(&retained),
+            AppVerifyCallResult {
+                id: call.id,
+                accepted: true,
+            }
+        );
+
+        let mut wrong_id = call.id;
+        wrong_id.order_index += 1;
+        let mismatched = app_verify_shipping_backend_result_from_parts(
+            vec![0xe1],
+            AppVerifyCallResult {
+                id: wrong_id,
+                accepted: true,
+            },
+        );
+        assert_eq!(
+            app_verify_shipping_result_from_backend_result(input.clone(), mismatched)
+                .expect_err("unrelated retained backend result must reject"),
+            AppVerifyShippingInputError::CallIdentityMismatch
+        );
 
         let parts =
             app_verify_shipping_into_parts_core(preflight.backend_call, preflight.shipping_input);

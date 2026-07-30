@@ -4,10 +4,15 @@ use std::time::Instant;
 
 use anyhow::{ensure, Result};
 use ark_groth16::PreparedVerifyingKey;
+use ark_ip_proofs::app_verifier::{
+    app_verify_shipping_result_from_backend_result, AppVerifyShippingBackendResult,
+    AppVerifyShippingExecutedResult,
+};
 use ark_ip_proofs::applications::groth16_aggregation::{
     aggregate_proofs, aggregate_proofs_profiled, validate_aggregate_proof,
-    verify_validated_aggregate_proof, verify_validated_aggregate_proof_profiled, AggregateProof,
-    AggregateProofBuildProfile, AggregateProofVerificationProfile, ValidatedAggregateProof,
+    verify_validated_aggregate_proof, verify_validated_aggregate_proof_profiled,
+    verify_validated_aggregate_proof_shipping_profiled, AggregateProof, AggregateProofBuildProfile,
+    AggregateProofVerificationProfile, ShippingVerifierExecutionCarrier, ValidatedAggregateProof,
 };
 #[cfg(test)]
 use ark_ip_proofs::applications::groth16_aggregation::{
@@ -26,7 +31,7 @@ use crate::{
     aggregate_proof_wrapper::{
         encode_wrapped_aggregate_proof, AggregateProofBytesError, MAX_AGGREGATE_PROOF_BYTES,
     },
-    app_verifier::{AppVerifyShippingCall, AppVerifyShippingInput},
+    app_verifier::AppVerifyShippingCall,
     preflight::{
         preflight_aggregate_verify, preflight_shipping_aggregate_verify, AggregatePreflightInput,
         VerifiedAggregateBackendCall,
@@ -34,7 +39,10 @@ use crate::{
     srs::DevSrs,
     statement::{AggregateStatement, AggregateStatementError},
     strict_deserialize::deserialize_compressed_strict,
-    transcript::{NoteReshapeTranscriptDigest, ShieldedIcs20WithdrawalTranscriptDigest},
+    transcript::{
+        NoteReshapeTranscriptDigest, ShieldedIcs20WithdrawalTranscriptDigest,
+        TransferTranscriptDigest,
+    },
     transfer_family_dispatch::{
         aggregate_transfer, aggregate_transfer_profiled, verify_transfer_aggregate,
         verify_transfer_aggregate_profiled_status,
@@ -117,11 +125,23 @@ pub struct AggregateVerificationProfile {
 
 /// Backend profile paired with the exact byte-level input authenticated by the
 /// production shipping preflight.
+type ShippingAggregateBackendResult =
+    AppVerifyShippingBackendResult<ShippingVerifierExecutionCarrier<Bls12_377>>;
+type ShippingAggregateExecutedResult =
+    AppVerifyShippingExecutedResult<ShippingVerifierExecutionCarrier<Bls12_377>>;
+
 #[doc(hidden)]
 #[derive(Clone, Debug)]
 pub struct ShippingAggregateVerification {
-    pub input: AppVerifyShippingInput,
     pub profile: AggregateVerificationProfile,
+    executed: ShippingAggregateExecutedResult,
+}
+
+impl ShippingAggregateVerification {
+    #[doc(hidden)]
+    pub fn shipping_result(&self) -> &ark_ip_proofs::app_verifier::AppVerifyShippingResult {
+        ark_ip_proofs::app_verifier::app_verify_shipping_executed_result_result(&self.executed)
+    }
 }
 
 impl Default for AggregateVerificationProfile {
@@ -387,6 +407,7 @@ impl SnarkpackBackend {
         aggregate_proof_bytes: &[u8],
         srs: &DevSrs,
     ) -> Result<ShippingAggregateVerification, AggregateVerifyError> {
+        let call_id = application_call.id;
         let verified = preflight_shipping_aggregate_verify(
             application_call,
             AggregatePreflightInput {
@@ -397,8 +418,89 @@ impl SnarkpackBackend {
             },
         )?;
         let (backend_call, input) = verified.into_parts();
-        let profile = Self::verify_preflighted_family_aggregate_profiled_status(backend_call)?;
-        Ok(ShippingAggregateVerification { input, profile })
+        let (profile, backend_result) =
+            Self::verify_preflighted_shipping_family_aggregate_profiled_status(
+                call_id,
+                backend_call,
+            )?;
+        let executed = app_verify_shipping_result_from_backend_result(input, backend_result)
+            .map_err(|error| {
+                AggregateVerifyError::BackendRejected(format!(
+                    "shipping backend result identity mismatch: {error:?}"
+                ))
+            })?;
+        Ok(ShippingAggregateVerification { profile, executed })
+    }
+
+    fn verify_preflighted_shipping_family_aggregate_profiled_status(
+        call_id: ark_ip_proofs::app_verifier::AppVerifyCallId,
+        call: VerifiedAggregateBackendCall<'_>,
+    ) -> Result<(AggregateVerificationProfile, ShippingAggregateBackendResult), AggregateVerifyError>
+    {
+        match call.family_id() {
+            ProofFamilyId::Transfer => {
+                verify_with_digest_shipping_profiled::<TransferTranscriptDigest>(
+                    call_id,
+                    call.challenge_context(),
+                    call.pvk(),
+                    call.inner_proof_bytes(),
+                    call.padded_public_inputs(),
+                    call.srs(),
+                )
+            }
+            ProofFamilyId::NoteReshape(family_id) => match family_id {
+                NoteReshapeFamilyId::TwoByOne => verify_with_digest_shipping_profiled::<
+                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
+                >(
+                    call_id,
+                    call.challenge_context(),
+                    call.pvk(),
+                    call.inner_proof_bytes(),
+                    call.padded_public_inputs(),
+                    call.srs(),
+                ),
+                NoteReshapeFamilyId::OneByEight => verify_with_digest_shipping_profiled::<
+                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
+                >(
+                    call_id,
+                    call.challenge_context(),
+                    call.pvk(),
+                    call.inner_proof_bytes(),
+                    call.padded_public_inputs(),
+                    call.srs(),
+                ),
+                NoteReshapeFamilyId::EightByOne => verify_with_digest_shipping_profiled::<
+                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
+                >(
+                    call_id,
+                    call.challenge_context(),
+                    call.pvk(),
+                    call.inner_proof_bytes(),
+                    call.padded_public_inputs(),
+                    call.srs(),
+                ),
+                NoteReshapeFamilyId::FourByOne => verify_with_digest_shipping_profiled::<
+                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
+                >(
+                    call_id,
+                    call.challenge_context(),
+                    call.pvk(),
+                    call.inner_proof_bytes(),
+                    call.padded_public_inputs(),
+                    call.srs(),
+                ),
+            },
+            ProofFamilyId::ShieldedIcs20Withdrawal(_) => {
+                verify_with_digest_shipping_profiled::<ShieldedIcs20WithdrawalTranscriptDigest>(
+                    call_id,
+                    call.challenge_context(),
+                    call.pvk(),
+                    call.inner_proof_bytes(),
+                    call.padded_public_inputs(),
+                    call.srs(),
+                )
+            }
+        }
     }
 
     fn verify_preflighted_family_aggregate_profiled_status(
@@ -818,6 +920,39 @@ pub(crate) fn verify_with_digest_profiled<D: Digest + Send + Sync>(
         deserialize_ms,
         started.elapsed().as_secs_f64() * 1000.0,
     ))
+}
+
+fn verify_with_digest_shipping_profiled<D: Digest + Send + Sync>(
+    call_id: ark_ip_proofs::app_verifier::AppVerifyCallId,
+    challenge_context: &ChallengeContext,
+    pvk: &PreparedVerifyingKey<Bls12_377>,
+    aggregate_proof_bytes: &[u8],
+    padded_public_inputs: &[Vec<Fq>],
+    srs: &DevSrs,
+) -> Result<(AggregateVerificationProfile, ShippingAggregateBackendResult), AggregateVerifyError> {
+    let started = Instant::now();
+
+    let deserialize_started = Instant::now();
+    let aggregate = deserialize_aggregate_proof::<D>(aggregate_proof_bytes)?;
+    let deserialize_ms = deserialize_started.elapsed().as_secs_f64() * 1000.0;
+
+    let verification = verify_validated_aggregate_proof_shipping_profiled::<Bls12_377, D>(
+        call_id,
+        challenge_context,
+        srs.verifier_srs()
+            .map_err(|err| AggregateVerifyError::BadPadding(err.to_string()))?,
+        pvk,
+        padded_public_inputs,
+        &aggregate,
+    )
+    .map_err(|e| AggregateVerifyError::BackendRejected(e.to_string()))?;
+    let (core_profile, backend_result) = verification.into_parts();
+    let profile = profile_with_deserialize(
+        core_profile,
+        deserialize_ms,
+        started.elapsed().as_secs_f64() * 1000.0,
+    );
+    Ok((profile, backend_result))
 }
 
 fn profile_with_deserialize(
@@ -1469,22 +1604,17 @@ mod tests {
         .expect("shipping aggregate should verify");
 
         assert!(verified.profile.accepted);
+        let input = &verified.shipping_result().input;
+        assert_eq!(input.family, crate::app_verify_family_code(family_id));
+        assert_eq!(input.protocol_version, AGGREGATE_PROTOCOL_VERSION);
+        assert_eq!(input.srs_id, statement.srs_id());
+        assert_eq!(input.serialized_vk, serialized_vk);
+        assert_eq!(input.vk_digest, statement.vk_digest());
+        assert_eq!(input.real_count, statement.real_count());
+        assert_eq!(input.padded_count, statement.padded_count());
+        assert_eq!(input.public_input_arity, statement.public_input_arity());
         assert_eq!(
-            verified.input.family,
-            crate::app_verify_family_code(family_id)
-        );
-        assert_eq!(verified.input.protocol_version, AGGREGATE_PROTOCOL_VERSION);
-        assert_eq!(verified.input.srs_id, statement.srs_id());
-        assert_eq!(verified.input.serialized_vk, serialized_vk);
-        assert_eq!(verified.input.vk_digest, statement.vk_digest());
-        assert_eq!(verified.input.real_count, statement.real_count());
-        assert_eq!(verified.input.padded_count, statement.padded_count());
-        assert_eq!(
-            verified.input.public_input_arity,
-            statement.public_input_arity()
-        );
-        assert_eq!(
-            verified.input.padded_public_inputs,
+            input.padded_public_inputs,
             statement
                 .padded_public_input_bytes()
                 .iter()
@@ -1494,20 +1624,49 @@ mod tests {
                     .collect::<Vec<_>>())
                 .collect::<Vec<_>>()
         );
+        assert_eq!(input.canonical_statement_bytes, statement.canonical_bytes());
+        assert_eq!(input.statement_digest, statement.statement_digest());
+        assert_eq!(input.wrapped_proof_bytes, wrapped);
+        assert_eq!(input.inner_proof_bytes, inner);
         assert_eq!(
-            verified.input.canonical_statement_bytes,
-            statement.canonical_bytes()
-        );
-        assert_eq!(
-            verified.input.statement_digest,
-            statement.statement_digest()
-        );
-        assert_eq!(verified.input.wrapped_proof_bytes, wrapped);
-        assert_eq!(verified.input.inner_proof_bytes, inner);
-        assert_eq!(
-            verified.input.challenge_context,
+            input.challenge_context,
             statement.challenge_context().as_bytes()
         );
+    }
+
+    #[test]
+    fn shipping_and_ordinary_profiled_routes_match_all_registered_families() {
+        let (pvk, items) = sample_items();
+        let srs = DevSrs::default();
+        let padded_items =
+            pad_items_to_power_of_two(&items, srs.max_padded_count as usize).expect("padding");
+
+        for family_id in parity_families() {
+            let statement = statement_for_items(family_id, &pvk, items.len(), &padded_items, &srs);
+            let wrapped = aggregate_family(&statement, &pvk, &padded_items, &srs)
+                .expect("aggregation should succeed");
+            let ordinary = SnarkpackBackend::verify_family_aggregate_profiled_status(
+                &statement, &pvk, &wrapped, &srs,
+            )
+            .expect("ordinary profiled verification should run");
+            let shipping = SnarkpackBackend::verify_shipping_family_aggregate_profiled_status(
+                shipping_call(family_id, items.len(), padded_items.len()),
+                &statement,
+                &pvk,
+                &wrapped,
+                &srs,
+            )
+            .expect("shipping profiled verification should run");
+
+            assert_eq!(
+                shipping.profile.accepted, ordinary.accepted,
+                "shipping and ordinary digest routes diverged for {family_id:?}"
+            );
+            assert!(
+                shipping.profile.accepted,
+                "valid aggregate must be accepted for {family_id:?}"
+            );
+        }
     }
 
     #[test]
