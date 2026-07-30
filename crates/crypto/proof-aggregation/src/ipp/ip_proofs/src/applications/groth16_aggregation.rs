@@ -103,11 +103,13 @@ impl ChallengeTraceSink for BufferedChallengeTraceSink {
     }
 }
 
+#[cfg(not(feature = "bench-baseline"))]
 struct RetainedChallengeTraceSink<'a, S> {
     downstream: &'a mut S,
     retained: &'a mut BufferedChallengeTraceSink,
 }
 
+#[cfg(not(feature = "bench-baseline"))]
 impl<S: ChallengeTraceSink> ChallengeTraceSink for RetainedChallengeTraceSink<'_, S> {
     fn record(&mut self, stage_label: &'static [u8], nonce: u64, preimage: &[u8], digest: &[u8]) {
         self.downstream.record(stage_label, nonce, preimage, digest);

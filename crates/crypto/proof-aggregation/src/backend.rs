@@ -489,6 +489,10 @@ impl SnarkpackBackend {
                     call.padded_public_inputs(),
                     call.srs(),
                 ),
+                other => Err(AggregateVerifyError::BadVersion(format!(
+                    "unknown note reshape aggregate family {}",
+                    other.get()
+                ))),
             },
             ProofFamilyId::ShieldedIcs20Withdrawal(_) => {
                 verify_with_digest_shipping_profiled::<ShieldedIcs20WithdrawalTranscriptDigest>(

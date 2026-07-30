@@ -542,7 +542,8 @@ theorem acceptedOperationalCalls_of_adapterRun
           } g gBeta h hAlpha)
     (runProjection :
       AcceptedRunCallProjection primitive serialization stmt proof
-        transcript.randomizer g gBeta h hAlpha tippPairing tippPairingState)
+        transcript.randomizer g gBeta h hAlpha tippPairing tippPairingState
+        effect finalEffect)
     (adapterRun :
       Ipp.Extracted.AggregateAdapter.run randomizerEffects
           (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
@@ -624,7 +625,7 @@ theorem acceptedOperationalCalls_of_adapterRun
     simpa [alloc.vec.Vec.deref] using randomizerCall
   exact
     ⟨randomizerCallExact,
-      runProjection.callsOfAccepted effect finalEffect tippRunExact⟩
+      runProjection.callsOfAccepted tippRunExact⟩
 
 #print axioms acceptedOperationalCalls_of_adapterRun
 

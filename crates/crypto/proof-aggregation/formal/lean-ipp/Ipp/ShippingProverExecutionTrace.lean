@@ -329,6 +329,67 @@ theorem ExternalRoundSchedule.toSuccessfulLoopTrace
   | step evidence tail ih =>
       exact .step (evidence.body_cont algebraExact) ih
 
+/-- Construct the shipping GIPA boundary from granular chronological round
+evidence.  Callers provide the extracted execution and its exact input/output
+projections, but no `SuccessfulLoopTrace`: the finite trace is derived from
+the split and external-operation equations in `schedule`. -/
+def gipaExecutionBoundary_of_externalRoundSchedule
+    {D : Type} {μ : Nat}
+    (statement : Ipp.FsStatement μ F G1 G2 GT)
+    (witness : Ipp.Goal.Witness (2 ^ μ)
+      (Ipp.SnarkPackV1.Refinement.WitnessRow G1 G2))
+    (transcript : Ipp.FsTranscript μ F)
+    (observation :
+      Observation (F := F) (G1 := G1) (G2 := G2) (GT := GT) D μ)
+    (algebra : GipaAlgebra F G1 G2 GT)
+    (Effect : Type)
+    (effects :
+      applications.groth16_aggregation.ProverGipaEffect
+        Effect F G1 G2 GT
+          (AggregateProver.WireIdentity GT)
+          (AggregateProver.WireIdentity G1) String)
+    (concreteInput :
+      applications.groth16_aggregation.ProverGipaCoreInput F G1 G2 GT)
+    (inputExact :
+      concreteInput = honestGipaInput statement witness transcript)
+    (initialEffect : Effect)
+    (execution :
+      Ipp.Extracted.ProverGipaExecution.SuccessfulExecution
+        algebra.cloneF algebra.mulF algebra.addF
+        algebra.cloneG1 algebra.mulG1 algebra.addG1
+        algebra.cloneG2 algebra.mulG2 algebra.addG2
+        algebra.cloneGT algebra.cloneAB algebra.cloneC
+        effects concreteInput initialEffect)
+    (algebraExact : algebra.RefinesModels)
+    (afterX0 : Effect)
+    (x0Exact :
+      effects.derive_x0 initialEffect
+          concreteInput.randomizer concreteInput.com_a concreteInput.com_b
+          concreteInput.com_c concreteInput.ip_ab concreteInput.agg_c =
+        .ok (.Ok transcript.x0, afterX0))
+    (schedule :
+      ExternalRoundSchedule algebra effects
+        (honestLoopInitial (E := String)
+          statement witness transcript afterX0)
+        (honestLoopTerminal (E := String)
+          statement witness transcript execution.finalEffect))
+    (observedOutput :
+      execution.output = observedGipaOutput transcript observation) :
+    GipaExecutionBoundary statement witness transcript observation where
+  algebra := algebra
+  Effect := Effect
+  effects := effects
+  concreteInput := concreteInput
+  inputExact := inputExact
+  initialEffect := initialEffect
+  execution := execution
+  algebraExact := algebraExact
+  afterX0 := afterX0
+  x0Exact := x0Exact
+  loopTrace :=
+    ExternalRoundSchedule.toSuccessfulLoopTrace algebraExact schedule
+  observedOutput := observedOutput
+
 end
 
 end Ipp.Extracted.ShippingProverExecutionTrace

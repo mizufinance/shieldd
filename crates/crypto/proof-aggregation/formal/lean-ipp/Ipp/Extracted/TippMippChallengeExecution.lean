@@ -798,8 +798,9 @@ structure AcceptedRunCallProjection
     (pairingEffect :
       tipa.PairingEffect PE g1PrimeSubgroup g2PrimeSubgroup
         ArkPairingOutput)
-    (pairing : PE) : Prop where
-  callsOfAccepted : ∀ effect0 finalEffect,
+    (pairing : PE)
+    (effect0 finalEffect : FX) : Prop where
+  callsOfAccepted :
     Ipp.Extracted.CombinedChecks.runTipp
         (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
           (@Ipp.Extracted.TippMippAdapter.partialEq ArkPairingOutput

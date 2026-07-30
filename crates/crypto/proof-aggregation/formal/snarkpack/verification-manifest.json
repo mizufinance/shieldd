@@ -374,7 +374,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "sha256": "9d72b659797fba5ca5422807358d60736fce051e4ef72f38ef0fb5e75fd17c1c"
+          "sha256": "c759bc3fa75ba8a9b0cdc2c25e847d7197fd70f05ffffc3df393c53dab7fee79"
         }
       ],
       "toolchain_role": "external",
@@ -743,15 +743,16 @@
     },
     {
       "path": "Ipp/ProofAuditProver.lean",
-      "expected_capstones": 6,
-      "capstone_roots_sha256": "cb827107159624d42dec2b5f51791ca2b16d08a9e479ae255925e7e263dceac1",
+      "expected_capstones": 7,
+      "capstone_roots_sha256": "33ce0eba9e004925098b797c5e9ace0349b1f311eef6f7bbd2dbd6f6e879e542",
       "required_roots": [
         "Ipp.Extracted.ShippingProver.shipping_prover_refines_honest_complete",
         "Ipp.Extracted.ShippingProverRefinement.executedOpening_keyEquation",
         "Ipp.Extracted.ShippingProverRefinement.kzgBoundary_of_wellFormedSrs_and_verifierEquations",
         "Ipp.Extracted.ShippingProverExecutionTrace.ContinuingRoundEvidence.body_cont",
         "Ipp.Extracted.ShippingProverExecutionTrace.body_done",
-        "Ipp.Extracted.ShippingProverExecutionTrace.ExternalRoundSchedule.toSuccessfulLoopTrace"
+        "Ipp.Extracted.ShippingProverExecutionTrace.ExternalRoundSchedule.toSuccessfulLoopTrace",
+        "Ipp.Extracted.ShippingProverExecutionTrace.gipaExecutionBoundary_of_externalRoundSchedule"
       ]
     },
     {
@@ -770,8 +771,8 @@
     },
     {
       "path": "Ipp/ProofAuditAdaptive.lean",
-      "expected_capstones": 20,
-      "capstone_roots_sha256": "86c5b0770e3368ff41401e0ce5e110ead3d65a20935374d6ee65972a7679845f",
+      "expected_capstones": 30,
+      "capstone_roots_sha256": "d0e791fa6ee266c868bce42ed93638e5a7949fc1c8515cc380f3f66b7a2e8933",
       "required_roots": [
         "Ipp.ShippingAdaptiveSha.acceptedAlias_implies_collision",
         "Ipp.ShippingAdaptiveSha.deployedShaImpl_sha256_query",
@@ -789,8 +790,18 @@
         "Ipp.ShippingMultiStatement.PackedOutcome.at?_self",
         "Ipp.ShippingMultiStatement.multiStatementFsGame_isTotalQueryBound",
         "Ipp.ShippingMultiStatement.multiStatementFsGame_selectedFraming_queryBounded",
+        "Ipp.ShippingMultiStatement.packedOutcome_roundQuery?_statement",
+        "Ipp.ShippingMultiStatement.multiStatementRoundSlot_query_at_trace",
+        "Ipp.ShippingMultiStatement.logicalKey_eq_of_shared_selected_slot",
         "Ipp.ShippingMultiStatement.leastInvalidOutcome?_mem",
         "Ipp.ShippingMultiStatement.bundle_acceptance_implies_least_invalid_acceptance",
+        "Ipp.ShippingMultiStatement.treeConsistent_all_logicalKey_eq_root",
+        "Ipp.ShippingMultiStatement.rawMultiStatementForkExperimentAt_support_carries_logicalKey",
+        "Ipp.ShippingMultiStatement.rawForkLogicalKeySelectionLossAt_eq_zero",
+        "Ipp.ShippingMultiStatement.invalidAcceptedAt_projects_invalid_selection",
+        "Ipp.ShippingMultiStatement.rawFork_all_invalid_common_or_selectionDisagrees",
+        "Ipp.ShippingMultiStatement.rawMultiStatementForkExperimentAt_support_all_invalidAccepted",
+        "Ipp.ShippingMultiStatement.rawFork_isSome_le_succeeded_add_selectionLoss",
         "Ipp.ShippingMultiStatement.rawForkSucceededAt_le_explicit_game_advantage",
         "Ipp.ShippingMultiStatement.FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh"
       ]
@@ -1151,7 +1162,7 @@
         "ARKWORKS-CHALLENGE-SERIALIZATION",
         "WELL-FORMED-PROVING-SRS"
       ],
-      "evidence": "The Lean source theorem remains conditional over ShippingProverContract. The live aggregate_proofs_profiled_with_trace caller now passes its exact caller-order A/B/C points, SRS arrays, derived PreparedProvingSrs affine arrays and commitment keys, initial commitments, successful randomizer execution, and complete GIPA/KZG execution directly through the production-used generic shipping_aggregate_prover_semantic_execution_from_parts extraction root. This avoids asking Aeneas to translate a redundant Pairing-associated-type wrapper while preserving the exact returned proof. ShippingProverExecutionTrace no longer accepts a whole-loop result equation: ContinuingRoundEvidence records only deterministic splits plus the two commitment, chronological challenge, and inverse effect equations; GipaAlgebra.round_exact derives each generated continuing step, and ExternalRoundSchedule.toSuccessfulLoopTrace constructs the finite loop trace inductively. The production-used prover_gipa_semantic_execution_core owns the exact prove_tipp_mipp_gipa_core call, consumes x0 from that same effect instance, and retains compact chronological evidence for every round; callers can no longer combine an unrelated input, output, x0, or transcript. Its generated equation is stale pending CI extraction. Closure now requires the formal bridge from the retained chronology plus concrete Arkworks effect postconditions into ContinuingRoundEvidence, KZG acceptance under WellFormedProvingSrs, and internal construction of ShippingProverContract; no production completeness claim is made until then.",
+      "evidence": "The Lean source theorem remains conditional over ShippingProverContract. The live aggregate_proofs_profiled_with_trace caller now passes its exact caller-order A/B/C points, SRS arrays, derived PreparedProvingSrs affine arrays and commitment keys, initial commitments, successful randomizer execution, and complete GIPA/KZG execution directly through the production-used generic shipping_aggregate_prover_semantic_execution_from_parts extraction root. This avoids asking Aeneas to translate a redundant Pairing-associated-type wrapper while preserving the exact returned proof. ShippingProverExecutionTrace no longer accepts a whole-loop result equation: ContinuingRoundEvidence records only deterministic splits plus the two commitment, chronological challenge, and inverse effect equations; GipaAlgebra.round_exact derives each generated continuing step, and ExternalRoundSchedule.toSuccessfulLoopTrace constructs the finite loop trace inductively. The new gipaExecutionBoundary_of_externalRoundSchedule constructs the whole GipaExecutionBoundary from granular chronological round evidence and derives SuccessfulLoopTrace internally; callers can no longer supply that trace as an operational premise. The production-used prover_gipa_semantic_execution_core owns the exact prove_tipp_mipp_gipa_core call, consumes x0 from that same effect instance, and retains compact chronological evidence for every round; callers can no longer combine an unrelated input, output, x0, or transcript. Its generated equation is stale pending CI extraction. Closure now requires converting the retained rounds_chrono plus concrete Arkworks effect postconditions into ExternalRoundSchedule, deriving KZG acceptance under WellFormedProvingSrs, and internally constructing ShippingProverContract; no production completeness claim is made until then.",
       "status": "open"
     },
     {
@@ -1192,7 +1203,7 @@
         "ARKWORKS-FR-DIGEST-REDUCTION",
         "DEPLOYED-BLAKE2B-EXECUTION"
       ],
-      "evidence": "Open only at concrete effect installation and deployed primitive instantiation. The live verifier retains the exact randomizer call and chronological X0, round, bridge, and KZG calls in one semantic execution. acceptedOperationalCalls_of_adapterRun inverts the generic accepted path at that execution's real initial effect. arkworksTrace_of_runChallengeTrace_and_transcriptExecution then identifies every retained challenge value with the deterministic shipping byte program from equal deployed-sampler equations, including the inductive round chain, without assuming transcript equality or replay from arbitrary effect states. acceptedExecution_challengePrimitiveContract combines that bridge with the randomizer execution, and deployedChallengePrimitiveContract_of_postconditions constructs the complete contract for every supported accepted execution from the two exact Blake2b/Arkworks-Fr postconditions plus AcceptedRunCallProjection. All shipping consumers now use execution.effect; the stronger all-effect contract remains only as a reusable generic interface. The new source retention roots are registered but stale pending CI extraction. Closure requires instantiating AcceptedRunCallProjection for the concrete installed Arkworks run and discharging the named deployed Blake2b and Fr-reduction postconditions; no replay premise remains.",
+      "evidence": "Open only at concrete effect installation and deployed primitive instantiation. The live verifier retains the exact randomizer call and chronological X0, round, bridge, and KZG calls in one semantic execution. acceptedOperationalCalls_of_adapterRun inverts the generic accepted path at that execution's real initial effect. AcceptedRunCallProjection is now indexed by that exact accepted execution's initial and final effects, rather than demanding the same trace projection for every possible effect pair. arkworksTrace_of_runChallengeTrace_and_transcriptExecution identifies every retained challenge value with the deterministic shipping byte program from equal deployed-sampler equations, including the inductive round chain, without assuming transcript equality or replay from arbitrary effect states. acceptedExecution_challengePrimitiveContract combines that bridge with the randomizer execution, and deployedChallengePrimitiveContract_of_postconditions constructs the complete contract for every supported accepted execution from the two exact Blake2b/Arkworks-Fr postconditions plus the execution-indexed projection. The new source retention roots are registered but stale pending CI extraction. Closure requires constructing AcceptedRunCallProjection from the concrete installed Arkworks run and discharging the named deployed Blake2b and Fr-reduction postconditions; no universal-effect or replay premise remains.",
       "status": "open"
     },
     {
@@ -1237,7 +1248,7 @@
         "SHA256-SECURITY",
         "BLAKE2B-ROM-SECURITY"
       ],
-      "evidence": "Open at production instantiation and the common-selection multi-statement forking theorem. ShippingMultiStatement supplies the heterogeneous call package, globally tagged query encoder, exact global FsVerifier support, least-invalid accepted bundle-call selection, a raw fork-success event bounded by explicit game advantages, and a counterexample rejecting the prior fresh-fixed-call route. The new globalInvalidAccepted_le_sum_activeMu theorem decomposes the complete adaptive invalid-acceptance event on actual game support into the declared finite proof-size partitions without restarting the shared cache; globalInvalidAccepted_le_sum_partition_bounds composes heterogeneous per-size bounds, and globalInvalidAccepted_le_card_mul_partition_bound exposes the exact activeMu.card multiplicative size-selection loss for a uniform bound. ShippingAdaptiveReindex and the byte/field/global-FS couplings retain arbitrary preselection queries in one coherent cache and charge modReductionBudget Q_fs once. GlobalFsProgramConstruction identifies a structured program with MultiStatementFsGame and transports the same query bound without a fresh-cache premise. Closure still requires its production construction, one deployed materialization/execution, once-only Blake2b replacement, the reached-query SHA invariant, and a non-vacuous proof that the raw replay fork preserves or explicitly pays for the selected statement across branches.",
+      "evidence": "Open at production instantiation and the remaining exact-statement selection refactor. ShippingMultiStatement supplies the heterogeneous call package, globally tagged query encoder, exact global FsVerifier support, least-invalid accepted bundle-call selection, a raw fork-success event bounded by explicit game advantages, and a counterexample rejecting the prior fresh-fixed-call route. globalInvalidAccepted_le_sum_activeMu decomposes the complete adaptive invalid-acceptance event on actual game support into declared finite proof-size partitions without restarting the shared cache; globalInvalidAccepted_le_sum_partition_bounds composes heterogeneous per-size bounds, and globalInvalidAccepted_le_card_mul_partition_bound exposes the exact activeMu.card multiplicative size-selection loss for a uniform bound. rawFork_all_invalid_common_or_selectionDisagrees proves that every successfully gated replay tree either has one common invalid entire SelectionAt or exhibits an explicit root-versus-branch selection disagreement, and rawFork_isSome_le_succeeded_add_selectionLoss charges exactly that disagreement. Independently, logicalKey_eq_of_shared_selected_slot and treeConsistent_all_logicalKey_eq_root show that the replay prefix fixes the selected globally framed statement key throughout every tree; rawForkLogicalKeySelectionLossAt_eq_zero proves this logical-key component has exactly zero loss despite adaptive prequeries and the shared cache. Exact SelectionAt equality is intentionally not claimed because branch-local proof, response, and opaque-call fields may vary after a fork. Closure must relate equal production logical keys to equal formal FsStatement values and redefine common-statement extraction to permit branch-local proofs/calls; then only actual statement substitution, not legitimate proof variance, is charged. ShippingAdaptiveReindex and the byte/field/global-FS couplings retain arbitrary preselection queries in one coherent cache and charge modReductionBudget Q_fs once. GlobalFsProgramConstruction identifies a structured program with MultiStatementFsGame and transports the same query bound without a fresh-cache premise. Production construction, one deployed materialization/execution, once-only Blake2b replacement, and the reached-query SHA invariant remain downstream obligations.",
       "status": "open"
     },
     {

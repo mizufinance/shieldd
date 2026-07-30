@@ -460,6 +460,10 @@ def roundQuery? {Call : Type}
 def accept {Call : Type} : PackedOutcome Call → Bool
   | ⟨_, output⟩ => output.verifierResult.accept
 
+/-- The logical statement key selected by one heterogeneous output. -/
+def logicalKey {Call : Type} : PackedOutcome Call → ShippingStatementKey
+  | ⟨_, output⟩ => output.selection.logicalKey
+
 /-- Project a heterogeneous output into one `μ` partition, failing when its
 dependent index differs. -/
 def at? {Call : Type} (μ : Nat) :
@@ -651,6 +655,122 @@ def multiStatementRoundSlot {Call : Type}
       else
         exact none
 
+/-- A selected heterogeneous round query carries the logical statement key
+of the output that selected it. -/
+theorem packedOutcome_roundQuery?_statement
+    {Call : Type} {level : Nat}
+    {output : PackedOutcome Call} {query : GlobalFsQuery}
+    (hquery : output.roundQuery? level = some query) :
+    query.statement = output.logicalKey := by
+  rcases output with ⟨μ, output⟩
+  change output.roundQuery? level = some query at hquery
+  by_cases hlevel : level < μ
+  · rw [OutcomeAt.roundQuery?_of_lt output level hlevel] at hquery
+    have heq := Option.some.inj hquery
+    subst query
+    rfl
+  · simp [OutcomeAt.roundQuery?, hlevel] at hquery
+
+/-- A successful dynamic selector points at the selected structured query in
+the chronological miss trace. -/
+theorem multiStatementRoundSlot_query_at_trace
+    {Call : Type}
+    (queryBound level : Nat)
+    (run : MultiStatementWrappedRun Call)
+    {slot : Fin (queryBound + 1)}
+    (hslot : multiStatementRoundSlot queryBound level run = some slot) :
+    ∃ query : GlobalFsQuery,
+      run.out.roundQuery? level = some query ∧
+        run.trace[(slot : Nat)]? = some query := by
+  cases hquery : run.out.roundQuery? level with
+  | none =>
+      simp [multiStatementRoundSlot, hquery] at hslot
+  | some query =>
+      by_cases hmem : query ∈ run.trace
+      · let index := run.trace.findIdx (· == query)
+        by_cases hindex : index < queryBound + 1
+        · have hselected :
+              (⟨index, hindex⟩ : Fin (queryBound + 1)) = slot := by
+            exact Option.some.inj (by
+              simpa [multiStatementRoundSlot, hquery, hmem, index] using hslot)
+          have hindexSlot : index = (slot : Nat) :=
+            congrArg Fin.val hselected
+          have htraceBound :
+              run.trace.findIdx (· == query) < run.trace.length :=
+            List.findIdx_lt_length_of_exists
+              ⟨query, hmem, by simp⟩
+          have htraceValue :
+              run.trace[run.trace.findIdx (· == query)] = query := by
+            simpa using
+              (List.findIdx_getElem
+                (xs := run.trace) (p := fun x => x == query)
+                (w := htraceBound))
+          have hatIndex : run.trace[index]? = some query := by
+            simpa [index, htraceBound, htraceValue]
+          exact ⟨query, hquery, by simpa [hindexSlot] using hatIndex⟩
+        · simp [multiStatementRoundSlot, hquery, hmem, index, hindex] at hslot
+      · simp [multiStatementRoundSlot, hquery, hmem] at hslot
+
+/-- Replaying at one selected round slot cannot change the logical statement
+key attached to that query.  The selected proof and opaque call may still
+change after the forked answer; neither is claimed equal here. -/
+theorem logicalKey_eq_of_shared_selected_slot
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (queryBound level slotPos : Nat)
+    {runA runB : MultiStatementRunLog Call}
+    {slot : Fin (queryBound + 1)}
+    (hsupportA : runA ∈ support
+      (replayFirstRun (multiStatementForkMain game)))
+    (hsupportB : runB ∈ support
+      (replayFirstRun (multiStatementForkMain game)))
+    (hslotA :
+      multiStatementRoundSlot queryBound level runA.1 = some slot)
+    (hslotB :
+      multiStatementRoundSlot queryBound level runB.1 = some slot)
+    (hprefix : ∀ n, n < slotPos → runA.2[n]? = runB.2[n]?)
+    (hinputA :
+      QueryLog.inputAt? runA.2 slotPos = some (Sum.inr ()))
+    (hinputB :
+      QueryLog.inputAt? runB.2 slotPos = some (Sum.inr ()))
+    (hrankA :
+      (QueryLog.getQ (runA.2.take slotPos)
+        (· = Sum.inr ())).length = (slot : Nat))
+    (hrankB :
+      (QueryLog.getQ (runB.2.take slotPos)
+        (· = Sum.inr ())).length = (slot : Nat)) :
+    runA.1.out.logicalKey = runB.1.out.logicalKey := by
+  have htrace :=
+    Ipp.trace_prefix_of_log_prefix game slotPos
+      (by simpa [multiStatementForkMain] using hsupportA)
+      (by simpa [multiStatementForkMain] using hsupportB)
+      hprefix hinputA hinputB
+  have hrankA' :
+      Ipp.structuredMissCountBefore runA.2 slotPos = (slot : Nat) := by
+    simpa [Ipp.structuredMissCountBefore] using hrankA
+  rw [hrankA'] at htrace
+  obtain ⟨queryA, hqueryA, hatA⟩ :=
+    multiStatementRoundSlot_query_at_trace
+      queryBound level runA.1 hslotA
+  obtain ⟨queryB, hqueryB, hatB⟩ :=
+    multiStatementRoundSlot_query_at_trace
+      queryBound level runB.1 hslotB
+  have htraceAt :
+      runA.1.trace[(slot : Nat)]? =
+        runB.1.trace[(slot : Nat)]? := by
+    have hget :=
+      congrArg (fun trace => trace[(slot : Nat)]?) htrace
+    simpa [List.getElem?_take] using hget
+  have hqueries : queryA = queryB :=
+    Option.some.inj (hatA.symm.trans (htraceAt.trans hatB))
+  have hstatementA :=
+    packedOutcome_roundQuery?_statement hqueryA
+  have hstatementB :=
+    packedOutcome_roundQuery?_statement hqueryB
+  exact hstatementA.symm.trans
+    ((congrArg (fun query : GlobalFsQuery => query.statement) hqueries).trans
+      hstatementB)
+
 /-- Invalid acceptance in the exact selected partition. -/
 def InvalidAccepted {Call : Type}
     (invalid : (μ : Nat) → SelectionAt Call μ → Prop) :
@@ -751,6 +871,15 @@ abbrev RawMultiStatementForkTree (Call : Type) (μ : Nat) :=
   Ipp.RunTree (Ipp.FsWrappedSpec Ipp.Bls12377.Fr)
     (MultiStatementWrappedRun Call) μ
 
+/-- Every run in a replay tree carries one logical statement key.  This is
+strictly weaker than equality of `SelectionAt`: response/proof fields may
+legitimately depend on a forked answer. -/
+def ForkCarriesLogicalKey {Call : Type} {depth : Nat}
+    (key : ShippingStatementKey)
+    (tree : Ipp.RunTree (Ipp.FsWrappedSpec Ipp.Bls12377.Fr)
+      (MultiStatementWrappedRun Call) depth) : Prop :=
+  tree.All (fun run => run.1.out.logicalKey = key)
+
 /-- Concrete global replay experiment for one depth.  The round selector is
 computed from each wrapped branch after its statement selection, so arbitrary
 adversarial prequeries remain part of the selected miss ordinal. -/
@@ -770,6 +899,161 @@ noncomputable def rawMultiStatementForkExperimentAt
       multiStatementRoundSlot (queryBounds (Sum.inr ())) level run)
     (InvalidAcceptedAt invalid μ)
     μ (Nat.le_refl μ)
+
+/-- Every consistent global replay tree carries its canonical root's logical
+statement key throughout the tree.  At each node the selected round query is
+formed before its forked answer is returned, so the shared pre-answer prefix
+fixes the query's statement annotation even when later proof fields differ. -/
+theorem treeConsistent_all_logicalKey_eq_root
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (leafOk : MultiStatementRunLog Call → Prop)
+    {level : Nat}
+    {lower :
+      Option (Fin (queryBounds (Sum.inr ()) + 1))}
+    {depth : Nat}
+    {tree : Ipp.RunTree (Ipp.FsWrappedSpec Ipp.Bls12377.Fr)
+      (MultiStatementWrappedRun Call) depth}
+    (hconsistent :
+      Ipp.TreeConsistent (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun level run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run)
+        leafOk level lower tree) :
+    ForkCarriesLogicalKey tree.root.1.out.logicalKey tree := by
+  induction hconsistent with
+  | leaf _level _lower run _hsupport _hgate =>
+      rfl
+  | @node level lower depth children slot answers cursor slotPos
+      hcf hinjective hanswers hcursor hprefix hslotPos hslotInput
+      hslotRank hprefixValues hstrict hchildren ih =>
+      intro k
+      have hsupportK :
+          (children k).root ∈ support
+            (replayFirstRun (multiStatementForkMain game)) :=
+        (Ipp.TreeConsistent.all_support
+          (multiStatementForkMain game) queryBounds (Sum.inr ())
+          (fun level run =>
+            multiStatementRoundSlot
+              (queryBounds (Sum.inr ())) level run)
+          leafOk (hchildren k)).root
+      have hsupportRoot :
+          (children 0).root ∈ support
+            (replayFirstRun (multiStatementForkMain game)) :=
+        (Ipp.TreeConsistent.all_support
+          (multiStatementForkMain game) queryBounds (Sum.inr ())
+          (fun level run =>
+            multiStatementRoundSlot
+              (queryBounds (Sum.inr ())) level run)
+          leafOk (hchildren 0)).root
+      have hkey :
+          (children k).root.1.out.logicalKey =
+            (children 0).root.1.out.logicalKey :=
+        logicalKey_eq_of_shared_selected_slot
+          game (queryBounds (Sum.inr ())) level slotPos
+          hsupportK hsupportRoot
+          (by simpa using hcf k)
+          (by simpa using hcf 0)
+          (hprefixValues k 0)
+          (hslotInput k) (hslotInput 0)
+          (hslotRank k) (hslotRank 0)
+      exact (ih k).imp (fun _ hrun => by
+        simpa [Ipp.RunTree.root] using hrun.trans hkey)
+
+/-- Every tree in the support of the concrete raw experiment has one common
+logical statement key.  Adaptive prequeries and the original global cache are
+retained; no fresh fixed-statement continuation is introduced. -/
+theorem rawMultiStatementForkExperimentAt_support_carries_logicalKey
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (μ : Nat)
+    (hbaseReach : ∀ level, level < μ →
+      Ipp.CfReachable (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run))
+    {tree : RawMultiStatementForkTree Call μ}
+    (htree : some tree ∈ support
+      (rawMultiStatementForkExperimentAt
+        game invalid queryBounds μ)) :
+    ForkCarriesLogicalKey tree.root.1.out.logicalKey tree := by
+  classical
+  change some tree ∈ support
+    (Ipp.forkTreeCombined μ (multiStatementForkMain game)
+      queryBounds (Sum.inr ())
+      (fun level run =>
+        multiStatementRoundSlot
+          (queryBounds (Sum.inr ())) level run)
+      (InvalidAcceptedAt invalid μ)
+      μ (Nat.le_refl μ)) at htree
+  exact treeConsistent_all_logicalKey_eq_root
+    game queryBounds (InvalidAcceptedAt invalid μ)
+    (Ipp.forkTreeCombined_support_props
+      μ (multiStatementForkMain game) queryBounds (Sum.inr ())
+      (fun level run =>
+        multiStatementRoundSlot
+          (queryBounds (Sum.inr ())) level run)
+      (InvalidAcceptedAt invalid μ) hbaseReach htree)
+
+/-- A constructed tree disagrees on its logical statement key.  This event
+does not count branch-local response/proof changes as statement changes. -/
+def RawForkHasLogicalKeyDisagreement {Call : Type} {μ : Nat}
+    (tree : RawMultiStatementForkTree Call μ) : Prop :=
+  ¬ ForkCarriesLogicalKey tree.root.1.out.logicalKey tree
+
+/-- Logical-key disagreement on the concrete raw-fork experiment. -/
+def RawForkLogicalKeyDisagreesAt {Call : Type}
+    (μ : Nat) :
+    Option (RawMultiStatementForkTree Call μ) → Prop
+  | none => False
+  | some tree => RawForkHasLogicalKeyDisagreement tree
+
+/-- The logical-statement component of the adaptive selection loss is
+identically zero for the existing replay construction. -/
+noncomputable def rawForkLogicalKeySelectionLossAt
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (μ : Nat) : ℝ≥0∞ :=
+  Pr[RawForkLogicalKeyDisagreesAt μ |
+    rawMultiStatementForkExperimentAt game invalid queryBounds μ]
+
+/-- The logical statement key cannot contribute any selection/fork loss.
+The remaining exact-`SelectionAt` disagreement consists only of fields that
+the fixed-statement FS extractor already permits to vary across branches. -/
+theorem rawForkLogicalKeySelectionLossAt_eq_zero
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (μ : Nat)
+    (hbaseReach : ∀ level, level < μ →
+      Ipp.CfReachable (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run)) :
+    rawForkLogicalKeySelectionLossAt
+      game invalid queryBounds μ = 0 := by
+  apply probEvent_eq_zero
+  intro result hresult hdisagreement
+  cases result with
+  | none =>
+      simp [RawForkLogicalKeyDisagreesAt] at hdisagreement
+  | some tree =>
+      exact hdisagreement
+        (rawMultiStatementForkExperimentAt_support_carries_logicalKey
+          game invalid queryBounds μ hbaseReach hresult)
 
 /-- One raw fork tree preserves one exact selected statement across every
 branch.  This is an event to be proved from the raw experiment, not a
@@ -800,6 +1084,174 @@ def RawForkSucceededAt {Call : Type}
     Option (RawMultiStatementForkTree Call μ) → Prop
   | none => False
   | some tree => RawForkHasCommonInvalidSelection invalid tree
+
+/-- A successful raw fork disagrees on statement selection when its canonical
+root selects an exact `μ`-statement that is not carried by every branch.
+
+The root projection rules out counting a missing/wrong-size output as a
+selection disagreement.  On trees produced by the gated raw experiment that
+case is already excluded by `InvalidAcceptedAt`. -/
+def RawForkHasSelectionDisagreement {Call : Type} {μ : Nat}
+    (tree : RawMultiStatementForkTree Call μ) : Prop :=
+  ∃ selected : SelectionAt Call μ,
+    (PackedOutcome.at? μ tree.root.1.out).map OutcomeAt.selection =
+        some selected ∧
+      ¬ RawForkCarriesSelectionAt selected tree
+
+/-- Statement-selection disagreement as an event on the concrete raw-fork
+experiment.  Failure to construct a tree is not charged as disagreement. -/
+def RawForkSelectionDisagreesAt {Call : Type}
+    (μ : Nat) :
+    Option (RawMultiStatementForkTree Call μ) → Prop
+  | none => False
+  | some tree => RawForkHasSelectionDisagreement tree
+
+/-- An invalid accepted run in the `μ` partition projects to one exact
+selected statement, preserving its invalidity. -/
+theorem invalidAcceptedAt_projects_invalid_selection
+    {Call : Type}
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (μ : Nat)
+    {run : MultiStatementRunLog Call}
+    (hrun : InvalidAcceptedAt invalid μ run) :
+    ∃ selected : SelectionAt Call μ,
+      (PackedOutcome.at? μ run.1.out).map OutcomeAt.selection =
+          some selected ∧
+        invalid μ selected := by
+  rcases run with ⟨wrapped, log⟩
+  rcases wrapped with ⟨packed, trace⟩
+  rcases packed with ⟨ν, output⟩
+  change ν = μ ∧
+    (invalid ν output.selection ∧
+      output.verifierResult.accept = true) at hrun
+  subst ν
+  refine ⟨output.selection, ?_, hrun.2.1⟩
+  simp
+
+/-- Once the raw extractor's leaf gate has established invalid acceptance on
+every branch, tree construction splits exactly into common selection or an
+explicit root-versus-branch selection disagreement.  No fresh-cache or
+pre-oracle statement choice is used. -/
+theorem rawFork_all_invalid_common_or_selectionDisagrees
+    {Call : Type}
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (μ : Nat)
+    {tree : RawMultiStatementForkTree Call μ}
+    (hall : tree.All (InvalidAcceptedAt invalid μ)) :
+    RawForkHasCommonInvalidSelection invalid tree ∨
+      RawForkHasSelectionDisagreement tree := by
+  classical
+  obtain ⟨selected, hroot, hinvalid⟩ :=
+    invalidAcceptedAt_projects_invalid_selection
+      invalid μ hall.root
+  by_cases hcarries : RawForkCarriesSelectionAt selected tree
+  · left
+    refine ⟨selected, hcarries, hinvalid, ?_⟩
+    exact hall.imp (fun _ hrun => hrun.2.2)
+  · right
+    exact ⟨selected, hroot, hcarries⟩
+
+/-- Every successfully constructed raw tree carries the exact
+`InvalidAcceptedAt` gate installed in `rawMultiStatementForkExperimentAt`.
+The only premise is the generic fork selector's reachability condition. -/
+theorem rawMultiStatementForkExperimentAt_support_all_invalidAccepted
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (μ : Nat)
+    (hbaseReach : ∀ level, level < μ →
+      Ipp.CfReachable (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run))
+    {tree : RawMultiStatementForkTree Call μ}
+    (htree : some tree ∈ support
+      (rawMultiStatementForkExperimentAt
+        game invalid queryBounds μ)) :
+    tree.All (InvalidAcceptedAt invalid μ) := by
+  classical
+  change some tree ∈ support
+    (Ipp.forkTreeCombined μ (multiStatementForkMain game)
+      queryBounds (Sum.inr ())
+      (fun level run =>
+        multiStatementRoundSlot
+          (queryBounds (Sum.inr ())) level run)
+      (InvalidAcceptedAt invalid μ)
+      μ (Nat.le_refl μ)) at htree
+  exact Ipp.forkTreeCombined_success_all_leafOk
+    μ (multiStatementForkMain game) queryBounds (Sum.inr ())
+    (fun level run =>
+      multiStatementRoundSlot
+        (queryBounds (Sum.inr ())) level run)
+    (InvalidAcceptedAt invalid μ) hbaseReach htree
+
+/-- The exact common-selection loss of the raw replay construction.  This is
+neither a caller-chosen constant nor the original acceptance probability: it
+is the probability that a constructed fork changes the selected statement
+between its canonical root and at least one branch. -/
+noncomputable def rawForkStatementSelectionLossAt
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (μ : Nat) : ℝ≥0∞ :=
+  Pr[RawForkSelectionDisagreesAt μ |
+    rawMultiStatementForkExperimentAt game invalid queryBounds μ]
+
+/-- Constructed-fork probability is bounded by common-selection success plus
+the exact, exposed statement-selection disagreement loss. -/
+theorem rawFork_isSome_le_succeeded_add_selectionLoss
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (invalid : (ν : Nat) → SelectionAt Call ν → Prop)
+    (queryBounds :
+      (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
+    (μ : Nat)
+    (hbaseReach : ∀ level, level < μ →
+      Ipp.CfReachable (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run)) :
+    Pr[fun tree : Option (RawMultiStatementForkTree Call μ) =>
+        tree.isSome |
+      rawMultiStatementForkExperimentAt game invalid queryBounds μ] ≤
+      Pr[RawForkSucceededAt invalid μ |
+        rawMultiStatementForkExperimentAt game invalid queryBounds μ] +
+        rawForkStatementSelectionLossAt
+          game invalid queryBounds μ := by
+  let experiment :=
+    rawMultiStatementForkExperimentAt game invalid queryBounds μ
+  calc
+    Pr[fun tree : Option (RawMultiStatementForkTree Call μ) =>
+          tree.isSome | experiment] ≤
+        Pr[fun result =>
+          RawForkSucceededAt invalid μ result ∨
+            RawForkSelectionDisagreesAt μ result | experiment] := by
+      apply probEvent_mono
+      intro result hresult hconstructed
+      rcases result with _ | tree
+      · simp at hconstructed
+      · have hall :=
+          rawMultiStatementForkExperimentAt_support_all_invalidAccepted
+            game invalid queryBounds μ hbaseReach hresult
+        exact
+          rawFork_all_invalid_common_or_selectionDisagrees
+            invalid μ hall
+    _ ≤ Pr[RawForkSucceededAt invalid μ | experiment] +
+          Pr[RawForkSelectionDisagreesAt μ | experiment] :=
+      probEvent_or_le experiment
+        (RawForkSucceededAt invalid μ)
+        (RawForkSelectionDisagreesAt μ)
+    _ = Pr[RawForkSucceededAt invalid μ |
+          rawMultiStatementForkExperimentAt game invalid queryBounds μ] +
+        rawForkStatementSelectionLossAt
+          game invalid queryBounds μ := by
+      rfl
 
 /-- Concrete parameters of the existing four-way `ForkTree` transform in one
 selected-`μ` partition.  The field cardinality and S1 bad-event expression
@@ -1069,6 +1521,10 @@ end FreshCacheCounterexample
 #print axioms globalInvalidAccepted_le_sum_activeMu
 #print axioms globalInvalidAccepted_le_sum_partition_bounds
 #print axioms globalInvalidAccepted_le_card_mul_partition_bound
+#print axioms invalidAcceptedAt_projects_invalid_selection
+#print axioms rawFork_all_invalid_common_or_selectionDisagrees
+#print axioms rawMultiStatementForkExperimentAt_support_all_invalidAccepted
+#print axioms rawFork_isSome_le_succeeded_add_selectionLoss
 #print axioms rawForkSucceededAt_le_explicit_game_advantage
 #print axioms FreshCacheCounterexample.adaptive_selection_beats_every_fixed_fresh
 

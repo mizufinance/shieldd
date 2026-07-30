@@ -147,7 +147,7 @@ theorem RawAcceptedExecution.operationalCalls
         data.srs.g data.srs.g_beta data.srs.h data.srs.h_alpha
         (Ipp.Bls12377.tippPairingEffect
           data.hbilinear data.tippOutcome)
-        execution.tippPairing) :
+        execution.tippPairing execution.effect execution.finalEffect) :
     ∃ randomizerCall :
         Ipp.Extracted.AggregateAdapter.AcceptedRandomizerCall
           data.randomizerEffects
@@ -829,7 +829,7 @@ theorem acceptedExecution_challengePrimitiveContract
         data.srs.g data.srs.g_beta data.srs.h data.srs.h_alpha
         (Ipp.Bls12377.tippPairingEffect
           data.hbilinear data.tippOutcome)
-        execution.tippPairing) :
+        execution.tippPairing execution.effect execution.finalEffect) :
     AcceptedExecutionChallengePrimitiveContract
       data contract blake2b output execution := by
   have transcriptExecution :=
@@ -902,7 +902,7 @@ theorem deployedChallengePrimitiveContract_of_postconditions
           data.srs.g data.srs.g_beta data.srs.h data.srs.h_alpha
           (Ipp.Bls12377.tippPairingEffect
             data.hbilinear data.tippOutcome)
-          execution.tippPairing) :
+          execution.tippPairing execution.effect execution.finalEffect) :
     DeployedChallengePrimitiveContract data contract blake2b := by
   refine {
     randomizerSample := ?_

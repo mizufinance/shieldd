@@ -96,7 +96,7 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "fb1432565bbd1a6bdd5d8395455171d7641da8cc584e9a04bd752cf1830ab6e5"
+    "f7a040413d5892df618fef50f56ff5586bf17b6c93a3a721907d316ec8cd04b2"
 )
 ASSUMPTION_LEDGER_SHA256 = (
     "c274055eb26163b541868a2cbed586f2f8e9df6c075aab2f4639dc0a49b8455d"
@@ -139,7 +139,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "75cd4de6144f9cb52570bdb401d1ca38943535ce3bcdada5235426322b90c94b"
+    "bba99274a15a1a924177958e5fa515f54e4c38d3e82d6fc6f0b5596ad3e093c7"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (

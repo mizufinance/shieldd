@@ -7,3 +7,4 @@ import Ipp.ShippingProverExecutionTrace
 #print axioms Ipp.Extracted.ShippingProverExecutionTrace.ContinuingRoundEvidence.body_cont
 #print axioms Ipp.Extracted.ShippingProverExecutionTrace.body_done
 #print axioms Ipp.Extracted.ShippingProverExecutionTrace.ExternalRoundSchedule.toSuccessfulLoopTrace
+#print axioms Ipp.Extracted.ShippingProverExecutionTrace.gipaExecutionBoundary_of_externalRoundSchedule
