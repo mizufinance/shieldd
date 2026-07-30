@@ -6,8 +6,9 @@ use crate::{
     aggregate_proof_wrapper::{decode_wrapped_aggregate_proof, MAX_AGGREGATE_PROOF_BYTES},
     app_verifier::{
         app_verify_family_code, app_verify_protocol_version_core,
-        app_verify_shipping_input_from_parts, app_verify_shipping_wrapper_projection_from_parts,
-        AppVerifyShippingCall, AppVerifyShippingInput,
+        app_verify_shipping_input_from_parts, app_verify_shipping_into_parts_core,
+        app_verify_shipping_wrapper_projection_from_parts, AppVerifyShippingCall,
+        AppVerifyShippingInput,
     },
     backend::AggregateVerifyError,
     srs::{srs_id, DevSrs},
@@ -100,7 +101,7 @@ pub(crate) struct VerifiedShippingAggregateBackendCall<'a> {
 
 impl<'a> VerifiedShippingAggregateBackendCall<'a> {
     pub(crate) fn into_parts(self) -> (VerifiedAggregateBackendCall<'a>, AppVerifyShippingInput) {
-        (self.backend_call, self.shipping_input)
+        app_verify_shipping_into_parts_core(self.backend_call, self.shipping_input)
     }
 }
 

@@ -7,8 +7,12 @@ use decaf377::{Bls12_377, Fq};
 use sha2::{Digest as _, Sha256};
 
 use crate::{
-    bundle::family_proto_fields, padding::PADDING_RULE_DOMAIN, ProofFamilyId, DEV_SRS_BACKEND_ID,
-    DEV_SRS_CURVE_ID,
+    app_verifier::{
+        app_verify_shipping_rows_from_parts, app_verify_statement_row_bytes_from_parts,
+    },
+    bundle::family_proto_fields,
+    padding::PADDING_RULE_DOMAIN,
+    ProofFamilyId, DEV_SRS_BACKEND_ID, DEV_SRS_CURVE_ID,
 };
 
 pub const AGGREGATE_PROTOCOL_VERSION: u32 =
@@ -313,12 +317,19 @@ impl AggregateStatement {
     }
 
     pub(crate) fn shipping_rows(&self) -> AggregateStatementRows<'_> {
+        let projection = app_verify_shipping_rows_from_parts(
+            self.real_count,
+            self.padded_count,
+            self.public_input_arity,
+            self.padded_public_inputs.as_slice(),
+            &self.padded_public_input_bytes,
+        );
         AggregateStatementRows {
-            real_count: self.real_count,
-            padded_count: self.padded_count,
-            public_input_arity: self.public_input_arity,
-            fields: &self.padded_public_inputs,
-            serialized: &self.padded_public_input_bytes,
+            real_count: projection.real_count,
+            padded_count: projection.padded_count,
+            public_input_arity: projection.public_input_arity,
+            fields: projection.fields,
+            serialized: projection.serialized,
         }
     }
 
@@ -648,7 +659,8 @@ fn statement_digest_from_canonical(canonical_bytes: &[u8]) -> [u8; 32] {
 pub(crate) fn statement_row_bytes_core(
     rows: &[Vec<Fq>],
 ) -> Result<StatementPaddedRows, AggregateStatementError> {
-    rows.iter()
+    let serialized_rows = rows
+        .iter()
         .map(|row| {
             row.iter()
                 .map(|field| {
@@ -662,7 +674,9 @@ pub(crate) fn statement_row_bytes_core(
                 .map(StatementPublicInputRow::new)
         })
         .collect::<Result<Vec<_>, _>>()
-        .map(StatementPaddedRows::new)
+        .map(StatementPaddedRows::new)?;
+    let projection = app_verify_statement_row_bytes_from_parts(rows, serialized_rows);
+    Ok(projection.serialized_rows)
 }
 
 fn append_u32_field(bytes: &mut Vec<u8>, value: u32) {

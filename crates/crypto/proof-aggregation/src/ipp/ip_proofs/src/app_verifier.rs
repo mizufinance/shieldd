@@ -110,6 +110,38 @@ pub struct AppVerifyShippingResult {
     pub result: AppVerifyCallResult,
 }
 
+/// Allocation-free projection of the statement rows consumed by shipping
+/// preflight. Generic carriers keep Arkworks values outside this crate while
+/// retaining exact source identity in extraction.
+#[doc(hidden)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AppVerifyShippingRowsProjection<Fields, Serialized> {
+    pub real_count: u32,
+    pub padded_count: u32,
+    pub public_input_arity: u32,
+    pub fields: Fields,
+    pub serialized: Serialized,
+}
+
+/// Exact pairing of Arkworks source rows with their completed row
+/// serialization. Serialization semantics remain an explicit external
+/// boundary; this record prevents the caller from substituting either side.
+#[doc(hidden)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AppVerifyStatementRowBytesProjection<Rows, Serialized> {
+    pub source_rows: Rows,
+    pub serialized_rows: Serialized,
+}
+
+/// Result of the production repeat-final row preparation core.
+#[doc(hidden)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AppVerifyPreparedRows<T> {
+    pub real_count: usize,
+    pub padded_count: usize,
+    pub padded_public_inputs: Vec<T>,
+}
+
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AppVerifyShippingInputError {
@@ -190,6 +222,36 @@ pub fn app_verify_shipping_wrapper_projection_from_parts(
         statement_digest,
         wrapped_proof_bytes,
         inner_proof_bytes,
+    }
+}
+
+/// Pure projection used by `AggregateStatement::shipping_rows`.
+#[doc(hidden)]
+pub fn app_verify_shipping_rows_from_parts<Fields, Serialized>(
+    real_count: u32,
+    padded_count: u32,
+    public_input_arity: u32,
+    fields: Fields,
+    serialized: Serialized,
+) -> AppVerifyShippingRowsProjection<Fields, Serialized> {
+    AppVerifyShippingRowsProjection {
+        real_count,
+        padded_count,
+        public_input_arity,
+        fields,
+        serialized,
+    }
+}
+
+/// Pure retention boundary after Arkworks has serialized every statement row.
+#[doc(hidden)]
+pub fn app_verify_statement_row_bytes_from_parts<Rows, Serialized>(
+    source_rows: Rows,
+    serialized_rows: Serialized,
+) -> AppVerifyStatementRowBytesProjection<Rows, Serialized> {
+    AppVerifyStatementRowBytesProjection {
+        source_rows,
+        serialized_rows,
     }
 }
 
@@ -287,6 +349,16 @@ pub fn app_verify_shipping_result_from_parts(
     }
 }
 
+/// Exact successful projection from the shipping preflight carrier into the
+/// backend call and authenticated byte-level input consumed by verification.
+#[doc(hidden)]
+pub fn app_verify_shipping_into_parts_core<BackendCall>(
+    backend_call: BackendCall,
+    shipping_input: AppVerifyShippingInput,
+) -> (BackendCall, AppVerifyShippingInput) {
+    (backend_call, shipping_input)
+}
+
 /// Repeat the final caller-order row up to an exact target length.
 #[doc(hidden)]
 pub fn app_verify_repeat_final_rows_core<T: Clone>(
@@ -316,6 +388,27 @@ pub fn app_verify_repeat_final_rows_core<T: Clone>(
         rows.push(last.clone());
     }
     Ok(rows)
+}
+
+/// Production-used row preparation around the extracted repeat-final core.
+/// The input argument remains visible to extraction, while the result retains
+/// its exact real count, target count, and padded output.
+#[doc(hidden)]
+pub fn app_verify_prepare_public_input_rows_core<T: Clone>(
+    public_inputs: Vec<T>,
+    padded_count: usize,
+) -> Result<AppVerifyPreparedRows<T>, AppVerifyRowPaddingError> {
+    let real_count = public_inputs.len();
+    let padded_public_inputs = match app_verify_repeat_final_rows_core(public_inputs, padded_count)
+    {
+        Ok(rows) => rows,
+        Err(error) => return Err(error),
+    };
+    Ok(AppVerifyPreparedRows {
+        real_count,
+        padded_count,
+        padded_public_inputs,
+    })
 }
 
 #[doc(hidden)]
@@ -790,6 +883,32 @@ mod tests {
     }
 
     #[test]
+    fn shipping_preflight_projection_cores_preserve_exact_parts() {
+        let fields = vec![vec![1u8], vec![2u8]];
+        let serialized = vec![vec![vec![0x11]], vec![vec![0x22]]];
+        let rows =
+            app_verify_shipping_rows_from_parts(2, 2, 1, fields.as_slice(), serialized.as_slice());
+        assert_eq!(rows.real_count, 2);
+        assert_eq!(rows.padded_count, 2);
+        assert_eq!(rows.public_input_arity, 1);
+        assert_eq!(rows.fields, fields.as_slice());
+        assert_eq!(rows.serialized, serialized.as_slice());
+
+        let encoded =
+            app_verify_statement_row_bytes_from_parts(fields.as_slice(), serialized.clone());
+        assert_eq!(encoded.source_rows, fields.as_slice());
+        assert_eq!(encoded.serialized_rows, serialized);
+
+        let prepared =
+            app_verify_prepare_public_input_rows_core(fields.clone(), 4).expect("valid padding");
+        assert_eq!(prepared.real_count, 2);
+        assert_eq!(prepared.padded_count, 4);
+        assert_eq!(&prepared.padded_public_inputs[..2], fields.as_slice());
+        assert_eq!(prepared.padded_public_inputs[2], fields[1]);
+        assert_eq!(prepared.padded_public_inputs[3], fields[1]);
+    }
+
+    #[test]
     fn shipping_input_and_result_preserve_every_authenticated_field() {
         let call = app_verify_shipping_call_from_parts(
             AppVerifyCallId {
@@ -847,6 +966,10 @@ mod tests {
         assert_eq!(result.input, input);
         assert_eq!(result.result.id, call.id);
         assert!(result.result.accepted);
+
+        let backend = vec![0xa1, 0xa2];
+        let parts = app_verify_shipping_into_parts_core(backend.clone(), input.clone());
+        assert_eq!(parts, (backend, input));
     }
 
     #[test]
