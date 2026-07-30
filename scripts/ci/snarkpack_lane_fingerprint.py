@@ -177,6 +177,7 @@ def _run_git(
     args: Sequence[str],
     *,
     text: bool = False,
+    timeout_seconds: int = 60,
 ) -> subprocess.CompletedProcess:
     try:
         return subprocess.run(
@@ -185,7 +186,7 @@ def _run_git(
             check=False,
             capture_output=True,
             text=text,
-            timeout=60,
+            timeout=timeout_seconds,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
         raise FingerprintError(f"git {' '.join(args)} failed: {error}") from error
@@ -228,15 +229,30 @@ def tracked_fingerprint(
     if not inventory.stdout:
         raise FingerprintError("lane tracked-file inventory is empty")
 
-    for args in (
-        ["diff", "--quiet", "HEAD", "--", *normalized],
-        ["diff", "--cached", "--quiet", "HEAD", "--", *normalized],
-    ):
-        clean = _run_git(root, args)
-        if clean.returncode:
-            raise FingerprintError(
-                "lane inputs differ from the frozen candidate commit"
-            )
+    clean = _run_git(
+        root,
+        [
+            "status",
+            "--porcelain=v1",
+            "-z",
+            "--untracked-files=no",
+            "--ignore-submodules=none",
+            "--no-renames",
+            "--",
+            *normalized,
+        ],
+        timeout_seconds=180,
+    )
+    if clean.returncode:
+        detail = clean.stderr.decode("utf-8", errors="replace").strip()
+        raise FingerprintError(
+            "cannot check frozen lane inputs: "
+            f"{detail or clean.returncode}"
+        )
+    if clean.stdout:
+        raise FingerprintError(
+            "lane inputs differ from the frozen candidate commit"
+        )
 
     digest = hashlib.sha256()
     digest.update(b"snarkpack-lane-pass-v1\0")

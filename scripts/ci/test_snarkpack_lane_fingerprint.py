@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 SCRIPT = Path(__file__).with_name("snarkpack_lane_fingerprint.py")
@@ -95,6 +96,44 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
             "differ from the frozen candidate commit",
         ):
             self._fingerprint("16")
+
+    def test_cleanliness_uses_one_bounded_status_scan(self) -> None:
+        calls: list[tuple[tuple[str, ...], int]] = []
+        original = FINGERPRINT._run_git
+
+        def recording_run_git(
+            root: Path,
+            args,
+            *,
+            text: bool = False,
+            timeout_seconds: int = 60,
+        ):
+            calls.append((tuple(args), timeout_seconds))
+            return original(
+                root,
+                args,
+                text=text,
+                timeout_seconds=timeout_seconds,
+            )
+
+        with patch.object(
+            FINGERPRINT, "_run_git", side_effect=recording_run_git
+        ):
+            self._fingerprint("16")
+
+        cleanliness = [
+            (args, timeout)
+            for args, timeout in calls
+            if args and args[0] in {"status", "diff"}
+        ]
+        self.assertEqual(len(cleanliness), 1)
+        self.assertEqual(cleanliness[0][0][:4], (
+            "status",
+            "--porcelain=v1",
+            "-z",
+            "--untracked-files=no",
+        ))
+        self.assertGreaterEqual(cleanliness[0][1], 180)
 
     def test_missing_or_untracked_required_input_fails_closed(self) -> None:
         with self.assertRaisesRegex(
