@@ -168,10 +168,22 @@ gnark-proof-tests: gnark-proof-tests-fast
 
 # CI wrapper for `check`.
 ci-check:
+    # The formal workflow owns source/checker evidence freshness and permits
+    # drift only when the matching refresh lane is selected. Generic Rust CI
+    # must still enforce every structural invariant, but must not fail before
+    # Cargo merely because that separate workflow is refreshing proof evidence.
     if command -v nix >/dev/null 2>&1; then \
-      nix develop --command just check; \
+      nix develop --command env \
+        SNARKPACK_ALLOW_PENDING_FSTAR_CONTRACT_REFRESH=1 \
+        SNARKPACK_ALLOW_PENDING_LEAN_CONTRACT_REFRESH=1 \
+        SNARKPACK_ALLOW_PENDING_EXTERNAL_CONTRACT_REFRESH=1 \
+        just check; \
     else \
-      just check; \
+      env \
+        SNARKPACK_ALLOW_PENDING_FSTAR_CONTRACT_REFRESH=1 \
+        SNARKPACK_ALLOW_PENDING_LEAN_CONTRACT_REFRESH=1 \
+        SNARKPACK_ALLOW_PENDING_EXTERNAL_CONTRACT_REFRESH=1 \
+        just check; \
     fi
 
 # CI wrapper for `test`.

@@ -1184,6 +1184,21 @@ class VerificationManifestTests(unittest.TestCase):
             with self.subTest(label=label):
                 self.assertIn(f'--label "{label}"', justfile)
 
+    def test_generic_rust_ci_defers_formal_evidence_freshness(self):
+        justfile = (VERIFICATION.REPO_ROOT / "justfile").read_text(
+            encoding="utf-8"
+        )
+        ci_check = justfile.split("\nci-check:\n", maxsplit=1)[1].split(
+            "\n# CI wrapper for `test`.", maxsplit=1
+        )[0]
+        for kind in ("FSTAR", "LEAN", "EXTERNAL"):
+            with self.subTest(kind=kind):
+                flag = (
+                    f"SNARKPACK_ALLOW_PENDING_{kind}_CONTRACT_REFRESH=1"
+                )
+                self.assertEqual(ci_check.count(flag), 2)
+        self.assertEqual(ci_check.count("just check"), 2)
+
     def test_v1_byte_lock_requires_proof_and_trace_baselines(self):
         backend = (
             VERIFICATION.REPO_ROOT
