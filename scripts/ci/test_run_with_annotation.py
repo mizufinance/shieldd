@@ -180,12 +180,36 @@ class FormalWorkflowWiringTests(unittest.TestCase):
             self.workflow,
         )
 
-    def test_extraction_recovery_remains_failure_only(self) -> None:
+    def test_unstamped_extraction_routes_directly_to_fail_closed_recovery(self) -> None:
+        self.assertIn(
+            "source-stamp-state --graph \"$SELECTED_GRAPH\"",
+            self.workflow,
+        )
+        self.assertIn(
+            "if: steps.extraction_source_stamp.outputs.state == 'present'",
+            self.workflow,
+        )
+        self.assertIn(
+            "steps.extraction_source_stamp.outputs.state == 'present' &&\n"
+            "          steps.extraction_pass_cache.outputs.cache-hit != 'true'",
+            self.workflow,
+        )
         self.assertIn(
             "id: extraction_recovery\n"
             "        if: >-\n"
-            "          failure() &&\n"
-            "          steps.extraction_compare.outcome == 'failure'",
+            "          always() &&\n"
+            "          steps.extraction_pass_cache.outputs.cache-hit != 'true' &&\n"
+            "          (\n"
+            "            steps.extraction_source_stamp.outputs.state == 'missing' ||\n"
+            "            steps.extraction_compare.outcome == 'failure'",
+            self.workflow,
+        )
+        self.assertIn(
+            "Require recovered extraction evidence in the candidate tree",
+            self.workflow,
+        )
+        self.assertIn(
+            'echo "$SELECTED_GRAPH: recovery evidence must be committed" >&2',
             self.workflow,
         )
         self.assertIn(
@@ -237,6 +261,41 @@ class FormalWorkflowWiringTests(unittest.TestCase):
         for static_test in static_tests:
             self.assertIn(static_test, gate)
             self.assertIn(f'python3 "$ROOT/{static_test}"', runner)
+
+
+class RustWorkflowWiringTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = (
+            SCRIPT.parents[2] / ".github/workflows/rust.yml"
+        ).read_text(encoding="utf-8")
+
+    def test_opaque_rust_lanes_publish_bounded_diagnostics(self) -> None:
+        for title in (
+            "Rust cargo check",
+            "Rust crate feature checks",
+            "Rust wasm compatibility",
+            "Rust nextest",
+        ):
+            with self.subTest(title=title):
+                self.assertIn(
+                    "python3 scripts/ci/run_with_annotation.py",
+                    self.workflow,
+                )
+                self.assertIn(f'--title "{title}"', self.workflow)
+
+
+class OrbisWorkflowWiringTests(unittest.TestCase):
+    def test_integration_flow_publishes_bounded_diagnostics(self) -> None:
+        workflow = (
+            SCRIPT.parents[2] / ".github/workflows/orbis-integration.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "python3 scripts/ci/run_with_annotation.py", workflow
+        )
+        self.assertIn(
+            '--title "Shieldd Orbis integration flow"', workflow
+        )
 
 
 if __name__ == "__main__":

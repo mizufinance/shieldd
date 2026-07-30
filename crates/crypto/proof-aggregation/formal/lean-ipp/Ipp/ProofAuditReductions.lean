@@ -1,6 +1,7 @@
 import Ipp.S1Bls12377ReductionInterfaces
 import Ipp.S1Bls12377FixedStatementKzg
 import Ipp.ArkworksTippKzgBoundary
+import Ipp.DeployedSrsCounterexample
 
 #print axioms Ipp.S1.bls12377KzgVForgeryOfLeaf_wins
 #print axioms Ipp.S1.bls12377KzgWForgeryOfLeaf_wins
@@ -44,3 +45,6 @@ import Ipp.ArkworksTippKzgBoundary
 #print axioms Ipp.Extracted.AggregateVerifier.arkworks_g2_kzg_opening_true_iff_pairing_and_acceptV
 #print axioms Ipp.Extracted.AggregateVerifier.arkworks_g1_kzg_opening_true_iff_pairing_and_acceptW
 #print axioms Ipp.Extracted.AggregateVerifier.arkworksTippKzgContractOfStatementEquations
+#print axioms Ipp.S1.publicBetaVForgery_wins
+#print axioms Ipp.S1.publicAlphaWForgery_wins
+#print axioms Ipp.S1.publicTrapdoors_forge_both_lanes

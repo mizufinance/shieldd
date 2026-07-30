@@ -96,7 +96,7 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "6e00e4a0ab7091659533d20f20c110bffacea91e674d6b844145309fb8164c7c"
+    "165885a1519e8c3e3e7b499c58033f23d81ffa64bdaf530f82216c227a5f624f"
 )
 ASSUMPTION_LEDGER_SHA256 = (
     "c274055eb26163b541868a2cbed586f2f8e9df6c075aab2f4639dc0a49b8455d"
@@ -111,6 +111,13 @@ V1_TRACE_BASELINE_SHA256 = (
 DEPLOYED_SRS_CLAIM_ID = "DEPLOYED-SRS-SOUNDNESS"
 DEPLOYED_SRS_OPEN_ROOT = (
     "UNPROVED.deployed_srs_unknown_trapdoor_and_registry_binding"
+)
+DEPLOYED_SRS_POSTCONDITION = (
+    "Every production SnarkPack prover and verifier call uses one canonically "
+    "decoded BLS12-377 SRS artifact whose complete proving and verifier "
+    "material is bound by its registered identifier, and an independently "
+    "reviewed setup transcript establishes that no adversary knows the KZG "
+    "trapdoors."
 )
 V1_BASELINE_FAMILIES = (
     "Transfer",
@@ -129,9 +136,10 @@ VERIFICATION_CONTRACT_FIELDS = (
     "allowed_axioms",
     "spec_roots",
     "statement_binding_evidence",
+    "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "8c440c5493ec5ef6f4449c7e368b7b796adaa713b14989b65eed5eec7f6ece4a"
+    "199879e14694f2aa36bb0bafb8a295572f62702402155d864aa136fb3c3bba64"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -1395,7 +1403,7 @@ def validate_bounded_challenge_sampler(
 def validate_deployed_srs_soundness(
     manifest: dict[str, Any], repo_root: Path
 ) -> None:
-    """Keep the publication claim red until secure deployment evidence exists."""
+    """Bind the deployment claim to fail-closed registry or ceremony evidence."""
     claims = {
         claim["id"]: claim
         for claim in _require_nonempty_list(manifest, "claims")
@@ -1415,45 +1423,234 @@ def validate_deployed_srs_soundness(
             "KZG-LEAF-REDUCTION must depend on DEPLOYED-SRS-SOUNDNESS"
         )
 
-    srs_path = repo_root / "crates/crypto/proof-aggregation/src/srs.rs"
-    app_path = repo_root / "crates/core/app/src/app/mod.rs"
+    evidence = manifest.get("deployed_srs_evidence")
+    if not isinstance(evidence, dict):
+        raise VerificationError("deployed_srs_evidence must be an object")
+    common_fields = {
+        "schema_version",
+        "status",
+        "registry_source",
+        "application_source",
+        "production_loader_roots",
+        "max_padded_count",
+        "owner",
+        "postcondition",
+        "evidence",
+        "closure",
+    }
+    if evidence.get("schema_version") != 1:
+        raise VerificationError("deployed_srs_evidence.schema_version must be 1")
+    status = evidence.get("status")
+    if status not in {"unregistered", "registered"}:
+        raise VerificationError(
+            "deployed_srs_evidence.status must be unregistered or registered"
+        )
+    for field in ("owner", "evidence", "closure"):
+        if not isinstance(evidence.get(field), str) or not evidence[field]:
+            raise VerificationError(
+                f"deployed_srs_evidence.{field} must be nonempty"
+            )
+    if evidence.get("postcondition") != DEPLOYED_SRS_POSTCONDITION:
+        raise VerificationError(
+            "deployed_srs_evidence.postcondition differs from the fixed "
+            "deployment claim"
+        )
+    if evidence.get("max_padded_count") != 32_768:
+        raise VerificationError(
+            "deployed_srs_evidence.max_padded_count must be 32768"
+        )
+    loader_roots = evidence.get("production_loader_roots")
+    if loader_roots != [
+        "Rust.proof_aggregation.srs.load_active_production_srs",
+        "Rust.proof_aggregation.srs.load_production_srs_for_id",
+    ]:
+        raise VerificationError(
+            "deployed_srs_evidence production loader inventory differs"
+        )
+
+    registry_relative = _safe_relative_path(
+        evidence.get("registry_source"),
+        field="deployed_srs_evidence.registry_source",
+    )
+    application_relative = _safe_relative_path(
+        evidence.get("application_source"),
+        field="deployed_srs_evidence.application_source",
+    )
+    if registry_relative.as_posix() != (
+        "crates/crypto/proof-aggregation/src/srs.rs"
+    ):
+        raise VerificationError(
+            "deployed_srs_evidence.registry_source must name the shipping "
+            "registry owner"
+        )
+    if application_relative.as_posix() != "crates/core/app/src/app/mod.rs":
+        raise VerificationError(
+            "deployed_srs_evidence.application_source must name the shipping "
+            "application owner"
+        )
+    srs_path = repo_root.joinpath(*registry_relative.parts)
+    app_path = repo_root.joinpath(*application_relative.parts)
     for path in (srs_path, app_path):
         if not path.is_file():
             raise VerificationError(f"missing deployed SRS owner: {path}")
-    srs_code = rust_code_without_comments_and_strings(
-        srs_path.read_text(encoding="utf-8")
-    )
-    app_code = rust_code_without_comments_and_strings(
-        app_path.read_text(encoding="utf-8")
-    )
-    reproducible_setup = (
-        re.search(
-            r"\bconst\s+DEV_SRS_SEED\s*:\s*\[u8;\s*32\]\s*=",
+    srs_text = srs_path.read_text(encoding="utf-8")
+    app_text = app_path.read_text(encoding="utf-8")
+    srs_code = rust_code_without_comments_and_strings(srs_text)
+    app_code = rust_code_without_comments_and_strings(app_text)
+    for loader in (
+        "load_active_production_srs",
+        "load_production_srs_for_id",
+    ):
+        if re.search(rf"\bpub\s+fn\s+{loader}\s*\(", srs_code) is None:
+            raise VerificationError(
+                f"missing deployed SRS loader implementation: {loader}"
+            )
+        if re.search(rf"\b{loader}\s*\(", app_code) is None:
+            raise VerificationError(
+                f"shipping application does not call deployed SRS loader: {loader}"
+            )
+
+    if status == "unregistered":
+        if set(evidence) != common_fields:
+            raise VerificationError(
+                "unregistered deployed_srs_evidence has unexpected or missing "
+                "fields"
+            )
+        if (
+            claim.get("status") != "open"
+            or claim.get("root") != DEPLOYED_SRS_OPEN_ROOT
+        ):
+            raise VerificationError(
+                "DEPLOYED-SRS-SOUNDNESS must remain open while the production "
+                "SRS registry is unregistered"
+            )
+        if re.search(
+            r"\bconst\s+ACTIVE_PRODUCTION_SRS_ID\s*:\s*"
+            r"Option\s*<\s*\[u8;\s*32\]\s*>\s*=\s*None\s*;",
             srs_code,
-        )
-        is not None
-        and re.search(
-            r"\bChaCha20Rng::from_seed\s*\(\s*DEV_SRS_SEED\s*\)",
+        ) is None:
+            raise VerificationError(
+                "unregistered SRS evidence requires an inactive production id"
+            )
+        if re.search(
+            r"\bconst\s+PRODUCTION_SRS_REGISTRY\s*:\s*"
+            r"&\s*\[\s*ProductionSrsRegistryEntry\s*\]\s*=\s*&\s*\[\s*\]\s*;",
             srs_code,
+        ) is None:
+            raise VerificationError(
+                "unregistered SRS evidence requires an empty production registry"
+            )
+        return
+
+    registered_fields = common_fields | {
+        "registry_source_sha256",
+        "application_source_sha256",
+        "setup_binding_root",
+        "artifact",
+        "ceremony",
+    }
+    if set(evidence) != registered_fields:
+        raise VerificationError(
+            "registered deployed_srs_evidence has unexpected or missing fields"
         )
-        is not None
-        and re.search(r"\bsetup_inner_product\s*::<", srs_code) is not None
-        and re.search(r"\bDevSrs::default\s*\(\s*\)", app_code) is not None
-    )
-    if reproducible_setup and (
-        claim.get("status") != "open"
-        or claim.get("root") != DEPLOYED_SRS_OPEN_ROOT
+    setup_binding_root = evidence.get("setup_binding_root")
+    if (
+        not isinstance(setup_binding_root, str)
+        or not setup_binding_root
+        or setup_binding_root.startswith("UNPROVED.")
     ):
         raise VerificationError(
-            "DEPLOYED-SRS-SOUNDNESS cannot close while production derives "
-            "the KZG setup from the public DEV_SRS_SEED"
+            "registered deployed_srs_evidence.setup_binding_root must be proved"
         )
-    if claim.get("status") == "proved":
+    if claim.get("status") != "proved" or claim.get("root") != setup_binding_root:
         raise VerificationError(
-            "DEPLOYED-SRS-SOUNDNESS cannot close without a machine-checked "
-            "secure-SRS artifact/registry evidence schema; add that schema "
-            "and its fail-closed validator as part of the SRS migration"
+            "DEPLOYED-SRS-SOUNDNESS must use the registered setup-binding root"
         )
+    for field, path in (
+        ("registry_source_sha256", srs_path),
+        ("application_source_sha256", app_path),
+    ):
+        digest = evidence.get(field)
+        if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+            raise VerificationError(
+                f"deployed_srs_evidence.{field} must be lowercase SHA-256"
+            )
+        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        if actual != digest:
+            raise VerificationError(
+                f"deployed_srs_evidence.{field} is stale"
+            )
+
+    artifact = evidence.get("artifact")
+    ceremony = evidence.get("ceremony")
+    if not isinstance(artifact, dict) or set(artifact) != {
+        "path",
+        "sha256",
+        "srs_id",
+        "max_padded_count",
+    }:
+        raise VerificationError(
+            "registered deployed_srs_evidence.artifact has invalid fields"
+        )
+    if artifact.get("max_padded_count") != evidence["max_padded_count"]:
+        raise VerificationError(
+            "registered SRS artifact max count differs from deployment evidence"
+        )
+    if (
+        not isinstance(artifact.get("srs_id"), str)
+        or re.fullmatch(r"[0-9a-f]{64}", artifact["srs_id"]) is None
+    ):
+        raise VerificationError("registered SRS id must be lowercase 32-byte hex")
+    artifact_relative = _safe_relative_path(
+        artifact.get("path"), field="deployed_srs_evidence.artifact.path"
+    )
+    artifact_path = repo_root.joinpath(*artifact_relative.parts)
+    if not artifact_path.is_file():
+        raise VerificationError(f"missing registered SRS artifact: {artifact_path}")
+    artifact_sha256 = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+    if artifact.get("sha256") != artifact_sha256:
+        raise VerificationError("registered SRS artifact SHA-256 mismatch")
+
+    if not isinstance(ceremony, dict) or set(ceremony) != {
+        "owner",
+        "transcript_path",
+        "transcript_sha256",
+        "verification_path",
+        "verification_sha256",
+        "checker_result",
+    }:
+        raise VerificationError(
+            "registered deployed_srs_evidence.ceremony has invalid fields"
+        )
+    ceremony_owner = ceremony.get("owner")
+    if (
+        not isinstance(ceremony_owner, str)
+        or not ceremony_owner
+        or re.search(r"(?i)\b(?:unassigned|unknown|todo|tbd)\b", ceremony_owner)
+    ):
+        raise VerificationError(
+            "registered SRS ceremony must have an identified owner"
+        )
+    if ceremony.get("checker_result") != "verified":
+        raise VerificationError(
+            "registered SRS ceremony checker_result must be verified"
+        )
+    for path_field, digest_field in (
+        ("transcript_path", "transcript_sha256"),
+        ("verification_path", "verification_sha256"),
+    ):
+        relative = _safe_relative_path(
+            ceremony.get(path_field),
+            field=f"deployed_srs_evidence.ceremony.{path_field}",
+        )
+        path = repo_root.joinpath(*relative.parts)
+        if not path.is_file():
+            raise VerificationError(f"missing registered SRS evidence: {path}")
+        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        if ceremony.get(digest_field) != actual:
+            raise VerificationError(
+                f"registered SRS ceremony {digest_field} mismatch"
+            )
 
 
 def validate_shipping_nonce_source(

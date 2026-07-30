@@ -779,7 +779,879 @@ theorem sharedGlobalFsProgram_eq_multiStatementFsGame
   rintro ⟨μ, selection⟩
   rfl
 
+/-! ## Coherent-cache miss shape -/
+
+/-- Scalar projection of the internal coherent byte cache.  This is proof
+state only: the production execution retains the complete coherent entries. -/
+def coherentCacheToScalar
+    (cache : CoherentByteCache) :
+    ByteFieldOracleSpec.QueryCache :=
+  Ipp.RandomOracleMap.mapCache
+    (fun _ entry : CoherentByteEntry => entry.scalar)
+    cache
+
+@[simp] theorem coherentCacheToScalar_lookup
+    (cache : CoherentByteCache)
+    (bytes : List UInt8) :
+    coherentCacheToScalar cache bytes =
+      CoherentByteEntry.scalar <$> cache bytes := by
+  rfl
+
+theorem coherentCacheToScalar_cacheQuery
+    (cache : CoherentByteCache)
+    (bytes : List UInt8)
+    (entry : CoherentByteEntry) :
+    coherentCacheToScalar
+        (cache.cacheQuery bytes entry) =
+      (coherentCacheToScalar cache).cacheQuery
+        bytes entry.scalar := by
+  exact
+    Ipp.RandomOracleMap.mapCache_cacheQuery
+      (fun _ candidate : CoherentByteEntry => candidate.scalar)
+      cache bytes entry
+
+@[simp] theorem coherentCacheToScalar_empty :
+    coherentCacheToScalar ∅ = ∅ := by
+  apply OracleSpec.QueryCache.ext
+  intro bytes
+  rfl
+
+/-- Cache update induced by one byte-field source query.  Ambient proof-side
+sampling is deliberately not cached. -/
+def nextByteFieldCache
+    (cache : ByteFieldOracleSpec.QueryCache) :
+    (point : ByteFieldSourceSpec.Domain) →
+      ByteFieldSourceSpec.Range point →
+        ByteFieldOracleSpec.QueryCache
+  | .inl _, _ => cache
+  | .inr bytes, answer => cache.cacheQuery bytes answer
+
+/-- A byte-field source step is fresh exactly when its byte-keyed branch is
+absent from the accumulated scalar projection of the coherent cache. -/
+def ByteFieldQueryFresh
+    (cache : ByteFieldOracleSpec.QueryCache) :
+    ByteFieldSourceSpec.Domain → Prop
+  | .inl _ => True
+  | .inr bytes => cache bytes = none
+
+/-- Structural trace of the source program emitted by the coherent cache.
+
+The terminal equality is what permits sequential composition: every emitted
+byte-field miss is accumulated in the scalar projection of the concrete
+coherent cache returned by the stateful interpreter. -/
+inductive CoherentByteMissTraceFrom {Output : Type} :
+    ByteFieldOracleSpec.QueryCache →
+      OracleComp ByteFieldSourceSpec
+        (Output × CoherentByteCache) → Prop
+  | pure
+      (cache : ByteFieldOracleSpec.QueryCache)
+      (output : Output)
+      (coherentCache : CoherentByteCache)
+      (cache_exact :
+        cache = coherentCacheToScalar coherentCache) :
+      CoherentByteMissTraceFrom cache
+        (pure (output, coherentCache))
+  | queryBind
+      (cache : ByteFieldOracleSpec.QueryCache)
+      (point : ByteFieldSourceSpec.Domain)
+      (continuation :
+        ByteFieldSourceSpec.Range point →
+          OracleComp ByteFieldSourceSpec
+            (Output × CoherentByteCache))
+      (fresh : ByteFieldQueryFresh cache point)
+      (continuation_fresh :
+        ∀ answer,
+          CoherentByteMissTraceFrom
+            (nextByteFieldCache cache point answer)
+            (continuation answer)) :
+      CoherentByteMissTraceFrom cache
+        ((ByteFieldSourceSpec).query point >>= continuation)
+
+/-- Sequentially compose a coherent miss trace with a continuation that
+starts from the scalar projection of the returned coherent cache. -/
+private theorem CoherentByteMissTraceFrom.bind
+    {First Output : Type}
+    {cache : ByteFieldOracleSpec.QueryCache}
+    {program :
+      OracleComp ByteFieldSourceSpec
+        (First × CoherentByteCache)}
+    (hprogram : CoherentByteMissTraceFrom cache program)
+    (continuation :
+      First → CoherentByteCache →
+        OracleComp ByteFieldSourceSpec
+          (Output × CoherentByteCache))
+    (hcontinuation :
+      ∀ output coherentCache,
+        CoherentByteMissTraceFrom
+          (coherentCacheToScalar coherentCache)
+          (continuation output coherentCache)) :
+    CoherentByteMissTraceFrom cache
+      (program >>= fun result =>
+        continuation result.1 result.2) := by
+  induction hprogram with
+  | pure cache output coherentCache cache_exact =>
+      rw [pure_bind, cache_exact]
+      exact hcontinuation output coherentCache
+  | queryBind cache point next fresh next_fresh ih =>
+      rw [bind_assoc]
+      exact
+        CoherentByteMissTraceFrom.queryBind
+          cache point _ fresh
+          (fun answer => ih answer)
+
+/-- Deterministic postprocessing of the output leaves the coherent miss trace
+unchanged. -/
+private theorem CoherentByteMissTraceFrom.mapOutput
+    {First Output : Type}
+    {cache : ByteFieldOracleSpec.QueryCache}
+    {program :
+      OracleComp ByteFieldSourceSpec
+        (First × CoherentByteCache)}
+    (hprogram : CoherentByteMissTraceFrom cache program)
+    (process : First → Output) :
+    CoherentByteMissTraceFrom cache
+      ((fun result => (process result.1, result.2)) <$> program) := by
+  simpa [map_eq_bind_pure_comp, Function.comp_apply] using
+    hprogram.bind
+      (fun output coherentCache =>
+        pure (process output, coherentCache))
+      (fun output coherentCache =>
+        CoherentByteMissTraceFrom.pure
+          (coherentCacheToScalar coherentCache)
+          (process output) coherentCache rfl)
+
+/-- A source computation with zero byte-field budget can be prepended to a
+coherent miss trace without changing its accumulated byte cache. -/
+private theorem coherentByteMissTrace_bind_of_queryBound_zero
+    {First Output : Type}
+    (cache : ByteFieldOracleSpec.QueryCache)
+    (program : OracleComp ByteFieldSourceSpec First)
+    (hzero :
+      IsQueryBoundP program IsByteFieldQuery 0)
+    (continuation :
+      First → OracleComp ByteFieldSourceSpec
+        (Output × CoherentByteCache))
+    (hcontinuation :
+      ∀ output,
+        CoherentByteMissTraceFrom cache
+          (continuation output)) :
+    CoherentByteMissTraceFrom cache
+      (program >>= continuation) := by
+  induction program using OracleComp.inductionOn with
+  | pure output =>
+      simpa only [pure_bind] using hcontinuation output
+  | query_bind point next ih =>
+      rw [OracleComp.isQueryBoundP_query_bind_iff] at hzero
+      cases point with
+      | inl ambient =>
+          rw [bind_assoc]
+          exact
+            CoherentByteMissTraceFrom.queryBind
+              cache (.inl ambient) _ trivial
+              (fun answer =>
+                ih answer
+                  (by
+                    simpa [IsByteFieldQuery] using
+                      hzero.2 answer))
+      | inr bytes =>
+          have himpossible : False := by
+            simpa [IsByteFieldQuery] using hzero.1
+          exact himpossible.elim
+
+/-- One coherent entry lookup emits no byte-field query on a hit and exactly
+one fresh byte-field query on a miss.  Fiber sampling is ambient and the
+terminal scalar cache is the projection of the updated coherent cache. -/
+private theorem coherentEntryImpl_run_missTrace
+    (bytes : List UInt8)
+    (cache : CoherentByteCache) :
+    CoherentByteMissTraceFrom
+      (coherentCacheToScalar cache)
+      ((coherentEntryImpl bytes).run cache) := by
+  cases hcache : cache bytes with
+  | some entry =>
+      rw [coherentEntryImpl_run_some
+        cache bytes entry hcache]
+      exact
+        CoherentByteMissTraceFrom.pure
+          (coherentCacheToScalar cache)
+          entry cache rfl
+  | none =>
+      rw [show coherentEntryImpl =
+          QueryImpl.withCaching coherentEntryMiss from rfl]
+      rw [QueryImpl.withCaching_run_none
+        coherentEntryMiss hcache]
+      simp only [coherentEntryMiss, byteFieldQuery,
+        map_eq_bind_pure_comp, bind_assoc,
+        Function.comp_apply, pure_bind]
+      apply CoherentByteMissTraceFrom.queryBind
+      · change coherentCacheToScalar cache bytes = none
+        simp [hcache]
+      · intro scalar
+        apply coherentByteMissTrace_bind_of_queryBound_zero
+          ((coherentCacheToScalar cache).cacheQuery
+            bytes scalar)
+          (sampleDigestFiber scalar)
+          (sampleDigestFiber_byteFieldQueryBound_zero scalar)
+      · intro digest
+        apply CoherentByteMissTraceFrom.pure
+        rw [coherentCacheToScalar_cacheQuery]
+        rfl
+
+/-- Ambient sampling preserves the coherent cache and emits only an ambient
+source query. -/
+private theorem coherentAmbientImpl_run_missTrace
+    (point : unifSpec.Domain)
+    (cache : CoherentByteCache) :
+    CoherentByteMissTraceFrom
+      (coherentCacheToScalar cache)
+      ((coherentAmbientImpl point).run cache) := by
+  simp only [coherentAmbientImpl, StateT.run_monadLift,
+    map_eq_bind_pure_comp, Function.comp_apply]
+  exact
+    CoherentByteMissTraceFrom.queryBind
+      (coherentCacheToScalar cache)
+      (.inl point) _ trivial
+      (fun answer =>
+        CoherentByteMissTraceFrom.pure
+          (coherentCacheToScalar cache)
+          answer cache rfl)
+
+/-- Deterministic SHA execution preserves the coherent cache and emits no
+byte-field source query. -/
+private theorem coherentSha256Impl_run_missTrace
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (input : Ipp.ShippingV1.Bytes)
+    (cache : CoherentByteCache) :
+    CoherentByteMissTraceFrom
+      (coherentCacheToScalar cache)
+      ((coherentSha256Impl sha256 input).run cache) := by
+  simp only [coherentSha256Impl, StateT.run_pure]
+  exact
+    CoherentByteMissTraceFrom.pure
+      (coherentCacheToScalar cache)
+      (sha256 input) cache rfl
+
+private theorem coherentBlake2bImpl_run_missTrace
+    (bytes : List UInt8)
+    (cache : CoherentByteCache) :
+    CoherentByteMissTraceFrom
+      (coherentCacheToScalar cache)
+      ((coherentBlake2bImpl bytes).run cache) := by
+  simp only [coherentBlake2bImpl, StateT.run_map]
+  exact
+    (coherentEntryImpl_run_missTrace bytes cache).mapOutput
+      CoherentByteEntry.digest
+
+private theorem coherentScalarImpl_run_missTrace
+    (bytes : List UInt8)
+    (cache : CoherentByteCache) :
+    CoherentByteMissTraceFrom
+      (coherentCacheToScalar cache)
+      ((coherentScalarImpl bytes).run cache) := by
+  simp only [coherentScalarImpl, StateT.run_map]
+  exact
+    (coherentEntryImpl_run_missTrace bytes cache).mapOutput
+      CoherentByteEntry.scalar
+
+/-- Every hybrid source step preserves the miss trace, including arbitrary
+raw prequeries.  A prequery that aliases a later typed query populates the
+coherent cache here, so the later lookup is proved to be a hit. -/
+private theorem coherentHybridImpl_run_missTrace
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    (point : (HybridAdaptiveSourceSpec reached).Domain)
+    (cache : CoherentByteCache) :
+    CoherentByteMissTraceFrom
+      (coherentCacheToScalar cache)
+      ((coherentHybridImpl
+        sha256 serialization reached point).run cache) := by
+  cases point with
+  | inl rawPoint =>
+      rw [coherentHybridImpl_raw]
+      cases rawPoint with
+      | inl ambient =>
+          exact coherentAmbientImpl_run_missTrace ambient cache
+      | inr hashPoint =>
+          cases hashPoint with
+          | inl shaInput =>
+              exact
+                coherentSha256Impl_run_missTrace
+                  sha256 shaInput cache
+          | inr bytes =>
+              exact coherentBlake2bImpl_run_missTrace bytes cache
+  | inr typedPoint =>
+      rw [coherentHybridImpl_typed]
+      exact
+        coherentScalarImpl_run_missTrace
+          (reachedByteEncoding
+            serialization reached typedPoint)
+          cache
+
+/-- Arbitrary adaptive hybrid programs inherit the coherent miss trace from
+the production-used cache interpreter. -/
+private theorem simulateQ_coherentHybridImpl_run_missTrace
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    {Output : Type}
+    (program :
+      OracleComp (HybridAdaptiveSourceSpec reached) Output)
+    (cache : CoherentByteCache) :
+    CoherentByteMissTraceFrom
+      (coherentCacheToScalar cache)
+      ((simulateQ
+        (coherentHybridImpl sha256 serialization reached)
+        program).run cache) := by
+  induction program using OracleComp.inductionOn
+      generalizing cache with
+  | pure output =>
+      simp only [simulateQ_pure, StateT.run_pure]
+      exact
+        CoherentByteMissTraceFrom.pure
+          (coherentCacheToScalar cache)
+          output cache rfl
+  | query_bind point continuation ih =>
+      simp only [simulateQ_query_bind, StateT.run_bind]
+      exact
+        (coherentHybridImpl_run_missTrace
+          sha256 serialization reached point cache).bind
+            (fun answer nextCache =>
+              (simulateQ
+                (coherentHybridImpl
+                  sha256 serialization reached)
+                (continuation answer)).run nextCache)
+            (fun answer nextCache => ih answer nextCache)
+
+/-! ## Raw-to-cached global-source endpoint -/
+
+/-- Cache after one source query. Ambient uniform queries are deliberately not
+recorded; only the structured Fiat--Shamir component is cached by
+`fsRandomFunction`. -/
+def nextGlobalFsCache
+    (cache : GlobalFieldOracleSpec.QueryCache) :
+    (point : GlobalFsSourceSpec.Domain) →
+      GlobalFsSourceSpec.Range point →
+        GlobalFieldOracleSpec.QueryCache
+  | .inl _, _ => cache
+  | .inr query, answer => cache.cacheQuery query answer
+
+/-- The next source query is fresh for the structured cache. Ambient uniform
+queries are forwarded independently and therefore impose no cache condition. -/
+def GlobalFsQueryFresh
+    (cache : GlobalFieldOracleSpec.QueryCache) :
+    GlobalFsSourceSpec.Domain → Prop
+  | .inl _ => True
+  | .inr query => cache query = none
+
+/-- Structural no-repeat contract for the global Fiat--Shamir source.
+
+Every structured query must be absent from the cache accumulated along every
+possible prior-answer path. This is strictly a query-shape invariant: it does
+not mention distributions, acceptance, or equality with the cached game. -/
+inductive NoRepeatedGlobalFsQueriesFrom {Output : Type} :
+    GlobalFieldOracleSpec.QueryCache →
+      OracleComp GlobalFsSourceSpec Output → Prop
+  | pure (cache : GlobalFieldOracleSpec.QueryCache) (output : Output) :
+      NoRepeatedGlobalFsQueriesFrom cache (pure output)
+  | queryBind
+      (cache : GlobalFieldOracleSpec.QueryCache)
+      (point : GlobalFsSourceSpec.Domain)
+      (continuation :
+        GlobalFsSourceSpec.Range point →
+          OracleComp GlobalFsSourceSpec Output)
+      (fresh : GlobalFsQueryFresh cache point)
+      (continuation_fresh :
+        ∀ answer,
+          NoRepeatedGlobalFsQueriesFrom
+            (nextGlobalFsCache cache point answer)
+            (continuation answer)) :
+      NoRepeatedGlobalFsQueriesFrom cache
+        ((GlobalFsSourceSpec).query point >>= continuation)
+
+/-- Empty-cache specialization used by a complete multi-statement game. -/
+def NoRepeatedGlobalFsQueries {Output : Type}
+    (program : OracleComp GlobalFsSourceSpec Output) : Prop :=
+  NoRepeatedGlobalFsQueriesFrom ∅ program
+
+/-- Deterministic output projection preserves the global no-repeat trace. -/
+private theorem NoRepeatedGlobalFsQueriesFrom.map
+    {First Output : Type}
+    {cache : GlobalFieldOracleSpec.QueryCache}
+    {program : OracleComp GlobalFsSourceSpec First}
+    (hprogram :
+      NoRepeatedGlobalFsQueriesFrom cache program)
+    (process : First → Output) :
+    NoRepeatedGlobalFsQueriesFrom cache
+      (process <$> program) := by
+  induction hprogram with
+  | pure cache output =>
+      simpa only [map_pure] using
+        NoRepeatedGlobalFsQueriesFrom.pure
+          cache (process output)
+  | queryBind cache point continuation fresh
+      continuation_fresh ih =>
+      rw [map_bind]
+      exact
+        NoRepeatedGlobalFsQueriesFrom.queryBind
+          cache point _ fresh
+          (fun answer => ih answer)
+
+/-- A computation with zero structured-query budget can be prepended without
+changing the accumulated global Fiat--Shamir cache. -/
+private theorem noRepeatedGlobalFs_bind_of_queryBound_zero
+    {First Output : Type}
+    (cache : GlobalFieldOracleSpec.QueryCache)
+    (program : OracleComp GlobalFsSourceSpec First)
+    (hzero :
+      IsQueryBoundP program IsGlobalFieldQuery 0)
+    (continuation :
+      First → OracleComp GlobalFsSourceSpec Output)
+    (hcontinuation :
+      ∀ output,
+        NoRepeatedGlobalFsQueriesFrom cache
+          (continuation output)) :
+    NoRepeatedGlobalFsQueriesFrom cache
+      (program >>= continuation) := by
+  induction program using OracleComp.inductionOn with
+  | pure output =>
+      simpa only [pure_bind] using hcontinuation output
+  | query_bind point next ih =>
+      rw [OracleComp.isQueryBoundP_query_bind_iff] at hzero
+      cases point with
+      | inl ambient =>
+          rw [bind_assoc]
+          exact
+            NoRepeatedGlobalFsQueriesFrom.queryBind
+              cache (.inl ambient) _ trivial
+              (fun answer =>
+                ih answer
+                  (by
+                    simpa [IsGlobalFieldQuery] using
+                      hzero.2 answer))
+      | inr query =>
+          have himpossible : False := by
+            simpa [IsGlobalFieldQuery] using hzero.1
+          exact himpossible.elim
+
+/-- On a fresh structured query, the shared-cache handler takes its miss branch
+and forwards exactly the same source query while extending the cache. -/
+private theorem fsSourceOracle_run_eq_of_globalFresh
+    (cache : GlobalFieldOracleSpec.QueryCache)
+    (point : GlobalFsSourceSpec.Domain)
+    (fresh : GlobalFsQueryFresh cache point) :
+    (((Ipp.fsSourceOracle GlobalFsQuery Fr) point).run cache) =
+      (fun answer =>
+        (answer, nextGlobalFsCache cache point answer)) <$>
+        ((GlobalFsSourceSpec).query point) := by
+  cases point with
+  | inl ambient =>
+      simp [Ipp.fsSourceOracle, Ipp.fsSourceUnifFwd,
+        QueryImpl.add_apply_inl, nextGlobalFsCache,
+        StateT.run_monadLift]
+  | inr query =>
+      change cache query = none at fresh
+      change
+        (QueryImpl.withCaching
+          (Ipp.fsSourceImpl GlobalFsQuery Fr) query).run cache =
+        _
+      rw [QueryImpl.withCaching_run_none _ fresh]
+      simp [Ipp.fsSourceImpl, nextGlobalFsCache]
+
+/-- Structural decomposition of the cached source interpreter at one query. -/
+private theorem fsSourceOracle_run'_query_bind
+    {Output : Type}
+    (cache : GlobalFieldOracleSpec.QueryCache)
+    (point : GlobalFsSourceSpec.Domain)
+    (continuation :
+      GlobalFsSourceSpec.Range point →
+        OracleComp GlobalFsSourceSpec Output) :
+    (simulateQ (Ipp.fsSourceOracle GlobalFsQuery Fr)
+        ((GlobalFsSourceSpec).query point >>= continuation)).run' cache =
+      (((Ipp.fsSourceOracle GlobalFsQuery Fr) point).run cache) >>= fun result =>
+        (simulateQ (Ipp.fsSourceOracle GlobalFsQuery Fr)
+          (continuation result.1)).run' result.2 := by
+  rw [simulateQ_query_bind, StateT.run'_eq, StateT.run_bind, map_bind]
+  rfl
+
+/-- If every structured query is fresh along every answer path, installing the
+lazy structured cache preserves the exact output computation. -/
+private theorem fsSourceOracle_run'_eq_self_of_noRepeated
+    {Output : Type}
+    {cache : GlobalFieldOracleSpec.QueryCache}
+    {program : OracleComp GlobalFsSourceSpec Output}
+    (h : NoRepeatedGlobalFsQueriesFrom cache program) :
+    (simulateQ (Ipp.fsSourceOracle GlobalFsQuery Fr) program).run' cache =
+      program := by
+  induction h with
+  | pure cache output =>
+      simp [StateT.run'_eq]
+  | queryBind cache point continuation fresh continuation_fresh ih =>
+      rw [fsSourceOracle_run'_query_bind]
+      rw [fsSourceOracle_run_eq_of_globalFresh cache point fresh]
+      rw [map_eq_bind_pure_comp]
+      simp only [bind_assoc, Function.comp_apply, pure_bind]
+      apply bind_congr
+      intro answer
+      exact ih answer
+
+/-- A structurally no-repeat global program is unchanged by the lazy
+random-function wrapper. This theorem is not available for arbitrary programs:
+on a repeated structured query the raw and cached semantics differ. -/
+theorem fsRandomFunction_eq_self_of_noRepeatedGlobalFsQueries
+    {Output : Type}
+    (program : OracleComp GlobalFsSourceSpec Output)
+    (h : NoRepeatedGlobalFsQueries program) :
+    Ipp.fsRandomFunction program = program := by
+  simpa [Ipp.fsRandomFunction, StateT.run'_eq] using
+    (fsSourceOracle_run'_eq_self_of_noRepeated h)
+
+/-- Output-marginal equality between a structurally no-repeat raw global game
+and the cached, wrapped, logged experiment consumed by the fork proof. Trace
+and log fields are projected away; no raw-equals-cached premise is assumed. -/
+theorem multiStatementFsProbComp_output_event_eq_of_noRepeatedGlobalFsQueries
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (predicate : PackedOutcome Call → Prop)
+    [DecidablePred predicate]
+    (h : NoRepeatedGlobalFsQueries game) :
+    Pr[fun run => predicate run.1.out |
+        multiStatementFsProbComp game] =
+      Pr[predicate | game] := by
+  have hwrap :
+      Pr[fun sourceRun => predicate sourceRun.1 |
+          replayFirstRun (Ipp.fsRandomFunction game)] =
+        Pr[fun run => predicate run.1.out |
+          multiStatementFsProbComp game] := by
+    simpa [multiStatementFsProbComp, multiStatementForkMain] using
+      (Ipp.probEvent_wrapFs_eq
+        (F := Fr) game
+        (fun run => predicate run.1.out))
+  calc
+    Pr[fun run => predicate run.1.out |
+        multiStatementFsProbComp game] =
+      Pr[fun sourceRun => predicate sourceRun.1 |
+        replayFirstRun (Ipp.fsRandomFunction game)] :=
+          hwrap.symm
+    _ = Pr[predicate | Ipp.fsRandomFunction game] :=
+      probEvent_fst_replayFirstRun
+        (Ipp.fsRandomFunction game) predicate
+    _ = Pr[predicate | game] := by
+      rw [fsRandomFunction_eq_self_of_noRepeatedGlobalFsQueries
+        game h]
+
+/-! ## Reindexing coherent byte misses to fresh structured queries -/
+
+/-- Every cached structured answer is backed by the exact coherent byte cell
+whose canonical partial decode returns that structured query.  The decode
+fixed-point conjunct is essential when the unrestricted serialization has
+aliases: only the deterministic representative selected by the decoder may
+enter the structured cache. -/
+def GlobalCacheBackedByByteCache
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    (globalCache : GlobalFieldOracleSpec.QueryCache)
+    (byteCache : ByteFieldOracleSpec.QueryCache) :
+    Prop :=
+  ∀ query value,
+    globalCache query = some value →
+      ∃ membership : query ∈ reached,
+        decodeReachedQuery? serialization reached
+            (serialization.byteEncoding query) =
+          some
+            (⟨query, membership⟩ :
+              ReachedGlobalFsQuery reached) ∧
+        byteCache
+            (serialization.byteEncoding query) =
+          some value
+
+theorem globalCacheBackedByByteCache_empty
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery) :
+    GlobalCacheBackedByByteCache
+      serialization reached ∅ ∅ := by
+  intro query value hcache
+  simp at hcache
+
+/-- Extending the byte cache at a fresh key preserves every existing
+structured-cache backing entry. -/
+private theorem GlobalCacheBackedByByteCache.cacheByte
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    {globalCache : GlobalFieldOracleSpec.QueryCache}
+    {byteCache : ByteFieldOracleSpec.QueryCache}
+    (hbacked :
+      GlobalCacheBackedByByteCache
+        serialization reached globalCache byteCache)
+    (bytes : List UInt8)
+    (answer : Fr)
+    (hfresh : byteCache bytes = none) :
+    GlobalCacheBackedByByteCache
+      serialization reached globalCache
+      (byteCache.cacheQuery bytes answer) := by
+  intro query value hglobal
+  obtain ⟨membership, hdecode, hbyte⟩ :=
+    hbacked query value hglobal
+  refine ⟨membership, hdecode, ?_⟩
+  have hne :
+      serialization.byteEncoding query ≠ bytes := by
+    intro heq
+    have hcached : byteCache bytes = some value := by
+      simpa [heq] using hbyte
+    rw [hfresh] at hcached
+    cases hcached
+  simpa [QueryCache.cacheQuery_of_ne, hne] using hbyte
+
+/-- A decoded byte miss identifies a structured query absent from the global
+cache backed by prior coherent misses. -/
+private theorem globalFsQueryFresh_of_byteFresh
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    {globalCache : GlobalFieldOracleSpec.QueryCache}
+    {byteCache : ByteFieldOracleSpec.QueryCache}
+    (hbacked :
+      GlobalCacheBackedByByteCache
+        serialization reached globalCache byteCache)
+    (bytes : List UInt8)
+    (query : ReachedGlobalFsQuery reached)
+    (hdecode :
+      decodeReachedQuery? serialization reached bytes =
+        some query)
+    (hfresh : byteCache bytes = none) :
+    GlobalFsQueryFresh globalCache (.inr query.1) := by
+  change globalCache query.1 = none
+  cases hcached : globalCache query.1 with
+  | none =>
+      exact hcached
+  | some value =>
+      obtain ⟨membership, _hcanonical, hbyte⟩ :=
+        hbacked query.1 value hcached
+      have hencoding :
+          serialization.byteEncoding query.1 = bytes := by
+        simpa [reachedByteEncoding] using
+          (decodeReachedQuery?_eq_some_byteEncoding
+            serialization reached hdecode)
+      have himpossible :
+          byteCache bytes = some value := by
+        simpa [hencoding] using hbyte
+      rw [hfresh] at himpossible
+      cases himpossible
+
+/-- Updating both caches after a decoded byte miss preserves exact backing,
+including the decoder fixed point for the newly inserted structured query. -/
+private theorem GlobalCacheBackedByByteCache.cacheDecoded
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    {globalCache : GlobalFieldOracleSpec.QueryCache}
+    {byteCache : ByteFieldOracleSpec.QueryCache}
+    (hbacked :
+      GlobalCacheBackedByByteCache
+        serialization reached globalCache byteCache)
+    (bytes : List UInt8)
+    (query : ReachedGlobalFsQuery reached)
+    (answer : Fr)
+    (hdecode :
+      decodeReachedQuery? serialization reached bytes =
+        some query)
+    (hfresh : byteCache bytes = none) :
+    GlobalCacheBackedByByteCache
+      serialization reached
+      (globalCache.cacheQuery query.1 answer)
+      (byteCache.cacheQuery bytes answer) := by
+  intro other value hglobal
+  have hqueryEncoding :
+      serialization.byteEncoding query.1 = bytes := by
+    simpa [reachedByteEncoding] using
+      (decodeReachedQuery?_eq_some_byteEncoding
+        serialization reached hdecode)
+  by_cases hsame : other = query.1
+  · subst other
+    have hvalue : answer = value := by
+      have hsome : some answer = some value := by
+        simpa using hglobal
+      exact Option.some.inj hsome
+    subst value
+    refine ⟨query.2, ?_, ?_⟩
+    · simpa [hqueryEncoding] using hdecode
+    · simpa [hqueryEncoding] using
+        (QueryCache.cacheQuery_self
+          byteCache bytes answer)
+  · have holdGlobal :
+        globalCache other = some value := by
+      simpa [QueryCache.cacheQuery_of_ne, hsame] using hglobal
+    obtain ⟨membership, hcanonical, hbyte⟩ :=
+      hbacked other value holdGlobal
+    refine ⟨membership, hcanonical, ?_⟩
+    have hencodingNe :
+        serialization.byteEncoding other ≠ bytes := by
+      intro hencoding
+      have hsome :
+          some
+              (⟨other, membership⟩ :
+                ReachedGlobalFsQuery reached) =
+            some query := by
+        calc
+          some
+              (⟨other, membership⟩ :
+                ReachedGlobalFsQuery reached) =
+              decodeReachedQuery? serialization reached
+                (serialization.byteEncoding other) :=
+            hcanonical.symm
+          _ =
+              decodeReachedQuery? serialization reached bytes := by
+            rw [hencoding]
+          _ = some query := hdecode
+      have hsubtype :
+          (⟨other, membership⟩ :
+              ReachedGlobalFsQuery reached) =
+            query :=
+        Option.some.inj hsome
+      exact hsame (congrArg Subtype.val hsubtype)
+    simpa [QueryCache.cacheQuery_of_ne, hencodingNe] using
+      hbyte
+
+/-- Reindexing the source emitted by the coherent cache preserves structural
+freshness of every global Fiat--Shamir query.  Opaque byte misses become
+ambient samples; decoded misses update the byte and global caches together. -/
+private theorem
+    noRepeatedGlobalFsQueriesFrom_of_coherentByteMissTrace
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    {Output : Type}
+    {byteCache : ByteFieldOracleSpec.QueryCache}
+    {globalCache : GlobalFieldOracleSpec.QueryCache}
+    {program :
+      OracleComp ByteFieldSourceSpec
+        (Output × CoherentByteCache)}
+    (hbacked :
+      GlobalCacheBackedByByteCache
+        serialization reached globalCache byteCache)
+    (htrace :
+      CoherentByteMissTraceFrom byteCache program) :
+    NoRepeatedGlobalFsQueriesFrom globalCache
+      (simulateQ
+        (uniformScalarToGlobalFsImpl serialization reached)
+        program) := by
+  induction htrace generalizing globalCache with
+  | pure byteCache output coherentCache cache_exact =>
+      simp only [simulateQ_pure]
+      exact
+        NoRepeatedGlobalFsQueriesFrom.pure
+          globalCache (output, coherentCache)
+  | queryBind byteCache point continuation fresh
+      continuation_fresh ih =>
+      rw [simulateQ_query_bind]
+      cases point with
+      | inl ambient =>
+          simp only [uniformScalarToGlobalFsImpl,
+            QueryImpl.add_apply_inl, globalFsUnifFwd]
+          exact
+            NoRepeatedGlobalFsQueriesFrom.queryBind
+              globalCache (.inl ambient) _ trivial
+              (fun answer =>
+                ih answer globalCache hbacked)
+      | inr bytes =>
+          cases hdecode :
+              decodeReachedQuery?
+                serialization reached bytes with
+          | none =>
+              simp only [uniformScalarToGlobalFsImpl,
+                QueryImpl.add_apply_inr, hdecode]
+              apply noRepeatedGlobalFs_bind_of_queryBound_zero
+                globalCache sampleOpaqueGlobalFr
+                sampleOpaqueGlobalFr_queryBound_zero
+              intro answer
+              exact
+                ih answer globalCache
+                  (GlobalCacheBackedByByteCache.cacheByte
+                    serialization reached hbacked
+                    bytes answer fresh)
+          | some query =>
+              simp only [uniformScalarToGlobalFsImpl,
+                QueryImpl.add_apply_inr, hdecode]
+              apply NoRepeatedGlobalFsQueriesFrom.queryBind
+              · exact
+                  globalFsQueryFresh_of_byteFresh
+                    serialization reached hbacked
+                    bytes query hdecode fresh
+              · intro answer
+                exact
+                  ih answer
+                    (globalCache.cacheQuery query.1 answer)
+                    (GlobalCacheBackedByByteCache.cacheDecoded
+                      serialization reached hbacked
+                      bytes query answer hdecode fresh)
+
 namespace OriginByteReindexing
+
+/-- Exact cache-shape property at the internal source boundary.
+
+This predicate is imposed only after `coherentEntryImpl` has interpreted the
+whole hybrid program from one empty byte cache. It does not restrict the
+external adversary: an adversarial prequery of a future verifier point is
+allowed, and must make the verifier's later byte lookup a cache hit. The
+obligation says only that such a hit does not emit a second structured query
+when the already-cached byte-miss program is reindexed. -/
+def CoherentByteMissesEmitNoRepeatedGlobalFsQueries
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    {adversary :
+      OracleComp GlobalByteSourceSpec
+        (OriginSelectedCall sha256 blake2b)}
+    {Q_sha Q_fs : Nat}
+    {budgets :
+      DistinctQueryBudgets
+        sha256 blake2b adversary Q_sha Q_fs}
+    (boundary :
+      Ipp.ShippingAdaptiveReindex.OriginByteReindexing
+        sha256 blake2b adversary Q_sha Q_fs budgets) : Prop :=
+  NoRepeatedGlobalFsQueries
+    (fiberLiftedGlobalFsProgram
+      sha256 boundary.serialization boundary.reached
+      boundary.hybridProgram)
+
+/-- The coherent byte cache discharges its own internal miss-shape property.
+
+The proof covers the complete adaptive hybrid program.  In particular, an
+arbitrary adversarial prequery is executed before selection, populates the
+shared byte cache, and makes an aliased verifier lookup a hit rather than a
+second global Fiat--Shamir query. -/
+theorem coherentByteMissesEmitNoRepeatedGlobalFsQueries
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    {adversary :
+      OracleComp GlobalByteSourceSpec
+        (OriginSelectedCall sha256 blake2b)}
+    {Q_sha Q_fs : Nat}
+    {budgets :
+      DistinctQueryBudgets
+        sha256 blake2b adversary Q_sha Q_fs}
+    (boundary :
+      Ipp.ShippingAdaptiveReindex.OriginByteReindexing
+        sha256 blake2b adversary Q_sha Q_fs budgets) :
+    CoherentByteMissesEmitNoRepeatedGlobalFsQueries
+      boundary := by
+  unfold CoherentByteMissesEmitNoRepeatedGlobalFsQueries
+    NoRepeatedGlobalFsQueries
+    fiberLiftedGlobalFsProgram fiberLiftedHybridOutput
+  rw [StateT.run'_eq, simulateQ_map]
+  apply NoRepeatedGlobalFsQueriesFrom.map
+  have htrace :=
+    simulateQ_coherentHybridImpl_run_missTrace
+      sha256 boundary.serialization boundary.reached
+      boundary.hybridProgram (∅ : CoherentByteCache)
+  have hbacked :
+      GlobalCacheBackedByByteCache
+        boundary.serialization boundary.reached
+        (∅ : GlobalFieldOracleSpec.QueryCache)
+        (coherentCacheToScalar (∅ : CoherentByteCache)) := by
+    simpa using
+      globalCacheBackedByByteCache_empty
+        boundary.serialization boundary.reached
+  exact
+    noRepeatedGlobalFsQueriesFrom_of_coherentByteMissTrace
+      boundary.serialization boundary.reached
+      hbacked htrace
 
 /-- Non-circular construction boundary for identifying the structured
 fiber-lifted origin with the canonical multi-statement game.
@@ -998,6 +1870,138 @@ theorem inducedFiberLifted_event_le_globalFs_add_modReduction
         (Ipp.ShippingAdaptiveByteFieldCoupling.OriginByteReindexing
           .fiberLiftedHybridOutput_queryBound boundary)
 
+namespace GlobalFsProgramConstruction
+
+/-- Unwrapped multi-statement endpoint of the whole-origin scalar hop.
+
+This corollary performs only the exact program rewrite supplied by
+`GlobalFsProgramConstruction`.  Its right-hand probability is therefore the
+ordinary `OracleComp` evaluation of `MultiStatementFsGame`; connecting it to
+the cached and logged `multiStatementFsProbComp` experiment requires the
+coherent-byte-miss no-repeat invariant proved below. -/
+theorem inducedFiberLifted_event_le_multiStatementFsGame_add_modReduction
+    [SampleableType DigestBytes]
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    {adversary :
+      OracleComp GlobalByteSourceSpec
+        (OriginSelectedCall sha256 blake2b)}
+    {Q_sha Q_fs : Nat}
+    {budgets :
+      DistinctQueryBudgets
+        sha256 blake2b adversary Q_sha Q_fs}
+    {boundary :
+      Ipp.ShippingAdaptiveReindex.OriginByteReindexing
+        sha256 blake2b adversary Q_sha Q_fs budgets}
+    (construction : GlobalFsProgramConstruction boundary)
+    (predicate : OriginFormalOutcome → Prop)
+    [DecidablePred predicate] :
+    Pr[predicate |
+        inducedFiberLiftedHybridOutput
+          sha256 boundary.serialization boundary.reached
+          boundary.hybridProgram] ≤
+      Pr[predicate |
+          MultiStatementFsGame construction.preselection] +
+        modReductionBudget Q_fs := by
+  calc
+    Pr[predicate |
+        inducedFiberLiftedHybridOutput
+          sha256 boundary.serialization boundary.reached
+          boundary.hybridProgram] ≤
+      Pr[predicate |
+          fiberLiftedGlobalFsProgram
+            sha256 boundary.serialization boundary.reached
+            boundary.hybridProgram] +
+        modReductionBudget Q_fs :=
+      Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing
+        .inducedFiberLifted_event_le_globalFs_add_modReduction
+          boundary predicate
+    _ =
+      Pr[predicate |
+          MultiStatementFsGame construction.preselection] +
+        modReductionBudget Q_fs := by
+      rw [fiberLiftedGlobalFsProgram_eq_multiStatementFsGame construction]
+
+/-- Exact transport of the internal byte-miss source-shape obligation across
+the production phase identity. This does not forbid an external prequery; that
+prequery has already been absorbed by the coherent byte cache before this
+transport is applied. -/
+theorem noRepeatedGlobalFsQueries_multiStatementFsGame_of_fiberLifted
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    {adversary :
+      OracleComp GlobalByteSourceSpec
+        (OriginSelectedCall sha256 blake2b)}
+    {Q_sha Q_fs : Nat}
+    {budgets :
+      DistinctQueryBudgets
+        sha256 blake2b adversary Q_sha Q_fs}
+    {boundary :
+      Ipp.ShippingAdaptiveReindex.OriginByteReindexing
+        sha256 blake2b adversary Q_sha Q_fs budgets}
+    (construction : GlobalFsProgramConstruction boundary) :
+    NoRepeatedGlobalFsQueries
+      (MultiStatementFsGame construction.preselection) := by
+  rw [← fiberLiftedGlobalFsProgram_eq_multiStatementFsGame construction]
+  exact
+    coherentByteMissesEmitNoRepeatedGlobalFsQueries boundary
+
+/-- Cached/logged multi-statement endpoint of the whole-origin scalar hop.
+
+The coherent-cache miss invariant is derived internally. This theorem has no
+fresh-oracle, no-repeat, or adversary-prequery premise: arbitrary prequeries
+remain in the one coherent cache and are transported as hits. -/
+theorem inducedFiberLifted_event_le_multiStatementFsProbComp_add_modReduction
+    [SampleableType DigestBytes]
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    {adversary :
+      OracleComp GlobalByteSourceSpec
+        (OriginSelectedCall sha256 blake2b)}
+    {Q_sha Q_fs : Nat}
+    {budgets :
+      DistinctQueryBudgets
+        sha256 blake2b adversary Q_sha Q_fs}
+    {boundary :
+      Ipp.ShippingAdaptiveReindex.OriginByteReindexing
+        sha256 blake2b adversary Q_sha Q_fs budgets}
+    (construction : GlobalFsProgramConstruction boundary)
+    (predicate : OriginFormalOutcome → Prop)
+    [DecidablePred predicate] :
+    Pr[predicate |
+        inducedFiberLiftedHybridOutput
+          sha256 boundary.serialization boundary.reached
+          boundary.hybridProgram] ≤
+      Pr[fun run => predicate run.1.out |
+          multiStatementFsProbComp
+            (MultiStatementFsGame construction.preselection)] +
+        modReductionBudget Q_fs := by
+  have hgame :
+      NoRepeatedGlobalFsQueries
+        (MultiStatementFsGame construction.preselection) :=
+    noRepeatedGlobalFsQueries_multiStatementFsGame_of_fiberLifted
+      construction
+  calc
+    Pr[predicate |
+        inducedFiberLiftedHybridOutput
+          sha256 boundary.serialization boundary.reached
+          boundary.hybridProgram] ≤
+      Pr[predicate |
+          MultiStatementFsGame construction.preselection] +
+        modReductionBudget Q_fs :=
+      inducedFiberLifted_event_le_multiStatementFsGame_add_modReduction
+        construction predicate
+    _ =
+      Pr[fun run => predicate run.1.out |
+          multiStatementFsProbComp
+            (MultiStatementFsGame construction.preselection)] +
+        modReductionBudget Q_fs := by
+      rw [multiStatementFsProbComp_output_event_eq_of_noRepeatedGlobalFsQueries
+        (MultiStatementFsGame construction.preselection)
+        predicate hgame]
+
+end GlobalFsProgramConstruction
+
 end OriginByteReindexing
 
 #print axioms OriginByteReindexing.projectedOriginIdealByte_evalDist_eq_inducedFiberLifted
@@ -1006,10 +2010,16 @@ end OriginByteReindexing
 #print axioms fiberLiftedInducedReduced_uniformScalar_tvDist_le
 #print axioms fiberLiftedInducedReduced_event_le_uniformScalar_add_modReduction
 #print axioms sharedGlobalFsProgram_eq_multiStatementFsGame
+#print axioms fsRandomFunction_eq_self_of_noRepeatedGlobalFsQueries
+#print axioms multiStatementFsProbComp_output_event_eq_of_noRepeatedGlobalFsQueries
+#print axioms OriginByteReindexing.coherentByteMissesEmitNoRepeatedGlobalFsQueries
 #print axioms OriginByteReindexing.GlobalFsProgramConstruction.fiberLiftedGlobalFsProgram_eq_multiStatementFsGame
 #print axioms OriginByteReindexing.GlobalFsProgramConstruction.multiStatementFsGame_queryBound
 #print axioms OriginByteReindexing.fiberLiftedGlobalFsProgram_queryBound
 #print axioms OriginByteReindexing.inducedReduced_event_le_uniformScalar_add_modReduction
+#print axioms OriginByteReindexing.GlobalFsProgramConstruction.inducedFiberLifted_event_le_multiStatementFsGame_add_modReduction
+#print axioms OriginByteReindexing.GlobalFsProgramConstruction.noRepeatedGlobalFsQueries_multiStatementFsGame_of_fiberLifted
+#print axioms OriginByteReindexing.GlobalFsProgramConstruction.inducedFiberLifted_event_le_multiStatementFsProbComp_add_modReduction
 
 end
 

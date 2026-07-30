@@ -155,6 +155,123 @@ theorem ConstructorExecution.paddingAccepted
                   subst paddingOutput
                   exact hpadding
 
+/-- One exact execution of the generated production planned-call
+constructor. Its result contains no semantic data. -/
+structure ShippingCallFromPartsExecution where
+  id : CallId
+  bundleFamily : FamilyCode
+  expectedRealCount : Usize
+  bundleRealCount : Std.U32
+  expectedPaddedCount : Usize
+  bundlePaddedCount : Std.U32
+  output : app_verifier.AppVerifyShippingCall
+  accepted :
+    app_verifier.app_verify_shipping_call_from_parts id bundleFamily
+        expectedRealCount bundleRealCount expectedPaddedCount
+        bundlePaddedCount =
+      .ok output
+
+/-- The generated constructor returns exactly the six scalar call fields
+supplied by the production planner. -/
+@[simp] theorem ShippingCallFromPartsExecution.outputExact
+    (execution : ShippingCallFromPartsExecution) :
+    execution.output =
+      {
+        id := execution.id
+        bundle_family := execution.bundleFamily
+        expected_real_count := execution.expectedRealCount
+        bundle_real_count := execution.bundleRealCount
+        expected_padded_count := execution.expectedPaddedCount
+        bundle_padded_count := execution.bundlePaddedCount
+      } := by
+  unfold app_verifier.app_verify_shipping_call_from_parts at execution.accepted
+  exact (Result.ok.inj execution.accepted).symm
+
+/-- One exact execution of the generated authenticated-wrapper projection
+constructor. Strict wrapper parsing remains the separately named F*
+postcondition; this root proves that the three retained byte strings are the
+ones passed to the shipping-input constructor. -/
+structure ShippingWrapperFromPartsExecution where
+  statementDigest : alloc.vec.Vec UInt8
+  wrappedProofBytes : alloc.vec.Vec UInt8
+  innerProofBytes : alloc.vec.Vec UInt8
+  output : app_verifier.AppVerifyShippingWrapperProjection
+  accepted :
+    app_verifier.app_verify_shipping_wrapper_projection_from_parts
+        statementDigest wrappedProofBytes innerProofBytes =
+      .ok output
+
+/-- The generated wrapper projection retains all three byte strings exactly.
+-/
+@[simp] theorem ShippingWrapperFromPartsExecution.outputExact
+    (execution : ShippingWrapperFromPartsExecution) :
+    execution.output =
+      {
+        statement_digest := execution.statementDigest
+        wrapped_proof_bytes := execution.wrappedProofBytes
+        inner_proof_bytes := execution.innerProofBytes
+      } := by
+  unfold app_verifier.app_verify_shipping_wrapper_projection_from_parts
+    at execution.accepted
+  exact (Result.ok.inj execution.accepted).symm
+
+/-- Full shipping-input invocation whose call argument is definitionally the
+output of `app_verify_shipping_call_from_parts`. This removes the former
+ability to supply an unrelated call record to `ConstructorExecution`. -/
+structure BuiltConstructorExecution where
+  callConstruction : ShippingCallFromPartsExecution
+  wrapperConstruction : ShippingWrapperFromPartsExecution
+  protocolVersion : Std.U32
+  family : FamilyCode
+  srsId : alloc.vec.Vec UInt8
+  serializedVk : alloc.vec.Vec UInt8
+  vkDigest : alloc.vec.Vec UInt8
+  realCount : Std.U32
+  paddedCount : Std.U32
+  publicInputArity : Std.U32
+  paddedPublicInputs :
+    alloc.vec.Vec (alloc.vec.Vec (alloc.vec.Vec UInt8))
+  canonicalStatementBytes : alloc.vec.Vec UInt8
+  challengeContext : alloc.vec.Vec UInt8
+  output : app_verifier.AppVerifyShippingInput
+  accepted :
+    app_verifier.app_verify_shipping_input_from_parts
+        callConstruction.output protocolVersion family srsId serializedVk
+        vkDigest realCount paddedCount publicInputArity paddedPublicInputs
+        canonicalStatementBytes wrapperConstruction.output challengeContext =
+      .ok (.Ok output)
+
+/-- Forget only the already-proved call-construction equation. The resulting
+constructor execution remains accepted by the same generated production
+root. -/
+def BuiltConstructorExecution.toConstructorExecution
+    (execution : BuiltConstructorExecution) : ConstructorExecution :=
+  {
+    call := execution.callConstruction.output
+    protocolVersion := execution.protocolVersion
+    family := execution.family
+    srsId := execution.srsId
+    serializedVk := execution.serializedVk
+    vkDigest := execution.vkDigest
+    realCount := execution.realCount
+    paddedCount := execution.paddedCount
+    publicInputArity := execution.publicInputArity
+    paddedPublicInputs := execution.paddedPublicInputs
+    canonicalStatementBytes := execution.canonicalStatementBytes
+    wrapper := execution.wrapperConstruction.output
+    challengeContext := execution.challengeContext
+    output := execution.output
+    accepted := execution.accepted
+  }
+
+/-- The call retained by a built input is exactly the generated planned-call
+constructor output. -/
+@[simp] theorem BuiltConstructorExecution.callExact
+    (execution : BuiltConstructorExecution) :
+    execution.toConstructorExecution.call =
+      execution.callConstruction.output := by
+  rfl
+
 /-- Residual payload projection after scalar family/count construction is
 derived from the accepted constructor and application equations.
 
@@ -405,6 +522,10 @@ theorem AcceptedConstructorCallProjection.assemblesExactStatement
 #print axioms plan_padding_success_output_exact
 #print axioms ConstructorExecution.identityAccepted
 #print axioms ConstructorExecution.paddingAccepted
+#print axioms ShippingCallFromPartsExecution.outputExact
+#print axioms ShippingWrapperFromPartsExecution.outputExact
+#print axioms BuiltConstructorExecution.toConstructorExecution
+#print axioms BuiltConstructorExecution.callExact
 #print axioms ConstructorPayloadProjection.argumentsRepresent
 #print axioms ConstructorPayloadProjection.outputRetains
 #print axioms AcceptedConstructorCallProjection.constructorProjection

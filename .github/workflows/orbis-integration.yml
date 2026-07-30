@@ -93,7 +93,9 @@ jobs:
       - name: Run Shieldd Orbis integration flow
         working-directory: shieldd
         run: |
-          nix develop --command bash -euo pipefail -c '
+          nix develop --command python3 scripts/ci/run_with_annotation.py \
+            --title "Shieldd Orbis integration flow" \
+            -- bash -euo pipefail -c '
             pull_pid=""
             cleanup() {
               if [ -n "$pull_pid" ] && kill -0 "$pull_pid" 2>/dev/null; then

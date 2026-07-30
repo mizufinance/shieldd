@@ -4,6 +4,21 @@
     "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
     "sha256": "bb814d6f7d161f667f6f21dc4e7b0e5dd10ab4fad7f34615d1a3d61f5d12f13b"
   },
+  "deployed_srs_evidence": {
+    "schema_version": 1,
+    "status": "unregistered",
+    "registry_source": "crates/crypto/proof-aggregation/src/srs.rs",
+    "application_source": "crates/core/app/src/app/mod.rs",
+    "production_loader_roots": [
+      "Rust.proof_aggregation.srs.load_active_production_srs",
+      "Rust.proof_aggregation.srs.load_production_srs_for_id"
+    ],
+    "max_padded_count": 32768,
+    "owner": "Shieldd protocol ceremony owner (unassigned)",
+    "postcondition": "Every production SnarkPack prover and verifier call uses one canonically decoded BLS12-377 SRS artifact whose complete proving and verifier material is bound by its registered identifier, and an independently reviewed setup transcript establishes that no adversary knows the KZG trapdoors.",
+    "evidence": "The compile-time production registry is intentionally empty and both production loaders fail closed. Deterministic DevSrs is reachable only from test or fuzzing configurations. No ceremony transcript or production artifact has been supplied.",
+    "closure": "Assign the ceremony owner; produce and independently verify the BLS12-377 setup transcript; register the canonical artifact, raw SHA-256, SRS identifier, and maximum count; add the artifact and transcript evidence object required by the validator; then prove and audit the deployed setup-binding root."
+  },
   "required_repository_inputs": [
     "crates/crypto/proof-aggregation-reference/Cargo.toml",
     "crates/crypto/proof-aggregation-fuzz/Cargo.toml",
@@ -601,8 +616,8 @@
     },
     {
       "path": "Ipp/ProofAuditReductions.lean",
-      "expected_capstones": 42,
-      "capstone_roots_sha256": "20decebf1d0e08e4d647c78491b872eb0952e4b3a8431bd9d37459ca50f130b8",
+      "expected_capstones": 45,
+      "capstone_roots_sha256": "d03f1e845f29f7b60299a4ae87d9706dd9a746dc07a5028e7c7c5a7b0c969efc",
       "required_roots": [
         "Ipp.S1.bls12377KzgVForgeryOfLeaf_wins",
         "Ipp.S1.bls12377KzgWForgeryOfLeaf_wins",
@@ -645,13 +660,16 @@
         "Ipp.S1.kzg_false_opening_to_fixed_statement_bls12377_fork_games",
         "Ipp.Extracted.AggregateVerifier.arkworks_g2_kzg_opening_true_iff_pairing_and_acceptV",
         "Ipp.Extracted.AggregateVerifier.arkworks_g1_kzg_opening_true_iff_pairing_and_acceptW",
-        "Ipp.Extracted.AggregateVerifier.arkworksTippKzgContractOfStatementEquations"
+        "Ipp.Extracted.AggregateVerifier.arkworksTippKzgContractOfStatementEquations",
+        "Ipp.S1.publicBetaVForgery_wins",
+        "Ipp.S1.publicAlphaWForgery_wins",
+        "Ipp.S1.publicTrapdoors_forge_both_lanes"
       ]
     },
     {
       "path": "Ipp/ProofAuditConstruction.lean",
-      "expected_capstones": 66,
-      "capstone_roots_sha256": "aba2a3508d7373e16704407d68b5d7ba9d60ca66b06f92d72d632007a8838e9f",
+      "expected_capstones": 89,
+      "capstone_roots_sha256": "37668fbbcb058fe2ccb74a4d5cb0ec1fba366bb68e59b42fd54939103a681fb7",
       "required_roots": [
         "Ipp.ShippingV1.vkDigestPreimage_injective",
         "Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction.ofExtractedSuccess",
@@ -668,6 +686,7 @@
         "Ipp.Extracted.ShippingStatementConstruction.ExactSemanticBoundary.bindingContract",
         "Ipp.Extracted.ShippingStatementConstruction.ExactSemanticBoundary.projectionContract",
         "Ipp.Extracted.ShippingStatementConstruction.supported_boundary_assembles_exact_statement",
+        "Ipp.ShippingStatementProjection.concrete_shipping_statement_projection_contract",
         "Ipp.Extracted.ShippingCallConstruction.ConstructorExecution.projectionAccepted",
         "Ipp.Extracted.ShippingCallConstruction.plan_identity_success_output_exact",
         "Ipp.Extracted.ShippingCallConstruction.plan_padding_success_output_exact",
@@ -694,6 +713,7 @@
         "Ipp.Extracted.ShippingCallMaterialization.OutputDerivedAcceptedCall.proofExact",
         "Ipp.Extracted.ShippingCallMaterialization.OutputDerivedAcceptedCall.assemblesExactStatement",
         "Ipp.Extracted.ShippingCallMaterialization.OutputDerivedAcceptedCall.shippingRefinementInputs",
+        "Ipp.Extracted.ShippingCallMaterialization.concrete_rust_shipping_call_construction",
         "Ipp.Extracted.TippMippChallengeExecution.acceptedExecutionSamples_of_transcriptExecution",
         "Ipp.ShippingPreflightProjection.AcceptedPreflightConstruction.supported",
         "Ipp.ShippingPreflightProjection.serialized_rows_decode_exact",
@@ -777,8 +797,8 @@
     },
     {
       "path": "Ipp/ProofAuditShippingAdaptive.lean",
-      "expected_capstones": 33,
-      "capstone_roots_sha256": "8f2ee1a8e9fcba6296c51bcddeb3486784b69dfc30d4036b439928e765bccbc7",
+      "expected_capstones": 48,
+      "capstone_roots_sha256": "6ef2fb6b0130133de1bca39fa11456723d0163c0efd4e237e095bbfbe13b4f32",
       "required_roots": [
         "Ipp.ShippingAdaptiveCall.acceptedShippingAlias_implies_shaBad",
         "Ipp.ShippingAdaptiveCall.deployedShippingAcceptedAlias_le_sha256Advantage",
@@ -812,7 +832,10 @@
         "Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing.GlobalFsProgramConstruction.multiStatementFsGame_queryBound",
         "Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing.fiberLiftedGlobalFsProgram_queryBound",
         "Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing.inducedReduced_event_le_uniformScalar_add_modReduction",
-        "Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing.inducedFiberLifted_event_le_globalFs_add_modReduction"
+        "Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing.inducedFiberLifted_event_le_globalFs_add_modReduction",
+        "Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing.GlobalFsProgramConstruction.inducedFiberLifted_event_le_multiStatementFsGame_add_modReduction",
+        "Ipp.ShippingAdaptiveGlobalFsCoupling.OriginByteReindexing.GlobalFsProgramConstruction.inducedFiberLifted_event_le_multiStatementFsProbComp_add_modReduction",
+        "Ipp.Extracted.ShippingBundleAdaptiveComposition.accepted_bundle_projects_invalid_projectedFsGame"
       ]
     },
     {
@@ -900,8 +923,17 @@
       "root": "UNPROVED.deployed_srs_unknown_trapdoor_and_registry_binding",
       "dependencies": [],
       "assumptions": [],
-      "evidence": "Open and contradicted by the shipping source. crates/crypto/proof-aggregation/src/srs.rs generates DevSrs from the public constant DEV_SRS_SEED = [0x50; 32], and the production application constructs DevSrs::default(). TIPA::setup samples alpha and beta as the first two field elements from that reproducible RNG, then publishes g_beta = beta*g and h_alpha = alpha*h. In the G2 lane, for an arbitrary claimed value y and key C = c*h, an adversary knowing beta chooses W = ((c-y)/(beta-z))*h whenever z != beta; the verifier equation holds. The G1 lane is identical with alpha. The false-opening success probability is therefore essentially one, not merely unquantified. Rotating to an unknown-trapdoor artifact necessarily changes srs_id, the canonical statement and wrapper digest, Fiat-Shamir context, commitments, openings, and committed byte/trace fixtures; exact existing proof-byte preservation is impossible.",
+      "evidence": "Open because no production ceremony artifact is registered. The shipping application now calls the fail-closed registered-SRS loaders; deterministic DevSrs remains only behind test or fuzzing configuration. The machine-readable deployed_srs_evidence object records the unregistered state, exact production source owners, required postcondition, and closure route. Ipp.S1.publicTrapdoors_forge_both_lanes proves why the public deterministic fixture cannot be promoted: knowledge of its shifted-base scalars gives deterministic accepted false openings in both concrete KZG lanes. Closure requires an identified ceremony owner, independently verified transcript, canonical BLS12-377 artifact, raw artifact and transcript digests, registered SRS identifier, and an audited deployed setup-binding theorem. Rotating the SRS necessarily changes the identifier and aggregate proof/trace fixtures; existing proof bytes cannot be preserved across that setup change.",
       "status": "open"
+    },
+    {
+      "id": "PUBLIC-TRAPDOOR-KZG-COUNTEREXAMPLE",
+      "statement": "For concrete BLS12-377 KZG parameters satisfying gBeta = beta*g and hAlpha = alpha*h with nonzero public bases, knowledge of beta and alpha deterministically constructs accepted false openings in both V and W lanes.",
+      "root": "Ipp.S1.publicTrapdoors_forge_both_lanes",
+      "dependencies": [],
+      "assumptions": [],
+      "evidence": "DeployedSrsCounterexample constructs zero-coefficient forgeries at beta-1 and alpha-1, proves both concrete pairing equations, and proves each claimed key differs from the honest zero MSM. This is a mathematical counterexample to public-trapdoor setup soundness; the separate open DEPLOYED-SRS-SOUNDNESS row records that shipping DevSrs exposes exactly these scalars through a public reproducible seed.",
+      "status": "proved"
     },
     {
       "id": "KZG-LEAF-REDUCTION",
@@ -912,12 +944,11 @@
         "DEPLOYED-SRS-SOUNDNESS"
       ],
       "assumptions": [
-        "KZG-FALSE-OPENING-SECURITY",
         "ARKWORKS-KZG-VERIFIER-EQUATIONS",
         "BLS12-377-PAIRING-BILINEARITY"
       ],
-      "evidence": "Source capstone pending kernel elaboration in modular CI. S1Bls12377FixedStatementKzg retains the complete S1 fork, maps V/W false openings structurally to separate concrete BLS12-377 fork targets, binds the formal statement to exact parameters through universal Arkworks equations, and proves that the wrapper maps add zero oracle queries. No semantic leaf classifier or shipping conclusion is hidden in the target. The shipping DevSrs currently has a reproducible public trapdoor, so this exact fixed-statement bridge cannot instantiate a negligible deployed bound. Closure still requires a sound artifact and authenticated registry, production instantiation of the universal equations, structural polynomial-time certificates, and either an explicit batch-to-single reduction with its fork loss or direct justified bounds for both fork-target games. Promote this claim only after the exact ProofAuditReductions root passes Lean CI.",
-      "status": "open"
+      "evidence": "Proved reduction theorem, audited at the exact ProofAuditReductions root. S1Bls12377FixedStatementKzg retains the complete S1 fork, maps the exact V/W false-opening events structurally to separate concrete BLS12-377 fork-target games, binds the formal statement to fixed public parameters through universal Arkworks equations, and proves that both game wrappers add zero oracle queries. No semantic leaf classifier, single-leaf selection, shipping acceptance conclusion, or numerical KZG bound is hidden in the theorem. KZG-FALSE-OPENING-SECURITY is therefore not an assumption of this reduction claim: it remains a separate downstream assumption that must bound these whole-fork targets or expose every batch-to-single/fork-selection loss. The required production instantiation remains open through DEPLOYED-SRS-SOUNDNESS; the public-trapdoor DevSrs cannot instantiate a negligible target-game bound.",
+      "status": "proved"
     },
     {
       "id": "GIPA-FORK-KNOWLEDGE-REDUCTION",
@@ -929,8 +960,8 @@
       "assumptions": [
         "GIPA-FORK-KNOWLEDGE-SOUNDNESS"
       ],
-      "evidence": "Source capstone pending kernel elaboration in modular CI. Bls12377GipaForkAccepts requires full FsAccepts at every projected fork leaf; support of the actual S1 fork experiment derives that condition independently of the root-opening and product-lane failures. Bls12377GipaPreForkKnowledgeSecurity selects extractorFor from the original adversary before either fork game is formed. gipa_fork_knowledge_to_prefork_accepted_bls12377_games then bounds the exact S1 pairing bad event by the two accepted-fork game advantages and transports the same total oracle-query bound through witness-only maps. It does not prove local polynomial running time, bind the current public-trapdoor SRS, instantiate either game advantage, or bridge heterogeneous adaptive statement selection into this fixed-statement distribution. The acceptsFork := True route remains exploratory and is not audited as closure evidence. Promote this claim only after the exact ProofAuditReductions root passes Lean CI.",
-      "status": "open"
+      "evidence": "Proved conditional reduction theorem, audited at the exact ProofAuditReductions root. Bls12377GipaForkAccepts requires full FsAccepts at every projected fork leaf, and support of the actual S1 fork experiment derives that condition independently of either knowledge failure. Bls12377GipaPreForkKnowledgeSecurity selects extractorFor from the original fixed-statement adversary before either fork game is formed; its two assumption fields bound only the separately defined accepted root-opening and product-lane games. gipa_fork_knowledge_to_prefork_accepted_bls12377_games then bounds the exact S1 pairing bad event by those two advantages and transports the same total oracle-query budget through witness-only maps. The theorem does not prove local polynomial running time, instantiate either game advantage, bind a deployed SRS, or absorb heterogeneous adaptive statement-selection/replay loss. The acceptsFork := True fixed-setup route remains exploratory and is not audited as closure evidence.",
+      "status": "proved"
     },
     {
       "id": "APP-STATE-MACHINE",
@@ -1120,7 +1151,7 @@
         "ARKWORKS-CHALLENGE-SERIALIZATION",
         "WELL-FORMED-PROVING-SRS"
       ],
-      "evidence": "The Lean source theorem remains conditional over ShippingProverContract. The live aggregate_proofs_profiled_with_trace caller now passes its exact caller-order A/B/C points, SRS, derived PreparedProvingSrs, initial commitments, successful randomizer execution, and complete GIPA/KZG execution through the registered shipping_aggregate_prover_semantic_execution_core. ShippingProverExecutionTrace no longer accepts a whole-loop result equation: ContinuingRoundEvidence records only deterministic splits plus the two commitment, chronological challenge, and inverse effect equations; GipaAlgebra.round_exact derives each generated continuing step, and ExternalRoundSchedule.toSuccessfulLoopTrace constructs the finite loop trace inductively. The new production-used prover_gipa_semantic_execution_core now owns the exact prove_tipp_mipp_gipa_core call, consumes x0 from that same effect instance, and retains compact chronological evidence for every round; callers can no longer combine an unrelated input, output, x0, or transcript. Its generated equation is stale pending CI extraction. Closure now requires the formal bridge from the retained chronology plus concrete Arkworks effect postconditions into ContinuingRoundEvidence, KZG acceptance under WellFormedProvingSrs, and internal construction of ShippingProverContract; no production completeness claim is made until then.",
+      "evidence": "The Lean source theorem remains conditional over ShippingProverContract. The live aggregate_proofs_profiled_with_trace caller now passes its exact caller-order A/B/C points, SRS arrays, derived PreparedProvingSrs affine arrays and commitment keys, initial commitments, successful randomizer execution, and complete GIPA/KZG execution directly through the production-used generic shipping_aggregate_prover_semantic_execution_from_parts extraction root. This avoids asking Aeneas to translate a redundant Pairing-associated-type wrapper while preserving the exact returned proof. ShippingProverExecutionTrace no longer accepts a whole-loop result equation: ContinuingRoundEvidence records only deterministic splits plus the two commitment, chronological challenge, and inverse effect equations; GipaAlgebra.round_exact derives each generated continuing step, and ExternalRoundSchedule.toSuccessfulLoopTrace constructs the finite loop trace inductively. The production-used prover_gipa_semantic_execution_core owns the exact prove_tipp_mipp_gipa_core call, consumes x0 from that same effect instance, and retains compact chronological evidence for every round; callers can no longer combine an unrelated input, output, x0, or transcript. Its generated equation is stale pending CI extraction. Closure now requires the formal bridge from the retained chronology plus concrete Arkworks effect postconditions into ContinuingRoundEvidence, KZG acceptance under WellFormedProvingSrs, and internal construction of ShippingProverContract; no production completeness claim is made until then.",
       "status": "open"
     },
     {
@@ -1144,7 +1175,7 @@
         "ARKWORKS-VERIFIER-SRS-ID-LOAD",
         "ARKWORKS-PREPARED-VK-AIC-PROJECTION"
       ],
-      "evidence": "Open at semantic construction, not byte-level retention or padding semantics. ShippingCallConstruction proves that any successful shipping-input constructor traversed its exact scalar projection and derives the identity, padding, family, and count facts. ShippingCallMaterialization definitionally installs the formal input and planned call from that accepted constructor output, tying wrapper exposure, strict proof decoding, challenge context, counts, family, and padded rows to the same output. ShippingSemanticAlignment isolates the remaining non-acceptance equations for the binding contract, semantic projection, executable statement, and decoded proof, and shippingRefinementInputs derives the exact construction fields consumed by ShippingVerifierExternalContracts. The refreshed AppVerifier graph pins protocol version 2, scalar and wrapper projection, the generated repeat-final row core, and the registered app_verify_shipping_preflight_core. The live preflight passes one row projection built from the accepted backend field rows and the statement's exact counts and serialized rows; the core retains all of those beside the same checked backend call and constructed AppVerifyShippingInput. Its generated equation is stale pending CI. The live verify_aggregate_proof_adapter_with_trace caller delegates to the registered timing-free run_shipping_verifier_semantic_core. The semantic output retains the exact randomizer call and chronological X0/round/bridge/KZG calls, including accepted nonces, messages, and field values, alongside adapter input, checks, acceptance, and initial/final effect state; its generated equation is also stale pending CI and proves no concrete adapter refinement yet. Remaining construction is the generated preflight and verifier success inversions, exact family/version and Arkworks row serialization equations, wrapper/proof decoder postconditions, SHA/VK/SRS/AIC and executable-pairing alignment, prepared curve objects and serializers/effects, challenge/KZG contracts, and composition of the regenerated semantic roots.",
+      "evidence": "Open at semantic construction, not byte-level retention or padding semantics. ShippingCallConstruction proves that any successful shipping-input constructor traversed its exact scalar projection and derives the identity, padding, family, and count facts. ShippingCallMaterialization definitionally installs the formal input and planned call from that accepted constructor output, tying wrapper exposure, strict proof decoding, challenge context, counts, family, and padded rows to the same output. ShippingSemanticAlignment isolates the remaining non-acceptance equations for the binding contract, semantic projection, executable statement, and decoded proof, and shippingRefinementInputs derives the exact construction fields consumed by ShippingVerifierExternalContracts. The refreshed AppVerifier graph pins protocol version 2, scalar and wrapper projection, the generated repeat-final row core, and the registered app_verify_shipping_preflight_core. The live preflight passes one row projection built from the accepted backend field rows and the statement's exact counts and serialized rows; the core retains all of those beside the same checked backend call and constructed AppVerifyShippingInput. Its generated equation is stale pending CI. The live verify_aggregate_proof_adapter_with_trace caller delegates to the timing-free run_shipping_verifier_semantic_core, which in turn installs the exact Arkworks effects into the production-used generic verify_installed_aggregate_adapter_core. The generic installed core and semantic from-parts constructors are registered extraction roots; the concrete Pairing-associated-type wrappers remain outside Aeneas and therefore require exact component postconditions rather than a claimed generated equation. The semantic output retains the exact randomizer call and chronological X0/round/bridge/KZG calls, including accepted nonces, messages, and field values, alongside adapter input, checks, acceptance, and initial/final effect state. Remaining construction is the generated preflight and generic verifier success inversions, exact concrete-caller installation, family/version and Arkworks row serialization equations, wrapper/proof decoder postconditions, SHA/VK/SRS/AIC and executable-pairing alignment, prepared curve objects and serializers/effects, challenge/KZG contracts, and composition of the regenerated semantic roots.",
       "status": "open"
     },
     {
@@ -1161,7 +1192,7 @@
         "ARKWORKS-FR-DIGEST-REDUCTION",
         "DEPLOYED-BLAKE2B-EXECUTION"
       ],
-      "evidence": "Open pending scoped regeneration and one production success inversion. The live verify_aggregate_proof_adapter_with_trace caller delegates to the registered run_shipping_verifier_semantic_core, which constructs the initial state and installs the exact Arkworks effects. Its semantic output now carries a typed accepted randomizer call and a typed TIPP/MIPP trace with the exact accepted nonce, unframed message, and field value for X0, every chronological round, final bridge, and KZG. The existing buffered digest/preimage traces and replay behavior are unchanged, so error and observation order remain production-identical; timing stays outside the extracted record. Ipp.Extracted.TippMippChallengeExecution.acceptedExecutionSamples_of_transcriptExecution combines exact shippingTranscriptOptionOracle execution with operational AcceptedRandomizerCall and ArkworksTippChallengeTrace witnesses, and deterministic sampler execution derives every nonce identity without an acceptance or caller-selected transcript equality premise. The new from-parts retention constructor and semantic core are registered extraction starts but their generated equations are stale pending CI. Remaining work inverts the successful generated run into the two existing operational witnesses, discharges AcceptedRunCallProjection, and instantiates exact deployed Blake2b and Arkworks Fr-reduction postconditions.",
+      "evidence": "Open pending scoped regeneration, one generic success inversion, and an exact concrete-caller postcondition. The live verify_aggregate_proof_adapter_with_trace caller delegates to run_shipping_verifier_semantic_core, which constructs the initial state and installs the exact Arkworks effects into the production-used generic verifier core. Its semantic output carries a typed accepted randomizer call and a typed TIPP/MIPP trace with the exact accepted nonce, unframed message, and field value for X0, every chronological round, final bridge, and KZG. The existing buffered digest/preimage traces and replay behavior are unchanged, so error and observation order remain production-identical; timing stays outside the extracted record. Ipp.Extracted.TippMippChallengeExecution.acceptedExecutionSamples_of_transcriptExecution combines exact shippingTranscriptOptionOracle execution with operational AcceptedRandomizerCall and ArkworksTippChallengeTrace witnesses, and deterministic sampler execution derives every nonce identity without an acceptance or caller-selected transcript equality premise. The generic from-parts retention constructor and installed semantic core are registered extraction starts; the concrete Pairing-associated-type wrappers remain an exact external source boundary because Aeneas cannot translate their Arkworks FftField surface. Remaining work inverts the successful generated generic run into the two existing operational witnesses, discharges AcceptedRunCallProjection plus the concrete installation postcondition, and instantiates exact deployed Blake2b and Arkworks Fr-reduction postconditions.",
       "status": "open"
     },
     {

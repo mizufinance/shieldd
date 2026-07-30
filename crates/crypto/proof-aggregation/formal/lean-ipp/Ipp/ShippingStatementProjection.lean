@@ -316,8 +316,98 @@ theorem retained_shipping_rows_vk_srs_and_aic
     aicExact := aic_exact materialization
     validCounts := hrows.1
     realPrefixExact := hrows.2.1
-    repeatFinalPadding := hrows.2.2
+      repeatFinalPadding := hrows.2.2
   }
+
+/-- Construct the retained statement materialization directly from concrete
+constructor support and the exact Rust/F*/Arkworks boundary.
+
+Callers do not select a prepared VK, SRS, or row construction: all three are
+obtained from the same supported constructor execution. The only remaining
+premises are the individually named decoder, digest, loader, and prepared-Aic
+postconditions carried by `ExactSemanticBoundary`. -/
+noncomputable def RetainedCallMaterialization.ofBoundary
+    {μ arity : Nat} {F G1 G2 GT DecodedProof : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT]
+    {wire :
+      WireRowDecoder μ (Fin arity → F)}
+    {bytes :
+      BindingOperations μ (Fin arity → F) DecodedProof}
+    {operations :
+      SemanticOperations
+        μ arity F G1 G2 GT DecodedProof}
+    {input :
+      FormalShippingInput
+        μ arity F G1 G2 GT DecodedProof}
+    (boundary : ExactSemanticBoundary wire bytes operations)
+    (hsupported :
+      SupportedShippingInput (arity := arity) wire input) :
+    RetainedCallMaterialization wire operations input := by
+  let execution := Classical.choose hsupported
+  have selected :=
+    Classical.choose_spec hsupported
+  let constructorProjection := selected.1
+  let rows := selected.2
+  let supported :
+      SupportedShippingInput (arity := arity) wire input :=
+    ⟨execution, constructorProjection, rows⟩
+  exact {
+    execution := execution
+    constructorProjection := constructorProjection
+    rowConstruction := rows.toExactRowConstruction
+    familyRegistered :=
+      boundary.familyRoutingRegistered input supported
+    preparedVk :=
+      boundary.vkMaterial input supported
+    vkDigestRoute :=
+      boundary.vkDigestRouteExecution input supported
+    serializedVkDecode :=
+      boundary.serializedVkDecodeExecution input supported
+    srs :=
+      boundary.srsMaterial input supported
+    srsIdentityLoad :=
+      boundary.srsLoadExecution input supported
+  }
+
+/-- Concrete statement-projection capstone.
+
+For one constructor-supported input, the generated Rust construction and the
+exact external postconditions determine the full statement projection,
+selected VK and SRS, every prepared Aic entry, and the ordered caller-prefix
+and repeat-final rows. No `StatementProjectionContract`, selected material,
+or semantic statement is supplied as a premise. -/
+theorem concrete_shipping_statement_projection_contract
+    {μ arity : Nat} {F G1 G2 GT DecodedProof : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2]
+    [AddCommGroup GT] [Module F GT]
+    {wire :
+      WireRowDecoder μ (Fin arity → F)}
+    {bytes :
+      BindingOperations μ (Fin arity → F) DecodedProof}
+    {operations :
+      SemanticOperations
+        μ arity F G1 G2 GT DecodedProof}
+    {input :
+      FormalShippingInput
+        μ arity F G1 G2 GT DecodedProof}
+    (boundary : ExactSemanticBoundary wire bytes operations)
+    (hsupported :
+      SupportedShippingInput (arity := arity) wire input) :
+    Ipp.ShippingV1.StatementProjectionContract
+        operations.projection boundary.bindingContract ∧
+      boundary.projectionContract.Projects input ∧
+      RetainedProjectionFacts wire operations input := by
+  let materialization :=
+    RetainedCallMaterialization.ofBoundary boundary hsupported
+  exact
+    ⟨boundary.projectionContract,
+      Ipp.ShippingV1.shipping_input_projects_exact_statement
+        operations.projection boundary.bindingContract
+        boundary.projectionContract input hsupported,
+      retained_shipping_rows_vk_srs_and_aic materialization⟩
 
 #print axioms statement_exact
 #print axioms aic_exact
@@ -327,6 +417,8 @@ theorem retained_shipping_rows_vk_srs_and_aic
 #print axioms srs_unique
 #print axioms materialized_statement_unique
 #print axioms retained_shipping_rows_vk_srs_and_aic
+#print axioms RetainedCallMaterialization.ofBoundary
+#print axioms concrete_shipping_statement_projection_contract
 
 end
 

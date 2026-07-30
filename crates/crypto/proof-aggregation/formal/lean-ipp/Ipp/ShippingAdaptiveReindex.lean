@@ -320,6 +320,28 @@ theorem decodeReachedQuery?_encode
           reachedByteEncoding serialization reached q
       from ⟨q, rfl⟩)
 
+/-- Any successful partial decode identifies bytes as the exact encoding of
+the returned reached query. This reverse direction needs no injectivity
+assumption: it follows from the witness chosen by `decodeReachedQuery?`. -/
+theorem decodeReachedQuery?_eq_some_byteEncoding
+    (serialization : GlobalQuerySerialization)
+    (reached : Set GlobalFsQuery)
+    {bytes : List UInt8}
+    {q : ReachedGlobalFsQuery reached}
+    (hdecode :
+      decodeReachedQuery? serialization reached bytes = some q) :
+    reachedByteEncoding serialization reached q = bytes := by
+  by_cases hexists :
+      ∃ candidate : ReachedGlobalFsQuery reached,
+        reachedByteEncoding serialization reached candidate = bytes
+  · rw [decodeReachedQuery?, dif_pos hexists] at hdecode
+    have hchosen : Classical.choose hexists = q :=
+      Option.some.inj hdecode
+    rw [← hchosen]
+    exact Classical.choose_spec hexists
+  · rw [decodeReachedQuery?, dif_neg hexists] at hdecode
+    cases hdecode
+
 /-- Invert raw queries back into the reached annotated source.  The fallback
 digest is irrelevant to the left-inverse theorem because forward-erased field
 queries are always in the encoding image. -/

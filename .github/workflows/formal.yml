@@ -224,8 +224,26 @@ jobs:
           lfs: true
       - name: Trust the workspace inside the container
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Inspect this graph's committed source stamp
+        id: extraction_source_stamp
+        shell: bash
+        env:
+          SELECTED_GRAPH: ${{ matrix.graph }}
+        run: |
+          set -euo pipefail
+          state="$(
+            python3 \
+              crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py \
+              source-stamp-state --graph "$SELECTED_GRAPH"
+          )"
+          [[ "$state" == "present" || "$state" == "missing" ]] || {
+            echo "invalid extraction source-stamp state: $state" >&2
+            exit 1
+          }
+          echo "state=$state" >> "$GITHUB_OUTPUT"
       - name: Fingerprint this graph's exact checked state
         id: extraction_fingerprint
+        if: steps.extraction_source_stamp.outputs.state == 'present'
         shell: bash
         env:
           SELECTED_GRAPH: ${{ matrix.graph }}
@@ -244,8 +262,11 @@ jobs:
       - name: Restore exact successful graph attestation
         id: extraction_pass_cache
         if: >-
-          github.event_name == 'pull_request' ||
-          github.event_name == 'merge_group'
+          steps.extraction_source_stamp.outputs.state == 'present' &&
+          (
+            github.event_name == 'pull_request' ||
+            github.event_name == 'merge_group'
+          )
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ runner.temp }}/snarkpack-extraction-pass-${{ matrix.graph }}
@@ -273,7 +294,9 @@ jobs:
             snarkpack-extract-v4-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml') }}-
       - name: Compare the selected extraction graph
         id: extraction_compare
-        if: steps.extraction_pass_cache.outputs.cache-hit != 'true'
+        if: >-
+          steps.extraction_source_stamp.outputs.state == 'present' &&
+          steps.extraction_pass_cache.outputs.cache-hit != 'true'
         timeout-minutes: 22
         env:
           SELECTED_GRAPH: ${{ matrix.graph }}
@@ -286,8 +309,12 @@ jobs:
       - name: Materialize this graph's recovery artifact
         id: extraction_recovery
         if: >-
-          failure() &&
-          steps.extraction_compare.outcome == 'failure'
+          always() &&
+          steps.extraction_pass_cache.outputs.cache-hit != 'true' &&
+          (
+            steps.extraction_source_stamp.outputs.state == 'missing' ||
+            steps.extraction_compare.outcome == 'failure'
+          )
         timeout-minutes: 22
         shell: bash
         env:
@@ -303,8 +330,7 @@ jobs:
           echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
       - name: Upload this graph's recovery artifact
         if: >-
-          failure() &&
-          steps.extraction_compare.outcome == 'failure' &&
+          always() &&
           steps.extraction_recovery.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -340,14 +366,27 @@ jobs:
           key: snarkpack-extraction-pass-v1-${{ runner.os }}-${{ matrix.graph }}-${{ steps.extraction_fingerprint.outputs.sha256 }}
       - name: Save one source-specific extraction progress cache
         if: >-
-          failure() &&
-          steps.extraction_compare.outcome == 'failure' &&
+          always() &&
+          (
+            steps.extraction_recovery.outcome == 'success' ||
+            steps.extraction_recovery.outcome == 'failure'
+          ) &&
           matrix.graph == fromJSON(needs.applicability.outputs.snarkpack_extract_graphs)[0]
         continue-on-error: true
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: target
           key: snarkpack-extract-v4-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml') }}-${{ hashFiles('crates/crypto/proof-aggregation/src/**/*.rs', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py', 'crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py') }}-progress-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Require recovered extraction evidence in the candidate tree
+        if: >-
+          always() &&
+          steps.extraction_recovery.outcome == 'success'
+        shell: bash
+        env:
+          SELECTED_GRAPH: ${{ matrix.graph }}
+        run: |
+          echo "$SELECTED_GRAPH: recovery evidence must be committed" >&2
+          exit 1
 
   snarkpack-extraction-recovery:
     name: 'snarkpack: merge extraction recovery'

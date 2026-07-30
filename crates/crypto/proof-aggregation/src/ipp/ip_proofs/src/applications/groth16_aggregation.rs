@@ -1982,20 +1982,6 @@ type ArkworksShippingProverExecution<P, D> = ShippingProverExecution<
     D,
 >;
 
-type ArkworksShippingAggregateProverSemanticExecution<'a, P, D> =
-    ShippingAggregateProverSemanticExecution<
-        'a,
-        <P as Pairing>::ScalarField,
-        <P as Pairing>::G1,
-        <P as Pairing>::G2,
-        <P as Pairing>::G1Affine,
-        <P as Pairing>::G2Affine,
-        PairingOutput<P>,
-        IdentityOutput<PairingOutput<P>>,
-        IdentityOutput<<P as Pairing>::G1>,
-        D,
-    >;
-
 /// Ordered source points consumed by the shipping aggregate prover.
 struct OrderedSourceProofs<G1, G2> {
     a: Vec<G1>,
@@ -2162,37 +2148,6 @@ where
         challenges,
         tipp_mipp,
     }
-}
-
-/// Project the exact production SRS instances into one semantic prover run.
-///
-/// The profiled caller supplies the ordered proofs, commitments, and successful
-/// protocol executions that it just computed. Runtime timing stays outside.
-fn shipping_aggregate_prover_semantic_execution_core<'a, P, D>(
-    source_proofs: OrderedSourceProofs<P::G1, P::G2>,
-    ip_srs: &'a SRS<P>,
-    prepared_srs: &'a PreparedProvingSrs<P>,
-    initial_commitments: (PairingOutput<P>, PairingOutput<P>, PairingOutput<P>),
-    randomizer: ProverRandomizerCoreOutput<P::ScalarField>,
-    tipp_mipp: ArkworksShippingProverExecution<P, D>,
-) -> ArkworksShippingAggregateProverSemanticExecution<'a, P, D>
-where
-    P: Pairing,
-    D: Send + Sync,
-{
-    let (ck_1, ck_2) = prepared_srs.commitment_keys();
-    shipping_aggregate_prover_semantic_execution_from_parts(
-        source_proofs,
-        &ip_srs.g_alpha_powers,
-        &ip_srs.h_beta_powers,
-        prepared_srs.g_alpha_powers_affine(),
-        prepared_srs.h_beta_powers_affine(),
-        ck_1,
-        ck_2,
-        initial_commitments,
-        randomizer,
-        tipp_mipp,
-    )
 }
 
 /// Exact public-proof projection from the retained semantic execution.
@@ -4494,10 +4449,14 @@ where
     profile.tipp_mipp_ms = tipp_mipp_ms;
     apply_tipp_mipp_profile(&mut profile, &tipp_mipp_profile);
     apply_pairing_profile(&mut profile, &pairing_profile_snapshot());
-    let execution = shipping_aggregate_prover_semantic_execution_core(
+    let execution = shipping_aggregate_prover_semantic_execution_from_parts(
         source_proofs,
-        ip_srs,
-        &prepared_srs,
+        &ip_srs.g_alpha_powers,
+        &ip_srs.h_beta_powers,
+        prepared_srs.g_alpha_powers_affine(),
+        prepared_srs.h_beta_powers_affine(),
+        ck_1,
+        ck_2,
         (com_a, com_b, com_c),
         randomizer_execution,
         prover_execution,

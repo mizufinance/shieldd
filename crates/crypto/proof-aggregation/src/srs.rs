@@ -7,6 +7,7 @@ use std::{
 };
 
 use anyhow::{anyhow, ensure, Context, Result};
+use ark_ec::pairing::Pairing;
 use ark_ff::Zero;
 use ark_ip_proofs::{
     applications::groth16_aggregation::setup_inner_product,
@@ -363,6 +364,8 @@ fn decode_production_srs_entry(entry: &ProductionSrsRegistryEntry, bytes: &[u8])
         hex::encode(entry.artifact_sha256),
         hex::encode(artifact_sha256)
     );
+    validate_production_srs_serialized_shape(bytes, entry.max_padded_count)
+        .context("strictly decode canonical production SnarkPack SRS")?;
     let inner_product_srs = deserialize_compressed_strict::<InnerProductSrs<Bls12_377>>(bytes)
         .context("strictly decode canonical production SnarkPack SRS")?;
     validate_production_srs_shape(&inner_product_srs, entry.max_padded_count)?;
@@ -383,6 +386,72 @@ fn decode_production_srs_entry(entry: &ProductionSrsRegistryEntry, bytes: &[u8])
             verifier_srs,
         })),
     })
+}
+
+fn validate_production_srs_serialized_shape(bytes: &[u8], max_padded_count: u32) -> Result<()> {
+    ensure!(
+        max_padded_count > 0 && max_padded_count.is_power_of_two(),
+        "production SnarkPack SRS max padded count must be a non-zero power of two"
+    );
+    let expected_power_count = (max_padded_count as usize)
+        .checked_mul(2)
+        .and_then(|count| count.checked_sub(1))
+        .context("production SnarkPack SRS power count overflow")?;
+    let expected_power_count_u64 =
+        u64::try_from(expected_power_count).context("production SnarkPack SRS count overflow")?;
+
+    let g1_size = <Bls12_377 as Pairing>::G1::zero().compressed_size();
+    let g2_size = <Bls12_377 as Pairing>::G2::zero().compressed_size();
+    let length_prefix_size = std::mem::size_of::<u64>();
+    let second_length_offset = length_prefix_size
+        .checked_add(
+            expected_power_count
+                .checked_mul(g1_size)
+                .context("production SnarkPack SRS G1 byte count overflow")?,
+        )
+        .context("production SnarkPack SRS G1 layout overflow")?;
+    let expected_bytes = second_length_offset
+        .checked_add(length_prefix_size)
+        .and_then(|size| {
+            expected_power_count
+                .checked_mul(g2_size)
+                .and_then(|g2_bytes| size.checked_add(g2_bytes))
+        })
+        .and_then(|size| size.checked_add(g1_size))
+        .and_then(|size| size.checked_add(g2_size))
+        .context("production SnarkPack SRS serialized size overflow")?;
+
+    let read_length = |offset: usize, lane: &str| -> Result<u64> {
+        let end = offset
+            .checked_add(length_prefix_size)
+            .context("production SnarkPack SRS length offset overflow")?;
+        let encoded = bytes.get(offset..end).ok_or_else(|| {
+            anyhow!("production SnarkPack SRS is missing the {lane} vector length at byte {offset}")
+        })?;
+        Ok(u64::from_le_bytes(
+            encoded
+                .try_into()
+                .expect("u64 length prefix slice has exact size"),
+        ))
+    };
+
+    let g1_count = read_length(0, "G1")?;
+    ensure!(
+        g1_count == expected_power_count_u64,
+        "production SnarkPack SRS declares {g1_count} G1 powers, expected {expected_power_count}"
+    );
+    let g2_count = read_length(second_length_offset, "G2")?;
+    ensure!(
+        g2_count == expected_power_count_u64,
+        "production SnarkPack SRS declares {g2_count} G2 powers, expected {expected_power_count}"
+    );
+    ensure!(
+        bytes.len() == expected_bytes,
+        "production SnarkPack SRS has {} serialized bytes, expected {}",
+        bytes.len(),
+        expected_bytes
+    );
+    Ok(())
 }
 
 fn validate_production_srs_shape(

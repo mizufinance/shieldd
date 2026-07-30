@@ -1317,7 +1317,7 @@ class VerificationManifestTests(unittest.TestCase):
             str(raised.exception),
         )
 
-    def test_public_seed_keeps_deployed_srs_soundness_open(self):
+    def test_unregistered_srs_keeps_deployed_soundness_open(self):
         VERIFICATION.validate_deployed_srs_soundness(
             self.manifest, VERIFICATION.REPO_ROOT
         )
@@ -1335,7 +1335,7 @@ class VerificationManifestTests(unittest.TestCase):
                 promoted, VERIFICATION.REPO_ROOT
             )
         self.assertIn(
-            "cannot close while production derives", str(raised.exception)
+            "must remain open", str(raised.exception)
         )
 
         disconnected = copy.deepcopy(self.manifest)
@@ -1354,7 +1354,7 @@ class VerificationManifestTests(unittest.TestCase):
             str(raised.exception),
         )
 
-    def test_srs_claim_cannot_close_by_only_hiding_the_public_seed(self):
+    def test_srs_claim_cannot_close_without_registered_evidence(self):
         promoted = copy.deepcopy(self.manifest)
         srs_claim = next(
             claim
@@ -1363,27 +1363,25 @@ class VerificationManifestTests(unittest.TestCase):
         )
         srs_claim["status"] = "proved"
         srs_claim["root"] = "Ipp.Test.deployed_srs_sound"
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            root = Path(temp_dir)
-            srs_path = (
-                root / "crates/crypto/proof-aggregation/src/srs.rs"
+        promoted["deployed_srs_evidence"]["status"] = "registered"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_deployed_srs_soundness(
+                promoted, VERIFICATION.REPO_ROOT
             )
-            app_path = root / "crates/core/app/src/app/mod.rs"
-            srs_path.parent.mkdir(parents=True)
-            app_path.parent.mkdir(parents=True)
-            srs_path.write_text(
-                "fn load_registered_srs() {}\n", encoding="utf-8"
-            )
-            app_path.write_text(
-                "fn install_registered_srs() {}\n", encoding="utf-8"
-            )
-            with self.assertRaises(
-                VERIFICATION.VerificationError
-            ) as raised:
-                VERIFICATION.validate_deployed_srs_soundness(promoted, root)
         self.assertIn(
-            "machine-checked secure-SRS artifact/registry evidence schema",
+            "registered deployed_srs_evidence has unexpected or missing fields",
+            str(raised.exception),
+        )
+
+    def test_deployed_srs_evidence_is_required(self):
+        missing = copy.deepcopy(self.manifest)
+        del missing["deployed_srs_evidence"]
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.validate_deployed_srs_soundness(
+                missing, VERIFICATION.REPO_ROOT
+            )
+        self.assertIn(
+            "deployed_srs_evidence must be an object",
             str(raised.exception),
         )
 

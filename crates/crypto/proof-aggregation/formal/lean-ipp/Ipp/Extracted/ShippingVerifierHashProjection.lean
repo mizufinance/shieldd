@@ -5,9 +5,10 @@ import Ipp.ShippingHashExecutionTrace
 Coupling between one execution-produced shipping transcript and the exact
 randomizer/TIPP calls retained by the extracted verifier.
 
-This layer contains no acceptance premise.  The remaining generated obligation
-is to recover `AcceptedRandomizerCall` and `ArkworksTippChallengeTrace` from the
-successful `run_shipping_verifier_semantic_core` equation.
+This layer contains no acceptance premise.  The remaining boundary is to
+recover `AcceptedRandomizerCall` and `ArkworksTippChallengeTrace` from the
+successful generic installed-core equation plus the exact concrete Arkworks
+effect-installation postcondition.
 -/
 
 namespace Ipp.Extracted.TippMippChallengeExecution

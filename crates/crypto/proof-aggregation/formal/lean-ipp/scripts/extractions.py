@@ -2206,6 +2206,25 @@ def command_ci_fingerprint(args: argparse.Namespace) -> int:
     return 0
 
 
+def command_source_stamp_state(args: argparse.Namespace) -> int:
+    """Report whether one selected graph has committed source evidence."""
+    manifest = load_manifest(args.manifest)
+    validate_recovery_manifest(
+        manifest,
+        manifest_path=args.manifest,
+        verify_files=False,
+    )
+    selected = select_graphs(manifest, [args.graph])
+    if len(selected) != 1:
+        raise ManifestError("source-stamp-state requires exactly one graph")
+    print(
+        "present"
+        if "source_sha256" in selected[0]
+        else "missing"
+    )
+    return 0
+
+
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser()
     result.add_argument("--manifest", type=Path, default=MANIFEST_PATH, help=argparse.SUPPRESS)
@@ -2256,6 +2275,10 @@ def parser() -> argparse.ArgumentParser:
     ci_fingerprint = commands.add_parser("ci-fingerprint")
     ci_fingerprint.add_argument("--graph", required=True)
     ci_fingerprint.set_defaults(handler=command_ci_fingerprint)
+
+    source_stamp_state = commands.add_parser("source-stamp-state")
+    source_stamp_state.add_argument("--graph", required=True)
+    source_stamp_state.set_defaults(handler=command_source_stamp_state)
     return result
 
 

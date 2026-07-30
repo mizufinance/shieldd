@@ -680,7 +680,8 @@ class GateApplicabilityTests(unittest.TestCase):
             2,
         )
         self.assertIn(
-            "if: steps.extraction_pass_cache.outputs.cache-hit != 'true'\n"
+            "steps.extraction_source_stamp.outputs.state == 'present' &&\n"
+            "          steps.extraction_pass_cache.outputs.cache-hit != 'true'\n"
             "        timeout-minutes: 22",
             workflow,
         )
@@ -696,8 +697,10 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn(
             "id: extraction_pass_cache\n"
             "        if: >-\n"
-            "          github.event_name == 'pull_request' ||\n"
-            "          github.event_name == 'merge_group'",
+            "          steps.extraction_source_stamp.outputs.state == 'present' &&\n"
+            "          (\n"
+            "            github.event_name == 'pull_request' ||\n"
+            "            github.event_name == 'merge_group'",
             workflow,
         )
         lean_key = (
@@ -833,12 +836,19 @@ class GateApplicabilityTests(unittest.TestCase):
             "if: steps.fstar_artifact_validation.outcome == 'success'",
             workflow,
         )
-        self.assertGreaterEqual(
-            workflow.count(
-                "failure() &&\n"
-                "          steps.extraction_compare.outcome == 'failure'"
-            ),
-            3,
+        self.assertIn(
+            "steps.extraction_source_stamp.outputs.state == 'missing' ||\n"
+            "            steps.extraction_compare.outcome == 'failure'",
+            workflow,
+        )
+        self.assertIn(
+            "steps.extraction_recovery.outcome == 'success'\n"
+            "        shell: bash\n"
+            "        env:\n"
+            "          SELECTED_GRAPH: ${{ matrix.graph }}\n"
+            "        run: |\n"
+            '          echo "$SELECTED_GRAPH: recovery evidence must be committed" >&2',
+            workflow,
         )
         self.assertIn(
             "failure() &&\n"

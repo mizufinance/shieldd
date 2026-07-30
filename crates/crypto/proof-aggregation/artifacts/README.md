@@ -13,6 +13,12 @@ ceremony owner supplies:
 - the artifact filename and active identifier for the compile-time registry in
   `src/srs.rs`.
 
+The same registration must promote `deployed_srs_evidence` in
+`formal/snarkpack/verification-manifest.json` with the exact artifact,
+transcript, verification-evidence, registry-source, and application-source
+digests. The FV publication gate remains red while that record is
+`unregistered`.
+
 Deployments may set `SHIELDD_SNARKPACK_SRS_ARTIFACT_DIR` to an absolute
 distribution directory. The runtime still accepts only the filename, artifact
 digest, SRS identifier, dimensions, canonical encoding, and subgroup-valid

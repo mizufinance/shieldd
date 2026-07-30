@@ -539,6 +539,48 @@ class ExtractionManifestTests(unittest.TestCase):
             self.assertEqual(EXTRACTIONS.command_compare(args), 0)
         compare.assert_called_once_with(selected, manifest["toolchains"])
 
+    def test_source_stamp_state_routes_only_selected_unstamped_graph(self):
+        manifest = copy.deepcopy(self.manifest)
+        selected = manifest["graphs"][0]
+        unselected = manifest["graphs"][1]
+        unselected.pop("source_sha256")
+        args = SimpleNamespace(
+            manifest=Path("recovery-manifest.json"),
+            graph=selected["id"],
+        )
+        output = io.StringIO()
+        with (
+            patch.object(EXTRACTIONS, "load_manifest", return_value=manifest),
+            patch("sys.stdout", output),
+        ):
+            self.assertEqual(EXTRACTIONS.command_source_stamp_state(args), 0)
+        self.assertEqual(output.getvalue(), "present\n")
+
+        selected.pop("source_sha256")
+        output = io.StringIO()
+        with (
+            patch.object(EXTRACTIONS, "load_manifest", return_value=manifest),
+            patch("sys.stdout", output),
+        ):
+            self.assertEqual(EXTRACTIONS.command_source_stamp_state(args), 0)
+        self.assertEqual(output.getvalue(), "missing\n")
+
+    def test_source_stamp_state_rejects_unknown_graph(self):
+        args = SimpleNamespace(
+            manifest=Path("recovery-manifest.json"),
+            graph="UnknownGraph",
+        )
+        with (
+            patch.object(
+                EXTRACTIONS,
+                "load_manifest",
+                return_value=copy.deepcopy(self.manifest),
+            ),
+            self.assertRaises(EXTRACTIONS.ManifestError) as raised,
+        ):
+            EXTRACTIONS.command_source_stamp_state(args)
+        self.assertIn("unknown graph id", str(raised.exception))
+
     def test_compare_rejects_selected_missing_source_with_graph_name(self):
         manifest = copy.deepcopy(self.manifest)
         selected = manifest["graphs"][0]
