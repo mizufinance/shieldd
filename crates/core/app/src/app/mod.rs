@@ -53,15 +53,17 @@ use shieldd_sdk_governance::component::{Governance, StateReadExt as _, StateWrit
 use shieldd_sdk_ibc::component::{Ibc, StateWriteExt as _};
 use shieldd_sdk_ibc::StateReadExt as _;
 use shieldd_sdk_proof_aggregation::{
-    aggregate_family_profiled, app_verify_family_code, app_verify_family_count_core,
-    app_verify_plan_identity_core, app_verify_plan_ids_core, app_verify_plan_padding_core,
-    app_verify_preflight_core, app_verify_reduce_core, app_verify_shipping_call_from_parts,
-    pad_items_to_power_of_two, prepare_verify_inputs, srs_id,
-    verify_shipping_family_aggregate_profiled_status, AggregateBuildBackendProfile,
-    AggregateBundle, AggregateStatement, AggregateVerificationProfile, AppVerifyCallId,
-    AppVerifyCallResult, AppVerifyExpectedCall, AppVerifyPlanError, AppVerifyPreflightError,
-    AppVerifyReductionError, AppVerifyShippingCall, DevSrs, FamilyAggregate, ProofFamilyId,
-    ShippingAggregateVerification, AGGREGATE_PROTOCOL_VERSION,
+    aggregate_family_profiled, app_verify_accepted_join_projection_core, app_verify_family_code,
+    app_verify_family_count_core, app_verify_join_acceptance_core, app_verify_plan_identity_core,
+    app_verify_plan_ids_core, app_verify_plan_padding_core, app_verify_preflight_core,
+    app_verify_reduce_core, app_verify_shipping_call_from_parts, pad_items_to_power_of_two,
+    prepare_verify_inputs, srs_id, verify_shipping_family_aggregate_profiled_status,
+    AggregateBuildBackendProfile, AggregateBundle, AggregateStatement,
+    AggregateVerificationProfile, AppVerifyAcceptedJoinProjectionError, AppVerifyCallId,
+    AppVerifyCallResult, AppVerifyExpectedCall, AppVerifyPlanError,
+    AppVerifyPlannerIndexedExecutedRecord, AppVerifyPreflightError, AppVerifyReductionError,
+    AppVerifyShippingCall, DevSrs, FamilyAggregate, ProofFamilyId, ShippingAggregateVerification,
+    AGGREGATE_PROTOCOL_VERSION,
 };
 use shieldd_sdk_proof_params::batch::{self, BatchItem};
 use shieldd_sdk_proto::core::app::v1::TransactionsByHeightResponse;
@@ -130,26 +132,40 @@ const AGGREGATE_DEBUG_DIR_ENV: &str = "SHIELDD_AGGREGATE_DEBUG_DIR";
 static AGGREGATE_DEBUG_SEQ: AtomicU64 = AtomicU64::new(0);
 
 fn shipping_srs() -> Result<DevSrs> {
-    #[cfg(any(test, feature = "fuzzing"))]
+    // Insecure Orbis integration only; never enable in production.
+    #[cfg(feature = "orbis-dev-srs")]
     {
-        Ok(DevSrs::default())
+        return Ok(DevSrs::default());
     }
-    #[cfg(not(any(test, feature = "fuzzing")))]
+    #[cfg(all(not(feature = "orbis-dev-srs"), any(test, feature = "fuzzing")))]
+    {
+        return Ok(DevSrs::default());
+    }
+    #[cfg(not(any(test, feature = "fuzzing", feature = "orbis-dev-srs")))]
     {
         shieldd_sdk_proof_aggregation::load_active_production_srs()
     }
 }
 
 fn shipping_srs_for_id(requested_id: &[u8]) -> Result<DevSrs> {
-    #[cfg(any(test, feature = "fuzzing"))]
+    // Insecure Orbis integration only; never enable in production.
+    #[cfg(feature = "orbis-dev-srs")]
+    {
+        anyhow::ensure!(
+            requested_id == shieldd_sdk_proof_aggregation::DEFAULT_DEV_SRS_ID.as_slice(),
+            "Orbis integration SnarkPack SRS id mismatch"
+        );
+        return Ok(DevSrs::default());
+    }
+    #[cfg(all(not(feature = "orbis-dev-srs"), any(test, feature = "fuzzing")))]
     {
         anyhow::ensure!(
             requested_id == shieldd_sdk_proof_aggregation::DEFAULT_DEV_SRS_ID.as_slice(),
             "test/fuzz SnarkPack SRS id mismatch"
         );
-        Ok(DevSrs::default())
+        return Ok(DevSrs::default());
     }
-    #[cfg(not(any(test, feature = "fuzzing")))]
+    #[cfg(not(any(test, feature = "fuzzing", feature = "orbis-dev-srs")))]
     {
         shieldd_sdk_proof_aggregation::load_production_srs_for_id(requested_id)
     }
@@ -755,6 +771,26 @@ struct AggregateVerifyPlan {
 struct AggregateVerifyProfiledCallOutcome {
     id: AggregateVerifyCallId,
     shipping_verification: ShippingAggregateVerification,
+}
+
+fn aggregate_verify_app_call_id(id: AggregateVerifyCallId) -> AppVerifyCallId {
+    AppVerifyCallId {
+        order_index: id.order_index,
+        segment_index: id.segment_index,
+        family_index: id.family_index,
+        family: app_verify_family_code(id.family_id),
+    }
+}
+
+fn require_no_rejected_joined_calls(rejected_calls: Vec<AppVerifyCallId>) -> Result<()> {
+    let rejected_count = rejected_calls.len();
+    if !app_verify_join_acceptance_core(rejected_calls) {
+        anyhow::bail!(
+            "aggregate verification join retained {} rejected call(s) after reducer acceptance",
+            rejected_count
+        );
+    }
+    Ok(())
 }
 
 impl AggregateVerifyProfiledCallOutcome {
@@ -2700,6 +2736,62 @@ impl App {
                 outcomes.push(outcome);
             }
 
+            let expected_core_ids = expected_call_ids
+                .iter()
+                .copied()
+                .map(aggregate_verify_app_call_id)
+                .collect::<Vec<_>>();
+            let joined_records = outcomes
+                .into_iter()
+                .map(|outcome| {
+                    let shipping_result = outcome.shipping_verification.shipping_result();
+                    let authenticated_id = shipping_result.input.call.id;
+                    let executed_id = shipping_result.result.id;
+                    let accepted = shipping_result.result.accepted;
+                    let observation = outcome.shipping_verification.shipping_observation();
+                    AppVerifyPlannerIndexedExecutedRecord {
+                        planner_id: aggregate_verify_app_call_id(outcome.id),
+                        authenticated_id,
+                        executed_id,
+                        accepted,
+                        observation,
+                        executed: outcome,
+                    }
+                })
+                .collect::<Vec<_>>();
+            let joined_projection =
+                match app_verify_accepted_join_projection_core(expected_core_ids, joined_records) {
+                    Ok(projection) => projection,
+                    Err(AppVerifyAcceptedJoinProjectionError::OutcomeCountMismatch {
+                        expected,
+                        actual,
+                    }) => {
+                        anyhow::bail!(
+                            "aggregate verification outcome count mismatch: expected {}, got {}",
+                            expected,
+                            actual
+                        );
+                    }
+                    Err(AppVerifyAcceptedJoinProjectionError::FullIdentityMismatch { .. }) => {
+                        anyhow::bail!(
+                        "aggregate verification result identity does not match its planned call"
+                    );
+                    }
+                    Err(AppVerifyAcceptedJoinProjectionError::OutcomeOrderMismatch {
+                        position,
+                    }) => {
+                        anyhow::bail!(
+                            "aggregate verification outcome order mismatch at planner position {}",
+                            position
+                        );
+                    }
+                };
+            let rejected_calls = joined_projection.rejected_calls;
+            let outcomes = joined_projection
+                .records
+                .into_iter()
+                .map(|record| record.executed)
+                .collect::<Vec<_>>();
             let results = outcomes
                 .iter()
                 .map(AggregateVerifyProfiledCallOutcome::result)
@@ -2708,7 +2800,8 @@ impl App {
             for outcome in &outcomes {
                 profile.merge_backend_profile(&outcome.shipping_verification.profile);
             }
-            reduction.acceptance_result()
+            reduction.acceptance_result()?;
+            require_no_rejected_joined_calls(rejected_calls)
         }
         .await;
 
@@ -6716,6 +6809,8 @@ mod tests {
     use shieldd_sdk_mock_client::MockClient;
     use shieldd_sdk_mock_consensus::TestNode;
     use shieldd_sdk_num::Amount;
+    #[cfg(feature = "orbis-dev-srs")]
+    use shieldd_sdk_proof_aggregation::srs_id;
     use shieldd_sdk_proof_aggregation::{
         app_verify_family_code, app_verify_shipping_call_from_parts, AggregateBundle,
         AppVerifyCallId, DevSrs, FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
@@ -6748,6 +6843,7 @@ mod tests {
         prepare_candidate_read_blocking_profiled, prepare_candidate_read_profiled,
         supports_parallel_prepare, HistoricalCheckContext,
     };
+
     use crate::action_handler::AppActionHandler;
     use crate::app::CheckTxSharedContext;
     use crate::app::ProposalArtifactSidecar;
@@ -6761,6 +6857,27 @@ mod tests {
         AggregateBundleFamilyEstimate, App, BlockSctAppendLog, BlockTxIndexingMode, StateReadExt,
         AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES, AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER,
     };
+
+    #[cfg(feature = "orbis-dev-srs")]
+    #[test]
+    fn orbis_dev_srs_selects_only_the_insecure_integration_fixture() -> Result<()> {
+        let srs = super::shipping_srs()?;
+        assert!(!srs.is_registered());
+        assert_eq!(srs_id(&srs), DEFAULT_DEV_SRS_ID);
+
+        let selected = super::shipping_srs_for_id(&DEFAULT_DEV_SRS_ID)?;
+        assert!(!selected.is_registered());
+        assert_eq!(srs_id(&selected), DEFAULT_DEV_SRS_ID);
+
+        let error = super::shipping_srs_for_id(&[0u8; 32])
+            .expect_err("integration fixture must reject every other SRS id");
+        assert!(error
+            .to_string()
+            .contains("Orbis integration SnarkPack SRS id mismatch"));
+
+        Ok(())
+    }
+
     fn rolled_up_payload(value: u64) -> StatePayload {
         StatePayload::RolledUp {
             source: CommitmentSource::transaction(),
@@ -7389,6 +7506,24 @@ mod tests {
             .to_string()
             .contains("aggregate verification outcome count mismatch"));
 
+        Ok(())
+    }
+
+    #[test]
+    fn aggregate_verify_join_rejection_guard_is_fail_closed() -> Result<()> {
+        super::require_no_rejected_joined_calls(Vec::new())?;
+
+        let rejected = AppVerifyCallId {
+            order_index: 3,
+            segment_index: 5,
+            family_index: 7,
+            family: app_verify_family_code(ProofFamilyId::Transfer),
+        };
+        let error = super::require_no_rejected_joined_calls(vec![rejected])
+            .expect_err("a retained rejected join must fail after reducer acceptance");
+        assert!(error
+            .to_string()
+            .contains("join retained 1 rejected call(s)"));
         Ok(())
     }
 

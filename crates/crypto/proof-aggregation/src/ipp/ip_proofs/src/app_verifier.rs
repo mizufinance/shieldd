@@ -220,6 +220,39 @@ pub enum AppVerifyReductionError {
     OutcomeIdentityMismatch,
 }
 
+/// One joined verifier result retaining its first-order observation and opaque
+/// execution payload.
+///
+/// The three identifiers come from the planner, authenticated input, and
+/// retained backend result respectively. The accepted projection validates
+/// them before returning the observation and execution unchanged.
+#[doc(hidden)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AppVerifyPlannerIndexedExecutedRecord<Observation, Execution> {
+    pub planner_id: AppVerifyCallId,
+    pub authenticated_id: AppVerifyCallId,
+    pub executed_id: AppVerifyCallId,
+    pub accepted: bool,
+    pub observation: Observation,
+    pub executed: Execution,
+}
+
+/// Structurally valid planner-ordered join results and their rejected calls.
+#[doc(hidden)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AppVerifyAcceptedJoinProjection<Observation, Execution> {
+    pub records: Vec<AppVerifyPlannerIndexedExecutedRecord<Observation, Execution>>,
+    pub rejected_calls: Vec<AppVerifyCallId>,
+}
+
+#[doc(hidden)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppVerifyAcceptedJoinProjectionError {
+    OutcomeCountMismatch { expected: usize, actual: usize },
+    FullIdentityMismatch { position: usize },
+    OutcomeOrderMismatch { position: usize },
+}
+
 /// Pure constructor used by the production planner after preparing one call.
 ///
 /// Validation remains in `app_verify_plan_identity_core` and
@@ -714,6 +747,68 @@ pub fn app_verify_plan_padding_core(
     Ok(id)
 }
 
+/// Validate the complete synchronous projection of joined verifier records.
+///
+/// Failure order is count, retained full identity, then planner order.
+/// Structurally valid projection returns the owned records without sorting or
+/// replacing their opaque execution payloads and lists every rejected call.
+#[doc(hidden)]
+pub fn app_verify_accepted_join_projection_core<Observation, Execution>(
+    expected_call_ids: Vec<AppVerifyCallId>,
+    records: Vec<AppVerifyPlannerIndexedExecutedRecord<Observation, Execution>>,
+) -> Result<
+    AppVerifyAcceptedJoinProjection<Observation, Execution>,
+    AppVerifyAcceptedJoinProjectionError,
+> {
+    if records.len() != expected_call_ids.len() {
+        return Err(AppVerifyAcceptedJoinProjectionError::OutcomeCountMismatch {
+            expected: expected_call_ids.len(),
+            actual: records.len(),
+        });
+    }
+
+    let mut position = 0usize;
+    while position < records.len() {
+        let record = &records[position];
+        if !app_verify_call_id_matches(record.authenticated_id, record.planner_id)
+            || !app_verify_call_id_matches(record.executed_id, record.planner_id)
+        {
+            return Err(AppVerifyAcceptedJoinProjectionError::FullIdentityMismatch { position });
+        }
+        position += 1;
+    }
+
+    position = 0usize;
+    while position < expected_call_ids.len() {
+        if !app_verify_call_id_matches(records[position].planner_id, expected_call_ids[position]) {
+            return Err(AppVerifyAcceptedJoinProjectionError::OutcomeOrderMismatch { position });
+        }
+        position += 1;
+    }
+
+    let mut rejected_calls = Vec::new();
+    position = 0usize;
+    while position < records.len() {
+        if !records[position].accepted {
+            rejected_calls.push(records[position].planner_id);
+        }
+        position += 1;
+    }
+    Ok(AppVerifyAcceptedJoinProjection {
+        records,
+        rejected_calls,
+    })
+}
+
+/// Accept exactly a structurally projected join with no retained rejections.
+///
+/// The async caller invokes this only after the existing reducer acceptance
+/// path, preserving the reducer's rejection and error ordering.
+#[doc(hidden)]
+pub fn app_verify_join_acceptance_core(rejected_calls: Vec<AppVerifyCallId>) -> bool {
+    rejected_calls.is_empty()
+}
+
 #[doc(hidden)]
 pub fn app_verify_reduce_core(
     expected_call_ids: Vec<AppVerifyCallId>,
@@ -891,6 +986,116 @@ mod tests {
         assert_eq!(
             app_verify_normal_acceptance_core(expected.clone(), outcomes.clone()),
             app_verify_profiled_acceptance_core(expected, outcomes)
+        );
+    }
+
+    #[test]
+    fn accepted_join_projection_is_exact_and_fail_closed() {
+        let expected = vec![
+            AppVerifyCallId {
+                order_index: 0,
+                segment_index: 4,
+                family_index: 1,
+                family: family(1),
+            },
+            AppVerifyCallId {
+                order_index: 1,
+                segment_index: 7,
+                family_index: 2,
+                family: family(2),
+            },
+        ];
+        let records = expected
+            .iter()
+            .copied()
+            .zip(["first-execution", "second-execution"])
+            .map(|(id, executed)| AppVerifyPlannerIndexedExecutedRecord {
+                planner_id: id,
+                authenticated_id: id,
+                executed_id: id,
+                accepted: true,
+                observation: id.order_index,
+                executed,
+            })
+            .collect::<Vec<_>>();
+
+        let projected = app_verify_accepted_join_projection_core(expected.clone(), records.clone())
+            .expect("exact accepted joins must project");
+        assert_eq!(
+            projected,
+            AppVerifyAcceptedJoinProjection {
+                records: records.clone(),
+                rejected_calls: Vec::new(),
+            },
+            "the core must return records unchanged"
+        );
+        assert!(
+            app_verify_join_acceptance_core(projected.rejected_calls.clone()),
+            "an exact join with no rejected calls must accept"
+        );
+
+        let mut count_precedes_other_failures = records[..1].to_vec();
+        count_precedes_other_failures[0].executed_id.segment_index += 1;
+        count_precedes_other_failures[0].accepted = false;
+        assert_eq!(
+            app_verify_accepted_join_projection_core(
+                expected.clone(),
+                count_precedes_other_failures,
+            ),
+            Err(AppVerifyAcceptedJoinProjectionError::OutcomeCountMismatch {
+                expected: 2,
+                actual: 1,
+            })
+        );
+
+        let full_id_mutations: [fn(&mut AppVerifyCallId); 6] = [
+            |id: &mut AppVerifyCallId| id.order_index += 1,
+            |id: &mut AppVerifyCallId| id.segment_index += 1,
+            |id: &mut AppVerifyCallId| id.family_index += 1,
+            |id: &mut AppVerifyCallId| id.family.proof_family_id += 1,
+            |id: &mut AppVerifyCallId| id.family.note_reshape_family_id += 1,
+            |id: &mut AppVerifyCallId| id.family.shielded_ics20_withdrawal_family_id += 1,
+        ];
+        for mutate in full_id_mutations {
+            let mut bad_full_id = records.clone();
+            mutate(&mut bad_full_id[0].executed_id);
+            bad_full_id[0].accepted = false;
+            assert_eq!(
+                app_verify_accepted_join_projection_core(expected.clone(), bad_full_id),
+                Err(AppVerifyAcceptedJoinProjectionError::FullIdentityMismatch { position: 0 })
+            );
+        }
+
+        let mut bad_authenticated_id = records.clone();
+        bad_authenticated_id[1].authenticated_id.segment_index += 1;
+        assert_eq!(
+            app_verify_accepted_join_projection_core(expected.clone(), bad_authenticated_id),
+            Err(AppVerifyAcceptedJoinProjectionError::FullIdentityMismatch { position: 1 })
+        );
+
+        let mut reordered_and_rejected = vec![records[1].clone(), records[0].clone()];
+        reordered_and_rejected[0].accepted = false;
+        assert_eq!(
+            app_verify_accepted_join_projection_core(expected.clone(), reordered_and_rejected,),
+            Err(AppVerifyAcceptedJoinProjectionError::OutcomeOrderMismatch { position: 0 })
+        );
+
+        let mut rejected = records;
+        rejected[1].accepted = false;
+        let expected_rejected_records = rejected.clone();
+        let rejected_projection =
+            app_verify_accepted_join_projection_core(expected.clone(), rejected)
+                .expect("a structurally exact rejected join must project");
+        assert_eq!(
+            rejected_projection,
+            AppVerifyAcceptedJoinProjection {
+                records: expected_rejected_records,
+                rejected_calls: vec![expected[1]],
+            }
+        );
+        assert!(
+            !app_verify_join_acceptance_core(rejected_projection.rejected_calls),
+            "a projected join retaining a rejected call must fail closed"
         );
     }
 

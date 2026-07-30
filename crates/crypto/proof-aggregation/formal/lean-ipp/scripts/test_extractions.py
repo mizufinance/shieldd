@@ -48,7 +48,7 @@ class ExtractionManifestTests(unittest.TestCase):
         # Scoped regeneration is allowed while unrelated graphs are stale.
         # The CLI `check` command remains the full file-hash gate.
         self.validate(self.manifest, verify_files=False)
-        self.assertEqual(self.manifest["schema_version"], 2)
+        self.assertEqual(self.manifest["schema_version"], 3)
         outputs = [graph["output"] for graph in self.manifest["graphs"]]
         self.assertEqual(EXTRACTIONS.EXPECTED_GRAPH_COUNT, 37)
         self.assertEqual(len(outputs), EXTRACTIONS.EXPECTED_GRAPH_COUNT)
@@ -106,13 +106,14 @@ class ExtractionManifestTests(unittest.TestCase):
         self.assert_invalid(manifest, "toolchains.image_digest")
 
         graph = self.manifest["graphs"][0]
+        cache = EXTRACTIONS.SourceSnapshotCache()
         original = EXTRACTIONS.current_graph_source_sha256(
-            graph, self.manifest["toolchains"]
+            graph, self.manifest, cache=cache
         )
-        changed_toolchains = copy.deepcopy(self.manifest["toolchains"])
-        changed_toolchains["image_digest"] = "sha256:" + "0" * 64
+        changed_manifest = copy.deepcopy(self.manifest)
+        changed_manifest["toolchains"]["image_digest"] = "sha256:" + "0" * 64
         changed = EXTRACTIONS.current_graph_source_sha256(
-            graph, changed_toolchains
+            graph, changed_manifest, cache=cache
         )
         self.assertNotEqual(original, changed)
 
@@ -120,21 +121,125 @@ class ExtractionManifestTests(unittest.TestCase):
         graph = self.manifest["graphs"][0]
         cache = EXTRACTIONS.SourceSnapshotCache()
         original = EXTRACTIONS.graph_ci_success_fingerprint(
-            graph, self.manifest["toolchains"], cache=cache
+            graph, self.manifest, cache=cache
         )
         changed = copy.deepcopy(graph)
         changed["output_sha256"] = "0" * 64
         self.assertNotEqual(
             original,
             EXTRACTIONS.graph_ci_success_fingerprint(
-                changed, self.manifest["toolchains"], cache=cache
+                changed, self.manifest, cache=cache
             ),
         )
+
+    def test_undeclared_rust_inventory_changes_on_add_change_and_delete(self):
+        with tempfile.TemporaryDirectory(
+            prefix="extractions-undeclared-rust-"
+        ) as directory:
+            repo_root = Path(directory)
+            crate = repo_root / "crates/example"
+            source = crate / "src"
+            source.mkdir(parents=True)
+            (crate / "Cargo.toml").write_text(
+                '[package]\nname = "example"\nversion = "0.1.0"\n',
+                encoding="utf-8",
+            )
+            declared = source / "declared.rs"
+            declared.write_text("pub fn declared() {}\n", encoding="utf-8")
+            manifest = {
+                "graphs": [
+                    {
+                        "crate_manifest": "crates/example/Cargo.toml",
+                        "source_files": ["crates/example/src/declared.rs"],
+                    }
+                ]
+            }
+
+            with patch.object(EXTRACTIONS, "REPO_ROOT", repo_root):
+                baseline = EXTRACTIONS.undeclared_rust_source_inventory_sha256(
+                    manifest
+                )
+                helper = source / "helper.rs"
+                helper.write_text("pub fn helper() -> u8 { 1 }\n", encoding="utf-8")
+                added = EXTRACTIONS.undeclared_rust_source_inventory_sha256(
+                    manifest
+                )
+                helper.write_text("pub fn helper() -> u8 { 2 }\n", encoding="utf-8")
+                changed = EXTRACTIONS.undeclared_rust_source_inventory_sha256(
+                    manifest
+                )
+                helper.unlink()
+                deleted = EXTRACTIONS.undeclared_rust_source_inventory_sha256(
+                    manifest
+                )
+                declared.write_text(
+                    "pub fn declared() { let _ = 1; }\n", encoding="utf-8"
+                )
+                declared_only = (
+                    EXTRACTIONS.undeclared_rust_source_inventory_sha256(
+                        manifest
+                    )
+                )
+
+        self.assertNotEqual(baseline, added)
+        self.assertNotEqual(added, changed)
+        self.assertNotEqual(changed, deleted)
+        self.assertEqual(deleted, baseline)
+        self.assertEqual(declared_only, baseline)
+
+    def test_ci_fingerprint_binds_undeclared_rust_inventory(self):
+        graph = copy.deepcopy(self.manifest["graphs"][0])
+        with tempfile.TemporaryDirectory(
+            prefix="extractions-inventory-fingerprint-"
+        ) as directory:
+            repo_root = Path(directory)
+            output = repo_root.joinpath(*Path(graph["output"]).parts)
+            output.parent.mkdir(parents=True)
+            output.write_bytes(b"generated\n")
+            graph["output_sha256"] = EXTRACTIONS.sha256_file(output)
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(EXTRACTIONS, "CI_ATTESTATION_PATHS", ()),
+                patch.object(EXTRACTIONS, "graph_source_paths", return_value=[]),
+                patch.object(
+                    EXTRACTIONS.SourceSnapshotCache,
+                    "head",
+                    return_value="a" * 40,
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "undeclared_rust_source_inventory_sha256",
+                    return_value="b" * 64,
+                ),
+            ):
+                before = EXTRACTIONS.graph_ci_success_fingerprint(
+                    graph, self.manifest
+                )
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(EXTRACTIONS, "CI_ATTESTATION_PATHS", ()),
+                patch.object(EXTRACTIONS, "graph_source_paths", return_value=[]),
+                patch.object(
+                    EXTRACTIONS.SourceSnapshotCache,
+                    "head",
+                    return_value="a" * 40,
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "undeclared_rust_source_inventory_sha256",
+                    return_value="c" * 64,
+                ),
+            ):
+                after = EXTRACTIONS.graph_ci_success_fingerprint(
+                    graph, self.manifest
+                )
+
+        self.assertNotEqual(before, after)
 
     def test_schema_one_is_rejected(self):
         manifest = copy.deepcopy(self.manifest)
         manifest["schema_version"] = 1
-        self.assert_invalid(manifest, "schema_version: expected 2")
+        self.assert_invalid(manifest, "schema_version: expected 3")
 
     def test_duplicate_ids_and_outputs_are_rejected(self):
         manifest = copy.deepcopy(self.manifest)
@@ -165,7 +270,7 @@ class ExtractionManifestTests(unittest.TestCase):
                 manifest["graphs"][0]["output"] = path
                 self.assert_invalid(manifest, "output")
 
-    def test_roots_and_features_must_be_sorted(self):
+    def test_roots_features_and_source_files_must_be_sorted(self):
         manifest = copy.deepcopy(self.manifest)
         graph = next(graph for graph in manifest["graphs"] if len(graph["roots"]) > 1)
         graph["roots"] = list(reversed(graph["roots"]))
@@ -174,6 +279,68 @@ class ExtractionManifestTests(unittest.TestCase):
         manifest = copy.deepcopy(self.manifest)
         manifest["graphs"][0]["features"] = ["z", "a"]
         self.assert_invalid(manifest, "expected sorted array")
+
+        manifest = copy.deepcopy(self.manifest)
+        graph = next(
+            graph for graph in manifest["graphs"] if len(graph["source_files"]) > 1
+        )
+        graph["source_files"] = list(reversed(graph["source_files"]))
+        self.assert_invalid(manifest, "source_files: expected sorted array")
+
+    def test_source_files_are_required_existing_rust_and_cover_rust_inputs(self):
+        manifest = copy.deepcopy(self.manifest)
+        del manifest["graphs"][0]["source_files"]
+        self.assert_invalid(manifest, "missing source_files")
+
+        manifest = copy.deepcopy(self.manifest)
+        graph = manifest["graphs"][0]
+        graph["source_files"][0] = "Cargo.toml"
+        self.assert_invalid(manifest, "expected Rust source")
+
+        manifest = copy.deepcopy(self.manifest)
+        graph = manifest["graphs"][0]
+        direct_input = graph["inputs"][0]["path"]
+        graph["source_files"].remove(direct_input)
+        self.assert_invalid(
+            manifest,
+            f"undeclared Rust input(s): {direct_input}",
+        )
+
+        manifest = copy.deepcopy(self.manifest)
+        graph = manifest["graphs"][0]
+        graph["source_files"].append(
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
+            "missing_extraction_source.rs"
+        )
+        graph["source_files"].sort()
+        self.assert_invalid(
+            manifest,
+            "path does not exist",
+            verify_files=True,
+        )
+
+        manifest = copy.deepcopy(self.manifest)
+        grouped: dict[str, list[dict]] = {}
+        for graph in manifest["graphs"]:
+            root = next(
+                item["path"]
+                for item in graph["inputs"]
+                if item["role"] == "copy-source"
+            )
+            grouped.setdefault(root, []).append(graph)
+        siblings = next(graphs for graphs in grouped.values() if len(graphs) > 1)
+        changed = siblings[1]
+        direct_input = changed["inputs"][0]["path"]
+        removable = next(
+            path
+            for path in changed["source_files"]
+            if path != direct_input
+        )
+        changed["source_files"].remove(removable)
+        self.assert_invalid(
+            manifest,
+            "must declare the same module closure",
+        )
 
     def test_source_hash_mismatch_is_rejected(self):
         manifest = copy.deepcopy(self.manifest)
@@ -279,6 +446,130 @@ class ExtractionManifestTests(unittest.TestCase):
                 EXTRACTIONS.affected_graph_ids(self.manifest, "base"),
                 sorted(graph["id"] for graph in self.manifest["graphs"]),
             )
+
+    def test_shared_cargo_change_affects_every_graph(self):
+        changed = SimpleNamespace(stdout="Cargo.lock\n")
+        with patch.object(EXTRACTIONS, "_git", return_value=changed):
+            self.assertEqual(
+                EXTRACTIONS.affected_graph_ids(self.manifest, "base"),
+                sorted(graph["id"] for graph in self.manifest["graphs"]),
+            )
+
+    def test_changed_relevant_source_selects_graph_and_reuse_dependents(self):
+        app_verifier = next(
+            graph for graph in self.manifest["graphs"] if graph["id"] == "AppVerifier"
+        )
+        source = next(
+            path
+            for path in app_verifier["source_files"]
+            if path.endswith("/app_verifier.rs")
+        )
+        owners = {
+            graph["id"]
+            for graph in self.manifest["graphs"]
+            if source in graph["source_files"]
+        }
+        expected = EXTRACTIONS.affected_with_reuse_dependents(
+            self.manifest, owners
+        )
+        changed = SimpleNamespace(stdout=f"{source}\n")
+        with patch.object(EXTRACTIONS, "_git", return_value=changed):
+            self.assertEqual(
+                EXTRACTIONS.affected_graph_ids(self.manifest, "base"),
+                expected,
+            )
+        self.assertIn("AppVerifier", expected)
+        self.assertIn("AggregateAdapter", expected)
+        self.assertLess(len(expected), EXTRACTIONS.EXPECTED_GRAPH_COUNT)
+
+    def test_changed_shared_dependency_selects_every_owner_and_reuse_dependent(self):
+        shared = (
+            "crates/crypto/proof-aggregation/src/ipp/"
+            "dh_commitments/src/lib.rs"
+        )
+        owners = {
+            graph["id"]
+            for graph in self.manifest["graphs"]
+            if shared in graph["source_files"]
+        }
+        self.assertGreater(len(owners), 1)
+        expected = EXTRACTIONS.affected_with_reuse_dependents(
+            self.manifest, owners
+        )
+        changed = SimpleNamespace(stdout=f"{shared}\n")
+        with patch.object(EXTRACTIONS, "_git", return_value=changed):
+            self.assertEqual(
+                EXTRACTIONS.affected_graph_ids(self.manifest, "base"),
+                expected,
+            )
+
+    def test_graphs_sharing_a_root_module_share_the_same_source_closure(self):
+        closures_by_root: dict[str, set[tuple[str, ...]]] = {}
+        for graph in self.manifest["graphs"]:
+            copy_sources = {
+                item["path"]
+                for item in graph["inputs"]
+                if item["role"] == "copy-source"
+            }
+            self.assertEqual(
+                len(copy_sources),
+                1,
+                f"{graph['id']} must identify one root module",
+            )
+            root_source = next(iter(copy_sources))
+            closures_by_root.setdefault(root_source, set()).add(
+                tuple(graph["source_files"])
+            )
+        for root_source, closures in closures_by_root.items():
+            self.assertEqual(
+                len(closures),
+                1,
+                f"graphs rooted in {root_source} disagree on module closure",
+            )
+
+    def test_changed_unrelated_rust_source_does_not_select_extraction(self):
+        changed = SimpleNamespace(stdout="crates/core/app/src/unrelated.rs\n")
+        with patch.object(EXTRACTIONS, "_git", return_value=changed):
+            self.assertEqual(
+                EXTRACTIONS.affected_graph_ids(self.manifest, "base"),
+                [],
+            )
+
+    def test_changed_undeclared_rust_in_extraction_closure_fails_closed(self):
+        undeclared = (
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
+            "applications/poly_commit/transparent.rs"
+        )
+        self.assertFalse(
+            any(
+                undeclared in graph["source_files"]
+                for graph in self.manifest["graphs"]
+            )
+        )
+        changed = SimpleNamespace(stdout=f"{undeclared}\n")
+        with (
+            patch.object(EXTRACTIONS, "_git", return_value=changed),
+            self.assertRaises(EXTRACTIONS.ManifestError) as raised,
+        ):
+            EXTRACTIONS.affected_graph_ids(self.manifest, "base")
+        self.assertIn("undeclared in graph source_files", str(raised.exception))
+        self.assertIn(undeclared, str(raised.exception))
+
+    def test_reuse_dependency_selection_is_transitive(self):
+        manifest = copy.deepcopy(self.manifest)
+        first, second, third = manifest["graphs"][:3]
+        second["normalization"]["reuse_modules"] = [
+            EXTRACTIONS._graph_output_module(first)
+        ]
+        third["normalization"]["reuse_modules"] = [
+            EXTRACTIONS._graph_output_module(second)
+        ]
+        self.assertEqual(
+            EXTRACTIONS.affected_with_reuse_dependents(
+                manifest, [first["id"]]
+            ),
+            sorted([first["id"], second["id"], third["id"]]),
+        )
 
     def test_stale_graphs_report_input_and_output_drift_in_manifest_order(self):
         first = self.manifest["graphs"][0]
@@ -537,7 +828,7 @@ class ExtractionManifestTests(unittest.TestCase):
             patch("sys.stdout", io.StringIO()),
         ):
             self.assertEqual(EXTRACTIONS.command_compare(args), 0)
-        compare.assert_called_once_with(selected, manifest["toolchains"])
+        compare.assert_called_once_with(selected, manifest)
 
     def test_source_stamp_state_routes_only_selected_unstamped_graph(self):
         manifest = copy.deepcopy(self.manifest)
@@ -615,7 +906,7 @@ class ExtractionManifestTests(unittest.TestCase):
             patch.object(EXTRACTIONS, "reproduce_graph") as reproduce,
         ):
             matches, report = EXTRACTIONS.compare_graph(
-                graph, self.manifest["toolchains"]
+                graph, self.manifest
             )
         reproduce.assert_not_called()
         self.assertFalse(matches)
@@ -642,7 +933,7 @@ class ExtractionManifestTests(unittest.TestCase):
                 ),
             ):
                 matches, report = EXTRACTIONS.compare_graph(
-                    graph, self.manifest["toolchains"]
+                    graph, self.manifest
                 )
             self.assertFalse(matches)
             self.assertIn(graph["id"], report)
@@ -661,7 +952,7 @@ class ExtractionManifestTests(unittest.TestCase):
                 ),
             ):
                 matches, report = EXTRACTIONS.compare_graph(
-                    graph, self.manifest["toolchains"]
+                    graph, self.manifest
                 )
             self.assertFalse(matches)
             self.assertIn(graph["id"], report)
@@ -719,7 +1010,7 @@ class ExtractionManifestTests(unittest.TestCase):
                 ) as reproduce,
             ):
                 matches, report = EXTRACTIONS.compare_graph(
-                    graph, self.manifest["toolchains"]
+                    graph, self.manifest
                 )
         reproduce.assert_called_once()
         self.assertTrue(matches, report)
@@ -827,7 +1118,7 @@ class ExtractionManifestTests(unittest.TestCase):
         self.assertEqual(environment["RAYON_NUM_THREADS"], "1")
         self.assertEqual(environment["GRAPH_SETTING"], "preserved")
 
-    def test_conservative_source_paths_cover_crate_dependencies_and_configs(self):
+    def test_crate_configuration_paths_cover_dependencies_without_rust_fanout(self):
         with tempfile.TemporaryDirectory(prefix="extractions-test-") as directory:
             repo_root = Path(directory).resolve()
             main = repo_root / "crates" / "main"
@@ -857,17 +1148,33 @@ class ExtractionManifestTests(unittest.TestCase):
 
             with patch.object(EXTRACTIONS, "REPO_ROOT", repo_root):
                 paths = set(
-                    EXTRACTIONS.conservative_crate_source_paths(
+                    EXTRACTIONS.crate_configuration_paths(
                         {"crate_manifest": "crates/main/Cargo.toml"}
                     )
                 )
 
-        self.assertIn(main / "src" / "lib.rs", paths)
-        self.assertIn(main / "tests" / "parity.rs", paths)
-        self.assertIn(dependency / "src" / "lib.rs", paths)
+        self.assertNotIn(main / "src" / "lib.rs", paths)
+        self.assertNotIn(main / "tests" / "parity.rs", paths)
+        self.assertNotIn(dependency / "src" / "lib.rs", paths)
+        self.assertIn(main / "Cargo.toml", paths)
+        self.assertIn(dependency / "Cargo.toml", paths)
         self.assertIn(repo_root / "Cargo.toml", paths)
         self.assertIn(repo_root / ".cargo" / "config.toml", paths)
         self.assertNotIn(main / "proofs" / "stale.rs", paths)
+
+    def test_graph_source_paths_use_only_declared_rust_sources(self):
+        graph = next(
+            graph for graph in self.manifest["graphs"] if graph["id"] == "AppVerifier"
+        )
+        paths = {
+            path.relative_to(EXTRACTIONS.REPO_ROOT).as_posix()
+            for path in EXTRACTIONS.graph_source_paths(graph)
+        }
+        self.assertTrue(set(graph["source_files"]).issubset(paths))
+        self.assertNotIn(
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+            paths,
+        )
 
     def test_graph_source_paths_include_reuse_modules(self):
         graph = copy.deepcopy(self.manifest["graphs"][0])
@@ -998,7 +1305,7 @@ class ExtractionManifestTests(unittest.TestCase):
         manifest_path = repo_root / "manifest.json"
         manifest_path.write_bytes(EXTRACTIONS.canonical_json(manifest))
 
-        def current_snapshot(graph, _toolchains, *, cache=None):
+        def current_snapshot(graph, _manifest, *, cache=None):
             del cache
             snapshot = dict(snapshots[graph["id"]])
             for dependency in (first, second):
@@ -1168,9 +1475,9 @@ class ExtractionManifestTests(unittest.TestCase):
             )
             original_manifest = fixture["manifest_path"].read_bytes()
 
-            def drifting_snapshot(graph, toolchains, *, cache=None):
+            def drifting_snapshot(graph, current_manifest, *, cache=None):
                 snapshot = fixture["current_snapshot"](
-                    graph, toolchains, cache=cache
+                    graph, current_manifest, cache=cache
                 )
                 if (
                     fixture["output_paths"][first["id"]].read_bytes()

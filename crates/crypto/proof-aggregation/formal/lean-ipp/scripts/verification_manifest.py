@@ -96,10 +96,10 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "609070ae5d8d8503eb34039b316d2168f7002a1054d5a258e6e08dfb002fe560"
+    "f27fdc94211bad610f659602147d9318d02017c02b09bf05a4b8f04b9978c0c3"
 )
 ASSUMPTION_LEDGER_SHA256 = (
-    "f3f0e81770828ee40debd26afd0909a8fceb534f8eabc97301726a348d0a7550"
+    "0fcce62b55a7c498b7b486f40e4b31452bfb284a6fd9d4267eadbdb548bd214f"
 )
 V1_PROTOCOL_VERSION = 2
 V1_BYTE_BASELINE_SHA256 = (
@@ -142,7 +142,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "496f584ec438e614263da56948fd1d8c5b3cfaef4f03fcf217b3c733d01fbd81"
+    "242a70272e649c2f0691077aa487ee55fb85075c47dbf739028e3701c17866e3"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -523,6 +523,24 @@ def extraction_outputs(
     return outputs
 
 
+def parity_exact_test_name(argv: Iterable[str]) -> str | None:
+    """Return the sole test identity required by a strict parity command."""
+    arguments = tuple(argv)
+    if "--exact" not in arguments:
+        return None
+    if (
+        len(arguments) != 6
+        or arguments[:3] != ("cargo", "test", "--lib")
+        or arguments[4:] != ("--", "--exact")
+        or arguments[3].startswith("-")
+    ):
+        raise VerificationError(
+            "exact parity command must be "
+            "'cargo test --lib <full-test-name> -- --exact'"
+        )
+    return arguments[3]
+
+
 def validated_parity_commands(
     payload: dict[str, Any],
     repo_root: Path,
@@ -597,6 +615,10 @@ def validated_parity_commands(
                 raise VerificationError(
                     f"{where} must select an explicit Rust test target"
                 )
+            try:
+                parity_exact_test_name(argv)
+            except VerificationError as error:
+                raise VerificationError(f"{where}: {error}") from error
             key = (relative.as_posix(), tuple(argv))
             if key not in seen:
                 seen.add(key)

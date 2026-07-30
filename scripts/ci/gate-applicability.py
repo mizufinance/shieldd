@@ -512,6 +512,80 @@ def _manifest_path(value: Any, where: str) -> str:
     return normalize_repo_path(value, where)
 
 
+def _extraction_output_module(output: str, where: str) -> str:
+    path = Path(output)
+    if path.suffix != ".lean":
+        raise ClassificationError(f"{where} must name a Lean output")
+    parts = path.with_suffix("").parts
+    try:
+        ipp_index = parts.index("Ipp")
+    except ValueError:
+        ipp_index = 0
+    return ".".join(parts[ipp_index:])
+
+
+def extraction_reuse_closure(
+    manifest: Any,
+    graph_ids: Iterable[str],
+    *,
+    label: str,
+) -> tuple[str, ...]:
+    """Expand graph ids through imports of generated extraction modules."""
+    graphs = _extraction_graphs_by_id(manifest, label)
+    selected = set(graph_ids)
+    unknown = sorted(selected - graphs.keys())
+    if unknown:
+        raise ClassificationError(
+            f"{label} references unknown extraction graph(s): "
+            + ", ".join(unknown)
+        )
+
+    module_owner: dict[str, str] = {}
+    for graph_id, graph in graphs.items():
+        output = _manifest_path(
+            graph.get("output"), f"{label}.graph {graph_id}.output"
+        )
+        module = _extraction_output_module(
+            output, f"{label}.graph {graph_id}.output"
+        )
+        if module in module_owner:
+            raise ClassificationError(
+                f"{label} contains duplicate generated module {module}"
+            )
+        module_owner[module] = graph_id
+
+    dependents = {graph_id: set() for graph_id in graphs}
+    for graph_id, graph in graphs.items():
+        normalization = _object(
+            graph.get("normalization"),
+            f"{label}.graph {graph_id}.normalization",
+        )
+        reuse = normalization.get("reuse_modules")
+        if not isinstance(reuse, list):
+            raise ClassificationError(
+                f"{label}.graph {graph_id}.normalization.reuse_modules "
+                "must be an array"
+            )
+        for index, value in enumerate(reuse):
+            module = _string(
+                value,
+                f"{label}.graph {graph_id}.normalization."
+                f"reuse_modules[{index}]",
+            )
+            owner = module_owner.get(module)
+            if owner is not None:
+                dependents[owner].add(graph_id)
+
+    pending = list(selected)
+    while pending:
+        owner = pending.pop()
+        for dependent in dependents[owner]:
+            if dependent not in selected:
+                selected.add(dependent)
+                pending.append(dependent)
+    return tuple(sorted(selected))
+
+
 def lean_manifest_rules_from_data(
     manifest: Any,
     source: dict[str, Any],
@@ -524,8 +598,8 @@ def lean_manifest_rules_from_data(
     evidence_tier: str | None = None,
 ) -> list[InputRule]:
     raw = _object(manifest, label)
-    if raw.get("schema_version") != 2:
-        raise ClassificationError(f"{label}.schema_version must be 2")
+    if raw.get("schema_version") != 3:
+        raise ClassificationError(f"{label}.schema_version must be 3")
     if not isinstance(raw.get("toolchains"), dict):
         raise ClassificationError(f"{label}.toolchains must be an object")
     graphs_value = raw.get("graphs")
@@ -550,6 +624,22 @@ def lean_manifest_rules_from_data(
         paths = {
             _manifest_path(graph.get("crate_manifest"), f"{where}.crate_manifest"),
         }
+        source_files = graph.get("source_files")
+        if not isinstance(source_files, list) or not source_files:
+            raise ClassificationError(
+                f"{where}.source_files must be a non-empty array"
+            )
+        for source_index, source_value in enumerate(source_files):
+            source_path = _manifest_path(
+                source_value,
+                f"{where}.source_files[{source_index}]",
+            )
+            if not source_path.endswith(".rs"):
+                raise ClassificationError(
+                    f"{where}.source_files[{source_index}] "
+                    "must be a Rust source"
+                )
+            paths.add(source_path)
         inputs = graph.get("inputs")
         if not isinstance(inputs, list) or not inputs:
             raise ClassificationError(f"{where}.inputs must be a non-empty array")
@@ -589,7 +679,9 @@ def lean_manifest_rules_from_data(
                 patterns=tuple(sorted(paths)),
                 tier=graph_tier,
                 reason=f"{source['reason']}: graph {graph_id}",
-                graphs=(graph_id,),
+                graphs=extraction_reuse_closure(
+                    raw, (graph_id,), label=label
+                ),
             )
         )
         output_is_stale = (
@@ -611,7 +703,13 @@ def lean_manifest_rules_from_data(
                         f"evidence {graph_id}"
                     )
                 ),
-                graphs=(graph_id,) if output_is_stale else (),
+                graphs=(
+                    extraction_reuse_closure(
+                        raw, (graph_id,), label=label
+                    )
+                    if output_is_stale
+                    else ()
+                ),
             )
         )
 
@@ -875,16 +973,46 @@ def extraction_source_directory_rule(
             "extraction source inventory references missing directories: "
             + ", ".join(missing)
         )
+
+    declared_sources = {
+        normalize_repo_path(
+            value,
+            f"extraction manifest graph {graph_id}.source_files",
+        )
+        for graph_id, graph in _extraction_graphs_by_id(
+            manifest, "extraction manifest"
+        ).items()
+        for value in (
+            graph.get("source_files")
+            if isinstance(graph.get("source_files"), list)
+            else ()
+        )
+    }
+    undeclared_rust: set[str] = set()
+    shared_cargo: set[str] = set()
+    ignored_parts = {".git", "proofs", "target"}
+    for directory in directories:
+        directory_path = root / directory
+        manifest_path = directory_path / "Cargo.toml"
+        if manifest_path.is_file():
+            shared_cargo.add(manifest_path.relative_to(root).as_posix())
+        for path in directory_path.rglob("*.rs"):
+            relative_to_directory = path.relative_to(directory_path)
+            if ignored_parts.intersection(relative_to_directory.parts):
+                continue
+            repo_path = path.relative_to(root).as_posix()
+            if repo_path not in declared_sources:
+                undeclared_rust.add(repo_path)
     return InputRule(
-        patterns=tuple(f"{directory}/**" for directory in directories),
+        patterns=tuple(sorted(undeclared_rust | shared_cargo)),
         tier=tier_for(
             source["global_tiers"],
             event,
-            "extraction source directory closure",
+            "undeclared extraction source fallback",
         ),
         reason=(
-            f"{source['reason']}: complete extracted-crate and local "
-            "path-dependency source closure"
+            f"{source['reason']}: undeclared extracted-crate Rust source "
+            "or shared Cargo configuration"
         ),
         graphs=graph_ids,
     )
@@ -986,6 +1114,14 @@ def derived_rules(
             )
         )
         manifest_graphs = semantic_graphs | stale_graphs
+        if not shared_change:
+            manifest_graphs = frozenset(
+                extraction_reuse_closure(
+                    current,
+                    manifest_graphs,
+                    label=source["path"],
+                )
+            )
         manifest_tier = (
             tier_for(
                 source["global_tiers"],
@@ -1030,7 +1166,7 @@ def derived_rules(
                 event,
             )
         )
-        if previous is not None:
+        if previous is not None and not shared_change:
             rules.extend(
                 lean_manifest_rules_from_data(
                     previous,

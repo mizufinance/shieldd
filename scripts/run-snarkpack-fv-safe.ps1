@@ -292,6 +292,10 @@ function Write-AtomicText {
         ".$([IO.Path]::GetFileName($resolved))." +
         "$([Guid]::NewGuid().ToString('N')).tmp"
     )
+    $backup = Join-Path $parent (
+        ".$([IO.Path]::GetFileName($resolved))." +
+        "$([Guid]::NewGuid().ToString('N')).bak"
+    )
     $stream = $null
     try {
         $bytes = [Text.UTF8Encoding]::new($false).GetBytes($Content)
@@ -313,11 +317,11 @@ function Write-AtomicText {
             }
             catch [IO.IOException] {
                 $null = Get-SafeLeaf -Path $resolved
-                [IO.File]::Replace($temporary, $resolved, $null)
+                [IO.File]::Replace($temporary, $resolved, $backup)
             }
         }
         else {
-            [IO.File]::Replace($temporary, $resolved, $null)
+            [IO.File]::Replace($temporary, $resolved, $backup)
         }
         $null = Get-SafeLeaf -Path $resolved
     }
@@ -327,6 +331,9 @@ function Write-AtomicText {
         }
         if (Test-Path -LiteralPath $temporary) {
             Remove-Item -LiteralPath $temporary -Force
+        }
+        if (Test-Path -LiteralPath $backup) {
+            Remove-Item -LiteralPath $backup -Force
         }
     }
 }

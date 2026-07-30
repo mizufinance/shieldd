@@ -6,13 +6,14 @@ use anyhow::{ensure, Result};
 use ark_groth16::PreparedVerifyingKey;
 use ark_ip_proofs::app_verifier::{
     app_verify_shipping_result_from_backend_result, AppVerifyShippingBackendResult,
-    AppVerifyShippingExecutedResult,
+    AppVerifyShippingResult,
 };
 use ark_ip_proofs::applications::groth16_aggregation::{
-    aggregate_proofs, aggregate_proofs_profiled, validate_aggregate_proof,
-    verify_validated_aggregate_proof, verify_validated_aggregate_proof_profiled,
-    verify_validated_aggregate_proof_shipping_profiled, AggregateProof, AggregateProofBuildProfile,
-    AggregateProofVerificationProfile, ShippingVerifierExecutionCarrier, ValidatedAggregateProof,
+    aggregate_proofs, aggregate_proofs_profiled, shipping_verifier_executed_result_into_parts,
+    validate_aggregate_proof, verify_validated_aggregate_proof,
+    verify_validated_aggregate_proof_profiled, verify_validated_aggregate_proof_shipping_profiled,
+    AggregateProof, AggregateProofBuildProfile, AggregateProofVerificationProfile,
+    ShippingVerifierExecutionCarrier, ShippingVerifierObservation, ValidatedAggregateProof,
 };
 #[cfg(test)]
 use ark_ip_proofs::applications::groth16_aggregation::{
@@ -127,20 +128,24 @@ pub struct AggregateVerificationProfile {
 /// production shipping preflight.
 type ShippingAggregateBackendResult =
     AppVerifyShippingBackendResult<ShippingVerifierExecutionCarrier<Bls12_377>>;
-type ShippingAggregateExecutedResult =
-    AppVerifyShippingExecutedResult<ShippingVerifierExecutionCarrier<Bls12_377>>;
 
 #[doc(hidden)]
 #[derive(Clone, Debug)]
 pub struct ShippingAggregateVerification {
     pub profile: AggregateVerificationProfile,
-    executed: ShippingAggregateExecutedResult,
+    shipping_result: AppVerifyShippingResult,
+    execution: ShippingVerifierExecutionCarrier<Bls12_377>,
 }
 
 impl ShippingAggregateVerification {
     #[doc(hidden)]
     pub fn shipping_result(&self) -> &ark_ip_proofs::app_verifier::AppVerifyShippingResult {
-        ark_ip_proofs::app_verifier::app_verify_shipping_executed_result_result(&self.executed)
+        &self.shipping_result
+    }
+
+    #[doc(hidden)]
+    pub fn shipping_observation(&self) -> ShippingVerifierObservation {
+        self.execution.shipping_observation().clone()
     }
 }
 
@@ -429,7 +434,12 @@ impl SnarkpackBackend {
                     "shipping backend result identity mismatch: {error:?}"
                 ))
             })?;
-        Ok(ShippingAggregateVerification { profile, executed })
+        let (shipping_result, execution) = shipping_verifier_executed_result_into_parts(executed);
+        Ok(ShippingAggregateVerification {
+            profile,
+            shipping_result,
+            execution,
+        })
     }
 
     fn verify_preflighted_shipping_family_aggregate_profiled_status(
@@ -1597,9 +1607,10 @@ mod tests {
         pvk.vk
             .serialize_compressed(&mut serialized_vk)
             .expect("VK should serialize");
+        let application_call = shipping_call(family_id, items.len(), padded_items.len());
 
         let verified = SnarkpackBackend::verify_shipping_family_aggregate_profiled_status(
-            shipping_call(family_id, items.len(), padded_items.len()),
+            application_call,
             &statement,
             &pvk,
             &wrapped,
@@ -1608,6 +1619,17 @@ mod tests {
         .expect("shipping aggregate should verify");
 
         assert!(verified.profile.accepted);
+        let observation = verified.shipping_observation();
+        assert_eq!(observation.call_id(), application_call.id);
+        assert!(observation.accepted());
+        assert_eq!(
+            observation.challenge_context(),
+            statement.challenge_context()
+        );
+        assert!(
+            !observation.challenge_trace_chronological().is_empty(),
+            "accepted shipping verification must expose its deployed challenge trace"
+        );
         let input = &verified.shipping_result().input;
         assert_eq!(input.family, crate::app_verify_family_code(family_id));
         assert_eq!(input.protocol_version, AGGREGATE_PROTOCOL_VERSION);

@@ -97,6 +97,7 @@ GRAPH_FIELDS = {
     "crate_manifest",
     "package",
     "features",
+    "source_files",
     "roots",
     "inputs",
     "copy_provenance",
@@ -147,7 +148,10 @@ class SourceSnapshotCache:
     def __init__(self) -> None:
         self._head: str | None = None
         self._file_hashes: dict[Path, str] = {}
-        self._crate_sources: dict[Path, tuple[Path, ...]] = {}
+        self._crate_configs: dict[Path, tuple[Path, ...]] = {}
+        self._undeclared_rust_inventories: dict[
+            tuple[tuple[str, ...], tuple[str, ...]], str
+        ] = {}
 
     def head(self) -> str:
         if self._head is None:
@@ -322,8 +326,8 @@ def _validate_manifest(
     repair_incomplete_sources: bool,
 ) -> None:
     _exact_fields(manifest, TOP_FIELDS, "manifest")
-    if manifest["schema_version"] != 2:
-        raise ManifestError("manifest.schema_version: expected 2")
+    if manifest["schema_version"] != 3:
+        raise ManifestError("manifest.schema_version: expected 3")
 
     toolchains = _expect_object(manifest["toolchains"], "manifest.toolchains")
     _exact_fields(toolchains, TOOLCHAIN_FIELDS, "manifest.toolchains")
@@ -351,9 +355,10 @@ def _validate_manifest(
         raise ManifestError(
             "manifest.graphs: "
             f"expected {EXPECTED_GRAPH_COUNT} records, found {len(graphs)}"
-        )
+    )
     graph_ids: set[str] = set()
     outputs: set[str] = set()
+    module_source_closures: dict[str, tuple[str, ...]] = {}
     for index, raw_graph in enumerate(graphs):
         graph = _expect_object(raw_graph, f"manifest.graphs[{index}]")
         graph_id = graph.get("id", f"index {index}")
@@ -391,6 +396,21 @@ def _validate_manifest(
         features = _string_list(graph["features"], f"{where}.features")
         if features != sorted(features):
             raise ManifestError(f"{where}.features: expected sorted array")
+        source_files = _string_list(
+            graph["source_files"], f"{where}.source_files", nonempty=True
+        )
+        if source_files != sorted(source_files):
+            raise ManifestError(f"{where}.source_files: expected sorted array")
+        for source_index, raw_source in enumerate(source_files):
+            source = _repo_path(
+                raw_source,
+                f"{where}.source_files[{source_index}]",
+                must_exist=verify_files,
+            )
+            if not source.endswith(".rs"):
+                raise ManifestError(
+                    f"{where}.source_files[{source_index}]: expected Rust source"
+                )
         roots = _string_list(graph["roots"], f"{where}.roots", nonempty=True)
         if roots != sorted(roots):
             raise ManifestError(f"{where}.roots: expected sorted array")
@@ -432,6 +452,38 @@ def _validate_manifest(
             raise ManifestError(f"{where}.inputs: missing copy-source")
         if not any(item["role"] == "parity-test" for item in inputs):
             raise ManifestError(f"{where}.inputs: missing parity-test")
+        copy_sources = {
+            item["path"]
+            for item in inputs
+            if item["role"] == "copy-source"
+        }
+        if len(copy_sources) != 1:
+            raise ManifestError(
+                f"{where}.inputs: expected exactly one copy-source root module"
+            )
+        root_module = next(iter(copy_sources))
+        source_closure = tuple(source_files)
+        previous_closure = module_source_closures.setdefault(
+            root_module, source_closure
+        )
+        if previous_closure != source_closure:
+            raise ManifestError(
+                f"{where}.source_files: graphs rooted in {root_module} "
+                "must declare the same module closure"
+            )
+        undeclared_rust_inputs = sorted(
+            {
+                item["path"]
+                for item in inputs
+                if item["path"].endswith(".rs")
+            }
+            - set(source_files)
+        )
+        if undeclared_rust_inputs:
+            raise ManifestError(
+                f"{where}.source_files: undeclared Rust input(s): "
+                + ", ".join(undeclared_rust_inputs)
+            )
 
         provenance = _expect_list(graph["copy_provenance"], f"{where}.copy_provenance")
         for copy_index, raw_copy in enumerate(provenance):
@@ -947,11 +999,11 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
 
 
 def compare_graph(
-    graph: dict[str, Any], toolchains: dict[str, Any]
+    graph: dict[str, Any], manifest: dict[str, Any]
 ) -> tuple[bool, str]:
     graph_id = graph["id"]
     try:
-        source_before = _validate_selected_graph_evidence(graph, toolchains)
+        source_before = _validate_selected_graph_evidence(graph, manifest)
     except ManifestError as error:
         return False, str(error)
     try:
@@ -969,7 +1021,7 @@ def compare_graph(
         _assert_source_snapshot_unchanged(
             graph,
             source_before,
-            current_graph_source_snapshot(graph, toolchains),
+            current_graph_source_snapshot(graph, manifest),
         )
         committed = _read_selected_graph_output(graph)
     except (ManifestError, OSError) as error:
@@ -1024,7 +1076,7 @@ def _read_selected_graph_output(graph: dict[str, Any]) -> bytes:
 
 
 def _validate_selected_graph_evidence(
-    graph: dict[str, Any], toolchains: dict[str, Any]
+    graph: dict[str, Any], manifest: dict[str, Any]
 ) -> dict[str, str]:
     """Validate all committed evidence needed to compare one selected graph."""
     graph_id = graph["id"]
@@ -1058,7 +1110,7 @@ def _validate_selected_graph_evidence(
     _read_selected_graph_output(graph)
     try:
         source_before = current_graph_source_snapshot(
-            graph, toolchains, cache=cache
+            graph, manifest, cache=cache
         )
     except (ManifestError, OSError) as error:
         raise ManifestError(
@@ -1098,6 +1150,57 @@ def _git(args: Sequence[str], *, check: bool = True) -> subprocess.CompletedProc
     )
 
 
+def _graph_output_module(graph: dict[str, Any]) -> str:
+    lean_repo_dir = PurePosixPath(LEAN_ROOT.relative_to(REPO_ROOT).as_posix())
+    output = PurePosixPath(graph["output"])
+    try:
+        relative = output.relative_to(lean_repo_dir)
+    except ValueError as error:
+        raise ManifestError(
+            f"graph {graph['id']}: output is outside the Lean package"
+        ) from error
+    return ".".join(relative.with_suffix("").parts)
+
+
+def affected_with_reuse_dependents(
+    manifest: dict[str, Any], graph_ids: Iterable[str]
+) -> list[str]:
+    """Include every graph importing a selected generated module."""
+    graphs = graph_map(manifest)
+    selected = set(graph_ids)
+    unknown = sorted(selected - graphs.keys())
+    if unknown:
+        raise ManifestError(
+            "unknown affected extraction graph(s): " + ", ".join(unknown)
+        )
+
+    module_owner = {
+        _graph_output_module(graph): graph["id"]
+        for graph in manifest["graphs"]
+    }
+    dependents: dict[str, set[str]] = {
+        graph_id: set() for graph_id in graphs
+    }
+    for graph in manifest["graphs"]:
+        for module in graph["normalization"]["reuse_modules"]:
+            owner = module_owner.get(module)
+            if owner is not None:
+                dependents[owner].add(graph["id"])
+
+    pending = list(selected)
+    while pending:
+        owner = pending.pop()
+        for dependent in dependents[owner]:
+            if dependent not in selected:
+                selected.add(dependent)
+                pending.append(dependent)
+    return sorted(selected)
+
+
+def _path_is_within_repo_directory(path: str, directory: str) -> bool:
+    return path == directory or path.startswith(directory + "/")
+
+
 def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
     changed = {
         line.strip()
@@ -1106,14 +1209,48 @@ def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
     }
     graphs = graph_map(manifest)
     affected: set[str] = set()
-    global_paths = {NORMALIZER_REPO_PATH, RUNTIME_REPO_PATH, EXTRACTIONS_REPO_PATH}
+    global_paths = {
+        NORMALIZER_REPO_PATH,
+        RUNTIME_REPO_PATH,
+        EXTRACTIONS_REPO_PATH,
+        *WORKSPACE_SOURCE_PATHS,
+    }
     if changed.intersection(global_paths):
         return sorted(graphs)
 
+    declared_rust_sources = {
+        source
+        for graph in manifest["graphs"]
+        for source in graph["source_files"]
+    }
+    extraction_directories = extraction_source_directories(manifest)
+    undeclared_changed_rust = sorted(
+        path
+        for path in changed
+        if path.endswith(".rs")
+        and any(
+            _path_is_within_repo_directory(path, directory)
+            for directory in extraction_directories
+        )
+        and path not in declared_rust_sources
+    )
+    if undeclared_changed_rust:
+        raise ManifestError(
+            "changed Rust extraction input(s) are undeclared in graph "
+            "source_files: "
+            + ", ".join(undeclared_changed_rust)
+        )
+
+    cache = SourceSnapshotCache()
     for graph in manifest["graphs"]:
         paths = {graph["output"], graph["crate_manifest"]}
         paths.update(item["path"] for item in graph["inputs"])
+        paths.update(graph["source_files"])
         paths.add(graph["normalization"]["script"])
+        paths.update(
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in crate_configuration_paths(graph, cache=cache)
+        )
         if changed.intersection(paths):
             affected.add(graph["id"])
 
@@ -1139,7 +1276,7 @@ def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
             affected.update(set(old_graphs) - graphs.keys())
         except (json.JSONDecodeError, AttributeError, TypeError):
             return sorted(graphs)
-    return sorted(affected)
+    return affected_with_reuse_dependents(manifest, affected)
 
 
 def command_check(args: argparse.Namespace) -> int:
@@ -1235,7 +1372,7 @@ def stale_graph_ids(
         actual_inputs = current_input_hashes(graph, cache=cache)
         expected_source = graph.get("source_sha256")
         actual_source = current_graph_source_sha256(
-            graph, manifest["toolchains"], cache=cache
+            graph, manifest, cache=cache
         )
         output_path = REPO_ROOT.joinpath(
             *PurePosixPath(graph["output"]).parts
@@ -1273,6 +1410,54 @@ def extraction_source_directories(manifest: dict[str, Any]) -> list[str]:
         for directory in _local_crate_directories(crate_manifest):
             directories.add(directory.relative_to(REPO_ROOT).as_posix())
     return sorted(directories)
+
+
+def undeclared_rust_source_inventory_sha256(
+    manifest: dict[str, Any],
+    *,
+    cache: SourceSnapshotCache | None = None,
+) -> str:
+    """Bind every Rust source outside the declared graph ownership sets.
+
+    Declared Rust changes remain graph-scoped. A new, changed, deleted, or
+    newly unclassified source changes this shared fallback stamp, invalidating
+    every graph attestation and recovery snapshot until its relevance is made
+    explicit.
+    """
+    cache = cache or SourceSnapshotCache()
+    declared = tuple(
+        sorted(
+            {
+                source
+                for graph in manifest["graphs"]
+                for source in graph["source_files"]
+            }
+        )
+    )
+    directories = tuple(extraction_source_directories(manifest))
+    cache_key = (directories, declared)
+    cached = cache._undeclared_rust_inventories.get(cache_key)
+    if cached is not None:
+        return cached
+
+    declared_set = set(declared)
+    inventory: dict[str, str] = {}
+    for directory in directories:
+        directory_path = REPO_ROOT.joinpath(*PurePosixPath(directory).parts)
+        for path in directory_path.rglob("*.rs"):
+            relative_to_directory = path.relative_to(directory_path)
+            if IGNORED_CRATE_SOURCE_DIRS.intersection(
+                relative_to_directory.parts
+            ):
+                continue
+            repo_path = path.relative_to(REPO_ROOT).as_posix()
+            if repo_path in declared_set:
+                continue
+            inventory[repo_path] = cache.file_sha256(path)
+
+    digest = hashlib.sha256(canonical_json(inventory)).hexdigest()
+    cache._undeclared_rust_inventories[cache_key] = digest
+    return digest
 
 
 def command_source_directories(args: argparse.Namespace) -> int:
@@ -1313,7 +1498,7 @@ def command_compare(args: argparse.Namespace) -> int:
     )
     all_match = True
     for graph in selected:
-        matches, report = compare_graph(graph, manifest["toolchains"])
+        matches, report = compare_graph(graph, manifest)
         print(report, flush=True)
         all_match &= matches
     return 0 if all_match else 1
@@ -1344,9 +1529,10 @@ def graph_source_paths(
         RUNTIME_REPO_PATH,
         graph["crate_manifest"],
         *(item["path"] for item in graph["inputs"]),
+        *graph["source_files"],
         *WORKSPACE_SOURCE_PATHS,
     }
-    for path in conservative_crate_source_paths(graph, cache=cache):
+    for path in crate_configuration_paths(graph, cache=cache):
         repo_paths.add(path.relative_to(REPO_ROOT).as_posix())
     for module in graph["normalization"]["reuse_modules"]:
         repo_paths.add(
@@ -1403,23 +1589,19 @@ def _local_crate_directories(crate_manifest: Path) -> list[Path]:
     return sorted(visited)
 
 
-def conservative_crate_source_paths(
+def crate_configuration_paths(
     graph: dict[str, Any],
     *,
     cache: SourceSnapshotCache | None = None,
 ) -> list[Path]:
-    """Collect Rust/config inputs which may affect the extracted crate."""
+    """Collect shared Cargo/toolchain configuration for the extracted crate."""
     crate_manifest = REPO_ROOT.joinpath(
         *PurePosixPath(graph["crate_manifest"]).parts
     ).resolve()
-    if cache is not None and crate_manifest in cache._crate_sources:
-        return list(cache._crate_sources[crate_manifest])
+    if cache is not None and crate_manifest in cache._crate_configs:
+        return list(cache._crate_configs[crate_manifest])
     result: set[Path] = set()
     for crate_dir in _local_crate_directories(crate_manifest):
-        for path in crate_dir.rglob("*.rs"):
-            relative = path.relative_to(crate_dir)
-            if not (IGNORED_CRATE_SOURCE_DIRS & set(relative.parts)):
-                result.add(path)
         ancestor = crate_dir
         while _is_within_repo(ancestor):
             for relative in CRATE_CONFIG_NAMES:
@@ -1431,7 +1613,7 @@ def conservative_crate_source_paths(
             ancestor = ancestor.parent
     paths = sorted(result)
     if cache is not None:
-        cache._crate_sources[crate_manifest] = tuple(paths)
+        cache._crate_configs[crate_manifest] = tuple(paths)
     return paths
 
 
@@ -1449,7 +1631,7 @@ def extraction_recipe_sha256(graph: dict[str, Any]) -> str:
 
 def current_graph_source_snapshot(
     graph: dict[str, Any],
-    toolchains: dict[str, Any],
+    manifest: dict[str, Any],
     *,
     cache: SourceSnapshotCache | None = None,
 ) -> dict[str, str]:
@@ -1459,8 +1641,11 @@ def current_graph_source_snapshot(
         "git:HEAD": cache.head(),
         "recipe:graph": extraction_recipe_sha256(graph),
         "recipe:toolchains": hashlib.sha256(
-            canonical_json(toolchains)
+            canonical_json(manifest["toolchains"])
         ).hexdigest(),
+        "inventory:undeclared-rust": undeclared_rust_source_inventory_sha256(
+            manifest, cache=cache
+        ),
     }
     for path in graph_source_paths(graph, cache=cache):
         try:
@@ -1484,18 +1669,18 @@ def source_snapshot_sha256(snapshot: dict[str, str]) -> str:
 
 def current_graph_source_sha256(
     graph: dict[str, Any],
-    toolchains: dict[str, Any],
+    manifest: dict[str, Any],
     *,
     cache: SourceSnapshotCache | None = None,
 ) -> str:
     return source_snapshot_sha256(
-        current_graph_source_snapshot(graph, toolchains, cache=cache)
+        current_graph_source_snapshot(graph, manifest, cache=cache)
     )
 
 
 def graph_ci_success_fingerprint(
     graph: dict[str, Any],
-    toolchains: dict[str, Any],
+    manifest: dict[str, Any],
     *,
     cache: SourceSnapshotCache | None = None,
 ) -> str:
@@ -1518,7 +1703,7 @@ def graph_ci_success_fingerprint(
         "schema_version": 1,
         "graph_id": graph["id"],
         "source_sha256": current_graph_source_sha256(
-            graph, toolchains, cache=cache
+            graph, manifest, cache=cache
         ),
         "output_sha256": cache.file_sha256(output_path),
         "declared_source_sha256": graph.get("source_sha256"),
@@ -1912,9 +2097,7 @@ def command_regenerate(args: argparse.Namespace) -> int:
             "regenerate requires exactly one --graph; run graphs separately"
         )
     graph = selected[0]
-    source_snapshot = current_graph_source_snapshot(
-        graph, manifest["toolchains"]
-    )
+    source_snapshot = current_graph_source_snapshot(graph, manifest)
     manifest_sha256 = sha256_file(args.manifest)
     input_hashes_before = current_input_hashes(graph)
     with tempfile.TemporaryDirectory(
@@ -1926,7 +2109,7 @@ def command_regenerate(args: argparse.Namespace) -> int:
     _assert_source_snapshot_unchanged(
         graph,
         source_snapshot,
-        current_graph_source_snapshot(graph, manifest["toolchains"]),
+        current_graph_source_snapshot(graph, manifest),
     )
     if sha256_file(args.manifest) != manifest_sha256:
         raise ManifestError(
@@ -1972,7 +2155,7 @@ def command_regenerate(args: argparse.Namespace) -> int:
     _assert_source_snapshot_unchanged(
         graph,
         source_snapshot,
-        current_graph_source_snapshot(graph, manifest["toolchains"]),
+        current_graph_source_snapshot(graph, manifest),
     )
     if sha256_file(args.manifest) != manifest_sha256:
         raise ManifestError(
@@ -1987,7 +2170,7 @@ def command_regenerate(args: argparse.Namespace) -> int:
         post_commit_check=lambda: _assert_source_snapshot_unchanged(
             graph,
             source_snapshot,
-            current_graph_source_snapshot(graph, manifest["toolchains"]),
+            current_graph_source_snapshot(graph, manifest),
         ),
     )
     print(
@@ -2039,7 +2222,7 @@ def command_import_recovery(args: argparse.Namespace) -> int:
             toolchains=manifest["toolchains"],
         )
         current_snapshot = current_graph_source_snapshot(
-            graph, manifest["toolchains"], cache=cache
+            graph, manifest, cache=cache
         )
         current_content_snapshot = {
             key: value
@@ -2140,7 +2323,7 @@ def command_import_recovery(args: argparse.Namespace) -> int:
                 graph,
                 source_snapshots[graph_id],
                 current_graph_source_snapshot(
-                    graph, manifest["toolchains"], cache=after_cache
+                    graph, manifest, cache=after_cache
                 ),
             )
             output_path = REPO_ROOT.joinpath(
@@ -2200,7 +2383,7 @@ def command_ci_fingerprint(args: argparse.Namespace) -> int:
         raise ManifestError("ci-fingerprint requires exactly one graph")
     print(
         graph_ci_success_fingerprint(
-            selected[0], manifest["toolchains"]
+            selected[0], manifest
         )
     )
     return 0

@@ -233,7 +233,8 @@ commands = verification_manifest.validated_parity_commands(
 )
 
 for cwd, argv in commands:
-    print(f"snarkpack FV parity: {cwd}: {' '.join(argv)}", flush=True)
+    command = f"{cwd}: {' '.join(argv)}"
+    print(f"snarkpack FV parity: {command}", flush=True)
     completed = subprocess.run(
         list(argv),
         cwd=repo / cwd,
@@ -243,9 +244,18 @@ for cwd, argv in commands:
     )
     print(completed.stdout, end="", flush=True)
     completed.check_returncode()
-    verification_manifest.require_positive_test_execution(
-        completed.stdout, command=f"{cwd}: {' '.join(argv)}"
-    )
+    exact_test = verification_manifest.parity_exact_test_name(argv)
+    if exact_test is None:
+        verification_manifest.require_positive_test_execution(
+            completed.stdout, command=command
+        )
+    else:
+        verification_manifest.require_exact_test_execution(
+            completed.stdout,
+            command=command,
+            expected=1,
+            expected_names=[exact_test],
+        )
 print(f"snarkpack FV parity: {len(commands)} unique command(s)", flush=True)
 PY
 }

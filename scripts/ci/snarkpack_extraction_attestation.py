@@ -54,7 +54,7 @@ def current_fingerprint(
         )
     return _attested_fingerprint(
         EXTRACTIONS.graph_ci_success_fingerprint(
-            selected[0], manifest["toolchains"], cache=cache
+            selected[0], manifest, cache=cache
         )
     )
 
@@ -69,7 +69,7 @@ def _content_snapshot(snapshot: dict[str, str]) -> dict[str, str]:
 
 def _future_base_fingerprint(
     graph: dict[str, Any],
-    toolchains: dict[str, Any],
+    manifest: dict[str, Any],
     output_sha256: str,
     *,
     cache: Any,
@@ -86,7 +86,7 @@ def _future_base_fingerprint(
         "schema_version": 1,
         "graph_id": graph["id"],
         "source_sha256": EXTRACTIONS.current_graph_source_sha256(
-            graph, toolchains, cache=cache
+            graph, manifest, cache=cache
         ),
         "output_sha256": output_sha256,
         "declared_source_sha256": graph.get("source_sha256"),
@@ -123,7 +123,7 @@ def recovery_fingerprint(
     )
 
     current_snapshot = EXTRACTIONS.current_graph_source_snapshot(
-        graph, manifest["toolchains"], cache=cache
+        graph, manifest, cache=cache
     )
     artifact_snapshot = record["source_snapshot"]
     current_content = _content_snapshot(current_snapshot)
@@ -153,7 +153,7 @@ def recovery_fingerprint(
     EXTRACTIONS._apply_recovery_record(updated_graph, record)
     base = _future_base_fingerprint(
         updated_graph,
-        manifest["toolchains"],
+        manifest,
         hashlib.sha256(content).hexdigest(),
         cache=cache,
     )

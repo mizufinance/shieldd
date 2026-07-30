@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "toolchains": {
     "rust": "1.89.0",
     "lean": "leanprover/lean4:v4.30.0",
@@ -18,6 +18,16 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs"
+      ],
       "roots": [
         "ark_ip_proofs::gipa::fold_output"
       ],
@@ -82,6 +92,16 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs"
+      ],
       "roots": [
         "ark_ip_proofs::gipa::rescale_fold_inner"
       ],
@@ -146,6 +166,18 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::tipa::polynomial_evaluation_product_form_from_transcript"
       ],
@@ -210,6 +242,21 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::applications::groth16_aggregation::inverse_powers_with_inverse"
       ],
@@ -274,6 +321,21 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::applications::groth16_aggregation::build_shifted_ck_2_inner"
       ],
@@ -338,6 +400,21 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::applications::groth16_aggregation::structured_scalar_final_from_raw_transcript_inner"
       ],
@@ -402,6 +479,18 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::tipa::verify_commitment_key_g1_kzg_equation_core",
         "ark_ip_proofs::tipa::verify_commitment_key_g1_kzg_opening_core",
@@ -526,6 +615,18 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::tipa::polynomial_coefficients_from_transcript"
       ],
@@ -590,6 +691,16 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs"
+      ],
       "roots": [
         "ark_ip_proofs::gipa::compute_final_commitment_keys_core"
       ],
@@ -656,6 +767,16 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs"
+      ],
       "roots": [
         "ark_ip_proofs::gipa::verify_base_commitment_core"
       ],
@@ -722,6 +843,21 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::applications::groth16_aggregation::fold_public_inputs_core",
         "ark_ip_proofs::applications::groth16_aggregation::verify_ppe_core"
@@ -815,6 +951,21 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp_challenge_prefix_core",
         "ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp_core",
@@ -881,6 +1032,21 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::applications::groth16_aggregation::verify_combined_checks_core"
       ],
@@ -947,8 +1113,14 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs"
+      ],
       "roots": [
+        "ark_ip_proofs::app_verifier::app_verify_accepted_join_projection_core",
         "ark_ip_proofs::app_verifier::app_verify_family_count_core",
+        "ark_ip_proofs::app_verifier::app_verify_join_acceptance_core",
         "ark_ip_proofs::app_verifier::app_verify_normal_acceptance_core",
         "ark_ip_proofs::app_verifier::app_verify_plan_identity_core",
         "ark_ip_proofs::app_verifier::app_verify_plan_ids_core",
@@ -993,7 +1165,45 @@
             "--output-dir",
             "{output_dir}",
             "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_accepted_join_projection_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
             "--charon-args=--start-from=crate::app_verifier::app_verify_family_count_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_join_acceptance_core",
             "--lakefile"
           ],
           "raw_outputs": [
@@ -1360,6 +1570,17 @@
             "--lib",
             "app_verifier"
           ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "app_verifier::tests::accepted_join_projection_is_exact_and_fail_closed",
+            "--",
+            "--exact"
+          ]
         }
       ]
     },
@@ -1371,6 +1592,21 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::applications::groth16_aggregation::aggregate_adapter_core_input_from_parts",
         "ark_ip_proofs::applications::groth16_aggregation::aggregate_adapter_effects_from_parts",
@@ -1391,7 +1627,10 @@
         "ark_ip_proofs::applications::groth16_aggregation::shipping_aggregate_prover_semantic_returned_proof",
         "ark_ip_proofs::applications::groth16_aggregation::shipping_prover_execution_from_parts",
         "ark_ip_proofs::applications::groth16_aggregation::shipping_tipp_mipp_core_input",
+        "ark_ip_proofs::applications::groth16_aggregation::shipping_verifier_observation_core",
+        "ark_ip_proofs::applications::groth16_aggregation::shipping_verifier_observed_backend_result_core",
         "ark_ip_proofs::applications::groth16_aggregation::shipping_verifier_semantic_backend_result_core",
+        "ark_ip_proofs::applications::groth16_aggregation::shipping_verifier_shared_observed_execution_core",
         "ark_ip_proofs::applications::groth16_aggregation::split_vector_at_core",
         "ark_ip_proofs::applications::groth16_aggregation::tipp_mipp_commitment_from_parts",
         "ark_ip_proofs::applications::groth16_aggregation::tipp_mipp_core_input_from_parts",
@@ -1417,6 +1656,63 @@
       ],
       "copy_provenance": [],
       "extractions": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::shipping_verifier_observed_backend_result_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::shipping_verifier_shared_observed_execution_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::applications::groth16_aggregation::shipping_verifier_observation_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
         {
           "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
           "env": {},
@@ -1935,6 +2231,7 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [
+          "Ipp.Extracted.AppVerifierGenerated",
           "Ipp.Extracted.ChallengeFrameGenerated",
           "Ipp.Extracted.CombinedChecksGenerated",
           "Ipp.Extracted.VerifyTippMippGenerated"
@@ -1978,6 +2275,15 @@
             "--lib",
             "prover_gipa_core_"
           ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "shipping_verifier_observed_backend_result_core_correlates_before_arc"
+          ]
         }
       ]
     },
@@ -1989,6 +2295,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::mul"
       ],
@@ -2072,6 +2383,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_f03b"
       ],
@@ -2157,6 +2473,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::inv"
       ],
@@ -2243,6 +2564,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_f04b2"
       ],
@@ -2330,6 +2656,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fr_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fr_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fr_spike::add",
         "ark_ip_proofs::s3_07_arkworks_fr_spike::from_bytes",
@@ -2545,6 +2876,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_16",
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_17"
@@ -2655,6 +2991,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_19"
       ],
@@ -2744,6 +3085,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_21"
       ],
@@ -2834,6 +3180,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_26"
       ],
@@ -2931,6 +3282,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_27"
       ],
@@ -3028,6 +3384,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_28"
       ],
@@ -3127,6 +3488,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_28_glv"
       ],
@@ -3225,6 +3591,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_29"
       ],
@@ -3324,6 +3695,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_30"
       ],
@@ -3423,6 +3799,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_33"
       ],
@@ -3521,6 +3902,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_35"
       ],
@@ -3619,6 +4005,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_36"
       ],
@@ -3718,6 +4109,11 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs"
+      ],
       "roots": [
         "ark_ip_proofs::s3_07_arkworks_fq_spike::extract_s3_37"
       ],
@@ -3818,6 +4214,10 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs"
+      ],
       "roots": [
         "ark_ip_proofs::challenge::challenge_preimage_core",
         "ark_ip_proofs::challenge::checked_next_challenge_nonce"
@@ -3902,6 +4302,21 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_final_bridge_adapter_core",
         "ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_inner_product_adapter_core",
@@ -4128,6 +4543,18 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::tipa::structured_scalar_message::structured_scalar_power"
       ],
@@ -4192,6 +4619,18 @@
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs"
+      ],
       "roots": [
         "ark_ip_proofs::tipa::synthetic_division_coefficients"
       ],

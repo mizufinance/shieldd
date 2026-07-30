@@ -254,7 +254,9 @@ orbis-integration-preflight-bringup:
 # Build the binaries required by the Orbis integration flow.
 orbis-integration-build:
     cargo build --release -p pcli -p pclientd --features bundled-proving-keys
-    cargo build --release -p pd -p orbis-audit -p orbis-integration
+    # Insecure deterministic SRS is confined to the local Orbis integration node.
+    cargo build --release -p pd --features orbis-dev-srs
+    cargo build --release -p orbis-audit -p orbis-integration
 
 # Run the full Orbis integration flow assuming release binaries already exist.
 orbis-integration-run:

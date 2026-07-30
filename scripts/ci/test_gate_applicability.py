@@ -42,15 +42,19 @@ class GateApplicabilityTests(unittest.TestCase):
 
     def synthetic_manifest(self, *graphs: tuple[str, str]) -> dict:
         return {
-            "schema_version": 2,
+            "schema_version": 3,
             "toolchains": {"lean": "test"},
             "graphs": [
                 {
                     "id": graph_id,
                     "output": f"generated/{graph_id}.lean",
                     "crate_manifest": f"crates/{graph_id}/Cargo.toml",
+                    "source_files": [input_path],
                     "inputs": [{"path": input_path}],
-                    "normalization": {"script": "tools/normalize.py"},
+                    "normalization": {
+                        "script": "tools/normalize.py",
+                        "reuse_modules": [],
+                    },
                     "parity": [{"cwd": ".", "argv": ["true"]}],
                 }
                 for graph_id, input_path in graphs
@@ -353,6 +357,29 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual(decision.graphs, ("GraphA",))
         self.assertFalse(decision.unknown_files)
 
+    def test_generated_module_reuse_selects_transitive_dependents(self) -> None:
+        manifest = self.synthetic_manifest(
+            ("GraphA", "src/a.rs"),
+            ("GraphB", "src/b.rs"),
+            ("GraphC", "src/c.rs"),
+        )
+        manifest["graphs"][1]["normalization"]["reuse_modules"] = [
+            "generated.GraphA"
+        ]
+        manifest["graphs"][2]["normalization"]["reuse_modules"] = [
+            "generated.GraphB"
+        ]
+        decision = GATE.classify(
+            self.snarkpack,
+            "pull_request",
+            ["src/a.rs"],
+            self.lean_rules(manifest),
+        )
+        self.assertEqual(
+            decision.graphs,
+            ("GraphA", "GraphB", "GraphC"),
+        )
+
     def test_shared_extractor_normalizer_and_runtime_select_all(self) -> None:
         manifest = self.synthetic_manifest(
             ("GraphA", "src/a.rs"), ("GraphB", "src/b.rs")
@@ -370,9 +397,48 @@ class GateApplicabilityTests(unittest.TestCase):
                 self.assertEqual(decision.tier, "extract-all")
                 self.assertEqual(decision.graphs, ("GraphA", "GraphB"))
 
-    def test_complete_extraction_source_closure_selects_extract_all(
-        self,
-    ) -> None:
+    def test_declared_extraction_source_closure_is_graph_scoped(self) -> None:
+        rules = GATE.derived_rules(
+            self.root,
+            self.snarkpack,
+            "pull_request",
+            None,
+        )
+        manifest = json.loads(
+            (
+                self.root
+                / "crates/crypto/proof-aggregation/formal/snarkpack/"
+                "lean-extraction-manifest.json"
+            ).read_text(encoding="utf-8")
+        )
+        source = (
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
+            "app_verifier.rs"
+        )
+        owners = {
+            graph["id"]
+            for graph in manifest["graphs"]
+            if source in graph["source_files"]
+        }
+        expected = GATE.extraction_reuse_closure(
+            manifest,
+            owners,
+            label="extraction manifest",
+        )
+        decision = GATE.classify(
+            self.snarkpack,
+            "pull_request",
+            [source],
+            rules,
+        )
+        self.assertEqual(
+            (decision.status, decision.tier),
+            ("run", "extract-changed"),
+        )
+        self.assertEqual(decision.graphs, expected)
+        self.assertLess(len(expected), len(manifest["graphs"]))
+
+    def test_undeclared_extraction_sources_select_extract_all(self) -> None:
         rules = GATE.derived_rules(
             self.root,
             self.snarkpack,
@@ -387,19 +453,11 @@ class GateApplicabilityTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
         graph_ids = tuple(sorted(graph["id"] for graph in manifest["graphs"]))
-        previously_missed = (
-            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
-            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/mod.rs",
+        undeclared = (
             "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/poly_commit/mod.rs",
             "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/poly_commit/transparent.rs",
-            "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
-            "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/lib.rs",
-            "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
-            "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/identity/mod.rs",
-            "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
-            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/future_source.rs",
         )
-        for path in previously_missed:
+        for path in undeclared:
             with self.subTest(path=path):
                 decision = GATE.classify(
                     self.snarkpack,
@@ -413,14 +471,44 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertEqual(decision.graphs, graph_ids)
                 self.assertIn(
-                    "complete extracted-crate and local path-dependency "
-                    "source closure",
+                    "undeclared extracted-crate Rust source",
                     decision.matched[-1]["reason"],
                 )
 
+    def test_local_extraction_crate_cargo_change_selects_extract_all(self) -> None:
+        rules = GATE.derived_rules(
+            self.root,
+            self.snarkpack,
+            "pull_request",
+            None,
+        )
+        manifest = json.loads(
+            (
+                self.root
+                / "crates/crypto/proof-aggregation/formal/snarkpack/"
+                "lean-extraction-manifest.json"
+            ).read_text(encoding="utf-8")
+        )
+        graph_ids = tuple(sorted(graph["id"] for graph in manifest["graphs"]))
+        path = (
+            "crates/crypto/proof-aggregation/src/ipp/"
+            "dh_commitments/Cargo.toml"
+        )
+        decision = GATE.classify(
+            self.snarkpack,
+            "pull_request",
+            [path],
+            rules,
+        )
+        self.assertEqual(
+            (decision.status, decision.tier),
+            ("run", "extract-all"),
+        )
+        self.assertEqual(decision.graphs, graph_ids)
+
     def test_malformed_or_missing_manifest_blocks(self) -> None:
         with self.assertRaises(GATE.ClassificationError):
-            self.lean_rules({"schema_version": 2, "graphs": "invalid"})
+            self.lean_rules({"schema_version": 3, "graphs": "invalid"})
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             lean_only = GATE.Declaration(

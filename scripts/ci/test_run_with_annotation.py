@@ -217,6 +217,7 @@ class FormalWorkflowWiringTests(unittest.TestCase):
             "          steps.extraction_pass_cache.outputs.cache-hit != 'true' &&\n"
             "          (\n"
             "            steps.extraction_source_stamp.outputs.state == 'missing' ||\n"
+            "            steps.extraction_fingerprint.outcome == 'failure' ||\n"
             "            steps.extraction_compare.outcome == 'failure'",
             self.workflow,
         )

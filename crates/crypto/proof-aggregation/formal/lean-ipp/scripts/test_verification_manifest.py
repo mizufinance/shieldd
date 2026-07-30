@@ -1686,6 +1686,75 @@ const PRODUCTION_SRS_REGISTRY: &[ProductionSrsRegistryEntry] = &[
             2,
         )
 
+    def test_exact_parity_command_binds_full_test_identity(self):
+        test_name = (
+            "app_verifier::tests::"
+            "accepted_join_projection_is_exact_and_fail_closed"
+        )
+        argv = (
+            "cargo",
+            "test",
+            "--lib",
+            test_name,
+            "--",
+            "--exact",
+        )
+        extraction_manifest = json.loads(
+            VERIFICATION.EXTRACTION_MANIFEST_PATH.read_text(encoding="utf-8")
+        )
+        self.assertIn(
+            (
+                "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+                argv,
+            ),
+            VERIFICATION.validated_parity_commands(
+                extraction_manifest,
+                VERIFICATION.REPO_ROOT,
+                selected_graphs=["AppVerifier"],
+            ),
+        )
+        self.assertEqual(
+            VERIFICATION.parity_exact_test_name(argv),
+            test_name,
+        )
+        self.assertEqual(
+            VERIFICATION.require_exact_test_execution(
+                "running 1 test\n"
+                f"test {test_name} ... ok\n"
+                "\ntest result: ok. 1 passed; 0 failed; 0 ignored\n",
+                command=" ".join(argv),
+                expected=1,
+                expected_names=[test_name],
+            ),
+            1,
+        )
+
+        for output, needle in (
+            ("running 0 tests\n", "executed zero tests"),
+            (
+                "running 1 test\n"
+                "test app_verifier::tests::unrelated ... ok\n",
+                "test identities differ",
+            ),
+        ):
+            with self.subTest(output=output):
+                with self.assertRaises(
+                    VERIFICATION.VerificationError
+                ) as raised:
+                    VERIFICATION.require_exact_test_execution(
+                        output,
+                        command=" ".join(argv),
+                        expected=1,
+                        expected_names=[test_name],
+                    )
+                self.assertIn(needle, str(raised.exception))
+
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.parity_exact_test_name(
+                ("cargo", "test", "--lib", test_name, "--exact")
+            )
+        self.assertIn("exact parity command must be", str(raised.exception))
+
     def test_parity_manifest_rejects_empty_and_unknown_selections(self):
         with tempfile.TemporaryDirectory(
             prefix="snarkpack-parity-"

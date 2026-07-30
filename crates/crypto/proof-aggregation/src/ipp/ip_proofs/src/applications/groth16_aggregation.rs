@@ -25,12 +25,14 @@ use crate::challenge::checked_next_challenge_nonce;
 use crate::{
     app_verifier::{
         app_verify_shipping_backend_call_result, app_verify_shipping_backend_result_from_parts,
-        app_verify_shipping_backend_result_into_parts, AppVerifyCallId, AppVerifyCallResult,
-        AppVerifyShippingBackendResult,
+        app_verify_shipping_backend_result_into_parts,
+        app_verify_shipping_executed_result_into_parts, AppVerifyCallId, AppVerifyCallResult,
+        AppVerifyShippingBackendResult, AppVerifyShippingExecutedResult, AppVerifyShippingResult,
     },
     challenge::{
         challenge_digest, sample_bounded_challenge, sample_bounded_challenge_from_nonce,
-        ChallengeContext, ChallengeNonceExhausted, ChallengeTraceSink, NoopChallengeTraceSink,
+        ChallengeContext, ChallengeNonceExhausted, ChallengeTraceEntry, ChallengeTraceSink,
+        NoopChallengeTraceSink,
     },
     gipa::{
         fold_output, verify_base_commitment_core, BaseCommitmentCoreInput, BaseCommitmentEffect,
@@ -67,16 +69,9 @@ type PairingInnerProductAB<P, D> = TIPA<
     D,
 >;
 
-#[derive(Default)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 struct BufferedChallengeTraceSink {
-    records: Vec<ChallengeTraceRecord>,
-}
-
-struct ChallengeTraceRecord {
-    stage_label: &'static [u8],
-    nonce: u64,
-    preimage: Vec<u8>,
-    digest: Vec<u8>,
+    records: Vec<ChallengeTraceEntry>,
 }
 
 impl BufferedChallengeTraceSink {
@@ -94,7 +89,7 @@ impl BufferedChallengeTraceSink {
 
 impl ChallengeTraceSink for BufferedChallengeTraceSink {
     fn record(&mut self, stage_label: &'static [u8], nonce: u64, preimage: &[u8], digest: &[u8]) {
-        self.records.push(ChallengeTraceRecord {
+        self.records.push(ChallengeTraceEntry {
             stage_label,
             nonce,
             preimage: preimage.to_vec(),
@@ -4267,16 +4262,118 @@ struct ShippingVerifierProfiledSemanticExecution<I, F, TX> {
     execution: ShippingVerifierSemanticExecution<I, F, TX>,
 }
 
+/// Exact semantic execution tagged with the full production call identity.
+///
+/// This value crosses the opaque shipping ownership boundary without erasing
+/// the adapter input, accepted typed challenge calls, checks, TIPP output, or
+/// initial and final effect states. The public byte observation is derived
+/// from this retained execution.
+#[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)] // Retained fields are consumed by the generated formal projection.
+struct ShippingVerifierObservedExecution<I, F, TX> {
+    call_id: AppVerifyCallId,
+    execution: ShippingVerifierSemanticExecution<I, F, TX>,
+}
+
+/// First-order observation derived from the retained shipping execution.
+///
+/// The challenge trace is in deployed call order: every randomizer attempt,
+/// followed by the chronological TIPP/MIPP queries.
+#[doc(hidden)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ShippingVerifierObservation {
+    call_id: AppVerifyCallId,
+    accepted: bool,
+    challenge_context: ChallengeContext,
+    challenge_trace_chronological: BufferedChallengeTraceSink,
+}
+
+impl ShippingVerifierObservation {
+    #[doc(hidden)]
+    pub fn call_id(&self) -> AppVerifyCallId {
+        self.call_id
+    }
+
+    #[doc(hidden)]
+    pub fn accepted(&self) -> bool {
+        self.accepted
+    }
+
+    #[doc(hidden)]
+    pub fn challenge_context(&self) -> &ChallengeContext {
+        &self.challenge_context
+    }
+
+    #[doc(hidden)]
+    pub fn challenge_trace_chronological(&self) -> &[ChallengeTraceEntry] {
+        &self.challenge_trace_chronological.records
+    }
+}
+
+/// Derive the public first-order observation by borrowing the retained exact
+/// semantic execution.
+///
+/// The output has no Arkworks type parameter, trait object, timing value, or
+/// shared-ownership primitive. Acceptance comes only from the retained
+/// semantic execution.
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_verifier_observation_core<I, F, TX>(
+    observed: &ShippingVerifierObservedExecution<I, F, TX>,
+) -> ShippingVerifierObservation {
+    let mut challenge_trace_chronological = observed
+        .execution
+        .final_effect_state
+        .randomizer_trace
+        .clone();
+    challenge_trace_chronological.records.extend_from_slice(
+        &observed
+            .execution
+            .final_effect_state
+            .tipp_mipp_trace
+            .records,
+    );
+    ShippingVerifierObservation {
+        call_id: observed.call_id,
+        accepted: observed.execution.semantic.accepted,
+        challenge_context: observed.execution.final_effect_state.context.clone(),
+        challenge_trace_chronological,
+    }
+}
+
+/// Shared production payload containing both the exact semantic execution and
+/// its deterministically derived public observation.
+#[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)] // Exact execution is consumed by the formal transport boundary.
+struct SharedShippingVerifierObservedExecution<I, F, TX> {
+    observed_execution: ShippingVerifierObservedExecution<I, F, TX>,
+    observation: ShippingVerifierObservation,
+}
+
+/// Pair an exact observed execution with its derived first-order observation
+/// before any shared-ownership transport.
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_verifier_shared_observed_execution_core<I, F, TX>(
+    observed_execution: ShippingVerifierObservedExecution<I, F, TX>,
+) -> SharedShippingVerifierObservedExecution<I, F, TX> {
+    let observation = shipping_verifier_observation_core(&observed_execution);
+    SharedShippingVerifierObservedExecution {
+        observed_execution,
+        observation,
+    }
+}
+
 /// Opaque production ownership of the exact semantic execution/result pair.
 ///
 /// Application and backend code can transport this value but cannot forge a
-/// replacement acceptance bit or inspect Arkworks execution state.
+/// replacement acceptance bit or inspect retained execution state.
+/// `bench-baseline` retains only its diagnostic observation and is outside the
+/// shipping formal-verification claim.
 #[doc(hidden)]
 pub struct ShippingVerifierExecutionCarrier<P: Pairing> {
     #[cfg(not(feature = "bench-baseline"))]
-    retained: Arc<ArkworksShippingVerifierSemanticExecution<P>>,
+    retained: Arc<ArkworksSharedShippingVerifierObservedExecution<P>>,
     #[cfg(feature = "bench-baseline")]
-    retained: Arc<BenchmarkShippingVerifierExecution>,
+    retained: Arc<ShippingVerifierObservation>,
     _pairing: PhantomData<fn() -> P>,
 }
 
@@ -4297,10 +4394,19 @@ impl<P: Pairing> fmt::Debug for ShippingVerifierExecutionCarrier<P> {
     }
 }
 
-#[cfg(feature = "bench-baseline")]
-#[derive(Debug)]
-struct BenchmarkShippingVerifierExecution {
-    accepted: bool,
+impl<P: Pairing> ShippingVerifierExecutionCarrier<P> {
+    #[doc(hidden)]
+    pub fn shipping_observation(&self) -> &ShippingVerifierObservation {
+        #[cfg(not(feature = "bench-baseline"))]
+        {
+            &self.retained.observation
+        }
+
+        #[cfg(feature = "bench-baseline")]
+        {
+            self.retained.as_ref()
+        }
+    }
 }
 
 /// Shipping-only profiled result retaining the exact verifier execution.
@@ -4320,6 +4426,18 @@ impl<P: Pairing> ShippingAggregateProofVerification<P> {
     ) {
         (self.profile, self.backend_result)
     }
+}
+
+/// Remove the application result wrapper while retaining the exact verifier
+/// carrier authenticated by it.
+#[doc(hidden)]
+pub fn shipping_verifier_executed_result_into_parts<P: Pairing>(
+    executed: AppVerifyShippingExecutedResult<ShippingVerifierExecutionCarrier<P>>,
+) -> (AppVerifyShippingResult, ShippingVerifierExecutionCarrier<P>) {
+    let (shipping_result, backend_result) =
+        app_verify_shipping_executed_result_into_parts(executed);
+    let (carrier, _) = app_verify_shipping_backend_result_into_parts(backend_result);
+    (shipping_result, carrier)
 }
 
 #[derive(Clone, Debug, Default)]
@@ -4704,16 +4822,34 @@ fn shipping_verifier_semantic_backend_result_core<I, F, TX>(
     app_verify_shipping_backend_result_from_parts(execution, result)
 }
 
+/// Tag one consumed semantic execution with the exact result before shared
+/// ownership.
+///
+/// The retained execution receives the exact result identifier produced from
+/// `call_id`, and the result bit comes from that same semantic execution.
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_verifier_observed_backend_result_core<I, F, TX>(
+    call_id: AppVerifyCallId,
+    execution: ShippingVerifierSemanticExecution<I, F, TX>,
+) -> AppVerifyShippingBackendResult<ShippingVerifierObservedExecution<I, F, TX>> {
+    let semantic_result = shipping_verifier_semantic_backend_result_core(call_id, execution);
+    let (execution, result) = app_verify_shipping_backend_result_into_parts(semantic_result);
+    let observed_execution = ShippingVerifierObservedExecution {
+        call_id: result.id,
+        execution,
+    };
+    app_verify_shipping_backend_result_from_parts(observed_execution, result)
+}
+
 #[cfg(feature = "bench-baseline")]
 fn benchmark_shipping_verifier_backend_result_core(
-    call_id: AppVerifyCallId,
-    execution: BenchmarkShippingVerifierExecution,
-) -> AppVerifyShippingBackendResult<BenchmarkShippingVerifierExecution> {
+    observation: ShippingVerifierObservation,
+) -> AppVerifyShippingBackendResult<ShippingVerifierObservation> {
     let result = AppVerifyCallResult {
-        id: call_id,
-        accepted: execution.accepted,
+        id: observation.call_id,
+        accepted: observation.accepted,
     };
-    app_verify_shipping_backend_result_from_parts(execution, result)
+    app_verify_shipping_backend_result_from_parts(observation, result)
 }
 
 #[cfg(not(feature = "bench-baseline"))]
@@ -4737,26 +4873,89 @@ type ArkworksShippingVerifierSemanticExecution<P> = ShippingVerifierSemanticExec
 >;
 
 #[cfg(not(feature = "bench-baseline"))]
-fn retain_shipping_verifier_backend_result<P: Pairing>(
-    exact: AppVerifyShippingBackendResult<ArkworksShippingVerifierSemanticExecution<P>>,
-) -> AppVerifyShippingBackendResult<ShippingVerifierExecutionCarrier<P>> {
-    let (execution, result) = app_verify_shipping_backend_result_into_parts(exact);
-    let carrier = ShippingVerifierExecutionCarrier {
-        retained: Arc::new(execution),
+type ArkworksShippingVerifierObservedExecution<P> = ShippingVerifierObservedExecution<
+    AggregateAdapterCoreInput<
+        <P as Pairing>::ScalarField,
+        <P as Pairing>::G1,
+        <P as Pairing>::G2,
+        <P as Pairing>::G2Prepared,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        <P as Pairing>::G1,
+    >,
+    <P as Pairing>::ScalarField,
+    TippMippCoreOutput<
+        <P as Pairing>::ScalarField,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        <P as Pairing>::G1,
+    >,
+>;
+
+#[cfg(not(feature = "bench-baseline"))]
+type ArkworksSharedShippingVerifierObservedExecution<P> = SharedShippingVerifierObservedExecution<
+    AggregateAdapterCoreInput<
+        <P as Pairing>::ScalarField,
+        <P as Pairing>::G1,
+        <P as Pairing>::G2,
+        <P as Pairing>::G2Prepared,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        <P as Pairing>::G1,
+    >,
+    <P as Pairing>::ScalarField,
+    TippMippCoreOutput<
+        <P as Pairing>::ScalarField,
+        PairingOutput<P>,
+        PairingOutput<P>,
+        <P as Pairing>::G1,
+    >,
+>;
+
+#[cfg(not(feature = "bench-baseline"))]
+fn share_shipping_verifier_observed_execution<I, F, TX>(
+    observed_execution: ShippingVerifierObservedExecution<I, F, TX>,
+) -> Arc<SharedShippingVerifierObservedExecution<I, F, TX>> {
+    Arc::new(shipping_verifier_shared_observed_execution_core(
+        observed_execution,
+    ))
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_verifier_execution_carrier_from_observed_execution<P: Pairing>(
+    observed_execution: ArkworksShippingVerifierObservedExecution<P>,
+) -> ShippingVerifierExecutionCarrier<P> {
+    ShippingVerifierExecutionCarrier {
+        retained: share_shipping_verifier_observed_execution(observed_execution),
         _pairing: PhantomData,
-    };
+    }
+}
+
+#[cfg(feature = "bench-baseline")]
+fn shipping_verifier_execution_carrier_from_observation<P: Pairing>(
+    observation: ShippingVerifierObservation,
+) -> ShippingVerifierExecutionCarrier<P> {
+    ShippingVerifierExecutionCarrier {
+        retained: Arc::new(observation),
+        _pairing: PhantomData,
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn retain_shipping_verifier_backend_result<P: Pairing>(
+    observed: AppVerifyShippingBackendResult<ArkworksShippingVerifierObservedExecution<P>>,
+) -> AppVerifyShippingBackendResult<ShippingVerifierExecutionCarrier<P>> {
+    let (observed_execution, result) = app_verify_shipping_backend_result_into_parts(observed);
+    let carrier = shipping_verifier_execution_carrier_from_observed_execution(observed_execution);
     app_verify_shipping_backend_result_from_parts(carrier, result)
 }
 
 #[cfg(feature = "bench-baseline")]
-fn retain_benchmark_shipping_verifier_backend_result<P: Pairing>(
-    exact: AppVerifyShippingBackendResult<BenchmarkShippingVerifierExecution>,
+fn retain_shipping_verifier_backend_result<P: Pairing>(
+    observed: AppVerifyShippingBackendResult<ShippingVerifierObservation>,
 ) -> AppVerifyShippingBackendResult<ShippingVerifierExecutionCarrier<P>> {
-    let (execution, result) = app_verify_shipping_backend_result_into_parts(exact);
-    let carrier = ShippingVerifierExecutionCarrier {
-        retained: Arc::new(execution),
-        _pairing: PhantomData,
-    };
+    let (observation, result) = app_verify_shipping_backend_result_into_parts(observed);
+    let carrier = shipping_verifier_execution_carrier_from_observation(observation);
     app_verify_shipping_backend_result_from_parts(carrier, result)
 }
 
@@ -5089,8 +5288,9 @@ where
     }
 }
 
-/// Shipping-only verifier entry retaining the exact semantic execution behind
-/// the backend result consumed by the application.
+/// Shipping-only verifier entry retaining the exact semantic execution
+/// consumed by the application. Its first-order observation is derived from
+/// that retained value.
 #[doc(hidden)]
 pub fn verify_validated_aggregate_proof_shipping_profiled<P, D>(
     call_id: AppVerifyCallId,
@@ -5115,8 +5315,8 @@ where
             public_inputs,
             proof,
         )?;
-        let exact = shipping_verifier_semantic_backend_result_core(call_id, execution.execution);
-        let backend_result = retain_shipping_verifier_backend_result::<P>(exact);
+        let observed = shipping_verifier_observed_backend_result_core(call_id, execution.execution);
+        let backend_result = retain_shipping_verifier_backend_result::<P>(observed);
         let mut profile = execution.profile;
         profile.accepted = app_verify_shipping_backend_call_result(&backend_result).accepted;
         return Ok(ShippingAggregateProofVerification {
@@ -5127,20 +5327,22 @@ where
 
     #[cfg(feature = "bench-baseline")]
     {
-        let mut profile = verify_validated_aggregate_proof_profiled(
+        let mut challenge_trace = BufferedChallengeTraceSink::default();
+        let mut profile = verify_validated_aggregate_proof_profiled_with_trace(
             context,
+            &mut challenge_trace,
             ip_verifier_srs,
             pvk,
             public_inputs,
             proof,
         )?;
-        let exact = benchmark_shipping_verifier_backend_result_core(
+        let exact = benchmark_shipping_verifier_backend_result_core(ShippingVerifierObservation {
             call_id,
-            BenchmarkShippingVerifierExecution {
-                accepted: profile.accepted,
-            },
-        );
-        let backend_result = retain_benchmark_shipping_verifier_backend_result::<P>(exact);
+            accepted: profile.accepted,
+            challenge_context: context.clone(),
+            challenge_trace_chronological: challenge_trace,
+        });
+        let backend_result = retain_shipping_verifier_backend_result::<P>(exact);
         profile.accepted = app_verify_shipping_backend_call_result(&backend_result).accepted;
         Ok(ShippingAggregateProofVerification {
             profile,
@@ -6028,6 +6230,362 @@ mod tests {
     use ark_std::rand::{rngs::StdRng, SeedableRng};
     use ark_std::One;
     use blake2::Blake2b;
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn shipping_verifier_observed_backend_result_core_correlates_before_arc() {
+        let call_id = AppVerifyCallId {
+            order_index: 7,
+            segment_index: 11,
+            family_index: 13,
+            family: crate::app_verifier::AppVerifyFamilyCode {
+                proof_family_id: 17,
+                note_reshape_family_id: 19,
+                shielded_ics20_withdrawal_family_id: 23,
+            },
+        };
+        let context = ChallengeContext::from_statement_digest([29; 32]);
+
+        let mut initial_randomizer_trace = BufferedChallengeTraceSink::default();
+        initial_randomizer_trace.record(b"initial-only", 31, &[37], &[41]);
+
+        let mut randomizer_trace = BufferedChallengeTraceSink::default();
+        randomizer_trace.record(b"aggregate.randomizer", 0, &[43], &[47]);
+        randomizer_trace.record(b"aggregate.randomizer", 1, &[53], &[59]);
+
+        let mut tipp_mipp_trace = BufferedChallengeTraceSink::default();
+        tipp_mipp_trace.record(b"tipp_mipp.x0", 0, &[61], &[67]);
+        tipp_mipp_trace.record(b"tipp_mipp.round", 2, &[71], &[73]);
+        tipp_mipp_trace.record(b"tipp_mipp.final_bridge", 0, &[79], &[83]);
+        tipp_mipp_trace.record(b"tipp_mipp.kzg", 0, &[89], &[97]);
+
+        let make_accepted_tipp_mipp_challenge_trace = || ShippingAcceptedTippMippChallengeTrace {
+            x0: Some(ShippingAcceptedChallengeCall {
+                accepted_nonce: 0,
+                message: vec![107],
+                value: 109u64,
+            }),
+            rounds_chrono: vec![ShippingAcceptedChallengeCall {
+                accepted_nonce: 2,
+                message: vec![113],
+                value: 127u64,
+            }],
+            final_bridge: Some(ShippingAcceptedChallengeCall {
+                accepted_nonce: 0,
+                message: vec![131],
+                value: 137u64,
+            }),
+            kzg: Some(ShippingAcceptedChallengeCall {
+                accepted_nonce: 0,
+                message: vec![139],
+                value: 149u64,
+            }),
+        };
+        let make_execution = || {
+            shipping_verifier_semantic_execution_from_parts(
+                shipping_adapter_semantic_execution_from_parts(
+                    (),
+                    0,
+                    1,
+                    101u64,
+                    ShippingAcceptedRandomizerCall {
+                        initial_nonce: 0,
+                        accepted_nonce: 1,
+                        message: vec![103],
+                        value: 101,
+                    },
+                    make_accepted_tipp_mipp_challenge_trace(),
+                    (true, true),
+                    151u64,
+                    true,
+                ),
+                shipping_verifier_effect_state_from_parts(
+                    context.clone(),
+                    initial_randomizer_trace.clone(),
+                    BufferedChallengeTraceSink::default(),
+                ),
+                shipping_verifier_effect_state_from_parts(
+                    context.clone(),
+                    randomizer_trace.clone(),
+                    tipp_mipp_trace.clone(),
+                ),
+            )
+        };
+
+        let execution = make_execution();
+        let observed = shipping_verifier_observed_backend_result_core(call_id, execution);
+        let (observed_execution, expected_result) =
+            app_verify_shipping_backend_result_into_parts(observed);
+        let expected_observation = shipping_verifier_observation_core(&observed_execution);
+        assert_eq!(expected_result.id, expected_observation.call_id());
+        assert_eq!(expected_result.accepted, expected_observation.accepted());
+        assert_eq!(observed_execution.call_id, call_id);
+        assert_eq!(observed_execution.execution.semantic.adapter_input, ());
+        assert_eq!(observed_execution.execution.semantic.initial_nonce, 0);
+        assert_eq!(observed_execution.execution.semantic.accepted_nonce, 1);
+        assert_eq!(observed_execution.execution.semantic.randomizer, 101);
+        assert_eq!(
+            observed_execution
+                .execution
+                .semantic
+                .accepted_randomizer_call
+                .initial_nonce,
+            0
+        );
+        assert_eq!(
+            observed_execution
+                .execution
+                .semantic
+                .accepted_randomizer_call
+                .accepted_nonce,
+            1
+        );
+        assert_eq!(
+            observed_execution
+                .execution
+                .semantic
+                .accepted_randomizer_call
+                .message,
+            vec![103]
+        );
+        assert_eq!(
+            observed_execution
+                .execution
+                .semantic
+                .accepted_randomizer_call
+                .value,
+            101
+        );
+        let accepted_tipp_mipp = &observed_execution
+            .execution
+            .semantic
+            .accepted_tipp_mipp_challenge_trace;
+        let x0 = accepted_tipp_mipp.x0.as_ref().expect("x0 call survives");
+        assert_eq!(
+            (x0.accepted_nonce, x0.message.as_slice(), x0.value),
+            (0, [107u8].as_slice(), 109)
+        );
+        assert_eq!(accepted_tipp_mipp.rounds_chrono.len(), 1);
+        let round = &accepted_tipp_mipp.rounds_chrono[0];
+        assert_eq!(
+            (round.accepted_nonce, round.message.as_slice(), round.value),
+            (2, [113u8].as_slice(), 127)
+        );
+        let bridge = accepted_tipp_mipp
+            .final_bridge
+            .as_ref()
+            .expect("bridge call survives");
+        assert_eq!(
+            (
+                bridge.accepted_nonce,
+                bridge.message.as_slice(),
+                bridge.value
+            ),
+            (0, [131u8].as_slice(), 137)
+        );
+        let kzg = accepted_tipp_mipp.kzg.as_ref().expect("KZG call survives");
+        assert_eq!(
+            (kzg.accepted_nonce, kzg.message.as_slice(), kzg.value),
+            (0, [139u8].as_slice(), 149)
+        );
+        assert_eq!(observed_execution.execution.semantic.checks, (true, true));
+        assert_eq!(observed_execution.execution.semantic.tipp_mipp, 151);
+        assert!(observed_execution.execution.semantic.accepted);
+        assert_eq!(
+            observed_execution.execution.initial_effect_state.context,
+            context
+        );
+        assert_eq!(
+            observed_execution
+                .execution
+                .initial_effect_state
+                .randomizer_trace
+                .records
+                .iter()
+                .map(|record| (record.stage_label, record.nonce))
+                .collect::<Vec<_>>(),
+            vec![(b"initial-only".as_slice(), 31)]
+        );
+        assert!(observed_execution
+            .execution
+            .initial_effect_state
+            .tipp_mipp_trace
+            .records
+            .is_empty());
+        assert_eq!(
+            observed_execution.execution.final_effect_state.context,
+            context
+        );
+
+        let shared = shipping_verifier_shared_observed_execution_core(observed_execution);
+        assert_eq!(shared.observation, expected_observation);
+        let retained = Arc::new(shared);
+        let retained_clone = Arc::clone(&retained);
+        assert!(Arc::ptr_eq(&retained, &retained_clone));
+        let retained_execution = &retained.observed_execution;
+        assert_eq!(retained_execution.call_id, call_id);
+        assert_eq!(retained_execution.execution.semantic.adapter_input, ());
+        assert_eq!(retained_execution.execution.semantic.randomizer, 101);
+        assert_eq!(
+            retained_execution
+                .execution
+                .semantic
+                .accepted_randomizer_call
+                .value,
+            101
+        );
+        assert_eq!(
+            retained_execution
+                .execution
+                .semantic
+                .accepted_tipp_mipp_challenge_trace
+                .x0
+                .as_ref()
+                .expect("retained x0 call")
+                .value,
+            109
+        );
+        assert_eq!(
+            retained_execution
+                .execution
+                .semantic
+                .accepted_tipp_mipp_challenge_trace
+                .rounds_chrono[0]
+                .value,
+            127
+        );
+        assert_eq!(
+            retained_execution
+                .execution
+                .semantic
+                .accepted_tipp_mipp_challenge_trace
+                .final_bridge
+                .as_ref()
+                .expect("retained bridge call")
+                .value,
+            137
+        );
+        assert_eq!(
+            retained_execution
+                .execution
+                .semantic
+                .accepted_tipp_mipp_challenge_trace
+                .kzg
+                .as_ref()
+                .expect("retained KZG call")
+                .value,
+            149
+        );
+        assert_eq!(retained_execution.execution.semantic.checks, (true, true));
+        assert_eq!(retained_execution.execution.semantic.tipp_mipp, 151);
+        assert_eq!(
+            retained_execution.execution.initial_effect_state.context,
+            context
+        );
+        assert_eq!(
+            retained_execution
+                .execution
+                .initial_effect_state
+                .randomizer_trace
+                .records
+                .iter()
+                .map(|record| (record.stage_label, record.nonce))
+                .collect::<Vec<_>>(),
+            vec![(b"initial-only".as_slice(), 31)]
+        );
+        assert_eq!(
+            retained_execution.execution.final_effect_state.context,
+            context
+        );
+        assert_eq!(
+            retained_execution
+                .execution
+                .final_effect_state
+                .randomizer_trace
+                .records
+                .iter()
+                .map(|record| (record.stage_label, record.nonce))
+                .collect::<Vec<_>>(),
+            vec![
+                (b"aggregate.randomizer".as_slice(), 0),
+                (b"aggregate.randomizer".as_slice(), 1),
+            ]
+        );
+        assert_eq!(
+            retained_execution
+                .execution
+                .final_effect_state
+                .tipp_mipp_trace
+                .records
+                .iter()
+                .map(|record| (record.stage_label, record.nonce))
+                .collect::<Vec<_>>(),
+            vec![
+                (b"tipp_mipp.x0".as_slice(), 0),
+                (b"tipp_mipp.round".as_slice(), 2),
+                (b"tipp_mipp.final_bridge".as_slice(), 0),
+                (b"tipp_mipp.kzg".as_slice(), 0),
+            ]
+        );
+
+        let retained_observation = &retained.observation;
+        assert_eq!(retained_observation, &expected_observation);
+        assert_eq!(expected_result.accepted, retained_observation.accepted());
+        assert_eq!(retained_observation.call_id(), call_id);
+        assert!(retained_observation.accepted());
+        assert_eq!(retained_observation.challenge_context(), &context);
+        assert_eq!(
+            retained_observation
+                .challenge_trace_chronological()
+                .iter()
+                .map(|record| (record.stage_label, record.nonce))
+                .collect::<Vec<_>>(),
+            vec![
+                (b"aggregate.randomizer".as_slice(), 0),
+                (b"aggregate.randomizer".as_slice(), 1),
+                (b"tipp_mipp.x0".as_slice(), 0),
+                (b"tipp_mipp.round".as_slice(), 2),
+                (b"tipp_mipp.final_bridge".as_slice(), 0),
+                (b"tipp_mipp.kzg".as_slice(), 0),
+            ]
+        );
+        assert_eq!(
+            retained_observation
+                .challenge_trace_chronological()
+                .iter()
+                .map(|record| (record.preimage.clone(), record.digest.clone()))
+                .collect::<Vec<_>>(),
+            vec![
+                (vec![43], vec![47]),
+                (vec![53], vec![59]),
+                (vec![61], vec![67]),
+                (vec![71], vec![73]),
+                (vec![79], vec![83]),
+                (vec![89], vec![97]),
+            ]
+        );
+
+        let observed_for_share =
+            shipping_verifier_observed_backend_result_core(call_id, make_execution());
+        let (observed_for_share, shared_result) =
+            app_verify_shipping_backend_result_into_parts(observed_for_share);
+        let shared_by_production_helper =
+            share_shipping_verifier_observed_execution(observed_for_share);
+        assert_eq!(shared_result, expected_result);
+        assert_eq!(
+            shared_by_production_helper.observation,
+            expected_observation
+        );
+        assert_eq!(
+            shared_by_production_helper
+                .observed_execution
+                .execution
+                .semantic
+                .accepted_randomizer_call
+                .value,
+            101
+        );
+    }
 
     #[derive(Default)]
     struct ScriptedProverGipaEffect;
