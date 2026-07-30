@@ -417,7 +417,11 @@ class ImpactPlannerTests(unittest.TestCase):
         )
         self.assertTrue(result.static)
         self.assertEqual(result.extraction_graphs, ())
-        self.assertEqual(result.lean_modules, ())
+        modules, _ = IMPACT.lean_import_graph(ROOT)
+        self.assertEqual(
+            set(result.lean_modules),
+            set(IMPACT.lean_audit_modules(modules)),
+        )
         self.assertEqual(result.fstar_proofs, ())
         self.assertFalse(result.fstar_force_all)
         self.assertFalse(result.parity)

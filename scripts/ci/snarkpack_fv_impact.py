@@ -72,12 +72,20 @@ LEAN_GLOBAL_INPUTS = {
     (LEAN_ROOT / "lakefile.lean").as_posix(),
     (LEAN_ROOT / "lake-manifest.json").as_posix(),
     (LEAN_ROOT / "lean-toolchain").as_posix(),
+    (
+        "crates/crypto/proof-aggregation/formal/snarkpack/"
+        "aeneas-toolchain.toml"
+    ),
 }
 LEAN_AUDIT_CONTROL_INPUTS = {
+    ".github/workflows/formal.yml",
+    "ci/gates/snarkpack-formal.json",
     FSTAR_MANIFEST.as_posix(),
     FSTAR_VERIFIER.as_posix(),
     "justfile",
+    "scripts/ci/gate-applicability.py",
     "scripts/ci/run_with_annotation.py",
+    "scripts/ci/snarkpack_fv_impact.py",
     "scripts/ci/snarkpack_lean_attestation.py",
     "scripts/snarkpack-fv.sh",
 }

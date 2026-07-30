@@ -204,7 +204,7 @@ class FormalWorkflowWiringTests(unittest.TestCase):
     def test_formal_caches_have_exact_success_and_progress_keys(self) -> None:
         self.assertIn("snarkpack-extract-v4-", self.workflow)
         self.assertIn("-progress-${{ github.run_id }}-", self.workflow)
-        self.assertIn("lean-ipp-v6-", self.workflow)
+        self.assertIn("lean-ipp-v7-", self.workflow)
         self.assertIn("snarkpack-extraction-pass-v1-", self.workflow)
         self.assertIn(
             "steps.extraction_compare.outcome == 'success'",

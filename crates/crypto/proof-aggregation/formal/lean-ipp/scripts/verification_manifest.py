@@ -93,7 +93,7 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "d1ebdc6b5dd82bb03d0b22784134b57a66165cb49effada2f1f5f7d9d614d256"
+    "087d026aa0c7867244c512be825705247625808b02eddb89e9f7c6e0a576e143"
 )
 ASSUMPTION_LEDGER_SHA256 = (
     "d3e4be465b8987f998cac20c22bdd416c04cdd3118e97e4d17a618ddef4672f3"
@@ -124,7 +124,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "statement_binding_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "966d49c5f4ee10e0f0f4f0d5301fbe794c318070b21ebbde6fe4c7b1a5fcce3c"
+    "df8c4413bcbb421d19abb6da6844608dba63945e0dd24261de033fe61e9efcec"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -2773,6 +2773,42 @@ def validate_operation_register(register: dict[str, Any]) -> None:
         )
     if not isinstance(register.get("frontier_note"), str) or not register["frontier_note"]:
         raise VerificationError("frontier_note must be nonempty")
+
+
+def validate_audit_contract(
+    manifest: dict[str, Any],
+    *,
+    lean_root: Path = LEAN_ROOT,
+) -> tuple[list[AuditDiagnostic], set[str]]:
+    """Validate only the immutable Lean audit contract.
+
+    This intentionally excludes extraction, F*, conformance, and operation
+    evidence. It is used to re-run the current axiom parser over cached raw
+    Lean diagnostics without coupling the Lean lane to independent evidence
+    lanes.
+    """
+    if manifest.get("schema_version") != 1:
+        raise VerificationError("schema_version must be 1")
+    allowed_axioms = _require_nonempty_list(manifest, "allowed_axioms")
+    if not all(isinstance(axiom, str) and axiom for axiom in allowed_axioms):
+        raise VerificationError("allowed_axioms entries must be nonempty strings")
+    if len(set(allowed_axioms)) != len(allowed_axioms):
+        raise VerificationError("allowed_axioms contains duplicates")
+    diagnostics = manifest_audit_diagnostics(
+        manifest,
+        lean_root=lean_root,
+        require_complete_inventory=True,
+    )
+    verification_contract = _verification_contract_payload(manifest)
+    verification_contract_digest = hashlib.sha256(
+        _canonical_json(verification_contract).encode("utf-8")
+    ).hexdigest()
+    if verification_contract_digest != VERIFICATION_CONTRACT_SHA256:
+        raise VerificationError(
+            "verification contract digest differs from the independent gate "
+            "owner"
+        )
+    return diagnostics, set(allowed_axioms)
 
 
 def validate_repository(

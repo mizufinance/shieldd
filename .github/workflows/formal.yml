@@ -426,15 +426,15 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: crates/crypto/proof-aggregation/formal/lean-ipp/.lake
-          key: lean-ipp-v6-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-${{ steps.lean_fingerprint.outputs.state_sha256 }}
+          key: lean-ipp-v7-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-${{ steps.lean_fingerprint.outputs.state_sha256 }}
           restore-keys: |
+            lean-ipp-v7-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-
             lean-ipp-v6-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-
       - name: Validate restored markers and plan only pending Lean modules
         id: lean_plan
         shell: bash
         env:
           EXACT_CACHE: ${{ steps.lean_cache.outputs.cache-hit == 'true' && '1' || '0' }}
-          FORCE_ALL: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch') && '1' || '0' }}
           LEAN_MODULES_JSON: ${{ needs.applicability.outputs.snarkpack_lean_modules }}
         run: |
           set -euo pipefail
@@ -445,9 +445,6 @@ jobs:
           )
           if [[ "$EXACT_CACHE" == 1 ]]; then
             args+=(--exact-cache)
-          fi
-          if [[ "$FORCE_ALL" == 1 ]]; then
-            args+=(--force-all)
           fi
           python3 scripts/ci/snarkpack_lean_attestation.py "${args[@]}"
       - name: Build only pending modules in one serialized Lean invocation
@@ -461,10 +458,39 @@ jobs:
           python3 scripts/ci/run_with_annotation.py
           --title "SnarkPack pending Lean modules"
           -- just snarkpack-fv
-      - name: Atomically attest modules only after their build succeeds
+      - name: Refresh only missing or changed audit diagnostics
+        id: lean_audit_refresh
+        if: >-
+          steps.lean_plan.outputs.pending_audits == 'true' &&
+          (steps.lean_plan.outputs.pending == 'false' ||
+           steps.lean_build.outcome == 'success')
+        env:
+          LEAN_NUM_THREADS: "1"
+          SNARKPACK_FV_MODE: lean-audit-changed
+          SNARKPACK_LEAN_MODULES_JSON: ${{ steps.lean_plan.outputs.pending_audit_modules }}
+          SNARKPACK_LEAN_AUDIT_LOG_DIR: ${{ runner.temp }}/snarkpack-lean-audit
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack pending Lean audit diagnostics"
+          -- just snarkpack-fv
+      - name: Validate and cache refreshed raw audit evidence
+        id: lean_audit_record
+        if: >-
+          steps.lean_plan.outputs.pending_audits == 'true' &&
+          steps.lean_audit_refresh.outcome == 'success'
+        env:
+          PENDING_LEAN_AUDITS_JSON: ${{ steps.lean_plan.outputs.pending_audit_modules }}
+        run: >-
+          python3 scripts/ci/snarkpack_lean_attestation.py record-audit
+          --modules-json "$PENDING_LEAN_AUDITS_JSON"
+          --input-dir "${{ runner.temp }}/snarkpack-lean-audit"
+      - name: Atomically attest modules only after builds and audits succeed
+        id: lean_record
         if: >-
           steps.lean_plan.outputs.pending == 'true' &&
-          steps.lean_build.outcome == 'success'
+          steps.lean_build.outcome == 'success' &&
+          (steps.lean_plan.outputs.pending_audits == 'false' ||
+           steps.lean_audit_record.outcome == 'success')
         env:
           PENDING_LEAN_MODULES_JSON: ${{ steps.lean_plan.outputs.pending_modules }}
         run: >-
@@ -473,23 +499,33 @@ jobs:
       - name: Validate the complete current Lean attestation
         id: lean_attestation
         if: >-
-          steps.lean_plan.outputs.pending == 'false' ||
-          steps.lean_build.outcome == 'success'
+          (steps.lean_plan.outputs.pending == 'false' ||
+           steps.lean_record.outcome == 'success') &&
+          (steps.lean_plan.outputs.pending_audits == 'false' ||
+           steps.lean_audit_record.outcome == 'success')
         env:
           LEAN_MODULES_JSON: ${{ needs.applicability.outputs.snarkpack_lean_modules }}
         run: >-
           python3 scripts/ci/snarkpack_lean_attestation.py plan
           --modules-json "$LEAN_MODULES_JSON"
           --exact-cache
+      - name: Re-run the current axiom parser against cached raw audit evidence
+        id: lean_audit
+        if: steps.lean_attestation.outcome == 'success'
+        env:
+          LEAN_MODULES_JSON: ${{ needs.applicability.outputs.snarkpack_lean_modules }}
+        run: >-
+          python3 scripts/ci/snarkpack_lean_attestation.py validate-audit
+          --modules-json "$LEAN_MODULES_JSON"
       - name: Save the exact successful per-module Lean cache
         if: >-
-          steps.lean_attestation.outcome == 'success' &&
+          steps.lean_audit.outcome == 'success' &&
           steps.lean_cache.outputs.cache-hit != 'true'
         continue-on-error: true
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: crates/crypto/proof-aggregation/formal/lean-ipp/.lake
-          key: lean-ipp-v6-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-${{ steps.lean_fingerprint.outputs.state_sha256 }}
+          key: lean-ipp-v7-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-${{ steps.lean_fingerprint.outputs.state_sha256 }}
       - name: Save source-specific Lean progress after a proof failure
         if: >-
           failure() &&
@@ -498,7 +534,7 @@ jobs:
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: crates/crypto/proof-aggregation/formal/lean-ipp/.lake
-          key: lean-ipp-v6-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-progress-${{ github.run_id }}-${{ github.run_attempt }}
+          key: lean-ipp-v7-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json', 'crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean', 'crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain') }}-progress-${{ github.run_id }}-${{ github.run_attempt }}
 
   # Runs outside the Aeneas FV image on purpose.
   # snarkpack-formal.sh re-checks every version it is given against

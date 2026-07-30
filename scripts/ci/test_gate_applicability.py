@@ -480,7 +480,7 @@ class GateApplicabilityTests(unittest.TestCase):
             workflow,
         )
         lean_key = (
-            "lean-ipp-v6-${{ runner.os }}-${{ "
+            "lean-ipp-v7-${{ runner.os }}-${{ "
             "hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/"
             "lake-manifest.json', "
             "'crates/crypto/proof-aggregation/formal/lean-ipp/"
@@ -489,6 +489,16 @@ class GateApplicabilityTests(unittest.TestCase):
             "lean-toolchain') }}"
         )
         self.assertEqual(workflow.count(lean_key), 4)
+        self.assertIn(
+            "lean-ipp-v6-${{ runner.os }}-${{ "
+            "hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/"
+            "lake-manifest.json', "
+            "'crates/crypto/proof-aggregation/formal/lean-ipp/"
+            "lakefile.lean', "
+            "'crates/crypto/proof-aggregation/formal/lean-ipp/"
+            "lean-toolchain') }}-",
+            workflow,
+        )
         self.assertIn(
             "python3 scripts/ci/snarkpack_lean_attestation.py fingerprint",
             workflow,
@@ -504,6 +514,28 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn(
             "SNARKPACK_LEAN_MODULES_JSON: "
             "${{ steps.lean_plan.outputs.pending_modules }}",
+            workflow,
+        )
+        self.assertNotIn(
+            "FORCE_ALL: ${{ (github.event_name == 'schedule'",
+            workflow,
+        )
+        self.assertIn("SNARKPACK_FV_MODE: lean-audit-changed", workflow)
+        self.assertIn(
+            "SNARKPACK_LEAN_AUDIT_LOG_DIR: "
+            "${{ runner.temp }}/snarkpack-lean-audit",
+            workflow,
+        )
+        self.assertIn(
+            "snarkpack_lean_attestation.py record-audit",
+            workflow,
+        )
+        self.assertIn(
+            "Re-run the current axiom parser against cached raw audit evidence",
+            workflow,
+        )
+        self.assertIn(
+            "snarkpack_lean_attestation.py validate-audit",
             workflow,
         )
         script = (self.root / "scripts/snarkpack-fv.sh").read_text(
@@ -526,7 +558,7 @@ class GateApplicabilityTests(unittest.TestCase):
             script,
         )
         self.assertIn(
-            "Atomically attest modules only after their build succeeds",
+            "Atomically attest modules only after builds and audits succeed",
             workflow,
         )
         self.assertIn(
@@ -540,6 +572,10 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn(
             "--exact-cache",
             workflow,
+        )
+        self.assertIn(
+            '"${lake_command[@]}" env lean "$source"',
+            script,
         )
         self.assertIn(
             "id: fstar_pass_cache\n"

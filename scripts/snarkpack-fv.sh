@@ -315,6 +315,40 @@ run_lean() {
   trap - RETURN
 }
 
+run_lean_audit_refresh() {
+  configure_lake
+  export LEAN_NUM_THREADS=1
+  [[ -n "${SNARKPACK_LEAN_AUDIT_LOG_DIR:-}" ]] \
+    || fail "SNARKPACK_LEAN_AUDIT_LOG_DIR is required for lean-audit-changed"
+  [[ "$SNARKPACK_LEAN_AUDIT_LOG_DIR" == /* ]] \
+    || fail "SNARKPACK_LEAN_AUDIT_LOG_DIR must be an absolute path"
+  mkdir -p "$SNARKPACK_LEAN_AUDIT_LOG_DIR"
+  local module source destination temporary audit_status
+  for module in "$@"; do
+    [[ "$module" =~ ^Ipp\.ProofAudit[A-Za-z0-9_]*$ ]] \
+      || fail "invalid Lean audit module selected for refresh: $module"
+    source="${module//./\/}.lean"
+    [[ -f "$LEAN_DIR/$source" ]] \
+      || fail "selected Lean audit source does not exist: $source"
+    destination="$SNARKPACK_LEAN_AUDIT_LOG_DIR/$module.log"
+    temporary="$SNARKPACK_LEAN_AUDIT_LOG_DIR/.$module.$$.tmp"
+    echo "snarkpack FV: refresh cached diagnostics for $module"
+    set +e
+    (
+      cd "$LEAN_DIR"
+      "${lake_command[@]}" env lean "$source"
+    ) 2>&1 | tee "$temporary"
+    audit_status="${PIPESTATUS[0]}"
+    set -e
+    if ((audit_status != 0)); then
+      rm -f -- "$temporary"
+      fail "Lean audit diagnostic refresh failed for $module"
+    fi
+    audit_build_log "$temporary" "$module"
+    mv -f -- "$temporary" "$destination"
+  done
+}
+
 main() {
   local require_publication_closure=0
   case "$MODE" in
@@ -350,6 +384,14 @@ main() {
         run_lean "${selected_lean_modules[@]}"
       fi
       ;;
+    lean-audit-changed)
+      load_changed_lean_modules
+      if ((${#selected_lean_modules[@]} == 0)); then
+        echo "snarkpack FV: no Lean audit modules need diagnostics"
+      else
+        run_lean_audit_refresh "${selected_lean_modules[@]}"
+      fi
+      ;;
     full)
       run_static
       run_extract all
@@ -358,7 +400,7 @@ main() {
       require_publication_closure=1
       ;;
     *)
-      fail "SNARKPACK_FV_MODE must be static, extract-changed, extract-all, parity-changed, parity-all, lean-changed, lean, or full (got $MODE)"
+      fail "SNARKPACK_FV_MODE must be static, extract-changed, extract-all, parity-changed, parity-all, lean-changed, lean-audit-changed, lean, or full (got $MODE)"
       ;;
   esac
 

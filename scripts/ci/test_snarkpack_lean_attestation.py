@@ -27,10 +27,21 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
             / "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp"
         )
         self.lean.mkdir(parents=True)
-        self.controls = (Path("control/toolchain"), Path("control/workflow"))
+        self.build_inputs = (Path("control/toolchain"),)
+        self.audit_control = Path("control/workflow")
+        self.environment_input = Path("control/aeneas-toolchain.toml")
         for path, text in (
-            (self.controls[0], "leanprover/lean4:v4.19.0\n"),
-            (self.controls[1], "jobs: {}\n"),
+            (self.build_inputs[0], "leanprover/lean4:v4.19.0\n"),
+            (self.audit_control, "jobs: {}\n"),
+            (
+                self.environment_input,
+                "[toolchain]\n"
+                'lean = "leanprover/lean4:v4.19.0"\n'
+                'hax_commit = "uncharged"\n'
+                'image_digest = "sha256:'
+                + "1" * 64
+                + '"\n',
+            ),
             (ATTESTATION.IMPACT_SCRIPT, self._impact_source()),
             (
                 Path(
@@ -60,11 +71,19 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
                 ),
                 "def other : Nat := 7\n",
             ),
+            (
+                Path(
+                    "crates/crypto/proof-aggregation/formal/lean-ipp/"
+                    "Ipp/ProofAuditTest.lean"
+                ),
+                "import Ipp.Base\n\n#print axioms base\n",
+            ),
         ):
             absolute = self.root / path
             absolute.parent.mkdir(parents=True, exist_ok=True)
             absolute.write_text(text, encoding="utf-8")
         self.markers = self.root / "markers"
+        self.audits = self.root / "audits"
 
     def tearDown(self) -> None:
         self.directory.cleanup()
@@ -80,7 +99,8 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
         return ATTESTATION.fingerprints(
             self.root,
             selected,
-            control_inputs=self.controls,
+            build_inputs=self.build_inputs,
+            environment_input=self.environment_input,
         )
 
     def test_fingerprint_binds_transitive_dependencies_not_reverse_users(self) -> None:
@@ -102,14 +122,78 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
             after.fingerprints["Ipp.Top"],
         )
 
-    def test_control_change_invalidates_every_selected_module(self) -> None:
+    def test_build_input_change_invalidates_every_selected_module(self) -> None:
         before = self._fingerprints(("Ipp.Middle", "Ipp.Other"))
-        (self.root / self.controls[1]).write_text(
-            "jobs: {lean: {}}\n", encoding="utf-8"
+        (self.root / self.build_inputs[0]).write_text(
+            "leanprover/lean4:v4.20.0\n", encoding="utf-8"
         )
         after = self._fingerprints(("Ipp.Middle", "Ipp.Other"))
         self.assertNotEqual(before.state_sha256, after.state_sha256)
         self.assertNotEqual(before.fingerprints, after.fingerprints)
+
+    def test_audit_control_change_does_not_invalidate_proof_builds(self) -> None:
+        before = self._fingerprints(("Ipp.Middle", "Ipp.Other"))
+        (self.root / self.audit_control).write_text(
+            "jobs: {lean: {}}\n", encoding="utf-8"
+        )
+        after = self._fingerprints(("Ipp.Middle", "Ipp.Other"))
+        self.assertEqual(before, after)
+
+    def test_control_only_change_reuses_proof_and_raw_audit_evidence(self) -> None:
+        before = self._fingerprints(("Ipp.ProofAuditTest",))
+        build_log = self.root / "build.log"
+        build_log.write_text(
+            "info: Ipp/ProofAuditTest.lean:3:0: "
+            "'base' does not depend on any axioms\n",
+            encoding="utf-8",
+        )
+        ATTESTATION.record_audit_evidence(
+            before,
+            self.audits,
+            build_log,
+            validator=lambda _module, _text: None,
+        )
+        ATTESTATION.record(before, self.markers)
+        (self.root / self.audit_control).write_text(
+            "jobs: {lean: {parser: changed}}\n", encoding="utf-8"
+        )
+        after = self._fingerprints(("Ipp.ProofAuditTest",))
+        result = ATTESTATION.plan(
+            after,
+            self.markers,
+            exact_cache=True,
+            force_all=False,
+            audit_dir=self.audits,
+        )
+        self.assertEqual(before, after)
+        self.assertEqual(result.pending, ())
+        self.assertEqual(result.pending_audits, ())
+
+    def test_lean_environment_projection_invalidates_only_relevant_changes(self) -> None:
+        before = self._fingerprints(("Ipp.Middle",))
+        environment = self.root / self.environment_input
+        environment.write_text(
+            "[toolchain]\n"
+            'lean = "leanprover/lean4:v4.19.0"\n'
+            'hax_commit = "changed-but-unrelated"\n'
+            'image_digest = "sha256:'
+            + "1" * 64
+            + '"\n',
+            encoding="utf-8",
+        )
+        unrelated = self._fingerprints(("Ipp.Middle",))
+        self.assertEqual(before, unrelated)
+        environment.write_text(
+            "[toolchain]\n"
+            'lean = "leanprover/lean4:v4.20.0"\n'
+            'hax_commit = "changed-but-unrelated"\n'
+            'image_digest = "sha256:'
+            + "2" * 64
+            + '"\n',
+            encoding="utf-8",
+        )
+        changed = self._fingerprints(("Ipp.Middle",))
+        self.assertNotEqual(before, changed)
 
     def test_prefix_cache_reuses_matching_modules_and_rebuilds_stale_ones(self) -> None:
         initial = self._fingerprints(("Ipp.Middle", "Ipp.Top"))
@@ -188,6 +272,117 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
             ATTESTATION.plan(
                 values, self.markers, exact_cache=False, force_all=False
             )
+
+    def test_audit_evidence_is_content_addressed_and_revalidated(self) -> None:
+        values = self._fingerprints(("Ipp.ProofAuditTest",))
+        build_log = self.root / "build.log"
+        build_log.write_text(
+            "noise before\n"
+            "info: Ipp/ProofAuditTest.lean:3:0: "
+            "'base' does not depend on any axioms\n"
+            "noise after\n",
+            encoding="utf-8",
+        )
+        validated: list[tuple[str, str]] = []
+
+        def validator(module: str, text: str) -> None:
+            validated.append((module, text))
+            self.assertIn("'base' does not depend on any axioms", text)
+
+        ATTESTATION.record_audit_evidence(
+            values,
+            self.audits,
+            build_log,
+            validator=validator,
+        )
+        ATTESTATION.record(values, self.markers)
+        result = ATTESTATION.plan(
+            values,
+            self.markers,
+            exact_cache=True,
+            force_all=False,
+            audit_dir=self.audits,
+        )
+        self.assertEqual(result.pending, ())
+        self.assertEqual(result.pending_audits, ())
+        checked = ATTESTATION.validate_audit_evidence(
+            values,
+            self.audits,
+            validator=validator,
+        )
+        self.assertEqual(checked, 1)
+        self.assertEqual(
+            [module for module, _ in validated],
+            ["Ipp.ProofAuditTest", "Ipp.ProofAuditTest"],
+        )
+
+    def test_missing_or_tampered_audit_evidence_rebuilds_or_fails_exact(self) -> None:
+        values = self._fingerprints(("Ipp.ProofAuditTest",))
+        ATTESTATION.record(values, self.markers)
+        prefix = ATTESTATION.plan(
+            values,
+            self.markers,
+            exact_cache=False,
+            force_all=False,
+            audit_dir=self.audits,
+        )
+        self.assertEqual(prefix.pending, ())
+        self.assertEqual(prefix.pending_audits, ("Ipp.ProofAuditTest",))
+        with self.assertRaisesRegex(
+            ATTESTATION.AttestationError,
+            "missing or stale audit evidence",
+        ):
+            ATTESTATION.plan(
+                values,
+                self.markers,
+                exact_cache=True,
+                force_all=False,
+                audit_dir=self.audits,
+            )
+
+        build_log = self.root / "build.log"
+        build_log.write_text(
+            "info: Ipp/ProofAuditTest.lean:3:0: "
+            "'base' does not depend on any axioms\n",
+            encoding="utf-8",
+        )
+        ATTESTATION.record_audit_evidence(
+            values,
+            self.audits,
+            build_log,
+            validator=lambda _module, _text: None,
+        )
+        (self.audits / "Ipp.ProofAuditTest.log").write_text(
+            "tampered\n", encoding="utf-8"
+        )
+        with self.assertRaisesRegex(
+            ATTESTATION.AttestationError, "audit log digest mismatch"
+        ):
+            ATTESTATION.plan(
+                values,
+                self.markers,
+                exact_cache=False,
+                force_all=False,
+                audit_dir=self.audits,
+            )
+
+    def test_invalid_refreshed_logs_write_no_partial_audit_evidence(self) -> None:
+        values = self._fingerprints(("Ipp.ProofAuditTest",))
+        refreshed = self.root / "refreshed"
+        refreshed.mkdir()
+        (refreshed / "Ipp.ProofAuditTest.log").write_text(
+            "no diagnostics\n", encoding="utf-8"
+        )
+        with self.assertRaisesRegex(
+            ATTESTATION.AttestationError, "contains no audit diagnostics"
+        ):
+            ATTESTATION.record_audit_evidence_from_dir(
+                values,
+                self.audits,
+                refreshed,
+                validator=lambda _module, _text: None,
+            )
+        self.assertFalse(self.audits.exists())
 
     def test_selection_parser_rejects_empty_duplicate_and_unsafe_modules(self) -> None:
         for value in (
