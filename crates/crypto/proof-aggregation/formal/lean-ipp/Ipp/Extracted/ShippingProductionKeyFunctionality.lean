@@ -3,7 +3,7 @@ import Ipp.Extracted.ShippingBundleMaterialization
 /-!
 Production-key functionality for constructor-derived shipping selections.
 
-The adaptive game continues to admit arbitrary adversary values.  This module
+The adaptive game continues to permit arbitrary adversary values.  This module
 restricts only selections which the complete replay program projects from an
 output-derived production bundle.  A deterministic, fail-closed statement
 materializer then makes equality of retained logical keys sufficient for

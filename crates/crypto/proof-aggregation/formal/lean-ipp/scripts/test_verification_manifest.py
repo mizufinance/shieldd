@@ -9,7 +9,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stderr
 from io import StringIO
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from unittest.mock import patch
 
 
@@ -1425,6 +1425,102 @@ class VerificationManifestTests(unittest.TestCase):
             "cannot use an inactive production id",
             str(raised.exception),
         )
+
+    def test_registered_srs_evidence_binds_the_active_registry_entry(self):
+        artifact_bytes = b"synthetic canonical BLS12-377 SRS bytes"
+        artifact_sha256 = hashlib.sha256(artifact_bytes).digest()
+        srs_id = VERIFICATION._deployed_srs_identifier(
+            32_768, artifact_bytes
+        )
+        artifact = {
+            "path": (
+                "crates/crypto/proof-aggregation/artifacts/production.srs"
+            ),
+            "sha256": artifact_sha256.hex(),
+            "srs_id": srs_id.hex(),
+            "max_padded_count": 32_768,
+        }
+        artifact_relative = PurePosixPath(artifact["path"])
+
+        def rust_bytes(value):
+            return ", ".join(f"0x{byte:02x}" for byte in value)
+
+        def registry_source(
+            *,
+            active_id=srs_id,
+            entry_id=srs_id,
+            entry_sha256=artifact_sha256,
+            filename="production.srs",
+            max_padded_count=32_768,
+        ):
+            return f"""
+const ACTIVE_PRODUCTION_SRS_ID: Option<[u8; 32]> =
+    Some([{rust_bytes(active_id)}]);
+const PRODUCTION_SRS_REGISTRY: &[ProductionSrsRegistryEntry] = &[
+    ProductionSrsRegistryEntry {{
+        id: [{rust_bytes(entry_id)}],
+        artifact_sha256: [{rust_bytes(entry_sha256)}],
+        artifact_filename: "{filename}",
+        max_padded_count: {max_padded_count},
+    }},
+];
+"""
+
+        VERIFICATION._validate_deployed_srs_registry_binding(
+            srs_text=registry_source(),
+            artifact_relative=artifact_relative,
+            artifact=artifact,
+            artifact_bytes=artifact_bytes,
+        )
+
+        forged_id = bytes([0xA5]) * 32
+        cases = (
+            (
+                "manifest id",
+                registry_source(),
+                {**artifact, "srs_id": forged_id.hex()},
+                "evidence id differs",
+            ),
+            (
+                "registry digest",
+                registry_source(entry_sha256=bytes([0x5A]) * 32),
+                artifact,
+                "bytes differ from the registry artifact hash",
+            ),
+            (
+                "registry filename",
+                registry_source(filename="other.srs"),
+                artifact,
+                "filename differs",
+            ),
+            (
+                "registry capacity",
+                registry_source(max_padded_count=16_384),
+                artifact,
+                "max count differs",
+            ),
+            (
+                "domain-separated id",
+                registry_source(
+                    active_id=forged_id,
+                    entry_id=forged_id,
+                ),
+                {**artifact, "srs_id": forged_id.hex()},
+                "not the domain-separated identifier",
+            ),
+        )
+        for label, source, candidate_artifact, message in cases:
+            with self.subTest(label=label):
+                with self.assertRaises(
+                    VERIFICATION.VerificationError
+                ) as raised:
+                    VERIFICATION._validate_deployed_srs_registry_binding(
+                        srs_text=source,
+                        artifact_relative=artifact_relative,
+                        artifact=candidate_artifact,
+                        artifact_bytes=artifact_bytes,
+                    )
+                self.assertIn(message, str(raised.exception))
 
     def test_pending_contract_refresh_flag_is_explicit(self):
         args = VERIFICATION.parser().parse_args(

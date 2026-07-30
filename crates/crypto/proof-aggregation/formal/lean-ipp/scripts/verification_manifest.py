@@ -119,6 +119,9 @@ DEPLOYED_SRS_POSTCONDITION = (
     "reviewed setup transcript establishes that no adversary knows the KZG "
     "trapdoors."
 )
+DEPLOYED_SRS_ID_DOMAIN = b"shieldd.proof_aggregation.registered_srs.v1"
+DEPLOYED_SRS_BACKEND_ID = b"ripp-snarkpack"
+DEPLOYED_SRS_CURVE_ID = b"bls12-377"
 V1_BASELINE_FAMILIES = (
     "Transfer",
     "NoteReshape(NoteReshapeFamilyId(1))",
@@ -1400,6 +1403,216 @@ def validate_bounded_challenge_sampler(
             )
 
 
+@dataclass(frozen=True)
+class DeployedSrsRegistryEntry:
+    srs_id: bytes
+    artifact_sha256: bytes
+    artifact_filename: str
+    max_padded_count: int
+
+
+def _parse_rust_u8_array(literal: str, *, field: str) -> bytes:
+    tokens = [token.strip() for token in literal.split(",") if token.strip()]
+    if len(tokens) != 32:
+        raise VerificationError(f"{field} must contain exactly 32 byte literals")
+    values: list[int] = []
+    for token in tokens:
+        if re.fullmatch(r"(?:0x[0-9a-fA-F]{1,2}|[0-9]{1,3})", token) is None:
+            raise VerificationError(f"{field} contains a non-byte literal")
+        value = int(token, 0)
+        if value > 0xFF:
+            raise VerificationError(f"{field} contains a value larger than one byte")
+        values.append(value)
+    return bytes(values)
+
+
+def _matching_rust_delimiter(
+    code: str,
+    opening_index: int,
+    *,
+    opening: str,
+    closing: str,
+    field: str,
+) -> int:
+    if code[opening_index : opening_index + 1] != opening:
+        raise VerificationError(f"{field} has no opening {opening!r}")
+    depth = 0
+    for index in range(opening_index, len(code)):
+        current = code[index]
+        if current == opening:
+            depth += 1
+        elif current == closing:
+            depth -= 1
+            if depth == 0:
+                return index
+    raise VerificationError(f"{field} has no matching {closing!r}")
+
+
+def _unique_rust_field(
+    pattern: str, code: str, *, field: str
+) -> re.Match[str]:
+    matches = list(re.finditer(pattern, code, re.DOTALL))
+    if len(matches) != 1:
+        raise VerificationError(f"{field} must occur exactly once")
+    return matches[0]
+
+
+def _parse_deployed_srs_registry(
+    srs_text: str,
+) -> tuple[bytes, tuple[DeployedSrsRegistryEntry, ...]]:
+    code = rust_code_without_comments_and_strings(srs_text)
+    active = _unique_rust_field(
+        r"\bconst\s+ACTIVE_PRODUCTION_SRS_ID\s*:\s*"
+        r"Option\s*<\s*\[u8;\s*32\]\s*>\s*=\s*"
+        r"Some\s*\(\s*\[(?P<bytes>[^\]]*)\]\s*\)\s*;",
+        code,
+        field="registered ACTIVE_PRODUCTION_SRS_ID",
+    )
+    active_id = _parse_rust_u8_array(
+        active.group("bytes"), field="registered ACTIVE_PRODUCTION_SRS_ID"
+    )
+
+    registry = _unique_rust_field(
+        r"\bconst\s+PRODUCTION_SRS_REGISTRY\s*:\s*"
+        r"&\s*\[\s*ProductionSrsRegistryEntry\s*\]\s*=\s*&\s*"
+        r"(?P<opening>\[)",
+        code,
+        field="registered PRODUCTION_SRS_REGISTRY",
+    )
+    registry_open = registry.start("opening")
+    registry_close = _matching_rust_delimiter(
+        code,
+        registry_open,
+        opening="[",
+        closing="]",
+        field="registered PRODUCTION_SRS_REGISTRY",
+    )
+    entries: list[DeployedSrsRegistryEntry] = []
+    registry_body = code[registry_open + 1 : registry_close]
+    for entry_match in re.finditer(
+        r"\bProductionSrsRegistryEntry\s*(?P<opening>\{)",
+        registry_body,
+    ):
+        entry_open = registry_open + 1 + entry_match.start("opening")
+        entry_close = _matching_rust_delimiter(
+            code,
+            entry_open,
+            opening="{",
+            closing="}",
+            field="production SRS registry entry",
+        )
+        if entry_close > registry_close:
+            raise VerificationError(
+                "production SRS registry entry escapes the registry initializer"
+            )
+        entry_code = code[entry_open + 1 : entry_close]
+        entry_raw = srs_text[entry_open + 1 : entry_close]
+        entry_id = _unique_rust_field(
+            r"\bid\s*:\s*\[(?P<bytes>[^\]]*)\]\s*,",
+            entry_code,
+            field="production SRS registry entry id",
+        )
+        artifact_sha256 = _unique_rust_field(
+            r"\bartifact_sha256\s*:\s*\[(?P<bytes>[^\]]*)\]\s*,",
+            entry_code,
+            field="production SRS registry artifact SHA-256",
+        )
+        filename_field = _unique_rust_field(
+            r"\bartifact_filename\s*:",
+            entry_code,
+            field="production SRS registry artifact filename",
+        )
+        filename = re.match(
+            r'\s*"(?P<value>[A-Za-z0-9][A-Za-z0-9._-]*)"\s*,',
+            entry_raw[filename_field.end() :],
+        )
+        if filename is None:
+            raise VerificationError(
+                "production SRS registry artifact filename must be one "
+                "literal relative path component"
+            )
+        max_padded_count = _unique_rust_field(
+            r"\bmax_padded_count\s*:\s*(?P<value>[0-9][0-9_]*)\s*,",
+            entry_code,
+            field="production SRS registry max padded count",
+        )
+        entries.append(
+            DeployedSrsRegistryEntry(
+                srs_id=_parse_rust_u8_array(
+                    entry_id.group("bytes"),
+                    field="production SRS registry entry id",
+                ),
+                artifact_sha256=_parse_rust_u8_array(
+                    artifact_sha256.group("bytes"),
+                    field="production SRS registry artifact SHA-256",
+                ),
+                artifact_filename=filename.group("value"),
+                max_padded_count=int(
+                    max_padded_count.group("value").replace("_", "")
+                ),
+            )
+        )
+    if not entries:
+        raise VerificationError(
+            "registered PRODUCTION_SRS_REGISTRY has no parsed entries"
+        )
+    return active_id, tuple(entries)
+
+
+def _deployed_srs_identifier(
+    max_padded_count: int, serialized_srs: bytes
+) -> bytes:
+    if not 0 <= max_padded_count <= 0xFFFF_FFFF:
+        raise VerificationError("registered SRS max padded count exceeds u32")
+    hasher = hashlib.sha256()
+    hasher.update(DEPLOYED_SRS_ID_DOMAIN)
+    hasher.update(DEPLOYED_SRS_BACKEND_ID)
+    hasher.update(DEPLOYED_SRS_CURVE_ID)
+    hasher.update(max_padded_count.to_bytes(4, "little"))
+    hasher.update(len(serialized_srs).to_bytes(8, "little"))
+    hasher.update(serialized_srs)
+    return hasher.digest()
+
+
+def _validate_deployed_srs_registry_binding(
+    *,
+    srs_text: str,
+    artifact_relative: PurePosixPath,
+    artifact: dict[str, Any],
+    artifact_bytes: bytes,
+) -> None:
+    active_id, entries = _parse_deployed_srs_registry(srs_text)
+    matching = [entry for entry in entries if entry.srs_id == active_id]
+    if len(matching) != 1:
+        raise VerificationError(
+            "active production SRS id must select exactly one registry entry"
+        )
+    entry = matching[0]
+    manifest_id = bytes.fromhex(artifact["srs_id"])
+    artifact_sha256 = hashlib.sha256(artifact_bytes).digest()
+    if manifest_id != active_id:
+        raise VerificationError(
+            "registered SRS evidence id differs from the active production id"
+        )
+    if entry.artifact_sha256 != artifact_sha256:
+        raise VerificationError(
+            "registered SRS evidence bytes differ from the registry artifact hash"
+        )
+    if entry.artifact_filename != artifact_relative.name:
+        raise VerificationError(
+            "registered SRS evidence filename differs from the registry filename"
+        )
+    if entry.max_padded_count != artifact["max_padded_count"]:
+        raise VerificationError(
+            "registered SRS evidence max count differs from the registry entry"
+        )
+    if _deployed_srs_identifier(entry.max_padded_count, artifact_bytes) != active_id:
+        raise VerificationError(
+            "active production SRS id is not the domain-separated identifier "
+            "of the registered artifact"
+        )
+
+
 def validate_deployed_srs_soundness(
     manifest: dict[str, Any], repo_root: Path
 ) -> None:
@@ -1627,9 +1840,16 @@ def validate_deployed_srs_soundness(
     artifact_path = repo_root.joinpath(*artifact_relative.parts)
     if not artifact_path.is_file():
         raise VerificationError(f"missing registered SRS artifact: {artifact_path}")
-    artifact_sha256 = hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+    artifact_bytes = artifact_path.read_bytes()
+    artifact_sha256 = hashlib.sha256(artifact_bytes).hexdigest()
     if artifact.get("sha256") != artifact_sha256:
         raise VerificationError("registered SRS artifact SHA-256 mismatch")
+    _validate_deployed_srs_registry_binding(
+        srs_text=srs_text,
+        artifact_relative=artifact_relative,
+        artifact=artifact,
+        artifact_bytes=artifact_bytes,
+    )
 
     if not isinstance(ceremony, dict) or set(ceremony) != {
         "owner",

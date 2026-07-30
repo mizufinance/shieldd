@@ -679,14 +679,16 @@ def multiStatementFsProbComp {Call : Type}
   replayFirstRun (multiStatementForkMain game)
 
 /-- One exact-size selection is production-reachable when it is projected
-from a run of the complete shared-cache program.  This includes all
-adversarial pre-selection queries and the selected verifier execution. -/
+from an accepted run of the complete shared-cache program.  This includes all
+adversarial pre-selection queries and the selected verifier execution, while
+placing no provenance obligation on rejected fallback outputs. -/
 def ReplayReachableSelectionAt {Call : Type}
     (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
     (μ : Nat) (selection : SelectionAt Call μ) : Prop :=
   ∃ run : MultiStatementRunLog Call,
     run ∈ support (multiStatementFsProbComp game) ∧
-      run.1.out.selectionAt? μ = some selection
+      run.1.out.selectionAt? μ = some selection ∧
+        run.1.out.accept = true
 
 /-- Exact production-reachable functionality obligation consumed by the
 common-formal-statement replay theorem. -/
@@ -1364,7 +1366,7 @@ theorem rawMultiStatementForkExperimentAt_support_hasCommonInvalidStatement
       invalid μ hall.root
   have hrootReachable :
       ReplayReachableSelectionAt game μ rootSelection :=
-    ⟨tree.root, hsupport.root, hrootProjection⟩
+    ⟨tree.root, hsupport.root, hrootProjection, hall.root.2.2⟩
   refine ⟨rootSelection.statement, ?_, hall⟩
   have hcombined :=
     runTree_all_and (runTree_all_and hall hsupport) hlogical
@@ -1374,7 +1376,7 @@ theorem rawMultiStatementForkExperimentAt_support_hasCommonInvalidStatement
         invalid μ hrun.1.1
     have hselectionReachable :
         ReplayReachableSelectionAt game μ selection :=
-      ⟨run, hrun.1.2, hprojection⟩
+      ⟨run, hrun.1.2, hprojection, hrun.1.1.2.2⟩
     have hselectionKey :
         selection.logicalKey = run.1.out.logicalKey :=
       PackedOutcome.selectionAt?_logicalKey hprojection
@@ -1808,7 +1810,8 @@ def RawForkExtractionReductionHolds
     (queryBounds :
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (activeMu : Finset Nat)
-    (extractionExperiment : (μ : Nat) → ProbComp (Evidence μ))
+    (extractionExperiment : (μ : Nat) →
+      OracleComp (Ipp.FsWrappedSpec Ipp.Bls12377.Fr) (Evidence μ))
     (extractionWins : (μ : Nat) → Evidence μ → Prop) : Prop :=
   ∀ μ ∈ activeMu,
     Pr[RawForkFormalStatementSucceededAt invalid μ |
@@ -1821,7 +1824,8 @@ per-`μ` extraction games.  They cannot directly assume a shipping-verifier or
 structure PerMuExtractionGameSecurity
     {Evidence : Nat → Type}
     (activeMu : Finset Nat)
-    (extractionExperiment : (μ : Nat) → ProbComp (Evidence μ))
+    (extractionExperiment : (μ : Nat) →
+      OracleComp (Ipp.FsWrappedSpec Ipp.Bls12377.Fr) (Evidence μ))
     (extractionWins : (μ : Nat) → Evidence μ → Prop) where
   advantage : Nat → ℝ≥0∞
   game_le : ∀ μ ∈ activeMu,
@@ -1838,7 +1842,8 @@ theorem rawForkFormalStatementSucceededAt_le_explicit_game_advantage
     (queryBounds :
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (activeMu : Finset Nat)
-    (extractionExperiment : (μ : Nat) → ProbComp (Evidence μ))
+    (extractionExperiment : (μ : Nat) →
+      OracleComp (Ipp.FsWrappedSpec Ipp.Bls12377.Fr) (Evidence μ))
     (extractionWins : (μ : Nat) → Evidence μ → Prop)
     (reduction :
       RawForkExtractionReductionHolds game invalid queryBounds activeMu
@@ -1868,7 +1873,8 @@ theorem perMuForkTransform_le_explicit_game_advantage_of_schedule
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (activeMu : Finset Nat)
     (parameters : Nat → PerMuForkParameters)
-    (extractionExperiment : (μ : Nat) → ProbComp (Evidence μ))
+    (extractionExperiment : (μ : Nat) →
+      OracleComp (Ipp.FsWrappedSpec Ipp.Bls12377.Fr) (Evidence μ))
     (extractionWins : (μ : Nat) → Evidence μ → Prop)
     (reduction :
       RawForkExtractionReductionHolds game invalid queryBounds activeMu
@@ -1907,7 +1913,8 @@ theorem perMuForkTransform_le_explicit_game_advantage
     (activeMu : Finset Nat)
     (parameters : Nat → PerMuForkParameters)
     (losses : Nat → DerivedMultiStatementForkLoss)
-    (extractionExperiment : (μ : Nat) → ProbComp (Evidence μ))
+    (extractionExperiment : (μ : Nat) →
+      OracleComp (Ipp.FsWrappedSpec Ipp.Bls12377.Fr) (Evidence μ))
     (extractionWins : (μ : Nat) → Evidence μ → Prop)
     (forking :
       MultiStatementForkingHolds game invalid activeMu queryBounds

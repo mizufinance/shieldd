@@ -6,6 +6,7 @@ import Ipp.ShippingStatementProjection
 import Ipp.Extracted.ShippingVerifierHashProjection
 import Ipp.Extracted.ShippingBundleComposition
 import Ipp.Extracted.ShippingBundleMaterialization
+import Ipp.Extracted.ShippingPreflightConstruction
 import Ipp.ShippingPreflightProjection
 
 #print axioms Ipp.ShippingV1.vkDigestPreimage_injective
@@ -80,6 +81,8 @@ import Ipp.ShippingPreflightProjection
 #print axioms Ipp.ShippingPreflightProjection.accepted_preflight_rows_materialize_statement
 #print axioms Ipp.ShippingPreflightProjection.ShippingPlannedCall.resultRowsMaterializeStatement
 #print axioms Ipp.ShippingPreflightProjection.concrete_output_preflight_rows_materialize_statement
+#print axioms Ipp.Extracted.ShippingPreflightConstruction.builtConstructorOfAcceptedInput_forget
+#print axioms Ipp.Extracted.ShippingPreflightConstruction.ConcreteOutputDerivedCallRemainder.toConcreteOutputDerivedCall
 #print axioms Ipp.Extracted.ShippingBundleComposition.ShippingCallExecutionBoundary.toAccepted
 #print axioms Ipp.Extracted.ShippingBundleComposition.ShippingBundleCallWitness.refinesV1
 #print axioms Ipp.Extracted.ShippingBundleComposition.accepted_bundle_lifts_per_call_claim
