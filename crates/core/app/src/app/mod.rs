@@ -56,9 +56,8 @@ use shieldd_sdk_proof_aggregation::{
     aggregate_family_profiled, app_verify_family_code, app_verify_family_count_core,
     app_verify_plan_identity_core, app_verify_plan_ids_core, app_verify_plan_padding_core,
     app_verify_preflight_core, app_verify_reduce_core, app_verify_shipping_call_from_parts,
-    app_verify_shipping_result_from_parts, load_active_production_srs, load_production_srs_for_id,
-    pad_items_to_power_of_two, prepare_verify_inputs, srs_id,
-    verify_shipping_family_aggregate_profiled_status, AggregateBuildBackendProfile,
+    app_verify_shipping_result_from_parts, pad_items_to_power_of_two, prepare_verify_inputs,
+    srs_id, verify_shipping_family_aggregate_profiled_status, AggregateBuildBackendProfile,
     AggregateBundle, AggregateStatement, AggregateVerificationProfile, AppVerifyCallId,
     AppVerifyCallResult, AppVerifyExpectedCall, AppVerifyPlanError, AppVerifyPreflightError,
     AppVerifyReductionError, AppVerifyShippingCall, AppVerifyShippingResult, DevSrs,
@@ -137,7 +136,7 @@ fn shipping_srs() -> Result<DevSrs> {
     }
     #[cfg(not(any(test, feature = "fuzzing")))]
     {
-        load_active_production_srs()
+        shieldd_sdk_proof_aggregation::load_active_production_srs()
     }
 }
 
@@ -154,7 +153,7 @@ fn shipping_srs_for_id(requested_id: &[u8]) -> Result<DevSrs> {
     }
     #[cfg(not(any(test, feature = "fuzzing")))]
     {
-        load_production_srs_for_id(requested_id)
+        shieldd_sdk_proof_aggregation::load_production_srs_for_id(requested_id)
     }
 }
 
