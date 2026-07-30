@@ -1,4 +1,6 @@
 use ark_ec::pairing::{Pairing, PairingOutput};
+#[cfg(not(feature = "bench-baseline"))]
+use ark_ec::CurveGroup;
 use ark_ff::{Field, One, Zero};
 #[cfg(any(test, feature = "bench-baseline"))]
 use ark_groth16::VerifyingKey;
