@@ -4,6 +4,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -193,6 +194,49 @@ class VerificationManifestTests(unittest.TestCase):
                     candidate, VERIFICATION.REPO_ROOT
                 )
                 self.assertEqual(before, after)
+
+    def test_unrelated_gate_owner_values_do_not_invalidate_fstar_ci_control(self):
+        relative = (
+            "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
+            "verification_manifest.py"
+        )
+        source = SCRIPT.read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path = root.joinpath(*PurePosixPath(relative).parts)
+            path.parent.mkdir(parents=True)
+            path.write_text(source, encoding="utf-8")
+            baseline = VERIFICATION._fstar_ci_control_record(root, relative)
+
+            changed = source
+            for name in VERIFICATION.FSTAR_UNRELATED_GATE_DIGEST_CONSTANTS:
+                changed, replacements = re.subn(
+                    rf'({name}\s*=\s*\(\s*")[0-9a-f]{{64}}("\s*\))',
+                    rf"\g<1>{'0' * 64}\g<2>",
+                    changed,
+                )
+                self.assertEqual(replacements, 1)
+            path.write_text(changed, encoding="utf-8")
+            self.assertEqual(
+                baseline,
+                VERIFICATION._fstar_ci_control_record(root, relative),
+            )
+
+            path.write_text(
+                changed.replace(
+                    'FSTAR_GLOBAL_MODULE_INVENTORY = ("SnarkpackMachineSupport",)',
+                    (
+                        'FSTAR_GLOBAL_MODULE_INVENTORY = '
+                        '("SnarkpackMachineSupport", "ChangedControl")'
+                    ),
+                    1,
+                ),
+                encoding="utf-8",
+            )
+            self.assertNotEqual(
+                baseline,
+                VERIFICATION._fstar_ci_control_record(root, relative),
+            )
 
     def test_lean_only_manifest_edits_do_not_change_fstar_evidence_or_cache(self):
         baseline_evidence = VERIFICATION.expected_fstar_checker_evidence(

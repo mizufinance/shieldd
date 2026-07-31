@@ -96,7 +96,7 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "f935ca35e011ed942d895e38d2df1d767cc5ee762804812b6e38077c244e028c"
+    "ab0f89c77f5d1c88cf879c6227c76dcc0dd9bd58a10e04eabf90380aa0c893d7"
 )
 ASSUMPTION_LEDGER_SHA256 = (
     "8a13e07e1cae911fd771d94e66e7dd9915b28a3392ce91aee0c0e94b1be843c4"
@@ -142,7 +142,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "dd28edd4b5111cc6fbe4ce038c63124e972623814d2c7f7d3e61cabc3522237e"
+    "23bd42cca5a9af02da3a88392017a7261f5bb0443b02f8bf98abae5987a817fe"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -173,6 +173,18 @@ FSTAR_CI_CONTROL_INPUTS = (
         "verification_manifest.py"
     ),
     "scripts/ci/run_with_annotation.py",
+)
+# These fail-closed owner values protect ledgers and conformance fixtures that
+# cannot change an F* proof result. Mask only their 64-hex payloads when the
+# validator source is used as an F* CI-control fingerprint. Any change to the
+# owner names, surrounding validator code, or F* logic still changes the key.
+FSTAR_UNRELATED_GATE_DIGEST_CONSTANTS = (
+    "OPERATION_REGISTER_SHA256",
+    "CLAIM_LEDGER_SHA256",
+    "ASSUMPTION_LEDGER_SHA256",
+    "V1_BYTE_BASELINE_SHA256",
+    "V1_TRACE_BASELINE_SHA256",
+    "VERIFICATION_CONTRACT_SHA256",
 )
 FSTAR_GLOBAL_MODULE_INVENTORY = ("SnarkpackMachineSupport",)
 FSTAR_GLOBAL_INPUT_INVENTORY = (
@@ -2306,6 +2318,47 @@ def _fstar_source_record(repo_root: Path, relative: str) -> dict[str, str]:
     }
 
 
+def _fstar_ci_control_record(
+    repo_root: Path, relative: str
+) -> dict[str, str]:
+    """Hash one F* CI control while ignoring unrelated gate-owner values."""
+    safe = _safe_relative_path(relative, field="F* CI control")
+    path = repo_root.joinpath(*safe.parts)
+    if not path.is_file():
+        raise VerificationError(f"missing F* CI control: {path}")
+    if relative != (
+        "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
+        "verification_manifest.py"
+    ):
+        return {
+            "path": relative,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        }
+
+    source = path.read_text(encoding="utf-8")
+    for name in FSTAR_UNRELATED_GATE_DIGEST_CONSTANTS:
+        pattern = re.compile(
+            rf'({re.escape(name)}\s*=\s*\(\s*")[0-9a-f]{{64}}("\s*\))'
+        )
+        source, replacements = pattern.subn(
+            lambda match: (
+                match.group(1)
+                + "<unrelated-gate-digest>"
+                + match.group(2)
+            ),
+            source,
+        )
+        if replacements != 1:
+            raise VerificationError(
+                "F* CI control masking expected exactly one 64-hex "
+                f"assignment for {name}; found {replacements}"
+            )
+    return {
+        "path": relative,
+        "sha256": hashlib.sha256(source.encode("utf-8")).hexdigest(),
+    }
+
+
 def _fstar_expected_components(
     manifest: dict[str, Any],
     repo_root: Path,
@@ -2450,7 +2503,7 @@ def fstar_ci_cache_fingerprints(
     """Return environment-prefix and exact-success F* cache identities."""
     expected = expected_fstar_checker_evidence(manifest, repo_root)
     controls = [
-        _fstar_source_record(repo_root, relative)
+        _fstar_ci_control_record(repo_root, relative)
         for relative in FSTAR_CI_CONTROL_INPUTS
     ]
     environment_payload = {
