@@ -2,7 +2,7 @@
   "schema_version": 1,
   "fstar_checker_evidence": {
     "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
-    "sha256": "dc9264a00d1450c8c63fe99b924a054943fdb042e53bf1eeb64e4a4a15340f7a"
+    "sha256": "d405413315eec07e52d9b000032b26dd8a11fe32ffcc37c09fc19fa554b60574"
   },
   "deployed_srs_evidence": {
     "schema_version": 1,
@@ -173,14 +173,14 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "614deb382c14dfea1c866ce3173afe9b5c6033b033c5eb6d91cddaa6545e7962"
+          "sha256": "a797846ecbcee92cef6c12bc50af9410300a15381880bf0f5645abe96a9551ab"
         }
       ],
       "toolchain_role": "hax-fstar",
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "stale"
+        "last_result": "pass"
       }
     },
     {
@@ -198,7 +198,7 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/DigestBindingProofs.fst",
-          "sha256": "e5b2ba60a3957fc104fbeb1d36f02107adbf50df05d0c66fa335ccb07669b20e"
+          "sha256": "3e7f1ff69ce1d1e1c1b05e9f860b5dbbc4e078adbbed9ef39539b50930d64c37"
         },
         {
           "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/SnarkpackMachineSupport.fst",
@@ -210,7 +210,7 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
-          "sha256": "1bdef1becfa2eace13e0ce92ff0927389951ca67027efb59c1d13ae9c6229859"
+          "sha256": "3d750704610be3e89bd961174a39cdd66ec289a0bd16d1eade9854bd0d4097c5"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/padding.rs",
@@ -222,14 +222,14 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "614deb382c14dfea1c866ce3173afe9b5c6033b033c5eb6d91cddaa6545e7962"
+          "sha256": "a797846ecbcee92cef6c12bc50af9410300a15381880bf0f5645abe96a9551ab"
         }
       ],
       "toolchain_role": "hax-fstar",
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "stale"
+        "last_result": "pass"
       }
     },
     {
@@ -245,7 +245,7 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
-          "sha256": "1bdef1becfa2eace13e0ce92ff0927389951ca67027efb59c1d13ae9c6229859"
+          "sha256": "3d750704610be3e89bd961174a39cdd66ec289a0bd16d1eade9854bd0d4097c5"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/padding.rs",
@@ -257,14 +257,14 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "614deb382c14dfea1c866ce3173afe9b5c6033b033c5eb6d91cddaa6545e7962"
+          "sha256": "a797846ecbcee92cef6c12bc50af9410300a15381880bf0f5645abe96a9551ab"
         }
       ],
       "toolchain_role": "hax-fstar",
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "stale"
+        "last_result": "pass"
       }
     },
     {
@@ -295,7 +295,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
-          "sha256": "1bdef1becfa2eace13e0ce92ff0927389951ca67027efb59c1d13ae9c6229859"
+          "sha256": "3d750704610be3e89bd961174a39cdd66ec289a0bd16d1eade9854bd0d4097c5"
         }
       ],
       "toolchain_role": "external",
@@ -314,7 +314,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
-          "sha256": "1bdef1becfa2eace13e0ce92ff0927389951ca67027efb59c1d13ae9c6229859"
+          "sha256": "3d750704610be3e89bd961174a39cdd66ec289a0bd16d1eade9854bd0d4097c5"
         }
       ],
       "toolchain_role": "external",
@@ -333,11 +333,11 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
-          "sha256": "1bdef1becfa2eace13e0ce92ff0927389951ca67027efb59c1d13ae9c6229859"
+          "sha256": "3d750704610be3e89bd961174a39cdd66ec289a0bd16d1eade9854bd0d4097c5"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
-          "sha256": "97be79853adc7ebe25f11fc3178da80c68b2c26a3c1cb841a4838ce76027b545"
+          "sha256": "2ca9d6cf34a84487fffaff8cb74b436e4d3872171d79fda16681f4ed3daf3587"
         }
       ],
       "toolchain_role": "external",
@@ -375,7 +375,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "sha256": "803afb9a034b918eaa094d63408f64f127b12ba5b1203b5a95e1efbcb19e65f0"
+          "sha256": "ab936eba635ab69ea03c4423d65bbc04c4d147d188581fbfc901a6d0994f2953"
         }
       ],
       "toolchain_role": "external",
@@ -669,10 +669,17 @@
     },
     {
       "path": "Ipp/ProofAuditConstruction.lean",
-      "expected_capstones": 105,
-      "capstone_roots_sha256": "9bb8e44ea89be34e7a61263ca407cb910eab50b94b8bda371097f58a258ed269",
+      "expected_capstones": 112,
+      "capstone_roots_sha256": "2b1d18440ebe80c6ed85570c517d83269682d0acc0ab022a9199a45453195330",
       "required_roots": [
         "Ipp.ShippingV1.vkDigestPreimage_injective",
+        "Ipp.Extracted.StatementBinding.statement_hash_effect_core_exact",
+        "Ipp.Extracted.StatementBinding.statement_hash_effect_core_vk_preimage_error",
+        "Ipp.Extracted.StatementBinding.wrapper_decode_effect_core_exact",
+        "Ipp.Extracted.StatementBinding.wrapper_decode_effect_core_error",
+        "Ipp.Extracted.StatementBinding.statement_binding_execution_core_exact",
+        "Ipp.Extracted.StatementBinding.statement_binding_execution_core_digest_mismatch",
+        "Ipp.Extracted.StatementBinding.binding_effect_trace_executes_and_joins",
         "Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction.ofExtractedSuccess",
         "Ipp.Extracted.ShippingRowConstruction.validCounts",
         "Ipp.Extracted.ShippingRowConstruction.realPrefixExact",

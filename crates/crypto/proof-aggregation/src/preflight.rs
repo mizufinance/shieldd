@@ -5,7 +5,6 @@ use ark_ip_proofs::{
     app_verifier::{
         app_verify_shipping_statement_preflight_core,
         AppVerifyAcceptedPreflightStatementProvenance, AppVerifyPreparedRows,
-        AppVerifyStatementRowBytesProjection,
     },
     challenge::ChallengeContext,
     statement_binding::{
@@ -78,7 +77,7 @@ pub(crate) type ShippingStatementBinding =
 #[derive(Clone, Debug)]
 pub(crate) struct ShippingStatementConstructionProvenance {
     pub(crate) binding_execution: ShippingStatementBinding,
-    pub(crate) source_rows: AppVerifyStatementRowBytesProjection<Vec<Vec<Fq>>, Vec<Vec<Vec<u8>>>>,
+    pub(crate) source_field_rows: Vec<Vec<Fq>>,
     pub(crate) prepared_serialized_rows: AppVerifyPreparedRows<Vec<Vec<u8>>>,
 }
 

@@ -1,4 +1,5 @@
 import Ipp.Extracted.ShippingRowConstruction
+import Ipp.Extracted.StatementBinding
 import Ipp.Extracted.ShippingStatementConstruction
 import Ipp.Extracted.ShippingCallConstruction
 import Ipp.Extracted.ShippingCallMaterialization
@@ -10,6 +11,13 @@ import Ipp.Extracted.ShippingPreflightConstruction
 import Ipp.ShippingPreflightProjection
 
 #print axioms Ipp.ShippingV1.vkDigestPreimage_injective
+#print axioms Ipp.Extracted.StatementBinding.statement_hash_effect_core_exact
+#print axioms Ipp.Extracted.StatementBinding.statement_hash_effect_core_vk_preimage_error
+#print axioms Ipp.Extracted.StatementBinding.wrapper_decode_effect_core_exact
+#print axioms Ipp.Extracted.StatementBinding.wrapper_decode_effect_core_error
+#print axioms Ipp.Extracted.StatementBinding.statement_binding_execution_core_exact
+#print axioms Ipp.Extracted.StatementBinding.statement_binding_execution_core_digest_mismatch
+#print axioms Ipp.Extracted.StatementBinding.binding_effect_trace_executes_and_joins
 #print axioms Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction.ofExtractedSuccess
 #print axioms Ipp.Extracted.ShippingRowConstruction.validCounts
 #print axioms Ipp.Extracted.ShippingRowConstruction.realPrefixExact

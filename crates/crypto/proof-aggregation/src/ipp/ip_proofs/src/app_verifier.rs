@@ -177,15 +177,15 @@ pub struct AppVerifyPreparedRows<T> {
 /// Accepted serialized-row provenance beside the exact shipping preflight.
 ///
 /// Field values remain opaque. The extracted core operates only on their
-/// concrete serialization and retains both that source projection and the
-/// exact repeat-final serialized result. `BindingExecution` is an opaque
+/// concrete serialization and retains the caller field rows together with
+/// the exact repeat-final serialized result. `BindingExecution` is an opaque
 /// call-scoped record retained without interpretation for the separate
 /// statement-hash and wrapper-decoder refinement.
 #[doc(hidden)]
 #[derive(Clone, Debug)]
 pub struct AppVerifyAcceptedPreflightStatementProvenance<BackendCall, Field, BindingExecution> {
     pub binding_execution: BindingExecution,
-    pub source_rows: AppVerifyStatementRowBytesProjection<Vec<Vec<Field>>, Vec<Vec<Vec<u8>>>>,
+    pub source_field_rows: Vec<Vec<Field>>,
     pub prepared_serialized_rows: AppVerifyPreparedRows<Vec<Vec<u8>>>,
     pub preflight: AppVerifyShippingPreflight<BackendCall, Vec<Vec<Field>>>,
 }
@@ -680,6 +680,61 @@ fn app_verify_serialized_rows_equal(left: &[Vec<Vec<u8>>], right: &[Vec<Vec<u8>>
     true
 }
 
+fn app_verify_prepare_shipping_statement_rows_core<Field>(
+    source_field_rows: &[Vec<Field>],
+    source_serialized_rows: Vec<Vec<Vec<u8>>>,
+    statement_rows: &AppVerifyShippingRowsProjection<Vec<Vec<Field>>, Vec<Vec<Vec<u8>>>>,
+) -> Result<AppVerifyPreparedRows<Vec<Vec<u8>>>, AppVerifyShippingStatementPreflightError> {
+    let source_field_count = source_field_rows.len();
+    let source_serialized_count = source_serialized_rows.len();
+    let statement_field_count = statement_rows.fields.len();
+    let statement_serialized_count = statement_rows.serialized.len();
+    if source_field_count != source_serialized_count {
+        return Err(AppVerifyShippingStatementPreflightError::SourceSerializationCountMismatch);
+    }
+    if statement_field_count != statement_serialized_count {
+        return Err(AppVerifyShippingStatementPreflightError::StatementSerializationCountMismatch);
+    }
+    if source_field_count != statement_rows.real_count as usize {
+        return Err(AppVerifyShippingStatementPreflightError::StatementRealCountMismatch);
+    }
+    if statement_field_count != statement_rows.padded_count as usize {
+        return Err(AppVerifyShippingStatementPreflightError::StatementPaddedCountMismatch);
+    }
+    let expected_arity = statement_rows.public_input_arity as usize;
+    if !app_verify_field_rows_have_arity(source_field_rows, expected_arity) {
+        return Err(AppVerifyShippingStatementPreflightError::SourceFieldArityMismatch);
+    }
+    if !app_verify_serialized_rows_have_arity(&source_serialized_rows, expected_arity) {
+        return Err(AppVerifyShippingStatementPreflightError::SourceSerializedArityMismatch);
+    }
+    if !app_verify_field_rows_have_arity(&statement_rows.fields, expected_arity) {
+        return Err(AppVerifyShippingStatementPreflightError::StatementFieldArityMismatch);
+    }
+    if !app_verify_serialized_rows_have_arity(&statement_rows.serialized, expected_arity) {
+        return Err(AppVerifyShippingStatementPreflightError::StatementSerializedArityMismatch);
+    }
+
+    let prepared = match app_verify_prepare_public_input_rows_core(
+        source_serialized_rows,
+        statement_rows.padded_count as usize,
+    ) {
+        Ok(prepared) => prepared,
+        Err(error) => return Err(AppVerifyShippingStatementPreflightError::RowPadding(error)),
+    };
+    if prepared.real_count != statement_rows.real_count as usize {
+        return Err(AppVerifyShippingStatementPreflightError::StatementRealCountMismatch);
+    }
+    if prepared.padded_count != statement_rows.padded_count as usize {
+        return Err(AppVerifyShippingStatementPreflightError::StatementPaddedCountMismatch);
+    }
+    if !app_verify_serialized_rows_equal(&prepared.padded_public_inputs, &statement_rows.serialized)
+    {
+        return Err(AppVerifyShippingStatementPreflightError::StatementSerializedRowsMismatch);
+    }
+    Ok(prepared)
+}
+
 /// Pad serialized caller-order rows, bind them to authenticated statement
 /// serialization, and construct the exact shipping preflight used by
 /// production.
@@ -708,53 +763,18 @@ pub fn app_verify_shipping_statement_preflight_core<BackendCall, Field, BindingE
     AppVerifyAcceptedPreflightStatementProvenance<BackendCall, Field, BindingExecution>,
     AppVerifyShippingStatementPreflightError,
 > {
-    let source_field_count = source_rows.source_rows.len();
-    let source_serialized_count = source_rows.serialized_rows.len();
-    let statement_field_count = statement_rows.fields.len();
-    let statement_serialized_count = statement_rows.serialized.len();
-    if source_field_count != source_serialized_count {
-        return Err(AppVerifyShippingStatementPreflightError::SourceSerializationCountMismatch);
-    }
-    if statement_field_count != statement_serialized_count {
-        return Err(AppVerifyShippingStatementPreflightError::StatementSerializationCountMismatch);
-    }
-    if source_field_count != statement_rows.real_count as usize {
-        return Err(AppVerifyShippingStatementPreflightError::StatementRealCountMismatch);
-    }
-    if statement_field_count != statement_rows.padded_count as usize {
-        return Err(AppVerifyShippingStatementPreflightError::StatementPaddedCountMismatch);
-    }
-    let expected_arity = statement_rows.public_input_arity as usize;
-    if !app_verify_field_rows_have_arity(&source_rows.source_rows, expected_arity) {
-        return Err(AppVerifyShippingStatementPreflightError::SourceFieldArityMismatch);
-    }
-    if !app_verify_serialized_rows_have_arity(&source_rows.serialized_rows, expected_arity) {
-        return Err(AppVerifyShippingStatementPreflightError::SourceSerializedArityMismatch);
-    }
-    if !app_verify_field_rows_have_arity(&statement_rows.fields, expected_arity) {
-        return Err(AppVerifyShippingStatementPreflightError::StatementFieldArityMismatch);
-    }
-    if !app_verify_serialized_rows_have_arity(&statement_rows.serialized, expected_arity) {
-        return Err(AppVerifyShippingStatementPreflightError::StatementSerializedArityMismatch);
-    }
-
-    let prepared = match app_verify_prepare_public_input_rows_core(
-        source_rows.serialized_rows.clone(),
-        statement_rows.padded_count as usize,
+    let AppVerifyStatementRowBytesProjection {
+        source_rows: source_field_rows,
+        serialized_rows: source_serialized_rows,
+    } = source_rows;
+    let prepared = match app_verify_prepare_shipping_statement_rows_core(
+        &source_field_rows,
+        source_serialized_rows,
+        &statement_rows,
     ) {
         Ok(prepared) => prepared,
-        Err(error) => return Err(AppVerifyShippingStatementPreflightError::RowPadding(error)),
+        Err(error) => return Err(error),
     };
-    if prepared.real_count != statement_rows.real_count as usize {
-        return Err(AppVerifyShippingStatementPreflightError::StatementRealCountMismatch);
-    }
-    if prepared.padded_count != statement_rows.padded_count as usize {
-        return Err(AppVerifyShippingStatementPreflightError::StatementPaddedCountMismatch);
-    }
-    if !app_verify_serialized_rows_equal(&prepared.padded_public_inputs, &statement_rows.serialized)
-    {
-        return Err(AppVerifyShippingStatementPreflightError::StatementSerializedRowsMismatch);
-    }
 
     let rows = app_verify_shipping_rows_from_parts(
         statement_rows.real_count,
@@ -785,7 +805,7 @@ pub fn app_verify_shipping_statement_preflight_core<BackendCall, Field, BindingE
     };
     Ok(AppVerifyAcceptedPreflightStatementProvenance {
         binding_execution,
-        source_rows,
+        source_field_rows,
         prepared_serialized_rows: prepared,
         preflight,
     })
@@ -1531,10 +1551,11 @@ mod tests {
         .expect("matching statement provenance");
 
         assert_eq!(provenance.binding_execution, vec![0xd1, 0xd2]);
-        assert_eq!(provenance.source_rows.source_rows, source_fields);
+        assert_eq!(provenance.source_field_rows, source_fields);
         assert_eq!(
-            provenance.source_rows.serialized_rows,
-            source_serialized_rows
+            &provenance.prepared_serialized_rows.padded_public_inputs
+                [..source_serialized_rows.len()],
+            source_serialized_rows.as_slice()
         );
         assert_eq!(provenance.prepared_serialized_rows.real_count, 2);
         assert_eq!(provenance.prepared_serialized_rows.padded_count, 4);

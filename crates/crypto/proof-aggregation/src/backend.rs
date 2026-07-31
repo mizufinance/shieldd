@@ -430,7 +430,7 @@ impl SnarkpackBackend {
         )?;
         let statement_construction = ShippingStatementConstructionProvenance {
             binding_execution: provenance.binding_execution,
-            source_rows: provenance.source_rows,
+            source_field_rows: provenance.source_field_rows,
             prepared_serialized_rows: provenance.prepared_serialized_rows,
         };
         let (backend_call, padded_public_input_fields, input) =
@@ -1694,10 +1694,7 @@ mod tests {
                 .expect("retained range must index the original wrapper"),
             binding.wrapper.inner_proof_bytes.as_slice()
         );
-        assert_eq!(
-            construction.source_rows.source_rows,
-            padded_public_inputs(&items)
-        );
+        assert_eq!(construction.source_field_rows, padded_public_inputs(&items));
         assert_eq!(
             construction.prepared_serialized_rows.padded_public_inputs,
             statement.shipping_rows().serialized.to_nested_bytes()

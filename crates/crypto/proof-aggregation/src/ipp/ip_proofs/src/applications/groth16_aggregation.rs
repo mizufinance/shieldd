@@ -680,14 +680,16 @@ where
     PE: PairingEffect<G1, G2, GT> + Sync + Send,
     PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
 {
-    verify_aggregate_adapter_execution_core(
+    match verify_aggregate_adapter_execution_core(
         input,
         randomizer_effect,
         tipp_mipp_effect,
         tipp_pairing,
         ppe_pairing,
-    )
-    .map(|output| output.core)
+    ) {
+        Ok(output) => Ok(output.core),
+        Err(error) => Err(error),
+    }
 }
 
 #[cfg(not(feature = "bench-baseline"))]
@@ -1011,15 +1013,17 @@ where
     PE: PairingEffect<G1, G2, GT> + Sync + Send,
     PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
 {
-    verify_aggregate_adapter_execution_core_from_nonce(
+    match verify_aggregate_adapter_execution_core_from_nonce(
         input,
         randomizer_effect,
         tipp_mipp_effect,
         tipp_pairing,
         ppe_pairing,
         nonce,
-    )
-    .map(|output| output.core)
+    ) {
+        Ok(output) => Ok(output.core),
+        Err(error) => Err(error),
+    }
 }
 
 #[cfg(not(feature = "bench-baseline"))]
@@ -1332,8 +1336,10 @@ where
     PE: PairingEffect<G1, G2, GT> + Sync + Send,
     PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
 {
-    verify_combined_checks_execution_core(input, effect, tipp_pairing, ppe_pairing)
-        .map(|output| output.core)
+    match verify_combined_checks_execution_core(input, effect, tipp_pairing, ppe_pairing) {
+        Ok(output) => Ok(output.core),
+        Err(error) => Err(error),
+    }
 }
 
 #[cfg(not(feature = "bench-baseline"))]
