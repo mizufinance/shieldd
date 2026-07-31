@@ -27,7 +27,7 @@ flowchart LR
   n20["V1-COMPLETENESS<br/>proved"]
   n21["SHIPPING-PROVER-REFINEMENT<br/>open"]
   n22["RUST-CALL-CONSTRUCTION<br/>open"]
-  n23["DEPLOYED-HASH-TRACE-CONSTRUCTION<br/>open"]
+  n23["DEPLOYED-HASH-TRACE-CONSTRUCTION<br/>proved"]
   n24["ADAPTIVE-SHARED-ORACLE-SKELETON<br/>proved"]
   n25["ADAPTIVE-SHA256-COUPLING<br/>open"]
   n26["ADAPTIVE-ADVERSARY-COUPLING<br/>open"]
@@ -175,6 +175,7 @@ flowchart LR
   n31 --> n23
   n14 --> n23
   a5 -.-> n23
+  a14 -.-> n23
   a15 -.-> n23
   a23 -.-> n23
   a24 -.-> n23
@@ -242,12 +243,12 @@ flowchart LR
   classDef assumed fill:#fef3c7,stroke:#b45309,color:#451a03
   classDef evidencePass fill:#e0f2fe,stroke:#0369a1,color:#082f49
   classDef evidenceStale fill:#fee2e2,stroke:#b91c1c,color:#450a0a
-  class n0,n1,n2,n3,n4,n5,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16,n20,n24,n27,n30 proved
+  class n0,n1,n2,n3,n4,n5,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16,n20,n23,n24,n27,n30 proved
   class n31,n32 tested
-  class n6,n17,n18,n19,n21,n22,n23,n25,n26,n28,n29 open
+  class n6,n17,n18,n19,n21,n22,n25,n26,n28,n29 open
   class a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26 assumed
   class e0,e1,e2,e8 evidencePass
   class e3,e4,e5,e6,e7,e9,e10,e11 evidenceStale
 ```
 
-Open graph claims: `DEPLOYED-SRS-SOUNDNESS`, `SHIPPING-TO-GOAL`, `STATEMENT-PROJECTION-CONSTRUCTION`, `CANONICAL-STATEMENT-BINDING`, `SHIPPING-PROVER-REFINEMENT`, `RUST-CALL-CONSTRUCTION`, `DEPLOYED-HASH-TRACE-CONSTRUCTION`, `ADAPTIVE-SHA256-COUPLING`, `ADAPTIVE-ADVERSARY-COUPLING`, `BUNDLE-LEVEL-COMPOSITION`, `FULL-ADAPTIVE-END-TO-END-FV`. The manifest dependencies keep the explicit modular-reduction budget and the distinct SHA-256 and Blake2b security advantages separate. `SHIPPING-TO-GOAL` is `open` and `FULL-ADAPTIVE-END-TO-END-FV` is `open`. Every F* statement-contract row must carry a source-digest-pinned `pass` result.
+Open graph claims: `DEPLOYED-SRS-SOUNDNESS`, `SHIPPING-TO-GOAL`, `STATEMENT-PROJECTION-CONSTRUCTION`, `CANONICAL-STATEMENT-BINDING`, `SHIPPING-PROVER-REFINEMENT`, `RUST-CALL-CONSTRUCTION`, `ADAPTIVE-SHA256-COUPLING`, `ADAPTIVE-ADVERSARY-COUPLING`, `BUNDLE-LEVEL-COMPOSITION`, `FULL-ADAPTIVE-END-TO-END-FV`. The manifest dependencies keep the explicit modular-reduction budget and the distinct SHA-256 and Blake2b security advantages separate. `SHIPPING-TO-GOAL` is `open` and `FULL-ADAPTIVE-END-TO-END-FV` is `open`. Every F* statement-contract row must carry a source-digest-pinned `pass` result.

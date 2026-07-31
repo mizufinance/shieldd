@@ -777,6 +777,17 @@
       ]
     },
     {
+      "path": "Ipp/ProofAuditDeployedHashTrace.lean",
+      "expected_capstones": 4,
+      "capstone_roots_sha256": "a746cb0a565f67f16864acf01be5a09a7444a143dc45f69cfda593e25e008cd8",
+      "required_roots": [
+        "Ipp.Extracted.TippMippAcceptedRunProjection.runTipp_success_has_effect_trace",
+        "Ipp.Extracted.TippMippAcceptedRunProjection.acceptedRunCallProjection",
+        "Ipp.ShippingDeployedHashTraceConstruction.acceptedExecution_challengePrimitiveContract_of_decoded",
+        "Ipp.ShippingDeployedHashTraceConstruction.deployed_hash_trace_construction"
+      ]
+    },
+    {
       "path": "Ipp/ProofAuditProver.lean",
       "expected_capstones": 9,
       "capstone_roots_sha256": "54a548fe03f629e790eb810f9ab1fd3b6ac6de7963eed7c11c464d203fcb76bb",
@@ -1525,21 +1536,22 @@
     {
       "id": "DEPLOYED-HASH-TRACE-CONSTRUCTION",
       "statement": "Every accepted production challenge execution constructs the exact randomizer, X0, chronological round, bridge, and KZG sampler trace consumed by DeployedChallengePrimitiveContract, with identical framing, Blake2b bytes, Fr reduction, nonce bounds, cache behavior, and fail-closed exhaustion.",
-      "root": "UNPROVED.deployed_hash_trace_construction",
+      "root": "Ipp.ShippingDeployedHashTraceConstruction.deployed_hash_trace_construction",
       "dependencies": [
         "BOUNDED-CHALLENGE-SAMPLER",
         "SHIPPING-HASH-MOD-REDUCTION"
       ],
       "assumptions": [
         "AENEAS-TRANSLATOR",
+        "ARKWORKS-AGGREGATE-PROOF-DECODE",
         "ARKWORKS-CHALLENGE-SERIALIZATION",
         "ARKWORKS-FR-DIGEST-REDUCTION",
         "DEPLOYED-BLAKE2B-EXECUTION",
         "ARKWORKS-SHIPPING-EFFECT-INSTALLATION",
         "RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT"
       ],
-      "evidence": "Open only at the thin concrete effect installation, accepted-run projection, and deployed primitive instantiation. The production-used verify_shipping_adapter_semantic_execution_core calls verify_installed_aggregate_adapter_core exactly once and derives the accepted randomizer call, chronological TIPP/MIPP trace, checks, output, and acceptance from that single result. shipping_verifier_semantic_execution_with_traces_core constructs the initial empty and final retained trace states from the same adapter result. shipping_verifier_observed_backend_result_core then moves the two final phase buffers into one chronological observation, records the randomizer-prefix length, and preserves the exact context, result identifier, acceptance bit, and typed semantic execution without cloning any trace entry. The recovered generated equation is now wrapped by audited exact-result and trace-projection theorems proving concatenation, split bounds, and take/drop reconstruction of the randomizer and TIPP/MIPP records. ARKWORKS-SHIPPING-EFFECT-INSTALLATION states only that the unextracted wrapper installs the four named Arkworks effects with the exact context/sinks and returns those core results unchanged. acceptedOperationalCalls_of_adapterRun then inverts the generic accepted path at that execution's real initial effect. SuccessfulPointSample derives the accepted digest/value, nonce bound, and every prior rejected attempt; TranscriptExecution derives all challenge admissibility, so no caller-supplied admissibility field remains. acceptedExecution_challengePrimitiveContract and deployedChallengePrimitiveContract_of_postconditions compose the trace with exact Blake2b and Arkworks-Fr postconditions. Closure now requires constructing AcceptedRunCallProjection from those trace facts and instantiating the named deployed primitive postconditions. RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT applies only after observation construction and supplies no cache, scheduling, distribution, or query semantics.",
-      "status": "open"
+      "evidence": "Kernel-audited conditional closure. runTipp_success_has_effect_trace derives the state-threaded X0, chronological round, bridge, and KZG calls directly from the accepted extracted runTipp execution, and acceptedRunCallProjection installs that result in AcceptedRunCallProjection. acceptedExecution_challengePrimitiveContract_of_decoded combines those calls with the accepted adapter run's exact randomizer call and the deterministic shipping transcript execution. deployed_hash_trace_construction therefore constructs DeployedChallengePrimitiveContract for every supported accepted shipping execution without any caller-supplied trace, transcript equation, admissibility fact, or other operational premise. The only remaining boundaries are the named strict aggregate-proof decoder correspondence, challenge serialization, Arkworks digest-to-Fr reduction, deployed Blake2b execution, concrete shipping effect installation, immutable observed-result transport, and Aeneas translator correctness. Those postconditions supply no cache, scheduling, distribution, acceptance, or soundness conclusion.",
+      "status": "proved"
     },
     {
       "id": "ADAPTIVE-SHARED-ORACLE-SKELETON",
