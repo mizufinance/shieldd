@@ -4,20 +4,17 @@ import Ipp.Extracted.AeneasRuntime
 Runtime support used only by the AggregateAdapter extraction graph.
 -/
 
-namespace ark_ip_proofs.alloc.vec.Vec
+namespace ark_ip_proofs
 
-open Aeneas Aeneas.Std
-
-/-- `Vec::append` moves the second vector's elements and leaves it empty. -/
-def append {T : Type} (_allocator : Type)
+def alloc.vec.Vec.append {T : Type} (_allocator : Type)
     (left right : Aeneas.Std.alloc.vec.Vec T) :
     Aeneas.Result
       (Aeneas.Std.alloc.vec.Vec T × Aeneas.Std.alloc.vec.Vec T) :=
   .ok (⟨left.val ++ right.val⟩, ⟨[]⟩)
 
-@[simp] theorem append_exact {T : Type} (allocator : Type)
+@[simp] theorem alloc.vec.Vec.append_exact {T : Type} (allocator : Type)
     (left right : Aeneas.Std.alloc.vec.Vec T) :
-    append allocator left right =
+    alloc.vec.Vec.append allocator left right =
       .ok (⟨left.val ++ right.val⟩, ⟨[]⟩) := rfl
 
-end ark_ip_proofs.alloc.vec.Vec
+end ark_ip_proofs

@@ -517,6 +517,44 @@ def s3_07_arkworks_fq_spike.root : Array Std.I8 3 :=
         self.assertNotIn("def shared", result)
         self.assertIn("def spike.root", result)
 
+    def test_reuse_module_accepts_qualified_declaration_names(self):
+        source = self.write(
+            "raw.lean",
+            raw(
+                "function",
+                "def alloc.vec.Vec.append := 1\n\n"
+                "def spike.root := alloc.vec.Vec.append",
+            ),
+        )
+        reused = self.write(
+            "AggregateAdapterRuntime.lean",
+            "namespace ark_ip_proofs\n\n"
+            "def alloc.vec.Vec.append := 1\n\n"
+            "end ark_ip_proofs\n",
+        )
+        completed, output = self.run_normalize(
+            [source],
+            roots=("ark_ip_proofs::spike::root",),
+            reuse=(
+                f"Ipp.Extracted.AggregateAdapterRuntime={reused}",
+            ),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = output.read_text(encoding="utf-8")
+        self.assertIn(
+            "import Ipp.Extracted.AggregateAdapterRuntime",
+            result,
+        )
+        self.assertNotIn("def alloc.vec.Vec.append", result)
+        self.assertIn("def spike.root", result)
+
+    def test_aggregate_adapter_runtime_reuse_module_is_parseable(self):
+        names = NORMALIZER._names_from_module(
+            "Ipp.Extracted.AggregateAdapterRuntime",
+            NORMALIZER.LEAN_ROOT,
+        )
+        self.assertEqual(names, {"alloc.vec.Vec.append"})
+
     def test_replacing_root_fails_closed(self):
         source = self.write("raw.lean", raw("function", "def spike.root := 1"))
         reused = self.write(

@@ -655,6 +655,244 @@ structure RunChallengeTrace
           bridgeValue (proof.vFinal, proof.wFinal)⟩ =
       .ok (.Ok kzgValue, finalEffect)
 
+/-- Challenge calls recovered directly from the state-threaded extracted
+TIPP/MIPP effect.
+
+This is the operational boundary immediately below `RunChallengeTrace`.
+Unlike the concrete shipping effect's retained diagnostic trace, every field
+is an equation for the effect call executed by the verifier. -/
+structure AcceptedEffectChallengeTrace
+    {FX : Type} {n : Nat}
+    (primitive : Primitive FX)
+    (proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput)
+    (randomizer : Fr)
+    (effect0 finalEffect : FX) : Type where
+  x0Value : Fr
+  roundValue : Fin n → Fr
+  bridgeValue : Fr
+  kzgValue : Fr
+  effect : Nat → FX
+  bridgeEffect : FX
+  x0 :
+    (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+        (@Ipp.Extracted.TippMippAdapter.partialEq
+          ArkPairingOutput (Classical.decEq _))
+        (@Ipp.Extracted.TippMippAdapter.partialEq
+          g1PrimeSubgroup (Classical.decEq _))).derive_x0
+        effect0 randomizer proof.ComA.1 proof.ComB proof.ComA.2
+          proof.ipAb proof.aggC =
+      .ok (.Ok x0Value, effect 0)
+  round : ∀ k (hk : k < n),
+    (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+        (@Ipp.Extracted.TippMippAdapter.partialEq
+          ArkPairingOutput (Classical.decEq _))
+        (@Ipp.Extracted.TippMippAdapter.partialEq
+          g1PrimeSubgroup (Classical.decEq _))).derive_round
+        (effect k)
+        (Ipp.Extracted.VerifyTippMipp.priorAt roundValue x0Value k)
+        (Ipp.Extracted.VerifyTippMipp.extractedRounds
+          proof.rounds (Fin.rev ⟨k, hk⟩)).1
+        (Ipp.Extracted.VerifyTippMipp.extractedRounds
+          proof.rounds (Fin.rev ⟨k, hk⟩)).2 =
+      .ok (.Ok (roundValue ⟨k, hk⟩), effect (k + 1))
+  bridge :
+    (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+        (@Ipp.Extracted.TippMippAdapter.partialEq
+          ArkPairingOutput (Classical.decEq _))
+        (@Ipp.Extracted.TippMippAdapter.partialEq
+          g1PrimeSubgroup (Classical.decEq _))).derive_final_bridge
+        (effect n)
+        (Ipp.Extracted.VerifyTippMipp.priorAt roundValue x0Value n)
+        (proof.vFinal, proof.wFinal)
+        (proof.aFinal, proof.bFinal, proof.cFinal) =
+      .ok (.Ok bridgeValue, bridgeEffect)
+  kzg :
+    (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+        (@Ipp.Extracted.TippMippAdapter.partialEq
+          ArkPairingOutput (Classical.decEq _))
+        (@Ipp.Extracted.TippMippAdapter.partialEq
+          g1PrimeSubgroup (Classical.decEq _))).derive_kzg
+        bridgeEffect bridgeValue (proof.vFinal, proof.wFinal) =
+      .ok (.Ok kzgValue, finalEffect)
+
+/-- Translate state-threaded extracted effect equations to the primitive calls
+and canonical messages used by the deployed hash bridge. -/
+def RunChallengeTrace.ofAcceptedEffectTrace
+    {FX : Type} {n : Nat}
+    {primitive : Primitive FX}
+    {serialization : Serialization primitive}
+    {proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput}
+    {randomizer : Fr}
+    {effect0 finalEffect : FX}
+    (trace :
+      AcceptedEffectChallengeTrace primitive proof randomizer
+        effect0 finalEffect) :
+    RunChallengeTrace primitive serialization proof randomizer
+      effect0 finalEffect := {
+  x0Value := trace.x0Value
+  roundValue := trace.roundValue
+  bridgeValue := trace.bridgeValue
+  kzgValue := trace.kzgValue
+  effect := trace.effect
+  bridgeEffect := trace.bridgeEffect
+  x0 := by
+    calc
+      primitive.derive_challenge effect0
+          applications.groth16_aggregation.TippMippChallengeStage.X0
+          ⟨Ipp.Extracted.TippMippAdapter.x0Message serialization
+            randomizer proof.ComA.1 proof.ComB proof.ComA.2
+            proof.ipAb proof.aggC⟩ =
+        applications.groth16_aggregation.arkworks_tipp_x0_adapter_core
+          primitive effect0 randomizer proof.ComA.1 proof.ComB proof.ComA.2
+            proof.ipAb proof.aggC :=
+        (Ipp.Extracted.TippMippAdapter.x0_core_exact primitive serialization
+          effect0 randomizer proof.ComA.1 proof.ComB proof.ComA.2
+          proof.ipAb proof.aggC).symm
+      _ =
+        (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            ArkPairingOutput (Classical.decEq _))
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            g1PrimeSubgroup (Classical.decEq _))).derive_x0
+          effect0 randomizer proof.ComA.1 proof.ComB proof.ComA.2
+            proof.ipAb proof.aggC :=
+        (Ipp.Extracted.TippMippAdapter.effect_derive_x0_exact primitive
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            ArkPairingOutput (Classical.decEq _))
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            g1PrimeSubgroup (Classical.decEq _))
+          effect0 randomizer proof.ComA.1 proof.ComB proof.ComA.2
+          proof.ipAb proof.aggC).symm
+      _ = _ := trace.x0
+  round := by
+    intro k hk
+    calc
+      primitive.derive_challenge (trace.effect k)
+          applications.groth16_aggregation.TippMippChallengeStage.Round
+          ⟨Ipp.Extracted.TippMippAdapter.roundMessage serialization
+            (Ipp.Extracted.VerifyTippMipp.priorAt
+              trace.roundValue trace.x0Value k)
+            (Ipp.Extracted.VerifyTippMipp.extractedRounds
+              proof.rounds (Fin.rev ⟨k, hk⟩)).1
+            (Ipp.Extracted.VerifyTippMipp.extractedRounds
+              proof.rounds (Fin.rev ⟨k, hk⟩)).2⟩ =
+        applications.groth16_aggregation.arkworks_tipp_round_adapter_core
+          primitive (trace.effect k)
+          (Ipp.Extracted.VerifyTippMipp.priorAt
+            trace.roundValue trace.x0Value k)
+          (Ipp.Extracted.VerifyTippMipp.extractedRounds
+            proof.rounds (Fin.rev ⟨k, hk⟩)).1
+          (Ipp.Extracted.VerifyTippMipp.extractedRounds
+            proof.rounds (Fin.rev ⟨k, hk⟩)).2 :=
+        (Ipp.Extracted.TippMippAdapter.round_core_exact primitive serialization
+          (trace.effect k)
+          (Ipp.Extracted.VerifyTippMipp.priorAt
+            trace.roundValue trace.x0Value k)
+          (Ipp.Extracted.VerifyTippMipp.extractedRounds
+            proof.rounds (Fin.rev ⟨k, hk⟩)).1
+          (Ipp.Extracted.VerifyTippMipp.extractedRounds
+            proof.rounds (Fin.rev ⟨k, hk⟩)).2).symm
+      _ =
+        (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            ArkPairingOutput (Classical.decEq _))
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            g1PrimeSubgroup (Classical.decEq _))).derive_round
+          (trace.effect k)
+          (Ipp.Extracted.VerifyTippMipp.priorAt
+            trace.roundValue trace.x0Value k)
+          (Ipp.Extracted.VerifyTippMipp.extractedRounds
+            proof.rounds (Fin.rev ⟨k, hk⟩)).1
+          (Ipp.Extracted.VerifyTippMipp.extractedRounds
+            proof.rounds (Fin.rev ⟨k, hk⟩)).2 :=
+        (Ipp.Extracted.TippMippAdapter.effect_derive_round_exact primitive
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            ArkPairingOutput (Classical.decEq _))
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            g1PrimeSubgroup (Classical.decEq _))
+          (trace.effect k)
+          (Ipp.Extracted.VerifyTippMipp.priorAt
+            trace.roundValue trace.x0Value k)
+          (Ipp.Extracted.VerifyTippMipp.extractedRounds
+            proof.rounds (Fin.rev ⟨k, hk⟩)).1
+          (Ipp.Extracted.VerifyTippMipp.extractedRounds
+            proof.rounds (Fin.rev ⟨k, hk⟩)).2).symm
+      _ = _ := trace.round k hk
+  bridge := by
+    calc
+      primitive.derive_challenge (trace.effect n)
+          applications.groth16_aggregation.TippMippChallengeStage.FinalBridge
+          ⟨Ipp.Extracted.TippMippAdapter.finalBridgeMessage serialization
+            (Ipp.Extracted.VerifyTippMipp.priorAt
+              trace.roundValue trace.x0Value n)
+            (proof.vFinal, proof.wFinal)
+            (proof.aFinal, proof.bFinal, proof.cFinal)⟩ =
+        applications.groth16_aggregation.arkworks_tipp_final_bridge_adapter_core
+          primitive (trace.effect n)
+          (Ipp.Extracted.VerifyTippMipp.priorAt
+            trace.roundValue trace.x0Value n)
+          (proof.vFinal, proof.wFinal)
+          (proof.aFinal, proof.bFinal, proof.cFinal) :=
+        (Ipp.Extracted.TippMippAdapter.final_bridge_core_exact
+          primitive serialization (trace.effect n)
+          (Ipp.Extracted.VerifyTippMipp.priorAt
+            trace.roundValue trace.x0Value n)
+          (proof.vFinal, proof.wFinal)
+          (proof.aFinal, proof.bFinal, proof.cFinal)).symm
+      _ =
+        (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            ArkPairingOutput (Classical.decEq _))
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            g1PrimeSubgroup (Classical.decEq _))).derive_final_bridge
+          (trace.effect n)
+          (Ipp.Extracted.VerifyTippMipp.priorAt
+            trace.roundValue trace.x0Value n)
+          (proof.vFinal, proof.wFinal)
+          (proof.aFinal, proof.bFinal, proof.cFinal) :=
+        (Ipp.Extracted.TippMippAdapter.effect_final_bridge_exact primitive
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            ArkPairingOutput (Classical.decEq _))
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            g1PrimeSubgroup (Classical.decEq _))
+          (trace.effect n)
+          (Ipp.Extracted.VerifyTippMipp.priorAt
+            trace.roundValue trace.x0Value n)
+          (proof.vFinal, proof.wFinal)
+          (proof.aFinal, proof.bFinal, proof.cFinal)).symm
+      _ = _ := trace.bridge
+  kzg := by
+    calc
+      primitive.derive_challenge trace.bridgeEffect
+          applications.groth16_aggregation.TippMippChallengeStage.Kzg
+          ⟨Ipp.Extracted.TippMippAdapter.kzgMessage serialization
+            trace.bridgeValue (proof.vFinal, proof.wFinal)⟩ =
+        applications.groth16_aggregation.arkworks_tipp_kzg_adapter_core
+          primitive trace.bridgeEffect trace.bridgeValue
+          (proof.vFinal, proof.wFinal) :=
+        (Ipp.Extracted.TippMippAdapter.kzg_core_exact primitive serialization
+          trace.bridgeEffect trace.bridgeValue
+          (proof.vFinal, proof.wFinal)).symm
+      _ =
+        (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            ArkPairingOutput (Classical.decEq _))
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            g1PrimeSubgroup (Classical.decEq _))).derive_kzg
+          trace.bridgeEffect trace.bridgeValue
+          (proof.vFinal, proof.wFinal) :=
+        (Ipp.Extracted.TippMippAdapter.effect_kzg_exact primitive
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            ArkPairingOutput (Classical.decEq _))
+          (@Ipp.Extracted.TippMippAdapter.partialEq
+            g1PrimeSubgroup (Classical.decEq _))
+          trace.bridgeEffect trace.bridgeValue
+          (proof.vFinal, proof.wFinal)).symm
+      _ = _ := trace.kzg
+}
+
 /-- Forget sampler nonzero evidence and the caller-owned statement from an
 exact extracted challenge-call record.  This is the stable hand-written
 projection used by the production challenge-prefix extraction: regeneration
@@ -828,6 +1066,61 @@ structure AcceptedRunCallProjection
       (RunChallengeTrace primitive serialization proof randomizer
         effect0 finalEffect)
 
+/-- The only remaining control-flow obligation for an accepted run is to
+recover its state-threaded effect equations. Canonical message construction
+is discharged by `RunChallengeTrace.ofAcceptedEffectTrace`. -/
+def acceptedRunCallProjection_of_effectCalls
+    {FX PE : Type} {n : Nat}
+    (primitive : Primitive FX)
+    (serialization : Serialization primitive)
+    (stmt : Ipp.FsStatement n Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput)
+    (proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup
+      ArkPairingOutput)
+    (randomizer : Fr)
+    (g gBeta : g1PrimeSubgroup)
+    (h hAlpha : g2PrimeSubgroup)
+    (pairingEffect :
+      tipa.PairingEffect PE g1PrimeSubgroup g2PrimeSubgroup
+        ArkPairingOutput)
+    (pairing : PE)
+    (effect0 finalEffect : FX)
+    (effectCalls :
+      Ipp.Extracted.CombinedChecks.runTipp
+          (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
+            (@Ipp.Extracted.TippMippAdapter.partialEq
+              ArkPairingOutput (Classical.decEq _))
+            (@Ipp.Extracted.TippMippAdapter.partialEq
+              g1PrimeSubgroup (Classical.decEq _)))
+          pairingEffect
+          (Ipp.Extracted.VerifyTippMipp.coreInput
+            stmt proof {
+              randomizer := randomizer
+              randomizerNonce := 0
+              x0 := 0
+              x0Nonce := 0
+              roundPrev := fun _ => 0
+              roundAnswer := fun _ => 0
+              roundNonce := fun _ => 0
+              bridge := 0
+              bridgeNonce := 0
+              kzg := 0
+              kzgNonce := 0
+            } g gBeta h hAlpha)
+          effect0 pairing =
+        .ok (.Ok true, finalEffect) →
+      Nonempty
+        (AcceptedEffectChallengeTrace primitive proof randomizer
+          effect0 finalEffect)) :
+    AcceptedRunCallProjection primitive serialization stmt proof randomizer
+      g gBeta h hAlpha pairingEffect pairing effect0 finalEffect := {
+  callsOfAccepted := fun accepted => by
+    obtain ⟨trace⟩ := effectCalls accepted
+    exact
+      ⟨RunChallengeTrace.ofAcceptedEffectTrace
+        (serialization := serialization) trace⟩
+}
+
 #print axioms sampleEquations_of_calls
 #print axioms acceptedExecutionSamples_of_calls
 #print axioms AcceptedExecutionSamples.randomizerAtTranscript
@@ -836,6 +1129,8 @@ structure AcceptedRunCallProjection
 #print axioms AcceptedExecutionSamples.bridgeAtTranscript
 #print axioms AcceptedExecutionSamples.kzgAtTranscript
 #print axioms nonempty_runChallengeTrace_of_arkworksTrace
+#print axioms RunChallengeTrace.ofAcceptedEffectTrace
+#print axioms acceptedRunCallProjection_of_effectCalls
 
 end
 
