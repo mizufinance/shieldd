@@ -1086,7 +1086,38 @@ private theorem cloneList_identity {T : Type} (items : List T) :
   | mk values =>
       simp [clone, cloneList_identity]
 
+/-- Cloning a vector is exact when cloning every element is exact. -/
+theorem clone_exact {T : Type} (cloneInst : core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (items : Aeneas.Std.alloc.vec.Vec T) :
+    clone cloneInst items = .ok items := by
+  cases items with
+  | mk values =>
+      suffices cloneList cloneInst values = .ok values by
+        simp [clone, this]
+      induction values with
+      | nil => rfl
+      | cons value rest ih =>
+          simp [cloneList, hclone value, ih]
+
 end alloc.vec.CloneVec
+
+namespace core.clone
+
+/-- The standard `Vec<T>: Clone` dictionary emitted by Aeneas. -/
+@[reducible] def CloneallocvecVec {T : Type}
+    (cloneInst : Aeneas.Std.core.clone.Clone T) :
+    Aeneas.Std.core.clone.Clone (Aeneas.Std.alloc.vec.Vec T) where
+  clone := alloc.vec.CloneVec.clone cloneInst
+
+@[simp] theorem CloneallocvecVec_clone_exact {T : Type}
+    (cloneInst : Aeneas.Std.core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = Aeneas.Result.ok value)
+    (items : Aeneas.Std.alloc.vec.Vec T) :
+    (CloneallocvecVec cloneInst).clone items = Aeneas.Result.ok items :=
+  alloc.vec.CloneVec.clone_exact cloneInst hclone items
+
+end core.clone
 
 namespace Array
 

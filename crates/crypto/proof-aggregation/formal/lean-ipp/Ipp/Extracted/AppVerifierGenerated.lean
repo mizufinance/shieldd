@@ -882,9 +882,7 @@ structure app_verifier.AppVerifyStatementRowBytesProjection (Rows : Type)
 structure app_verifier.AppVerifyAcceptedPreflightStatementProvenance
   (BackendCall : Type) (Field : Type) (BindingExecution : Type) where
   binding_execution : BindingExecution
-  source_rows : app_verifier.AppVerifyStatementRowBytesProjection
-    (alloc.vec.Vec (alloc.vec.Vec Field)) (alloc.vec.Vec (alloc.vec.Vec
-    (alloc.vec.Vec UInt8)))
+  source_field_rows : alloc.vec.Vec (alloc.vec.Vec Field)
   prepared_serialized_rows : app_verifier.AppVerifyPreparedRows (alloc.vec.Vec
     (alloc.vec.Vec UInt8))
   preflight : app_verifier.AppVerifyShippingPreflight BackendCall
@@ -1049,28 +1047,19 @@ def app_verifier.app_verify_serialized_rows_equal
   if i != i1
   then ok false
   else app_verifier.app_verify_serialized_rows_equal_loop left right 0#usize
-def app_verifier.app_verify_shipping_statement_preflight_core
-  {BackendCall : Type} {Field : Type} {BindingExecution : Type}
-  (backend_call : BackendCall) (binding_execution : BindingExecution)
-  (source_rows : app_verifier.AppVerifyStatementRowBytesProjection
-  (alloc.vec.Vec (alloc.vec.Vec Field)) (alloc.vec.Vec (alloc.vec.Vec
-  (alloc.vec.Vec UInt8))))
+def app_verifier.app_verify_prepare_shipping_statement_rows_core
+  {Field : Type} (source_field_rows : Slice (alloc.vec.Vec Field))
+  (source_serialized_rows : alloc.vec.Vec (alloc.vec.Vec (alloc.vec.Vec
+  UInt8)))
   (statement_rows : app_verifier.AppVerifyShippingRowsProjection (alloc.vec.Vec
   (alloc.vec.Vec Field)) (alloc.vec.Vec (alloc.vec.Vec (alloc.vec.Vec
-  UInt8)))) (call : app_verifier.AppVerifyShippingCall)
-  (protocol_version : Std.U32) (family : app_verifier.AppVerifyFamilyCode)
-  (srs_id : alloc.vec.Vec UInt8) (serialized_vk : alloc.vec.Vec UInt8)
-  (vk_digest : alloc.vec.Vec UInt8)
-  (canonical_statement_bytes : alloc.vec.Vec UInt8)
-  (wrapper : app_verifier.AppVerifyShippingWrapperProjection)
-  (challenge_context : alloc.vec.Vec UInt8) :
-  Result (core.result.Result
-    (app_verifier.AppVerifyAcceptedPreflightStatementProvenance BackendCall
-    Field BindingExecution)
+  UInt8)))) :
+  Result (core.result.Result (app_verifier.AppVerifyPreparedRows (alloc.vec.Vec
+    (alloc.vec.Vec UInt8)))
     app_verifier.AppVerifyShippingStatementPreflightError)
   := do
-  let source_field_count := alloc.vec.Vec.len source_rows.source_rows
-  let source_serialized_count := alloc.vec.Vec.len source_rows.serialized_rows
+  let source_field_count := Slice.len source_field_rows
+  let source_serialized_count := alloc.vec.Vec.len source_serialized_rows
   let statement_field_count := alloc.vec.Vec.len statement_rows.fields
   let statement_serialized_count := alloc.vec.Vec.len statement_rows.serialized
   if source_field_count != source_serialized_count
@@ -1097,38 +1086,34 @@ def app_verifier.app_verify_shipping_statement_preflight_core
         else
           let expected_arity ←
             lift (MacCampaign.castUsize statement_rows.public_input_arity)
-          let s := alloc.vec.Vec.deref source_rows.source_rows
           let b ←
-            app_verifier.app_verify_field_rows_have_arity s expected_arity
+            app_verifier.app_verify_field_rows_have_arity source_field_rows
+              expected_arity
           if b
           then
-            let s1 := alloc.vec.Vec.deref source_rows.serialized_rows
+            let s := alloc.vec.Vec.deref source_serialized_rows
             let b1 ←
-              app_verifier.app_verify_serialized_rows_have_arity s1
+              app_verifier.app_verify_serialized_rows_have_arity s
                 expected_arity
             if b1
             then
-              let s2 := alloc.vec.Vec.deref statement_rows.fields
+              let s1 := alloc.vec.Vec.deref statement_rows.fields
               let b2 ←
-                app_verifier.app_verify_field_rows_have_arity s2 expected_arity
+                app_verifier.app_verify_field_rows_have_arity s1 expected_arity
               if b2
               then
-                let s3 := alloc.vec.Vec.deref statement_rows.serialized
+                let s2 := alloc.vec.Vec.deref statement_rows.serialized
                 let b3 ←
-                  app_verifier.app_verify_serialized_rows_have_arity s3
+                  app_verifier.app_verify_serialized_rows_have_arity s2
                     expected_arity
                 if b3
                 then
-                  let v ←
-                    alloc.vec.CloneVec.clone (core.clone.CloneallocvecVec
-                      (core.clone.CloneallocvecVec core.clone.CloneU8))
-                      source_rows.serialized_rows
                   let i2 ←
                     lift (MacCampaign.castUsize statement_rows.padded_count)
                   let r ←
                     app_verifier.app_verify_prepare_public_input_rows_core
                       (core.clone.CloneallocvecVec (core.clone.CloneallocvecVec
-                      core.clone.CloneU8)) v i2
+                      core.clone.CloneU8)) source_serialized_rows i2
                   match r with
                   | core.result.Result.Ok prepared =>
                     let i3 ←
@@ -1145,38 +1130,13 @@ def app_verifier.app_verify_shipping_statement_preflight_core
                         ok (core.result.Result.Err
                           app_verifier.AppVerifyShippingStatementPreflightError.StatementPaddedCountMismatch)
                       else
-                        let s4 :=
+                        let s3 :=
                           alloc.vec.Vec.deref prepared.padded_public_inputs
-                        let s5 := alloc.vec.Vec.deref statement_rows.serialized
+                        let s4 := alloc.vec.Vec.deref statement_rows.serialized
                         let b4 ←
-                          app_verifier.app_verify_serialized_rows_equal s4 s5
+                          app_verifier.app_verify_serialized_rows_equal s3 s4
                         if b4
-                        then
-                          let rows ←
-                            app_verifier.app_verify_shipping_rows_from_parts
-                              statement_rows.real_count
-                              statement_rows.padded_count
-                              statement_rows.public_input_arity
-                              statement_rows.fields statement_rows.serialized
-                          let r1 ←
-                            app_verifier.app_verify_shipping_preflight_core
-                              backend_call rows call protocol_version family
-                              srs_id serialized_vk vk_digest
-                              canonical_statement_bytes wrapper
-                              challenge_context
-                          match r1 with
-                          | core.result.Result.Ok preflight =>
-                            ok (core.result.Result.Ok
-                              {
-                                binding_execution,
-                                source_rows,
-                                prepared_serialized_rows := prepared,
-                                preflight
-                              })
-                          | core.result.Result.Err error =>
-                            ok (core.result.Result.Err
-                              (app_verifier.AppVerifyShippingStatementPreflightError.ShippingInput
-                              error))
+                        then ok (core.result.Result.Ok prepared)
                         else
                           ok (core.result.Result.Err
                             app_verifier.AppVerifyShippingStatementPreflightError.StatementSerializedRowsMismatch)
@@ -1196,6 +1156,55 @@ def app_verifier.app_verify_shipping_statement_preflight_core
           else
             ok (core.result.Result.Err
               app_verifier.AppVerifyShippingStatementPreflightError.SourceFieldArityMismatch)
+def app_verifier.app_verify_shipping_statement_preflight_core
+  {BackendCall : Type} {Field : Type} {BindingExecution : Type}
+  (backend_call : BackendCall) (binding_execution : BindingExecution)
+  (source_rows : app_verifier.AppVerifyStatementRowBytesProjection
+  (alloc.vec.Vec (alloc.vec.Vec Field)) (alloc.vec.Vec (alloc.vec.Vec
+  (alloc.vec.Vec UInt8))))
+  (statement_rows : app_verifier.AppVerifyShippingRowsProjection (alloc.vec.Vec
+  (alloc.vec.Vec Field)) (alloc.vec.Vec (alloc.vec.Vec (alloc.vec.Vec
+  UInt8)))) (call : app_verifier.AppVerifyShippingCall)
+  (protocol_version : Std.U32) (family : app_verifier.AppVerifyFamilyCode)
+  (srs_id : alloc.vec.Vec UInt8) (serialized_vk : alloc.vec.Vec UInt8)
+  (vk_digest : alloc.vec.Vec UInt8)
+  (canonical_statement_bytes : alloc.vec.Vec UInt8)
+  (wrapper : app_verifier.AppVerifyShippingWrapperProjection)
+  (challenge_context : alloc.vec.Vec UInt8) :
+  Result (core.result.Result
+    (app_verifier.AppVerifyAcceptedPreflightStatementProvenance BackendCall
+    Field BindingExecution)
+    app_verifier.AppVerifyShippingStatementPreflightError)
+  := do
+  let s := alloc.vec.Vec.deref source_rows.source_rows
+  let r ←
+    app_verifier.app_verify_prepare_shipping_statement_rows_core s
+      source_rows.serialized_rows statement_rows
+  match r with
+  | core.result.Result.Ok prepared =>
+    let rows ←
+      app_verifier.app_verify_shipping_rows_from_parts
+        statement_rows.real_count statement_rows.padded_count
+        statement_rows.public_input_arity statement_rows.fields
+        statement_rows.serialized
+    let r1 ←
+      app_verifier.app_verify_shipping_preflight_core backend_call rows call
+        protocol_version family srs_id serialized_vk vk_digest
+        canonical_statement_bytes wrapper challenge_context
+    match r1 with
+    | core.result.Result.Ok preflight =>
+      ok (core.result.Result.Ok
+        {
+          binding_execution,
+          source_field_rows := source_rows.source_rows,
+          prepared_serialized_rows := prepared,
+          preflight
+        })
+    | core.result.Result.Err error =>
+      ok (core.result.Result.Err
+        (app_verifier.AppVerifyShippingStatementPreflightError.ShippingInput
+        error))
+  | core.result.Result.Err error => ok (core.result.Result.Err error)
 def app_verifier.app_verify_shipping_wrapper_projection_from_parts
   (statement_digest : alloc.vec.Vec UInt8)
   (wrapped_proof_bytes : alloc.vec.Vec UInt8)

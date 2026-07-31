@@ -313,6 +313,230 @@ from the generated arguments, including the serialized row matrix. -/
       execution.rows.serialized := by
   rw [execution.outputExact]
 
+/-- One successful invocation of the statement-aware production preflight.
+The carrier indexes the retained binding execution, caller rows, authenticated
+statement rows, and inner shipping preflight by the single generated outer
+execution equation. -/
+structure AcceptedShippingStatementPreflightExecution
+    (BackendCall Field BindingExecution : Type) where
+  backendCall : BackendCall
+  bindingExecution : BindingExecution
+  sourceRows :
+    app_verifier.AppVerifyStatementRowBytesProjection
+      (alloc.vec.Vec (alloc.vec.Vec Field))
+      (alloc.vec.Vec (alloc.vec.Vec (alloc.vec.Vec UInt8)))
+  statementRows :
+    app_verifier.AppVerifyShippingRowsProjection
+      (alloc.vec.Vec (alloc.vec.Vec Field))
+      (alloc.vec.Vec (alloc.vec.Vec (alloc.vec.Vec UInt8)))
+  call : app_verifier.AppVerifyShippingCall
+  protocolVersion : Std.U32
+  family : app_verifier.AppVerifyFamilyCode
+  srsId : alloc.vec.Vec UInt8
+  serializedVk : alloc.vec.Vec UInt8
+  vkDigest : alloc.vec.Vec UInt8
+  canonicalStatementBytes : alloc.vec.Vec UInt8
+  wrapper : app_verifier.AppVerifyShippingWrapperProjection
+  challengeContext : alloc.vec.Vec UInt8
+  output :
+    app_verifier.AppVerifyAcceptedPreflightStatementProvenance
+      BackendCall Field BindingExecution
+  accepted :
+    app_verifier.app_verify_shipping_statement_preflight_core
+        backendCall bindingExecution sourceRows statementRows call
+        protocolVersion family srsId serializedVk vkDigest
+        canonicalStatementBytes wrapper challengeContext =
+      .ok (.Ok output)
+
+/-- Outer acceptance contains the exact successful serialized-row preparation
+selected by that same execution. -/
+theorem AcceptedShippingStatementPreflightExecution.preparedRowsAccepted
+    {BackendCall Field BindingExecution : Type}
+    (execution :
+      AcceptedShippingStatementPreflightExecution
+        BackendCall Field BindingExecution) :
+    app_verifier.app_verify_prepare_shipping_statement_rows_core
+        (alloc.vec.Vec.deref execution.sourceRows.source_rows)
+        execution.sourceRows.serialized_rows execution.statementRows =
+      .ok (.Ok execution.output.prepared_serialized_rows) := by
+  have haccepted := execution.accepted
+  unfold app_verifier.app_verify_shipping_statement_preflight_core at haccepted
+  cases hprepared :
+      app_verifier.app_verify_prepare_shipping_statement_rows_core
+        (alloc.vec.Vec.deref execution.sourceRows.source_rows)
+        execution.sourceRows.serialized_rows execution.statementRows with
+  | fail error =>
+      simp [hprepared] at haccepted
+  | div =>
+      simp [hprepared] at haccepted
+  | ok result =>
+      cases result with
+      | Err error =>
+          simp [hprepared] at haccepted
+      | Ok prepared =>
+          simp [hprepared,
+            app_verifier.app_verify_shipping_rows_from_parts] at haccepted
+          cases hpreflight :
+              app_verifier.app_verify_shipping_preflight_core
+                execution.backendCall execution.statementRows execution.call
+                execution.protocolVersion execution.family execution.srsId
+                execution.serializedVk execution.vkDigest
+                execution.canonicalStatementBytes execution.wrapper
+                execution.challengeContext with
+          | fail error =>
+              simp [hpreflight] at haccepted
+          | div =>
+              simp [hpreflight] at haccepted
+          | ok preflightResult =>
+              cases preflightResult with
+              | Err error =>
+                  simp [hpreflight] at haccepted
+              | Ok preflight =>
+                  simp [hpreflight] at haccepted
+                  have houtput :
+                      execution.output =
+                        {
+                          binding_execution := execution.bindingExecution
+                          source_field_rows :=
+                            execution.sourceRows.source_rows
+                          prepared_serialized_rows := prepared
+                          preflight
+                        } :=
+                    haccepted.symm
+                  simpa [houtput] using hprepared
+
+/-- Outer acceptance contains the exact accepted inner shipping preflight on
+the authenticated statement rows. -/
+theorem AcceptedShippingStatementPreflightExecution.innerPreflightAccepted
+    {BackendCall Field BindingExecution : Type}
+    (execution :
+      AcceptedShippingStatementPreflightExecution
+        BackendCall Field BindingExecution) :
+    app_verifier.app_verify_shipping_preflight_core
+        execution.backendCall execution.statementRows execution.call
+        execution.protocolVersion execution.family execution.srsId
+        execution.serializedVk execution.vkDigest
+        execution.canonicalStatementBytes execution.wrapper
+        execution.challengeContext =
+      .ok (.Ok execution.output.preflight) := by
+  have haccepted := execution.accepted
+  unfold app_verifier.app_verify_shipping_statement_preflight_core at haccepted
+  cases hprepared :
+      app_verifier.app_verify_prepare_shipping_statement_rows_core
+        (alloc.vec.Vec.deref execution.sourceRows.source_rows)
+        execution.sourceRows.serialized_rows execution.statementRows with
+  | fail error =>
+      simp [hprepared] at haccepted
+  | div =>
+      simp [hprepared] at haccepted
+  | ok result =>
+      cases result with
+      | Err error =>
+          simp [hprepared] at haccepted
+      | Ok prepared =>
+          simp [hprepared,
+            app_verifier.app_verify_shipping_rows_from_parts] at haccepted
+          cases hpreflight :
+              app_verifier.app_verify_shipping_preflight_core
+                execution.backendCall execution.statementRows execution.call
+                execution.protocolVersion execution.family execution.srsId
+                execution.serializedVk execution.vkDigest
+                execution.canonicalStatementBytes execution.wrapper
+                execution.challengeContext with
+          | fail error =>
+              simp [hpreflight] at haccepted
+          | div =>
+              simp [hpreflight] at haccepted
+          | ok preflightResult =>
+              cases preflightResult with
+              | Err error =>
+                  simp [hpreflight] at haccepted
+              | Ok preflight =>
+                  simp [hpreflight] at haccepted
+                  have houtput :
+                      execution.output =
+                        {
+                          binding_execution := execution.bindingExecution
+                          source_field_rows :=
+                            execution.sourceRows.source_rows
+                          prepared_serialized_rows := prepared
+                          preflight
+                        } :=
+                    haccepted.symm
+                  simpa [houtput] using hpreflight
+
+/-- The statement-aware carrier retains every successful outer argument and
+the two exact inner results selected by the generated execution. -/
+@[simp] theorem AcceptedShippingStatementPreflightExecution.outputExact
+    {BackendCall Field BindingExecution : Type}
+    (execution :
+      AcceptedShippingStatementPreflightExecution
+        BackendCall Field BindingExecution) :
+    execution.output =
+      {
+        binding_execution := execution.bindingExecution
+        source_field_rows := execution.sourceRows.source_rows
+        prepared_serialized_rows := execution.output.prepared_serialized_rows
+        preflight := execution.output.preflight
+      } := by
+  have haccepted := execution.accepted
+  simp [app_verifier.app_verify_shipping_statement_preflight_core,
+    execution.preparedRowsAccepted,
+    app_verifier.app_verify_shipping_rows_from_parts,
+    execution.innerPreflightAccepted] at haccepted
+  exact haccepted.symm
+
+/-- Forgetting only the statement-specific outer provenance yields the exact
+accepted inner preflight execution; none of its arguments is reselected. -/
+def AcceptedShippingStatementPreflightExecution.toAcceptedPreflight
+    {BackendCall Field BindingExecution : Type}
+    (execution :
+      AcceptedShippingStatementPreflightExecution
+        BackendCall Field BindingExecution) :
+    AcceptedShippingPreflightExecution BackendCall
+      (alloc.vec.Vec (alloc.vec.Vec Field)) where
+  backendCall := execution.backendCall
+  rows := execution.statementRows
+  call := execution.call
+  protocolVersion := execution.protocolVersion
+  family := execution.family
+  srsId := execution.srsId
+  serializedVk := execution.serializedVk
+  vkDigest := execution.vkDigest
+  canonicalStatementBytes := execution.canonicalStatementBytes
+  wrapper := execution.wrapper
+  challengeContext := execution.challengeContext
+  output := execution.output.preflight
+  accepted := execution.innerPreflightAccepted
+
+@[simp] theorem
+    AcceptedShippingStatementPreflightExecution.bindingExecutionExact
+    {BackendCall Field BindingExecution : Type}
+    (execution :
+      AcceptedShippingStatementPreflightExecution
+        BackendCall Field BindingExecution) :
+    execution.output.binding_execution = execution.bindingExecution := by
+  rw [execution.outputExact]
+
+@[simp] theorem
+    AcceptedShippingStatementPreflightExecution.sourceFieldRowsExact
+    {BackendCall Field BindingExecution : Type}
+    (execution :
+      AcceptedShippingStatementPreflightExecution
+        BackendCall Field BindingExecution) :
+    execution.output.source_field_rows = execution.sourceRows.source_rows := by
+  rw [execution.outputExact]
+
+/-- Canonical call/wrapper packaging of the inner preflight selected by the
+statement-aware execution. -/
+def AcceptedShippingStatementPreflightExecution.toBuiltConstructorExecution
+    {BackendCall Field BindingExecution : Type}
+    (execution :
+      AcceptedShippingStatementPreflightExecution
+        BackendCall Field BindingExecution) :
+    BuiltConstructorExecution :=
+  execution.toAcceptedPreflight.toBuiltConstructorExecution
+
 /-- Exact remainder indexed by one built constructor.
 It cannot replace the formal input used by rows or the SRS identity. -/
 structure ConcreteOutputDerivedCallRemainder
