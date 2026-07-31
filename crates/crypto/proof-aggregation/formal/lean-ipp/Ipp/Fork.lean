@@ -135,9 +135,14 @@ theorem map {β γ : Type}
       nextPredicate (transform output)) :
     OracleAllOutputs nextPredicate (transform <$> program) := by
   rw [map_eq_pure_bind]
-  apply hprogram.bind
+  refine OracleAllOutputs.bind
+    (spec := spec)
+    (nextPredicate := nextPredicate)
+    hprogram ?_
   intro output houtput
-  exact ofPure (htransform output houtput)
+  exact OracleAllOutputs.ofPure
+    (spec := spec)
+    (htransform output houtput)
 
 theorem ofQuery {β : Type}
     {predicate : β → Prop}
@@ -179,20 +184,23 @@ theorem probOutput_eq_zero
     (output : β)
     (hexcluded : ¬ predicate output) :
     Pr[= output | program] = 0 := by
+  letI : DecidableEq β := Classical.decEq β
   induction program using OracleComp.inductionOn with
   | pure result =>
       have hresult : predicate result := by
         apply hall result
-        simp [OracleAllOutputs]
-      by_cases hequal : result = output
-      · subst result
-        exact (hexcluded hresult).elim
-      · simp [hequal]
+        simp only [OracleComp.supportWhen_pure, Set.mem_singleton_iff]
+      have hne : output ≠ result := by
+        intro hequal
+        apply hexcluded
+        rw [hequal]
+        exact hresult
+      rw [probOutput_pure, if_neg hne]
   | query_bind point continuation ih =>
       rw [probOutput_bind_eq_tsum]
-      apply tsum_eq_zero
+      apply ENNReal.tsum_eq_zero.mpr
       intro answer
-      rw [ih answer (hall.branch answer)]
+      rw [ih answer (OracleAllOutputs.branch hall answer)]
       simp
 
 end OracleAllOutputs
@@ -208,27 +216,27 @@ comparison would lose. -/
 inductive OracleFailClosedRefines
     {β γ : Type}
     (fails : β → Prop)
-    (matches : β → γ → Prop) :
+    (relates : β → γ → Prop) :
     OracleComp spec β → OracleComp spec γ → Prop
   | abort
       (left : OracleComp spec β)
       (right : OracleComp spec γ)
       (hall : OracleAllOutputs fails left) :
-      OracleFailClosedRefines fails matches left right
+      OracleFailClosedRefines fails relates left right
   | pureMatch
       (left : β)
       (right : γ)
-      (hmatch : matches left right) :
-      OracleFailClosedRefines fails matches
+      (hmatch : relates left right) :
+      OracleFailClosedRefines fails relates
         (pure left) (pure right)
   | queryStep
       (point : spec.Domain)
       (left : spec.Range point → OracleComp spec β)
       (right : spec.Range point → OracleComp spec γ)
       (hbranches : ∀ answer,
-        OracleFailClosedRefines fails matches
+        OracleFailClosedRefines fails relates
           (left answer) (right answer)) :
-      OracleFailClosedRefines fails matches
+      OracleFailClosedRefines fails relates
         ((query point : OracleComp spec _) >>= left)
         ((query point : OracleComp spec _) >>= right)
 
@@ -236,19 +244,19 @@ namespace OracleFailClosedRefines
 
 theorem bind {β γ δ ε : Type}
     {fails : β → Prop}
-    {matches : β → γ → Prop}
+    {relates : β → γ → Prop}
     {nextFails : δ → Prop}
     {nextMatches : δ → ε → Prop}
     {left : OracleComp spec β}
     {right : OracleComp spec γ}
     (refines :
-      OracleFailClosedRefines fails matches left right)
+      OracleFailClosedRefines fails relates left right)
     (leftNext : β → OracleComp spec δ)
     (rightNext : γ → OracleComp spec ε)
     (abortClosed : ∀ output, fails output →
       OracleAllOutputs nextFails (leftNext output))
     (matchedNext : ∀ leftOutput rightOutput,
-      matches leftOutput rightOutput →
+      relates leftOutput rightOutput →
         OracleFailClosedRefines nextFails nextMatches
           (leftNext leftOutput) (rightNext rightOutput)) :
     OracleFailClosedRefines nextFails nextMatches
@@ -256,7 +264,7 @@ theorem bind {β γ δ ε : Type}
   induction refines with
   | abort left right hall =>
       apply OracleFailClosedRefines.abort
-      exact hall.bind abortClosed
+      exact OracleAllOutputs.bind hall abortClosed
   | pureMatch left right hmatch =>
       simpa using matchedNext left right hmatch
   | queryStep point left right hbranches ih =>
@@ -266,17 +274,18 @@ theorem bind {β γ δ ε : Type}
           (fun answer => right answer >>= rightNext)
           ih
 
-theorem bindSame {β γ : Type}
-    {fails : γ → Prop}
-    {matches : γ → γ → Prop}
-    (prefix : OracleComp spec β)
-    (leftNext rightNext : β → OracleComp spec γ)
+theorem bindSame {α β γ : Type}
+    {fails : β → Prop}
+    {relates : β → γ → Prop}
+    (shared : OracleComp spec α)
+    (leftNext : α → OracleComp spec β)
+    (rightNext : α → OracleComp spec γ)
     (hnext : ∀ output,
-      OracleFailClosedRefines fails matches
+      OracleFailClosedRefines fails relates
         (leftNext output) (rightNext output)) :
-    OracleFailClosedRefines fails matches
-      (prefix >>= leftNext) (prefix >>= rightNext) := by
-  induction prefix using OracleComp.inductionOn with
+    OracleFailClosedRefines fails relates
+      (shared >>= leftNext) (shared >>= rightNext) := by
+  induction shared using OracleComp.inductionOn with
   | pure output =>
       simpa using hnext output
   | query_bind point continuation ih =>
@@ -288,24 +297,27 @@ theorem bindSame {β γ : Type}
 
 theorem map {β γ δ ε : Type}
     {fails : β → Prop}
-    {matches : β → γ → Prop}
+    {relates : β → γ → Prop}
     {nextFails : δ → Prop}
     {nextMatches : δ → ε → Prop}
     {left : OracleComp spec β}
     {right : OracleComp spec γ}
     (refines :
-      OracleFailClosedRefines fails matches left right)
+      OracleFailClosedRefines fails relates left right)
     (leftMap : β → δ)
     (rightMap : γ → ε)
     (abortMap : ∀ output, fails output →
       nextFails (leftMap output))
     (matchMap : ∀ leftOutput rightOutput,
-      matches leftOutput rightOutput →
+      relates leftOutput rightOutput →
         nextMatches (leftMap leftOutput) (rightMap rightOutput)) :
     OracleFailClosedRefines nextFails nextMatches
       (leftMap <$> left) (rightMap <$> right) := by
   simp only [map_eq_pure_bind]
-  apply refines.bind
+  refine OracleFailClosedRefines.bind refines
+    (fun output => pure (leftMap output))
+    (fun output => pure (rightMap output))
+    ?_ ?_
   · intro output houtput
     exact OracleAllOutputs.ofPure (abortMap output houtput)
   · intro leftOutput rightOutput hmatch
@@ -317,19 +329,19 @@ as fail-closed.  This is the congruence used when a replay selector rejects a
 successful optional value. -/
 theorem mapGate {β γ δ ε : Type}
     {fails : β → Prop}
-    {matches : β → γ → Prop}
+    {relates : β → γ → Prop}
     {nextFails : δ → Prop}
     {nextMatches : δ → ε → Prop}
     {left : OracleComp spec β}
     {right : OracleComp spec γ}
     (refines :
-      OracleFailClosedRefines fails matches left right)
+      OracleFailClosedRefines fails relates left right)
     (leftMap : β → δ)
     (rightMap : γ → ε)
     (abortMap : ∀ output, fails output →
       nextFails (leftMap output))
     (classify : ∀ leftOutput rightOutput,
-      matches leftOutput rightOutput →
+      relates leftOutput rightOutput →
         nextFails (leftMap leftOutput) ∨
           nextMatches
             (leftMap leftOutput) (rightMap rightOutput)) :
@@ -338,7 +350,7 @@ theorem mapGate {β γ δ ε : Type}
   induction refines with
   | abort left right hall =>
       apply OracleFailClosedRefines.abort
-      exact hall.map leftMap abortMap
+      exact OracleAllOutputs.map hall leftMap abortMap
   | pureMatch left right hmatch =>
       rcases classify left right hmatch with hfailure | hsuccess
       · exact OracleFailClosedRefines.abort
@@ -362,10 +374,10 @@ def stateOutputFails {β State : Type}
 /-- Lift a successful-output relation through a stateful interpretation.
 Successful executions must finish in the same interpreter state. -/
 def stateOutputsMatch {β γ State : Type}
-    (matches : β → γ → Prop) :
+    (relates : β → γ → Prop) :
     β × State → γ × State → Prop :=
   fun left right =>
-    matches left.1 right.1 ∧ left.2 = right.2
+    relates left.1 right.1 ∧ left.2 = right.2
 
 namespace OracleAllOutputs
 
@@ -399,12 +411,17 @@ theorem simulateQState
   | query_bind point continuation ih =>
       intro hall state
       simp only [simulateQ_query_bind, StateT.run_bind]
-      apply OracleAllOutputs.bind
+      refine OracleAllOutputs.bind
+        (spec := outerSpec)
         (predicate := fun _ : spec.Range point × State => True)
+        (nextPredicate := stateOutputFails predicate)
+        ?_ ?_
       · intro _ _
         trivial
       · rintro ⟨answer, nextState⟩ _
-        exact ih answer (hall.branch answer) nextState
+        exact ih answer
+          (OracleAllOutputs.branch hall answer)
+          nextState
 
 end OracleAllOutputs
 
@@ -418,17 +435,17 @@ theorem simulateQState
     {outerSpec : OracleSpec κ}
     {β γ State : Type}
     {fails : β → Prop}
-    {matches : β → γ → Prop}
+    {relates : β → γ → Prop}
     {left : OracleComp spec β}
     {right : OracleComp spec γ}
     (refines :
-      OracleFailClosedRefines fails matches left right)
+      OracleFailClosedRefines fails relates left right)
     (handler :
       QueryImpl spec (StateT State (OracleComp outerSpec)))
     (state : State) :
     OracleFailClosedRefines
       (stateOutputFails fails)
-      (stateOutputsMatch matches)
+      (stateOutputsMatch relates)
       ((simulateQ handler left).run state)
       ((simulateQ handler right).run state) := by
   induction refines generalizing state with
@@ -444,11 +461,19 @@ theorem simulateQState
           (right := (right, state))
           ⟨hmatch, rfl⟩)
   | queryStep point left right hbranches ih =>
-      simp only [simulateQ_query_bind, StateT.run_bind]
-      apply OracleFailClosedRefines.bindSame
+      simp only [simulateQ_query_bind, OracleQuery.input_query,
+        monadLift_self, StateT.run_bind]
+      refine OracleFailClosedRefines.bindSame
         ((handler point).run state)
+        (fun output =>
+          (simulateQ handler
+            (left ((query point).cont output.1))).run output.2)
+        (fun output =>
+          (simulateQ handler
+            (right ((query point).cont output.1))).run output.2)
+        ?_
       rintro ⟨answer, nextState⟩
-      exact ih answer nextState
+      exact ih ((query point).cont answer) nextState
 
 end OracleFailClosedRefines
 
@@ -460,10 +485,10 @@ def loggedOutputFails {β : Type}
 
 /-- Successful logged executions agree on both output and complete log. -/
 def loggedOutputsMatch {β γ : Type}
-    (matches : β → γ → Prop) :
+    (relates : β → γ → Prop) :
     β × QueryLog spec → γ × QueryLog spec → Prop :=
   fun left right =>
-    matches left.1 right.1 ∧ left.2 = right.2
+    relates left.1 right.1 ∧ left.2 = right.2
 
 namespace OracleAllOutputs
 
@@ -491,12 +516,15 @@ theorem replayFirstRun
         OracleComp.run_simulateQ_loggingOracle_query_bind]
       apply OracleAllOutputs.ofQuery
       intro answer
-      apply (ih answer (hall.branch answer)).map
+      refine OracleAllOutputs.map
+        (spec := spec)
+        (nextPredicate := loggedOutputFails predicate)
+        (ih answer (OracleAllOutputs.branch hall answer))
         (fun output =>
           (output.1,
             (⟨point, answer⟩ :
               (index : spec.Domain) × spec.Range index) ::
-              output.2))
+              output.2)) ?_
       intro output houtput
       exact houtput
 
@@ -509,14 +537,14 @@ transcript returned by `replayFirstRun`. -/
 theorem replayFirstRun
     {β γ : Type}
     {fails : β → Prop}
-    {matches : β → γ → Prop}
+    {relates : β → γ → Prop}
     {left : OracleComp spec β}
     {right : OracleComp spec γ}
     (refines :
-      OracleFailClosedRefines fails matches left right) :
+      OracleFailClosedRefines fails relates left right) :
     OracleFailClosedRefines
       (loggedOutputFails fails)
-      (loggedOutputsMatch matches)
+      (loggedOutputsMatch relates)
       (OracleComp.replayFirstRun left)
       (OracleComp.replayFirstRun right) := by
   induction refines with
@@ -537,7 +565,7 @@ theorem replayFirstRun
         OracleComp.run_simulateQ_loggingOracle_query_bind]
       apply OracleFailClosedRefines.queryStep
       intro answer
-      apply (ih answer).map
+      refine OracleFailClosedRefines.map (ih answer)
         (fun output =>
           (output.1,
             (⟨point, answer⟩ :
@@ -548,6 +576,7 @@ theorem replayFirstRun
             (⟨point, answer⟩ :
               (index : spec.Domain) × spec.Range index) ::
               output.2))
+        ?_ ?_
       · intro output houtput
         exact houtput
       · intro leftOutput rightOutput hmatch
@@ -627,7 +656,8 @@ theorem OracleOptionSuccessRefines.probOutput_le
       Pr[= some output | right] := by
   induction refines with
   | abort left right hall =>
-      rw [hall.probOutput_eq_zero (some output) (by simp)]
+      rw [OracleAllOutputs.probOutput_eq_zero
+        hall (some output) (by simp)]
       exact bot_le
   | pureMatch left right hmatch =>
       obtain ⟨result, rfl, rfl⟩ := hmatch
@@ -647,7 +677,10 @@ theorem OracleOptionSuccessRefines.map
     OracleOptionSuccessRefines
       (Option.map transform <$> left)
       (Option.map transform <$> right) := by
-  apply refines.map
+  refine OracleFailClosedRefines.map refines
+    (Option.map transform)
+    (Option.map transform)
+    ?_ ?_
   · intro output houtput
     subst output
     rfl
@@ -666,7 +699,8 @@ theorem OracleOptionSuccessRefines.mapOptionGate
     OracleOptionSuccessRefines
       (transform <$> left)
       (transform <$> right) := by
-  apply refines.mapGate transform transform
+  refine OracleFailClosedRefines.mapGate
+    refines transform transform ?_ ?_
   · intro output houtput
     subst output
     exact failureClosed
@@ -674,9 +708,9 @@ theorem OracleOptionSuccessRefines.mapOptionGate
     obtain ⟨output, rfl, rfl⟩ := hmatch
     cases hresult : transform (some output) with
     | none =>
-        exact Or.inl hresult
+        exact Or.inl rfl
     | some result =>
-        exact Or.inr ⟨result, hresult, hresult⟩
+        exact Or.inr ⟨result, rfl, rfl⟩
 
 /-- Fail-closed refinement before applying a deterministic optional
 finisher. -/
@@ -725,7 +759,8 @@ theorem OracleFinishedRefines.finish
     OracleOptionSuccessRefines
       (finish <$> left)
       (finish <$> right) := by
-  apply refines.map
+  refine OracleFailClosedRefines.map
+    refines finish finish ?_ ?_
   · intro output houtput
     exact houtput
   · intro leftOutput rightOutput hmatch
@@ -735,7 +770,7 @@ theorem OracleFinishedRefines.finish
     subst rightOutput
     rcases hfinished : finish leftOutput with _ | result
     · simp [hfinished] at hsome
-    · exact ⟨result, hfinished, hfinished⟩
+    · exact ⟨result, rfl, rfl⟩
 
 /-- Replay once from `trace` at `s`, retaining only runs that consume the fork
 without a prefix mismatch and whose output selects the same slot. -/
@@ -789,13 +824,15 @@ private theorem checkedReplay_selectorRefines
         (replayRunWithTraceValue
           right i trace (slot : Nat) replacement) := by
     simpa [replayRunWithTraceValue, initial] using
-      refines.simulateQState (replayOracle i) initial
+      OracleFailClosedRefines.simulateQState
+        refines (replayOracle i) initial
   change OracleOptionSuccessRefines
     (replayRunWithTraceValue
       left i trace (slot : Nat) replacement >>= finish)
     (replayRunWithTraceValue
       right i trace (slot : Nat) replacement >>= finish)
-  apply hreplay.bind finish finish
+  refine OracleFailClosedRefines.bind
+    hreplay finish finish ?_ ?_
   · intro output hfailure
     have hselector : cf output.1 = none := by
       simpa [stateOutputFails, selectorFails] using hfailure
@@ -860,7 +897,8 @@ private theorem replayTrialWithReplacement_selectorRefines
       checkedReplay_selectorRefines
         left right qb i cf trace slot replacement refines
     simpa [replayTrialWithReplacement, hequal] using
-      hchecked.map (fun output => (replacement, output))
+      OracleOptionSuccessRefines.map
+        hchecked (fun output => (replacement, output))
 
 /-- One independent replay attempt, retaining the sampled replacement so
 cross-attempt collisions can be filtered after all attempts have run. -/
@@ -983,7 +1021,7 @@ private theorem forkReplay4Trials_finishedRefines
       OracleOptionSuccessRefines leftTrial rightTrial := by
     exact replayTrial_selectorRefines
       left right qb i cf first.2 slot logged refines
-  apply htrial.bind
+  refine OracleFailClosedRefines.bind htrial
     (fun z₁ => do
       let z₂ ← leftTrial
       let z₃ ← leftTrial
@@ -992,21 +1030,34 @@ private theorem forkReplay4Trials_finishedRefines
       let z₂ ← rightTrial
       let z₃ ← rightTrial
       pure (first, z₁, z₂, z₃))
+    ?_ ?_
   · intro z₁ hz₁
     subst z₁
-    apply OracleAllOutputs.bind
+    refine OracleAllOutputs.bind
+      (spec := spec)
       (predicate := fun _ :
         Option
           (spec.Range i ×
             (α × ReplayForkState spec i)) => True)
+      (nextPredicate :=
+        finishFails
+          (finishForkReplay4
+            (spec := spec) (α := α) (i := i)))
+      ?_ ?_
     · intro _ _
       trivial
     · intro z₂ _
-      apply OracleAllOutputs.bind
+      refine OracleAllOutputs.bind
+        (spec := spec)
         (predicate := fun _ :
           Option
             (spec.Range i ×
               (α × ReplayForkState spec i)) => True)
+        (nextPredicate :=
+          finishFails
+            (finishForkReplay4
+              (spec := spec) (α := α) (i := i)))
+        ?_ ?_
       · intro _ _
         trivial
       · intro z₃ _
@@ -1014,20 +1065,27 @@ private theorem forkReplay4Trials_finishedRefines
           simp [finishFails, finishForkReplay4])
   · intro leftZ₁ rightZ₁ hz₁
     obtain ⟨z₁, rfl, rfl⟩ := hz₁
-    apply htrial.bind
+    refine OracleFailClosedRefines.bind htrial
       (fun z₂ => do
         let z₃ ← leftTrial
         pure (first, some z₁, z₂, z₃))
       (fun z₂ => do
         let z₃ ← rightTrial
         pure (first, some z₁, z₂, z₃))
+      ?_ ?_
     · intro z₂ hz₂
       subst z₂
-      apply OracleAllOutputs.bind
+      refine OracleAllOutputs.bind
+        (spec := spec)
         (predicate := fun _ :
           Option
             (spec.Range i ×
               (α × ReplayForkState spec i)) => True)
+        (nextPredicate :=
+          finishFails
+            (finishForkReplay4
+              (spec := spec) (α := α) (i := i)))
+        ?_ ?_
       · intro _ _
         trivial
       · intro z₃ _
@@ -1035,11 +1093,12 @@ private theorem forkReplay4Trials_finishedRefines
           simp [finishFails, finishForkReplay4])
     · intro leftZ₂ rightZ₂ hz₂
       obtain ⟨z₂, rfl, rfl⟩ := hz₂
-      apply htrial.bind
+      refine OracleFailClosedRefines.bind htrial
         (fun z₃ =>
           pure (first, some z₁, some z₂, z₃))
         (fun z₃ =>
           pure (first, some z₁, some z₂, z₃))
+        ?_ ?_
       · intro z₃ hz₃
         subst z₃
         exact OracleAllOutputs.ofPure (by
@@ -1138,11 +1197,18 @@ private theorem forkReplay4Core_finishedRefines
       (finishForkReplay4 (spec := spec) (α := α) (i := i))
       (forkReplay4Core left qb i cf)
       (forkReplay4Core right qb i cf) := by
-  have hfirst := refines.replayFirstRun
+  have hfirst :
+      OracleFailClosedRefines
+        (loggedOutputFails (selectorFails cf))
+        (loggedOutputsMatch (selectorMatches cf))
+        (OracleComp.replayFirstRun left)
+        (OracleComp.replayFirstRun right) :=
+    OracleFailClosedRefines.replayFirstRun refines
   unfold forkReplay4Core
-  apply hfirst.bind
-    (forkReplay4FromCore left qb i cf)
-    (forkReplay4FromCore right qb i cf)
+  refine OracleFailClosedRefines.bind hfirst
+    (fun first => forkReplay4FromCore left qb i cf first)
+    (fun first => forkReplay4FromCore right qb i cf first)
+    ?_ ?_
   · intro first hfailure
     have hselector : cf first.1 = none := by
       simpa [loggedOutputFails, selectorFails] using hfailure
@@ -2678,7 +2744,14 @@ theorem continuedForkMain_keepOptionalChild_selectorRefines
       (continuedForkSelector qb i cf lower)
       (continuedForkMain left keepOptionalChild)
       (continuedForkMain right keepOptionalChild) := by
-  have hlogged := refines.replayFirstRun
+  have hlogged :
+      OracleFailClosedRefines
+        (loggedOutputFails
+          (fun output : Option β => output = none))
+        (loggedOutputsMatch (sameSome (β := β)))
+        (OracleComp.replayFirstRun left)
+        (OracleComp.replayFirstRun right) :=
+    OracleFailClosedRefines.replayFirstRun refines
   have hmapped :
       OracleSelectorRefines
         (continuedForkSelector qb i cf lower)
@@ -2686,9 +2759,10 @@ theorem continuedForkMain_keepOptionalChild_selectorRefines
           replayFirstRun left)
         ((fun output => (output, output.1)) <$>
           replayFirstRun right) := by
-    apply hlogged.mapGate
+    refine OracleFailClosedRefines.mapGate hlogged
       (fun output => (output, output.1))
       (fun output => (output, output.1))
+      ?_ ?_
     · intro output hfailure
       have hnone : output.1 = none := by
         simpa [loggedOutputFails] using hfailure
@@ -2711,8 +2785,9 @@ theorem continuedForkMain_keepOptionalChild_selectorRefines
             (leftOutput, leftOutput.1) with _ | slot
       · exact Or.inl hselector
       · exact Or.inr ⟨rfl, slot, hselector⟩
-  simpa [continuedForkMain, keepOptionalChild,
-    map_eq_pure_bind] using hmapped
+  rw [map_eq_pure_bind] at hmapped
+  simpa only [continuedForkMain, keepOptionalChild,
+    pure_bind] using hmapped
 
 /-- Averaged continuation-parametrized four-child experiment. Forking the
 continued computation makes child zero and all three replays run `next`

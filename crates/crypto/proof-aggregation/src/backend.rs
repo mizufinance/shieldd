@@ -35,7 +35,7 @@ use crate::{
     app_verifier::{app_verify_shipping_into_parts_core, AppVerifyShippingCall},
     preflight::{
         preflight_aggregate_verify, preflight_shipping_aggregate_verify, AggregatePreflightInput,
-        VerifiedAggregateBackendCall,
+        ShippingStatementConstructionProvenance, VerifiedAggregateBackendCall,
     },
     srs::DevSrs,
     statement::{AggregateStatement, AggregateStatementError},
@@ -135,6 +135,7 @@ pub struct ShippingAggregateVerification {
     pub profile: AggregateVerificationProfile,
     shipping_result: AppVerifyShippingResult,
     execution: ShippingVerifierExecutionCarrier<Bls12_377>,
+    _statement_construction: ShippingStatementConstructionProvenance,
 }
 
 impl ShippingAggregateVerification {
@@ -146,6 +147,11 @@ impl ShippingAggregateVerification {
     #[doc(hidden)]
     pub fn shipping_observation(&self) -> ShippingVerifierObservation {
         self.execution.shipping_observation().clone()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn statement_construction(&self) -> &ShippingStatementConstructionProvenance {
+        &self._statement_construction
     }
 }
 
@@ -413,7 +419,7 @@ impl SnarkpackBackend {
         srs: &DevSrs,
     ) -> Result<ShippingAggregateVerification, AggregateVerifyError> {
         let call_id = application_call.id;
-        let verified = preflight_shipping_aggregate_verify(
+        let provenance = preflight_shipping_aggregate_verify(
             application_call,
             AggregatePreflightInput {
                 statement,
@@ -422,13 +428,18 @@ impl SnarkpackBackend {
                 srs,
             },
         )?;
+        let statement_construction = ShippingStatementConstructionProvenance {
+            binding_execution: provenance.binding_execution,
+            source_rows: provenance.source_rows,
+            prepared_serialized_rows: provenance.prepared_serialized_rows,
+        };
         let (backend_call, padded_public_input_fields, input) =
-            app_verify_shipping_into_parts_core(verified);
+            app_verify_shipping_into_parts_core(provenance.preflight);
         let (profile, backend_result) =
             Self::verify_preflighted_shipping_family_aggregate_profiled_status(
                 call_id,
                 backend_call,
-                padded_public_input_fields,
+                &padded_public_input_fields,
             )?;
         let executed = app_verify_shipping_result_from_backend_result(input, backend_result)
             .map_err(|error| {
@@ -441,6 +452,7 @@ impl SnarkpackBackend {
             profile,
             shipping_result,
             execution,
+            _statement_construction: statement_construction,
         })
     }
 
@@ -1611,7 +1623,6 @@ mod tests {
             .serialize_compressed(&mut serialized_vk)
             .expect("VK should serialize");
         let application_call = shipping_call(family_id, items.len(), padded_items.len());
-
         let verified = SnarkpackBackend::verify_shipping_family_aggregate_profiled_status(
             application_call,
             &statement,
@@ -1655,6 +1666,42 @@ mod tests {
             input.challenge_context,
             statement.challenge_context().as_bytes()
         );
+
+        let construction = verified.statement_construction();
+        let binding = &construction.binding_execution;
+        assert_eq!(&binding.statement, statement.hash_execution());
+        assert_eq!(
+            binding.wrapper.max_aggregate_proof_bytes,
+            MAX_AGGREGATE_PROOF_BYTES
+        );
+        assert_eq!(
+            binding.wrapper.expected_statement_digest,
+            input.statement_digest
+        );
+        assert_eq!(
+            binding.wrapper.wrapped_proof_bytes,
+            input.wrapped_proof_bytes
+        );
+        assert_eq!(binding.wrapper.inner_proof_bytes, input.inner_proof_bytes);
+        let inner_range = binding
+            .wrapper
+            .effect
+            .inner_range()
+            .expect("successful shipping decode retains its exact inner range");
+        assert_eq!(
+            wrapped
+                .get(inner_range)
+                .expect("retained range must index the original wrapper"),
+            binding.wrapper.inner_proof_bytes.as_slice()
+        );
+        assert_eq!(
+            construction.source_rows.source_rows,
+            padded_public_inputs(&items)
+        );
+        assert_eq!(
+            construction.prepared_serialized_rows.padded_public_inputs,
+            statement.shipping_rows().serialized.to_nested_bytes()
+        );
     }
 
     #[test]
@@ -1663,7 +1710,6 @@ mod tests {
         let srs = DevSrs::default();
         let padded_items =
             pad_items_to_power_of_two(&items, srs.max_padded_count as usize).expect("padding");
-
         for family_id in parity_families() {
             let statement = statement_for_items(family_id, &pvk, items.len(), &padded_items, &srs);
             let wrapped = aggregate_family(&statement, &pvk, &padded_items, &srs)
@@ -2041,6 +2087,74 @@ mod tests {
             .expect_err("VK digest mutation should reject before backend verification");
 
         assert_eq!(err, AggregateVerifyError::StatementDigestMismatch);
+    }
+
+    #[test]
+    fn shipping_preflight_preserves_srs_wrapper_and_vk_failure_order() {
+        let (pvk, items) = sample_items();
+        let (wrong_pvk, _) = sample_items_with_count(99, 1);
+        let srs = DevSrs::default();
+        let padded_items =
+            pad_items_to_power_of_two(&items, srs.max_padded_count as usize).expect("padding");
+        let family_id = ProofFamilyId::Transfer;
+        let statement = statement_for_items(family_id, &pvk, items.len(), &padded_items, &srs);
+        let wrapped = aggregate_family(&statement, &pvk, &padded_items, &srs)
+            .expect("aggregation should succeed");
+        let oversized = vec![0u8; MAX_AGGREGATE_PROOF_BYTES + 1];
+
+        let mut wrong_srs_id = srs_id(&srs);
+        wrong_srs_id[0] ^= 0x01;
+        let wrong_srs_statement = AggregateStatement::new(
+            AGGREGATE_PROTOCOL_VERSION,
+            family_id,
+            wrong_srs_id,
+            &pvk,
+            items.len() as u32,
+            &padded_public_inputs(&padded_items),
+        )
+        .expect("wrong-SRS statement should remain structurally valid");
+
+        let srs_before_wrapper = match preflight_aggregate_verify(AggregatePreflightInput {
+            statement: &wrong_srs_statement,
+            pvk: &wrong_pvk,
+            aggregate_proof_bytes: &oversized,
+            srs: &srs,
+        }) {
+            Ok(_) => panic!("SRS mismatch must reject before wrapper and VK work"),
+            Err(error) => error,
+        };
+        assert_eq!(
+            srs_before_wrapper,
+            AggregateVerifyError::StatementDigestMismatch
+        );
+
+        let wrapper_before_vk = match preflight_aggregate_verify(AggregatePreflightInput {
+            statement: &statement,
+            pvk: &wrong_pvk,
+            aggregate_proof_bytes: &oversized,
+            srs: &srs,
+        }) {
+            Ok(_) => panic!("oversize wrapper must reject before VK serialization and equality"),
+            Err(error) => error,
+        };
+        assert!(matches!(
+            wrapper_before_vk,
+            AggregateVerifyError::OversizeBytes(_)
+        ));
+
+        let vk_after_wrapper = match preflight_aggregate_verify(AggregatePreflightInput {
+            statement: &statement,
+            pvk: &wrong_pvk,
+            aggregate_proof_bytes: &wrapped,
+            srs: &srs,
+        }) {
+            Ok(_) => panic!("wrong VK must reject after a valid wrapper decode"),
+            Err(error) => error,
+        };
+        assert_eq!(
+            vk_after_wrapper,
+            AggregateVerifyError::StatementDigestMismatch
+        );
     }
 
     #[test]

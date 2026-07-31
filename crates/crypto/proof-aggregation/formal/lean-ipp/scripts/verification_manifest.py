@@ -142,7 +142,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "f0e3531beb7cc62041c3e98fdeeceb2425be6eb54c799c6172ec53056e64b2b1"
+    "0b0fb831af65e9a03f8d6b8b63aac22b91800d00f918d1abc7672b9711a33de4"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -528,7 +528,7 @@ def validate_import_closure(
 def extraction_outputs(
     path: Path = EXTRACTION_MANIFEST_PATH,
     *,
-    expected_count: int = 37,
+    expected_count: int = 38,
 ) -> list[str]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))

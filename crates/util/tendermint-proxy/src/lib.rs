@@ -94,9 +94,11 @@ mod tests {
         build_broadcast_http_client, build_http_client, build_tendermint_broadcast_client,
         build_tendermint_http_client,
     };
+    use tendermint_rpc::Client;
     use tokio::{
         io::{AsyncReadExt, AsyncWriteExt},
         net::{TcpListener, TcpStream},
+        sync::oneshot,
         time::{timeout, Duration},
     };
 
@@ -109,9 +111,27 @@ mod tests {
         let _broadcast_client = build_tendermint_broadcast_client(&url);
     }
 
-    async fn serve_http_ok(stream: &mut TcpStream) {
+    async fn read_http_request(stream: &mut TcpStream) -> Vec<u8> {
         let mut request = Vec::new();
-        loop {
+        let (body_start, content_length) = loop {
+            if let Some(header_end) = request.windows(4).position(|window| window == b"\r\n\r\n") {
+                let body_start = header_end + 4;
+                let headers = std::str::from_utf8(&request[..header_end])
+                    .expect("test request headers should be UTF-8");
+                let content_length = headers
+                    .lines()
+                    .find_map(|line| {
+                        let (name, value) = line.split_once(':')?;
+                        if name.eq_ignore_ascii_case("content-length") {
+                            value.trim().parse::<usize>().ok()
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(0);
+                break (body_start, content_length);
+            }
+
             let mut chunk = [0u8; 1024];
             let read = stream
                 .read(&mut chunk)
@@ -119,10 +139,22 @@ mod tests {
                 .expect("test server should read the request");
             assert!(read > 0, "client closed before sending request headers");
             request.extend_from_slice(&chunk[..read]);
-            if request.windows(4).any(|window| window == b"\r\n\r\n") {
-                break;
-            }
+        };
+
+        while request.len() < body_start + content_length {
+            let mut chunk = [0u8; 1024];
+            let read = stream
+                .read(&mut chunk)
+                .await
+                .expect("test server should read the request body");
+            assert!(read > 0, "client closed before sending the request body");
+            request.extend_from_slice(&chunk[..read]);
         }
+        request
+    }
+
+    async fn serve_http_ok(stream: &mut TcpStream) {
+        read_http_request(stream).await;
         stream
             .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\n{}")
             .await
@@ -220,6 +252,56 @@ mod tests {
                 .expect("test response body should be readable");
             tokio::task::yield_now().await;
         }
+
+        server.await.expect("test server should complete");
+    }
+
+    #[tokio::test]
+    async fn broadcast_transport_does_not_retry_after_response_loss() {
+        let listener = TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("test listener should bind");
+        let address = listener
+            .local_addr()
+            .expect("test listener should have an address");
+        let (request_complete_tx, request_complete_rx) = oneshot::channel();
+        let server = tokio::spawn(async move {
+            let (mut first, _) = listener
+                .accept()
+                .await
+                .expect("broadcast connection should arrive");
+            let _request = read_http_request(&mut first).await;
+
+            // Model an ambiguous outcome: the server received the complete
+            // request, but its response disappeared. The transport must not
+            // submit the request again.
+            drop(first);
+            tokio::select! {
+                biased;
+                accepted = listener.accept() => {
+                    accepted.expect("retried connection should be valid");
+                    panic!("broadcast transport retried an ambiguous submission");
+                }
+                completed = request_complete_rx => {
+                    completed.expect("client should report request completion");
+                }
+            }
+        });
+
+        let url: url::Url = format!("http://{address}")
+            .parse()
+            .expect("test URL should parse");
+        let client = build_tendermint_broadcast_client(&url);
+        let request_result = timeout(
+            Duration::from_secs(5),
+            client.broadcast_tx_sync(vec![7u8; 64]),
+        )
+        .await
+        .expect("lost response should complete the request future");
+        request_complete_tx
+            .send(())
+            .expect("server should wait for request completion");
+        let _error = request_result.expect_err("lost response should remain an ambiguous failure");
 
         server.await.expect("test server should complete");
     }

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 
-NORMALIZER_REVISION = "normalize-aeneas-lean-v8"
+NORMALIZER_REVISION = "normalize-aeneas-lean-v9"
 # Serialized into generated Lean; bump only for an authorized artifact migration.
 NORMALIZED_ARTIFACT_REVISION = "normalize-aeneas-lean-v7"
 SELECTED_RAW_DECLARATIONS_DOMAIN = (
@@ -73,6 +73,7 @@ FORBIDDEN = (
     "UScalar.hcast",
     "IScalar.hcast",
     "#i64",
+    "#u32",
     "core.num.I64.",
     "UScalar.cast .U64",
     "UScalar.cast .U128",
@@ -434,6 +435,7 @@ def _transform_tokens(text: str, *, fixed_arrays: bool | None = None) -> str:
         (re.compile(r"\bStd\.U8\b"), "UInt8"),
         (re.compile(r"\bStd\.I8\b"), "Int"),
         (re.compile(r"(\d+)#u8\b"), r"UInt8.ofNat \1"),
+        (re.compile(r"(\d+)#u32\b"), r"\1#usize"),
         (re.compile(r"(\(-?\d+\)|\d+)#i8\b"), r"\1"),
         (re.compile(r"\bcore\.num\.U64\.wrapping_mul\b"), "MacCampaign.wrappingMul64"),
         (re.compile(r"\bcore\.num\.U128\.wrapping_sub\b"), "MacCampaign.wrappingSub128"),

@@ -174,6 +174,22 @@ pub struct AppVerifyPreparedRows<T> {
     pub padded_public_inputs: Vec<T>,
 }
 
+/// Accepted serialized-row provenance beside the exact shipping preflight.
+///
+/// Field values remain opaque. The extracted core operates only on their
+/// concrete serialization and retains both that source projection and the
+/// exact repeat-final serialized result. `BindingExecution` is an opaque
+/// call-scoped record retained without interpretation for the separate
+/// statement-hash and wrapper-decoder refinement.
+#[doc(hidden)]
+#[derive(Clone, Debug)]
+pub struct AppVerifyAcceptedPreflightStatementProvenance<BackendCall, Field, BindingExecution> {
+    pub binding_execution: BindingExecution,
+    pub source_rows: AppVerifyStatementRowBytesProjection<Vec<Vec<Field>>, Vec<Vec<Vec<u8>>>>,
+    pub prepared_serialized_rows: AppVerifyPreparedRows<Vec<Vec<u8>>>,
+    pub preflight: AppVerifyShippingPreflight<BackendCall, Vec<Vec<Field>>>,
+}
+
 #[doc(hidden)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AppVerifyShippingInputError {
@@ -182,6 +198,22 @@ pub enum AppVerifyShippingInputError {
     StatementFamilyMismatch,
     StatementRealCountMismatch,
     StatementPaddedCountMismatch,
+}
+
+#[doc(hidden)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AppVerifyShippingStatementPreflightError {
+    RowPadding(AppVerifyRowPaddingError),
+    SourceSerializationCountMismatch,
+    StatementSerializationCountMismatch,
+    StatementRealCountMismatch,
+    StatementPaddedCountMismatch,
+    SourceFieldArityMismatch,
+    SourceSerializedArityMismatch,
+    StatementFieldArityMismatch,
+    StatementSerializedArityMismatch,
+    StatementSerializedRowsMismatch,
+    ShippingInput(AppVerifyShippingInputError),
 }
 
 #[doc(hidden)]
@@ -497,7 +529,7 @@ pub fn app_verify_shipping_result_from_backend_result<Execution>(
     input: AppVerifyShippingInput,
     backend_result: AppVerifyShippingBackendResult<Execution>,
 ) -> Result<AppVerifyShippingExecutedResult<Execution>, AppVerifyShippingInputError> {
-    if backend_result.result.id != input.call.id {
+    if !app_verify_call_id_matches(backend_result.result.id, input.call.id) {
         return Err(AppVerifyShippingInputError::CallIdentityMismatch);
     }
     let shipping_result = AppVerifyShippingResult {
@@ -592,6 +624,163 @@ pub fn app_verify_prepare_public_input_rows_core<T: Clone>(
         real_count,
         padded_count,
         padded_public_inputs,
+    })
+}
+
+fn app_verify_field_rows_have_arity<Field>(rows: &[Vec<Field>], expected: usize) -> bool {
+    let mut index = 0usize;
+    while index < rows.len() {
+        if rows[index].len() != expected {
+            return false;
+        }
+        index += 1;
+    }
+    true
+}
+
+fn app_verify_serialized_rows_have_arity(rows: &[Vec<Vec<u8>>], expected: usize) -> bool {
+    let mut index = 0usize;
+    while index < rows.len() {
+        if rows[index].len() != expected {
+            return false;
+        }
+        index += 1;
+    }
+    true
+}
+
+/// Structural equality for serialized rows using only concrete byte-vector
+/// equality. This avoids treating an opaque field `PartialEq` result as a
+/// proposition in the formal model.
+fn app_verify_serialized_rows_equal(left: &[Vec<Vec<u8>>], right: &[Vec<Vec<u8>>]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut row_index = 0usize;
+    while row_index < left.len() {
+        if left[row_index].len() != right[row_index].len() {
+            return false;
+        }
+        let mut field_index = 0usize;
+        while field_index < left[row_index].len() {
+            if left[row_index][field_index] != right[row_index][field_index] {
+                return false;
+            }
+            field_index += 1;
+        }
+        row_index += 1;
+    }
+    true
+}
+
+/// Pad serialized caller-order rows, bind them to authenticated statement
+/// serialization, and construct the exact shipping preflight used by
+/// production.
+///
+/// Arkworks field serialization remains outside this extracted core. The
+/// successful carrier retains its opaque field inputs, concrete byte
+/// projection, prepared serialization, authenticated statement fields, and
+/// shipping output.
+#[doc(hidden)]
+#[allow(clippy::too_many_arguments)]
+pub fn app_verify_shipping_statement_preflight_core<BackendCall, Field, BindingExecution>(
+    backend_call: BackendCall,
+    binding_execution: BindingExecution,
+    source_rows: AppVerifyStatementRowBytesProjection<Vec<Vec<Field>>, Vec<Vec<Vec<u8>>>>,
+    statement_rows: AppVerifyShippingRowsProjection<Vec<Vec<Field>>, Vec<Vec<Vec<u8>>>>,
+    call: AppVerifyShippingCall,
+    protocol_version: u32,
+    family: AppVerifyFamilyCode,
+    srs_id: Vec<u8>,
+    serialized_vk: Vec<u8>,
+    vk_digest: Vec<u8>,
+    canonical_statement_bytes: Vec<u8>,
+    wrapper: AppVerifyShippingWrapperProjection,
+    challenge_context: Vec<u8>,
+) -> Result<
+    AppVerifyAcceptedPreflightStatementProvenance<BackendCall, Field, BindingExecution>,
+    AppVerifyShippingStatementPreflightError,
+> {
+    let source_field_count = source_rows.source_rows.len();
+    let source_serialized_count = source_rows.serialized_rows.len();
+    let statement_field_count = statement_rows.fields.len();
+    let statement_serialized_count = statement_rows.serialized.len();
+    if source_field_count != source_serialized_count {
+        return Err(AppVerifyShippingStatementPreflightError::SourceSerializationCountMismatch);
+    }
+    if statement_field_count != statement_serialized_count {
+        return Err(AppVerifyShippingStatementPreflightError::StatementSerializationCountMismatch);
+    }
+    if source_field_count != statement_rows.real_count as usize {
+        return Err(AppVerifyShippingStatementPreflightError::StatementRealCountMismatch);
+    }
+    if statement_field_count != statement_rows.padded_count as usize {
+        return Err(AppVerifyShippingStatementPreflightError::StatementPaddedCountMismatch);
+    }
+    let expected_arity = statement_rows.public_input_arity as usize;
+    if !app_verify_field_rows_have_arity(&source_rows.source_rows, expected_arity) {
+        return Err(AppVerifyShippingStatementPreflightError::SourceFieldArityMismatch);
+    }
+    if !app_verify_serialized_rows_have_arity(&source_rows.serialized_rows, expected_arity) {
+        return Err(AppVerifyShippingStatementPreflightError::SourceSerializedArityMismatch);
+    }
+    if !app_verify_field_rows_have_arity(&statement_rows.fields, expected_arity) {
+        return Err(AppVerifyShippingStatementPreflightError::StatementFieldArityMismatch);
+    }
+    if !app_verify_serialized_rows_have_arity(&statement_rows.serialized, expected_arity) {
+        return Err(AppVerifyShippingStatementPreflightError::StatementSerializedArityMismatch);
+    }
+
+    let prepared = match app_verify_prepare_public_input_rows_core(
+        source_rows.serialized_rows.clone(),
+        statement_rows.padded_count as usize,
+    ) {
+        Ok(prepared) => prepared,
+        Err(error) => return Err(AppVerifyShippingStatementPreflightError::RowPadding(error)),
+    };
+    if prepared.real_count != statement_rows.real_count as usize {
+        return Err(AppVerifyShippingStatementPreflightError::StatementRealCountMismatch);
+    }
+    if prepared.padded_count != statement_rows.padded_count as usize {
+        return Err(AppVerifyShippingStatementPreflightError::StatementPaddedCountMismatch);
+    }
+    if !app_verify_serialized_rows_equal(&prepared.padded_public_inputs, &statement_rows.serialized)
+    {
+        return Err(AppVerifyShippingStatementPreflightError::StatementSerializedRowsMismatch);
+    }
+
+    let rows = app_verify_shipping_rows_from_parts(
+        statement_rows.real_count,
+        statement_rows.padded_count,
+        statement_rows.public_input_arity,
+        statement_rows.fields,
+        statement_rows.serialized,
+    );
+    let preflight = match app_verify_shipping_preflight_core(
+        backend_call,
+        rows,
+        call,
+        protocol_version,
+        family,
+        srs_id,
+        serialized_vk,
+        vk_digest,
+        canonical_statement_bytes,
+        wrapper,
+        challenge_context,
+    ) {
+        Ok(preflight) => preflight,
+        Err(error) => {
+            return Err(AppVerifyShippingStatementPreflightError::ShippingInput(
+                error,
+            ))
+        }
+    };
+    Ok(AppVerifyAcceptedPreflightStatementProvenance {
+        binding_execution,
+        source_rows,
+        prepared_serialized_rows: prepared,
+        preflight,
     })
 }
 
@@ -1272,6 +1461,174 @@ mod tests {
         assert_eq!(&prepared.padded_public_inputs[..2], fields.as_slice());
         assert_eq!(prepared.padded_public_inputs[2], fields[1]);
         assert_eq!(prepared.padded_public_inputs[3], fields[1]);
+    }
+
+    #[test]
+    fn shipping_statement_preflight_retains_exact_padding_provenance() {
+        let call = app_verify_shipping_call_from_parts(
+            AppVerifyCallId {
+                order_index: 4,
+                segment_index: 2,
+                family_index: 1,
+                family: family(7),
+            },
+            family(7),
+            2,
+            2,
+            4,
+            4,
+        );
+        let source_fields = vec![vec![0xb1, 0xb2], vec![0xc1, 0xc2]];
+        let statement_fields = vec![
+            source_fields[0].clone(),
+            source_fields[1].clone(),
+            source_fields[1].clone(),
+            source_fields[1].clone(),
+        ];
+        let source_serialized_rows =
+            vec![vec![vec![0x41], vec![0x42]], vec![vec![0x51], vec![0x52]]];
+        let statement_serialized_rows = vec![
+            source_serialized_rows[0].clone(),
+            source_serialized_rows[1].clone(),
+            vec![vec![0x51], vec![0x52]],
+            vec![vec![0x51], vec![0x52]],
+        ];
+        let provenance = app_verify_shipping_statement_preflight_core(
+            vec![0xa1, 0xa2],
+            vec![0xd1, 0xd2],
+            app_verify_statement_row_bytes_from_parts(
+                source_fields.clone(),
+                source_serialized_rows.clone(),
+            ),
+            app_verify_shipping_rows_from_parts(
+                2,
+                4,
+                2,
+                statement_fields.clone(),
+                statement_serialized_rows.clone(),
+            ),
+            call,
+            2,
+            family(7),
+            vec![0x11; 32],
+            vec![0x22, 0x23],
+            vec![0x33; 32],
+            vec![0x61, 0x62],
+            app_verify_shipping_wrapper_projection_from_parts(
+                vec![0x71; 32],
+                vec![0x81, 0x82, 0x83],
+                vec![0x82, 0x83],
+            ),
+            vec![0x91; 32],
+        )
+        .expect("matching statement provenance");
+
+        assert_eq!(provenance.binding_execution, vec![0xd1, 0xd2]);
+        assert_eq!(provenance.source_rows.source_rows, source_fields);
+        assert_eq!(
+            provenance.source_rows.serialized_rows,
+            source_serialized_rows
+        );
+        assert_eq!(provenance.prepared_serialized_rows.real_count, 2);
+        assert_eq!(provenance.prepared_serialized_rows.padded_count, 4);
+        assert_eq!(
+            provenance.prepared_serialized_rows.padded_public_inputs,
+            statement_serialized_rows
+        );
+        assert_eq!(
+            provenance.preflight.padded_public_input_fields,
+            statement_fields
+        );
+        assert_eq!(
+            provenance.preflight.shipping_input.padded_public_inputs,
+            provenance.prepared_serialized_rows.padded_public_inputs
+        );
+
+        let source_count_mismatch = app_verify_shipping_statement_preflight_core(
+            (),
+            (),
+            app_verify_statement_row_bytes_from_parts(
+                vec![vec![0xb1, 0xb2], vec![0xc1, 0xc2]],
+                vec![vec![vec![0x41], vec![0x42]]],
+            ),
+            app_verify_shipping_rows_from_parts(
+                2,
+                4,
+                2,
+                vec![
+                    vec![0xb1, 0xb2],
+                    vec![0xc1, 0xc2],
+                    vec![0xc1, 0xc2],
+                    vec![0xc1, 0xc2],
+                ],
+                vec![
+                    vec![vec![0x41], vec![0x42]],
+                    vec![vec![0x51], vec![0x52]],
+                    vec![vec![0x51], vec![0x52]],
+                    vec![vec![0x51], vec![0x52]],
+                ],
+            ),
+            call,
+            2,
+            family(7),
+            vec![0x11; 32],
+            vec![0x22, 0x23],
+            vec![0x33; 32],
+            vec![0x61, 0x62],
+            app_verify_shipping_wrapper_projection_from_parts(
+                vec![0x71; 32],
+                vec![0x81, 0x82, 0x83],
+                vec![0x82, 0x83],
+            ),
+            vec![0x91; 32],
+        );
+        assert!(matches!(
+            source_count_mismatch,
+            Err(AppVerifyShippingStatementPreflightError::SourceSerializationCountMismatch)
+        ));
+
+        let serialized_mismatch = app_verify_shipping_statement_preflight_core(
+            (),
+            (),
+            app_verify_statement_row_bytes_from_parts(
+                vec![vec![0xb1, 0xb2], vec![0xc1, 0xc2]],
+                vec![vec![vec![0x41], vec![0x42]], vec![vec![0x51], vec![0x52]]],
+            ),
+            app_verify_shipping_rows_from_parts(
+                2,
+                4,
+                2,
+                vec![
+                    vec![0xb1, 0xb2],
+                    vec![0xc1, 0xc2],
+                    vec![0xc1, 0xc2],
+                    vec![0xc1, 0xc2],
+                ],
+                vec![
+                    vec![vec![0x41], vec![0x42]],
+                    vec![vec![0x51], vec![0x52]],
+                    vec![vec![0x51], vec![0x52]],
+                    vec![vec![0x51], vec![0x53]],
+                ],
+            ),
+            call,
+            2,
+            family(7),
+            vec![0x11; 32],
+            vec![0x22, 0x23],
+            vec![0x33; 32],
+            vec![0x61, 0x62],
+            app_verify_shipping_wrapper_projection_from_parts(
+                vec![0x71; 32],
+                vec![0x81, 0x82, 0x83],
+                vec![0x82, 0x83],
+            ),
+            vec![0x91; 32],
+        );
+        assert!(matches!(
+            serialized_mismatch,
+            Err(AppVerifyShippingStatementPreflightError::StatementSerializedRowsMismatch)
+        ));
     }
 
     #[test]

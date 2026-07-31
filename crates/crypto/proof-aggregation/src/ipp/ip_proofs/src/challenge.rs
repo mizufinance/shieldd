@@ -20,9 +20,13 @@ impl ChallengeContext {
         let preimage = challenge_context_preimage(digest);
         let mut hasher = Sha256::new();
         hasher.update(&preimage);
-        Self {
-            bytes: hasher.finalize().into(),
-        }
+        Self::from_bytes(hasher.finalize().into())
+    }
+
+    /// Constructs the context from an already executed shipping SHA-256 call.
+    #[doc(hidden)]
+    pub fn from_bytes(bytes: [u8; 32]) -> Self {
+        Self { bytes }
     }
 
     pub fn as_bytes(&self) -> &[u8; 32] {

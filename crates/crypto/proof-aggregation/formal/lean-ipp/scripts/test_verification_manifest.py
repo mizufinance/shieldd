@@ -911,14 +911,14 @@ class VerificationManifestTests(unittest.TestCase):
             "lean-extraction-manifest.json"
         )
         payload = json.loads(extraction_manifest.read_text(encoding="utf-8"))
-        self.assertEqual(len(VERIFICATION.extraction_outputs()), 37)
+        self.assertEqual(len(VERIFICATION.extraction_outputs()), 38)
         with tempfile.TemporaryDirectory(prefix="snarkpack-extraction-list-") as directory:
             path = Path(directory) / "manifest.json"
             payload["graphs"].pop()
             path.write_text(json.dumps(payload), encoding="utf-8")
             with self.assertRaises(VERIFICATION.VerificationError) as raised:
                 VERIFICATION.extraction_outputs(path)
-            self.assertIn("expected 37 extraction outputs", str(raised.exception))
+            self.assertIn("expected 38 extraction outputs", str(raised.exception))
 
     def test_audit_sources_are_manifest_pinned_before_log_parsing(self):
         roots = ["Ipp.first", "Ipp.second"]

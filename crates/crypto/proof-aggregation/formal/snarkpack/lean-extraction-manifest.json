@@ -7,7 +7,7 @@
     "charon_commit": "74166d896db4ae4f63101c13c22072fb2022092e",
     "aeneas_commit": "e0a159645386230102a2bf89b4df2dcd2140777e",
     "image_digest": "sha256:63fb57a0c07de6c4a3ded67410b26a2804d090a3ae51929708c8e4650a686282",
-    "normalizer_revision": "normalize-aeneas-lean-v8"
+    "normalizer_revision": "normalize-aeneas-lean-v9"
   },
   "graphs": [
     {
@@ -1150,6 +1150,7 @@
         "ark_ip_proofs::app_verifier::app_verify_shipping_result_from_backend_result",
         "ark_ip_proofs::app_verifier::app_verify_shipping_result_from_parts",
         "ark_ip_proofs::app_verifier::app_verify_shipping_rows_from_parts",
+        "ark_ip_proofs::app_verifier::app_verify_shipping_statement_preflight_core",
         "ark_ip_proofs::app_verifier::app_verify_shipping_wrapper_projection_from_parts",
         "ark_ip_proofs::app_verifier::app_verify_statement_row_bytes_from_parts"
       ],
@@ -1521,6 +1522,25 @@
             "{output_dir}",
             "aeneas-lean",
             "--charon-args=--start-from=crate::app_verifier::app_verify_shipping_rows_from_parts",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::app_verifier::app_verify_shipping_statement_preflight_core",
             "--lakefile"
           ],
           "raw_outputs": [
@@ -4772,6 +4792,138 @@
         }
       ],
       "source_sha256": "6e226112dc28c12f0eea4e106c81657559825b758fec35805a9e0d7554329986"
+    },
+    {
+      "id": "StatementBinding",
+      "campaign": "s2",
+      "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/StatementBindingGenerated.lean",
+      "output_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
+      "package": "ark-ip-proofs",
+      "features": [],
+      "source_files": [
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/lib.rs",
+        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs"
+      ],
+      "roots": [
+        "ark_ip_proofs::statement_binding::statement_binding_execution_core",
+        "ark_ip_proofs::statement_binding::statement_hash_effect_core",
+        "ark_ip_proofs::statement_binding::wrapper_decode_effect_core"
+      ],
+      "inputs": [
+        {
+          "role": "copy-source",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+          "sha256": "75cde6690fbf629687b7d5ea1be11cb31af16c83b3bc6dc3780ce280606d0d78"
+        },
+        {
+          "role": "parity-test",
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+          "sha256": "75cde6690fbf629687b7d5ea1be11cb31af16c83b3bc6dc3780ce280606d0d78"
+        }
+      ],
+      "copy_provenance": [],
+      "extractions": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::statement_binding::statement_binding_execution_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::statement_binding::statement_hash_effect_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "env": {},
+          "argv": [
+            "cargo",
+            "hax",
+            "into",
+            "-v",
+            "--output-dir",
+            "{output_dir}",
+            "aeneas-lean",
+            "--charon-args=--start-from=crate::statement_binding::wrapper_decode_effect_core",
+            "--lakefile"
+          ],
+          "raw_outputs": [
+            "ArkIpProofs/Extraction/Types.lean",
+            "ArkIpProofs/Extraction/Funs.lean"
+          ]
+        }
+      ],
+      "normalization": {
+        "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
+        "extra_imports": [],
+        "reuse_modules": [],
+        "selected_raw_declarations_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "normalized_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "parity": [
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "statement_binding::tests::statement_hash_core_retains_exact_order_and_values",
+            "--",
+            "--exact"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "statement_binding::tests::statement_hash_core_stops_at_every_failing_stage",
+            "--",
+            "--exact"
+          ]
+        },
+        {
+          "cwd": "crates/crypto/proof-aggregation/src/ipp/ip_proofs",
+          "argv": [
+            "cargo",
+            "test",
+            "--lib",
+            "statement_binding::tests::wrapper_decode_and_binding_are_exact_and_fail_closed",
+            "--",
+            "--exact"
+          ]
+        }
+      ]
     }
   ]
 }

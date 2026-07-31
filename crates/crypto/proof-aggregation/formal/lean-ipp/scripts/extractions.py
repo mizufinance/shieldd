@@ -30,6 +30,12 @@ MANIFEST_PATH = (
     / "crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json"
 )
 MANIFEST_REPO_PATH = MANIFEST_PATH.relative_to(REPO_ROOT).as_posix()
+GRAPH_INVENTORY_PATH = MANIFEST_PATH.with_name(
+    "lean-extraction-graph-inventory.json"
+)
+GRAPH_INVENTORY_REPO_PATH = GRAPH_INVENTORY_PATH.relative_to(
+    REPO_ROOT
+).as_posix()
 EXTRACTED_REPO_DIR = "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted"
 NORMALIZER_REPO_PATH = (
     "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py"
@@ -44,7 +50,6 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 IMAGE_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
 GRAPH_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
-EXPECTED_GRAPH_COUNT = 37
 DEFAULT_EXTRACTION_TIMEOUT_SECONDS = 20 * 60
 PROCESS_RSS_LIMIT_BYTES = 6 * 1024**3
 MIN_AVAILABLE_MEMORY_BYTES = 4 * 1024**3
@@ -79,6 +84,7 @@ IGNORED_CRATE_SOURCE_DIRS = {".git", "proofs", "target"}
 LOCAL_PATH_DEPENDENCY = re.compile(r"""\bpath\s*=\s*["']([^"']+)["']""")
 
 TOP_FIELDS = {"schema_version", "toolchains", "graphs"}
+GRAPH_INVENTORY_FIELDS = {"schema_version", "graph_ids"}
 TOOLCHAIN_FIELDS = {
     "rust",
     "lean",
@@ -283,6 +289,37 @@ def load_manifest(path: Path = MANIFEST_PATH, *, canonical: bool = True) -> dict
     return _expect_object(data, "manifest")
 
 
+def load_graph_inventory(
+    path: Path = GRAPH_INVENTORY_PATH,
+    *,
+    canonical: bool = True,
+) -> tuple[str, ...]:
+    """Load the canonical ordered graph IDs required by every manifest."""
+    try:
+        raw = path.read_bytes()
+        data = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ManifestError(f"{path}: {exc}") from exc
+    if canonical and raw != canonical_json(data):
+        raise ManifestError(f"{path}: JSON is not canonical pretty JSON")
+    inventory = _expect_object(data, "graph inventory")
+    _exact_fields(inventory, GRAPH_INVENTORY_FIELDS, "graph inventory")
+    if inventory["schema_version"] != 1:
+        raise ManifestError("graph inventory.schema_version: expected 1")
+    graph_ids = _string_list(
+        inventory["graph_ids"],
+        "graph inventory.graph_ids",
+        nonempty=True,
+    )
+    for index, graph_id in enumerate(graph_ids):
+        if not GRAPH_ID.fullmatch(graph_id):
+            raise ManifestError(
+                "graph inventory.graph_ids"
+                f"[{index}]: expected [A-Za-z][A-Za-z0-9_]*"
+            )
+    return tuple(graph_ids)
+
+
 def validate_manifest(
     manifest: dict[str, Any],
     *,
@@ -351,12 +388,9 @@ def _validate_manifest(
         )
 
     graphs = _expect_list(manifest["graphs"], "manifest.graphs")
-    if len(graphs) != EXPECTED_GRAPH_COUNT:
-        raise ManifestError(
-            "manifest.graphs: "
-            f"expected {EXPECTED_GRAPH_COUNT} records, found {len(graphs)}"
-    )
+    expected_graph_ids = load_graph_inventory()
     graph_ids: set[str] = set()
+    ordered_graph_ids: list[str] = []
     outputs: set[str] = set()
     module_source_closures: dict[str, tuple[str, ...]] = {}
     for index, raw_graph in enumerate(graphs):
@@ -375,6 +409,7 @@ def _validate_manifest(
         if graph_id in graph_ids:
             raise ManifestError(f"{where}.id: duplicate graph id")
         graph_ids.add(graph_id)
+        ordered_graph_ids.append(graph_id)
         if graph["campaign"] not in {"s2", "s3"}:
             raise ManifestError(f"{where}.campaign: expected s2 or s3")
 
@@ -624,6 +659,28 @@ def _validate_manifest(
                 raise ManifestError(
                     f"{where}.parity[{parity_index}].argv: expected cargo test"
                 )
+
+    if tuple(ordered_graph_ids) != expected_graph_ids:
+        expected = set(expected_graph_ids)
+        missing = [
+            graph_id for graph_id in expected_graph_ids
+            if graph_id not in graph_ids
+        ]
+        unexpected = [
+            graph_id for graph_id in ordered_graph_ids
+            if graph_id not in expected
+        ]
+        details: list[str] = []
+        if missing:
+            details.append("missing " + ", ".join(missing))
+        if unexpected:
+            details.append("unexpected " + ", ".join(unexpected))
+        if not missing and not unexpected:
+            details.append("order differs")
+        raise ManifestError(
+            "manifest.graphs: graph IDs do not match the exact inventory; "
+            + "; ".join(details)
+        )
 
     if verify_files:
         generated_dir = REPO_ROOT.joinpath(*PurePosixPath(EXTRACTED_REPO_DIR).parts)
@@ -1215,6 +1272,8 @@ def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
         EXTRACTIONS_REPO_PATH,
         *WORKSPACE_SOURCE_PATHS,
     }
+    # Inventory membership is validated above the graph-selection layer.
+    # It is not extraction semantics; manifest recipe diffs select its changes.
     if changed.intersection(global_paths):
         return sorted(graphs)
 
@@ -1265,9 +1324,30 @@ def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
                 or old.get("toolchains") != manifest["toolchains"]
             ):
                 return sorted(graphs)
+            old_graph_records = old.get("graphs")
+            if not isinstance(old_graph_records, list):
+                return sorted(graphs)
+            old_declared_rust_sources: set[str] = set()
+            for old_graph in old_graph_records:
+                if not isinstance(old_graph, dict):
+                    return sorted(graphs)
+                old_source_files = old_graph.get("source_files")
+                if (
+                    not isinstance(old_source_files, list)
+                    or not all(
+                        isinstance(source, str)
+                        for source in old_source_files
+                    )
+                ):
+                    return sorted(graphs)
+                old_declared_rust_sources.update(old_source_files)
+            if old_declared_rust_sources != declared_rust_sources:
+                # Reclassifying a Rust source changes the shared undeclared
+                # inventory bound into every graph source fingerprint.
+                return sorted(graphs)
             old_graphs = {
                 graph["id"]: graph
-                for graph in old.get("graphs", [])
+                for graph in old_graph_records
                 if isinstance(graph, dict) and isinstance(graph.get("id"), str)
             }
             for graph_id, graph in graphs.items():
@@ -1324,7 +1404,7 @@ def command_check(args: argparse.Namespace) -> int:
     )
     print(
         "extractions: ok "
-        f"({EXPECTED_GRAPH_COUNT}/{EXPECTED_GRAPH_COUNT} graphs; "
+        f"({len(manifest['graphs'])}/{len(manifest['graphs'])} graphs; "
         f"s2={s2}, s3={s3}{delegated})"
     )
     return 0
@@ -1524,6 +1604,7 @@ def graph_source_paths(
     *,
     cache: SourceSnapshotCache | None = None,
 ) -> list[Path]:
+    # GRAPH_INVENTORY_REPO_PATH is a validation control, not a graph input.
     repo_paths = {
         EXTRACTIONS_REPO_PATH,
         NORMALIZER_REPO_PATH,

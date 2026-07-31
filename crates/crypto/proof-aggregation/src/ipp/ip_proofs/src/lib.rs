@@ -15,6 +15,8 @@ pub mod s3_07_arkworks_fq_spike;
 #[cfg(any(hax_compilation, feature = "mac-campaign"))]
 #[doc(hidden)]
 pub mod s3_07_arkworks_fr_spike;
+#[doc(hidden)]
+pub mod statement_binding;
 pub mod tipa;
 
 pub type Error = Box<dyn ErrorTrait>;

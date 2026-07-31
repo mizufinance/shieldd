@@ -42,6 +42,7 @@ shieldd_sdk_proof_aggregation::statement::StatementPaddedRows
 shieldd_sdk_proof_aggregation::statement::StatementEncodingInput
 shieldd_sdk_proof_aggregation::statement::statement_encoding_input_core
 shieldd_sdk_proof_aggregation::statement::encode_statement
+shieldd_sdk_proof_aggregation::statement::statement_digest_preimage
 shieldd_sdk_proof_aggregation::statement::vk_digest_preimage
 shieldd_sdk_proof_aggregation::statement::validate_counts
 shieldd_sdk_proof_aggregation::statement::validate_row_arity

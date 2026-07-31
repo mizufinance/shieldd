@@ -1859,7 +1859,10 @@ where
     FX: TippMippEffect<F, G1, G2, GT, ABT, CT, E>,
     PE: PairingEffect<G1, G2, GT> + Sync,
 {
-    verify_tipp_mipp_execution_core(&input, effect, pairing).map(|output| output.accepted)
+    match verify_tipp_mipp_execution_core(&input, effect, pairing) {
+        Ok(output) => Ok(output.accepted),
+        Err(error) => Err(error),
+    }
 }
 
 /// Inputs whose transition schedule is owned by the aggregate prover rather

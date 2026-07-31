@@ -180,13 +180,14 @@
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "pass"
+        "last_result": "stale"
       }
     },
     {
       "contract_field": "canonicalStatementExact",
       "kind": "fstar",
       "theorem_roots": [
+        "DigestBindingProofs.lemma_statement_digest_preimage_content",
         "StatementEncodingProofs.lemma_statement_encoding_input_core_projection",
         "StatementEncodingProofs.lemma_encode_statement_content"
       ],
@@ -228,7 +229,7 @@
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "pass"
+        "last_result": "stale"
       }
     },
     {
@@ -263,7 +264,7 @@
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "pass"
+        "last_result": "stale"
       }
     },
     {

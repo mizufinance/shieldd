@@ -133,9 +133,33 @@ def s3_07_arkworks_fq_spike.root (x : Std.U64) (y : Std.U128) (b : Std.U8) :
         )
         self.assertEqual(
             metadata["normalizer_revision"],
-            "normalize-aeneas-lean-v8",
+            "normalize-aeneas-lean-v9",
         )
         self.assertFalse(output.with_name(output.name + ".provenance.json").exists())
+
+    def test_u32_literals_use_the_verified_usize_runtime_notation(self):
+        source = self.write(
+            "raw.lean",
+            raw(
+                "function",
+                """\
+def spike.root : Std.U32 :=
+  let marker := "3#u32"
+  -- Comments retain 4#u32 verbatim.
+  2#u32""",
+            ),
+        )
+        completed, output = self.run_normalize(
+            [source],
+            roots=("ark_ip_proofs::spike::root",),
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        result = output.read_text(encoding="utf-8")
+        self.assertIn("def spike.root : Std.U32 :=", result)
+        self.assertIn("2#usize", result)
+        self.assertIn('"3#u32"', result)
+        self.assertIn("-- Comments retain 4#u32 verbatim.", result)
+        self.assertNotIn("  2#u32", result)
 
     def test_strips_trailing_horizontal_whitespace(self):
         source = self.write(

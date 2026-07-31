@@ -218,6 +218,12 @@ pub mod shieldd {
             pub mod v1 {
                 include!("gen/shieldd.util.tendermint_proxy.v1.rs");
                 include!("gen/shieldd.util.tendermint_proxy.v1.serde.rs");
+
+                /// gRPC metadata set only after the proxy attempted an
+                /// upstream transaction broadcast whose outcome is unknown.
+                pub const BROADCAST_OUTCOME_METADATA_KEY: &str = "shieldd-broadcast-outcome";
+                pub const BROADCAST_OUTCOME_UNKNOWN: &str = "unknown";
+                pub const BROADCAST_OUTCOME_NOT_SUBMITTED: &str = "not-submitted";
             }
         }
     }

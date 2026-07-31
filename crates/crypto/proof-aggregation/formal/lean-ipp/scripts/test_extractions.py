@@ -26,6 +26,7 @@ class ExtractionManifestTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.raw_manifest = EXTRACTIONS.load_manifest()
+        cls.graph_inventory = EXTRACTIONS.load_graph_inventory()
         cls.manifest = copy.deepcopy(cls.raw_manifest)
         # The checked-in manifest is being recovered graph-by-graph. Unit tests
         # exercise the final strict schema without fabricating generated output.
@@ -50,9 +51,12 @@ class ExtractionManifestTests(unittest.TestCase):
         self.validate(self.manifest, verify_files=False)
         self.assertEqual(self.manifest["schema_version"], 3)
         outputs = [graph["output"] for graph in self.manifest["graphs"]]
-        self.assertEqual(EXTRACTIONS.EXPECTED_GRAPH_COUNT, 37)
-        self.assertEqual(len(outputs), EXTRACTIONS.EXPECTED_GRAPH_COUNT)
-        self.assertEqual(len(set(outputs)), EXTRACTIONS.EXPECTED_GRAPH_COUNT)
+        self.assertEqual(
+            tuple(graph["id"] for graph in self.manifest["graphs"]),
+            self.graph_inventory,
+        )
+        self.assertEqual(len(outputs), len(self.graph_inventory))
+        self.assertEqual(len(set(outputs)), len(self.graph_inventory))
         self.assertEqual(
             {Path(output).name for output in outputs},
             {
@@ -71,6 +75,62 @@ class ExtractionManifestTests(unittest.TestCase):
             with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
                 EXTRACTIONS.load_manifest(path)
             self.assertIn("canonical pretty JSON", str(raised.exception))
+
+            inventory_path = Path(directory) / "graph-inventory.json"
+            inventory_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "graph_ids": list(self.graph_inventory),
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
+                EXTRACTIONS.load_graph_inventory(inventory_path)
+            self.assertIn("canonical pretty JSON", str(raised.exception))
+
+    def test_graph_inventory_is_exact_ordered_and_fail_closed(self):
+        with tempfile.TemporaryDirectory(prefix="extractions-test-") as directory:
+            missing = Path(directory) / "missing-inventory.json"
+            with self.assertRaises(EXTRACTIONS.ManifestError):
+                EXTRACTIONS.load_graph_inventory(missing)
+
+            duplicate = Path(directory) / "duplicate-inventory.json"
+            duplicate.write_bytes(
+                EXTRACTIONS.canonical_json(
+                    {
+                        "schema_version": 1,
+                        "graph_ids": [
+                            self.graph_inventory[0],
+                            self.graph_inventory[0],
+                        ],
+                    }
+                )
+            )
+            with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
+                EXTRACTIONS.load_graph_inventory(duplicate)
+            self.assertIn("duplicate value", str(raised.exception))
+
+        manifest = copy.deepcopy(self.manifest)
+        manifest["graphs"][0], manifest["graphs"][1] = (
+            manifest["graphs"][1],
+            manifest["graphs"][0],
+        )
+        self.assert_invalid(manifest, "order differs")
+
+        manifest = copy.deepcopy(self.manifest)
+        unexpected = copy.deepcopy(manifest["graphs"][0])
+        unexpected["id"] = "UnexpectedInventoryGraph"
+        unexpected["output"] = (
+            "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/"
+            "UnexpectedInventoryGraphGenerated.lean"
+        )
+        manifest["graphs"].append(unexpected)
+        self.assert_invalid(
+            manifest,
+            "unexpected UnexpectedInventoryGraph",
+        )
 
     def test_unknown_and_missing_fields_are_rejected_at_each_level(self):
         manifest = copy.deepcopy(self.manifest)
@@ -471,11 +531,9 @@ class ExtractionManifestTests(unittest.TestCase):
 
     def test_generated_output_shape_and_exact_record_coverage_are_required(self):
         manifest = copy.deepcopy(self.manifest)
+        removed = manifest["graphs"][-1]["id"]
         manifest["graphs"].pop()
-        self.assert_invalid(
-            manifest,
-            f"expected {EXTRACTIONS.EXPECTED_GRAPH_COUNT} records",
-        )
+        self.assert_invalid(manifest, f"missing {removed}")
 
         manifest = copy.deepcopy(self.manifest)
         manifest["graphs"][0]["output"] = (
@@ -534,7 +592,7 @@ class ExtractionManifestTests(unittest.TestCase):
             )
         self.assertIn("AppVerifier", expected)
         self.assertIn("AggregateAdapter", expected)
-        self.assertLess(len(expected), EXTRACTIONS.EXPECTED_GRAPH_COUNT)
+        self.assertLess(len(expected), len(self.manifest["graphs"]))
 
     def test_changed_shared_dependency_selects_every_owner_and_reuse_dependent(self):
         shared = (
@@ -624,6 +682,184 @@ class ExtractionManifestTests(unittest.TestCase):
             ),
             sorted([first["id"], second["id"], third["id"]]),
         )
+
+    def test_inventory_only_change_is_not_a_graph_semantic_change(self):
+        graph = self.manifest["graphs"][0]
+        source_paths = {
+            path.relative_to(EXTRACTIONS.REPO_ROOT).as_posix()
+            for path in EXTRACTIONS.graph_source_paths(graph)
+        }
+        self.assertNotIn(EXTRACTIONS.GRAPH_INVENTORY_REPO_PATH, source_paths)
+
+        changed = SimpleNamespace(
+            stdout=f"{EXTRACTIONS.GRAPH_INVENTORY_REPO_PATH}\n"
+        )
+        with patch.object(EXTRACTIONS, "_git", return_value=changed):
+            self.assertEqual(
+                EXTRACTIONS.affected_graph_ids(self.manifest, "base"),
+                [],
+            )
+
+    def test_declared_source_inventory_change_affects_every_graph(self):
+        manifest = copy.deepcopy(self.manifest)
+        graph = copy.deepcopy(manifest["graphs"][0])
+        graph["id"] = "NewSourceGraph"
+        graph["output"] = (
+            "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/"
+            "NewSourceGraphGenerated.lean"
+        )
+        graph["source_files"] = sorted(
+            [
+                *graph["source_files"],
+                "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
+                "statement_binding.rs",
+            ]
+        )
+        manifest["graphs"].append(graph)
+        changed = SimpleNamespace(
+            stdout=f"{EXTRACTIONS.MANIFEST_REPO_PATH}\n",
+            returncode=0,
+        )
+        old_manifest = SimpleNamespace(
+            stdout=EXTRACTIONS.canonical_json(self.manifest).decode("utf-8"),
+            returncode=0,
+        )
+        with patch.object(
+            EXTRACTIONS,
+            "_git",
+            side_effect=[changed, old_manifest],
+        ):
+            self.assertEqual(
+                EXTRACTIONS.affected_graph_ids(manifest, "base"),
+                sorted(graph["id"] for graph in manifest["graphs"]),
+            )
+
+    def test_semantic_extraction_tools_affect_every_graph(self):
+        expected = sorted(graph["id"] for graph in self.manifest["graphs"])
+        for path in (
+            EXTRACTIONS.EXTRACTIONS_REPO_PATH,
+            EXTRACTIONS.NORMALIZER_REPO_PATH,
+        ):
+            with (
+                self.subTest(path=path),
+                patch.object(
+                    EXTRACTIONS,
+                    "_git",
+                    return_value=SimpleNamespace(stdout=f"{path}\n"),
+                ),
+            ):
+                self.assertEqual(
+                    EXTRACTIONS.affected_graph_ids(self.manifest, "base"),
+                    expected,
+                )
+
+    def test_new_missing_output_is_recoverable_but_fails_strict_check(self):
+        previous = copy.deepcopy(self.manifest)
+        manifest = copy.deepcopy(previous)
+        new_graph = copy.deepcopy(manifest["graphs"][0])
+        new_graph["id"] = "NewRecoveryGraph"
+        new_graph["output"] = (
+            "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/"
+            "NewRecoveryGraphGenerated.lean"
+        )
+        manifest["graphs"].append(new_graph)
+        expected_graph_ids = tuple(
+            graph["id"] for graph in manifest["graphs"]
+        )
+        self.assertEqual(
+            len(expected_graph_ids),
+            len(self.graph_inventory) + 1,
+        )
+        output_path = EXTRACTIONS.REPO_ROOT.joinpath(
+            *EXTRACTIONS.PurePosixPath(new_graph["output"]).parts
+        )
+        self.assertFalse(output_path.exists())
+
+        def output_hash(path):
+            return next(
+                graph["output_sha256"]
+                for graph in previous["graphs"]
+                if Path(graph["output"]).name == path.name
+            )
+
+        changed = SimpleNamespace(
+            stdout=(
+                f"{EXTRACTIONS.MANIFEST_REPO_PATH}\n"
+                f"{EXTRACTIONS.GRAPH_INVENTORY_REPO_PATH}\n"
+            ),
+            returncode=0,
+        )
+        old_manifest = SimpleNamespace(
+            stdout=EXTRACTIONS.canonical_json(previous).decode("utf-8"),
+            returncode=0,
+        )
+        with patch.object(
+            EXTRACTIONS,
+            "load_graph_inventory",
+            return_value=expected_graph_ids,
+        ):
+            EXTRACTIONS.validate_recovery_manifest(
+                manifest,
+                verify_files=False,
+                verify_canonical_file=False,
+            )
+            with patch.object(
+                EXTRACTIONS,
+                "_git",
+                side_effect=[changed, old_manifest],
+            ):
+                self.assertEqual(
+                    EXTRACTIONS.affected_graph_ids(manifest, "base"),
+                    [new_graph["id"]],
+                )
+
+            with (
+                patch.object(
+                    EXTRACTIONS,
+                    "load_manifest",
+                    return_value=manifest,
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "validate_recovery_manifest",
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "validate_manifest",
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_input_hashes",
+                    side_effect=lambda graph, **_kwargs: [
+                        item["sha256"] for item in graph["inputs"]
+                    ],
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "current_graph_source_sha256",
+                    side_effect=lambda graph, _manifest, **_kwargs: graph[
+                        "source_sha256"
+                    ],
+                ),
+                patch.object(
+                    EXTRACTIONS,
+                    "sha256_file",
+                    side_effect=output_hash,
+                ),
+            ):
+                self.assertEqual(
+                    EXTRACTIONS.stale_graph_ids(
+                        manifest,
+                        repair_incomplete_sources=True,
+                    ),
+                    [new_graph["id"]],
+                )
+                with self.assertRaises(EXTRACTIONS.ManifestError) as raised:
+                    EXTRACTIONS.command_check(
+                        SimpleNamespace(manifest=EXTRACTIONS.MANIFEST_PATH)
+                    )
+
+        self.assertIn(new_graph["id"], str(raised.exception))
 
     def test_stale_graphs_report_input_and_output_drift_in_manifest_order(self):
         first = self.manifest["graphs"][0]
@@ -815,10 +1051,16 @@ class ExtractionManifestTests(unittest.TestCase):
             for index in range(4)
         ]
         ids = [[graph["id"] for graph in shard] for shard in shards]
-        self.assertEqual([len(shard) for shard in ids], [10, 9, 9, 9])
+        self.assertEqual(
+            [len(shard) for shard in ids],
+            [
+                len(self.manifest["graphs"][index::4])
+                for index in range(4)
+            ],
+        )
         self.assertEqual(
             len({graph_id for shard in ids for graph_id in shard}),
-            EXTRACTIONS.EXPECTED_GRAPH_COUNT,
+            len(self.graph_inventory),
         )
         self.assertEqual(
             [
