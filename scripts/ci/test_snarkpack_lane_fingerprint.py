@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 import sys
 import tempfile
@@ -88,6 +89,81 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
         self._commit("change dependency")
         self.assertNotEqual(before, self._fingerprint("16"))
 
+    def test_proof_only_package_subtree_does_not_invalidate_rust_lane(
+        self,
+    ) -> None:
+        proof = self.root / "crate/formal/Proof.lean"
+        proof.parent.mkdir()
+        proof.write_text("theorem first : True := by trivial\n", encoding="utf-8")
+        self._commit("add proof")
+        before = FINGERPRINT.tracked_fingerprint(
+            self.root,
+            "fuzz",
+            (Path("crate"),),
+            ("16",),
+            excluded_paths=(Path("crate/formal"),),
+            additional_paths=(Path("control"),),
+        )
+
+        proof.write_text(
+            "theorem second : True := by trivial\n", encoding="utf-8"
+        )
+
+        self.assertEqual(
+            before,
+            FINGERPRINT.tracked_fingerprint(
+                self.root,
+                "fuzz",
+                (Path("crate"),),
+                ("16",),
+                excluded_paths=(Path("crate/formal"),),
+                additional_paths=(Path("control"),),
+            ),
+        )
+        self._commit("change proof")
+        self.assertEqual(
+            before,
+            FINGERPRINT.tracked_fingerprint(
+                self.root,
+                "fuzz",
+                (Path("crate"),),
+                ("16",),
+                excluded_paths=(Path("crate/formal"),),
+                additional_paths=(Path("control"),),
+            ),
+        )
+
+    def test_explicit_control_below_excluded_subtree_remains_an_input(
+        self,
+    ) -> None:
+        formal = self.root / "crate/formal"
+        formal.mkdir()
+        parser = formal / "parser.py"
+        parser.write_text("REVISION = 1\n", encoding="utf-8")
+        (formal / "Proof.lean").write_text(
+            "theorem proof : True := by trivial\n", encoding="utf-8"
+        )
+        self._commit("add formal inputs")
+
+        def fingerprint() -> str:
+            return FINGERPRINT.tracked_fingerprint(
+                self.root,
+                "dos",
+                (Path("crate"),),
+                excluded_paths=(Path("crate/formal"),),
+                additional_paths=(Path("crate/formal/parser.py"),),
+            )
+
+        before = fingerprint()
+        parser.write_text("REVISION = 2\n", encoding="utf-8")
+        with self.assertRaisesRegex(
+            FINGERPRINT.FingerprintError,
+            "differ from the frozen candidate commit",
+        ):
+            fingerprint()
+        self._commit("change parser")
+        self.assertNotEqual(before, fingerprint())
+
     def test_dirty_tracked_input_fails_closed(self) -> None:
         (self.root / "crate/src/lib.rs").write_text(
             "pub fn value() -> u8 { 2 }\n", encoding="utf-8"
@@ -166,6 +242,46 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
             FINGERPRINT.COMMON_CONTROLS,
         )
         self.assertIn(FINGERPRINT.SELF, FINGERPRINT.COMMON_CONTROLS)
+        self.assertIn(
+            Path("crates/crypto/proof-aggregation/formal"),
+            FINGERPRINT.PROOF_ONLY_PACKAGE_PATHS,
+        )
+        parity_controls = FINGERPRINT.LANE_CONTROLS["parity"]
+        self.assertNotIn(
+            Path(
+                "crates/crypto/proof-aggregation/formal/lean-ipp/"
+                "Ipp/Extracted"
+            ),
+            parity_controls,
+        )
+        verification_manifest = Path(
+            "crates/crypto/proof-aggregation/formal/snarkpack/"
+            "verification-manifest.json"
+        )
+        self.assertNotIn(verification_manifest, parity_controls)
+        self.assertNotIn(
+            verification_manifest,
+            FINGERPRINT.LANE_CONTROLS["rust-reference"],
+        )
+        parity_extraction = set(
+            FINGERPRINT.parity_extraction_controls(FINGERPRINT.ROOT)
+        )
+        self.assertIn(FINGERPRINT.EXTRACTION_RUNTIME, parity_extraction)
+        self.assertNotIn(
+            FINGERPRINT.LEAN_ROOT / "Ipp/Goal.lean",
+            parity_extraction,
+        )
+        manifest = json.loads(
+            (
+                FINGERPRINT.ROOT / FINGERPRINT.EXTRACTION_MANIFEST
+            ).read_text(encoding="utf-8")
+        )
+        self.assertTrue(
+            {
+                Path(graph["output"])
+                for graph in manifest["graphs"]
+            }.issubset(parity_extraction)
+        )
 
     def test_package_closure_uses_bounded_snarkpack_metadata_timeout(
         self,
@@ -205,6 +321,23 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
         self.assertEqual(
             observed,
             [FINGERPRINT.DEFAULT_CARGO_METADATA_TIMEOUT_SECONDS, 240],
+        )
+
+    def test_package_proof_exclusion_requires_selected_parent_crate(
+        self,
+    ) -> None:
+        proof_root = Path("crates/crypto/proof-aggregation/formal")
+        self.assertEqual(
+            FINGERPRINT.package_proof_exclusions(
+                (Path("crates/crypto/proof-aggregation"),)
+            ),
+            (proof_root,),
+        )
+        self.assertEqual(
+            FINGERPRINT.package_proof_exclusions(
+                (Path("crates/crypto/proof-aggregation-fuzz"),)
+            ),
+            (),
         )
 
     def test_cargo_metadata_timeout_rejects_unbounded_values(self) -> None:

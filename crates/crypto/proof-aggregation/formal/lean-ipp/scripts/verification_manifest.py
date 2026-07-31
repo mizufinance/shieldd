@@ -4158,6 +4158,16 @@ def parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     try:
         args = parser().parse_args(argv)
+        if args.command == "test-log":
+            count = require_exact_test_execution(
+                args.path.read_text(encoding="utf-8"),
+                command=args.label,
+                expected=args.expected,
+                expected_names=args.test_name,
+            )
+            print(f"{count} tests executed exactly")
+            return 0
+
         manifest = load_manifest()
         if args.command == "check":
             summary = validate_repository(manifest)
@@ -4203,14 +4213,6 @@ def main(argv: list[str] | None = None) -> int:
                     allowed_axioms=set(manifest["allowed_axioms"]),
                 )
             )
-        elif args.command == "test-log":
-            count = require_exact_test_execution(
-                args.path.read_text(encoding="utf-8"),
-                command=args.label,
-                expected=args.expected,
-                expected_names=args.test_name,
-            )
-            print(f"{count} tests executed exactly")
         elif args.command == "render":
             rendered = render_markdown(manifest)
             if args.check is not None and args.output is not None:

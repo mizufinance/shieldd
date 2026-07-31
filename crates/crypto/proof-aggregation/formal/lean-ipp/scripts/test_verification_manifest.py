@@ -1013,6 +1013,41 @@ class VerificationManifestTests(unittest.TestCase):
         self.assertIn("audit source differs from fixed pins", stderr.getvalue())
         self.assertNotIn(str(missing_log), stderr.getvalue())
 
+    def test_test_log_command_is_manifest_independent(self):
+        test_name = "tests::exact_shipping_boundary"
+        with tempfile.TemporaryDirectory(
+            prefix="snarkpack-test-log-"
+        ) as directory:
+            log = Path(directory) / "test.log"
+            log.write_text(
+                "running 1 test\n"
+                f"test {test_name} ... ok\n"
+                "\ntest result: ok. 1 passed; 0 failed; 0 ignored\n",
+                encoding="utf-8",
+            )
+            with patch.object(
+                VERIFICATION,
+                "load_manifest",
+                side_effect=AssertionError(
+                    "test-log must not read the claim manifest"
+                ),
+            ):
+                self.assertEqual(
+                    VERIFICATION.main(
+                        [
+                            "test-log",
+                            str(log),
+                            "--expected",
+                            "1",
+                            "--label",
+                            "exact shipping boundary",
+                            "--test-name",
+                            test_name,
+                        ]
+                    ),
+                    0,
+                )
+
     def test_audit_diagnostics_can_select_one_exact_manifest_module(self):
         roots = {
             "Ipp/ProofAudit.lean": "Ipp.base",
