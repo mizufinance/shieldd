@@ -1119,6 +1119,64 @@ namespace core.clone
 
 end core.clone
 
+namespace alloc.vec.Vec.Insts.CoreDefaultDefault
+
+/-- The standard empty-vector `Default` implementation emitted by Aeneas. -/
+def default (T : Type) : Result (Aeneas.Std.alloc.vec.Vec T) :=
+  .ok ⟨[]⟩
+
+end alloc.vec.Vec.Insts.CoreDefaultDefault
+
+namespace core.array.CloneArray
+
+private def cloneValues {T : Type}
+    (cloneInst : Aeneas.Std.core.clone.Clone T) :
+    (values : List T) →
+      Result { copies : List T // copies.length = values.length }
+  | [] => .ok ⟨[], rfl⟩
+  | value :: rest => do
+      let copy ← cloneInst.clone value
+      let copies ← cloneValues cloneInst rest
+      .ok ⟨copy :: copies.val, by simp [copies.property]⟩
+
+private theorem cloneValues_exact {T : Type}
+    (cloneInst : Aeneas.Std.core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (values : List T) :
+    cloneValues cloneInst values = .ok ⟨values, rfl⟩ := by
+  induction values with
+  | nil => rfl
+  | cons value rest ih =>
+      simp [cloneValues, hclone value, ih]
+
+/-- Effect-preserving clone for a fixed-size array. Element clone failures are
+propagated in array order and successful cloning preserves the exact length. -/
+def clone {T : Type} {size : Std.Usize}
+    (cloneInst : Aeneas.Std.core.clone.Clone T)
+    (items : MacCampaign.Array T size) :
+    Result (MacCampaign.Array T size) := do
+  let copies ← cloneValues cloneInst items.val
+  .ok ⟨copies.val, copies.property.trans items.hlen⟩
+
+theorem clone_exact {T : Type} {size : Std.Usize}
+    (cloneInst : Aeneas.Std.core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (items : MacCampaign.Array T size) :
+    clone cloneInst items = .ok items := by
+  cases items with
+  | mk values hlen =>
+      simp [clone, cloneValues_exact cloneInst hclone values]
+
+end core.array.CloneArray
+
+namespace core.option.Option
+
+/-- Pure ownership semantics of Rust `Option::take`. -/
+@[simp] def take {T : Type} (value : Option T) : Option T × Option T :=
+  (value, none)
+
+end core.option.Option
+
 namespace Array
 
 def make {T : Type} (_size : Aeneas.Std.Usize) (items : List T) :
