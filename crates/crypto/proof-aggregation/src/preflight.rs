@@ -9,9 +9,8 @@ use crate::{
     aggregate_proof_wrapper::{decode_wrapped_aggregate_proof, MAX_AGGREGATE_PROOF_BYTES},
     app_verifier::{
         app_verify_family_code, app_verify_protocol_version_core,
-        app_verify_shipping_into_parts_core, app_verify_shipping_rows_from_parts,
-        app_verify_shipping_wrapper_projection_from_parts, AppVerifyShippingCall,
-        AppVerifyShippingInput,
+        app_verify_shipping_rows_from_parts, app_verify_shipping_wrapper_projection_from_parts,
+        AppVerifyShippingCall,
     },
     backend::AggregateVerifyError,
     srs::{srs_id, DevSrs},
@@ -92,22 +91,6 @@ pub struct VerifiedAggregateBackendCall<'a> {
     challenge_context: VerifiedChallengeContext<'a>,
     inner_proof_bytes: VerifiedInnerProofBytes<'a>,
     padded_public_inputs: &'a [Vec<Fq>],
-}
-
-/// Backend call paired with the exact byte-level shipping input authenticated
-/// by the same successful preflight.
-#[doc(hidden)]
-pub(crate) struct VerifiedShippingAggregateBackendCall<'a> {
-    projection: AppVerifyShippingPreflight<VerifiedAggregateBackendCall<'a>, &'a [Vec<Fq>]>,
-}
-
-impl<'a> VerifiedShippingAggregateBackendCall<'a> {
-    pub(crate) fn into_parts(self) -> (VerifiedAggregateBackendCall<'a>, AppVerifyShippingInput) {
-        app_verify_shipping_into_parts_core(
-            self.projection.backend_call,
-            self.projection.shipping_input,
-        )
-    }
 }
 
 impl<'a> VerifiedAggregateBackendCall<'a> {
@@ -225,7 +208,10 @@ pub fn preflight_aggregate_verify<'a>(
 pub(crate) fn preflight_shipping_aggregate_verify<'a>(
     application_call: AppVerifyShippingCall,
     input: AggregatePreflightInput<'a>,
-) -> Result<VerifiedShippingAggregateBackendCall<'a>, AggregateVerifyError> {
+) -> Result<
+    AppVerifyShippingPreflight<VerifiedAggregateBackendCall<'a>, &'a [Vec<Fq>]>,
+    AggregateVerifyError,
+> {
     let statement = input.statement;
     let wrapped_proof_bytes = input.aggregate_proof_bytes;
     let backend_call = preflight_aggregate_verify(input)?;
@@ -258,7 +244,7 @@ pub(crate) fn preflight_shipping_aggregate_verify<'a>(
         statement.challenge_context().as_bytes().to_vec(),
     )
     .map_err(|_| AggregateVerifyError::StatementDigestMismatch)?;
-    Ok(VerifiedShippingAggregateBackendCall { projection })
+    Ok(projection)
 }
 
 fn require_preflight_checks(

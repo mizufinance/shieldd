@@ -36,6 +36,16 @@ class VerificationManifestTests(unittest.TestCase):
                 source["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
         return manifest
 
+    def manifest_with_stale_contract_row(self, kind):
+        manifest = self.manifest_with_current_contract_sources()
+        row = next(
+            entry
+            for entry in manifest["statement_binding_evidence"]
+            if entry["kind"] == kind
+        )
+        row["checker"]["last_result"] = "stale"
+        return manifest, row
+
     def test_real_manifest_is_nonempty_and_complete(self):
         # The checker artifact pins this validator's own source and is therefore
         # necessarily stale while this test file is exercising validator edits.
@@ -137,12 +147,7 @@ class VerificationManifestTests(unittest.TestCase):
         self.assertIn("must be pass, stale, or assumed", str(raised.exception))
 
     def test_only_stale_rows_may_enter_source_recheck_mode(self):
-        manifest = self.manifest_with_current_contract_sources()
-        stale = next(
-            entry
-            for entry in manifest["statement_binding_evidence"]
-            if entry["checker"]["last_result"] == "stale"
-        )
+        manifest, stale = self.manifest_with_stale_contract_row("fstar")
         stale["sources"][0]["sha256"] = "0" * 64
 
         wrong_kind = next(
@@ -177,38 +182,119 @@ class VerificationManifestTests(unittest.TestCase):
         self.assertIn("sha256 differs", str(raised.exception))
 
     def test_stale_digest_metadata_does_not_change_fstar_cache_identity(self):
-        manifest = copy.deepcopy(self.manifest)
-        stale_rows = [
-            entry
-            for entry in manifest["statement_binding_evidence"]
-            if entry["checker"]["last_result"] == "stale"
-        ]
         for kind in ("fstar", "external"):
             with self.subTest(kind=kind):
-                candidate = copy.deepcopy(manifest)
-                stale = next(entry for entry in stale_rows if entry["kind"] == kind)
+                candidate, stale = self.manifest_with_stale_contract_row(kind)
                 before = VERIFICATION.fstar_ci_cache_fingerprints(
                     candidate, VERIFICATION.REPO_ROOT
                 )
-                matching = next(
-                    entry
-                    for entry in candidate["statement_binding_evidence"]
-                    if entry["contract_field"] == stale["contract_field"]
-                )
-                matching["sources"][0]["sha256"] = "0" * 64
+                stale["sources"][0]["sha256"] = "0" * 64
                 after = VERIFICATION.fstar_ci_cache_fingerprints(
                     candidate, VERIFICATION.REPO_ROOT
                 )
                 self.assertEqual(before, after)
 
-    def test_stale_recheck_requires_current_input_fingerprint_coverage(self):
-        manifest = self.manifest_with_current_contract_sources()
-        stale = next(
-            entry
-            for entry in manifest["statement_binding_evidence"]
-            if entry["checker"]["last_result"] == "stale"
-            and entry["kind"] == "fstar"
+    def test_lean_only_manifest_edits_do_not_change_fstar_evidence_or_cache(self):
+        baseline_evidence = VERIFICATION.expected_fstar_checker_evidence(
+            self.manifest, VERIFICATION.REPO_ROOT
         )
+        baseline_cache = VERIFICATION.fstar_ci_cache_fingerprints(
+            self.manifest, VERIFICATION.REPO_ROOT
+        )
+
+        candidates = {}
+
+        audit = copy.deepcopy(self.manifest)
+        audit["audit_modules"][0]["expected_capstones"] += 1
+        candidates["Lean audit"] = audit
+
+        claim = copy.deepcopy(self.manifest)
+        claim["claims"][0]["evidence"] += " Lean-only ledger edit."
+        candidates["claim ledger"] = claim
+
+        axioms = copy.deepcopy(self.manifest)
+        axioms["allowed_axioms"].append("Lean.TestOnly")
+        candidates["axiom allowlist"] = axioms
+
+        deployed_srs = copy.deepcopy(self.manifest)
+        deployed_srs["deployed_srs_evidence"]["closure"] += " Metadata edit."
+        candidates["deployed SRS"] = deployed_srs
+
+        lean_evidence = copy.deepcopy(self.manifest)
+        next(
+            entry
+            for entry in lean_evidence["statement_binding_evidence"]
+            if entry["kind"] == "lean"
+        )["theorem_roots"][0] += "_lean_only_edit"
+        candidates["Lean evidence"] = lean_evidence
+
+        aeneas_role = copy.deepcopy(self.manifest)
+        next(
+            role
+            for role in aeneas_role["toolchain_roles"]
+            if role["id"] == "hax-aeneas"
+        )["purpose"] += " Lean-only edit."
+        candidates["Aeneas role"] = aeneas_role
+
+        for label, candidate in candidates.items():
+            with self.subTest(label=label):
+                self.assertEqual(
+                    baseline_evidence,
+                    VERIFICATION.expected_fstar_checker_evidence(
+                        candidate, VERIFICATION.REPO_ROOT
+                    ),
+                )
+                self.assertEqual(
+                    baseline_cache,
+                    VERIFICATION.fstar_ci_cache_fingerprints(
+                        candidate, VERIFICATION.REPO_ROOT
+                    ),
+                )
+
+    def test_fstar_manifest_edits_change_fstar_evidence_and_cache(self):
+        baseline_evidence = VERIFICATION.expected_fstar_checker_evidence(
+            self.manifest, VERIFICATION.REPO_ROOT
+        )
+        baseline_cache = VERIFICATION.fstar_ci_cache_fingerprints(
+            self.manifest, VERIFICATION.REPO_ROOT
+        )
+
+        evidence = copy.deepcopy(self.manifest)
+        next(
+            entry
+            for entry in evidence["statement_binding_evidence"]
+            if entry["kind"] == "fstar"
+        )["theorem_roots"][0] += "_fstar_edit"
+
+        role = copy.deepcopy(self.manifest)
+        next(
+            item
+            for item in role["toolchain_roles"]
+            if item["id"] == "hax-fstar"
+        )["purpose"] += " F* edit."
+
+        for label, candidate in {
+            "F* evidence": evidence,
+            "F* toolchain role": role,
+        }.items():
+            with self.subTest(label=label):
+                self.assertNotEqual(
+                    baseline_evidence,
+                    VERIFICATION.expected_fstar_checker_evidence(
+                        candidate, VERIFICATION.REPO_ROOT
+                    ),
+                )
+                before_environment, before_exact = baseline_cache
+                after_environment, after_exact = (
+                    VERIFICATION.fstar_ci_cache_fingerprints(
+                        candidate, VERIFICATION.REPO_ROOT
+                    )
+                )
+                self.assertNotEqual(before_environment, after_environment)
+                self.assertNotEqual(before_exact, after_exact)
+
+    def test_stale_recheck_requires_current_input_fingerprint_coverage(self):
+        manifest, stale = self.manifest_with_stale_contract_row("fstar")
         uncovered = "README.md"
         stale["sources"][0]["path"] = uncovered
         stale["sources"][0]["sha256"] = "0" * 64
@@ -488,12 +574,15 @@ class VerificationManifestTests(unittest.TestCase):
         self.assertIn("F* checker evidence", str(raised.exception))
 
     def test_stale_fstar_rows_require_an_exact_checked_import(self):
+        manifest = copy.deepcopy(self.manifest)
         fstar_rows = [
             entry
-            for entry in self.manifest["statement_binding_evidence"]
+            for entry in manifest["statement_binding_evidence"]
             if entry["kind"] == "fstar"
         ]
         self.assertTrue(fstar_rows)
+        for entry in fstar_rows:
+            entry["checker"]["last_result"] = "stale"
         self.assertTrue(
             all(entry["checker"]["last_result"] == "stale"
                 for entry in fstar_rows)
@@ -501,11 +590,11 @@ class VerificationManifestTests(unittest.TestCase):
 
         artifact = VERIFICATION._canonical_json(
             VERIFICATION.expected_fstar_checker_evidence(
-                self.manifest, VERIFICATION.REPO_ROOT
+                manifest, VERIFICATION.REPO_ROOT
             )
         ).encode("utf-8")
         promoted = VERIFICATION.promoted_fstar_manifest(
-            self.manifest, artifact, VERIFICATION.REPO_ROOT
+            manifest, artifact, VERIFICATION.REPO_ROOT
         )
         self.assertTrue(
             all(
@@ -523,7 +612,7 @@ class VerificationManifestTests(unittest.TestCase):
         forged["checker"]["result"] = "failed"
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
             VERIFICATION.promoted_fstar_manifest(
-                self.manifest,
+                manifest,
                 VERIFICATION._canonical_json(forged).encode("utf-8"),
                 VERIFICATION.REPO_ROOT,
             )

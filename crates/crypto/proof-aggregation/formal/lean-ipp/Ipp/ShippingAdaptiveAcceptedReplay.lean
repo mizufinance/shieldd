@@ -308,6 +308,57 @@ theorem acceptedMultiStatementForkExperimentAt_support_all_selectedAccepted
         (queryBounds (Sum.inr ())) level run)
     (SelectedAcceptedAt μ) hbaseReach htree
 
+/-- Every leaf retained by a successful accepted-only replay remains in the
+support of the original shared-oracle program.  In particular, the accepted
+gate does not replace the adversary's preselection query history with a fresh
+verifier continuation. -/
+theorem acceptedMultiStatementForkExperimentAt_support_all_source
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (queryBounds : (Ipp.FsWrappedSpec Fr).Domain → Nat)
+    (μ : Nat)
+    (hbaseReach : ∀ level, level < μ →
+      Ipp.CfReachable (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run))
+    {tree : RawMultiStatementForkTree Call μ}
+    (htree : some tree ∈ support
+      (acceptedMultiStatementForkExperimentAt
+        game queryBounds μ)) :
+    tree.All (fun run =>
+      run ∈ support (multiStatementFsProbComp game)) := by
+  have hconsistent :
+      Ipp.TreeConsistent (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun level run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run)
+        (SelectedAcceptedAt μ) 0 none tree := by
+    change some tree ∈ support
+      (Ipp.forkTreeCombined μ (multiStatementForkMain game)
+        queryBounds (Sum.inr ())
+        (fun level run =>
+          multiStatementRoundSlot
+            (queryBounds (Sum.inr ())) level run)
+        (SelectedAcceptedAt μ)
+        μ (Nat.le_refl μ)) at htree
+    exact Ipp.forkTreeCombined_support_props
+      μ (multiStatementForkMain game)
+      queryBounds (Sum.inr ())
+      (fun level run =>
+        multiStatementRoundSlot
+          (queryBounds (Sum.inr ())) level run)
+      (SelectedAcceptedAt μ) hbaseReach htree
+  simpa [multiStatementFsProbComp] using
+    (Ipp.TreeConsistent.all_support
+      (multiStatementForkMain game) queryBounds (Sum.inr ())
+      (fun level run =>
+        multiStatementRoundSlot
+          (queryBounds (Sum.inr ())) level run)
+      (SelectedAcceptedAt μ) hconsistent)
+
 /-- Every successful accepted-only replay output has a successful pure
 standalone projection. -/
 theorem acceptedMultiStatementForkExperimentAt_support_projectable

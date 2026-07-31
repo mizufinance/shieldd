@@ -32,7 +32,7 @@ use crate::{
     aggregate_proof_wrapper::{
         encode_wrapped_aggregate_proof, AggregateProofBytesError, MAX_AGGREGATE_PROOF_BYTES,
     },
-    app_verifier::AppVerifyShippingCall,
+    app_verifier::{app_verify_shipping_into_parts_core, AppVerifyShippingCall},
     preflight::{
         preflight_aggregate_verify, preflight_shipping_aggregate_verify, AggregatePreflightInput,
         VerifiedAggregateBackendCall,
@@ -422,11 +422,13 @@ impl SnarkpackBackend {
                 srs,
             },
         )?;
-        let (backend_call, input) = verified.into_parts();
+        let (backend_call, padded_public_input_fields, input) =
+            app_verify_shipping_into_parts_core(verified);
         let (profile, backend_result) =
             Self::verify_preflighted_shipping_family_aggregate_profiled_status(
                 call_id,
                 backend_call,
+                padded_public_input_fields,
             )?;
         let executed = app_verify_shipping_result_from_backend_result(input, backend_result)
             .map_err(|error| {
@@ -445,6 +447,7 @@ impl SnarkpackBackend {
     fn verify_preflighted_shipping_family_aggregate_profiled_status(
         call_id: ark_ip_proofs::app_verifier::AppVerifyCallId,
         call: VerifiedAggregateBackendCall<'_>,
+        padded_public_input_fields: &[Vec<Fq>],
     ) -> Result<(AggregateVerificationProfile, ShippingAggregateBackendResult), AggregateVerifyError>
     {
         match call.family_id() {
@@ -454,7 +457,7 @@ impl SnarkpackBackend {
                     call.challenge_context(),
                     call.pvk(),
                     call.inner_proof_bytes(),
-                    call.padded_public_inputs(),
+                    padded_public_input_fields,
                     call.srs(),
                 )
             }
@@ -466,7 +469,7 @@ impl SnarkpackBackend {
                     call.challenge_context(),
                     call.pvk(),
                     call.inner_proof_bytes(),
-                    call.padded_public_inputs(),
+                    padded_public_input_fields,
                     call.srs(),
                 ),
                 NoteReshapeFamilyId::OneByEight => verify_with_digest_shipping_profiled::<
@@ -476,7 +479,7 @@ impl SnarkpackBackend {
                     call.challenge_context(),
                     call.pvk(),
                     call.inner_proof_bytes(),
-                    call.padded_public_inputs(),
+                    padded_public_input_fields,
                     call.srs(),
                 ),
                 NoteReshapeFamilyId::EightByOne => verify_with_digest_shipping_profiled::<
@@ -486,7 +489,7 @@ impl SnarkpackBackend {
                     call.challenge_context(),
                     call.pvk(),
                     call.inner_proof_bytes(),
-                    call.padded_public_inputs(),
+                    padded_public_input_fields,
                     call.srs(),
                 ),
                 NoteReshapeFamilyId::FourByOne => verify_with_digest_shipping_profiled::<
@@ -496,7 +499,7 @@ impl SnarkpackBackend {
                     call.challenge_context(),
                     call.pvk(),
                     call.inner_proof_bytes(),
-                    call.padded_public_inputs(),
+                    padded_public_input_fields,
                     call.srs(),
                 ),
                 other => Err(AggregateVerifyError::BadVersion(format!(
@@ -510,7 +513,7 @@ impl SnarkpackBackend {
                     call.challenge_context(),
                     call.pvk(),
                     call.inner_proof_bytes(),
-                    call.padded_public_inputs(),
+                    padded_public_input_fields,
                     call.srs(),
                 )
             }

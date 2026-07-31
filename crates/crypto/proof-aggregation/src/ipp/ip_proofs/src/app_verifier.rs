@@ -530,13 +530,17 @@ pub fn app_verify_shipping_executed_result_into_parts<Execution>(
 }
 
 /// Exact successful projection from the shipping preflight carrier into the
-/// backend call and authenticated byte-level input consumed by verification.
+/// backend call, retained field rows, and authenticated byte-level input
+/// consumed by verification.
 #[doc(hidden)]
-pub fn app_verify_shipping_into_parts_core<BackendCall>(
-    backend_call: BackendCall,
-    shipping_input: AppVerifyShippingInput,
-) -> (BackendCall, AppVerifyShippingInput) {
-    (backend_call, shipping_input)
+pub fn app_verify_shipping_into_parts_core<BackendCall, Fields>(
+    preflight: AppVerifyShippingPreflight<BackendCall, Fields>,
+) -> (BackendCall, Fields, AppVerifyShippingInput) {
+    (
+        preflight.backend_call,
+        preflight.padded_public_input_fields,
+        preflight.shipping_input,
+    )
 }
 
 /// Repeat the final caller-order row up to an exact target length.
@@ -1367,9 +1371,8 @@ mod tests {
             AppVerifyShippingInputError::CallIdentityMismatch
         );
 
-        let parts =
-            app_verify_shipping_into_parts_core(preflight.backend_call, preflight.shipping_input);
-        assert_eq!(parts, (vec![0xa1, 0xa2], input));
+        let parts = app_verify_shipping_into_parts_core(preflight);
+        assert_eq!(parts, (vec![0xa1, 0xa2], row_fields, input));
     }
 
     #[test]

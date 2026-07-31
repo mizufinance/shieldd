@@ -417,6 +417,22 @@ class ImpactPlannerTests(unittest.TestCase):
             IMPACT._fstar_manifest_control_projection(refreshed),
         )
 
+    def test_fstar_checker_change_forces_one_exact_refresh(self) -> None:
+        with patch.object(
+            IMPACT,
+            "current_fstar_proofs",
+            return_value=("WrapperProofs.fst",),
+        ) as current:
+            result = IMPACT.plan(
+                ROOT,
+                event="pull_request",
+                status="run",
+                changed=(IMPACT.FSTAR_VERIFIER.as_posix(),),
+                declared_graphs=(),
+            )
+        self.assertEqual(result.fstar_proofs, ("WrapperProofs.fst",))
+        current.assert_called_once_with(ROOT, (), force_all=True)
+
     def test_deleted_fstar_hint_fails_closed(self) -> None:
         with self.assertRaisesRegex(
             IMPACT.ImpactError, "unknown F\\* module"
@@ -555,7 +571,6 @@ class ImpactPlannerTests(unittest.TestCase):
         controls = (
             ".github/workflows/formal.yml",
             "ci/gates/snarkpack-formal.json",
-            IMPACT.FSTAR_VERIFIER.as_posix(),
             "justfile",
             "scripts/ci/gate-applicability.py",
             "scripts/ci/run_with_annotation.py",

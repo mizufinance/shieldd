@@ -1,4 +1,5 @@
 import Ipp.ShippingAdaptiveAcceptedReplayGames
+import Ipp.ShippingAdaptiveRoundReachability
 
 /-!
 Transport between the source cache-preserving extraction relation and the
@@ -251,6 +252,104 @@ theorem cachePreservingGipaProductWin_implies_acceptedReplayGipaProductWin
     ⟨hbinding, haccepts,
       (cachePreservingGipaProductWin_iff_acceptedReplayChallenge
         parameters extractor fork).1 hsource⟩
+
+/-- A common fork retained by the accepted-only replay satisfies the complete
+GIPA accepted-fork predicate.  Round reachability and preservation of the
+original shared-oracle support are derived internally. -/
+theorem cachePreservingCommonFork_gipaForkAccepts_of_acceptedReplay_support
+    {Call : Type} {μ : Nat}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (queryBounds : (FsWrappedSpec Fr).Domain → Nat)
+    (semantics : GlobalAcceptedVerifierSemantics game)
+    (fork : CachePreservingCommonFork Call μ)
+    (htree : some fork.rawTree ∈ support
+      (acceptedMultiStatementForkExperimentAt
+        game queryBounds μ)) :
+    Bls12377GipaForkAccepts fork.statement fork.projected := by
+  simpa [CachePreservingCommonFork.projected] using
+    (projectCommonStatementTree_gipaForkAccepts_of_selectedAccepted
+      game semantics fork.statement fork.rawTree fork.carries
+      (acceptedMultiStatementForkExperimentAt_support_all_source
+        game queryBounds μ
+        (multiStatementRoundSlots_reachable game queryBounds μ)
+        htree)
+      (acceptedMultiStatementForkExperimentAt_support_all_selectedAccepted
+        game queryBounds μ
+        (multiStatementRoundSlots_reachable game queryBounds μ)
+        htree))
+
+/-- A root-opening source win on a supported accepted-only replay supplies
+its full accepted-fork premise internally.  Beyond the exact accepted-verifier
+semantics contract, the only remaining environmental premise is the
+challenger-side binding to the sampled setup. -/
+theorem
+    cachePreservingGipaRootWin_implies_acceptedReplayGipaRootWin_of_supported
+    {Call : Type} {μ : Nat}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (queryBounds : (FsWrappedSpec Fr).Domain → Nat)
+    (semantics : GlobalAcceptedVerifierSemantics game)
+    (parameters : Bls12377KzgParameters μ)
+    (extractor : AcceptedReplayGipaExtractor μ)
+    (fork : CachePreservingCommonFork Call μ)
+    (htree : some fork.rawTree ∈ support
+      (acceptedMultiStatementForkExperimentAt
+        game queryBounds μ))
+    (hbinding :
+      AcceptedReplayBls12377StatementBinding
+        fork.statement parameters)
+    (hsource :
+      CachePreservingGipaRootWin
+        (acceptedReplayGipaExtractorAtParameters
+          parameters extractor)
+        (some fork)) :
+    AcceptedReplayGipaRootWin
+      (parameters,
+        some
+          (acceptedReplayGipaChallengeOfCommonFork
+            parameters extractor fork)) := by
+  apply
+    cachePreservingGipaRootWin_implies_acceptedReplayGipaRootWin
+      parameters extractor fork hbinding
+  · exact
+      cachePreservingCommonFork_gipaForkAccepts_of_acceptedReplay_support
+        game queryBounds semantics fork htree
+  · exact hsource
+
+/-- Product-lane counterpart: supported accepted replay supplies full
+`FsAccepts` coverage at every fork leaf without any caller-provided
+operational premise. -/
+theorem
+    cachePreservingGipaProductWin_implies_acceptedReplayGipaProductWin_of_supported
+    {Call : Type} {μ : Nat}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (queryBounds : (FsWrappedSpec Fr).Domain → Nat)
+    (semantics : GlobalAcceptedVerifierSemantics game)
+    (parameters : Bls12377KzgParameters μ)
+    (extractor : AcceptedReplayGipaExtractor μ)
+    (fork : CachePreservingCommonFork Call μ)
+    (htree : some fork.rawTree ∈ support
+      (acceptedMultiStatementForkExperimentAt
+        game queryBounds μ))
+    (hbinding :
+      AcceptedReplayBls12377StatementBinding
+        fork.statement parameters)
+    (hsource :
+      CachePreservingGipaProductWin
+        (acceptedReplayGipaExtractorAtParameters
+          parameters extractor)
+        (some fork)) :
+    AcceptedReplayGipaProductWin
+      (parameters,
+        some
+          (acceptedReplayGipaChallengeOfCommonFork
+            parameters extractor fork)) := by
+  apply
+    cachePreservingGipaProductWin_implies_acceptedReplayGipaProductWin
+      parameters extractor fork hbinding
+  · exact
+      cachePreservingCommonFork_gipaForkAccepts_of_acceptedReplay_support
+        game queryBounds semantics fork htree
+  · exact hsource
 
 /-- Adapt the extractor selected by standalone GIPA security for the concrete
 accepted-replay adversary to the source relation at one explicit setup. -/

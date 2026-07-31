@@ -11,26 +11,6 @@ set_option maxRecDepth 2048
 noncomputable section
 
 namespace ark_ip_proofs
-inductive app_verifier.AppVerifyPlanError where
-| FamilyCountMismatch : app_verifier.AppVerifyPlanError
-| FamilyMismatch : app_verifier.AppVerifyPlanError
-| RealCountOverflow : app_verifier.AppVerifyPlanError
-| RealCountMismatch : app_verifier.AppVerifyPlanError
-| PaddedCountOverflow : app_verifier.AppVerifyPlanError
-| PaddedCountMismatch : app_verifier.AppVerifyPlanError
-def app_verifier.app_verify_family_count_core
-  (expected_family_count : Std.Usize) (bundle_family_count : Std.Usize) :
-  Result (core.result.Result Unit app_verifier.AppVerifyPlanError)
-  := do
-  if bundle_family_count != expected_family_count
-  then
-    ok (core.result.Result.Err
-      app_verifier.AppVerifyPlanError.FamilyCountMismatch)
-  else ok (core.result.Result.Ok ())
-@[irreducible]
-def app_verifier.APP_VERIFY_PROTOCOL_VERSION : Std.U32 := 2#u32
-def app_verifier.app_verify_protocol_version_core : Result Std.U32 := do
-  ok app_verifier.APP_VERIFY_PROTOCOL_VERSION
 structure app_verifier.AppVerifyFamilyCode where
   proof_family_id : Std.U32
   note_reshape_family_id : Std.U32
@@ -40,12 +20,30 @@ structure app_verifier.AppVerifyCallId where
   segment_index : Std.Usize
   family_index : Std.Usize
   family : app_verifier.AppVerifyFamilyCode
-structure app_verifier.AppVerifyCallResult where
-  id : app_verifier.AppVerifyCallId
+structure app_verifier.AppVerifyPlannerIndexedExecutedRecord (Observation :
+  Type) (Execution : Type) where
+  planner_id : app_verifier.AppVerifyCallId
+  authenticated_id : app_verifier.AppVerifyCallId
+  executed_id : app_verifier.AppVerifyCallId
   accepted : Bool
-inductive app_verifier.AppVerifyReductionError where
-| OutcomeCountMismatch : app_verifier.AppVerifyReductionError
-| OutcomeIdentityMismatch : app_verifier.AppVerifyReductionError
+  observation : Observation
+  executed : Execution
+structure app_verifier.AppVerifyAcceptedJoinProjection (Observation : Type)
+  (Execution : Type) where
+  records : alloc.vec.Vec (app_verifier.AppVerifyPlannerIndexedExecutedRecord
+    Observation Execution)
+  rejected_calls : alloc.vec.Vec app_verifier.AppVerifyCallId
+inductive app_verifier.AppVerifyAcceptedJoinProjectionError where
+| OutcomeCountMismatch :
+  Std.Usize →
+  Std.Usize →
+  app_verifier.AppVerifyAcceptedJoinProjectionError
+| FullIdentityMismatch :
+  Std.Usize →
+  app_verifier.AppVerifyAcceptedJoinProjectionError
+| OutcomeOrderMismatch :
+  Std.Usize →
+  app_verifier.AppVerifyAcceptedJoinProjectionError
 def app_verifier.app_verify_family_code_matches
   (left : app_verifier.AppVerifyFamilyCode)
   (right : app_verifier.AppVerifyFamilyCode) :
@@ -73,6 +71,191 @@ def app_verifier.app_verify_call_id_matches
       else ok false
     else ok false
   else ok false
+def app_verifier.app_verify_accepted_join_projection_core_loop0.body
+  {Observation : Type} {Execution : Type}
+  (records : alloc.vec.Vec (app_verifier.AppVerifyPlannerIndexedExecutedRecord
+  Observation Execution)) (position : Std.Usize) (identities_match : Bool) :
+  Result (ControlFlow (Std.Usize × Bool) (Std.Usize × Bool))
+  := do
+  let i := alloc.vec.Vec.len records
+  if position < i
+  then
+    if identities_match
+    then
+      let record1 ←
+        alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice
+          (app_verifier.AppVerifyPlannerIndexedExecutedRecord Observation
+          Execution)) records position
+      let b ←
+        app_verifier.app_verify_call_id_matches record1.authenticated_id
+          record1.planner_id
+      if b
+      then
+        let b1 ←
+          app_verifier.app_verify_call_id_matches record1.executed_id
+            record1.planner_id
+        if b1
+        then let position1 ← position + 1#usize
+             ok (cont (position1, true))
+        else ok (cont (position, false))
+      else ok (cont (position, false))
+    else ok (done (position, false))
+  else ok (done (position, identities_match))
+def app_verifier.app_verify_accepted_join_projection_core_loop0
+  {Observation : Type} {Execution : Type}
+  (records : alloc.vec.Vec (app_verifier.AppVerifyPlannerIndexedExecutedRecord
+  Observation Execution)) (position : Std.Usize) (identities_match : Bool) :
+  Result (Std.Usize × Bool)
+  := do
+  loop
+    (fun (position1, identities_match1) =>
+      app_verifier.app_verify_accepted_join_projection_core_loop0.body records
+      position1 identities_match1)
+    (position, identities_match)
+def app_verifier.app_verify_accepted_join_projection_core_loop1.body
+  {Observation : Type} {Execution : Type}
+  (expected_call_ids : alloc.vec.Vec app_verifier.AppVerifyCallId)
+  (records : alloc.vec.Vec (app_verifier.AppVerifyPlannerIndexedExecutedRecord
+  Observation Execution)) (position : Std.Usize) (order_matches : Bool) :
+  Result (ControlFlow (Std.Usize × Bool) (Std.Usize × Bool))
+  := do
+  let i := alloc.vec.Vec.len expected_call_ids
+  if position < i
+  then
+    if order_matches
+    then
+      let avpier ←
+        alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice
+          (app_verifier.AppVerifyPlannerIndexedExecutedRecord Observation
+          Execution)) records position
+      let avci ←
+        alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice
+          app_verifier.AppVerifyCallId) expected_call_ids position
+      let b ← app_verifier.app_verify_call_id_matches avpier.planner_id avci
+      if b
+      then let position1 ← position + 1#usize
+           ok (cont (position1, true))
+      else ok (cont (position, false))
+    else ok (done (position, false))
+  else ok (done (position, order_matches))
+def app_verifier.app_verify_accepted_join_projection_core_loop1
+  {Observation : Type} {Execution : Type}
+  (expected_call_ids : alloc.vec.Vec app_verifier.AppVerifyCallId)
+  (records : alloc.vec.Vec (app_verifier.AppVerifyPlannerIndexedExecutedRecord
+  Observation Execution)) (position : Std.Usize) (order_matches : Bool) :
+  Result (Std.Usize × Bool)
+  := do
+  loop
+    (fun (position1, order_matches1) =>
+      app_verifier.app_verify_accepted_join_projection_core_loop1.body
+      expected_call_ids records position1 order_matches1)
+    (position, order_matches)
+def app_verifier.app_verify_accepted_join_projection_core_loop2.body
+  {Observation : Type} {Execution : Type}
+  (records : alloc.vec.Vec (app_verifier.AppVerifyPlannerIndexedExecutedRecord
+  Observation Execution)) (position : Std.Usize)
+  (rejected_calls : alloc.vec.Vec app_verifier.AppVerifyCallId) :
+  Result (ControlFlow (Std.Usize × (alloc.vec.Vec
+    app_verifier.AppVerifyCallId)) (alloc.vec.Vec
+    app_verifier.AppVerifyCallId))
+  := do
+  let i := alloc.vec.Vec.len records
+  if position < i
+  then
+    let avpier ←
+      alloc.vec.Vec.index (core.slice.index.SliceIndexUsizeSlice
+        (app_verifier.AppVerifyPlannerIndexedExecutedRecord Observation
+        Execution)) records position
+    let rejected_calls1 ←
+      if avpier.accepted
+      then ok rejected_calls
+      else alloc.vec.Vec.push rejected_calls avpier.planner_id
+    let position1 ← position + 1#usize
+    ok (cont (position1, rejected_calls1))
+  else ok (done rejected_calls)
+def app_verifier.app_verify_accepted_join_projection_core_loop2
+  {Observation : Type} {Execution : Type}
+  (records : alloc.vec.Vec (app_verifier.AppVerifyPlannerIndexedExecutedRecord
+  Observation Execution)) (position : Std.Usize)
+  (rejected_calls : alloc.vec.Vec app_verifier.AppVerifyCallId) :
+  Result (alloc.vec.Vec app_verifier.AppVerifyCallId)
+  := do
+  loop
+    (fun (position1, rejected_calls1) =>
+      app_verifier.app_verify_accepted_join_projection_core_loop2.body records
+      position1 rejected_calls1)
+    (position, rejected_calls)
+def app_verifier.app_verify_accepted_join_projection_core
+  {Observation : Type} {Execution : Type}
+  (expected_call_ids : alloc.vec.Vec app_verifier.AppVerifyCallId)
+  (records : alloc.vec.Vec (app_verifier.AppVerifyPlannerIndexedExecutedRecord
+  Observation Execution)) :
+  Result (core.result.Result (app_verifier.AppVerifyAcceptedJoinProjection
+    Observation Execution) app_verifier.AppVerifyAcceptedJoinProjectionError)
+  := do
+  let i := alloc.vec.Vec.len records
+  let i1 := alloc.vec.Vec.len expected_call_ids
+  if i != i1
+  then
+    let i2 := alloc.vec.Vec.len expected_call_ids
+    let i3 := alloc.vec.Vec.len records
+    ok (core.result.Result.Err
+      (app_verifier.AppVerifyAcceptedJoinProjectionError.OutcomeCountMismatch
+      i2 i3))
+  else
+    let (position, identities_match) ←
+      app_verifier.app_verify_accepted_join_projection_core_loop0 records
+        0#usize true
+    if identities_match
+    then
+      let (position1, order_matches) ←
+        app_verifier.app_verify_accepted_join_projection_core_loop1
+          expected_call_ids records 0#usize true
+      if order_matches
+      then
+        let rejected_calls ←
+          app_verifier.app_verify_accepted_join_projection_core_loop2 records
+            0#usize (alloc.vec.Vec.new app_verifier.AppVerifyCallId)
+        ok (core.result.Result.Ok { records, rejected_calls })
+      else
+        ok (core.result.Result.Err
+          (app_verifier.AppVerifyAcceptedJoinProjectionError.OutcomeOrderMismatch
+          position1))
+    else
+      ok (core.result.Result.Err
+        (app_verifier.AppVerifyAcceptedJoinProjectionError.FullIdentityMismatch
+        position))
+inductive app_verifier.AppVerifyPlanError where
+| FamilyCountMismatch : app_verifier.AppVerifyPlanError
+| FamilyMismatch : app_verifier.AppVerifyPlanError
+| RealCountOverflow : app_verifier.AppVerifyPlanError
+| RealCountMismatch : app_verifier.AppVerifyPlanError
+| PaddedCountOverflow : app_verifier.AppVerifyPlanError
+| PaddedCountMismatch : app_verifier.AppVerifyPlanError
+def app_verifier.app_verify_family_count_core
+  (expected_family_count : Std.Usize) (bundle_family_count : Std.Usize) :
+  Result (core.result.Result Unit app_verifier.AppVerifyPlanError)
+  := do
+  if bundle_family_count != expected_family_count
+  then
+    ok (core.result.Result.Err
+      app_verifier.AppVerifyPlanError.FamilyCountMismatch)
+  else ok (core.result.Result.Ok ())
+def app_verifier.app_verify_join_acceptance_core
+  (rejected_calls : alloc.vec.Vec app_verifier.AppVerifyCallId) :
+  Result Bool
+  := do
+  alloc.vec.Vec.is_empty Global rejected_calls
+@[irreducible]
+def app_verifier.APP_VERIFY_PROTOCOL_VERSION : Std.U32 := 2#u32
+def app_verifier.app_verify_protocol_version_core : Result Std.U32 := do
+  ok app_verifier.APP_VERIFY_PROTOCOL_VERSION
+structure app_verifier.AppVerifyCallResult where
+  id : app_verifier.AppVerifyCallId
+  accepted : Bool
+inductive app_verifier.AppVerifyReductionError where
+| OutcomeCountMismatch : app_verifier.AppVerifyReductionError
+| OutcomeIdentityMismatch : app_verifier.AppVerifyReductionError
 def app_verifier.app_verify_find_unique_result_loop.body
   (expected_id : app_verifier.AppVerifyCallId)
   (results : Slice app_verifier.AppVerifyCallResult)
@@ -396,6 +579,10 @@ def app_verifier.app_verify_preflight_core
                    «end» := artifact_count
                  } : app_verifier.AppVerifySegmentRange)
             ok (core.result.Result.Ok ranges1)
+structure app_verifier.AppVerifyPreparedRows (T : Type) where
+  real_count : Std.Usize
+  padded_count : Std.Usize
+  padded_public_inputs : alloc.vec.Vec T
 inductive app_verifier.AppVerifyRowPaddingError where
 | TargetSmallerThanInput : app_verifier.AppVerifyRowPaddingError
 | EmptyRowsForNonzeroTarget : app_verifier.AppVerifyRowPaddingError
@@ -462,6 +649,21 @@ def app_verifier.app_verify_repeat_final_rows_core
             app_verifier.app_verify_repeat_final_rows_core_loop
               corecloneCloneInst rows target last1
           ok (core.result.Result.Ok rows1)
+def app_verifier.app_verify_prepare_public_input_rows_core
+  {T : Type} (corecloneCloneInst : core.clone.Clone T)
+  (public_inputs : alloc.vec.Vec T) (padded_count : Std.Usize) :
+  Result (core.result.Result (app_verifier.AppVerifyPreparedRows T)
+    app_verifier.AppVerifyRowPaddingError)
+  := do
+  let real_count := alloc.vec.Vec.len public_inputs
+  let r ←
+    app_verifier.app_verify_repeat_final_rows_core corecloneCloneInst
+      public_inputs padded_count
+  match r with
+  | core.result.Result.Ok rows =>
+    ok (core.result.Result.Ok
+      { real_count, padded_count, padded_public_inputs := rows })
+  | core.result.Result.Err error => ok (core.result.Result.Err error)
 structure app_verifier.AppVerifyShippingCall where
   id : app_verifier.AppVerifyCallId
   bundle_family : app_verifier.AppVerifyFamilyCode
@@ -587,14 +789,91 @@ def app_verifier.app_verify_shipping_input_from_parts
         challenge_context
       })
   | core.result.Result.Err error => ok (core.result.Result.Err error)
+def app_verifier.app_verify_shipping_into_parts_core
+  {BackendCall : Type} (backend_call : BackendCall)
+  (shipping_input : app_verifier.AppVerifyShippingInput) :
+  Result (BackendCall × app_verifier.AppVerifyShippingInput)
+  := do
+  ok (backend_call, shipping_input)
+structure app_verifier.AppVerifyShippingPreflight (BackendCall : Type) (Fields
+  : Type) where
+  backend_call : BackendCall
+  padded_public_input_fields : Fields
+  shipping_input : app_verifier.AppVerifyShippingInput
+structure app_verifier.AppVerifyShippingRowsProjection (Fields : Type)
+  (Serialized : Type) where
+  real_count : Std.U32
+  padded_count : Std.U32
+  public_input_arity : Std.U32
+  fields : Fields
+  serialized : Serialized
+def app_verifier.app_verify_shipping_preflight_core
+  {BackendCall : Type} {Fields : Type} (backend_call : BackendCall)
+  (rows : app_verifier.AppVerifyShippingRowsProjection Fields (alloc.vec.Vec
+  (alloc.vec.Vec (alloc.vec.Vec UInt8))))
+  (call : app_verifier.AppVerifyShippingCall) (protocol_version : Std.U32)
+  (family : app_verifier.AppVerifyFamilyCode) (srs_id : alloc.vec.Vec UInt8)
+  (serialized_vk : alloc.vec.Vec UInt8) (vk_digest : alloc.vec.Vec UInt8)
+  (canonical_statement_bytes : alloc.vec.Vec UInt8)
+  (wrapper : app_verifier.AppVerifyShippingWrapperProjection)
+  (challenge_context : alloc.vec.Vec UInt8) :
+  Result (core.result.Result (app_verifier.AppVerifyShippingPreflight
+    BackendCall Fields) app_verifier.AppVerifyShippingInputError)
+  := do
+  let r ←
+    app_verifier.app_verify_shipping_input_from_parts call protocol_version
+      family srs_id serialized_vk vk_digest rows.real_count rows.padded_count
+      rows.public_input_arity rows.serialized canonical_statement_bytes wrapper
+      challenge_context
+  match r with
+  | core.result.Result.Ok input =>
+    ok (core.result.Result.Ok
+      {
+        backend_call,
+        padded_public_input_fields := rows.fields,
+        shipping_input := input
+      })
+  | core.result.Result.Err error => ok (core.result.Result.Err error)
 structure app_verifier.AppVerifyShippingResult where
   input : app_verifier.AppVerifyShippingInput
   result : app_verifier.AppVerifyCallResult
+structure app_verifier.AppVerifyShippingBackendResult (Execution : Type) where
+  execution : Execution
+  result : app_verifier.AppVerifyCallResult
+structure app_verifier.AppVerifyShippingExecutedResult (Execution : Type) where
+  shipping_result : app_verifier.AppVerifyShippingResult
+  backend_result : app_verifier.AppVerifyShippingBackendResult Execution
+def app_verifier.app_verify_shipping_result_from_backend_result
+  {Execution : Type} (input : app_verifier.AppVerifyShippingInput)
+  (backend_result : app_verifier.AppVerifyShippingBackendResult Execution) :
+  Result (core.result.Result (app_verifier.AppVerifyShippingExecutedResult
+    Execution) app_verifier.AppVerifyShippingInputError)
+  := do
+  let b ←
+    app_verifier.AppVerifyCallId.Insts.CoreCmpPartialEqAppVerifyCallId.ne
+      backend_result.result.id input.call.id
+  if b
+  then
+    ok (core.result.Result.Err
+      app_verifier.AppVerifyShippingInputError.CallIdentityMismatch)
+  else
+    ok (core.result.Result.Ok
+      {
+        shipping_result := { input, result := backend_result.result },
+        backend_result
+      })
 def app_verifier.app_verify_shipping_result_from_parts
   (input : app_verifier.AppVerifyShippingInput) (accepted : Bool) :
   Result app_verifier.AppVerifyShippingResult
   := do
   ok { input, result := { id := input.call.id, accepted } }
+def app_verifier.app_verify_shipping_rows_from_parts
+  {Fields : Type} {Serialized : Type} (real_count : Std.U32)
+  (padded_count : Std.U32) (public_input_arity : Std.U32) (fields : Fields)
+  (serialized : Serialized) :
+  Result (app_verifier.AppVerifyShippingRowsProjection Fields Serialized)
+  := do
+  ok { real_count, padded_count, public_input_arity, fields, serialized }
 def app_verifier.app_verify_shipping_wrapper_projection_from_parts
   (statement_digest : alloc.vec.Vec UInt8)
   (wrapped_proof_bytes : alloc.vec.Vec UInt8)
@@ -602,5 +881,15 @@ def app_verifier.app_verify_shipping_wrapper_projection_from_parts
   Result app_verifier.AppVerifyShippingWrapperProjection
   := do
   ok { statement_digest, wrapped_proof_bytes, inner_proof_bytes }
+structure app_verifier.AppVerifyStatementRowBytesProjection (Rows : Type)
+  (Serialized : Type) where
+  source_rows : Rows
+  serialized_rows : Serialized
+def app_verifier.app_verify_statement_row_bytes_from_parts
+  {Rows : Type} {Serialized : Type} (source_rows : Rows)
+  (serialized_rows : Serialized) :
+  Result (app_verifier.AppVerifyStatementRowBytesProjection Rows Serialized)
+  := do
+  ok { source_rows, serialized_rows }
 
 end ark_ip_proofs

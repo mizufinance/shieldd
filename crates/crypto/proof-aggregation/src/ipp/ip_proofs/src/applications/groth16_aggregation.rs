@@ -452,6 +452,14 @@ trait TippMippEffect<F, G1, G2, GT, ABT, CT, E>:
     fn verify_z(&self, messages: &[G1], scalars: &[F], commitment: &CT) -> Result<bool, E>;
 }
 
+/// Consume the exact accepted challenge trace accumulated by a shipping
+/// TIPP/MIPP effect.  Only the concrete production effect implements this
+/// boundary.
+#[cfg(not(feature = "bench-baseline"))]
+trait ShippingAcceptedTraceEffect<F> {
+    fn into_accepted_trace(self) -> ShippingAcceptedTippMippChallengeTrace<F>;
+}
+
 #[cfg(not(feature = "bench-baseline"))]
 trait AggregateRandomizerEffect<F, E> {
     fn derive_randomizer(&mut self, nonce: u64, randomizer_message: &[u8]) -> Result<Option<F>, E>;
@@ -841,6 +849,105 @@ where
         tipp_pairing,
         prepared_ppe_pairing,
     )
+}
+
+/// Execute the installed adapter once and construct the shipping semantic
+/// record only from that exact retained output.
+#[cfg(not(feature = "bench-baseline"))]
+fn verify_shipping_adapter_semantic_execution_core<
+    F,
+    G1,
+    G2,
+    G2Prepared,
+    GT,
+    ABT,
+    CT,
+    E,
+    RFX,
+    FX,
+    PE,
+    PPE,
+>(
+    input: AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+    effects: AggregateAdapterEffects<RFX, FX, PE, PPE>,
+) -> Result<
+    ShippingAdapterSemanticExecution<
+        AggregateAdapterCoreInput<F, G1, G2, G2Prepared, GT, ABT, CT>,
+        F,
+        TippMippCoreOutput<F, GT, ABT, CT>,
+    >,
+    AggregateAdapterCoreError<E>,
+>
+where
+    F: Clone
+        + PartialEq
+        + From<u64>
+        + One
+        + Zero
+        + Add<Output = F>
+        + std::ops::Div<Output = F>
+        + Mul<Output = F>
+        + Sub<Output = F>
+        + Sync
+        + Send,
+    G1: Clone
+        + Add<Output = G1>
+        + Mul<F, Output = G1>
+        + Sub<Output = G1>
+        + Neg<Output = G1>
+        + Sync
+        + Send,
+    G2: Clone + Mul<F, Output = G2> + Sub<Output = G2> + Sync + Send,
+    G2Prepared: Clone + Send,
+    GT: Clone
+        + Default
+        + Add<Output = GT>
+        + Mul<F, Output = GT>
+        + MulAssign<F>
+        + Zero
+        + PartialEq
+        + Sync
+        + Send,
+    ABT: Clone + Default + Add<Output = ABT> + MulAssign<F> + Sync + Send,
+    CT: Clone + Default + Add<Output = CT> + MulAssign<F> + Sync + Send,
+    E: Send,
+    RFX: AggregateRandomizerEffect<F, E>,
+    FX: TippMippEffect<F, G1, G2, GT, ABT, CT, E> + ShippingAcceptedTraceEffect<F> + Send,
+    PE: PairingEffect<G1, G2, GT> + Sync + Send,
+    PPE: PreparedPairingEffect<G1, G2Prepared, GT> + Send,
+{
+    let output = verify_installed_aggregate_adapter_core(input, effects)?;
+    let AggregateAdapterExecutionOutput {
+        input,
+        initial_nonce,
+        accepted_nonce,
+        core:
+            AggregateAdapterCoreOutput {
+                randomizer,
+                checks,
+                accepted,
+                randomizer_effect: _,
+                tipp_mipp_effect,
+            },
+        tipp_mipp,
+    } = output;
+    let accepted_randomizer_call = ShippingAcceptedRandomizerCall {
+        initial_nonce,
+        accepted_nonce,
+        message: input.randomizer_message.clone(),
+        value: randomizer.clone(),
+    };
+    Ok(shipping_adapter_semantic_execution_from_parts(
+        input,
+        initial_nonce,
+        accepted_nonce,
+        randomizer,
+        accepted_randomizer_call,
+        tipp_mipp_effect.into_accepted_trace(),
+        checks,
+        tipp_mipp,
+        accepted,
+    ))
 }
 
 #[cfg(not(feature = "bench-baseline"))]
@@ -4033,6 +4140,15 @@ impl<'a, P: Pairing, D: Digest + Send + Sync, S: ChallengeTraceSink>
     }
 }
 
+#[cfg(not(feature = "bench-baseline"))]
+impl<'a, P: Pairing, D: Digest + Send + Sync, S: ChallengeTraceSink>
+    ShippingAcceptedTraceEffect<P::ScalarField> for ArkworksTippMippEffect<'a, P, D, S>
+{
+    fn into_accepted_trace(self) -> ShippingAcceptedTippMippChallengeTrace<P::ScalarField> {
+        self.accepted_trace
+    }
+}
+
 #[cfg(feature = "bench-baseline")]
 fn verify_validated_tipp_mipp_buffered_profiled<P, D>(
     context: &ChallengeContext,
@@ -4311,25 +4427,18 @@ impl ShippingVerifierObservation {
 }
 
 #[cfg(not(feature = "bench-baseline"))]
-fn shipping_challenge_trace_entry_copy(entry: &ChallengeTraceEntry) -> ChallengeTraceEntry {
-    ChallengeTraceEntry {
-        stage_label: entry.stage_label,
-        nonce: entry.nonce,
-        preimage: entry.preimage.clone(),
-        digest: entry.digest.clone(),
+fn shipping_challenge_trace_concat_copy(
+    first: &[ChallengeTraceEntry],
+    second: &[ChallengeTraceEntry],
+) -> Vec<ChallengeTraceEntry> {
+    let mut records = Vec::new();
+    for entry in first {
+        records.push(entry.clone());
     }
-}
-
-#[cfg(not(feature = "bench-baseline"))]
-fn shipping_challenge_trace_append_copy(
-    target: &mut BufferedChallengeTraceSink,
-    source: &BufferedChallengeTraceSink,
-) {
-    for entry in &source.records {
-        target
-            .records
-            .push(shipping_challenge_trace_entry_copy(entry));
+    for entry in second {
+        records.push(entry.clone());
     }
+    records
 }
 
 /// Derive the public first-order observation by borrowing the retained exact
@@ -4342,15 +4451,20 @@ fn shipping_challenge_trace_append_copy(
 fn shipping_verifier_observation_core<I, F, TX>(
     observed: &ShippingVerifierObservedExecution<I, F, TX>,
 ) -> ShippingVerifierObservation {
-    let mut challenge_trace_chronological = BufferedChallengeTraceSink::default();
-    shipping_challenge_trace_append_copy(
-        &mut challenge_trace_chronological,
-        &observed.execution.final_effect_state.randomizer_trace,
-    );
-    shipping_challenge_trace_append_copy(
-        &mut challenge_trace_chronological,
-        &observed.execution.final_effect_state.tipp_mipp_trace,
-    );
+    let challenge_trace_chronological = BufferedChallengeTraceSink {
+        records: shipping_challenge_trace_concat_copy(
+            &observed
+                .execution
+                .final_effect_state
+                .randomizer_trace
+                .records,
+            &observed
+                .execution
+                .final_effect_state
+                .tipp_mipp_trace
+                .records,
+        ),
+    };
     ShippingVerifierObservation {
         call_id: observed.call_id,
         accepted: observed.execution.semantic.accepted,
@@ -4761,40 +4875,7 @@ where
         ArkworksPairingEffect::<P>::default(),
         ArkworksPreparedPairingEffect::<P>::default(),
     );
-    let output = verify_installed_aggregate_adapter_core(input, effects)?;
-    let AggregateAdapterExecutionOutput {
-        input,
-        initial_nonce,
-        accepted_nonce,
-        core:
-            AggregateAdapterCoreOutput {
-                randomizer,
-                checks,
-                accepted,
-                randomizer_effect,
-                tipp_mipp_effect,
-            },
-        tipp_mipp,
-    } = output;
-    drop(randomizer_effect);
-    let ArkworksTippMippEffect { accepted_trace, .. } = tipp_mipp_effect;
-    let accepted_randomizer_call = ShippingAcceptedRandomizerCall {
-        initial_nonce,
-        accepted_nonce,
-        message: input.randomizer_message.clone(),
-        value: randomizer.clone(),
-    };
-    Ok(shipping_adapter_semantic_execution_from_parts(
-        input,
-        initial_nonce,
-        accepted_nonce,
-        randomizer,
-        accepted_randomizer_call,
-        accepted_trace,
-        checks,
-        tipp_mipp,
-        accepted,
-    ))
+    verify_shipping_adapter_semantic_execution_core(input, effects)
 }
 
 /// Acceptance-relevant verifier state retained around the semantic adapter.
@@ -4821,6 +4902,29 @@ fn shipping_verifier_semantic_execution_from_parts<I, F, TX>(
         initial_effect_state,
         final_effect_state,
     }
+}
+
+/// Construct the verifier semantic envelope from the exact adapter result and
+/// the two retained shipping traces surrounding that execution.
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_verifier_semantic_execution_with_traces_core<I, F, TX>(
+    semantic: ShippingAdapterSemanticExecution<I, F, TX>,
+    context: ChallengeContext,
+    randomizer_trace: BufferedChallengeTraceSink,
+    tipp_mipp_trace: BufferedChallengeTraceSink,
+) -> ShippingVerifierSemanticExecution<I, F, TX> {
+    let initial_effect_state = shipping_verifier_effect_state_from_parts(
+        context.clone(),
+        BufferedChallengeTraceSink::default(),
+        BufferedChallengeTraceSink::default(),
+    );
+    let final_effect_state =
+        shipping_verifier_effect_state_from_parts(context, randomizer_trace, tipp_mipp_trace);
+    shipping_verifier_semantic_execution_from_parts(
+        semantic,
+        initial_effect_state,
+        final_effect_state,
+    )
 }
 
 /// First-order shipping result projection used by production before profiling
@@ -5003,11 +5107,6 @@ where
     S: ChallengeTraceSink,
     TM: AggregateRandomizerTiming,
 {
-    let initial_effect_state = shipping_verifier_effect_state_from_parts(
-        context.clone(),
-        BufferedChallengeTraceSink::default(),
-        BufferedChallengeTraceSink::default(),
-    );
     let mut randomizer_trace = BufferedChallengeTraceSink::default();
     let mut tipp_mipp_trace = BufferedChallengeTraceSink::default();
     let semantic = {
@@ -5023,15 +5122,11 @@ where
             timing,
         )?
     };
-    let final_effect_state = shipping_verifier_effect_state_from_parts(
+    Ok(shipping_verifier_semantic_execution_with_traces_core(
+        semantic,
         context.clone(),
         randomizer_trace,
         tipp_mipp_trace,
-    );
-    Ok(shipping_verifier_semantic_execution_from_parts(
-        semantic,
-        initial_effect_state,
-        final_effect_state,
     ))
 }
 
@@ -6249,6 +6344,60 @@ mod tests {
     use ark_std::rand::{rngs::StdRng, SeedableRng};
     use ark_std::One;
     use blake2::Blake2b;
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn shipping_verifier_semantic_execution_with_traces_core_preserves_exact_states() {
+        let context = ChallengeContext::from_statement_digest([17; 32]);
+        let mut randomizer_trace = BufferedChallengeTraceSink::default();
+        randomizer_trace.record(b"aggregate.randomizer", 3, &[19], &[23]);
+        let mut tipp_mipp_trace = BufferedChallengeTraceSink::default();
+        tipp_mipp_trace.record(b"tipp_mipp.x0", 5, &[29], &[31]);
+        let semantic = shipping_adapter_semantic_execution_from_parts(
+            (),
+            0,
+            3,
+            37u64,
+            ShippingAcceptedRandomizerCall {
+                initial_nonce: 0,
+                accepted_nonce: 3,
+                message: vec![41],
+                value: 37,
+            },
+            empty_accepted_tipp_mipp_trace(),
+            (true, true),
+            43u64,
+            true,
+        );
+
+        let execution = shipping_verifier_semantic_execution_with_traces_core(
+            semantic,
+            context.clone(),
+            randomizer_trace.clone(),
+            tipp_mipp_trace.clone(),
+        );
+
+        assert_eq!(execution.initial_effect_state.context, context);
+        assert!(execution
+            .initial_effect_state
+            .randomizer_trace
+            .records
+            .is_empty());
+        assert!(execution
+            .initial_effect_state
+            .tipp_mipp_trace
+            .records
+            .is_empty());
+        assert_eq!(execution.final_effect_state.context, context);
+        assert_eq!(
+            execution.final_effect_state.randomizer_trace.records,
+            randomizer_trace.records
+        );
+        assert_eq!(
+            execution.final_effect_state.tipp_mipp_trace.records,
+            tipp_mipp_trace.records
+        );
+    }
 
     #[cfg(not(feature = "bench-baseline"))]
     #[test]
@@ -8101,6 +8250,65 @@ mod tests {
         assert_eq!(adapter.randomizer_message, vec![0x41, 0x52, 0x4b]);
         assert_eq!(adapter.combined.tipp_mipp.com_a, 10);
         assert_eq!(adapter.combined.ppe.ip_ab, 49);
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
+    fn aggregate_adapter_core_shipping_semantic_execution_retains_exact_output() {
+        type P = Bls12_381;
+        type Scalar = <P as Pairing>::ScalarField;
+
+        let (srs, pvk, proof) = zero_combined_inputs::<P>();
+        let combined = combined_checks_core_input(&pvk, &[vec![]], &proof, &Scalar::zero(), &srs)
+            .expect("zero fixture has singleton identity outputs");
+        let randomizer_message = vec![0x41, 0x52, 0x4b];
+        let randomizer = Scalar::from(7u64);
+        let context = ChallengeContext::from_statement_digest([0u8; 32]);
+        let mut tipp_trace = NoopChallengeTraceSink;
+        let effects = aggregate_adapter_effects_from_parts(
+            ScriptedAdapterRandomizer::new(vec![Ok(Some(randomizer.clone()))]),
+            ArkworksTippMippEffect::<P, Blake2b, _> {
+                context: &context,
+                trace: &mut tipp_trace,
+                accepted_trace: empty_accepted_tipp_mipp_trace(),
+                _pairing: PhantomData,
+                _digest: PhantomData,
+            },
+            ArkworksPairingEffect::<P>::default(),
+            ArkworksPreparedPairingEffect::<P>::default(),
+        );
+
+        let execution = verify_shipping_adapter_semantic_execution_core(
+            aggregate_adapter_core_input_from_parts(randomizer_message.clone(), combined),
+            effects,
+        )
+        .expect("installed effects must return one semantic execution");
+
+        assert_eq!(
+            execution.adapter_input.randomizer_message,
+            randomizer_message
+        );
+        assert_eq!(execution.initial_nonce, 0);
+        assert_eq!(execution.accepted_nonce, 0);
+        assert_eq!(execution.randomizer, randomizer);
+        assert_eq!(execution.accepted_randomizer_call.initial_nonce, 0);
+        assert_eq!(execution.accepted_randomizer_call.accepted_nonce, 0);
+        assert_eq!(
+            execution.accepted_randomizer_call.message,
+            vec![0x41, 0x52, 0x4b]
+        );
+        assert_eq!(execution.accepted_randomizer_call.value, randomizer);
+        assert!(execution.accepted_tipp_mipp_challenge_trace.x0.is_some());
+        assert!(execution
+            .accepted_tipp_mipp_challenge_trace
+            .rounds_chrono
+            .is_empty());
+        assert!(execution
+            .accepted_tipp_mipp_challenge_trace
+            .final_bridge
+            .is_some());
+        assert!(execution.accepted_tipp_mipp_challenge_trace.kzg.is_some());
+        assert_eq!(execution.accepted, execution.checks.0 && execution.checks.1);
     }
 
     #[cfg(not(feature = "bench-baseline"))]

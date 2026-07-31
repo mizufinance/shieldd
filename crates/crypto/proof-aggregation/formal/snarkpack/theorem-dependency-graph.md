@@ -45,23 +45,25 @@ flowchart LR
   a5["AENEAS-TRANSLATOR<br/>assumed"]
   a6["RUST-TOKIO-JOIN-SEMANTICS<br/>assumed"]
   a7["RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT<br/>assumed"]
-  a8["HAX-FSTAR-TRANSLATOR<br/>assumed"]
-  a9["FSTAR-CHECKER<br/>assumed"]
-  a10["ARKWORKS-VK-SERIALIZATION<br/>assumed"]
-  a11["ARKWORKS-FIELD-SERIALIZATION<br/>assumed"]
-  a12["ARKWORKS-AGGREGATE-PROOF-DECODE<br/>assumed"]
-  a13["ARKWORKS-CHALLENGE-SERIALIZATION<br/>assumed"]
-  a14["BLAKE2B-ROM-SECURITY<br/>assumed"]
-  a15["BLS12-377-PAIRING-BILINEARITY<br/>assumed"]
-  a16["ARKWORKS-TIPP-PRIMITIVE-SEMANTICS<br/>assumed"]
-  a17["ARKWORKS-PREPARED-VK-ROUTE-DECODE<br/>assumed"]
-  a18["ARKWORKS-VERIFIER-SRS-ID-LOAD<br/>assumed"]
-  a19["ARKWORKS-PREPARED-VK-AIC-PROJECTION<br/>assumed"]
-  a20["ARKWORKS-KZG-VERIFIER-EQUATIONS<br/>assumed"]
-  a21["ARKWORKS-FR-DIGEST-REDUCTION<br/>assumed"]
-  a22["DEPLOYED-BLAKE2B-EXECUTION<br/>assumed"]
-  a23["ARKWORKS-PROVER-CURVE-OPERATIONS<br/>assumed"]
-  a24["WELL-FORMED-PROVING-SRS<br/>assumed"]
+  a8["ARKWORKS-SHIPPING-EFFECT-INSTALLATION<br/>assumed"]
+  a9["RUST-SHIPPING-PREFLIGHT-DELEGATION<br/>assumed"]
+  a10["HAX-FSTAR-TRANSLATOR<br/>assumed"]
+  a11["FSTAR-CHECKER<br/>assumed"]
+  a12["ARKWORKS-VK-SERIALIZATION<br/>assumed"]
+  a13["ARKWORKS-FIELD-SERIALIZATION<br/>assumed"]
+  a14["ARKWORKS-AGGREGATE-PROOF-DECODE<br/>assumed"]
+  a15["ARKWORKS-CHALLENGE-SERIALIZATION<br/>assumed"]
+  a16["BLAKE2B-ROM-SECURITY<br/>assumed"]
+  a17["BLS12-377-PAIRING-BILINEARITY<br/>assumed"]
+  a18["ARKWORKS-TIPP-PRIMITIVE-SEMANTICS<br/>assumed"]
+  a19["ARKWORKS-PREPARED-VK-ROUTE-DECODE<br/>assumed"]
+  a20["ARKWORKS-VERIFIER-SRS-ID-LOAD<br/>assumed"]
+  a21["ARKWORKS-PREPARED-VK-AIC-PROJECTION<br/>assumed"]
+  a22["ARKWORKS-KZG-VERIFIER-EQUATIONS<br/>assumed"]
+  a23["ARKWORKS-FR-DIGEST-REDUCTION<br/>assumed"]
+  a24["DEPLOYED-BLAKE2B-EXECUTION<br/>assumed"]
+  a25["ARKWORKS-PROVER-CURVE-OPERATIONS<br/>assumed"]
+  a26["WELL-FORMED-PROVING-SRS<br/>assumed"]
   e0["contract:familyRegistered<br/>pass"]
   e1["contract:canonicalStatementExact<br/>pass"]
   e2["contract:canonicalStatementInjective<br/>pass"]
@@ -84,15 +86,15 @@ flowchart LR
   a4 -.-> n5
   n5 --> n8
   n6 --> n8
-  a20 -.-> n8
-  a15 -.-> n8
+  a22 -.-> n8
+  a17 -.-> n8
   n5 --> n9
   a4 -.-> n9
   a5 -.-> n10
   n10 --> n11
   n19 --> n11
   a5 -.-> n11
-  a21 -.-> n12
+  a23 -.-> n12
   n12 --> n13
   n1 --> n14
   n13 --> n14
@@ -102,17 +104,17 @@ flowchart LR
   a3 -.-> n15
   a4 -.-> n15
   a0 -.-> n15
-  a14 -.-> n15
+  a16 -.-> n15
   n1 --> n16
   n11 --> n16
   n19 --> n16
   a5 -.-> n16
+  a17 -.-> n16
+  a18 -.-> n16
+  a21 -.-> n16
+  a22 -.-> n16
+  a14 -.-> n16
   a15 -.-> n16
-  a16 -.-> n16
-  a19 -.-> n16
-  a20 -.-> n16
-  a12 -.-> n16
-  a13 -.-> n16
   n16 --> n17
   n19 --> n17
   n18 --> n17
@@ -126,52 +128,56 @@ flowchart LR
   a3 -.-> n17
   a4 -.-> n17
   a0 -.-> n17
-  a14 -.-> n17
+  a16 -.-> n17
   n2 --> n18
   a5 -.-> n18
-  a8 -.-> n18
-  a9 -.-> n18
   a10 -.-> n18
   a11 -.-> n18
-  a17 -.-> n18
-  a18 -.-> n18
+  a12 -.-> n18
+  a13 -.-> n18
   a19 -.-> n18
+  a20 -.-> n18
+  a21 -.-> n18
+  a9 -.-> n18
   n2 --> n19
   n18 --> n19
   a0 -.-> n19
-  a8 -.-> n19
-  a9 -.-> n19
   a10 -.-> n19
   a11 -.-> n19
   a12 -.-> n19
-  a17 -.-> n19
-  a18 -.-> n19
+  a13 -.-> n19
+  a14 -.-> n19
+  a19 -.-> n19
+  a20 -.-> n19
   n3 --> n20
   n20 --> n21
   a5 -.-> n21
-  a23 -.-> n21
-  a13 -.-> n21
-  a24 -.-> n21
+  a25 -.-> n21
+  a15 -.-> n21
+  a26 -.-> n21
   n10 --> n22
   n11 --> n22
   n19 --> n22
   n30 --> n22
   a5 -.-> n22
-  a8 -.-> n22
-  a9 -.-> n22
   a10 -.-> n22
   a11 -.-> n22
   a12 -.-> n22
-  a17 -.-> n22
-  a18 -.-> n22
+  a13 -.-> n22
+  a14 -.-> n22
   a19 -.-> n22
+  a20 -.-> n22
+  a21 -.-> n22
+  a8 -.-> n22
+  a9 -.-> n22
   a7 -.-> n22
   n31 --> n23
   n14 --> n23
   a5 -.-> n23
-  a13 -.-> n23
-  a21 -.-> n23
-  a22 -.-> n23
+  a15 -.-> n23
+  a23 -.-> n23
+  a24 -.-> n23
+  a8 -.-> n23
   a7 -.-> n23
   n19 --> n25
   n18 --> n25
@@ -186,7 +192,7 @@ flowchart LR
   a1 -.-> n26
   a2 -.-> n26
   a0 -.-> n26
-  a14 -.-> n26
+  a16 -.-> n26
   n10 --> n27
   n16 --> n27
   a5 -.-> n27
@@ -207,10 +213,10 @@ flowchart LR
   a3 -.-> n29
   a4 -.-> n29
   a0 -.-> n29
-  a14 -.-> n29
+  a16 -.-> n29
   a6 -.-> n29
   a7 -.-> n29
-  a12 -.-> n30
+  a14 -.-> n30
   n1 --> n31
   n19 --> n32
   e0 --> n19
@@ -234,7 +240,7 @@ flowchart LR
   class n0,n1,n2,n3,n4,n5,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16,n20,n24,n27,n30 proved
   class n31,n32 tested
   class n6,n17,n18,n19,n21,n22,n23,n25,n26,n28,n29 open
-  class a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24 assumed
+  class a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26 assumed
   class e0,e1,e2,e8 evidencePass
   class e3,e4,e5,e6,e7,e9,e10,e11 evidenceStale
 ```

@@ -96,10 +96,10 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "1aca0ab9106e3872fae7da7bb8c86deb1eb5f6df21dfdff5df67542452af357f"
+    "f51a9d510f9af6baee44e66acf926c51a553d0f9307dfb3a930b9b41586fb652"
 )
 ASSUMPTION_LEDGER_SHA256 = (
-    "0fcce62b55a7c498b7b486f40e4b31452bfb284a6fd9d4267eadbdb548bd214f"
+    "24ccf82bbefc82789a9cac18760c3ba140b46849678972335ead5979a290b54a"
 )
 V1_PROTOCOL_VERSION = 2
 V1_BYTE_BASELINE_SHA256 = (
@@ -142,7 +142,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "e08b064e2d34cce8b8ead966a44ecda3536f78b9bf817798a1b150508f338172"
+    "cd0213cbb0f2ecee141a7595bb423b08004d9462ff70f8ef77be7b796e819d2a"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -168,6 +168,10 @@ FSTAR_MODULE_INVENTORY = (
 )
 FSTAR_CI_CONTROL_INPUTS = (
     ".github/workflows/formal.yml",
+    (
+        "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
+        "verification_manifest.py"
+    ),
     "scripts/ci/run_with_annotation.py",
 )
 FSTAR_GLOBAL_MODULE_INVENTORY = ("SnarkpackMachineSupport",)
@@ -375,22 +379,36 @@ def _verification_contract_payload(manifest: dict[str, Any]) -> dict[str, Any]:
 def _fstar_environment_contract_payload(
     manifest: dict[str, Any],
 ) -> dict[str, Any]:
-    """Project out F* bytes tracked by current-input evidence records."""
-    stale_fields = {
-        entry.get("contract_field")
-        for entry in manifest["statement_binding_evidence"]
-        if entry.get("checker", {}).get("last_result") == "stale"
-    }
-    payload = _verification_contract_payload(manifest)
-    for entry in payload["statement_binding_evidence"]:
-        if (
-            entry.get("kind") != "fstar"
-            and entry.get("contract_field") not in stale_fields
-        ):
-            continue
+    """Return only manifest inputs that can change the F* proof result.
+
+    Lean audits, claim/axiom ledgers, Aeneas evidence, and deployed-SRS
+    registration do not affect an F* module. Keeping them out of this
+    projection lets the F* evidence and CI cache survive those edits.
+    Current source bytes are already bound by the module/global-input
+    fingerprints, so recorded source digests remain metadata here.
+    """
+    evidence = [
+        copy.deepcopy(entry)
+        for entry in _require_nonempty_list(
+            manifest, "statement_binding_evidence"
+        )
+        if entry.get("kind") == "fstar"
+    ]
+    role_ids = {entry.get("toolchain_role") for entry in evidence}
+    roles = [
+        copy.deepcopy(role)
+        for role in _require_nonempty_list(manifest, "toolchain_roles")
+        if role.get("id") in role_ids
+    ]
+    for entry in evidence:
+        entry["checker"].pop("last_result", None)
         for source in entry["sources"]:
             source["sha256"] = "<current-fstar-input-fingerprint>"
-    return payload
+    return {
+        "fstar_modules": copy.deepcopy(manifest["fstar_modules"]),
+        "toolchain_roles": roles,
+        "statement_binding_evidence": evidence,
+    }
 
 
 def load_manifest(path: Path = MANIFEST_PATH) -> dict[str, Any]:

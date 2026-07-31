@@ -79,6 +79,7 @@ LEAN_GLOBAL_INPUTS = {
     (LEAN_ROOT / "lean-toolchain").as_posix(),
 }
 FSTAR_GLOBAL_INPUTS = {
+    FSTAR_VERIFIER.as_posix(),
     "flake.lock",
     "flake.nix",
     "scripts/prepare_snarkpack_fstar_support.py",
@@ -89,7 +90,6 @@ FSTAR_GLOBAL_INPUTS = {
     ),
 }
 FSTAR_NONPROOF_CONTROL_INPUTS = {
-    FSTAR_VERIFIER.as_posix(),
     "scripts/ci/snarkpack_fv_impact.py",
 }
 LEAN_MODULE_TOKEN = r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*"
