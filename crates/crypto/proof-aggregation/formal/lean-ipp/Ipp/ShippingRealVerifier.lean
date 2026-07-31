@@ -839,24 +839,20 @@ theorem acceptedExecution_challengePrimitiveContract
     execution.operationalCalls
       (refinement.external.decoded output.transcript execution)
       runProjection
-  have admissible :=
-    refinement.external.challengeAdmissible output.transcript execution
   let calls :
       Ipp.Extracted.AggregateVerifier.ArkworksTippChallengeTrace
         data.primitive data.serialization data.statement data.proof
         output.transcript execution.effect :=
     Ipp.Extracted.TippMippChallengeExecution.arkworksTrace_of_runChallengeTrace_and_transcriptExecution
         contract data.input.family data.input.challengeContext
-        data.statement.rejectionFuel blake2b tippSemantics
-        data.statement data.proof output.transcript transcriptExecution
+        blake2b data.statement tippSemantics data.proof
+        output.transcript transcriptExecution
         execution.effect execution.finalEffect run
-        admissible.randomizer admissible.x0 admissible.round
-        admissible.bridge admissible.kzg
   let samples :=
     Ipp.Extracted.TippMippChallengeExecution.acceptedExecutionSamples_of_transcriptExecution
         contract data.randomizerEffects data.input.family
-        data.input.challengeContext data.statement.rejectionFuel blake2b
-        randomizerSemantics tippSemantics data.statement data.proof
+        data.input.challengeContext blake2b data.statement
+        randomizerSemantics tippSemantics data.proof
         output.transcript transcriptExecution
         execution.finalRandomizerEffect randomizerCall execution.effect calls
   constructor
@@ -1066,8 +1062,20 @@ theorem acceptedCallOutput_refines_shipping_v1
       Ipp.ShippingV1.RealPrefixExact data.input ∧
       Ipp.ShippingV1.RepeatFinalPadding data.input := by
   rcases haccepted with ⟨rawExecution⟩
+  have transcriptExecution :=
+    shippingReal_transcriptExecution
+      data contract blake2b output hsupport rawExecution
+  have challengeAdmissible :
+      Ipp.Extracted.ShippingVerifierComposition.ShippingTranscriptAdmissible
+        output.transcript := {
+    randomizer := transcriptExecution.randomizer_ne_zero
+    x0 := transcriptExecution.x0_ne_zero
+    round := transcriptExecution.round_ne_zero
+    bridge := transcriptExecution.bridge_ne_zero
+    kzg := transcriptExecution.kzg_ne_zero
+  }
   have view :=
-    rawExecution.refines refinement
+    rawExecution.refines refinement challengeAdmissible
       (deployed.trace output hsupport rawExecution).answers
   exact ⟨view.represents.1, view.represents.2,
     view.accepts, view.app.validCounts,
@@ -1106,8 +1114,7 @@ theorem realCallAcceptance_le_realFormalCallAcceptance
               hresult
       rcases haccepted with ⟨rawExecution⟩
       exact False.elim
-        ((refinement.external.challengeAdmissible
-          output.transcript rawExecution).randomizer hzero)
+        (rawExecution.randomizer_nonzero hzero)
   | some transcript =>
       have hfs :
           Ipp.FsAccepts data.statement data.proof transcript := by

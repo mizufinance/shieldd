@@ -768,22 +768,32 @@ pub fn app_verify_accepted_join_projection_core<Observation, Execution>(
     }
 
     let mut position = 0usize;
-    while position < records.len() {
+    let mut identities_match = true;
+    while position < records.len() && identities_match {
         let record = &records[position];
         if !app_verify_call_id_matches(record.authenticated_id, record.planner_id)
             || !app_verify_call_id_matches(record.executed_id, record.planner_id)
         {
-            return Err(AppVerifyAcceptedJoinProjectionError::FullIdentityMismatch { position });
+            identities_match = false;
+        } else {
+            position += 1;
         }
-        position += 1;
+    }
+    if !identities_match {
+        return Err(AppVerifyAcceptedJoinProjectionError::FullIdentityMismatch { position });
     }
 
     position = 0usize;
-    while position < expected_call_ids.len() {
+    let mut order_matches = true;
+    while position < expected_call_ids.len() && order_matches {
         if !app_verify_call_id_matches(records[position].planner_id, expected_call_ids[position]) {
-            return Err(AppVerifyAcceptedJoinProjectionError::OutcomeOrderMismatch { position });
+            order_matches = false;
+        } else {
+            position += 1;
         }
-        position += 1;
+    }
+    if !order_matches {
+        return Err(AppVerifyAcceptedJoinProjectionError::OutcomeOrderMismatch { position });
     }
 
     let mut rejected_calls = Vec::new();

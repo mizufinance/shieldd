@@ -1090,8 +1090,10 @@ theorem ConcreteOutputDerivedCall.verifierSrsExact
 /-- Irreducible verifier boundaries left after concrete call construction.
 
 Support, statement projection, statement/proof representation, prepared-VK
-Aic projection, and application construction are intentionally absent: they
-are theorems of `ConcreteOutputDerivedCall`. -/
+Aic projection, application construction, and challenge admissibility are
+intentionally absent: construction fields are theorems of
+`ConcreteOutputDerivedCall`, while admissibility comes from the deployed
+bounded-sampler execution. -/
 structure ConcreteVerifierExternalRemainder
     {D : Type} {μ arity : Nat}
     {wire :
@@ -1126,11 +1128,6 @@ structure ConcreteVerifierExternalRemainder
         construction.shippingData.srs.g_beta
         construction.shippingData.srs.h
         construction.shippingData.srs.h_alpha
-  challengeAdmissible :
-    ∀ transcript
-      (_execution :
-        AcceptedShippingExecutionAt construction.shippingData transcript),
-      ShippingTranscriptAdmissible transcript
   kzg :
     ∀ transcript
       (execution :
@@ -1174,7 +1171,6 @@ noncomputable def ConcreteOutputDerivedCall.externalContracts
     represents := construction.represents
     preparedVk := construction.preparedVk
     decoded := remainder.decoded
-    challengeAdmissible := remainder.challengeAdmissible
     kzg := remainder.kzg
   }
 

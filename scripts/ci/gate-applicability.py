@@ -19,6 +19,8 @@ CANDIDATE_EVENTS = {"pull_request", "merge_group"}
 UNCONDITIONAL_EVENTS = {"schedule", "workflow_call", "workflow_dispatch"}
 SUPPORTED_EVENTS = CANDIDATE_EVENTS | UNCONDITIONAL_EVENTS
 GRAPH_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+CARGO_METADATA_TIMEOUT_SECONDS = 60
+MAX_CARGO_METADATA_TIMEOUT_SECONDS = 900
 
 
 class ClassificationError(RuntimeError):
@@ -386,8 +388,23 @@ def _relative_to_root(root: Path, value: str, where: str) -> str:
 
 
 def cargo_closure_rules(
-    root: Path, source: dict[str, Any], event: str
+    root: Path,
+    source: dict[str, Any],
+    event: str,
+    *,
+    metadata_timeout_seconds: int = CARGO_METADATA_TIMEOUT_SECONDS,
 ) -> list[InputRule]:
+    if (
+        isinstance(metadata_timeout_seconds, bool)
+        or not isinstance(metadata_timeout_seconds, int)
+        or not 1
+        <= metadata_timeout_seconds
+        <= MAX_CARGO_METADATA_TIMEOUT_SECONDS
+    ):
+        raise ClassificationError(
+            "cargo metadata timeout must be an integer from 1 through "
+            f"{MAX_CARGO_METADATA_TIMEOUT_SECONDS} seconds"
+        )
     try:
         result = subprocess.run(
             [
@@ -402,7 +419,7 @@ def cargo_closure_rules(
             check=False,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=metadata_timeout_seconds,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
         raise ClassificationError(f"cargo metadata failed: {error}") from error

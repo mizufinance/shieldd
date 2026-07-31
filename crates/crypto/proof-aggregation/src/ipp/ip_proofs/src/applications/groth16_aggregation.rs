@@ -4310,6 +4310,28 @@ impl ShippingVerifierObservation {
     }
 }
 
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_challenge_trace_entry_copy(entry: &ChallengeTraceEntry) -> ChallengeTraceEntry {
+    ChallengeTraceEntry {
+        stage_label: entry.stage_label,
+        nonce: entry.nonce,
+        preimage: entry.preimage.clone(),
+        digest: entry.digest.clone(),
+    }
+}
+
+#[cfg(not(feature = "bench-baseline"))]
+fn shipping_challenge_trace_append_copy(
+    target: &mut BufferedChallengeTraceSink,
+    source: &BufferedChallengeTraceSink,
+) {
+    for entry in &source.records {
+        target
+            .records
+            .push(shipping_challenge_trace_entry_copy(entry));
+    }
+}
+
 /// Derive the public first-order observation by borrowing the retained exact
 /// semantic execution.
 ///
@@ -4320,17 +4342,14 @@ impl ShippingVerifierObservation {
 fn shipping_verifier_observation_core<I, F, TX>(
     observed: &ShippingVerifierObservedExecution<I, F, TX>,
 ) -> ShippingVerifierObservation {
-    let mut challenge_trace_chronological = observed
-        .execution
-        .final_effect_state
-        .randomizer_trace
-        .clone();
-    challenge_trace_chronological.records.extend_from_slice(
-        &observed
-            .execution
-            .final_effect_state
-            .tipp_mipp_trace
-            .records,
+    let mut challenge_trace_chronological = BufferedChallengeTraceSink::default();
+    shipping_challenge_trace_append_copy(
+        &mut challenge_trace_chronological,
+        &observed.execution.final_effect_state.randomizer_trace,
+    );
+    shipping_challenge_trace_append_copy(
+        &mut challenge_trace_chronological,
+        &observed.execution.final_effect_state.tipp_mipp_trace,
     );
     ShippingVerifierObservation {
         call_id: observed.call_id,

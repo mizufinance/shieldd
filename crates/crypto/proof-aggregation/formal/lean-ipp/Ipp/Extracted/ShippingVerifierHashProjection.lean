@@ -69,16 +69,15 @@ theorem acceptedExecutionSamples_of_transcriptExecution
         RFX Fr String)
     (family : Ipp.ShippingV1.Family)
     (context : Ipp.ChallengeEncoding.Context)
-    (fuel : Nat)
     (blake2b : List UInt8 → Ipp.ShippingHashGame.DigestBytes)
-    (randomizerSemantics :
-      Ipp.ShippingArkworksHash.Blake2bRandomizerEffectPostcondition
-        contract randomizerEffects family context fuel blake2b)
-    (tippSemantics :
-      Ipp.ShippingArkworksHash.Blake2bTippEffectPostcondition
-        contract family context fuel blake2b)
     (stmt : Ipp.FsStatement n Fr g1PrimeSubgroup g2PrimeSubgroup
       ArkPairingOutput)
+    (randomizerSemantics :
+      Ipp.ShippingArkworksHash.Blake2bRandomizerEffectPostcondition
+        contract randomizerEffects family context stmt.rejectionFuel blake2b)
+    (tippSemantics :
+      Ipp.ShippingArkworksHash.Blake2bTippEffectPostcondition
+        contract family context stmt.rejectionFuel blake2b)
     (proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup
       ArkPairingOutput)
     (transcript : Ipp.FsTranscript n Fr)
@@ -101,11 +100,11 @@ theorem acceptedExecutionSamples_of_transcriptExecution
     (calls :
       Ipp.Extracted.AggregateVerifier.ArkworksTippChallengeTrace
         primitive serialization stmt proof transcript effect0) :
-    AcceptedExecutionSamples contract randomizerEffects family context fuel
-      blake2b stmt proof transcript finalRandomizerEffect randomizerCall
-      effect0 calls := by
+    AcceptedExecutionSamples contract randomizerEffects family context
+      stmt.rejectionFuel blake2b stmt proof transcript finalRandomizerEffect
+      randomizerCall effect0 calls := by
   let tippSamples :=
-    sampleEquations_of_calls contract family context fuel blake2b
+    sampleEquations_of_calls contract family context stmt.rejectionFuel blake2b
       tippSemantics stmt proof transcript effect0 calls
   have hrandomizerSource :=
     randomizerSemantics.acceptedCall
@@ -115,7 +114,7 @@ theorem acceptedExecutionSamples_of_transcriptExecution
       transcript.randomizer finalRandomizerEffect randomizerCall
   have hrandomizerOracle :
       Ipp.ShippingArkworksHash.deployedPointSample
-          contract family context fuel blake2b
+          contract family context stmt.rejectionFuel blake2b
           (fun nonce => .randomizer {
             comA := proof.ComA.1
             comB := proof.ComB
@@ -145,7 +144,7 @@ theorem acceptedExecutionSamples_of_transcriptExecution
           transcript.roundAnswer transcript.x0 i.val
   have hx0Oracle :
       Ipp.ShippingArkworksHash.deployedPointSample
-          contract family context fuel blake2b
+          contract family context stmt.rejectionFuel blake2b
           (fun nonce => .x0 {
             r := transcript.randomizer
             comA := proof.ComA.1
@@ -168,7 +167,7 @@ theorem acceptedExecutionSamples_of_transcriptExecution
     rw [hroundPrev i] at hroundOracle
     have hroundOracle' :
         Ipp.ShippingArkworksHash.deployedPointSample
-            contract family context fuel blake2b
+            contract family context stmt.rejectionFuel blake2b
             (fun nonce => .round
               (Ipp.Extracted.VerifyTippMipp.priorAt
                 transcript.roundAnswer transcript.x0 i.val)
@@ -183,7 +182,7 @@ theorem acceptedExecutionSamples_of_transcriptExecution
     transcript.roundAnswer transcript.x0 n] at hbridgeOracle
   have hbridgeOracle' :
       Ipp.ShippingArkworksHash.deployedPointSample
-          contract family context fuel blake2b
+          contract family context stmt.rejectionFuel blake2b
           (fun nonce => .bridge {
             lastRawChallenge :=
               Ipp.Extracted.VerifyTippMipp.priorAt
@@ -203,7 +202,7 @@ theorem acceptedExecutionSamples_of_transcriptExecution
     nonce_eq_of_same_sample tippSamples.bridge hbridgeOracle'
   have hkzgOracle :
       Ipp.ShippingArkworksHash.deployedPointSample
-          contract family context fuel blake2b
+          contract family context stmt.rejectionFuel blake2b
           (fun nonce => .kzg {
             bridgeChallenge := transcript.bridge
             vFinal := proof.vFinal
@@ -217,7 +216,7 @@ theorem acceptedExecutionSamples_of_transcriptExecution
   have hkzgNonce : tippSamples.kzgNonce = transcript.kzgNonce :=
     nonce_eq_of_same_sample tippSamples.kzg hkzgOracle
   exact acceptedExecutionSamples_of_calls
-    contract randomizerEffects family context fuel blake2b
+    contract randomizerEffects family context stmt.rejectionFuel blake2b
     randomizerSemantics tippSemantics stmt proof transcript
     finalRandomizerEffect randomizerCall effect0 calls
     hrandomizerNonce
@@ -243,9 +242,8 @@ identified chronologically because the round preimage contains the preceding
 challenge.
 
 This theorem does not assume transcript equality or verifier acceptance.
-Nonzero facts are kept as separate inputs because the primitive postcondition
-describes hash/decoder execution only; callers obtain them from the successful
-bounded sampler or the existing shipping admissibility contract. -/
+All stage admissibility facts are derived from the successful bounded sampler
+recorded by `TranscriptExecution`; they are not caller-supplied premises. -/
 theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
     {FX : Type} {n : Nat}
     {primitive : Primitive FX}
@@ -254,13 +252,12 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
       Ipp.ShippingArkworksHash.SerializationContract serialization)
     (family : Ipp.ShippingV1.Family)
     (context : Ipp.ChallengeEncoding.Context)
-    (fuel : Nat)
     (blake2b : List UInt8 → Ipp.ShippingHashGame.DigestBytes)
-    (tippSemantics :
-      Ipp.ShippingArkworksHash.Blake2bTippEffectPostcondition
-        contract family context fuel blake2b)
     (stmt : Ipp.FsStatement n Fr g1PrimeSubgroup g2PrimeSubgroup
       ArkPairingOutput)
+    (tippSemantics :
+      Ipp.ShippingArkworksHash.Blake2bTippEffectPostcondition
+        contract family context stmt.rejectionFuel blake2b)
     (proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup
       ArkPairingOutput)
     (transcript : Ipp.FsTranscript n Fr)
@@ -271,12 +268,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
     (effect0 finalEffect : FX)
     (run :
       RunChallengeTrace primitive serialization proof transcript.randomizer
-        effect0 finalEffect)
-    (hrandomizer : transcript.randomizer ≠ 0)
-    (hx0Nonzero : transcript.x0 ≠ 0)
-    (hroundNonzero : ∀ i, transcript.roundAnswer i ≠ 0)
-    (hbridgeNonzero : transcript.bridge ≠ 0)
-    (hkzgNonzero : transcript.kzg ≠ 0) :
+        effect0 finalEffect) :
     Ipp.Extracted.AggregateVerifier.ArkworksTippChallengeTrace
       primitive serialization stmt proof transcript effect0 := by
   obtain ⟨x0Nonce, hx0Source⟩ :=
@@ -285,7 +277,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
       run.x0Value run.x0
   have hx0Oracle :
       Ipp.ShippingArkworksHash.deployedPointSample
-          contract family context fuel blake2b
+          contract family context stmt.rejectionFuel blake2b
           (fun nonce => .x0 {
             r := transcript.randomizer
             comA := proof.ComA.1
@@ -337,7 +329,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
             (run.round k hk)
         have hroundSource :
             Ipp.ShippingArkworksHash.deployedPointSample
-                contract family context fuel blake2b
+                contract family context stmt.rejectionFuel blake2b
                 (fun nonce => .round
                   (Ipp.Extracted.VerifyTippMipp.priorAt
                     transcript.roundAnswer transcript.x0 k)
@@ -365,7 +357,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
         rw [hroundPrev] at hroundOracleRaw
         have hroundOracle :
             Ipp.ShippingArkworksHash.deployedPointSample
-                contract family context fuel blake2b
+                contract family context stmt.rejectionFuel blake2b
                 (fun nonce => .round
                   (Ipp.Extracted.VerifyTippMipp.priorAt
                     transcript.roundAnswer transcript.x0 k)
@@ -392,7 +384,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
       run.bridgeValue run.bridge
   have hbridgeSource :
       Ipp.ShippingArkworksHash.deployedPointSample
-          contract family context fuel blake2b
+          contract family context stmt.rejectionFuel blake2b
           (fun nonce => .bridge {
             lastRawChallenge :=
               Ipp.Extracted.VerifyTippMipp.priorAt
@@ -411,7 +403,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
     transcript.roundAnswer transcript.x0 n] at hbridgeOracleRaw
   have hbridgeOracle :
       Ipp.ShippingArkworksHash.deployedPointSample
-          contract family context fuel blake2b
+          contract family context stmt.rejectionFuel blake2b
           (fun nonce => .bridge {
             lastRawChallenge :=
               Ipp.Extracted.VerifyTippMipp.priorAt
@@ -435,7 +427,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
       run.kzgValue run.kzg
   have hkzgSource :
       Ipp.ShippingArkworksHash.deployedPointSample
-          contract family context fuel blake2b
+          contract family context stmt.rejectionFuel blake2b
           (fun nonce => .kzg {
             bridgeChallenge := transcript.bridge
             vFinal := proof.vFinal
@@ -446,7 +438,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
     simpa only [hbridgeValue] using hkzgSourceRaw
   have hkzgOracle :
       Ipp.ShippingArkworksHash.deployedPointSample
-          contract family context fuel blake2b
+          contract family context stmt.rejectionFuel blake2b
           (fun nonce => .kzg {
             bridgeChallenge := transcript.bridge
             vFinal := proof.vFinal
@@ -470,11 +462,11 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
     bridge := by
       simpa only [hx0Value, hroundFunction, hbridgeValue] using run.bridge
     kzg := by simpa only [hbridgeValue, hkzgValue] using run.kzg
-    randomizer_nonzero := hrandomizer
-    x0_nonzero := hx0Nonzero
-    round_nonzero := hroundNonzero
-    bridge_nonzero := hbridgeNonzero
-    kzg_nonzero := hkzgNonzero
+    randomizer_nonzero := transcriptExecution.randomizer_ne_zero
+    x0_nonzero := transcriptExecution.x0_ne_zero
+    round_nonzero := transcriptExecution.round_ne_zero
+    bridge_nonzero := transcriptExecution.bridge_ne_zero
+    kzg_nonzero := transcriptExecution.kzg_ne_zero
   }
 
 #print axioms arkworksTrace_of_runChallengeTrace_and_transcriptExecution

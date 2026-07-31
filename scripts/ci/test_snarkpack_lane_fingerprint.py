@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -165,6 +166,72 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
             FINGERPRINT.COMMON_CONTROLS,
         )
         self.assertIn(FINGERPRINT.SELF, FINGERPRINT.COMMON_CONTROLS)
+
+    def test_package_closure_uses_bounded_snarkpack_metadata_timeout(
+        self,
+    ) -> None:
+        observed: list[int] = []
+
+        def cargo_closure_rules(
+            root: Path,
+            source,
+            event: str,
+            *,
+            metadata_timeout_seconds: int,
+        ):
+            self.assertEqual(root, self.root)
+            self.assertEqual(source["packages"], ["fixture"])
+            self.assertEqual(event, "pull_request")
+            observed.append(metadata_timeout_seconds)
+            return [SimpleNamespace(patterns=("crate/**",))]
+
+        gate = SimpleNamespace(cargo_closure_rules=cargo_closure_rules)
+        with patch.object(FINGERPRINT, "_load_gate_module", return_value=gate):
+            self.assertEqual(
+                FINGERPRINT.local_package_closure(
+                    self.root, ("fixture",)
+                ),
+                (Path("crate"),),
+            )
+            self.assertEqual(
+                FINGERPRINT.local_package_closure(
+                    self.root,
+                    ("fixture",),
+                    metadata_timeout_seconds=240,
+                ),
+                (Path("crate"),),
+            )
+
+        self.assertEqual(
+            observed,
+            [FINGERPRINT.DEFAULT_CARGO_METADATA_TIMEOUT_SECONDS, 240],
+        )
+
+    def test_cargo_metadata_timeout_rejects_unbounded_values(self) -> None:
+        for value in (True, 0, -1, 901):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(
+                    FINGERPRINT.FingerprintError,
+                    "integer from 1 through 900 seconds",
+                ):
+                    FINGERPRINT.local_package_closure(
+                        self.root,
+                        ("fixture",),
+                        metadata_timeout_seconds=value,
+                    )
+
+        parser = FINGERPRINT.parser()
+        for value in ("0", "901", "not-a-number"):
+            with self.subTest(cli=value):
+                with self.assertRaises(SystemExit):
+                    parser.parse_args(
+                        [
+                            "--lane",
+                            "fuzz",
+                            "--cargo-metadata-timeout-seconds",
+                            value,
+                        ]
+                    )
 
 
 if __name__ == "__main__":

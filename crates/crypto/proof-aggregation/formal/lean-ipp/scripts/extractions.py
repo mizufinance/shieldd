@@ -1455,7 +1455,8 @@ def undeclared_rust_source_inventory_sha256(
                 continue
             inventory[repo_path] = cache.file_sha256(path)
 
-    digest = hashlib.sha256(canonical_json(inventory)).hexdigest()
+    sorted_inventory = dict(sorted(inventory.items()))
+    digest = hashlib.sha256(canonical_json(sorted_inventory)).hexdigest()
     cache._undeclared_rust_inventories[cache_key] = digest
     return digest
 

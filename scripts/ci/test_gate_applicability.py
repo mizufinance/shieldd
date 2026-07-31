@@ -137,6 +137,52 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn("declared skips", decision.explanation)
         self.assertIn("outside the declared closure", decision.matched[0]["reason"])
 
+    def test_cargo_metadata_timeout_is_forwarded_and_bounded(self) -> None:
+        metadata = {
+            "packages": [
+                {
+                    "name": "fixture",
+                    "manifest_path": str(self.root / "fixture/Cargo.toml"),
+                    "dependencies": [],
+                }
+            ]
+        }
+        completed = subprocess.CompletedProcess(
+            args=["cargo", "metadata"],
+            returncode=0,
+            stdout=json.dumps(metadata),
+            stderr="",
+        )
+        source = {
+            "packages": ["fixture"],
+            "tiers": {"default": "static"},
+            "reason": "fixture closure",
+        }
+        with patch.object(
+            GATE.subprocess, "run", return_value=completed
+        ) as run:
+            rules = GATE.cargo_closure_rules(
+                self.root,
+                source,
+                "pull_request",
+                metadata_timeout_seconds=240,
+            )
+        self.assertEqual(rules[0].patterns, ("fixture/**", "fixture/Cargo.toml"))
+        self.assertEqual(run.call_args.kwargs["timeout"], 240)
+
+        for timeout in (True, 0, -1, 901):
+            with self.subTest(timeout=timeout):
+                with self.assertRaisesRegex(
+                    GATE.ClassificationError,
+                    "integer from 1 through 900 seconds",
+                ):
+                    GATE.cargo_closure_rules(
+                        self.root,
+                        source,
+                        "pull_request",
+                        metadata_timeout_seconds=timeout,
+                    )
+
     def test_workspace_and_toolchain_inputs_select_declared_tiers(self) -> None:
         paths = (
             "Cargo.toml",

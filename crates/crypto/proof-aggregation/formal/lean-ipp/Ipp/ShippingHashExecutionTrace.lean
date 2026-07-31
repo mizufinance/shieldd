@@ -28,6 +28,136 @@ def pointSample
     (Ipp.ShippingHashGame.queryDecodedPointOracle
       encode mkPoint acceptable fuel 0)
 
+/-- Exact byte-level facts carried by one successful bounded point sample.
+The rejected prefix is explicit because the deployed trace records every
+attempt, not only the final accepted nonce. -/
+structure SuccessfulPointSample
+    {G1 G2 GT : Type}
+    (blake2b : List UInt8 → Ipp.ShippingHashGame.DigestBytes)
+    (encode : Ipp.ChallengePoint Fr G1 G2 GT → List UInt8)
+    (mkPoint : Nat → Ipp.ChallengePoint Fr G1 G2 GT)
+    (acceptable : Fr → Bool)
+    (fuel : Nat)
+    (value : Fr)
+    (nonce : Nat) : Prop where
+  nonce_lt_fuel : nonce < fuel
+  decode :
+    Ipp.ShippingHashGame.shippingDecodeFr
+        (blake2b (encode (mkPoint nonce))) =
+      some value
+  accepted : acceptable value = true
+  rejectedBefore : ∀ prior, prior < nonce →
+    ∀ priorValue,
+      Ipp.ShippingHashGame.shippingDecodeFr
+          (blake2b (encode (mkPoint prior))) =
+        some priorValue →
+      acceptable priorValue = false
+
+private theorem successfulPointSampleFrom_of_eval_eq_some
+    {G1 G2 GT : Type}
+    (blake2b : List UInt8 → Ipp.ShippingHashGame.DigestBytes)
+    (encode : Ipp.ChallengePoint Fr G1 G2 GT → List UInt8)
+    (mkPoint : Nat → Ipp.ChallengePoint Fr G1 G2 GT)
+    (acceptable : Fr → Bool)
+    (fuel start : Nat)
+    {value : Fr} {nonce : Nat}
+    (hexec :
+      evalWithAnswerFn blake2b
+          (Ipp.ShippingHashGame.queryDecodedPointOracle
+            encode mkPoint acceptable fuel start) =
+        some (value, nonce)) :
+    start ≤ nonce ∧ nonce < start + fuel ∧
+      Ipp.ShippingHashGame.shippingDecodeFr
+          (blake2b (encode (mkPoint nonce))) =
+        some value ∧
+      acceptable value = true ∧
+      ∀ prior, start ≤ prior → prior < nonce →
+        ∀ priorValue,
+          Ipp.ShippingHashGame.shippingDecodeFr
+              (blake2b (encode (mkPoint prior))) =
+            some priorValue →
+          acceptable priorValue = false := by
+  induction fuel generalizing start with
+  | zero =>
+      simp only [Ipp.ShippingHashGame.queryDecodedPointOracle,
+        evalWithAnswerFn_pure] at hexec
+      simp at hexec
+  | succ fuel ih =>
+      simp only [Ipp.ShippingHashGame.queryDecodedPointOracle,
+        evalWithAnswerFn_bind] at hexec
+      rw [show
+        evalWithAnswerFn blake2b
+            (liftM (Ipp.ShippingHashGame.Blake2bOracleSpec.query
+              (encode (mkPoint start)))) =
+          blake2b (encode (mkPoint start)) from
+        simulateQ_spec_query
+          (impl := blake2b) (encode (mkPoint start))] at hexec
+      rw [Ipp.ShippingHashGame.shippingDecodeFr_eq_some] at hexec
+      let current :=
+        Ipp.ShippingScalarReduction.reduceFr
+          (blake2b (encode (mkPoint start)))
+      by_cases haccepted : acceptable current = true
+      · simp only [current] at haccepted
+        simp only [haccepted, ↓reduceIte, evalWithAnswerFn_pure] at hexec
+        have hpairs :
+            (current, start) = (value, nonce) := by
+          simpa only [current] using Option.some.inj hexec
+        have hvalue : current = value := congrArg Prod.fst hpairs
+        have hnonce : start = nonce := congrArg Prod.snd hpairs
+        subst value
+        subst nonce
+        refine ⟨Nat.le_refl _, by omega, ?_, ?_, ?_⟩
+        · exact Ipp.ShippingHashGame.shippingDecodeFr_eq_some _
+        · simpa only [current] using haccepted
+        · intro prior _ hprior _ _
+          omega
+      · have hrejected : acceptable current = false :=
+          Bool.eq_false_of_not_eq_true haccepted
+        simp only [current] at hrejected
+        simp only [hrejected, Bool.false_eq_true, if_false] at hexec
+        obtain ⟨hstart, hnonce, hdecode, haccepted, hprior⟩ :=
+          ih (start + 1) hexec
+        refine ⟨by omega, by omega, hdecode, haccepted, ?_⟩
+        intro prior hstartPrior hpriorNonce priorValue hpriorDecode
+        by_cases hfirst : prior = start
+        · subst prior
+          have hvalue :
+              Ipp.ShippingScalarReduction.reduceFr
+                  (blake2b (encode (mkPoint start))) =
+                priorValue := by
+            exact Option.some.inj
+              ((Ipp.ShippingHashGame.shippingDecodeFr_eq_some _).symm.trans
+                hpriorDecode)
+          simpa only [hvalue] using hrejected
+        · exact hprior prior (by omega) hpriorNonce priorValue hpriorDecode
+
+/-- A successful deterministic point sample determines the exact accepted
+digest, every rejected predecessor, and a nonce inside the supplied fuel. -/
+theorem successfulPointSample_of_eq_some
+    {G1 G2 GT : Type}
+    (blake2b : List UInt8 → Ipp.ShippingHashGame.DigestBytes)
+    (encode : Ipp.ChallengePoint Fr G1 G2 GT → List UInt8)
+    (mkPoint : Nat → Ipp.ChallengePoint Fr G1 G2 GT)
+    (acceptable : Fr → Bool)
+    (fuel : Nat)
+    {value : Fr} {nonce : Nat}
+    (hexec :
+      pointSample blake2b encode mkPoint acceptable fuel =
+        some (value, nonce)) :
+    SuccessfulPointSample blake2b encode mkPoint acceptable fuel
+      value nonce := by
+  obtain ⟨_, hnonce, hdecode, haccepted, hbefore⟩ :=
+    successfulPointSampleFrom_of_eval_eq_some
+      blake2b encode mkPoint acceptable fuel 0
+        (by simpa only [pointSample] using hexec)
+  exact {
+    nonce_lt_fuel := by simpa using hnonce
+    decode := hdecode
+    accepted := haccepted
+    rejectedBefore := fun prior hlt =>
+      hbefore prior (Nat.zero_le _) hlt
+  }
+
 /-- Chronological predecessor selected by the recursive shipping round
 program.  This is definitionally the same schedule used by the extracted
 TIPP/MIPP verifier. -/
@@ -230,6 +360,171 @@ structure TranscriptExecution
         } nonce)
         Ipp.nonzeroB stmt.rejectionFuel =
       some (transcript.kzg, transcript.kzgNonce)
+
+/-- Exact successful-attempt facts for every stage of one transcript
+execution.  These projections are the handwritten target for the retained
+production challenge trace. -/
+namespace TranscriptExecution
+
+variable
+    {G1 G2 GT : Type}
+    [AddCommGroup G1] [Module Fr G1]
+    [AddCommGroup G2] [Module Fr G2]
+    [AddCommGroup GT] [Module Fr GT]
+    {μ : Nat}
+    {blake2b : List UInt8 → Ipp.ShippingHashGame.DigestBytes}
+    {encode : Ipp.ChallengePoint Fr G1 G2 GT → List UInt8}
+    {stmt : Ipp.FsStatement μ Fr G1 G2 GT}
+    {proof : Ipp.Proof μ Fr G1 G2 GT}
+    {transcript : Ipp.FsTranscript μ Fr}
+
+theorem randomizerSuccess
+    (execution :
+      TranscriptExecution blake2b encode stmt proof transcript) :
+    SuccessfulPointSample blake2b encode
+        (fun nonce => .randomizer {
+          comA := proof.ComA.1
+          comB := proof.ComB
+          comC := proof.ComA.2
+        } nonce)
+        Ipp.randomizerAcceptedB stmt.rejectionFuel
+        transcript.randomizer transcript.randomizerNonce :=
+  successfulPointSample_of_eq_some
+    blake2b encode
+      (fun nonce => .randomizer {
+        comA := proof.ComA.1
+        comB := proof.ComB
+        comC := proof.ComA.2
+      } nonce)
+      Ipp.randomizerAcceptedB stmt.rejectionFuel execution.randomizer
+
+theorem x0Success
+    (execution :
+      TranscriptExecution blake2b encode stmt proof transcript) :
+    SuccessfulPointSample blake2b encode
+        (fun nonce => .x0 {
+          r := transcript.randomizer
+          comA := proof.ComA.1
+          comB := proof.ComB
+          comC := proof.ComA.2
+          ipAb := proof.ipAb
+          aggC := proof.aggC
+        } nonce)
+        Ipp.nonzeroB stmt.rejectionFuel transcript.x0 transcript.x0Nonce :=
+  successfulPointSample_of_eq_some
+    blake2b encode
+      (fun nonce => .x0 {
+        r := transcript.randomizer
+        comA := proof.ComA.1
+        comB := proof.ComB
+        comC := proof.ComA.2
+        ipAb := proof.ipAb
+        aggC := proof.aggC
+      } nonce)
+      Ipp.nonzeroB stmt.rejectionFuel execution.x0
+
+theorem roundSuccess
+    (execution :
+      TranscriptExecution blake2b encode stmt proof transcript)
+    (i : Fin μ) :
+    SuccessfulPointSample blake2b encode
+        (fun nonce => .round
+          (transcript.roundPrev i) (proof.rounds i) nonce)
+        Ipp.nonzeroB stmt.rejectionFuel
+        (transcript.roundAnswer i) (transcript.roundNonce i) :=
+  successfulPointSample_of_eq_some
+    blake2b encode
+      (fun nonce => .round
+        (transcript.roundPrev i) (proof.rounds i) nonce)
+      Ipp.nonzeroB stmt.rejectionFuel (execution.round i)
+
+theorem bridgeSuccess
+    (execution :
+      TranscriptExecution blake2b encode stmt proof transcript) :
+    SuccessfulPointSample blake2b encode
+        (fun nonce => .bridge {
+          lastRawChallenge :=
+            priorAt transcript.roundAnswer transcript.x0 μ
+          vFinal := proof.vFinal
+          wFinal := proof.wFinal
+          aFinal := proof.aFinal
+          bFinal := proof.bFinal
+          cFinal := proof.cFinal
+        } nonce)
+        Ipp.nonzeroB stmt.rejectionFuel
+        transcript.bridge transcript.bridgeNonce :=
+  successfulPointSample_of_eq_some
+    blake2b encode
+      (fun nonce => .bridge {
+        lastRawChallenge :=
+          priorAt transcript.roundAnswer transcript.x0 μ
+        vFinal := proof.vFinal
+        wFinal := proof.wFinal
+        aFinal := proof.aFinal
+        bFinal := proof.bFinal
+        cFinal := proof.cFinal
+      } nonce)
+      Ipp.nonzeroB stmt.rejectionFuel execution.bridge
+
+theorem kzgSuccess
+    (execution :
+      TranscriptExecution blake2b encode stmt proof transcript) :
+    SuccessfulPointSample blake2b encode
+        (fun nonce => .kzg {
+          bridgeChallenge := transcript.bridge
+          vFinal := proof.vFinal
+          wFinal := proof.wFinal
+        } nonce)
+        Ipp.nonzeroB stmt.rejectionFuel transcript.kzg transcript.kzgNonce :=
+  successfulPointSample_of_eq_some
+    blake2b encode
+      (fun nonce => .kzg {
+        bridgeChallenge := transcript.bridge
+        vFinal := proof.vFinal
+        wFinal := proof.wFinal
+      } nonce)
+      Ipp.nonzeroB stmt.rejectionFuel execution.kzg
+
+theorem randomizer_ne_zero
+    (execution :
+      TranscriptExecution blake2b encode stmt proof transcript) :
+    transcript.randomizer ≠ 0 := by
+  have hadmissible :
+      transcript.randomizer ≠ 0 ∧ transcript.randomizer ≠ 1 := by
+    simpa only [Ipp.randomizerAcceptedB, decide_eq_true_eq] using
+      execution.randomizerSuccess.accepted
+  exact hadmissible.1
+
+theorem x0_ne_zero
+    (execution :
+      TranscriptExecution blake2b encode stmt proof transcript) :
+    transcript.x0 ≠ 0 := by
+  simpa only [Ipp.nonzeroB, decide_eq_true_eq] using
+    execution.x0Success.accepted
+
+theorem round_ne_zero
+    (execution :
+      TranscriptExecution blake2b encode stmt proof transcript)
+    (i : Fin μ) :
+    transcript.roundAnswer i ≠ 0 := by
+  simpa only [Ipp.nonzeroB, decide_eq_true_eq] using
+    (execution.roundSuccess i).accepted
+
+theorem bridge_ne_zero
+    (execution :
+      TranscriptExecution blake2b encode stmt proof transcript) :
+    transcript.bridge ≠ 0 := by
+  simpa only [Ipp.nonzeroB, decide_eq_true_eq] using
+    execution.bridgeSuccess.accepted
+
+theorem kzg_ne_zero
+    (execution :
+      TranscriptExecution blake2b encode stmt proof transcript) :
+    transcript.kzg ≠ 0 := by
+  simpa only [Ipp.nonzeroB, decide_eq_true_eq] using
+    execution.kzgSuccess.accepted
+
+end TranscriptExecution
 
 /-- A successful deterministic execution of
 `shippingTranscriptOptionOracle` carries its complete sampler trace. -/

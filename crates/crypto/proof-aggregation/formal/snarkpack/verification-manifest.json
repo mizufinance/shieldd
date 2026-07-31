@@ -2,7 +2,7 @@
   "schema_version": 1,
   "fstar_checker_evidence": {
     "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
-    "sha256": "bb814d6f7d161f667f6f21dc4e7b0e5dd10ab4fad7f34615d1a3d61f5d12f13b"
+    "sha256": "dc4bde7e57b50e45f1eb8c6c2f4f3b6b58021517a55be8f0a4548c7cbf58e6c0"
   },
   "deployed_srs_evidence": {
     "schema_version": 1,
@@ -161,7 +161,7 @@
         },
         {
           "path": "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
-          "sha256": "b6ac83e52b906058c0a7845713b7f7213d68014d2d550c75a9ff26833dadf66d"
+          "sha256": "e6fc5ef060dc8d75806198a8d3ec4e72b28f1e20306e27d7569a46c3c9ace8f9"
         },
         {
           "path": "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
@@ -180,7 +180,7 @@
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "stale"
+        "last_result": "pass"
       }
     },
     {
@@ -209,15 +209,15 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
-          "sha256": "5695d450b975a1acec634f51fdb18efad9e9845a1b843396cb237db09ae225cb"
+          "sha256": "1bdef1becfa2eace13e0ce92ff0927389951ca67027efb59c1d13ae9c6229859"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/padding.rs",
-          "sha256": "77894e236ab8096de56bd144046f3439dc0dec829dd7ffd2cfa489a6935c4afd"
+          "sha256": "8fab65ea4af03154d6637fbe3f5136eb4670c9f0f52d6ae0ee5dc50387d662be"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/srs.rs",
-          "sha256": "418857b36ed962a409c3563b1dbbbf60c2ed67150f977b64130f40ecd1b7133e"
+          "sha256": "d3dbe1fd1c5ee56396933582b123fdbf6c34eaf304cbc4225a4be35ceb2eb892"
         },
         {
           "path": "scripts/snarkpack-formal.sh",
@@ -228,7 +228,7 @@
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "stale"
+        "last_result": "pass"
       }
     },
     {
@@ -244,15 +244,15 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
-          "sha256": "5695d450b975a1acec634f51fdb18efad9e9845a1b843396cb237db09ae225cb"
+          "sha256": "1bdef1becfa2eace13e0ce92ff0927389951ca67027efb59c1d13ae9c6229859"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/padding.rs",
-          "sha256": "77894e236ab8096de56bd144046f3439dc0dec829dd7ffd2cfa489a6935c4afd"
+          "sha256": "8fab65ea4af03154d6637fbe3f5136eb4670c9f0f52d6ae0ee5dc50387d662be"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/srs.rs",
-          "sha256": "418857b36ed962a409c3563b1dbbbf60c2ed67150f977b64130f40ecd1b7133e"
+          "sha256": "d3dbe1fd1c5ee56396933582b123fdbf6c34eaf304cbc4225a4be35ceb2eb892"
         },
         {
           "path": "scripts/snarkpack-formal.sh",
@@ -263,7 +263,7 @@
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "stale"
+        "last_result": "pass"
       }
     },
     {
@@ -294,7 +294,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
-          "sha256": "5695d450b975a1acec634f51fdb18efad9e9845a1b843396cb237db09ae225cb"
+          "sha256": "1bdef1becfa2eace13e0ce92ff0927389951ca67027efb59c1d13ae9c6229859"
         }
       ],
       "toolchain_role": "external",
@@ -313,7 +313,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
-          "sha256": "5695d450b975a1acec634f51fdb18efad9e9845a1b843396cb237db09ae225cb"
+          "sha256": "1bdef1becfa2eace13e0ce92ff0927389951ca67027efb59c1d13ae9c6229859"
         }
       ],
       "toolchain_role": "external",
@@ -332,7 +332,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
-          "sha256": "5695d450b975a1acec634f51fdb18efad9e9845a1b843396cb237db09ae225cb"
+          "sha256": "1bdef1becfa2eace13e0ce92ff0927389951ca67027efb59c1d13ae9c6229859"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
@@ -1280,7 +1280,7 @@
         "ARKWORKS-AGGREGATE-PROOF-DECODE",
         "ARKWORKS-CHALLENGE-SERIALIZATION"
       ],
-      "evidence": "Kernel-audited conditional composition keeps raw adapter acceptance independent of semantic conclusions and derives v1 acceptance from ShippingVerifierRefinementContracts plus ArkworksChallengeOracleAnswers. The generated app_verify_shipping_projection_core equation now derives the application family/count projection. Remaining inputs still contain exact external postconditions for BLS12-377 bilinearity, inverse/singleton pairing/singleton MSM, prepared-VK Aic projection, both KZG equations, decoded proof fields, statement rows/SRS, and canonical component serializers. This theorem is not yet a complete concrete Rust-call construction theorem.",
+      "evidence": "Kernel-audited conditional composition keeps raw adapter acceptance independent of semantic conclusions and derives v1 acceptance from ShippingVerifierRefinementContracts plus ArkworksChallengeOracleAnswers. Sampler admissibility is an explicit argument of this abstract non-hash root rather than a field hidden in ShippingVerifierExternalContracts; the deployed caller derives it from the exact executed sampler trace. The generated app_verify_shipping_projection_core equation now derives the application family/count projection. Remaining inputs still contain exact external postconditions for BLS12-377 bilinearity, inverse/singleton pairing/singleton MSM, prepared-VK Aic projection, both KZG equations, decoded proof fields, statement rows/SRS, and canonical component serializers. This theorem is not yet a complete concrete Rust-call construction theorem.",
       "status": "proved"
     },
     {
@@ -1416,7 +1416,7 @@
         "DEPLOYED-BLAKE2B-EXECUTION",
         "RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT"
       ],
-      "evidence": "Open only at concrete effect installation and deployed primitive instantiation. The live verifier retains the exact randomizer call and chronological X0, round, bridge, and KZG calls in one semantic execution. acceptedOperationalCalls_of_adapterRun inverts the generic accepted path at that execution's real initial effect. AcceptedRunCallProjection is now indexed by that exact accepted execution's initial and final effects, rather than demanding the same trace projection for every possible effect pair. arkworksTrace_of_runChallengeTrace_and_transcriptExecution identifies every retained challenge value with the deterministic shipping byte program from equal deployed-sampler equations, including the inductive round chain, without assuming transcript equality or replay from arbitrary effect states. acceptedExecution_challengePrimitiveContract combines that bridge with the randomizer execution, and deployedChallengePrimitiveContract_of_postconditions constructs the complete contract for every supported accepted execution from the two exact Blake2b/Arkworks-Fr postconditions plus the execution-indexed projection. The pending AggregateAdapter roots retain that complete semantic execution, correlate its accepted result, and derive the chronological byte observation before Arc ownership; the pending AppVerifier roots preserve the exact identity-checked record and accept its joined list only when no rejected identifier remains. Production performs that final join check after reducer acceptance and profile merging. Closure requires the generated equations to construct AcceptedRunCallProjection and the named deployed Blake2b and Fr-reduction postconditions. RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT preserves the exact pre-Arc shared execution/observation payload through Arc and the backend/application carriers; it supplies no cache, scheduling, or oracle-distribution semantics, and no universal-effect or replay premise remains. The observation-only bench-baseline feature is outside this shipping FV claim.",
+      "evidence": "Open only at concrete effect installation and deployed primitive instantiation. The live verifier retains the exact randomizer call and chronological X0, round, bridge, and KZG calls in one semantic execution. acceptedOperationalCalls_of_adapterRun inverts the generic accepted path at that execution's real initial effect. AcceptedRunCallProjection is indexed by that exact accepted execution's initial and final effects, rather than demanding the same trace projection for every possible effect pair. SuccessfulPointSample now derives the exact accepted digest/value, nonce bound, and every prior rejected attempt from deterministic bounded-sampler execution. TranscriptExecution derives randomizer, X0, round, bridge, and KZG admissibility from those executions, so arkworksTrace_of_runChallengeTrace_and_transcriptExecution and the deployed real-to-v1 composition no longer consume caller-supplied challenge-admissibility fields. The abstract non-hash v1 theorem keeps admissibility visible as an explicit argument. acceptedExecution_challengePrimitiveContract combines the trace bridge with the randomizer execution, and deployedChallengePrimitiveContract_of_postconditions constructs the complete contract for every supported accepted execution from the two exact Blake2b/Arkworks-Fr postconditions plus the execution-indexed projection. The pending AggregateAdapter roots retain that complete semantic execution, correlate its accepted result, and derive the chronological byte observation before Arc ownership; the pending AppVerifier roots preserve the exact identity-checked record and accept its joined list only when no rejected identifier remains. Production performs that final join check after reducer acceptance and profile merging. Closure requires the generated equations to construct AcceptedRunCallProjection and the named deployed Blake2b and Fr-reduction postconditions. RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT preserves the exact pre-Arc shared execution/observation payload through Arc and the backend/application carriers; it supplies no cache, scheduling, or oracle-distribution semantics, and no universal-effect or replay premise remains. The observation-only bench-baseline feature is outside this shipping FV claim.",
       "status": "open"
     },
     {

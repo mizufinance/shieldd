@@ -118,6 +118,9 @@ LANE_CONTROLS = {
     ),
 }
 
+DEFAULT_CARGO_METADATA_TIMEOUT_SECONDS = 180
+MAX_CARGO_METADATA_TIMEOUT_SECONDS = 900
+
 
 class FingerprintError(RuntimeError):
     """The lane's exact tracked input set could not be established."""
@@ -141,7 +144,39 @@ def _load_gate_module(root: Path):
     return module
 
 
-def local_package_closure(root: Path, packages: Sequence[str]) -> tuple[Path, ...]:
+def _validated_cargo_metadata_timeout(value: int) -> int:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, int)
+        or not 1 <= value <= MAX_CARGO_METADATA_TIMEOUT_SECONDS
+    ):
+        raise FingerprintError(
+            "cargo metadata timeout must be an integer from 1 through "
+            f"{MAX_CARGO_METADATA_TIMEOUT_SECONDS} seconds"
+        )
+    return value
+
+
+def _cargo_metadata_timeout_argument(value: str) -> int:
+    try:
+        parsed = int(value, 10)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(
+            "cargo metadata timeout must be an integer"
+        ) from error
+    try:
+        return _validated_cargo_metadata_timeout(parsed)
+    except FingerprintError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
+
+
+def local_package_closure(
+    root: Path,
+    packages: Sequence[str],
+    *,
+    metadata_timeout_seconds: int = DEFAULT_CARGO_METADATA_TIMEOUT_SECONDS,
+) -> tuple[Path, ...]:
+    timeout = _validated_cargo_metadata_timeout(metadata_timeout_seconds)
     gate = _load_gate_module(root)
     source = {
         "packages": list(packages),
@@ -149,7 +184,12 @@ def local_package_closure(root: Path, packages: Sequence[str]) -> tuple[Path, ..
         "reason": "SnarkPack lane fingerprint",
     }
     try:
-        rules = gate.cargo_closure_rules(root, source, "pull_request")
+        rules = gate.cargo_closure_rules(
+            root,
+            source,
+            "pull_request",
+            metadata_timeout_seconds=timeout,
+        )
     except (OSError, RuntimeError, TypeError, ValueError) as error:
         raise FingerprintError(
             f"cannot resolve local Cargo closure: {error}"
@@ -265,10 +305,20 @@ def tracked_fingerprint(
     return digest.hexdigest()
 
 
-def fingerprint(root: Path, lane: str, contexts: Iterable[str]) -> str:
+def fingerprint(
+    root: Path,
+    lane: str,
+    contexts: Iterable[str],
+    *,
+    metadata_timeout_seconds: int = DEFAULT_CARGO_METADATA_TIMEOUT_SECONDS,
+) -> str:
     if lane not in LANE_PACKAGES:
         raise FingerprintError(f"unknown SnarkPack lane: {lane}")
-    closure = local_package_closure(root, LANE_PACKAGES[lane])
+    closure = local_package_closure(
+        root,
+        LANE_PACKAGES[lane],
+        metadata_timeout_seconds=metadata_timeout_seconds,
+    )
     controls = COMMON_CONTROLS + LANE_CONTROLS[lane]
     return tracked_fingerprint(root, lane, (*closure, *controls), contexts)
 
@@ -278,13 +328,27 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--lane", required=True, choices=sorted(LANE_PACKAGES))
     result.add_argument("--context", action="append", default=[])
     result.add_argument("--github-output", type=Path)
+    result.add_argument(
+        "--cargo-metadata-timeout-seconds",
+        type=_cargo_metadata_timeout_argument,
+        default=DEFAULT_CARGO_METADATA_TIMEOUT_SECONDS,
+        help=(
+            "bounded cargo metadata timeout used to resolve the local package "
+            f"closure (default: {DEFAULT_CARGO_METADATA_TIMEOUT_SECONDS})"
+        ),
+    )
     return result
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parser().parse_args(argv)
     try:
-        value = fingerprint(ROOT, args.lane, args.context)
+        value = fingerprint(
+            ROOT,
+            args.lane,
+            args.context,
+            metadata_timeout_seconds=args.cargo_metadata_timeout_seconds,
+        )
         if args.github_output is None:
             print(value)
         else:

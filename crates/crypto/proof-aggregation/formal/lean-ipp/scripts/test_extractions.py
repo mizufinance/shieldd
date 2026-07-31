@@ -187,6 +187,60 @@ class ExtractionManifestTests(unittest.TestCase):
         self.assertEqual(deleted, baseline)
         self.assertEqual(declared_only, baseline)
 
+    def test_undeclared_rust_inventory_is_independent_of_traversal_order(self):
+        with tempfile.TemporaryDirectory(
+            prefix="extractions-undeclared-rust-order-"
+        ) as directory:
+            repo_root = Path(directory)
+            crate = repo_root / "crates/example"
+            source = crate / "src"
+            source.mkdir(parents=True)
+            (crate / "Cargo.toml").write_text(
+                '[package]\nname = "example"\nversion = "0.1.0"\n',
+                encoding="utf-8",
+            )
+            first_source = source / "first.rs"
+            second_source = source / "second.rs"
+            first_source.write_text("pub fn first() {}\n", encoding="utf-8")
+            second_source.write_text("pub fn second() {}\n", encoding="utf-8")
+            manifest = {
+                "graphs": [
+                    {
+                        "crate_manifest": "crates/example/Cargo.toml",
+                        "source_files": [],
+                    }
+                ]
+            }
+
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS.Path,
+                    "rglob",
+                    return_value=[second_source, first_source],
+                ),
+            ):
+                reverse_traversal = (
+                    EXTRACTIONS.undeclared_rust_source_inventory_sha256(
+                        manifest
+                    )
+                )
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS.Path,
+                    "rglob",
+                    return_value=[first_source, second_source],
+                ),
+            ):
+                forward_traversal = (
+                    EXTRACTIONS.undeclared_rust_source_inventory_sha256(
+                        manifest
+                    )
+                )
+
+        self.assertEqual(reverse_traversal, forward_traversal)
+
     def test_ci_fingerprint_binds_undeclared_rust_inventory(self):
         graph = copy.deepcopy(self.manifest["graphs"][0])
         with tempfile.TemporaryDirectory(

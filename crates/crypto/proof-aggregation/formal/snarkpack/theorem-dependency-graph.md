@@ -62,9 +62,9 @@ flowchart LR
   a22["DEPLOYED-BLAKE2B-EXECUTION<br/>assumed"]
   a23["ARKWORKS-PROVER-CURVE-OPERATIONS<br/>assumed"]
   a24["WELL-FORMED-PROVING-SRS<br/>assumed"]
-  e0["contract:familyRegistered<br/>stale"]
-  e1["contract:canonicalStatementExact<br/>stale"]
-  e2["contract:canonicalStatementInjective<br/>stale"]
+  e0["contract:familyRegistered<br/>pass"]
+  e1["contract:canonicalStatementExact<br/>pass"]
+  e2["contract:canonicalStatementInjective<br/>pass"]
   e3["contract:vkDigestPreimageInjective<br/>stale"]
   e4["contract:vkDigestExact<br/>stale"]
   e5["contract:statementDigestExact<br/>stale"]
@@ -235,8 +235,8 @@ flowchart LR
   class n31,n32 tested
   class n6,n17,n18,n19,n21,n22,n23,n25,n26,n28,n29 open
   class a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24 assumed
-  class e8 evidencePass
-  class e0,e1,e2,e3,e4,e5,e6,e7,e9,e10,e11 evidenceStale
+  class e0,e1,e2,e8 evidencePass
+  class e3,e4,e5,e6,e7,e9,e10,e11 evidenceStale
 ```
 
 Open graph claims: `DEPLOYED-SRS-SOUNDNESS`, `SHIPPING-TO-GOAL`, `STATEMENT-PROJECTION-CONSTRUCTION`, `CANONICAL-STATEMENT-BINDING`, `SHIPPING-PROVER-REFINEMENT`, `RUST-CALL-CONSTRUCTION`, `DEPLOYED-HASH-TRACE-CONSTRUCTION`, `ADAPTIVE-SHA256-COUPLING`, `ADAPTIVE-ADVERSARY-COUPLING`, `BUNDLE-LEVEL-COMPOSITION`, `FULL-ADAPTIVE-END-TO-END-FV`. The manifest dependencies keep the explicit modular-reduction budget and the distinct SHA-256 and Blake2b security advantages separate. `SHIPPING-TO-GOAL` is `open` and `FULL-ADAPTIVE-END-TO-END-FV` is `open`. Every F* statement-contract row must carry a source-digest-pinned `pass` result.

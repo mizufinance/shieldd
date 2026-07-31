@@ -80,8 +80,9 @@ def ShippingCallExecutionBoundary.toAccepted
 
 The linkage equations prevent a witness from selecting unrelated declared,
 planned, or reducer data.  `execution` contains only concrete extracted
-result/effect equations.  `refinement` and `challengeAnswers` are precisely the
-inputs of the existing per-call refinement theorem. -/
+result/effect equations. `challengeAdmissible` remains explicit because this
+is the abstract non-hash composition; the deployed path derives it from the
+bounded sampler execution. -/
 structure ShippingBundleCallWitness
     (declared : alloc.vec.Vec ExpectedCall)
     (expected : alloc.vec.Vec CallId)
@@ -98,6 +99,7 @@ structure ShippingBundleCallWitness
   execution : ShippingCallExecutionBoundary data transcript
   refinement : ShippingVerifierRefinementContracts data
   applicationDeclaredExact : refinement.application.declared = declared
+  challengeAdmissible : ShippingTranscriptAdmissible transcript
   challengeAnswers :
     ArkworksChallengeOracleAnswers data.primitive data.serialization
       data.proof transcript execution.effect
@@ -172,6 +174,7 @@ structure ShippingPerCallRefinement
   execution :
     ShippingCallExecutionBoundary call.data call.transcript
   external : ShippingVerifierExternalContracts call.data
+  challengeAdmissible : ShippingTranscriptAdmissible call.transcript
   challengeAnswers :
     ArkworksChallengeOracleAnswers call.data.primitive
       call.data.serialization call.data.proof call.transcript execution.effect
@@ -202,6 +205,7 @@ def ShippingPlannedCall.toWitness
       external := perCall.external
     }
   applicationDeclaredExact := call.applicationDeclaredExact
+  challengeAdmissible := perCall.challengeAdmissible
   challengeAnswers := perCall.challengeAnswers
 
 /-- Bundle-wide production construction.  Every planned full identifier
@@ -276,7 +280,8 @@ theorem ShippingBundleCallWitness.refinesV1
   let execution :=
     witness.execution.toAccepted planned' reducerAccepted'
   have refined :=
-    execution.refines witness.refinement witness.challengeAnswers
+    execution.refines witness.refinement witness.challengeAdmissible
+      witness.challengeAnswers
   exact ⟨{
     D := witness.D
     μ := witness.μ

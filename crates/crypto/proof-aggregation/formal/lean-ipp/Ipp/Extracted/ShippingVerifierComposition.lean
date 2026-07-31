@@ -972,8 +972,9 @@ def ShippingCallData.AcceptedAt
   Nonempty (AcceptedShippingExecutionAt data transcript)
 
 /-- Irreducible cross-kernel contracts needed after extracted caller and
-adapter control flow. Each field names one external serialization, curve,
-sampler, or KZG boundary; none asserts application acceptance. -/
+adapter control flow. Each field names one external serialization, curve, or
+KZG boundary; none asserts application acceptance or challenge
+admissibility. -/
 structure ShippingVerifierExternalContracts
     {D : Type} {μ arity : Nat}
     (data : ShippingCallData D μ arity) where
@@ -996,10 +997,6 @@ structure ShippingVerifierExternalContracts
       ArkworksDecodedProofContract data.hbilinear data.baseStmt
         data.input.decodedProof data.proof transcript
         data.srs.g data.srs.g_beta data.srs.h data.srs.h_alpha
-  challengeAdmissible :
-    ∀ transcript
-      (_execution : AcceptedShippingExecutionAt data transcript),
-      ShippingTranscriptAdmissible transcript
   kzg :
     ∀ transcript
       (execution : AcceptedShippingExecutionAt data transcript),
@@ -1025,6 +1022,7 @@ theorem AcceptedShippingExecutionAt.refines
     {transcript : Ipp.FsTranscript μ Fr}
     (execution : AcceptedShippingExecutionAt data transcript)
     (refinement : ShippingVerifierRefinementContracts data)
+    (challengeAdmissible : ShippingTranscriptAdmissible transcript)
     (challengeAnswers :
       ArkworksChallengeOracleAnswers data.primitive data.serialization
         data.proof transcript execution.effect) :
@@ -1048,7 +1046,7 @@ theorem AcceptedShippingExecutionAt.refines
     execution.effect execution.finalEffect execution.tippPairing
     execution.ppePairing data.tippOutcome data.ppeOutcome
     challengeAnswers
-    (refinement.external.challengeAdmissible transcript execution)
+    challengeAdmissible
     (refinement.external.kzg transcript execution)
   simpa [ShippingCallData.AdapterAcceptedAt] using execution.adapter
 
@@ -1057,6 +1055,7 @@ theorem ShippingCallData.acceptedAt_view
     {transcript : Ipp.FsTranscript μ Fr}
     (haccepted : data.AcceptedAt transcript)
     (refinement : ShippingVerifierRefinementContracts data)
+    (challengeAdmissible : ShippingTranscriptAdmissible transcript)
     (challengeAnswers :
       ∀ execution : AcceptedShippingExecutionAt data transcript,
         ArkworksChallengeOracleAnswers data.primitive data.serialization
@@ -1067,19 +1066,22 @@ theorem ShippingCallData.acceptedAt_view
       data.serializeG1 data.deserializeG1 data.serializeG2
       data.deserializeG2 := by
   rcases haccepted with ⟨execution⟩
-  exact execution.refines refinement (challengeAnswers execution)
+  exact execution.refines refinement challengeAdmissible
+    (challengeAnswers execution)
 
 theorem ShippingCallData.acceptedAt_refines_v1
     {D : Type} {μ arity : Nat} (data : ShippingCallData D μ arity)
     {transcript : Ipp.FsTranscript μ Fr}
     (haccepted : data.AcceptedAt transcript)
     (refinement : ShippingVerifierRefinementContracts data)
+    (challengeAdmissible : ShippingTranscriptAdmissible transcript)
     (challengeAnswers :
       ∀ execution : AcceptedShippingExecutionAt data transcript,
         ArkworksChallengeOracleAnswers data.primitive data.serialization
           data.proof transcript execution.effect) :
     Ipp.SnarkPackV1.Accepts data.statement data.proof transcript :=
-  (data.acceptedAt_view haccepted refinement challengeAnswers).accepts
+  (data.acceptedAt_view haccepted refinement challengeAdmissible
+    challengeAnswers).accepts
 
 theorem ShippingCallData.acceptedAt_binds_input
     {D : Type} {μ arity : Nat} (data : ShippingCallData D μ arity)
