@@ -375,7 +375,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "sha256": "6105ad129d3c455c810ff5feef2c654e00d8e5b7f2c7dfe00d56d27a49a8a3ed"
+          "sha256": "803afb9a034b918eaa094d63408f64f127b12ba5b1203b5a95e1efbcb19e65f0"
         }
       ],
       "toolchain_role": "external",

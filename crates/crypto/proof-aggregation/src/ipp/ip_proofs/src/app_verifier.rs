@@ -652,21 +652,28 @@ fn app_verify_serialized_rows_have_arity(rows: &[Vec<Vec<u8>>], expected: usize)
 /// Structural equality for serialized rows using only concrete byte-vector
 /// equality. This avoids treating an opaque field `PartialEq` result as a
 /// proposition in the formal model.
+fn app_verify_serialized_row_equal(left: &[Vec<u8>], right: &[Vec<u8>]) -> bool {
+    if left.len() != right.len() {
+        return false;
+    }
+    let mut field_index = 0usize;
+    while field_index < left.len() {
+        if left[field_index] != right[field_index] {
+            return false;
+        }
+        field_index += 1;
+    }
+    true
+}
+
 fn app_verify_serialized_rows_equal(left: &[Vec<Vec<u8>>], right: &[Vec<Vec<u8>>]) -> bool {
     if left.len() != right.len() {
         return false;
     }
     let mut row_index = 0usize;
     while row_index < left.len() {
-        if left[row_index].len() != right[row_index].len() {
+        if !app_verify_serialized_row_equal(&left[row_index], &right[row_index]) {
             return false;
-        }
-        let mut field_index = 0usize;
-        while field_index < left[row_index].len() {
-            if left[row_index][field_index] != right[row_index][field_index] {
-                return false;
-            }
-            field_index += 1;
         }
         row_index += 1;
     }

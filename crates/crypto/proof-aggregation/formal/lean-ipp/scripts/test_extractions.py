@@ -712,7 +712,7 @@ class ExtractionManifestTests(unittest.TestCase):
             [
                 *graph["source_files"],
                 "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
-                "statement_binding.rs",
+                "new_source.rs",
             ]
         )
         manifest["graphs"].append(graph)

@@ -146,11 +146,6 @@ def applications.groth16_aggregation.verify_tipp_mipp_execution_core.closure (F
   Type) (FX : Type) (PE : Type) :=
   applications.groth16_aggregation.TippMippCoreInput F G1 G2 GT ABT CT × G2 ×
   G2 × alloc.vec.Vec F × F × PE
-@[reducible]
-def applications.groth16_aggregation.verify_tipp_mipp_core.closure (F : Type)
-  (G1 : Type) (G2 : Type) (GT : Type) (ABT : Type) (CT : Type) (E : Type) (FX :
-  Type) (PE : Type) :=
-Unit
 def mul_helper
   {T : Type} {F : Type} (coreopsarithMulAssignInst : core.ops.arith.MulAssign T
   F) (corecloneCloneInst : core.clone.Clone T) (corecloneCloneInst1 :
@@ -1128,76 +1123,6 @@ def applications.groth16_aggregation.verify_tipp_mipp_execution_core
         (applications.groth16_aggregation.TippMippCoreOutput F GT ABT CT)
         (core.convert.FromSame E) residual
     ok (r1, effect1)
-def
-  applications.groth16_aggregation.verify_tipp_mipp_core.closure.Insts.CoreOpsFunctionFnOnceTupleTippMippCoreOutputBool.call_once
-  {F : Type} {G1 : Type} {G2 : Type} {GT : Type} {ABT : Type} {CT : Type} {E :
-  Type} {FX : Type} {PE : Type} (corecloneCloneInst : core.clone.Clone F)
-  (num_traitsidentitiesOneInst : num_traits.identities.One F)
-  (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithMulInst :
-  core.ops.arith.Mul F F F) (corecloneCloneInst1 : core.clone.Clone G1)
-  (coreopsarithMulInst1 : core.ops.arith.Mul G1 F G1) (coreopsarithSubInst :
-  core.ops.arith.Sub G1 G1 G1) (coreopsarithNegInst : core.ops.arith.Neg G1 G1)
-  (corecloneCloneInst2 : core.clone.Clone G2) (coreopsarithMulInst2 :
-  core.ops.arith.Mul G2 F G2) (coreopsarithSubInst1 : core.ops.arith.Sub G2 G2
-  G2) (corecloneCloneInst3 : core.clone.Clone GT) (coredefaultDefaultInst :
-  core.default.Default GT) (coreopsarithAddInst1 : core.ops.arith.Add GT GT GT)
-  (coreopsarithMulAssignInst : core.ops.arith.MulAssign GT F)
-  (num_traitsidentitiesZeroInst : num_traits.identities.Zero GT)
-  (corecloneCloneInst4 : core.clone.Clone ABT) (coredefaultDefaultInst1 :
-  core.default.Default ABT) (coreopsarithAddInst2 : core.ops.arith.Add ABT ABT
-  ABT) (coreopsarithMulAssignInst1 : core.ops.arith.MulAssign ABT F)
-  (corecloneCloneInst5 : core.clone.Clone CT) (coredefaultDefaultInst2 :
-  core.default.Default CT) (coreopsarithAddInst3 : core.ops.arith.Add CT CT CT)
-  (coreopsarithMulAssignInst2 : core.ops.arith.MulAssign CT F)
-  (TippMippEffectInst : applications.groth16_aggregation.TippMippEffect FX F G1
-  G2 GT ABT CT E) (tipaPairingEffectInst : tipa.PairingEffect PE G1 G2 GT)
-  (c : applications.groth16_aggregation.verify_tipp_mipp_core.closure F G1 G2
-  GT ABT CT E FX PE)
-  (tupled_args : applications.groth16_aggregation.TippMippCoreOutput F GT ABT
-  CT) :
-  Result Bool
-  := do
-  ok tupled_args.accepted
-@[reducible]
-def
-  applications.groth16_aggregation.verify_tipp_mipp_core.closure.Insts.CoreOpsFunctionFnOnceTupleTippMippCoreOutputBool
-  {F : Type} {G1 : Type} {G2 : Type} {GT : Type} {ABT : Type} {CT : Type} {E :
-  Type} {FX : Type} {PE : Type} (corecloneCloneInst : core.clone.Clone F)
-  (num_traitsidentitiesOneInst : num_traits.identities.One F)
-  (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithMulInst :
-  core.ops.arith.Mul F F F) (corecloneCloneInst1 : core.clone.Clone G1)
-  (coreopsarithMulInst1 : core.ops.arith.Mul G1 F G1) (coreopsarithSubInst :
-  core.ops.arith.Sub G1 G1 G1) (coreopsarithNegInst : core.ops.arith.Neg G1 G1)
-  (corecloneCloneInst2 : core.clone.Clone G2) (coreopsarithMulInst2 :
-  core.ops.arith.Mul G2 F G2) (coreopsarithSubInst1 : core.ops.arith.Sub G2 G2
-  G2) (corecloneCloneInst3 : core.clone.Clone GT) (coredefaultDefaultInst :
-  core.default.Default GT) (coreopsarithAddInst1 : core.ops.arith.Add GT GT GT)
-  (coreopsarithMulAssignInst : core.ops.arith.MulAssign GT F)
-  (num_traitsidentitiesZeroInst : num_traits.identities.Zero GT)
-  (corecloneCloneInst4 : core.clone.Clone ABT) (coredefaultDefaultInst1 :
-  core.default.Default ABT) (coreopsarithAddInst2 : core.ops.arith.Add ABT ABT
-  ABT) (coreopsarithMulAssignInst1 : core.ops.arith.MulAssign ABT F)
-  (corecloneCloneInst5 : core.clone.Clone CT) (coredefaultDefaultInst2 :
-  core.default.Default CT) (coreopsarithAddInst3 : core.ops.arith.Add CT CT CT)
-  (coreopsarithMulAssignInst2 : core.ops.arith.MulAssign CT F)
-  (TippMippEffectInst : applications.groth16_aggregation.TippMippEffect FX F G1
-  G2 GT ABT CT E) (tipaPairingEffectInst : tipa.PairingEffect PE G1 G2 GT) :
-  core.ops.function.FnOnce
-  (applications.groth16_aggregation.verify_tipp_mipp_core.closure F G1 G2 GT
-  ABT CT E FX PE) (applications.groth16_aggregation.TippMippCoreOutput F GT ABT
-  CT) Bool := {
-  call_once :=
-    applications.groth16_aggregation.verify_tipp_mipp_core.closure.Insts.CoreOpsFunctionFnOnceTupleTippMippCoreOutputBool.call_once
-    corecloneCloneInst num_traitsidentitiesOneInst coreopsarithAddInst
-    coreopsarithMulInst corecloneCloneInst1 coreopsarithMulInst1
-    coreopsarithSubInst coreopsarithNegInst corecloneCloneInst2
-    coreopsarithMulInst2 coreopsarithSubInst1 corecloneCloneInst3
-    coredefaultDefaultInst coreopsarithAddInst1 coreopsarithMulAssignInst
-    num_traitsidentitiesZeroInst corecloneCloneInst4 coredefaultDefaultInst1
-    coreopsarithAddInst2 coreopsarithMulAssignInst1 corecloneCloneInst5
-    coredefaultDefaultInst2 coreopsarithAddInst3 coreopsarithMulAssignInst2
-    TippMippEffectInst tipaPairingEffectInst
-}
 def applications.groth16_aggregation.verify_tipp_mipp_core
   {F : Type} {G1 : Type} {G2 : Type} {GT : Type} {ABT : Type} {CT : Type} {E :
   Type} {FX : Type} {PE : Type} (corecloneCloneInst : core.clone.Clone F)
@@ -1235,18 +1160,9 @@ def applications.groth16_aggregation.verify_tipp_mipp_core
       coreopsarithAddInst2 coreopsarithMulAssignInst1 corecloneCloneInst5
       coredefaultDefaultInst2 coreopsarithAddInst3 coreopsarithMulAssignInst2
       TippMippEffectInst tipaPairingEffectInst input effect pairing
-  let r1 ←
-    core.result.Result.map
-      (applications.groth16_aggregation.verify_tipp_mipp_core.closure.Insts.CoreOpsFunctionFnOnceTupleTippMippCoreOutputBool
-      corecloneCloneInst num_traitsidentitiesOneInst coreopsarithAddInst
-      coreopsarithMulInst corecloneCloneInst1 coreopsarithMulInst1
-      coreopsarithSubInst coreopsarithNegInst corecloneCloneInst2
-      coreopsarithMulInst2 coreopsarithSubInst1 corecloneCloneInst3
-      coredefaultDefaultInst coreopsarithAddInst1 coreopsarithMulAssignInst
-      num_traitsidentitiesZeroInst corecloneCloneInst4 coredefaultDefaultInst1
-      coreopsarithAddInst2 coreopsarithMulAssignInst1 corecloneCloneInst5
-      coredefaultDefaultInst2 coreopsarithAddInst3 coreopsarithMulAssignInst2
-      TippMippEffectInst tipaPairingEffectInst) r ()
-  ok (r1, effect1)
+  match r with
+  | core.result.Result.Ok output =>
+    ok (core.result.Result.Ok output.accepted, effect1)
+  | core.result.Result.Err error => ok (core.result.Result.Err error, effect1)
 
 end ark_ip_proofs
