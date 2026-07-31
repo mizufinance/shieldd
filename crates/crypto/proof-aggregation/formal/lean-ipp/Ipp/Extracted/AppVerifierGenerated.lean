@@ -789,17 +789,18 @@ def app_verifier.app_verify_shipping_input_from_parts
         challenge_context
       })
   | core.result.Result.Err error => ok (core.result.Result.Err error)
-def app_verifier.app_verify_shipping_into_parts_core
-  {BackendCall : Type} (backend_call : BackendCall)
-  (shipping_input : app_verifier.AppVerifyShippingInput) :
-  Result (BackendCall × app_verifier.AppVerifyShippingInput)
-  := do
-  ok (backend_call, shipping_input)
 structure app_verifier.AppVerifyShippingPreflight (BackendCall : Type) (Fields
   : Type) where
   backend_call : BackendCall
   padded_public_input_fields : Fields
   shipping_input : app_verifier.AppVerifyShippingInput
+def app_verifier.app_verify_shipping_into_parts_core
+  {BackendCall : Type} {Fields : Type}
+  (preflight : app_verifier.AppVerifyShippingPreflight BackendCall Fields) :
+  Result (BackendCall × Fields × app_verifier.AppVerifyShippingInput)
+  := do
+  ok (preflight.backend_call, preflight.padded_public_input_fields,
+    preflight.shipping_input)
 structure app_verifier.AppVerifyShippingRowsProjection (Fields : Type)
   (Serialized : Type) where
   real_count : Std.U32

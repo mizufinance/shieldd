@@ -653,6 +653,75 @@ theorem cachedProjectedAcceptedOutputDerivedOrigin
         .fiberLifted_support_iff_cachedCanonical output).2 emitted
   · exact accepted
 
+/-- Every accepted selection exposed by the logged canonical bundle replay
+comes from one complete output-derived production bundle.
+
+This is a support projection only.  It introduces no acceptance,
+measure-preservation, or soundness premise beyond the exact bundle program
+equations above. -/
+theorem productionReplayOriginAt
+    {sha256 :
+      Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {rawProgram :
+      OracleComp
+        Ipp.ShippingAdaptiveOrigin.GlobalByteSourceSpec
+        (PackedOutcome CallId)}
+    {Q_sha Q_fs : Nat}
+    {invalid : (μ : Nat) → SelectionAt CallId μ → Prop}
+    {fallbackSelection : PackedSelection CallId}
+    (equations :
+      OutputDerivedBundleProgramEquations
+        sha256 rawProgram Q_sha Q_fs invalid
+          fallbackSelection)
+    (μ : Nat) :
+    ProductionReplayOriginAt
+      (projectedLeastInvalidBundleFsGame
+        equations.preselection invalid
+          (rejectedPackedOutcome fallbackSelection))
+      μ := by
+  intro selection reachable
+  rcases reachable with
+    ⟨run, runSupported, selectionExact, accepted⟩
+  rcases
+      Ipp.wrapFs_support_exists_source
+        (oa :=
+          projectedLeastInvalidBundleFsGame
+            equations.preselection invalid
+              (rejectedPackedOutcome fallbackSelection))
+        runSupported with
+    ⟨sourceLog, _traceExact, _logExact, sourceSupported⟩
+  have outputSupported :
+      run.1.out ∈
+        support
+          (Ipp.fsRandomFunction
+            (projectedLeastInvalidBundleFsGame
+              equations.preselection invalid
+                (rejectedPackedOutcome fallbackSelection))) := by
+    have mapped :
+        run.1.out ∈
+          support
+            (Prod.fst <$>
+              replayFirstRun
+                (Ipp.fsRandomFunction
+                  (projectedLeastInvalidBundleFsGame
+                    equations.preselection invalid
+                      (rejectedPackedOutcome
+                        fallbackSelection)))) := by
+      rw [support_map, Set.mem_image]
+      exact
+        ⟨(run.1.out, sourceLog), sourceSupported, rfl⟩
+    simpa only [fst_map_replayFirstRun] using mapped
+  have origin :=
+    equations.cachedProjectedAcceptedOutputDerivedOrigin
+      run.1.out outputSupported accepted
+  rcases
+      Ipp.ShippingMultiStatementS1Reduction
+        .selectionAt?_eq_some_exposes_outcome selectionExact with
+    ⟨outcome, outputExact, selectedExact⟩
+  rw [outputExact] at origin
+  change OutputDerivedSelectionAt μ outcome.selection at origin
+  simpa only [selectedExact] using origin
+
 end OutputDerivedBundleProgramEquations
 
 end

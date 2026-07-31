@@ -61,7 +61,7 @@
       },
       {
         "path": "crates/crypto/proof-aggregation/src/preflight.rs",
-        "sha256": "2cc48b404122fc8dee299d678252f06cb3c30c6b1316ef9a587ddd0962506b17"
+        "sha256": "0ce7f672669f8633a62667b209cb18ada5d8e6ea3cb7d9d372adec07cc14b8b7"
       },
       {
         "path": "crates/crypto/proof-aggregation/src/srs.rs",
@@ -108,47 +108,47 @@
       "hax_fstar": "v0.3.7",
       "z3": "4.14.1"
     },
-    "verification_contract_sha256": "e9286ea488ca03490f889f1eddcaecd5121928d4ed059c03704a9a7a90917ed0",
-    "sha256": "0759c23bf20fc6ea1720eb6f5e32c197b4fda024878af454b294aabb482c4a28"
+    "verification_contract_sha256": "e9335fea32f4268276f3a6004f1052a36a7284235f173e4c3e5f9d94dd7ee50a",
+    "sha256": "9c908e1f79518da171144d4cd0e8bbbdd5d3d9182dfe60ab087935a20c135f69"
   },
   "module_results": [
     {
       "dependencies": [
         {
           "module": "FrameLemmas",
-          "input_fingerprint": "c76507a5b7e179bfcc10ebbe7b03b4e7930601b7b526a2ae83adf69dd72a00ea"
+          "input_fingerprint": "bd0e9eaae47fa9da787ef7e198ca46f17ec7245233cfeb1d07e0161c54acd1cf"
         }
       ],
-      "environment_sha256": "0759c23bf20fc6ea1720eb6f5e32c197b4fda024878af454b294aabb482c4a28",
+      "environment_sha256": "9c908e1f79518da171144d4cd0e8bbbdd5d3d9182dfe60ab087935a20c135f69",
       "module": "ChallengePreimageProofs",
       "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/ChallengePreimageProofs.fst",
       "source_sha256": "fb5f7ad4d1f0866b8733f06babfb0145a82062ea60633018f011df78b8df2a56",
       "theorem_roots": [],
-      "input_fingerprint": "e3515d895b6ca4f035d7bfce05c188887b90b1a230c361b785d26a70d793ff23",
+      "input_fingerprint": "b8a3c50bdc5cabf9f2e8c05e86dc1972ae79411ad7c4b580890aa458c862666d",
       "result": "pass"
     },
     {
       "dependencies": [
         {
           "module": "FrameLemmas",
-          "input_fingerprint": "c76507a5b7e179bfcc10ebbe7b03b4e7930601b7b526a2ae83adf69dd72a00ea"
+          "input_fingerprint": "bd0e9eaae47fa9da787ef7e198ca46f17ec7245233cfeb1d07e0161c54acd1cf"
         },
         {
           "module": "StatementEncodingProofs",
-          "input_fingerprint": "378cd5b01a8062985c1f527f74b646c2a86818a50d8e1729a4c8e67e3aa91278"
+          "input_fingerprint": "32146a7edaaebf95ee5d1eeb7bf914f18c9385ed480763d54ace577e261ac796"
         }
       ],
-      "environment_sha256": "0759c23bf20fc6ea1720eb6f5e32c197b4fda024878af454b294aabb482c4a28",
+      "environment_sha256": "9c908e1f79518da171144d4cd0e8bbbdd5d3d9182dfe60ab087935a20c135f69",
       "module": "DigestBindingProofs",
       "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/DigestBindingProofs.fst",
       "source_sha256": "e5b2ba60a3957fc104fbeb1d36f02107adbf50df05d0c66fa335ccb07669b20e",
       "theorem_roots": [],
-      "input_fingerprint": "ec050b908408f6f511c160c83866c0621705b6e230b7d8d33e44e0c793b35694",
+      "input_fingerprint": "9475cd679321d939cbea1f0f7599cd38d4f33c79c483b5fd19aaaa68ca3f3fd6",
       "result": "pass"
     },
     {
       "dependencies": [],
-      "environment_sha256": "0759c23bf20fc6ea1720eb6f5e32c197b4fda024878af454b294aabb482c4a28",
+      "environment_sha256": "9c908e1f79518da171144d4cd0e8bbbdd5d3d9182dfe60ab087935a20c135f69",
       "module": "FamilyRoutingProofs",
       "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/FamilyRoutingProofs.fst",
       "source_sha256": "80489aec1bdc7b275351c5bfbff67ba7d3a299f7187480b815343fa461ff047c",
@@ -168,47 +168,47 @@
         "FamilyRoutingProofs.lemma_family_route_transfer_rejects_cross_subids",
         "FamilyRoutingProofs.lemma_family_route_transfer_total"
       ],
-      "input_fingerprint": "e17318d7d623af85e99a23b651e1c6422de371d506b1ae450629da05c34bf950",
+      "input_fingerprint": "7fe80ce6dccbf6b63158f27dfd877135b96d609a3d69c5e7da1ef46fbe4dda02",
       "result": "pass"
     },
     {
       "dependencies": [],
-      "environment_sha256": "0759c23bf20fc6ea1720eb6f5e32c197b4fda024878af454b294aabb482c4a28",
+      "environment_sha256": "9c908e1f79518da171144d4cd0e8bbbdd5d3d9182dfe60ab087935a20c135f69",
       "module": "FrameLemmas",
       "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/FrameLemmas.fst",
       "source_sha256": "a28b82728f612c801931659006c8784d91ff144cfb09ea309980b800915ce6d9",
       "theorem_roots": [],
-      "input_fingerprint": "c76507a5b7e179bfcc10ebbe7b03b4e7930601b7b526a2ae83adf69dd72a00ea",
+      "input_fingerprint": "bd0e9eaae47fa9da787ef7e198ca46f17ec7245233cfeb1d07e0161c54acd1cf",
       "result": "pass"
     },
     {
       "dependencies": [],
-      "environment_sha256": "0759c23bf20fc6ea1720eb6f5e32c197b4fda024878af454b294aabb482c4a28",
+      "environment_sha256": "9c908e1f79518da171144d4cd0e8bbbdd5d3d9182dfe60ab087935a20c135f69",
       "module": "PreflightProofs",
       "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/PreflightProofs.fst",
       "source_sha256": "8d89a59c7e76ad9b134008aa5f6c90fc814cb44a249696d5a38f91e2b5b26b26",
       "theorem_roots": [],
-      "input_fingerprint": "e717a6bb1d0261351aa65e33e9e7a0a765cbe1e6aa2e8f868242c15cb9df79c6",
+      "input_fingerprint": "d3a683cc9f2bbbe46559c9f1fd703ff33b757b35e816dfe8c7c0754cb9853743",
       "result": "pass"
     },
     {
       "dependencies": [],
-      "environment_sha256": "0759c23bf20fc6ea1720eb6f5e32c197b4fda024878af454b294aabb482c4a28",
+      "environment_sha256": "9c908e1f79518da171144d4cd0e8bbbdd5d3d9182dfe60ab087935a20c135f69",
       "module": "SnarkpackMachineSupport",
       "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/SnarkpackMachineSupport.fst",
       "source_sha256": "a8fa9ef2af2c90abbd44ac0d10c5842fdef6e5608c9c4111f3cc9411788f6c96",
       "theorem_roots": [],
-      "input_fingerprint": "c53b5b86945629bf9afba22f40e387bf55ed4e549affee7d64011e9a5524f178",
+      "input_fingerprint": "f062f6ee23e5e410d74445b36287b39a9e1f3543fbfc615eaae9dad3890ca08c",
       "result": "pass"
     },
     {
       "dependencies": [
         {
           "module": "FrameLemmas",
-          "input_fingerprint": "c76507a5b7e179bfcc10ebbe7b03b4e7930601b7b526a2ae83adf69dd72a00ea"
+          "input_fingerprint": "bd0e9eaae47fa9da787ef7e198ca46f17ec7245233cfeb1d07e0161c54acd1cf"
         }
       ],
-      "environment_sha256": "0759c23bf20fc6ea1720eb6f5e32c197b4fda024878af454b294aabb482c4a28",
+      "environment_sha256": "9c908e1f79518da171144d4cd0e8bbbdd5d3d9182dfe60ab087935a20c135f69",
       "module": "StatementEncodingProofs",
       "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/StatementEncodingProofs.fst",
       "source_sha256": "db6cf4ed333bbfb67740136756d6c3de5eb7af0f99a35e11199eac0172425612",
@@ -217,27 +217,27 @@
         "StatementEncodingProofs.lemma_encode_statement_injective",
         "StatementEncodingProofs.lemma_statement_encoding_input_core_projection"
       ],
-      "input_fingerprint": "378cd5b01a8062985c1f527f74b646c2a86818a50d8e1729a4c8e67e3aa91278",
+      "input_fingerprint": "32146a7edaaebf95ee5d1eeb7bf914f18c9385ed480763d54ace577e261ac796",
       "result": "pass"
     },
     {
       "dependencies": [],
-      "environment_sha256": "0759c23bf20fc6ea1720eb6f5e32c197b4fda024878af454b294aabb482c4a28",
+      "environment_sha256": "9c908e1f79518da171144d4cd0e8bbbdd5d3d9182dfe60ab087935a20c135f69",
       "module": "ValidationProofs",
       "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/ValidationProofs.fst",
       "source_sha256": "a3e849518fdcfc137d9513bdad7ea97d2f6a22053a83b2c2e796b622eac6d3e3",
       "theorem_roots": [],
-      "input_fingerprint": "e88b1843cc239a6f4cb047ca76fe8c8682474363946692c2f865e996827969b2",
+      "input_fingerprint": "40cc3a24bec29caf0b9736b2f6206599f46c22c6e2e037be49fab22ec7d46527",
       "result": "pass"
     },
     {
       "dependencies": [],
-      "environment_sha256": "0759c23bf20fc6ea1720eb6f5e32c197b4fda024878af454b294aabb482c4a28",
+      "environment_sha256": "9c908e1f79518da171144d4cd0e8bbbdd5d3d9182dfe60ab087935a20c135f69",
       "module": "WrapperProofs",
       "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/WrapperProofs.fst",
       "source_sha256": "752995c3092b48888b22c79826fd6b886e924f0853bccfa74b617e55852758ac",
       "theorem_roots": [],
-      "input_fingerprint": "0b4698cf9b20ab122645e1783fd54a33c11e8c9357334dfa399cb024bef9b847",
+      "input_fingerprint": "e567dd5975c49498a3a7b15f054c0fbe61ac1b1b86929df14c1939b25c8a6b38",
       "result": "pass"
     }
   ],

@@ -4382,13 +4382,25 @@ struct ShippingVerifierProfiledSemanticExecution<I, F, TX> {
 ///
 /// This value crosses the opaque shipping ownership boundary without erasing
 /// the adapter input, accepted typed challenge calls, checks, TIPP output, or
-/// initial and final effect states. The public byte observation is derived
-/// from this retained execution.
+/// initial effect state. The final effect context and trace live exactly once
+/// in the public byte observation; `randomizer_trace_len` retains the phase
+/// boundary inside that chronological trace.
 #[cfg(not(feature = "bench-baseline"))]
 #[allow(dead_code)] // Retained fields are consumed by the generated formal projection.
 struct ShippingVerifierObservedExecution<I, F, TX> {
     call_id: AppVerifyCallId,
-    execution: ShippingVerifierSemanticExecution<I, F, TX>,
+    execution: ShippingVerifierRetainedSemanticExecution<I, F, TX>,
+    observation: ShippingVerifierObservation,
+    randomizer_trace_len: usize,
+}
+
+/// Acceptance-relevant execution after its final trace has been moved into
+/// the observed result.
+#[cfg(not(feature = "bench-baseline"))]
+#[allow(dead_code)] // Retained fields are consumed by the generated formal projection.
+struct ShippingVerifierRetainedSemanticExecution<I, F, TX> {
+    semantic: ShippingAdapterSemanticExecution<I, F, TX>,
+    initial_effect_state: ShippingVerifierEffectState,
 }
 
 /// First-order observation derived from the retained shipping execution.
@@ -4426,73 +4438,52 @@ impl ShippingVerifierObservation {
     }
 }
 
-#[cfg(not(feature = "bench-baseline"))]
-fn shipping_challenge_trace_concat_copy(
-    first: &[ChallengeTraceEntry],
-    second: &[ChallengeTraceEntry],
-) -> Vec<ChallengeTraceEntry> {
-    let mut records = Vec::new();
-    for entry in first {
-        records.push(entry.clone());
-    }
-    for entry in second {
-        records.push(entry.clone());
-    }
-    records
-}
-
-/// Derive the public first-order observation by borrowing the retained exact
-/// semantic execution.
+/// Construct the public first-order observation by moving the two exact phase
+/// buffers into one chronological buffer.
 ///
 /// The output has no Arkworks type parameter, trait object, timing value, or
-/// shared-ownership primitive. Acceptance comes only from the retained
-/// semantic execution.
+/// shared-ownership primitive. The returned split index is the length of the
+/// randomizer prefix. Moving the records avoids duplicating transcript bytes
+/// and keeps static stage labels out of Aeneas clone lowering.
 #[cfg(not(feature = "bench-baseline"))]
-fn shipping_verifier_observation_core<I, F, TX>(
-    observed: &ShippingVerifierObservedExecution<I, F, TX>,
-) -> ShippingVerifierObservation {
-    let challenge_trace_chronological = BufferedChallengeTraceSink {
-        records: shipping_challenge_trace_concat_copy(
-            &observed
-                .execution
-                .final_effect_state
-                .randomizer_trace
-                .records,
-            &observed
-                .execution
-                .final_effect_state
-                .tipp_mipp_trace
-                .records,
-        ),
-    };
-    ShippingVerifierObservation {
-        call_id: observed.call_id,
-        accepted: observed.execution.semantic.accepted,
-        challenge_context: observed.execution.final_effect_state.context.clone(),
-        challenge_trace_chronological,
-    }
+fn shipping_verifier_observation_core(
+    call_id: AppVerifyCallId,
+    accepted: bool,
+    challenge_context: ChallengeContext,
+    randomizer_trace: BufferedChallengeTraceSink,
+    tipp_mipp_trace: BufferedChallengeTraceSink,
+) -> (ShippingVerifierObservation, usize) {
+    let BufferedChallengeTraceSink { mut records } = randomizer_trace;
+    let BufferedChallengeTraceSink {
+        records: mut tipp_mipp_records,
+    } = tipp_mipp_trace;
+    let randomizer_trace_len = records.len();
+    records.append(&mut tipp_mipp_records);
+    (
+        ShippingVerifierObservation {
+            call_id,
+            accepted,
+            challenge_context,
+            challenge_trace_chronological: BufferedChallengeTraceSink { records },
+        },
+        randomizer_trace_len,
+    )
 }
 
-/// Shared production payload containing both the exact semantic execution and
-/// its deterministically derived public observation.
+/// Shared production payload containing the exact semantic execution and its
+/// deterministically derived, single-owned public observation.
 #[cfg(not(feature = "bench-baseline"))]
 #[allow(dead_code)] // Exact execution is consumed by the formal transport boundary.
 struct SharedShippingVerifierObservedExecution<I, F, TX> {
     observed_execution: ShippingVerifierObservedExecution<I, F, TX>,
-    observation: ShippingVerifierObservation,
 }
 
-/// Pair an exact observed execution with its derived first-order observation
-/// before any shared-ownership transport.
+/// Wrap the already correlated observed execution before shared ownership.
 #[cfg(not(feature = "bench-baseline"))]
 fn shipping_verifier_shared_observed_execution_core<I, F, TX>(
     observed_execution: ShippingVerifierObservedExecution<I, F, TX>,
 ) -> SharedShippingVerifierObservedExecution<I, F, TX> {
-    let observation = shipping_verifier_observation_core(&observed_execution);
-    SharedShippingVerifierObservedExecution {
-        observed_execution,
-        observation,
-    }
+    SharedShippingVerifierObservedExecution { observed_execution }
 }
 
 /// Opaque production ownership of the exact semantic execution/result pair.
@@ -4532,7 +4523,7 @@ impl<P: Pairing> ShippingVerifierExecutionCarrier<P> {
     pub fn shipping_observation(&self) -> &ShippingVerifierObservation {
         #[cfg(not(feature = "bench-baseline"))]
         {
-            &self.retained.observation
+            &self.retained.observed_execution.observation
         }
 
         #[cfg(feature = "bench-baseline")]
@@ -4957,9 +4948,31 @@ fn shipping_verifier_observed_backend_result_core<I, F, TX>(
 ) -> AppVerifyShippingBackendResult<ShippingVerifierObservedExecution<I, F, TX>> {
     let semantic_result = shipping_verifier_semantic_backend_result_core(call_id, execution);
     let (execution, result) = app_verify_shipping_backend_result_into_parts(semantic_result);
+    let ShippingVerifierSemanticExecution {
+        semantic,
+        initial_effect_state,
+        final_effect_state,
+    } = execution;
+    let ShippingVerifierEffectState {
+        context,
+        randomizer_trace,
+        tipp_mipp_trace,
+    } = final_effect_state;
+    let (observation, randomizer_trace_len) = shipping_verifier_observation_core(
+        result.id,
+        result.accepted,
+        context,
+        randomizer_trace,
+        tipp_mipp_trace,
+    );
     let observed_execution = ShippingVerifierObservedExecution {
         call_id: result.id,
-        execution,
+        execution: ShippingVerifierRetainedSemanticExecution {
+            semantic,
+            initial_effect_state,
+        },
+        observation,
+        randomizer_trace_len,
     };
     app_verify_shipping_backend_result_from_parts(observed_execution, result)
 }
@@ -6401,6 +6414,60 @@ mod tests {
 
     #[cfg(not(feature = "bench-baseline"))]
     #[test]
+    fn shipping_verifier_observation_core_preserves_empty_phase_boundaries() {
+        let context = ChallengeContext::from_statement_digest([47; 32]);
+        let call_id = AppVerifyCallId {
+            order_index: 0,
+            segment_index: 0,
+            family_index: 0,
+            family: crate::app_verifier::AppVerifyFamilyCode {
+                proof_family_id: 0,
+                note_reshape_family_id: 0,
+                shielded_ics20_withdrawal_family_id: 0,
+            },
+        };
+        let mut randomizer_trace = BufferedChallengeTraceSink::default();
+        randomizer_trace.record(b"aggregate.randomizer", 5, &[53], &[59]);
+        let mut tipp_mipp_trace = BufferedChallengeTraceSink::default();
+        tipp_mipp_trace.record(b"tipp_mipp.x0", 7, &[61], &[67]);
+
+        let (tipp_only, tipp_only_split) = shipping_verifier_observation_core(
+            call_id,
+            true,
+            context.clone(),
+            BufferedChallengeTraceSink::default(),
+            tipp_mipp_trace,
+        );
+        assert_eq!(tipp_only_split, 0);
+        assert_eq!(
+            tipp_only
+                .challenge_trace_chronological()
+                .iter()
+                .map(|record| (record.stage_label, record.nonce))
+                .collect::<Vec<_>>(),
+            vec![(b"tipp_mipp.x0".as_slice(), 7)]
+        );
+
+        let (randomizer_only, randomizer_only_split) = shipping_verifier_observation_core(
+            call_id,
+            true,
+            context,
+            randomizer_trace,
+            BufferedChallengeTraceSink::default(),
+        );
+        assert_eq!(randomizer_only_split, 1);
+        assert_eq!(
+            randomizer_only
+                .challenge_trace_chronological()
+                .iter()
+                .map(|record| (record.stage_label, record.nonce))
+                .collect::<Vec<_>>(),
+            vec![(b"aggregate.randomizer".as_slice(), 5)]
+        );
+    }
+
+    #[cfg(not(feature = "bench-baseline"))]
+    #[test]
     fn shipping_verifier_observed_backend_result_core_correlates_before_arc() {
         let call_id = AppVerifyCallId {
             order_index: 7,
@@ -6484,10 +6551,11 @@ mod tests {
         let observed = shipping_verifier_observed_backend_result_core(call_id, execution);
         let (observed_execution, expected_result) =
             app_verify_shipping_backend_result_into_parts(observed);
-        let expected_observation = shipping_verifier_observation_core(&observed_execution);
+        let expected_observation = observed_execution.observation.clone();
         assert_eq!(expected_result.id, expected_observation.call_id());
         assert_eq!(expected_result.accepted, expected_observation.accepted());
         assert_eq!(observed_execution.call_id, call_id);
+        assert_eq!(observed_execution.randomizer_trace_len, 2);
         assert_eq!(observed_execution.execution.semantic.adapter_input, ());
         assert_eq!(observed_execution.execution.semantic.initial_nonce, 0);
         assert_eq!(observed_execution.execution.semantic.accepted_nonce, 1);
@@ -6580,13 +6648,10 @@ mod tests {
             .tipp_mipp_trace
             .records
             .is_empty());
-        assert_eq!(
-            observed_execution.execution.final_effect_state.context,
-            context
-        );
+        assert_eq!(observed_execution.observation.challenge_context(), &context);
 
         let shared = shipping_verifier_shared_observed_execution_core(observed_execution);
-        assert_eq!(shared.observation, expected_observation);
+        assert_eq!(shared.observed_execution.observation, expected_observation);
         let retained = Arc::new(shared);
         let retained_clone = Arc::clone(&retained);
         assert!(Arc::ptr_eq(&retained, &retained_clone));
@@ -6661,16 +6726,14 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![(b"initial-only".as_slice(), 31)]
         );
+        assert_eq!(retained_execution.observation.challenge_context(), &context);
+        assert_eq!(retained_execution.randomizer_trace_len, 2);
+        let (retained_randomizer_trace, retained_tipp_mipp_trace) = retained_execution
+            .observation
+            .challenge_trace_chronological()
+            .split_at(retained_execution.randomizer_trace_len);
         assert_eq!(
-            retained_execution.execution.final_effect_state.context,
-            context
-        );
-        assert_eq!(
-            retained_execution
-                .execution
-                .final_effect_state
-                .randomizer_trace
-                .records
+            retained_randomizer_trace
                 .iter()
                 .map(|record| (record.stage_label, record.nonce))
                 .collect::<Vec<_>>(),
@@ -6680,11 +6743,7 @@ mod tests {
             ]
         );
         assert_eq!(
-            retained_execution
-                .execution
-                .final_effect_state
-                .tipp_mipp_trace
-                .records
+            retained_tipp_mipp_trace
                 .iter()
                 .map(|record| (record.stage_label, record.nonce))
                 .collect::<Vec<_>>(),
@@ -6696,7 +6755,7 @@ mod tests {
             ]
         );
 
-        let retained_observation = &retained.observation;
+        let retained_observation = &retained.observed_execution.observation;
         assert_eq!(retained_observation, &expected_observation);
         assert_eq!(expected_result.accepted, retained_observation.accepted());
         assert_eq!(retained_observation.call_id(), call_id);
@@ -6741,7 +6800,7 @@ mod tests {
             share_shipping_verifier_observed_execution(observed_for_share);
         assert_eq!(shared_result, expected_result);
         assert_eq!(
-            shared_by_production_helper.observation,
+            shared_by_production_helper.observed_execution.observation,
             expected_observation
         );
         assert_eq!(

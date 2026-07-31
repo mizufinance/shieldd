@@ -1,0 +1,9 @@
+import Ipp.ShippingAdaptiveAcceptedReplaySecurityComposition
+
+/-!
+Axiom audit for the accepted-replay adaptive crypto composition.
+-/
+
+#print axioms Ipp.ShippingMultiStatement.cachePreservingCryptoExtraction_probability_le_component_sum
+#print axioms Ipp.ShippingMultiStatement.randomizerGoodCachePreservingCryptoExtractionWin_le_security
+#print axioms Ipp.ShippingMultiStatement.invalidAccepted_randomizerAdjustedForkTransform_le_acceptedReplaySecurity

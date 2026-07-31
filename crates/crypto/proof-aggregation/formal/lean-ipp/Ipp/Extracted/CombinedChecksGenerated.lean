@@ -38,6 +38,11 @@ structure applications.groth16_aggregation.CombinedChecksCoreOutput (FX : Type)
   where
   checks : (Bool × Bool)
   tipp_mipp_effect : FX
+structure applications.groth16_aggregation.CombinedChecksExecutionOutput (I :
+  Type) (FX : Type) (TX : Type) where
+  input : I
+  core : applications.groth16_aggregation.CombinedChecksCoreOutput FX
+  tipp_mipp : TX
 structure applications.groth16_aggregation.PreparedPpeVerifierCoreInput (F :
   Type) (G1 : Type) (G2Prepared : Type) (GT : Type) where
   alpha_beta : GT
@@ -51,6 +56,11 @@ structure applications.groth16_aggregation.PreparedPairingEffect (Self : Type)
   (G1 : Type) (G2Prepared : Type) (GT : Type) where
   multi_pairing_prepared : Self → Slice G1 → Slice G2Prepared → Result
     (Option GT)
+@[reducible]
+def applications.groth16_aggregation.verify_combined_checks_execution_core.closure
+  (F : Type) (G1 : Type) (G2 : Type) (G2Prepared : Type) (GT : Type) (ABT :
+  Type) (CT : Type) (E : Type) (FX : Type) (PE : Type) (PPE : Type) :=
+Unit
 @[reducible]
 def applications.groth16_aggregation.verify_combined_checks_core.closure (F :
   Type) (G1 : Type) (G2 : Type) (G2Prepared : Type) (GT : Type) (ABT : Type)
@@ -559,21 +569,261 @@ def applications.groth16_aggregation.verify_combined_ppe_core
       num_traitsidentitiesZeroInst coreopsarithAddInst coreopsarithDivInst
       coreopsarithMulInst coreopsarithSubInst corecloneCloneInst1
       coreopsarithAddInst1 coreopsarithMulInst1 gamma_abc_g1 public_inputs r
+  let t ← corecloneCloneInst3.clone ppe.alpha_beta
+  let t1 ← corecloneCloneInst1.clone ppe.agg_c
+  let t2 ← corecloneCloneInst2.clone ppe.gamma_g2_neg_pc
+  let t3 ← corecloneCloneInst2.clone ppe.delta_g2_neg_pc
+  let t4 ← corecloneCloneInst3.clone ppe.ip_ab
   applications.groth16_aggregation.verify_ppe_core corecloneCloneInst
     corecloneCloneInst1 coreopsarithNegInst corecloneCloneInst2
     corecloneCloneInst3 coreopsarithMulInst2 coreopsarithAddInst2
     corecmpPartialEqInst1 PreparedPairingEffectInst
     {
-      alpha_beta := ppe.alpha_beta,
+      alpha_beta := t,
       r_sum,
       g_ic,
-      agg_c := ppe.agg_c,
-      gamma_g2_neg_pc := ppe.gamma_g2_neg_pc,
-      delta_g2_neg_pc := ppe.delta_g2_neg_pc,
-      ip_ab := ppe.ip_ab
+      agg_c := t1,
+      gamma_g2_neg_pc := t2,
+      delta_g2_neg_pc := t3,
+      ip_ab := t4
     } pairing
 def
-  applications.groth16_aggregation.verify_combined_checks_core.closure.Insts.CoreOpsFunctionFnOnceTupleECombinedChecksError.call_once
+  applications.groth16_aggregation.verify_combined_checks_execution_core.closure.Insts.CoreOpsFunctionFnOnceTupleECombinedChecksError.call_once
+  {F : Type} {G1 : Type} {G2 : Type} {G2Prepared : Type} {GT : Type} {ABT :
+  Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
+  (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
+  core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
+  MacCampaign.U64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
+  (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
+  core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
+  (coreopsarithSubInst : core.ops.arith.Sub F F F) (corecloneCloneInst1 :
+  core.clone.Clone G1) (coreopsarithAddInst1 : core.ops.arith.Add G1 G1 G1)
+  (coreopsarithMulInst1 : core.ops.arith.Mul G1 F G1) (coreopsarithSubInst1 :
+  core.ops.arith.Sub G1 G1 G1) (coreopsarithNegInst : core.ops.arith.Neg G1 G1)
+  (corecloneCloneInst2 : core.clone.Clone G2) (coreopsarithMulInst2 :
+  core.ops.arith.Mul G2 F G2) (coreopsarithSubInst2 : core.ops.arith.Sub G2 G2
+  G2) (corecloneCloneInst3 : core.clone.Clone G2Prepared) (corecloneCloneInst4
+  : core.clone.Clone GT) (coredefaultDefaultInst : core.default.Default GT)
+  (coreopsarithAddInst2 : core.ops.arith.Add GT GT GT) (coreopsarithMulInst3 :
+  core.ops.arith.Mul GT F GT) (coreopsarithMulAssignInst :
+  core.ops.arith.MulAssign GT F) (num_traitsidentitiesZeroInst1 :
+  num_traits.identities.Zero GT) (corecmpPartialEqInst1 : core.cmp.PartialEq GT
+  GT) (corecloneCloneInst5 : core.clone.Clone ABT) (coredefaultDefaultInst1 :
+  core.default.Default ABT) (coreopsarithAddInst3 : core.ops.arith.Add ABT ABT
+  ABT) (coreopsarithMulAssignInst1 : core.ops.arith.MulAssign ABT F)
+  (corecloneCloneInst6 : core.clone.Clone CT) (coredefaultDefaultInst2 :
+  core.default.Default CT) (coreopsarithAddInst4 : core.ops.arith.Add CT CT CT)
+  (coreopsarithMulAssignInst2 : core.ops.arith.MulAssign CT F)
+  (TippMippEffectInst : applications.groth16_aggregation.TippMippEffect FX F G1
+  G2 GT ABT CT E) (tipaPairingEffectInst : tipa.PairingEffect PE G1 G2 GT)
+  (PreparedPairingEffectInst :
+  applications.groth16_aggregation.PreparedPairingEffect PPE G1 G2Prepared GT)
+  (c :
+  applications.groth16_aggregation.verify_combined_checks_execution_core.closure
+  F G1 G2 G2Prepared GT ABT CT E FX PE PPE) (tupled_args : E) :
+  Result (applications.groth16_aggregation.CombinedChecksError E)
+  := do
+  ok
+    {
+      kind := 2#usize,
+      actual_rounds := 0#usize,
+      expected_rounds := 0#usize,
+      tipp_mipp_error := (some tupled_args)
+    }
+@[reducible]
+def
+  applications.groth16_aggregation.verify_combined_checks_execution_core.closure.Insts.CoreOpsFunctionFnOnceTupleECombinedChecksError
+  {F : Type} {G1 : Type} {G2 : Type} {G2Prepared : Type} {GT : Type} {ABT :
+  Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
+  (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
+  core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
+  MacCampaign.U64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
+  (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
+  core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
+  (coreopsarithSubInst : core.ops.arith.Sub F F F) (corecloneCloneInst1 :
+  core.clone.Clone G1) (coreopsarithAddInst1 : core.ops.arith.Add G1 G1 G1)
+  (coreopsarithMulInst1 : core.ops.arith.Mul G1 F G1) (coreopsarithSubInst1 :
+  core.ops.arith.Sub G1 G1 G1) (coreopsarithNegInst : core.ops.arith.Neg G1 G1)
+  (corecloneCloneInst2 : core.clone.Clone G2) (coreopsarithMulInst2 :
+  core.ops.arith.Mul G2 F G2) (coreopsarithSubInst2 : core.ops.arith.Sub G2 G2
+  G2) (corecloneCloneInst3 : core.clone.Clone G2Prepared) (corecloneCloneInst4
+  : core.clone.Clone GT) (coredefaultDefaultInst : core.default.Default GT)
+  (coreopsarithAddInst2 : core.ops.arith.Add GT GT GT) (coreopsarithMulInst3 :
+  core.ops.arith.Mul GT F GT) (coreopsarithMulAssignInst :
+  core.ops.arith.MulAssign GT F) (num_traitsidentitiesZeroInst1 :
+  num_traits.identities.Zero GT) (corecmpPartialEqInst1 : core.cmp.PartialEq GT
+  GT) (corecloneCloneInst5 : core.clone.Clone ABT) (coredefaultDefaultInst1 :
+  core.default.Default ABT) (coreopsarithAddInst3 : core.ops.arith.Add ABT ABT
+  ABT) (coreopsarithMulAssignInst1 : core.ops.arith.MulAssign ABT F)
+  (corecloneCloneInst6 : core.clone.Clone CT) (coredefaultDefaultInst2 :
+  core.default.Default CT) (coreopsarithAddInst4 : core.ops.arith.Add CT CT CT)
+  (coreopsarithMulAssignInst2 : core.ops.arith.MulAssign CT F)
+  (TippMippEffectInst : applications.groth16_aggregation.TippMippEffect FX F G1
+  G2 GT ABT CT E) (tipaPairingEffectInst : tipa.PairingEffect PE G1 G2 GT)
+  (PreparedPairingEffectInst :
+  applications.groth16_aggregation.PreparedPairingEffect PPE G1 G2Prepared GT)
+  : core.ops.function.FnOnce
+  (applications.groth16_aggregation.verify_combined_checks_execution_core.closure
+  F G1 G2 G2Prepared GT ABT CT E FX PE PPE) E
+  (applications.groth16_aggregation.CombinedChecksError E) := {
+  call_once :=
+    applications.groth16_aggregation.verify_combined_checks_execution_core.closure.Insts.CoreOpsFunctionFnOnceTupleECombinedChecksError.call_once
+    corecloneCloneInst corecmpPartialEqInst coreconvertFromFU64Inst
+    num_traitsidentitiesOneInst num_traitsidentitiesZeroInst
+    coreopsarithAddInst coreopsarithDivInst coreopsarithMulInst
+    coreopsarithSubInst corecloneCloneInst1 coreopsarithAddInst1
+    coreopsarithMulInst1 coreopsarithSubInst1 coreopsarithNegInst
+    corecloneCloneInst2 coreopsarithMulInst2 coreopsarithSubInst2
+    corecloneCloneInst3 corecloneCloneInst4 coredefaultDefaultInst
+    coreopsarithAddInst2 coreopsarithMulInst3 coreopsarithMulAssignInst
+    num_traitsidentitiesZeroInst1 corecmpPartialEqInst1 corecloneCloneInst5
+    coredefaultDefaultInst1 coreopsarithAddInst3 coreopsarithMulAssignInst1
+    corecloneCloneInst6 coredefaultDefaultInst2 coreopsarithAddInst4
+    coreopsarithMulAssignInst2 TippMippEffectInst tipaPairingEffectInst
+    PreparedPairingEffectInst
+}
+def applications.groth16_aggregation.verify_combined_checks_execution_core
+  {F : Type} {G1 : Type} {G2 : Type} {G2Prepared : Type} {GT : Type} {ABT :
+  Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
+  (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
+  core.cmp.PartialEq F F) (coreconvertFromFU64Inst : core.convert.From F
+  MacCampaign.U64) (num_traitsidentitiesOneInst : num_traits.identities.One F)
+  (num_traitsidentitiesZeroInst : num_traits.identities.Zero F)
+  (coreopsarithAddInst : core.ops.arith.Add F F F) (coreopsarithDivInst :
+  core.ops.arith.Div F F F) (coreopsarithMulInst : core.ops.arith.Mul F F F)
+  (coreopsarithSubInst : core.ops.arith.Sub F F F) (corecloneCloneInst1 :
+  core.clone.Clone G1) (coreopsarithAddInst1 : core.ops.arith.Add G1 G1 G1)
+  (coreopsarithMulInst1 : core.ops.arith.Mul G1 F G1) (coreopsarithSubInst1 :
+  core.ops.arith.Sub G1 G1 G1) (coreopsarithNegInst : core.ops.arith.Neg G1 G1)
+  (corecloneCloneInst2 : core.clone.Clone G2) (coreopsarithMulInst2 :
+  core.ops.arith.Mul G2 F G2) (coreopsarithSubInst2 : core.ops.arith.Sub G2 G2
+  G2) (corecloneCloneInst3 : core.clone.Clone G2Prepared) (corecloneCloneInst4
+  : core.clone.Clone GT) (coredefaultDefaultInst : core.default.Default GT)
+  (coreopsarithAddInst2 : core.ops.arith.Add GT GT GT) (coreopsarithMulInst3 :
+  core.ops.arith.Mul GT F GT) (coreopsarithMulAssignInst :
+  core.ops.arith.MulAssign GT F) (num_traitsidentitiesZeroInst1 :
+  num_traits.identities.Zero GT) (corecmpPartialEqInst1 : core.cmp.PartialEq GT
+  GT) (corecloneCloneInst5 : core.clone.Clone ABT) (coredefaultDefaultInst1 :
+  core.default.Default ABT) (coreopsarithAddInst3 : core.ops.arith.Add ABT ABT
+  ABT) (coreopsarithMulAssignInst1 : core.ops.arith.MulAssign ABT F)
+  (corecloneCloneInst6 : core.clone.Clone CT) (coredefaultDefaultInst2 :
+  core.default.Default CT) (coreopsarithAddInst4 : core.ops.arith.Add CT CT CT)
+  (coreopsarithMulAssignInst2 : core.ops.arith.MulAssign CT F)
+  (TippMippEffectInst : applications.groth16_aggregation.TippMippEffect FX F G1
+  G2 GT ABT CT E) (tipaPairingEffectInst : tipa.PairingEffect PE G1 G2 GT)
+  (PreparedPairingEffectInst :
+  applications.groth16_aggregation.PreparedPairingEffect PPE G1 G2Prepared GT)
+  (input : applications.groth16_aggregation.CombinedChecksCoreInput F G1 G2
+  G2Prepared GT ABT CT) (effect : FX) (tipp_pairing : PE) (ppe_pairing : PPE) :
+  Result (core.result.Result
+    (applications.groth16_aggregation.CombinedChecksExecutionOutput
+    (applications.groth16_aggregation.CombinedChecksCoreInput F G1 G2
+    G2Prepared GT ABT CT) FX
+    (applications.groth16_aggregation.TippMippCoreOutput F GT ABT CT))
+    (applications.groth16_aggregation.CombinedChecksError E))
+  := do
+  let num_proofs := alloc.vec.Vec.len input.public_inputs
+  if num_proofs = 0#usize
+  then
+    ok (core.result.Result.Err
+      {
+        kind := 0#usize,
+        actual_rounds := 0#usize,
+        expected_rounds := 0#usize,
+        tipp_mipp_error := none
+      })
+  else
+    let b ← core.num.Usize.is_power_of_two num_proofs
+    if b
+    then
+      let i ← core.num.Usize.ilog2 num_proofs
+      let expected_rounds ← lift (MacCampaign.castUsize i)
+      let actual_rounds := alloc.vec.Vec.len input.tipp_mipp.proof.gipa_proof
+      if actual_rounds != expected_rounds
+      then
+        ok (core.result.Result.Err
+          {
+            kind := 1#usize,
+            actual_rounds,
+            expected_rounds,
+            tipp_mipp_error := none
+          })
+      else
+        let (r, effect1) ←
+          applications.groth16_aggregation.verify_tipp_mipp_execution_core
+            corecloneCloneInst num_traitsidentitiesOneInst coreopsarithAddInst
+            coreopsarithMulInst corecloneCloneInst1 coreopsarithMulInst1
+            coreopsarithSubInst1 coreopsarithNegInst corecloneCloneInst2
+            coreopsarithMulInst2 coreopsarithSubInst2 corecloneCloneInst4
+            coredefaultDefaultInst coreopsarithAddInst2
+            coreopsarithMulAssignInst num_traitsidentitiesZeroInst1
+            corecloneCloneInst5 coredefaultDefaultInst1 coreopsarithAddInst3
+            coreopsarithMulAssignInst1 corecloneCloneInst6
+            coredefaultDefaultInst2 coreopsarithAddInst4
+            coreopsarithMulAssignInst2 TippMippEffectInst tipaPairingEffectInst
+            input.tipp_mipp effect tipp_pairing
+        let tipp_result ←
+          core.result.Result.map_err
+            (applications.groth16_aggregation.verify_combined_checks_execution_core.closure.Insts.CoreOpsFunctionFnOnceTupleECombinedChecksError
+            corecloneCloneInst corecmpPartialEqInst coreconvertFromFU64Inst
+            num_traitsidentitiesOneInst num_traitsidentitiesZeroInst
+            coreopsarithAddInst coreopsarithDivInst coreopsarithMulInst
+            coreopsarithSubInst corecloneCloneInst1 coreopsarithAddInst1
+            coreopsarithMulInst1 coreopsarithSubInst1 coreopsarithNegInst
+            corecloneCloneInst2 coreopsarithMulInst2 coreopsarithSubInst2
+            corecloneCloneInst3 corecloneCloneInst4 coredefaultDefaultInst
+            coreopsarithAddInst2 coreopsarithMulInst3 coreopsarithMulAssignInst
+            num_traitsidentitiesZeroInst1 corecmpPartialEqInst1
+            corecloneCloneInst5 coredefaultDefaultInst1 coreopsarithAddInst3
+            coreopsarithMulAssignInst1 corecloneCloneInst6
+            coredefaultDefaultInst2 coreopsarithAddInst4
+            coreopsarithMulAssignInst2 TippMippEffectInst tipaPairingEffectInst
+            PreparedPairingEffectInst) r ()
+        let s := alloc.vec.Vec.deref input.gamma_abc_g1
+        let s1 := alloc.vec.Vec.deref input.public_inputs
+        let ppe_valid ←
+          applications.groth16_aggregation.verify_combined_ppe_core
+            corecloneCloneInst corecmpPartialEqInst coreconvertFromFU64Inst
+            num_traitsidentitiesOneInst num_traitsidentitiesZeroInst
+            coreopsarithAddInst coreopsarithDivInst coreopsarithMulInst
+            coreopsarithSubInst corecloneCloneInst1 coreopsarithAddInst1
+            coreopsarithMulInst1 coreopsarithNegInst corecloneCloneInst3
+            corecloneCloneInst4 coreopsarithMulInst3 coreopsarithAddInst2
+            corecmpPartialEqInst1 PreparedPairingEffectInst input.ppe s s1
+            input.r ppe_pairing
+        let cf ← core.result.Result.Insts.CoreOpsTry.branch tipp_result
+        match cf with
+        | core.ops.control_flow.ControlFlow.Continue val =>
+          ok (core.result.Result.Ok
+            {
+              input,
+              core :=
+                {
+                  checks := (val.accepted, ppe_valid),
+                  tipp_mipp_effect := effect1
+                },
+              tipp_mipp := val
+            })
+        | core.ops.control_flow.ControlFlow.Break residual =>
+          core.result.Result.Insts.CoreOpsTryTraitFromResidualResultInfallible.from_residual
+            (applications.groth16_aggregation.CombinedChecksExecutionOutput
+            (applications.groth16_aggregation.CombinedChecksCoreInput F G1 G2
+            G2Prepared GT ABT CT) FX
+            (applications.groth16_aggregation.TippMippCoreOutput F GT ABT CT))
+            (core.convert.FromSame
+            (applications.groth16_aggregation.CombinedChecksError E)) residual
+    else
+      ok (core.result.Result.Err
+        {
+          kind := 0#usize,
+          actual_rounds := 0#usize,
+          expected_rounds := 0#usize,
+          tipp_mipp_error := none
+        })
+def
+  applications.groth16_aggregation.verify_combined_checks_core.closure.Insts.CoreOpsFunctionFnOnceTupleCombinedChecksExecutionOutputCombinedChecksCoreInputFXTippMippCoreOutputCombinedChecksCoreOutput.call_once
   {F : Type} {G1 : Type} {G2 : Type} {G2Prepared : Type} {GT : Type} {ABT :
   Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
@@ -605,19 +855,17 @@ def
   (PreparedPairingEffectInst :
   applications.groth16_aggregation.PreparedPairingEffect PPE G1 G2Prepared GT)
   (c : applications.groth16_aggregation.verify_combined_checks_core.closure F
-  G1 G2 G2Prepared GT ABT CT E FX PE PPE) (tupled_args : E) :
-  Result (applications.groth16_aggregation.CombinedChecksError E)
+  G1 G2 G2Prepared GT ABT CT E FX PE PPE)
+  (tupled_args : applications.groth16_aggregation.CombinedChecksExecutionOutput
+  (applications.groth16_aggregation.CombinedChecksCoreInput F G1 G2 G2Prepared
+  GT ABT CT) FX (applications.groth16_aggregation.TippMippCoreOutput F GT ABT
+  CT)) :
+  Result (applications.groth16_aggregation.CombinedChecksCoreOutput FX)
   := do
-  ok
-    {
-      kind := 2#usize,
-      actual_rounds := 0#usize,
-      expected_rounds := 0#usize,
-      tipp_mipp_error := (some tupled_args)
-    }
+  ok tupled_args.core
 @[reducible]
 def
-  applications.groth16_aggregation.verify_combined_checks_core.closure.Insts.CoreOpsFunctionFnOnceTupleECombinedChecksError
+  applications.groth16_aggregation.verify_combined_checks_core.closure.Insts.CoreOpsFunctionFnOnceTupleCombinedChecksExecutionOutputCombinedChecksCoreInputFXTippMippCoreOutputCombinedChecksCoreOutput
   {F : Type} {G1 : Type} {G2 : Type} {G2Prepared : Type} {GT : Type} {ABT :
   Type} {CT : Type} {E : Type} {FX : Type} {PE : Type} {PPE : Type}
   (corecloneCloneInst : core.clone.Clone F) (corecmpPartialEqInst :
@@ -650,10 +898,13 @@ def
   applications.groth16_aggregation.PreparedPairingEffect PPE G1 G2Prepared GT)
   : core.ops.function.FnOnce
   (applications.groth16_aggregation.verify_combined_checks_core.closure F G1 G2
-  G2Prepared GT ABT CT E FX PE PPE) E
-  (applications.groth16_aggregation.CombinedChecksError E) := {
+  G2Prepared GT ABT CT E FX PE PPE)
+  (applications.groth16_aggregation.CombinedChecksExecutionOutput
+  (applications.groth16_aggregation.CombinedChecksCoreInput F G1 G2 G2Prepared
+  GT ABT CT) FX (applications.groth16_aggregation.TippMippCoreOutput F GT ABT
+  CT)) (applications.groth16_aggregation.CombinedChecksCoreOutput FX) := {
   call_once :=
-    applications.groth16_aggregation.verify_combined_checks_core.closure.Insts.CoreOpsFunctionFnOnceTupleECombinedChecksError.call_once
+    applications.groth16_aggregation.verify_combined_checks_core.closure.Insts.CoreOpsFunctionFnOnceTupleCombinedChecksExecutionOutputCombinedChecksCoreInputFXTippMippCoreOutputCombinedChecksCoreOutput.call_once
     corecloneCloneInst corecmpPartialEqInst coreconvertFromFU64Inst
     num_traitsidentitiesOneInst num_traitsidentitiesZeroInst
     coreopsarithAddInst coreopsarithDivInst coreopsarithMulInst
@@ -705,92 +956,35 @@ def applications.groth16_aggregation.verify_combined_checks_core
     (applications.groth16_aggregation.CombinedChecksCoreOutput FX)
     (applications.groth16_aggregation.CombinedChecksError E))
   := do
-  let num_proofs := alloc.vec.Vec.len input.public_inputs
-  if num_proofs = 0#usize
-  then
-    ok (core.result.Result.Err
-      {
-        kind := 0#usize,
-        actual_rounds := 0#usize,
-        expected_rounds := 0#usize,
-        tipp_mipp_error := none
-      })
-  else
-    let b ← core.num.Usize.is_power_of_two num_proofs
-    if b
-    then
-      let i ← core.num.Usize.ilog2 num_proofs
-      let expected_rounds ← lift (MacCampaign.castUsize i)
-      let actual_rounds := alloc.vec.Vec.len input.tipp_mipp.proof.gipa_proof
-      if actual_rounds != expected_rounds
-      then
-        ok (core.result.Result.Err
-          {
-            kind := 1#usize,
-            actual_rounds,
-            expected_rounds,
-            tipp_mipp_error := none
-          })
-      else
-        let (r, effect1) ←
-          applications.groth16_aggregation.verify_tipp_mipp_core
-            corecloneCloneInst num_traitsidentitiesOneInst coreopsarithAddInst
-            coreopsarithMulInst corecloneCloneInst1 coreopsarithMulInst1
-            coreopsarithSubInst1 coreopsarithNegInst corecloneCloneInst2
-            coreopsarithMulInst2 coreopsarithSubInst2 corecloneCloneInst4
-            coredefaultDefaultInst coreopsarithAddInst2
-            coreopsarithMulAssignInst num_traitsidentitiesZeroInst1
-            corecloneCloneInst5 coredefaultDefaultInst1 coreopsarithAddInst3
-            coreopsarithMulAssignInst1 corecloneCloneInst6
-            coredefaultDefaultInst2 coreopsarithAddInst4
-            coreopsarithMulAssignInst2 TippMippEffectInst tipaPairingEffectInst
-            input.tipp_mipp effect tipp_pairing
-        let tipp_result ←
-          core.result.Result.map_err
-            (applications.groth16_aggregation.verify_combined_checks_core.closure.Insts.CoreOpsFunctionFnOnceTupleECombinedChecksError
-            corecloneCloneInst corecmpPartialEqInst coreconvertFromFU64Inst
-            num_traitsidentitiesOneInst num_traitsidentitiesZeroInst
-            coreopsarithAddInst coreopsarithDivInst coreopsarithMulInst
-            coreopsarithSubInst corecloneCloneInst1 coreopsarithAddInst1
-            coreopsarithMulInst1 coreopsarithSubInst1 coreopsarithNegInst
-            corecloneCloneInst2 coreopsarithMulInst2 coreopsarithSubInst2
-            corecloneCloneInst3 corecloneCloneInst4 coredefaultDefaultInst
-            coreopsarithAddInst2 coreopsarithMulInst3 coreopsarithMulAssignInst
-            num_traitsidentitiesZeroInst1 corecmpPartialEqInst1
-            corecloneCloneInst5 coredefaultDefaultInst1 coreopsarithAddInst3
-            coreopsarithMulAssignInst1 corecloneCloneInst6
-            coredefaultDefaultInst2 coreopsarithAddInst4
-            coreopsarithMulAssignInst2 TippMippEffectInst tipaPairingEffectInst
-            PreparedPairingEffectInst) r ()
-        let s := alloc.vec.Vec.deref input.gamma_abc_g1
-        let s1 := alloc.vec.Vec.deref input.public_inputs
-        let ppe_valid ←
-          applications.groth16_aggregation.verify_combined_ppe_core
-            corecloneCloneInst corecmpPartialEqInst coreconvertFromFU64Inst
-            num_traitsidentitiesOneInst num_traitsidentitiesZeroInst
-            coreopsarithAddInst coreopsarithDivInst coreopsarithMulInst
-            coreopsarithSubInst corecloneCloneInst1 coreopsarithAddInst1
-            coreopsarithMulInst1 coreopsarithNegInst corecloneCloneInst3
-            corecloneCloneInst4 coreopsarithMulInst3 coreopsarithAddInst2
-            corecmpPartialEqInst1 PreparedPairingEffectInst input.ppe s s1
-            input.r ppe_pairing
-        let cf ← core.result.Result.Insts.CoreOpsTry.branch tipp_result
-        match cf with
-        | core.ops.control_flow.ControlFlow.Continue val =>
-          ok (core.result.Result.Ok
-            { checks := (val, ppe_valid), tipp_mipp_effect := effect1 })
-        | core.ops.control_flow.ControlFlow.Break residual =>
-          core.result.Result.Insts.CoreOpsTryTraitFromResidualResultInfallible.from_residual
-            (applications.groth16_aggregation.CombinedChecksCoreOutput FX)
-            (core.convert.FromSame
-            (applications.groth16_aggregation.CombinedChecksError E)) residual
-    else
-      ok (core.result.Result.Err
-        {
-          kind := 0#usize,
-          actual_rounds := 0#usize,
-          expected_rounds := 0#usize,
-          tipp_mipp_error := none
-        })
+  let r ←
+    applications.groth16_aggregation.verify_combined_checks_execution_core
+      corecloneCloneInst corecmpPartialEqInst coreconvertFromFU64Inst
+      num_traitsidentitiesOneInst num_traitsidentitiesZeroInst
+      coreopsarithAddInst coreopsarithDivInst coreopsarithMulInst
+      coreopsarithSubInst corecloneCloneInst1 coreopsarithAddInst1
+      coreopsarithMulInst1 coreopsarithSubInst1 coreopsarithNegInst
+      corecloneCloneInst2 coreopsarithMulInst2 coreopsarithSubInst2
+      corecloneCloneInst3 corecloneCloneInst4 coredefaultDefaultInst
+      coreopsarithAddInst2 coreopsarithMulInst3 coreopsarithMulAssignInst
+      num_traitsidentitiesZeroInst1 corecmpPartialEqInst1 corecloneCloneInst5
+      coredefaultDefaultInst1 coreopsarithAddInst3 coreopsarithMulAssignInst1
+      corecloneCloneInst6 coredefaultDefaultInst2 coreopsarithAddInst4
+      coreopsarithMulAssignInst2 TippMippEffectInst tipaPairingEffectInst
+      PreparedPairingEffectInst input effect tipp_pairing ppe_pairing
+  core.result.Result.map
+    (applications.groth16_aggregation.verify_combined_checks_core.closure.Insts.CoreOpsFunctionFnOnceTupleCombinedChecksExecutionOutputCombinedChecksCoreInputFXTippMippCoreOutputCombinedChecksCoreOutput
+    corecloneCloneInst corecmpPartialEqInst coreconvertFromFU64Inst
+    num_traitsidentitiesOneInst num_traitsidentitiesZeroInst
+    coreopsarithAddInst coreopsarithDivInst coreopsarithMulInst
+    coreopsarithSubInst corecloneCloneInst1 coreopsarithAddInst1
+    coreopsarithMulInst1 coreopsarithSubInst1 coreopsarithNegInst
+    corecloneCloneInst2 coreopsarithMulInst2 coreopsarithSubInst2
+    corecloneCloneInst3 corecloneCloneInst4 coredefaultDefaultInst
+    coreopsarithAddInst2 coreopsarithMulInst3 coreopsarithMulAssignInst
+    num_traitsidentitiesZeroInst1 corecmpPartialEqInst1 corecloneCloneInst5
+    coredefaultDefaultInst1 coreopsarithAddInst3 coreopsarithMulAssignInst1
+    corecloneCloneInst6 coredefaultDefaultInst2 coreopsarithAddInst4
+    coreopsarithMulAssignInst2 TippMippEffectInst tipaPairingEffectInst
+    PreparedPairingEffectInst) r ()
 
 end ark_ip_proofs
