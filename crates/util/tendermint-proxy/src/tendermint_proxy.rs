@@ -64,7 +64,7 @@ impl TendermintProxyService for TendermintProxy {
         &self,
         req: tonic::Request<BroadcastTxAsyncRequest>,
     ) -> Result<tonic::Response<BroadcastTxAsyncResponse>, Status> {
-        let client = self.client.clone();
+        let client = self.broadcast_client.clone();
 
         // Process the inbound request, recording the request ID in the tracing span.
         let BroadcastTxAsyncRequest { req_id, params } = req.into_inner();
@@ -89,7 +89,7 @@ impl TendermintProxyService for TendermintProxy {
         &self,
         req: tonic::Request<BroadcastTxSyncRequest>,
     ) -> Result<tonic::Response<BroadcastTxSyncResponse>, Status> {
-        let client = self.client.clone();
+        let client = self.broadcast_client.clone();
 
         // Process the inbound request, recording the request ID in the tracing span.
         let BroadcastTxSyncRequest { req_id, params } = req.into_inner();
