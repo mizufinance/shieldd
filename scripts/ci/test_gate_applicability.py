@@ -382,6 +382,92 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         self.assertEqual(decision.graphs, ("GraphA",))
 
+    def test_missing_stale_generated_output_is_recoverable(self) -> None:
+        manifest = self.synthetic_manifest(("GraphA", "src/a.rs"))
+        source = {
+            **self.lean_source,
+            "global_inputs": ("tools/normalize.py",),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for path in (
+                "src/a.rs",
+                "crates/GraphA/Cargo.toml",
+                "tools/normalize.py",
+            ):
+                destination = root / path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text("fixture\n", encoding="utf-8")
+
+            rules = GATE.lean_manifest_rules_from_data(
+                manifest,
+                source,
+                "pull_request",
+                verify_root=root,
+                label="fixture manifest",
+                include_manifest_input=False,
+                stale_output_graphs=frozenset({"GraphA"}),
+                evidence_tier="static",
+            )
+
+        output_rule = next(
+            rule for rule in rules if rule.patterns == ("generated/GraphA.lean",)
+        )
+        self.assertEqual(output_rule.tier, "extract-changed")
+        self.assertEqual(output_rule.graphs, ("GraphA",))
+
+    def test_missing_current_output_or_graph_input_blocks(self) -> None:
+        manifest = self.synthetic_manifest(("GraphA", "src/a.rs"))
+        source = {
+            **self.lean_source,
+            "global_inputs": ("tools/normalize.py",),
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for path in (
+                "src/a.rs",
+                "crates/GraphA/Cargo.toml",
+                "tools/normalize.py",
+            ):
+                destination = root / path
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_text("fixture\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(
+                GATE.ClassificationError,
+                "missing current generated output",
+            ):
+                GATE.lean_manifest_rules_from_data(
+                    manifest,
+                    source,
+                    "pull_request",
+                    verify_root=root,
+                    label="fixture manifest",
+                    include_manifest_input=False,
+                    stale_output_graphs=frozenset(),
+                    evidence_tier="static",
+                )
+
+            (root / "generated").mkdir(parents=True)
+            (root / "generated/GraphA.lean").write_text(
+                "fixture\n", encoding="utf-8"
+            )
+            (root / "src/a.rs").unlink()
+            with self.assertRaisesRegex(
+                GATE.ClassificationError,
+                "missing input file",
+            ):
+                GATE.lean_manifest_rules_from_data(
+                    manifest,
+                    source,
+                    "pull_request",
+                    verify_root=root,
+                    label="fixture manifest",
+                    include_manifest_input=False,
+                    stale_output_graphs=frozenset({"GraphA"}),
+                    evidence_tier="static",
+                )
+
     def test_workflow_unsafe_graph_id_blocks_classification(self) -> None:
         manifest = self.synthetic_manifest(
             ('Graph"; echo injected', "src/a.rs"),

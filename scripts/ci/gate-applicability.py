@@ -682,14 +682,22 @@ def lean_manifest_rules_from_data(
         if not isinstance(parity, list) or not parity:
             raise ClassificationError(f"{where}.parity must be a non-empty array")
         if verify_root is not None:
-            missing = sorted(
-                path
-                for path in paths | {output}
-                if not (verify_root / path).is_file()
+            missing_inputs = sorted(
+                path for path in paths if not (verify_root / path).is_file()
             )
-            if missing:
+            if missing_inputs:
                 raise ClassificationError(
-                    f"{where} references missing file(s): {', '.join(missing)}"
+                    f"{where} references missing input file(s): "
+                    + ", ".join(missing_inputs)
+                )
+            output_is_scheduled = (
+                stale_output_graphs is None
+                or graph_id in stale_output_graphs
+            )
+            if not (verify_root / output).is_file() and not output_is_scheduled:
+                raise ClassificationError(
+                    f"{where} references missing current generated output: "
+                    f"{output}"
                 )
         rules.append(
             InputRule(
