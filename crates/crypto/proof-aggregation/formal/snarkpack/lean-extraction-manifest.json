@@ -1602,7 +1602,7 @@
       "id": "AggregateAdapter",
       "campaign": "s2",
       "output": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/AggregateAdapterGenerated.lean",
-      "output_sha256": "3ce2af493a803630a0ba72b7bea9ce05e706cfd7bc302c0d6a8177f1bd07845b",
+      "output_sha256": "fbe6adcb8527daec3afe04323465ab3d72568ea477156711d3d2ea77bfbc2ff6",
       "crate_manifest": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
       "package": "ark-ip-proofs",
       "features": [],
@@ -1661,12 +1661,12 @@
         {
           "role": "copy-source",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
+          "sha256": "cbd7e4d566df0eeadf97951105e8e9aecedba457f5519ea6020cea3242c42f4a"
         },
         {
           "role": "parity-test",
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "a546e0e9e0f44fa4928fc6a49b544e8c361c0dd285495d69596636123cdd4a91"
+          "sha256": "cbd7e4d566df0eeadf97951105e8e9aecedba457f5519ea6020cea3242c42f4a"
         }
       ],
       "copy_provenance": [],
@@ -2284,13 +2284,14 @@
         "script": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py",
         "extra_imports": [],
         "reuse_modules": [
+          "Ipp.Extracted.AggregateAdapterRuntime",
           "Ipp.Extracted.AppVerifierGenerated",
           "Ipp.Extracted.ChallengeFrameGenerated",
           "Ipp.Extracted.CombinedChecksGenerated",
           "Ipp.Extracted.VerifyTippMippGenerated"
         ],
-        "selected_raw_declarations_sha256": "e97594f4ecab43c4fc03b28cb637752ed89bdfb4c53578d57e09a5173d5c2e1c",
-        "normalized_sha256": "3ce2af493a803630a0ba72b7bea9ce05e706cfd7bc302c0d6a8177f1bd07845b"
+        "selected_raw_declarations_sha256": "ae707c5c60e632c48731d1e4e11124333a34f59b4c07a59e5d8a77cbd0959d3a",
+        "normalized_sha256": "fbe6adcb8527daec3afe04323465ab3d72568ea477156711d3d2ea77bfbc2ff6"
       },
       "parity": [
         {
@@ -2347,7 +2348,8 @@
             "shipping_verifier_semantic_execution_with_traces_core_"
           ]
         }
-      ]
+      ],
+      "source_sha256": "22a6321bf500dc9776a236f680ec93e77e07a34d5050e8a4d51e753ba314a4a2"
     },
     {
       "id": "ArkworksFqMul",

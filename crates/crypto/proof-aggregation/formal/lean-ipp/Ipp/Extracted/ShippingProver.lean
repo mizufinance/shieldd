@@ -1264,19 +1264,6 @@ structure ShippingProverContract
       D μ) where
   kzg : KzgBoundary statement
   gipa : GipaExecutionBoundary statement witness transcript observation
-  chaining :
-    Ipp.TranscriptChaining transcript.x0
-      transcript.roundPrev transcript.roundAnswer
-  randomizerNonceBound :
-    transcript.randomizerNonce < statement.rejectionFuel
-  x0NonceBound :
-    transcript.x0Nonce < statement.rejectionFuel
-  roundNonceBound : ∀ i,
-    transcript.roundNonce i < statement.rejectionFuel
-  bridgeNonceBound :
-    transcript.bridgeNonce < statement.rejectionFuel
-  kzgNonceBound :
-    transcript.kzgNonce < statement.rejectionFuel
   randomizerAdmissible :
     transcript.randomizer ≠ 0 ∧ transcript.randomizer ≠ 1
   x0Nonzero :

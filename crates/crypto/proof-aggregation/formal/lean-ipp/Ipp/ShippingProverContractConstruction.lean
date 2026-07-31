@@ -28,28 +28,15 @@ variable {F G1 G2 GT : Type}
 
 /-! ## Residual production postconditions -/
 
-/-- Exact successful challenge results retained by one prover execution.
+/-- Exact successful challenge admissibility retained by one prover execution.
 
 This boundary does not assert proof acceptance or completeness.  Its fields
-are the postconditions of the deployed bounded challenge sampler and inverse
-operations. -/
-structure ChallengeBoundary
+are the value postconditions needed by the independent honest-prover theorem.
+Nonce bounds and transcript-execution metadata are intentionally outside this
+completeness-only interface. -/
+structure ChallengeAdmissibilityBoundary
     {μ : Nat}
-    (statement : Ipp.FsStatement μ F G1 G2 GT)
     (transcript : Ipp.FsTranscript μ F) where
-  chaining :
-    Ipp.TranscriptChaining transcript.x0
-      transcript.roundPrev transcript.roundAnswer
-  randomizerNonceBound :
-    transcript.randomizerNonce < statement.rejectionFuel
-  x0NonceBound :
-    transcript.x0Nonce < statement.rejectionFuel
-  roundNonceBound : ∀ i,
-    transcript.roundNonce i < statement.rejectionFuel
-  bridgeNonceBound :
-    transcript.bridgeNonce < statement.rejectionFuel
-  kzgNonceBound :
-    transcript.kzgNonce < statement.rejectionFuel
   randomizerAdmissible :
     transcript.randomizer ≠ 0 ∧ transcript.randomizer ≠ 1
   x0Nonzero :
@@ -205,7 +192,7 @@ def shippingProverContract_of_retainedExecution
       VEquationAccepts statement.e g gBeta h statement.acceptV)
     (wVerifier :
       WEquationAccepts statement.e g h hAlpha statement.acceptW)
-    (challenges : ChallengeBoundary statement transcript)
+    (challenges : ChallengeAdmissibilityBoundary transcript)
     (projection : RetainedObservationProjection D concreteInput
       statement transcript observation v w serialization) :
     ShippingProverContract D serialization statement witness
@@ -247,12 +234,6 @@ def shippingProverContract_of_retainedExecution
   exact {
     kzg := kzg
     gipa := gipa
-    chaining := challenges.chaining
-    randomizerNonceBound := challenges.randomizerNonceBound
-    x0NonceBound := challenges.x0NonceBound
-    roundNonceBound := challenges.roundNonceBound
-    bridgeNonceBound := challenges.bridgeNonceBound
-    kzgNonceBound := challenges.kzgNonceBound
     randomizerAdmissible := challenges.randomizerAdmissible
     x0Nonzero := challenges.x0Nonzero
     roundNonzero := challenges.roundNonzero

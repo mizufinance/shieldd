@@ -89,7 +89,108 @@ theorem tipp_mipp_core_input_from_parts_exact
         verifier_h_alpha := parts.verifier_h_alpha
         r := parts.r
         kzg_g2_r_shift := parts.kzg_g2_r_shift
-      } :=
+  } :=
+  rfl
+
+/-- The observed verifier trace is the randomizer phase followed by the
+TIPP/MIPP phase, with the split set to the exact randomizer length. -/
+theorem shipping_verifier_observation_core_exact
+    (callId : app_verifier.AppVerifyCallId)
+    (accepted : Bool)
+    (challengeContext : challenge.ChallengeContext)
+    (randomizerTrace tippMippTrace :
+      applications.groth16_aggregation.BufferedChallengeTraceSink) :
+    applications.groth16_aggregation.shipping_verifier_observation_core
+        callId accepted challengeContext randomizerTrace tippMippTrace =
+      .ok ({
+        call_id := callId,
+        accepted := accepted,
+        challenge_context := challengeContext,
+        challenge_trace_chronological := {
+          records := ⟨randomizerTrace.records.val ++
+            tippMippTrace.records.val⟩
+        }
+      }, ⟨randomizerTrace.records.val.length⟩) :=
+  rfl
+
+/-- Any successful observation-core result reconstructs both phase traces at
+the retained split point. -/
+theorem shipping_verifier_observation_core_trace_projection
+    (callId : app_verifier.AppVerifyCallId)
+    (accepted : Bool)
+    (challengeContext : challenge.ChallengeContext)
+    (randomizerTrace tippMippTrace :
+      applications.groth16_aggregation.BufferedChallengeTraceSink)
+    (observation :
+      applications.groth16_aggregation.ShippingVerifierObservation)
+    (split : Std.Usize)
+    (hcore :
+      applications.groth16_aggregation.shipping_verifier_observation_core
+          callId accepted challengeContext randomizerTrace tippMippTrace =
+        .ok (observation, split)) :
+    observation.challenge_trace_chronological.records.val =
+        randomizerTrace.records.val ++ tippMippTrace.records.val ∧
+      split.val = randomizerTrace.records.val.length ∧
+      split.val ≤
+        observation.challenge_trace_chronological.records.val.length ∧
+      observation.challenge_trace_chronological.records.val.take split.val =
+        randomizerTrace.records.val ∧
+      observation.challenge_trace_chronological.records.val.drop split.val =
+        tippMippTrace.records.val := by
+  rw [shipping_verifier_observation_core_exact] at hcore
+  cases hcore
+  exact ⟨rfl, rfl, by simp, List.take_left, List.drop_left⟩
+
+/-- The observed backend result retains the semantic execution and moves its
+final two phase traces into one chronological observation. -/
+theorem shipping_verifier_observed_backend_result_core_exact
+    {I F TX : Type}
+    (callId : app_verifier.AppVerifyCallId)
+    (execution :
+      applications.groth16_aggregation.ShippingVerifierSemanticExecution
+        I F TX) :
+    applications.groth16_aggregation.shipping_verifier_observed_backend_result_core
+        callId execution =
+      .ok
+        ({
+          execution :=
+            ({
+              call_id := callId,
+              execution :=
+                ({
+                  semantic := execution.semantic,
+                  initial_effect_state := execution.initial_effect_state
+                } :
+                  applications.groth16_aggregation.ShippingVerifierRetainedSemanticExecution
+                    I F TX),
+              observation :=
+                ({
+                  call_id := callId,
+                  accepted := execution.semantic.accepted,
+                  challenge_context := execution.final_effect_state.context,
+                  challenge_trace_chronological :=
+                    ({
+                      records :=
+                        ⟨execution.final_effect_state.randomizer_trace.records.val ++
+                          execution.final_effect_state.tipp_mipp_trace.records.val⟩
+                    } :
+                      applications.groth16_aggregation.BufferedChallengeTraceSink)
+                } :
+                  applications.groth16_aggregation.ShippingVerifierObservation),
+              randomizer_trace_len :=
+                ⟨execution.final_effect_state.randomizer_trace.records.val.length⟩
+            } :
+              applications.groth16_aggregation.ShippingVerifierObservedExecution
+                I F TX),
+          result :=
+            ({
+              id := callId,
+              accepted := execution.semantic.accepted
+            } : app_verifier.AppVerifyCallResult)
+        } :
+          app_verifier.AppVerifyShippingBackendResult
+            (applications.groth16_aggregation.ShippingVerifierObservedExecution
+              I F TX)) := by
   rfl
 
 /-- The production-used extracted adapter under the same algebraic adapters
@@ -882,6 +983,9 @@ theorem AcceptedRandomizerCall.nonce_lt_u64Base
 #print axioms aggregate_adapter_core_input_from_parts_exact
 #print axioms combined_checks_core_input_from_parts_exact
 #print axioms tipp_mipp_core_input_from_parts_exact
+#print axioms shipping_verifier_observation_core_exact
+#print axioms shipping_verifier_observation_core_trace_projection
+#print axioms shipping_verifier_observed_backend_result_core_exact
 
 end
 
