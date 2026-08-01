@@ -41,8 +41,8 @@ structure ProjectedBundleProgramConstruction
         let selected ← preselection
         let outputs ← selectedContinuation selected
         pure
-          (leastInvalidOutcome? invalid outputs).getD
-            (rejectedPackedOutcome fallbackSelection))
+          ((leastInvalidOutcome? invalid outputs).getD
+            (rejectedPackedOutcome fallbackSelection)))
   selected_exact :
     ∀ selected,
       selectedContinuation selected =
@@ -65,7 +65,7 @@ theorem program_eq_projectedLeastInvalidBundleFsGame
       projectedLeastInvalidBundleFsGame
         construction.preselection invalid
           (rejectedPackedOutcome fallbackSelection) := by
-  rw [construction.phase_exact]
+  refine construction.phase_exact.trans ?_
   unfold projectedLeastInvalidBundleFsGame
     MultiStatementBundleFsGame
   rw [bind_assoc]
@@ -85,6 +85,7 @@ theorem projectedLeastInvalidBundleFsGame_queryBound
       ProjectedBundleProgramConstruction
         program invalid fallbackSelection)
     (queryPredicate : GlobalFsSourceSpec.Domain → Prop)
+    [DecidablePred queryPredicate]
     (budget : Nat)
     (hbound :
       IsQueryBoundP program queryPredicate budget) :
@@ -183,10 +184,22 @@ theorem idealByteExperiment_eq_hybridRawIdeal
       Ipp.ShippingAdaptiveReindex.hybridRawIdealExperiment
         sha256 boundary.serialization boundary.reached
           boundary.hybridProgram := by
-  unfold idealByteExperiment
-    Ipp.ShippingAdaptiveReindex.hybridRawIdealExperiment
-  rw [← boundary.raw_exact]
-  rw [← QueryImpl.simulateQ_compose]
+  calc
+    idealByteExperiment sha256 rawProgram =
+        idealByteExperiment sha256
+          (simulateQ
+            (hybridToRawByteImpl
+              boundary.serialization boundary.reached)
+            boundary.hybridProgram) :=
+      congrArg (idealByteExperiment sha256) boundary.raw_exact.symm
+    _ =
+        Ipp.ShippingAdaptiveReindex.hybridRawIdealExperiment
+          sha256 boundary.serialization boundary.reached
+            boundary.hybridProgram := by
+      unfold idealByteExperiment
+        Ipp.ShippingAdaptiveReindex.hybridRawIdealExperiment
+      rw [← QueryImpl.simulateQ_compose]
+      rfl
 
 /-- The generic coherent-cache construction transports the same bundle-wide
 query budget to the fiber-lifted output. -/
@@ -204,8 +217,7 @@ theorem fiberLiftedHybridOutput_queryBound
         sha256 boundary.serialization boundary.reached
           boundary.hybridProgram)
       Ipp.ShippingAdaptiveByteField.IsByteFieldQuery Q_fs :=
-  Ipp.ShippingAdaptiveByteFieldCoupling
-    .fiberLiftedHybridOutput_queryBound
+  Ipp.ShippingAdaptiveByteFieldCoupling.fiberLiftedHybridOutput_queryBound
       sha256 boundary.serialization boundary.reached
         boundary.hybridProgram Q_fs
           boundary.totalFsQueryBound

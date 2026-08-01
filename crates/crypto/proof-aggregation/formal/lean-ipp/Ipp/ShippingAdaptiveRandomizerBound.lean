@@ -27,18 +27,21 @@ open Ipp.Bls12377
 open Ipp.Extracted.AppVerifierStateMachine
 open Ipp.Extracted.ShippingProductionKeyFunctionality
 
-local instance : Fact baseModulus.Prime :=
+local instance adaptiveRandomizerBasePrime : Fact baseModulus.Prime :=
   ⟨arithmeticFacts.basePrime⟩
-local instance : Fact scalarModulus.Prime :=
+local instance adaptiveRandomizerScalarPrime : Fact scalarModulus.Prime :=
   ⟨arithmeticFacts.scalarPrime⟩
-local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+local instance adaptiveRandomizerFq2Nonresidue :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
-local instance : Fintype Fq2 :=
+local instance adaptiveRandomizerFintypeFq2 : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
-local instance : IsUniformSpec GlobalFsSourceSpec :=
+local instance adaptiveRandomizerGlobalUniform :
+    IsUniformSpec GlobalFsSourceSpec :=
   IsUniformSpec.ofFintypeInhabited _
-local instance : IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
+local instance adaptiveRandomizerWrappedUniform :
+    IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
   IsUniformSpec.ofFintypeInhabited _
 
 /-- The exact selected randomizer query reconstructed from one completed
@@ -76,10 +79,10 @@ def globalAdaptiveRandomizerPointBadFinset
     (materializer : ProductionStatementMaterializer)
     (μ : Nat)
     (extractor : AdaptiveGipaExtractor μ)
-    (query : GlobalFsQuery) : Finset Fr :=
-  match query.point with
+    (fsQuery : GlobalFsQuery) : Finset Fr :=
+  match fsQuery.point with
   | .randomizer payload _ =>
-      match materializer.materialize μ query.statement with
+      match materializer.materialize μ fsQuery.statement with
       | none => ∅
       | some statement =>
           Ipp.S1.s1BadRandomizersFor statement
@@ -92,10 +95,11 @@ theorem globalAdaptiveRandomizerPointBadFinset_card
     (materializer : ProductionStatementMaterializer)
     (μ : Nat)
     (extractor : AdaptiveGipaExtractor μ)
-    (query : GlobalFsQuery) :
+    (fsQuery : GlobalFsQuery) :
     (globalAdaptiveRandomizerPointBadFinset
-      materializer μ extractor query).card ≤ 2 ^ μ - 1 := by
-  rcases query with ⟨statementKey, encoded, point⟩
+      materializer μ extractor fsQuery).card ≤ 2 ^ μ - 1 := by
+  classical
+  rcases fsQuery with ⟨statementKey, encoded, point⟩
   cases point with
   | randomizer payload nonce =>
       cases hmaterialized :
@@ -170,6 +174,7 @@ complete source log, and the answer belongs to the point-selected bad set. -/
 theorem packedAcceptedRandomizerRootBadAt_log_witness
     (game : OracleComp GlobalFsSourceSpec (PackedOutcome CallId))
     (materialization : OutputDerivedStatementMaterialization)
+    (μ : Nat)
     (origin : ProductionReplayOriginAt game μ)
     (queryOrigin : GlobalAcceptedRandomizerQueryOriginAt game μ)
     (extractor : AdaptiveGipaExtractor μ)
@@ -178,13 +183,13 @@ theorem packedAcceptedRandomizerRootBadAt_log_witness
       run ∈ support
         (replayFirstRun (Ipp.fsRandomFunction game)))
     (hbad : PackedAcceptedRandomizerRootBadAt μ extractor run.1) :
-    ∃ query answer,
-      QueryAnswered run.2 (Sum.inr query) answer ∧
+    ∃ fsQuery answer,
+      QueryAnswered run.2 (Sum.inr fsQuery) answer ∧
         answer ∈ globalAdaptiveRandomizerPointBadFinset
-          materialization.materializer μ extractor query := by
+          materialization.materializer μ extractor fsQuery := by
   rcases run with ⟨packed, sourceLog⟩
   rcases hbad with ⟨output, houtput, haccept, hroot⟩
-  subst packed
+  cases houtput
   have hmaterialized :=
     sourceOutcome_statement_materialized
       game materialization μ origin output sourceLog hrun haccept
@@ -212,15 +217,15 @@ theorem globalSourceAcceptedRandomizerRootBadAt_le
       adaptiveRandomizerRootError totalQueries μ := by
   calc
     _ ≤ Pr[fun run : GlobalSourceRunLog CallId =>
-          ∃ query answer,
-            QueryAnswered run.2 (Sum.inr query) answer ∧
+          ∃ fsQuery answer,
+            QueryAnswered run.2 (Sum.inr fsQuery) answer ∧
               answer ∈ globalAdaptiveRandomizerPointBadFinset
-                materialization.materializer μ extractor query |
+                materialization.materializer μ extractor fsQuery |
           replayFirstRun (Ipp.fsRandomFunction game)] := by
       apply probEvent_mono
       intro run hrun hbad
       exact packedAcceptedRandomizerRootBadAt_log_witness
-        game materialization origin queryOrigin extractor hrun hbad
+        game materialization μ origin queryOrigin extractor hrun hbad
     _ ≤ (((totalQueries * (2 ^ μ - 1) : Nat) : ℝ≥0∞) /
           (Fintype.card Fr : ℝ≥0∞)) := by
       exact Ipp.structured_log_dependent_mem_le
@@ -283,6 +288,13 @@ def InvalidAcceptedRandomizerGoodAt
     InvalidAcceptedAt invalid μ run ∧
       ¬PackedAcceptedRandomizerRootBadAt μ extractor run.1.out
 
+local instance invalidAcceptedRandomizerGoodAtDecidablePred
+    (invalid : (ν : Nat) → SelectionAt CallId ν → Prop)
+    (μ : Nat)
+    (extractor : AdaptiveGipaExtractor μ) :
+    DecidablePred (InvalidAcceptedRandomizerGoodAt invalid μ extractor) :=
+  Classical.decPred _
+
 /-- Replay-fork experiment with the proved randomizer-good condition installed
 in the leaf gate.  This is a distinct experiment from the legacy raw fork;
 the stronger gate is what allows the base whole-program query budget to be
@@ -317,7 +329,7 @@ structure RandomizerGoodForkScheduleContract
     (μ : Nat)
     (extractor : AdaptiveGipaExtractor μ) where
   baseReach : ∀ level, level < μ →
-    Ipp.CfReachable (multiStatementForkMain game)
+    OracleComp.CfReachable (multiStatementForkMain game)
       queryBounds (Sum.inr ())
       (fun run =>
         multiStatementRoundSlot
@@ -388,7 +400,7 @@ theorem randomizerGoodMultiStatementForkExperimentAt_support_hasCommonStatement
     (μ : Nat)
     (extractor : AdaptiveGipaExtractor μ)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -498,10 +510,10 @@ theorem randomizerGoodMultiStatementForkExperimentAt_support_hasCommonStatement
 cache-preserving projection. -/
 theorem projectCommonStatementTree_not_randomizerRootBad
     (invalid : (ν : Nat) → SelectionAt CallId ν → Prop)
-    {μ depth : Nat}
+    {μ : Nat}
     (extractor : AdaptiveGipaExtractor μ)
     (statement : Ipp.S1.Bls12377ReductionStatement μ)
-    (tree : RawMultiStatementForkTree CallId depth)
+    (tree : RawMultiStatementForkTree CallId μ)
     (hcarries : ForkCarriesFormalStatement statement tree)
     (hgood :
       tree.All (InvalidAcceptedRandomizerGoodAt invalid μ extractor)) :
@@ -524,8 +536,9 @@ theorem projectCommonStatementTree_not_randomizerRootBad
       invalid μ outcome.selection ∧
         outcome.verifierResult.accept = true := by
     have hinvalid := hgood.root.1
+    unfold InvalidAcceptedAt at hinvalid
     rw [hout] at hinvalid
-    simpa [InvalidAcceptedAt, SelectedMu, InvalidAccepted] using hinvalid
+    simpa [SelectedMu, InvalidAccepted] using hinvalid
   refine ⟨outcome, hout, hbranch.2, ?_⟩
   have hrootExact :=
     projectCommonStatementTree_root_data_exact
@@ -578,7 +591,7 @@ theorem randomizerGoodFork_isSome_le_cachePreservingCryptoExtraction
     (μ : Nat)
     (extractor : AdaptiveGipaExtractor μ)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -651,7 +664,7 @@ theorem randomizerGoodFork_isSome_le_cachePreservingCryptoExtraction
       have hnotRoot :
           ¬CommonForkRandomizerRootBad selectedStatement
             (extractor selectedStatement).extract fork.projected :=
-        projectCommonStatementTree_not_randomizerRootBad
+        Ipp.ShippingMultiStatement.projectCommonStatementTree_not_randomizerRootBad
           invalid extractor selectedStatement tree selectedCarries hgood
       have hcrypto := hpartition.resolve_left hnotRoot
       simpa [cachePreservingCommonFork?, hexists, fork,
@@ -823,7 +836,8 @@ theorem invalidAccepted_randomizerAdjustedForkTransform_le_cryptoExtraction
 #print axioms globalWrappedAcceptedRandomizerRootBadAt_le
 #print axioms
   randomizerGoodMultiStatementForkExperimentAt_support_hasCommonStatement
-#print axioms projectCommonStatementTree_not_randomizerRootBad
+#print axioms
+  Ipp.ShippingMultiStatement.projectCommonStatementTree_not_randomizerRootBad
 #print axioms
   randomizerGoodFork_isSome_le_cachePreservingCryptoExtraction
 #print axioms invalidAccepted_sub_randomizerError_le_good

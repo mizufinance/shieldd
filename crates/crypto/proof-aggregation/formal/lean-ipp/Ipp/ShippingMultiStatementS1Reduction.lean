@@ -204,8 +204,18 @@ theorem projectCommonStatementTree_all_accepts_and_invalid
       have hbranch :
           invalid μ outcome.selection ∧
             outcome.verifierResult.accept = true := by
-        rw [hout] at hinvalid
-        simpa [InvalidAcceptedAt, SelectedMu, InvalidAccepted] using hinvalid
+        have hinvalid' :
+            SelectedMu μ run.1.out ∧
+              InvalidAccepted invalid run.1.out :=
+          hinvalid
+        have hpacked :
+            InvalidAccepted invalid run.1.out :=
+          hinvalid'.2
+        have hpacked' :
+            InvalidAccepted invalid
+              (⟨μ, outcome⟩ : PackedOutcome Call) :=
+          hout ▸ hpacked
+        simpa only [InvalidAccepted] using hpacked'
       have hproof :
           outcome.verifierResult.proof = outcome.selection.proof :=
         semantics.proof_exact μ outcome run hsupport hout
@@ -361,9 +371,9 @@ theorem commonAcceptedInvalidFork_implies_extraction_or_randomizerBad
                     statement witnessOf
                     (Ipp.proofRandomizerPayload root.proof) :
                     Set Fr) := by
-              simpa [CommonForkRandomizerRootBad, root, r] using hroot
+              simpa only [CommonForkRandomizerRootBad, root, r] using hroot
             rw [Ipp.S1.coe_s1BadRandomizersFor] at hnotRoot
-            simpa [root, r, witness] using hnotRoot
+            simpa only [root, r, witness] using hnotRoot
           have hacceptsRoot :
               Ipp.FsAccepts statement
                 root.proof root.transcript :=
@@ -435,20 +445,24 @@ This is a proof-erasing map over the existing raw experiment. -/
 noncomputable def cachePreservingCommonFork?
     {Call : Type} {μ : Nat} :
     Option (RawMultiStatementForkTree Call μ) →
-      Option (CachePreservingCommonFork Call μ)
-  | none => none
+      Option (CachePreservingCommonFork Call μ) := by
+  classical
+  intro output
+  cases output with
+  | none => exact none
   | some tree =>
-      if h :
-          ∃ statement : Ipp.S1.Bls12377ReductionStatement μ,
-            ForkCarriesFormalStatement statement tree then
-        let statement := Classical.choose h
-        some {
-          rawTree := tree
-          statement := statement
-          carries := Classical.choose_spec h
-        }
-      else
-        none
+      exact
+        if h :
+            ∃ statement : Ipp.S1.Bls12377ReductionStatement μ,
+              ForkCarriesFormalStatement statement tree then
+          let statement := Classical.choose h
+          some {
+            rawTree := tree
+            statement := statement
+            carries := Classical.choose_spec h
+          }
+        else
+          none
 
 /-- The cache-preserving extraction program is a pure map of the complete
 raw global replay.  It issues no query and does not run a fixed-statement
@@ -565,7 +579,13 @@ theorem cachePreservingS1ExtractionWin_iff_components
         CachePreservingKzgWWin output ∨
         CachePreservingGipaRootWin extractor output ∨
         CachePreservingGipaProductWin extractor output := by
-  cases output <;> rfl
+  cases output with
+  | none =>
+      simp only [CachePreservingS1ExtractionWin,
+        CachePreservingRandomizerRootWin, CachePreservingKzgVWin,
+        CachePreservingKzgWWin, CachePreservingGipaRootWin,
+        CachePreservingGipaProductWin, false_or]
+  | some fork => rfl
 
 /-- The combined cache-preserving target pays exactly the five explicit
 component events. -/
@@ -689,7 +709,7 @@ theorem rawForkFormalStatementSucceededAt_le_cachePreservingS1Extraction
     (μ : Nat)
     (extractor : AdaptiveGipaExtractor μ)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -771,7 +791,7 @@ theorem cachePreserving_rawForkExtractionReductionHolds
     (invalidity : InvalidSelectionExcludesRepresentation invalid)
     (extractor : (μ : Nat) → AdaptiveGipaExtractor μ)
     (hbaseReach : ∀ μ ∈ activeMu, ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -879,11 +899,11 @@ theorem adaptiveSelectedStatementWin_le_standalone
         | some evidence =>
             standaloneWin evidence.1 evidence.2) :
     Pr[mappedWin | mapped] ≤
-      Pr[fun output =>
+      Pr[(fun output =>
           match output with
           | none => False
           | some evidence =>
-              standaloneWin evidence.1 evidence.2 |
+              standaloneWin evidence.1 evidence.2) |
         standalone] := by
   let target :
       Option (AdaptiveSelectedStatementEvidence μ Evidence) → Prop :=
@@ -964,7 +984,7 @@ theorem rawForkFormalStatementSucceededAt_le_adaptive_error_add_intermediateBoun
     (μ totalQueries : Nat)
     (extractor : AdaptiveGipaExtractor μ)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot

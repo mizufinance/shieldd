@@ -26,21 +26,27 @@ open Ipp.ShippingBundleGlobalFsComposition
 open Ipp.ShippingBundleCachedComposition
 open Ipp.ShippingBundleIdealComposition
 open Ipp.Extracted.AppVerifierStateMachine
+open Ipp.Extracted.ShippingBundleAdaptiveComposition
 open Ipp.Extracted.ShippingBundleProgramConstruction
 open Ipp.Extracted.ShippingProductionKeyFunctionality
 
-local instance : Fact baseModulus.Prime :=
+local instance bundleAdaptiveSecurityBasePrime :
+    Fact baseModulus.Prime :=
   ⟨arithmeticFacts.basePrime⟩
-local instance : Fact scalarModulus.Prime :=
+local instance bundleAdaptiveSecurityScalarPrime :
+    Fact scalarModulus.Prime :=
   ⟨arithmeticFacts.scalarPrime⟩
-local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+local instance bundleAdaptiveSecurityFq2Nonresidue :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
-local instance : Fintype Fq2 :=
+local instance bundleAdaptiveSecurityFintypeFq2 : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
-local instance : IsUniformSpec GlobalFsSourceSpec :=
+local instance bundleAdaptiveSecurityGlobalFsUniform :
+    IsUniformSpec GlobalFsSourceSpec :=
   IsUniformSpec.ofFintypeInhabited _
-local instance : IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
+local instance bundleAdaptiveSecurityFsWrappedUniform :
+    IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
   IsUniformSpec.ofFintypeInhabited _
 
 /-- Output-level form of one selected-size invalid-acceptance event, before
@@ -171,9 +177,7 @@ theorem
           Ipp.ShippingScalarReduction.modReductionBudget Q_fs := by
     simpa [IdealByteInvalidAcceptedAt, InvalidAcceptedAt,
       projectedBundleFsGame] using
-      (Ipp.ShippingBundleIdealComposition
-        .CachedProjectedBundleConstruction
-          .idealByteExperiment_event_le_multiStatementFsProbComp_add_modReduction
+      (Ipp.ShippingBundleIdealComposition.CachedProjectedBundleConstruction.idealByteExperiment_event_le_multiStatementFsProbComp_add_modReduction
             (equations.toCachedProjectedBundleConstruction)
               (IdealByteInvalidAcceptedAt invalid μ))
   have afterModReduction :
@@ -213,8 +217,10 @@ theorem
     (Ipp.forkTreeStep_monotone
       (queryBounds (Sum.inr ()) + 1) scalarModulus).iterate
         μ afterRandomizer
-  have origin :=
-    equations.productionReplayOriginAt μ
+  have origin :
+      ProductionReplayOriginAt (projectedBundleFsGame equations) μ := by
+    simpa only [projectedBundleFsGame] using
+      equations.productionReplayOriginAt μ
   have determines :=
     productionKeyDeterminesStatementAt_of_outputDerived
       materialization μ origin

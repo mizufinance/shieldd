@@ -166,9 +166,10 @@ theorem coherentBlake2b_reduce_eq_scalar
     Ipp.ShippingScalarReduction.reduceFr <$>
         coherentBlake2bImpl bytes =
       coherentScalarImpl bytes := by
-  simp only [coherentBlake2bImpl, coherentScalarImpl,
-    Functor.map_map, Function.comp_apply]
+  unfold coherentBlake2bImpl coherentScalarImpl
+  rw [Functor.map_map]
   apply congrArg
+    (fun f : CoherentByteEntry → Fr => f <$> coherentEntryImpl bytes)
   funext entry
   exact entry.reduction_exact
 

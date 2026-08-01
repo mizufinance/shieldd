@@ -31,6 +31,8 @@ local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
 local instance : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
+local instance : DecidableEq g1PrimeSubgroup := Classical.decEq _
+local instance : DecidableEq g2PrimeSubgroup := Classical.decEq _
 
 abbrev Bls12377ReductionStatement (μ : Nat) :=
   FsStatement μ Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput
@@ -289,14 +291,17 @@ theorem bls12377FirstSome4_exists {α : Type}
     ∃ result, bls12377FirstSome4 results = some result := by
   obtain ⟨child, result, hresult⟩ := hexists
   fin_cases child
-  · exact ⟨result, by simp [bls12377FirstSome4, hresult]⟩
-  · cases h0 : results 0 with
+  · change results 0 = some result at hresult
+    exact ⟨result, by simp [bls12377FirstSome4, hresult]⟩
+  · change results 1 = some result at hresult
+    cases h0 : results 0 with
     | none =>
         exact ⟨result, by
           simp [bls12377FirstSome4, h0, hresult]⟩
     | some result0 =>
         exact ⟨result0, by simp [bls12377FirstSome4, h0]⟩
-  · cases h0 : results 0 with
+  · change results 2 = some result at hresult
+    cases h0 : results 0 with
     | some result0 =>
         exact ⟨result0, by simp [bls12377FirstSome4, h0]⟩
     | none =>
@@ -307,7 +312,8 @@ theorem bls12377FirstSome4_exists {α : Type}
         | none =>
             exact ⟨result, by
               simp [bls12377FirstSome4, h0, h1, hresult]⟩
-  · cases h0 : results 0 with
+  · change results 3 = some result at hresult
+    cases h0 : results 0 with
     | some result0 =>
         exact ⟨result0, by simp [bls12377FirstSome4, h0]⟩
     | none =>
@@ -870,6 +876,7 @@ theorem bls12377GipaProjectedFork_support_accepts {μ : Nat}
     match output with
     | none => True
     | some tree => Bls12377GipaForkAccepts stmt tree := by
+  classical
   rw [gipaRootOpeningGame, support_map] at hsupport
   obtain ⟨rawOutput, hraw, hproject⟩ := hsupport
   subst output
@@ -1192,9 +1199,14 @@ theorem gipa_fork_knowledge_to_prefork_accepted_bls12377_games
           stmt adv qb badZ extractor) queryBudget :=
     (bls12377GipaProductLaneGame_isTotalQueryBound_iff
       stmt adv qb badZ extractor queryBudget).2 hproductBase
-  apply gipa_fork_knowledge_to_explicit_bls12377_games
-    stmt adv qb badZ extractor
-  · exact {
+  change
+    Pr[S1PairingBad stmt extractor.extract |
+        s1ForkExperiment stmt adv qb badZ extractor.extract] ≤
+      security.epsilonRoot queryBudget +
+        security.epsilonProduct queryBudget
+  let rootSecurity :
+      Bls12377GipaRootOpeningExplicitGameSecurity
+        stmt adv qb badZ extractor := {
       epsilon := security.epsilonRoot queryBudget
       queryBudget := queryBudget
       queryBound := hroot
@@ -1203,7 +1215,9 @@ theorem gipa_fork_knowledge_to_prefork_accepted_bls12377_games
           stmt adv qb badZ extractor]
         exact security.root_gameWin_le adv qb badZ queryBudget hroot
     }
-  · exact {
+  let productSecurity :
+      Bls12377GipaProductLaneExplicitGameSecurity
+        stmt adv qb badZ extractor := {
       epsilon := security.epsilonProduct queryBudget
       queryBudget := queryBudget
       queryBound := hproduct
@@ -1213,6 +1227,9 @@ theorem gipa_fork_knowledge_to_prefork_accepted_bls12377_games
         exact security.product_gameWin_le
           adv qb badZ queryBudget hproduct
     }
+  exact
+    gipa_fork_knowledge_to_explicit_bls12377_games
+      stmt adv qb badZ extractor rootSecurity productSecurity
 
 end
 

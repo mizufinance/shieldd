@@ -18,6 +18,7 @@ variable {ι : Type} {spec : OracleSpec ι} {α : Type}
 /-- Pointwise domination on successful option outputs for an arbitrary oracle
 specification.  Failure mass is intentionally unconstrained. -/
 def OracleOptionSuccessDom
+    [IsUniformSpec spec]
     {β : Type}
     (left right : OracleComp spec (Option β)) : Prop :=
   ∀ value,
@@ -57,6 +58,7 @@ theorem probEvent_optionSatisfies_le_of_oracleOptionSuccessDom
 combined-fork depth. -/
 def ForkTreeGatePointwiseDom
     [spec.DecidableEq]
+    [IsUniformSpec spec]
     [∀ j, SampleableType (spec.Range j)]
     [unifSpec ⊂ₒ spec]
     (total : Nat)
@@ -96,6 +98,7 @@ theorem forkTreeCombined_zero_gatePointwiseDom
     (hgate : ∀ run, strong run → weak run) :
     ForkTreeGatePointwiseDom total main queryBounds oracle
       selector strong weak 0 (Nat.zero_le total) := by
+  classical
   intro tree
   rw [forkTreeCombined_zero, forkTreeCombined_zero,
     probOutput_bind_eq_tsum, probOutput_bind_eq_tsum]
@@ -104,7 +107,18 @@ theorem forkTreeCombined_zero_gatePointwiseDom
   by_cases hstrong : strong first
   · have hweak : weak first := hgate first hstrong
     simp [hstrong, hweak]
-  · simp [hstrong]
+  · by_cases hweak : weak first
+    · simp only [hstrong, hweak, ↓reduceIte]
+      have hzero :
+          Pr[= some tree |
+            (pure none :
+              OracleComp spec
+                (Option (RunTree spec α 0)))] = 0 := by
+        rw [probOutput_pure]
+        simp
+      rw [hzero, mul_zero]
+      exact bot_le
+    · simp [hstrong, hweak]
 
 /-- The tree-specific child continuation is the generic optional echo used by
 the replay-contextual refinement theorem. -/
@@ -143,7 +157,7 @@ theorem forkTreeCombined_gateReplayRefines
         selector strong built builtLe)
       (forkTreeCombined total main queryBounds oracle
         selector weak built builtLe) := by
-  induction built generalizing builtLe with
+  induction built with
   | zero =>
       rw [forkTreeCombined_zero,
         forkTreeCombined_zero]
@@ -173,7 +187,8 @@ theorem forkTreeCombined_gateReplayRefines
       have hprior :=
         ih (by omega)
       let nextSelector :=
-        combinedTreeSelector queryBounds oracle selector
+        combinedTreeSelector (spec := spec) (α := α)
+          queryBounds oracle selector
           total built (by omega)
       have hcontinued :=
         forkReplay4Continue_keepOptionalChild_refines

@@ -32,6 +32,18 @@ open Ipp.ShippingAdaptiveByteFieldCoupling
 open Ipp.ShippingMultiStatement
 open Ipp.ShippingScalarReduction
 
+local instance : Fact scalarModulus.Prime :=
+  ⟨arithmeticFacts.scalarPrime⟩
+
+local instance : NeZero scalarModulus :=
+  ⟨arithmeticFacts.scalarPrime.ne_zero⟩
+
+local instance : IsUniformSpec GlobalFsSourceSpec :=
+  IsUniformSpec.ofFintypeInhabited _
+
+local instance : IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
+  IsUniformSpec.ofFintypeInhabited _
+
 namespace OriginByteReindexing
 
 /-- The complete ideal-byte origin experiment is exactly the coherent
@@ -58,8 +70,8 @@ theorem projectedOriginIdealByte_evalDist_eq_inducedFiberLifted
         sha256 boundary.serialization boundary.reached
         boundary.hybridProgram] := by
   rw [
-    Ipp.ShippingAdaptiveReindex.OriginByteReindexing
-      .projectedOriginIdealByteExperiment_eq_hybridRawIdeal boundary]
+    Ipp.ShippingAdaptiveReindex.OriginByteReindexing.projectedOriginIdealByteExperiment_eq_hybridRawIdeal
+      boundary]
   exact
     hybridRawIdeal_evalDist_eq_inducedFiberLifted
       sha256 boundary.serialization boundary.reached
@@ -79,16 +91,30 @@ noncomputable def sampleOpaqueGlobalFr :
     (superSpec := GlobalFsSourceSpec)
     ($ᵗ Fr)
 
+private theorem liftUnifGlobal_queryBound_zero
+    {Output : Type}
+    (program : ProbComp Output) :
+    IsQueryBoundP
+      (OracleComp.liftComp
+        (spec := unifSpec)
+        (superSpec := GlobalFsSourceSpec)
+        program)
+      IsGlobalFieldQuery 0 := by
+  apply OracleComp.IsQueryBoundP.liftComp_subSpec
+    (spec := unifSpec)
+    (superSpec := GlobalFsSourceSpec)
+    (h := OracleQuery.subSpec_add_left)
+    (p := fun _ => False)
+    (q := IsGlobalFieldQuery)
+  · intro point
+    simp [IsGlobalFieldQuery]
+  · exact OracleComp.isQueryBoundP_false _ 0
+
 /-- Ambient sampling does not consume the structured field-query budget. -/
 theorem sampleOpaqueGlobalFr_queryBound_zero :
     IsQueryBoundP
       sampleOpaqueGlobalFr IsGlobalFieldQuery 0 := by
-  unfold sampleOpaqueGlobalFr
-  apply OracleComp.IsQueryBoundP.liftComp_subSpec
-    (p := fun _ => False)
-  · intro point
-    simp [IsGlobalFieldQuery]
-  · exact OracleComp.isQueryBoundP_false _ 0
+  exact liftUnifGlobal_queryBound_zero (($ᵗ Fr) : ProbComp Fr)
 
 /-- Interpret the coherent byte-keyed scalar source in the global structured
 Fiat--Shamir source.
@@ -120,10 +146,20 @@ of a structured verifier query is reindexed to that same logical query. -/
     uniformScalarToGlobalFsImpl serialization reached
         (.inr (reachedByteEncoding serialization reached q)) =
       (GlobalFsSourceSpec).query (.inr q.1) := by
-  simp [uniformScalarToGlobalFsImpl,
-    decodeReachedQuery?_encode
-      serialization reached hcollisionFree q]
+  change
+    (match decodeReachedQuery? serialization reached
+        (reachedByteEncoding serialization reached q) with
+      | none => sampleOpaqueGlobalFr
+      | some reachedPoint =>
+          (liftM
+            (GlobalFsSourceSpec.query (.inr reachedPoint.1)) :
+            OracleComp GlobalFsSourceSpec Fr)) =
+      (liftM (GlobalFsSourceSpec.query (.inr q.1)) :
+        OracleComp GlobalFsSourceSpec Fr)
+  rw [decodeReachedQuery?_encode
+    serialization reached hcollisionFree q]
 
+set_option maxRecDepth 100000 in
 /-- One charged byte-scalar query becomes at most one structured field query.
 Opaque byte keys move to ambient sampling and therefore consume zero of that
 budget. -/
@@ -140,13 +176,39 @@ theorem uniformScalarToGlobalFsImpl_step_charged
   | inl _ =>
       simp [IsByteFieldQuery] at hpoint
   | inr bytes =>
-      simp only [uniformScalarToGlobalFsImpl,
-        QueryImpl.add_apply_inr]
-      split
-      · exact
-          sampleOpaqueGlobalFr_queryBound_zero.mono
-            (Nat.zero_le 1)
-      · simp [IsGlobalFieldQuery]
+      cases hdecode :
+          decodeReachedQuery? serialization reached bytes with
+      | none =>
+          rw [show
+            uniformScalarToGlobalFsImpl serialization reached
+                (.inr bytes) =
+              (match decodeReachedQuery?
+                  serialization reached bytes with
+                | none => sampleOpaqueGlobalFr
+                | some reachedPoint =>
+                    (GlobalFsSourceSpec).query
+                      (.inr reachedPoint.1)) from rfl,
+            hdecode]
+          exact
+            sampleOpaqueGlobalFr_queryBound_zero.mono
+              (Nat.zero_le 1)
+      | some reachedPoint =>
+          rw [show
+            uniformScalarToGlobalFsImpl serialization reached
+                (.inr bytes) =
+              (match decodeReachedQuery?
+                  serialization reached bytes with
+                | none => sampleOpaqueGlobalFr
+                | some reachedPoint =>
+                    (GlobalFsSourceSpec).query
+                      (.inr reachedPoint.1)) from rfl,
+            hdecode]
+          exact
+            (OracleComp.isQueryBoundP_query_iff
+              (spec := GlobalFsSourceSpec)
+              (p := IsGlobalFieldQuery)
+              (.inr reachedPoint.1) 1).2
+              (by simp [IsGlobalFieldQuery])
 
 /-- Ambient source queries remain ambient and consume no structured
 field-query budget. -/
@@ -161,8 +223,18 @@ theorem uniformScalarToGlobalFsImpl_step_uncharged
       IsGlobalFieldQuery 0 := by
   cases point with
   | inl ambientPoint =>
-      simp [uniformScalarToGlobalFsImpl, globalFsUnifFwd,
-        IsGlobalFieldQuery]
+      simp only [uniformScalarToGlobalFsImpl,
+        QueryImpl.add_apply_inl, globalFsUnifFwd]
+      change IsQueryBoundP
+        (liftM (GlobalFsSourceSpec.query (.inl ambientPoint)) :
+          OracleComp GlobalFsSourceSpec _)
+        IsGlobalFieldQuery 0
+      exact
+        (OracleComp.isQueryBoundP_query_iff
+          (spec := GlobalFsSourceSpec)
+          (p := IsGlobalFieldQuery)
+          (.inl ambientPoint) 0).2
+          (by simp [IsGlobalFieldQuery])
   | inr _ =>
       simp [IsByteFieldQuery] at hpoint
 
@@ -292,9 +364,9 @@ private theorem simulateQ_statePreserving_run_eq
     (stateful :
       QueryImpl spec (StateT State ProbComp))
     (stateless : QueryImpl spec ProbComp)
-    (hstep : ∀ query state,
-      (stateful query).run state =
-        (fun value => (value, state)) <$> stateless query)
+    (hstep : ∀ point state,
+      (stateful point).run state =
+        (fun value => (value, state)) <$> stateless point)
     (program : OracleComp spec Output)
     (state : State) :
     (simulateQ stateful program).run state =
@@ -304,9 +376,10 @@ private theorem simulateQ_statePreserving_run_eq
       generalizing state with
   | pure output =>
       simp [StateT.run_pure]
-  | query_bind query continuation ih =>
-      simp only [simulateQ_query_bind, StateT.run_bind]
-      rw [hstep query state, bind_map_left, map_bind]
+  | query_bind point continuation ih =>
+      simp only [simulateQ_bind, simulateQ_spec_query,
+        StateT.run_bind]
+      rw [hstep point state, bind_map_left, map_bind]
       exact bind_congr fun value => ih value state
 
 /-- Output-only form of `simulateQ_statePreserving_run_eq`. -/
@@ -317,9 +390,9 @@ private theorem simulateQ_statePreserving_run'_eq
     (stateful :
       QueryImpl spec (StateT State ProbComp))
     (stateless : QueryImpl spec ProbComp)
-    (hstep : ∀ query state,
-      (stateful query).run state =
-        (fun value => (value, state)) <$> stateless query)
+    (hstep : ∀ point state,
+      (stateful point).run state =
+        (fun value => (value, state)) <$> stateless point)
     (program : OracleComp spec Output)
     (state : State) :
     (simulateQ stateful program).run' state =
@@ -329,48 +402,64 @@ private theorem simulateQ_statePreserving_run'_eq
       stateful stateless hstep program state]
   simp [Functor.map_map]
 
+set_option maxRecDepth 100000 in
 /-- The quantitative reduced handler is exactly the ordinary induced scalar
 handler after forgetting its proof-only state. -/
 private theorem inducedReducedByteFieldSourceImpl_run_eq
     [SampleableType DigestBytes]
-    (query : ByteFieldSourceSpec.Domain)
+    (point : ByteFieldSourceSpec.Domain)
     (state : ScalarReplacementState) :
-    (inducedReducedByteFieldSourceImpl query).run state =
+    (inducedReducedByteFieldSourceImpl point).run state =
       (fun value => (value, state)) <$>
-        inducedByteFieldSourceImpl query := by
-  cases query with
-  | inl point =>
-      simp [inducedReducedByteFieldSourceImpl,
-        inducedByteFieldSourceImpl,
-        ambientSamplingWithScalarReplacementState,
-        QueryImpl.liftTarget_apply,
-        HasQuery.toQueryImpl_apply,
-        StateT.run_lift, map_eq_bind_pure_comp]
+        inducedByteFieldSourceImpl point := by
+  cases point with
+  | inl ambientPoint =>
+      change
+        (StateT.lift
+          (HasQuery.query
+            (spec := unifSpec) (m := ProbComp)
+            ambientPoint)).run state =
+          (fun value => (value, state)) <$>
+            HasQuery.query
+              (spec := unifSpec) (m := ProbComp)
+              ambientPoint
+      simp only [StateT.run_lift, map_eq_bind_pure_comp,
+        Function.comp_apply]
+      rfl
   | inr bytes =>
-      simp [inducedReducedByteFieldSourceImpl,
-        inducedByteFieldSourceImpl,
-        reducedFreshOracleImpl, Functor.map_map]
+      change
+        (fun digest => (reduceFr digest, state)) <$>
+            (($ᵗ DigestBytes) : ProbComp DigestBytes) =
+          (fun value => (value, state)) <$>
+            (reduceFr <$>
+              (($ᵗ DigestBytes) : ProbComp DigestBytes))
+      simp only [Functor.map_map, Function.comp_apply]
 
+set_option maxRecDepth 100000 in
 /-- The quantitative uniform handler is exactly the stateless uniform
 byte-field handler after forgetting its proof-only state. -/
 private theorem uniformByteFieldSourceImpl_run_eq
-    (query : ByteFieldSourceSpec.Domain)
+    (point : ByteFieldSourceSpec.Domain)
     (state : ScalarReplacementState) :
-    (uniformByteFieldSourceImpl query).run state =
+    (uniformByteFieldSourceImpl point).run state =
       (fun value => (value, state)) <$>
-        uniformByteFieldProbCompImpl query := by
-  cases query with
-  | inl point =>
-      simp [uniformByteFieldSourceImpl,
-        uniformByteFieldProbCompImpl,
-        ambientSamplingWithScalarReplacementState,
-        QueryImpl.liftTarget_apply,
-        HasQuery.toQueryImpl_apply,
-        StateT.run_lift, map_eq_bind_pure_comp]
+        uniformByteFieldProbCompImpl point := by
+  cases point with
+  | inl ambientPoint =>
+      change
+        (StateT.lift
+          (HasQuery.query
+            (spec := unifSpec) (m := ProbComp)
+            ambientPoint)).run state =
+          (fun value => (value, state)) <$>
+            HasQuery.query
+              (spec := unifSpec) (m := ProbComp)
+              ambientPoint
+      simp only [StateT.run_lift, map_eq_bind_pure_comp,
+        Function.comp_apply]
+      rfl
   | inr bytes =>
-      simp [uniformByteFieldSourceImpl,
-        uniformByteFieldProbCompImpl,
-        uniformFreshOracleImpl, Functor.map_map]
+      rfl
 
 /-- Interpreting the coherent fiber-lifted program with the induced scalar
 source is exactly the already-defined induced coherent experiment. -/
@@ -390,7 +479,7 @@ private theorem simulateQ_inducedByteFieldSourceImpl_fiberLiftedHybridOutput
     inducedFiberLiftedHybridOutput
   rw [StateT.run'_eq, StateT.run'_eq, simulateQ_map]
   have hcompose :=
-    OracleComp.simulateQ_StateT_compose
+    simulateQ_StateT_compose
       (coherentHybridImpl sha256 serialization reached)
       inducedByteFieldSourceImpl
       (inducedCoherentHybridImpl
@@ -412,18 +501,18 @@ private theorem evalDist_simulateQ_cross
     {Output : Type}
     (left : QueryImpl inner (OracleComp outer₁))
     (right : QueryImpl inner (OracleComp outer₂))
-    (hquery : ∀ query, 𝒟[left query] = 𝒟[right query])
+    (hquery : ∀ point, 𝒟[left point] = 𝒟[right point])
     (program : OracleComp inner Output) :
     𝒟[simulateQ left program] =
       𝒟[simulateQ right program] := by
   induction program using OracleComp.inductionOn with
   | pure output =>
       rfl
-  | query_bind query continuation ih =>
+  | query_bind point continuation ih =>
       simp only [simulateQ_query_bind]
       rw [evalDist_bind, evalDist_bind]
       congr 1
-      · exact hquery query
+      · exact hquery point
       · funext value
         exact ih value
 
@@ -433,27 +522,52 @@ corresponding structured global-source query. -/
 private theorem uniformByteFieldProbCompImpl_evalDist_eq_global
     (serialization : GlobalQuerySerialization)
     (reached : Set GlobalFsQuery)
-    (query : ByteFieldSourceSpec.Domain) :
-    𝒟[uniformByteFieldProbCompImpl query] =
+    (point : ByteFieldSourceSpec.Domain) :
+    𝒟[uniformByteFieldProbCompImpl point] =
       𝒟[uniformScalarToGlobalFsImpl
-        serialization reached query] := by
-  cases query with
-  | inl point =>
-      simp [uniformByteFieldProbCompImpl,
-        uniformScalarToGlobalFsImpl, globalFsUnifFwd,
-        HasQuery.toQueryImpl_apply]
+        serialization reached point] := by
+  cases point with
+  | inl ambientPoint =>
+      change
+        𝒟[(unifSpec.query ambientPoint :
+            OracleComp unifSpec (unifSpec.Range ambientPoint))] =
+          𝒟[(GlobalFsSourceSpec.query (.inl ambientPoint) :
+            OracleComp GlobalFsSourceSpec (unifSpec.Range ambientPoint))]
+      rw [evalDist_query, evalDist_query]
+      rfl
   | inr bytes =>
       cases hdecode :
           decodeReachedQuery?
             serialization reached bytes with
       | none =>
-          simp [uniformByteFieldProbCompImpl,
-            uniformScalarToGlobalFsImpl, hdecode,
-            sampleOpaqueGlobalFr]
-      | some query =>
-          simp [uniformByteFieldProbCompImpl,
-            uniformScalarToGlobalFsImpl, hdecode,
-            evalDist_uniformSample, evalDist_query]
+          rw [show
+            uniformScalarToGlobalFsImpl serialization reached (.inr bytes) =
+              (match decodeReachedQuery? serialization reached bytes with
+                | none => sampleOpaqueGlobalFr
+                | some reachedPoint =>
+                    (GlobalFsSourceSpec).query (.inr reachedPoint.1)) from rfl,
+            hdecode]
+          change
+            𝒟[(($ᵗ Fr) : ProbComp Fr)] =
+              𝒟[sampleOpaqueGlobalFr]
+          symm
+          exact
+            OracleComp.evalDist_liftComp
+              (($ᵗ Fr) : ProbComp Fr)
+      | some decoded =>
+          rw [show
+            uniformScalarToGlobalFsImpl serialization reached (.inr bytes) =
+              (match decodeReachedQuery? serialization reached bytes with
+                | none => sampleOpaqueGlobalFr
+                | some reachedPoint =>
+                    (GlobalFsSourceSpec).query (.inr reachedPoint.1)) from rfl,
+            hdecode]
+          change
+            𝒟[(($ᵗ Fr) : ProbComp Fr)] =
+              𝒟[(GlobalFsSourceSpec.query (.inr decoded.1) :
+                OracleComp GlobalFsSourceSpec Fr)]
+          rw [evalDist_uniformSample, evalDist_query]
+          rfl
 
 /-- Forgetting the proof-only quantitative state recovers exactly the
 induced-scalar coherent experiment. -/
@@ -521,16 +635,16 @@ theorem fiberLiftedUniformScalar_output_evalDist_eq_globalFs
 the quantitative simulation's bad flag. -/
 theorem inducedReducedByteFieldSourceImpl_preserves_bad
     [SampleableType DigestBytes]
-    (query : ByteFieldSourceSpec.Domain)
+    (point : ByteFieldSourceSpec.Domain)
     (state : ScalarReplacementState)
     (output :
-      ByteFieldSourceSpec.Range query × ScalarReplacementState)
+      ByteFieldSourceSpec.Range point × ScalarReplacementState)
     (houtput :
       output ∈ support
-        ((inducedReducedByteFieldSourceImpl query).run state)) :
+        ((inducedReducedByteFieldSourceImpl point).run state)) :
     output.2.2 = state.2 := by
-  cases query with
-  | inl point =>
+  cases point with
+  | inl ambientPoint =>
       simp only [inducedReducedByteFieldSourceImpl,
         QueryImpl.add_apply_inl,
         ambientSamplingWithScalarReplacementState,
@@ -551,19 +665,19 @@ theorem inducedReducedByteFieldSourceImpl_preserves_bad
 /-- One charged byte-field step has the proved one-response reduction bias. -/
 theorem inducedReducedByteFieldSourceImpl_step_tvDist_le
     [SampleableType DigestBytes]
-    (query : ByteFieldSourceSpec.Domain)
-    (hquery : IsByteFieldQuery query)
+    (point : ByteFieldSourceSpec.Domain)
+    (hpoint : IsByteFieldQuery point)
     (state : PUnit) :
     ENNReal.ofReal
         (tvDist
-          ((inducedReducedByteFieldSourceImpl query).run
+          ((inducedReducedByteFieldSourceImpl point).run
             (state, false))
-          ((uniformByteFieldSourceImpl query).run
+          ((uniformByteFieldSourceImpl point).run
             (state, false))) ≤
       modReductionBias := by
-  cases query with
+  cases point with
   | inl _ =>
-      simp [IsByteFieldQuery] at hquery
+      simp [IsByteFieldQuery] at hpoint
   | inr bytes =>
       simpa [inducedReducedByteFieldSourceImpl,
         uniformByteFieldSourceImpl] using
@@ -573,16 +687,16 @@ theorem inducedReducedByteFieldSourceImpl_step_tvDist_le
 /-- An uncharged ambient step is identical in both scalar worlds. -/
 theorem inducedReducedByteFieldSourceImpl_step_uncharged
     [SampleableType DigestBytes]
-    (query : ByteFieldSourceSpec.Domain)
-    (hquery : ¬ IsByteFieldQuery query)
+    (point : ByteFieldSourceSpec.Domain)
+    (hpoint : ¬ IsByteFieldQuery point)
     (state : ScalarReplacementState) :
-    (inducedReducedByteFieldSourceImpl query).run state =
-      (uniformByteFieldSourceImpl query).run state := by
-  cases query with
+    (inducedReducedByteFieldSourceImpl point).run state =
+      (uniformByteFieldSourceImpl point).run state := by
+  cases point with
   | inl _ =>
       rfl
   | inr _ =>
-      simp [IsByteFieldQuery] at hquery
+      simp [IsByteFieldQuery] at hpoint
 
 /-- Whole-program modular-reduction hop over the exact same fiber-lifted
 program and retained coherent byte cache on both sides. The loss is exactly
@@ -621,9 +735,10 @@ theorem fiberLiftedInducedReduced_uniformScalar_tvDist_le
           inducedReducedByteFieldSourceImpl
           (fun state : ScalarReplacementState =>
             state.2 = false)
-          (fun query state hstate result hresult => by
+          (fun point state hstate result hresult => by
+            change result.2.2 = false
             rw [inducedReducedByteFieldSourceImpl_preserves_bad
-              query state result hresult]
+              point state result hresult]
             exact hstate)
           (fiberLiftedHybridOutput
             sha256 serialization reached program)
@@ -631,29 +746,37 @@ theorem fiberLiftedInducedReduced_uniformScalar_tvDist_le
       exact hinv output houtput
     simp_all
   have hquantitative :=
-    OracleComp.ProgramLogic.Relational
-      .ofReal_tvDist_simulateQ_run_le_queryBound_mul_slack_plus_probEvent_bad
+    OracleComp.ProgramLogic.Relational.ofReal_tvDist_simulateQ_run_le_queryBound_mul_slack_plus_probEvent_bad
         (spec' := unifSpec)
         inducedReducedByteFieldSourceImpl
         uniformByteFieldSourceImpl
         modReductionBias
         IsByteFieldQuery
-        (fun query hquery state =>
+        (fun point hpoint state =>
           inducedReducedByteFieldSourceImpl_step_tvDist_le
-            query hquery state)
-        (fun query hquery state =>
+            point hpoint state)
+        (fun point hpoint state =>
           inducedReducedByteFieldSourceImpl_step_uncharged
-            query hquery state)
-        (fun query state hbad output houtput => by
+            point hpoint state)
+        (fun point state hbad output houtput => by
           rw [inducedReducedByteFieldSourceImpl_preserves_bad
-            query state output houtput]
+            point state output houtput]
           exact hbad)
         (fiberLiftedHybridOutput
           sha256 serialization reached program)
         hbound (PUnit.unit, false)
+  have hbadZero' :
+      Pr[fun output : Output × ScalarReplacementState =>
+          output.2.2 = true |
+        (simulateQ inducedReducedByteFieldSourceImpl
+          (fiberLiftedHybridOutput
+            sha256 serialization reached program)).run
+              (PUnit.unit, false)] = 0 := by
+    simpa [fiberLiftedInducedReducedExperiment] using hbadZero
+  rw [hbadZero', add_zero] at hquantitative
   simpa [fiberLiftedInducedReducedExperiment,
     fiberLiftedUniformScalarExperiment,
-    modReductionBudget, hbadZero] using hquantitative
+    modReductionBudget] using hquantitative
 
 /-- Event form of the cache-preserving whole-program hop. -/
 theorem fiberLiftedInducedReduced_event_le_uniformScalar_add_modReduction
@@ -740,6 +863,7 @@ theorem inducedFiberLifted_event_le_globalFs_add_modReduction
         modReductionBudget Q_fs := by
             congr 1
             rw [probEvent_map]
+            rfl
     _ =
       Pr[predicate |
         fiberLiftedGlobalFsProgram
@@ -787,7 +911,7 @@ def coherentCacheToScalar
     (cache : CoherentByteCache) :
     ByteFieldOracleSpec.QueryCache :=
   Ipp.RandomOracleMap.mapCache
-    (fun _ entry : CoherentByteEntry => entry.scalar)
+    (fun _ (entry : CoherentByteEntry) => entry.scalar)
     cache
 
 @[simp] theorem coherentCacheToScalar_lookup
@@ -807,7 +931,7 @@ theorem coherentCacheToScalar_cacheQuery
         bytes entry.scalar := by
   exact
     Ipp.RandomOracleMap.mapCache_cacheQuery
-      (fun _ candidate : CoherentByteEntry => candidate.scalar)
+      (fun _ (candidate : CoherentByteEntry) => candidate.scalar)
       cache bytes entry
 
 @[simp] theorem coherentCacheToScalar_empty :
@@ -911,14 +1035,18 @@ private theorem CoherentByteMissTraceFrom.mapOutput
     (process : First → Output) :
     CoherentByteMissTraceFrom cache
       ((fun result => (process result.1, result.2)) <$> program) := by
-  simpa [map_eq_bind_pure_comp, Function.comp_apply] using
-    hprogram.bind
-      (fun output coherentCache =>
-        pure (process output, coherentCache))
-      (fun output coherentCache =>
+  induction hprogram with
+  | pure cache output coherentCache cache_exact =>
+      simpa only [map_pure] using
         CoherentByteMissTraceFrom.pure
-          (coherentCacheToScalar coherentCache)
-          (process output) coherentCache rfl)
+          cache (process output) coherentCache cache_exact
+  | queryBind cache point continuation fresh
+      continuation_fresh ih =>
+      rw [map_bind]
+      exact
+        CoherentByteMissTraceFrom.queryBind
+          cache point _ fresh
+          (fun answer => ih answer)
 
 /-- A source computation with zero byte-field budget can be prepended to a
 coherent miss trace without changing its accumulated byte cache. -/
@@ -958,6 +1086,7 @@ private theorem coherentByteMissTrace_bind_of_queryBound_zero
             simpa [IsByteFieldQuery] using hzero.1
           exact himpossible.elim
 
+set_option maxRecDepth 10000 in
 /-- One coherent entry lookup emits no byte-field query on a hit and exactly
 one fresh byte-field query on a miss.  Fiber sampling is ambient and the
 terminal scalar cache is the projection of the updated coherent cache. -/
@@ -992,10 +1121,9 @@ private theorem coherentEntryImpl_run_missTrace
             bytes scalar)
           (sampleDigestFiber scalar)
           (sampleDigestFiber_byteFieldQueryBound_zero scalar)
-      · intro digest
-        apply CoherentByteMissTraceFrom.pure
-        rw [coherentCacheToScalar_cacheQuery]
-        rfl
+        · intro digest
+          apply CoherentByteMissTraceFrom.pure
+          rw [coherentCacheToScalar_cacheQuery]
 
 /-- Ambient sampling preserves the coherent cache and emits only an ambient
 source query. -/
@@ -1134,7 +1262,8 @@ def nextGlobalFsCache
       GlobalFsSourceSpec.Range point →
         GlobalFieldOracleSpec.QueryCache
   | .inl _, _ => cache
-  | .inr query, answer => cache.cacheQuery query answer
+  | .inr structuredPoint, answer =>
+      cache.cacheQuery structuredPoint answer
 
 /-- The next source query is fresh for the structured cache. Ambient uniform
 queries are forwarded independently and therefore impose no cache condition. -/
@@ -1142,7 +1271,7 @@ def GlobalFsQueryFresh
     (cache : GlobalFieldOracleSpec.QueryCache) :
     GlobalFsSourceSpec.Domain → Prop
   | .inl _ => True
-  | .inr query => cache query = none
+  | .inr structuredPoint => cache structuredPoint = none
 
 /-- Structural no-repeat contract for the global Fiat--Shamir source.
 
@@ -1229,7 +1358,7 @@ private theorem noRepeatedGlobalFs_bind_of_queryBound_zero
                   (by
                     simpa [IsGlobalFieldQuery] using
                       hzero.2 answer))
-      | inr query =>
+      | inr structuredPoint =>
           have himpossible : False := by
             simpa [IsGlobalFieldQuery] using hzero.1
           exact himpossible.elim
@@ -1249,11 +1378,12 @@ private theorem fsSourceOracle_run_eq_of_globalFresh
       simp [Ipp.fsSourceOracle, Ipp.fsSourceUnifFwd,
         QueryImpl.add_apply_inl, nextGlobalFsCache,
         StateT.run_monadLift]
-  | inr query =>
-      change cache query = none at fresh
+  | inr structuredPoint =>
+      change cache structuredPoint = none at fresh
       change
         (QueryImpl.withCaching
-          (Ipp.fsSourceImpl GlobalFsQuery Fr) query).run cache =
+          (Ipp.fsSourceImpl GlobalFsQuery Fr)
+            structuredPoint).run cache =
         _
       rw [QueryImpl.withCaching_run_none _ fresh]
       simp [Ipp.fsSourceImpl, nextGlobalFsCache]
@@ -1289,8 +1419,15 @@ private theorem fsSourceOracle_run'_eq_self_of_noRepeated
   | queryBind cache point continuation fresh continuation_fresh ih =>
       rw [fsSourceOracle_run'_query_bind]
       rw [fsSourceOracle_run_eq_of_globalFresh cache point fresh]
-      rw [map_eq_bind_pure_comp]
-      simp only [bind_assoc, Function.comp_apply, pure_bind]
+      change
+        (((fun answer =>
+            (answer, nextGlobalFsCache cache point answer)) <$>
+          (liftM (GlobalFsSourceSpec.query point) :
+            OracleComp GlobalFsSourceSpec _)) >>= _) =
+          ((liftM (GlobalFsSourceSpec.query point) :
+            OracleComp GlobalFsSourceSpec _) >>= continuation)
+      rw [bind_map_left]
+      simp only [Function.comp_apply]
       apply bind_congr
       intro answer
       exact ih answer
@@ -1353,16 +1490,16 @@ def GlobalCacheBackedByByteCache
     (globalCache : GlobalFieldOracleSpec.QueryCache)
     (byteCache : ByteFieldOracleSpec.QueryCache) :
     Prop :=
-  ∀ query value,
-    globalCache query = some value →
-      ∃ membership : query ∈ reached,
+  ∀ point value,
+    globalCache point = some value →
+      ∃ membership : point ∈ reached,
         decodeReachedQuery? serialization reached
-            (serialization.byteEncoding query) =
+            (serialization.byteEncoding point) =
           some
-            (⟨query, membership⟩ :
+            (⟨point, membership⟩ :
               ReachedGlobalFsQuery reached) ∧
         byteCache
-            (serialization.byteEncoding query) =
+            (serialization.byteEncoding point) =
           some value
 
 theorem globalCacheBackedByByteCache_empty
@@ -1370,7 +1507,7 @@ theorem globalCacheBackedByByteCache_empty
     (reached : Set GlobalFsQuery) :
     GlobalCacheBackedByByteCache
       serialization reached ∅ ∅ := by
-  intro query value hcache
+  intro point value hcache
   simp at hcache
 
 /-- Extending the byte cache at a fresh key preserves every existing
@@ -1389,15 +1526,16 @@ private theorem GlobalCacheBackedByByteCache.cacheByte
     GlobalCacheBackedByByteCache
       serialization reached globalCache
       (byteCache.cacheQuery bytes answer) := by
-  intro query value hglobal
+  intro point value hglobal
   obtain ⟨membership, hdecode, hbyte⟩ :=
-    hbacked query value hglobal
+    hbacked point value hglobal
   refine ⟨membership, hdecode, ?_⟩
   have hne :
-      serialization.byteEncoding query ≠ bytes := by
+      serialization.byteEncoding point ≠ bytes := by
     intro heq
     have hcached : byteCache bytes = some value := by
-      simpa [heq] using hbyte
+      rw [heq] at hbyte
+      exact hbyte
     rw [hfresh] at hcached
     cases hcached
   simpa [QueryCache.cacheQuery_of_ne, hne] using hbyte
@@ -1413,27 +1551,28 @@ private theorem globalFsQueryFresh_of_byteFresh
       GlobalCacheBackedByByteCache
         serialization reached globalCache byteCache)
     (bytes : List UInt8)
-    (query : ReachedGlobalFsQuery reached)
+    (reachedPoint : ReachedGlobalFsQuery reached)
     (hdecode :
       decodeReachedQuery? serialization reached bytes =
-        some query)
+        some reachedPoint)
     (hfresh : byteCache bytes = none) :
-    GlobalFsQueryFresh globalCache (.inr query.1) := by
-  change globalCache query.1 = none
-  cases hcached : globalCache query.1 with
+    GlobalFsQueryFresh globalCache (.inr reachedPoint.1) := by
+  change globalCache reachedPoint.1 = none
+  cases hcached : globalCache reachedPoint.1 with
   | none =>
-      exact hcached
+      rfl
   | some value =>
       obtain ⟨membership, _hcanonical, hbyte⟩ :=
-        hbacked query.1 value hcached
+        hbacked reachedPoint.1 value hcached
       have hencoding :
-          serialization.byteEncoding query.1 = bytes := by
+          serialization.byteEncoding reachedPoint.1 = bytes := by
         simpa [reachedByteEncoding] using
           (decodeReachedQuery?_eq_some_byteEncoding
             serialization reached hdecode)
       have himpossible :
           byteCache bytes = some value := by
-        simpa [hencoding] using hbyte
+        rw [hencoding] at hbyte
+        exact hbyte
       rw [hfresh] at himpossible
       cases himpossible
 
@@ -1448,34 +1587,34 @@ private theorem GlobalCacheBackedByByteCache.cacheDecoded
       GlobalCacheBackedByByteCache
         serialization reached globalCache byteCache)
     (bytes : List UInt8)
-    (query : ReachedGlobalFsQuery reached)
+    (reachedPoint : ReachedGlobalFsQuery reached)
     (answer : Fr)
     (hdecode :
       decodeReachedQuery? serialization reached bytes =
-        some query)
+        some reachedPoint)
     (hfresh : byteCache bytes = none) :
     GlobalCacheBackedByByteCache
       serialization reached
-      (globalCache.cacheQuery query.1 answer)
+      (globalCache.cacheQuery reachedPoint.1 answer)
       (byteCache.cacheQuery bytes answer) := by
   intro other value hglobal
   have hqueryEncoding :
-      serialization.byteEncoding query.1 = bytes := by
+      serialization.byteEncoding reachedPoint.1 = bytes := by
     simpa [reachedByteEncoding] using
       (decodeReachedQuery?_eq_some_byteEncoding
         serialization reached hdecode)
-  by_cases hsame : other = query.1
+  by_cases hsame : other = reachedPoint.1
   · subst other
     have hvalue : answer = value := by
       have hsome : some answer = some value := by
         simpa using hglobal
       exact Option.some.inj hsome
     subst value
-    refine ⟨query.2, ?_, ?_⟩
+    refine ⟨reachedPoint.2, ?_, ?_⟩
     · simpa [hqueryEncoding] using hdecode
-    · simpa [hqueryEncoding] using
-        (QueryCache.cacheQuery_self
-          byteCache bytes answer)
+    · rw [hqueryEncoding]
+      exact QueryCache.cacheQuery_self
+        byteCache bytes answer
   · have holdGlobal :
         globalCache other = some value := by
       simpa [QueryCache.cacheQuery_of_ne, hsame] using hglobal
@@ -1489,7 +1628,7 @@ private theorem GlobalCacheBackedByByteCache.cacheDecoded
           some
               (⟨other, membership⟩ :
                 ReachedGlobalFsQuery reached) =
-            some query := by
+            some reachedPoint := by
         calc
           some
               (⟨other, membership⟩ :
@@ -1500,16 +1639,17 @@ private theorem GlobalCacheBackedByByteCache.cacheDecoded
           _ =
               decodeReachedQuery? serialization reached bytes := by
             rw [hencoding]
-          _ = some query := hdecode
+          _ = some reachedPoint := hdecode
       have hsubtype :
           (⟨other, membership⟩ :
               ReachedGlobalFsQuery reached) =
-            query :=
+            reachedPoint :=
         Option.some.inj hsome
       exact hsame (congrArg Subtype.val hsubtype)
     simpa [QueryCache.cacheQuery_of_ne, hencodingNe] using
       hbyte
 
+set_option maxRecDepth 100000 in
 /-- Reindexing the source emitted by the coherent cache preserves structural
 freshness of every global Fiat--Shamir query.  Opaque byte misses become
 ambient samples; decoded misses update the byte and global caches together. -/
@@ -1540,7 +1680,7 @@ private theorem
           globalCache (output, coherentCache)
   | queryBind byteCache point continuation fresh
       continuation_fresh ih =>
-      rw [simulateQ_query_bind]
+      simp only [simulateQ_bind, simulateQ_spec_query]
       cases point with
       | inl ambient =>
           simp only [uniformScalarToGlobalFsImpl,
@@ -1549,38 +1689,53 @@ private theorem
             NoRepeatedGlobalFsQueriesFrom.queryBind
               globalCache (.inl ambient) _ trivial
               (fun answer =>
-                ih answer globalCache hbacked)
+                ih answer hbacked)
       | inr bytes =>
           cases hdecode :
               decodeReachedQuery?
                 serialization reached bytes with
           | none =>
-              simp only [uniformScalarToGlobalFsImpl,
-                QueryImpl.add_apply_inr, hdecode]
+              rw [show
+                uniformScalarToGlobalFsImpl serialization reached
+                    (.inr bytes) =
+                  (match decodeReachedQuery?
+                      serialization reached bytes with
+                    | none => sampleOpaqueGlobalFr
+                    | some reachedPoint =>
+                        (GlobalFsSourceSpec).query
+                          (.inr reachedPoint.1)) from rfl,
+                hdecode]
               apply noRepeatedGlobalFs_bind_of_queryBound_zero
                 globalCache sampleOpaqueGlobalFr
                 sampleOpaqueGlobalFr_queryBound_zero
               intro answer
               exact
-                ih answer globalCache
+                ih answer
                   (GlobalCacheBackedByByteCache.cacheByte
                     serialization reached hbacked
                     bytes answer fresh)
-          | some query =>
-              simp only [uniformScalarToGlobalFsImpl,
-                QueryImpl.add_apply_inr, hdecode]
+          | some reachedPoint =>
+              rw [show
+                uniformScalarToGlobalFsImpl serialization reached
+                    (.inr bytes) =
+                  (match decodeReachedQuery?
+                      serialization reached bytes with
+                    | none => sampleOpaqueGlobalFr
+                    | some reachedPoint =>
+                        (GlobalFsSourceSpec).query
+                          (.inr reachedPoint.1)) from rfl,
+                hdecode]
               apply NoRepeatedGlobalFsQueriesFrom.queryBind
               · exact
                   globalFsQueryFresh_of_byteFresh
                     serialization reached hbacked
-                    bytes query hdecode fresh
+                    bytes reachedPoint hdecode fresh
               · intro answer
                 exact
                   ih answer
-                    (globalCache.cacheQuery query.1 answer)
                     (GlobalCacheBackedByByteCache.cacheDecoded
                       serialization reached hbacked
-                      bytes query answer hdecode fresh)
+                      bytes reachedPoint answer hdecode fresh)
 
 namespace OriginByteReindexing
 
@@ -1670,17 +1825,15 @@ theorem fiberLiftedGlobalFsProgram_queryBound
       Ipp.ShippingAdaptiveReindex.OriginByteReindexing
         sha256 blake2b adversary Q_sha Q_fs budgets) :
     IsQueryBoundP
-      (Ipp.ShippingAdaptiveGlobalFsCoupling
-        .fiberLiftedGlobalFsProgram
+      (Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram
           sha256 boundary.serialization boundary.reached
           boundary.hybridProgram)
       IsGlobalFieldQuery Q_fs :=
-  Ipp.ShippingAdaptiveGlobalFsCoupling
-    .fiberLiftedGlobalFsProgram_queryBound
+  Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram_queryBound
       sha256 boundary.serialization boundary.reached
       boundary.hybridProgram Q_fs
-      (Ipp.ShippingAdaptiveByteFieldCoupling.OriginByteReindexing
-        .fiberLiftedHybridOutput_queryBound boundary)
+      (Ipp.ShippingAdaptiveByteFieldCoupling.OriginByteReindexing.fiberLiftedHybridOutput_queryBound
+        boundary)
 
 /-- Whole-origin specialization of the quantitative scalar hop. The exact
 `Q_fs` from `DistinctQueryBudgets` covers all preselection and selected-call
@@ -1702,23 +1855,20 @@ theorem inducedReduced_event_le_uniformScalar_add_modReduction
     (predicate : OriginFormalOutcome → Prop)
     [DecidablePred predicate] :
     Pr[fun output => predicate output.1 |
-        Ipp.ShippingAdaptiveGlobalFsCoupling
-          .fiberLiftedInducedReducedExperiment
+        Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedInducedReducedExperiment
             sha256 boundary.serialization boundary.reached
             boundary.hybridProgram] ≤
       Pr[fun output => predicate output.1 |
-          Ipp.ShippingAdaptiveGlobalFsCoupling
-            .fiberLiftedUniformScalarExperiment
+          Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedUniformScalarExperiment
               sha256 boundary.serialization boundary.reached
               boundary.hybridProgram] +
         modReductionBudget Q_fs := by
   exact
-    Ipp.ShippingAdaptiveGlobalFsCoupling
-      .fiberLiftedInducedReduced_event_le_uniformScalar_add_modReduction
+    Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedInducedReduced_event_le_uniformScalar_add_modReduction
         predicate sha256 boundary.serialization boundary.reached
         boundary.hybridProgram Q_fs
-        (Ipp.ShippingAdaptiveByteFieldCoupling.OriginByteReindexing
-          .fiberLiftedHybridOutput_queryBound boundary)
+        (Ipp.ShippingAdaptiveByteFieldCoupling.OriginByteReindexing.fiberLiftedHybridOutput_queryBound
+          boundary)
 
 /-- Whole-origin scalar hop after eliminating the proof-only quantitative
 state on both sides.  The one `Q_fs` from `DistinctQueryBudgets` covers every
@@ -1749,12 +1899,11 @@ theorem inducedFiberLifted_event_le_globalFs_add_modReduction
             boundary.hybridProgram] +
         modReductionBudget Q_fs := by
   exact
-    Ipp.ShippingAdaptiveGlobalFsCoupling
-      .inducedFiberLifted_event_le_globalFs_add_modReduction
+    Ipp.ShippingAdaptiveGlobalFsCoupling.inducedFiberLifted_event_le_globalFs_add_modReduction
         predicate sha256 boundary.serialization boundary.reached
         boundary.hybridProgram Q_fs
-        (Ipp.ShippingAdaptiveByteFieldCoupling.OriginByteReindexing
-          .fiberLiftedHybridOutput_queryBound boundary)
+        (Ipp.ShippingAdaptiveByteFieldCoupling.OriginByteReindexing.fiberLiftedHybridOutput_queryBound
+          boundary)
 
 end OriginByteReindexing
 

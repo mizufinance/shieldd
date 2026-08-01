@@ -116,6 +116,12 @@ class VerificationManifestTests(unittest.TestCase):
         self.assertIn("coverage differs", str(raised.exception))
 
         manifest = self.manifest_with_current_contract_sources()
+        stale = next(
+            item
+            for item in manifest["statement_binding_evidence"]
+            if item["kind"] == "fstar"
+        )
+        stale["checker"]["last_result"] = "stale"
         external = next(
             item
             for item in manifest["statement_binding_evidence"]
@@ -130,6 +136,7 @@ class VerificationManifestTests(unittest.TestCase):
             VERIFICATION.require_closed_verification(manifest)
         self.assertIn("stale contract evidence", str(raised.exception))
 
+        external["checker"]["required_result"] = "pass"
         external["checker"]["last_result"] = "pass"
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
             VERIFICATION.validate_contract_evidence(
@@ -500,6 +507,44 @@ class VerificationManifestTests(unittest.TestCase):
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
             VERIFICATION.require_closed_verification(manifest)
         self.assertIn(manifest["claims"][0]["id"], str(raised.exception))
+
+    def test_full_verification_gate_allows_only_exact_deferred_srs(self):
+        manifest = copy.deepcopy(self.manifest)
+        for evidence in manifest["statement_binding_evidence"]:
+            evidence["checker"]["last_result"] = evidence["checker"][
+                "required_result"
+            ]
+        VERIFICATION.require_closed_verification(manifest)
+
+        for field, value in (
+            ("root", "UNPROVED.different_deployment_gap"),
+            ("status", "reviewed"),
+        ):
+            with self.subTest(field=field):
+                candidate = copy.deepcopy(manifest)
+                claim = next(
+                    item
+                    for item in candidate["claims"]
+                    if item["id"] == VERIFICATION.DEPLOYED_SRS_CLAIM_ID
+                )
+                claim[field] = value
+                with self.assertRaises(
+                    VERIFICATION.VerificationError
+                ) as raised:
+                    VERIFICATION.require_closed_verification(candidate)
+                self.assertIn(
+                    VERIFICATION.DEPLOYED_SRS_CLAIM_ID,
+                    str(raised.exception),
+                )
+
+        registered = copy.deepcopy(manifest)
+        registered["deployed_srs_evidence"]["status"] = "registered"
+        with self.assertRaises(VERIFICATION.VerificationError) as raised:
+            VERIFICATION.require_closed_verification(registered)
+        self.assertIn(
+            VERIFICATION.DEPLOYED_SRS_CLAIM_ID,
+            str(raised.exception),
+        )
 
     def test_full_verification_gate_rejects_status_downgrades(self):
         evidence = {

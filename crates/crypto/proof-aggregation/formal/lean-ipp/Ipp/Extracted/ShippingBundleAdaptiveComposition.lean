@@ -30,15 +30,14 @@ answer. Every selection in that prefix is valid, and the selected call is
 invalid. This makes "least ordered" an explicit theorem rather than relying
 only on the recursive definition. -/
 theorem leastInvalidSelection?_prefix
-    {Call : Type}
-    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
-    {selections : List (PackedSelection Call)}
-    {selection : PackedSelection Call}
+    (invalid : (μ : Nat) → SelectionAt CallId μ → Prop)
+    {selections : List (PackedSelection CallId)}
+    {selection : PackedSelection CallId}
     (least :
       leastInvalidSelection? invalid selections = some selection) :
-    ∃ prefix suffix,
-      selections = prefix ++ selection :: suffix ∧
-        (∀ prior ∈ prefix,
+    ∃ priorPrefix suffix,
+      selections = priorPrefix ++ selection :: suffix ∧
+        (∀ prior ∈ priorPrefix,
           ¬ InvalidSelection invalid prior) ∧
         InvalidSelection invalid selection := by
   classical
@@ -55,25 +54,25 @@ theorem leastInvalidSelection?_prefix
           ⟨[], tail, rfl, by simp, invalidHead⟩
       · rename_i validHead
         rcases ih least with
-          ⟨prefix, suffix, splitExact, prefixValid, selectedInvalid⟩
+          ⟨priorPrefix, suffix, splitExact, priorPrefixValid,
+            selectedInvalid⟩
         refine
-          ⟨head :: prefix, suffix, ?_, ?_, selectedInvalid⟩
+          ⟨head :: priorPrefix, suffix, ?_, ?_, selectedInvalid⟩
         · simp [splitExact]
         · intro prior priorMember
           rcases List.mem_cons.1 priorMember with priorHead | priorTail
           · subst prior
             exact validHead
-          · exact prefixValid prior priorTail
+          · exact priorPrefixValid prior priorTail
 
 /-- Selecting the first invalid output and then forgetting its verifier
 result is exactly selection of the first invalid planned input. -/
 theorem leastInvalidSelection?_map_outcomes
-    {Call : Type}
-    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
-    (outputs : List (PackedOutcome Call)) :
+    (invalid : (μ : Nat) → SelectionAt CallId μ → Prop)
+    (outputs : List (PackedOutcome CallId)) :
     leastInvalidSelection? invalid
-        (outputs.map PackedOutcome.selection) =
-      Option.map PackedOutcome.selection
+        (outputs.map (@PackedOutcome.selection CallId)) =
+      Option.map (@PackedOutcome.selection CallId)
         (leastInvalidOutcome? invalid outputs) := by
   classical
   induction outputs with
@@ -82,37 +81,35 @@ theorem leastInvalidSelection?_map_outcomes
       rcases head with ⟨μ, output⟩
       by_cases hinvalid : invalid μ output.selection
       · simp [leastInvalidSelection?, leastInvalidOutcome?,
-          InvalidSelection, InvalidOutput, hinvalid]
+          InvalidSelection, InvalidOutput, PackedOutcome.selection,
+          hinvalid]
       · simp [leastInvalidSelection?, leastInvalidOutcome?,
-          InvalidSelection, InvalidOutput, hinvalid, ih]
+          InvalidSelection, InvalidOutput, PackedOutcome.selection,
+          hinvalid, ih]
 
 /-- Exact ordered-output consequence of the selector commutation theorem.
 This is stronger than mere membership: it identifies the formal output
 selected by the fork game with the constructor-derived least invalid call. -/
 theorem leastInvalidOutcome?_exact_of_selectionsExact
-    {Call : Type}
-    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
-    {outputs : List (PackedOutcome Call)}
-    {selections : List (PackedSelection Call)}
-    {selection : PackedSelection Call}
+    (invalid : (μ : Nat) → SelectionAt CallId μ → Prop)
+    {outputs : List (PackedOutcome CallId)}
+    {selections : List (PackedSelection CallId)}
+    {selection : PackedSelection CallId}
     (selectionsExact :
-      outputs.map PackedOutcome.selection = selections)
+      outputs.map (@PackedOutcome.selection CallId) = selections)
     (least :
       leastInvalidSelection? invalid selections = some selection) :
-    ∃ output : PackedOutcome Call,
+    ∃ output : PackedOutcome CallId,
       leastInvalidOutcome? invalid outputs = some output ∧
         output.selection = selection := by
   have mapped :
-      Option.map PackedOutcome.selection
+      Option.map (@PackedOutcome.selection CallId)
           (leastInvalidOutcome? invalid outputs) =
         some selection := by
     rw [← leastInvalidSelection?_map_outcomes, selectionsExact, least]
-  cases houtput : leastInvalidOutcome? invalid outputs with
-  | none =>
-      simp [houtput] at mapped
-  | some output =>
-      refine ⟨output, houtput, ?_⟩
-      simpa [houtput] using mapped
+  rcases Option.map_eq_some_iff.1 mapped with
+    ⟨output, outputLeast, outputSelection⟩
+  exact ⟨output, outputLeast, outputSelection⟩
 
 /-- Every production result retained in an accepted reducer run has the
 accepted bit set.  The proof ranges over the exact planner-ordered record
@@ -144,7 +141,7 @@ theorem OutputDerivedShippingBundle.PackedRunMatches.bundleAcceptsAll
     {results : Aeneas.Std.alloc.vec.Vec CallResult}
     {bundle : OutputDerivedShippingBundle declared expected results}
     {outputs : List (PackedOutcome CallId)}
-    (matches : bundle.PackedRunMatches outputs)
+    (runMatches : bundle.PackedRunMatches outputs)
     (reducerAccepted :
       app_verifier.app_verify_normal_acceptance_core expected results =
         .ok (.Ok true)) :
@@ -156,13 +153,13 @@ theorem OutputDerivedShippingBundle.PackedRunMatches.bundleAcceptsAll
   have recordedAcceptMember :
       output.accept ∈
         bundle.recordedCalls.map RecordedPackedCall.accepted := by
-    rw [← matches.acceptancesExact]
+    rw [← runMatches.acceptancesExact]
     exact outputAcceptMember
   rcases List.mem_map.1 recordedAcceptMember with
     ⟨recorded, recordedMember, acceptedExact⟩
   exact acceptedExact.symm.trans
-    (bundle.recordedCalls_allAccepted reducerAccepted
-      recorded recordedMember)
+    (OutputDerivedShippingBundle.recordedCalls_allAccepted
+      bundle reducerAccepted recorded recordedMember)
 
 /-- Bundle acceptance selects the exact least invalid constructor-derived
 call in the one formal shared-cache run.
@@ -199,7 +196,8 @@ theorem accepted_bundle_projects_exact_least_invalid_globalFsOutcome
     ⟨output, outputLeast, outputSelection⟩
   have allAccepted :
       BundleAcceptsAll execution.outputs :=
-    execution.orderedExact.bundleAcceptsAll reducerAccepted
+    OutputDerivedShippingBundle.PackedRunMatches.bundleAcceptsAll
+      execution.orderedExact reducerAccepted
   have invalidAccepted :=
     bundle_acceptance_implies_least_invalid_acceptance
       invalid outputLeast allAccepted
@@ -225,7 +223,7 @@ noncomputable def projectedLeastInvalidBundleFsGame
     (fallback : PackedOutcome Call) :
     OracleComp GlobalFsSourceSpec (PackedOutcome Call) := do
   let outputs ← MultiStatementBundleFsGame adversary
-  pure (leastInvalidOutcome? invalid outputs).getD fallback
+  pure ((leastInvalidOutcome? invalid outputs).getD fallback)
 
 /-- The projection is definitionally one whole bundle execution followed by
 one pure result choice.  This equation is the explicit no-reset boundary. -/
@@ -240,7 +238,7 @@ theorem projectedLeastInvalidBundleFsGame_programShape
       (do
         let planned ← adversary
         let outputs ← verifyPackedBundle planned
-        pure (leastInvalidOutcome? invalid outputs).getD fallback) := by
+        pure ((leastInvalidOutcome? invalid outputs).getD fallback)) := by
   unfold projectedLeastInvalidBundleFsGame
     MultiStatementBundleFsGame
   rw [bind_assoc]

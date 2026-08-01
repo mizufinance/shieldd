@@ -1,0 +1,11 @@
+import Ipp.Extracted.ShippingBundleGoalComposition
+
+/-!
+Audit surface for deterministic production bundle-to-goal composition.
+-/
+
+#print axioms Ipp.Extracted.ShippingBundleGoalComposition.refinedShippingBundleCallToGoal
+#print axioms Ipp.Extracted.ShippingBundleGoalComposition.accepted_shipping_bundle_refines_all_goals
+#print axioms Ipp.Extracted.ShippingBundleGoalComposition.OutputDerivedVerifierRemainder.toExternalContracts
+#print axioms Ipp.Extracted.ShippingBundleGoalComposition.OutputDerivedBundleVerificationBridge.deployed
+#print axioms Ipp.Extracted.ShippingBundleGoalComposition.accepted_output_derived_bundle_refines_all_goals

@@ -24,19 +24,21 @@ local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
 local instance : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
+local instance : DecidableEq g1PrimeSubgroup := Classical.decEq _
+local instance : DecidableEq g2PrimeSubgroup := Classical.decEq _
 
-local abbrev BlsStatement (μ : Nat) :=
+abbrev BlsStatement (μ : Nat) :=
   FsStatement μ Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput
 
-local abbrev BlsProof (μ : Nat) :=
+abbrev BlsProof (μ : Nat) :=
   Proof μ Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput
 
-local abbrev BlsAdversary (μ : Nat) :=
+abbrev BlsAdversary (μ : Nat) :=
   OracleComp
     (FsSourceSpec Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput)
     (BlsProof μ)
 
-local abbrev BlsWitness (μ : Nat) :=
+abbrev BlsWitness (μ : Nat) :=
   PreRandomizerWitness
     (G1 := g1PrimeSubgroup)
     (G2 := g2PrimeSubgroup)

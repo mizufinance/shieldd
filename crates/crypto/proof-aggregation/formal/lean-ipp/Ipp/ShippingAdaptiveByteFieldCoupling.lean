@@ -33,6 +33,12 @@ open Ipp.ShippingMultiStatement
 open Ipp.ShippingScalarReduction
 open Ipp.ShippingAdaptiveByteField
 
+local instance : Fact scalarModulus.Prime :=
+  ⟨arithmeticFacts.scalarPrime⟩
+
+local instance : NeZero scalarModulus :=
+  ⟨arithmeticFacts.scalarPrime.ne_zero⟩
+
 /-! ## Exact finite-fiber factorization -/
 
 /-- A fixed canonical `SampleableType` instance for each nonempty reduction
@@ -71,18 +77,19 @@ theorem digestFiberSample_point_mass
       inferInstance
       digest
 
+set_option linter.constructorNameAsVariable false in
 /-- The forgotten fiber sample has one uniform-fiber point mass exactly on
 digests reducing to the selected scalar. -/
 theorem fiberDigestSample_point_mass
     (value : Fr)
     (digest : DigestBytes) :
     Pr[= digest | fiberDigestSample value] =
-      if reduceFr digest = value
+      if value = reduceFr digest
       then (Fintype.card (DigestFiber value) : ℝ≥0∞)⁻¹
       else 0 := by
-  by_cases hreduction : reduceFr digest = value
+  by_cases hreduction : value = reduceFr digest
   · rw [if_pos hreduction]
-    let lifted : DigestFiber value := ⟨digest, hreduction⟩
+    let lifted : DigestFiber value := ⟨digest, hreduction.symm⟩
     change
       Pr[= lifted.1 |
         (fun candidate : DigestFiber value => candidate.1) <$>
@@ -100,7 +107,7 @@ theorem fiberDigestSample_point_mass
     obtain ⟨candidate, _hcandidate, hcand⟩ := hsupport
     apply hreduction
     rw [← hcand]
-    exact candidate.2
+    exact candidate.2.symm
 
 /-- First draw the exact scalar distribution induced by a uniform digest,
 then resample a complete digest uniformly in the selected scalar's fiber. -/
@@ -163,6 +170,18 @@ theorem factorUniformDigest_evalDist
   rw [factorUniformDigest_point_mass,
     probOutput_uniformSample, digestBytes_card]
 
+/-- Uniform sampling of the fixed digest type is distribution-independent of
+the selected `SampleableType` implementation. -/
+theorem canonicalUniformDigest_evalDist
+    [SampleableType DigestBytes] :
+    𝒟[@uniformSample DigestBytes instSampleableTypeFinFunc] =
+      𝒟[$ᵗ DigestBytes] := by
+  apply evalDist_ext
+  intro digest
+  rw [@probOutput_uniformSample DigestBytes
+      instSampleableTypeFinFunc inferInstance digest,
+    probOutput_uniformSample]
+
 /-! The entry-valued form used by the coherent miss handler. -/
 
 /-- The same two-stage sample as `factorUniformDigest`, retaining the induced
@@ -216,7 +235,7 @@ def coherentCacheToRaw
     (cache : CoherentByteCache) :
     RawBlake2bCache :=
   Ipp.RandomOracleMap.mapCache
-    (fun _ entry : CoherentByteEntry => entry.digest)
+    (fun _ (entry : CoherentByteEntry) => entry.digest)
     cache
 
 @[simp] theorem coherentCacheToRaw_lookup
@@ -238,7 +257,7 @@ theorem coherentCacheToRaw_cacheQuery
         bytes entry.digest := by
   exact
     Ipp.RandomOracleMap.mapCache_cacheQuery
-      (fun _ candidate : CoherentByteEntry => candidate.digest)
+      (fun _ (candidate : CoherentByteEntry) => candidate.digest)
       cache bytes entry
 
 @[simp] theorem coherentCacheToRaw_empty :
@@ -287,6 +306,7 @@ theorem simulateQ_inducedByteFieldSourceImpl_byteFieldQuery
         (byteFieldQuery bytes) =
       reduceFr <$> ($ᵗ DigestBytes) := by
   simp [byteFieldQuery, inducedByteFieldSourceImpl]
+  rfl
 
 /-- Proof-side fiber sampling is forwarded unchanged through the ambient
 branch of the induced source. -/
@@ -296,9 +316,25 @@ theorem simulateQ_inducedByteFieldSourceImpl_sampleDigestFiber
     simulateQ inducedByteFieldSourceImpl
         (sampleDigestFiber value) =
       digestFiberSample value := by
-  simp [sampleDigestFiber, inducedByteFieldSourceImpl,
-    digestFiberSample, digestFiberSampleable,
-    QueryImpl.simulateQ_toQueryImpl]
+  change
+    simulateQ
+        ((HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp)) +
+          (fun _bytes : List UInt8 => reduceFr <$> ($ᵗ DigestBytes)))
+        (liftM (digestFiberSample value) :
+          OracleComp ByteFieldSourceSpec (DigestFiber value)) =
+      digestFiberSample value
+  calc
+    _ = simulateQ
+        (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp))
+        (digestFiberSample value) :=
+      QueryImpl.simulateQ_add_liftM_left
+        (impl₁' :=
+          HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp))
+        (impl₂' :=
+          fun _bytes : List UInt8 => reduceFr <$> ($ᵗ DigestBytes))
+        (digestFiberSample value)
+    _ = digestFiberSample value :=
+      QueryImpl.simulateQ_toQueryImpl _
 
 /-- Interpreting a coherent cache miss through the induced source yields the
 entry-valued digest factorization above. -/
@@ -378,7 +414,9 @@ theorem rawCoherentEntry_hit
     (entry : CoherentByteEntry)
     (hcache : cache bytes = some entry) :
     RelTriple
-      ((Blake2bOracleSpec.randomOracle bytes).run
+      (((@OracleSpec.randomOracle _ _
+          Ipp.ShippingHashGame.Blake2bOracleSpec
+          (fun _ => instSampleableTypeFinFunc)) bytes).run
         (coherentCacheToRaw cache))
       (simulateQ inducedByteFieldSourceImpl
         ((coherentEntryImpl bytes).run cache))
@@ -390,8 +428,11 @@ theorem rawCoherentEntry_hit
       coherentCacheToRaw cache bytes =
         some entry.digest := by
     simp [hcache]
+  simp only [OracleSpec.randomOracle]
   rw [QueryImpl.withCaching_run_some
-    uniformSampleImpl hraw]
+    (@uniformSampleImpl _
+      Ipp.ShippingHashGame.Blake2bOracleSpec
+      (fun _ => instSampleableTypeFinFunc)) hraw]
   rw [coherentEntryImpl_run_some cache bytes entry hcache]
   simp only [simulateQ_pure]
   exact
@@ -409,6 +450,7 @@ theorem rawCoherentEntry_hit
         intro result
         simp [RawCoherentCacheRelated])
 
+set_option maxRecDepth 4096 in
 /-- On a coherent-cache miss, the raw random oracle's fresh digest and cache
 update have exactly the distribution obtained by the induced scalar followed
 by uniform fiber sampling. -/
@@ -418,7 +460,9 @@ theorem rawCoherentEntry_miss
     (cache : CoherentByteCache)
     (hcache : cache bytes = none) :
     RelTriple
-      ((Blake2bOracleSpec.randomOracle bytes).run
+      (((@OracleSpec.randomOracle _ _
+          Ipp.ShippingHashGame.Blake2bOracleSpec
+          (fun _ => instSampleableTypeFinFunc)) bytes).run
         (coherentCacheToRaw cache))
       (simulateQ inducedByteFieldSourceImpl
         ((coherentEntryImpl bytes).run cache))
@@ -429,8 +473,11 @@ theorem rawCoherentEntry_miss
   have hraw :
       coherentCacheToRaw cache bytes = none := by
     simp [hcache]
+  simp only [OracleSpec.randomOracle]
   rw [QueryImpl.withCaching_run_none
-    uniformSampleImpl hraw]
+    (@uniformSampleImpl _
+      Ipp.ShippingHashGame.Blake2bOracleSpec
+      (fun _ => instSampleableTypeFinFunc)) hraw]
   rw [show coherentEntryImpl =
       QueryImpl.withCaching coherentEntryMiss from rfl]
   rw [QueryImpl.withCaching_run_none coherentEntryMiss hcache]
@@ -443,7 +490,7 @@ theorem rawCoherentEntry_miss
       ((fun digest : DigestBytes =>
           (digest,
             (coherentCacheToRaw cache).cacheQuery bytes digest)) <$>
-        ($ᵗ DigestBytes))
+        (@uniformSample DigestBytes instSampleableTypeFinFunc))
       ((fun entry : CoherentByteEntry =>
           (entry, cache.cacheQuery bytes entry)) <$>
         factorUniformEntry)
@@ -452,12 +499,27 @@ theorem rawCoherentEntry_miss
           RawCoherentCacheRelated
             rawResult.2 coherentResult.2)
       ?_ ?_
-  · simpa only [Functor.map_map, Function.comp_apply,
-      coherentCacheToRaw_cacheQuery] using
-      (factorUniformEntry_map_evalDist
-        (fun digest : DigestBytes =>
-          (digest,
-            (coherentCacheToRaw cache).cacheQuery bytes digest))).symm
+  · let projectDigest := fun digest : DigestBytes =>
+      (digest,
+        (coherentCacheToRaw cache).cacheQuery bytes digest)
+    calc
+      𝒟[projectDigest <$>
+          (@uniformSample DigestBytes
+            instSampleableTypeFinFunc)] =
+          𝒟[projectDigest <$> ($ᵗ DigestBytes)] := by
+        simpa only [evalDist_map] using
+          congrArg (Functor.map projectDigest)
+            canonicalUniformDigest_evalDist
+      _ = 𝒟[(fun result : CoherentByteEntry × CoherentByteCache =>
+          (result.1.digest,
+            coherentCacheToRaw result.2)) <$>
+          ((fun entry : CoherentByteEntry =>
+            (entry, cache.cacheQuery bytes entry)) <$>
+            factorUniformEntry)] := by
+        simpa only [projectDigest, Functor.map_map,
+          Function.comp_apply,
+          coherentCacheToRaw_cacheQuery] using
+          (factorUniformEntry_map_evalDist projectDigest).symm
   · intro result
     simp [RawCoherentCacheRelated,
       coherentCacheToRaw_cacheQuery]
@@ -468,7 +530,9 @@ theorem rawCoherentEntry_step
     (bytes : List UInt8)
     (cache : CoherentByteCache) :
     RelTriple
-      ((Blake2bOracleSpec.randomOracle bytes).run
+      (((@OracleSpec.randomOracle _ _
+          Ipp.ShippingHashGame.Blake2bOracleSpec
+          (fun _ => instSampleableTypeFinFunc)) bytes).run
         (coherentCacheToRaw cache))
       (simulateQ inducedByteFieldSourceImpl
         ((coherentEntryImpl bytes).run cache))
@@ -489,7 +553,9 @@ theorem rawCoherentBlake2b_step
     (bytes : List UInt8)
     (cache : CoherentByteCache) :
     RelTriple
-      ((Blake2bOracleSpec.randomOracle bytes).run
+      (((@OracleSpec.randomOracle _ _
+          Ipp.ShippingHashGame.Blake2bOracleSpec
+          (fun _ => instSampleableTypeFinFunc)) bytes).run
         (coherentCacheToRaw cache))
       (simulateQ inducedByteFieldSourceImpl
         ((coherentBlake2bImpl bytes).run cache))
@@ -504,7 +570,9 @@ theorem rawCoherentBlake2b_step
       (g :=
         Prod.map CoherentByteEntry.digest
           (id : CoherentByteCache → CoherentByteCache))
-      (R := fun rawResult coherentResult =>
+      (R := fun
+          (rawResult : DigestBytes × RawBlake2bCache)
+          (coherentResult : DigestBytes × CoherentByteCache) =>
         rawResult.1 = coherentResult.1 ∧
           RawCoherentCacheRelated
             rawResult.2 coherentResult.2)
@@ -520,7 +588,9 @@ theorem rawCoherentScalar_step
     (cache : CoherentByteCache) :
     RelTriple
       ((Ipp.ShippingScalarReduction.reduceFr <$>
-          Blake2bOracleSpec.randomOracle bytes).run
+          ((@OracleSpec.randomOracle _ _
+            Ipp.ShippingHashGame.Blake2bOracleSpec
+            (fun _ => instSampleableTypeFinFunc)) bytes)).run
         (coherentCacheToRaw cache))
       (simulateQ inducedByteFieldSourceImpl
         ((coherentScalarImpl bytes).run cache))
@@ -531,7 +601,9 @@ theorem rawCoherentScalar_step
   have hentry := rawCoherentEntry_step bytes cache
   have hbase :
       RelTriple
-        ((Blake2bOracleSpec.randomOracle bytes).run
+        (((@OracleSpec.randomOracle _ _
+            Ipp.ShippingHashGame.Blake2bOracleSpec
+            (fun _ => instSampleableTypeFinFunc)) bytes).run
           (coherentCacheToRaw cache))
         (simulateQ inducedByteFieldSourceImpl
           ((coherentEntryImpl bytes).run cache))
@@ -546,8 +618,7 @@ theorem rawCoherentScalar_step
     refine relTriple_post_mono hentry ?_
     intro rawResult coherentResult hrelated
     constructor
-    · simp only [Prod.map_apply, id_eq]
-      calc
+    · calc
         reduceFr rawResult.1 =
             reduceFr coherentResult.1.digest := by
           exact congrArg reduceFr hrelated.1
@@ -617,6 +688,7 @@ def RawCoherentStepCoupling
           RawCoherentCacheRelated
             rawResult.2 coherentResult.2)
 
+set_option maxRecDepth 2048 in
 /-- The raw and coherent handlers support the exact query-local coupling.
 Arbitrary raw Blake2b queries and serialized typed queries use the same
 one-cell hit/miss theorem. -/
@@ -646,30 +718,111 @@ theorem rawCoherentStepCoupling
       | inr hashPoint =>
           cases hashPoint with
           | inl shaInput =>
-              simpa [hybridRawIdealSourceImpl,
-                QueryImpl.compose, hybridToRawByteImpl,
-                rawIdealByteImpl, rawIdealShaImpl,
-                inducedCoherentHybridImpl, coherentHybridImpl,
-                coherentGlobalByteImpl, coherentSha256Impl,
-                StateT.run_lift] using
-                (rawCoherent_preservedState
-                  (pure (sha256 shaInput) : ProbComp _)
-                  coherentCache)
+              change RelTriple
+                (pure
+                  (sha256 shaInput,
+                    coherentCacheToRaw coherentCache))
+                (pure (sha256 shaInput, coherentCache))
+                (fun rawResult coherentResult =>
+                  rawResult.1 = coherentResult.1 ∧
+                    RawCoherentCacheRelated
+                      rawResult.2 coherentResult.2)
+              exact relTriple_pure_pure ⟨rfl, rfl⟩
           | inr bytes =>
-              simpa [hybridRawIdealSourceImpl,
-                QueryImpl.compose, hybridToRawByteImpl,
-                rawIdealByteImpl, inducedCoherentHybridImpl,
-                coherentHybridImpl, coherentGlobalByteImpl] using
-                (rawCoherentBlake2b_step bytes coherentCache)
+              have hrawHandler :
+                  hybridRawIdealSourceImpl
+                      sha256 serialization reached
+                      (.inl (.inr (.inr bytes))) =
+                    (@OracleSpec.randomOracle _ _
+                      Ipp.ShippingHashGame.Blake2bOracleSpec
+                      (fun _ => instSampleableTypeFinFunc)) bytes := by
+                change
+                  simulateQ (rawIdealByteImpl sha256)
+                      (liftM
+                        (GlobalByteSourceSpec.query
+                          (.inr (.inr bytes))) :
+                        OracleComp GlobalByteSourceSpec DigestBytes) =
+                    (@OracleSpec.randomOracle _ _
+                      Ipp.ShippingHashGame.Blake2bOracleSpec
+                      (fun _ => instSampleableTypeFinFunc)) bytes
+                calc
+                  _ = rawIdealByteImpl sha256
+                      (.inr (.inr bytes)) :=
+                    simulateQ_spec_query
+                      (rawIdealByteImpl sha256) _
+                  _ = (@OracleSpec.randomOracle _ _
+                        Ipp.ShippingHashGame.Blake2bOracleSpec
+                        (fun _ => instSampleableTypeFinFunc)) bytes := by
+                    simp only [rawIdealByteImpl,
+                      QueryImpl.add_apply_inr]
+              have hcoherent :
+                  (inducedCoherentHybridImpl
+                    sha256 serialization reached
+                    (.inl (.inr (.inr bytes)))).run coherentCache =
+                    simulateQ inducedByteFieldSourceImpl
+                      ((coherentBlake2bImpl bytes).run
+                        coherentCache) := by
+                unfold inducedCoherentHybridImpl
+                rw [coherentHybridImpl_raw,
+                  coherentGlobalByteImpl_blake2b]
+                rfl
+              rw [hrawHandler, hcoherent]
+              exact rawCoherentBlake2b_step bytes coherentCache
   | inr typedPoint =>
-      simpa [hybridRawIdealSourceImpl,
-        QueryImpl.compose, hybridToRawByteImpl,
-        reachedFieldToRawByteFwd, rawIdealByteImpl,
-        inducedCoherentHybridImpl,
-        coherentHybridImpl_typed] using
-        (rawCoherentScalar_step
-          (reachedByteEncoding serialization reached typedPoint)
-          coherentCache)
+      let bytes :=
+        reachedByteEncoding serialization reached typedPoint
+      have hrawHandler :
+          hybridRawIdealSourceImpl
+              sha256 serialization reached (.inr typedPoint) =
+            Ipp.ShippingScalarReduction.reduceFr <$>
+              ((@OracleSpec.randomOracle _ _
+                Ipp.ShippingHashGame.Blake2bOracleSpec
+                (fun _ => instSampleableTypeFinFunc)) bytes) := by
+        change
+          simulateQ (rawIdealByteImpl sha256)
+              (Ipp.ShippingScalarReduction.reduceFr <$>
+                (liftM
+                  (GlobalByteSourceSpec.query
+                    (.inr (.inr bytes))) :
+                  OracleComp GlobalByteSourceSpec DigestBytes)) =
+            Ipp.ShippingScalarReduction.reduceFr <$>
+              ((@OracleSpec.randomOracle _ _
+                Ipp.ShippingHashGame.Blake2bOracleSpec
+                (fun _ => instSampleableTypeFinFunc)) bytes)
+        calc
+          _ = Ipp.ShippingScalarReduction.reduceFr <$>
+              simulateQ (rawIdealByteImpl sha256)
+                (liftM
+                  (GlobalByteSourceSpec.query
+                    (.inr (.inr bytes))) :
+                  OracleComp GlobalByteSourceSpec DigestBytes) :=
+            simulateQ_map (rawIdealByteImpl sha256) _ _
+          _ = Ipp.ShippingScalarReduction.reduceFr <$>
+              rawIdealByteImpl sha256
+                (.inr (.inr bytes)) :=
+            congrArg
+              (fun comp :
+                  StateT RawBlake2bCache ProbComp DigestBytes =>
+                Ipp.ShippingScalarReduction.reduceFr <$> comp)
+              (simulateQ_spec_query (rawIdealByteImpl sha256) _)
+          _ = Ipp.ShippingScalarReduction.reduceFr <$>
+              ((@OracleSpec.randomOracle _ _
+                Ipp.ShippingHashGame.Blake2bOracleSpec
+                (fun _ => instSampleableTypeFinFunc)) bytes) := by
+            simp only [rawIdealByteImpl,
+              QueryImpl.add_apply_inr]
+      have hcoherent :
+          (inducedCoherentHybridImpl
+            sha256 serialization reached (.inr typedPoint)).run
+              coherentCache =
+            simulateQ inducedByteFieldSourceImpl
+              ((coherentScalarImpl
+                bytes).run coherentCache) := by
+        unfold inducedCoherentHybridImpl
+        rw [coherentHybridImpl_typed]
+        rfl
+      rw [hrawHandler, hcoherent]
+      exact rawCoherentScalar_step bytes coherentCache
 
 /-- VCVio already lifts the concrete heterogeneous cache relation through an
 arbitrary adaptive hybrid program.  Consequently no whole-program or
@@ -701,6 +854,7 @@ theorem hybridRawIdeal_evalDist_eq_inducedFiberLifted
 
 /-! ## Complete hybrid query-budget transport -/
 
+set_option maxRecDepth 4096 in
 /-- Uniform proof-side sampling inside a digest fiber does not consume the
 byte-field oracle budget. -/
 theorem sampleDigestFiber_byteFieldQueryBound_zero
@@ -722,8 +876,18 @@ theorem byteFieldQuery_queryBound_one
     IsQueryBoundP
       (byteFieldQuery bytes)
       IsByteFieldQuery 1 := by
-  simp [byteFieldQuery, IsByteFieldQuery]
+  unfold byteFieldQuery
+  change IsQueryBoundP
+    (liftM (ByteFieldSourceSpec.query (.inr bytes)) :
+      OracleComp ByteFieldSourceSpec Fr)
+    IsByteFieldQuery 1
+  exact
+    (OracleComp.isQueryBoundP_query_iff
+      (spec := ByteFieldSourceSpec)
+      (p := IsByteFieldQuery) (.inr bytes) 1).2
+      (by simp [IsByteFieldQuery])
 
+set_option maxRecDepth 4096 in
 /-- A coherent cache miss makes one scalar-source query; the subsequent
 uniform fiber sampling is budget-free. -/
 theorem coherentEntryMiss_queryBound_one
@@ -736,19 +900,29 @@ theorem coherentEntryMiss_queryBound_one
         IsQueryBoundP
           (do
             let digest ← sampleDigestFiber value
-            pure {
+            pure ({
               scalar := value
               digest := digest.1
               reduction_exact := digest.2
-            })
+            } : CoherentByteEntry))
           IsByteFieldQuery 0 := by
     intro value
     exact
       OracleComp.isQueryBoundP_bind
+        (p := IsByteFieldQuery) (n := 0) (m := 0)
         (sampleDigestFiber_byteFieldQueryBound_zero value)
-        (fun _ _ => by simp)
-  simpa [coherentEntryMiss] using
-    OracleComp.isQueryBoundP_bind
+        (fun digest _ =>
+          OracleComp.isQueryBoundP_pure
+            (p := IsByteFieldQuery)
+            ({
+              scalar := value
+              digest := digest.1
+              reduction_exact := digest.2
+            } : CoherentByteEntry)
+            0)
+  unfold coherentEntryMiss
+  exact OracleComp.isQueryBoundP_bind
+      (p := IsByteFieldQuery) (n := 1) (m := 0)
       (byteFieldQuery_queryBound_one bytes)
       (fun value _ => hfiber value)
 
@@ -806,10 +980,30 @@ theorem coherentHybridImpl_step_queryBound
   | inl rawPoint =>
       cases rawPoint with
       | inl ambientPoint =>
-          simp [coherentHybridImpl, QueryImpl.compose,
+          have hquery :
+              IsQueryBoundP
+                (liftM
+                  (ByteFieldSourceSpec.query (.inl ambientPoint)) :
+                  OracleComp ByteFieldSourceSpec
+                    (ByteFieldSourceSpec.Range (.inl ambientPoint)))
+                IsByteFieldQuery 0 := by
+            exact
+              (OracleComp.isQueryBoundP_query_iff
+                (spec := ByteFieldSourceSpec)
+                (p := IsByteFieldQuery) (.inl ambientPoint) 0).2
+                (by simp [IsByteFieldQuery])
+          have hmapped :=
+            (OracleComp.isQueryBoundP_map_iff
+              (p := IsByteFieldQuery)
+              (liftM
+                (ByteFieldSourceSpec.query (.inl ambientPoint)) :
+                OracleComp ByteFieldSourceSpec
+                  (ByteFieldSourceSpec.Range (.inl ambientPoint)))
+              (fun answer => (answer, cache)) 0).2 hquery
+          simpa [coherentHybridImpl, QueryImpl.compose,
             hybridToRawByteImpl, coherentGlobalByteImpl,
             coherentAmbientImpl, IsHybridFsQuery, IsFsQuery,
-            IsByteFieldQuery, StateT.run_monadLift]
+            IsByteFieldQuery, StateT.run_monadLift] using hmapped
       | inr hashPoint =>
           cases hashPoint with
           | inl shaInput =>

@@ -18,14 +18,24 @@ open Ipp.ShippingBundleGoalBridge
 open Ipp.ShippingBundleGlobalFsComposition
 open Ipp.ShippingBundleCachedComposition
 open Ipp.ShippingAdaptiveReindex
+open Ipp.Extracted.ShippingBundleAdaptiveComposition
 
 noncomputable section
 
-local instance globalFsSourceUniform :
+local instance idealCompositionBasePrime : Fact baseModulus.Prime :=
+  ⟨arithmeticFacts.basePrime⟩
+local instance idealCompositionScalarPrime : Fact scalarModulus.Prime :=
+  ⟨arithmeticFacts.scalarPrime⟩
+local instance idealCompositionFq2Nonresidue :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+  ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
+local instance idealCompositionFintypeFq2 : Fintype Fq2 :=
+  Fintype.ofEquiv
+    (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
+local instance idealCompositionGlobalFsUniform :
     IsUniformSpec GlobalFsSourceSpec :=
   IsUniformSpec.ofFintypeInhabited _
-
-local instance fsWrappedUniform :
+local instance idealCompositionFsWrappedUniform :
     IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
   IsUniformSpec.ofFintypeInhabited _
 
@@ -63,37 +73,31 @@ theorem idealByteExperiment_event_le_multiStatementFsProbComp_add_modReduction
         BundleByteOriginReindexing.idealByteExperiment
           sha256 rawProgram] =
       Pr[predicate |
-        Ipp.ShippingAdaptiveByteFieldCoupling
-          .inducedFiberLiftedHybridOutput
+        Ipp.ShippingAdaptiveByteFieldCoupling.inducedFiberLiftedHybridOutput
             sha256 construction.reindex.serialization
               construction.reindex.reached
                 construction.reindex.hybridProgram] := by
       apply probEvent_congr' (fun _ _ => Iff.rfl)
       rw [
-        BundleByteOriginReindexing
-          .idealByteExperiment_eq_hybridRawIdeal
+        BundleByteOriginReindexing.idealByteExperiment_eq_hybridRawIdeal
             sha256 construction.reindex]
       exact
-        Ipp.ShippingAdaptiveByteFieldCoupling
-          .hybridRawIdeal_evalDist_eq_inducedFiberLifted
+        Ipp.ShippingAdaptiveByteFieldCoupling.hybridRawIdeal_evalDist_eq_inducedFiberLifted
             sha256 construction.reindex.serialization
               construction.reindex.reached
                 construction.reindex.hybridProgram
     _ ≤
       Pr[predicate |
-        Ipp.ShippingAdaptiveGlobalFsCoupling
-          .fiberLiftedGlobalFsProgram
+        Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram
             sha256 construction.reindex.serialization
               construction.reindex.reached
                 construction.reindex.hybridProgram] +
         Ipp.ShippingScalarReduction.modReductionBudget Q_fs :=
-      Ipp.ShippingAdaptiveGlobalFsCoupling
-        .inducedFiberLifted_event_le_globalFs_add_modReduction
+      Ipp.ShippingAdaptiveGlobalFsCoupling.inducedFiberLifted_event_le_globalFs_add_modReduction
           predicate sha256 construction.reindex.serialization
             construction.reindex.reached
               construction.reindex.hybridProgram Q_fs
-                (BundleByteOriginReindexing
-                  .fiberLiftedHybridOutput_queryBound
+                (BundleByteOriginReindexing.fiberLiftedHybridOutput_queryBound
                     sha256 construction.reindex)
     _ =
       Pr[fun run => predicate run.1.out |
@@ -103,8 +107,8 @@ theorem idealByteExperiment_event_le_multiStatementFsProbComp_add_modReduction
               (rejectedPackedOutcome fallbackSelection))] +
         Ipp.ShippingScalarReduction.modReductionBudget Q_fs := by
       rw [
-        construction
-          .fiberLifted_event_eq_multiStatementFsProbComp predicate]
+        Ipp.ShippingBundleCachedComposition.CachedProjectedBundleConstruction.fiberLifted_event_eq_multiStatementFsProbComp
+          construction predicate]
 
 end CachedProjectedBundleConstruction
 

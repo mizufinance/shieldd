@@ -20,18 +20,23 @@ noncomputable section
 open Ipp.Bls12377
 open Ipp.Extracted.AppVerifierStateMachine
 
-local instance : Fact baseModulus.Prime :=
+local instance acceptedReplayDominanceBasePrime :
+    Fact baseModulus.Prime :=
   ⟨arithmeticFacts.basePrime⟩
-local instance : Fact scalarModulus.Prime :=
+local instance acceptedReplayDominanceScalarPrime :
+    Fact scalarModulus.Prime :=
   ⟨arithmeticFacts.scalarPrime⟩
-local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+local instance acceptedReplayDominanceFq2Nonresidue :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
-local instance : Fintype Fq2 :=
+local instance acceptedReplayDominanceFintypeFq2 : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
-local instance : IsUniformSpec GlobalFsSourceSpec :=
+local instance acceptedReplayDominanceGlobalFsUniform :
+    IsUniformSpec GlobalFsSourceSpec :=
   IsUniformSpec.ofFintypeInhabited _
-local instance : IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
+local instance acceptedReplayDominanceWrappedFsUniform :
+    IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
   IsUniformSpec.ofFintypeInhabited _
 
 /-- The concrete randomizer-good gate implies the accepted-only gate.
@@ -62,7 +67,7 @@ theorem
     (μ : Nat)
     (extractor : AdaptiveGipaExtractor μ)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot

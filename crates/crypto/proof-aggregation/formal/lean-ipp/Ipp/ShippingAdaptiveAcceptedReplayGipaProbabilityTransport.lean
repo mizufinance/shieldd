@@ -21,18 +21,21 @@ open Ipp.Bls12377
 open Ipp.S1
 open Ipp.Extracted.AppVerifierStateMachine
 
-local instance : Fact baseModulus.Prime :=
+local instance acceptedReplayGipaProbabilityBasePrime : Fact baseModulus.Prime :=
   ⟨arithmeticFacts.basePrime⟩
-local instance : Fact scalarModulus.Prime :=
+local instance acceptedReplayGipaProbabilityScalarPrime : Fact scalarModulus.Prime :=
   ⟨arithmeticFacts.scalarPrime⟩
-local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+local instance acceptedReplayGipaProbabilityFq2Nonresidue :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
-local instance : Fintype Fq2 :=
+local instance acceptedReplayGipaProbabilityFintypeFq2 : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
-local instance : IsUniformSpec GlobalFsSourceSpec :=
+local instance acceptedReplayGipaProbabilityGlobalFsUniform :
+    IsUniformSpec GlobalFsSourceSpec :=
   IsUniformSpec.ofFintypeInhabited _
-local instance : IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
+local instance acceptedReplayGipaProbabilityWrappedFsUniform :
+    IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
   IsUniformSpec.ofFintypeInhabited _
 
 /-- A successful deterministic common-fork projection retains the exact raw
@@ -45,14 +48,15 @@ theorem cachePreservingCommonFork?_eq_some_rawTree
       cachePreservingCommonFork? (some raw) = some fork) :
     fork.rawTree = raw := by
   classical
+  simp only [cachePreservingCommonFork?] at hproject
   by_cases hexists :
       ∃ statement : Ipp.S1.Bls12377ReductionStatement μ,
         ForkCarriesFormalStatement statement raw
-  · rw [cachePreservingCommonFork?, dif_pos hexists] at hproject
+  · rw [dif_pos hexists] at hproject
     have hfork := Option.some.inj hproject
     simpa using
       (congrArg CachePreservingCommonFork.rawTree hfork).symm
-  · rw [cachePreservingCommonFork?, dif_neg hexists] at hproject
+  · rw [dif_neg hexists] at hproject
     cases hproject
 
 /-- With the deployed query-free setup, the setup-first accepted-replay GIPA
@@ -93,6 +97,11 @@ private theorem
       (cachePreservingCommonFork? <$>
         acceptedMultiStatementForkExperimentAt
           game queryBounds μ) := by
+  letI : DecidablePred
+      (InvalidAcceptedRandomizerGoodAt invalid μ extractor) :=
+    Classical.decPred _
+  letI : DecidablePred (SelectedAcceptedAt (Call := CallId) μ) :=
+    Classical.decPred _
   have hraw :=
     Ipp.forkTreeCombined_gateReplayRefines
       μ (multiStatementForkMain game)
@@ -165,8 +174,15 @@ theorem
             game invalid queryBounds μ adaptive] ≤
         Pr[CachePreservingGipaRootWin adaptive |
           acceptedCommon] := by
-    simpa [Ipp.optionSatisfies,
-      CachePreservingGipaRootWin] using
+    have hevent :
+        (CachePreservingGipaRootWin adaptive :
+          Option (CachePreservingCommonFork CallId μ) → Prop) =
+          Ipp.optionSatisfies
+            (fun fork => CachePreservingGipaRootWin adaptive (some fork)) := by
+      funext output
+      cases output <;> rfl
+    rw [hevent]
+    exact
       (Ipp.probEvent_optionSatisfies_le_of_oracleOptionSuccessDom
         hdom
         (fun fork =>
@@ -263,8 +279,15 @@ theorem
             game invalid queryBounds μ adaptive] ≤
         Pr[CachePreservingGipaProductWin adaptive |
           acceptedCommon] := by
-    simpa [Ipp.optionSatisfies,
-      CachePreservingGipaProductWin] using
+    have hevent :
+        (CachePreservingGipaProductWin adaptive :
+          Option (CachePreservingCommonFork CallId μ) → Prop) =
+          Ipp.optionSatisfies
+            (fun fork => CachePreservingGipaProductWin adaptive (some fork)) := by
+      funext output
+      cases output <;> rfl
+    rw [hevent]
+    exact
       (Ipp.probEvent_optionSatisfies_le_of_oracleOptionSuccessDom
         hdom
         (fun fork =>

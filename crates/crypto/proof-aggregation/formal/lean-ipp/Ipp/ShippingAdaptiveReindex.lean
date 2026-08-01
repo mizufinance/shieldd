@@ -228,6 +228,50 @@ instance instDecidablePredIsHybridFsQuery
   | inr _ =>
       exact isTrue trivial
 
+/-- Structural query-bound transport does not require probability semantics
+for the target oracle: it follows by induction on the source program. -/
+theorem IsQueryBoundP.simulateQ_of_step_structural
+    {ι ι' α : Type}
+    {spec : OracleSpec ι}
+    {spec' : OracleSpec ι'}
+    {p : ι → Prop} [DecidablePred p]
+    {q : ι' → Prop} [DecidablePred q]
+    {impl : QueryImpl spec (OracleComp spec')}
+    {program : OracleComp spec α}
+    {n : Nat}
+    (h : IsQueryBoundP program p n)
+    (hstep_p : ∀ t, p t → IsQueryBoundP (impl t) q 1)
+    (hstep_np : ∀ t, ¬ p t → IsQueryBoundP (impl t) q 0) :
+    IsQueryBoundP (simulateQ impl program) q n := by
+  induction program using OracleComp.inductionOn generalizing n with
+  | pure x => simp [simulateQ_pure]
+  | query_bind t continuation ih =>
+      rw [isQueryBoundP_query_bind_iff] at h
+      simp only [simulateQ_query_bind, OracleQuery.input_query,
+        monadLift_self]
+      have hstep :
+          IsQueryBoundP (impl t) q (if p t then 1 else 0) := by
+        by_cases hpt : p t
+        · simpa [if_pos hpt] using hstep_p t hpt
+        · simpa [if_neg hpt] using hstep_np t hpt
+      have hrest :
+          ∀ u,
+            IsQueryBoundP (simulateQ impl (continuation u)) q
+              (if p t then n - 1 else n) :=
+        fun u => ih u (h.2 u)
+      have hbudget :
+          (if p t then 1 else 0) +
+              (if p t then n - 1 else n) = n := by
+        by_cases hpt : p t
+        · simp only [if_pos hpt]
+          rcases h.1 with hnp | hn
+          · exact absurd hpt hnp
+          · omega
+        · simp only [if_neg hpt]
+          omega
+      simpa [hbudget] using
+        isQueryBoundP_bind hstep (fun u _ => hrest u)
+
 /-- Forward ambient sampling into the concrete byte source. -/
 def reachedUnifToRawByteFwd
     {reached : Set GlobalFsQuery} :
@@ -264,8 +308,8 @@ def reachedFieldToRawByteImpl
     (reached : Set GlobalFsQuery) :
     QueryImpl (ReachedAdaptiveFieldSourceSpec reached)
       (OracleComp GlobalByteSourceSpec) :=
-  reachedUnifToRawByteFwd +
-    (reachedShaToRawByteFwd +
+  reachedUnifToRawByteFwd (reached := reached) +
+    (reachedShaToRawByteFwd (reached := reached) +
       reachedFieldToRawByteFwd serialization reached)
 
 /-- Erase the sound hybrid annotation.  The complete adversary byte program is
@@ -324,12 +368,14 @@ noncomputable def decodeReachedQuery?
     (serialization : GlobalQuerySerialization)
     (reached : Set GlobalFsQuery)
     (bytes : List UInt8) :
-    Option (ReachedGlobalFsQuery reached) :=
-  if h :
-      ∃ q : ReachedGlobalFsQuery reached,
-        reachedByteEncoding serialization reached q = bytes
-  then some (Classical.choose h)
-  else none
+    Option (ReachedGlobalFsQuery reached) := by
+  classical
+  exact
+    if h :
+        ∃ q : ReachedGlobalFsQuery reached,
+          reachedByteEncoding serialization reached q = bytes
+    then some (Classical.choose h)
+    else none
 
 theorem decodeReachedQuery?_encode
     (serialization : GlobalQuerySerialization)
@@ -480,9 +526,35 @@ theorem rawByteToReachedField_step_charged
           simp [IsFsQuery] at hquery
       | inr bytes =>
           simp only [rawByteToReachedFieldImpl,
-            QueryImpl.add_apply_inr,
-            rawBlake2bToReachedFieldFwd]
-          split <;> simp [IsReachedFieldQuery]
+            QueryImpl.add_apply_inr]
+          unfold rawBlake2bToReachedFieldFwd
+          cases hdecode :
+              decodeReachedQuery? serialization reached bytes with
+          | none => simp [hdecode]
+          | some point =>
+            simp only [hdecode]
+            change IsQueryBoundP
+              (digestSection <$>
+                (liftM
+                  ((ReachedAdaptiveFieldSourceSpec reached).query
+                    (.inr (.inr point))) :
+                  OracleComp
+                    (ReachedAdaptiveFieldSourceSpec reached) Fr))
+              (@IsReachedFieldQuery reached) 1
+            exact
+              (isQueryBoundP_map_iff
+                (p := @IsReachedFieldQuery reached)
+                (liftM
+                  ((ReachedAdaptiveFieldSourceSpec reached).query
+                    (.inr (.inr point))) :
+                  OracleComp
+                    (ReachedAdaptiveFieldSourceSpec reached) Fr)
+                digestSection 1).2
+                ((isQueryBoundP_query_iff
+                  (spec := ReachedAdaptiveFieldSourceSpec reached)
+                  (p := @IsReachedFieldQuery reached)
+                  (.inr (.inr point)) 1).2 (by
+                    simp [IsReachedFieldQuery]))
 
 theorem rawByteToReachedField_step_uncharged
     (serialization : GlobalQuerySerialization)
@@ -493,14 +565,41 @@ theorem rawByteToReachedField_step_uncharged
       (rawByteToReachedFieldImpl serialization reached q)
       (@IsReachedFieldQuery reached) 0 := by
   cases q with
-  | inl _ =>
-      simp [rawByteToReachedFieldImpl,
-        rawUnifToReachedFieldFwd, IsReachedFieldQuery]
+  | inl point =>
+      simp only [rawByteToReachedFieldImpl,
+        QueryImpl.add_apply_inl,
+        rawUnifToReachedFieldFwd]
+      change IsQueryBoundP
+        (liftM
+          ((ReachedAdaptiveFieldSourceSpec reached).query
+            (.inl point)) :
+          OracleComp (ReachedAdaptiveFieldSourceSpec reached) _)
+        (@IsReachedFieldQuery reached) 0
+      exact
+        (isQueryBoundP_query_iff
+          (spec := ReachedAdaptiveFieldSourceSpec reached)
+          (p := @IsReachedFieldQuery reached)
+          (.inl point) 0).2 (by
+            simp [IsReachedFieldQuery])
   | inr q =>
       cases q with
-      | inl _ =>
-          simp [rawByteToReachedFieldImpl,
-            rawShaToReachedFieldFwd, IsReachedFieldQuery]
+      | inl input =>
+          simp only [rawByteToReachedFieldImpl,
+            QueryImpl.add_apply_inr,
+            QueryImpl.add_apply_inl,
+            rawShaToReachedFieldFwd]
+          change IsQueryBoundP
+            (liftM
+              ((ReachedAdaptiveFieldSourceSpec reached).query
+                (.inr (.inl input))) :
+              OracleComp (ReachedAdaptiveFieldSourceSpec reached) _)
+            (@IsReachedFieldQuery reached) 0
+          exact
+            (isQueryBoundP_query_iff
+              (spec := ReachedAdaptiveFieldSourceSpec reached)
+              (p := @IsReachedFieldQuery reached)
+              (.inr (.inl input)) 0).2 (by
+                simp [IsReachedFieldQuery])
       | inr _ =>
           simp [IsFsQuery] at hquery
 
@@ -525,9 +624,10 @@ theorem reachedField_queryBound_of_rawByte_queryBound
     IsQueryBoundP program
       (@IsReachedFieldQuery reached) Q_fs := by
   have hinverse :=
-    hraw.simulateQ_of_step
+    IsQueryBoundP.simulateQ_of_step_structural
       (impl := rawByteToReachedFieldImpl serialization reached)
       (q := @IsReachedFieldQuery reached)
+      hraw
       (rawByteToReachedField_step_charged
         serialization reached)
       (rawByteToReachedField_step_uncharged
@@ -553,7 +653,7 @@ theorem rawByte_queryBound_of_reachedField_queryBound
         (reachedFieldToRawByteImpl serialization reached)
         program)
       IsFsQuery Q_fs := by
-  apply hfield.simulateQ_of_step
+  apply IsQueryBoundP.simulateQ_of_step_structural hfield
   · intro q hquery
     cases q with
     | inl _ =>
@@ -563,18 +663,70 @@ theorem rawByte_queryBound_of_reachedField_queryBound
         | inl _ =>
             simp [IsReachedFieldQuery] at hquery
         | inr point =>
-            simp [reachedFieldToRawByteImpl,
-              reachedFieldToRawByteFwd, IsFsQuery]
+            simp only [reachedFieldToRawByteImpl,
+              QueryImpl.add_apply_inr,
+              reachedFieldToRawByteFwd]
+            change IsQueryBoundP
+              (Ipp.ShippingScalarReduction.reduceFr <$>
+                (liftM
+                  (GlobalByteSourceSpec.query
+                    (.inr (.inr
+                      (reachedByteEncoding
+                        serialization reached point)))) :
+                  OracleComp GlobalByteSourceSpec DigestBytes))
+              IsFsQuery 1
+            exact
+              (isQueryBoundP_map_iff
+                (p := IsFsQuery)
+                (liftM
+                  (GlobalByteSourceSpec.query
+                    (.inr (.inr
+                      (reachedByteEncoding
+                        serialization reached point)))) :
+                  OracleComp GlobalByteSourceSpec DigestBytes)
+                Ipp.ShippingScalarReduction.reduceFr 1).2
+                ((isQueryBoundP_query_iff
+                  (spec := GlobalByteSourceSpec)
+                  (p := IsFsQuery)
+                  (.inr (.inr
+                    (reachedByteEncoding
+                      serialization reached point))) 1).2 (by
+                    simp [IsFsQuery]))
   · intro q hquery
     cases q with
-    | inl _ =>
-        simp [reachedFieldToRawByteImpl,
-          reachedUnifToRawByteFwd, IsFsQuery]
+    | inl point =>
+        simp only [reachedFieldToRawByteImpl,
+          QueryImpl.add_apply_inl,
+          reachedUnifToRawByteFwd]
+        change IsQueryBoundP
+          (liftM (GlobalByteSourceSpec.query (.inl point)) :
+            OracleComp GlobalByteSourceSpec _)
+          IsFsQuery 0
+        exact
+          (isQueryBoundP_query_iff
+            (spec := GlobalByteSourceSpec)
+            (p := IsFsQuery)
+            (.inl point) 0).2 (by
+              simp [IsFsQuery])
     | inr q =>
         cases q with
-        | inl _ =>
-            simp [reachedFieldToRawByteImpl,
-              reachedShaToRawByteFwd, IsFsQuery]
+        | inl input =>
+            simp only [reachedFieldToRawByteImpl,
+              QueryImpl.add_apply_inr,
+              QueryImpl.add_apply_inl,
+              reachedShaToRawByteFwd]
+            change IsQueryBoundP
+              (liftM
+                (GlobalByteSourceSpec.query
+                  (.inr (.inl input))) :
+                OracleComp GlobalByteSourceSpec _)
+              IsFsQuery 0
+            exact
+              (isQueryBoundP_query_iff
+                (spec := GlobalByteSourceSpec)
+                (p := IsFsQuery)
+                (.inr (.inl input)) 0).2 (by
+                  simp [IsFsQuery])
         | inr _ =>
             simp [IsReachedFieldQuery] at hquery
 
@@ -595,24 +747,84 @@ theorem rawByte_queryBound_of_hybrid_queryBound
         (hybridToRawByteImpl serialization reached)
         program)
       IsFsQuery Q_fs := by
-  apply hhybrid.simulateQ_of_step
+  apply IsQueryBoundP.simulateQ_of_step_structural hhybrid
   · intro q hquery
     cases q with
     | inl rawQuery =>
         simp [IsHybridFsQuery] at hquery
-        simpa [hybridToRawByteImpl, hquery]
+        simp only [hybridToRawByteImpl,
+          QueryImpl.add_apply_inl, QueryImpl.id'_apply]
+        change IsQueryBoundP
+          (liftM (GlobalByteSourceSpec.query rawQuery) :
+            OracleComp GlobalByteSourceSpec _)
+          IsFsQuery 1
+        exact
+          (isQueryBoundP_query_iff
+            (spec := GlobalByteSourceSpec)
+            (p := IsFsQuery)
+            rawQuery 1).2 (by
+              simp [hquery])
     | inr point =>
-        simp [hybridToRawByteImpl,
-          reachedFieldToRawByteFwd, IsFsQuery]
+        simp only [hybridToRawByteImpl,
+          QueryImpl.add_apply_inr,
+          reachedFieldToRawByteFwd]
+        change IsQueryBoundP
+          (Ipp.ShippingScalarReduction.reduceFr <$>
+            (liftM
+              (GlobalByteSourceSpec.query
+                (.inr (.inr
+                  (reachedByteEncoding serialization reached point)))) :
+              OracleComp GlobalByteSourceSpec DigestBytes))
+          IsFsQuery 1
+        exact
+          (isQueryBoundP_map_iff
+            (p := IsFsQuery)
+            (liftM
+              (GlobalByteSourceSpec.query
+                (.inr (.inr
+                  (reachedByteEncoding serialization reached point)))) :
+              OracleComp GlobalByteSourceSpec DigestBytes)
+            Ipp.ShippingScalarReduction.reduceFr 1).2
+            ((isQueryBoundP_query_iff
+              (spec := GlobalByteSourceSpec)
+              (p := IsFsQuery)
+              (.inr (.inr
+                (reachedByteEncoding serialization reached point))) 1).2 (by
+                simp [IsFsQuery]))
   · intro q hquery
     cases q with
     | inl rawQuery =>
         simp [IsHybridFsQuery] at hquery
-        simpa [hybridToRawByteImpl, hquery]
+        simp only [hybridToRawByteImpl,
+          QueryImpl.add_apply_inl, QueryImpl.id'_apply]
+        change IsQueryBoundP
+          (liftM (GlobalByteSourceSpec.query rawQuery) :
+            OracleComp GlobalByteSourceSpec _)
+          IsFsQuery 0
+        exact
+          (isQueryBoundP_query_iff
+            (spec := GlobalByteSourceSpec)
+            (p := IsFsQuery)
+            rawQuery 0).2 (by
+              simp [hquery])
     | inr _ =>
         simp [IsHybridFsQuery] at hquery
 
 /-! ## Deterministic SHA resolution and global structured target -/
+
+/-- Resolve one SHA-256 query without issuing a target-oracle query. -/
+def reachedShaToGlobalFsFwd
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes) :
+    QueryImpl Sha256OracleSpec (OracleComp GlobalFsSourceSpec) :=
+  fun input => pure (sha256 input)
+
+/-- Erase a reached-query subtype witness while retaining its exact point. -/
+def reachedFieldToGlobalFsFwd
+    (reached : Set GlobalFsQuery) :
+    QueryImpl (ReachedGlobalFsQuery reached →ₒ Fr)
+      (OracleComp GlobalFsSourceSpec) :=
+  fun q =>
+    (GlobalFsSourceSpec).query (.inr q.1)
 
 /-- Resolve SHA-256 with the retained deployed function and embed every
 reached structured point into the global field source. -/
@@ -622,10 +834,8 @@ def reachedFieldToGlobalFsImpl
     QueryImpl (ReachedAdaptiveFieldSourceSpec reached)
       (OracleComp GlobalFsSourceSpec) :=
   globalFsUnifFwd +
-    ((fun input : Ipp.ShippingV1.Bytes =>
-      pure (sha256 input)) +
-      (fun q : ReachedGlobalFsQuery reached =>
-        (GlobalFsSourceSpec).query (.inr q.1)))
+    (reachedShaToGlobalFsFwd sha256 +
+      reachedFieldToGlobalFsFwd reached)
 
 /-- The same `Q_fs` bound survives deterministic SHA resolution and subtype
 erasure. -/
@@ -644,7 +854,7 @@ theorem globalFs_queryBound_of_reachedField_queryBound
         (reachedFieldToGlobalFsImpl sha256 reached)
         program)
       IsGlobalFieldQuery Q_fs := by
-  apply hfield.simulateQ_of_step
+  apply IsQueryBoundP.simulateQ_of_step_structural hfield
   · intro q hquery
     cases q with
     | inl _ =>
@@ -653,18 +863,42 @@ theorem globalFs_queryBound_of_reachedField_queryBound
         cases q with
         | inl _ =>
             simp [IsReachedFieldQuery] at hquery
-        | inr _ =>
-            simp [reachedFieldToGlobalFsImpl,
-              IsGlobalFieldQuery]
+        | inr point =>
+            simp only [reachedFieldToGlobalFsImpl,
+              QueryImpl.add_apply_inr,
+              reachedFieldToGlobalFsFwd]
+            change IsQueryBoundP
+              (liftM
+                (GlobalFsSourceSpec.query (.inr point.1)) :
+                OracleComp GlobalFsSourceSpec _)
+              IsGlobalFieldQuery 1
+            exact
+              (isQueryBoundP_query_iff
+                (spec := GlobalFsSourceSpec)
+                (p := IsGlobalFieldQuery)
+                (.inr point.1) 1).2 (by
+                  simp [IsGlobalFieldQuery])
   · intro q hquery
     cases q with
-    | inl _ =>
-        simp [reachedFieldToGlobalFsImpl,
-          globalFsUnifFwd, IsGlobalFieldQuery]
+    | inl point =>
+        simp only [reachedFieldToGlobalFsImpl,
+          QueryImpl.add_apply_inl,
+          globalFsUnifFwd]
+        change IsQueryBoundP
+          (liftM (GlobalFsSourceSpec.query (.inl point)) :
+            OracleComp GlobalFsSourceSpec _)
+          IsGlobalFieldQuery 0
+        exact
+          (isQueryBoundP_query_iff
+            (spec := GlobalFsSourceSpec)
+            (p := IsGlobalFieldQuery)
+            (.inl point) 0).2 (by
+              simp [IsGlobalFieldQuery])
     | inr q =>
         cases q with
-        | inl _ =>
+        | inl input =>
             simp [reachedFieldToGlobalFsImpl,
+              reachedShaToGlobalFsFwd,
               IsGlobalFieldQuery]
         | inr _ =>
             simp [IsReachedFieldQuery] at hquery
@@ -806,12 +1040,12 @@ theorem rawCacheToReachedFieldCache_cacheQuery
     (q : ReachedGlobalFsQuery reached)
     (digest : DigestBytes) :
     rawCacheToReachedFieldCache serialization reached
-        (cache.cacheQuery
+        (OracleSpec.QueryCache.cacheQuery cache
           (reachedByteEncoding serialization reached q)
           digest) =
-      (rawCacheToReachedFieldCache serialization reached cache)
-        .cacheQuery q
-          (Ipp.ShippingScalarReduction.reduceFr digest) := by
+      OracleSpec.QueryCache.cacheQuery
+        (rawCacheToReachedFieldCache serialization reached cache)
+        q (Ipp.ShippingScalarReduction.reduceFr digest) := by
   unfold rawCacheToReachedFieldCache
   rw [Ipp.RandomOracleReindex.pullbackCache_cacheQuery
     (reachedByteEncoding_injective
@@ -833,17 +1067,19 @@ theorem rawCacheToReachedFieldCache_cacheQuery
 def rawIdealAmbientImpl :
     QueryImpl unifSpec
       (StateT RawBlake2bCache ProbComp) :=
-  (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp)).liftTarget
+  QueryImpl.liftTarget
     (StateT RawBlake2bCache ProbComp)
+    (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp))
 
 /-- Deterministic SHA-256 with raw Blake2b cache state. -/
 def rawIdealShaImpl
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes) :
     QueryImpl Sha256OracleSpec
       (StateT RawBlake2bCache ProbComp) :=
-  (fun input : Ipp.ShippingV1.Bytes =>
-    (pure (sha256 input) : ProbComp Ipp.ShippingV1.Bytes)).liftTarget
-      (StateT RawBlake2bCache ProbComp)
+  QueryImpl.liftTarget
+    (StateT RawBlake2bCache ProbComp)
+    (fun input : Ipp.ShippingV1.Bytes =>
+      (pure (sha256 input) : ProbComp Ipp.ShippingV1.Bytes))
 
 /-- Ideal raw-byte implementation.  Only Blake2b is replaced by a lazy random
 oracle; ambient sampling and concrete SHA-256 are unchanged. -/
@@ -860,17 +1096,19 @@ def reachedMappedAmbientImpl
     (reached : Set GlobalFsQuery) :
     QueryImpl unifSpec
       (StateT (ReachedFieldCache reached) ProbComp) :=
-  (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp)).liftTarget
+  QueryImpl.liftTarget
     (StateT (ReachedFieldCache reached) ProbComp)
+    (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp))
 
 def reachedMappedShaImpl
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (reached : Set GlobalFsQuery) :
     QueryImpl Sha256OracleSpec
       (StateT (ReachedFieldCache reached) ProbComp) :=
-  (fun input : Ipp.ShippingV1.Bytes =>
-    (pure (sha256 input) : ProbComp Ipp.ShippingV1.Bytes)).liftTarget
-      (StateT (ReachedFieldCache reached) ProbComp)
+  QueryImpl.liftTarget
+    (StateT (ReachedFieldCache reached) ProbComp)
+    (fun input : Ipp.ShippingV1.Bytes =>
+      (pure (sha256 input) : ProbComp Ipp.ShippingV1.Bytes))
 
 def reachedMappedFieldImpl
     (reached : Set GlobalFsQuery)
@@ -932,11 +1170,11 @@ def rawIdealReachedSourceImpl
   rawIdealByteImpl sha256 ∘ₛ
     reachedFieldToRawByteImpl serialization reached
 
+set_option maxRecDepth 2048 in
 /-- Each raw ideal-oracle step projects exactly to the reached structured
 step.  Fresh raw digests are reduced before insertion into the projected
 cache; cache hits and updates commute by collision-free query encoding. -/
 theorem rawIdealReachedSourceImpl_step_project
-    [SampleableType DigestBytes]
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (serialization : GlobalQuerySerialization)
     (reached : Set GlobalFsQuery)
@@ -987,15 +1225,152 @@ theorem rawIdealReachedSourceImpl_step_project
               simp only [rawIdealReachedSourceImpl,
                 QueryImpl.compose, reachedFieldToRawByteImpl,
                 QueryImpl.add_apply_inr,
-                reachedFieldToRawByteFwd, rawIdealByteImpl,
+                reachedFieldToRawByteFwd,
                 reachedMappedSourceImpl, reachedMappedFieldImpl,
                 simulateQ_map,
                 simulateQ_spec_query]
-              rw [QueryImpl.withCaching_run_none _ hcached,
-                QueryImpl.withCaching_run_none _ hmapped]
+              have hsimMap :
+                  simulateQ (rawIdealByteImpl sha256)
+                      (Ipp.ShippingScalarReduction.reduceFr <$>
+                        (liftM
+                          (GlobalByteSourceSpec.query
+                            (.inr (.inr
+                              (reachedByteEncoding serialization reached
+                                point)))) :
+                          OracleComp GlobalByteSourceSpec DigestBytes)) =
+                    Ipp.ShippingScalarReduction.reduceFr <$>
+                      simulateQ (rawIdealByteImpl sha256)
+                        (liftM
+                          (GlobalByteSourceSpec.query
+                            (.inr (.inr
+                              (reachedByteEncoding serialization reached
+                                point)))) :
+                          OracleComp GlobalByteSourceSpec DigestBytes) :=
+                simulateQ_map (rawIdealByteImpl sha256) _ _
+              have hrunMap :
+                  (simulateQ (rawIdealByteImpl sha256)
+                    (Ipp.ShippingScalarReduction.reduceFr <$>
+                      (liftM
+                        (GlobalByteSourceSpec.query
+                          (.inr (.inr
+                            (reachedByteEncoding serialization reached
+                              point)))) :
+                        OracleComp GlobalByteSourceSpec DigestBytes))).run
+                      cache =
+                    (Ipp.ShippingScalarReduction.reduceFr <$>
+                      simulateQ (rawIdealByteImpl sha256)
+                        (liftM
+                          (GlobalByteSourceSpec.query
+                            (.inr (.inr
+                              (reachedByteEncoding serialization reached
+                                point)))) :
+                          OracleComp GlobalByteSourceSpec DigestBytes)).run
+                      cache := congrArg
+                (fun comp : StateT RawBlake2bCache ProbComp Fr =>
+                  comp.run cache)
+                hsimMap
+              have houterMap := congrArg
+                (fun run : ProbComp (Fr × RawBlake2bCache) =>
+                  Prod.map id
+                    (rawCacheToReachedFieldCache serialization reached) <$>
+                    run)
+                hrunMap
+              have hsimQuery :
+                  simulateQ (rawIdealByteImpl sha256)
+                      (liftM
+                        (GlobalByteSourceSpec.query
+                          (.inr (.inr
+                            (reachedByteEncoding serialization reached
+                              point)))) :
+                        OracleComp GlobalByteSourceSpec DigestBytes) =
+                    rawIdealByteImpl sha256
+                      (.inr (.inr
+                        (reachedByteEncoding serialization reached point))) :=
+                simulateQ_spec_query (rawIdealByteImpl sha256) _
+              have hrunQuery :
+                  (simulateQ (rawIdealByteImpl sha256)
+                    (liftM
+                      (GlobalByteSourceSpec.query
+                        (.inr (.inr
+                          (reachedByteEncoding serialization reached
+                            point)))) :
+                      OracleComp GlobalByteSourceSpec DigestBytes)).run cache =
+                    (rawIdealByteImpl sha256
+                      (.inr (.inr
+                        (reachedByteEncoding serialization reached point)))).run
+                      cache := congrArg
+                (fun comp : StateT RawBlake2bCache ProbComp DigestBytes =>
+                  comp.run cache)
+                hsimQuery
+              refine houterMap.trans ?_
+              rw [StateT.run_map, hrunQuery]
+              simp only [rawIdealByteImpl,
+                QueryImpl.add_apply_inr,
+                OracleSpec.randomOracle,
+                Ipp.RandomOracleMap.mappedRandomOracle]
+              have hrawRun :=
+                QueryImpl.withCaching_run_none
+                  (@uniformSampleImpl _ Blake2bOracleSpec
+                    (fun _ => instSampleableTypeFinFunc)) hcached
+              have hrawOuter :
+                  Prod.map id
+                        (rawCacheToReachedFieldCache serialization reached) <$>
+                      ((fun p : DigestBytes × RawBlake2bCache =>
+                        (Ipp.ShippingScalarReduction.reduceFr p.1, p.2)) <$>
+                        (QueryImpl.withCaching
+                          (@uniformSampleImpl _ Blake2bOracleSpec
+                            (fun _ => instSampleableTypeFinFunc))
+                          (reachedByteEncoding serialization reached point)).run
+                            cache) =
+                    Prod.map id
+                        (rawCacheToReachedFieldCache serialization reached) <$>
+                      ((fun p : DigestBytes × RawBlake2bCache =>
+                        (Ipp.ShippingScalarReduction.reduceFr p.1, p.2)) <$>
+                        ((fun digest =>
+                          (digest, OracleSpec.QueryCache.cacheQuery cache
+                            (reachedByteEncoding serialization reached point)
+                            digest)) <$>
+                          (@uniformSampleImpl _ Blake2bOracleSpec
+                            (fun _ => instSampleableTypeFinFunc))
+                            (reachedByteEncoding serialization reached
+                              point))) := congrArg
+                (fun run : ProbComp (DigestBytes × RawBlake2bCache) =>
+                  Prod.map id
+                      (rawCacheToReachedFieldCache serialization reached) <$>
+                    ((fun p : DigestBytes × RawBlake2bCache =>
+                      (Ipp.ShippingScalarReduction.reduceFr p.1, p.2)) <$>
+                      run))
+                hrawRun
+              refine hrawOuter.trans ?_
+              have hmappedRun :=
+                QueryImpl.withCaching_run_none
+                  (fun _ : ReachedGlobalFsQuery reached =>
+                    Ipp.ShippingScalarReduction.reduceFr <$>
+                      ($ᵗ DigestBytes))
+                  hmapped
+              refine Eq.trans ?_ hmappedRun.symm
               simp only [StateT.run_map, Functor.map_map,
-                Prod.map, id_eq, Function.comp_apply]
+                Prod.map, id_eq, Function.comp_apply,
+                uniformSampleImpl, Blake2bOracleSpec]
+              change
+                (fun digest : DigestBytes =>
+                  (Ipp.ShippingScalarReduction.reduceFr digest,
+                    rawCacheToReachedFieldCache serialization reached
+                      (OracleSpec.QueryCache.cacheQuery cache
+                        (reachedByteEncoding serialization reached point)
+                        digest))) <$>
+                    ($ᵗ DigestBytes) =
+                  (fun digest : DigestBytes =>
+                    (Ipp.ShippingScalarReduction.reduceFr digest,
+                      OracleSpec.QueryCache.cacheQuery
+                        (rawCacheToReachedFieldCache
+                          serialization reached cache)
+                        point
+                        (Ipp.ShippingScalarReduction.reduceFr digest))) <$>
+                    ($ᵗ DigestBytes)
               apply congrArg
+                (fun f : DigestBytes → (Fr × ReachedFieldCache reached) =>
+                  f <$> ($ᵗ DigestBytes))
               funext digest
               rw [rawCacheToReachedFieldCache_cacheQuery
                 serialization reached hcollisionFree]
@@ -1010,20 +1385,131 @@ theorem rawIdealReachedSourceImpl_step_project
               simp only [rawIdealReachedSourceImpl,
                 QueryImpl.compose, reachedFieldToRawByteImpl,
                 QueryImpl.add_apply_inr,
-                reachedFieldToRawByteFwd, rawIdealByteImpl,
+                reachedFieldToRawByteFwd,
                 reachedMappedSourceImpl, reachedMappedFieldImpl,
                 simulateQ_map,
                 simulateQ_spec_query]
-              rw [QueryImpl.withCaching_run_some _ hcached,
-                QueryImpl.withCaching_run_some _ hmapped]
-              simp
+              have hsimMap :
+                  simulateQ (rawIdealByteImpl sha256)
+                      (Ipp.ShippingScalarReduction.reduceFr <$>
+                        (liftM
+                          (GlobalByteSourceSpec.query
+                            (.inr (.inr
+                              (reachedByteEncoding serialization reached
+                                point)))) :
+                          OracleComp GlobalByteSourceSpec DigestBytes)) =
+                    Ipp.ShippingScalarReduction.reduceFr <$>
+                      simulateQ (rawIdealByteImpl sha256)
+                        (liftM
+                          (GlobalByteSourceSpec.query
+                            (.inr (.inr
+                              (reachedByteEncoding serialization reached
+                                point)))) :
+                          OracleComp GlobalByteSourceSpec DigestBytes) :=
+                simulateQ_map (rawIdealByteImpl sha256) _ _
+              have hrunMap :
+                  (simulateQ (rawIdealByteImpl sha256)
+                    (Ipp.ShippingScalarReduction.reduceFr <$>
+                      (liftM
+                        (GlobalByteSourceSpec.query
+                          (.inr (.inr
+                            (reachedByteEncoding serialization reached
+                              point)))) :
+                        OracleComp GlobalByteSourceSpec DigestBytes))).run
+                      cache =
+                    (Ipp.ShippingScalarReduction.reduceFr <$>
+                      simulateQ (rawIdealByteImpl sha256)
+                        (liftM
+                          (GlobalByteSourceSpec.query
+                            (.inr (.inr
+                              (reachedByteEncoding serialization reached
+                                point)))) :
+                          OracleComp GlobalByteSourceSpec DigestBytes)).run
+                      cache := congrArg
+                (fun comp : StateT RawBlake2bCache ProbComp Fr =>
+                  comp.run cache)
+                hsimMap
+              have houterMap := congrArg
+                (fun run : ProbComp (Fr × RawBlake2bCache) =>
+                  Prod.map id
+                    (rawCacheToReachedFieldCache serialization reached) <$>
+                    run)
+                hrunMap
+              have hsimQuery :
+                  simulateQ (rawIdealByteImpl sha256)
+                      (liftM
+                        (GlobalByteSourceSpec.query
+                          (.inr (.inr
+                            (reachedByteEncoding serialization reached
+                              point)))) :
+                        OracleComp GlobalByteSourceSpec DigestBytes) =
+                    rawIdealByteImpl sha256
+                      (.inr (.inr
+                        (reachedByteEncoding serialization reached point))) :=
+                simulateQ_spec_query (rawIdealByteImpl sha256) _
+              have hrunQuery :
+                  (simulateQ (rawIdealByteImpl sha256)
+                    (liftM
+                      (GlobalByteSourceSpec.query
+                        (.inr (.inr
+                          (reachedByteEncoding serialization reached
+                            point)))) :
+                      OracleComp GlobalByteSourceSpec DigestBytes)).run cache =
+                    (rawIdealByteImpl sha256
+                      (.inr (.inr
+                        (reachedByteEncoding serialization reached point)))).run
+                      cache := congrArg
+                (fun comp : StateT RawBlake2bCache ProbComp DigestBytes =>
+                  comp.run cache)
+                hsimQuery
+              refine houterMap.trans ?_
+              rw [StateT.run_map, hrunQuery]
+              simp only [rawIdealByteImpl,
+                QueryImpl.add_apply_inr,
+                OracleSpec.randomOracle,
+                Ipp.RandomOracleMap.mappedRandomOracle]
+              have hrawRun :=
+                QueryImpl.withCaching_run_some
+                  (@uniformSampleImpl _ Blake2bOracleSpec
+                    (fun _ => instSampleableTypeFinFunc)) hcached
+              have hrawOuter :
+                  Prod.map id
+                        (rawCacheToReachedFieldCache serialization reached) <$>
+                      ((fun p : DigestBytes × RawBlake2bCache =>
+                        (Ipp.ShippingScalarReduction.reduceFr p.1, p.2)) <$>
+                        (QueryImpl.withCaching
+                          (@uniformSampleImpl _ Blake2bOracleSpec
+                            (fun _ => instSampleableTypeFinFunc))
+                          (reachedByteEncoding serialization reached point)).run
+                            cache) =
+                    Prod.map id
+                        (rawCacheToReachedFieldCache serialization reached) <$>
+                      ((fun p : DigestBytes × RawBlake2bCache =>
+                        (Ipp.ShippingScalarReduction.reduceFr p.1, p.2)) <$>
+                        (pure (digest, cache) :
+                          ProbComp (DigestBytes × RawBlake2bCache))) := congrArg
+                (fun run : ProbComp (DigestBytes × RawBlake2bCache) =>
+                  Prod.map id
+                      (rawCacheToReachedFieldCache serialization reached) <$>
+                    ((fun p : DigestBytes × RawBlake2bCache =>
+                      (Ipp.ShippingScalarReduction.reduceFr p.1, p.2)) <$>
+                      run))
+                hrawRun
+              refine hrawOuter.trans ?_
+              have hmappedRun :=
+                QueryImpl.withCaching_run_some
+                  (fun _ : ReachedGlobalFsQuery reached =>
+                    Ipp.ShippingScalarReduction.reduceFr <$>
+                      ($ᵗ DigestBytes))
+                  hmapped
+              refine Eq.trans ?_ hmappedRun.symm
+              simp [rawCacheToReachedFieldCache]
 
 /-- Program-level form of `rawIdealReachedSourceImpl_step_project` for an
 all-typed source.  It is exact equality of probability computations, but it is
 not the unrestricted shipping-origin theorem: arbitrary adversarial byte
 queries require the sound hybrid source below. -/
 theorem rawIdealReachedExperiment_eq_reachedMappedExperiment
-    [SampleableType DigestBytes]
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (serialization : GlobalQuerySerialization)
     (reached : Set GlobalFsQuery)
@@ -1082,11 +1568,11 @@ def hybridRawIdealSourceImpl
   rawIdealByteImpl sha256 ∘ₛ
     hybridToRawByteImpl serialization reached
 
+set_option maxRecDepth 2048 in
 /-- Both hybrid query forms use the same lazy Blake2b implementation and the
 same byte key.  The typed form differs only by postprocessing the cached digest
 with `reduceFr`. -/
 theorem hybridRawIdealSourceImpl_shared_blake2b
-    [SampleableType DigestBytes]
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (serialization : GlobalQuerySerialization)
     (reached : Set GlobalFsQuery)
@@ -1102,11 +1588,49 @@ theorem hybridRawIdealSourceImpl_shared_blake2b
           Blake2bOracleSpec.randomOracle
             (reachedByteEncoding serialization reached q) := by
   constructor
-  · simp [hybridRawIdealSourceImpl, QueryImpl.compose,
-      hybridToRawByteImpl, rawIdealByteImpl]
-  · simp [hybridRawIdealSourceImpl, QueryImpl.compose,
-      hybridToRawByteImpl, reachedFieldToRawByteFwd,
-      rawIdealByteImpl, simulateQ_map, simulateQ_spec_query]
+  · change
+      simulateQ (rawIdealByteImpl sha256)
+          (liftM
+            (GlobalByteSourceSpec.query (.inr (.inr bytes))) :
+            OracleComp GlobalByteSourceSpec DigestBytes) =
+        Blake2bOracleSpec.randomOracle bytes
+    calc
+      _ = rawIdealByteImpl sha256 (.inr (.inr bytes)) :=
+        simulateQ_spec_query (rawIdealByteImpl sha256) _
+      _ = Blake2bOracleSpec.randomOracle bytes := by
+        simp only [rawIdealByteImpl, QueryImpl.add_apply_inr]
+  · change
+      simulateQ (rawIdealByteImpl sha256)
+          (Ipp.ShippingScalarReduction.reduceFr <$>
+            (liftM
+              (GlobalByteSourceSpec.query
+                (.inr (.inr
+                  (reachedByteEncoding serialization reached q)))) :
+              OracleComp GlobalByteSourceSpec DigestBytes)) =
+        Ipp.ShippingScalarReduction.reduceFr <$>
+          Blake2bOracleSpec.randomOracle
+            (reachedByteEncoding serialization reached q)
+    calc
+      _ = Ipp.ShippingScalarReduction.reduceFr <$>
+          simulateQ (rawIdealByteImpl sha256)
+            (liftM
+              (GlobalByteSourceSpec.query
+                (.inr (.inr
+                  (reachedByteEncoding serialization reached q)))) :
+              OracleComp GlobalByteSourceSpec DigestBytes) :=
+        simulateQ_map (rawIdealByteImpl sha256) _ _
+      _ = Ipp.ShippingScalarReduction.reduceFr <$>
+          rawIdealByteImpl sha256
+            (.inr (.inr
+              (reachedByteEncoding serialization reached q))) :=
+        congrArg
+          (fun comp : StateT RawBlake2bCache ProbComp DigestBytes =>
+            Ipp.ShippingScalarReduction.reduceFr <$> comp)
+          (simulateQ_spec_query (rawIdealByteImpl sha256) _)
+      _ = Ipp.ShippingScalarReduction.reduceFr <$>
+          Blake2bOracleSpec.randomOracle
+            (reachedByteEncoding serialization reached q) := by
+        simp only [rawIdealByteImpl, QueryImpl.add_apply_inr]
 
 /-- Output experiment for the sound hybrid annotation. -/
 def hybridRawIdealExperiment
@@ -1130,7 +1654,7 @@ theorem rawCache_prequery_hits_typed
     (cache : RawBlake2bCache)
     (q : ReachedGlobalFsQuery reached)
     (digest : DigestBytes) :
-    (cache.cacheQuery
+    (OracleSpec.QueryCache.cacheQuery cache
       (reachedByteEncoding serialization reached q)
       digest)
         (reachedByteEncoding serialization reached q) =
@@ -1163,6 +1687,7 @@ theorem projectedOriginIdealByteExperiment_eq_hybridRawIdeal
   unfold projectedOriginIdealByteExperiment hybridRawIdealExperiment
   rw [← boundary.raw_exact]
   rw [← QueryImpl.simulateQ_compose]
+  rfl
 
 end OriginByteReindexing
 
@@ -1184,9 +1709,9 @@ theorem globalReducedCacheToReachedFieldCache_cacheQuery
     (q : ReachedGlobalFsQuery reached)
     (value : Fr) :
     globalReducedCacheToReachedFieldCache reached
-        (state.1.cacheQuery q.1 value, state.2) =
-      (globalReducedCacheToReachedFieldCache reached state)
-        .cacheQuery q value := by
+        (OracleSpec.QueryCache.cacheQuery state.1 q.1 value, state.2) =
+      OracleSpec.QueryCache.cacheQuery
+        (globalReducedCacheToReachedFieldCache reached state) q value := by
   unfold globalReducedCacheToReachedFieldCache
   apply Ipp.RandomOracleReindex.pullbackCache_cacheQuery
   intro left right heq
@@ -1241,7 +1766,7 @@ theorem globalReducedReachedSourceImpl_step_project
       cases q with
       | inl input =>
           simp [globalReducedReachedSourceImpl, QueryImpl.compose,
-            reachedFieldToGlobalFsImpl,
+            reachedFieldToGlobalFsImpl, reachedShaToGlobalFsFwd,
             reachedMappedSourceImpl, reachedMappedShaImpl,
             StateT.run_map, StateT.run_lift, Functor.map_map,
             Prod.map, globalReducedCacheToReachedFieldCache]
@@ -1262,18 +1787,80 @@ theorem globalReducedReachedSourceImpl_step_project
               simp only [globalReducedReachedSourceImpl,
                 QueryImpl.compose, reachedFieldToGlobalFsImpl,
                 QueryImpl.add_apply_inr,
-                globalReducedFsSourceImpl,
-                Ipp.ShippingScalarReduction.reducedCachingOracleImpl,
+                reachedFieldToGlobalFsFwd,
                 reachedMappedSourceImpl, reachedMappedFieldImpl,
                 Ipp.RandomOracleMap.mappedRandomOracle,
                 simulateQ_spec_query]
-              rw [QueryImpl.withCachingAux_apply, hcached,
-                QueryImpl.withCaching_run_none _ hmapped]
+              have hsimQuery :
+                  simulateQ globalReducedFsSourceImpl
+                      (liftM
+                        (GlobalFsSourceSpec.query (.inr point.1)) :
+                        OracleComp GlobalFsSourceSpec Fr) =
+                    globalReducedFsSourceImpl (.inr point.1) :=
+                simulateQ_spec_query globalReducedFsSourceImpl _
+              have hrunQuery :
+                  (simulateQ globalReducedFsSourceImpl
+                    (liftM
+                      (GlobalFsSourceSpec.query (.inr point.1)) :
+                      OracleComp GlobalFsSourceSpec Fr)).run (cache, bad) =
+                    (globalReducedFsSourceImpl (.inr point.1)).run
+                      (cache, bad) := congrArg
+                (fun comp : StateT
+                    Ipp.ShippingMultiStatement.GlobalScalarCacheState
+                    ProbComp Fr =>
+                  comp.run (cache, bad))
+                hsimQuery
+              have houterQuery := congrArg
+                (fun run : ProbComp
+                    (Fr ×
+                      Ipp.ShippingMultiStatement.GlobalScalarCacheState) =>
+                  Prod.map id
+                    (globalReducedCacheToReachedFieldCache reached) <$>
+                    run)
+                hrunQuery
+              refine houterQuery.trans ?_
+              simp only [globalReducedFsSourceImpl,
+                QueryImpl.add_apply_inr,
+                Ipp.ShippingScalarReduction.reducedCachingOracleImpl]
+              have haux := QueryImpl.withCachingAux_apply
+                (fun (_point : GlobalFsQuery) (_value : Fr)
+                    (_cache : GlobalFieldOracleSpec.QueryCache)
+                    (currentBad : Bool) => currentBad)
+                (fun (_point : GlobalFsQuery)
+                    (_cache : GlobalFieldOracleSpec.QueryCache)
+                    (currentBad : Bool) =>
+                  (fun value => (value, currentBad)) <$>
+                    (Ipp.ShippingScalarReduction.reduceFr <$>
+                      ($ᵗ DigestBytes)))
+                point.1 (cache, bad)
+              have hauxOuter := congrArg
+                (fun run : ProbComp
+                    (Fr ×
+                      Ipp.ShippingMultiStatement.GlobalScalarCacheState) =>
+                  Prod.map id
+                    (globalReducedCacheToReachedFieldCache reached) <$>
+                    run)
+                haux
+              refine hauxOuter.trans ?_
+              simp only [hcached]
+              have hmappedRun :=
+                QueryImpl.withCaching_run_none
+                  (fun _ : ReachedGlobalFsQuery reached =>
+                    Ipp.ShippingScalarReduction.reduceFr <$>
+                      ($ᵗ DigestBytes))
+                  hmapped
+              refine Eq.trans ?_ hmappedRun.symm
               simp only [StateT.run_map, Functor.map_map,
                 Prod.map, id_eq, Function.comp_apply]
-              apply congrArg
+              apply congrArg (fun f => f <$> ($ᵗ DigestBytes))
               funext digest
-              rw [globalReducedCacheToReachedFieldCache_cacheQuery]
+              exact congrArg
+                (fun projectedCache =>
+                  (Ipp.ShippingScalarReduction.reduceFr digest,
+                    projectedCache))
+                (globalReducedCacheToReachedFieldCache_cacheQuery
+                  reached (cache, bad) point
+                  (Ipp.ShippingScalarReduction.reduceFr digest))
           | some value =>
               have hmapped :
                   globalReducedCacheToReachedFieldCache
@@ -1283,14 +1870,70 @@ theorem globalReducedReachedSourceImpl_step_project
               simp only [globalReducedReachedSourceImpl,
                 QueryImpl.compose, reachedFieldToGlobalFsImpl,
                 QueryImpl.add_apply_inr,
-                globalReducedFsSourceImpl,
-                Ipp.ShippingScalarReduction.reducedCachingOracleImpl,
+                reachedFieldToGlobalFsFwd,
                 reachedMappedSourceImpl, reachedMappedFieldImpl,
                 Ipp.RandomOracleMap.mappedRandomOracle,
                 simulateQ_spec_query]
-              rw [QueryImpl.withCachingAux_apply, hcached,
-                QueryImpl.withCaching_run_some _ hmapped]
-              simp
+              have hsimQuery :
+                  simulateQ globalReducedFsSourceImpl
+                      (liftM
+                        (GlobalFsSourceSpec.query (.inr point.1)) :
+                        OracleComp GlobalFsSourceSpec Fr) =
+                    globalReducedFsSourceImpl (.inr point.1) :=
+                simulateQ_spec_query globalReducedFsSourceImpl _
+              have hrunQuery :
+                  (simulateQ globalReducedFsSourceImpl
+                    (liftM
+                      (GlobalFsSourceSpec.query (.inr point.1)) :
+                      OracleComp GlobalFsSourceSpec Fr)).run (cache, bad) =
+                    (globalReducedFsSourceImpl (.inr point.1)).run
+                      (cache, bad) := congrArg
+                (fun comp : StateT
+                    Ipp.ShippingMultiStatement.GlobalScalarCacheState
+                    ProbComp Fr =>
+                  comp.run (cache, bad))
+                hsimQuery
+              have houterQuery := congrArg
+                (fun run : ProbComp
+                    (Fr ×
+                      Ipp.ShippingMultiStatement.GlobalScalarCacheState) =>
+                  Prod.map id
+                    (globalReducedCacheToReachedFieldCache reached) <$>
+                    run)
+                hrunQuery
+              refine houterQuery.trans ?_
+              simp only [globalReducedFsSourceImpl,
+                QueryImpl.add_apply_inr,
+                Ipp.ShippingScalarReduction.reducedCachingOracleImpl]
+              have haux := QueryImpl.withCachingAux_apply
+                (fun (_point : GlobalFsQuery) (_value : Fr)
+                    (_cache : GlobalFieldOracleSpec.QueryCache)
+                    (currentBad : Bool) => currentBad)
+                (fun (_point : GlobalFsQuery)
+                    (_cache : GlobalFieldOracleSpec.QueryCache)
+                    (currentBad : Bool) =>
+                  (fun value => (value, currentBad)) <$>
+                    (Ipp.ShippingScalarReduction.reduceFr <$>
+                      ($ᵗ DigestBytes)))
+                point.1 (cache, bad)
+              have hauxOuter := congrArg
+                (fun run : ProbComp
+                    (Fr ×
+                      Ipp.ShippingMultiStatement.GlobalScalarCacheState) =>
+                  Prod.map id
+                    (globalReducedCacheToReachedFieldCache reached) <$>
+                    run)
+                haux
+              refine hauxOuter.trans ?_
+              simp only [hcached]
+              have hmappedRun :=
+                QueryImpl.withCaching_run_some
+                  (fun _ : ReachedGlobalFsQuery reached =>
+                    Ipp.ShippingScalarReduction.reduceFr <$>
+                      ($ᵗ DigestBytes))
+                  hmapped
+              refine Eq.trans ?_ hmappedRun.symm
+              simp [globalReducedCacheToReachedFieldCache]
 
 /-- Output equality for an all-typed program between the global reduced
 interpreter and reached mapped interpreter. -/

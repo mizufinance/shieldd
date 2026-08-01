@@ -23,18 +23,21 @@ noncomputable section
 
 open Ipp.Bls12377
 
-local instance : Fact baseModulus.Prime :=
+local instance acceptedReplayBasePrime : Fact baseModulus.Prime :=
   ⟨arithmeticFacts.basePrime⟩
-local instance : Fact scalarModulus.Prime :=
+local instance acceptedReplayScalarPrime : Fact scalarModulus.Prime :=
   ⟨arithmeticFacts.scalarPrime⟩
-local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+local instance acceptedReplayFq2Nonresidue :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
-local instance : Fintype Fq2 :=
+local instance acceptedReplayFintypeFq2 : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
-local instance : IsUniformSpec GlobalFsSourceSpec :=
+local instance acceptedReplayGlobalUniform :
+    IsUniformSpec GlobalFsSourceSpec :=
   IsUniformSpec.ofFintypeInhabited _
-local instance : IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
+local instance acceptedReplayWrappedUniform :
+    IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
   IsUniformSpec.ofFintypeInhabited _
 
 /-- Accepted shipping execution in one exact dependent proof-size partition.
@@ -46,6 +49,11 @@ def SelectedAcceptedAt {Call : Type}
     (μ : Nat) : MultiStatementRunLog Call → Prop :=
   fun run =>
     SelectedMu μ run.1.out ∧ run.1.out.accept = true
+
+local instance selectedAcceptedAtDecidablePred
+    {Call : Type} (μ : Nat) :
+    DecidablePred (SelectedAcceptedAt (Call := Call) μ) :=
+  Classical.decPred _
 
 /-- Semantic invalid acceptance is a strengthening of the accepted-only
 gate. -/
@@ -88,10 +96,13 @@ theorem selectedAcceptedAt_exposes_outcome
     ∃ outcome : OutcomeAt Call μ,
       run.1.out.at? μ = some outcome ∧
         outcome.verifierResult.accept = true := by
-  rcases run.1.out with ⟨ν, outcome⟩
-  have hν : ν = μ := h.1
-  subst ν
-  exact ⟨outcome, PackedOutcome.at?_self μ outcome, h.2⟩
+  unfold SelectedAcceptedAt at h
+  generalize hpacked : run.1.out = packed at h ⊢
+  rcases packed with ⟨ν, outcome⟩
+  change ν = μ ∧ outcome.verifierResult.accept = true at h
+  rcases h with ⟨hν, haccept⟩
+  subst μ
+  exact ⟨outcome, PackedOutcome.at?_self ν outcome, haccept⟩
 
 /-- Accepted execution in one exact partition exposes its selected shipping
 input without adding semantic invalidity. -/
@@ -102,10 +113,12 @@ theorem selectedAcceptedAt_projects_selection
     ∃ selection : SelectionAt Call μ,
       run.1.out.selectionAt? μ = some selection ∧
         run.1.out.accept = true := by
-  obtain ⟨outcome, hat, haccept⟩ :=
+  obtain ⟨outcome, hat, _⟩ :=
     selectedAcceptedAt_exposes_outcome h
-  refine ⟨outcome.selection, ?_, haccept⟩
-  simp [PackedOutcome.selectionAt?, hat]
+  refine ⟨outcome.selection, ?_, h.2⟩
+  unfold PackedOutcome.selectionAt?
+  rw [hat]
+  rfl
 
 /-- Pure fail-closed projection of every raw shipping leaf into the
 proof/transcript carrier used by the standalone BLS12-377 GIPA game.
@@ -183,8 +196,14 @@ theorem projectVerifierTreeAt?_eq_projectCommonStatementTree
             ⟨μ, outcomeAtOfFormalStatement statement run hcarries⟩ :=
         outcomeAtOfFormalStatement_output_exact
           statement run hcarries
-      rw [hout]
-      simp [projectVerifierTreeAt?, projectCommonStatementTree]
+      let outcome :=
+        outcomeAtOfFormalStatement statement run hcarries
+      have hat :
+          run.1.out.at? μ = some outcome := by
+        rw [hout]
+        exact PackedOutcome.at?_self μ outcome
+      simpa only [projectCommonStatementTree, outcome] using
+        (projectVerifierTreeAt?_leaf_of_at run outcome hat)
   | node children ih =>
       let projected := fun k =>
         projectVerifierTreeAt? (μ := μ) (children k)
@@ -202,8 +221,7 @@ theorem projectVerifierTreeAt?_eq_projectCommonStatementTree
         projected, dif_pos hisSome]
       congr 2
       funext k
-      rw [hchildren k]
-      rfl
+      exact (Option.eq_some_iff_get_eq.mp (hchildren k)).2
 
 /-- Accepted standalone target selected only after the complete replay has
 run.  The statement is the formal statement stored in the canonical root;
@@ -271,8 +289,14 @@ theorem projectAcceptedRawForkAt?_eq_projectCommonStatementTree
   have htree :=
     projectVerifierTreeAt?_eq_projectCommonStatementTree
       statement tree hcarries
-  rw [projectAcceptedRawForkAt?, hout,
-    PackedOutcome.at?_self, htree, hstatement]
+  have hroot :
+      tree.root.1.out.at? μ =
+        some
+          (outcomeAtOfFormalStatement
+            statement tree.root hcarries.root) := by
+    rw [hout]
+    exact PackedOutcome.at?_self μ _
+  simp only [projectAcceptedRawForkAt?, hroot, htree, hstatement]
 
 /-- Every successful accepted-only replay tree satisfies the accepted-only
 gate at every leaf. -/
@@ -282,7 +306,7 @@ theorem acceptedMultiStatementForkExperimentAt_support_all_selectedAccepted
     (queryBounds : (Ipp.FsWrappedSpec Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -318,7 +342,7 @@ theorem acceptedMultiStatementForkExperimentAt_support_all_source
     (queryBounds : (Ipp.FsWrappedSpec Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -367,7 +391,7 @@ theorem acceptedMultiStatementForkExperimentAt_support_projectable
     (queryBounds : (Ipp.FsWrappedSpec Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -393,7 +417,7 @@ theorem
     (queryBounds : (Ipp.FsWrappedSpec Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -475,6 +499,50 @@ theorem
         hdetermines selection rootSelection
           hselectionReachable hrootReachable hkey⟩)
 
+private theorem
+    projectCommonStatementTree_all_accepts_of_selectedAccepted
+    {Call : Type}
+    (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
+    (semantics : GlobalAcceptedVerifierSemantics game)
+    {μ depth : Nat}
+    (statement : Ipp.S1.Bls12377ReductionStatement μ)
+    (tree : RawMultiStatementForkTree Call depth)
+    (hcarries : ForkCarriesFormalStatement statement tree)
+    (hsupport :
+      tree.All (fun run =>
+        run ∈ support (multiStatementFsProbComp game)))
+    (haccepted : tree.All (SelectedAcceptedAt μ)) :
+    (projectCommonStatementTree statement tree hcarries).All
+      (fun run =>
+        Ipp.FsAccepts statement run.1.proof run.1.transcript) := by
+  induction tree with
+  | leaf run =>
+      let outcome :=
+        outcomeAtOfFormalStatement statement run hcarries
+      have hout :
+          run.1.out = ⟨μ, outcome⟩ :=
+        outcomeAtOfFormalStatement_output_exact
+          statement run hcarries
+      have haccept :
+          outcome.verifierResult.accept = true := by
+        have houtAccept :=
+          congrArg
+            (fun output : PackedOutcome Call => output.accept) hout
+        exact houtAccept.symm.trans haccepted.2
+      have hformal :
+          Ipp.FsAccepts statement
+            outcome.verifierResult.proof
+            outcome.verifierResult.transcript :=
+        by
+          rw [← outcomeAtOfFormalStatement_statement_exact
+            statement run hcarries]
+          exact semantics.accepts μ outcome run hsupport hout haccept
+      simpa [projectCommonStatementTree, outcome] using hformal
+  | node children ih =>
+      intro child
+      exact ih child
+        (hcarries child) (hsupport child) (haccepted child)
+
 /-- Accepted verifier semantics transport the accepted-only raw gate to the
 full accepted-fork predicate used by both standalone GIPA wins.
 
@@ -494,30 +562,9 @@ theorem projectCommonStatementTree_gipaForkAccepts_of_selectedAccepted
     Ipp.S1.Bls12377GipaForkAccepts
       statement
       (projectCommonStatementTree statement tree hcarries) := by
-  unfold Ipp.S1.Bls12377GipaForkAccepts
-  induction tree with
-  | leaf run =>
-      let outcome :=
-        outcomeAtOfFormalStatement statement run hcarries
-      have hout :
-          run.1.out = ⟨μ, outcome⟩ :=
-        outcomeAtOfFormalStatement_output_exact
-          statement run hcarries
-      have haccept :
-          outcome.verifierResult.accept = true := by
-        have hgate := haccepted
-        rw [hout] at hgate
-        exact hgate.2
-      have hformal :
-          Ipp.FsAccepts statement
-            outcome.verifierResult.proof
-            outcome.verifierResult.transcript :=
-        semantics.accepts μ outcome run hsupport hout haccept
-      simpa [projectCommonStatementTree, outcome] using hformal
-  | node children ih =>
-      intro child
-      exact ih child
-        (hcarries child) (hsupport child) (haccepted child)
+  exact
+    projectCommonStatementTree_all_accepts_of_selectedAccepted
+      game semantics statement tree hcarries hsupport haccepted
 
 /-- Complete accepted-only production-key bridge.
 
@@ -533,7 +580,7 @@ theorem
     (queryBounds : (Ipp.FsWrappedSpec Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -616,7 +663,7 @@ theorem supportedForkTree_consistent_under_weaker_gate
     [DecidablePred strong]
     (hgate : ∀ run, strong run → weak run)
     (hbaseReach : ∀ level, level < total →
-      Ipp.CfReachable main queryBounds oracle (selector level))
+      OracleComp.CfReachable main queryBounds oracle (selector level))
     {tree : Ipp.RunTree spec α total}
     (htree : some tree ∈ support
       (Ipp.forkTreeCombined total main queryBounds oracle
@@ -647,7 +694,7 @@ theorem supportedForkTree_all_weaker_gate
     [DecidablePred strong]
     (hgate : ∀ run, strong run → weak run)
     (hbaseReach : ∀ level, level < total →
-      Ipp.CfReachable main queryBounds oracle (selector level))
+      OracleComp.CfReachable main queryBounds oracle (selector level))
     {tree : Ipp.RunTree spec α total}
     (htree : some tree ∈ support
       (Ipp.forkTreeCombined total main queryBounds oracle
@@ -668,7 +715,7 @@ theorem strongerAcceptedFork_support_projectable
     [DecidablePred strong]
     (hgate : ∀ run, strong run → SelectedAcceptedAt μ run)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot

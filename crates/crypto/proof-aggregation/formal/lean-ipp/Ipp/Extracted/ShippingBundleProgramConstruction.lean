@@ -24,11 +24,25 @@ open Ipp.ShippingBundleGoalBridge
 open Ipp.ShippingBundleGlobalFsComposition
 open Ipp.ShippingBundleCachedComposition
 open Ipp.ShippingAdaptiveReindex
+open Ipp.Bls12377
 
 noncomputable section
 
-local instance globalFsSourceUniform :
+local instance bundleProgramBasePrime : Fact baseModulus.Prime :=
+  ⟨arithmeticFacts.basePrime⟩
+local instance bundleProgramScalarPrime : Fact scalarModulus.Prime :=
+  ⟨arithmeticFacts.scalarPrime⟩
+local instance bundleProgramFq2Nonresidue :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+  ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
+local instance bundleProgramFintypeFq2 : Fintype Fq2 :=
+  Fintype.ofEquiv
+    (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
+local instance bundleProgramGlobalFsUniform :
     IsUniformSpec GlobalFsSourceSpec :=
+  IsUniformSpec.ofFintypeInhabited _
+local instance bundleProgramFsWrappedUniform :
+    IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
   IsUniformSpec.ofFintypeInhabited _
 
 /-- Output origin required by the adaptive proof.
@@ -117,12 +131,12 @@ theorem SharedCacheBundleExecutionEquation.acceptedOutputDerived
     (_accepted : output.accept = true) :
     OutputDerivedSelectionAt
       output.1 output.2.selection := by
-  have matches :
+  have relatedOutputs :
       List.Forall₂ RecordedPackedCall.Matches
         bundle.recordedCalls equation.outputs :=
     equation.orderedExact
   rcases
-      forall₂_exists_related_left matches member with
+      forall₂_exists_related_left relatedOutputs member with
     ⟨recorded, recordedMember, outputExact⟩
   have recordedSelectionMember :
       recorded.selection ∈ bundle.selections := by
@@ -193,10 +207,10 @@ theorem SharedCacheBundleExecutionEquation.acceptedLeastInvalidOutput
               (rejectedPackedOutcome fallbackSelection)) ∧
       OutputDerivedSelectionAt
         output.1 output.2.selection :=
-  ⟨equation.leastInvalidOutput_mem_projected
-      invalid fallbackSelection least,
-    equation.acceptedOutputDerived
-      (leastInvalidOutcome?_mem invalid least) accepted⟩
+  ⟨SharedCacheBundleExecutionEquation.leastInvalidOutput_mem_projected
+      equation invalid fallbackSelection least,
+    SharedCacheBundleExecutionEquation.acceptedOutputDerived
+      equation (leastInvalidOutcome?_mem invalid least) accepted⟩
 
 /-- Two verifier logs are cache-equivalent under one fixed answer function
 when they contain the same query/answer entries up to permutation and every
@@ -241,7 +255,7 @@ structure AcceptedConcurrentBundleSerialization
         (List (PackedSelection CallId)))
     (invalid : (μ : Nat) → SelectionAt CallId μ → Prop)
     (answer : QueryImpl GlobalFsSourceSpec Id)
-    (runtimeOutput : PackedOutcome CallId) : Prop where
+    (runtimeOutput : PackedOutcome CallId) : Type where
   selections : List (PackedSelection CallId)
   plannerLog : QueryLog GlobalFsSourceSpec
   plannerOutputExact :
@@ -383,8 +397,7 @@ structure OutputDerivedBundleProgramEquations
         hybridProgram =
       rawProgram
   cachedCanonical_evalDist_exact :
-    𝒟[Ipp.ShippingAdaptiveGlobalFsCoupling
-        .fiberLiftedGlobalFsProgram
+    𝒟[Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram
           sha256 serialization reached hybridProgram] =
       𝒟[Ipp.fsRandomFunction
         (projectedLeastInvalidBundleFsGame
@@ -446,8 +459,7 @@ theorem fiberLiftedAcceptedOutputDerivedOrigin
         sha256 rawProgram Q_sha Q_fs invalid
           fallbackSelection) :
     AcceptedOutputDerivedOrigin
-      (Ipp.ShippingAdaptiveGlobalFsCoupling
-        .fiberLiftedGlobalFsProgram
+      (Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram
           sha256 equations.serialization equations.reached
             equations.hybridProgram) := by
   intro output emitted accepted
@@ -459,8 +471,7 @@ theorem fiberLiftedAcceptedOutputDerivedOrigin
               equations.hybridProgram) := by
     apply
       support_simulateQ_subset
-        (Ipp.ShippingAdaptiveGlobalFsCoupling
-          .uniformScalarToGlobalFsImpl
+        (Ipp.ShippingAdaptiveGlobalFsCoupling.uniformScalarToGlobalFsImpl
             equations.serialization equations.reached)
     exact emitted
   have hybridEmitted :
@@ -572,7 +583,7 @@ program have exactly the same output distribution.
 This theorem deliberately exposes no equality of raw `OracleComp` syntax or
 query order.  Duplicate statement/query keys remain shared by
 `fsRandomFunction`, while scheduler timing and profiling are projected away. -/
-theorem cachedCanonical_evalDist_exact
+theorem cachedCanonical_evalDist_exact_of_equations
     {sha256 :
       Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
     {rawProgram :
@@ -586,16 +597,15 @@ theorem cachedCanonical_evalDist_exact
       OutputDerivedBundleProgramEquations
         sha256 rawProgram Q_sha Q_fs invalid
           fallbackSelection) :
-    𝒟[Ipp.ShippingAdaptiveGlobalFsCoupling
-        .fiberLiftedGlobalFsProgram
+    𝒟[Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram
           sha256 equations.serialization equations.reached
             equations.hybridProgram] =
       𝒟[Ipp.fsRandomFunction
         (projectedLeastInvalidBundleFsGame
           equations.preselection invalid
             (rejectedPackedOutcome fallbackSelection))] :=
-  (equations.toCachedProjectedBundleConstruction)
-    .cachedCanonical_evalDist_exact
+  Ipp.ShippingBundleCachedComposition.CachedProjectedBundleConstruction.cachedCanonical_evalDist_exact
+    equations.toCachedProjectedBundleConstruction
 
 /-- The constructed raw byte program exposes distinct SHA and Fiat--Shamir
 budgets. -/
@@ -645,13 +655,11 @@ theorem cachedProjectedAcceptedOutputDerivedOrigin
           equations.preselection invalid
             (rejectedPackedOutcome fallbackSelection))) := by
   intro output emitted accepted
-  apply
-    equations.fiberLiftedAcceptedOutputDerivedOrigin
-      output
-  · exact
-      ((equations.toCachedProjectedBundleConstruction)
-        .fiberLifted_support_iff_cachedCanonical output).2 emitted
-  · exact accepted
+  exact
+    equations.fiberLiftedAcceptedOutputDerivedOrigin output
+      ((Ipp.ShippingBundleCachedComposition.CachedProjectedBundleConstruction.fiberLifted_support_iff_cachedCanonical
+          equations.toCachedProjectedBundleConstruction output).2 emitted)
+      accepted
 
 /-- Every accepted selection exposed by the logged canonical bundle replay
 comes from one complete output-derived production bundle.
@@ -715,8 +723,8 @@ theorem productionReplayOriginAt
     equations.cachedProjectedAcceptedOutputDerivedOrigin
       run.1.out outputSupported accepted
   rcases
-      Ipp.ShippingMultiStatementS1Reduction
-        .selectionAt?_eq_some_exposes_outcome selectionExact with
+      Ipp.ShippingMultiStatement.selectionAt?_eq_some_exposes_outcome
+        selectionExact with
     ⟨outcome, outputExact, selectedExact⟩
   rw [outputExact] at origin
   change OutputDerivedSelectionAt μ outcome.selection at origin

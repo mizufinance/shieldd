@@ -33,19 +33,41 @@ open Ipp.Extracted.AppVerifierStateMachine
 open Ipp.Extracted.ShippingBundleProgramConstruction
 open Ipp.Extracted.ShippingProductionKeyFunctionality
 
-local instance : Fact baseModulus.Prime :=
+local instance bundleDeployedSecurityBasePrime : Fact baseModulus.Prime :=
   ⟨arithmeticFacts.basePrime⟩
-local instance : Fact scalarModulus.Prime :=
+local instance bundleDeployedSecurityScalarPrime : Fact scalarModulus.Prime :=
   ⟨arithmeticFacts.scalarPrime⟩
-local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+local instance bundleDeployedSecurityFq2Nonresidue :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
-local instance : Fintype Fq2 :=
+local instance bundleDeployedSecurityFintypeFq2 : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
-local instance : IsUniformSpec GlobalFsSourceSpec :=
+local instance bundleDeployedSecurityGlobalFsUniform :
+    IsUniformSpec GlobalFsSourceSpec :=
   IsUniformSpec.ofFintypeInhabited _
-local instance : IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
+local instance bundleDeployedSecurityFsWrappedUniform :
+    IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
   IsUniformSpec.ofFintypeInhabited _
+
+/-- Real acceptance outside the SHA-256 collision event for production values
+that retain universe-polymorphic source data. -/
+def OriginGoodReal {Real : Type 1}
+    (realEvent shaBad : Real → Prop) : Real → Prop :=
+  fun output => realEvent output ∧ ¬shaBad output
+
+/-- Blake2b replacement contract for the universe-polymorphic production
+experiment, interpreted through its exact `SPMF` semantics. -/
+structure OriginBlake2bRomSecurity
+    {Real : Type 1} {Ideal : Type}
+    (realExperiment : OriginProbComp Real)
+    (realEvent shaBad : Real → Prop)
+    (idealExperiment : ProbComp Ideal)
+    (idealEvent : Ideal → Prop) where
+  epsilon : ℝ≥0∞
+  good_real_le_ideal_add :
+    Pr[OriginGoodReal realEvent shaBad | evalOriginSPMF realExperiment] ≤
+      Pr[idealEvent | idealExperiment] + epsilon
 
 /-- Per-size deployed adaptive security endpoint.
 
@@ -55,14 +77,14 @@ All four losses remain visible before the iterated fork transform. -/
 theorem
     realBundleInvalidAcceptedAt_adjustedForkTransform_le_acceptedReplaySecurity
     [SampleableType DigestBytes]
-    {Request : Type}
+    {Request : Type 1}
     {sha256 :
       Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
     {blake2b : List UInt8 → DigestBytes}
-    {adversary : OracleComp GlobalByteSourceSpec Request}
+    {adversary : OriginGlobalComp Request}
     {materialize :
       Request →
-        OracleComp GlobalByteSourceSpec
+        OriginGlobalComp
           (MaterializedAliasCall sha256 blake2b)}
     {rawProgram :
       OracleComp
@@ -84,9 +106,9 @@ theorem
       MaterializedAliasCollisionSecurity
         sha256 blake2b adversary materialize Q_sha)
     (rom :
-      Blake2bRomSecurity
+      OriginBlake2bRomSecurity
         (deployedMaterializedAliasExperiment
-          sha256 blake2b adversary materialize)
+          (Request := Request) sha256 blake2b adversary materialize)
         realInvalidAcceptedAt MaterializedAliasShaCollision
         (BundleByteOriginReindexing.idealByteExperiment
           sha256 rawProgram)
@@ -126,7 +148,7 @@ theorem
         replayQueries)
     (binding :
       ∀ fork : CachePreservingCommonFork CallId μ,
-        some fork.rawTree ∈ support
+        some fork.rawTree ∈ _root_.support
             (acceptedMultiStatementForkExperimentAt
               (projectedBundleFsGame equations)
                 queryBounds μ) →
@@ -142,8 +164,9 @@ theorem
     ((Ipp.forkTreeStep
         (queryBounds (Sum.inr ()) + 1) scalarModulus)^[μ])
         (((Pr[realInvalidAcceptedAt |
-              deployedMaterializedAliasExperiment
-                sha256 blake2b adversary materialize] -
+              evalOriginSPMF
+                (deployedMaterializedAliasExperiment
+                  (Request := Request) sha256 blake2b adversary materialize)] -
             (shaSecurity.epsilonSha256 + rom.epsilon)) -
           Ipp.ShippingScalarReduction.modReductionBudget Q_fs) -
           adaptiveRandomizerRootError totalQueries μ) ≤
@@ -151,24 +174,56 @@ theorem
         kzgSecurity gipaSecurity replayQueries := by
   have realToIdeal :
       Pr[realInvalidAcceptedAt |
-          deployedMaterializedAliasExperiment
-            sha256 blake2b adversary materialize] ≤
+          evalOriginSPMF
+            (deployedMaterializedAliasExperiment
+              (Request := Request) sha256 blake2b adversary materialize)] ≤
         Pr[IdealByteInvalidAcceptedAt invalid μ |
             BundleByteOriginReindexing.idealByteExperiment
               sha256 rawProgram] +
           shaSecurity.epsilonSha256 + rom.epsilon :=
-    adaptive_real_acceptance_le_ideal_add_hash_losses
-      (deployedMaterializedAliasExperiment
-        sha256 blake2b adversary materialize)
-      realInvalidAcceptedAt MaterializedAliasShaCollision
-      (BundleByteOriginReindexing.idealByteExperiment
-        sha256 rawProgram)
-      (IdealByteInvalidAcceptedAt invalid μ)
-      shaSecurity.epsilonSha256 shaSecurity.collision_le rom
+    calc
+      _ ≤
+          Pr[OriginGoodReal realInvalidAcceptedAt MaterializedAliasShaCollision |
+              evalOriginSPMF
+                (deployedMaterializedAliasExperiment
+                  (Request := Request) sha256 blake2b adversary materialize)] +
+            Pr[MaterializedAliasShaCollision |
+              evalOriginSPMF
+                (deployedMaterializedAliasExperiment
+                  (Request := Request) sha256 blake2b adversary materialize)] := by
+        calc
+          _ ≤ Pr[fun output =>
+                OriginGoodReal realInvalidAcceptedAt
+                    MaterializedAliasShaCollision output ∨
+                  MaterializedAliasShaCollision output |
+              evalOriginSPMF
+                (deployedMaterializedAliasExperiment
+                  (Request := Request) sha256 blake2b adversary materialize)] := by
+            apply probEvent_mono
+            intro output _ hreal
+            by_cases hbad : MaterializedAliasShaCollision output
+            · exact Or.inr hbad
+            · exact Or.inl ⟨hreal, hbad⟩
+          _ ≤ _ :=
+            probEvent_or_le
+              (evalOriginSPMF
+                (deployedMaterializedAliasExperiment
+                  (Request := Request) sha256 blake2b adversary materialize))
+              (OriginGoodReal realInvalidAcceptedAt
+                MaterializedAliasShaCollision)
+              MaterializedAliasShaCollision
+      _ ≤
+          (Pr[IdealByteInvalidAcceptedAt invalid μ |
+                BundleByteOriginReindexing.idealByteExperiment
+                  sha256 rawProgram] + rom.epsilon) +
+            shaSecurity.epsilonSha256 :=
+        add_le_add rom.good_real_le_ideal_add shaSecurity.collision_le
+      _ = _ := by ac_rfl
   have afterHashes :
       Pr[realInvalidAcceptedAt |
-          deployedMaterializedAliasExperiment
-            sha256 blake2b adversary materialize] -
+          evalOriginSPMF
+            (deployedMaterializedAliasExperiment
+              (Request := Request) sha256 blake2b adversary materialize)] -
           (shaSecurity.epsilonSha256 + rom.epsilon) ≤
         Pr[IdealByteInvalidAcceptedAt invalid μ |
             BundleByteOriginReindexing.idealByteExperiment
@@ -177,8 +232,9 @@ theorem
       simpa [add_assoc] using realToIdeal)
   have afterModReduction :
       (Pr[realInvalidAcceptedAt |
-            deployedMaterializedAliasExperiment
-              sha256 blake2b adversary materialize] -
+            evalOriginSPMF
+              (deployedMaterializedAliasExperiment
+                (Request := Request) sha256 blake2b adversary materialize)] -
           (shaSecurity.epsilonSha256 + rom.epsilon)) -
             Ipp.ShippingScalarReduction.modReductionBudget Q_fs ≤
         Pr[IdealByteInvalidAcceptedAt invalid μ |
@@ -188,8 +244,9 @@ theorem
     tsub_le_tsub_right afterHashes _
   have afterRandomizer :
       ((Pr[realInvalidAcceptedAt |
-              deployedMaterializedAliasExperiment
-                sha256 blake2b adversary materialize] -
+              evalOriginSPMF
+                (deployedMaterializedAliasExperiment
+                  (Request := Request) sha256 blake2b adversary materialize)] -
             (shaSecurity.epsilonSha256 + rom.epsilon)) -
           Ipp.ShippingScalarReduction.modReductionBudget Q_fs) -
             adaptiveRandomizerRootError totalQueries μ ≤
@@ -203,8 +260,9 @@ theorem
       ((Ipp.forkTreeStep
           (queryBounds (Sum.inr ()) + 1) scalarModulus)^[μ])
           (((Pr[realInvalidAcceptedAt |
-                deployedMaterializedAliasExperiment
-                  sha256 blake2b adversary materialize] -
+                evalOriginSPMF
+                  (deployedMaterializedAliasExperiment
+                    (Request := Request) sha256 blake2b adversary materialize)] -
               (shaSecurity.epsilonSha256 + rom.epsilon)) -
             Ipp.ShippingScalarReduction.modReductionBudget Q_fs) -
             adaptiveRandomizerRootError totalQueries μ) ≤

@@ -96,10 +96,10 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "77093c24f0d1ef89638adc530519bb2688ae72a823e4fd667606c8464e2aef4a"
+    "538e8561f096fa746e7fd77891d4846a4e6879f9460c9e92bc1bc75c2d10b48b"
 )
 ASSUMPTION_LEDGER_SHA256 = (
-    "8a13e07e1cae911fd771d94e66e7dd9915b28a3392ce91aee0c0e94b1be843c4"
+    "8ca41010c44f35cd3e3e90fcaa7359173e607c9a4f70040efa4bbba57dca7633"
 )
 V1_PROTOCOL_VERSION = 2
 V1_BYTE_BASELINE_SHA256 = (
@@ -142,7 +142,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "170c5232e722004e4601bf63251dd3389a80280fca70adab46c9e7274bfebda6"
+    "d1ef72673e83768962bf663f1ce05b44842c29f1185cd744fa9fe0438e35b719"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -286,20 +286,20 @@ CONTRACT_DATA_FIELDS = {
 }
 EXTERNAL_RUST_EVIDENCE_ROOTS = {
     "vkDigestExact": (
-        "Rust.proof_aggregation.statement.aggregate_verification_key_digest",
+        "Rust.proof_aggregation.statement.AggregateStatement.new",
         "crates/crypto/proof-aggregation/src/statement.rs",
     ),
     "statementDigestExact": (
-        "Rust.proof_aggregation.statement.statement_digest_from_canonical",
+        "Rust.proof_aggregation.statement.AggregateStatement.new",
         "crates/crypto/proof-aggregation/src/statement.rs",
     ),
     "challengeContextExact": (
-        "Rust.ark_ip_proofs.challenge.ChallengeContext.from_statement_digest",
-        "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "Rust.proof_aggregation.statement.AggregateStatement.new",
+        "crates/crypto/proof-aggregation/src/statement.rs",
     ),
     "wrapperExact": (
-        "Rust.proof_aggregation.aggregate_proof_wrapper.decode_wrapped_aggregate_proof",
-        "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
+        "Rust.proof_aggregation.preflight.preflight_shipping_aggregate_verify",
+        "crates/crypto/proof-aggregation/src/preflight.rs",
     ),
     "proofDecodeExact": (
         "Rust.proof_aggregation.backend.deserialize_aggregate_proof",
@@ -307,6 +307,10 @@ EXTERNAL_RUST_EVIDENCE_ROOTS = {
     ),
 }
 ASSUMED_CONTRACT_FIELDS = {
+    "vkDigestExact": "RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION",
+    "statementDigestExact": "RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION",
+    "challengeContextExact": "RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION",
+    "wrapperExact": "RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION",
     "proofDecodeExact": "ARKWORKS-AGGREGATE-PROOF-DECODE",
 }
 CONTRACT_STRUCTURE = re.compile(
@@ -3634,19 +3638,42 @@ def validate_repository(
     )
 
 
+def _is_deferred_deployed_srs_claim(
+    manifest: dict[str, Any], claim: dict[str, Any]
+) -> bool:
+    """Recognize the sole publication exception for an unregistered SRS.
+
+    This does not promote deployment soundness.  Repository validation pins
+    the complete unregistered evidence shape and production fail-closed path;
+    publication may proceed only while the exact future ceremony obligation
+    remains visibly open at its fixed root.
+    """
+    evidence = manifest.get("deployed_srs_evidence")
+    return (
+        claim.get("id") == DEPLOYED_SRS_CLAIM_ID
+        and claim.get("status") == "open"
+        and claim.get("root") == DEPLOYED_SRS_OPEN_ROOT
+        and isinstance(evidence, dict)
+        and evidence.get("status") == "unregistered"
+    )
+
+
 def require_closed_verification(manifest: dict[str, Any]) -> None:
     claims = _require_nonempty_list(manifest, "claims")
     unclosed_claims = [
         claim["id"]
         for claim in claims
-        if not (
-            claim.get("status") == "proved"
-            or (
-                claim.get("status") == "tested"
-                and claim.get("id") in CLOSED_TESTED_CLAIM_IDS
+        if not _is_deferred_deployed_srs_claim(manifest, claim)
+        and (
+            not (
+                claim.get("status") == "proved"
+                or (
+                    claim.get("status") == "tested"
+                    and claim.get("id") in CLOSED_TESTED_CLAIM_IDS
+                )
             )
+            or str(claim.get("root", "")).startswith("UNPROVED.")
         )
-        or str(claim.get("root", "")).startswith("UNPROVED.")
     ]
     stale_evidence = [
         evidence["contract_field"]
@@ -3769,11 +3796,12 @@ def render_markdown(manifest: dict[str, Any]) -> str:
         f"`SHIPPING-TO-GOAL` is `{shipping_to_goal['status']}` at "
         f"`{shipping_to_goal['root']}`. "
         f"`FULL-ADAPTIVE-END-TO-END-FV` is `{full_adaptive['status']}` at "
-        f"`{full_adaptive['root']}`. A fixed-formal-input computational bound "
-        "does not by itself establish either concrete production composition "
-        "or the publication-level adaptive claim; every open construction, "
-        "coupling, bundle, prover, and evidence dependency below remains a "
-        "blocking proof obligation.",
+        f"`{full_adaptive['root']}`. The capstone is conditional on the named "
+        "cryptographic, implementation, translator, and query-bound "
+        "assumptions below. `DEPLOYED-SRS-SOUNDNESS` remains explicitly open "
+        "because no production ceremony is registered; it blocks any "
+        "instantiated deployment security level, but it is not silently "
+        "promoted by the conditional theorem.",
         "",
         "## Claims",
         "",
@@ -3832,8 +3860,11 @@ def render_markdown(manifest: dict[str, Any]) -> str:
             "- Allowed kernel axioms: "
             + ", ".join(f"`{axiom}`" for axiom in manifest["allowed_axioms"])
             + ".",
-            "- An `open` row is a recorded gap and prevents an end-to-end claim; "
-            "it is not a passing proof result.",
+            "- An `open` row is a recorded gap, not a passing proof result. "
+            "Only the exact unregistered `DEPLOYED-SRS-SOUNDNESS` row may "
+            "coexist with conditional publication closure; it still prevents "
+            "an instantiated deployment security claim. Every other open row "
+            "blocks publication.",
             "",
         ]
     )

@@ -28,11 +28,20 @@ open Ipp.Extracted.ShippingBundleMaterialization
 
 noncomputable section
 
-local instance globalFsSourceUniform :
+local instance cachedCompositionBasePrime : Fact baseModulus.Prime :=
+  ⟨arithmeticFacts.basePrime⟩
+local instance cachedCompositionScalarPrime : Fact scalarModulus.Prime :=
+  ⟨arithmeticFacts.scalarPrime⟩
+local instance cachedCompositionFq2Nonresidue :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+  ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
+local instance cachedCompositionFintypeFq2 : Fintype Fq2 :=
+  Fintype.ofEquiv
+    (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
+local instance cachedCompositionGlobalFsUniform :
     IsUniformSpec GlobalFsSourceSpec :=
   IsUniformSpec.ofFintypeInhabited _
-
-local instance fsWrappedUniform :
+local instance cachedCompositionFsWrappedUniform :
     IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
   IsUniformSpec.ofFintypeInhabited _
 
@@ -131,7 +140,7 @@ structure AcceptedConcurrentSemanticProjection
     (joinsSucceeded :
       List
         (ConcurrentCallObservation
-          RecordedPackedCall Trace Profile Timing Debug) → Prop) : Prop where
+          RecordedPackedCall Trace Profile Timing Debug) → Prop) : Type where
   observations :
     List
       (ConcurrentCallObservation
@@ -270,8 +279,7 @@ structure CachedProjectedBundleConstruction
     OracleComp GlobalFsSourceSpec
       (List (PackedSelection Call))
   cachedCanonical_evalDist_exact :
-    𝒟[Ipp.ShippingAdaptiveGlobalFsCoupling
-        .fiberLiftedGlobalFsProgram
+    𝒟[Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram
           sha256 reindex.serialization reindex.reached
             reindex.hybridProgram] =
       𝒟[Ipp.fsRandomFunction
@@ -314,8 +322,7 @@ theorem fiberLifted_support_iff_cachedCanonical
         sha256 rawProgram Q_sha Q_fs invalid fallbackSelection)
     (output : PackedOutcome Call) :
     output ∈ support
-        (Ipp.ShippingAdaptiveGlobalFsCoupling
-          .fiberLiftedGlobalFsProgram
+        (Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram
             sha256 construction.reindex.serialization
               construction.reindex.reached
                 construction.reindex.hybridProgram) ↔
@@ -344,8 +351,7 @@ theorem fiberLifted_event_eq_cachedCanonical
     (predicate : PackedOutcome Call → Prop)
     [DecidablePred predicate] :
     Pr[predicate |
-        Ipp.ShippingAdaptiveGlobalFsCoupling
-          .fiberLiftedGlobalFsProgram
+        Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram
             sha256 construction.reindex.serialization
               construction.reindex.reached
                 construction.reindex.hybridProgram] =
@@ -410,8 +416,7 @@ theorem fiberLifted_event_eq_multiStatementFsProbComp
     (predicate : PackedOutcome Call → Prop)
     [DecidablePred predicate] :
     Pr[predicate |
-        Ipp.ShippingAdaptiveGlobalFsCoupling
-          .fiberLiftedGlobalFsProgram
+        Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram
             sha256 construction.reindex.serialization
               construction.reindex.reached
                 construction.reindex.hybridProgram] =
@@ -422,8 +427,7 @@ theorem fiberLifted_event_eq_multiStatementFsProbComp
               (rejectedPackedOutcome fallbackSelection))] := by
   calc
     Pr[predicate |
-        Ipp.ShippingAdaptiveGlobalFsCoupling
-          .fiberLiftedGlobalFsProgram
+        Ipp.ShippingAdaptiveGlobalFsCoupling.fiberLiftedGlobalFsProgram
             sha256 construction.reindex.serialization
               construction.reindex.reached
                 construction.reindex.hybridProgram] =

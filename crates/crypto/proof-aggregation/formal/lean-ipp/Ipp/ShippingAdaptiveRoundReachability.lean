@@ -48,10 +48,15 @@ private theorem globalFsPointTrace_flatten_at
       | inr point =>
           cases i with
           | zero =>
-              exact
-                ⟨value,
-                  QueryLog.getQueryValue?_cons_self_zero
-                    (Sum.inr ()) value (Ipp.flattenFsLog rest)⟩
+              refine ⟨value, ?_⟩
+              change QueryLog.getQueryValue?
+                  ((⟨Sum.inr (), value⟩ :
+                    (j : Nat ⊕ Unit) ×
+                      (Ipp.FsWrappedSpec Fr).Range j) ::
+                    Ipp.flattenFsLog rest) (Sum.inr ()) 0 =
+                    some value
+              exact QueryLog.getQueryValue?_cons_self_zero
+                (Sum.inr ()) value (Ipp.flattenFsLog rest)
           | succ i =>
               have hi' : i < (Ipp.fsPointTrace rest).length := by
                 simpa [Ipp.fsPointTrace] using hi
@@ -74,7 +79,7 @@ theorem multiStatementRoundSlot_reachable
     (game : OracleComp GlobalFsSourceSpec (PackedOutcome Call))
     (queryBounds : (Ipp.FsWrappedSpec Fr).Domain → Nat)
     (level : Nat) :
-    Ipp.CfReachable (multiStatementForkMain game)
+    OracleComp.CfReachable (multiStatementForkMain game)
       queryBounds (Sum.inr ())
       (fun run =>
         multiStatementRoundSlot
@@ -104,7 +109,7 @@ theorem multiStatementRoundSlots_reachable
     (queryBounds : (Ipp.FsWrappedSpec Fr).Domain → Nat)
     (μ : Nat) :
     ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      OracleComp.CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot

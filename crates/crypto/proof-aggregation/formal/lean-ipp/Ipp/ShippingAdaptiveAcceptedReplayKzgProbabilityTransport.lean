@@ -21,18 +21,21 @@ open Ipp.Bls12377
 open Ipp.S1
 open Ipp.Extracted.AppVerifierStateMachine
 
-local instance : Fact baseModulus.Prime :=
+local instance acceptedReplayKzgProbabilityBasePrime : Fact baseModulus.Prime :=
   ⟨arithmeticFacts.basePrime⟩
-local instance : Fact scalarModulus.Prime :=
+local instance acceptedReplayKzgProbabilityScalarPrime : Fact scalarModulus.Prime :=
   ⟨arithmeticFacts.scalarPrime⟩
-local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+local instance acceptedReplayKzgProbabilityFq2Nonresidue :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
-local instance : Fintype Fq2 :=
+local instance acceptedReplayKzgProbabilityFintypeFq2 : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
-local instance : IsUniformSpec GlobalFsSourceSpec :=
+local instance acceptedReplayKzgProbabilityGlobalFsUniform :
+    IsUniformSpec GlobalFsSourceSpec :=
   IsUniformSpec.ofFintypeInhabited _
-local instance : IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
+local instance acceptedReplayKzgProbabilityWrappedFsUniform :
+    IsUniformSpec (Ipp.FsWrappedSpec Fr) :=
   IsUniformSpec.ofFintypeInhabited _
 
 /-- A successful deterministic common-fork projection retains the exact
@@ -45,14 +48,15 @@ theorem cachePreservingCommonFork?_eq_some_rawTree_of_kzg
       cachePreservingCommonFork? (some raw) = some fork) :
     fork.rawTree = raw := by
   classical
+  simp only [cachePreservingCommonFork?] at hproject
   by_cases hexists :
       ∃ statement : Ipp.S1.Bls12377ReductionStatement μ,
         ForkCarriesFormalStatement statement raw
-  · rw [cachePreservingCommonFork?, dif_pos hexists] at hproject
+  · rw [dif_pos hexists] at hproject
     have hfork := Option.some.inj hproject
     simpa using
       (congrArg CachePreservingCommonFork.rawTree hfork).symm
-  · rw [cachePreservingCommonFork?, dif_neg hexists] at hproject
+  · rw [dif_neg hexists] at hproject
     cases hproject
 
 /-- With the deployed query-free setup, the V game is exactly a pure map of
@@ -115,6 +119,11 @@ private theorem
       (cachePreservingCommonFork? <$>
         acceptedMultiStatementForkExperimentAt
           game queryBounds μ) := by
+  letI : DecidablePred
+      (InvalidAcceptedRandomizerGoodAt invalid μ extractor) :=
+    Classical.decPred _
+  letI : DecidablePred (SelectedAcceptedAt (Call := CallId) μ) :=
+    Classical.decPred _
   have hraw :=
     Ipp.forkTreeCombined_gateReplayRefines
       μ (multiStatementForkMain game)
@@ -138,6 +147,7 @@ private theorem
 a cache-preserving V event to the selector output of the actual V game. -/
 theorem
     cachePreservingKzgVWin_implies_fixedAcceptedReplayKzgVWin_of_supported
+    {μ : Nat}
     (game : OracleComp GlobalFsSourceSpec (PackedOutcome CallId))
     (queryBounds : (FsWrappedSpec Fr).Domain → Nat)
     (parameters : Bls12377KzgParameters μ)
@@ -167,6 +177,7 @@ theorem
 /-- Supported-event transport for the W selector and the same replay cache. -/
 theorem
     cachePreservingKzgWWin_implies_fixedAcceptedReplayKzgWWin_of_supported
+    {μ : Nat}
     (game : OracleComp GlobalFsSourceSpec (PackedOutcome CallId))
     (queryBounds : (FsWrappedSpec Fr).Domain → Nat)
     (parameters : Bls12377KzgParameters μ)
@@ -236,8 +247,15 @@ theorem
           randomizerGoodCachePreservingS1ExperimentAt
             game invalid queryBounds μ extractor] ≤
         Pr[CachePreservingKzgVWin | acceptedCommon] := by
-    simpa [Ipp.optionSatisfies,
-      CachePreservingKzgVWin] using
+    have hevent :
+        (CachePreservingKzgVWin :
+          Option (CachePreservingCommonFork CallId μ) → Prop) =
+          Ipp.optionSatisfies
+            (fun fork => CachePreservingKzgVWin (some fork)) := by
+      funext output
+      cases output <;> rfl
+    rw [hevent]
+    exact
       (Ipp.probEvent_optionSatisfies_le_of_oracleOptionSuccessDom
         hdom
         (fun fork => CachePreservingKzgVWin (some fork)))
@@ -317,8 +335,15 @@ theorem
           randomizerGoodCachePreservingS1ExperimentAt
             game invalid queryBounds μ extractor] ≤
         Pr[CachePreservingKzgWWin | acceptedCommon] := by
-    simpa [Ipp.optionSatisfies,
-      CachePreservingKzgWWin] using
+    have hevent :
+        (CachePreservingKzgWWin :
+          Option (CachePreservingCommonFork CallId μ) → Prop) =
+          Ipp.optionSatisfies
+            (fun fork => CachePreservingKzgWWin (some fork)) := by
+      funext output
+      cases output <;> rfl
+    rw [hevent]
+    exact
       (Ipp.probEvent_optionSatisfies_le_of_oracleOptionSuccessDom
         hdom
         (fun fork => CachePreservingKzgWWin (some fork)))

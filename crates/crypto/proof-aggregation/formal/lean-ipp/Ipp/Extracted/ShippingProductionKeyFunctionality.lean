@@ -20,6 +20,9 @@ open Ipp.ShippingMultiStatement
 
 noncomputable section
 
+local instance : Fact Ipp.Bls12377.scalarModulus.Prime :=
+  ⟨Ipp.Bls12377.arithmeticFacts.scalarPrime⟩
+
 /-- The formal statement type selected at one exact GIPA depth. -/
 abbrev ProductionFsStatement (μ : Nat) :=
   Ipp.FsStatement μ Ipp.Bls12377.Fr
@@ -55,7 +58,7 @@ theorem ProductionStatementMaterializer.keyDeterminesStatementAt
     {Call : Type}
     (materializer : ProductionStatementMaterializer)
     (μ : Nat) :
-    KeyDeterminesStatementAt
+    KeyDeterminesStatementAt (μ := μ)
       (MaterializedSelectionAt (Call := Call) materializer) := by
   intro left right hleft hright hkey
   apply Option.some.inj

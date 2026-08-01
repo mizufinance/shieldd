@@ -12,12 +12,19 @@ measure-preserving whole-program refinement to the global field game.
 namespace Ipp.ShippingBundleGoalBridge
 
 open OracleSpec OracleComp
+open Aeneas Aeneas.Std Result
+open ark_ip_proofs
+open Ipp.Bls12377
+open Ipp.Extracted
 open Ipp.ShippingMultiStatement
 open Ipp.Extracted.AppVerifierStateMachine
 open Ipp.Extracted.ShippingBundleMaterialization
 open Ipp.Extracted.ShippingBundleAdaptiveComposition
 
 noncomputable section
+
+local instance : Fact scalarModulus.Prime :=
+  ⟨arithmeticFacts.scalarPrime⟩
 
 /-- Canonical adaptive invalidity: the selected proof has no full padded
 representation of its exact selected v1 statement. -/
@@ -32,7 +39,7 @@ theorem invalidV1Selection_excludesRepresentation {Call : Type} :
     InvalidSelectionExcludesRepresentation
       (fun μ selection => InvalidV1Selection (Call := Call) μ selection) := by
   intro μ selection hinvalid
-  exact hinvalid
+  simpa [InvalidV1Selection] using hinvalid
 
 /-- Invalidity of the independently specified ordered real prefix implies
 the canonical full-padded invalidity used by the adaptive S1 game. -/
@@ -43,9 +50,11 @@ theorem invalidV1Selection_of_invalidRealPrefix
     (hinvalid :
       ¬Ipp.SnarkPackV1.Refinement.HasValidRealPrefixRepresentation
         selection.statement selection.proof realCount hcount) :
-    InvalidV1Selection μ selection :=
-  Ipp.SnarkPackV1.Refinement.invalid_realPrefix_implies_invalid_padded
-    selection.statement selection.proof realCount hcount hinvalid
+    InvalidV1Selection μ selection := by
+  unfold InvalidV1Selection
+  exact
+    Ipp.SnarkPackV1.Refinement.invalid_realPrefix_implies_invalid_padded
+      selection.statement selection.proof realCount hcount hinvalid
 
 /-- Canonical fallback for the pure least-invalid projection.  It retains the
 exact selected statement and proof but is rejected definitionally. -/

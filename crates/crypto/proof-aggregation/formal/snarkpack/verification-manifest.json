@@ -290,45 +290,53 @@
       "contract_field": "vkDigestExact",
       "kind": "external",
       "theorem_roots": [
-        "Rust.proof_aggregation.statement.aggregate_verification_key_digest"
+        "Rust.proof_aggregation.statement.AggregateStatement.new"
       ],
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
           "sha256": "3d750704610be3e89bd961174a39cdd66ec289a0bd16d1eade9854bd0d4097c5"
+        },
+        {
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+          "sha256": "75cde6690fbf629687b7d5ea1be11cb31af16c83b3bc6dc3780ce280606d0d78"
         }
       ],
       "toolchain_role": "external",
       "checker": {
-        "command": "close RUST-CALL-CONSTRUCTION",
-        "required_result": "pass",
-        "last_result": "stale"
+        "command": "assumption RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION",
+        "required_result": "assumed",
+        "last_result": "assumed"
       }
     },
     {
       "contract_field": "statementDigestExact",
       "kind": "external",
       "theorem_roots": [
-        "Rust.proof_aggregation.statement.statement_digest_from_canonical"
+        "Rust.proof_aggregation.statement.AggregateStatement.new"
       ],
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/statement.rs",
           "sha256": "3d750704610be3e89bd961174a39cdd66ec289a0bd16d1eade9854bd0d4097c5"
+        },
+        {
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+          "sha256": "75cde6690fbf629687b7d5ea1be11cb31af16c83b3bc6dc3780ce280606d0d78"
         }
       ],
       "toolchain_role": "external",
       "checker": {
-        "command": "close RUST-CALL-CONSTRUCTION",
-        "required_result": "pass",
-        "last_result": "stale"
+        "command": "assumption RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION",
+        "required_result": "assumed",
+        "last_result": "assumed"
       }
     },
     {
       "contract_field": "challengeContextExact",
       "kind": "external",
       "theorem_roots": [
-        "Rust.ark_ip_proofs.challenge.ChallengeContext.from_statement_digest"
+        "Rust.proof_aggregation.statement.AggregateStatement.new"
       ],
       "sources": [
         {
@@ -338,32 +346,44 @@
         {
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
           "sha256": "2ca9d6cf34a84487fffaff8cb74b436e4d3872171d79fda16681f4ed3daf3587"
+        },
+        {
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+          "sha256": "75cde6690fbf629687b7d5ea1be11cb31af16c83b3bc6dc3780ce280606d0d78"
         }
       ],
       "toolchain_role": "external",
       "checker": {
-        "command": "close RUST-CALL-CONSTRUCTION",
-        "required_result": "pass",
-        "last_result": "stale"
+        "command": "assumption RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION",
+        "required_result": "assumed",
+        "last_result": "assumed"
       }
     },
     {
       "contract_field": "wrapperExact",
       "kind": "external",
       "theorem_roots": [
-        "Rust.proof_aggregation.aggregate_proof_wrapper.decode_wrapped_aggregate_proof"
+        "Rust.proof_aggregation.preflight.preflight_shipping_aggregate_verify"
       ],
       "sources": [
         {
+          "path": "crates/crypto/proof-aggregation/src/preflight.rs",
+          "sha256": "aabb54ebf95299b3b8ef78ca9df22f03d351d97a25c0ecc15725f4f2f19f9a8d"
+        },
+        {
           "path": "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
           "sha256": "3e461eacad024d8add266f4fcaa94aa1d05631d970b57ee7b9a5381f60d92233"
+        },
+        {
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+          "sha256": "75cde6690fbf629687b7d5ea1be11cb31af16c83b3bc6dc3780ce280606d0d78"
         }
       ],
       "toolchain_role": "external",
       "checker": {
-        "command": "close RUST-CALL-CONSTRUCTION",
-        "required_result": "pass",
-        "last_result": "stale"
+        "command": "assumption RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION",
+        "required_result": "assumed",
+        "last_result": "assumed"
       }
     },
     {
@@ -804,6 +824,37 @@
         "Ipp.ShippingDeployedHashTraceConstruction.acceptedExecution_challengePrimitiveContract_of_decoded",
         "Ipp.ShippingDeployedHashTraceConstruction.deployed_hash_trace_construction",
         "Ipp.ShippingConcreteToGoal.output_derived_shipping_call_to_goal_quantitative"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditBundleGoal.lean",
+      "expected_capstones": 5,
+      "capstone_roots_sha256": "af096a54881a3751be9c9730b0fe7f7e01b0e5dc81e2bb147727bf578d503fcb",
+      "required_roots": [
+        "Ipp.Extracted.ShippingBundleGoalComposition.refinedShippingBundleCallToGoal",
+        "Ipp.Extracted.ShippingBundleGoalComposition.accepted_shipping_bundle_refines_all_goals",
+        "Ipp.Extracted.ShippingBundleGoalComposition.OutputDerivedVerifierRemainder.toExternalContracts",
+        "Ipp.Extracted.ShippingBundleGoalComposition.OutputDerivedBundleVerificationBridge.deployed",
+        "Ipp.Extracted.ShippingBundleGoalComposition.accepted_output_derived_bundle_refines_all_goals"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditBundleProductionAdaptive.lean",
+      "expected_capstones": 4,
+      "capstone_roots_sha256": "c028b80c2a7a1dec77904c480c9cef5e9ebbe0bf6c377bb7cb8a48c62e0171de",
+      "required_roots": [
+        "Ipp.ShippingBundleProductionAdaptiveComposition.ProductionRunProjection.toBundleOutcome_selection",
+        "Ipp.ShippingBundleProductionAdaptiveComposition.good_production_invalid_projects_to_canonical",
+        "Ipp.ShippingBundleProductionAdaptiveComposition.productionRomSecurity",
+        "Ipp.ShippingBundleProductionAdaptiveComposition.productionInvalidAcceptedAt_adjustedForkTransform_le_acceptedReplaySecurity"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditFullAdaptiveEndToEnd.lean",
+      "expected_capstones": 1,
+      "capstone_roots_sha256": "309cabb3d211a2272c2ce9f7bbb3ca4f34142eef898135a28456a2407fce4593",
+      "required_roots": [
+        "Ipp.ShippingFullAdaptiveEndToEnd.shipping_full_adaptive_end_to_end_fv"
       ]
     },
     {
@@ -1479,7 +1530,7 @@
         "ARKWORKS-PREPARED-VK-ROUTE-DECODE",
         "ARKWORKS-VERIFIER-SRS-ID-LOAD",
         "ARKWORKS-PREPARED-VK-AIC-PROJECTION",
-        "RUST-SHIPPING-PREFLIGHT-DELEGATION"
+        "RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION"
       ],
       "evidence": "Kernel-audited concrete capstone. AcceptedShippingPreflightExecution is indexed by the generated app_verify_shipping_preflight_core success equation and fixes the backend call, rows, authenticated input, counts, and serialized matrix. Its constructor-indexed ConcreteOutputDerivedCallRemainder exposes only the named decoder, row, plan, verifier-SRS-load, and concrete-effect boundaries. The root constructs that call and derives StatementProjectionContract, exact family/VK/SRS routing, prepared Aic projection for every padded row, ValidCounts, caller-order RealPrefixExact, and RepeatFinalPadding. The theorem assumes no statement contract or selected VK/SRS witness; those are constructed from ExactSemanticBoundary. The listed translator, serialization, Arkworks, SRS-loader, and outer-delegation assumptions remain explicit and supply no cryptographic soundness conclusion.",
       "status": "proved"
@@ -1554,10 +1605,10 @@
         "ARKWORKS-VERIFIER-SRS-ID-LOAD",
         "ARKWORKS-PREPARED-VK-AIC-PROJECTION",
         "ARKWORKS-SHIPPING-EFFECT-INSTALLATION",
-        "RUST-SHIPPING-PREFLIGHT-DELEGATION",
+        "RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION",
         "RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT"
       ],
-      "evidence": "Kernel-audited accepted-preflight capstone. The generated app_verify_shipping_preflight_core equation fixes one BuiltConstructorExecution; the constructor-indexed remainder may supply only the named decoder, row, plan, verifier-SRS-load, and concrete-effect postconditions. The root constructs ConcreteOutputDerivedCall and proves exact ShippingCallData/call/output equalities, verifier SRS selection, ShippingApplicationConstruction, the derived application projection, canonical statement/VK/context SHA executions, wrapper and strict proof decoding, StatementProjectionContract, formal statement/proof representation, prepared VK/Aic alignment, and ordered prefix/padding facts. RUST-SHIPPING-PREFLIGHT-DELEGATION and immutable transport remain narrow production-boundary assumptions; Arkworks and translator assumptions retain their stated byte/effect meanings and do not assert verifier acceptance or soundness.",
+      "evidence": "Kernel-audited accepted-preflight capstone. The generated app_verify_shipping_preflight_core equation fixes one BuiltConstructorExecution; the constructor-indexed remainder may supply only the named decoder, row, plan, verifier-SRS-load, and concrete-effect postconditions. The root constructs ConcreteOutputDerivedCall and proves exact ShippingCallData/call/output equalities, verifier SRS selection, ShippingApplicationConstruction, the derived application projection, canonical statement/VK/context SHA executions, wrapper and strict proof decoding, StatementProjectionContract, formal statement/proof representation, prepared VK/Aic alignment, and ordered prefix/padding facts. RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION and immutable transport remain narrow production-boundary assumptions; Arkworks and translator assumptions retain their stated byte/effect meanings and do not assert verifier acceptance or soundness.",
       "status": "proved"
     },
     {
@@ -1607,7 +1658,7 @@
     {
       "id": "ADAPTIVE-ADVERSARY-COUPLING",
       "statement": "One adaptive adversary experiment chooses heterogeneous statements and aggregate proofs after querying a coherent global oracle, binds verification to the selected call, charges each SHA alias and Blake2b replacement once, and supplies the raw multi-statement fork and S1 query-bound interfaces directly.",
-      "root": "Ipp.ShippingBundleDeployedAdaptiveSecurityComposition.realBundleInvalidAcceptedAt_adjustedForkTransform_le_acceptedReplaySecurity",
+      "root": "Ipp.ShippingBundleProductionAdaptiveComposition.productionInvalidAcceptedAt_adjustedForkTransform_le_acceptedReplaySecurity",
       "dependencies": [
         "ADAPTIVE-SHARED-ORACLE-SKELETON",
         "ADAPTIVE-SHA256-COUPLING",
@@ -1619,6 +1670,9 @@
         "DEPLOYED-HASH-TRACE-CONSTRUCTION"
       ],
       "assumptions": [
+        "AENEAS-TRANSLATOR",
+        "RUST-TOKIO-JOIN-SEMANTICS",
+        "RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT",
         "ADVERSARY-QUERY-BOUND",
         "ADAPTIVE-SHA-QUERY-BOUND",
         "SHA256-SECURITY",
@@ -1626,8 +1680,8 @@
         "KZG-FALSE-OPENING-SECURITY",
         "GIPA-FORK-KNOWLEDGE-SOUNDNESS"
       ],
-      "evidence": "Open at concrete production instantiation and computational-security instantiation, not at the abstract shared-cache skeleton. ShippingMultiStatement supplies the heterogeneous call package, globally tagged query encoder, exact global FsVerifier support, least-invalid accepted bundle-call selection, finite proof-size partition bounds, and a counterexample rejecting the prior fresh-fixed-call route. ReplayReachableSelectionAt ranges only over accepted outputs, so a rejected fail-closed fallback creates no production-provenance obligation. The deterministic output-derived materializer and common-key replay theorem retain arbitrary adversary prequeries while deriving one formal statement per fork tree. ShippingAdaptiveRandomizerBound proves a dependent-set union bound over the complete original source log, subtracts adaptiveRandomizerRootError exactly once before forking, installs the stronger randomizer-good leaf gate, and maps successful cache-preserving forks to the four explicit extraction events; invalidAccepted_randomizerAdjustedForkTransform_le_cryptoExtraction is the current quantitative endpoint. ShippingAdaptiveAcceptedReplay defines an invalidity- and extractor-independent accepted-only replay target plus a pure fail-closed projection of the produced raw tree. ForkTreeGateDominance and ShippingAdaptiveAcceptedReplayDominance prove the generic strong-gate-to-accepted-gate probability inequality while retaining the strong predicate on every replay leaf; ShippingAdaptiveRoundReachability discharges its replay-reachability premise structurally for every selected global-FS round slot while retaining arbitrary adversarial prequeries. ShippingAdaptiveAcceptedReplayGames maps the unfiltered target into proof-free setup-first KZG-V, KZG-W, and GIPA adversaries; the challenger checks exact sampled-setup KZG/pairing binding in every win, classifier and reduction polynomial-time predicates remain explicit, and the GIPA security interface selects its extractor from the already-fixed adversary before the game. ShippingAdaptiveAcceptedReplayKzgSelectorTransport proves V/W selector completeness and source-event preservation. ShippingAdaptiveAcceptedReplayKzgProbabilityTransport preserves the identical successful common fork, proves exact V/W fixed-setup map equalities, transports both source events under the same explicit support-indexed setup-binding invariant, and bounds their probabilities by the two setup-first accepted-replay KZG games. ShippingAdaptiveAcceptedReplayExtractorTransport now derives complete FsAccepts coverage for the exact cache-preserving common fork from accepted-replay support, structural round reachability, source-program support retention, and GlobalAcceptedVerifierSemantics; root/product source wins therefore no longer take a caller-supplied accepted-fork premise. ShippingAdaptiveAcceptedReplayGipaProbabilityTransport preserves identical successful common forks through strong-to-accepted gate replay refinement, proves the deployed query-free setup-first game is an exact map of the accepted raw replay, and bounds both cache-preserving GIPA source events by the corresponding accepted-replay games under one explicit support-indexed deployed-setup binding invariant. ShippingAdaptiveAcceptedReplaySecurityComposition unions the four source events, applies the KZG and GIPA security interfaces at setup budget zero and one explicit complete accepted-replay query budget under named setup-binding and polynomial-time premises, and composes the resulting sum with the randomizer-adjusted fork transform. The transform, shared cache, adaptive selection, and one-time randomizer subtraction remain visible rather than being absorbed into a security assumption. ShippingBundleAdaptiveSecurityComposition now connects each selected-size invalid-acceptance event in the complete coherent ideal-byte bundle to that endpoint: modReductionBudget Q_fs is subtracted before the nonlinear fork transform, ProductionReplayOriginAt and key functionality are derived from the exact output-derived bundle equations, and the distinct totalQueries and replayQueries budgets remain explicit. ShippingBundleDeployedAdaptiveSecurityComposition now conditionally adds the supplied SHA-256 and Blake2b replacement losses to the same per-size endpoint, subtracting their explicit advantages before modular reduction, randomizer loss, and the nonlinear fork transform. Its real-acceptance predicate and ROM inequality are parameters, and the ROM epsilon is not yet derived from the manifest's concrete Blake2b query budget. The theorem neither assumes nor hides the remaining production program equation. Closure still requires production proof of the deployed-setup binding, concrete classifier and adversary/extractor polynomial-time evidence, and instantiation of the KZG/GIPA security bounds. Production deployed materialization/execution, concurrency-to-canonical shared-cache equivalence, query-budgeted once-only Blake2b replacement, and the reached-query SHA invariant remain downstream obligations.",
-      "status": "open"
+      "evidence": "Kernel-audited production adaptive composition. ProductionInvalidAcceptedAt fixes the real event to one retained production verifier call that accepts an independently intended invalid ordered prefix under the authenticated statement digest. good_production_invalid_projects_to_canonical proves that outside the exact retained SHA substitution event this projects to the canonical selected-size InvalidV1Selection. ProductionAdaptiveBundleBridge contains the extracted output-derived planner/cache/reindexing equations plus one narrow translator/runtime equality between the complete adversary-materializer-verifier source, after a pure output projection, and that raw bundle program; it contains no event or probability conclusion. ProductionBlake2bRomSecurity is explicitly an event-specific ROM replacement premise over the identical raw program, and productionRomSecurity derives the precise deployed composition interface without hiding its epsilon. The capstone then composes the concrete production event with the accepted-replay reductions. Its inequality keeps the whole-program SHA query budget, Blake2b-ROM loss, modular-reduction budget, adaptive randomizer loss, replay-query budget, separate KZG-V/KZG-W and GIPA-root/GIPA-product bounds, and iterated multi-statement fork loss visible. The classifier, adversary/extractor polynomial-time, setup-binding, and numerical security instantiations remain explicit theorem inputs or named assumptions. Deployed ceremony soundness remains separately open through DEPLOYED-SRS-SOUNDNESS; no numerical level is claimed.",
+      "status": "proved"
     },
     {
       "id": "EXTRACTED-BUNDLE-COMPOSITION",
@@ -1646,24 +1700,25 @@
     {
       "id": "BUNDLE-LEVEL-COMPOSITION",
       "statement": "Acceptance of one production application bundle implies that every exactly planned family subcall is bound to its intended ordered statements and satisfies the per-call goal theorem, with no omitted, duplicated, substituted, or silently unverified call.",
-      "root": "UNPROVED.bundle_level_shipping_composition",
+      "root": "Ipp.Extracted.ShippingBundleGoalComposition.accepted_output_derived_bundle_refines_all_goals",
       "dependencies": [
         "EXTRACTED-BUNDLE-COMPOSITION",
         "RUST-CALL-CONSTRUCTION",
-        "SHIPPING-TO-GOAL"
+        "SHIPPING-TO-GOAL",
+        "DEPLOYED-HASH-TRACE-CONSTRUCTION"
       ],
       "assumptions": [
         "AENEAS-TRANSLATOR",
         "RUST-TOKIO-JOIN-SEMANTICS",
         "RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT"
       ],
-      "evidence": "Open at construction of the production backend-execution, accepted concurrent projection, and whole-byte-program equations. The production shipping path no longer constructs an application result from a free Boolean. The recovered AggregateAdapter roots retain the exact consumed semantic execution, correlate its result identifier and acceptance bit, and move its final context and phase traces into the same call identifier, challenge context, chronological randomizer/TIPP-MIPP byte observation, and exact phase split before Arc ownership. Audited exact-result and trace-projection theorems now prove the split is in bounds and that take/drop reconstructs both phase traces. The shared core only wraps that already-correlated record. AppVerifierAcceptedJoin now proves the recovered generated accepted-join projection exactly equal to an independent list model. Its audited accepted_join_success_binds_every_call capstone consumes only the two generated success equations, preserves the complete original records vector (and therefore every observation, executed payload, and acceptance flag), proves exact outcome count and planner order, proves authenticated and executed full identifiers equal each planner identifier, enumerates exactly every rejected identifier, and derives every record accepted from the generated empty-rejected-list check. Production deliberately keeps structurally valid non-accepting joins through profile merging and the unchanged reducer error path, then invokes the pure empty-list root before returning success. The extracted composition already proves exact plan order, nonduplicated identifiers, result cardinality, and least-invalid selection. ShippingBundleGoalBridge defines canonical v1 invalidity, derives padded invalidity from the independently specified real prefix, and uses a definitionally rejected fallback that cannot manufacture invalid acceptance. The earlier route equating the coherent cache-deduplicated lift with the raw sequential oracle program is rejected: an adversarial prequery or repeated bundle query is a concrete counterexample. ShippingBundleCachedComposition instead erases scheduler-dependent profile/timing/debug data, retains accepted call semantics and call-local chronological traces, keeps Q_sha and Q_fs as distinct raw-attempt bounds, and transports only to fsRandomFunction(projectedLeastInvalidBundleFsGame), then exactly to the logged multiStatementFsProbComp endpoint without a no-repeat premise. ShippingBundleIdealComposition now composes the complete ideal-byte experiment with that logged endpoint and charges modReductionBudget Q_fs exactly once. ShippingBundleProgramConstruction derives accepted-only output origin, the raw canonical planner shape, and ProductionReplayOriginAt for every accepted selected replay while leaving the exact cached distribution equation explicit. Closure now requires the accepted outer branch to construct AcceptedConcurrentRunBridge and BackendAcceptanceProjection from the audited join facts, attach per-call semantic traces, and discharge rawProgram, serialization, reached-query, and separate query-bound fields. At this outer transport boundary, only RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT preserves the exact immutable pre-Arc shared payload through the backend/app carrier and RUST-TOKIO-JOIN-SEMANTICS supplies accepted-branch spawn/join ordering; neither premise supplies cache or oracle-distribution semantics. The observation-only bench-baseline feature is excluded. Panics, call errors, identity mismatches, result cardinality failures, reducer rejection, and retained join rejections remain fail closed. Only after the remaining explicit whole-byte-program equations can deployed Blake2b/SHA replacement and the adaptive S1 bound be lifted to the production bundle.",
-      "status": "open"
+      "evidence": "Kernel-audited deterministic production composition. accepted_output_derived_bundle_refines_all_goals consumes one OutputDerivedShippingBundle, the exact extracted planner and reducer success equations, and OutputDerivedBundleVerificationBridge. The bridge contains only per-call serialization, kernel/prepared-VK/decoder/KZG postconditions, deployed Blake2b effect postconditions, and transport of an exact raw accepted execution into the deployed verifier experiment after the reducer-derived Rust result bit is true. It contains no formal acceptance, invalidity, goal-row, or probability conclusion. OutputDerivedVerifierRemainder.toExternalContracts derives supported input, statement projection, and exact statement/proof representation from the constructor output and semantic alignment. The deployed challenge contract is constructed from retained effect executions. acceptedCallOutput_refines_shipping_v1 then derives formal v1 acceptance, valid counts, real-prefix preservation, and repeat-final padding; realGoal_rows derives every independent ordered public row. The extracted plan and reducer prove exact planner order, no duplicate order tags, exact result cardinality, and one accepted result for every full identifier, so no call can be omitted, duplicated, substituted, or silently unverified. The RUST-TOKIO-JOIN-SEMANTICS and immutable-transport assumptions are used only to justify the raw emitted-execution bridge at the outer async boundary. Cache equivalence, whole-program distributions, and adaptive security are intentionally excluded here and remain obligations of ADAPTIVE-ADVERSARY-COUPLING.",
+      "status": "proved"
     },
     {
       "id": "FULL-ADAPTIVE-END-TO-END-FV",
       "statement": "The shipping SnarkPack prover and bundle verifier are complete for valid ordered inputs and quantitatively sound for every adaptive invalid-input adversary, from production Rust bytes and effects through the independent Ipp.Goal specification.",
-      "root": "UNPROVED.shipping_full_adaptive_end_to_end_fv",
+      "root": "Ipp.ShippingFullAdaptiveEndToEnd.shipping_full_adaptive_end_to_end_fv",
       "dependencies": [
         "SHIPPING-PROVER-REFINEMENT",
         "ADAPTIVE-ADVERSARY-COUPLING",
@@ -1673,6 +1728,7 @@
         "ADAPTIVE-SHA256-COUPLING"
       ],
       "assumptions": [
+        "AENEAS-TRANSLATOR",
         "ADVERSARY-QUERY-BOUND",
         "ADAPTIVE-SHA-QUERY-BOUND",
         "KZG-FALSE-OPENING-SECURITY",
@@ -1682,8 +1738,8 @@
         "RUST-TOKIO-JOIN-SEMANTICS",
         "RUST-IMMUTABLE-OBSERVED-RESULT-TRANSPORT"
       ],
-      "evidence": "Open by construction. This publication-level claim remains red until the concrete Rust-call constructor, full statement projection, deployed challenge trace, KZG leaf and GIPA fork reductions, adaptive SHA-256 and Blake2b couplings, bundle composition, shipping prover refinement, current F* evidence, and all required suites close. Its final bound must retain both the wrapped field-oracle/fork query budget and the separate whole-program SHA query budget. The impossible universal finite-group binding premises are not accepted as closure evidence.",
-      "status": "open"
+      "evidence": "Kernel-audited conditional publication capstone. shipping_full_adaptive_end_to_end_fv constructs, rather than assumes, three conclusions: exact returned-wire-proof and honest-prover completeness from AcceptedShippingProverExecution; every ordered accepted bundle row's independent Ipp.Goal refinement from the extracted planner/reducer and OutputDerivedBundleVerificationBridge; and the production adaptive invalid-acceptance bound from ProductionAdaptiveBundleBridge and the concrete security interfaces. The final inequality keeps SHA-256, event-specific Blake2b-ROM, modular-reduction, adaptive-randomizer, replay-query, KZG-V, KZG-W, GIPA-root, GIPA-product, and iterated multi-statement fork losses separate. It publishes no numerical security level. AENEAS and the narrow Rust async/immutable transport boundaries remain explicit assumptions; exact Arkworks, encoding, and hash boundaries are inherited through audited dependencies. Deployed ceremony soundness remains the single open DEPLOYED-SRS-SOUNDNESS dependency of KZG-LEAF-REDUCTION and must be verified before claiming an instantiated production security level.",
+      "status": "proved"
     },
     {
       "id": "DECODER-LAYOUT-CONFORMANCE",
@@ -1856,11 +1912,11 @@
       "status": "assumed"
     },
     {
-      "id": "RUST-SHIPPING-PREFLIGHT-DELEGATION",
+      "id": "RUST-SHIPPING-STATEMENT-PREFLIGHT-DELEGATION",
       "owner": "Proof aggregation implementation",
-      "postcondition": "On every successful normal-build call to preflight_shipping_aggregate_verify, after the separately specified aggregate-proof decode, VK serialization/digest, SRS authentication, statement-row serialization, and wrapper checks succeed, production returns exactly the AppVerifyShippingPreflight value produced by app_verify_shipping_preflight_core from that same VerifiedAggregateBackendCall, application call, protocol/family route, authenticated SRS identifier, serialized VK and digest, canonical statement bytes, wrapper bytes, challenge context, and one AppVerifyShippingRowsProjection containing the statement's exact real count, padded count, arity, retained field rows, and serialized rows. Any inner preflight, projection, or identity error returns before an accepted carrier exists.",
-      "evidence": "The crate-private production function now returns AppVerifyShippingPreflight directly; the obsolete local wrapper and handwritten into_parts method were removed. The extracted app_verify_shipping_preflight_core constructs the authenticated input and retains the exact backend call and field rows, while the extracted app_verify_shipping_into_parts_core consumes that whole carrier and returns all three values. The backend passes those retained rows into adapter-input construction instead of rereading a parallel field. This boundary does not assert decoder correctness, serialization correctness, verifier acceptance, or any cryptographic conclusion.",
-      "closure": "Extract preflight_shipping_aggregate_verify through an explicit first-order preflight effect, or verify the remaining Rust method/projection lowering and discharge this exact delegation postcondition.",
+      "postcondition": "On every successful normal-build AggregateStatement::new call, the returned serialized VK, VK digest, canonical statement, statement digest, and challenge context are the values retained by one successful statement_hash_effect_core execution using ShippingStatementHashEffect on the same validated constructor input. On every successful preflight_shipping_aggregate_verify call, production retains that exact hash execution, performs one wrapper_decode_effect_core execution over the original bounded wrapper and expected statement digest, joins the two records through statement_binding_execution_core without replacement, and passes the retained values, exact source rows, backend call, application call, protocol/family route, and authenticated SRS identifier unchanged to app_verify_shipping_preflight_core. Any constructor, effect, digest-join, inner-preflight, projection, or identity error returns before an accepted carrier exists.",
+      "evidence": "The production statement and shipping preflight now retain explicit StatementHashExecution, WrapperDecodeExecution, and StatementBindingExecution values. The extracted StatementBinding graph proves the exact seven-effect order, retained intermediate values, one wrapper decode, digest-equality join, and fail-closed branches; extracted application roots prove the preflight carrier and into-parts projections. Source-pinned parity tests cover every successful value and every failing stage. This assumption is limited to installing those proved first-order cores in the two unextracted outer Rust functions and transporting their outputs unchanged. It does not assert SHA-256 correctness or security, canonical encoding semantics, aggregate-proof decode correctness, verifier acceptance, cache semantics, or any probability bound.",
+      "closure": "Extract AggregateStatement::new and preflight_shipping_aggregate_verify through their existing first-order statement/wrapper effects, or verify the remaining Rust trait and outer-function lowering, then replace the four source-pinned assumed contract rows with proof-producing artifacts.",
       "status": "assumed"
     },
     {
