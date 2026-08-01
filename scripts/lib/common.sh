@@ -537,32 +537,38 @@ write_orbis_runtime_config() {
     fi
     chmod 600 "$runtime_tmp"
     mv "$runtime_tmp" "$ORBIS_RUNTIME_FILE"
-    log_info "Orbis runtime endpoints written to $ORBIS_RUNTIME_FILE"
+    log_info "Orbis runtime endpoints: $(jq -c . "$ORBIS_RUNTIME_FILE")"
+}
+
+orbis_compose_service_container_id() {
+    local service="$1"
+    local project_name
+    local container_ids
+
+    project_name="$(orbis_compose_project_name)"
+    container_ids="$(docker ps -aq \
+        --filter "label=com.docker.compose.project=$project_name" \
+        --filter "label=com.docker.compose.service=$service")"
+    if [[ "$container_ids" == *$'\n'* ]]; then
+        log_error "Multiple $service containers found for project $project_name"
+        return 1
+    fi
+    printf '%s\n' "$container_ids"
 }
 
 wait_for_orbis_funder() {
     local compose_file="$1"
-    local project_name
-    local container_ids
     local container_id
     local state
     local attempt
 
-    project_name="$(orbis_compose_project_name)"
     for ((attempt = 1; attempt <= 180; attempt++)); do
-        container_ids="$(docker ps -aq \
-            --filter "label=com.docker.compose.project=$project_name" \
-            --filter "label=com.docker.compose.service=orbis-funder")"
-        if [[ "$container_ids" == *$'\n'* ]]; then
-            log_error "Multiple Orbis funder containers found for project $project_name"
-            return 1
-        fi
-        container_id="$container_ids"
+        container_id="$(orbis_compose_service_container_id orbis-funder)" || return 1
         if [ -n "$container_id" ]; then
             state="$(docker inspect --format '{{.State.Status}} {{.State.ExitCode}}' "$container_id")" || return 1
             case "$state" in
                 "exited 0")
-                    log_success "Orbis funder completed; nodes passed post-funding gRPC readiness"
+                    log_success "Orbis funder completed"
                     return 0
                     ;;
                 exited\ *)
@@ -588,6 +594,42 @@ wait_for_orbis_funder() {
     return 1
 }
 
+wait_for_orbis_node_production() {
+    local service="$1"
+    local marker='Server is ready to accept connections'
+    local container_id
+    local state
+    local attempt
+
+    for ((attempt = 1; attempt <= 120; attempt++)); do
+        container_id="$(orbis_compose_service_container_id "$service")" || return 1
+        if [ -n "$container_id" ]; then
+            state="$(docker inspect --format '{{.State.Status}} {{.State.ExitCode}}' "$container_id")" || return 1
+            case "$state" in
+                exited\ *|dead\ *)
+                    log_error "$service stopped before production readiness: $state"
+                    docker logs "$container_id" >&2 || true
+                    return 1
+                    ;;
+            esac
+            if (set +o pipefail; docker logs "$container_id" 2>&1 | grep -Fq "$marker"); then
+                log_success "$service production server ready"
+                return 0
+            fi
+        fi
+        if [ $((attempt % 15)) -eq 0 ]; then
+            log_info "Waiting for $service production server ($attempt/120)"
+        fi
+        sleep 2
+    done
+
+    log_error "Timed out waiting for $service production server"
+    if [ -n "$container_id" ]; then
+        docker logs "$container_id" >&2 || true
+    fi
+    return 1
+}
+
 wait_for_orbis_stack() {
     local compose_file="$1"
     local sourcehub_rpc node1 node2 node3
@@ -607,6 +649,9 @@ wait_for_orbis_stack() {
 
     wait_for_url "$sourcehub_rpc/status" 60 2 || return 1
     wait_for_orbis_funder "$compose_file" || return 1
+    wait_for_orbis_node_production node1 || return 1
+    wait_for_orbis_node_production node2 || return 1
+    wait_for_orbis_node_production node3 || return 1
     wait_for_tcp_port "${node1##*:}" 60 2 || return 1
     wait_for_tcp_port "${node2##*:}" 60 2 || return 1
     wait_for_tcp_port "${node3##*:}" 60 2 || return 1

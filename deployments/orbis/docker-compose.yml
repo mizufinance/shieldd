@@ -36,9 +36,18 @@ services:
     volumes:
       - sourcehub-data:/home/node/.sourcehub
     ports:
-      - "26657"
-      - "1317"
-      - "9090"
+      - target: 26657
+        published: "29000-29099"
+        host_ip: 127.0.0.1
+        protocol: tcp
+      - target: 1317
+        published: "29100-29199"
+        host_ip: 127.0.0.1
+        protocol: tcp
+      - target: 9090
+        published: "29200-29299"
+        host_ip: 127.0.0.1
+        protocol: tcp
     networks:
       - orbis-integration-network
     healthcheck:
@@ -55,13 +64,16 @@ services:
       - ORBIS_SECRET_KEY=testsecret1testsecret1
       - RUST_LOG=debug
     command: ["--addr", "0.0.0.0:50051", "--log-level", "debug", "--authz-grpc", "http://sourcehub:9090", "--bulletin-grpc", "http://sourcehub:9090", "--chain-rpc", "http://sourcehub:26657", "--chain-rest", "http://sourcehub:1317", "--metrics-addr", "0.0.0.0:9090", "--reshare-interval-secs", "5", "--node-controller-key", "${ORBIS_NODE_CONTROLLER_KEY:-024f4e2ad99c34d60b9ba6283c9431a8418af8673212961f97a77b6377fcd05b62}"]
-    # published image doesn't self-fund; orbis-funder funds /data's account and the
-    # node restarts once to resolve it. /data persists the signing key + public_key.txt.
+    # The node exposes a bootstrap info service while unfunded, then transitions
+    # to the production server after orbis-funder funds its persisted account.
     restart: on-failure
     volumes:
       - orbis-node1-data:/data
     ports:
-      - "50051"
+      - target: 50051
+        published: "29300-29399"
+        host_ip: 127.0.0.1
+        protocol: tcp
     networks:
       - orbis-integration-network
     depends_on:
@@ -85,7 +97,10 @@ services:
     volumes:
       - orbis-node2-data:/data
     ports:
-      - "50051"
+      - target: 50051
+        published: "29400-29499"
+        host_ip: 127.0.0.1
+        protocol: tcp
     networks:
       - orbis-integration-network
     depends_on:
@@ -109,7 +124,10 @@ services:
     volumes:
       - orbis-node3-data:/data
     ports:
-      - "50051"
+      - target: 50051
+        published: "29500-29599"
+        host_ip: 127.0.0.1
+        protocol: tcp
     networks:
       - orbis-integration-network
     depends_on:
@@ -128,9 +146,9 @@ services:
   # independent signers on one Cosmos account race the sequence, and the loser
   # is rejected with code 32. Each node writes its address to
   # /data/public_key.txt; the funder reads those, sends uopen, waits until the
-  # balances are actually visible, then waits until all three serve gRPC so the
-  # host-side readiness wait can gate on stable nodes rather than the flapping
-  # (restart: on-failure) healthcheck.
+  # balances are actually visible, then waits until all three bootstrap gRPC
+  # listeners respond. The launcher separately waits for the pinned images'
+  # production-ready signal before exposing endpoints to the host flow.
   orbis-funder:
     image: ${SOURCEHUB_IMAGE:?SOURCEHUB_IMAGE must be loaded from images.lock.json}
     platform: ${SOURCEHUB_PLATFORM:-linux/amd64}
@@ -205,8 +223,6 @@ services:
 networks:
   orbis-integration-network:
     driver: bridge
-    driver_opts:
-      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
 
 volumes:
   sourcehub-data: {}

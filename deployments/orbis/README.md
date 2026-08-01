@@ -41,10 +41,11 @@ SourceHub backend maps document, key-derivation, node-info, and ring records to
 
 `./scripts/orbis-stack.sh up` loads the pinned image digests via
 `ensure_orbis_images` and brings the stack up with `docker compose up -d
---pull missing`; it does not build `orbis-rs` or SourceHub. Docker assigns the
-loopback host ports atomically, and the launcher writes their typed endpoint
-record to `$COMPLIANCE_TMP/orbis-runtime.json`. Readiness requires the funder
-to exit successfully after all restarted nodes serve gRPC.
+--pull missing`; it does not build `orbis-rs` or SourceHub. Docker assigns one
+available loopback port from each service's reserved range, and the launcher
+writes their typed endpoint record to `$COMPLIANCE_TMP/orbis-runtime.json`.
+Readiness requires the funder to exit successfully and each pinned node image
+to report its production server before host-side gRPC checks begin.
 
 To refresh an image:
 
