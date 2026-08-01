@@ -36,10 +36,9 @@ services:
     volumes:
       - sourcehub-data:/home/node/.sourcehub
     ports:
-      - "${ORBIS_SOURCEHUB_RPC_PORT:-26657}:26657"
-      - "${ORBIS_SOURCEHUB_P2P_PORT:-26656}:26656"
-      - "${ORBIS_SOURCEHUB_REST_PORT:-1317}:1317"
-      - "${ORBIS_SOURCEHUB_GRPC_PORT:-9090}:9090"
+      - "26657"
+      - "1317"
+      - "9090"
     networks:
       - orbis-integration-network
     healthcheck:
@@ -62,8 +61,7 @@ services:
     volumes:
       - orbis-node1-data:/data
     ports:
-      - "${ORBIS_NODE1_GRPC_PORT:-50051}:50051"
-      - "${ORBIS_NODE1_METRICS_PORT:-9091}:9090"
+      - "50051"
     networks:
       - orbis-integration-network
     depends_on:
@@ -87,8 +85,7 @@ services:
     volumes:
       - orbis-node2-data:/data
     ports:
-      - "${ORBIS_NODE2_GRPC_PORT:-50052}:50051"
-      - "${ORBIS_NODE2_METRICS_PORT:-9092}:9090"
+      - "50051"
     networks:
       - orbis-integration-network
     depends_on:
@@ -112,8 +109,7 @@ services:
     volumes:
       - orbis-node3-data:/data
     ports:
-      - "${ORBIS_NODE3_GRPC_PORT:-50053}:50051"
-      - "${ORBIS_NODE3_METRICS_PORT:-9093}:9090"
+      - "50051"
     networks:
       - orbis-integration-network
     depends_on:
@@ -209,6 +205,8 @@ services:
 networks:
   orbis-integration-network:
     driver: bridge
+    driver_opts:
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
 
 volumes:
   sourcehub-data: {}

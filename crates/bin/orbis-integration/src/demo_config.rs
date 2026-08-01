@@ -1,7 +1,8 @@
-use std::env;
+use std::{env, fs, path::Path};
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use orbis_common::blockchain::{ChainConfig, SourceHubClient, TxSigner, TEST_ACCOUNT_HEX_KEY};
+use serde::Deserialize;
 
 pub const NODE1_ENDPOINT: &str = "http://127.0.0.1:50051";
 pub const NODE2_ENDPOINT: &str = "http://127.0.0.1:50052";
@@ -58,6 +59,74 @@ pub const DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX: &str =
     "b2ecf9b9082d6306538be73b0d6ee741141f3222152da78685d6596efc8c1506";
 pub const DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX: &str = "4102444800";
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OrbisEndpoints {
+    sourcehub_rpc: String,
+    sourcehub_rest: String,
+    sourcehub_grpc: String,
+    node1: String,
+    node2: String,
+    node3: String,
+}
+
+impl OrbisEndpoints {
+    pub fn from_env() -> Self {
+        Self {
+            sourcehub_rpc: sourcehub_url("ORBIS_SOURCEHUB_RPC", "ORBIS_SOURCEHUB_RPC_PORT")
+                .unwrap_or_else(|| "http://127.0.0.1:26657".to_string()),
+            sourcehub_rest: sourcehub_url("ORBIS_SOURCEHUB_REST", "ORBIS_SOURCEHUB_REST_PORT")
+                .unwrap_or_else(|| "http://127.0.0.1:1317".to_string()),
+            sourcehub_grpc: sourcehub_url("ORBIS_SOURCEHUB_GRPC", "ORBIS_SOURCEHUB_GRPC_PORT")
+                .unwrap_or_else(|| "http://127.0.0.1:9090".to_string()),
+            node1: node_endpoint("ORBIS_NODE1_ENDPOINT", NODE1_ENDPOINT),
+            node2: node_endpoint("ORBIS_NODE2_ENDPOINT", NODE2_ENDPOINT),
+            node3: node_endpoint("ORBIS_NODE3_ENDPOINT", NODE3_ENDPOINT),
+        }
+    }
+
+    pub fn load_or_env(path: &Path) -> Result<Self> {
+        if !path.exists() {
+            return Ok(Self::from_env());
+        }
+        Self::load(path)
+    }
+
+    pub fn load(path: &Path) -> Result<Self> {
+        let raw = fs::read_to_string(path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        Self::from_json(&raw).with_context(|| format!("invalid {}", path.display()))
+    }
+
+    fn from_json(raw: &str) -> Result<Self> {
+        let endpoints: Self = serde_json::from_str(raw)?;
+        for (name, endpoint) in [
+            ("sourcehub_rpc", endpoints.sourcehub_rpc.as_str()),
+            ("sourcehub_rest", endpoints.sourcehub_rest.as_str()),
+            ("sourcehub_grpc", endpoints.sourcehub_grpc.as_str()),
+            ("node1", endpoints.node1.as_str()),
+            ("node2", endpoints.node2.as_str()),
+            ("node3", endpoints.node3.as_str()),
+        ] {
+            let authority = endpoint
+                .strip_prefix("http://")
+                .or_else(|| endpoint.strip_prefix("https://"));
+            if !authority.is_some_and(|value| !value.is_empty()) {
+                bail!("{name} must be a non-empty HTTP(S) endpoint");
+            }
+        }
+        Ok(endpoints)
+    }
+
+    pub fn node_endpoints(&self) -> (String, String, String) {
+        (self.node1.clone(), self.node2.clone(), self.node3.clone())
+    }
+
+    pub fn node1(&self) -> &str {
+        &self.node1
+    }
+}
+
 fn env_or_default(env_key: &str, default: &str) -> String {
     match env::var(env_key) {
         Ok(s) if !s.is_empty() => s,
@@ -73,29 +142,12 @@ pub fn node_dial_host(env_key: &str, default: &str) -> String {
     env_or_default(env_key, default)
 }
 
-pub fn node_endpoints() -> (String, String, String) {
-    (
-        node_endpoint("ORBIS_NODE1_ENDPOINT", NODE1_ENDPOINT),
-        node_endpoint("ORBIS_NODE2_ENDPOINT", NODE2_ENDPOINT),
-        node_endpoint("ORBIS_NODE3_ENDPOINT", NODE3_ENDPOINT),
-    )
-}
-
-fn sourcehub_chain_config() -> ChainConfig {
+fn sourcehub_chain_config(endpoints: &OrbisEndpoints) -> ChainConfig {
     ChainConfig::builder()
         .chain_id(env::var("ORBIS_SOURCEHUB_CHAIN_ID").ok())
-        .rpc_url(sourcehub_url(
-            "ORBIS_SOURCEHUB_RPC",
-            "ORBIS_SOURCEHUB_RPC_PORT",
-        ))
-        .rest_url(sourcehub_url(
-            "ORBIS_SOURCEHUB_REST",
-            "ORBIS_SOURCEHUB_REST_PORT",
-        ))
-        .grpc_url(sourcehub_url(
-            "ORBIS_SOURCEHUB_GRPC",
-            "ORBIS_SOURCEHUB_GRPC_PORT",
-        ))
+        .rpc_url(Some(endpoints.sourcehub_rpc.clone()))
+        .rest_url(Some(endpoints.sourcehub_rest.clone()))
+        .grpc_url(Some(endpoints.sourcehub_grpc.clone()))
         .denom(env::var("ORBIS_SOURCEHUB_DENOM").ok())
         .build()
 }
@@ -112,8 +164,8 @@ fn sourcehub_url(url_key: &str, port_key: &str) -> Option<String> {
         })
 }
 
-pub async fn sourcehub_client() -> Result<SourceHubClient> {
-    let config = sourcehub_chain_config();
+pub async fn sourcehub_client(endpoints: &OrbisEndpoints) -> Result<SourceHubClient> {
+    let config = sourcehub_chain_config(endpoints);
     let signer = TxSigner::from_hex_key(TEST_ACCOUNT_HEX_KEY, config.clone())
         .map_err(|e| anyhow!("failed to create demo SourceHub signer: {}", e))?;
     SourceHubClient::with_signer(config, signer)
@@ -160,8 +212,50 @@ pub fn process_env_or_default(key: &str, default: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::node_dial_host;
+    use super::{node_dial_host, OrbisEndpoints};
     use std::env;
+
+    #[test]
+    fn runtime_endpoints_are_typed_and_complete() {
+        let endpoints = OrbisEndpoints::from_json(
+            r#"{
+                "sourcehub_rpc": "http://127.0.0.1:30001",
+                "sourcehub_rest": "http://127.0.0.1:30002",
+                "sourcehub_grpc": "http://127.0.0.1:30003",
+                "node1": "http://127.0.0.1:30004",
+                "node2": "http://127.0.0.1:30005",
+                "node3": "http://127.0.0.1:30006"
+            }"#,
+        )
+        .expect("valid runtime endpoints");
+
+        assert_eq!(endpoints.node1(), "http://127.0.0.1:30004");
+        assert_eq!(
+            endpoints.node_endpoints(),
+            (
+                "http://127.0.0.1:30004".to_string(),
+                "http://127.0.0.1:30005".to_string(),
+                "http://127.0.0.1:30006".to_string(),
+            )
+        );
+    }
+
+    #[test]
+    fn runtime_endpoints_reject_missing_schemes() {
+        let error = OrbisEndpoints::from_json(
+            r#"{
+                "sourcehub_rpc": "127.0.0.1:30001",
+                "sourcehub_rest": "http://127.0.0.1:30002",
+                "sourcehub_grpc": "http://127.0.0.1:30003",
+                "node1": "http://127.0.0.1:30004",
+                "node2": "http://127.0.0.1:30005",
+                "node3": "http://127.0.0.1:30006"
+            }"#,
+        )
+        .expect_err("endpoint without a scheme must fail");
+
+        assert!(error.to_string().contains("sourcehub_rpc"));
+    }
 
     #[test]
     fn node_dial_host_can_be_env_configured() {
