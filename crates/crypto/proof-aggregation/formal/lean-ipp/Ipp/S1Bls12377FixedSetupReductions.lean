@@ -21,17 +21,20 @@ noncomputable section
 
 open Ipp.Bls12377
 
-local instance : Fact baseModulus.Prime :=
+local instance fixedSetupBasePrimeFact : Fact baseModulus.Prime :=
   ⟨arithmeticFacts.basePrime⟩
-local instance : Fact scalarModulus.Prime :=
+local instance fixedSetupScalarPrimeFact : Fact scalarModulus.Prime :=
   ⟨arithmeticFacts.scalarPrime⟩
-local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
+local instance fixedSetupFq2NonresidueFact :
+    Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
   ⟨by intro x; simpa using arithmeticFacts.fq2Nonresidue x⟩
-local instance : Fintype Fq2 :=
+local instance fixedSetupFq2Fintype : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
-local instance : DecidableEq g1PrimeSubgroup := Classical.decEq _
-local instance : DecidableEq g2PrimeSubgroup := Classical.decEq _
+local instance fixedSetupG1DecidableEq : DecidableEq g1PrimeSubgroup :=
+  Classical.decEq _
+local instance fixedSetupG2DecidableEq : DecidableEq g2PrimeSubgroup :=
+  Classical.decEq _
 
 variable
   [IsUniformSpec (FsWrappedSpec Fr)]
