@@ -1411,7 +1411,7 @@
       "assumptions": [
         "AENEAS-TRANSLATOR"
       ],
-      "evidence": "Kernel-audited conditional composition of the extracted planner, identity and padding checks, fail-closed result reducer, canonical family-code witness, and exact StatementBindingContract count and repeat-final-padding postconditions. The production-used app_verify_shipping_projection_core equation now derives ShippingApplicationProjectionContract, removing that free semantic premise. It does not yet prove that the asynchronous shipping Rust caller constructs the complete ShippingCallData or all ShippingApplicationConstruction fields.",
+      "evidence": "Kernel-audited conditional composition of the extracted planner, identity and padding checks, fail-closed result reducer, canonical family-code witness, and exact StatementBindingContract count and repeat-final-padding postconditions. The production-used app_verify_shipping_projection_core equation derives ShippingApplicationProjectionContract, removing that free semantic premise. Complete asynchronous call construction is deliberately downstream and is discharged by RUST-CALL-CONSTRUCTION.",
       "status": "proved"
     },
     {
@@ -1484,7 +1484,7 @@
         "ARKWORKS-AGGREGATE-PROOF-DECODE",
         "ARKWORKS-CHALLENGE-SERIALIZATION"
       ],
-      "evidence": "Kernel-audited conditional composition keeps raw adapter acceptance independent of semantic conclusions and derives v1 acceptance from ShippingVerifierRefinementContracts plus ArkworksChallengeOracleAnswers. Sampler admissibility is an explicit argument of this abstract non-hash root rather than a field hidden in ShippingVerifierExternalContracts; the deployed caller derives it from the exact executed sampler trace. The generated app_verify_shipping_projection_core equation now derives the application family/count projection. Remaining inputs still contain exact external postconditions for BLS12-377 bilinearity, inverse/singleton pairing/singleton MSM, prepared-VK Aic projection, both KZG equations, decoded proof fields, statement rows/SRS, and canonical component serializers. This theorem is not yet a complete concrete Rust-call construction theorem.",
+      "evidence": "Kernel-audited conditional composition keeps raw adapter acceptance independent of semantic conclusions and derives v1 acceptance from ShippingVerifierRefinementContracts plus ArkworksChallengeOracleAnswers. Sampler admissibility is an explicit argument of this abstract non-hash root rather than a field hidden in ShippingVerifierExternalContracts; the deployed caller derives it from the exact executed sampler trace. The generated app_verify_shipping_projection_core equation derives the application family/count projection. Its inputs retain exact external postconditions for BLS12-377 bilinearity, inverse/singleton pairing/singleton MSM, prepared-VK Aic projection, both KZG equations, decoded proof fields, statement rows/SRS, and canonical component serializers. Concrete call construction is deliberately supplied by the downstream RUST-CALL-CONSTRUCTION claim.",
       "status": "proved"
     },
     {
@@ -1859,7 +1859,7 @@
       "id": "ADAPTIVE-SHA-QUERY-BOUND",
       "owner": "SnarkPack security analysis",
       "postcondition": "At the fixed-call layer, IsTotalQueryBound holds with Q_sha for the exact Ipp.ShippingAdaptiveSha.AdaptiveShaSourceSpec adversary; final heterogeneous composition extends Q_sha to every SHA-256 query made by adversarial preselection and production VK, canonical-statement, and challenge-context construction without resetting the budget between calls.",
-      "evidence": "Ipp.ShippingAdaptiveSha.CollisionSecurity and Ipp.ShippingAdaptiveCall.CollisionSecurity retain an IsTotalQueryBound witness for the exact SHA-querying OracleComp source. This budget is distinct from the wrapped field-oracle qb in ADVERSARY-QUERY-BOUND. The fixed-call model does not yet derive the whole-program extension.",
+      "evidence": "Ipp.ShippingAdaptiveSha.CollisionSecurity and Ipp.ShippingAdaptiveCall.CollisionSecurity retain an IsTotalQueryBound witness for the exact SHA-querying OracleComp source. This budget is distinct from the wrapped field-oracle qb in ADVERSARY-QUERY-BOUND. The heterogeneous whole-program extension is deliberately the external postcondition of this assumption, not a conclusion hidden in the fixed-call model.",
       "closure": "Derive one Q_sha bound for the complete heterogeneous byte program, including every production binding-site SHA-256 execution, and instantiate epsilonSha256 at that exact budget before publishing a numerical security level.",
       "status": "assumed"
     },

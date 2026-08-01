@@ -2,14 +2,15 @@ import Ipp.S1Bls12377StandaloneGames
 import Ipp.Extracted.ShippingVerifierComposition
 
 /-!
-Exploratory fixed-setup bridges from the current S1 projections to standalone
-BLS12-377 target games.
+Exploratory fixed-setup bridges from the S1 projections to standalone BLS12-377
+target games.
 
 The exact mapped-game and selector reductions live in
 `S1Bls12377ReductionInterfaces` and are the only publication-audited results.
-The fixed-setup constructions below do not yet bind a production setup
-registry, a structural polynomial-time certificate, or a pre-fork GIPA
-extractor selection.  They are not deployed-security capstones.
+These constructions do not bind a production setup registry, a structural
+polynomial-time certificate, or a pre-fork GIPA extractor selection. They are
+not deployed-security capstones; the publication reductions and the explicit
+`DEPLOYED-SRS-SOUNDNESS` boundary are recorded elsewhere.
 -/
 
 open OracleSpec OracleComp ENNReal Function
@@ -284,10 +285,8 @@ def bls12377KzgWForgeryOfShippingTranscript
   claimedKey := data.proof.wFinal
   opening := data.proof.wOpening
 
-/-- The existing per-execution Arkworks contract already proves the V
-candidate-tuple direction required by the reduction.  What remains open is
-lifting this fact from one accepted shipping transcript to every forgery in
-the mapped fork program's support. -/
+/-- This local per-execution Arkworks contract proves the V candidate-tuple
+direction only. It does not perform the publication path's fork-support lift. -/
 theorem shippingCallKzgContract_acceptV_sound
     {D PE : Type} {μ arity : Nat}
     (data :

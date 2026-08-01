@@ -30,10 +30,7 @@ def ipE (a : Fin n → G1) (b : Fin n → G2) : GT := ∑ i, e (a i) (b i)
 def msm {G : Type*} [AddCommGroup G] [Module F G] (c : Fin n → F) (g : Fin n → G) : G :=
   ∑ i, c i • g i
 
-/-- q-SDH-type KZG structured-key binding and z-challenge SZ step (U3/U5a;
-    maps 1:1 to a future
-    `formal-handoff.md` assumption row `assume.kzg-structured-key-binding`;
-    spec rows `tipp-mipp.kzg-equations`, `tipp-mipp.power-sequence`).
+/-- q-SDH-type KZG structured-key binding and z-challenge SZ step.
 
     `srs` is the structured commitment-key basis (the SRS powers `h·βⁱ` / `g·αⁱ`
     the opening is checked against). `accept z coeffs key opening` abstracts the
@@ -43,24 +40,24 @@ def msm {G : Type*} [AddCommGroup G] [Module F G] (c : Fin n → F) (g : Fin n �
     `verify_commitment_key_g{1,2}_kzg_opening` in `tipa/mod.rs`. For every `z`,
     an accepted pair pins the key to the honest structured MSM. This row bundles
     q-SDH binding with the z-challenge Schwartz--Zippel step; failure of the
-    required z-goodness condition is a U5a bad event. Stated as an explicit
-    hypothesis (never an axiom), discharged at S1 handoff. -/
+    required z-goodness condition is a bad event. This is an explicit
+    proposition, never a Lean axiom; the concrete reductions and
+    `KZG-FALSE-OPENING-SECURITY` ledger assumption account for it. -/
 def KzgStructuredKeyBinding {G : Type*} [AddCommGroup G] [Module F G] {N : ℕ}
     (srs : Fin N → G) (accept : F → (Fin N → F) → G → G → Prop) : Prop :=
   ∀ (z : F) (coeffs : Fin N → F) (key opening : G),
     accept z coeffs key opening → key = msm coeffs srs
 
-/-- AFGHO/double-pairing commitment binding (U2; maps 1:1 to a future
-    `formal-handoff.md` assumption row `assume.pairing-commitment-binding`;
-    spec rows `gipa.round-folding`, `tipp-mipp.gipa`).
+/-- AFGHO/double-pairing commitment binding used by the GIPA reduction.
 
     The idealization of binding for the pairing-based vector commitment
     `v ↦ ∑ᵢ cm(ckᵢ, vᵢ)` at keys `ck`: the commitment map is injective on
     messages. Computationally justified by the AFGHO double-pairing (SXDH-type)
     binding of the TIPP/MIPP commitments. U2 consumes it only to pin child
     openings to canonical folds; `Ipp.binding_foldMsg` transports it to the
-    folded keys, so the assumption surface stays at the SRS keys. Stated as an
-    explicit hypothesis (never an axiom), discharged at S1 handoff. -/
+    folded keys, so the assumption surface stays at the SRS keys. This is an
+    explicit proposition, never a Lean axiom; the concrete fork-knowledge
+    reduction and ledger assumption account for it. -/
 def PairingCommitmentBinding {K Msg M : Type*}
     [AddCommGroup K] [Module F K] [AddCommGroup Msg] [Module F Msg]
     [AddCommGroup M] [Module F M] {n : ℕ}

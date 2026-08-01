@@ -1625,9 +1625,9 @@ theorem globalInvalidAccepted_le_card_mul_partition_bound
     _ = (activeMu.card : ℝ≥0∞) * bound := by
       rw [Finset.sum_const, nsmul_eq_mul]
 
-/-- Explicit losses derived by the future multi-statement fork proof.  The
-final theorem may use only a concrete value produced by that proof; callers
-cannot provide this structure as a security premise. -/
+/-- Explicit statement-selection and replay losses carried by the
+multi-statement fork interface. The publication capstone prices both terms
+rather than hiding them in a single security premise. -/
 structure DerivedMultiStatementForkLoss where
   statementSelection : ℝ≥0∞
   forkReplay : ℝ≥0∞
@@ -1782,7 +1782,7 @@ theorem perMuForkTransform_le_formalStatementSucceededAt
       rawFork_isSome_le_formalStatementSucceededAt
         game invalid queryBounds μ schedule.baseReach hdetermines
 
-/-- Precise theorem target for the future multi-statement forking proof.
+/-- Interface supplied by the concrete multi-statement forking proof.
 
 This is a transformed, per-partition lower bound on a fork carrying one common
 formal statement.  The proof and opaque shipping call remain branch-local, as

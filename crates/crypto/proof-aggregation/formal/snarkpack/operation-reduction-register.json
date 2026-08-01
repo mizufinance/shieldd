@@ -91,14 +91,14 @@
     },
     "backend": {
       "status": "open",
-      "statement": "Every prover, verifier, and setup backend dimension is explicitly open. S3 exposes the dimensions, but general field, extension-field, reduction, and curve-operation formulas are not yet proved.",
+      "statement": "Every prover, verifier, and setup backend cost dimension is explicitly open. Semantic field, extension-field, reduction, and curve-operation correctness is governed separately by the verification manifest; absent cost formulas are unknown, not zero.",
       "prover_default": "open for every declared backend dimension",
       "verifier_default": "open for every declared backend dimension",
       "setup_default": "open for every declared backend dimension"
     },
     "implementation_conformance": {
       "status": "open",
-      "statement": "Lean proves only the named logical-term structural slice from abstract recurrences. A source-to-recurrence theorem, accepted-wire Arkworks validation contract, release/debug/bench feature boundary, instrumented logical and nonzero backend counters, public-input-arity parameterization, retry-aware hash counts, and full shipping-vector refinement remain open."
+      "statement": "Lean proves only the named logical-term structural slice from abstract recurrences. Exact production cost conformance still requires source-to-recurrence evidence, accepted-wire counters, feature-boundary accounting, public-input-arity parameterization, retry-aware hash counts, and full shipping-vector accounting. This is an optimization-measurement boundary, not a semantic FV gap."
     },
     "audited_source_boundary": {
       "prover_entry": "ark_ip_proofs::applications::groth16_aggregation::aggregate_proofs_profiled_with_trace",

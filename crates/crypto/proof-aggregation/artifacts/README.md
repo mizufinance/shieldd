@@ -16,8 +16,9 @@ ceremony owner supplies:
 The same registration must promote `deployed_srs_evidence` in
 `formal/snarkpack/verification-manifest.json` with the exact artifact,
 transcript, verification-evidence, registry-source, and application-source
-digests. The FV publication gate remains red while that record is
-`unregistered`.
+digests. While that record is `unregistered`, the conditional FV theorem stays
+valid and the gap remains the publication gate's sole allowed open row, but no
+instantiated deployment-security claim is permitted.
 
 Deployments may set `SHIELDD_SNARKPACK_SRS_ARTIFACT_DIR` to an absolute
 distribution directory. The runtime still accepts only the filename, artifact

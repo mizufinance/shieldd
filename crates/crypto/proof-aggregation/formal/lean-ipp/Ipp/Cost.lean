@@ -7,9 +7,9 @@ candidate cannot hide work moved between primitives or execution roles.
 
 `StructuralBaseline` is deliberately not a `Vector`: it contains only the
 closed forms justified by the v1 loop recurrences. In particular, an absent
-dimension is unknown or outside that recurrence, not zero. Relating this slice
-to every operation executed by the shipping Rust path is the separate, open
-cost-conformance obligation.
+dimension is unknown or outside that recurrence, not zero. Exact production
+cost conformance is a separate performance-research obligation recorded in the
+operation-reduction register; it is not a gap in semantic FV.
 -/
 
 namespace Ipp.Cost

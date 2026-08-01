@@ -1103,9 +1103,8 @@ theorem extracted_fq2_square_spec (a output : Fq2LimbPair)
       dfm, dfm1, d01, d0, d3, d2] <;> ring
 
 /-! ### `fq2_inv`: norm-route inverse, some-branch law
-The none-direction (totality: nonzero input → `some`) needs the GKP-inverse
-totality theorem, which `ArkworksFqInv` does not yet provide; it is owned by
-S3-17 together with the rest of the inverse. -/
+This section proves the successful `some` branch. The exact `none ↔ input-zero`
+result is proved below by `extracted_fq2_inv_none_iff`. -/
 
 private theorem fq2_inv_norm_route (a : Fq2LimbPair)
     (v1 fmc0 v0 norm_inv fm1 fm2 fm3 : LimbArray)

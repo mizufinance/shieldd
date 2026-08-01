@@ -171,7 +171,7 @@ theorem ShippingPlannedCall.shippingResultSerializedRowsExact
 
 /-- VK/SRS selection remains a separate boundary. Splitting it from preflight
 construction prevents the row-composition theorem from silently claiming the
-still-open Arkworks materialization results. -/
+named Arkworks materialization postconditions. -/
 structure SelectedVkSrs
     {μ arity : Nat} {F G1 G2 GT DecodedProof : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
@@ -367,9 +367,9 @@ theorem ShippingPlannedCall.resultRowsMaterializeStatement
 /-- Concrete output-derived capstone for the retained preflight path.
 
 The accepted constructor execution, repeat-final rows, prepared VK, and SRS
-are all projected from `construction`.  Consequently the only remaining
-boundary is constructing that concrete record from the generated production
-preflight equation and the named Arkworks byte/loader postconditions. -/
+are all projected from `construction`. Within this theorem, constructing that
+record from the generated production preflight equation remains the explicit
+Arkworks byte/loader boundary; the shipping capstone supplies it. -/
 theorem concrete_output_preflight_rows_materialize_statement
     {D : Type} {μ arity : Nat}
     {wire :

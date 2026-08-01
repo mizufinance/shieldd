@@ -3,13 +3,14 @@ import Ipp.ShippingBundleCachedComposition
 /-!
 Production bundle construction at the byte-to-global-FS boundary.
 
-The checked-in extraction does not yet expose the async planner and
-concurrent verifier bundle as one raw byte-oracle program.  This module
-isolates the exact operational equations that graph must provide.  It then
+The extraction boundary represents the async planner and concurrent verifier
+bundle by exact output-distribution equations rather than one raw byte-oracle
+program. This module isolates those equations and then
 constructs the generic byte reindexing and the raw canonical projected
 global-FS shape without assuming an acceptance probability or a soundness
 inequality.  The concurrency boundary is an output-distribution equation
-against the cached canonical program, never a raw trace equality.
+against the cached canonical program, never a raw trace equality. The manifest
+records the corresponding Tokio and immutable-result transport assumptions.
 -/
 
 namespace Ipp.Extracted.ShippingBundleProgramConstruction

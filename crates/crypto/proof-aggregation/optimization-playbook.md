@@ -1,543 +1,222 @@
 # SnarkPack Optimization Playbook
 
-How to find, judge, implement, and land optimizations of the Shieldd-owned
-RIPP backend without changing protocol bytes silently, without shipping
-microbench fiction, and without paying complexity that the measured benefit
-does not justify.
-
-This is the durable process behind `docs/snarkpack/verification.md` (X3). Every optimization
-follows it.
-
-## 0. The one rule: optimize in category 1 or 2, never 3
-
-| Category | Touches bytes? | What it is | How to land |
-|---|---|---|---|
-| **1 — internal compute** | No, by construction | Same group elements / field values, faster math | Default. Byte/trace baselines pass unchanged. |
-| **2 — output/wire encoding** | Yes (wire bytes only) | Same transcript + elements, different serialization | Version-bump path (§5). |
-| **3 — transcript / Fiat-Shamir input** | Yes (transcript bytes) | A *protocol* change, not an optimization | **Forbidden through this loop.** |
-
-A category-1 optimization computes the identical element, so the on-the-wire
-aggregate bytes and the ShielddByte transcript are unchanged — the golden
-baselines pass without anyone thinking about it, and `AGGREGATE_PROTOCOL_VERSION`
-stays put.
-
-**Byte-stability is necessary, not always sufficient.** A passing byte/trace
-baseline shows that the committed deterministic vectors did not change, but it
-is not a universal equivalence proof and cannot vouch for a change that weakens a
-*validation or soundness check* (e.g. batched vs per-element subgroup checks —
-§8 candidate 1). Such a change can be byte-stable and still accept invalid
-proofs; the gates won't catch it. Any change to how elements are *validated*
-needs an exact equivalence or soundness theorem plus explicit security review.
-
-Category 3 changes what gets hashed for challenges. That voids the existing
-transcript evidence — the argument *"our transcript is byte-shaped like the
-audited Filecoin/Bellperson SnarkPack, therefore their soundness analysis applies
-to us"* — and would require re-establishing the evidence plus the F\* boundary.
-It is not an optimization.
-**Do not do category 3 under the guise of speed.** The byte/trace baselines make
-it impossible to land silently: it shows up as a transcript-byte diff that fails
-the gate.
-
-Transcript surface to never touch as an "optimization":
-- `encode_statement` — `crates/crypto/proof-aggregation/src/statement.rs`
-- `ChallengeContext` / `challenge_preimage` — `crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs`
-- family transcript digests — `crates/crypto/proof-aggregation/src/transcript.rs`
-
-## 0.5 Dynamic-core scaling (hard rule)
-
-Parallelism is encouraged and should *maximize* the cores it is given, but it
-must **scale dynamically** with the runtime core count. Never assume or hardcode
-a static number of cores, a fixed split, or a machine-specific constant.
-
-Production will run a large, not-yet-fixed core count across many machines, and
-the natural parallelism unit is also *across aggregations*. So an intra-op
-parallel construct must degrade gracefully — never slower than serial — when
-cores are scarce or already busy with other aggregations. `rayon` work-stealing
-satisfies this by construction; bespoke fixed-thread schemes do not.
-
-## 0.6 Tunable Parameters Register
-
-Any constant that will need calibration once the production machine architecture
-is settled — a parallel-vs-serial `n` threshold, chunk size, `rayon::join`
-nesting depth, pool size — must be a **named tunable** recorded here, never a
-silent magic number on a parallel path.
-
-| Name | Site | Current value | Rationale | Tune when |
-|---|---|---|---|---|
-| _(none yet — populate as parallel knobs are introduced or surfaced)_ | | | | hardware known |
-
-## 0.7 Parallelization is deferred, not optimized
-
-The current default parallelization stays as-is. **Do not tune it now.** The
-allocation strategy — how a fixed core pool is spent — is settled *later*,
-against the benchmark matrix (§10), once the production architecture is known.
-The matrix must cover three regimes:
-
-- **Throughput** — many aggregations in parallel, each lean (≈1 thread); cores
-  saturated by the workload, so intra-op `rayon` yields ~nothing.
-- **Latency** — one aggregation across many cores (intra-op `rayon`); the regime
-  the current landed parallel stack was benched in.
-- **Hybrid** — bounded intra-op parallelism plus across-aggregation scheduling.
-
-Until then, the value of every intra-op `rayon` change is *regime-conditional and
-unsettled*: it is **not** counted toward the optimization bar (§4). That bar is
-about work reduction, measured at the work floor (§3).
-
-## 1. FIND — where to look
-
-Two complementary methods; use both.
-
-### 1a. Profiler-driven (top-down)
-The build and verify paths are already instrumented. Read the sub-timings and
-attack the largest *measured* stage, not the most obvious one.
-
-- `AggregateVerificationProfile` — `backend.rs` (verify path): `deserialize_ms`,
-  `challenge_ms`, `tipp_mipp_ms`, `public_input_fold_ms`, `ppe_ms`,
-  `core_total_ms`.
-- `AggregateBuildBackendProfile` — `backend.rs` (build path): per-stage
-  `backend_*_ms` fields, including the pairing breakdown
-  (`backend_pairing_miller_loop_ms`, `backend_pairing_final_exponentiation_ms`)
-  and the per-round GIPA/TIPA/KZG sub-timings.
-
-Pairing cost (Miller loop + final exponentiation) usually dominates verify, so a
-multi-pairing **merge** that removes a final-exponentiation beats a scalar-mul
-tweak that the profiler can barely see.
-
-### 1b. Pattern-driven (bottom-up)
-Grep the RIPP backend (`backend.rs`, `src/ipp/ip_proofs/src/`,
-`src/ipp/dh_commitments/src/`) for the recurring category-1 smells:
-
-| Smell | Faster form |
-|---|---|
-| sequential `fold` / `mul_helper` scalar-mul-then-add over a vector | variable-base MSM (`G::msm`) |
-| `.map(\|x\| x.inverse().unwrap())` over a vector | `ark_ff::batch_inversion` |
-| N independent `cfg_multi_pairing` checks | one combined multi-pairing (random linear combination) — removes a final-exponentiation |
-| `.clone()` on `PairingOutput` / `G1` / `G2` inside a per-round loop | in-place `add_assign` / `mul_assign` |
-| challenge powers / inverses recomputed across passes | hoist + reuse |
-| leftover `//TODO: Optimization` / `VariableMSM` markers | the marked optimization |
-
-## 2. CLASSIFY — record the category before coding
-
-- Alters any byte that feeds a challenge hash? → **category 3, stop.**
-- Changes the serialized aggregate-proof encoding? → **category 2** (§5).
-- Same elements, faster compute? → **category 1** (§4; most optimizations).
-
-If unsure between 1 and 3, the test is mechanical: implement, run the byte +
-trace baselines. Pass unchanged ⇒ category 1. Fail ⇒ you changed bytes; decide
-wire-only (2) vs transcript (3) and act accordingly.
-
-## 3. MEASURE — prove the win is real
-
-Never quote an isolated microbench as an end-to-end result: a large microbench
-speedup routinely collapses into the noise band once measured on the full
-aggregate/verify path at realistic batch sizes.
-
-### 3a. Corpus-backed bench
-`crates/bench/benches/vanilla/snarkpack.rs` benchmarks `aggregate_family` and
-`verify_family_aggregate` by `(family, count)`. The Groth16 proof corpus lives
-under `crates/bench/corpus/snarkpack/`; the bench loads it via
-`load_or_generate_items`, regenerating from a fixed `ChaCha20Rng` seed only when a
-file is absent, so the measured closure times only the aggregate/verify call. The
-small fixtures (≤64) are committed for fast CI; the large ones (1024, 2048) are
-git-ignored and regenerate on first use (deterministic, so A/B-stable).
-
-### 3b. The compile-time A/B seam
-To compare an optimization against its pre-optimization form on the *real*
-end-to-end path in the *same release build*, use the `bench-baseline` feature
-(compile-time, never a runtime env branch, never on a transcript path):
-
-1. At the optimized call site, gate between the optimized impl and a retained
-   `*_baseline` impl with `#[cfg(feature = "bench-baseline")]` (worked example:
-   `_compute_final_commitment_keys` / `fold_keys_baseline` in
-   `src/ipp/ip_proofs/src/gipa.rs`).
-2. Build and run the bench twice and compare medians:
-
-   ```sh
-   # optimized (default)
-   cargo build --release -p shieldd-sdk-bench --bench snarkpack
-   ./target/release/deps/snarkpack-* --bench --warm-up-time 1 --measurement-time 4 "snarkpack verify"
-
-   # pre-optimization baseline
-   cargo build --release -p shieldd-sdk-bench --bench snarkpack \
-     --features shieldd-sdk-proof-aggregation/bench-baseline
-   SNARKPACK... ./target/release/deps/snarkpack-* --bench ... "snarkpack verify"
-   ```
-
-   (First ever run populates the corpus; pass the criterion `--bench` flag so it
-   measures rather than runs in test mode.)
-3. Report medians at realistic counts (n ∈ {1,2,4,8,64}). Flag anything inside
-   the noise band as noise.
-
-The retained `*_baseline` fn doubles as the equivalence-test oracle (§4), so the
-seam and the correctness proof share one artifact.
-
-### 3c. The work floor is the per-change metric
-Run the A/B at `RAYON_NUM_THREADS=1` as well. This is the **work floor** — it
-strips scheduling out and shows whether the change removed real work. A
-work-reduction optimization must move the work-floor number; a change whose only
-gain appears at >1 thread is *parallelization*, which is deferred to the §10
-matrix and is **not** quoted as an optimization win (§0.7).
-
-### 3d. Report the cumulative number, not just the per-change delta
-The §3b seam compares against the *immediately preceding* state, which is itself
-already optimized — a moving reference. Per-change deltas measured this way do
-**not** sum to the real total (§4.5). For any landed change, also record the
-**cumulative A/B**: full optimized build vs the pristine *origin* baseline. The
-cumulative-vs-origin figure is the headline number.
-
-## 4. DECIDE — the win-or-clarity bar
-
-Land iff **either**:
-- a **measured end-to-end gain above the noise floor** at realistic batch sizes, **or**
-- a **clear correctness / clarity / scaling improvement that is provably never
-  slower** (equivalence-tested, strictly better asymptotically, expresses intent
-  more directly).
-
-**Reject** changes that add non-trivial API surface or indirection for a
-near-noise gain with no clarity or scaling case. "Technically faster in a
-microbench" is not sufficient. Honest reporting includes "this was noise,
-reverting."
-
-### 4a. The 10% rule — estimate before attempting
-Do **not** *attempt* an optimization you estimate below **10%** end-to-end at
-realistic counts. Estimate first — FE/Miller-loop accounting or op-count
-arithmetic is usually enough — and record the estimate before coding. Pursue only
-≥10% candidates. A smaller *measured* result is fine to keep if it lands; a
-smaller *estimate* is the reason not to start. Pure correctness/clarity/scaling
-refactors are still allowed but are labeled as such, not as performance.
-
-## 4.5 Interactions — optimizations against one another
-
-Two optimizations can work against each other:
-
-- **Site conflict.** Two rewrites of the same loop (e.g. parallelize vs MSM-ify)
-  are mutually exclusive — implementing one removes the other's premise, and the
-  §3b seam can only gate one at a time. A/B them independently, then pick one.
-- **Non-additive stacking.** Stacked parallelism shares one thread pool, so
-  per-change deltas measured against a moving reference do **not** sum: the
-  cumulative win is not the sum of the per-commit figures, and can be far less
-  under a core-saturated workload. For any stack of ≥2 related changes, record a
-  final cumulative A/B (§3d). A parallel stack must never claim the sum of its
-  per-commit numbers as its real win.
-
-## 5. IMPLEMENT — per-category workflow
-
-### Category 1
-1. Keep the pre-optimization implementation as a named `*_baseline` reference.
-2. Add a unit equivalence test (`optimized == baseline`) at sizes covering
-   **every** code path the optimization touches (cf. the both-sided
-   `msm_keys_equals_sequential_fold` in `dh_commitments/src/afgho16/mod.rs`).
-3. Wire the §3b A/B seam.
-4. Implement; confirm the byte + trace baselines pass **unchanged** and the
-   version stays 1.
-5. **Baseline lifecycle.** Once landed and validated, the optimized code *is* the
-   live baseline going forward — the retained `*_baseline` is only a frozen A/B +
-   equivalence artifact, compiled solely under `bench-baseline`. Remove the
-   `*_baseline` twin unless it remains a useful equivalence oracle; do not hoard
-   dead feature-gated paths. Distinguish the *origin baseline* (pristine,
-   pre-optimization) from the *prior-stack reference* (the per-change A/B point):
-   the headline number is always vs origin (§3d).
-
-### Category 2 (wire encoding only)
-1. Bump `AGGREGATE_PROTOCOL_VERSION` (`statement.rs`).
-2. Regenerate both golden baselines via the `--ignored` helpers:
-   - `cargo test -p shieldd-sdk-proof-aggregation regenerate_aggregate_byte_baseline -- --ignored`
-   - `cargo test -p shieldd-sdk-proof-aggregation regenerate_shieldd_byte_trace_baseline -- --ignored`
-3. Record the protocol-version decision in the formal handoff. The invariants
-   script enforces the remaining formal-handoff discipline.
-
-## 6. VALIDATE — the gate set (all green before done)
-
-- `cargo test -p shieldd-sdk-proof-aggregation --lib` — the production-owned
-  proof + challenge-trace fixture umbrella
-  (`v1_bytes_and_transcript_match_committed_baselines`), determinism
-  (`aggregation_is_deterministic_for_fixed_inputs`), and Groth16 oracle
-  agreement (`snarkpack_matches_single_and_batch_groth16_oracles`).
-- `cargo test -p shieldd-sdk-proof-aggregation-reference --lib` — independent
-  production-proof/reference-verifier and reference-proof/production-verifier
-  acceptance checks. Run `just snarkpack-slow` for the ignored
-  `slow_two_way_interop_band`; the reference crate is not the byte/trace baseline
-  owner.
-- `just snarkpack-fuzz-smoke` — 6 targets, zero crashes.
-- `just snarkpack-invariants`,
-  `just snarkpack-formal` — no regression.
-- `cargo fmt --all -- --check`.
-- A/B delta recorded in the commit/PR description (not a committed threshold —
-  fixed perf thresholds and the DoS gate are a later stage).
-
-## 7. LAND OR REVERT
-
-- Category 1, baselines hold, win-or-clarity bar met → land.
-- Measured gain is noise and no clarity/scaling case → revert, and say so.
-- Baselines moved unexpectedly → it was not the category you thought; stop and
-  re-classify before doing anything else.
-
-## 8. Candidate backlog (ranked, grounded in real sites)
-
-Each is a *candidate*, not a commitment — each goes through §3–§4 first, including
-the §4a 10% estimate.
-
-**Open, clears the 10% bar — deferred pending a security review (not started):**
-
-1. **Batched GT subgroup validation on deserialization.** The measured #1 verify
-   hotspot is `deserialize_ms`, **not** pairings. `AggregateProof`
-   (`groth16_aggregation.rs`) carries many GT elements — the four top-level
-   (`com_a/b/c`, `ip_ab`) plus the combined `tipp_mipp_proof`
-   `r_commitment_steps`, where each round carries both AB and C commitments.
-   `deserialize_aggregate_proof` (`backend.rs`) calls
-   `deserialize_compressed` (Arkworks `Validate::Yes`), which runs a **full
-   GT-subgroup exponentiation per element** — the dominant cost. Replace it with
-   decode-`Validate::No` + **one randomized batch subgroup check** over all GT
-   elements (random rᵢ, test `Π eᵢ^{rᵢ}` is in 𝔾_T; in-subgroup-iff-all w.h.p.),
-   paying 1 exponentiation instead of N. Byte-stable (category 1 in bytes —
-   validation is orthogonal to the wire/transcript). Only the subgroup-check part
-   of `deserialize_ms` batches; the Fp12 decompression/parsing remainder does not,
-   and 128-bit verifier-local randomizers cap the batchable speedup at ~2×, so the
-   estimate clears the 10% bar at the low end rather than dramatically. Confirm the
-   exact GT-element count and the decompression share before committing.
-
-   **Why it is gated, not just landed.** This weakens a *soundness check*
-   (per-element → aggregate-probabilistic), so byte-stability is **necessary but
-   not sufficient** — it needs an explicit security review. The review must
-   establish, before any code lands:
-   - **The error bound from the real BLS12-377 𝔽_{q^12}^× order factorization**
-     — the smallest cofactor prime ℓ_min sets the per-round soundness error 1/ℓ_min.
-     If ℓ_min is small, one batch round is insufficient (need larger randomizers /
-     multiple rounds / per-prime handling). *Compute this number first; it gates
-     the whole design.* Analyze the **smallest** N (n=1/2), not the typical n=64.
-   - **Randomizer sizing & domain** — error ≤ 2⁻¹²⁸ derived per cofactor prime,
-     not assumed from "a random 𝔽_r scalar"; CSPRNG, fresh per verification.
-   - **Independence** — rᵢ sampled after the proof bytes are fixed, never derived
-     from the proof/transcript (else the prover can grind; also would be a
-     forbidden category-3 touch). Assert rᵢ never enter `encode_statement`/
-     `challenge_preimage`.
-   - **Completeness** — every GT element the per-element path validated is in the
-     batch; derive the list from the serialization traversal so a future field
-     can't silently escape it. Non-GT fields (`agg_c` in G1, any G2) keep their
-     own subgroup checks.
-   - **Negative tests are the real proof** — plant a small-cofactor-torsion
-     component in *each* element position (top-level and a round commitment in each
-     sub-proof) and assert the batch **rejects** every one. If you can't construct
-     that test, the cofactor structure isn't understood well enough to ship.
-   - **Filecoin-shape interaction** — confirm the audited construction's
-     "deserialized elements are subgroup-valid" premise is still discharged, now by
-     the batch.
-
-**Added by the 2026-07-07 deep audit (each still goes through §3–§4):**
-
-2. **Defer the GIPA commitment folds into one GT multi-exponentiation.**
-   `_compute_recursive_challenges` (gipa.rs:657) interleaves challenge hashing
-   with `fold_output` — 2 GT exponentiations × 3 commitments × log₂n rounds,
-   each a standalone 128-bit square-and-multiply. The challenge for round i
-   hashes only the previous challenge and that round's `com_1`/`com_2`
-   (gipa.rs:672–679), **never the running folded com** — so the folds are
-   deferrable: run the hash loop first, then compute each final com as one
-   multi-exp over 2·log₂n GT bases (Straus, shared cyclotomic squarings).
-   Saves ~(2·log₂n − 1) × 128 GT squarings per commitment (×3, ×2 for the
-   combined TIPP/MIPP transcript). Category 1 only after an exact algebraic
-   equivalence proof; the production trace fixture then regression-checks the
-   committed vectors. Verify `challenge_ms`/`tipp_mipp_ms` share first; below the
-   10% bar at small n, real at n ≥ 256.
-
-3. **Confirm GT exponentiation uses cyclotomic squaring throughout.**
-   `mul_helper` on `PairingOutput` routes through arkworks' `Group` impl,
-   whose `double()` is `cyclotomic_square` — good. But any site exponentiating
-   a raw `Fp12` (not `PairingOutput`) pays generic `square()`, ~2× slower.
-   One-line audit: grep for `pow(` / `mul_assign` on `Fp12`-typed values
-   outside `PairingOutput`. Zero-risk category 1 if any site is found.
-
-4. **Category 2 (parked): cyclotomic/torus GT compression on the wire.**
-   The aggregate proof is dominated by GT elements (~576 bytes each
-   uncompressed Fp12); Karabina/torus compression halves them and shrinks the
-   deserialize hotspot's parsing share. Wire-encoding only (category 2,
-   version bump + baseline regen). Interacts with candidate 1: decompression
-   cost partially offsets the subgroup-check saving — evaluate them together,
-   not separately.
-
-5. **Cross-family batch verification (amortization lens, 2026-07-07).** The
-   chain verifies up to 7 family aggregates per block as independent
-   `verify_family_aggregate` calls, each paying its own PPE final
-   exponentiation and KZG multi-pairings. Verifier-local random combiners
-   r₁…r₇ (fresh, post-deserialization, never transcript-derived) can merge
-   the 7 PPE checks — distinct prepared VKs are fine, Miller loops just
-   concatenate — into one multi-pairing with a **single** final
-   exponentiation, and likewise the 14 KZG opening checks. Saves ~6 final
-   exps + final-exp-per-KZG-pair per block; fixed-cost stage, so it matters
-   most at small n where per-aggregate overhead dominates. Batching changes
-   accept/reject *granularity* (one bit for the whole block — on failure,
-   fall back to per-family to attribute blame), and it is a
-   validation-strength change like candidate 1: byte-stable but needs the
-   same security-review checklist (randomizer sizing per cofactor prime,
-   independence from proof bytes, negative tests planting a bad element in
-   each family slot). Lives *above* this crate's per-aggregate API — the
-   batching seam belongs in the caller that sees all 7 families.
-
-6. **Padding-aware commitment coalescing (prover, 2026-07-07).** Padding
-   repeats the final row to the next power of two
-   (`pad_items_to_power_of_two`, padding.rs) — at n = 2^k + 1 nearly half the
-   commit work runs over *identical* elements. Pairing commitments collapse
-   algebraically: Π e(A, vᵢ) over the duplicated tail = e(A, Σ vᵢ), trading
-   up-to-half the Miller loops for cheap G2 adds of SRS keys (likewise
-   repeated-base MSM terms: sum the scalars). The commitment *values* should be
-   bit-identical, so this is a category-1 candidate only after proving the
-   bilinear/linear regrouping; the production fixture regression-checks padded
-   committed vectors. Win is shape-dependent (zero at exact powers of two);
-   measure against the real family-count distribution before building. GIPA's
-   fold rounds don't preserve the duplication past round one, so only the initial
-   commit stage coalesces.
-
-7. **Per-proof final-exp fusion inside one verify (verifier, 2026-07-07).**
-   Within a single `verify_family_aggregate`, the two KZG opening checks
-   (`verify_commitment_key_g2/g1_kzg_opening`, tipa/mod.rs:1137/1160) and the
-   base-commitment + PPE checks each pay their own final exponentiation on a
-   2–4-pair multi-pairing. All are of the form `multi_pairing(...) == 0`, so
-   the same verifier-local-randomizer argument as candidate 5 fuses them
-   into one Miller-loop concatenation + one final exp *per proof* — the
-   intra-proof version of candidate 5, worth doing first since it needs no
-   cross-crate seam. Note the KZG pair inputs are challenge-dependent, so
-   prepared-point caching does not apply here (the fixed-SRS prepared trick
-   is already spent on the PPE, §11); the fusion is the whole remaining win.
-   Same security-review checklist as candidates 1/5. Also confirmed while
-   sweeping: `deserialize_aggregate_proof` uses `deserialize_compressed`
-   (full per-point subgroup validation) — that cost is exactly what
-   candidate 1's batched subgroup check targets; no separate finding.
-
-**Lineage cross-check (2026-07-07):** against bellperson/Filecoin SnarkPack
-and the SnarkPack v2 paper, this backend already has every headline verifier
-trick: merged TIPP/MIPP transcript (single `r_commitment_steps`), O(log n)
-final-ck verification via KZG openings (`verify_commitment_key_*_kzg_opening`
-— the O(n) `_compute_final_commitment_keys` MSM is not on the production
-verify path), 128-bit rescaled challenges (`c`/`c_inv` swap, gipa.rs:694),
-prepared-G2 PPE reuse (§11), MSM final-key recombination (§9). The genuinely
-open deltas are candidates 1–7 above plus the §10 fixed-base SRS tables.
-
-**Deferred to the §10 benchmark matrix (not pursued as optimizations here):**
-
-- *Large fixed-base MSM tables for the SRS generators* (windowed comb/Pippenger,
-  tens–hundreds of MB). Payoff is memory-bandwidth- and regime-bound and does not
-  transfer from a developer machine to the production fleet — see §10a.
-
-**Already evaluated — do not re-attempt without new evidence:**
-
-- Batch all verify pairing checks into one randomized multi-pairing (fold the KZG
-  openings, TIPA-AB/C base cases, and the 3-pair PPE) — pairings are not the
-  bottleneck (deserialize is, candidate 1); regressed or tied on our shapes, in
-  line with the SnarkPack literature. The narrow 2-KZG-opening merge is a subset.
-- Batch-invert the transcript — log₂n (≤13) elements; negligible vs pairings.
-- MSM-ify `fold_public_inputs` `g_ic` / the shifted-`ck_1` build — one-time, sized
-  by public inputs not by n; below bar.
-- Category-2 uncompressed encoding (slower); reusing prepared `ck_a` in TIPA-AB
-  (regressed the build path).
-
-Architectural TODOs (`tipa/mod.rs`, `structured_scalar_message.rs`) are
-out-of-loop refactors, not optimization candidates.
-
-## 9. Optimizations currently in place
-
-Two work-reduction optimizations are live on the default build, both category 1
-(identical elements, byte/trace baselines unchanged, version 1):
-
-- **Final commitment-key recombination via MSM.** `_compute_final_commitment_keys`
-  recombines the final GIPA keys (`Σ xᵢ·ck[i]`) with the commitment trait's
-  `msm_keys` (variable-base MSM) instead of a sequential fold. Equivalence:
-  `msm_keys_equals_sequential_fold` (both key sides); A/B seam `fold_keys_baseline`.
-- **Prepared verifier-G2 reuse in the PPE (§11).** `verify_ppe` reuses the
-  precomputes carried in `ark_groth16::PreparedVerifyingKey` (`alpha_g1_beta_g2` as
-  a GT exponentiation, the prepared `-γ`/`-δ` tables) instead of re-pairing the raw
-  `vk` G2 points, removing one Miller loop and three `G2Prepared::from` builds.
-  Equivalence: `ppe_optimized_matches_baseline_gt_value`.
-
-Both clear §4's never-slower clause (provable work reduction, equivalence-tested)
-rather than the §4a 10% bar; each retains a `*_baseline` twin under `bench-baseline`
-as the A/B and equivalence oracle.
-
-A `rayon` parallel stack (GIPA rescale folds, round commits, TIPA proofs,
-verification checks, KZG checks) is also in place as the default. It is **not**
-tuned here — its value is regime-conditional and settled later against the §10
-matrix (§0.7).
-
-## 10. Parallelization benchmark matrix (to run later)
-
-Parallelization is *not* tuned through the optimization loop (§0.7). Instead,
-once the production machine architecture is settled, run this matrix to choose
-the default allocation strategy. Do not change parallelization code before then;
-only populate the §0.6 register with the knobs the matrix will sweep.
-
-Axes:
-
-- **Regime:** throughput (N aggregations × 1 thread) vs latency (1 aggregation ×
-  M threads) vs hybrid (bounded intra-op + across-aggregation scheduling).
-- **Core pool:** sweep available-core counts (e.g. 1, 4, 16, 64, 256) — never a
-  static assumption.
-- **`n` (proofs per aggregation):** {1, 2, 4, 8, 64}.
-- **Intra-op knob:** rayon pool size / max-intra-op-threads, off → full.
-
-Metric: aggregate **throughput** (aggs/sec) *and* per-aggregation **latency**
-under a *saturated* workload — not idle-bench wall-clock, which flatters intra-op
-parallelism by assuming free spare cores. Output: a recommended default (regime +
-knob values) per candidate architecture, with the §0.6 register filled in.
-
-### 10a. Big memory budget — MUST be tested once the architecture is known
-
-A *memory budget* is a fixed, declared RAM cap a precomputation cache is allowed
-to consume in exchange for cutting repeated compute: you set the ceiling up front
-and size the lookup tables to fit under it. For the SRS this means windowed
-fixed-base tables (comb/Pippenger) over the fixed SRS generators, so each
-scalar-mul becomes table lookups instead of doublings. Bigger budget → bigger
-tables → faster fixed-base MSMs → more RAM per worker.
-
-**This is an open task, not a closed decision.** The large-table version is *not*
-benchmarked yet and must not be sized or committed on developer-machine numbers,
-because its payoff does not transfer:
-
-- **Memory-bandwidth bound.** Tables trade arithmetic for memory lookups; whether
-  that wins depends on the machine's memory bandwidth and cache hierarchy relative
-  to its multiplier throughput. The *sign* of the result can flip between a laptop
-  (fat caches, high unified-memory bandwidth) and a many-core server (many threads
-  contending for shared DRAM) — not just the magnitude.
-- **Regime-entangled (ties into §0.7/§10).** Tables cost RAM *per concurrent
-  worker*. In the **throughput** regime you either replicate them per worker (RAM
-  blows up — the budget genuinely binds) or share and serialize access (the
-  speedup evaporates). The budget cannot be chosen before the regime is, and the
-  regime is settled here, in the §10 matrix.
-- **Saturated, not idle.** The marginal MSM speedup must be measured under a
-  saturated workload; an idle laptop bench overstates it.
-
-**Action when production hardware is settled:** add the large fixed-base table to
-the §10 matrix as an extra axis — **memory budget** {0 (off), small, large}, swept
-against the regime × core-pool × `n` axes, measured under saturated load — and
-emit a recommended budget per candidate architecture. Until then this stays
-unbenched and uncommitted by design. (Record the chosen budget and table sizing in
-the §0.6 register once known.)
-
-## 11. How `verify_ppe` works today
-
-The fixed verifier G2 points the PPE pairs against never change across
-verifications, so `verify_ppe` reuses the precomputes **already carried in
-`ark_groth16::PreparedVerifyingKey`** rather than re-preparing and re-pairing the
-raw `vk` G2 points each call:
-
-- `e(α·r_sum, β) = e(α, β)^{r_sum}` — `pvk.alpha_g1_beta_g2` raised to `r_sum`, a
-  GT exponentiation in place of one Miller loop.
-- `e(g_ic, γ) = e(-g_ic, -γ)` and `e(agg_c, δ) = e(-agg_c, -δ)` — paired against
-  `pvk.{gamma,delta}_g2_neg_pc`, the already-prepared `-γ`/`-δ` line tables, so
-  neither γ nor δ is re-prepared and β is not prepared at all.
-
-Net per verify: −1 Miller loop, −3 `G2Prepared::from` builds, +1 GT exponentiation
-(cheaper than a Miller loop). Strictly less work for the identical GT element, so
-it is never slower than the three-pairing form. The PPE is a fixed-cost stage
-(independent of n), so the saving is near-constant in absolute terms.
-
-**Category 1, byte- and trace-stable.** Verifier-side arithmetic only: same
-accept/reject decision, no wire or Fiat-Shamir byte touched, version unchanged. The
-reference oracle has its own `verify_ppe`, and the PPE emits no challenge-trace
-events, so the production-owned ShielddByte trace fixture is unaffected.
-Equivalence is asserted by `ppe_optimized_matches_baseline_gt_value` (the
-optimized expression equals the three-pairing GT value over random inputs);
-end-to-end correctness is additionally gated by
-`snarkpack_matches_single_and_batch_groth16_oracles` and the production
-proof/trace fixture umbrella. The three-pairing form is retained as
-`verify_ppe_baseline` (compiled only under `bench-baseline`) for the §3b A/B seam.
-
-`crates/bench/benches/vanilla/snarkpack_prepared_g2.rs` measures per-`G2Prepared::from`
-cost against full verify, bounding the prepare-reuse portion of the saving.
+Use this file to optimize the shipping SnarkPack implementation without
+silently changing its verified protocol. The generated
+[`operation-reduction-register.md`](formal/snarkpack/operation-reduction-register.md)
+is the authoritative candidate inventory. This playbook is the implementation
+and measurement loop; it does not duplicate that inventory.
+
+The current conditional Rust → SnarkPack v1 → `Ipp.Goal` theorem is the semantic
+baseline. Deployment SRS provenance remains a separate assumption and is not an
+optimization task.
+
+## Start here
+
+1. Profile the production aggregate or verify path at a representative proof
+   count.
+2. Select or add one candidate in the operation register.
+3. Classify the change before coding.
+4. Record the expected operation-vector change and affected proof graph.
+5. Implement the smallest production change and an equivalence oracle when one
+   is useful.
+6. Measure work reduction with one Rayon thread, then measure the intended
+   deployment regimes.
+7. Run the proof-impact and validation gates for the change class.
+8. Land only a measured improvement or a materially simpler implementation.
+
+Do not retain speculative abstractions, compatibility paths, or benchmark-only
+twins after they stop serving an active A/B or equivalence purpose.
+
+## Change classes
+
+| Class | Examples | Required treatment |
+| --- | --- | --- |
+| Exact computation | MSM/fold fusion, coefficient streaming, exact pairing regrouping, fewer copies | Preserve values, errors, proof bytes, transcript bytes, and acceptance behavior. Re-establish the affected Rust refinement. |
+| Scheduling or layout | Rayon scheduling, allocation, caching, prepared values | Preserve the same semantic execution. Measure both work-floor and saturated behavior; scheduling alone is not an operation-count reduction. |
+| Wire encoding | Point compression or proof layout | Bump `AGGREGATE_PROTOCOL_VERSION`, regenerate fixtures, rerun two-way interoperability, and update the affected formal evidence. |
+| Transcript | Labels, order, challenge preimages, nonce or field conversion | Treat as a new protocol, not an optimization of the verified protocol. Rebuild the Fiat–Shamir model and soundness composition. |
+| Validation or acceptance | Batched subgroup checks, randomized equation checks, relaxed decoding | Supply an equivalence theorem or a new soundness theorem and explicit error term. Byte stability alone is insufficient. |
+| Arithmetic backend | Field, curve, MSM, pairing, serialization, subgroup kernels | Supply a concrete refinement theorem or retain the exact affected Arkworks assumption. |
+| SRS or deployment | Ceremony, registry, artifact loading | Track under `DEPLOYED-SRS-SOUNDNESS`; do not mix it into performance work. |
+
+The protected transcript surface includes `encode_statement` in `statement.rs`,
+the challenge context and preimage construction in `challenge.rs`, and the
+family transcript digests in `transcript.rs`.
+
+Passing byte fixtures is necessary for an exact-computation change, but it is
+not a proof of validation or acceptance equivalence. A byte-stable verifier can
+still accept more inputs.
+
+## Choose work from evidence
+
+Use both views:
+
+- Top down: inspect `AggregateBuildBackendProfile` and
+  `AggregateVerificationProfile` in `backend.rs`. Confirm the largest measured
+  stage on the workload being optimized.
+- Bottom up: inspect the generated operation register for an open exact-v1
+  candidate with a precise target and theorem obligation.
+
+Do not copy rankings or cost formulas into new planning files. Update
+`operation-reduction-register.json`, validate the manifest, and regenerate the
+register so one source remains authoritative.
+
+The first optimization task should normally be measurement conformance: confirm
+the profile and counters for the chosen production path. The current register
+marks full backend cost conformance open. An unmeasured symbolic opportunity is
+not yet a performance result.
+
+Good exact-computation investigations include:
+
+- shared GIPA GT multi-exponentiation (`E1`);
+- exact pairing-term regrouping (`E2`);
+- exact MSM coefficient regrouping (`E3`);
+- streaming KZG coefficient construction (`E4`); and
+- elimination of a demonstrated duplicate arithmetic site (`E5`).
+
+Randomized validation or equation batching (`P1`, `P2`) is security work. Keep
+it out of the ordinary optimization loop until its error budget and theorem are
+specified. Versioned candidates (`V2-*`) are separate protocol designs.
+
+## Proof impact before implementation
+
+Write down:
+
+- the exact production call site;
+- the operation-vector dimensions expected to decrease and any dimensions that
+  may increase;
+- proof and transcript byte impact;
+- acceptance and failure behavior;
+- the refinement theorem or assumption that must change; and
+- representative proof counts and workload regime.
+
+For Rust sources covered by modular extraction, inspect the affected graph set:
+
+```sh
+python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py \
+  affected --base <git-ref>
+```
+
+Run only those modular proof lanes while iterating. A shared extractor,
+normalizer, or source-inventory change can invalidate every graph; avoid such
+changes unless the optimization genuinely needs them.
+
+The reusable semantic targets are summarized in
+[`optimization-vs-fv.md`](formal/snarkpack/optimization-vs-fv.md). Generated
+handoff files are outputs: update their manifest or source evidence and
+regenerate them rather than editing them directly.
+
+## Measurement loop
+
+The end-to-end Criterion benchmark is
+`crates/bench/benches/vanilla/snarkpack.rs`. It measures aggregate and verify for
+counts `1, 2, 4, 8, 64` using deterministic corpus inputs.
+
+Measure the work floor first:
+
+```sh
+RAYON_NUM_THREADS=1 cargo bench -p shieldd-sdk-bench --bench snarkpack -- \
+  "snarkpack verify"
+```
+
+Use the aggregate filter when optimizing the prover. Record Criterion estimates
+and uncertainty, the commit, toolchain, CPU, thread count, proof family, count,
+and whether the corpus was already present.
+
+For a production-path A/B, either compare two commits or use the existing
+compile-time `bench-baseline` seam when it already covers the changed site:
+
+```sh
+RAYON_NUM_THREADS=1 cargo bench -p shieldd-sdk-bench --bench snarkpack \
+  --features shieldd-sdk-proof-aggregation/bench-baseline -- \
+  "snarkpack verify"
+```
+
+Add a new `bench-baseline` branch only when it will be an active equivalence or
+A/B oracle. Delete it after the comparison if it no longer pays for its code
+surface. Never add a runtime protocol branch for benchmarking.
+
+After a work-floor win, measure the regimes that matter:
+
+- latency: one aggregate with the available thread pool;
+- throughput: enough concurrent aggregates to saturate the machine, with low
+  per-aggregate thread demand; and
+- hybrid: bounded intra-aggregate parallelism with concurrent aggregates.
+
+Do not hardcode a production core count before deployment hardware is known.
+Rayon may help or regress depending on contention and problem size, so measure
+instead of claiming that a scheduling change is inherently faster. Record every
+introduced threshold or chunk size as a named tunable beside its benchmark
+rationale.
+
+A microbenchmark may diagnose a primitive, but only the end-to-end aggregate or
+verify result is a shipping performance result. Reject noise and report
+tradeoffs rather than summing non-independent per-change percentages.
+
+## Implementation rules
+
+For exact-computation changes:
+
+1. Keep the public protocol and failure behavior unchanged.
+2. Prefer a pure helper with a focused equality test when the equivalence is not
+   already evident from the affected refinement theorem.
+3. Cover empty/identity, zero, duplicate-base, smallest, largest supported, and
+   both serial and parallel paths when relevant.
+4. Keep the committed byte and transcript fixtures unchanged.
+5. Update only the affected extraction/refinement evidence.
+
+For wire changes:
+
+1. Specify the new encoding and version before implementation.
+2. Bump `AGGREGATE_PROTOCOL_VERSION`; do not assume a particular current
+   numeric value in planning prose.
+3. Regenerate the byte and trace fixtures through their ignored test helpers.
+4. Update manifest evidence, regenerate derived handoffs, and rerun slow
+   two-way interoperability.
+
+For validation or acceptance changes, stop the performance loop until the new
+acceptance relation, randomness source, query budget, and error term are
+explicit. A target such as fewer final exponentiations does not justify an
+unproved batching rule.
+
+## Validation
+
+Use the smallest focused tests while iterating, then run the gates implied by
+the change:
+
+```sh
+cargo test -p shieldd-sdk-proof-aggregation --lib
+cargo test -p shieldd-sdk-proof-aggregation-reference --lib
+just snarkpack-invariants
+cargo fmt --all -- --check
+```
+
+The production crate tests own deterministic aggregation, committed byte and
+transcript fixtures, and the ordinary Groth16 oracle comparison. The reference
+crate is an independent falsification and interoperability oracle, not the
+protocol specification.
+
+Before landing a semantic Rust optimization, also run:
+
+- the affected modular extraction and Lean lanes;
+- `just snarkpack-formal` when the formal boundary changed;
+- `just snarkpack-slow` for wire, interoperability, or broad protocol work;
+- `just snarkpack-fuzz-smoke` for parsing, shape, or decode changes; and
+- `just snarkpack-dos-gate` for attacker-controlled size or latency paths.
+
+Record which prover, release-gated, fuzz, and slow tests actually ran. Do not
+infer a numerical security level from benchmark results or from the conditional
+FV theorem.
+
+## Landing rule
+
+Land a performance change only when it has:
+
+- an end-to-end improvement outside the measured uncertainty at representative
+  counts, or a clearly simpler implementation with no material regression;
+- unchanged protocol evidence or an explicit versioned protocol update;
+- current affected formal evidence; and
+- no obsolete baseline path, duplicated plan, or unexplained tunable.
+
+Otherwise revert the experiment and keep only durable measurements or candidate
+updates that improve the authoritative operation register.

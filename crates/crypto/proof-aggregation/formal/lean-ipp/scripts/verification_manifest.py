@@ -35,7 +35,7 @@ OPERATION_REGISTER_PATH = (
     "operation-reduction-register.json"
 )
 OPERATION_REGISTER_SHA256 = (
-    "8706f919e71b4f6d380b6ce13b4ff8d5c793faa658b7509cd8e4dead03e3786f"
+    "958f8ab242e7190963a963db6171e2ddaa1ddb57bff67b0ad9ea627249201c00"
 )
 FSTAR_CHECKER_EVIDENCE_PATH = (
     REPO_ROOT
@@ -96,10 +96,10 @@ CLOSED_TESTED_CLAIM_IDS = {
 # editing only the evidence ledger. Intentional ledger changes require an
 # explicit update to this fail-closed owner.
 CLAIM_LEDGER_SHA256 = (
-    "538e8561f096fa746e7fd77891d4846a4e6879f9460c9e92bc1bc75c2d10b48b"
+    "cd63e58f6157c853d6c900ec476451a31aa30f61c0b7c43a55422c685ffdb443"
 )
 ASSUMPTION_LEDGER_SHA256 = (
-    "8ca41010c44f35cd3e3e90fcaa7359173e607c9a4f70040efa4bbba57dca7633"
+    "57f0f3cbd03b3e4e3f601ba5b340ac3c6497f74c678bbf63035143f418265070"
 )
 V1_PROTOCOL_VERSION = 2
 V1_BYTE_BASELINE_SHA256 = (
