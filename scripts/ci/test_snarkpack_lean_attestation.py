@@ -316,6 +316,46 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
             ["Ipp.ProofAuditTest", "Ipp.ProofAuditTest"],
         )
 
+    def test_refreshed_json_audit_evidence_is_extracted_by_source(self) -> None:
+        values = self._fingerprints(("Ipp.ProofAuditTest",))
+        refreshed = self.root / "refreshed"
+        refreshed.mkdir()
+        expected = {
+            "data": "'base' does not depend on any axioms",
+            "fileName": "Ipp/ProofAuditTest.lean",
+            "pos": {"column": 0, "line": 3},
+            "severity": "information",
+        }
+        foreign = {
+            **expected,
+            "data": "'foreign' does not depend on any axioms",
+            "fileName": "Ipp/ProofAuditOther.lean",
+        }
+        (refreshed / "Ipp.ProofAuditTest.log").write_text(
+            json.dumps(foreign) + "\n" + json.dumps(expected) + "\n",
+            encoding="utf-8",
+        )
+        validated: list[tuple[str, str]] = []
+
+        ATTESTATION.record_audit_evidence_from_dir(
+            values,
+            self.audits,
+            refreshed,
+            validator=lambda module, text: validated.append((module, text)),
+        )
+
+        self.assertEqual(len(validated), 1)
+        module, text = validated[0]
+        self.assertEqual(module, "Ipp.ProofAuditTest")
+        self.assertIn("'base' does not depend on any axioms", text)
+        self.assertNotIn("foreign", text)
+        self.assertEqual(
+            (self.audits / "Ipp.ProofAuditTest.log").read_text(
+                encoding="utf-8"
+            ),
+            text,
+        )
+
     def test_missing_or_tampered_audit_evidence_rebuilds_or_fails_exact(self) -> None:
         values = self._fingerprints(("Ipp.ProofAuditTest",))
         ATTESTATION.record(values, self.markers)

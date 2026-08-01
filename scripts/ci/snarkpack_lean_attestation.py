@@ -37,6 +37,11 @@ AUDIT_DIAGNOSTIC_RE = re.compile(
     r"\d+:\d+: ",
     flags=re.MULTILINE,
 )
+AUDIT_JSON_DATA_RE = re.compile(
+    r"^'[^'\r\n]+' "
+    r"(?:depends on axioms: \[.*\]|does not depend on any axioms)$",
+    flags=re.DOTALL,
+)
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 BUILD_INPUTS = (
@@ -393,6 +398,35 @@ def _module_audit_log(text: str, module: str) -> str:
             continue
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
         chunks.append(text[match.start():end].rstrip() + "\n")
+    for line_text in text.lstrip("\ufeff").splitlines():
+        try:
+            diagnostic = json.loads(line_text)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if not isinstance(diagnostic, dict):
+            continue
+        source = diagnostic.get("fileName")
+        position = diagnostic.get("pos")
+        data = diagnostic.get("data")
+        if (
+            diagnostic.get("severity") != "information"
+            or not isinstance(source, str)
+            or source.replace("\\", "/") != expected_source
+            or not isinstance(position, dict)
+            or not isinstance(data, str)
+            or AUDIT_JSON_DATA_RE.fullmatch(data) is None
+        ):
+            continue
+        source_line = position.get("line")
+        source_column = position.get("column")
+        if (
+            not isinstance(source_line, int)
+            or isinstance(source_line, bool)
+            or not isinstance(source_column, int)
+            or isinstance(source_column, bool)
+        ):
+            continue
+        chunks.append(line_text.rstrip() + "\n")
     if not chunks:
         raise AttestationError(
             f"Lean build log contains no audit diagnostics for {module}"
