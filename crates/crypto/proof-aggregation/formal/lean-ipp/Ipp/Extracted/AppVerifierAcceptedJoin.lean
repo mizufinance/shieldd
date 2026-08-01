@@ -89,7 +89,19 @@ theorem identityScanFrom_accepts_iff
   | nil =>
       simp [identityScanFrom]
   | cons record remaining ih =>
-      simp [identityScanFrom, ih]
+      cases hmatch : recordIdentitiesMatch record with
+      | false =>
+          have hrecord : ¬(record.authenticated_id = record.planner_id ∧
+              record.executed_id = record.planner_id) := by
+            intro hidentities
+            have := (recordIdentitiesMatch_eq_true_iff record).2 hidentities
+            simp [hmatch] at this
+          simp [identityScanFrom, hmatch, hrecord]
+      | true =>
+          have hrecord : record.authenticated_id = record.planner_id ∧
+              record.executed_id = record.planner_id :=
+            (recordIdentitiesMatch_eq_true_iff record).1 hmatch
+          simp [identityScanFrom, hmatch, hrecord, ih]
 
 theorem orderScanFrom_accepts_iff
     {Observation Execution : Type}
@@ -114,7 +126,21 @@ theorem orderScanFrom_accepts_iff
           have htail :
               remainingExpected.length = remainingRecords.length := by
             simpa using hcount
-          simp [orderScanFrom, ih _ _ htail]
+          cases hmatch :
+              callIdMatchesModel record.planner_id expected with
+          | false =>
+              have hne : record.planner_id ≠ expected := by
+                intro heq
+                have :=
+                  (callIdMatchesModel_eq_true_iff
+                    record.planner_id expected).2 heq
+                simp [hmatch] at this
+              simp [orderScanFrom, hmatch, hne]
+          | true =>
+              have heq : record.planner_id = expected :=
+                (callIdMatchesModel_eq_true_iff
+                  record.planner_id expected).1 hmatch
+              simp [orderScanFrom, hmatch, heq, ih _ _ htail]
 
 theorem rejectedCallIds_eq_nil_iff
     {Observation Execution : Type}
@@ -521,9 +547,14 @@ theorem app_verify_join_acceptance_core_true_iff
     (rejected : alloc.vec.Vec CallId) :
     app_verifier.app_verify_join_acceptance_core rejected = .ok true ↔
       rejected.val = [] := by
-  rcases rejected with ⟨[] | rejected :: remaining⟩ <;>
-    simp [app_verifier.app_verify_join_acceptance_core,
-      ark_ip_proofs.alloc.vec.Vec.is_empty]
+  rcases rejected with ⟨values⟩
+  cases values with
+  | nil =>
+      simp [app_verifier.app_verify_join_acceptance_core,
+        ark_ip_proofs.alloc.vec.Vec.is_empty]
+  | cons rejected remaining =>
+      simp [app_verifier.app_verify_join_acceptance_core,
+        ark_ip_proofs.alloc.vec.Vec.is_empty]
 
 /-- Accepted join capstone.
 

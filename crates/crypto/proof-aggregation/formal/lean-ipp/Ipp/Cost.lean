@@ -257,7 +257,7 @@ def eventCount (role : Role) (operation : Operation) : List Step → Nat
     eventCount role operation (left ++ right) =
       eventCount role operation left + eventCount role operation right := by
   induction left with
-  | nil => rfl
+  | nil => simp [eventCount]
   | cons head tail ih =>
       simp only [List.cons_append, eventCount, ih]
       omega
@@ -272,9 +272,10 @@ def repeatBlock : Nat → List Step → List Step
     eventCount role operation (repeatBlock n block) =
       n * eventCount role operation block := by
   induction n with
-  | zero => rfl
+  | zero => simp [repeatBlock, eventCount]
   | succ n ih =>
       simp only [repeatBlock, eventCount_append, ih, Nat.succ_mul]
+      omega
 
 def proverInitialPairingBatch
     (n : Nat) (site : InitialPairingSite) : List Step :=
@@ -444,7 +445,7 @@ theorem countedHonestRounds_result
     (countedHonestRounds e μ vKeys wKeys a c b publicValues challenges).result =
       Ipp.SnarkPackV1.HonestProver.honestRounds
         e μ vKeys wKeys a c b publicValues challenges := by
-  induction μ generalizing vKeys wKeys a c b publicValues with
+  induction μ with
   | zero => rfl
   | succ μ ih =>
       simp only [countedHonestRounds,
@@ -461,7 +462,7 @@ theorem countedHonestRounds_schedule
     (challenges : Fin μ → F) :
     (countedHonestRounds e μ vKeys wKeys a c b publicValues challenges).schedule =
       proverRoundsSchedule μ := by
-  induction μ generalizing vKeys wKeys a c b publicValues with
+  induction μ with
   | zero => rfl
   | succ μ ih =>
       simp only [countedHonestRounds, countedHonestRound,
@@ -561,8 +562,8 @@ def countedShippingConstruct {μ : Nat}
     (countedShippingConstruct statement witness transcript boundary).result =
       Ipp.SnarkPackV1.HonestProver.construct
         statement witness transcript boundary.toOpenings := by
-  unfold countedShippingConstruct
-  rw [countedHonestRounds_result]
+  simp only [countedShippingConstruct, countedInitialState,
+    countedKzgBoundary, countedHonestRounds_result]
   rfl
 
 theorem countedShippingConstruct_schedule {μ : Nat}
@@ -573,9 +574,8 @@ theorem countedShippingConstruct_schedule {μ : Nat}
     (boundary : Ipp.Extracted.ShippingProver.KzgBoundary statement) :
     (countedShippingConstruct statement witness transcript boundary).schedule =
       proverSchedule μ := by
-  unfold countedShippingConstruct
-  rw [countedHonestRounds_schedule]
-  simp only [countedInitialState, countedKzgBoundary, kzgSrsSchedule,
+  simp only [countedShippingConstruct, countedHonestRounds_schedule,
+    countedInitialState, countedKzgBoundary, kzgSrsSchedule,
     proverSchedule, proverKzgSchedule]
 
 end ProverInterpreter
@@ -723,10 +723,9 @@ def countedVerifier {μ : Nat}
     (transcript : Ipp.FsTranscript μ F) :
     (countedVerifier statement proof transcript).result ↔
       Ipp.SnarkPackV1.Accepts statement proof transcript := by
-  unfold countedVerifier Ipp.SnarkPackV1.Accepts Ipp.FsAccepts
-    Ipp.LeafData Ipp.terminalFold leafDataWithFold
-  rw [countedFoldRounds_result]
-  rfl
+  simp only [countedVerifier, countedFoldRounds_result,
+    Ipp.SnarkPackV1.Accepts, Ipp.FsAccepts, Ipp.LeafData,
+    Ipp.terminalFold, leafDataWithFold]
 
 theorem countedVerifier_schedule {μ : Nat}
     (statement : Ipp.FsStatement μ F G1 G2 GT)
@@ -734,8 +733,8 @@ theorem countedVerifier_schedule {μ : Nat}
     (transcript : Ipp.FsTranscript μ F) :
     (countedVerifier statement proof transcript).schedule =
       verifierSchedule μ := by
-  unfold countedVerifier verifierRootDecodeOf verifierFinalOf verifierSchedule
-  rw [verifierRoundDecodeOf_eq, countedFoldRounds_schedule]
+  simp only [countedVerifier, verifierRootDecodeOf, verifierFinalOf,
+    verifierSchedule, verifierRoundDecodeOf_eq, countedFoldRounds_schedule]
 
 end VerifierInterpreter
 

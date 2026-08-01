@@ -30,6 +30,8 @@ local instance : Fact (∀ x : Fq, x ^ 2 ≠ (-5) + 0 * x) :=
 local instance : Fintype Fq2 :=
   Fintype.ofEquiv
     (Fq × Fq) (QuadraticAlgebra.equivProd (-5 : Fq) 0).symm
+local instance : DecidableEq g1PrimeSubgroup := Classical.decEq _
+local instance : DecidableEq g2PrimeSubgroup := Classical.decEq _
 
 variable
   [IsUniformSpec (FsWrappedSpec Fr)]
@@ -674,30 +676,34 @@ theorem kzg_false_opening_to_standalone_bls12377_games_ofSoundness
         s1ForkExperiment stmt adv qb badZ witnessOf] ≤
       security.epsilonV 0 queryBudgetV +
         security.epsilonW 0 queryBudgetW := by
-  apply kzg_false_opening_to_explicit_bls12377_forgery_games
-    stmt adv qb badZ witnessOf reductionV reductionW
-  · exact {
-      epsilon := security.epsilonV 0 queryBudgetV
-      queryBudget := queryBudgetV
-      queryBound := hboundV
-      gameWin_le :=
-        bls12377FixedKzgV_mapped_le_security_ofSoundness
-          stmt parameters soundness
-          (bls12377KzgVForgeryGame
-            stmt adv qb badZ witnessOf reductionV)
-          security queryBudgetV hboundV
-    }
-  · exact {
-      epsilon := security.epsilonW 0 queryBudgetW
-      queryBudget := queryBudgetW
-      queryBound := hboundW
-      gameWin_le :=
-        bls12377FixedKzgW_mapped_le_security_ofSoundness
-          stmt parameters soundness
-          (bls12377KzgWForgeryGame
-            stmt adv qb badZ witnessOf reductionW)
-          security queryBudgetW hboundW
-    }
+  let securityV :
+      Bls12377KzgVForgeryGameSecurity
+        stmt adv qb badZ witnessOf reductionV := {
+    epsilon := security.epsilonV 0 queryBudgetV
+    queryBudget := queryBudgetV
+    queryBound := hboundV
+    gameWin_le :=
+      bls12377FixedKzgV_mapped_le_security_ofSoundness
+        stmt parameters soundness
+        (bls12377KzgVForgeryGame
+          stmt adv qb badZ witnessOf reductionV)
+        security queryBudgetV hboundV
+  }
+  let securityW :
+      Bls12377KzgWForgeryGameSecurity
+        stmt adv qb badZ witnessOf reductionW := {
+    epsilon := security.epsilonW 0 queryBudgetW
+    queryBudget := queryBudgetW
+    queryBound := hboundW
+    gameWin_le :=
+      bls12377FixedKzgW_mapped_le_security_ofSoundness
+        stmt parameters soundness
+        (bls12377KzgWForgeryGame
+          stmt adv qb badZ witnessOf reductionW)
+        security queryBudgetW hboundW
+  }
+  exact kzg_false_opening_to_explicit_bls12377_forgery_games
+    stmt adv qb badZ witnessOf reductionV reductionW securityV securityW
 
 /-- Shipping-shaped specialization: construct the complete fixed KZG
 parameters from the statement and retained verifier bases, prove both SRS
@@ -921,6 +927,8 @@ theorem bls12377FixedGipaProjectionBridge {μ : Nat}
       simpa using congrArg Prod.fst hresult.symm
     · intro event
       rw [bls12377FixedGipaStandaloneGame_eq_map, probEvent_map]
+      rw [probEvent_map]
+      rw [probEvent_map]
       rfl
   · intro result hsupport
     have hparameters :
@@ -1061,38 +1069,42 @@ theorem gipa_fork_knowledge_to_standalone_bls12377_games
         s1ForkExperiment stmt adv qb badZ extractor.extract] ≤
       security.epsilonRoot 0 queryBudget +
         security.epsilonProduct 0 queryBudget := by
-  apply gipa_fork_knowledge_to_explicit_bls12377_games
-    stmt adv qb badZ extractor
-  · exact {
-      epsilon := security.epsilonRoot 0 queryBudget
-      queryBudget := queryBudget
-      queryBound :=
-        (bls12377GipaRootOpeningGame_isTotalQueryBound_iff
-          stmt adv qb badZ extractor queryBudget).2 hbound
-      gameWin_le := by
-        simpa [bls12377GipaRootOpeningGame] using
-          bls12377FixedGipaRoot_mapped_le_security
-            stmt pairing
-            (gipaRootOpeningGame
-              stmt adv qb badZ extractor.extract)
-            extractor security compatible queryBudget hbound
-    }
-  · exact {
-      epsilon := security.epsilonProduct 0 queryBudget
-      queryBudget := queryBudget
-      queryBound :=
-        (bls12377GipaProductLaneGame_isTotalQueryBound_iff
-          stmt adv qb badZ extractor queryBudget).2 (by
-            simpa [gipaRootOpeningGame, gipaProductLaneGame] using hbound)
-      gameWin_le := by
-        simpa [bls12377GipaProductLaneGame,
-          gipaRootOpeningGame, gipaProductLaneGame] using
-          bls12377FixedGipaProduct_mapped_le_security
-            stmt pairing
-            (gipaRootOpeningGame
-              stmt adv qb badZ extractor.extract)
-            extractor security compatible queryBudget hbound
-    }
+  let rootSecurity :
+      Bls12377GipaRootOpeningExplicitGameSecurity
+        stmt adv qb badZ extractor := {
+    epsilon := security.epsilonRoot 0 queryBudget
+    queryBudget := queryBudget
+    queryBound :=
+      (bls12377GipaRootOpeningGame_isTotalQueryBound_iff
+        stmt adv qb badZ extractor queryBudget).2 hbound
+    gameWin_le := by
+      simpa [bls12377GipaRootOpeningGame] using
+        bls12377FixedGipaRoot_mapped_le_security
+          stmt pairing
+          (gipaRootOpeningGame
+            stmt adv qb badZ extractor.extract)
+          extractor security compatible queryBudget hbound
+  }
+  let productSecurity :
+      Bls12377GipaProductLaneExplicitGameSecurity
+        stmt adv qb badZ extractor := {
+    epsilon := security.epsilonProduct 0 queryBudget
+    queryBudget := queryBudget
+    queryBound :=
+      (bls12377GipaProductLaneGame_isTotalQueryBound_iff
+        stmt adv qb badZ extractor queryBudget).2 (by
+          simpa [gipaRootOpeningGame, gipaProductLaneGame] using hbound)
+    gameWin_le := by
+      simpa [bls12377GipaProductLaneGame,
+        gipaRootOpeningGame, gipaProductLaneGame] using
+        bls12377FixedGipaProduct_mapped_le_security
+          stmt pairing
+          (gipaRootOpeningGame
+            stmt adv qb badZ extractor.extract)
+          extractor security compatible queryBudget hbound
+  }
+  exact gipa_fork_knowledge_to_explicit_bls12377_games
+    stmt adv qb badZ extractor rootSecurity productSecurity
 
 end
 

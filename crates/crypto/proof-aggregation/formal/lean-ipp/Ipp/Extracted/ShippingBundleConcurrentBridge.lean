@@ -15,8 +15,10 @@ namespace Ipp.Extracted.ShippingBundleConcurrentBridge
 open OracleSpec OracleComp
 open Ipp.ShippingMultiStatement
 open Ipp.ShippingBundleCachedComposition
+open Ipp.ShippingBundleGoalBridge
 open Ipp.Extracted.AppVerifierStateMachine
 open Ipp.Extracted.ShippingBundleMaterialization
+open Ipp.Extracted.ShippingBundleAdaptiveComposition
 open Ipp.Extracted.ShippingBundleProgramConstruction
 open Ipp.Extracted.ShippingProductionKeyFunctionality
 
@@ -42,7 +44,7 @@ The range equation rules out missing, duplicate, reordered, or unexpected
 planner slots.  `semanticAtIndex` binds each joined value to the constructor-
 derived call at that slot.  `closureExecutedOnce` records the operational
 exactly-once fact rather than replacing it with an arbitrary proposition. -/
-structure AcceptedTokioIndexedPostconditions
+def AcceptedTokioIndexedPostconditions
     {declared : Aeneas.Std.alloc.vec.Vec ExpectedCall}
     {expected : Aeneas.Std.alloc.vec.Vec CallId}
     {results : Aeneas.Std.alloc.vec.Vec CallResult}
@@ -53,22 +55,15 @@ structure AcceptedTokioIndexedPostconditions
         (ConcurrentCallObservation
           RecordedPackedCall
           (QueryLog GlobalFsSourceSpec)
-          Profile Timing Debug)) : Prop where
-  slots : List (AcceptedTokioSlot Profile Timing Debug)
-  observationsExact :
-    slots.map AcceptedTokioSlot.joined =
-      observations
-  plannerIndicesExact :
+          Profile Timing Debug)) : Prop :=
+  ∃ slots : List (AcceptedTokioSlot Profile Timing Debug),
+    slots.map AcceptedTokioSlot.joined = observations ∧
     slots.map AcceptedTokioSlot.plannerIndex =
-      List.range bundle.recordedCalls.length
-  countExact :
-    slots.length = bundle.recordedCalls.length
-  closureExecutedOnce :
+      List.range bundle.recordedCalls.length ∧
+    slots.length = bundle.recordedCalls.length ∧
+    (∀ slot ∈ slots, slot.closureExecutions = 1) ∧
     ∀ slot ∈ slots,
-      slot.closureExecutions = 1
-  semanticAtIndex :
-    ∀ slot ∈ slots,
-      bundle.recordedCalls.get? slot.plannerIndex =
+      bundle.recordedCalls[slot.plannerIndex]? =
         some slot.joined.semantic
 
 /-- Concrete call-local chronological trace postcondition.
@@ -186,7 +181,7 @@ structure AcceptedConcurrentRunBridge
     (invalid : (μ : Nat) → SelectionAt CallId μ → Prop)
     (answer : QueryImpl GlobalFsSourceSpec Id)
     (runtimeOutput : PackedOutcome CallId)
-    (Profile Timing Debug : Type) : Prop where
+    (Profile Timing Debug : Type) where
   projection :
     AcceptedTokioSemanticProjection
       bundle answer Profile Timing Debug
@@ -340,7 +335,9 @@ theorem observationSelectionsExact
     _ =
         bundle.recordedCalls.map
           RecordedPackedCall.selection := by
-      rw [bridge.projection.plannerOrderExact]
+      exact
+        congrArg (List.map RecordedPackedCall.selection)
+          bridge.projection.plannerOrderExact
     _ = bundle.selections :=
       bundle.recordedCalls_selections
 
@@ -365,10 +362,9 @@ theorem packedRunMatches
     bundle.PackedRunMatches
       (bridge.perCallRuns.map Prod.fst) := by
   unfold OutputDerivedShippingBundle.PackedRunMatches
-  rw [← bridge.projection.plannerOrderExact]
   exact
-    observationRuns_packedMatches
-      bridge.observationRunsExact
+    bridge.projection.plannerOrderExact ▸
+      observationRuns_packedMatches bridge.observationRunsExact
 
 /-- The observation/run relation supplies the `perCallExact` field of the
 canonical serialization record. -/
@@ -530,8 +526,8 @@ theorem canonicalOutputExact
           preselection invalid
             (rejectedPackedOutcome fallbackSelection)) =
       runtimeOutput :=
-  (bridge.toAcceptedConcurrentBundleSerialization)
-    .canonicalOutputExact fallbackSelection
+  AcceptedConcurrentBundleSerialization.canonicalOutputExact
+    bridge.toAcceptedConcurrentBundleSerialization fallbackSelection
 
 end AcceptedConcurrentRunBridge
 

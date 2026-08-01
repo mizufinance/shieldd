@@ -90,7 +90,16 @@ theorem arkworks_g2_kzg_opening_true_iff_pairing_and_acceptV
         (statementWithExecutablePairing hbilinear baseStmt).acceptV
           z (Ipp.transcriptCoeffs x rShift) key opening := by
   rw [Ipp.Extracted.hax_translated_verify_g2_kzg_opening_true_iff]
-  rw [equations.acceptV]
+  constructor
+  · rintro ⟨hsuccess, hequation⟩
+    exact ⟨hsuccess, (equations.acceptV z
+      (Ipp.transcriptCoeffs x rShift) key opening).2 (by
+        simpa only [statementWithExecutablePairing_e] using hequation)⟩
+  · rintro ⟨hsuccess, haccept⟩
+    exact ⟨hsuccess, by
+      simpa only [statementWithExecutablePairing_e] using
+        (equations.acceptV z
+          (Ipp.transcriptCoeffs x rShift) key opening).1 haccept⟩
 
 /-- G1 analogue of
 `arkworks_g2_kzg_opening_true_iff_pairing_and_acceptV`. -/
@@ -126,7 +135,16 @@ theorem arkworks_g1_kzg_opening_true_iff_pairing_and_acceptW
         (statementWithExecutablePairing hbilinear baseStmt).acceptW
           z (Ipp.transcriptCoeffs x rShift) key opening := by
   rw [Ipp.Extracted.hax_translated_verify_g1_kzg_opening_true_iff]
-  rw [equations.acceptW]
+  constructor
+  · rintro ⟨hsuccess, hequation⟩
+    exact ⟨hsuccess, (equations.acceptW z
+      (Ipp.transcriptCoeffs x rShift) key opening).2 (by
+        simpa only [statementWithExecutablePairing_e] using hequation)⟩
+  · rintro ⟨hsuccess, haccept⟩
+    exact ⟨hsuccess, by
+      simpa only [statementWithExecutablePairing_e] using
+        (equations.acceptW z
+          (Ipp.transcriptCoeffs x rShift) key opening).1 haccept⟩
 
 /-- Derive the legacy per-execution adapter input from the smaller universal
 statement law plus success of the concrete pairing-effect state.  The proof
