@@ -125,6 +125,14 @@ impl OrbisEndpoints {
     pub fn node1(&self) -> &str {
         &self.node1
     }
+
+    pub fn sourcehub_env(&self) -> [(&'static str, &str); 3] {
+        [
+            ("ORBIS_SOURCEHUB_RPC", &self.sourcehub_rpc),
+            ("ORBIS_SOURCEHUB_REST", &self.sourcehub_rest),
+            ("ORBIS_SOURCEHUB_GRPC", &self.sourcehub_grpc),
+        ]
+    }
 }
 
 fn env_or_default(env_key: &str, default: &str) -> String {
@@ -230,6 +238,14 @@ mod tests {
         .expect("valid runtime endpoints");
 
         assert_eq!(endpoints.node1(), "http://127.0.0.1:30004");
+        assert_eq!(
+            endpoints.sourcehub_env(),
+            [
+                ("ORBIS_SOURCEHUB_RPC", "http://127.0.0.1:30001"),
+                ("ORBIS_SOURCEHUB_REST", "http://127.0.0.1:30002"),
+                ("ORBIS_SOURCEHUB_GRPC", "http://127.0.0.1:30003"),
+            ]
+        );
         assert_eq!(
             endpoints.node_endpoints(),
             (

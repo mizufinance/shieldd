@@ -8,8 +8,9 @@
 # The published orbis images are production builds (ENABLE_INTEGRATION_TEST=false)
 # so they do NOT self-fund. orbis-funder funds each node's sourcehub account from
 # the dedicated genesis `funder` account (the host flow signs from `test`; they
-# must not share a sequence); each node then restarts once (restart: on-failure)
-# to pick up its on-chain account number and serve gRPC.
+# must not share a sequence). Each bootstrap service observes the funded account
+# and transitions in-process to the production gRPC server. `restart: on-failure`
+# is recovery, not part of the normal transition.
 #
 # Fixed ORBIS_PASSWORD / ORBIS_SECRET_KEY / node-controller-key values are
 # local-test fixtures only.
@@ -146,7 +147,7 @@ services:
   # independent signers on one Cosmos account race the sequence, and the loser
   # is rejected with code 32. Each node writes its address to
   # /data/public_key.txt; the funder reads those, sends uopen, waits until the
-  # balances are actually visible, then waits until all three bootstrap gRPC
+  # balances are actually visible, then waits until all three node gRPC
   # listeners respond. The launcher separately waits for the pinned images'
   # production-ready signal before exposing endpoints to the host flow.
   orbis-funder:
@@ -207,9 +208,9 @@ services:
             n=$$((n+1)); [ "$$n" -gt 120 ] && { echo "timeout waiting for $$h gRPC"; exit 1; }
             echo "waiting for $$h gRPC"; sleep 3
           done
-          echo "$$h gRPC ready"
+          echo "$$h gRPC listener reachable"
         done
-        echo "all orbis nodes ready"
+        echo "all orbis node listeners reachable"
     volumes:
       - orbis-node1-data:/n1:ro
       - orbis-node2-data:/n2:ro

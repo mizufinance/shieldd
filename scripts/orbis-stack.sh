@@ -14,7 +14,7 @@ fi
 
 case "$ACTION" in
     up)
-        print_banner "Orbis Runtime Bring-Up" "sourcehub + 3 nodes via vendored runtime contract"
+        print_banner "Orbis Runtime Bring-Up" "sourcehub + 3 nodes via digest-pinned runtime contract"
         ensure_orbis_images
         ensure_docker_daemon
         rm -f "$ORBIS_RUNTIME_FILE"

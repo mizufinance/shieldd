@@ -822,7 +822,7 @@ async fn verify(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "default",
             user_name,
             env.get(address_key)?,
-            endpoints.node1(),
+            endpoints,
         )?;
         update_scanner_db_from_audit(repo, &env, user_name, &default_audit_file)?;
 
@@ -849,7 +849,7 @@ async fn verify(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "extension",
             user_name,
             env.get(address_key)?,
-            endpoints.node1(),
+            endpoints,
         )?;
         update_scanner_db_from_audit(repo, &env, user_name, &extension_audit_file)?;
     }
@@ -872,11 +872,12 @@ fn run_orbis_audit(
     tier: &str,
     user_name: &str,
     subject_address: &str,
-    orbis_endpoint: &str,
+    endpoints: &OrbisEndpoints,
 ) -> Result<()> {
     run_command(
         Command::new(&repo.orbis_audit_bin)
             .current_dir(&repo.root)
+            .envs(endpoints.sourcehub_env())
             .arg("--input")
             .arg(input)
             .arg("--dk-hex")
@@ -904,7 +905,7 @@ fn run_orbis_audit(
                 tier
             )))
             .arg("--orbis-endpoint")
-            .arg(orbis_endpoint),
+            .arg(endpoints.node1()),
     )
 }
 
@@ -1167,7 +1168,7 @@ async fn wait_for_sourcehub_node_info(client: &SourceHubClient, node_key: &str) 
     let mut last_error = None;
     // 180 * 2s = 6 min. On-chain NodeInfo registration lags node startup by the
     // full funder round-trip (wait for keys -> wait for first block -> fund ->
-    // node restarts on-failure -> registers). The old self-funding image
+    // node observes its funded account -> registers). The old self-funding image
     // registered immediately, so 2 min was enough; the prebuilt-image + funder
     // topology needs a larger budget or this races and flakes.
     for _ in 0..180 {
@@ -1823,6 +1824,7 @@ impl AuditDemo {
         let mut command = Command::new("orbis-audit");
         command
             .current_dir(&self.root)
+            .envs(self.orbis_endpoints.sourcehub_env())
             .arg("--input")
             .arg(input)
             .arg("--dk-hex")
