@@ -565,11 +565,13 @@ jobs:
           LEAN_NUM_THREADS: "1"
           SNARKPACK_FV_MODE: lean-audit-changed
           SNARKPACK_LEAN_MODULES_JSON: ${{ steps.lean_plan.outputs.pending_audit_modules }}
-          SNARKPACK_LEAN_AUDIT_LOG_DIR: ${{ runner.temp }}/snarkpack-lean-audit
-        run: >-
-          python3 scripts/ci/run_with_annotation.py
-          --title "SnarkPack pending Lean audit diagnostics"
-          -- just snarkpack-fv
+        shell: bash
+        run: |
+          set -euo pipefail
+          export SNARKPACK_LEAN_AUDIT_LOG_DIR="$RUNNER_TEMP/snarkpack-lean-audit"
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack pending Lean audit diagnostics" \
+            -- just snarkpack-fv
       - name: Validate and cache refreshed raw audit evidence
         id: lean_audit_record
         if: >-
@@ -580,7 +582,7 @@ jobs:
         run: >-
           python3 scripts/ci/snarkpack_lean_attestation.py record-audit
           --modules-json "$PENDING_LEAN_AUDITS_JSON"
-          --input-dir "${{ runner.temp }}/snarkpack-lean-audit"
+          --input-dir "$RUNNER_TEMP/snarkpack-lean-audit"
       - name: Atomically attest modules only after builds and audits succeed
         id: lean_record
         if: >-

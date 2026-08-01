@@ -984,7 +984,14 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         self.assertIn("SNARKPACK_FV_MODE: lean-audit-changed", workflow)
         self.assertIn(
-            "SNARKPACK_LEAN_AUDIT_LOG_DIR: "
+            'SNARKPACK_LEAN_AUDIT_LOG_DIR="$RUNNER_TEMP/snarkpack-lean-audit"',
+            workflow,
+        )
+        self.assertIn(
+            '--input-dir "$RUNNER_TEMP/snarkpack-lean-audit"',
+            workflow,
+        )
+        self.assertNotIn(
             "${{ runner.temp }}/snarkpack-lean-audit",
             workflow,
         )
