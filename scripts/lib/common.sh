@@ -584,12 +584,12 @@ wait_for_orbis_funder() {
             esac
         fi
         if [ $((attempt % 15)) -eq 0 ]; then
-            log_info "Waiting for Orbis funding and post-restart readiness ($attempt/180)"
+            log_info "Waiting for Orbis funder ($attempt/180)"
         fi
         sleep 2
     done
 
-    log_error "Timed out waiting for Orbis funding and post-restart readiness"
+    log_error "Timed out waiting for Orbis funder"
     run_orbis_compose "$compose_file" logs orbis-funder >&2 || true
     return 1
 }
@@ -598,13 +598,17 @@ wait_for_orbis_node_production() {
     local service="$1"
     local marker='Server is ready to accept connections'
     local container_id
+    local inspection
     local state
+    local started_at
     local attempt
 
     for ((attempt = 1; attempt <= 120; attempt++)); do
         container_id="$(orbis_compose_service_container_id "$service")" || return 1
         if [ -n "$container_id" ]; then
-            state="$(docker inspect --format '{{.State.Status}} {{.State.ExitCode}}' "$container_id")" || return 1
+            inspection="$(docker inspect --format '{{.State.Status}} {{.State.ExitCode}} {{.State.StartedAt}}' "$container_id")" || return 1
+            state="${inspection% *}"
+            started_at="${inspection##* }"
             case "$state" in
                 exited\ *|dead\ *)
                     log_error "$service stopped before production readiness: $state"
@@ -612,7 +616,7 @@ wait_for_orbis_node_production() {
                     return 1
                     ;;
             esac
-            if (set +o pipefail; docker logs "$container_id" 2>&1 | grep -Fq "$marker"); then
+            if (set +o pipefail; docker logs --since "$started_at" "$container_id" 2>&1 | grep -Fq "$marker"); then
                 log_success "$service production server ready"
                 return 0
             fi
