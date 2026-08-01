@@ -166,6 +166,17 @@
   "irrelevant_inputs": [
     {
       "patterns": [
+        "scripts/lib/common.sh",
+        "scripts/orbis-ci-cleanup.sh",
+        "scripts/orbis-integration-preflight.sh",
+        "scripts/orbis-stack.sh",
+        "scripts/shieldd-down.sh",
+        "scripts/shieldd-up.sh"
+      ],
+      "reason": "Orbis and local stack orchestration is outside the SnarkPack implementation and proof contract"
+    },
+    {
+      "patterns": [
         ".github/ISSUE_TEMPLATE/**",
         ".config/**",
         ".envrc.example",

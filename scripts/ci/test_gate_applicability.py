@@ -693,6 +693,29 @@ class GateApplicabilityTests(unittest.TestCase):
                     )
                     self.assertIn("declared skips", decision.explanation)
 
+    def test_stack_orchestration_is_outside_formal_contracts(self) -> None:
+        for path in (
+            "scripts/lib/common.sh",
+            "scripts/orbis-ci-cleanup.sh",
+            "scripts/orbis-integration-preflight.sh",
+            "scripts/orbis-stack.sh",
+            "scripts/shieldd-down.sh",
+            "scripts/shieldd-up.sh",
+        ):
+            for declaration in (self.snarkpack, self.soundness):
+                with self.subTest(path=path, gate=declaration.gate):
+                    decision = GATE.classify(
+                        declaration,
+                        "pull_request",
+                        [path],
+                        [],
+                    )
+                    self.assertEqual(
+                        (decision.status, decision.tier),
+                        ("skip", "skip"),
+                    )
+                    self.assertFalse(decision.unknown_files)
+
     def test_shipping_application_boundary_never_uses_outside_package_skip(
         self,
     ) -> None:
