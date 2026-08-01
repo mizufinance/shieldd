@@ -831,10 +831,19 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         self.assertIsNotNone(summary)
         assert summary is not None
-        self.assertIn("- snarkpack-publication", summary.group(1))
+        summary_job = summary.group(1)
+        self.assertIn("- snarkpack-publication", summary_job)
         self.assertIn(
             "PUBLICATION: ${{ needs.snarkpack-publication.result }}",
-            summary.group(1),
+            summary_job,
+        )
+        self.assertIn(
+            "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            summary_job,
+        )
+        self.assertIn(
+            "ref: ${{ needs.applicability.outputs.candidate_sha }}",
+            summary_job,
         )
 
     def test_snarkpack_workflow_uses_exact_impact_outputs(self) -> None:

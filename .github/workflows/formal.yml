@@ -1436,6 +1436,9 @@ jobs:
       - soundness-lean-circuit-fv
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.applicability.outputs.candidate_sha }}
       # Fail closed over both sides of the impact decision: every selected lane
       # must succeed and every unselected lane must report `skipped`. This makes
       # an accidentally broadened or broken job `if:` visible in the summary.
