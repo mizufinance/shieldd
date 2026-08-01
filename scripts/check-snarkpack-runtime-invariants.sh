@@ -231,11 +231,25 @@ fi
 unexpected_challenge_context_fns="$(
   sed -n '/impl ChallengeContext {/,/^}/p' "$challenge_rs" \
     | rg -n "pub fn" \
-    | rg -v "from_statement_digest|as_bytes" || true
+    | rg -v "from_statement_digest|from_bytes|as_bytes" || true
 )"
 if [[ -n "$unexpected_challenge_context_fns" ]]; then
   echo "$unexpected_challenge_context_fns" >&2
-  fail "ChallengeContext must expose only from_statement_digest and as_bytes"
+  fail "ChallengeContext must expose only the two digest constructors and as_bytes"
+fi
+
+challenge_context_from_bytes_sites="$(
+  rg -n -F "ChallengeContext::from_bytes(" "${production_roots[@]}" || true
+)"
+challenge_context_from_bytes_count="$(
+  printf '%s\n' "$challenge_context_from_bytes_sites" | sed '/^$/d' | wc -l | tr -d '[:space:]'
+)"
+if [[ "$challenge_context_from_bytes_count" != "1" ]] \
+  || ! rg -F \
+    "let challenge_context = ChallengeContext::from_bytes(exact_sha256_digest(" \
+    crates/crypto/proof-aggregation/src/statement.rs >/dev/null; then
+  [[ -z "$challenge_context_from_bytes_sites" ]] || echo "$challenge_context_from_bytes_sites" >&2
+  fail "from_bytes must be used exactly once by the retained shipping SHA-256 execution"
 fi
 
 direct_digest_sites="$(

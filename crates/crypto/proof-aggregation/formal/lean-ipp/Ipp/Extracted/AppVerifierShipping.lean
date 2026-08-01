@@ -235,6 +235,7 @@ theorem extracted_shipping_result_success_retains_exact
       ((extracted_shipping_result_from_parts_exact input accepted).symm.trans
         hexec)
   rw [← houtput]
+  exact ⟨rfl, rfl, rfl⟩
 
 /-! ### Repeat-final row-padding refinement -/
 
@@ -302,17 +303,22 @@ theorem repeatFinalRowsExpected_success
       · simp [repeatFinalRowsExpected, htarget] at hexec
   | cons head tail =>
       by_cases hle : (head :: tail).length ≤ target
-      · simp [repeatFinalRowsExpected, hle] at hexec
+      · have htail : tail.length < target := by
+          simpa using hle
+        simp [repeatFinalRowsExpected, htail] at hexec
         subst output
         refine ⟨?_, ?_, ?_⟩
-        · simp only [List.length_append, List.length_replicate]
+        · simp [List.length_cons] at hle ⊢
           omega
         · simp
         · exact Or.inr
             ⟨repeatFinalLast head tail,
               getLast?_cons_repeatFinalLast head tail,
               by simp⟩
-      · simp [repeatFinalRowsExpected, hle] at hexec
+      · have htail : ¬tail.length < target := by
+          simp [List.length_cons] at hle
+          omega
+        simp [repeatFinalRowsExpected, htail] at hexec
 
 /-- Successful repeat-final padding reaches the requested length exactly. -/
 theorem repeatFinalRowsExpected_length_exact
@@ -358,6 +364,21 @@ theorem repeatFinalRowsExpected_suffix_exact
   | cons next tail ih =>
       simpa [repeatFinalLast] using ih next
 
+@[simp] theorem getElem?_cons_tailLength_repeatFinalLast
+    {T : Type}
+    (head : T) (tail : List T) :
+    (head :: tail)[tail.length]? = some (repeatFinalLast head tail) := by
+  simpa using getElem?_cons_lastIndex_repeatFinalLast head tail
+
+@[simp] theorem getElem_cons_tailLength_repeatFinalLast
+    {T : Type}
+    (head : T) (tail : List T) :
+    (head :: tail)[tail.length] = repeatFinalLast head tail := by
+  induction tail generalizing head with
+  | nil => rfl
+  | cons next tail ih =>
+      simpa [repeatFinalLast] using ih next
+
 /-- Finite execution of the extracted padding loop.  The clone postcondition
 is exact: the production row clone may fail, but every successful clone must
 return the same immutable row. -/
@@ -375,7 +396,8 @@ theorem extracted_repeat_final_rows_loopFuel_exact
   induction gap generalizing rows with
   | zero =>
       simp [loopFuel,
-        app_verifier.app_verify_repeat_final_rows_core_loop.body]
+        app_verifier.app_verify_repeat_final_rows_core_loop.body,
+        ark_ip_proofs.alloc.vec.Vec.len, Usize.ofNat]
   | succ gap ih =>
       simp only [loopFuel]
       rw [show
@@ -384,13 +406,12 @@ theorem extracted_repeat_final_rows_loopFuel_exact
               (⟨rows⟩ : alloc.vec.Vec T) =
           .ok (.cont ⟨rows ++ [last]⟩) by
         simp [app_verifier.app_verify_repeat_final_rows_core_loop.body,
-          hclone]]
+          ark_ip_proofs.alloc.vec.Vec.len, alloc.vec.Vec.push,
+          Usize.ofNat, hclone]]
       have htarget :
           (⟨rows.length + Nat.succ gap⟩ : Std.Usize) =
             ⟨(rows ++ [last]).length + gap⟩ := by
-        congr
-        simp
-        omega
+        congr 1 <;> simp <;> omega
       rw [htarget]
       simpa [List.replicate_succ, List.append_assoc] using
         (ih (rows ++ [last]))
@@ -448,14 +469,24 @@ theorem extracted_repeat_final_rows_core_exact
       · subst target
         rfl
       · simp [app_verifier.app_verify_repeat_final_rows_core,
-          repeatFinalRowsExtractedExpected, htarget]
+          repeatFinalRowsExtractedExpected, htarget,
+          ark_ip_proofs.alloc.vec.Vec.len, Usize.ofNat]
   | cons head tail =>
       by_cases hsmall : target < (head :: tail).length
-      · simp [app_verifier.app_verify_repeat_final_rows_core,
+      · have htargetTail : target ≤ tail.length := by
+          simpa [List.length_cons] using hsmall
+        have hnotTail : ¬tail.length < target :=
+          Nat.not_lt_of_ge htargetTail
+        simp [app_verifier.app_verify_repeat_final_rows_core,
           repeatFinalRowsExtractedExpected, hsmall,
-          Nat.not_le_of_gt hsmall]
+          Nat.not_le_of_gt hsmall, ark_ip_proofs.alloc.vec.Vec.len,
+          Usize.ofNat, htargetTail, hnotTail]
       · have hle : (head :: tail).length ≤ target :=
           Nat.le_of_not_gt hsmall
+        have htail : tail.length < target := by
+          simpa using hle
+        have hnotTargetLe : ¬target ≤ tail.length :=
+          Nat.not_le_of_gt htail
         have htarget :
             (head :: tail).length +
                 (target - (head :: tail).length) =
@@ -469,14 +500,18 @@ theorem extracted_repeat_final_rows_core_exact
                 List.replicate
                   (target - (head :: tail).length)
                   (repeatFinalLast head tail)⟩ := by
-          rw [← htarget]
-          exact extracted_repeat_final_rows_loop_exact
+          have hloopExact := extracted_repeat_final_rows_loop_exact
             cloneInst hclone (head :: tail)
               (repeatFinalLast head tail)
               (target - (head :: tail).length)
+          rw [htarget] at hloopExact
+          exact hloopExact
         simp [app_verifier.app_verify_repeat_final_rows_core,
           repeatFinalRowsExtractedExpected, hsmall, hle,
-          Std.Usize.checked_sub, hclone, hloop]
+          Std.Usize.checked_sub, ark_ip_proofs.alloc.vec.Vec.len,
+          ark_ip_proofs.alloc.vec.Vec.deref, Usize.ofNat, lift,
+          Result.bind_ok, htail, hnotTargetLe,
+          getElem?_cons_tailLength_repeatFinalLast, hclone, hloop]
 
 /-- Every successful generated execution has exactly the pure model's output,
 which supplies exact length, caller-order prefix, and repeat-final suffix. -/
@@ -496,14 +531,19 @@ theorem extracted_repeat_final_rows_success_refines
       by_cases htarget : target.val = 0
       · simp [repeatFinalRowsExtractedExpected, repeatFinalRowsExpected,
           hrows, htarget] at hexec ⊢
-        exact congrArg alloc.vec.Vec.val (core.result.Result.Ok.inj hexec)
+        exact congrArg alloc.vec.Vec.val hexec.symm
       · simp [repeatFinalRowsExtractedExpected, hrows, htarget] at hexec
   | cons head tail =>
       by_cases hle : (head :: tail).length ≤ target.val
-      · simp [repeatFinalRowsExtractedExpected, repeatFinalRowsExpected,
-          hrows, hle] at hexec ⊢
-        exact congrArg alloc.vec.Vec.val (core.result.Result.Ok.inj hexec)
-      · simp [repeatFinalRowsExtractedExpected, hrows, hle] at hexec
+      · have htail : tail.length < target.val := by
+          simpa using hle
+        simp [repeatFinalRowsExtractedExpected, repeatFinalRowsExpected,
+          hrows, htail] at hexec ⊢
+        exact congrArg alloc.vec.Vec.val hexec
+      · have htail : ¬tail.length < target.val := by
+          simp [List.length_cons] at hle
+          omega
+        simp [repeatFinalRowsExtractedExpected, hrows, htail] at hexec
 
 /-- A successful generated execution directly exposes the complete padding
 postcondition consumed by shipping statement binding. -/

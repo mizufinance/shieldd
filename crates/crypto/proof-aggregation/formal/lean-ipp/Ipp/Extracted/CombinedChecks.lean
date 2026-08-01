@@ -90,6 +90,69 @@ def run
     (clone G1) (default G1) (add G1) (smulAssign F G1)
     effects tippPairing ppeEffect input effect tipp_pairing ppe_pairing
 
+/-- The evidence-retaining execution beneath `run`, with the same algebraic
+    adapters and effect installation as the production wrapper. -/
+def runExecution
+    {F G1 G2 G2Prepared GT E FX PE PPE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : ark_ip_proofs.tipa.PairingEffect PE G1 G2 GT)
+    (ppeEffect : ark_ip_proofs.applications.groth16_aggregation.PreparedPairingEffect
+      PPE G1 G2Prepared GT)
+    (input : ark_ip_proofs.applications.groth16_aggregation.CombinedChecksCoreInput
+      F G1 G2 G2Prepared GT GT G1)
+    (effect : FX) (tipp_pairing : PE) (ppe_pairing : PPE) :=
+  ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_execution_core
+    (clone F) (partialEq F) (fromU64 F) (one F) (zero F)
+    (add F) (div F) (mul F) (sub F)
+    (clone G1) (add G1) (smul F G1) (sub G1) (neg G1)
+    (clone G2) (smul F G2) (sub G2)
+    (clone G2Prepared) (clone GT) (default GT) (add GT) (smul F GT)
+    (smulAssign F GT) (zero GT) (partialEq GT)
+    (clone GT) (default GT) (add GT) (smulAssign F GT)
+    (clone G1) (default G1) (add G1) (smulAssign F G1)
+    effects tippPairing ppeEffect input effect tipp_pairing ppe_pairing
+
+/-- The public combined-check result is exactly the core projection of its
+    retained execution. -/
+theorem run_eq_execution
+    {F G1 G2 G2Prepared GT E FX PE PPE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : ark_ip_proofs.tipa.PairingEffect PE G1 G2 GT)
+    (ppeEffect : ark_ip_proofs.applications.groth16_aggregation.PreparedPairingEffect
+      PPE G1 G2Prepared GT)
+    (input : ark_ip_proofs.applications.groth16_aggregation.CombinedChecksCoreInput
+      F G1 G2 G2Prepared GT GT G1)
+    (effect : FX) (tipp_pairing : PE) (ppe_pairing : PPE) :
+    run effects tippPairing ppeEffect input effect tipp_pairing ppe_pairing =
+      (do
+        let result ← runExecution effects tippPairing ppeEffect input effect
+          tipp_pairing ppe_pairing
+        match result with
+        | .Ok output => .ok (.Ok output.core)
+        | .Err error => .ok (.Err error)) := by
+  unfold run
+    ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
+  cases hexecution : runExecution effects tippPairing ppeEffect input effect
+      tipp_pairing ppe_pairing with
+  | fail error =>
+      unfold runExecution at hexecution
+      rw [hexecution]
+      rfl
+  | div =>
+      unfold runExecution at hexecution
+      rw [hexecution]
+      rfl
+  | ok result =>
+      unfold runExecution at hexecution
+      rw [hexecution]
+      cases result <;> rfl
+
 def runTipp
     {F G1 G2 GT E FX PE : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
@@ -141,6 +204,80 @@ theorem runTipp_eq_model
     Ipp.Extracted.negModel, Ipp.Extracted.defaultModel,
     Ipp.Extracted.smulAssignModel, Ipp.Extracted.zeroModel]
 
+/-- The evidence-retaining TIPP/MIPP execution beneath `runTipp`, with the
+    same algebraic adapters and effect installation as the production call. -/
+noncomputable def runTippExecution
+    {F G1 G2 GT E FX PE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : ark_ip_proofs.tipa.PairingEffect PE G1 G2 GT)
+    (input : ark_ip_proofs.applications.groth16_aggregation.TippMippCoreInput
+      F G1 G2 GT GT G1) (effect : FX) (pairing : PE) := by
+  letI : DecidableEq GT := Classical.decEq _
+  exact ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_execution_core
+    (Ipp.Extracted.VerifyTippMipp.modelClone F)
+    (Ipp.Extracted.VerifyTippMipp.modelOne F)
+    (Ipp.Extracted.VerifyTippMipp.modelAdd F)
+    (Ipp.Extracted.VerifyTippMipp.modelMul F)
+    (Ipp.Extracted.VerifyTippMipp.modelClone G1)
+    (Ipp.Extracted.VerifyTippMipp.modelSmul G1)
+    (Ipp.Extracted.VerifyTippMipp.modelSub G1)
+    (Ipp.Extracted.VerifyTippMipp.modelNeg G1)
+    (Ipp.Extracted.VerifyTippMipp.modelClone G2)
+    (Ipp.Extracted.VerifyTippMipp.modelSmul G2)
+    (Ipp.Extracted.VerifyTippMipp.modelSub G2)
+    (Ipp.Extracted.VerifyTippMipp.modelClone GT)
+    (Ipp.Extracted.VerifyTippMipp.modelDefault GT)
+    (Ipp.Extracted.VerifyTippMipp.modelAdd GT)
+    (Ipp.Extracted.VerifyTippMipp.modelSmulAssign GT)
+    (Ipp.Extracted.VerifyTippMipp.modelZero GT)
+    (Ipp.Extracted.VerifyTippMipp.modelClone GT)
+    (Ipp.Extracted.VerifyTippMipp.modelDefault GT)
+    (Ipp.Extracted.VerifyTippMipp.modelAdd GT)
+    (Ipp.Extracted.VerifyTippMipp.modelSmulAssign GT)
+    (Ipp.Extracted.VerifyTippMipp.modelClone G1)
+    (Ipp.Extracted.VerifyTippMipp.modelDefault G1)
+    (Ipp.Extracted.VerifyTippMipp.modelAdd G1)
+    (Ipp.Extracted.VerifyTippMipp.modelSmulAssign G1)
+    effects tippPairing input effect pairing
+
+/-- The public TIPP/MIPP result is exactly the accepted-bit projection of its
+    evidence-retaining execution. -/
+theorem runTipp_eq_execution
+    {F G1 G2 GT E FX PE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : ark_ip_proofs.tipa.PairingEffect PE G1 G2 GT)
+    (input : ark_ip_proofs.applications.groth16_aggregation.TippMippCoreInput
+      F G1 G2 GT GT G1) (effect : FX) (pairing : PE) :
+    runTipp effects tippPairing input effect pairing =
+      (do
+        let (result, nextEffect) <-
+          runTippExecution effects tippPairing input effect pairing
+        match result with
+        | .Ok output => .ok (.Ok output.accepted, nextEffect)
+        | .Err error => .ok (.Err error, nextEffect)) := by
+  rw [runTipp_eq_model]
+  unfold Ipp.Extracted.VerifyTippMipp.runTippModel
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core
+  cases hexecution :
+      runTippExecution effects tippPairing input effect pairing with
+  | fail error =>
+      unfold runTippExecution at hexecution
+      simp only [hexecution, Result.bind_fail]
+  | div =>
+      unfold runTippExecution at hexecution
+      simp only [hexecution, Result.bind_div]
+  | ok result =>
+      unfold runTippExecution at hexecution
+      simp only [hexecution, Result.bind_ok]
+      rcases result with ⟨result, nextEffect⟩
+      cases result <;> rfl
+
 def runPpe
     {F G1 G2 G2Prepared GT PPE : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
@@ -172,6 +309,131 @@ private def tippError {E : Type} (error : E) :=
      expected_rounds := 0#usize, tipp_mipp_error := some error } :
     ark_ip_proofs.applications.groth16_aggregation.CombinedChecksError E)
 
+/-- The observable combined-check result expressed through the public leaf
+    and PPE wrappers. The extracted execution core retains their intermediate
+    values, while the public wrapper projects precisely this result. -/
+private def runControl
+    {F G1 G2 G2Prepared GT E FX PE PPE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : ark_ip_proofs.tipa.PairingEffect PE G1 G2 GT)
+    (ppeEffect : ark_ip_proofs.applications.groth16_aggregation.PreparedPairingEffect
+      PPE G1 G2Prepared GT)
+    (input : ark_ip_proofs.applications.groth16_aggregation.CombinedChecksCoreInput
+      F G1 G2 G2Prepared GT GT G1)
+    (effect : FX) (tipp_pairing : PE) (ppe_pairing : PPE) :
+    Result (ark_ip_proofs.core.result.Result
+      (ark_ip_proofs.applications.groth16_aggregation.CombinedChecksCoreOutput FX)
+      (ark_ip_proofs.applications.groth16_aggregation.CombinedChecksError E)) := do
+  let numProofs := ark_ip_proofs.alloc.vec.Vec.len input.public_inputs
+  if numProofs = 0#usize then
+    .ok (.Err (structuralError (E := E)))
+  else
+    let power ← ark_ip_proofs.core.num.Usize.is_power_of_two numProofs
+    if power then
+      let rawExpected ← ark_ip_proofs.core.num.Usize.ilog2 numProofs
+      let expected ← lift (MacCampaign.castUsize rawExpected)
+      let actual := ark_ip_proofs.alloc.vec.Vec.len input.tipp_mipp.proof.gipa_proof
+      if actual != expected then
+        .ok (.Err (roundError (E := E) actual expected))
+      else
+        let (tippResult, nextEffect) ←
+          runTipp effects tippPairing input.tipp_mipp effect tipp_pairing
+        let ppeValid ← runPpe ppeEffect input ppe_pairing
+        match tippResult with
+        | .Ok tippValid =>
+            .ok (.Ok ({
+              checks := (tippValid, ppeValid),
+              tipp_mipp_effect := nextEffect
+            } :
+              ark_ip_proofs.applications.groth16_aggregation.CombinedChecksCoreOutput
+                FX))
+        | .Err error => .ok (.Err (tippError error))
+    else
+      .ok (.Err (structuralError (E := E)))
+
+/-- Retaining the extracted intermediate execution values does not change the
+    observable result returned by the production combined-check wrapper. -/
+private theorem run_eq_control
+    {F G1 G2 G2Prepared GT E FX PE PPE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : ark_ip_proofs.tipa.PairingEffect PE G1 G2 GT)
+    (ppeEffect : ark_ip_proofs.applications.groth16_aggregation.PreparedPairingEffect
+      PPE G1 G2Prepared GT)
+    (input : ark_ip_proofs.applications.groth16_aggregation.CombinedChecksCoreInput
+      F G1 G2 G2Prepared GT GT G1)
+    (effect : FX) (tipp_pairing : PE) (ppe_pairing : PPE) :
+    run effects tippPairing ppeEffect input effect tipp_pairing ppe_pairing =
+      runControl effects tippPairing ppeEffect input effect tipp_pairing
+        ppe_pairing := by
+  unfold run runControl
+    ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
+    ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_execution_core
+  by_cases hzero : ark_ip_proofs.alloc.vec.Vec.len input.public_inputs = 0#usize
+  · simp [hzero, structuralError]
+  · simp only [hzero, if_false]
+    cases hpower : ark_ip_proofs.core.num.Usize.is_power_of_two
+        (ark_ip_proofs.alloc.vec.Vec.len input.public_inputs) with
+    | fail error => simp [hpower]
+    | div => simp [hpower]
+    | ok power =>
+        cases power with
+        | false => simp [hpower, structuralError]
+        | true =>
+            simp only [hpower, Result.bind_ok, if_true]
+            cases hilog : ark_ip_proofs.core.num.Usize.ilog2
+                (ark_ip_proofs.alloc.vec.Vec.len input.public_inputs) with
+            | fail error => simp [hilog]
+            | div => simp [hilog]
+            | ok expected =>
+                simp only [hilog, Result.bind_ok, lift,
+                  MacCampaign.castUsize_self]
+                by_cases hrounds :
+                    ark_ip_proofs.alloc.vec.Vec.len
+                        input.tipp_mipp.proof.gipa_proof = expected
+                · simp only [hrounds, ne_eq, not_true_eq_false, if_false]
+                  unfold runTipp
+                    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core
+                  cases htipp :
+                      ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_execution_core
+                        (clone F) (one F) (add F) (mul F)
+                        (clone G1) (smul F G1) (sub G1) (neg G1)
+                        (clone G2) (smul F G2) (sub G2)
+                        (clone GT) (default GT) (add GT) (smulAssign F GT)
+                        (zero GT) (clone GT) (default GT) (add GT)
+                        (smulAssign F GT) (clone G1) (default G1) (add G1)
+                        (smulAssign F G1) effects tippPairing input.tipp_mipp
+                        effect tipp_pairing with
+                  | fail error => simp [htipp]
+                  | div => simp [htipp]
+                  | ok pair =>
+                      rcases pair with ⟨tippResult, nextEffect⟩
+                      cases tippResult with
+                      | Err error =>
+                          cases hppe : runPpe ppeEffect input ppe_pairing <;>
+                            unfold runPpe at hppe <;>
+                            rw [hppe] <;>
+                            simp [htipp, tippError,
+                              ark_ip_proofs.core.result.Result.map_err,
+                              ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_execution_core.closure.Insts.CoreOpsFunctionFnOnceTupleECombinedChecksError.call_once,
+                              ark_ip_proofs.core.result.Result.Insts.CoreOpsTry.branch,
+                              ark_ip_proofs.core.result.Result.Insts.CoreOpsTryTraitFromResidualResultInfallible.from_residual]
+                      | Ok output =>
+                          cases hppe : runPpe ppeEffect input ppe_pairing <;>
+                            unfold runPpe at hppe <;>
+                            rw [hppe] <;>
+                            simp [htipp,
+                              ark_ip_proofs.core.result.Result.map_err,
+                              ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_execution_core.closure.Insts.CoreOpsFunctionFnOnceTupleECombinedChecksError.call_once,
+                              ark_ip_proofs.core.result.Result.Insts.CoreOpsTry.branch,
+                              ark_ip_proofs.core.result.Result.Insts.CoreOpsTryTraitFromResidualResultInfallible.from_residual]
+                · simp [hrounds, roundError]
+
 /-- Empty proof batches are exactly the structural-error branch. -/
 theorem run_empty
     {F G1 G2 G2Prepared GT E FX PE PPE : Type}
@@ -190,7 +452,8 @@ theorem run_empty
       .ok (.Err (structuralError (E := E))) := by
   have hlen : ark_ip_proofs.alloc.vec.Vec.len input.public_inputs = 0#usize := by
     simp [ark_ip_proofs.alloc.vec.Vec.len, hempty, Usize.ofNat]
-  unfold run ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
+  rw [run_eq_control]
+  unfold runControl
   rw [hlen]
   rfl
 
@@ -213,7 +476,8 @@ theorem run_not_power_of_two
       (ark_ip_proofs.alloc.vec.Vec.len input.public_inputs) = .ok false) :
     run effects tippPairing ppeEffect input effect tipp_pairing ppe_pairing =
       .ok (.Err (structuralError (E := E))) := by
-  unfold run ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
+  rw [run_eq_control]
+  unfold runControl
   simp only [hnonempty, ↓reduceIte]
   rw [hpower]
   rfl
@@ -244,7 +508,8 @@ theorem run_round_mismatch
       .ok (.Err (roundError (E := E)
         (ark_ip_proofs.alloc.vec.Vec.len input.tipp_mipp.proof.gipa_proof)
         expected)) := by
-  unfold run ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
+  rw [run_eq_control]
+  unfold runControl
   simp only [hnonempty, ↓reduceIte]
   rw [hpower, hilog]
   simp [lift, MacCampaign.castUsize_self, hmismatch, roundError]
@@ -276,7 +541,8 @@ theorem run_tipp_error
     (hppe : runPpe ppeEffect input ppe_pairing = .ok ppeValid) :
     run effects tippPairing ppeEffect input effect tipp_pairing ppe_pairing =
       .ok (.Err (tippError error)) := by
-  unfold run ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
+  rw [run_eq_control]
+  unfold runControl
   simp only [hnonempty, ↓reduceIte]
   rw [hpower, hilog]
   simp only [Result.bind_ok, lift, MacCampaign.castUsize_self]
@@ -320,8 +586,8 @@ theorem accepted_path
         .ok (.Ok true, effect4) ∧
       runPpe ppeEffect input ppe_pairing = .ok true := by
   have hrun := haccept
-  unfold run
-    ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core at haccept
+  rw [run_eq_control] at haccept
+  unfold runControl at haccept
   by_cases hnonempty :
       ark_ip_proofs.alloc.vec.Vec.len input.public_inputs ≠ 0#usize
   · simp only [hnonempty, ↓reduceIte] at haccept
@@ -372,9 +638,8 @@ theorem accepted_path
                               runPpe ppeEffect input ppe_pairing with
                           | fail ppeError =>
                               have hcontradiction := hrun
-                              unfold run
-                                ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
-                                at hcontradiction
+                              rw [run_eq_control] at hcontradiction
+                              unfold runControl at hcontradiction
                               simp only [hnonempty, ↓reduceIte] at hcontradiction
                               rw [hpower, hilog] at hcontradiction
                               simp only [Result.bind_ok, lift,
@@ -394,9 +659,8 @@ theorem accepted_path
                               simp at hcontradiction
                           | div =>
                               have hcontradiction := hrun
-                              unfold run
-                                ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
-                                at hcontradiction
+                              rw [run_eq_control] at hcontradiction
+                              unfold runControl at hcontradiction
                               simp only [hnonempty, ↓reduceIte] at hcontradiction
                               rw [hpower, hilog] at hcontradiction
                               simp only [Result.bind_ok, lift,
@@ -480,7 +744,8 @@ theorem run_refinement_statement
     run effects tippPairing ppeEffect input effect tipp_pairing ppe_pairing =
         .ok (.Ok { checks := (true, true), tipp_mipp_effect := effect4 }) ↔
       leafData ∧ ppeEquation := by
-  unfold run ark_ip_proofs.applications.groth16_aggregation.verify_combined_checks_core
+  rw [run_eq_control]
+  unfold runControl
   simp only [hnonempty, ↓reduceIte]
   rw [hpower, hilog]
   simp only [Result.bind_ok, lift, MacCampaign.castUsize_self]

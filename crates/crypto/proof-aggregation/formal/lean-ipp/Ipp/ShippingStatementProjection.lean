@@ -256,28 +256,23 @@ structure RetainedProjectionFacts
     (input :
       FormalShippingInput
         μ arity F G1 G2 GT DecodedProof) : Prop where
-  execution : ConstructorExecution
-  preparedVk : PreparedVkMaterial arity G1 G2
-  srs : SrsMaterial μ G1 G2
-  outputRetains :
-    OutputRetainsShippingInput
-      (arity := arity) wire execution input
-  familyRegistered : input.family.Registered
-  vkDigestRoute :
-    operations.resolveVk input.family input.vkDigest =
-      some preparedVk
-  serializedVkDecode :
-    operations.decodeSerializedVk input.serializedVk =
-      some preparedVk
-  srsIdentityLoad :
-    operations.loadSrs input.srsId = some srs
-  statementExact :
-    operations.statementOf input.publicClaim =
-      materializedStatement operations preparedVk srs input.publicRows
-  aicExact : ∀ i : Fin (2 ^ μ),
-    (operations.statementOf input.publicClaim).Aic i =
-      preparedAic preparedVk.gammaABC
-        (input.publicRows i)
+  materialized :
+    ∃ execution : ConstructorExecution,
+    ∃ preparedVk : PreparedVkMaterial arity G1 G2,
+    ∃ srs : SrsMaterial μ G1 G2,
+      OutputRetainsShippingInput
+          (arity := arity) wire execution input ∧
+        input.family.Registered ∧
+        operations.resolveVk input.family input.vkDigest =
+          some preparedVk ∧
+        operations.decodeSerializedVk input.serializedVk =
+          some preparedVk ∧
+        operations.loadSrs input.srsId = some srs ∧
+        operations.statementOf input.publicClaim =
+          materializedStatement operations preparedVk srs input.publicRows ∧
+        ∀ i : Fin (2 ^ μ),
+          (operations.statementOf input.publicClaim).Aic i =
+            preparedAic preparedVk.gammaABC (input.publicRows i)
   validCounts : Ipp.ShippingV1.ValidCounts input
   realPrefixExact : Ipp.ShippingV1.RealPrefixExact input
   repeatFinalPadding : Ipp.ShippingV1.RepeatFinalPadding input
@@ -304,19 +299,16 @@ theorem retained_shipping_rows_vk_srs_and_aic
     RetainedProjectionFacts wire operations input := by
   have hrows := rows_exact materialization
   exact {
-    execution := materialization.execution
-    preparedVk := materialization.preparedVk
-    srs := materialization.srs
-    outputRetains := output_retains_input materialization
-    familyRegistered := materialization.familyRegistered
-    vkDigestRoute := materialization.vkDigestRoute
-    serializedVkDecode := materialization.serializedVkDecode
-    srsIdentityLoad := materialization.srsIdentityLoad
-    statementExact := statement_exact materialization
-    aicExact := aic_exact materialization
+    materialized :=
+      ⟨materialization.execution, materialization.preparedVk,
+        materialization.srs, output_retains_input materialization,
+        materialization.familyRegistered, materialization.vkDigestRoute,
+        materialization.serializedVkDecode,
+        materialization.srsIdentityLoad, statement_exact materialization,
+        aic_exact materialization⟩
     validCounts := hrows.1
     realPrefixExact := hrows.2.1
-      repeatFinalPadding := hrows.2.2
+    repeatFinalPadding := hrows.2.2
   }
 
 /-- Construct the retained statement materialization directly from concrete
@@ -349,10 +341,10 @@ noncomputable def RetainedCallMaterialization.ofBoundary
   have selected :=
     Classical.choose_spec hsupported
   let constructorProjection := selected.1
-  let rows := selected.2
+  let rows := Classical.choice selected.2
   let supported :
       SupportedShippingInput (arity := arity) wire input :=
-    ⟨execution, constructorProjection, rows⟩
+    ⟨execution, constructorProjection, selected.2⟩
   exact {
     execution := execution
     constructorProjection := constructorProjection
@@ -396,14 +388,15 @@ theorem concrete_shipping_statement_projection_contract
     (boundary : ExactSemanticBoundary wire bytes operations)
     (hsupported :
       SupportedShippingInput (arity := arity) wire input) :
-    Ipp.ShippingV1.StatementProjectionContract
-        operations.projection boundary.bindingContract ∧
+    Nonempty
+        (Ipp.ShippingV1.StatementProjectionContract
+          operations.projection boundary.bindingContract) ∧
       boundary.projectionContract.Projects input ∧
       RetainedProjectionFacts wire operations input := by
   let materialization :=
     RetainedCallMaterialization.ofBoundary boundary hsupported
   exact
-    ⟨boundary.projectionContract,
+    ⟨⟨boundary.projectionContract⟩,
       Ipp.ShippingV1.shipping_input_projects_exact_statement
         operations.projection boundary.bindingContract
         boundary.projectionContract input hsupported,

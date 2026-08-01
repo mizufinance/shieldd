@@ -599,7 +599,7 @@ structure ShippingApplicationConstruction
         (Ipp.Extracted.AppVerifierStateMachine.shippingFamilyCode
           data.input.family)
         realCountWire paddedCountWire =
-      .ok (.Ok ())
+      .ok (.Ok PUnit.unit)
 
 /-- Exact cross-kernel projection from the production app-call record to the
 formal shipping input. These premises are stated against the bundle fields

@@ -233,7 +233,21 @@ def run
     randomizerEffects effects tippPairing ppeEffect input
     randomizerEffect effect tipp_pairing ppe_pairing
 
-private def body
+private def projectExecutionResult
+    {I F RFX FX TX E : Type} :
+    Result (core.result.Result
+      (applications.groth16_aggregation.AggregateAdapterExecutionOutput
+        I F RFX FX TX)
+      (applications.groth16_aggregation.AggregateAdapterCoreError E)) →
+    Result (core.result.Result
+      (applications.groth16_aggregation.AggregateAdapterCoreOutput F RFX FX)
+      (applications.groth16_aggregation.AggregateAdapterCoreError E))
+  | .ok (.Ok output) => .ok (.Ok output.core)
+  | .ok (.Err error) => .ok (.Err error)
+  | .fail error => .fail error
+  | .div => .div
+
+private def runExecution
     {F G1 G2 G2Prepared GT E RFX FX PE PPE : Type}
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
@@ -246,9 +260,9 @@ private def body
       PPE G1 G2Prepared GT)
     (input : applications.groth16_aggregation.AggregateAdapterCoreInput
       F G1 G2 G2Prepared GT GT G1)
-    (effect : FX) (tipp_pairing : PE) (ppe_pairing : PPE)
-    (state : RFX × U64) :=
-  applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+    (randomizerEffect : RFX) (effect : FX)
+    (tipp_pairing : PE) (ppe_pairing : PPE) :=
+  applications.groth16_aggregation.verify_aggregate_adapter_execution_core
     (CombinedChecks.clone F) (CombinedChecks.partialEq F)
     (CombinedChecks.fromU64 F) (CombinedChecks.one F)
     (CombinedChecks.zero F) (CombinedChecks.add F)
@@ -268,8 +282,170 @@ private def body
     (CombinedChecks.add GT) (CombinedChecks.smulAssign F GT)
     (CombinedChecks.clone G1) (CombinedChecks.default G1)
     (CombinedChecks.add G1) (CombinedChecks.smulAssign F G1)
-    randomizerEffects effects tippPairing ppeEffect input effect
-    tipp_pairing ppe_pairing state.1 state.2
+    randomizerEffects effects tippPairing ppeEffect input
+    randomizerEffect effect tipp_pairing ppe_pairing
+
+private theorem run_eq_execution
+    {F G1 G2 G2Prepared GT E RFX FX PE PPE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (randomizerEffects :
+      applications.groth16_aggregation.AggregateRandomizerEffect RFX F E)
+    (effects : applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : tipa.PairingEffect PE G1 G2 GT)
+    (ppeEffect : applications.groth16_aggregation.PreparedPairingEffect
+      PPE G1 G2Prepared GT)
+    (input : applications.groth16_aggregation.AggregateAdapterCoreInput
+      F G1 G2 G2Prepared GT GT G1)
+    (randomizerEffect : RFX) (effect : FX)
+    (tipp_pairing : PE) (ppe_pairing : PPE) :
+    run randomizerEffects effects tippPairing ppeEffect input randomizerEffect
+        effect tipp_pairing ppe_pairing =
+      projectExecutionResult (runExecution randomizerEffects effects tippPairing
+        ppeEffect input randomizerEffect effect tipp_pairing ppe_pairing) := by
+  unfold run
+    applications.groth16_aggregation.verify_aggregate_adapter_core
+  cases hexecution : runExecution randomizerEffects effects tippPairing
+      ppeEffect input randomizerEffect effect tipp_pairing ppe_pairing with
+  | fail error =>
+      unfold runExecution at hexecution
+      rw [hexecution]
+      rfl
+  | div =>
+      unfold runExecution at hexecution
+      rw [hexecution]
+      rfl
+  | ok result =>
+      unfold runExecution at hexecution
+      rw [hexecution]
+      cases result <;> rfl
+
+private def retainedBody
+    {F G1 G2 G2Prepared GT E RFX FX PE PPE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (randomizerEffects :
+      applications.groth16_aggregation.AggregateRandomizerEffect RFX F E)
+    (effects : applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : tipa.PairingEffect PE G1 G2 GT)
+    (ppeEffect : applications.groth16_aggregation.PreparedPairingEffect
+      PPE G1 G2Prepared GT)
+    (input : applications.groth16_aggregation.AggregateAdapterCoreInput
+      F G1 G2 G2Prepared GT GT G1)
+    (effect : FX) (tipp_pairing : PE) (ppe_pairing : PPE)
+    (state : RFX × U64) :=
+  applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
+    (CombinedChecks.clone F) (CombinedChecks.partialEq F)
+    (CombinedChecks.fromU64 F) (CombinedChecks.one F)
+    (CombinedChecks.zero F) (CombinedChecks.add F)
+    (CombinedChecks.div F) (CombinedChecks.mul F)
+    (CombinedChecks.sub F)
+    (CombinedChecks.clone G1) (CombinedChecks.add G1)
+    (CombinedChecks.smul F G1) (CombinedChecks.sub G1)
+    (CombinedChecks.neg G1)
+    (CombinedChecks.clone G2) (CombinedChecks.smul F G2)
+    (CombinedChecks.sub G2)
+    (CombinedChecks.clone G2Prepared)
+    (CombinedChecks.clone GT) (CombinedChecks.default GT)
+    (CombinedChecks.add GT) (CombinedChecks.smul F GT)
+    (CombinedChecks.smulAssign F GT) (CombinedChecks.zero GT)
+    (CombinedChecks.partialEq GT)
+    (CombinedChecks.clone GT) (CombinedChecks.default GT)
+    (CombinedChecks.add GT) (CombinedChecks.smulAssign F GT)
+    (CombinedChecks.clone G1) (CombinedChecks.default G1)
+    (CombinedChecks.add G1) (CombinedChecks.smulAssign F G1)
+    randomizerEffects effects tippPairing ppeEffect effect
+    tipp_pairing ppe_pairing 0#u64 input.randomizer_message input.combined
+    state.1 state.2
+
+private def body
+    {F G1 G2 G2Prepared GT E RFX FX PE PPE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (randomizerEffects :
+      applications.groth16_aggregation.AggregateRandomizerEffect RFX F E)
+    (effects : applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : tipa.PairingEffect PE G1 G2 GT)
+    (ppeEffect : applications.groth16_aggregation.PreparedPairingEffect
+      PPE G1 G2Prepared GT)
+    (input : applications.groth16_aggregation.AggregateAdapterCoreInput
+      F G1 G2 G2Prepared GT GT G1)
+    (effect : FX) (tipp_pairing : PE) (ppe_pairing : PPE)
+    (state : RFX × U64) :
+    Result (ControlFlow (RFX × U64)
+      (core.result.Result
+        (applications.groth16_aggregation.AggregateAdapterCoreOutput F RFX FX)
+        (applications.groth16_aggregation.AggregateAdapterCoreError E))) := do
+  let step ← retainedBody randomizerEffects effects tippPairing ppeEffect
+    input effect tipp_pairing ppe_pairing state
+  match step with
+  | .cont next => .ok (.cont next)
+  | .done (.Err error) => .ok (.done (.Err error))
+  | .done (.Ok output) => .ok (.done (.Ok output.core))
+
+private theorem loopResult_core
+    {F G1 G2 G2Prepared GT E RFX FX PE PPE : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    (randomizerEffects :
+      applications.groth16_aggregation.AggregateRandomizerEffect RFX F E)
+    (effects : applications.groth16_aggregation.TippMippEffect
+      FX F G1 G2 GT GT G1 E)
+    (tippPairing : tipa.PairingEffect PE G1 G2 GT)
+    (ppeEffect : applications.groth16_aggregation.PreparedPairingEffect
+      PPE G1 G2Prepared GT)
+    (input : applications.groth16_aggregation.AggregateAdapterCoreInput
+      F G1 G2 G2Prepared GT GT G1)
+    (effect : FX) (tipp_pairing : PE) (ppe_pairing : PPE)
+    {state : RFX × U64}
+    {result : Result (core.result.Result
+      (applications.groth16_aggregation.AggregateAdapterExecutionOutput
+        (applications.groth16_aggregation.AggregateAdapterCoreInput
+          F G1 G2 G2Prepared GT GT G1)
+        F RFX FX
+        (applications.groth16_aggregation.TippMippCoreOutput F GT GT G1))
+      (applications.groth16_aggregation.AggregateAdapterCoreError E))}
+    (execution :
+      LoopResult
+        (retainedBody randomizerEffects effects tippPairing ppeEffect input
+          effect tipp_pairing ppe_pairing)
+        state result) :
+    LoopResult
+      (body randomizerEffects effects tippPairing ppeEffect input effect
+        tipp_pairing ppe_pairing)
+      state (projectExecutionResult result) := by
+  induction execution with
+  | done hbody =>
+      rename_i value
+      cases value with
+      | Err error =>
+          apply LoopResult.done
+          unfold body
+          rw [hbody]
+          rfl
+      | Ok output =>
+          apply LoopResult.done
+          unfold body
+          rw [hbody]
+          rfl
+  | next hbody _ ih =>
+      apply LoopResult.next _ ih
+      unfold body
+      rw [hbody]
+      rfl
+  | fail hbody =>
+      apply LoopResult.fail
+      unfold body
+      rw [hbody]
+      rfl
+  | div hbody =>
+      apply LoopResult.div
+      unfold body
+      rw [hbody]
+      rfl
 
 private theorem body_derive_fail
     {F G1 G2 G2Prepared GT E RFX FX PE PPE : Type}
@@ -293,7 +469,8 @@ private theorem body_derive_fail
         tipp_pairing ppe_pairing (randomizerEffect, nonce) =
       .fail error := by
   unfold body
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+    retainedBody
+    applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
   simp only [Prod.fst, Prod.snd]
   rw [hderive]
   rfl
@@ -320,7 +497,8 @@ private theorem body_derive_div
         tipp_pairing ppe_pairing (randomizerEffect, nonce) =
       .div := by
   unfold body
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+    retainedBody
+    applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
   simp only [Prod.fst, Prod.snd]
   rw [hderive]
   rfl
@@ -350,7 +528,8 @@ private theorem body_randomizer_error
         (applications.groth16_aggregation.AggregateAdapterCoreError.RandomizerFailure
           error))) := by
   unfold body
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+    retainedBody
+    applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
   simp only [Prod.fst, Prod.snd]
   rw [hderive]
   rfl
@@ -380,7 +559,8 @@ private theorem body_retry_none
         tipp_pairing ppe_pairing (randomizerEffect, nonce) =
       .ok (.cont (next, nextNonce)) := by
   unfold body
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+    retainedBody
+    applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
   simp only [Prod.fst, Prod.snd]
   rw [hderive]
   rw [hnext]
@@ -411,7 +591,8 @@ private theorem body_retry_zero
         tipp_pairing ppe_pairing (randomizerEffect, nonce) =
       .ok (.cont (next, nextNonce)) := by
   unfold body
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+    retainedBody
+    applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
   simp only [Prod.fst, Prod.snd]
   rw [hderive]
   simp [applications.groth16_aggregation.randomizer_is_admissible,
@@ -443,7 +624,8 @@ private theorem body_retry_one
         tipp_pairing ppe_pairing (randomizerEffect, nonce) =
       .ok (.cont (next, nextNonce)) := by
   unfold body
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+    retainedBody
+    applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
   simp only [Prod.fst, Prod.snd]
   rw [hderive]
   simp [applications.groth16_aggregation.randomizer_is_admissible,
@@ -492,23 +674,50 @@ private theorem body_combined
             randomizer_effect := next
             tipp_mipp_effect := output.tipp_mipp_effect
           })) := by
-  unfold CombinedChecks.run at hcombined
+  rw [CombinedChecks.run_eq_execution] at hcombined
   unfold body
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+    retainedBody
+    applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
   simp only [Prod.fst, Prod.snd]
   rw [hderive]
   simp [applications.groth16_aggregation.randomizer_is_admissible,
     CombinedChecks.partialEq, CombinedChecks.zero, CombinedChecks.one,
     core.cmp.PartialEq.ne, core.cmp.impls.PartialEqShared.ne,
-    hnonzero, hnotone, installRandomizer] at hcombined ⊢
+    hnonzero, hnotone, installRandomizer,
+    applications.groth16_aggregation.install_aggregate_randomizer_core]
+    at hcombined ⊢
   simp only [CombinedChecks.clone, Result.bind_ok] at hcombined ⊢
-  rw [hcombined]
-  cases combinedResult with
-  | Err error => rfl
-  | Ok output =>
-      rcases output with ⟨checks, nextEffect⟩
-      rcases checks with ⟨left, right⟩
-      cases left <;> cases right <;> rfl
+  cases hexecution : CombinedChecks.runExecution effects tippPairing ppeEffect
+      (installRandomizer input.combined randomizer) effect tipp_pairing
+      ppe_pairing with
+  | fail executionError =>
+      have hwrapped := hexecution
+      simp only [installRandomizer] at hwrapped
+      rw [hwrapped] at hcombined
+      simp at hcombined
+  | div =>
+      have hwrapped := hexecution
+      simp only [installRandomizer] at hwrapped
+      rw [hwrapped] at hcombined
+      simp at hcombined
+  | ok result =>
+      have hwrapped := hexecution
+      simp only [installRandomizer] at hwrapped
+      rw [hwrapped] at hcombined
+      have hdirect := hwrapped
+      unfold CombinedChecks.runExecution at hdirect
+      simp only [CombinedChecks.clone, CombinedChecks.partialEq,
+        CombinedChecks.one, CombinedChecks.zero] at hdirect
+      rw [hdirect]
+      cases result with
+      | Err error =>
+          cases hcombined
+          rfl
+      | Ok output =>
+          rcases output with ⟨retainedInput, coreOutput, retainedTrace⟩
+          rcases coreOutput with ⟨checks, nextEffect⟩
+          rcases checks with ⟨left, right⟩
+          cases left <;> cases right <;> cases hcombined <;> rfl
 
 private theorem body_combined_fail
     {F G1 G2 G2Prepared GT E RFX FX PE PPE : Type}
@@ -538,18 +747,42 @@ private theorem body_combined_fail
     body randomizerEffects effects tippPairing ppeEffect input effect
         tipp_pairing ppe_pairing (randomizerEffect, nonce) =
       .fail error := by
-  unfold CombinedChecks.run at hcombined
+  rw [CombinedChecks.run_eq_execution] at hcombined
   unfold body
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+    retainedBody
+    applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
   simp only [Prod.fst, Prod.snd]
   rw [hderive]
   simp [applications.groth16_aggregation.randomizer_is_admissible,
     CombinedChecks.partialEq, CombinedChecks.zero, CombinedChecks.one,
     core.cmp.PartialEq.ne, core.cmp.impls.PartialEqShared.ne,
-    hnonzero, hnotone, installRandomizer] at hcombined ⊢
+    hnonzero, hnotone, installRandomizer,
+    applications.groth16_aggregation.install_aggregate_randomizer_core]
+    at hcombined ⊢
   simp only [CombinedChecks.clone, Result.bind_ok] at hcombined ⊢
-  rw [hcombined]
-  rfl
+  cases hexecution : CombinedChecks.runExecution effects tippPairing ppeEffect
+      (installRandomizer input.combined randomizer) effect tipp_pairing
+      ppe_pairing with
+  | fail executionError =>
+      have hwrapped := hexecution
+      simp only [installRandomizer] at hwrapped
+      rw [hwrapped] at hcombined
+      have hdirect := hwrapped
+      unfold CombinedChecks.runExecution at hdirect
+      simp only [CombinedChecks.clone, CombinedChecks.partialEq,
+        CombinedChecks.one, CombinedChecks.zero] at hdirect
+      rw [hdirect]
+      simp_all
+  | div =>
+      have hwrapped := hexecution
+      simp only [installRandomizer] at hwrapped
+      rw [hwrapped] at hcombined
+      simp at hcombined
+  | ok result =>
+      have hwrapped := hexecution
+      simp only [installRandomizer] at hwrapped
+      rw [hwrapped] at hcombined
+      cases result <;> simp at hcombined
 
 private theorem body_combined_div
     {F G1 G2 G2Prepared GT E RFX FX PE PPE : Type}
@@ -578,18 +811,42 @@ private theorem body_combined_div
     body randomizerEffects effects tippPairing ppeEffect input effect
         tipp_pairing ppe_pairing (randomizerEffect, nonce) =
       .div := by
-  unfold CombinedChecks.run at hcombined
+  rw [CombinedChecks.run_eq_execution] at hcombined
   unfold body
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+    retainedBody
+    applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
   simp only [Prod.fst, Prod.snd]
   rw [hderive]
   simp [applications.groth16_aggregation.randomizer_is_admissible,
     CombinedChecks.partialEq, CombinedChecks.zero, CombinedChecks.one,
     core.cmp.PartialEq.ne, core.cmp.impls.PartialEqShared.ne,
-    hnonzero, hnotone, installRandomizer] at hcombined ⊢
+    hnonzero, hnotone, installRandomizer,
+    applications.groth16_aggregation.install_aggregate_randomizer_core]
+    at hcombined ⊢
   simp only [CombinedChecks.clone, Result.bind_ok] at hcombined ⊢
-  rw [hcombined]
-  rfl
+  cases hexecution : CombinedChecks.runExecution effects tippPairing ppeEffect
+      (installRandomizer input.combined randomizer) effect tipp_pairing
+      ppe_pairing with
+  | fail executionError =>
+      have hwrapped := hexecution
+      simp only [installRandomizer] at hwrapped
+      rw [hwrapped] at hcombined
+      simp at hcombined
+  | div =>
+      have hwrapped := hexecution
+      simp only [installRandomizer] at hwrapped
+      rw [hwrapped] at hcombined
+      have hdirect := hwrapped
+      unfold CombinedChecks.runExecution at hdirect
+      simp only [CombinedChecks.clone, CombinedChecks.partialEq,
+        CombinedChecks.one, CombinedChecks.zero] at hdirect
+      rw [hdirect]
+      simp_all
+  | ok result =>
+      have hwrapped := hexecution
+      simp only [installRandomizer] at hwrapped
+      rw [hwrapped] at hcombined
+      cases result <;> simp at hcombined
 
 private theorem acceptedCall_of_loopResult
     {F G1 G2 G2Prepared GT E RFX FX PE PPE : Type}
@@ -676,15 +933,15 @@ private theorem acceptedCall_of_loopResult
                   cases hnext :
                       challenge.checked_next_challenge_nonce currentState.2 with
                   | fail error =>
-                      unfold body
-                        applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+                      unfold body retainedBody
+                        applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
                         at hbody
                       simp only [Prod.fst, Prod.snd] at hbody
                       rw [hderive] at hbody
                       simp [hnext] at hbody
                   | div =>
-                      unfold body
-                        applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+                      unfold body retainedBody
+                        applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
                         at hbody
                       simp only [Prod.fst, Prod.snd] at hbody
                       rw [hderive] at hbody
@@ -692,8 +949,8 @@ private theorem acceptedCall_of_loopResult
                   | ok next =>
                       cases next with
                       | none =>
-                          unfold body
-                            applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+                          unfold body retainedBody
+                            applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
                             at hbody
                           simp only [Prod.fst, Prod.snd] at hbody
                           rw [hderive] at hbody
@@ -709,8 +966,8 @@ private theorem acceptedCall_of_loopResult
                     cases hnext :
                         challenge.checked_next_challenge_nonce currentState.2 with
                     | fail error =>
-                        unfold body
-                          applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+                        unfold body retainedBody
+                          applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
                           at hbody
                         simp only [Prod.fst, Prod.snd] at hbody
                         rw [hderive] at hbody
@@ -721,8 +978,8 @@ private theorem acceptedCall_of_loopResult
                           core.cmp.impls.PartialEqShared.ne, hnext]
                           at hbody
                     | div =>
-                        unfold body
-                          applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+                        unfold body retainedBody
+                          applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
                           at hbody
                         simp only [Prod.fst, Prod.snd] at hbody
                         rw [hderive] at hbody
@@ -735,8 +992,8 @@ private theorem acceptedCall_of_loopResult
                     | ok next =>
                         cases next with
                         | none =>
-                            unfold body
-                              applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+                            unfold body retainedBody
+                              applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
                               at hbody
                             simp only [Prod.fst, Prod.snd] at hbody
                             rw [hderive] at hbody
@@ -756,8 +1013,8 @@ private theorem acceptedCall_of_loopResult
                       cases hnext :
                           challenge.checked_next_challenge_nonce currentState.2 with
                       | fail error =>
-                          unfold body
-                            applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+                          unfold body retainedBody
+                            applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
                             at hbody
                           simp only [Prod.fst, Prod.snd] at hbody
                           rw [hderive] at hbody
@@ -768,8 +1025,8 @@ private theorem acceptedCall_of_loopResult
                             core.cmp.impls.PartialEqShared.ne, hnext]
                             at hbody
                       | div =>
-                          unfold body
-                            applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+                          unfold body retainedBody
+                            applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
                             at hbody
                           simp only [Prod.fst, Prod.snd] at hbody
                           rw [hderive] at hbody
@@ -782,8 +1039,8 @@ private theorem acceptedCall_of_loopResult
                       | ok next =>
                           cases next with
                           | none =>
-                              unfold body
-                                applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop.body
+                              unfold body retainedBody
+                                applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop.body
                                 at hbody
                               simp only [Prod.fst, Prod.snd] at hbody
                               rw [hderive] at hbody
@@ -882,14 +1139,40 @@ theorem accepted_path
             checks := (true, true)
             tipp_mipp_effect := finalEffect
           }) := by
-  unfold run
-    applications.groth16_aggregation.verify_aggregate_adapter_core
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce
-    applications.groth16_aggregation.verify_aggregate_adapter_core_from_nonce_loop
-    at haccept
-  exact acceptedCall_of_loopResult randomizerEffects effects tippPairing
-    ppeEffect input effect tipp_pairing ppe_pairing
-    (loopResult_of_eq (by simp) haccept)
+  rw [run_eq_execution] at haccept
+  cases hexecution : runExecution randomizerEffects effects tippPairing
+      ppeEffect input randomizerEffect effect tipp_pairing ppe_pairing with
+  | fail error => simp [projectExecutionResult, hexecution] at haccept
+  | div => simp [projectExecutionResult, hexecution] at haccept
+  | ok result =>
+      cases result with
+      | Err error => simp [projectExecutionResult, hexecution] at haccept
+      | Ok output =>
+          have hcore : output.core = {
+              randomizer := randomizer
+              checks := (true, true)
+              accepted := true
+              randomizer_effect := finalRandomizerEffect
+              tipp_mipp_effect := finalEffect
+            } := by
+            simpa [projectExecutionResult, hexecution] using haccept
+          have hloop :
+              LoopResult
+                (retainedBody randomizerEffects effects tippPairing ppeEffect
+                  input effect tipp_pairing ppe_pairing)
+                (randomizerEffect, 0#u64) (.ok (.Ok output)) := by
+            apply loopResult_of_eq (by simp)
+            simpa [runExecution, retainedBody,
+              applications.groth16_aggregation.verify_aggregate_adapter_execution_core,
+              applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce,
+              applications.groth16_aggregation.verify_aggregate_adapter_execution_core_from_nonce_loop]
+              using hexecution
+          have hprojected := loopResult_core randomizerEffects effects
+            tippPairing ppeEffect input effect tipp_pairing ppe_pairing hloop
+          simp only [projectExecutionResult] at hprojected
+          rw [hcore] at hprojected
+          exact acceptedCall_of_loopResult randomizerEffects effects tippPairing
+            ppeEffect input effect tipp_pairing ppe_pairing hprojected
 
 /-- The concrete randomizer call retained by an accepted extracted adapter
 run. Unlike a transcript-only contract, this record exposes the actual effect

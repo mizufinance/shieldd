@@ -32,9 +32,10 @@ abbrev AdaptiveShaSourceSpec :=
 the shipping binding contract, while forwarding adversarial randomness to
 `ProbComp`. -/
 def deployedShaImpl (sha256 : Bytes → Bytes) :
-    QueryImpl AdaptiveShaSourceSpec ProbComp :=
-  (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp)) +
-    (fun input : Bytes => pure (sha256 input))
+    QueryImpl AdaptiveShaSourceSpec ProbComp := fun
+  | Sum.inl t =>
+      (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp)) t
+  | Sum.inr input => pure (sha256 input)
 
 @[simp] theorem deployedShaImpl_sha256_query
     (sha256 : Bytes → Bytes) (input : Bytes) :
@@ -50,8 +51,8 @@ deployed deterministic SHA execution. -/
         (liftM ((AdaptiveShaSourceSpec).query (Sum.inr input)) :
           OracleComp AdaptiveShaSourceSpec Bytes) =
       (pure (sha256 input) : ProbComp Bytes) := by
-  rw [simulateQ_spec_query]
-  exact deployedShaImpl_sha256_query sha256 input
+  simpa only [simulateQ_spec_query] using
+    deployedShaImpl_sha256_query sha256 input
 
 /-- One adversarial substitution attempt after both inputs have passed the
 production binding contract. The accepted bit is the shipping verifier's

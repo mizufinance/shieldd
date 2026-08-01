@@ -52,13 +52,13 @@ theorem vkDigestPreimage_injective :
   have htail :
       Ipp.ChallengeEncoding.u32LE left.length ++ left =
         Ipp.ChallengeEncoding.u32LE right.length ++ right :=
-    List.append_left_cancel heq
+    List.append_right_injective vkDigestDomain heq
   have hlength : left.length = right.length := by
     have hencodedLength := congrArg List.length htail
     simp [Ipp.ChallengeEncoding.u32LE] at hencodedLength
     omega
   rw [hlength] at htail
-  exact List.append_left_cancel htail
+  exact List.append_right_injective _ htail
 
 /-- One concrete collision in the deployed SHA-256 function. -/
 def Sha256Collision (sha256 : Bytes → Bytes) (left right : Bytes) : Prop :=

@@ -22,6 +22,8 @@ namespace Ipp.ShippingAdaptiveOrigin
 
 noncomputable section
 
+universe u
+
 open Ipp.Bls12377
 open Ipp.ShippingAdaptiveCall
 open Ipp.ShippingAdaptiveSha
@@ -34,18 +36,28 @@ one query domain. -/
 abbrev GlobalByteSourceSpec :=
   unifSpec + (Sha256OracleSpec + Blake2bOracleSpec)
 
+/-- Probabilistic computation whose result may retain heterogeneous production
+runtime carriers. VCVio's `OracleComp` semantics are universe-polymorphic;
+only the convenience alias `ProbComp` is restricted to `Type 0`. -/
+abbrev OriginProbComp (Output : Type u) :=
+  OracleComp unifSpec Output
+
+/-- Joint byte-oracle computation retaining a heterogeneous production call. -/
+abbrev OriginGlobalComp (Output : Type u) :=
+  OracleComp GlobalByteSourceSpec Output
+
 /-- Exactly the SHA-256 points in the joint byte-oracle domain. -/
 def IsShaQuery : GlobalByteSourceSpec.Domain → Prop
   | .inr (.inl _) => True
   | _ => False
 
 instance instDecidablePredIsShaQuery : DecidablePred IsShaQuery := by
-  intro query
-  cases query with
+  intro q
+  cases q with
   | inl _ =>
       exact isFalse (by simp [IsShaQuery])
-  | inr query =>
-      cases query with
+  | inr q =>
+      cases q with
       | inl _ =>
           exact isTrue trivial
       | inr _ =>
@@ -57,12 +69,12 @@ def IsFsQuery : GlobalByteSourceSpec.Domain → Prop
   | _ => False
 
 instance instDecidablePredIsFsQuery : DecidablePred IsFsQuery := by
-  intro query
-  cases query with
+  intro q
+  cases q with
   | inl _ =>
       exact isFalse (by simp [IsFsQuery])
-  | inr query =>
-      cases query with
+  | inr q =>
+      cases q with
       | inl _ =>
           exact isFalse (by simp [IsFsQuery])
       | inr _ =>
@@ -160,9 +172,35 @@ structure OriginRun
 /-- Forward only Blake2b verifier queries into the joint byte-oracle source.
 Preselection SHA-256 and Blake2b queries remain in the same program. -/
 def globalBlake2bFwd :
-    QueryImpl Blake2bOracleSpec (OracleComp GlobalByteSourceSpec) :=
+    (input : Blake2bOracleSpec.Domain) →
+      OracleComp GlobalByteSourceSpec (Blake2bOracleSpec.Range input) :=
   fun input =>
     (GlobalByteSourceSpec).query (Sum.inr (Sum.inr input))
+
+/-- Cross-universe forwarding of a Type-0 Blake2b verifier program into the
+origin-retaining joint program. `ULift` makes the verifier result available to
+the Type-1 continuation without changing a query or answer. -/
+def liftBlake2bProgram
+    {Output : Type}
+    (program : OracleComp Blake2bOracleSpec Output) :
+    OriginGlobalComp (ULift Output) :=
+  match program with
+  | .pure output => .pure (ULift.up output)
+  | .roll input continuation =>
+      .roll (Sum.inr (Sum.inr input)) fun answer =>
+        liftBlake2bProgram (continuation answer)
+
+/-- Cross-universe lift of a Type-0 joint byte program. Every query and
+continuation answer is copied exactly; only the terminal output is `ULift`ed. -/
+def liftGlobalProgram
+    {Output : Type}
+    (program : OracleComp GlobalByteSourceSpec Output) :
+    OriginGlobalComp (ULift Output) :=
+  match program with
+  | .pure output => .pure (ULift.up output)
+  | .roll q continuation =>
+      .roll q fun answer =>
+        liftGlobalProgram (continuation answer)
 
 /-- The query-transparent whole program.
 
@@ -176,18 +214,30 @@ def globalOriginByteProgram
     (adversary :
       OracleComp GlobalByteSourceSpec
         (OriginSelectedCall sha256 blake2b)) :
-    OracleComp GlobalByteSourceSpec (OriginRun sha256 blake2b) := do
+    OriginGlobalComp (OriginRun sha256 blake2b) := do
   let selected ← adversary
   let output ←
-    simulateQ globalBlake2bFwd
+    liftBlake2bProgram
       (shippingVerifierOracle
         (callEncoder selected.data selected.serialization)
         selected.data.statement selected.data.proof)
-  pure { selected := selected, output := output }
+  pure { selected := selected, output := output.down }
 
 /-- Separate exact budgets over the same whole program.  Uniform sampling is
 counted by neither field; SHA-256 and Blake2b cannot consume each other's
 budget. -/
+def IsOriginQueryBoundP
+    {Output : Type 1}
+    (program : OriginGlobalComp Output)
+    (predicate : GlobalByteSourceSpec.Domain → Prop)
+    [DecidablePred predicate]
+    (budget : Nat) : Prop :=
+  PFunctor.FreeM.IsRollBound
+    (P := GlobalByteSourceSpec.toPFunctor)
+    program budget
+    (fun q remaining => ¬ predicate q ∨ 0 < remaining)
+    (fun q remaining => if predicate q then remaining - 1 else remaining)
+
 structure DistinctQueryBudgets
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (blake2b : List UInt8 → DigestBytes)
@@ -196,11 +246,11 @@ structure DistinctQueryBudgets
         (OriginSelectedCall sha256 blake2b))
     (Q_sha Q_fs : Nat) : Prop where
   sha :
-    IsQueryBoundP
+    IsOriginQueryBoundP
       (globalOriginByteProgram sha256 blake2b adversary)
       IsShaQuery Q_sha
   fs :
-    IsQueryBoundP
+    IsOriginQueryBoundP
       (globalOriginByteProgram sha256 blake2b adversary)
       IsFsQuery Q_fs
 
@@ -209,32 +259,124 @@ ambient sampling to `ProbComp`. -/
 def deployedGlobalByteImpl
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (blake2b : List UInt8 → DigestBytes) :
-    QueryImpl GlobalByteSourceSpec ProbComp :=
-  (HasQuery.toQueryImpl (spec := unifSpec) (m := ProbComp)) +
-    ((fun input : Ipp.ShippingV1.Bytes => pure (sha256 input)) +
-      (fun input : List UInt8 => pure (blake2b input)))
+    QueryImpl GlobalByteSourceSpec ProbComp := fun
+  | Sum.inl t =>
+      unifSpec.query t
+  | Sum.inr (Sum.inl input) => pure (sha256 input)
+  | Sum.inr (Sum.inr input) => pure (blake2b input)
 
-/-- Simulating the forwarded verifier subprogram with the joint deployed
-implementation is exactly deterministic evaluation with deployed Blake2b. -/
-theorem simulate_globalBlake2bFwd_eq_real
-    {α : Type}
+/-- Cross-universe deployed interpretation of the joint byte source.  Ambient
+sampling is copied as the same `unifSpec` roll; deployed hash calls select the
+same continuation answer directly. -/
+def evalDeployedGlobalByte
+    {Output : Type u}
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (blake2b : List UInt8 → DigestBytes)
-    (program : OracleComp Blake2bOracleSpec α) :
-    simulateQ (deployedGlobalByteImpl sha256 blake2b)
-        (simulateQ globalBlake2bFwd program) =
-      (pure (evalWithAnswerFn blake2b program) : ProbComp α) := by
-  let answer : QueryImpl Blake2bOracleSpec Id := blake2b
-  have hcompose :
-      (deployedGlobalByteImpl sha256 blake2b) ∘ₛ
-          globalBlake2bFwd =
-        answer.liftTarget ProbComp := by
-    funext input
-    simp [QueryImpl.compose, globalBlake2bFwd,
-      deployedGlobalByteImpl, answer]
-  rw [← QueryImpl.simulateQ_compose, hcompose,
-    simulateQ_liftTarget]
-  rfl
+    (program : OracleComp GlobalByteSourceSpec Output) :
+    OriginProbComp Output :=
+  match program with
+  | .pure output => .pure output
+  | .roll q continuation =>
+      match q with
+      | Sum.inl sample =>
+          .roll sample fun answer =>
+            evalDeployedGlobalByte sha256 blake2b
+              (continuation answer)
+      | Sum.inr (Sum.inl input) =>
+          evalDeployedGlobalByte sha256 blake2b
+            (continuation (sha256 input))
+      | Sum.inr (Sum.inr input) =>
+          evalDeployedGlobalByte sha256 blake2b
+            (continuation (blake2b input))
+
+/-- Exact uniform distribution of an origin-retaining probabilistic program.
+The sampled Type-0 answer is lifted only while binding in `PMF`; the original
+answer is passed to the unchanged continuation. -/
+noncomputable def evalOriginPMF
+    {Output : Type 1}
+    (program : OriginProbComp Output) : PMF Output :=
+  match program with
+  | .pure output => pure output
+  | .roll sample continuation =>
+      PMF.map ULift.up
+          (IsProbabilitySpec.toPMF (spec := unifSpec) sample) >>= fun answer =>
+        evalOriginPMF (continuation answer.down)
+
+/-- Subprobability view of `evalOriginPMF`, used by the generic event API. -/
+noncomputable def evalOriginSPMF
+    {Output : Type 1}
+    (program : OriginProbComp Output) : SPMF Output :=
+  liftM (evalOriginPMF program)
+
+/-- The cross-universe deployed interpreter preserves program sequencing. -/
+theorem evalDeployedGlobalByte_bind
+    {Input Output : Type u}
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (blake2b : List UInt8 → DigestBytes)
+    (program : OracleComp GlobalByteSourceSpec Input)
+    (next : Input → OracleComp GlobalByteSourceSpec Output) :
+    evalDeployedGlobalByte sha256 blake2b (program >>= next) =
+      evalDeployedGlobalByte sha256 blake2b program >>= fun input =>
+        evalDeployedGlobalByte sha256 blake2b (next input) := by
+  induction program using PFunctor.FreeM.inductionOn with
+  | pure input => rfl
+  | roll q continuation ih =>
+      cases q with
+      | inl sample =>
+          change
+            PFunctor.FreeM.roll (P := unifSpec.toPFunctor) sample
+                (fun answer =>
+                  evalDeployedGlobalByte sha256 blake2b
+                    (continuation answer >>= next)) =
+              PFunctor.FreeM.roll (P := unifSpec.toPFunctor) sample
+                (fun answer =>
+                  evalDeployedGlobalByte sha256 blake2b
+                      (continuation answer) >>= fun input =>
+                    evalDeployedGlobalByte sha256 blake2b
+                      (next input))
+          apply congrArg
+            (PFunctor.FreeM.roll (P := unifSpec.toPFunctor) sample)
+          funext answer
+          exact ih answer
+      | inr q =>
+          cases q with
+          | inl input =>
+              change
+                evalDeployedGlobalByte sha256 blake2b
+                    (continuation (sha256 input) >>= next) =
+                  evalDeployedGlobalByte sha256 blake2b
+                      (continuation (sha256 input)) >>= fun value =>
+                    evalDeployedGlobalByte sha256 blake2b
+                      (next value)
+              exact ih (sha256 input)
+          | inr input =>
+              change
+                evalDeployedGlobalByte sha256 blake2b
+                    (continuation (blake2b input) >>= next) =
+                  evalDeployedGlobalByte sha256 blake2b
+                      (continuation (blake2b input)) >>= fun value =>
+                    evalDeployedGlobalByte sha256 blake2b
+                      (next value)
+              exact ih (blake2b input)
+
+/-- Forwarding a verifier program and then installing both deployed hashes is
+exactly deterministic evaluation with deployed Blake2b, wrapped only by
+`ULift`. -/
+theorem evalDeployedGlobalByte_liftBlake2bProgram
+    {Output : Type}
+    (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
+    (blake2b : List UInt8 → DigestBytes)
+    (program : OracleComp Blake2bOracleSpec Output) :
+    evalDeployedGlobalByte sha256 blake2b
+        (liftBlake2bProgram program) =
+      (pure (ULift.up (evalWithAnswerFn blake2b program)) :
+        OriginProbComp (ULift Output)) := by
+  induction program using PFunctor.FreeM.inductionOn with
+  | pure output => rfl
+  | roll input continuation ih =>
+      simpa [liftBlake2bProgram, evalDeployedGlobalByte,
+        evalWithAnswerFn, simulateQ, PFunctor.FreeM.mapM] using
+        ih (blake2b input)
 
 /-- Concrete deployed experiment.
 
@@ -247,12 +389,14 @@ def deployedOriginExperiment
     (adversary :
       OracleComp GlobalByteSourceSpec
         (OriginSelectedCall sha256 blake2b)) :
-    ProbComp (OriginRun sha256 blake2b) := do
+    OriginProbComp (OriginRun sha256 blake2b) := do
   let selected ←
-    simulateQ (deployedGlobalByteImpl sha256 blake2b) adversary
-  let output ←
-    shippingRealCallVerifier
-      selected.data selected.serialization blake2b
+    evalDeployedGlobalByte sha256 blake2b adversary
+  let output :=
+    evalWithAnswerFn blake2b
+      (shippingVerifierOracle
+        (callEncoder selected.data selected.serialization)
+        selected.data.statement selected.data.proof)
   pure { selected := selected, output := output }
 
 /-- Acceptance is a predicate of the concrete verifier output and the raw
@@ -288,30 +432,6 @@ theorem OriginAcceptedWitness.accepted
     AcceptedOriginRun run :=
   ⟨witness.emitted, ⟨witness.raw⟩⟩
 
-/-- A raw accepted result of the retained production call refines its exact
-formal v1 statement and proof, with count and padding facts preserved. -/
-theorem acceptedOriginRun_refines_shipping_v1
-    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
-    {blake2b : List UInt8 → DigestBytes}
-    {run : OriginRun sha256 blake2b}
-    (haccepted : AcceptedOriginRun run) :
-    run.selected.data.statement =
-        run.selected.data.projection.statementOf
-          run.selected.data.input.publicClaim ∧
-      run.selected.data.proof =
-        run.selected.data.projection.proofOf
-          run.selected.data.input.decodedProof ∧
-      Ipp.SnarkPackV1.Accepts
-        run.selected.data.statement run.selected.data.proof
-        run.output.transcript ∧
-      Ipp.ShippingV1.ValidCounts run.selected.data.input ∧
-      Ipp.ShippingV1.RealPrefixExact run.selected.data.input ∧
-      Ipp.ShippingV1.RepeatFinalPadding run.selected.data.input := by
-  exact acceptedCallOutput_refines_shipping_v1
-    run.selected.data run.selected.serialization blake2b
-    run.selected.refinement run.selected.deployed
-    haccepted.1 haccepted.2
-
 /-- Exact deterministic coupling proposition between the query-transparent
 global program and concrete `shippingRealCallVerifier` execution. -/
 def DeployedGlobalProgramMatchesReal
@@ -320,7 +440,7 @@ def DeployedGlobalProgramMatchesReal
     (adversary :
       OracleComp GlobalByteSourceSpec
         (OriginSelectedCall sha256 blake2b)) : Prop :=
-  simulateQ (deployedGlobalByteImpl sha256 blake2b)
+  evalDeployedGlobalByte sha256 blake2b
       (globalOriginByteProgram sha256 blake2b adversary) =
     deployedOriginExperiment sha256 blake2b adversary
 
@@ -336,11 +456,11 @@ theorem deployedGlobalProgram_matches_real
     DeployedGlobalProgramMatchesReal sha256 blake2b adversary := by
   unfold DeployedGlobalProgramMatchesReal
   unfold globalOriginByteProgram deployedOriginExperiment
-  rw [simulateQ_bind]
+  rw [evalDeployedGlobalByte_bind]
   apply bind_congr
   intro selected
-  rw [simulateQ_bind,
-    simulate_globalBlake2bFwd_eq_real]
+  rw [evalDeployedGlobalByte_bind,
+    evalDeployedGlobalByte_liftBlake2bProgram]
   rfl
 
 /-! ## Structured-field modular-reduction target
@@ -363,8 +483,8 @@ def IsGlobalFieldQuery : GlobalFsSourceSpec.Domain → Prop
 
 instance instDecidablePredIsGlobalFieldQuery :
     DecidablePred IsGlobalFieldQuery := by
-  intro query
-  cases query with
+  intro q
+  cases q with
   | inl _ =>
       exact isFalse (by simp [IsGlobalFieldQuery])
   | inr _ =>
@@ -416,15 +536,15 @@ def globalUniformFsSourceExperiment
 auxiliary bad flag. -/
 theorem globalReducedFsSourceImpl_preserves_bad
     [SampleableType Ipp.ShippingScalarReduction.DigestBytes]
-    (query : GlobalFsSourceSpec.Domain)
+    (q : GlobalFsSourceSpec.Domain)
     (state : GlobalScalarCacheState)
     (output :
-      GlobalFsSourceSpec.Range query × GlobalScalarCacheState)
+      GlobalFsSourceSpec.Range q × GlobalScalarCacheState)
     (houtput :
       output ∈ support
-        ((globalReducedFsSourceImpl query).run state)) :
+        ((globalReducedFsSourceImpl q).run state)) :
     output.2.2 = state.2 := by
-  cases query with
+  cases q with
   | inl point =>
       simp only [globalReducedFsSourceImpl,
         QueryImpl.add_apply_inl,
@@ -439,33 +559,31 @@ theorem globalReducedFsSourceImpl_preserves_bad
       simp [hstate]
   | inr point =>
       exact
-        Ipp.ShippingScalarReduction
-          .reducedCachingOracleImpl_preserves_bad
-            point state output
-            (by
-              simpa [globalReducedFsSourceImpl] using houtput)
+        Ipp.ShippingScalarReduction.reducedCachingOracleImpl_preserves_bad
+          point state output
+          (by
+            simpa [globalReducedFsSourceImpl] using houtput)
 
 /-- A charged full-source step is exactly one cache-aware modular-reduction
 step.  Ambient samples are excluded by `IsGlobalFieldQuery`. -/
 theorem globalReducedFsSourceImpl_step_tvDist_le
     [SampleableType Ipp.ShippingScalarReduction.DigestBytes]
-    (query : GlobalFsSourceSpec.Domain)
-    (hquery : IsGlobalFieldQuery query)
+    (q : GlobalFsSourceSpec.Domain)
+    (hquery : IsGlobalFieldQuery q)
     (cache : GlobalFieldOracleSpec.QueryCache) :
     ENNReal.ofReal
         (tvDist
-          ((globalReducedFsSourceImpl query).run (cache, false))
-          ((globalUniformFsSourceImpl query).run (cache, false))) ≤
+          ((globalReducedFsSourceImpl q).run (cache, false))
+          ((globalUniformFsSourceImpl q).run (cache, false))) ≤
       Ipp.ShippingScalarReduction.modReductionBias := by
-  cases query with
+  cases q with
   | inl _ =>
       simp [IsGlobalFieldQuery] at hquery
   | inr point =>
       simpa [globalReducedFsSourceImpl,
         globalUniformFsSourceImpl] using
-        (Ipp.ShippingScalarReduction
-          .reducedCachingOracleImpl_step_tvDist_le
-            point cache)
+        (Ipp.ShippingScalarReduction.reducedCachingOracleImpl_step_tvDist_le
+          point cache)
 
 /-- Modular reduction over the complete preselection-plus-verifier program.
 
@@ -495,39 +613,45 @@ theorem globalReducedFsSource_uniformFsSource_tvDist_le
           globalReducedFsSourceImpl
           (fun state : GlobalScalarCacheState =>
             state.2 = false)
-          (fun query state hstate result hresult => by
+          (fun q state hstate result hresult => by
+            change result.2.2 = false
             rw [globalReducedFsSourceImpl_preserves_bad
-              query state result hresult]
+              q state result hresult]
             exact hstate)
           program (∅, false) rfl
       exact hinv output houtput
     simp_all
   have hquantitative :=
-    OracleComp.ProgramLogic.Relational
-      .ofReal_tvDist_simulateQ_run_le_queryBound_mul_slack_plus_probEvent_bad
+    OracleComp.ProgramLogic.Relational.ofReal_tvDist_simulateQ_run_le_queryBound_mul_slack_plus_probEvent_bad
         (spec' := unifSpec)
         globalReducedFsSourceImpl
         globalUniformFsSourceImpl
         Ipp.ShippingScalarReduction.modReductionBias
         IsGlobalFieldQuery
-        (fun query hquery cache =>
+        (fun q hquery cache =>
           globalReducedFsSourceImpl_step_tvDist_le
-            query hquery cache)
-        (fun query hquery state => by
-          cases query with
+            q hquery cache)
+        (fun q hquery state => by
+          cases q with
           | inl _ =>
               rfl
           | inr _ =>
               simp [IsGlobalFieldQuery] at hquery)
-        (fun query state hbad output houtput => by
+        (fun q state hbad output houtput => by
           rw [globalReducedFsSourceImpl_preserves_bad
-            query state output houtput]
+            q state output houtput]
           exact hbad)
         program hbound (∅, false)
+  have hbadZero' :
+      Pr[fun output : Output × GlobalScalarCacheState =>
+          output.2.2 = true |
+        (simulateQ globalReducedFsSourceImpl program).run
+          (∅, false)] = 0 := by
+    simpa [globalReducedFsSourceExperiment] using hbadZero
+  rw [hbadZero', add_zero] at hquantitative
   simpa [globalReducedFsSourceExperiment,
     globalUniformFsSourceExperiment,
-    Ipp.ShippingScalarReduction.modReductionBudget,
-    hbadZero] using hquantitative
+    Ipp.ShippingScalarReduction.modReductionBudget] using hquantitative
 
 /-- Event form of the same full-source hop. -/
 theorem globalReducedFsSource_event_le_uniform_add_modReduction

@@ -67,7 +67,9 @@ structure GlobalShippingQuery where
   statement : ShippingStatementKey
   encoded : EncodedFamilyContext
   attempt : Ipp.ShippingHashGame.ShippingAttempt
-deriving DecidableEq
+
+noncomputable instance : DecidableEq GlobalShippingQuery :=
+  Classical.decEq _
 
 /-- Exact deployed Blake2b input for a global query. -/
 def globalQueryEncoding (q : GlobalShippingQuery) : List UInt8 :=
@@ -163,7 +165,9 @@ structure GlobalFsQuery where
       Ipp.Bls12377.g1PrimeSubgroup
       Ipp.Bls12377.g2PrimeSubgroup
       Ipp.Bls12377.ArkPairingOutput
-deriving DecidableEq
+
+noncomputable instance : DecidableEq GlobalFsQuery :=
+  Classical.decEq _
 
 /-- Map only the GT carrier of a formal challenge point into the canonical
 decoded wire carrier.  G1, G2, Fr, stage, payload order, and nonce are
@@ -720,15 +724,15 @@ def multiStatementRoundSlot {Call : Type}
 of the output that selected it. -/
 theorem packedOutcome_roundQuery?_statement
     {Call : Type} {level : Nat}
-    {output : PackedOutcome Call} {query : GlobalFsQuery}
-    (hquery : output.roundQuery? level = some query) :
-    query.statement = output.logicalKey := by
+    {output : PackedOutcome Call} {q : GlobalFsQuery}
+    (hquery : output.roundQuery? level = some q) :
+    q.statement = output.logicalKey := by
   rcases output with ⟨μ, output⟩
-  change output.roundQuery? level = some query at hquery
+  change output.roundQuery? level = some q at hquery
   by_cases hlevel : level < μ
   · rw [OutcomeAt.roundQuery?_of_lt output level hlevel] at hquery
     have heq := Option.some.inj hquery
-    subst query
+    subst q
     rfl
   · simp [OutcomeAt.roundQuery?, hlevel] at hquery
 
@@ -740,35 +744,36 @@ theorem multiStatementRoundSlot_query_at_trace
     (run : MultiStatementWrappedRun Call)
     {slot : Fin (queryBound + 1)}
     (hslot : multiStatementRoundSlot queryBound level run = some slot) :
-    ∃ query : GlobalFsQuery,
-      run.out.roundQuery? level = some query ∧
-        run.trace[(slot : Nat)]? = some query := by
+    ∃ q : GlobalFsQuery,
+      run.out.roundQuery? level = some q ∧
+        run.trace[(slot : Nat)]? = some q := by
   cases hquery : run.out.roundQuery? level with
   | none =>
       simp [multiStatementRoundSlot, hquery] at hslot
-  | some query =>
-      by_cases hmem : query ∈ run.trace
-      · let index := run.trace.findIdx (· == query)
+  | some q =>
+      by_cases hmem : q ∈ run.trace
+      · let index := run.trace.findIdx (· == q)
         by_cases hindex : index < queryBound + 1
-        · have hselected :
-              (⟨index, hindex⟩ : Fin (queryBound + 1)) = slot := by
-            exact Option.some.inj (by
-              simpa [multiStatementRoundSlot, hquery, hmem, index] using hslot)
+        · have hselectedExists :
+              ∃ bound : index < queryBound + 1,
+                (⟨index, bound⟩ : Fin (queryBound + 1)) = slot := by
+            simpa [multiStatementRoundSlot, hquery, hmem, index] using hslot
+          obtain ⟨_, hselected⟩ := hselectedExists
           have hindexSlot : index = (slot : Nat) :=
             congrArg Fin.val hselected
           have htraceBound :
-              run.trace.findIdx (· == query) < run.trace.length :=
+              run.trace.findIdx (· == q) < run.trace.length :=
             List.findIdx_lt_length_of_exists
-              ⟨query, hmem, by simp⟩
+              ⟨q, hmem, by simp⟩
           have htraceValue :
-              run.trace[run.trace.findIdx (· == query)] = query := by
+              run.trace[run.trace.findIdx (· == q)] = q := by
             simpa using
               (List.findIdx_getElem
-                (xs := run.trace) (p := fun x => x == query)
+                (xs := run.trace) (p := fun x => x == q)
                 (w := htraceBound))
-          have hatIndex : run.trace[index]? = some query := by
+          have hatIndex : run.trace[index]? = some q := by
             simpa [index, htraceBound, htraceValue]
-          exact ⟨query, hquery, by simpa [hindexSlot] using hatIndex⟩
+          exact ⟨q, rfl, by simpa [hindexSlot] using hatIndex⟩
         · simp [multiStatementRoundSlot, hquery, hmem, index, hindex] at hslot
       · simp [multiStatementRoundSlot, hquery, hmem] at hslot
 
@@ -820,7 +825,7 @@ theorem logicalKey_eq_of_shared_selected_slot
       runA.1.trace[(slot : Nat)]? =
         runB.1.trace[(slot : Nat)]? := by
     have hget :=
-      congrArg (fun trace => trace[(slot : Nat)]?) htrace
+      congrArg (fun queries => queries[(slot : Nat)]?) htrace
     simpa [List.getElem?_take] using hget
   have hqueries : queryA = queryB :=
     Option.some.inj (hatA.symm.trans (htraceAt.trans hatB))
@@ -829,7 +834,7 @@ theorem logicalKey_eq_of_shared_selected_slot
   have hstatementB :=
     packedOutcome_roundQuery?_statement hqueryB
   exact hstatementA.symm.trans
-    ((congrArg (fun query : GlobalFsQuery => query.statement) hqueries).trans
+    ((congrArg (fun q : GlobalFsQuery => q.statement) hqueries).trans
       hstatementB)
 
 /-- Invalid acceptance in the exact selected partition. -/
@@ -923,6 +928,12 @@ def InvalidAcceptedAt {Call : Type}
     (μ : Nat) : MultiStatementRunLog Call → Prop :=
   fun run =>
     SelectedMu μ run.1.out ∧ InvalidAccepted invalid run.1.out
+
+local instance invalidAcceptedAtDecidablePred
+    {Call : Type}
+    (invalid : (μ : Nat) → SelectionAt Call μ → Prop)
+    (μ : Nat) : DecidablePred (InvalidAcceptedAt invalid μ) :=
+  Classical.decPred _
 
 /-- Raw replay tree produced directly by the generic extractor in one
 selected-size partition.  Branches may still choose different statements;
@@ -1064,7 +1075,7 @@ theorem rawMultiStatementForkExperimentAt_support_carries_logicalKey
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -1128,7 +1139,7 @@ theorem rawForkLogicalKeySelectionLossAt_eq_zero
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -1233,6 +1244,7 @@ theorem invalidAcceptedAt_projects_invalid_selection
   change ν = μ ∧
     (invalid ν output.selection ∧
       output.verifierResult.accept = true) at hrun
+  have hν : ν = μ := hrun.1
   subst ν
   refine ⟨output.selection, ?_, hrun.2.1⟩
   simp
@@ -1271,7 +1283,7 @@ theorem rawMultiStatementForkExperimentAt_support_all_invalidAccepted
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -1312,7 +1324,7 @@ theorem rawMultiStatementForkExperimentAt_support_hasCommonInvalidStatement
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -1403,7 +1415,7 @@ theorem rawFork_isSome_le_formalStatementSucceededAt
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -1446,7 +1458,7 @@ theorem rawFork_isSome_le_succeeded_add_selectionLoss
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (μ : Nat)
     (hbaseReach : ∀ level, level < μ →
-      Ipp.CfReachable (multiStatementForkMain game)
+      CfReachable (multiStatementForkMain game)
         queryBounds (Sum.inr ())
         (fun run =>
           multiStatementRoundSlot
@@ -1634,7 +1646,7 @@ structure RawForkScheduleContract
       (Ipp.FsWrappedSpec Ipp.Bls12377.Fr).Domain → Nat)
     (μ : Nat) where
   baseReach : ∀ level, level < μ →
-    Ipp.CfReachable (multiStatementForkMain game)
+    CfReachable (multiStatementForkMain game)
       queryBounds (Sum.inr ())
       (fun run =>
         multiStatementRoundSlot

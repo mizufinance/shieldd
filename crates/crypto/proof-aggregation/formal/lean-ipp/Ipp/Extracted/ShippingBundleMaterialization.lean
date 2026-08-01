@@ -95,7 +95,7 @@ theorem resultAccepted_mem_matchingAcceptances
     (result : CallResult)
     (results : List CallResult)
     (recorded : result ∈ results)
-    (matches : callIdMatchesModel result.id expected = true) :
+    (idMatches : callIdMatchesModel result.id expected = true) :
     result.accepted ∈ matchingAcceptances expected results := by
   induction results with
   | nil =>
@@ -103,17 +103,16 @@ theorem resultAccepted_mem_matchingAcceptances
   | cons head tail ih =>
       rcases List.mem_cons.1 recorded with hhead | htail
       · subst head
-        simp [matchingAcceptances, matches]
-      · cases hmatches :
+        simp [matchingAcceptances, idMatches]
+      · cases headMatches :
           callIdMatchesModel head.id expected with
         | false =>
-            simpa [matchingAcceptances, hmatches] using
+            simpa [matchingAcceptances, headMatches] using
               ih htail
         | true =>
-            exact List.mem_cons_of_mem head.accepted
-              (by
-                simpa [matchingAcceptances, hmatches] using
-                  ih htail)
+            simp only [matchingAcceptances, List.filterMap_cons,
+              headMatches, if_true]
+            exact List.mem_cons_of_mem head.accepted (ih htail)
 
 /-- Equality of full production identifiers implies equality in the
 independent reducer model. -/
@@ -354,16 +353,18 @@ theorem OutputDerivedShippingBundle.allRecordedResultsAccepted
         .ok (.Ok true)) :
     ∀ (id : CallId) (planned : id ∈ expected.val),
       (bundle.call id planned).shippingAccepted = true := by
-  apply
+  have allClaims :=
     accepted_bundle_lifts_per_call_claim expected results
       (fun id =>
         ∀ planned : id ∈ expected.val,
           (bundle.call id planned).shippingAccepted = true)
       reducerAccepted
-  intro id planned unique planned'
-  have plannedExact : planned' = planned := Subsingleton.elim _ _
-  simpa only [plannedExact] using
-    (bundle.call id planned).acceptedResultExact_of_unique unique
+      (by
+        intro id planned unique planned'
+        have plannedExact : planned' = planned := Subsingleton.elim _ _
+        simpa only [plannedExact] using
+          (bundle.call id planned).acceptedResultExact_of_unique unique)
+  exact fun id planned => allClaims id planned planned
 
 /-- Once the reducer accepts, the missing source projection exposes one raw
 accepted backend call boundary for every exact planned call.  Planning and
@@ -541,11 +542,12 @@ theorem OutputDerivedShippingBundle.PackedRunMatches.selectionsExact
     {results : alloc.vec.Vec CallResult}
     {bundle : OutputDerivedShippingBundle declared expected results}
     {outputs : List (PackedOutcome CallId)}
-    (matches : bundle.PackedRunMatches outputs) :
+    (runMatches : bundle.PackedRunMatches outputs) :
     outputs.map PackedOutcome.selection = bundle.selections := by
   rw [← bundle.recordedCalls_selections]
-  unfold OutputDerivedShippingBundle.PackedRunMatches at matches
-  induction matches with
+  unfold OutputDerivedShippingBundle.PackedRunMatches at runMatches
+  generalize bundle.recordedCalls = recordedCalls at runMatches ⊢
+  induction runMatches with
   | nil => rfl
   | cons head tail ih =>
       simp only [List.map_cons, head.1, ih]
@@ -558,11 +560,12 @@ theorem OutputDerivedShippingBundle.PackedRunMatches.acceptancesExact
     {results : alloc.vec.Vec CallResult}
     {bundle : OutputDerivedShippingBundle declared expected results}
     {outputs : List (PackedOutcome CallId)}
-    (matches : bundle.PackedRunMatches outputs) :
+    (runMatches : bundle.PackedRunMatches outputs) :
     outputs.map PackedOutcome.accept =
       bundle.recordedCalls.map RecordedPackedCall.accepted := by
-  unfold OutputDerivedShippingBundle.PackedRunMatches at matches
-  induction matches with
+  unfold OutputDerivedShippingBundle.PackedRunMatches at runMatches
+  generalize bundle.recordedCalls = recordedCalls at runMatches ⊢
+  induction runMatches with
   | nil => rfl
   | cons head tail ih =>
       simp only [List.map_cons, head.2, ih]

@@ -76,6 +76,7 @@ theorem msm_logicalSrs
   rw [Ipp.Extracted.ShippingProver.evenCoefficientPolynomial_eval,
     Ipp.Extracted.ShippingProver.coefficientPolynomial_eval]
   simp only [Ipp.msm]
+  rw [Finset.sum_smul]
   apply Finset.sum_congr rfl
   intro i _
   rw [← algorithm.fullSrsEven i, setup.fullSrsPower]
@@ -190,7 +191,13 @@ theorem executedOpening_vEquation
       (algorithm.opening z coefficients) := by
   have hkey := executedOpening_keyEquation logicalSrs algorithm h
     setup.toFullPowerSrs z coefficients
-  rw [VEquation, hkey, setup.gBetaExact]
+  have hshift :
+      gBeta - z • g = (setup.trapdoor - z) • g := by
+    calc
+      gBeta - z • g = setup.trapdoor • g - z • g :=
+        congrArg (fun point => point - z • g) setup.gBetaExact
+      _ = (setup.trapdoor - z) • g := (sub_smul _ _ _).symm
+  rw [VEquation, hkey, hshift]
   simp only [← sub_smul, map_smul, LinearMap.smul_apply, sub_self]
 
 /-- A well-formed W proving SRS makes every opening produced by the extracted
@@ -212,7 +219,13 @@ theorem executedOpening_wEquation
       (algorithm.opening z coefficients) := by
   have hkey := executedOpening_keyEquation logicalSrs algorithm g
     setup.toFullPowerSrs z coefficients
-  rw [WEquation, hkey, setup.hAlphaExact]
+  have hshift :
+      hAlpha - z • h = (setup.trapdoor - z) • h := by
+    calc
+      hAlpha - z • h = setup.trapdoor • h - z • h :=
+        congrArg (fun point => point - z • h) setup.hAlphaExact
+      _ = (setup.trapdoor - z) • h := (sub_smul _ _ _).symm
+  rw [WEquation, hkey, hshift]
   simp only [← sub_smul, map_smul, LinearMap.smul_apply, sub_self]
 
 /-- Exact one-way semantics needed from the extracted V verifier.  It does

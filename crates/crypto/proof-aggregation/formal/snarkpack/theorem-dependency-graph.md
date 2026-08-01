@@ -22,14 +22,14 @@ flowchart LR
   n15["SHIPPING-FIXED-INPUT-COMPUTATIONAL-BOUND<br/>proved"]
   n16["SHIPPING-TO-V1<br/>proved"]
   n17["SHIPPING-TO-GOAL<br/>open"]
-  n18["STATEMENT-PROJECTION-CONSTRUCTION<br/>open"]
-  n19["CANONICAL-STATEMENT-BINDING<br/>open"]
+  n18["STATEMENT-PROJECTION-CONSTRUCTION<br/>proved"]
+  n19["CANONICAL-STATEMENT-BINDING<br/>proved"]
   n20["V1-COMPLETENESS<br/>proved"]
-  n21["SHIPPING-PROVER-REFINEMENT<br/>open"]
-  n22["RUST-CALL-CONSTRUCTION<br/>open"]
+  n21["SHIPPING-PROVER-REFINEMENT<br/>proved"]
+  n22["RUST-CALL-CONSTRUCTION<br/>proved"]
   n23["DEPLOYED-HASH-TRACE-CONSTRUCTION<br/>proved"]
   n24["ADAPTIVE-SHARED-ORACLE-SKELETON<br/>proved"]
-  n25["ADAPTIVE-SHA256-COUPLING<br/>open"]
+  n25["ADAPTIVE-SHA256-COUPLING<br/>proved"]
   n26["ADAPTIVE-ADVERSARY-COUPLING<br/>open"]
   n27["EXTRACTED-BUNDLE-COMPOSITION<br/>proved"]
   n28["BUNDLE-LEVEL-COMPOSITION<br/>open"]
@@ -67,15 +67,15 @@ flowchart LR
   e0["contract:familyRegistered<br/>pass"]
   e1["contract:canonicalStatementExact<br/>pass"]
   e2["contract:canonicalStatementInjective<br/>pass"]
-  e3["contract:vkDigestPreimageInjective<br/>stale"]
+  e3["contract:vkDigestPreimageInjective<br/>pass"]
   e4["contract:vkDigestExact<br/>stale"]
   e5["contract:statementDigestExact<br/>stale"]
   e6["contract:challengeContextExact<br/>stale"]
   e7["contract:wrapperExact<br/>stale"]
   e8["contract:proofDecodeExact<br/>assumed"]
-  e9["contract:validCounts<br/>stale"]
-  e10["contract:realPrefixExact<br/>stale"]
-  e11["contract:repeatFinalPadding<br/>stale"]
+  e9["contract:validCounts<br/>pass"]
+  e10["contract:realPrefixExact<br/>pass"]
+  e11["contract:repeatFinalPadding<br/>pass"]
   n0 --> n2
   n2 --> n3
   n3 --> n4
@@ -243,12 +243,12 @@ flowchart LR
   classDef assumed fill:#fef3c7,stroke:#b45309,color:#451a03
   classDef evidencePass fill:#e0f2fe,stroke:#0369a1,color:#082f49
   classDef evidenceStale fill:#fee2e2,stroke:#b91c1c,color:#450a0a
-  class n0,n1,n2,n3,n4,n5,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16,n20,n23,n24,n27,n30 proved
+  class n0,n1,n2,n3,n4,n5,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16,n18,n19,n20,n21,n22,n23,n24,n25,n27,n30 proved
   class n31,n32 tested
-  class n6,n17,n18,n19,n21,n22,n25,n26,n28,n29 open
+  class n6,n17,n26,n28,n29 open
   class a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26 assumed
-  class e0,e1,e2,e8 evidencePass
-  class e3,e4,e5,e6,e7,e9,e10,e11 evidenceStale
+  class e0,e1,e2,e3,e8,e9,e10,e11 evidencePass
+  class e4,e5,e6,e7 evidenceStale
 ```
 
-Open graph claims: `DEPLOYED-SRS-SOUNDNESS`, `SHIPPING-TO-GOAL`, `STATEMENT-PROJECTION-CONSTRUCTION`, `CANONICAL-STATEMENT-BINDING`, `SHIPPING-PROVER-REFINEMENT`, `RUST-CALL-CONSTRUCTION`, `ADAPTIVE-SHA256-COUPLING`, `ADAPTIVE-ADVERSARY-COUPLING`, `BUNDLE-LEVEL-COMPOSITION`, `FULL-ADAPTIVE-END-TO-END-FV`. The manifest dependencies keep the explicit modular-reduction budget and the distinct SHA-256 and Blake2b security advantages separate. `SHIPPING-TO-GOAL` is `open` and `FULL-ADAPTIVE-END-TO-END-FV` is `open`. Every F* statement-contract row must carry a source-digest-pinned `pass` result.
+Open graph claims: `DEPLOYED-SRS-SOUNDNESS`, `SHIPPING-TO-GOAL`, `ADAPTIVE-ADVERSARY-COUPLING`, `BUNDLE-LEVEL-COMPOSITION`, `FULL-ADAPTIVE-END-TO-END-FV`. The manifest dependencies keep the explicit modular-reduction budget and the distinct SHA-256 and Blake2b security advantages separate. `SHIPPING-TO-GOAL` is `open` and `FULL-ADAPTIVE-END-TO-END-FV` is `open`. Every F* statement-contract row must carry a source-digest-pinned `pass` result.

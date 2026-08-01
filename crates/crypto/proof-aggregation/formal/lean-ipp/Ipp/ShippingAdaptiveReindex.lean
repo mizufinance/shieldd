@@ -24,6 +24,7 @@ namespace Ipp.ShippingAdaptiveReindex
 noncomputable section
 
 open Ipp.Bls12377
+open Ipp.ShippingAdaptiveCall
 open Ipp.ShippingAdaptiveOrigin
 open Ipp.ShippingAdaptiveSha
 open Ipp.ShippingHashGame
@@ -39,7 +40,7 @@ abbrev OriginFormalOutcome :=
 
 /-- Project an origin-bearing run to its exact formal selection and verifier
 result.  No statement, proof, transcript, or acceptance bit is recomputed. -/
-noncomputable def OriginRun.formalOutcome
+noncomputable def originFormalOutcome
     {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
     {blake2b : List UInt8 → DigestBytes}
     (run : OriginRun sha256 blake2b) :
@@ -49,40 +50,51 @@ noncomputable def OriginRun.formalOutcome
     verifierResult := run.output
   }⟩
 
-@[simp] theorem OriginRun.formalOutcome_mu
+@[simp] theorem originFormalOutcome_mu
     {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
     {blake2b : List UInt8 → DigestBytes}
     (run : OriginRun sha256 blake2b) :
-    run.formalOutcome.1 = run.selected.μ := by
+    (originFormalOutcome run).1 = run.selected.μ := by
   rfl
 
-@[simp] theorem OriginRun.formalOutcome_selection
+@[simp] theorem originFormalOutcome_selection
     {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
     {blake2b : List UInt8 → DigestBytes}
     (run : OriginRun sha256 blake2b) :
-    run.formalOutcome.selection =
+    (originFormalOutcome run).selection =
       packedProductionSelection
         run.selected.data run.selected.refinement := by
   rfl
 
-@[simp] theorem OriginRun.formalOutcome_accept
+@[simp] theorem originFormalOutcome_accept
     {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
     {blake2b : List UInt8 → DigestBytes}
     (run : OriginRun sha256 blake2b) :
-    run.formalOutcome.accept = run.output.accept := by
+    (originFormalOutcome run).accept = run.output.accept := by
   rfl
 
 /-- The low projection retains the complete formal verifier result, including
 the exact proof, transcript, error ordering result, and acceptance bit. -/
-@[simp] theorem OriginRun.formalOutcome_verifierResult
+@[simp] theorem originFormalOutcome_verifierResult
     {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
     {blake2b : List UInt8 → DigestBytes}
     (run : OriginRun sha256 blake2b) :
-    run.formalOutcome.2.verifierResult = run.output := by
+    (originFormalOutcome run).2.verifierResult = run.output := by
   rfl
 
 /-- Whole origin program with only its output universe lowered.  Every oracle
 query, including all preselection queries, is unchanged. -/
+noncomputable def projectOriginProgram
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    (program : OriginGlobalComp (OriginRun sha256 blake2b)) :
+    OracleComp GlobalByteSourceSpec OriginFormalOutcome :=
+  match program with
+  | .pure run => .pure (originFormalOutcome run)
+  | .roll q continuation =>
+      .roll q fun answer =>
+        projectOriginProgram (continuation answer)
+
 noncomputable def projectedOriginByteProgram
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (blake2b : List UInt8 → DigestBytes)
@@ -90,8 +102,28 @@ noncomputable def projectedOriginByteProgram
       OracleComp GlobalByteSourceSpec
         (OriginSelectedCall sha256 blake2b)) :
     OracleComp GlobalByteSourceSpec OriginFormalOutcome :=
-  OriginRun.formalOutcome <$>
-    globalOriginByteProgram sha256 blake2b adversary
+  projectOriginProgram
+    (globalOriginByteProgram sha256 blake2b adversary)
+
+/-- Structural output lowering preserves any predicate-targeted query budget.
+This is the cross-universe counterpart of `isQueryBoundP_map_iff`; it changes
+only the terminal `pure` value and copies every oracle roll exactly. -/
+theorem projectOriginProgram_queryBound
+    {sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes}
+    {blake2b : List UInt8 → DigestBytes}
+    (program : OriginGlobalComp (OriginRun sha256 blake2b))
+    (predicate : GlobalByteSourceSpec.Domain → Prop)
+    [DecidablePred predicate]
+    (budget : Nat)
+    (hbound : IsOriginQueryBoundP program predicate budget) :
+    IsQueryBoundP
+      (projectOriginProgram program) predicate budget := by
+  unfold IsOriginQueryBoundP at hbound
+  unfold OracleComp.IsQueryBoundP
+  induction program using PFunctor.FreeM.inductionOn generalizing budget with
+  | pure run => trivial
+  | roll q continuation ih =>
+      exact ⟨hbound.1, fun answer => ih answer _ (hbound.2 answer)⟩
 
 /-- Output projection does not alter the byte-side Fiat--Shamir query bound. -/
 theorem projectedOriginByteProgram_fsBound
@@ -106,10 +138,9 @@ theorem projectedOriginByteProgram_fsBound
     IsQueryBoundP
       (projectedOriginByteProgram sha256 blake2b adversary)
       IsFsQuery Q_fs := by
-  exact
-    (isQueryBoundP_map_iff
-      (globalOriginByteProgram sha256 blake2b adversary)
-      OriginRun.formalOutcome Q_fs).2 budgets.fs
+  exact projectOriginProgram_queryBound
+    (globalOriginByteProgram sha256 blake2b adversary)
+    IsFsQuery Q_fs budgets.fs
 
 /-! ## Reached-query domain and collision-free byte encoding -/
 

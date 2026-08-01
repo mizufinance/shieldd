@@ -356,7 +356,7 @@ def OutputDerivedAcceptedCall.supported
   change SupportedShippingInput (arity := arity) wire
     construction.materialization.input
   exact ⟨construction.execution,
-    construction.materialization.argumentsRepresent, construction.rows⟩
+    construction.materialization.argumentsRepresent, ⟨construction.rows⟩⟩
 
 /-- The production application projection now consumes the same call and
 formal input fixed by the successful constructor output. -/
@@ -379,7 +379,7 @@ def OutputDerivedAcceptedCall.applicationProjection
           construction.shippingData.call.bundle_real_count =
         .ok (.Ok construction.shippingData.call.id) := by
     simpa only [construction.executionCallExact] using
-      construction.execution.identityAccepted
+      (ConstructorExecution.identityAccepted construction.execution)
   have hpadding :
       app_verifier.app_verify_plan_padding_core
           construction.shippingData.call.id
@@ -387,7 +387,7 @@ def OutputDerivedAcceptedCall.applicationProjection
           construction.shippingData.call.bundle_padded_count =
         .ok (.Ok construction.shippingData.call.id) := by
     simpa only [construction.executionCallExact] using
-      construction.execution.paddingAccepted
+      (ConstructorExecution.paddingAccepted construction.execution)
   exact construction.application.projectionContract hidentity hpadding
 
 /-- The wrapper decoder cannot select bytes distinct from the constructor
@@ -519,9 +519,10 @@ theorem OutputDerivedAcceptedCall.shippingRefinementInputs
     (alignment : ShippingSemanticAlignment construction boundary) :
     construction.shippingData.contract.supported
         construction.shippingData.input ∧
-      Ipp.ShippingV1.StatementProjectionContract
-        construction.shippingData.projection
-        construction.shippingData.contract ∧
+      Nonempty
+        (Ipp.ShippingV1.StatementProjectionContract
+          construction.shippingData.projection
+          construction.shippingData.contract) ∧
       Ipp.ShippingV1.RepresentsShippingInput
         construction.shippingData.projection
         construction.shippingData.input
@@ -534,8 +535,9 @@ theorem OutputDerivedAcceptedCall.shippingRefinementInputs
     ⟨hsupported, hrepresents, hcounts, hprefix, hpadding, _hprojects⟩
   refine ⟨?_, ?_, ?_, hcounts, hprefix, hpadding⟩
   · simpa only [alignment.contractExact] using hsupported
-  · simpa only [alignment.projectionExact, alignment.contractExact] using
-      boundary.projectionContract
+  · exact ⟨by
+      simpa only [alignment.projectionExact, alignment.contractExact] using
+        boundary.projectionContract⟩
   · simpa only [alignment.projectionExact, alignment.statementExact,
       alignment.proofExact] using hrepresents
 
@@ -712,7 +714,7 @@ def ConcreteOutputDerivedCall.supported
       construction.materialization.input :=
   ⟨construction.execution,
     construction.materialization.argumentsRepresent,
-    construction.rows⟩
+    ⟨construction.rows⟩⟩
 
 /-- The full `ShippingCallData` value is constructed rather than supplied as
 a template. In particular, its statement, proof, projection, binding
@@ -858,8 +860,14 @@ noncomputable def ConcreteOutputDerivedCall.application
     paddedCountWireExact := harguments.paddedCount
     scalarProjection := ?_
   }
-  rw [construction.shippingCallExact, hfamily]
-  exact construction.execution.projectionAccepted
+  rw [construction.shippingCallExact]
+  have hinput :
+      construction.shippingData.input =
+        construction.materialization.input := by
+    rfl
+  rw [hinput]
+  rw [hfamily]
+  exact ConstructorExecution.projectionAccepted construction.execution
 
 /-- Family and both count equalities are derived from the constructed
 application witness and the constructor's own successful identity/padding
@@ -885,13 +893,13 @@ noncomputable def ConcreteOutputDerivedCall.applicationProjection
     ShippingApplicationProjectionContract construction.shippingData := by
   apply construction.application.projectionContract
   · simpa only [construction.shippingCallExact] using
-      construction.execution.identityAccepted
+      (ConstructorExecution.identityAccepted construction.execution)
   · simpa only [construction.shippingCallExact] using
-      construction.execution.paddingAccepted
+      (ConstructorExecution.paddingAccepted construction.execution)
 
 /-- The projection contract is now a theorem about the constructed call,
 rather than a field in caller-owned `ShippingCallData`. -/
-theorem ConcreteOutputDerivedCall.statementProjection
+noncomputable def ConcreteOutputDerivedCall.statementProjection
     {D : Type} {μ arity : Nat}
     {wire :
       WireRowDecoder μ
@@ -1231,7 +1239,7 @@ theorem concrete_rust_shipping_call_construction
         construction.materialization.input ∧
       runtime.loadVerifierSrs construction.shippingData.input.srsId =
         some construction.shippingData.srs ∧
-      ShippingApplicationConstruction construction.shippingData ∧
+      Nonempty (ShippingApplicationConstruction construction.shippingData) ∧
       ShippingApplicationProjectionContract construction.shippingData ∧
       construction.shippingData.contract.supported
         construction.shippingData.input ∧
@@ -1256,9 +1264,10 @@ theorem concrete_rust_shipping_call_construction
         some construction.shippingData.input.innerProofBytes ∧
       bytes.decodeProof construction.shippingData.input.innerProofBytes =
         some construction.shippingData.input.decodedProof ∧
-      Ipp.ShippingV1.StatementProjectionContract
-        construction.shippingData.projection
-        construction.shippingData.contract ∧
+      Nonempty
+        (Ipp.ShippingV1.StatementProjectionContract
+          construction.shippingData.projection
+          construction.shippingData.contract) ∧
       Ipp.ShippingV1.RepresentsShippingInput
         construction.shippingData.projection
         construction.shippingData.input
@@ -1275,7 +1284,7 @@ theorem concrete_rust_shipping_call_construction
       boundary construction.supported
   exact
     ⟨construction.shippingCallExact, rfl, rfl,
-      construction.verifierSrsExact, construction.application,
+      construction.verifierSrsExact, ⟨construction.application⟩,
       construction.applicationProjection, construction.supported,
       boundary.canonicalStatementConstruction
         construction.materialization.input construction.supported,
@@ -1346,9 +1355,9 @@ noncomputable def ConcreteOutputDerivedCall.acceptedExecution
     adapter := adapter
   }
   · simpa only [construction.shippingCallExact] using
-      construction.execution.identityAccepted
+      (ConstructorExecution.identityAccepted construction.execution)
   · simpa only [construction.shippingCallExact] using
-      construction.execution.paddingAccepted
+      (ConstructorExecution.paddingAccepted construction.execution)
 
 #print axioms ConstructorOutputMaterialization.outputCallExact
 #print axioms ConstructorOutputMaterialization.argumentsRepresent

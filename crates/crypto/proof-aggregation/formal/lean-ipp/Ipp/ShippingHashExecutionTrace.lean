@@ -91,7 +91,7 @@ private theorem successfulPointSampleFrom_of_eval_eq_some
               (encode (mkPoint start)))) =
           blake2b (encode (mkPoint start)) from
         simulateQ_spec_query
-          (impl := blake2b) (encode (mkPoint start))] at hexec
+          (impl := QueryImpl.ofFn blake2b) (encode (mkPoint start))] at hexec
       rw [Ipp.ShippingHashGame.shippingDecodeFr_eq_some] at hexec
       let current :=
         Ipp.ShippingScalarReduction.reduceFr
@@ -102,10 +102,9 @@ private theorem successfulPointSampleFrom_of_eval_eq_some
         have hpairs :
             (current, start) = (value, nonce) := by
           simpa only [current] using Option.some.inj hexec
-        have hvalue : current = value := congrArg Prod.fst hpairs
-        have hnonce : start = nonce := congrArg Prod.snd hpairs
-        subst value
-        subst nonce
+        have hpairs' : current = value ∧ start = nonce := by
+          simpa only [Prod.mk.injEq] using hpairs
+        rcases hpairs' with ⟨rfl, rfl⟩
         refine ⟨Nat.le_refl _, by omega, ?_, ?_, ?_⟩
         · exact Ipp.ShippingHashGame.shippingDecodeFr_eq_some _
         · simpa only [current] using haccepted
@@ -361,7 +360,7 @@ structure TranscriptExecution
         Ipp.nonzeroB stmt.rejectionFuel =
       some (transcript.kzg, transcript.kzgNonce)
 
-/-- Exact successful-attempt facts for every stage of one transcript
+/- Exact successful-attempt facts for every stage of one transcript
 execution.  These projections are the handwritten target for the retained
 production challenge trace. -/
 namespace TranscriptExecution

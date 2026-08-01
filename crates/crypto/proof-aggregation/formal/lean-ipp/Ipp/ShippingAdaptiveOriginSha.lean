@@ -58,74 +58,75 @@ performed while routing the family, hashing the VK or canonical statement,
 and deriving the challenge context is therefore charged to the same
 whole-program budget as preselection queries. -/
 def materializedAliasByteProgram
-    {Request : Type}
+    {Request : Type 1}
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (blake2b : List UInt8 → DigestBytes)
-    (adversary : OracleComp GlobalByteSourceSpec Request)
+    (adversary : OriginGlobalComp Request)
     (materialize :
       Request →
-        OracleComp GlobalByteSourceSpec
+        OriginGlobalComp
           (MaterializedAliasCall sha256 blake2b)) :
-    OracleComp GlobalByteSourceSpec
-      (MaterializedAliasRun sha256 blake2b) := do
+    OriginGlobalComp (MaterializedAliasRun sha256 blake2b) := do
   let request ← adversary
   let call ← materialize request
   let output ←
-    simulateQ globalBlake2bFwd
+    liftBlake2bProgram
       (shippingVerifierOracle
         (callEncoder call.selected.data call.selected.serialization)
         call.selected.data.statement call.selected.data.proof)
-  pure { call := call, output := output }
+  pure { call := call, output := output.down }
 
 /-- Concrete deployed execution of the same program.  Production
 materialization is evaluated against the deployed joint byte implementation
 before the retained shipping verifier is called. -/
 def deployedMaterializedAliasExperiment
-    {Request : Type}
+    {Request : Type 1}
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (blake2b : List UInt8 → DigestBytes)
-    (adversary : OracleComp GlobalByteSourceSpec Request)
+    (adversary : OriginGlobalComp Request)
     (materialize :
       Request →
-        OracleComp GlobalByteSourceSpec
+        OriginGlobalComp
           (MaterializedAliasCall sha256 blake2b)) :
-    ProbComp (MaterializedAliasRun sha256 blake2b) := do
+    OriginProbComp (MaterializedAliasRun sha256 blake2b) := do
   let request ←
-    simulateQ (deployedGlobalByteImpl sha256 blake2b) adversary
+    evalDeployedGlobalByte sha256 blake2b adversary
   let call ←
-    simulateQ (deployedGlobalByteImpl sha256 blake2b)
+    evalDeployedGlobalByte sha256 blake2b
       (materialize request)
-  let output ←
-    shippingRealCallVerifier
-      call.selected.data call.selected.serialization blake2b
+  let output :=
+    evalWithAnswerFn blake2b
+      (shippingVerifierOracle
+        (callEncoder call.selected.data call.selected.serialization)
+        call.selected.data.statement call.selected.data.proof)
   pure { call := call, output := output }
 
 /-- The query-transparent program is definitionally the concrete deployed
 execution after the existing exact Blake2b-forwarding theorem. -/
 theorem materializedAliasByteProgram_matches_deployed
-    {Request : Type}
+    {Request : Type 1}
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (blake2b : List UInt8 → DigestBytes)
-    (adversary : OracleComp GlobalByteSourceSpec Request)
+    (adversary : OriginGlobalComp Request)
     (materialize :
       Request →
-        OracleComp GlobalByteSourceSpec
+        OriginGlobalComp
           (MaterializedAliasCall sha256 blake2b)) :
-    simulateQ (deployedGlobalByteImpl sha256 blake2b)
+    evalDeployedGlobalByte sha256 blake2b
         (materializedAliasByteProgram
           sha256 blake2b adversary materialize) =
       deployedMaterializedAliasExperiment
         sha256 blake2b adversary materialize := by
   unfold materializedAliasByteProgram
   unfold deployedMaterializedAliasExperiment
-  rw [simulateQ_bind]
+  rw [evalDeployedGlobalByte_bind]
   apply bind_congr
   intro request
-  rw [simulateQ_bind]
+  rw [evalDeployedGlobalByte_bind]
   apply bind_congr
   intro call
-  rw [simulateQ_bind,
-    simulate_globalBlake2bFwd_eq_real]
+  rw [evalDeployedGlobalByte_bind,
+    evalDeployedGlobalByte_liftBlake2bProgram]
   rfl
 
 /-- The concrete verifier accepted and the retained production input aliases
@@ -189,51 +190,54 @@ program.  `Q_sha` bounds SHA queries across the adversary, the production
 materializer, and the verifier in one program; Blake2b queries are excluded by
 `IsShaQuery` and retain their separate budget. -/
 structure MaterializedAliasCollisionSecurity
-    {Request : Type}
+    {Request : Type 1}
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (blake2b : List UInt8 → DigestBytes)
-    (adversary : OracleComp GlobalByteSourceSpec Request)
+    (adversary : OriginGlobalComp Request)
     (materialize :
       Request →
-        OracleComp GlobalByteSourceSpec
+        OriginGlobalComp
           (MaterializedAliasCall sha256 blake2b))
     (Q_sha : Nat) where
   queryBound :
-    IsQueryBoundP
+    IsOriginQueryBoundP
       (materializedAliasByteProgram
         sha256 blake2b adversary materialize)
       IsShaQuery Q_sha
   epsilonSha256 : ℝ≥0∞
   collision_le :
     Pr[MaterializedAliasShaCollision |
-        deployedMaterializedAliasExperiment
-          sha256 blake2b adversary materialize] ≤
+        evalOriginSPMF
+          (deployedMaterializedAliasExperiment
+            sha256 blake2b adversary materialize)] ≤
       epsilonSha256
 
 /-- Whole-program adaptive accepted substitutions are bounded by the exact
 SHA-256 collision advantage.  The premise bounds only the collision game; it
 does not assume a shipping acceptance bound. -/
 theorem adaptive_materialized_shipping_sha256_collision_reduction
-    {Request : Type}
+    {Request : Type 1}
     (sha256 : Ipp.ShippingV1.Bytes → Ipp.ShippingV1.Bytes)
     (blake2b : List UInt8 → DigestBytes)
-    (adversary : OracleComp GlobalByteSourceSpec Request)
+    (adversary : OriginGlobalComp Request)
     (materialize :
       Request →
-        OracleComp GlobalByteSourceSpec
+        OriginGlobalComp
           (MaterializedAliasCall sha256 blake2b))
     (Q_sha : Nat)
     (security :
       MaterializedAliasCollisionSecurity
         sha256 blake2b adversary materialize Q_sha) :
     Pr[AcceptedMaterializedAlias |
-        deployedMaterializedAliasExperiment
-          sha256 blake2b adversary materialize] ≤
+        evalOriginSPMF
+          (deployedMaterializedAliasExperiment
+            sha256 blake2b adversary materialize)] ≤
       security.epsilonSha256 := by
   calc
     _ ≤ Pr[MaterializedAliasShaCollision |
-        deployedMaterializedAliasExperiment
-          sha256 blake2b adversary materialize] := by
+        evalOriginSPMF
+          (deployedMaterializedAliasExperiment
+            sha256 blake2b adversary materialize)] := by
       apply probEvent_mono
       intro run _ haccepted
       exact

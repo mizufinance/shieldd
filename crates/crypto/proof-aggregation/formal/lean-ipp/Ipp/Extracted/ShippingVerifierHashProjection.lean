@@ -58,7 +58,7 @@ The source-side inputs are only operational call equations:
 transcript is not equated to a caller-selected source transcript; it comes from
 `shippingTranscriptOptionOracle`, and sampler determinism proves every nonce
 identity. -/
-theorem acceptedExecutionSamples_of_transcriptExecution
+noncomputable def acceptedExecutionSamples_of_transcriptExecution
     {RFX FX : Type} {n : Nat}
     {primitive : Primitive FX}
     {serialization : Serialization primitive}
@@ -244,7 +244,7 @@ challenge.
 This theorem does not assume transcript equality or verifier acceptance.
 All stage admissibility facts are derived from the successful bounded sampler
 recorded by `TranscriptExecution`; they are not caller-supplied premises. -/
-theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
+noncomputable def arkworksTrace_of_runChallengeTrace_and_transcriptExecution
     {FX : Type} {n : Nat}
     {primitive : Primitive FX}
     {serialization : Serialization primitive}
@@ -271,10 +271,12 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
         effect0 finalEffect) :
     Ipp.Extracted.AggregateVerifier.ArkworksTippChallengeTrace
       primitive serialization stmt proof transcript effect0 := by
-  obtain ⟨x0Nonce, hx0Source⟩ :=
+  let x0Witness :=
     tippSemantics.x0 effect0 (run.effect 0) transcript.randomizer
       proof.ComA.1 proof.ComB proof.ComA.2 proof.ipAb proof.aggC
       run.x0Value run.x0
+  let x0Nonce := Classical.choose x0Witness
+  have hx0Source := Classical.choose_spec x0Witness
   have hx0Oracle :
       Ipp.ShippingArkworksHash.deployedPointSample
           contract family context stmt.rejectionFuel blake2b
@@ -316,7 +318,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
               rw [dif_pos hprevious, dif_pos hprevious]
               exact
                 ih previous (Nat.lt_succ_self previous) hprevious
-        obtain ⟨roundNonce, hroundSourceRaw⟩ :=
+        let roundWitness :=
           tippSemantics.round
             (run.effect k) (run.effect (k + 1))
             (Ipp.Extracted.VerifyTippMipp.priorAt
@@ -327,6 +329,8 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
               proof.rounds (Fin.rev ⟨k, hk⟩)).2
             (run.roundValue ⟨k, hk⟩)
             (run.round k hk)
+        let roundNonce := Classical.choose roundWitness
+        have hroundSourceRaw := Classical.choose_spec roundWitness
         have hroundSource :
             Ipp.ShippingArkworksHash.deployedPointSample
                 contract family context stmt.rejectionFuel blake2b
@@ -336,8 +340,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
                   (proof.rounds ⟨k, hk⟩) nonce)
                 Ipp.nonzeroB =
               some (run.roundValue ⟨k, hk⟩, roundNonce) := by
-          rw [hprior] at hroundSourceRaw
-          simpa only [
+          simpa only [roundNonce, roundWitness, hprior,
             Ipp.ShippingArkworksHash.roundComsOfCommitments_extractedRounds_rev] using
             hroundSourceRaw
         have hroundPrev :
@@ -374,7 +377,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
       run.roundValue = transcript.roundAnswer := by
     funext i
     exact hroundValue i.val i.isLt
-  obtain ⟨bridgeNonce, hbridgeSourceRaw⟩ :=
+  let bridgeWitness :=
     tippSemantics.bridge
       (run.effect n) run.bridgeEffect
       (Ipp.Extracted.VerifyTippMipp.priorAt
@@ -382,6 +385,8 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
       (proof.vFinal, proof.wFinal)
       (proof.aFinal, proof.bFinal, proof.cFinal)
       run.bridgeValue run.bridge
+  let bridgeNonce := Classical.choose bridgeWitness
+  have hbridgeSourceRaw := Classical.choose_spec bridgeWitness
   have hbridgeSource :
       Ipp.ShippingArkworksHash.deployedPointSample
           contract family context stmt.rejectionFuel blake2b
@@ -397,7 +402,8 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
           } nonce)
           Ipp.nonzeroB =
         some (run.bridgeValue, bridgeNonce) := by
-    simpa only [hroundFunction, hx0Value] using hbridgeSourceRaw
+    simpa only [bridgeNonce, bridgeWitness, hroundFunction, hx0Value] using
+      hbridgeSourceRaw
   have hbridgeOracleRaw := transcriptExecution.bridge
   rw [executionPrior_eq_extractedPrior
     transcript.roundAnswer transcript.x0 n] at hbridgeOracleRaw
@@ -421,10 +427,12 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
       hbridgeOracleRaw
   have hbridgeValue : run.bridgeValue = transcript.bridge :=
     value_eq_of_same_sample hbridgeSource hbridgeOracle
-  obtain ⟨kzgNonce, hkzgSourceRaw⟩ :=
+  let kzgWitness :=
     tippSemantics.kzg run.bridgeEffect finalEffect
       run.bridgeValue (proof.vFinal, proof.wFinal)
       run.kzgValue run.kzg
+  let kzgNonce := Classical.choose kzgWitness
+  have hkzgSourceRaw := Classical.choose_spec kzgWitness
   have hkzgSource :
       Ipp.ShippingArkworksHash.deployedPointSample
           contract family context stmt.rejectionFuel blake2b
@@ -435,7 +443,7 @@ theorem arkworksTrace_of_runChallengeTrace_and_transcriptExecution
           } nonce)
           Ipp.nonzeroB =
         some (run.kzgValue, kzgNonce) := by
-    simpa only [hbridgeValue] using hkzgSourceRaw
+    simpa only [kzgNonce, kzgWitness, hbridgeValue] using hkzgSourceRaw
   have hkzgOracle :
       Ipp.ShippingArkworksHash.deployedPointSample
           contract family context stmt.rejectionFuel blake2b

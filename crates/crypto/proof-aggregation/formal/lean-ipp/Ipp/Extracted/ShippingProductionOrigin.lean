@@ -12,6 +12,7 @@ serialization/hash postconditions remain explicit boundaries.
 
 namespace Ipp.Extracted.ShippingProductionOrigin
 
+open Ipp.Bls12377
 open Ipp.Extracted.ShippingCallMaterialization
 open Ipp.Extracted.ShippingStatementConstruction
 open Ipp.Extracted.ShippingVerifierComposition
@@ -22,6 +23,9 @@ open Ipp.ShippingHashGame
 open Ipp.ShippingRealVerifier
 
 noncomputable section
+
+local instance : Fact scalarModulus.Prime :=
+  ⟨arithmeticFacts.scalarPrime⟩
 
 /-- Construct the adaptive selected call from one concrete output-derived
 shipping call. No call, statement, proof, or refinement field is supplied

@@ -265,7 +265,10 @@ from the generated arguments, including the serialized row matrix. -/
         } :=
       execution.envelopeExact
     _ = _ := by
-      rw [execution.toConstructorExecution.outputExact]
+      have hinput := execution.toConstructorExecution.outputExact
+      simp only [AcceptedShippingPreflightExecution.toConstructorExecution]
+        at hinput
+      rw [hinput]
 
 @[simp] theorem AcceptedShippingPreflightExecution.backendCallExact
     {BackendCall Fields : Type}

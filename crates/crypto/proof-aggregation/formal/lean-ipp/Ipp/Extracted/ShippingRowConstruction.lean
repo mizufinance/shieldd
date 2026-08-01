@@ -22,7 +22,7 @@ structure ExactRowConstruction
     [AddCommMonoid G2] [Module F G2]
     [AddCommMonoid GT] [Module F GT]
     (input : Ipp.ShippingV1.ShippingV1Input
-      μ F G1 G2 GT Row DecodedProof) : Prop where
+      μ F G1 G2 GT Row DecodedProof) : Type where
   sourceRows : List Row
   paddedRows : List Row
   sourceNonempty : sourceRows ≠ []
@@ -120,7 +120,9 @@ theorem validCounts
     Ipp.ShippingV1.ValidCounts input := by
   constructor
   · rw [construction.realCountExact]
-    exact List.length_pos.mpr construction.sourceNonempty
+    cases hrows : construction.sourceRows with
+    | nil => exact (construction.sourceNonempty hrows).elim
+    | cons head tail => simp [hrows]
   · rw [construction.realCountExact]
     exact source_length_le_target construction.generatedPadding
 
@@ -141,7 +143,7 @@ theorem realPrefixExact
         construction.sourceRows[i.val]? := by
     have hprefix := construction.generatedPadding.prefixExact
     have := congrArg (fun rows => rows[i.val]?) hprefix
-    simpa [List.getElem?_take, Nat.le_of_lt hi] using this
+    simpa [List.getElem?_take, hi] using this
   have hpadded :=
     construction.paddedRowsExact (Ipp.Goal.embedFin hcount i)
   have hreal := construction.realRowsExact i

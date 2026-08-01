@@ -221,8 +221,12 @@ theorem RawAcceptedExecution.operationalCalls
     unfold
       Ipp.Extracted.ShippingVerifierComposition.ShippingCallData.AdapterAcceptedAt
         at rawAdapter
+    unfold
+      Ipp.Extracted.ShippingVerifierComposition.ShippingCallData.statement
+        at rawAdapter
     rw [hmessage] at rawAdapter
-    simpa only [hconstructed, Result.bind_ok] using rawAdapter
+    rw [hconstructed] at rawAdapter
+    simpa only [Aeneas.Result.bind_ok] using rawAdapter
   exact
     Ipp.Extracted.TippMippChallengeExecution.acceptedOperationalCalls_of_adapterRun
         data.primitive data.serialization data.statement data.proof transcript
@@ -869,7 +873,7 @@ accepted-run call projection are supplied.
 
 The only choice below forgets concrete effect-state witnesses behind
 `Nonempty`; it does not choose a transcript or acceptance result. -/
-theorem deployedChallengePrimitiveContract_of_postconditions
+noncomputable def deployedChallengePrimitiveContract_of_postconditions
     {D : Type} {μ arity : Nat}
     (data : CallData D μ arity)
     (contract :
@@ -1114,7 +1118,7 @@ theorem realCallAcceptance_le_realFormalCallAcceptance
               hresult
       rcases haccepted with ⟨rawExecution⟩
       exact False.elim
-        (rawExecution.randomizer_nonzero hzero)
+        ((RawAcceptedExecution.randomizer_nonzero rawExecution) hzero)
   | some transcript =>
       have hfs :
           Ipp.FsAccepts data.statement data.proof transcript := by

@@ -458,6 +458,15 @@ def extractedRounds {n : Nat} (rounds : Fin n → Ipp.RoundComs G1 GT) :
    { ab := (round.RA.1, round.RB, round.RT.1)
      c := (round.RA.2, round.RT.2) })
 
+/-- The extracted proof vector is exactly the chronological model-round
+vector. This public equation lets downstream trace proofs normalize the
+private vector constructor without duplicating it. -/
+theorem extractedRounds_finVec_eq {n : Nat}
+    (rounds : Fin n → Ipp.RoundComs G1 GT) :
+    finVec (extractedRounds rounds) =
+      ⟨List.ofFn (extractedRounds rounds)⟩ := by
+  rfl
+
 /-- One fold state shared by all five accumulator lanes. -/
 def foldState {n : Nat} (raw : Fin n → F)
     (rounds : Fin n → Ipp.RoundComs G1 GT) (initial : Ipp.FoldedValues G1 GT) :
@@ -718,6 +727,69 @@ private theorem exists_success_effect_and_ite_iff
   by_cases hl : left <;> by_cases hr : right <;>
     simp [hl, hr]
 
+/-- Aeneas result sequencing distributes over a pure branch condition. -/
+private theorem result_bind_ite {α β : Type} (condition : Prop)
+    [Decidable condition] (yes no : Result α) (next : α → Result β) :
+    ((if condition then yes else no) >>= next) =
+      if condition then yes >>= next else no >>= next := by
+  by_cases h : condition <;> simp [h]
+
+/-- Acceptance bit produced after all seven leaf checks have returned. -/
+private def acceptedModel (left right target c z ckV ckW : Bool) : Bool :=
+  if left then
+    if right then
+      if target then
+        if c then
+          if ckV then
+            if ckW then z else false
+          else false
+        else false
+      else false
+    else false
+  else false
+
+private theorem acceptedModel_eq_true_iff
+    (left right target c z ckV ckW : Bool) :
+    acceptedModel left right target c z ckV ckW = true ↔
+      left = true ∧ right = true ∧ target = true ∧ c = true ∧ z = true ∧
+        ckV = true ∧ ckW = true := by
+  cases left <;> cases right <;> cases target <;> cases c <;> cases z <;>
+    cases ckV <;> cases ckW <;> simp [acceptedModel]
+
+/-- The result-valued tail emitted after the three base-commitment checks. -/
+private def acceptedTailResult {E FX : Type}
+    (c z ckV ckW : Bool) (effect : FX) :
+    Result (ark_ip_proofs.core.result.Result Bool E × FX) :=
+  if c = true then
+    if ckV = true then
+      if ckW = true then .ok (.Ok z, effect)
+      else .ok (.Ok false, effect)
+    else .ok (.Ok false, effect)
+  else .ok (.Ok false, effect)
+
+/-- The exact result tree extracted from the short-circuiting leaf checks. -/
+private def extractedAcceptedResult {E FX : Type}
+    (left right target c z ckV ckW : Bool) (effect : FX) :
+    Result (ark_ip_proofs.core.result.Result Bool E × FX) :=
+  if left = true then
+    if right = true then
+      if target = true then acceptedTailResult c z ckV ckW effect
+      else .ok (.Ok false, effect)
+    else
+      if right = true then acceptedTailResult c z ckV ckW effect
+      else .ok (.Ok false, effect)
+  else
+    if left = true then acceptedTailResult c z ckV ckW effect
+    else .ok (.Ok false, effect)
+
+private theorem extractedAcceptedResult_eq {E FX : Type}
+    (left right target c z ckV ckW : Bool) (effect : FX) :
+    extractedAcceptedResult (E := E) left right target c z ckV ckW effect =
+      .ok (.Ok (acceptedModel left right target c z ckV ckW), effect) := by
+  cases left <;> cases right <;> cases target <;> cases c <;> cases z <;>
+    cases ckV <;> cases ckW <;>
+      simp [extractedAcceptedResult, acceptedTailResult, acceptedModel]
+
 set_option maxHeartbeats 1000000 in
 /-- The full extracted TIPP/MIPP leaf verifier succeeds exactly on `LeafData`.
     Its hypotheses are only the concrete interpretations of extracted effects;
@@ -856,6 +928,53 @@ theorem verify_tipp_mipp_refinement_statement
       transcript.kzg pairing = _ at hw
   simp only [modelClone, modelOne, modelAdd, modelMul, modelSmul, modelSub,
     modelNeg, finVec] at hv hw
+  let ckV : Bool :=
+    match outcome pairing with
+    | none => false
+    | some _ => decide
+        (stmt.e g (proof.vFinal -
+              (∑ i : Fin (2 ^ n),
+                Ipp.transcriptCoeffs (Ipp.reversedView transcript.roundAnswer) 1 i *
+                  (transcript.kzg ^ 2) ^ (i : Nat)) • h) -
+            stmt.e (gBeta - transcript.kzg • g) proof.vOpening = 0)
+  let ckW : Bool :=
+    match outcome pairing with
+    | none => false
+    | some _ => decide
+        (stmt.e (proof.wFinal -
+              (∑ i : Fin (2 ^ n),
+                Ipp.transcriptCoeffs
+                    (fun i => Ipp.gipaChallenge
+                      (Ipp.reversedView transcript.roundAnswer i))
+                    transcript.randomizer⁻¹ i *
+                  (transcript.kzg ^ 2) ^ (i : Nat)) • g) h -
+            stmt.e proof.wOpening (hAlpha - transcript.kzg • h) = 0)
+  change _ = Aeneas.Result.ok ckV at hv
+  change _ = Aeneas.Result.ok ckW at hw
+  have hckV : ckV = true ↔
+      stmt.acceptV transcript.kzg
+        (Ipp.transcriptCoeffs (Ipp.reversedView transcript.roundAnswer) 1)
+        proof.vFinal proof.vOpening := by
+    unfold ckV
+    rw [hacceptV]
+    cases hpair : outcome pairing with
+    | none => simp [hpair]
+    | some value =>
+        cases value
+        simp [hpair]
+  have hckW : ckW = true ↔
+      stmt.acceptW transcript.kzg
+        (Ipp.transcriptCoeffs
+          (fun i => Ipp.gipaChallenge
+            (Ipp.reversedView transcript.roundAnswer i))
+          transcript.randomizer⁻¹) proof.wFinal proof.wOpening := by
+    unfold ckW
+    rw [hacceptW]
+    cases hpair : outcome pairing with
+    | none => simp [hpair]
+    | some value =>
+        cases value
+        simp [hpair]
   have hs := hax_translated_structured_scalar_final_eq transcript.roundAnswer
     transcript.randomizer
   change ark_ip_proofs.applications.groth16_aggregation.structured_scalar_final_from_raw_transcript_inner
@@ -864,6 +983,8 @@ theorem verify_tipp_mipp_refinement_statement
   simp only [modelClone, modelOne, modelAdd, modelMul] at hs
   unfold runTippModel
     ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_execution_core
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core
   simp only [coreInput, modelClone, modelOne, modelAdd, modelMul, modelSmul,
     modelSub, modelNeg, modelDefault, modelSmulAssign, Result.bind_ok]
   rw [hx0]
@@ -872,7 +993,8 @@ theorem verify_tipp_mipp_refinement_statement
     ark_ip_proofs.alloc.vec.Vec.new, finVec, List.length_ofFn, Usize.ofNat]
   rw [hloop]
   simp only [Result.bind_ok, ark_ip_proofs.alloc.vec.Vec.deref_mut,
-    ark_ip_proofs.core.slice.Slice.reverse, lift]
+    ark_ip_proofs.core.slice.Slice.reverse, lift,
+    ark_ip_proofs.alloc.vec.CloneVec.clone_identity]
   rw [reverse_chronological_eq_reversedView transcript.roundAnswer]
   rw [reverse_chronological_eq_reversedView inverse]
   have hinverseReversed :
@@ -891,10 +1013,10 @@ theorem verify_tipp_mipp_refinement_statement
   simp only [ark_ip_proofs.core.result.Result.Insts.CoreOpsTry.branch,
     Result.bind_ok, modelClone]
   simp only [ark_ip_proofs.rayon_core.join.join, Result.bind_ok,
-    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core.closure.Insts.CoreOpsFunctionFnOnceTupleBool,
-    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core.closure_1.Insts.CoreOpsFunctionFnOnceTupleBool,
-    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core.closure.Insts.CoreOpsFunctionFnOnceTupleBool.call_once,
-    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_core.closure_1.Insts.CoreOpsFunctionFnOnceTupleBool.call_once]
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_execution_core.closure.Insts.CoreOpsFunctionFnOnceTupleBool,
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_execution_core.closure_1.Insts.CoreOpsFunctionFnOnceTupleBool,
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_execution_core.closure.Insts.CoreOpsFunctionFnOnceTupleBool.call_once,
+    ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_execution_core.closure_1.Insts.CoreOpsFunctionFnOnceTupleBool.call_once]
   rw [hv, hw]
   simp only [ark_ip_proofs.Array.make, ark_ip_proofs.Std.Array.to_slice,
     ark_ip_proofs.alloc.slice.Slice.into_vec, ark_ip_proofs.alloc.vec.Vec.index,
@@ -919,13 +1041,18 @@ theorem verify_tipp_mipp_refinement_statement
   rw [hz]
   simp only [ark_ip_proofs.core.result.Result.Insts.CoreOpsTry.branch,
     Result.bind_ok]
-  unfold Ipp.LeafData
-  simp only
-  rw [← hleft, ← hright, ← htarget, ← hcAccepted, ← hzAccepted,
-    hacceptV, hacceptW]
-  cases leftAccepted <;> cases rightAccepted <;> cases targetAccepted <;>
-    cases cAccepted <;> cases zAccepted <;> cases outcome pairing <;> simp <;>
-    rw [exists_success_effect_and_ite_iff]
+  simp only [result_bind_ite, Result.bind_ok]
+  change
+    (∃ finalEffect,
+      extractedAcceptedResult (E := E) leftAccepted rightAccepted targetAccepted
+          cAccepted zAccepted ckV ckW effect4 =
+        .ok (.Ok true, finalEffect)) ↔
+      Ipp.LeafData stmt proof transcript
+  rw [extractedAcceptedResult_eq]
+  rw [exists_success_effect_iff, acceptedModel_eq_true_iff]
+  dsimp only [Ipp.LeafData]
+  rw [← hleft, ← hright, ← htarget, ← hcAccepted, ← hzAccepted, ← hckV,
+    ← hckW]
 
 end TerminalFolds
 

@@ -30,22 +30,23 @@ theorem ConstructorExecution.projectionAccepted
     (execution : ConstructorExecution) :
     app_verifier.app_verify_shipping_projection_core execution.call
         execution.family execution.realCount execution.paddedCount =
-      .ok (.Ok ()) := by
-  unfold app_verifier.app_verify_shipping_input_from_parts at execution.accepted
+      .ok (.Ok PUnit.unit) := by
+  have haccepted := execution.accepted
+  unfold app_verifier.app_verify_shipping_input_from_parts at haccepted
   cases hprojection :
       app_verifier.app_verify_shipping_projection_core execution.call
         execution.family execution.realCount execution.paddedCount with
   | fail error =>
-      simp [hprojection] at execution.accepted
+      simp [hprojection] at haccepted
   | div =>
-      simp [hprojection] at execution.accepted
+      simp [hprojection] at haccepted
   | ok result =>
       cases result with
       | Err error =>
-          simp [hprojection] at execution.accepted
+          simp [hprojection] at haccepted
       | Ok value =>
           cases value
-          exact hprojection
+          rfl
 
 /-- The identity core can return only the exact identifier supplied to it. -/
 theorem plan_identity_success_output_exact
@@ -90,7 +91,7 @@ theorem ConstructorExecution.identityAccepted
         execution.call.bundle_family execution.call.expected_real_count
         execution.call.bundle_real_count =
       .ok (.Ok execution.call.id) := by
-  have hprojection := execution.projectionAccepted
+  have hprojection := ConstructorExecution.projectionAccepted execution
   unfold app_verifier.app_verify_shipping_projection_core at hprojection
   cases hidentity :
       app_verifier.app_verify_plan_identity_core execution.call.id
@@ -111,7 +112,7 @@ theorem ConstructorExecution.identityAccepted
               execution.call.expected_real_count
               execution.call.bundle_real_count output hidentity
           subst output
-          exact hidentity
+          rfl
 
 /-- Successful shipping construction also proves the exact padding check. -/
 theorem ConstructorExecution.paddingAccepted
@@ -120,7 +121,7 @@ theorem ConstructorExecution.paddingAccepted
         execution.call.expected_padded_count
         execution.call.bundle_padded_count =
       .ok (.Ok execution.call.id) := by
-  have hprojection := execution.projectionAccepted
+  have hprojection := ConstructorExecution.projectionAccepted execution
   unfold app_verifier.app_verify_shipping_projection_core at hprojection
   cases hidentity :
       app_verifier.app_verify_plan_identity_core execution.call.id
@@ -153,7 +154,7 @@ theorem ConstructorExecution.paddingAccepted
                       execution.call.expected_padded_count
                       execution.call.bundle_padded_count paddingOutput hpadding
                   subst paddingOutput
-                  exact hpadding
+                  rfl
 
 /-- One exact execution of the generated production planned-call
 constructor. Its result contains no semantic data. -/
@@ -184,8 +185,9 @@ supplied by the production planner. -/
         expected_padded_count := execution.expectedPaddedCount
         bundle_padded_count := execution.bundlePaddedCount
       } := by
-  unfold app_verifier.app_verify_shipping_call_from_parts at execution.accepted
-  exact (Result.ok.inj execution.accepted).symm
+  have haccepted := execution.accepted
+  unfold app_verifier.app_verify_shipping_call_from_parts at haccepted
+  exact (Result.ok.inj haccepted).symm
 
 /-- One exact execution of the generated authenticated-wrapper projection
 constructor. Strict wrapper parsing remains the separately named F*
@@ -211,9 +213,10 @@ structure ShippingWrapperFromPartsExecution where
         wrapped_proof_bytes := execution.wrappedProofBytes
         inner_proof_bytes := execution.innerProofBytes
       } := by
+  have haccepted := execution.accepted
   unfold app_verifier.app_verify_shipping_wrapper_projection_from_parts
-    at execution.accepted
-  exact (Result.ok.inj execution.accepted).symm
+    at haccepted
+  exact (Result.ok.inj haccepted).symm
 
 /-- Full shipping-input invocation whose call argument is definitionally the
 output of `app_verify_shipping_call_from_parts`. This removes the former
@@ -324,8 +327,8 @@ theorem ConstructorPayloadProjection.argumentsRepresent
     (callExact : execution.call = data.call) :
     ConstructorArgumentsRepresent
       (arity := arity) wire execution data.input := by
-  have identityAccepted := execution.identityAccepted
-  have paddingAccepted := execution.paddingAccepted
+  have identityAccepted := ConstructorExecution.identityAccepted execution
+  have paddingAccepted := ConstructorExecution.paddingAccepted execution
   have identityAccepted' :
       app_verifier.app_verify_plan_identity_core data.call.id
           data.call.bundle_family data.call.expected_real_count
@@ -337,7 +340,8 @@ theorem ConstructorPayloadProjection.argumentsRepresent
           data.call.expected_padded_count data.call.bundle_padded_count =
         .ok (.Ok data.call.id) := by
     simpa only [← callExact] using paddingAccepted
-  have constructorProjection := execution.projectionAccepted
+  have constructorProjection :=
+    ConstructorExecution.projectionAccepted execution
   rw [payload.familyCodeExact] at constructorProjection
   have projected :=
     extracted_shipping_projection_ok execution.call data.input.family
@@ -441,10 +445,23 @@ def AcceptedConstructorCallProjection.applicationProjection
     {data : ShippingCallData D μ arity}
     {wire : WireRowDecoder μ (Fin arity → Ipp.Bls12377.Fr)}
     (construction : AcceptedConstructorCallProjection data wire) :
-    ShippingApplicationProjectionContract data :=
-  construction.application.projectionContract
-    construction.execution.identityAccepted
-    construction.execution.paddingAccepted
+    ShippingApplicationProjectionContract data := by
+  have hidentity :=
+    ConstructorExecution.identityAccepted construction.execution
+  have hpadding :=
+    ConstructorExecution.paddingAccepted construction.execution
+  have hidentity' :
+      app_verifier.app_verify_plan_identity_core data.call.id
+          data.call.bundle_family data.call.expected_real_count
+          data.call.bundle_real_count =
+        .ok (.Ok data.call.id) := by
+    simpa only [← construction.callExact] using hidentity
+  have hpadding' :
+      app_verifier.app_verify_plan_padding_core data.call.id
+          data.call.expected_padded_count data.call.bundle_padded_count =
+        .ok (.Ok data.call.id) := by
+    simpa only [← construction.callExact] using hpadding
+  exact construction.application.projectionContract hidentity' hpadding'
 
 /-- Exact concrete support for the formal input, assembled without a free
 support premise. The row-padding execution and serialized row matrix belong
@@ -456,7 +473,7 @@ def AcceptedConstructorCallProjection.supported
     (construction : AcceptedConstructorCallProjection data wire) :
     SupportedShippingInput (arity := arity) wire data.input :=
   ⟨construction.execution, construction.constructorProjection,
-    construction.rows⟩
+    ⟨construction.rows⟩⟩
 
 /-- The accepted constructor's actual returned record retains the exact
 formal input assembled above. -/

@@ -79,14 +79,14 @@ private theorem usizeSubOne (left : Nat) (h : 1 ≤ left) :
 
 private theorem reverseRoundIndex {n : Nat} (rounds : Fin n → Round)
     (k : Nat) (hk : k < n) :
-    alloc.vec.Vec.index
-        (core.slice.index.SliceIndexUsizeSlice Round)
+    ark_ip_proofs.alloc.vec.Vec.index
+        (ark_ip_proofs.core.slice.index.SliceIndexUsizeSlice Round)
         (finVec rounds) ⟨Nat.sub (Nat.sub n k) 1⟩ =
       .ok (rounds (Fin.rev ⟨k, hk⟩)) := by
   have hpos : 0 < Nat.sub n k := Nat.sub_pos_iff_lt.mpr hk
   have hi : Nat.sub (Nat.sub n k) 1 < n :=
     (Nat.sub_lt hpos (by omega)).trans_le (Nat.sub_le n k)
-  unfold alloc.vec.Vec.index finVec
+  unfold ark_ip_proofs.alloc.vec.Vec.index finVec
   rw [List.getElem?_ofFn, dif_pos hi]
   congr 2
 
@@ -104,12 +104,12 @@ private structure RoundSegment {FX : Type} {n : Nat}
   effect_finish : effect n = finalEffect
   prior_start : prior k = startPrior
   prior_finish : prior n = finalPrior
-  derive : ∀ i, k ≤ i → i < n,
+  derive : ∀ i, k ≤ i → (hi : i < n) →
     effects.derive_round (effect i) (prior i)
-        (rounds (Fin.rev ⟨i, ‹i < n›⟩)).1
-        (rounds (Fin.rev ⟨i, ‹i < n›⟩)).2 =
+        (rounds (Fin.rev ⟨i, hi⟩)).1
+        (rounds (Fin.rev ⟨i, hi⟩)).2 =
       .ok (.Ok (value i), effect (i + 1))
-  prior_next : ∀ i, k ≤ i → i < n,
+  prior_next : ∀ i, k ≤ i → i < n →
     prior (i + 1) = value i
 
 private def RoundSegment.nil {FX : Type} {n : Nat}
@@ -245,7 +245,7 @@ private theorem successfulRoundStep {FX : Type} {n : Nat}
     Ipp.Extracted.VerifyTippMipp.modelDefault,
     Ipp.Extracted.VerifyTippMipp.modelAdd,
     Ipp.Extracted.VerifyTippMipp.modelSmulAssign,
-    alloc.vec.Vec.push]
+    Aeneas.Std.alloc.vec.Vec.push, Usize.ofNat]
 
 private theorem noAcceptedTailAfterError {FX : Type} {n k : Nat}
     (effects : Effects FX) (rounds : Fin n → Round) (hk : k ≤ n)
@@ -308,7 +308,8 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
           comC, comZ, prior, last, raw, inverse, none)
         (.ok (finalEffect, finalComA, finalComB, finalComT, finalComC,
           finalComZ, finalPrior, finalRaw, finalInverse, none))) :
-    RoundSegment effects rounds k effect prior finalEffect finalPrior := by
+    Nonempty
+      (RoundSegment effects rounds k effect prior finalEffect finalPrior) := by
   by_cases hdone : k = n
   · subst k
     cases hrun with
@@ -326,7 +327,7 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
             core.iter.range.IteratorRange.next] using hbody
         rw [← hpriorLast] at hbody'
         cases hbody'
-        exact RoundSegment.nil effects rounds effect prior
+        exact ⟨RoundSegment.nil effects rounds effect prior⟩
     | next hstep _ =>
         simp [roundBody,
           applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body,
@@ -348,21 +349,23 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
             effects.derive_round effect prior
               (rounds (Fin.rev ⟨k, hlt⟩)).1
               (rounds (Fin.rev ⟨k, hlt⟩)).2 <;>
-          simp [hderive] at hbody
+          simp [hderive, core.option.Option.is_none] at hbody
         next derived =>
           rcases derived with ⟨derived, nextEffect⟩
-          cases derived <;> simp [hderive] at hbody
+          cases derived <;>
+            simp [hderive, core.option.Option.is_none] at hbody
           next value =>
             cases hinvert : effects.invert_round nextEffect value <;>
-              simp [hderive, hinvert] at hbody
+              simp [hderive, hinvert, core.option.Option.is_none] at hbody
             next inverted =>
               cases inverted <;> simp [hderive, hinvert,
+                core.option.Option.is_none,
                 gipa.fold_output, ark_ip_proofs.mul_helper,
                 Ipp.Extracted.VerifyTippMipp.modelClone,
                 Ipp.Extracted.VerifyTippMipp.modelDefault,
                 Ipp.Extracted.VerifyTippMipp.modelAdd,
                 Ipp.Extracted.VerifyTippMipp.modelSmulAssign,
-                alloc.vec.Vec.push] at hbody
+                Aeneas.Std.alloc.vec.Vec.push, Usize.ofNat] at hbody
     | next hstep htail =>
         cases hderive :
             effects.derive_round effect prior
@@ -379,7 +382,7 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
             rw [usizeSubOne (Nat.sub n k) hone] at hstep
             simp only [Result.bind_ok] at hstep
             rw [reverseRoundIndex rounds k hlt] at hstep
-            simp [hderive] at hstep
+            simp [hderive, core.option.Option.is_none] at hstep
         | div =>
             simp only [roundBody,
               applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body,
@@ -391,7 +394,7 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
             rw [usizeSubOne (Nat.sub n k) hone] at hstep
             simp only [Result.bind_ok] at hstep
             rw [reverseRoundIndex rounds k hlt] at hstep
-            simp [hderive] at hstep
+            simp [hderive, core.option.Option.is_none] at hstep
         | ok derived =>
             rcases derived with ⟨derived, nextEffect⟩
             cases derived with
@@ -442,7 +445,7 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
                     rw [usizeSubOne (Nat.sub n k) hone] at hstep
                     simp only [Result.bind_ok] at hstep
                     rw [reverseRoundIndex rounds k hlt] at hstep
-                    simp [hderive, hinvert] at hstep
+                    simp [hderive, hinvert, core.option.Option.is_none] at hstep
                 | div =>
                     simp only [roundBody,
                       applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body,
@@ -455,7 +458,7 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
                     rw [usizeSubOne (Nat.sub n k) hone] at hstep
                     simp only [Result.bind_ok] at hstep
                     rw [reverseRoundIndex rounds k hlt] at hstep
-                    simp [hderive, hinvert] at hstep
+                    simp [hderive, hinvert, core.option.Option.is_none] at hstep
                 | ok inverted =>
                     cases inverted with
                     | Err error =>
@@ -508,7 +511,7 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
                             value inverseValue raw inverse hderive hinvert
                         rw [hsuccess] at hstep
                         cases hstep
-                        let tail :=
+                        obtain ⟨tail⟩ :=
                           segmentOfLoopResult effects rounds (by omega)
                             nextEffect finalEffect
                             (foldValue inverseValue value
@@ -532,8 +535,9 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
                             ⟨inverse.val ++ [inverseValue]⟩
                             finalRaw finalInverse htail
                         exact
-                          RoundSegment.cons effects rounds hlt effect nextEffect
-                            finalEffect prior value finalPrior hderive tail
+                          ⟨RoundSegment.cons effects rounds hlt effect
+                            nextEffect finalEffect prior value finalPrior hderive
+                            tail⟩
 termination_by n - k
 decreasing_by omega
 
@@ -562,14 +566,15 @@ private def coreInput0 {n : Nat}
   Ipp.Extracted.VerifyTippMipp.coreInput stmt proof
     (dummyTranscript randomizer) g gBeta h hAlpha
 
-private def runPrefix {FX : Type}
+private noncomputable def runPrefix {FX : Type}
     (effects : Effects FX)
     (input :
       applications.groth16_aggregation.TippMippCoreInput
         Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput
           ArkPairingOutput g1PrimeSubgroup)
-    (effect : FX) :=
-  applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core
+    (effect : FX) := by
+  letI : DecidableEq ArkPairingOutput := Classical.decEq _
+  exact applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core
     (Ipp.Extracted.VerifyTippMipp.modelClone Fr)
     (Ipp.Extracted.VerifyTippMipp.modelOne Fr)
     (Ipp.Extracted.VerifyTippMipp.modelAdd Fr)
@@ -596,7 +601,7 @@ private def runPrefix {FX : Type}
     (Ipp.Extracted.VerifyTippMipp.modelSmulAssign g1PrimeSubgroup)
     effects input effect
 
-private def runExecution {FX PE : Type}
+private noncomputable def runExecution {FX PE : Type}
     (effects : Effects FX)
     (pairingEffect :
       tipa.PairingEffect PE g1PrimeSubgroup g2PrimeSubgroup
@@ -605,8 +610,9 @@ private def runExecution {FX PE : Type}
       applications.groth16_aggregation.TippMippCoreInput
         Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput
           ArkPairingOutput g1PrimeSubgroup)
-    (effect : FX) (pairing : PE) :=
-  applications.groth16_aggregation.verify_tipp_mipp_execution_core
+    (effect : FX) (pairing : PE) := by
+  letI : DecidableEq ArkPairingOutput := Classical.decEq _
+  exact applications.groth16_aggregation.verify_tipp_mipp_execution_core
     (Ipp.Extracted.VerifyTippMipp.modelClone Fr)
     (Ipp.Extracted.VerifyTippMipp.modelOne Fr)
     (Ipp.Extracted.VerifyTippMipp.modelAdd Fr)
@@ -632,6 +638,36 @@ private def runExecution {FX PE : Type}
     (Ipp.Extracted.VerifyTippMipp.modelAdd g1PrimeSubgroup)
     (Ipp.Extracted.VerifyTippMipp.modelSmulAssign g1PrimeSubgroup)
     effects pairingEffect input effect pairing
+
+private theorem runExecution_eq_combined {FX PE : Type}
+    (effects : Effects FX)
+    (pairingEffect :
+      tipa.PairingEffect PE g1PrimeSubgroup g2PrimeSubgroup
+        ArkPairingOutput)
+    (input :
+      applications.groth16_aggregation.TippMippCoreInput
+        Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput
+          ArkPairingOutput g1PrimeSubgroup)
+    (effect : FX) (pairing : PE) :
+    runExecution effects pairingEffect input effect pairing =
+      Ipp.Extracted.CombinedChecks.runTippExecution
+        effects pairingEffect input effect pairing := by
+  rfl
+
+private def CarriesEffect {A FX : Type} (expected : FX) :
+    Result (A × FX) → Prop
+  | .ok (_, actual) => actual = expected
+  | .fail _ => True
+  | .div => True
+
+private theorem carriesEffect_bind {A B FX : Type} (expected : FX)
+    (result : Result A) (next : A → Result (B × FX))
+    (hnext : ∀ value, CarriesEffect expected (next value)) :
+    CarriesEffect expected (result >>= next) := by
+  cases result with
+  | fail _ => trivial
+  | div => trivial
+  | ok value => exact hnext value
 
 private theorem extractedRoundLoop_eq {FX : Type} {n : Nat}
     (effects : Effects FX) (rounds : Fin n → Round)
@@ -743,8 +779,11 @@ private def effectTraceOfSegment {FX : Type} {n : Nat}
     have hderive := segment.derive k (Nat.zero_le k) hk
     simpa [effect, roundValue, hprior] using hderive
   · have hprior := segment.prior_eq_priorAt n (Nat.le_refl n)
-    simpa [effect, roundValue, segment.effect_finish, segment.prior_finish,
-      hprior] using hbridge
+    have hlast :
+        lastRound =
+          Ipp.Extracted.VerifyTippMipp.priorAt roundValue x0 n :=
+      segment.prior_finish.symm.trans hprior
+    simpa [effect, roundValue, segment.effect_finish, hlast] using hbridge
 
 private structure PrefixCallWitness {FX : Type} {n : Nat}
     (primitive : Primitive FX)
@@ -808,15 +847,16 @@ private structure PrefixCallWitness {FX : Type} {n : Nat}
       bridgeEffect bridge (proof.vFinal, proof.wFinal) =
       .ok (.Ok kzg, finalEffect)
 
-private def PrefixCallWitness.toEffectTrace {FX : Type} {n : Nat}
+private theorem PrefixCallWitness.toEffectTrace {FX : Type} {n : Nat}
     {primitive : Primitive FX}
     {proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup
       ArkPairingOutput}
     {randomizer : Fr} {effect0 finalEffect : FX}
     (calls :
       PrefixCallWitness primitive proof randomizer effect0 finalEffect) :
-    AcceptedEffectChallengeTrace primitive proof randomizer
-      effect0 finalEffect := by
+    Nonempty
+      (AcceptedEffectChallengeTrace primitive proof randomizer
+        effect0 finalEffect) := by
   have hrun :
       LoopResult
         (roundBody
@@ -835,7 +875,7 @@ private def PrefixCallWitness.toEffectTrace {FX : Type} {n : Nat}
           calls.finalComT, calls.finalComC, calls.finalComZ, calls.lastRound,
           calls.raw, calls.inverse, none)) :=
     loopResult_of_eq (by simp) calls.rounds
-  let segment :=
+  obtain ⟨segment⟩ :=
     segmentOfLoopResult
       (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
         (@Ipp.Extracted.TippMippAdapter.partialEq
@@ -849,10 +889,10 @@ private def PrefixCallWitness.toEffectTrace {FX : Type} {n : Nat}
       calls.finalComZ calls.x0 calls.x0 calls.lastRound rfl ⟨[]⟩ ⟨[]⟩
       calls.raw calls.inverse hrun
   exact
-    effectTraceOfSegment primitive proof randomizer effect0 calls.roundEffect
+    ⟨effectTraceOfSegment primitive proof randomizer effect0 calls.roundEffect
       calls.roundFinalEffect calls.bridgeEffect finalEffect calls.x0
       calls.bridge calls.kzg calls.lastRound calls.x0Call segment
-      calls.bridgeCall calls.kzgCall
+      calls.bridgeCall calls.kzgCall⟩
 
 private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
     (primitive : Primitive FX)
@@ -863,7 +903,7 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
     (randomizer : Fr)
     (g gBeta : g1PrimeSubgroup) (h hAlpha : g2PrimeSubgroup)
     (effect0 finalEffect : FX)
-    (prefix :
+    (challengePrefix :
       applications.groth16_aggregation.TippMippChallengePrefix
         Fr ArkPairingOutput ArkPairingOutput g1PrimeSubgroup)
     (hprefix :
@@ -874,8 +914,9 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
             (@Ipp.Extracted.TippMippAdapter.partialEq
               g1PrimeSubgroup (Classical.decEq _)))
           (coreInput0 stmt proof randomizer g gBeta h hAlpha) effect0 =
-        .ok (.Ok prefix, finalEffect)) :
-    PrefixCallWitness primitive proof randomizer effect0 finalEffect := by
+        .ok (.Ok challengePrefix, finalEffect)) :
+    Nonempty
+      (PrefixCallWitness primitive proof randomizer effect0 finalEffect) := by
   let effects :=
     Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
       (@Ipp.Extracted.TippMippAdapter.partialEq
@@ -884,7 +925,7 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
         g1PrimeSubgroup (Classical.decEq _))
   change runPrefix effects
       (coreInput0 stmt proof randomizer g gBeta h hAlpha) effect0 =
-        .ok (.Ok prefix, finalEffect) at hprefix
+        .ok (.Ok challengePrefix, finalEffect) at hprefix
   unfold runPrefix
     applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core
     at hprefix
@@ -908,19 +949,25 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
             at hprefix
       | Ok x0 =>
           simp only [hx0, core.result.Result.Insts.CoreOpsTry.branch,
-            Result.bind_ok, alloc.vec.Vec.len, finVec, List.length_ofFn,
-            Usize.ofNat, alloc.vec.Vec.new] at hprefix
-          rw [extractedRoundLoop_eq effects
-            (Ipp.Extracted.VerifyTippMipp.extractedRounds proof.rounds)
-            { start := ⟨0⟩, «end» := ⟨n⟩ } roundEffect proof.ComA.1
-            proof.ComB proof.ipAb proof.ComA.2 proof.aggC x0 x0 ⟨[]⟩
-            ⟨[]⟩ none] at hprefix
+            Result.bind_ok, ark_ip_proofs.alloc.vec.Vec.new] at hprefix
+          rw [Ipp.Extracted.VerifyTippMipp.extractedRounds_finVec_eq
+            proof.rounds] at hprefix
+          simp only [ark_ip_proofs.alloc.vec.Vec.len,
+            List.length_ofFn, Usize.ofNat] at hprefix
+          have hloop :=
+            extractedRoundLoop_eq effects
+              (Ipp.Extracted.VerifyTippMipp.extractedRounds proof.rounds)
+              { start := ⟨0⟩, «end» := ⟨n⟩ } roundEffect proof.ComA.1
+              proof.ComB proof.ipAb proof.ComA.2 proof.aggC x0 x0 ⟨[]⟩
+              ⟨[]⟩ none
+          simp only [Ipp.Extracted.VerifyTippMipp.modelClone, finVec] at hloop
+          rw [hloop] at hprefix
           cases hrounds :
               loop
                 (roundBody effects
-                  (finVec
+                  ⟨List.ofFn
                     (Ipp.Extracted.VerifyTippMipp.extractedRounds
-                      proof.rounds))
+                      proof.rounds)⟩
                   ⟨n⟩)
                 ({ start := ⟨0⟩, «end» := ⟨n⟩ }, roundEffect,
                   proof.ComA.1, proof.ComB, proof.ipAb, proof.ComA.2,
@@ -1008,7 +1055,7 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
                                                 | .div => kzgEffect)
                                               hprefix
                                           subst kzgEffect
-                                          exact {
+                                          exact ⟨{
                                             x0 := x0
                                             bridge := bridge
                                             kzg := kzg
@@ -1028,11 +1075,12 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
                                             rounds := hrounds
                                             bridgeCall := hbridge
                                             kzgCall := hkzg
-                                          }
+                                          }⟩
 
 set_option maxHeartbeats 400000 in
+set_option maxRecDepth 10000 in
 private theorem prefix_success_of_execution_success
-    {FX PE : Type} {n : Nat}
+    {FX PE : Type}
     (effects : Effects FX)
     (pairingEffect :
       tipa.PairingEffect PE g1PrimeSubgroup g2PrimeSubgroup
@@ -1048,38 +1096,111 @@ private theorem prefix_success_of_execution_success
     (hexec :
       runExecution effects pairingEffect input effect0 pairing =
         .ok (.Ok output, finalEffect)) :
-    ∃ prefix,
+    ∃ challengePrefix,
       runPrefix effects input effect0 =
-        .ok (.Ok prefix, finalEffect) := by
+        .ok (.Ok challengePrefix, finalEffect) := by
   unfold runExecution
     applications.groth16_aggregation.verify_tipp_mipp_execution_core
     at hexec
-  fold runPrefix at hexec
   cases hprefix : runPrefix effects input effect0 with
   | fail error =>
-      simp [hprefix] at hexec
+      have hprefixModel := hprefix
+      unfold runPrefix at hprefixModel
+      rw [hprefixModel] at hexec
+      simp at hexec
   | div =>
-      simp [hprefix] at hexec
+      have hprefixModel := hprefix
+      unfold runPrefix at hprefixModel
+      rw [hprefixModel] at hexec
+      simp at hexec
   | ok prefixResult =>
+      have hprefixModel := hprefix
+      unfold runPrefix at hprefixModel
+      rw [hprefixModel] at hexec
       rcases prefixResult with ⟨prefixResult, prefixEffect⟩
       cases prefixResult with
       | Err error =>
-          simp [hprefix,
+          simp [
             core.result.Result.Insts.CoreOpsTry.branch,
             core.result.Result.Insts.CoreOpsTryTraitFromResidualResultInfallible.from_residual]
             at hexec
-      | Ok prefix =>
-          refine ⟨prefix, ?_⟩
+      | Ok challengePrefix =>
+          refine ⟨challengePrefix, ?_⟩
           have heffect : prefixEffect = finalEffect := by
-            simp only [hprefix,
+            simp only [
               core.result.Result.Insts.CoreOpsTry.branch,
               Result.bind_ok,
               Ipp.Extracted.VerifyTippMipp.modelClone,
               ark_ip_proofs.Array.make, ark_ip_proofs.Array.to_slice,
               ark_ip_proofs.Std.Array.to_slice,
               alloc.slice.Slice.into_vec, alloc.vec.Vec.deref,
-              alloc.vec.Vec.index, lift] at hexec
-            aesop
+              ark_ip_proofs.alloc.vec.Vec.index, lift] at hexec
+            have hcarry :
+                CarriesEffect prefixEffect
+                  (.ok
+                    ((core.result.Result.Ok output :
+                      core.result.Result
+                        (applications.groth16_aggregation.TippMippCoreOutput
+                          Fr ArkPairingOutput ArkPairingOutput
+                            g1PrimeSubgroup)
+                        String),
+                      finalEffect)) := by
+              rw [← hexec]
+              apply carriesEffect_bind
+              rintro ⟨ckVValid, ckWValid⟩
+              apply carriesEffect_bind
+              intro ckVFinal
+              apply carriesEffect_bind
+              intro ckWFinal
+              apply carriesEffect_bind
+              intro aFinal
+              apply carriesEffect_bind
+              intro bFinal
+              apply carriesEffect_bind
+              intro baseResult
+              cases baseResult with
+              | Err error => simp [CarriesEffect]
+              | Ok baseValid =>
+                  cases baseValid with
+                  | false => simp [CarriesEffect]
+                  | true =>
+                      dsimp only
+                      apply carriesEffect_bind
+                      intro cResult
+                      cases cResult with
+                      | Err error =>
+                          simp only [
+                            core.result.Result.Insts.CoreOpsTry.branch,
+                            Result.bind_ok]
+                          apply carriesEffect_bind
+                          intro residualResult
+                          simp [CarriesEffect]
+                      | Ok cValid =>
+                          simp only [
+                            core.result.Result.Insts.CoreOpsTry.branch,
+                            Result.bind_ok]
+                          cases cValid with
+                          | false => simp [CarriesEffect]
+                          | true =>
+                              apply carriesEffect_bind
+                              intro finalScalar
+                              apply carriesEffect_bind
+                              intro zResult
+                              cases zResult with
+                              | Err error =>
+                                  simp only [
+                                    core.result.Result.Insts.CoreOpsTry.branch,
+                                    Result.bind_ok]
+                                  apply carriesEffect_bind
+                                  intro residualResult
+                                  simp [CarriesEffect]
+                              | Ok zValid =>
+                                  simp only [
+                                    core.result.Result.Insts.CoreOpsTry.branch,
+                                    Result.bind_ok]
+                                  cases ckVValid <;> cases ckWValid <;>
+                                    simp [CarriesEffect]
+            simpa [CarriesEffect] using hcarry.symm
           simpa [heffect] using hprefix
 
 private theorem execution_success_of_runTipp_success
@@ -1101,10 +1222,8 @@ private theorem execution_success_of_runTipp_success
       runExecution effects pairingEffect input effect0 pairing =
           .ok (.Ok output, finalEffect) ∧
         output.accepted = true := by
-  rw [Ipp.Extracted.CombinedChecks.runTipp_eq_model] at haccept
-  unfold Ipp.Extracted.VerifyTippMipp.runTippModel
-    applications.groth16_aggregation.verify_tipp_mipp_core at haccept
-  fold runExecution at haccept
+  rw [Ipp.Extracted.CombinedChecks.runTipp_eq_execution] at haccept
+  rw [← runExecution_eq_combined] at haccept
   cases hexec :
       runExecution effects pairingEffect input effect0 pairing with
   | fail error =>
@@ -1115,11 +1234,9 @@ private theorem execution_success_of_runTipp_success
       rcases executionResult with ⟨executionResult, nextEffect⟩
       cases executionResult with
       | Err error =>
-          simp [hexec, core.result.Result.map] at haccept
+          simp [hexec] at haccept
       | Ok output =>
-          simp only [hexec, Result.bind_ok, core.result.Result.map,
-            applications.groth16_aggregation.verify_tipp_mipp_core.closure.Insts.CoreOpsFunctionFnOnceTupleTippMippCoreOutputBool.call_once]
-            at haccept
+          simp only [hexec, Result.bind_ok] at haccept
           have heffect : nextEffect = finalEffect := by
             exact congrArg
               (fun result =>
@@ -1136,7 +1253,7 @@ private theorem execution_success_of_runTipp_success
                 | _ => false)
               haccept
           subst nextEffect
-          exact ⟨output, hexec, haccepted⟩
+          exact ⟨output, rfl, haccepted⟩
 
 /-- An accepted extracted TIPP/MIPP execution determines every state-threaded
 challenge call made by its generated prefix. -/
@@ -1197,15 +1314,14 @@ theorem runTipp_success_has_effect_trace
   obtain ⟨output, hexec, _⟩ :=
     execution_success_of_runTipp_success effects pairingEffect input
       effect0 finalEffect pairing accepted'
-  obtain ⟨prefix, hprefix⟩ :=
+  obtain ⟨challengePrefix, hprefix⟩ :=
     prefix_success_of_execution_success effects pairingEffect input
       effect0 finalEffect pairing output hexec
-  have calls :
-      PrefixCallWitness primitive proof randomizer effect0 finalEffect :=
+  obtain ⟨calls⟩ :=
     prefixCallWitness_of_success primitive stmt proof randomizer
-      g gBeta h hAlpha effect0 finalEffect prefix (by
+      g gBeta h hAlpha effect0 finalEffect challengePrefix (by
         simpa [effects, input] using hprefix)
-  exact ⟨calls.toEffectTrace⟩
+  exact calls.toEffectTrace
 
 /-- Every accepted concrete Arkworks TIPP/MIPP call exposes its exact
 state-threaded challenge calls.  Acceptance is the only premise consumed by

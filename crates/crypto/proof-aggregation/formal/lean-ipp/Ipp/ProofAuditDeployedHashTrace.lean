@@ -1,5 +1,6 @@
 import Ipp.Extracted.TippMippAcceptedRunProjection
 import Ipp.ShippingDeployedHashTraceConstruction
+import Ipp.ShippingConcreteToGoal
 
 /-!
 Audit surface for deployed accepted-run challenge-trace construction.
@@ -9,3 +10,4 @@ Audit surface for deployed accepted-run challenge-trace construction.
 #print axioms Ipp.Extracted.TippMippAcceptedRunProjection.acceptedRunCallProjection
 #print axioms Ipp.ShippingDeployedHashTraceConstruction.acceptedExecution_challengePrimitiveContract_of_decoded
 #print axioms Ipp.ShippingDeployedHashTraceConstruction.deployed_hash_trace_construction
+#print axioms Ipp.ShippingConcreteToGoal.output_derived_shipping_call_to_goal_quantitative

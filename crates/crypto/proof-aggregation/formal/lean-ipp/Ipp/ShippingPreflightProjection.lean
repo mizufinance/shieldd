@@ -1,28 +1,27 @@
 import Ipp.ShippingStatementProjection
 import Ipp.Extracted.ShippingBundleComposition
 import Ipp.Extracted.ShippingCallMaterialization
+import Ipp.Extracted.ShippingPreflightConstruction
 
 /-!
 Per-call bridge from a successful shipping preflight projection to the formal
 statement materialization.
 
-The production preflight now delegates to a registered extraction root that
+The production preflight delegates to a registered extraction root that
 retains the backend field rows together with the counts, serialized rows,
-backend call, and constructed shipping input. Its generated declaration is
-pending the next scoped AppVerifier extraction, so
-`AcceptedPreflightConstruction` still records the exact per-call equation
-needed to consume that output. Repeat-final padding itself is derived from the
-existing extracted production core. No statement contract, preflight result,
-or row-padding conclusion is assumed.
+backend call, and constructed shipping input. `AcceptedShippingPreflightExecution`
+records that generated equation, while the constructor-indexed remainder keeps
+the decoder, row, plan, SRS-load, and concrete-effect boundaries explicit.
+Repeat-final padding itself is derived from the extracted production core. No
+statement contract, preflight result, or row-padding conclusion is assumed.
 
 The production path passes through registered pure cores for
 `app_verify_shipping_into_parts_core`,
 `app_verify_shipping_rows_from_parts`,
 `app_verify_statement_row_bytes_from_parts`, and
 `app_verify_prepare_public_input_rows_core`, plus the new retained preflight
-root. The refreshed generated declaration and outer call-site instantiation
-are not yet available here, so this module keeps the exact per-call boundary
-explicit rather than claiming extraction.
+root. The outer production-to-core delegation remains an explicit named
+boundary; it supplies no statement or cryptographic conclusion.
 -/
 
 namespace Ipp.ShippingPreflightProjection
@@ -33,7 +32,9 @@ open Aeneas Aeneas.Std Result
 open ark_ip_proofs
 open Ipp.Extracted.ShippingBundleComposition
 open Ipp.Extracted.ShippingCallMaterialization
+open Ipp.Extracted.ShippingPreflightConstruction
 open Ipp.Extracted.ShippingStatementConstruction
+open Ipp.Extracted.ShippingVerifierComposition
 open Ipp.ShippingStatementProjection
 
 local instance : Fact Ipp.Bls12377.scalarModulus.Prime :=
@@ -113,7 +114,7 @@ def AcceptedPreflightConstruction.supported
   (preflight : AcceptedPreflightConstruction wire input) :
     SupportedShippingInput (arity := arity) wire input :=
   ⟨preflight.execution, preflight.constructorProjection,
-    preflight.rows⟩
+    ⟨preflight.rows⟩⟩
 
 /-- The result constructor cannot replace the padded byte matrix after the
 shipping-input constructor. Its exact returned input therefore decodes to the
@@ -360,8 +361,8 @@ theorem ShippingPlannedCall.resultRowsMaterializeStatement
       preflight selected
   exact
     ⟨materialized.1,
-      call.shippingResultSerializedRowsExact rows,
-      call.shippingResultRowsDecodeExact⟩
+      ShippingPlannedCall.shippingResultSerializedRowsExact call rows,
+      ShippingPlannedCall.shippingResultRowsDecodeExact call⟩
 
 /-- Concrete output-derived capstone for the retained preflight path.
 
@@ -398,6 +399,201 @@ theorem concrete_output_preflight_rows_materialize_statement
     (concreteOutputPreflightConstruction construction)
     (concreteOutputSelectedVkSrs construction)
 
+/-- Exact Rust-call facts established by the concrete construction capstone.
+This name packages the conjunction so accepted preflight executions can expose
+the same result without duplicating a second semantic boundary. -/
+def ConcreteRustCallConstructionFacts
+    {D : Type} {μ arity : Nat}
+    {wire :
+      WireRowDecoder μ
+        (Fin arity → Ipp.Bls12377.Fr)}
+    {bytes :
+      BindingOperations μ
+        (Fin arity → Ipp.Bls12377.Fr) (ValidatedProof D)}
+    {operations :
+      SemanticOperations μ arity Ipp.Bls12377.Fr
+        Ipp.Bls12377.g1PrimeSubgroup Ipp.Bls12377.g2PrimeSubgroup
+        Ipp.Bls12377.ArkPairingOutput (ValidatedProof D)}
+    {runtime : ConcreteShippingRuntime}
+    {boundary :
+      ExactSemanticBoundary wire bytes
+        (executableSemanticOperations runtime.hbilinear operations)}
+    (construction :
+      ConcreteOutputDerivedCall wire bytes operations runtime boundary) : Prop :=
+  construction.shippingData.call =
+      construction.constructor.callConstruction.output ∧
+    construction.shippingData.call = construction.execution.output.call ∧
+    construction.shippingData.input = construction.materialization.input ∧
+    runtime.loadVerifierSrs construction.shippingData.input.srsId =
+      some construction.shippingData.srs ∧
+    Nonempty (ShippingApplicationConstruction construction.shippingData) ∧
+    ShippingApplicationProjectionContract construction.shippingData ∧
+    construction.shippingData.contract.supported construction.shippingData.input ∧
+    construction.shippingData.input.canonicalStatementBytes =
+      bytes.encodePublicClaim construction.shippingData.input.publicClaim ∧
+    construction.shippingData.input.vkDigest =
+      bytes.sha256
+        (Ipp.ShippingV1.vkDigestPreimage
+          construction.shippingData.input.serializedVk) ∧
+    construction.shippingData.input.statementDigest =
+      bytes.sha256
+        (Ipp.ShippingV1.statementDigestPreimage
+          construction.shippingData.input.canonicalStatementBytes) ∧
+    List.ofFn construction.shippingData.input.challengeContext =
+      bytes.sha256
+        (Ipp.ShippingV1.challengeContextPreimage
+          construction.shippingData.input.statementDigest) ∧
+    bytes.decodeWrapper
+        construction.shippingData.input.statementDigest
+        construction.shippingData.input.wrappedProofBytes =
+      some construction.shippingData.input.innerProofBytes ∧
+    bytes.decodeProof construction.shippingData.input.innerProofBytes =
+      some construction.shippingData.input.decodedProof ∧
+    Nonempty
+      (Ipp.ShippingV1.StatementProjectionContract
+        construction.shippingData.projection
+        construction.shippingData.contract) ∧
+    Ipp.ShippingV1.RepresentsShippingInput
+      construction.shippingData.projection construction.shippingData.input
+      construction.shippingData.statement construction.shippingData.proof ∧
+    ArkworksPreparedVkAicContract construction.shippingData.statement
+      construction.shippingData.gammaABC construction.shippingData.input.publicRows ∧
+    Ipp.ShippingV1.ValidCounts construction.shippingData.input ∧
+    Ipp.ShippingV1.RealPrefixExact construction.shippingData.input ∧
+    Ipp.ShippingV1.RepeatFinalPadding construction.shippingData.input
+
+/-- A generated accepted preflight execution plus only its constructor-indexed
+external remainder constructs the complete concrete Rust-call facts. -/
+theorem accepted_shipping_preflight_constructs_concrete_rust_call
+    {BackendCall Fields D : Type} {μ arity : Nat}
+    {wire :
+      WireRowDecoder μ
+        (Fin arity → Ipp.Bls12377.Fr)}
+    {bytes :
+      BindingOperations μ
+        (Fin arity → Ipp.Bls12377.Fr) (ValidatedProof D)}
+    {operations :
+      SemanticOperations μ arity Ipp.Bls12377.Fr
+        Ipp.Bls12377.g1PrimeSubgroup Ipp.Bls12377.g2PrimeSubgroup
+        Ipp.Bls12377.ArkPairingOutput (ValidatedProof D)}
+    {runtime : ConcreteShippingRuntime}
+    {boundary :
+      ExactSemanticBoundary wire bytes
+        (executableSemanticOperations runtime.hbilinear operations)}
+    (execution : AcceptedShippingPreflightExecution BackendCall Fields)
+    (remainder :
+      ConcreteOutputDerivedCallRemainder wire bytes operations runtime boundary
+        execution.toBuiltConstructorExecution) :
+    let construction := execution.toConcreteOutputDerivedCall remainder
+    ConcreteRustCallConstructionFacts construction := by
+  dsimp only
+  exact concrete_rust_shipping_call_construction
+    (execution.toConcreteOutputDerivedCall remainder)
+
+/-- The same accepted preflight construction instantiates the exact statement
+projection, selected VK/SRS, prepared Aic rows, and retained prefix/padding
+facts under the named decoder, Arkworks, SRS-loader, and effect boundaries. -/
+theorem accepted_shipping_preflight_constructs_statement_projection
+    {BackendCall Fields D : Type} {μ arity : Nat}
+    {wire :
+      WireRowDecoder μ
+        (Fin arity → Ipp.Bls12377.Fr)}
+    {bytes :
+      BindingOperations μ
+        (Fin arity → Ipp.Bls12377.Fr) (ValidatedProof D)}
+    {operations :
+      SemanticOperations μ arity Ipp.Bls12377.Fr
+        Ipp.Bls12377.g1PrimeSubgroup Ipp.Bls12377.g2PrimeSubgroup
+        Ipp.Bls12377.ArkPairingOutput (ValidatedProof D)}
+    {runtime : ConcreteShippingRuntime}
+    {boundary :
+      ExactSemanticBoundary wire bytes
+        (executableSemanticOperations runtime.hbilinear operations)}
+    (execution : AcceptedShippingPreflightExecution BackendCall Fields)
+    (remainder :
+      ConcreteOutputDerivedCallRemainder wire bytes operations runtime boundary
+        execution.toBuiltConstructorExecution) :
+    let construction := execution.toConcreteOutputDerivedCall remainder
+    Nonempty
+        (Ipp.ShippingV1.StatementProjectionContract
+          (executableSemanticOperations runtime.hbilinear operations).projection
+          boundary.bindingContract) ∧
+      boundary.projectionContract.Projects construction.materialization.input ∧
+      RetainedProjectionFacts wire
+        (executableSemanticOperations runtime.hbilinear operations)
+        construction.materialization.input := by
+  dsimp only
+  exact concrete_shipping_statement_projection_contract boundary
+    (execution.toConcreteOutputDerivedCall remainder).supported
+
+/-- Two accepted preflight constructions with the same observable wrapped
+input have one serialized VK, public claim, formal statement/proof, and ordered
+prefix/padding interpretation unless one of the three deployed SHA-256 calls
+exhibits an explicit collision. -/
+theorem accepted_shipping_preflights_bind_unique_shipping_input
+    {BackendCall Fields D : Type} {μ arity : Nat}
+    {wire :
+      WireRowDecoder μ
+        (Fin arity → Ipp.Bls12377.Fr)}
+    {bytes :
+      BindingOperations μ
+        (Fin arity → Ipp.Bls12377.Fr) (ValidatedProof D)}
+    {operations :
+      SemanticOperations μ arity Ipp.Bls12377.Fr
+        Ipp.Bls12377.g1PrimeSubgroup Ipp.Bls12377.g2PrimeSubgroup
+        Ipp.Bls12377.ArkPairingOutput (ValidatedProof D)}
+    {runtime : ConcreteShippingRuntime}
+    {boundary :
+      ExactSemanticBoundary wire bytes
+        (executableSemanticOperations runtime.hbilinear operations)}
+    (leftExecution : AcceptedShippingPreflightExecution BackendCall Fields)
+    (leftRemainder :
+      ConcreteOutputDerivedCallRemainder wire bytes operations runtime boundary
+        leftExecution.toBuiltConstructorExecution)
+    (rightExecution : AcceptedShippingPreflightExecution BackendCall Fields)
+    (rightRemainder :
+      ConcreteOutputDerivedCallRemainder wire bytes operations runtime boundary
+        rightExecution.toBuiltConstructorExecution)
+    (hdigest :
+      (leftExecution.toConcreteOutputDerivedCall leftRemainder).materialization.input.statementDigest =
+        (rightExecution.toConcreteOutputDerivedCall rightRemainder).materialization.input.statementDigest)
+    (hwrapped :
+      (leftExecution.toConcreteOutputDerivedCall leftRemainder).materialization.input.wrappedProofBytes =
+        (rightExecution.toConcreteOutputDerivedCall rightRemainder).materialization.input.wrappedProofBytes)
+    (hcollision :
+      ¬Ipp.ShippingV1.ShippingShaCollision boundary.bindingContract
+        (leftExecution.toConcreteOutputDerivedCall leftRemainder).materialization.input
+        (rightExecution.toConcreteOutputDerivedCall rightRemainder).materialization.input) :
+    let left := leftExecution.toConcreteOutputDerivedCall leftRemainder
+    let right := rightExecution.toConcreteOutputDerivedCall rightRemainder
+    left.materialization.input.serializedVk =
+        right.materialization.input.serializedVk ∧
+      left.materialization.input.publicClaim =
+        right.materialization.input.publicClaim ∧
+      (executableSemanticOperations runtime.hbilinear operations).projection.statementOf
+          left.materialization.input.publicClaim =
+        (executableSemanticOperations runtime.hbilinear operations).projection.statementOf
+          right.materialization.input.publicClaim ∧
+      (executableSemanticOperations runtime.hbilinear operations).projection.proofOf
+          left.materialization.input.decodedProof =
+        (executableSemanticOperations runtime.hbilinear operations).projection.proofOf
+          right.materialization.input.decodedProof ∧
+      (Ipp.ShippingV1.ValidCounts left.materialization.input ∧
+        Ipp.ShippingV1.RealPrefixExact left.materialization.input ∧
+        Ipp.ShippingV1.RepeatFinalPadding left.materialization.input) ∧
+      (Ipp.ShippingV1.ValidCounts right.materialization.input ∧
+        Ipp.ShippingV1.RealPrefixExact right.materialization.input ∧
+        Ipp.ShippingV1.RepeatFinalPadding right.materialization.input) := by
+  dsimp only
+  exact Ipp.ShippingV1.verified_call_binds_unique_shipping_input
+    (executableSemanticOperations runtime.hbilinear operations).projection
+    boundary.bindingContract
+    (leftExecution.toConcreteOutputDerivedCall leftRemainder).materialization.input
+    (rightExecution.toConcreteOutputDerivedCall rightRemainder).materialization.input
+    (leftExecution.toConcreteOutputDerivedCall leftRemainder).supported
+    (rightExecution.toConcreteOutputDerivedCall rightRemainder).supported
+    hdigest hwrapped hcollision
+
 #print axioms serialized_rows_decode_exact
 #print axioms AcceptedPreflightConstruction.ofPlannedCall
 #print axioms AcceptedPreflightConstruction.supported
@@ -409,6 +605,9 @@ theorem concrete_output_preflight_rows_materialize_statement
 #print axioms concreteOutputPreflightConstruction
 #print axioms concreteOutputSelectedVkSrs
 #print axioms concrete_output_preflight_rows_materialize_statement
+#print axioms accepted_shipping_preflight_constructs_concrete_rust_call
+#print axioms accepted_shipping_preflight_constructs_statement_projection
+#print axioms accepted_shipping_preflights_bind_unique_shipping_input
 
 end
 

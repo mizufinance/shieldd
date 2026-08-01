@@ -30,6 +30,8 @@ formal construction cannot choose a different version. -/
 @[simp] theorem extracted_protocol_version_exact :
     app_verifier.app_verify_protocol_version_core =
       .ok (⟨aggregateProtocolVersion⟩ : Std.U32) := by
+  unfold app_verifier.app_verify_protocol_version_core
+  unfold app_verifier.APP_VERIFY_PROTOCOL_VERSION aggregateProtocolVersion
   rfl
 
 /-- Byte shape received by the production statement constructor before field
@@ -283,7 +285,7 @@ def SupportedShippingInput
   ∃ execution : ConstructorExecution,
     ConstructorArgumentsRepresent (arity := arity)
       wire execution input ∧
-    ExecutionCoupledRowConstruction execution input
+    Nonempty (ExecutionCoupledRowConstruction execution input)
 
 /-- Exact row construction is data carried by concrete support, not a free
 semantic postcondition of the statement contract. -/
@@ -296,9 +298,10 @@ theorem supported_shipping_input_row_construction
     {input : Ipp.ShippingV1.ShippingV1Input
       μ F G1 G2 GT Row DecodedProof}
     (hsupported : SupportedShippingInput (arity := arity) wire input) :
-    Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction input := by
-  rcases hsupported with ⟨_execution, _representation, rows⟩
-  exact rows.toExactRowConstruction
+    Nonempty
+      (Ipp.Extracted.ShippingRowConstruction.ExactRowConstruction input) := by
+  rcases hsupported with ⟨_execution, _representation, ⟨rows⟩⟩
+  exact ⟨rows.toExactRowConstruction⟩
 
 /-- Every supported input is therefore retained in the actual output of at
 least one successful extracted constructor run. -/
@@ -597,22 +600,25 @@ def ExactSemanticBoundary.bindingContract
     canonicalStatementExact := boundary.canonicalStatementConstruction
     canonicalStatementInjective :=
       boundary.canonicalStatementEncodingInjective
-    vkDigestPreimageInjective := fun _left _right _hleft _hright =>
-      Ipp.ShippingV1.vkDigestPreimage_injective
+    vkDigestPreimageInjective := fun _left _right _hleft _hright heq =>
+      Ipp.ShippingV1.vkDigestPreimage_injective heq
     vkDigestExact := boundary.vkDigestShaExecution
     statementDigestExact := boundary.statementDigestShaExecution
     challengeContextExact := boundary.challengeContextShaExecution
     wrapperExact := boundary.wrapperDecodeExecution
     proofDecodeExact := boundary.aggregateProofDecodeExecution
-    validCounts := fun input hsupported =>
-      Ipp.Extracted.ShippingRowConstruction.validCounts
-        (supported_shipping_input_row_construction hsupported)
-    realPrefixExact := fun input hsupported =>
-      Ipp.Extracted.ShippingRowConstruction.realPrefixExact
-        (supported_shipping_input_row_construction hsupported)
-    repeatFinalPadding := fun input hsupported =>
-      Ipp.Extracted.ShippingRowConstruction.repeatFinalPadding
-        (supported_shipping_input_row_construction hsupported)
+    validCounts := fun input hsupported => by
+      rcases supported_shipping_input_row_construction hsupported with
+        ⟨construction⟩
+      exact Ipp.Extracted.ShippingRowConstruction.validCounts construction
+    realPrefixExact := fun input hsupported => by
+      rcases supported_shipping_input_row_construction hsupported with
+        ⟨construction⟩
+      exact Ipp.Extracted.ShippingRowConstruction.realPrefixExact construction
+    repeatFinalPadding := fun input hsupported => by
+      rcases supported_shipping_input_row_construction hsupported with
+        ⟨construction⟩
+      exact Ipp.Extracted.ShippingRowConstruction.repeatFinalPadding construction
   }
 
 /-- Construct the semantic projection contract.  The statement side is the
@@ -690,14 +696,13 @@ theorem supported_boundary_assembles_exact_statement
       Ipp.ShippingV1.RealPrefixExact input ∧
       Ipp.ShippingV1.RepeatFinalPadding input ∧
       boundary.projectionContract.Projects input := by
+  rcases supported_shipping_input_row_construction hsupported with
+    ⟨construction⟩
   exact ⟨hsupported,
     semantics.represents input,
-    Ipp.Extracted.ShippingRowConstruction.validCounts
-      (supported_shipping_input_row_construction hsupported),
-    Ipp.Extracted.ShippingRowConstruction.realPrefixExact
-      (supported_shipping_input_row_construction hsupported),
-    Ipp.Extracted.ShippingRowConstruction.repeatFinalPadding
-      (supported_shipping_input_row_construction hsupported),
+    Ipp.Extracted.ShippingRowConstruction.validCounts construction,
+    Ipp.Extracted.ShippingRowConstruction.realPrefixExact construction,
+    Ipp.Extracted.ShippingRowConstruction.repeatFinalPadding construction,
     Ipp.ShippingV1.shipping_input_projects_exact_statement
       semantics.projection boundary.bindingContract
       boundary.projectionContract input hsupported⟩

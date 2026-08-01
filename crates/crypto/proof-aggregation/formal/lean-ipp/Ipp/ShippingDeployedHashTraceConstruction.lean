@@ -90,7 +90,7 @@ theorem acceptedExecution_challengePrimitiveContract_of_decoded
 
 /-- Exact deployed-hash trace construction for every supported accepted
 shipping execution. No trace or transcript equation is supplied by callers. -/
-theorem deployed_hash_trace_construction
+def deployed_hash_trace_construction
     {D : Type} {μ arity : Nat}
     (data : CallData D μ arity)
     (contract :
