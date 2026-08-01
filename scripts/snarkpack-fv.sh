@@ -382,7 +382,7 @@ run_lean_audit_refresh() {
     set +e
     (
       cd "$LEAN_DIR"
-      "${lake_command[@]}" env lean "$source"
+      "${lake_command[@]}" env lean "$source" --json
     ) 2>&1 | tee "$temporary"
     audit_status="${PIPESTATUS[0]}"
     set -e

@@ -1036,7 +1036,7 @@ class GateApplicabilityTests(unittest.TestCase):
             workflow,
         )
         self.assertIn(
-            '"${lake_command[@]}" env lean "$source"',
+            '"${lake_command[@]}" env lean "$source" --json',
             script,
         )
         self.assertIn(

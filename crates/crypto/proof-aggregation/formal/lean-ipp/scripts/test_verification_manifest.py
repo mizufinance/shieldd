@@ -1177,6 +1177,28 @@ class VerificationManifestTests(unittest.TestCase):
             "1 capstones; axioms allowlisted",
         )
 
+    def test_axiom_log_accepts_json_diagnostic_with_pinned_location(self):
+        text = json.dumps(
+            {
+                "data": "'audited' depends on axioms: [propext]",
+                "fileName": "Ipp/ProofAudit.lean",
+                "pos": {"line": 2, "column": 0},
+                "severity": "information",
+            }
+        )
+        self.assertEqual(
+            VERIFICATION.audit_log_summary(
+                text,
+                expected_diagnostics=[
+                    VERIFICATION.AuditDiagnostic(
+                        "audited", "Ipp/ProofAudit.lean", 2, 0
+                    )
+                ],
+                allowed_axioms={"propext"},
+            ),
+            "1 capstones; axioms allowlisted",
+        )
+
     def test_axiom_log_does_not_accept_near_named_audit_module(self):
         text = (
             "info: Ipp/ProofAuditAdaptiveExtra.lean:2:0: 'audited' "

@@ -3716,6 +3716,46 @@ def audit_log_summary(
         flags=re.DOTALL | re.MULTILINE,
     )
     results = result_pattern.findall(text)
+    json_data_pattern = re.compile(
+        r"^'([^'\r\n]+)' "
+        r"(?:depends on axioms: \[(.*?)\]|does not depend on any axioms)$",
+        flags=re.DOTALL,
+    )
+    json_source_pattern = re.compile(
+        r"^Ipp[\\/]ProofAudit[A-Za-z0-9_]*\.lean$"
+    )
+    for line_text in text.splitlines():
+        try:
+            diagnostic = json.loads(line_text)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        if not isinstance(diagnostic, dict):
+            continue
+        source = diagnostic.get("fileName")
+        position = diagnostic.get("pos")
+        data = diagnostic.get("data")
+        if (
+            diagnostic.get("severity") != "information"
+            or not isinstance(source, str)
+            or json_source_pattern.fullmatch(source) is None
+            or not isinstance(position, dict)
+            or not isinstance(data, str)
+        ):
+            continue
+        line = position.get("line")
+        column = position.get("column")
+        if (
+            not isinstance(line, int)
+            or isinstance(line, bool)
+            or not isinstance(column, int)
+            or isinstance(column, bool)
+        ):
+            continue
+        data_match = json_data_pattern.fullmatch(data)
+        if data_match is None:
+            continue
+        root, block = data_match.groups()
+        results.append((source, str(line), str(column), root, block or ""))
     actual_diagnostics = [
         AuditDiagnostic(
             root=root,
