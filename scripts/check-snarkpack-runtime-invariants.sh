@@ -55,7 +55,8 @@ check_reference_crate_boundary() {
   local manifest="crates/crypto/proof-aggregation-reference/Cargo.toml"
   local crate_dir="crates/crypto/proof-aggregation-reference"
 
-  [[ -f "$manifest" ]] || return
+  [[ -f "$manifest" ]] || fail "reference crate manifest is missing"
+  [[ -d "$crate_dir/src" ]] || fail "reference crate source is missing"
 
   rg -F '"crates/crypto/proof-aggregation-reference"' Cargo.toml >/dev/null \
     || fail "reference crate must be listed as a workspace member"
@@ -85,7 +86,7 @@ check_reference_crate_boundary() {
   production_reference_imports="$(
     rg -n 'shieldd-sdk-proof-aggregation-reference|proof_aggregation_reference|proof-aggregation-reference' \
       "${production_scan_paths[@]}" \
-      | rg -v '^Cargo.toml:|^crates/crypto/proof-aggregation-reference/|^crates/crypto/proof-aggregation-fuzz/|\.md:|\.txt:' || true
+      | rg -v '^Cargo.toml:|^crates[\\/]crypto[\\/]proof-aggregation-reference[\\/]|^crates[\\/]crypto[\\/]proof-aggregation-fuzz[\\/]|\.md:|\.txt:' || true
   )"
   if [[ -n "$production_reference_imports" ]]; then
     echo "$production_reference_imports" >&2
@@ -97,7 +98,8 @@ check_fuzz_crate_boundary() {
   local manifest="crates/crypto/proof-aggregation-fuzz/Cargo.toml"
   local crate_dir="crates/crypto/proof-aggregation-fuzz"
 
-  [[ -f "$manifest" ]] || return
+  [[ -f "$manifest" ]] || fail "fuzz crate manifest is missing"
+  [[ -d "$crate_dir" ]] || fail "fuzz crate is missing"
 
   rg -F '"crates/crypto/proof-aggregation-fuzz"' Cargo.toml >/dev/null \
     || fail "fuzz crate must be listed as a workspace member"
@@ -135,6 +137,65 @@ check_fuzz_crate_boundary() {
     || fail "fuzz corpus baseline must be referenced by SnarkPack docs"
 }
 
+check_orbis_dev_srs_boundary() {
+  local app_manifest="crates/core/app/Cargo.toml"
+  local pd_manifest="crates/bin/pd/Cargo.toml"
+  local app_source="crates/core/app/src/app/mod.rs"
+  local srs_source="crates/crypto/proof-aggregation/src/srs.rs"
+
+  rg -F 'orbis-dev-srs = []' "$app_manifest" >/dev/null \
+    || fail "app must declare the integration-only orbis-dev-srs feature"
+  rg -F 'orbis-dev-srs = ["shieldd-sdk-app/orbis-dev-srs"]' "$pd_manifest" >/dev/null \
+    || fail "pd must forward orbis-dev-srs only to shieldd-sdk-app"
+  if rg -n '^default[[:space:]]*=.*orbis-dev-srs|^orbis-dev-srs[[:space:]]*=.*fuzzing' \
+    "$app_manifest" "$pd_manifest"; then
+    fail "orbis-dev-srs must be explicit and must not alias fuzzing"
+  fi
+  rg -F 'Insecure Orbis integration only; never enable in production.' \
+    "$app_manifest" "$pd_manifest" "$app_source" >/dev/null \
+    || fail "orbis-dev-srs must carry an explicit insecure integration-only warning"
+
+  local manifest_paths=()
+  while IFS= read -r path; do
+    manifest_paths+=("$path")
+  done < <(git ls-files -- Cargo.toml 'crates/**/Cargo.toml')
+
+  local unexpected_manifest_sites
+  unexpected_manifest_sites="$(
+    rg -n 'orbis-dev-srs' "${manifest_paths[@]}" \
+      | rg -v '^crates[\\/]core[\\/]app[\\/]Cargo.toml:|^crates[\\/]bin[\\/]pd[\\/]Cargo.toml:' \
+      || true
+  )"
+  if [[ -n "$unexpected_manifest_sites" ]]; then
+    echo "$unexpected_manifest_sites" >&2
+    fail "orbis-dev-srs may be forwarded only through pd to shieldd-sdk-app"
+  fi
+
+  local feature_build_sites
+  feature_build_sites="$(rg -n -F -- '--features orbis-dev-srs' justfile || true)"
+  [[ "$(printf '%s\n' "$feature_build_sites" | sed '/^$/d' | wc -l)" -eq 1 ]] \
+    || fail "exactly one build recipe must enable orbis-dev-srs"
+  printf '%s\n' "$feature_build_sites" \
+    | rg -F 'cargo build --release -p pd --features orbis-dev-srs' >/dev/null \
+    || fail "only the Orbis integration pd build may enable orbis-dev-srs"
+
+  [[ "$(rg -n -F '#[cfg(feature = "orbis-dev-srs")]' "$app_source" | wc -l)" -ge 3 ]] \
+    || fail "app must isolate the Orbis dev SRS implementation and focused test"
+  [[ "$(rg -n -F '#[cfg(not(any(' "$app_source" | wc -l)" -eq 2 ]] \
+    || fail "normal app builds must retain both registered production SRS loaders"
+  [[ "$(rg -n -F 'feature = "orbis-dev-srs"' "$app_source" | wc -l)" -ge 7 ]] \
+    || fail "every SRS selection branch must account for orbis-dev-srs explicitly"
+  rg -F 'shieldd_sdk_proof_aggregation::load_active_production_srs()' "$app_source" >/dev/null \
+    || fail "normal proposal construction must load the registered production SRS"
+  rg -F 'shieldd_sdk_proof_aggregation::load_production_srs_for_id(requested_id)' "$app_source" >/dev/null \
+    || fail "normal verification must load the registered production SRS identifier"
+
+  rg -F 'const ACTIVE_PRODUCTION_SRS_ID: Option<[u8; 32]> = None;' "$srs_source" >/dev/null \
+    || fail "production SRS registry must remain inactive until ceremony evidence exists"
+  rg -F 'const PRODUCTION_SRS_REGISTRY: &[ProductionSrsRegistryEntry] = &[];' "$srs_source" >/dev/null \
+    || fail "production SRS registry must remain empty until ceremony evidence exists"
+}
+
 production_roots=(
   crates/crypto/proof-aggregation/src
   crates/core/app/src
@@ -170,16 +231,30 @@ fi
 unexpected_challenge_context_fns="$(
   sed -n '/impl ChallengeContext {/,/^}/p' "$challenge_rs" \
     | rg -n "pub fn" \
-    | rg -v "from_statement_digest|as_bytes" || true
+    | rg -v "from_statement_digest|from_bytes|as_bytes" || true
 )"
 if [[ -n "$unexpected_challenge_context_fns" ]]; then
   echo "$unexpected_challenge_context_fns" >&2
-  fail "ChallengeContext must expose only from_statement_digest and as_bytes"
+  fail "ChallengeContext must expose only the two digest constructors and as_bytes"
+fi
+
+challenge_context_from_bytes_sites="$(
+  rg -n -F "ChallengeContext::from_bytes(" "${production_roots[@]}" || true
+)"
+challenge_context_from_bytes_count="$(
+  printf '%s\n' "$challenge_context_from_bytes_sites" | sed '/^$/d' | wc -l | tr -d '[:space:]'
+)"
+if [[ "$challenge_context_from_bytes_count" != "1" ]] \
+  || ! rg -F \
+    "let challenge_context = ChallengeContext::from_bytes(exact_sha256_digest(" \
+    crates/crypto/proof-aggregation/src/statement.rs >/dev/null; then
+  [[ -z "$challenge_context_from_bytes_sites" ]] || echo "$challenge_context_from_bytes_sites" >&2
+  fail "from_bytes must be used exactly once by the retained shipping SHA-256 execution"
 fi
 
 direct_digest_sites="$(
   rg -n "D::digest|Digest::digest" crates/crypto/proof-aggregation/src/ipp/ip_proofs/src \
-    | grep -v "src/ipp/ip_proofs/src/challenge.rs" || true
+    | rg -v 'src[\\/]ipp[\\/]ip_proofs[\\/]src[\\/]challenge\.rs:' || true
 )"
 if [[ -n "$direct_digest_sites" ]]; then
   echo "$direct_digest_sites" >&2
@@ -189,7 +264,7 @@ fi
 duplicate_codec_sites="$(
   rg -n "fn (encode_.*statement|statement_.*encode|decode_.*aggregate_proof|encode_.*aggregate_proof|decode_wrapped|encode_wrapped)" \
     crates/crypto/proof-aggregation/src \
-    | rg -v "crates/crypto/proof-aggregation/src/(statement.rs|aggregate_proof_wrapper.rs):" || true
+    | rg -v 'crates[\\/]crypto[\\/]proof-aggregation[\\/]src[\\/](statement\.rs|aggregate_proof_wrapper\.rs):' || true
 )"
 if [[ -n "$duplicate_codec_sites" ]]; then
   echo "$duplicate_codec_sites" >&2
@@ -205,5 +280,6 @@ rg -n "statement.statement_digest\\(\\)" crates/crypto/proof-aggregation/src/pre
 
 check_reference_crate_boundary
 check_fuzz_crate_boundary
+check_orbis_dev_srs_boundary
 
 echo "snarkpack runtime invariants ok"

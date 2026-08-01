@@ -46,11 +46,42 @@ pub struct FamilyRoute {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct FamilyProtoFields {
+    pub family_id: u32,
+    pub note_reshape_family_id: u32,
+    pub shielded_ics20_withdrawal_family_id: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FamilyRouteError {
     UnknownProofFamily,
     MissingSubfamily,
     UnexpectedSubfamily,
     UnknownSubfamily,
+}
+
+/// Canonical protobuf fields for a registered proof family.
+///
+/// Statement construction and bundle encoding both use this function, so the
+/// family bytes bound by Fiat--Shamir cannot drift from the inverse router.
+pub(crate) fn family_proto_fields(family_id: ProofFamilyId) -> FamilyProtoFields {
+    match family_id {
+        ProofFamilyId::Transfer => FamilyProtoFields {
+            family_id: PROOF_FAMILY_TRANSFER,
+            note_reshape_family_id: 0,
+            shielded_ics20_withdrawal_family_id: 0,
+        },
+        ProofFamilyId::NoteReshape(subfamily) => FamilyProtoFields {
+            family_id: PROOF_FAMILY_NOTE_RESHAPE,
+            note_reshape_family_id: subfamily.get(),
+            shielded_ics20_withdrawal_family_id: 0,
+        },
+        ProofFamilyId::ShieldedIcs20Withdrawal(subfamily) => FamilyProtoFields {
+            family_id: PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL,
+            note_reshape_family_id: 0,
+            shielded_ics20_withdrawal_family_id: subfamily.get(),
+        },
+    }
 }
 
 pub fn family_route_from_proto_fields(
@@ -136,20 +167,6 @@ impl ProofFamilyId {
             )),
         }
     }
-
-    pub(crate) fn note_reshape_family_id(self) -> u32 {
-        match self {
-            ProofFamilyId::NoteReshape(family_id) => family_id.get(),
-            _ => 0,
-        }
-    }
-
-    pub(crate) fn shielded_ics20_withdrawal_family_id(self) -> u32 {
-        match self {
-            ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => family_id.get(),
-            _ => 0,
-        }
-    }
 }
 
 fn family_route_error_message(err: FamilyRouteError, family_id: i32) -> anyhow::Error {
@@ -211,12 +228,11 @@ impl DomainType for FamilyAggregate {
 
 impl From<FamilyAggregate> for pb::FamilyAggregate {
     fn from(value: FamilyAggregate) -> Self {
+        let fields = family_proto_fields(value.family_id);
         Self {
-            family_id: pb::ProofFamilyId::from(value.family_id) as i32,
-            note_reshape_family_id: value.family_id.note_reshape_family_id(),
-            shielded_ics20_withdrawal_family_id: value
-                .family_id
-                .shielded_ics20_withdrawal_family_id(),
+            family_id: fields.family_id as i32,
+            note_reshape_family_id: fields.note_reshape_family_id,
+            shielded_ics20_withdrawal_family_id: fields.shielded_ics20_withdrawal_family_id,
             real_count: value.real_count,
             padded_count: value.padded_count,
             aggregate_proof: value.aggregate_proof,
@@ -243,9 +259,103 @@ impl TryFrom<pb::FamilyAggregate> for FamilyAggregate {
 
 #[cfg(test)]
 mod tests {
-    use super::{AggregateBundle, FamilyAggregate, ProofFamilyId};
+    use super::{
+        family_proto_fields, family_route_from_proto_fields, AggregateBundle, FamilyAggregate,
+        FamilyRouteKind, ProofFamilyId,
+    };
     use shieldd_sdk_proto::DomainType;
-    use shieldd_sdk_shielded_pool::NoteReshapeFamilyId;
+    use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
+
+    #[test]
+    fn canonical_family_fields_round_trip_through_router() {
+        let mut families = vec![
+            ProofFamilyId::Transfer,
+            ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
+        ];
+        families.extend(
+            NoteReshapeFamilyId::ALL
+                .into_iter()
+                .map(ProofFamilyId::NoteReshape),
+        );
+
+        for family in families {
+            let fields = family_proto_fields(family);
+            let route = family_route_from_proto_fields(
+                fields.family_id,
+                fields.note_reshape_family_id,
+                fields.shielded_ics20_withdrawal_family_id,
+            )
+            .expect("canonical family fields must route");
+            match family {
+                ProofFamilyId::Transfer => {
+                    assert_eq!(route.kind, FamilyRouteKind::Transfer);
+                    assert_eq!(route.subfamily_id, 0);
+                }
+                ProofFamilyId::NoteReshape(subfamily) => {
+                    assert_eq!(route.kind, FamilyRouteKind::NoteReshape);
+                    assert_eq!(route.subfamily_id, subfamily.get());
+                }
+                ProofFamilyId::ShieldedIcs20Withdrawal(subfamily) => {
+                    assert_eq!(route.kind, FamilyRouteKind::ShieldedIcs20Withdrawal);
+                    assert_eq!(route.subfamily_id, subfamily.get());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn family_router_rejects_unknown_missing_and_cross_family_fields() {
+        let transfer = shieldd_sdk_proto::core::transaction::v1::ProofFamilyId::Transfer as u32;
+        let note_reshape =
+            shieldd_sdk_proto::core::transaction::v1::ProofFamilyId::NoteReshape as u32;
+        let withdrawal =
+            shieldd_sdk_proto::core::transaction::v1::ProofFamilyId::ShieldedIcs20Withdrawal as u32;
+
+        assert_eq!(
+            family_route_from_proto_fields(u32::MAX, 0, 0),
+            Err(super::FamilyRouteError::UnknownProofFamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(note_reshape, 0, 0),
+            Err(super::FamilyRouteError::MissingSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(note_reshape, 0, 1),
+            Err(super::FamilyRouteError::MissingSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(withdrawal, 0, 0),
+            Err(super::FamilyRouteError::MissingSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(withdrawal, 1, 0),
+            Err(super::FamilyRouteError::MissingSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(transfer, 1, 0),
+            Err(super::FamilyRouteError::UnexpectedSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(note_reshape, 1, 1),
+            Err(super::FamilyRouteError::UnexpectedSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(withdrawal, 1, 1),
+            Err(super::FamilyRouteError::UnexpectedSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(note_reshape, u32::MAX, 0),
+            Err(super::FamilyRouteError::UnknownSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(withdrawal, 0, u32::MAX),
+            Err(super::FamilyRouteError::UnknownSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(u32::MAX, 1, 1),
+            Err(super::FamilyRouteError::UnknownProofFamily)
+        );
+    }
 
     #[test]
     fn aggregate_bundle_proto_round_trip() {

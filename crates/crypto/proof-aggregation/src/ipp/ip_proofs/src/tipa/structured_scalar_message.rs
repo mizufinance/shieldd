@@ -10,7 +10,10 @@ use std::{marker::PhantomData, ops::MulAssign};
 use rayon::prelude::*;
 
 use crate::{
-    challenge::{challenge_digest, ChallengeContext, ChallengeTraceSink, NoopChallengeTraceSink},
+    challenge::{
+        challenge_digest, sample_bounded_challenge, ChallengeContext, ChallengeTraceSink,
+        NoopChallengeTraceSink,
+    },
     gipa::{GIPAProof, GipaBuildProfile, GIPA},
     tipa::{
         prove_commitment_key_kzg_opening_with_affine_profiled, structured_generators_scalar_power,
@@ -356,24 +359,20 @@ where
 
         // KZG challenge point
         let kzg_challenge_started = std::time::Instant::now();
-        let mut counter_nonce: u64 = 0;
-        let c = loop {
+        let c = sample_bounded_challenge::<_, Error, _>(|nonce| {
             let mut hash_input = Vec::new();
             if let Some(first) = transcript.first() {
                 first.serialize_uncompressed(&mut hash_input)?;
             }
             ck_a_final.serialize_uncompressed(&mut hash_input)?;
-            if let Some(c) = LMC::Scalar::from_random_bytes(&challenge_digest::<D, _>(
+            Ok(LMC::Scalar::from_random_bytes(&challenge_digest::<D, _>(
                 context,
                 trace,
                 b"tipa.c.kzg",
-                counter_nonce,
+                nonce,
                 &hash_input,
-            )) {
-                break c;
-            };
-            counter_nonce += 1;
-        };
+            )))
+        })?;
         profile.kzg_challenge_ms = kzg_challenge_started.elapsed().as_secs_f64() * 1000.0;
 
         // Complete KZG proof
@@ -445,27 +444,23 @@ where
         let ck_a_proof = &proof.final_ck_proof;
 
         // KZG challenge point
-        let mut counter_nonce: u64 = 0;
-        let c = loop {
+        let c = sample_bounded_challenge::<_, Error, _>(|nonce| {
             let mut hash_input = Vec::new();
             if let Some(first) = transcript.first() {
                 first.serialize_uncompressed(&mut hash_input)?;
             }
             ck_a_final.serialize_uncompressed(&mut hash_input)?;
-            if let Some(c) = LMC::Scalar::from_random_bytes(&challenge_digest::<D, _>(
+            Ok(LMC::Scalar::from_random_bytes(&challenge_digest::<D, _>(
                 context,
                 trace,
                 b"tipa.c.kzg",
-                counter_nonce,
+                nonce,
                 &hash_input,
-            )) {
-                break c;
-            };
-            counter_nonce += 1;
-        };
+            )))
+        })?;
 
         // Check commitment key
-        let ck_a_valid = verify_commitment_key_g2_kzg_opening(
+        let ck_a_valid = verify_commitment_key_g2_kzg_opening::<P>(
             v_srs,
             &ck_a_final,
             &ck_a_proof,
@@ -494,10 +489,13 @@ where
     }
 }
 
-pub fn structured_scalar_power<F: Field>(num: usize, s: &F) -> Vec<F> {
+pub fn structured_scalar_power<F>(num: usize, s: &F) -> Vec<F>
+where
+    F: Clone + One + std::ops::Mul<Output = F>,
+{
     let mut powers = vec![F::one()];
     for i in 1..num {
-        powers.push(powers[i - 1] * s);
+        powers.push(powers[i - 1].clone() * s.clone());
     }
     powers
 }

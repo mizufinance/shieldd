@@ -9,31 +9,33 @@ import hashlib
 import json
 import os
 import re
+import signal
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 
 from normalize_aeneas_lean import NORMALIZER_REVISION, normalize_files
 
 
 SCRIPT_PATH = Path(__file__).resolve()
 LEAN_ROOT = SCRIPT_PATH.parents[1]
-REPO_ROOT = Path(
-    subprocess.run(
-        ["git", "-C", str(LEAN_ROOT), "rev-parse", "--show-toplevel"],
-        check=True,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-)
+REPO_ROOT = SCRIPT_PATH.parents[6]
 MANIFEST_PATH = (
     REPO_ROOT
     / "crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json"
 )
 MANIFEST_REPO_PATH = MANIFEST_PATH.relative_to(REPO_ROOT).as_posix()
+GRAPH_INVENTORY_PATH = MANIFEST_PATH.with_name(
+    "lean-extraction-graph-inventory.json"
+)
+GRAPH_INVENTORY_REPO_PATH = GRAPH_INVENTORY_PATH.relative_to(
+    REPO_ROOT
+).as_posix()
 EXTRACTED_REPO_DIR = "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted"
 NORMALIZER_REPO_PATH = (
     "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/normalize_aeneas_lean.py"
@@ -45,16 +47,51 @@ EXTRACTIONS_REPO_PATH = (
     "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py"
 )
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
+IMAGE_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 COMMIT = re.compile(r"^[0-9a-f]{40}$")
+GRAPH_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+DEFAULT_EXTRACTION_TIMEOUT_SECONDS = 20 * 60
+PROCESS_RSS_LIMIT_BYTES = 6 * 1024**3
+MIN_AVAILABLE_MEMORY_BYTES = 4 * 1024**3
+RESOURCE_POLL_SECONDS = 5.0
+OUTPUT_SPOOL_LIMIT_BYTES = 1024 * 1024
+WORKSPACE_SOURCE_PATHS = (
+    ".cargo/config.toml",
+    "Cargo.lock",
+    "Cargo.toml",
+    "deployments/containerfiles/Dockerfile.snarkpack-fv-toolchain",
+    "rust-toolchain.toml",
+    "crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json",
+    "crates/crypto/proof-aggregation/formal/lean-ipp/lakefile.lean",
+    "crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain",
+    "crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml",
+)
+CI_ATTESTATION_PATHS = (
+    ".github/workflows/formal.yml",
+    "justfile",
+    "scripts/ci/run_with_annotation.py",
+    "scripts/snarkpack-fv.sh",
+)
+CRATE_CONFIG_NAMES = (
+    "Cargo.lock",
+    "Cargo.toml",
+    "rust-toolchain",
+    "rust-toolchain.toml",
+    ".cargo/config",
+    ".cargo/config.toml",
+)
+IGNORED_CRATE_SOURCE_DIRS = {".git", "proofs", "target"}
+LOCAL_PATH_DEPENDENCY = re.compile(r"""\bpath\s*=\s*["']([^"']+)["']""")
 
 TOP_FIELDS = {"schema_version", "toolchains", "graphs"}
+GRAPH_INVENTORY_FIELDS = {"schema_version", "graph_ids"}
 TOOLCHAIN_FIELDS = {
     "rust",
     "lean",
-    "hax_tag",
     "hax_commit",
     "charon_commit",
     "aeneas_commit",
+    "image_digest",
     "normalizer_revision",
 }
 GRAPH_FIELDS = {
@@ -62,9 +99,11 @@ GRAPH_FIELDS = {
     "campaign",
     "output",
     "output_sha256",
+    "source_sha256",
     "crate_manifest",
     "package",
     "features",
+    "source_files",
     "roots",
     "inputs",
     "copy_provenance",
@@ -89,10 +128,68 @@ NORMALIZATION_FIELDS = {
     "normalized_sha256",
 }
 PARITY_FIELDS = {"cwd", "argv"}
+RECOVERY_RECORD = "recovery.json"
+RECOVERY_OUTPUT = "output.lean"
+RECOVERY_FIELDS = {
+    "schema_version",
+    "graph_id",
+    "output",
+    "output_sha256",
+    "source_sha256",
+    "source_snapshot",
+    "inputs",
+    "selected_raw_declarations_sha256",
+    "toolchains",
+}
+RECOVERY_INPUT_FIELDS = {"path", "sha256"}
 
 
 class ManifestError(ValueError):
     """A fail-closed extraction-manifest validation error."""
+
+
+class SourceSnapshotCache:
+    """Memoize one read-only source-discovery pass."""
+
+    def __init__(self) -> None:
+        self._head: str | None = None
+        self._file_hashes: dict[Path, str] = {}
+        self._crate_configs: dict[Path, tuple[Path, ...]] = {}
+        self._undeclared_rust_inventories: dict[
+            tuple[tuple[str, ...], tuple[str, ...]], str
+        ] = {}
+
+    def head(self) -> str:
+        if self._head is None:
+            head = _git(["rev-parse", "HEAD"]).stdout.strip()
+            if not COMMIT.fullmatch(head):
+                raise ManifestError(
+                    f"git rev-parse returned invalid HEAD {head!r}"
+                )
+            self._head = head
+        return self._head
+
+    def file_sha256(self, path: Path) -> str:
+        resolved = path.resolve()
+        if resolved not in self._file_hashes:
+            self._file_hashes[resolved] = sha256_file(resolved)
+        return self._file_hashes[resolved]
+
+
+@dataclass(frozen=True)
+class RecoveryCandidate:
+    """One validated recovery and the repository state it was built from."""
+
+    graph_id: str
+    graph: dict[str, Any]
+    record: dict[str, Any]
+    content: bytes
+    output_path: Path
+    source_snapshot: dict[str, str]
+    current_output_sha256: str | None
+
+
+_ACTIVE_CHILD: subprocess.Popen[bytes] | None = None
 
 
 def sha256_file(path: Path) -> str:
@@ -192,24 +289,98 @@ def load_manifest(path: Path = MANIFEST_PATH, *, canonical: bool = True) -> dict
     return _expect_object(data, "manifest")
 
 
+def load_graph_inventory(
+    path: Path = GRAPH_INVENTORY_PATH,
+    *,
+    canonical: bool = True,
+) -> tuple[str, ...]:
+    """Load the canonical ordered graph IDs required by every manifest."""
+    try:
+        raw = path.read_bytes()
+        data = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ManifestError(f"{path}: {exc}") from exc
+    if canonical and raw != canonical_json(data):
+        raise ManifestError(f"{path}: JSON is not canonical pretty JSON")
+    inventory = _expect_object(data, "graph inventory")
+    _exact_fields(inventory, GRAPH_INVENTORY_FIELDS, "graph inventory")
+    if inventory["schema_version"] != 1:
+        raise ManifestError("graph inventory.schema_version: expected 1")
+    graph_ids = _string_list(
+        inventory["graph_ids"],
+        "graph inventory.graph_ids",
+        nonempty=True,
+    )
+    for index, graph_id in enumerate(graph_ids):
+        if not GRAPH_ID.fullmatch(graph_id):
+            raise ManifestError(
+                "graph inventory.graph_ids"
+                f"[{index}]: expected [A-Za-z][A-Za-z0-9_]*"
+            )
+    return tuple(graph_ids)
+
+
 def validate_manifest(
     manifest: dict[str, Any],
     *,
     verify_files: bool = True,
+    verify_canonical_file: bool = True,
     manifest_path: Path = MANIFEST_PATH,
 ) -> None:
+    """Validate the committed schema; every graph must be source-stamped."""
+    _validate_manifest(
+        manifest,
+        verify_files=verify_files,
+        verify_canonical_file=verify_canonical_file,
+        manifest_path=manifest_path,
+        repair_incomplete_sources=False,
+    )
+
+
+def validate_recovery_manifest(
+    manifest: dict[str, Any],
+    *,
+    verify_files: bool = False,
+    verify_canonical_file: bool = True,
+    manifest_path: Path = MANIFEST_PATH,
+) -> None:
+    """Validate a repair input while treating an unstamped graph as invalid work."""
+    _validate_manifest(
+        manifest,
+        verify_files=verify_files,
+        verify_canonical_file=verify_canonical_file,
+        manifest_path=manifest_path,
+        repair_incomplete_sources=True,
+    )
+
+
+def _validate_manifest(
+    manifest: dict[str, Any],
+    *,
+    verify_files: bool = True,
+    verify_canonical_file: bool = True,
+    manifest_path: Path = MANIFEST_PATH,
+    repair_incomplete_sources: bool,
+) -> None:
     _exact_fields(manifest, TOP_FIELDS, "manifest")
-    if manifest["schema_version"] != 2:
-        raise ManifestError("manifest.schema_version: expected 2")
+    if manifest["schema_version"] != 3:
+        raise ManifestError("manifest.schema_version: expected 3")
 
     toolchains = _expect_object(manifest["toolchains"], "manifest.toolchains")
     _exact_fields(toolchains, TOOLCHAIN_FIELDS, "manifest.toolchains")
-    for key in ("rust", "lean", "hax_tag", "normalizer_revision"):
+    for key in ("rust", "lean", "normalizer_revision"):
         _string(toolchains[key], f"manifest.toolchains.{key}")
     for key in ("hax_commit", "charon_commit", "aeneas_commit"):
         commit = _string(toolchains[key], f"manifest.toolchains.{key}")
         if not COMMIT.fullmatch(commit):
             raise ManifestError(f"manifest.toolchains.{key}: expected lowercase 40-hex commit")
+    image_digest = _string(
+        toolchains["image_digest"], "manifest.toolchains.image_digest"
+    )
+    if not IMAGE_DIGEST.fullmatch(image_digest):
+        raise ManifestError(
+            "manifest.toolchains.image_digest: expected sha256 and 64 lowercase hex"
+        )
     if toolchains["normalizer_revision"] != NORMALIZER_REVISION:
         raise ManifestError(
             "manifest.toolchains.normalizer_revision: "
@@ -217,19 +388,28 @@ def validate_manifest(
         )
 
     graphs = _expect_list(manifest["graphs"], "manifest.graphs")
-    if len(graphs) != 32:
-        raise ManifestError(f"manifest.graphs: expected 32 records, found {len(graphs)}")
+    expected_graph_ids = load_graph_inventory()
     graph_ids: set[str] = set()
+    ordered_graph_ids: list[str] = []
     outputs: set[str] = set()
+    module_source_closures: dict[str, tuple[str, ...]] = {}
     for index, raw_graph in enumerate(graphs):
         graph = _expect_object(raw_graph, f"manifest.graphs[{index}]")
         graph_id = graph.get("id", f"index {index}")
         where = f"graph {graph_id}"
-        _exact_fields(graph, GRAPH_FIELDS, where)
+        expected_graph_fields = GRAPH_FIELDS
+        if repair_incomplete_sources and "source_sha256" not in graph:
+            expected_graph_fields = GRAPH_FIELDS - {"source_sha256"}
+        _exact_fields(graph, expected_graph_fields, where)
         graph_id = _string(graph["id"], f"{where}.id")
+        if not GRAPH_ID.fullmatch(graph_id):
+            raise ManifestError(
+                f"{where}.id: expected [A-Za-z][A-Za-z0-9_]*"
+            )
         if graph_id in graph_ids:
             raise ManifestError(f"{where}.id: duplicate graph id")
         graph_ids.add(graph_id)
+        ordered_graph_ids.append(graph_id)
         if graph["campaign"] not in {"s2", "s3"}:
             raise ManifestError(f"{where}.campaign: expected s2 or s3")
 
@@ -243,12 +423,29 @@ def validate_manifest(
             raise ManifestError(f"{where}.output: duplicate output")
         outputs.add(output)
         output_hash = _hash(graph["output_sha256"], f"{where}.output_sha256")
+        if "source_sha256" in graph:
+            _hash(graph["source_sha256"], f"{where}.source_sha256")
         _repo_path(graph["crate_manifest"], f"{where}.crate_manifest", must_exist=verify_files)
         _string(graph["package"], f"{where}.package")
 
         features = _string_list(graph["features"], f"{where}.features")
         if features != sorted(features):
             raise ManifestError(f"{where}.features: expected sorted array")
+        source_files = _string_list(
+            graph["source_files"], f"{where}.source_files", nonempty=True
+        )
+        if source_files != sorted(source_files):
+            raise ManifestError(f"{where}.source_files: expected sorted array")
+        for source_index, raw_source in enumerate(source_files):
+            source = _repo_path(
+                raw_source,
+                f"{where}.source_files[{source_index}]",
+                must_exist=verify_files,
+            )
+            if not source.endswith(".rs"):
+                raise ManifestError(
+                    f"{where}.source_files[{source_index}]: expected Rust source"
+                )
         roots = _string_list(graph["roots"], f"{where}.roots", nonempty=True)
         if roots != sorted(roots):
             raise ManifestError(f"{where}.roots: expected sorted array")
@@ -290,6 +487,38 @@ def validate_manifest(
             raise ManifestError(f"{where}.inputs: missing copy-source")
         if not any(item["role"] == "parity-test" for item in inputs):
             raise ManifestError(f"{where}.inputs: missing parity-test")
+        copy_sources = {
+            item["path"]
+            for item in inputs
+            if item["role"] == "copy-source"
+        }
+        if len(copy_sources) != 1:
+            raise ManifestError(
+                f"{where}.inputs: expected exactly one copy-source root module"
+            )
+        root_module = next(iter(copy_sources))
+        source_closure = tuple(source_files)
+        previous_closure = module_source_closures.setdefault(
+            root_module, source_closure
+        )
+        if previous_closure != source_closure:
+            raise ManifestError(
+                f"{where}.source_files: graphs rooted in {root_module} "
+                "must declare the same module closure"
+            )
+        undeclared_rust_inputs = sorted(
+            {
+                item["path"]
+                for item in inputs
+                if item["path"].endswith(".rs")
+            }
+            - set(source_files)
+        )
+        if undeclared_rust_inputs:
+            raise ManifestError(
+                f"{where}.source_files: undeclared Rust input(s): "
+                + ", ".join(undeclared_rust_inputs)
+            )
 
         provenance = _expect_list(graph["copy_provenance"], f"{where}.copy_provenance")
         for copy_index, raw_copy in enumerate(provenance):
@@ -431,6 +660,28 @@ def validate_manifest(
                     f"{where}.parity[{parity_index}].argv: expected cargo test"
                 )
 
+    if tuple(ordered_graph_ids) != expected_graph_ids:
+        expected = set(expected_graph_ids)
+        missing = [
+            graph_id for graph_id in expected_graph_ids
+            if graph_id not in graph_ids
+        ]
+        unexpected = [
+            graph_id for graph_id in ordered_graph_ids
+            if graph_id not in expected
+        ]
+        details: list[str] = []
+        if missing:
+            details.append("missing " + ", ".join(missing))
+        if unexpected:
+            details.append("unexpected " + ", ".join(unexpected))
+        if not missing and not unexpected:
+            details.append("order differs")
+        raise ManifestError(
+            "manifest.graphs: graph IDs do not match the exact inventory; "
+            + "; ".join(details)
+        )
+
     if verify_files:
         generated_dir = REPO_ROOT.joinpath(*PurePosixPath(EXTRACTED_REPO_DIR).parts)
         actual_outputs = {
@@ -450,7 +701,11 @@ def validate_manifest(
                 + "; ".join(details)
             )
 
-    if manifest_path.exists() and manifest_path == MANIFEST_PATH:
+    if (
+        verify_canonical_file
+        and manifest_path.exists()
+        and manifest_path == MANIFEST_PATH
+    ):
         raw = manifest_path.read_bytes()
         if raw != canonical_json(manifest):
             raise ManifestError(f"{manifest_path}: JSON is not canonical pretty JSON")
@@ -492,6 +747,221 @@ def select_graphs(
 
 def _tail(text: str, lines: int = 50) -> str:
     return "\n".join(text.splitlines()[-lines:])
+
+
+def _bounded_extraction_environment(
+    recipe_environment: dict[str, str],
+) -> dict[str, str]:
+    environment = os.environ.copy()
+    environment.update(recipe_environment)
+    environment.update(
+        CARGO_BUILD_JOBS="1",
+        LEAN_NUM_THREADS="1",
+        RAYON_NUM_THREADS="1",
+    )
+    return environment
+
+
+def _read_spooled(stream: Any) -> str:
+    stream.flush()
+    stream.seek(0)
+    return stream.read().decode("utf-8", errors="replace")
+
+
+def _proc_group_rss_bytes(process_group: int) -> int:
+    if os.name != "posix" or not Path("/proc").is_dir():
+        raise ManifestError("process-group RSS monitoring is unavailable")
+    try:
+        page_size = os.sysconf("SC_PAGE_SIZE")
+    except (AttributeError, OSError, ValueError) as error:
+        raise ManifestError("cannot determine process RSS page size") from error
+
+    total = 0
+    found = False
+    try:
+        entries = list(Path("/proc").iterdir())
+    except OSError as error:
+        raise ManifestError("cannot enumerate /proc for RSS monitoring") from error
+    for entry in entries:
+        if not entry.name.isdigit():
+            continue
+        try:
+            stat = (entry / "stat").read_text(encoding="utf-8")
+            closing_paren = stat.rfind(")")
+            if closing_paren < 0:
+                continue
+            fields = stat[closing_paren + 2 :].split()
+            if len(fields) < 3 or int(fields[2]) != process_group:
+                continue
+            statm = (entry / "statm").read_text(encoding="ascii").split()
+            total += int(statm[1]) * page_size
+            found = True
+        except (FileNotFoundError, PermissionError, ProcessLookupError):
+            continue
+        except (IndexError, OSError, UnicodeError, ValueError) as error:
+            raise ManifestError(
+                f"cannot inspect process {entry.name} for RSS monitoring"
+            ) from error
+    if not found:
+        raise ManifestError(
+            f"cannot locate extraction process group {process_group} in /proc"
+        )
+    return total
+
+
+def _available_memory_bytes() -> int:
+    if os.name != "posix":
+        raise ManifestError("available-memory monitoring is unavailable")
+    try:
+        for line in Path("/proc/meminfo").read_text(encoding="ascii").splitlines():
+            if line.startswith("MemAvailable:"):
+                fields = line.split()
+                if len(fields) != 3 or fields[2] != "kB":
+                    break
+                return int(fields[1]) * 1024
+    except (OSError, UnicodeError, ValueError) as error:
+        raise ManifestError("cannot read available memory from /proc/meminfo") from error
+    raise ManifestError("MemAvailable is missing from /proc/meminfo")
+
+
+def _resource_limit_reason(process_group: int) -> str | None:
+    rss = _proc_group_rss_bytes(process_group)
+    if rss > PROCESS_RSS_LIMIT_BYTES:
+        return (
+            f"process-group RSS {rss} exceeds limit "
+            f"{PROCESS_RSS_LIMIT_BYTES}"
+        )
+    available = _available_memory_bytes()
+    if available < MIN_AVAILABLE_MEMORY_BYTES:
+        return (
+            f"available memory {available} is below limit "
+            f"{MIN_AVAILABLE_MEMORY_BYTES}"
+        )
+    return None
+
+
+def _terminate_process_group(process: subprocess.Popen[bytes]) -> None:
+    if process.poll() is not None:
+        return
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGTERM)
+        except ProcessLookupError:
+            return
+        try:
+            process.wait(timeout=2)
+            return
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                return
+    else:
+        process.terminate()
+        try:
+            process.wait(timeout=2)
+            return
+        except subprocess.TimeoutExpired:
+            process.kill()
+    try:
+        process.wait(timeout=2)
+    except subprocess.TimeoutExpired as error:
+        raise ManifestError(
+            f"failed to terminate process group rooted at {process.pid}"
+        ) from error
+
+
+def _signal_cleanup(signum: int, _frame: object) -> None:
+    child = _ACTIVE_CHILD
+    if child is not None:
+        _terminate_process_group(child)
+    raise SystemExit(128 + signum)
+
+
+def install_signal_cleanup() -> None:
+    if os.name != "posix":
+        return
+    signal.signal(signal.SIGINT, _signal_cleanup)
+    signal.signal(signal.SIGTERM, _signal_cleanup)
+
+
+def run_command(
+    argv: Sequence[str],
+    *,
+    cwd: Path,
+    env: dict[str, str] | None = None,
+    timeout: int | None = None,
+    check: bool = True,
+    enforce_resource_limits: bool = False,
+    poll_seconds: float = RESOURCE_POLL_SECONDS,
+) -> subprocess.CompletedProcess[str]:
+    global _ACTIVE_CHILD
+    command = [str(argument) for argument in argv]
+    started = time.monotonic()
+    failure: str | None = None
+    with (
+        tempfile.SpooledTemporaryFile(max_size=OUTPUT_SPOOL_LIMIT_BYTES) as stdout,
+        tempfile.SpooledTemporaryFile(max_size=OUTPUT_SPOOL_LIMIT_BYTES) as stderr,
+    ):
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            env=env,
+            stdout=stdout,
+            stderr=stderr,
+            start_new_session=os.name == "posix",
+        )
+        _ACTIVE_CHILD = process
+        try:
+            while process.poll() is None:
+                elapsed = time.monotonic() - started
+                if timeout is not None and elapsed >= timeout:
+                    failure = f"command timed out after {timeout} seconds"
+                    break
+                if enforce_resource_limits:
+                    try:
+                        failure = _resource_limit_reason(process.pid)
+                    except ManifestError as error:
+                        failure = f"resource monitoring failed: {error}"
+                    if failure is not None:
+                        break
+                remaining = None if timeout is None else max(0.0, timeout - elapsed)
+                time.sleep(
+                    poll_seconds
+                    if remaining is None
+                    else min(poll_seconds, remaining)
+                )
+            if failure is not None:
+                _terminate_process_group(process)
+            returncode = process.wait()
+        finally:
+            _ACTIVE_CHILD = None
+        stdout_text = _read_spooled(stdout)
+        stderr_text = _read_spooled(stderr)
+
+    if failure is not None:
+        raise ManifestError(
+            f"{failure}\n"
+            f"command: {' '.join(command)}\n"
+            f"cwd: {cwd}\n"
+            f"stdout:\n{_tail(stdout_text)}\n"
+            f"stderr:\n{_tail(stderr_text)}"
+        )
+    completed = subprocess.CompletedProcess(
+        command,
+        returncode,
+        stdout=stdout_text,
+        stderr=stderr_text,
+    )
+    if check and returncode:
+        raise ManifestError(
+            f"command failed ({returncode})\n"
+            f"command: {' '.join(command)}\n"
+            f"cwd: {cwd}\n"
+            f"stdout:\n{_tail(stdout_text)}\n"
+            f"stderr:\n{_tail(stderr_text)}"
+        )
+    return completed
 
 
 def _isolation_dir(
@@ -536,6 +1006,7 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
             "compare/regenerate must run inside WSL or another POSIX environment "
             "with the pinned cargo-hax toolchain loaded"
         )
+    input_hashes_before = current_input_hashes(graph)
     raw_paths: list[Path] = []
     for index, extraction in enumerate(graph["extractions"]):
         output_dir = temp_root / f"extraction-{index}"
@@ -544,10 +1015,9 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
             str(output_dir) if token == "{output_dir}" else token
             for token in extraction["argv"]
         ]
-        environment = os.environ.copy()
         recipe_env = dict(extraction["env"])
         isolation_kind = recipe_env.pop("SHIELDD_EXTRACTION_ISOLATION", None)
-        environment.update(recipe_env)
+        environment = _bounded_extraction_environment(recipe_env)
         if isolation_kind is None:
             cwd = REPO_ROOT.joinpath(*PurePosixPath(extraction["cwd"]).parts)
         elif isolation_kind == "s3-spike":
@@ -556,20 +1026,13 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
             raise ManifestError(
                 f"graph {graph['id']}: unknown extraction isolation {isolation_kind}"
             )
-        completed = subprocess.run(
+        completed = run_command(
             command,
             cwd=cwd,
             env=environment,
-            capture_output=True,
-            text=True,
+            timeout=DEFAULT_EXTRACTION_TIMEOUT_SECONDS,
+            enforce_resource_limits=True,
         )
-        if completed.returncode:
-            raise ManifestError(
-                f"graph {graph['id']} extraction {index} failed "
-                f"({completed.returncode})\n"
-                f"stdout:\n{_tail(completed.stdout)}\n"
-                f"stderr:\n{_tail(completed.stderr)}"
-            )
         for relative in extraction["raw_outputs"]:
             path = output_dir.joinpath(*PurePosixPath(relative).parts)
             if not path.is_file():
@@ -587,14 +1050,43 @@ def reproduce_graph(graph: dict[str, Any], temp_root: Path) -> tuple[bytes, str]
         roots=graph["roots"],
         lean_root=LEAN_ROOT,
     )
+    input_hashes_after = current_input_hashes(graph)
+    _assert_inputs_unchanged(graph, input_hashes_before, input_hashes_after)
     return result.content, result.selected_raw_declarations_sha256
 
 
-def compare_graph(graph: dict[str, Any]) -> tuple[bool, str]:
-    with tempfile.TemporaryDirectory(prefix=f"shieldd-extract-{graph['id']}-") as raw_temp:
-        content, selected_digest = reproduce_graph(graph, Path(raw_temp))
-    committed_path = REPO_ROOT.joinpath(*PurePosixPath(graph["output"]).parts)
-    committed = committed_path.read_bytes()
+def compare_graph(
+    graph: dict[str, Any], manifest: dict[str, Any]
+) -> tuple[bool, str]:
+    graph_id = graph["id"]
+    try:
+        source_before = _validate_selected_graph_evidence(graph, manifest)
+    except ManifestError as error:
+        return False, str(error)
+    try:
+        with tempfile.TemporaryDirectory(
+            prefix=f"shieldd-extract-{graph_id}-"
+        ) as raw_temp:
+            content, selected_digest = reproduce_graph(graph, Path(raw_temp))
+    except (ManifestError, OSError) as error:
+        return (
+            False,
+            f"{graph_id}: reproduction failed\n"
+            f"  {error}",
+        )
+    try:
+        _assert_source_snapshot_unchanged(
+            graph,
+            source_before,
+            current_graph_source_snapshot(graph, manifest),
+        )
+        committed = _read_selected_graph_output(graph)
+    except (ManifestError, OSError) as error:
+        return (
+            False,
+            f"{graph_id}: evidence changed during reproduction\n"
+            f"  {error}",
+        )
     normalized_hash = hashlib.sha256(content).hexdigest()
     expected_selected_digest = graph["normalization"][
         "selected_raw_declarations_sha256"
@@ -614,33 +1106,156 @@ def compare_graph(graph: dict[str, Any]) -> tuple[bool, str]:
     return False, "\n".join(details)
 
 
+def _read_selected_graph_output(graph: dict[str, Any]) -> bytes:
+    graph_id = graph["id"]
+    output_path = REPO_ROOT.joinpath(
+        *PurePosixPath(graph["output"]).parts
+    )
+    if not output_path.is_file():
+        raise ManifestError(
+            f"{graph_id}: missing declared output {graph['output']}"
+        )
+    try:
+        committed = output_path.read_bytes()
+    except OSError as error:
+        raise ManifestError(
+            f"{graph_id}: cannot read declared output {graph['output']}: {error}"
+        ) from error
+    actual_hash = hashlib.sha256(committed).hexdigest()
+    expected_hash = graph["output_sha256"]
+    if actual_hash != expected_hash:
+        raise ManifestError(
+            f"{graph_id}: stale declared output {graph['output']}\n"
+            f"  committed={expected_hash}\n"
+            f"  current={actual_hash}"
+        )
+    return committed
+
+
+def _validate_selected_graph_evidence(
+    graph: dict[str, Any], manifest: dict[str, Any]
+) -> dict[str, str]:
+    """Validate all committed evidence needed to compare one selected graph."""
+    graph_id = graph["id"]
+    expected_source_sha256 = graph.get("source_sha256")
+    if expected_source_sha256 is None:
+        raise ManifestError(f"{graph_id}: missing source_sha256")
+
+    cache = SourceSnapshotCache()
+    for item in graph["inputs"]:
+        input_path = REPO_ROOT.joinpath(
+            *PurePosixPath(item["path"]).parts
+        )
+        if not input_path.is_file():
+            raise ManifestError(
+                f"{graph_id}: missing declared input {item['path']}"
+            )
+        try:
+            actual_hash = cache.file_sha256(input_path)
+        except OSError as error:
+            raise ManifestError(
+                f"{graph_id}: cannot hash declared input {item['path']}: {error}"
+            ) from error
+        expected_hash = item["sha256"]
+        if actual_hash != expected_hash:
+            raise ManifestError(
+                f"{graph_id}: stale declared input {item['path']}\n"
+                f"  committed={expected_hash}\n"
+                f"  current={actual_hash}"
+            )
+
+    _read_selected_graph_output(graph)
+    try:
+        source_before = current_graph_source_snapshot(
+            graph, manifest, cache=cache
+        )
+    except (ManifestError, OSError) as error:
+        raise ManifestError(
+            f"{graph_id}: cannot compute source fingerprint: {error}"
+        ) from error
+    source_sha256 = source_snapshot_sha256(source_before)
+    if source_sha256 != expected_source_sha256:
+        raise ManifestError(
+            f"{graph_id}: source fingerprint drift\n"
+            f"  committed={expected_source_sha256}\n"
+            f"  current={source_sha256}"
+        )
+    return source_before
+
+
 def _git(args: Sequence[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
     executable = "git"
     repo_root = str(REPO_ROOT)
     windows_git = shutil.which("git.exe")
     if os.name == "posix" and windows_git and Path("/proc/sys/fs/binfmt_misc/WSLInterop").exists():
-        converted = subprocess.run(
+        converted = run_command(
             ["wslpath", "-w", repo_root],
+            cwd=REPO_ROOT,
             check=True,
-            capture_output=True,
-            text=True,
             timeout=5,
         )
         executable = windows_git
         repo_root = converted.stdout.strip()
     environment = os.environ.copy()
     environment.update(GIT_OPTIONAL_LOCKS="0", GIT_TERMINAL_PROMPT="0")
+    return run_command(
+        [executable, "-C", repo_root, *args],
+        cwd=REPO_ROOT,
+        check=check,
+        timeout=60,
+        env=environment,
+    )
+
+
+def _graph_output_module(graph: dict[str, Any]) -> str:
+    lean_repo_dir = PurePosixPath(LEAN_ROOT.relative_to(REPO_ROOT).as_posix())
+    output = PurePosixPath(graph["output"])
     try:
-        return subprocess.run(
-            [executable, "-C", repo_root, *args],
-            check=check,
-            capture_output=True,
-            text=True,
-            timeout=60,
-            env=environment,
+        relative = output.relative_to(lean_repo_dir)
+    except ValueError as error:
+        raise ManifestError(
+            f"graph {graph['id']}: output is outside the Lean package"
+        ) from error
+    return ".".join(relative.with_suffix("").parts)
+
+
+def affected_with_reuse_dependents(
+    manifest: dict[str, Any], graph_ids: Iterable[str]
+) -> list[str]:
+    """Include every graph importing a selected generated module."""
+    graphs = graph_map(manifest)
+    selected = set(graph_ids)
+    unknown = sorted(selected - graphs.keys())
+    if unknown:
+        raise ManifestError(
+            "unknown affected extraction graph(s): " + ", ".join(unknown)
         )
-    except subprocess.TimeoutExpired as error:
-        raise ManifestError(f"git command timed out: {' '.join(args)}") from error
+
+    module_owner = {
+        _graph_output_module(graph): graph["id"]
+        for graph in manifest["graphs"]
+    }
+    dependents: dict[str, set[str]] = {
+        graph_id: set() for graph_id in graphs
+    }
+    for graph in manifest["graphs"]:
+        for module in graph["normalization"]["reuse_modules"]:
+            owner = module_owner.get(module)
+            if owner is not None:
+                dependents[owner].add(graph["id"])
+
+    pending = list(selected)
+    while pending:
+        owner = pending.pop()
+        for dependent in dependents[owner]:
+            if dependent not in selected:
+                selected.add(dependent)
+                pending.append(dependent)
+    return sorted(selected)
+
+
+def _path_is_within_repo_directory(path: str, directory: str) -> bool:
+    return path == directory or path.startswith(directory + "/")
 
 
 def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
@@ -651,14 +1266,50 @@ def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
     }
     graphs = graph_map(manifest)
     affected: set[str] = set()
-    global_paths = {NORMALIZER_REPO_PATH, RUNTIME_REPO_PATH, EXTRACTIONS_REPO_PATH}
+    global_paths = {
+        NORMALIZER_REPO_PATH,
+        RUNTIME_REPO_PATH,
+        EXTRACTIONS_REPO_PATH,
+        *WORKSPACE_SOURCE_PATHS,
+    }
+    # Inventory membership is validated above the graph-selection layer.
+    # It is not extraction semantics; manifest recipe diffs select its changes.
     if changed.intersection(global_paths):
         return sorted(graphs)
 
+    declared_rust_sources = {
+        source
+        for graph in manifest["graphs"]
+        for source in graph["source_files"]
+    }
+    extraction_directories = extraction_source_directories(manifest)
+    undeclared_changed_rust = sorted(
+        path
+        for path in changed
+        if path.endswith(".rs")
+        and any(
+            _path_is_within_repo_directory(path, directory)
+            for directory in extraction_directories
+        )
+        and path not in declared_rust_sources
+    )
+    if undeclared_changed_rust:
+        raise ManifestError(
+            "changed Rust extraction input(s) are undeclared in graph "
+            "source_files: "
+            + ", ".join(undeclared_changed_rust)
+        )
+
+    cache = SourceSnapshotCache()
     for graph in manifest["graphs"]:
         paths = {graph["output"], graph["crate_manifest"]}
         paths.update(item["path"] for item in graph["inputs"])
+        paths.update(graph["source_files"])
         paths.add(graph["normalization"]["script"])
+        paths.update(
+            path.relative_to(REPO_ROOT).as_posix()
+            for path in crate_configuration_paths(graph, cache=cache)
+        )
         if changed.intersection(paths):
             affected.add(graph["id"])
 
@@ -673,9 +1324,30 @@ def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
                 or old.get("toolchains") != manifest["toolchains"]
             ):
                 return sorted(graphs)
+            old_graph_records = old.get("graphs")
+            if not isinstance(old_graph_records, list):
+                return sorted(graphs)
+            old_declared_rust_sources: set[str] = set()
+            for old_graph in old_graph_records:
+                if not isinstance(old_graph, dict):
+                    return sorted(graphs)
+                old_source_files = old_graph.get("source_files")
+                if (
+                    not isinstance(old_source_files, list)
+                    or not all(
+                        isinstance(source, str)
+                        for source in old_source_files
+                    )
+                ):
+                    return sorted(graphs)
+                old_declared_rust_sources.update(old_source_files)
+            if old_declared_rust_sources != declared_rust_sources:
+                # Reclassifying a Rust source changes the shared undeclared
+                # inventory bound into every graph source fingerprint.
+                return sorted(graphs)
             old_graphs = {
                 graph["id"]: graph
-                for graph in old.get("graphs", [])
+                for graph in old_graph_records
                 if isinstance(graph, dict) and isinstance(graph.get("id"), str)
             }
             for graph_id, graph in graphs.items():
@@ -684,29 +1356,221 @@ def affected_graph_ids(manifest: dict[str, Any], base: str) -> list[str]:
             affected.update(set(old_graphs) - graphs.keys())
         except (json.JSONDecodeError, AttributeError, TypeError):
             return sorted(graphs)
-    return sorted(affected)
+    return affected_with_reuse_dependents(manifest, affected)
 
 
 def command_check(args: argparse.Namespace) -> int:
     manifest = load_manifest(args.manifest)
-    validate_manifest(manifest, manifest_path=args.manifest)
+    allowed_stale = tuple(getattr(args, "allow_stale_graph", ()))
+    if len(allowed_stale) != len(set(allowed_stale)):
+        raise ManifestError("duplicate --allow-stale-graph")
+    # File freshness is checked below as one graph-level result so CI may
+    # explicitly delegate only its selected stale graphs to extraction jobs.
+    # Recovery validation permits an absent source fingerprint, but only this
+    # command's exact allowed-stale set can keep that graph from failing below.
+    # With no delegation, the normal strict manifest schema remains mandatory.
+    if allowed_stale:
+        validate_recovery_manifest(
+            manifest,
+            manifest_path=args.manifest,
+            verify_files=False,
+        )
+    else:
+        validate_manifest(
+            manifest,
+            manifest_path=args.manifest,
+            verify_files=False,
+        )
+    declared = {graph["id"] for graph in manifest["graphs"]}
+    unknown = sorted(set(allowed_stale) - declared)
+    if unknown:
+        raise ManifestError(
+            "unknown allowed stale extraction graph(s): "
+            + ", ".join(unknown)
+        )
+    stale = stale_graph_ids(
+        manifest,
+        repair_incomplete_sources=bool(allowed_stale),
+    )
+    unexpected_stale = sorted(set(stale) - set(allowed_stale))
+    if unexpected_stale:
+        raise ManifestError(
+            "stale extraction graph(s): " + ", ".join(unexpected_stale)
+        )
     s2 = sum(graph["campaign"] == "s2" for graph in manifest["graphs"])
     s3 = sum(graph["campaign"] == "s3" for graph in manifest["graphs"])
-    print(f"extractions: ok (32/32 graphs; s2={s2}, s3={s3})")
+    delegated = (
+        f"; delegated={','.join(stale)}" if stale else ""
+    )
+    print(
+        "extractions: ok "
+        f"({len(manifest['graphs'])}/{len(manifest['graphs'])} graphs; "
+        f"s2={s2}, s3={s3}{delegated})"
+    )
     return 0
 
 
 def command_affected(args: argparse.Namespace) -> int:
     manifest = load_manifest(args.manifest)
-    validate_manifest(manifest, manifest_path=args.manifest)
+    validate_recovery_manifest(manifest, manifest_path=args.manifest)
     for graph_id in affected_graph_ids(manifest, args.base):
         print(graph_id)
     return 0
 
 
+def stale_graph_ids(
+    manifest: dict[str, Any],
+    *,
+    repair_incomplete_sources: bool = False,
+) -> list[str]:
+    """Return graphs whose complete source fingerprint or output changed."""
+    validator = (
+        validate_recovery_manifest
+        if repair_incomplete_sources
+        else validate_manifest
+    )
+    validator(manifest, verify_files=False)
+    declared_outputs = {
+        graph["output"]
+        for graph in manifest["graphs"]
+    }
+    generated_dir = REPO_ROOT.joinpath(*PurePosixPath(EXTRACTED_REPO_DIR).parts)
+    actual_outputs = {
+        path.relative_to(REPO_ROOT).as_posix()
+        for path in generated_dir.glob("*Generated.lean")
+    }
+    unexpected = sorted(actual_outputs - declared_outputs)
+    if unexpected:
+        raise ManifestError(
+            "unexpected generated output(s): " + ", ".join(unexpected)
+        )
+
+    cache = SourceSnapshotCache()
+    stale: list[str] = []
+    for graph in manifest["graphs"]:
+        expected_inputs = [item["sha256"] for item in graph["inputs"]]
+        actual_inputs = current_input_hashes(graph, cache=cache)
+        expected_source = graph.get("source_sha256")
+        actual_source = current_graph_source_sha256(
+            graph, manifest, cache=cache
+        )
+        output_path = REPO_ROOT.joinpath(
+            *PurePosixPath(graph["output"]).parts
+        )
+        output_matches = (
+            output_path.is_file()
+            and cache.file_sha256(output_path) == graph["output_sha256"]
+        )
+        if (
+            actual_inputs != expected_inputs
+            or actual_source != expected_source
+            or not output_matches
+        ):
+            stale.append(graph["id"])
+    return stale
+
+
+def command_stale(args: argparse.Namespace) -> int:
+    manifest = load_manifest(args.manifest)
+    for graph_id in stale_graph_ids(
+        manifest,
+        repair_incomplete_sources=True,
+    ):
+        print(graph_id)
+    return 0
+
+
+def extraction_source_directories(manifest: dict[str, Any]) -> list[str]:
+    """Return every crate directory covered by an extraction fingerprint."""
+    directories: set[str] = set()
+    for graph in manifest["graphs"]:
+        crate_manifest = REPO_ROOT.joinpath(
+            *PurePosixPath(graph["crate_manifest"]).parts
+        ).resolve()
+        for directory in _local_crate_directories(crate_manifest):
+            directories.add(directory.relative_to(REPO_ROOT).as_posix())
+    return sorted(directories)
+
+
+def undeclared_rust_source_inventory_sha256(
+    manifest: dict[str, Any],
+    *,
+    cache: SourceSnapshotCache | None = None,
+) -> str:
+    """Bind every Rust source outside the declared graph ownership sets.
+
+    Declared Rust changes remain graph-scoped. A new, changed, deleted, or
+    newly unclassified source changes this shared fallback stamp, invalidating
+    every graph attestation and recovery snapshot until its relevance is made
+    explicit.
+    """
+    cache = cache or SourceSnapshotCache()
+    declared = tuple(
+        sorted(
+            {
+                source
+                for graph in manifest["graphs"]
+                for source in graph["source_files"]
+            }
+        )
+    )
+    directories = tuple(extraction_source_directories(manifest))
+    cache_key = (directories, declared)
+    cached = cache._undeclared_rust_inventories.get(cache_key)
+    if cached is not None:
+        return cached
+
+    declared_set = set(declared)
+    inventory: dict[str, str] = {}
+    for directory in directories:
+        directory_path = REPO_ROOT.joinpath(*PurePosixPath(directory).parts)
+        for path in directory_path.rglob("*.rs"):
+            relative_to_directory = path.relative_to(directory_path)
+            if IGNORED_CRATE_SOURCE_DIRS.intersection(
+                relative_to_directory.parts
+            ):
+                continue
+            repo_path = path.relative_to(REPO_ROOT).as_posix()
+            if repo_path in declared_set:
+                continue
+            inventory[repo_path] = cache.file_sha256(path)
+
+    sorted_inventory = dict(sorted(inventory.items()))
+    digest = hashlib.sha256(canonical_json(sorted_inventory)).hexdigest()
+    cache._undeclared_rust_inventories[cache_key] = digest
+    return digest
+
+
+def command_source_directories(args: argparse.Namespace) -> int:
+    manifest = load_manifest(args.manifest)
+    # Applicability runs before stale generated evidence is refreshed.  This
+    # command needs the manifest's shape and current crate closure, not matching
+    # source/output hashes; requiring fresh hashes here would prevent CI from
+    # selecting the very extraction lane that repairs them.
+    validate_recovery_manifest(
+        manifest,
+        verify_files=False,
+        manifest_path=args.manifest,
+    )
+    payload = {
+        "schema_version": 1,
+        "graphs": sorted(graph["id"] for graph in manifest["graphs"]),
+        "directories": extraction_source_directories(manifest),
+    }
+    sys.stdout.buffer.write(canonical_json(payload))
+    return 0
+
+
 def command_compare(args: argparse.Namespace) -> int:
     manifest = load_manifest(args.manifest)
-    validate_manifest(manifest, manifest_path=args.manifest)
+    # Recovery may leave unrelated graphs without source stamps. Validate the
+    # global schema without accepting any selected graph's missing or stale
+    # evidence; compare_graph enforces that evidence before reproduction.
+    validate_recovery_manifest(
+        manifest,
+        verify_files=False,
+        manifest_path=args.manifest,
+    )
     selected = select_graphs(
         manifest,
         args.graph,
@@ -715,37 +1579,914 @@ def command_compare(args: argparse.Namespace) -> int:
     )
     all_match = True
     for graph in selected:
-        matches, report = compare_graph(graph)
+        matches, report = compare_graph(graph, manifest)
         print(report, flush=True)
         all_match &= matches
     return 0 if all_match else 1
 
 
+def current_input_hashes(
+    graph: dict[str, Any],
+    *,
+    cache: SourceSnapshotCache | None = None,
+) -> list[str]:
+    cache = cache or SourceSnapshotCache()
+    return [
+        cache.file_sha256(
+            REPO_ROOT.joinpath(*PurePosixPath(item["path"]).parts)
+        )
+        for item in graph["inputs"]
+    ]
+
+
+def graph_source_paths(
+    graph: dict[str, Any],
+    *,
+    cache: SourceSnapshotCache | None = None,
+) -> list[Path]:
+    # GRAPH_INVENTORY_REPO_PATH is a validation control, not a graph input.
+    repo_paths = {
+        EXTRACTIONS_REPO_PATH,
+        NORMALIZER_REPO_PATH,
+        RUNTIME_REPO_PATH,
+        graph["crate_manifest"],
+        *(item["path"] for item in graph["inputs"]),
+        *graph["source_files"],
+        *WORKSPACE_SOURCE_PATHS,
+    }
+    for path in crate_configuration_paths(graph, cache=cache):
+        repo_paths.add(path.relative_to(REPO_ROOT).as_posix())
+    for module in graph["normalization"]["reuse_modules"]:
+        repo_paths.add(
+            (
+                Path("crates/crypto/proof-aggregation/formal/lean-ipp")
+                .joinpath(*module.split("."))
+                .with_suffix(".lean")
+                .as_posix()
+            )
+        )
+    return [
+        REPO_ROOT.joinpath(*PurePosixPath(path).parts)
+        for path in sorted(repo_paths)
+    ]
+
+
+def _is_within_repo(path: Path) -> bool:
+    try:
+        path.relative_to(REPO_ROOT)
+    except ValueError:
+        return False
+    return True
+
+
+def _local_crate_directories(crate_manifest: Path) -> list[Path]:
+    """Return the crate and all repository-local path dependency crates."""
+    pending = [crate_manifest.parent.resolve()]
+    visited: set[Path] = set()
+    while pending:
+        crate_dir = pending.pop()
+        if crate_dir in visited:
+            continue
+        if not _is_within_repo(crate_dir):
+            raise ManifestError(
+                f"crate source escapes repository: {crate_dir}"
+            )
+        manifest_path = crate_dir / "Cargo.toml"
+        if not manifest_path.is_file():
+            raise ManifestError(f"missing crate manifest: {manifest_path}")
+        visited.add(crate_dir)
+        try:
+            manifest_text = manifest_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as exc:
+            raise ManifestError(f"{manifest_path}: {exc}") from exc
+        for relative in LOCAL_PATH_DEPENDENCY.findall(manifest_text):
+            dependency_dir = (crate_dir / relative).resolve()
+            dependency_manifest = dependency_dir / "Cargo.toml"
+            if not dependency_manifest.is_file():
+                raise ManifestError(
+                    f"{manifest_path}: missing local path dependency "
+                    f"{dependency_manifest}"
+                )
+            pending.append(dependency_dir)
+    return sorted(visited)
+
+
+def crate_configuration_paths(
+    graph: dict[str, Any],
+    *,
+    cache: SourceSnapshotCache | None = None,
+) -> list[Path]:
+    """Collect shared Cargo/toolchain configuration for the extracted crate."""
+    crate_manifest = REPO_ROOT.joinpath(
+        *PurePosixPath(graph["crate_manifest"]).parts
+    ).resolve()
+    if cache is not None and crate_manifest in cache._crate_configs:
+        return list(cache._crate_configs[crate_manifest])
+    result: set[Path] = set()
+    for crate_dir in _local_crate_directories(crate_manifest):
+        ancestor = crate_dir
+        while _is_within_repo(ancestor):
+            for relative in CRATE_CONFIG_NAMES:
+                candidate = ancestor.joinpath(*PurePosixPath(relative).parts)
+                if candidate.is_file():
+                    result.add(candidate)
+            if ancestor == REPO_ROOT:
+                break
+            ancestor = ancestor.parent
+    paths = sorted(result)
+    if cache is not None:
+        cache._crate_configs[crate_manifest] = tuple(paths)
+    return paths
+
+
+def extraction_recipe_sha256(graph: dict[str, Any]) -> str:
+    """Hash graph instructions while excluding regenerated evidence fields."""
+    recipe = copy.deepcopy(graph)
+    recipe.pop("source_sha256", None)
+    recipe.pop("output_sha256", None)
+    for item in recipe["inputs"]:
+        item.pop("sha256", None)
+    recipe["normalization"].pop("selected_raw_declarations_sha256", None)
+    recipe["normalization"].pop("normalized_sha256", None)
+    return hashlib.sha256(canonical_json(recipe)).hexdigest()
+
+
+def current_graph_source_snapshot(
+    graph: dict[str, Any],
+    manifest: dict[str, Any],
+    *,
+    cache: SourceSnapshotCache | None = None,
+) -> dict[str, str]:
+    """Hash the commit and every repository source consumed by one graph."""
+    cache = cache or SourceSnapshotCache()
+    snapshot = {
+        "git:HEAD": cache.head(),
+        "recipe:graph": extraction_recipe_sha256(graph),
+        "recipe:toolchains": hashlib.sha256(
+            canonical_json(manifest["toolchains"])
+        ).hexdigest(),
+        "inventory:undeclared-rust": undeclared_rust_source_inventory_sha256(
+            manifest, cache=cache
+        ),
+    }
+    for path in graph_source_paths(graph, cache=cache):
+        try:
+            label = path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            label = str(path)
+        snapshot[label] = cache.file_sha256(path)
+    return snapshot
+
+
+def source_snapshot_sha256(snapshot: dict[str, str]) -> str:
+    # HEAD is part of the in-flight freeze check, but not cache identity:
+    # unrelated commits must not invalidate otherwise identical graphs.
+    content_snapshot = {
+        path: digest
+        for path, digest in snapshot.items()
+        if path != "git:HEAD"
+    }
+    return hashlib.sha256(canonical_json(content_snapshot)).hexdigest()
+
+
+def current_graph_source_sha256(
+    graph: dict[str, Any],
+    manifest: dict[str, Any],
+    *,
+    cache: SourceSnapshotCache | None = None,
+) -> str:
+    return source_snapshot_sha256(
+        current_graph_source_snapshot(graph, manifest, cache=cache)
+    )
+
+
+def graph_ci_success_fingerprint(
+    graph: dict[str, Any],
+    manifest: dict[str, Any],
+    *,
+    cache: SourceSnapshotCache | None = None,
+) -> str:
+    """Bind an immutable CI-success marker to exact inputs and output bytes."""
+    cache = cache or SourceSnapshotCache()
+    output_path = REPO_ROOT.joinpath(
+        *PurePosixPath(graph["output"]).parts
+    )
+    if not output_path.is_file():
+        raise ManifestError(
+            f"graph {graph['id']}: missing output for CI fingerprint"
+        )
+    controls = {
+        relative: cache.file_sha256(
+            REPO_ROOT.joinpath(*PurePosixPath(relative).parts)
+        )
+        for relative in CI_ATTESTATION_PATHS
+    }
+    payload = {
+        "schema_version": 1,
+        "graph_id": graph["id"],
+        "source_sha256": current_graph_source_sha256(
+            graph, manifest, cache=cache
+        ),
+        "output_sha256": cache.file_sha256(output_path),
+        "declared_source_sha256": graph.get("source_sha256"),
+        "declared_output_sha256": graph["output_sha256"],
+        "declared_selected_raw_sha256": graph["normalization"][
+            "selected_raw_declarations_sha256"
+        ],
+        "controls": controls,
+    }
+    return hashlib.sha256(canonical_json(payload)).hexdigest()
+
+
+def _assert_source_snapshot_unchanged(
+    graph: dict[str, Any],
+    before: dict[str, str],
+    after: dict[str, str],
+) -> None:
+    if before == after:
+        return
+    changed = sorted(
+        key
+        for key in before.keys() | after.keys()
+        if before.get(key) != after.get(key)
+    )
+    raise ManifestError(
+        f"graph {graph['id']}: source changed during extraction: "
+        + ", ".join(changed)
+    )
+
+
+def _assert_inputs_unchanged(
+    graph: dict[str, Any],
+    before: Sequence[str],
+    after: Sequence[str],
+) -> None:
+    if list(before) == list(after):
+        return
+    changed = [
+        item["path"]
+        for item, previous, current in zip(graph["inputs"], before, after)
+        if previous != current
+    ]
+    if len(before) != len(after):
+        changed.append("<input inventory>")
+    raise ManifestError(
+        f"graph {graph['id']}: inputs changed during extraction: "
+        + ", ".join(changed)
+    )
+
+
+def _recovery_record(
+    *,
+    manifest: dict[str, Any],
+    graph: dict[str, Any],
+    source_snapshot: dict[str, str],
+    input_hashes: Sequence[str],
+    content: bytes,
+    selected_digest: str,
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "graph_id": graph["id"],
+        "output": graph["output"],
+        "output_sha256": hashlib.sha256(content).hexdigest(),
+        "source_sha256": source_snapshot_sha256(source_snapshot),
+        "source_snapshot": source_snapshot,
+        "inputs": [
+            {"path": item["path"], "sha256": digest}
+            for item, digest in zip(graph["inputs"], input_hashes)
+        ],
+        "selected_raw_declarations_sha256": selected_digest,
+        "toolchains": copy.deepcopy(manifest["toolchains"]),
+    }
+
+
+def _validate_recovery_record(
+    record: dict[str, Any],
+    *,
+    graph: dict[str, Any],
+    toolchains: dict[str, Any],
+    output_content: bytes,
+) -> None:
+    where = f"recovery {graph['id']}"
+    _exact_fields(record, RECOVERY_FIELDS, where)
+    if record["schema_version"] != 1:
+        raise ManifestError(f"{where}.schema_version: expected 1")
+    if _string(record["graph_id"], f"{where}.graph_id") != graph["id"]:
+        raise ManifestError(f"{where}.graph_id: does not match selected graph")
+    if _repo_path(
+        record["output"],
+        f"{where}.output",
+        must_exist=False,
+    ) != graph["output"]:
+        raise ManifestError(f"{where}.output: does not match manifest graph")
+    output_sha256 = _hash(record["output_sha256"], f"{where}.output_sha256")
+    if hashlib.sha256(output_content).hexdigest() != output_sha256:
+        raise ManifestError(f"{where}.output_sha256: artifact output is stale")
+    source_sha256 = _hash(record["source_sha256"], f"{where}.source_sha256")
+    _hash(
+        record["selected_raw_declarations_sha256"],
+        f"{where}.selected_raw_declarations_sha256",
+    )
+
+    snapshot = _expect_object(record["source_snapshot"], f"{where}.source_snapshot")
+    if "git:HEAD" not in snapshot or "recipe:graph" not in snapshot:
+        raise ManifestError(
+            f"{where}.source_snapshot: missing git:HEAD or recipe:graph"
+        )
+    for label, digest in snapshot.items():
+        _string(label, f"{where}.source_snapshot key")
+        if label == "git:HEAD":
+            if not isinstance(digest, str) or not COMMIT.fullmatch(digest):
+                raise ManifestError(
+                    f"{where}.source_snapshot.git:HEAD: expected commit"
+                )
+        else:
+            _hash(digest, f"{where}.source_snapshot.{label}")
+    if snapshot["recipe:graph"] != extraction_recipe_sha256(graph):
+        raise ManifestError(f"{where}.source_snapshot: graph recipe changed")
+    if source_snapshot_sha256(snapshot) != source_sha256:
+        raise ManifestError(f"{where}.source_sha256: snapshot digest mismatch")
+
+    inputs = _expect_list(record["inputs"], f"{where}.inputs")
+    if len(inputs) != len(graph["inputs"]):
+        raise ManifestError(f"{where}.inputs: inventory does not match graph")
+    for index, (raw_item, graph_item) in enumerate(zip(inputs, graph["inputs"])):
+        item = _expect_object(raw_item, f"{where}.inputs[{index}]")
+        _exact_fields(item, RECOVERY_INPUT_FIELDS, f"{where}.inputs[{index}]")
+        if _repo_path(
+            item["path"],
+            f"{where}.inputs[{index}].path",
+            must_exist=False,
+        ) != graph_item["path"]:
+            raise ManifestError(
+                f"{where}.inputs[{index}].path: does not match graph"
+            )
+        _hash(item["sha256"], f"{where}.inputs[{index}].sha256")
+
+    artifact_toolchains = _expect_object(record["toolchains"], f"{where}.toolchains")
+    _exact_fields(artifact_toolchains, TOOLCHAIN_FIELDS, f"{where}.toolchains")
+    if artifact_toolchains != toolchains:
+        raise ManifestError(f"{where}.toolchains: does not match manifest")
+
+
+def _write_recovery_artifact(
+    artifact_dir: Path,
+    *,
+    record: dict[str, Any],
+    output_content: bytes,
+) -> None:
+    artifact_dir = artifact_dir.resolve()
+    if artifact_dir.exists():
+        raise ManifestError(f"recovery artifact already exists: {artifact_dir}")
+    artifact_dir.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(
+        prefix=f".{artifact_dir.name}.",
+        dir=artifact_dir.parent,
+    ) as temporary_name:
+        temporary = Path(temporary_name)
+        _atomic_write_bytes(temporary / RECOVERY_RECORD, canonical_json(record))
+        _atomic_write_bytes(temporary / RECOVERY_OUTPUT, output_content)
+        os.replace(temporary, artifact_dir)
+
+
+def _load_recovery_artifact(
+    artifact_dir: Path,
+    *,
+    graph: dict[str, Any],
+    toolchains: dict[str, Any],
+) -> tuple[dict[str, Any], bytes]:
+    artifact_dir = artifact_dir.resolve()
+    record_path = artifact_dir / RECOVERY_RECORD
+    output_path = artifact_dir / RECOVERY_OUTPUT
+    try:
+        raw = record_path.read_bytes()
+        record = _expect_object(json.loads(raw), str(record_path))
+        output_content = output_path.read_bytes()
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ManifestError(f"{artifact_dir}: {exc}") from exc
+    if raw != canonical_json(record):
+        raise ManifestError(f"{record_path}: JSON is not canonical pretty JSON")
+    _validate_recovery_record(
+        record,
+        graph=graph,
+        toolchains=toolchains,
+        output_content=output_content,
+    )
+    return record, output_content
+
+
+def _atomic_write_bytes(path: Path, content: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.",
+        suffix=".tmp",
+        dir=path.parent,
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as destination:
+            destination.write(content)
+            destination.flush()
+            os.fsync(destination.fileno())
+        os.replace(temporary, path)
+    finally:
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def _restore_file(path: Path, original: bytes | None) -> None:
+    if original is None:
+        try:
+            path.unlink()
+        except FileNotFoundError:
+            pass
+    else:
+        _atomic_write_bytes(path, original)
+
+
+def _commit_regeneration(
+    *,
+    output_path: Path,
+    output_content: bytes,
+    manifest_path: Path,
+    manifest_content: bytes,
+    post_commit_check: Callable[[], None] | None = None,
+) -> None:
+    original_output = output_path.read_bytes() if output_path.is_file() else None
+    original_manifest = manifest_path.read_bytes()
+    try:
+        _atomic_write_bytes(output_path, output_content)
+        _atomic_write_bytes(manifest_path, manifest_content)
+        if post_commit_check is not None:
+            post_commit_check()
+    except BaseException:
+        _restore_file(output_path, original_output)
+        _restore_file(manifest_path, original_manifest)
+        raise
+
+
+def _commit_recoveries(
+    *,
+    output_updates: Sequence[tuple[Path, bytes]],
+    manifest_path: Path,
+    manifest_content: bytes,
+    post_commit_check: Callable[[], None] | None = None,
+) -> None:
+    originals = {
+        path: path.read_bytes() if path.is_file() else None
+        for path, _content in output_updates
+    }
+    original_manifest = manifest_path.read_bytes()
+    try:
+        for path, content in output_updates:
+            _atomic_write_bytes(path, content)
+        _atomic_write_bytes(manifest_path, manifest_content)
+        if post_commit_check is not None:
+            post_commit_check()
+    except BaseException:
+        _restore_file(manifest_path, original_manifest)
+        for path, _content in reversed(output_updates):
+            _restore_file(path, originals[path])
+        raise
+
+
+def _apply_recovery_record(
+    graph: dict[str, Any],
+    record: dict[str, Any],
+) -> None:
+    for item, recovered in zip(graph["inputs"], record["inputs"]):
+        item["sha256"] = recovered["sha256"]
+    graph["source_sha256"] = record["source_sha256"]
+    graph["output_sha256"] = record["output_sha256"]
+    graph["normalization"][
+        "selected_raw_declarations_sha256"
+    ] = record["selected_raw_declarations_sha256"]
+    graph["normalization"]["normalized_sha256"] = record["output_sha256"]
+
+
+def _artifact_graph_id(artifact_dir: Path) -> str:
+    record_path = artifact_dir.resolve() / RECOVERY_RECORD
+    try:
+        raw = record_path.read_bytes()
+        record = _expect_object(json.loads(raw), str(record_path))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ManifestError(f"{artifact_dir}: {exc}") from exc
+    if raw != canonical_json(record):
+        raise ManifestError(f"{record_path}: JSON is not canonical pretty JSON")
+    return _string(record.get("graph_id"), f"{record_path}.graph_id")
+
+
+def _maximal_compatible_recovery_wave(
+    candidates: Sequence[RecoveryCandidate],
+) -> tuple[list[RecoveryCandidate], dict[str, tuple[str, ...]]]:
+    """Choose a producer-first maximal set with no stale output dependency."""
+    changing_outputs: dict[str, tuple[str, str]] = {}
+    for candidate in candidates:
+        recovered_sha256 = candidate.record["output_sha256"]
+        if candidate.current_output_sha256 == recovered_sha256:
+            continue
+        output = candidate.graph["output"]
+        if output in changing_outputs:
+            raise ManifestError(f"duplicate recovery output: {output}")
+        changing_outputs[output] = (candidate.graph_id, recovered_sha256)
+
+    by_id = {candidate.graph_id: candidate for candidate in candidates}
+    conflicts: dict[str, set[str]] = {
+        candidate.graph_id: set() for candidate in candidates
+    }
+    directed_reasons: list[tuple[str, str, str]] = []
+    for candidate in candidates:
+        artifact_snapshot = candidate.record["source_snapshot"]
+        for output, (producer_id, recovered_sha256) in sorted(
+            changing_outputs.items()
+        ):
+            expected_sha256 = artifact_snapshot.get(output)
+            if expected_sha256 is None or expected_sha256 == recovered_sha256:
+                continue
+            conflicts[candidate.graph_id].add(producer_id)
+            conflicts[producer_id].add(candidate.graph_id)
+            directed_reasons.append(
+                (
+                    candidate.graph_id,
+                    producer_id,
+                    (
+                        f"{output} from {producer_id} changes "
+                        f"{expected_sha256} -> {recovered_sha256}"
+                    ),
+                )
+            )
+
+    # Consumers with no stale dependency on any offered producer form the
+    # dependency-first seed. Greedily adding every still-compatible recovery
+    # then makes the result maximal without preferring a stale consumer over
+    # the generated output that future recovery waves need.
+    selected_ids = {
+        candidate.graph_id
+        for candidate in candidates
+        if not any(
+            consumer_id == candidate.graph_id
+            for consumer_id, _producer_id, _reason in directed_reasons
+        )
+    }
+    for graph_id in sorted(by_id):
+        if graph_id in selected_ids or graph_id in conflicts[graph_id]:
+            continue
+        if conflicts[graph_id].isdisjoint(selected_ids):
+            selected_ids.add(graph_id)
+
+    selected = [
+        candidate
+        for candidate in candidates
+        if candidate.graph_id in selected_ids
+    ]
+    skipped: dict[str, tuple[str, ...]] = {}
+    for graph_id in sorted(set(by_id) - selected_ids):
+        reasons = []
+        for consumer_id, producer_id, reason in directed_reasons:
+            if consumer_id == graph_id and producer_id in selected_ids:
+                reasons.append(reason)
+            elif producer_id == graph_id and consumer_id in selected_ids:
+                reasons.append(
+                    f"{consumer_id} was built from the old bytes of {reason}"
+                )
+            elif consumer_id == graph_id == producer_id:
+                reasons.append(reason)
+        skipped[graph_id] = tuple(sorted(set(reasons)))
+    return selected, skipped
+
+
 def command_regenerate(args: argparse.Namespace) -> int:
-    if not args.update_manifest:
-        raise ManifestError("regenerate requires --update-manifest")
+    update_manifest = bool(getattr(args, "update_manifest", False))
+    artifact_dir = getattr(args, "artifact", None)
+    if update_manifest == (artifact_dir is not None):
+        raise ManifestError(
+            "regenerate requires exactly one of --update-manifest or --artifact"
+        )
     manifest = load_manifest(args.manifest)
-    validate_manifest(manifest, manifest_path=args.manifest)
+    # Repair commands can consume an incompletely stamped manifest, but every
+    # normal validation gate rejects it until all graphs have been recovered.
+    validate_recovery_manifest(
+        manifest,
+        manifest_path=args.manifest,
+        verify_files=False,
+    )
     selected = select_graphs(manifest, args.graph)
+    if len(selected) != 1:
+        raise ManifestError(
+            "regenerate requires exactly one --graph; run graphs separately"
+        )
+    graph = selected[0]
+    source_snapshot = current_graph_source_snapshot(graph, manifest)
+    manifest_sha256 = sha256_file(args.manifest)
+    input_hashes_before = current_input_hashes(graph)
+    with tempfile.TemporaryDirectory(
+        prefix=f"shieldd-extract-{graph['id']}-"
+    ) as raw_temp:
+        content, selected_digest = reproduce_graph(graph, Path(raw_temp))
+    input_hashes_after = current_input_hashes(graph)
+    _assert_inputs_unchanged(graph, input_hashes_before, input_hashes_after)
+    _assert_source_snapshot_unchanged(
+        graph,
+        source_snapshot,
+        current_graph_source_snapshot(graph, manifest),
+    )
+    if sha256_file(args.manifest) != manifest_sha256:
+        raise ManifestError(
+            f"graph {graph['id']}: extraction manifest changed during extraction"
+        )
+    record = _recovery_record(
+        manifest=manifest,
+        graph=graph,
+        source_snapshot=source_snapshot,
+        input_hashes=input_hashes_after,
+        content=content,
+        selected_digest=selected_digest,
+    )
+    _validate_recovery_record(
+        record,
+        graph=graph,
+        toolchains=manifest["toolchains"],
+        output_content=content,
+    )
+    digest = record["output_sha256"]
+    if artifact_dir is not None:
+        _write_recovery_artifact(
+            artifact_dir,
+            record=record,
+            output_content=content,
+        )
+        print(
+            f"{graph['id']}: recovery artifact {artifact_dir} ({digest}); "
+            f"source_sha256={record['source_sha256']}",
+            flush=True,
+        )
+        return 0
+
+    updated = copy.deepcopy(manifest)
+    updated_graph = graph_map(updated)[graph["id"]]
+    _apply_recovery_record(updated_graph, record)
+    validate_recovery_manifest(
+        updated,
+        manifest_path=args.manifest,
+        verify_files=False,
+        verify_canonical_file=False,
+    )
+    _assert_source_snapshot_unchanged(
+        graph,
+        source_snapshot,
+        current_graph_source_snapshot(graph, manifest),
+    )
+    if sha256_file(args.manifest) != manifest_sha256:
+        raise ManifestError(
+            f"graph {graph['id']}: extraction manifest changed before commit"
+        )
+    output_path = REPO_ROOT.joinpath(*PurePosixPath(graph["output"]).parts)
+    _commit_regeneration(
+        output_path=output_path,
+        output_content=content,
+        manifest_path=args.manifest,
+        manifest_content=canonical_json(updated),
+        post_commit_check=lambda: _assert_source_snapshot_unchanged(
+            graph,
+            source_snapshot,
+            current_graph_source_snapshot(graph, manifest),
+        ),
+    )
+    print(
+        f"{graph['id']}: regenerated ({digest}); "
+        f"source_sha256={record['source_sha256']}",
+        flush=True,
+    )
+    # Scoped regeneration intentionally permits unrelated graphs to remain
+    # stale. The global `check` command still validates the complete inventory.
+    validate_recovery_manifest(
+        load_manifest(args.manifest),
+        manifest_path=args.manifest,
+        verify_files=False,
+    )
+    if sha256_file(output_path) != updated_graph["output_sha256"]:
+        raise ManifestError(
+            f"graph {graph['id']}: committed output hash does not match manifest"
+        )
+    return 0
+
+
+def command_import_recovery(args: argparse.Namespace) -> int:
+    manifest = load_manifest(args.manifest)
+    validate_recovery_manifest(
+        manifest,
+        manifest_path=args.manifest,
+        verify_files=False,
+    )
+    artifacts = list(args.artifact or [])
+    if not artifacts:
+        raise ManifestError("import-recovery requires at least one --artifact")
+    graphs = graph_map(manifest)
+    manifest_sha256 = sha256_file(args.manifest)
+    cache = SourceSnapshotCache()
+    seen: set[str] = set()
+    candidates: list[RecoveryCandidate] = []
+
+    for artifact_dir in artifacts:
+        graph_id = _artifact_graph_id(artifact_dir)
+        if graph_id in seen:
+            raise ManifestError(f"duplicate recovery graph: {graph_id}")
+        seen.add(graph_id)
+        if graph_id not in graphs:
+            raise ManifestError(f"unknown recovery graph: {graph_id}")
+        graph = graphs[graph_id]
+        record, content = _load_recovery_artifact(
+            artifact_dir,
+            graph=graph,
+            toolchains=manifest["toolchains"],
+        )
+        current_snapshot = current_graph_source_snapshot(
+            graph, manifest, cache=cache
+        )
+        current_content_snapshot = {
+            key: value
+            for key, value in current_snapshot.items()
+            if key != "git:HEAD"
+        }
+        artifact_content_snapshot = {
+            key: value
+            for key, value in record["source_snapshot"].items()
+            if key != "git:HEAD"
+        }
+        if current_content_snapshot != artifact_content_snapshot:
+            changed = sorted(
+                current_content_snapshot.keys()
+                | artifact_content_snapshot.keys()
+            )
+            changed = [
+                key
+                for key in changed
+                if current_content_snapshot.get(key)
+                != artifact_content_snapshot.get(key)
+            ]
+            raise ManifestError(
+                f"recovery {graph_id}: source changed after artifact: "
+                + ", ".join(changed)
+            )
+        current_inputs = current_input_hashes(graph, cache=cache)
+        recovered_inputs = [item["sha256"] for item in record["inputs"]]
+        if current_inputs != recovered_inputs:
+            raise ManifestError(
+                f"recovery {graph_id}: declared inputs changed after artifact"
+            )
+        output_path = REPO_ROOT.joinpath(
+            *PurePosixPath(graph["output"]).parts
+        )
+        current_output_sha256 = (
+            sha256_file(output_path) if output_path.is_file() else None
+        )
+        candidates.append(
+            RecoveryCandidate(
+                graph_id=graph_id,
+                graph=graph,
+                record=record,
+                content=content,
+                output_path=output_path,
+                source_snapshot=current_snapshot,
+                current_output_sha256=current_output_sha256,
+            )
+        )
+
+    skipped: dict[str, tuple[str, ...]] = {}
+    selected = candidates
+    if bool(getattr(args, "maximal_compatible", False)):
+        selected, skipped = _maximal_compatible_recovery_wave(candidates)
+        if not selected:
+            details = "; ".join(
+                f"{graph_id}: {', '.join(reasons)}"
+                for graph_id, reasons in sorted(skipped.items())
+            )
+            raise ManifestError(
+                "import-recovery maximal-compatible wave is empty"
+                + (f": {details}" if details else "")
+            )
+
     updated = copy.deepcopy(manifest)
     updated_graphs = graph_map(updated)
-    for graph in selected:
-        with tempfile.TemporaryDirectory(
-            prefix=f"shieldd-extract-{graph['id']}-"
-        ) as raw_temp:
-            content, selected_digest = reproduce_graph(graph, Path(raw_temp))
-        output_path = REPO_ROOT.joinpath(*PurePosixPath(graph["output"]).parts)
-        output_path.write_bytes(content)
-        digest = hashlib.sha256(content).hexdigest()
-        updated_graph = updated_graphs[graph["id"]]
-        updated_graph["output_sha256"] = digest
-        updated_graph["normalization"][
-            "selected_raw_declarations_sha256"
-        ] = selected_digest
-        updated_graph["normalization"]["normalized_sha256"] = digest
-        args.manifest.write_bytes(canonical_json(updated))
-        print(f"{graph['id']}: regenerated ({digest})", flush=True)
-    validate_manifest(updated, manifest_path=args.manifest)
+    output_updates: list[tuple[Path, bytes]] = []
+    imported_ids: set[str] = set()
+    source_snapshots: dict[str, dict[str, str]] = {}
+    for candidate in selected:
+        graph_id = candidate.graph_id
+        imported_ids.add(graph_id)
+        source_snapshots[graph_id] = candidate.source_snapshot
+        _apply_recovery_record(updated_graphs[graph_id], candidate.record)
+        output_updates.append((candidate.output_path, candidate.content))
+
+    validate_recovery_manifest(
+        updated,
+        manifest_path=args.manifest,
+        verify_files=False,
+        verify_canonical_file=False,
+    )
+    if all("source_sha256" in graph for graph in updated["graphs"]):
+        validate_manifest(
+            updated,
+            manifest_path=args.manifest,
+            verify_files=False,
+            verify_canonical_file=False,
+        )
+    if sha256_file(args.manifest) != manifest_sha256:
+        raise ManifestError("extraction manifest changed before recovery import")
+
+    def post_commit_check() -> None:
+        after_cache = SourceSnapshotCache()
+        for graph_id in imported_ids:
+            graph = graphs[graph_id]
+            _assert_source_snapshot_unchanged(
+                graph,
+                source_snapshots[graph_id],
+                current_graph_source_snapshot(
+                    graph, manifest, cache=after_cache
+                ),
+            )
+            output_path = REPO_ROOT.joinpath(
+                *PurePosixPath(graph["output"]).parts
+            )
+            if sha256_file(output_path) != updated_graphs[graph_id]["output_sha256"]:
+                raise ManifestError(
+                    f"recovery {graph_id}: imported output hash mismatch"
+                )
+
+    _commit_recoveries(
+        output_updates=output_updates,
+        manifest_path=args.manifest,
+        manifest_content=canonical_json(updated),
+        post_commit_check=post_commit_check,
+    )
+    for graph_id, reasons in sorted(skipped.items()):
+        print(
+            f"{graph_id}: skipped recovery for this wave: "
+            + "; ".join(reasons),
+            flush=True,
+        )
+    for graph_id in sorted(imported_ids):
+        print(
+            f"{graph_id}: imported recovery "
+            f"({updated_graphs[graph_id]['output_sha256']})",
+            flush=True,
+        )
+    return 0
+
+
+def command_preview(args: argparse.Namespace) -> int:
+    manifest = load_manifest(args.manifest)
+    validate_manifest(manifest, manifest_path=args.manifest)
+    selected = select_graphs(manifest, [args.graph])
+    with tempfile.TemporaryDirectory(
+        prefix=f"shieldd-extract-{selected[0]['id']}-"
+    ) as raw_temp:
+        content, selected_digest = reproduce_graph(selected[0], Path(raw_temp))
+    print(
+        f"selected_raw_declarations_sha256={selected_digest}",
+        file=sys.stderr,
+    )
+    sys.stdout.buffer.write(content)
+    return 0
+
+
+def command_ci_fingerprint(args: argparse.Namespace) -> int:
+    manifest = load_manifest(args.manifest)
+    validate_recovery_manifest(
+        manifest,
+        manifest_path=args.manifest,
+        verify_files=False,
+    )
+    selected = select_graphs(manifest, [args.graph])
+    if len(selected) != 1:
+        raise ManifestError("ci-fingerprint requires exactly one graph")
+    print(
+        graph_ci_success_fingerprint(
+            selected[0], manifest
+        )
+    )
+    return 0
+
+
+def command_source_stamp_state(args: argparse.Namespace) -> int:
+    """Report whether one selected graph has committed source evidence."""
+    manifest = load_manifest(args.manifest)
+    validate_recovery_manifest(
+        manifest,
+        manifest_path=args.manifest,
+        verify_files=False,
+    )
+    selected = select_graphs(manifest, [args.graph])
+    if len(selected) != 1:
+        raise ManifestError("source-stamp-state requires exactly one graph")
+    print(
+        "present"
+        if "source_sha256" in selected[0]
+        else "missing"
+    )
     return 0
 
 
@@ -755,11 +2496,18 @@ def parser() -> argparse.ArgumentParser:
     commands = result.add_subparsers(dest="command", required=True)
 
     check = commands.add_parser("check")
+    check.add_argument("--allow-stale-graph", action="append", default=[])
     check.set_defaults(handler=command_check)
 
     affected = commands.add_parser("affected")
     affected.add_argument("--base", required=True)
     affected.set_defaults(handler=command_affected)
+
+    stale = commands.add_parser("stale")
+    stale.set_defaults(handler=command_stale)
+
+    source_directories = commands.add_parser("source-directories")
+    source_directories.set_defaults(handler=command_source_directories)
 
     compare = commands.add_parser("compare")
     compare.add_argument("--graph", action="append")
@@ -770,11 +2518,37 @@ def parser() -> argparse.ArgumentParser:
     regenerate = commands.add_parser("regenerate")
     regenerate.add_argument("--graph", action="append")
     regenerate.add_argument("--update-manifest", action="store_true")
+    regenerate.add_argument("--artifact", type=Path)
     regenerate.set_defaults(handler=command_regenerate)
+
+    import_recovery = commands.add_parser("import-recovery")
+    import_recovery.add_argument("--artifact", action="append", type=Path)
+    import_recovery.add_argument(
+        "--maximal-compatible",
+        action="store_true",
+        help=(
+            "import the dependency-first compatible recovery wave and defer "
+            "artifacts built from generated outputs that this wave changes"
+        ),
+    )
+    import_recovery.set_defaults(handler=command_import_recovery)
+
+    preview = commands.add_parser("preview")
+    preview.add_argument("--graph", required=True)
+    preview.set_defaults(handler=command_preview)
+
+    ci_fingerprint = commands.add_parser("ci-fingerprint")
+    ci_fingerprint.add_argument("--graph", required=True)
+    ci_fingerprint.set_defaults(handler=command_ci_fingerprint)
+
+    source_stamp_state = commands.add_parser("source-stamp-state")
+    source_stamp_state.add_argument("--graph", required=True)
+    source_stamp_state.set_defaults(handler=command_source_stamp_state)
     return result
 
 
 def main(argv: list[str] | None = None) -> int:
+    install_signal_cleanup()
     args = parser().parse_args(argv)
     try:
         return args.handler(args)

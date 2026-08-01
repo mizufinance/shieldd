@@ -2,6 +2,8 @@ module StatementEncodingProofs
 #set-options "--fuel 2 --ifuel 1 --z3rlimit 400"
 
 module S = Shieldd_sdk_proof_aggregation.Statement
+module B = Shieldd_sdk_proof_aggregation.Bundle
+module R = Shieldd_sdk_proof_aggregation.Srs
 module V = Alloc.Vec
 module Seq = FStar.Seq
 module Num = Core_models.Num
@@ -22,6 +24,41 @@ open Core_models
 *)
 
 let bo (b: V.t_Vec u8 Alloc.Alloc.t_Global) : Seq.seq u8 = b._0
+
+(* The shipping constructor calls this pure core after validation and
+   Arkworks serialization. Pin every field projected into encode_statement,
+   including the family encoder shared with bundle routing. *)
+let lemma_statement_encoding_input_core_projection
+      (version:u32)
+      (family_id:B.t_ProofFamilyId)
+      (srs_id vk_digest:t_Array u8 (mk_usize 32))
+      (real_count padded_count public_input_arity:u32)
+      (rows:S.t_StatementPaddedRows)
+    : Lemma
+      (ensures (
+        let out =
+          S.statement_encoding_input_core version family_id srs_id vk_digest
+            real_count padded_count public_input_arity rows
+        in
+        let family = B.family_proto_fields family_id in
+        out.S.f_version == version /\
+        out.S.f_curve_id ==
+          Alloc.Slice.impl__to_vec #u8
+            (Core_models.Str.impl_str__as_bytes R.v_DEV_SRS_CURVE_ID <: t_Slice u8) /\
+        out.S.f_backend_id ==
+          Alloc.Slice.impl__to_vec #u8
+            (Core_models.Str.impl_str__as_bytes R.v_DEV_SRS_BACKEND_ID <: t_Slice u8) /\
+        out.S.f_proof_family_id == family.B.f_family_id /\
+        out.S.f_note_reshape_family_id == family.B.f_note_reshape_family_id /\
+        out.S.f_shielded_ics20_withdrawal_family_id ==
+          family.B.f_shielded_ics20_withdrawal_family_id /\
+        out.S.f_srs_id == srs_id /\
+        out.S.f_vk_digest == vk_digest /\
+        out.S.f_real_count == real_count /\
+        out.S.f_padded_count == padded_count /\
+        out.S.f_public_input_arity == public_input_arity /\
+        out.S.f_padded_public_inputs == rows))
+= ()
 
 (* ------------------------------------------------------------------ *)
 (* Leaf content lemmas                                                 *)

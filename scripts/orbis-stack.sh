@@ -14,12 +14,14 @@ fi
 
 case "$ACTION" in
     up)
-        print_banner "Orbis Runtime Bring-Up" "sourcehub + 3 nodes via vendored runtime contract"
+        print_banner "Orbis Runtime Bring-Up" "sourcehub + 3 nodes via digest-pinned runtime contract"
         ensure_orbis_images
         ensure_docker_daemon
+        rm -f "$ORBIS_RUNTIME_FILE"
         run_orbis_compose "$COMPOSE_FILE" down -v --remove-orphans
         run_orbis_compose "$COMPOSE_FILE" up -d --pull missing
-        wait_for_orbis_stack
+        write_orbis_runtime_config "$COMPOSE_FILE"
+        wait_for_orbis_stack "$COMPOSE_FILE"
         log_success "Orbis stack ready"
         ;;
     pull)
@@ -33,10 +35,12 @@ case "$ACTION" in
         print_banner "Orbis Runtime Teardown"
         if ! docker_daemon_ready; then
             log_warning "Docker daemon is not running; skipping Orbis compose teardown"
+            rm -f "$ORBIS_RUNTIME_FILE"
             exit 0
         fi
         ensure_orbis_images
         run_orbis_compose "$COMPOSE_FILE" down -v --remove-orphans
+        rm -f "$ORBIS_RUNTIME_FILE"
         log_success "Orbis stack stopped"
         ;;
     logs)

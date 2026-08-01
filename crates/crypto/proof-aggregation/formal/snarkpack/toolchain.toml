@@ -1,6 +1,6 @@
 [toolchain]
 rust = "1.89"
-hax = "v0.3.7"
+hax_fstar = "v0.3.7"
 fstar = "v2026.05.24"
 z3 = "4.14.1"
 ocaml = "5.1.1"
@@ -8,6 +8,6 @@ opam_switch = "hax-0.3.7"
 
 [policy]
 primary_backend = "fstar"
-lean4_status = "differential-conformance-testing-only"
+lean4_status = "soundness-refinement-and-arithmetic-proof-backend"
 coq_status = "unused"
 easycrypt_status = "dropped-no-end-to-end-fv"

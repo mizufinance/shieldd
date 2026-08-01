@@ -20,6 +20,8 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(hax)'] }
 
 [dependencies]
 anyhow = { workspace = true }
+ark-ec = { workspace = true }
+ark-ff = { workspace = true }
 ark-groth16 = { workspace = true, default-features = false }
 ark-inner-products = { path = "src/ipp/inner_products" }
 ark-serialize = { workspace = true }
@@ -39,8 +41,6 @@ serde = { workspace = true, features = ["derive"] }
 sha2 = { workspace = true }
 
 [dev-dependencies]
-ark-ec = { workspace = true }
-ark-ff = { workspace = true }
 ark-r1cs-std = { workspace = true }
 ark-relations = { workspace = true }
 ark-snark = { workspace = true }

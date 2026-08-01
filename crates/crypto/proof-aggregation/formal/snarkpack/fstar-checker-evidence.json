@@ -1,0 +1,294 @@
+{
+  "schema_version": 2,
+  "checker": {
+    "command": "scripts/snarkpack-formal.sh",
+    "implementation": "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py",
+    "result": "pass"
+  },
+  "environment": {
+    "global_inputs": [
+      {
+        "path": ".cargo/config.toml",
+        "sha256": "9f8b4c0f3bcb23dcdc86987284ec027d50becc99bdbae3885b745564c296b1b9"
+      },
+      {
+        "path": "Cargo.lock",
+        "sha256": "f9f32d91f526a63196496b411f9e594a53e08f2ebc215216b413af7b1e4439a4"
+      },
+      {
+        "path": "Cargo.toml",
+        "sha256": "050a95564065a7b881f723b5e5c0460a10ef627d27295b3c80b387c2089d0e91"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/Cargo.toml",
+        "sha256": "007f728642a0cb32921e3e4d94a3c5116f2defb5c0ae042db0d3134ad2cdcefa"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
+        "sha256": "4ea9bf93cdef46a2b100a4699e18f481d8d338de099dd78b3f6feb99c5095334"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/generated.rs",
+        "sha256": "5b8f9937d3b435c4d6cad397c100bd47439f346ec64ac69ed48627687a5da388"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/Cargo.toml",
+        "sha256": "a0da0beb5db821e691374186493310fb6967ae33e651098f6047c07093721a1f"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml",
+        "sha256": "1dc3166ea2453fd467a9f22e9267424ce1cb73bd84b38bea409ae176b9ec61f2"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
+        "sha256": "3e461eacad024d8add266f4fcaa94aa1d05631d970b57ee7b9a5381f60d92233"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/bundle.rs",
+        "sha256": "179d9cb57023be7f7d4834dd105d9ec2aef89aab90cb67fa22c0c877fd2a8d56"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/Cargo.toml",
+        "sha256": "cdebc0ef2475aeba8d0374569235f78c8fc79ed00f357274ebd20e5e68dcb0f5"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "sha256": "2ca9d6cf34a84487fffaff8cb74b436e4d3872171d79fda16681f4ed3daf3587"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/padding.rs",
+        "sha256": "8fab65ea4af03154d6637fbe3f5136eb4670c9f0f52d6ae0ee5dc50387d662be"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/preflight.rs",
+        "sha256": "aabb54ebf95299b3b8ef78ca9df22f03d351d97a25c0ecc15725f4f2f19f9a8d"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "sha256": "d3dbe1fd1c5ee56396933582b123fdbf6c34eaf304cbc4225a4be35ceb2eb892"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/statement.rs",
+        "sha256": "3d750704610be3e89bd961174a39cdd66ec289a0bd16d1eade9854bd0d4097c5"
+      },
+      {
+        "path": "flake.lock",
+        "sha256": "b2ccd3962da201590f4b41aecfe0e9181e7edaf2f99cacaac118d751eeae9ea0"
+      },
+      {
+        "path": "flake.nix",
+        "sha256": "6b9bfe793c96a72f98bb5e997f88e619b1b27adc7d44f13ad718893b3dbf195e"
+      },
+      {
+        "path": "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
+        "sha256": "e6fc5ef060dc8d75806198a8d3ec4e72b28f1e20306e27d7569a46c3c9ace8f9"
+      },
+      {
+        "path": "rust-toolchain.toml",
+        "sha256": "70ea1edfb0556401d232b9cfd61acf47d901b0df63e336b21589d436eb86cf8d"
+      },
+      {
+        "path": "scripts/prepare_snarkpack_fstar_support.py",
+        "sha256": "eb4069573e69fcbbc2a86a84df4f714aacf30944544607c48cf36bc6f2221947"
+      },
+      {
+        "path": "scripts/snarkpack-formal.sh",
+        "sha256": "a797846ecbcee92cef6c12bc50af9410300a15381880bf0f5645abe96a9551ab"
+      }
+    ],
+    "global_modules": [
+      {
+        "module": "SnarkpackMachineSupport",
+        "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/SnarkpackMachineSupport.fst",
+        "sha256": "a8fa9ef2af2c90abbd44ac0d10c5842fdef6e5608c9c4111f3cc9411788f6c96"
+      }
+    ],
+    "toolchain": {
+      "fstar": "v2026.05.24",
+      "hax_fstar": "v0.3.7",
+      "z3": "4.14.1"
+    },
+    "verification_contract_sha256": "ffd4076d84a1a2db1e323d71ff9accb8890ef826892691326ae179460d20bef4",
+    "sha256": "3b8a0170fe85cee41d45d62653343900a87382489a66ca698f9bfbdced02f95a"
+  },
+  "module_results": [
+    {
+      "dependencies": [
+        {
+          "module": "FrameLemmas",
+          "input_fingerprint": "5353a5c1e93a0da53e781bd62640ed13b1f001349da131122057799a916509d0"
+        }
+      ],
+      "environment_sha256": "3b8a0170fe85cee41d45d62653343900a87382489a66ca698f9bfbdced02f95a",
+      "module": "ChallengePreimageProofs",
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/ChallengePreimageProofs.fst",
+      "source_sha256": "fb5f7ad4d1f0866b8733f06babfb0145a82062ea60633018f011df78b8df2a56",
+      "theorem_roots": [],
+      "input_fingerprint": "44a1829ef8e1cbf466866101f96fea8cf23fae523fd11bff5cfbf0dadf2a9838",
+      "result": "pass"
+    },
+    {
+      "dependencies": [
+        {
+          "module": "FrameLemmas",
+          "input_fingerprint": "5353a5c1e93a0da53e781bd62640ed13b1f001349da131122057799a916509d0"
+        },
+        {
+          "module": "StatementEncodingProofs",
+          "input_fingerprint": "5a5e965637c24261e97d766b63e972a9b16e6b913489ecdfa913b2da351e02e9"
+        }
+      ],
+      "environment_sha256": "3b8a0170fe85cee41d45d62653343900a87382489a66ca698f9bfbdced02f95a",
+      "module": "DigestBindingProofs",
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/DigestBindingProofs.fst",
+      "source_sha256": "3e7f1ff69ce1d1e1c1b05e9f860b5dbbc4e078adbbed9ef39539b50930d64c37",
+      "theorem_roots": [
+        "DigestBindingProofs.lemma_statement_digest_preimage_content"
+      ],
+      "input_fingerprint": "cc83d7a9376036adc84902df8f8eddfd7598990984fd08aa7f25f96d7dd95a76",
+      "result": "pass"
+    },
+    {
+      "dependencies": [],
+      "environment_sha256": "3b8a0170fe85cee41d45d62653343900a87382489a66ca698f9bfbdced02f95a",
+      "module": "FamilyRoutingProofs",
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/FamilyRoutingProofs.fst",
+      "source_sha256": "80489aec1bdc7b275351c5bfbff67ba7d3a299f7187480b815343fa461ff047c",
+      "theorem_roots": [
+        "FamilyRoutingProofs.lemma_family_proto_fields_note_reshape_inverse",
+        "FamilyRoutingProofs.lemma_family_proto_fields_shielded_ics20_withdrawal_inverse",
+        "FamilyRoutingProofs.lemma_family_proto_fields_transfer_inverse",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_cross_subids",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_missing",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_unknown",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_total",
+        "FamilyRoutingProofs.lemma_family_route_rejects_unknown_family",
+        "FamilyRoutingProofs.lemma_family_route_shielded_ics20_withdrawal_total",
+        "FamilyRoutingProofs.lemma_family_route_shielded_rejects_cross_subids",
+        "FamilyRoutingProofs.lemma_family_route_shielded_rejects_missing",
+        "FamilyRoutingProofs.lemma_family_route_shielded_rejects_unknown",
+        "FamilyRoutingProofs.lemma_family_route_transfer_rejects_cross_subids",
+        "FamilyRoutingProofs.lemma_family_route_transfer_total"
+      ],
+      "input_fingerprint": "6b6271c5d9e72a377613ac2214c25290b717c86c78c1e04e91ccddfb7e0befee",
+      "result": "pass"
+    },
+    {
+      "dependencies": [],
+      "environment_sha256": "3b8a0170fe85cee41d45d62653343900a87382489a66ca698f9bfbdced02f95a",
+      "module": "FrameLemmas",
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/FrameLemmas.fst",
+      "source_sha256": "a28b82728f612c801931659006c8784d91ff144cfb09ea309980b800915ce6d9",
+      "theorem_roots": [],
+      "input_fingerprint": "5353a5c1e93a0da53e781bd62640ed13b1f001349da131122057799a916509d0",
+      "result": "pass"
+    },
+    {
+      "dependencies": [],
+      "environment_sha256": "3b8a0170fe85cee41d45d62653343900a87382489a66ca698f9bfbdced02f95a",
+      "module": "PreflightProofs",
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/PreflightProofs.fst",
+      "source_sha256": "8d89a59c7e76ad9b134008aa5f6c90fc814cb44a249696d5a38f91e2b5b26b26",
+      "theorem_roots": [],
+      "input_fingerprint": "f1fd492a1dfa22a59ce7dd849d1c8e42ed03c399201c86187feddd25c30ff365",
+      "result": "pass"
+    },
+    {
+      "dependencies": [],
+      "environment_sha256": "3b8a0170fe85cee41d45d62653343900a87382489a66ca698f9bfbdced02f95a",
+      "module": "SnarkpackMachineSupport",
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/SnarkpackMachineSupport.fst",
+      "source_sha256": "a8fa9ef2af2c90abbd44ac0d10c5842fdef6e5608c9c4111f3cc9411788f6c96",
+      "theorem_roots": [],
+      "input_fingerprint": "1ca45556170a6806d838d8edfa2b68f4c8faadb08cf47f524da5e6fd3eba0cbf",
+      "result": "pass"
+    },
+    {
+      "dependencies": [
+        {
+          "module": "FrameLemmas",
+          "input_fingerprint": "5353a5c1e93a0da53e781bd62640ed13b1f001349da131122057799a916509d0"
+        }
+      ],
+      "environment_sha256": "3b8a0170fe85cee41d45d62653343900a87382489a66ca698f9bfbdced02f95a",
+      "module": "StatementEncodingProofs",
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/StatementEncodingProofs.fst",
+      "source_sha256": "db6cf4ed333bbfb67740136756d6c3de5eb7af0f99a35e11199eac0172425612",
+      "theorem_roots": [
+        "StatementEncodingProofs.lemma_encode_statement_content",
+        "StatementEncodingProofs.lemma_encode_statement_injective",
+        "StatementEncodingProofs.lemma_statement_encoding_input_core_projection"
+      ],
+      "input_fingerprint": "5a5e965637c24261e97d766b63e972a9b16e6b913489ecdfa913b2da351e02e9",
+      "result": "pass"
+    },
+    {
+      "dependencies": [],
+      "environment_sha256": "3b8a0170fe85cee41d45d62653343900a87382489a66ca698f9bfbdced02f95a",
+      "module": "ValidationProofs",
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/ValidationProofs.fst",
+      "source_sha256": "a3e849518fdcfc137d9513bdad7ea97d2f6a22053a83b2c2e796b622eac6d3e3",
+      "theorem_roots": [],
+      "input_fingerprint": "fc2b7d2f0aa0dae01d9e2a3ad90a6f38e8c70d8852474d2559597b6802a8aaec",
+      "result": "pass"
+    },
+    {
+      "dependencies": [],
+      "environment_sha256": "3b8a0170fe85cee41d45d62653343900a87382489a66ca698f9bfbdced02f95a",
+      "module": "WrapperProofs",
+      "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar/WrapperProofs.fst",
+      "source_sha256": "752995c3092b48888b22c79826fd6b886e924f0853bccfa74b617e55852758ac",
+      "theorem_roots": [],
+      "input_fingerprint": "13d4bea27b8f9a424d703cacb6474935a7aa064704b3a72aa8ecdd75355259d1",
+      "result": "pass"
+    }
+  ],
+  "contract_results": [
+    {
+      "contract_field": "canonicalStatementExact",
+      "modules": [
+        "DigestBindingProofs",
+        "StatementEncodingProofs"
+      ],
+      "result": "pass",
+      "theorem_roots": [
+        "DigestBindingProofs.lemma_statement_digest_preimage_content",
+        "StatementEncodingProofs.lemma_encode_statement_content",
+        "StatementEncodingProofs.lemma_statement_encoding_input_core_projection"
+      ]
+    },
+    {
+      "contract_field": "canonicalStatementInjective",
+      "modules": [
+        "StatementEncodingProofs"
+      ],
+      "result": "pass",
+      "theorem_roots": [
+        "StatementEncodingProofs.lemma_encode_statement_injective"
+      ]
+    },
+    {
+      "contract_field": "familyRegistered",
+      "modules": [
+        "FamilyRoutingProofs"
+      ],
+      "result": "pass",
+      "theorem_roots": [
+        "FamilyRoutingProofs.lemma_family_proto_fields_note_reshape_inverse",
+        "FamilyRoutingProofs.lemma_family_proto_fields_shielded_ics20_withdrawal_inverse",
+        "FamilyRoutingProofs.lemma_family_proto_fields_transfer_inverse",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_cross_subids",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_missing",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_unknown",
+        "FamilyRoutingProofs.lemma_family_route_note_reshape_total",
+        "FamilyRoutingProofs.lemma_family_route_rejects_unknown_family",
+        "FamilyRoutingProofs.lemma_family_route_shielded_ics20_withdrawal_total",
+        "FamilyRoutingProofs.lemma_family_route_shielded_rejects_cross_subids",
+        "FamilyRoutingProofs.lemma_family_route_shielded_rejects_missing",
+        "FamilyRoutingProofs.lemma_family_route_shielded_rejects_unknown",
+        "FamilyRoutingProofs.lemma_family_route_transfer_rejects_cross_subids",
+        "FamilyRoutingProofs.lemma_family_route_transfer_total"
+      ]
+    }
+  ]
+}

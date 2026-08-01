@@ -30,7 +30,10 @@ jobs:
 
       # Run `cargo check`, with a custom target dir for caching.
       - name: run cargo check
-        run: nix develop --command just ci-check
+        run: >-
+          nix develop --command python3 scripts/ci/run_with_annotation.py
+          --title "Rust cargo check"
+          -- just ci-check
 
       # If a dependency was modified, Cargo.lock may flap if not committed.
       - name: Check for diffs
@@ -72,10 +75,16 @@ jobs:
       # Build each crate separately, to validate that the feature-gating is working.
       # This is a lighter-weight version of `cargo check-all-features --workspace --release`.
       - name: check crate features
-        run: nix develop --command ./deployments/scripts/check-crate-feature-sets
+        run: >-
+          nix develop --command python3 scripts/ci/run_with_annotation.py
+          --title "Rust crate feature checks"
+          -- ./deployments/scripts/check-crate-feature-sets
 
       - name: check wasm compatibility
-        run: nix develop --command ./deployments/scripts/check-wasm-compat.sh
+        run: >-
+          nix develop --command python3 scripts/ci/run_with_annotation.py
+          --title "Rust wasm compatibility"
+          -- ./deployments/scripts/check-wasm-compat.sh
 
   test:
     runs-on: blacksmith-8vcpu-ubuntu-2404
@@ -89,7 +98,10 @@ jobs:
           free-disk: "true"
 
       - name: Run tests with nextest
-        run: nix develop --command just ci-test
+        run: >-
+          nix develop --command python3 scripts/ci/run_with_annotation.py
+          --title "Rust nextest"
+          -- just ci-test
         env:
           CARGO_TERM_COLOR: always
 

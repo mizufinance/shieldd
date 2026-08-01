@@ -201,6 +201,30 @@ def ofNat (value : Nat) : Usize := ⟨value⟩
 /-- Largest value representable by Rust's target-sized unsigned integer. -/
 def max : Nat := 2 ^ System.Platform.numBits - 1
 
+/-- Exact fail-closed semantics of Rust's pure `usize::checked_add`. -/
+def checked_add (left right : Usize) : Option Usize :=
+  if left.val + right.val ≤ max then
+    some ⟨left.val + right.val⟩
+  else
+    none
+
+/-- Exact fail-closed semantics of Rust's pure `usize::checked_sub`. -/
+def checked_sub (left right : Usize) : Option Usize :=
+  if right.val ≤ left.val then
+    some ⟨left.val - right.val⟩
+  else
+    none
+
+@[simp] theorem checked_sub_of_le (left right : Usize)
+    (h : right.val ≤ left.val) :
+    checked_sub left right = some ⟨left.val - right.val⟩ := by
+  simp [checked_sub, h]
+
+@[simp] theorem checked_sub_of_lt (left right : Usize)
+    (h : left.val < right.val) :
+    checked_sub left right = none := by
+  simp [checked_sub, Nat.not_le_of_gt h]
+
 end Usize
 
 instance : LT Usize where
@@ -211,6 +235,15 @@ instance (left right : Usize) : Decidable (left < right) :=
 
 @[simp] theorem Usize.lt_iff_val_lt (left right : Usize) :
     left < right ↔ left.val < right.val := Iff.rfl
+
+instance : LE Usize where
+  le left right := left.val ≤ right.val
+
+instance (left right : Usize) : Decidable (left ≤ right) :=
+  inferInstanceAs (Decidable (left.val ≤ right.val))
+
+@[simp] theorem Usize.le_iff_val_le (left right : Usize) :
+    left ≤ right ↔ left.val ≤ right.val := Iff.rfl
 
 instance : HAdd Usize Usize (Result Usize) where
   hAdd left right := .ok ⟨left.val + right.val⟩
@@ -765,6 +798,13 @@ namespace ark_ip_proofs
 
 open Aeneas Aeneas.Std Result ControlFlow Error
 
+namespace core.clone
+
+def CloneU8 : Aeneas.Std.core.clone.Clone UInt8 where
+  clone value := .ok value
+
+end core.clone
+
 namespace core.marker
 
 structure Copy (Self : Type) where
@@ -876,6 +916,16 @@ namespace Slice
 def is_empty {T : Type} (slice : Aeneas.Std.Slice T) : Result Bool :=
   .ok slice.val.isEmpty
 
+/-- Exact bounds-checked semantics of the slice `get` primitive emitted for a
+shared `Vec` borrow. -/
+def get {T : Type} (_inst : Type) (slice : Aeneas.Std.Slice T)
+    (index : Aeneas.Std.Usize) : Result (Option T) :=
+  .ok slice.val[index.val]?
+
+@[simp] theorem get_exact {T : Type} (inst : Type)
+    (slice : Aeneas.Std.Slice T) (index : Aeneas.Std.Usize) :
+    get inst slice index = .ok slice.val[index.val]? := rfl
+
 def reverse {T : Type} (items : Aeneas.Std.Slice T) : Aeneas.Std.Slice T :=
   ⟨items.val.reverse⟩
 
@@ -921,8 +971,55 @@ namespace Vec
 
 def new (T : Type) : Aeneas.Std.alloc.vec.Vec T := ⟨[]⟩
 
+private def cloneValues {T : Type} (cloneInst : Aeneas.Std.core.clone.Clone T) :
+    List T → Result (List T)
+  | [] => .ok []
+  | value :: rest => do
+      let copy ← cloneInst.clone value
+      let copies ← cloneValues cloneInst rest
+      .ok (copy :: copies)
+
+/-- Executable semantics of `Vec::extend_from_slice`, including the element
+clone effect. The challenge-frame graph instantiates this with infallible
+`u8` cloning. -/
+def extend_from_slice {T : Type}
+    (cloneInst : Aeneas.Std.core.clone.Clone T)
+    (items : Aeneas.Std.alloc.vec.Vec T) (suffix : Aeneas.Std.Slice T) :
+    Result (Aeneas.Std.alloc.vec.Vec T) := do
+  let copies ← cloneValues cloneInst suffix.val
+  .ok ⟨items.val ++ copies⟩
+
+private theorem cloneValues_u8_exact (values : List UInt8) :
+    cloneValues core.clone.CloneU8 values = .ok values := by
+  induction values with
+  | nil => rfl
+  | cons value rest ih =>
+      unfold cloneValues
+      change (do
+        let copies ← cloneValues core.clone.CloneU8 rest
+        .ok (value :: copies)) = .ok (value :: rest)
+      rw [ih]
+      rfl
+
+theorem extend_from_slice_u8_exact
+    (items : Aeneas.Std.alloc.vec.Vec UInt8)
+    (suffix : Aeneas.Std.Slice UInt8) :
+    extend_from_slice core.clone.CloneU8 items suffix =
+      .ok ⟨items.val ++ suffix.val⟩ := by
+  simp [extend_from_slice, cloneValues_u8_exact]
+
 def len {T : Type} (items : Aeneas.Std.alloc.vec.Vec T) : Aeneas.Std.Usize :=
   ⟨items.val.length⟩
+
+/-- Exact result of testing whether the vector contains no elements.  The
+allocator argument is the zero-state artifact emitted by Aeneas. -/
+def is_empty {T : Type} (_allocator : Type)
+    (items : Aeneas.Std.alloc.vec.Vec T) : Result Bool :=
+  .ok items.val.isEmpty
+
+@[simp] theorem is_empty_exact {T : Type} (allocator : Type)
+    (items : Aeneas.Std.alloc.vec.Vec T) :
+    is_empty allocator items = .ok items.val.isEmpty := rfl
 
 def index {T : Type} (_inst : Type) (items : Aeneas.Std.alloc.vec.Vec T)
     (index : Aeneas.Std.Usize) : Result T :=
@@ -953,6 +1050,133 @@ def deref_mut {T : Type} (items : Aeneas.Std.alloc.vec.Vec T) :
 end Vec
 end alloc.vec
 
+namespace alloc.vec.CloneVec
+
+private def cloneList {T : Type} (cloneInst : core.clone.Clone T) :
+    List T → Result (List T)
+  | [] => .ok []
+  | value :: rest => do
+      let copy ← cloneInst.clone value
+      let copies ← cloneList cloneInst rest
+      .ok (copy :: copies)
+
+/-- Executable semantics of the `Vec<T>: Clone` implementation emitted by
+Aeneas. Element-clone failures are propagated in list order. -/
+def clone {T : Type} (cloneInst : core.clone.Clone T)
+    (items : Aeneas.Std.alloc.vec.Vec T) :
+    Result (Aeneas.Std.alloc.vec.Vec T) := do
+  let copies ← cloneList cloneInst items.val
+  .ok ⟨copies⟩
+
+private theorem cloneList_identity {T : Type} (items : List T) :
+    cloneList ({ clone := fun value => .ok value } : core.clone.Clone T)
+        items =
+      .ok items := by
+  induction items with
+  | nil => rfl
+  | cons value rest ih =>
+      simp [cloneList, ih]
+
+@[simp] theorem clone_identity {T : Type}
+    (items : Aeneas.Std.alloc.vec.Vec T) :
+    clone ({ clone := fun value => .ok value } : core.clone.Clone T)
+        items =
+      .ok items := by
+  cases items with
+  | mk values =>
+      simp [clone, cloneList_identity]
+
+/-- Cloning a vector is exact when cloning every element is exact. -/
+theorem clone_exact {T : Type} (cloneInst : core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (items : Aeneas.Std.alloc.vec.Vec T) :
+    clone cloneInst items = .ok items := by
+  cases items with
+  | mk values =>
+      suffices cloneList cloneInst values = .ok values by
+        simp [clone, this]
+      induction values with
+      | nil => rfl
+      | cons value rest ih =>
+          simp [cloneList, hclone value, ih]
+
+end alloc.vec.CloneVec
+
+namespace core.clone
+
+/-- The standard `Vec<T>: Clone` dictionary emitted by Aeneas. -/
+@[reducible] def CloneallocvecVec {T : Type}
+    (cloneInst : Aeneas.Std.core.clone.Clone T) :
+    Aeneas.Std.core.clone.Clone (Aeneas.Std.alloc.vec.Vec T) where
+  clone := alloc.vec.CloneVec.clone cloneInst
+
+@[simp] theorem CloneallocvecVec_clone_exact {T : Type}
+    (cloneInst : Aeneas.Std.core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = Aeneas.Result.ok value)
+    (items : Aeneas.Std.alloc.vec.Vec T) :
+    (CloneallocvecVec cloneInst).clone items = Aeneas.Result.ok items :=
+  alloc.vec.CloneVec.clone_exact cloneInst hclone items
+
+end core.clone
+
+namespace alloc.vec.Vec.Insts.CoreDefaultDefault
+
+/-- The standard empty-vector `Default` implementation emitted by Aeneas. -/
+def default (T : Type) : Result (Aeneas.Std.alloc.vec.Vec T) :=
+  .ok ⟨[]⟩
+
+end alloc.vec.Vec.Insts.CoreDefaultDefault
+
+namespace core.array.CloneArray
+
+private def cloneValues {T : Type}
+    (cloneInst : Aeneas.Std.core.clone.Clone T) :
+    (values : List T) →
+      Result { copies : List T // copies.length = values.length }
+  | [] => .ok ⟨[], rfl⟩
+  | value :: rest => do
+      let copy ← cloneInst.clone value
+      let copies ← cloneValues cloneInst rest
+      .ok ⟨copy :: copies.val, by simp [copies.property]⟩
+
+private theorem cloneValues_exact {T : Type}
+    (cloneInst : Aeneas.Std.core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (values : List T) :
+    cloneValues cloneInst values = .ok ⟨values, rfl⟩ := by
+  induction values with
+  | nil => rfl
+  | cons value rest ih =>
+      simp [cloneValues, hclone value, ih]
+
+/-- Effect-preserving clone for a fixed-size array. Element clone failures are
+propagated in array order and successful cloning preserves the exact length. -/
+def clone {T : Type} {size : Std.Usize}
+    (cloneInst : Aeneas.Std.core.clone.Clone T)
+    (items : MacCampaign.Array T size) :
+    Result (MacCampaign.Array T size) := do
+  let copies ← cloneValues cloneInst items.val
+  .ok ⟨copies.val, copies.property.trans items.hlen⟩
+
+theorem clone_exact {T : Type} {size : Std.Usize}
+    (cloneInst : Aeneas.Std.core.clone.Clone T)
+    (hclone : ∀ value, cloneInst.clone value = .ok value)
+    (items : MacCampaign.Array T size) :
+    clone cloneInst items = .ok items := by
+  cases items with
+  | mk values hlen =>
+      simp [clone, cloneValues_exact cloneInst hclone values]
+
+end core.array.CloneArray
+
+namespace core.option.Option
+
+/-- Pure ownership semantics of Rust `Option::take`. -/
+@[simp] def take {T : Type} (value : Option T) : Option T × Option T :=
+  (value, none)
+
+end core.option.Option
+
 namespace Array
 
 def make {T : Type} (_size : Aeneas.Std.Usize) (items : List T) :
@@ -963,6 +1187,15 @@ def to_slice {T : Type} (items : Aeneas.Std.Slice T) : Aeneas.Std.Slice T :=
   items
 
 end Array
+
+namespace core.array.Array
+
+/-- Borrowing a fixed Rust array as a slice preserves its exact elements. -/
+def as_slice {T : Type} (items : Aeneas.Std.Slice T) :
+    Aeneas.Result (Aeneas.Std.Slice T) :=
+  .ok items
+
+end core.array.Array
 
 namespace Std.Array
 
@@ -988,6 +1221,9 @@ namespace core.cmp
 structure PartialEq (Self : Type) (Rhs : Type) where
   eq : Self → Rhs → Result Bool
 
+/-- Marker trait carried by extracted Rust bounds. -/
+structure Eq (_Self : Type) where
+
 /-- Executable Aeneas model of Rust's default `PartialEq::ne`. -/
 def PartialEq.ne {Self Rhs : Type} (inst : PartialEq Self Rhs)
     (left : Self) (right : Rhs) : Result Bool := do
@@ -996,12 +1232,113 @@ def PartialEq.ne {Self Rhs : Type} (inst : PartialEq Self Rhs)
 
 end core.cmp
 
+namespace std.io.error
+
+/-- Opaque external I/O error; projection roots never inspect this value. -/
+opaque Error : Type
+
+end std.io.error
+
+namespace ark_serialize
+
+/-- Marker interface carried by extracted deserialization bounds. The shipping
+projection never invokes deserialization; its concrete decoder is a separate
+extraction boundary. -/
+structure CanonicalDeserialize (_Self : Type) where
+
+end ark_serialize
+
+namespace core.slice.cmp.PartialEqSlice
+
+private def listEq {T U : Type} (elementEq : core.cmp.PartialEq T U) :
+    List T → List U → Result Bool
+  | [], [] => .ok true
+  | left :: lefts, right :: rights => do
+      let equal ← elementEq.eq left right
+      if equal then listEq elementEq lefts rights else .ok false
+  | _, _ => .ok false
+
+/-- Executable Aeneas model of elementwise Rust slice equality. -/
+def eq {T U : Type} (elementEq : core.cmp.PartialEq T U)
+    (left : Aeneas.Std.Slice T) (right : Aeneas.Std.Slice U) : Result Bool :=
+  listEq elementEq left.val right.val
+
+theorem eq_singleton {T U : Type} (elementEq : core.cmp.PartialEq T U)
+    (left : T) (right : U) :
+    eq elementEq ⟨[left]⟩ ⟨[right]⟩ = elementEq.eq left right := by
+  cases h : elementEq.eq left right with
+  | ok equal =>
+      cases equal <;> simp [eq, listEq, h]
+  | fail error =>
+      simp [eq, listEq, h]
+  | div =>
+      simp [eq, listEq, h]
+
+end core.slice.cmp.PartialEqSlice
+
 namespace core.cmp
 
 def PartialEqU64 : PartialEq MacCampaign.U64 MacCampaign.U64 where
   eq left right := .ok (decide (left = right))
 
+def PartialEqU8 : PartialEq UInt8 UInt8 where
+  eq left right := .ok (decide (left = right))
+
 end core.cmp
+
+namespace core.cmp.impls.PartialEqShared
+
+/-- Executable semantics of Rust's blanket `PartialEq::ne`: negate the
+underlying equality result while preserving its failure behavior. -/
+def ne {T U : Type} (elementEq : core.cmp.PartialEq T U)
+    (left : T) (right : U) : Result Bool := do
+  let equal ← elementEq.eq left right
+  .ok (!equal)
+
+end core.cmp.impls.PartialEqShared
+
+namespace alloc.vec.partial_eq.PartialEqVec
+
+private def listEq {T U : Type} (elementEq : core.cmp.PartialEq T U) :
+    List T → List U → Result Bool
+  | [], [] => .ok true
+  | left :: lefts, right :: rights => do
+      let equal ← elementEq.eq left right
+      if equal then listEq elementEq lefts rights else .ok false
+  | _, _ => .ok false
+
+/-- Exact elementwise inequality used by extracted `Vec<u8>` comparisons. -/
+def ne {T U : Type} (elementEq : core.cmp.PartialEq T U)
+    (left : Aeneas.Std.alloc.vec.Vec T)
+    (right : Aeneas.Std.alloc.vec.Vec U) : Result Bool := do
+  let equal ← listEq elementEq left.val right.val
+  .ok (!equal)
+
+@[simp] theorem ne_u8_exact
+    (left right : Aeneas.Std.alloc.vec.Vec UInt8) :
+    ne core.cmp.PartialEqU8 left right =
+      .ok (decide (left.val ≠ right.val)) := by
+  have listEq_exact :
+      ∀ xs ys : List UInt8,
+        listEq core.cmp.PartialEqU8 xs ys = .ok (decide (xs = ys)) := by
+    intro xs
+    induction xs with
+    | nil =>
+        intro ys
+        cases ys <;> rfl
+    | cons head tail ih =>
+        intro ys
+        cases ys with
+        | nil => rfl
+        | cons other rest =>
+            by_cases hhead : head = other
+            · subst other
+              simp [listEq, core.cmp.PartialEqU8]
+              simpa only [core.cmp.PartialEqU8] using ih rest
+            · simp [listEq, core.cmp.PartialEqU8, hhead]
+  simp [ne, listEq_exact]
+
+end alloc.vec.partial_eq.PartialEqVec
 
 namespace core.array.equality.PartialEqArray
 
@@ -1021,7 +1358,23 @@ namespace core.num.U64
 def wrapping_mul (left right : MacCampaign.U64) : MacCampaign.U64 :=
   MacCampaign.wrappingMul64 left right
 
+/-- Exact maximum of Rust's `u64` in the executable fixed-width model. -/
+def MAX : MacCampaign.U64 :=
+  ⟨2 ^ 64 - 1, by simp [MacCampaign.u64Base]⟩
+
+@[simp] theorem MAX_val : MAX.val = 2 ^ 64 - 1 := rfl
+
 end core.num.U64
+
+namespace core.num.U32
+
+/-- Exact maximum of Rust's `u32`, represented by the pinned runtime's
+`Std.U32 = Std.Usize` model. -/
+def MAX : Aeneas.Std.U32 := ⟨2 ^ 32 - 1⟩
+
+@[simp] theorem MAX_val : MAX.val = 2 ^ 32 - 1 := rfl
+
+end core.num.U32
 
 namespace core.num.U128
 

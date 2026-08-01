@@ -83,9 +83,59 @@ gnark-proof-tests-slow:
 
 # Run ignored slow SnarkPack parity tests.
 snarkpack-slow:
-    cargo test -p shieldd-sdk-proof-aggregation snarkpack_matches_legacy_batch_across_families_and_counts_slow --lib -- --ignored
-    cargo test -p shieldd-sdk-proof-aggregation snarkpack_matches_single_and_batch_groth16_oracles_slow --lib -- --ignored
-    cargo test -p shieldd-sdk-proof-aggregation-reference reference_property_matches_production_and_batch_oracles_slow --lib -- --ignored
+    just snarkpack-slow-one legacy
+    just snarkpack-slow-one oracle
+    just snarkpack-slow-one interop
+
+# Run one positively counted ignored SnarkPack test for modular CI evidence.
+snarkpack-slow-one test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    log="$(mktemp)"
+    trap 'rm -f "$log"' EXIT
+    case "{{test}}" in
+      legacy)
+        package=shieldd-sdk-proof-aggregation
+        filter=snarkpack_matches_legacy_batch_across_families_and_counts_slow
+        exact_name=backend::tests::snarkpack_matches_legacy_batch_across_families_and_counts_slow
+        ;;
+      oracle)
+        package=shieldd-sdk-proof-aggregation
+        filter=snarkpack_matches_single_and_batch_groth16_oracles_slow
+        exact_name=backend::tests::snarkpack_matches_single_and_batch_groth16_oracles_slow
+        ;;
+      interop)
+        package=shieldd-sdk-proof-aggregation-reference
+        filter=slow_two_way_interop_band
+        exact_name=tests::slow_two_way_interop_band
+        ;;
+      *)
+        echo "unknown SnarkPack slow test: {{test}}" >&2
+        exit 2
+        ;;
+    esac
+    cargo test -p "$package" "$filter" --lib -- --ignored --test-threads=1 2>&1 | tee "$log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$log" --expected 1 --label "$filter" --test-name "$exact_name"
+
+# Run the exact ordinary tests anchoring the bounded challenge sampler and its
+# public prover/verifier exhaustion mappings.
+snarkpack-challenge-boundaries:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sampler_log="$(mktemp)"
+    mapping_log="$(mktemp)"
+    trap 'rm -f "$sampler_log" "$mapping_log"' EXIT
+    cargo test -p ark-ip-proofs bounded_challenge_sampler_ --lib 2>&1 | tee "$sampler_log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$sampler_log" --expected 7 --label "bounded_challenge_sampler_" \
+      --test-name "challenge::tests::bounded_challenge_sampler_immediate_success_queries_nonce_zero_once" \
+      --test-name "challenge::tests::bounded_challenge_sampler_retries_rejections_in_nonce_order" \
+      --test-name "challenge::tests::bounded_challenge_sampler_accepts_success_at_max_nonce" \
+      --test-name "challenge::tests::bounded_challenge_sampler_rejection_at_max_fails_closed" \
+      --test-name "challenge::tests::bounded_challenge_sampler_queries_before_incrementing" \
+      --test-name "challenge::tests::bounded_challenge_sampler_preserves_attempt_error_before_exhaustion" \
+      --test-name "challenge::tests::bounded_challenge_sampler_nonce_helpers_match_core_boundaries"
+    cargo test -p ark-ip-proofs shipping_nonce_exhaustion_maps_exact_public_error --lib 2>&1 | tee "$mapping_log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$mapping_log" --expected 1 --label "shipping_nonce_exhaustion_maps_exact_public_error" --test-name "applications::groth16_aggregation::tests::shipping_nonce_exhaustion_maps_exact_public_error"
 
 # Run bounded SnarkPack fuzz harness smoke tests.
 snarkpack-fuzz-smoke:
@@ -106,17 +156,34 @@ snarkpack-formal:
 
 # Enforce SnarkPack valid-vs-adversarial DoS latency and size thresholds.
 snarkpack-dos-gate:
-    cargo test --release -p shieldd-sdk-proof-aggregation snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds --lib -- --ignored --nocapture
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dos_log="$(mktemp)"
+    trap 'rm -f "$dos_log"' EXIT
+    cargo test --release -p shieldd-sdk-proof-aggregation snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds --lib -- --ignored --nocapture 2>&1 | tee "$dos_log"
+    python3 crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py test-log "$dos_log" --expected 1 --label "snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds" --test-name "backend::tests::snarkpack_dos_gate_valid_and_adversarial_paths_hold_thresholds"
 
 # Run the default gnark validation suite.
 gnark-proof-tests: gnark-proof-tests-fast
 
 # CI wrapper for `check`.
 ci-check:
+    # The formal workflow owns source/checker evidence freshness and permits
+    # drift only when the matching refresh lane is selected. Generic Rust CI
+    # must still enforce every structural invariant, but must not fail before
+    # Cargo merely because that separate workflow is refreshing proof evidence.
     if command -v nix >/dev/null 2>&1; then \
-      nix develop --command just check; \
+      nix develop --command env \
+        SNARKPACK_ALLOW_PENDING_FSTAR_CONTRACT_REFRESH=1 \
+        SNARKPACK_ALLOW_PENDING_LEAN_CONTRACT_REFRESH=1 \
+        SNARKPACK_ALLOW_PENDING_EXTERNAL_CONTRACT_REFRESH=1 \
+        just check; \
     else \
-      just check; \
+      env \
+        SNARKPACK_ALLOW_PENDING_FSTAR_CONTRACT_REFRESH=1 \
+        SNARKPACK_ALLOW_PENDING_LEAN_CONTRACT_REFRESH=1 \
+        SNARKPACK_ALLOW_PENDING_EXTERNAL_CONTRACT_REFRESH=1 \
+        just check; \
     fi
 
 # CI wrapper for `test`.
@@ -187,7 +254,9 @@ orbis-integration-preflight-bringup:
 # Build the binaries required by the Orbis integration flow.
 orbis-integration-build:
     cargo build --release -p pcli -p pclientd --features bundled-proving-keys
-    cargo build --release -p pd -p orbis-audit -p orbis-integration
+    # Insecure deterministic SRS is confined to the local Orbis integration node.
+    cargo build --release -p pd --features orbis-dev-srs
+    cargo build --release -p orbis-audit -p orbis-integration
 
 # Run the full Orbis integration flow assuming release binaries already exist.
 orbis-integration-run:

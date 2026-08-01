@@ -1,11 +1,9 @@
 import Lake
 open Lake DSL
 
-/-- Lean mechanization of SnarkPack S1 (aggregate acceptance implies per-proof
-    Groth16 equations), removing the Filecoin-lineage assumption. Isolated
-    toolchain shared with lean-dleq (Lean v4.30.0 + VCVio), separate from
-    `tools/gnark/lean`. See
-    `crates/crypto/proof-aggregation/formal/snarkpack/s1-mechanization-scope.md`. -/
+/-- SnarkPack model, implementation refinement, and adaptive shipping theorem.
+    Uses an isolated Lean v4.30.0 + VCVio toolchain, separate from
+    `tools/gnark/lean`. See `DESIGN.md` and the generated formal handoff. -/
 package shieldd_lean_ipp where
   leanOptions := #[⟨`autoImplicit, false⟩]
 

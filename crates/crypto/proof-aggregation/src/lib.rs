@@ -4,6 +4,7 @@
 //! forked from `arkworks-rs/ripp`.
 
 mod aggregate_proof_wrapper;
+mod app_verifier;
 mod backend;
 mod bundle;
 mod padding;
@@ -24,11 +25,26 @@ pub use aggregate_proof_wrapper::{
     encode_wrapped_aggregate_proof, AggregateProofBytesError, AGGREGATE_PROOF_WRAPPER_DOMAIN,
     MAX_AGGREGATE_PROOF_BYTES,
 };
+#[doc(hidden)]
+pub use app_verifier::{
+    app_verify_accepted_join_projection_core, app_verify_family_code, app_verify_family_count_core,
+    app_verify_join_acceptance_core, app_verify_normal_acceptance_core,
+    app_verify_plan_identity_core, app_verify_plan_ids_core, app_verify_plan_padding_core,
+    app_verify_preflight_core, app_verify_profiled_acceptance_core, app_verify_reduce_core,
+    app_verify_shipping_call_from_parts, app_verify_shipping_projection_core,
+    app_verify_shipping_result_from_parts, AppVerifyAcceptedJoinProjection,
+    AppVerifyAcceptedJoinProjectionError, AppVerifyCallId, AppVerifyCallResult,
+    AppVerifyExpectedCall, AppVerifyFamilyCode, AppVerifyPlanError,
+    AppVerifyPlannerIndexedExecutedRecord, AppVerifyPreflightError, AppVerifyReductionError,
+    AppVerifySegmentRange, AppVerifyShippingCall, AppVerifyShippingInput, AppVerifyShippingResult,
+};
+#[doc(hidden)]
+pub use ark_ip_proofs::applications::groth16_aggregation::ShippingVerifierObservation;
 pub use backend::AggregateBuildBackendProfile;
 use backend::SnarkpackBackend;
 pub use backend::{
     set_rayon_threads_per_batch_for_bench, AggregateVerificationProfile, AggregateVerifyError,
-    AggregationBackend,
+    AggregationBackend, ShippingAggregateVerification,
 };
 pub use bundle::{AggregateBundle, FamilyAggregate, ProofFamilyId};
 pub use padding::PADDING_RULE_DOMAIN;
@@ -38,8 +54,9 @@ pub use preflight::{
     VerifiedChallengeContext, VerifiedInnerProofBytes,
 };
 pub use srs::{
-    srs_id, srs_report, DevSrs, DevSrsReport, DEFAULT_DEV_SRS_ID, DEFAULT_MAX_PADDED_PROOF_COUNT,
-    DEV_SRS_BACKEND_ID, DEV_SRS_CURVE_ID, DEV_SRS_VERSION,
+    load_active_production_srs, load_production_srs_for_id, srs_id, srs_report, DevSrs,
+    DevSrsReport, DEFAULT_DEV_SRS_ID, DEFAULT_MAX_PADDED_PROOF_COUNT, DEV_SRS_BACKEND_ID,
+    DEV_SRS_CURVE_ID, DEV_SRS_VERSION, PRODUCTION_SRS_ARTIFACT_DIR_ENV,
 };
 pub use statement::{
     aggregate_verification_key_digest, challenge_context, encode_statement, statement_digest,
@@ -91,6 +108,23 @@ pub fn verify_family_aggregate_profiled_status(
     srs: &DevSrs,
 ) -> std::result::Result<AggregateVerificationProfile, AggregateVerifyError> {
     SnarkpackBackend::verify_family_aggregate_profiled_status(
+        statement,
+        pvk,
+        aggregate_proof_bytes,
+        srs,
+    )
+}
+
+#[doc(hidden)]
+pub fn verify_shipping_family_aggregate_profiled_status(
+    application_call: AppVerifyShippingCall,
+    statement: &AggregateStatement,
+    pvk: &PreparedVerifyingKey<Bls12_377>,
+    aggregate_proof_bytes: &[u8],
+    srs: &DevSrs,
+) -> std::result::Result<ShippingAggregateVerification, AggregateVerifyError> {
+    SnarkpackBackend::verify_shipping_family_aggregate_profiled_status(
+        application_call,
         statement,
         pvk,
         aggregate_proof_bytes,

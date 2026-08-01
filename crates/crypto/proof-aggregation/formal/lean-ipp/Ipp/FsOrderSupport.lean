@@ -67,7 +67,8 @@ theorem acceptedChain_entry {μ : Nat}
   | zero =>
       let point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) :=
         .randomizer
-          { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+          { comA := out.proof.ComA.1, comB := out.proof.ComB,
+            comC := out.proof.ComA.2 }
           out.transcript.randomizerNonce
       have hquery : QueryAnswered sourceLog (Sum.inr point)
           out.transcript.randomizer := by
@@ -88,8 +89,8 @@ theorem acceptedChain_entry {μ : Nat}
       | zero =>
           let point : FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) :=
             .x0
-              { r := out.transcript.randomizer, comA := stmt.ComA.1,
-                comB := stmt.ComB, comC := stmt.ComA.2,
+              { r := out.transcript.randomizer, comA := out.proof.ComA.1,
+                comB := out.proof.ComB, comC := out.proof.ComA.2,
                 ipAb := out.proof.ipAb, aggC := out.proof.aggC }
               out.transcript.x0Nonce
           have hquery : QueryAnswered sourceLog (Sum.inr point)

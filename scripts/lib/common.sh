@@ -7,6 +7,7 @@ COMPLIANCE_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPLIANCE_TMP="${COMPLIANCE_TMP:-$COMPLIANCE_REPO_ROOT/tmp}"
 COMPLIANCE_STACK_HOME="${SHIELDD_ORBIS_HOME:-$COMPLIANCE_TMP/shieldd-home}"
 COMPLIANCE_NETWORK_DATA_DIR="${COMPLIANCE_STACK_HOME}/network_data"
+ORBIS_RUNTIME_FILE="$COMPLIANCE_TMP/orbis-runtime.json"
 mkdir -p "$COMPLIANCE_TMP"
 
 SHIELDD_PD_GRPC_PORT="${SHIELDD_PD_GRPC_PORT:-8080}"
@@ -18,6 +19,7 @@ SHIELDD_NODE_PD_URL="${SHIELDD_NODE_PD_URL:-http://127.0.0.1:$SHIELDD_PD_GRPC_PO
 SHIELDD_NODE_CMT_URL="${SHIELDD_NODE_CMT_URL:-http://127.0.0.1:$SHIELDD_COMETBFT_RPC_PORT}"
 
 export COMPLIANCE_TMP
+export ORBIS_RUNTIME_FILE
 export SHIELDD_PD_GRPC_PORT
 export SHIELDD_COMETBFT_RPC_PORT
 export SHIELDD_COMETBFT_P2P_PORT
@@ -159,15 +161,21 @@ log_success() { echo -e "${GREEN}[OK]${NC} $*"; }
 log_warning() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 log_error()   { echo -e "${RED}[ERROR]${NC} $*"; }
 
-is_tcp_port_in_use() {
-    local port="$1"
+is_tcp_host_port_open() {
+    local host="$1"
+    local port="$2"
 
     if command -v nc >/dev/null 2>&1; then
-        nc -z 127.0.0.1 "$port" >/dev/null 2>&1
+        nc -z -w1 "$host" "$port" >/dev/null 2>&1
         return $?
     fi
 
-    (echo > /dev/tcp/127.0.0.1/"$port") >/dev/null 2>&1
+    (echo > /dev/tcp/"$host"/"$port") >/dev/null 2>&1
+}
+
+is_tcp_port_in_use() {
+    local port="$1"
+    is_tcp_host_port_open 127.0.0.1 "$port"
 }
 
 ensure_ports_available() {
@@ -251,11 +259,7 @@ wait_for_grpc() {
     local max_attempts="${2:-30}"
     local interval="${3:-2}"
     for attempt in $(seq 1 "$max_attempts"); do
-        if command -v nc >/dev/null 2>&1; then
-            if nc -z -w1 127.0.0.1 "$port" 2>/dev/null; then
-                return 0
-            fi
-        elif (echo > /dev/tcp/127.0.0.1/"$port") >/dev/null 2>&1; then
+        if is_tcp_host_port_open 127.0.0.1 "$port"; then
             return 0
         fi
         if [ "$attempt" -eq "$max_attempts" ]; then
@@ -463,12 +467,17 @@ ensure_orbis_images() {
     export SOURCEHUB_PLATFORM="${SOURCEHUB_PLATFORM:-linux/amd64}"
 }
 
+orbis_compose_project_name() {
+    printf '%s\n' "${ORBIS_COMPOSE_PROJECT_NAME:-shieldd-orbis-integration}"
+}
+
 run_orbis_compose() {
     local compose_file="$1"
     shift
     local flavor
     flavor="$(docker_compose_flavor)" || return 1
-    local project_name="${ORBIS_COMPOSE_PROJECT_NAME:-shieldd-orbis-integration}"
+    local project_name
+    project_name="$(orbis_compose_project_name)"
     case "$flavor" in
         docker-compose-v2)
             docker compose -p "$project_name" -f "$compose_file" "$@"
@@ -479,11 +488,251 @@ run_orbis_compose() {
     esac
 }
 
+orbis_published_port() {
+    local compose_file="$1"
+    local service="$2"
+    local container_port="$3"
+    local binding
+    local port
+
+    binding="$(run_orbis_compose "$compose_file" port "$service" "$container_port" | tail -n 1)" || return 1
+    port="${binding##*:}"
+    if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+        log_error "Invalid published port for $service:$container_port: $binding"
+        return 1
+    fi
+    printf '%s\n' "$port"
+}
+
+write_orbis_runtime_config() {
+    local compose_file="$1"
+    local sourcehub_rpc_port sourcehub_rest_port sourcehub_grpc_port
+    local node1_port node2_port node3_port
+    local runtime_tmp
+
+    sourcehub_rpc_port="$(orbis_published_port "$compose_file" sourcehub 26657)" || return 1
+    sourcehub_rest_port="$(orbis_published_port "$compose_file" sourcehub 1317)" || return 1
+    sourcehub_grpc_port="$(orbis_published_port "$compose_file" sourcehub 9090)" || return 1
+    node1_port="$(orbis_published_port "$compose_file" node1 50051)" || return 1
+    node2_port="$(orbis_published_port "$compose_file" node2 50051)" || return 1
+    node3_port="$(orbis_published_port "$compose_file" node3 50051)" || return 1
+
+    runtime_tmp="$(mktemp "${ORBIS_RUNTIME_FILE}.tmp.XXXXXX")"
+    if ! jq -n \
+        --arg sourcehub_rpc "http://127.0.0.1:$sourcehub_rpc_port" \
+        --arg sourcehub_rest "http://127.0.0.1:$sourcehub_rest_port" \
+        --arg sourcehub_grpc "http://127.0.0.1:$sourcehub_grpc_port" \
+        --arg node1 "http://127.0.0.1:$node1_port" \
+        --arg node2 "http://127.0.0.1:$node2_port" \
+        --arg node3 "http://127.0.0.1:$node3_port" \
+        '{
+            sourcehub_rpc: $sourcehub_rpc,
+            sourcehub_rest: $sourcehub_rest,
+            sourcehub_grpc: $sourcehub_grpc,
+            node1: $node1,
+            node2: $node2,
+            node3: $node3
+        }' > "$runtime_tmp"
+    then
+        rm -f "$runtime_tmp"
+        return 1
+    fi
+    chmod 600 "$runtime_tmp"
+    mv "$runtime_tmp" "$ORBIS_RUNTIME_FILE"
+    log_info "Orbis runtime endpoints: $(jq -c . "$ORBIS_RUNTIME_FILE")"
+}
+
+orbis_compose_service_container_id() {
+    local service="$1"
+    local project_name
+    local container_ids
+
+    project_name="$(orbis_compose_project_name)"
+    container_ids="$(docker ps -aq \
+        --filter "label=com.docker.compose.project=$project_name" \
+        --filter "label=com.docker.compose.service=$service")"
+    if [[ "$container_ids" == *$'\n'* ]]; then
+        log_error "Multiple $service containers found for project $project_name" >&2
+        return 1
+    fi
+    printf '%s\n' "$container_ids"
+}
+
+orbis_container_ipv4() {
+    local service="$1"
+    local container_id
+    local address
+
+    container_id="$(orbis_compose_service_container_id "$service")" || return 1
+    if [ -z "$container_id" ]; then
+        log_error "No $service container found" >&2
+        return 1
+    fi
+    address="$(docker inspect --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$container_id")" || return 1
+    if [[ ! "$address" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        log_error "Invalid container IPv4 address for $service: $address" >&2
+        return 1
+    fi
+    printf '%s\n' "$address"
+}
+
+resolve_orbis_node_endpoint() {
+    local service="$1"
+    local published_endpoint="$2"
+    local published_port="${published_endpoint##*:}"
+    local container_ip
+    local attempt
+
+    if [[ ! "$published_port" =~ ^[0-9]+$ ]]; then
+        log_error "Invalid published endpoint for $service: $published_endpoint" >&2
+        return 1
+    fi
+
+    for ((attempt = 1; attempt <= 30; attempt++)); do
+        if is_tcp_host_port_open 127.0.0.1 "$published_port"; then
+            printf '%s\n' "$published_endpoint"
+            return 0
+        fi
+
+        container_ip="$(orbis_container_ipv4 "$service")" || return 1
+        if is_tcp_host_port_open "$container_ip" 50051; then
+            log_warning "$service published endpoint is unavailable; using routed container endpoint" >&2
+            printf 'http://%s:50051\n' "$container_ip"
+            return 0
+        fi
+        sleep 1
+    done
+
+    log_error "No host-routable production endpoint found for $service" >&2
+    return 1
+}
+
+resolve_orbis_runtime_node_endpoints() {
+    local published1 published2 published3
+    local node1 node2 node3
+    local runtime_tmp
+
+    published1="$(jq -r '.node1' "$ORBIS_RUNTIME_FILE")"
+    published2="$(jq -r '.node2' "$ORBIS_RUNTIME_FILE")"
+    published3="$(jq -r '.node3' "$ORBIS_RUNTIME_FILE")"
+    node1="$(resolve_orbis_node_endpoint node1 "$published1")" || return 1
+    node2="$(resolve_orbis_node_endpoint node2 "$published2")" || return 1
+    node3="$(resolve_orbis_node_endpoint node3 "$published3")" || return 1
+
+    runtime_tmp="$(mktemp "${ORBIS_RUNTIME_FILE}.tmp.XXXXXX")"
+    if ! jq \
+        --arg node1 "$node1" \
+        --arg node2 "$node2" \
+        --arg node3 "$node3" \
+        '.node1 = $node1 | .node2 = $node2 | .node3 = $node3' \
+        "$ORBIS_RUNTIME_FILE" > "$runtime_tmp"
+    then
+        rm -f "$runtime_tmp"
+        return 1
+    fi
+    chmod 600 "$runtime_tmp"
+    mv "$runtime_tmp" "$ORBIS_RUNTIME_FILE"
+    log_info "Resolved Orbis runtime endpoints: $(jq -c . "$ORBIS_RUNTIME_FILE")"
+}
+
+wait_for_orbis_funder() {
+    local compose_file="$1"
+    local container_id
+    local state
+    local attempt
+
+    for ((attempt = 1; attempt <= 180; attempt++)); do
+        container_id="$(orbis_compose_service_container_id orbis-funder)" || return 1
+        if [ -n "$container_id" ]; then
+            state="$(docker inspect --format '{{.State.Status}} {{.State.ExitCode}}' "$container_id")" || return 1
+            case "$state" in
+                "exited 0")
+                    log_success "Orbis funder completed"
+                    return 0
+                    ;;
+                exited\ *)
+                    log_error "Orbis funder failed: $state"
+                    run_orbis_compose "$compose_file" logs orbis-funder >&2 || true
+                    return 1
+                    ;;
+                dead\ *)
+                    log_error "Orbis funder entered an unrecoverable state: $state"
+                    run_orbis_compose "$compose_file" logs orbis-funder >&2 || true
+                    return 1
+                    ;;
+            esac
+        fi
+        if [ $((attempt % 15)) -eq 0 ]; then
+            log_info "Waiting for Orbis funder ($attempt/180)"
+        fi
+        sleep 2
+    done
+
+    log_error "Timed out waiting for Orbis funder"
+    run_orbis_compose "$compose_file" logs orbis-funder >&2 || true
+    return 1
+}
+
+wait_for_orbis_node_production() {
+    local service="$1"
+    local marker='Server is ready to accept connections'
+    local container_id
+    local inspection
+    local state
+    local started_at
+    local attempt
+
+    for ((attempt = 1; attempt <= 120; attempt++)); do
+        container_id="$(orbis_compose_service_container_id "$service")" || return 1
+        if [ -n "$container_id" ]; then
+            inspection="$(docker inspect --format '{{.State.Status}} {{.State.ExitCode}} {{.State.StartedAt}}' "$container_id")" || return 1
+            state="${inspection% *}"
+            started_at="${inspection##* }"
+            case "$state" in
+                exited\ *|dead\ *)
+                    log_error "$service stopped before production readiness: $state"
+                    docker logs "$container_id" >&2 || true
+                    return 1
+                    ;;
+            esac
+            if (set +o pipefail; docker logs --since "$started_at" "$container_id" 2>&1 | grep -Fq "$marker"); then
+                log_success "$service production server ready"
+                return 0
+            fi
+        fi
+        if [ $((attempt % 15)) -eq 0 ]; then
+            log_info "Waiting for $service production server ($attempt/120)"
+        fi
+        sleep 2
+    done
+
+    log_error "Timed out waiting for $service production server"
+    if [ -n "$container_id" ]; then
+        docker logs "$container_id" >&2 || true
+    fi
+    return 1
+}
+
 wait_for_orbis_stack() {
-    wait_for_url "http://127.0.0.1:${ORBIS_SOURCEHUB_RPC_PORT:-26657}/status" 60 2 || return 1
-    wait_for_tcp_port "${ORBIS_NODE1_GRPC_PORT:-50051}" 60 2 || return 1
-    wait_for_tcp_port "${ORBIS_NODE2_GRPC_PORT:-50052}" 60 2 || return 1
-    wait_for_tcp_port "${ORBIS_NODE3_GRPC_PORT:-50053}" 60 2 || return 1
+    local compose_file="$1"
+    local sourcehub_rpc
+
+    if ! jq -e '
+        [.sourcehub_rpc, .sourcehub_rest, .sourcehub_grpc, .node1, .node2, .node3]
+        | all(type == "string" and length > 0)
+    ' "$ORBIS_RUNTIME_FILE" >/dev/null; then
+        log_error "Invalid Orbis runtime endpoint file: $ORBIS_RUNTIME_FILE"
+        return 1
+    fi
+
+    sourcehub_rpc="$(jq -r '.sourcehub_rpc' "$ORBIS_RUNTIME_FILE")"
+
+    wait_for_url "$sourcehub_rpc/status" 60 2 || return 1
+    wait_for_orbis_funder "$compose_file" || return 1
+    wait_for_orbis_node_production node1 || return 1
+    wait_for_orbis_node_production node2 || return 1
+    wait_for_orbis_node_production node3 || return 1
+    resolve_orbis_runtime_node_endpoints || return 1
 }
 
 wait_for_shieldd_stack() {

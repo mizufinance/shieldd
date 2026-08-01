@@ -2,6 +2,8 @@ use anyhow::{anyhow, ensure, Result};
 use decaf377::Fq;
 use shieldd_sdk_proof_params::batch::BatchItem;
 
+use crate::app_verifier::app_verify_prepare_public_input_rows_core;
+
 pub const PADDING_RULE_DOMAIN: &[u8] = b"shieldd.snarkpack.padding.repeat-final-row.v1\0";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -40,36 +42,36 @@ pub fn prepare_verify_inputs(
     items: &[BatchItem],
     max_padded_count: usize,
 ) -> Result<PreparedVerifyInputs> {
-    if items.is_empty() {
-        return Ok(PreparedVerifyInputs {
-            real_count: 0,
-            padded_count: 0,
-            padded_public_inputs: Vec::new(),
-        });
-    }
+    let public_inputs = items
+        .iter()
+        .map(|item| item.public_inputs.clone())
+        .collect::<Vec<_>>();
+    prepare_verify_public_input_rows(public_inputs, max_padded_count)
+}
 
-    let padded_count = items.len().next_power_of_two();
+/// Pure row projection used by the shipping verifier. The input vector is the
+/// caller-order real prefix and is consumed by the repeat-final padding core.
+pub(crate) fn prepare_verify_public_input_rows(
+    public_inputs: Vec<Vec<Fq>>,
+    max_padded_count: usize,
+) -> Result<PreparedVerifyInputs> {
+    let padded_count = if public_inputs.is_empty() {
+        0
+    } else {
+        public_inputs.len().next_power_of_two()
+    };
     ensure!(
         padded_count <= max_padded_count,
         "padded proof count {padded_count} exceeds max {max_padded_count}"
     );
 
-    let mut padded_public_inputs = items
-        .iter()
-        .map(|item| item.public_inputs.clone())
-        .collect::<Vec<_>>();
-    let last = padded_public_inputs
-        .last()
-        .cloned()
-        .ok_or_else(|| anyhow!("missing final public inputs for deterministic padding"))?;
-    while padded_public_inputs.len() < padded_count {
-        padded_public_inputs.push(last.clone());
-    }
+    let prepared = app_verify_prepare_public_input_rows_core(public_inputs, padded_count)
+        .map_err(|_| anyhow!("missing final public inputs for deterministic padding"))?;
 
     Ok(PreparedVerifyInputs {
-        real_count: items.len(),
-        padded_count,
-        padded_public_inputs,
+        real_count: prepared.real_count,
+        padded_count: prepared.padded_count,
+        padded_public_inputs: prepared.padded_public_inputs,
     })
 }
 
@@ -79,7 +81,9 @@ mod tests {
     use decaf377::Fq;
     use shieldd_sdk_proof_params::batch::BatchItem;
 
-    use super::{pad_items_to_power_of_two, prepare_verify_inputs};
+    use super::{
+        pad_items_to_power_of_two, prepare_verify_inputs, prepare_verify_public_input_rows,
+    };
 
     fn dummy_item(value: u64) -> BatchItem {
         BatchItem {
@@ -132,5 +136,24 @@ mod tests {
                 .map(|item| item.public_inputs)
                 .collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn row_projection_preserves_caller_order_before_repeat_final_suffix() {
+        let source = vec![
+            vec![Fq::from(1u64)],
+            vec![Fq::from(2u64)],
+            vec![Fq::from(3u64)],
+        ];
+        let prepared =
+            prepare_verify_public_input_rows(source.clone(), 8).expect("row projection succeeds");
+
+        assert_eq!(prepared.real_count, source.len());
+        assert_eq!(prepared.padded_count, 4);
+        assert_eq!(
+            &prepared.padded_public_inputs[..source.len()],
+            source.as_slice()
+        );
+        assert_eq!(prepared.padded_public_inputs[3], source[2]);
     }
 }

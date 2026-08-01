@@ -18,6 +18,8 @@ open Core_models
     default SRS suffix under the fixed backend/curve/max-count prefix.
   - vk_digest_preimage is deterministic and injective in the serialized VK
     material under the fixed VK digest domain and u32 length frame.
+  - statement_digest_preimage emits the fixed statement-digest domain followed
+    by the canonical statement bytes.
 
   The final SHA-256 digest binding remains the ledger's SHA-256 collision
   resistance assumption; these lemmas prove the executed preimage bytes that feed
@@ -102,3 +104,13 @@ let lemma_vk_digest_preimage_injective (x y:t_Slice u8)
   assert (Int.v lx == Seq.length x);
   assert (Int.v ly == Seq.length y);
   F.lemma_lenpref_frame_inj lx x Seq.empty ly y Seq.empty
+
+let lemma_statement_digest_preimage_content (canonical_bytes:t_Slice u8)
+    : Lemma
+      (requires
+        Seq.length S.v_STATEMENT_DIGEST_DOMAIN +
+          Seq.length canonical_bytes <= Int.max_usize)
+      (ensures
+        bo (S.statement_digest_preimage canonical_bytes) ==
+        Seq.append S.v_STATEMENT_DIGEST_DOMAIN canonical_bytes)
+= Seq.append_empty_l S.v_STATEMENT_DIGEST_DOMAIN

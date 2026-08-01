@@ -495,11 +495,13 @@ private theorem fsVerifier_cached
           z.1.transcript.roundAnswer ∧
         LeafData stmt z.1.proof z.1.transcript ∧ ChallengesAccepted z.1) ∧
       z.2 (.randomizer
-        { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+        { comA := z.1.proof.ComA.1, comB := z.1.proof.ComB,
+          comC := z.1.proof.ComA.2 }
         z.1.transcript.randomizerNonce) = some z.1.transcript.randomizer ∧
       z.2 (.x0
-        { r := z.1.transcript.randomizer, comA := stmt.ComA.1, comB := stmt.ComB,
-          comC := stmt.ComA.2, ipAb := z.1.proof.ipAb, aggC := z.1.proof.aggC }
+        { r := z.1.transcript.randomizer, comA := z.1.proof.ComA.1,
+          comB := z.1.proof.ComB, comC := z.1.proof.ComA.2,
+          ipAb := z.1.proof.ipAb, aggC := z.1.proof.aggC }
         z.1.transcript.x0Nonce) = some z.1.transcript.x0) ∧
       z.2 (.kzg
         { bridgeChallenge := z.1.transcript.bridge, vFinal := z.1.proof.vFinal,
@@ -577,11 +579,13 @@ private theorem fsVerifier_cached
               cache2 hround
             have hrCached := queryAccepting_cached
               (fun nonce => ChallengePoint.randomizer
-                { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 } nonce)
+                { comA := proof.ComA.1, comB := proof.ComB,
+                  comC := proof.ComA.2 } nonce)
               randomizerAcceptedB stmt.rejectionFuel 0 cache0 hr
             have hxCached := queryAccepting_cached
               (fun nonce => ChallengePoint.x0
-                { r := r, comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2,
+                { r := r, comA := proof.ComA.1, comB := proof.ComB,
+                  comC := proof.ComA.2,
                   ipAb := proof.ipAb, aggC := proof.aggC } nonce)
               nonzeroB stmt.rejectionFuel 0 cache1 hx
             have hkzgCached := queryAccepting_cached
@@ -592,8 +596,9 @@ private theorem fsVerifier_cached
             have hxLe := fsSourceOracle_cache_le
               (oa := queryAccepting
                 (fun nonce => ChallengePoint.x0
-                  { r := r, comA := stmt.ComA.1, comB := stmt.ComB,
-                    comC := stmt.ComA.2, ipAb := proof.ipAb, aggC := proof.aggC } nonce)
+                  { r := r, comA := proof.ComA.1, comB := proof.ComB,
+                    comC := proof.ComA.2, ipAb := proof.ipAb,
+                    aggC := proof.aggC } nonce)
                 nonzeroB stmt.rejectionFuel 0)
               cache1 (some (x0, x0Nonce), cache2) hx
             have hroundLe := fsSourceOracle_cache_le
@@ -650,11 +655,13 @@ private theorem fsGame_cached
           z.1.transcript.roundAnswer ∧
         LeafData stmt z.1.proof z.1.transcript ∧ ChallengesAccepted z.1) ∧
       z.2 (.randomizer
-        { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+        { comA := z.1.proof.ComA.1, comB := z.1.proof.ComB,
+          comC := z.1.proof.ComA.2 }
         z.1.transcript.randomizerNonce) = some z.1.transcript.randomizer ∧
       z.2 (.x0
-        { r := z.1.transcript.randomizer, comA := stmt.ComA.1, comB := stmt.ComB,
-          comC := stmt.ComA.2, ipAb := z.1.proof.ipAb, aggC := z.1.proof.aggC }
+        { r := z.1.transcript.randomizer, comA := z.1.proof.ComA.1,
+          comB := z.1.proof.ComB, comC := z.1.proof.ComA.2,
+          ipAb := z.1.proof.ipAb, aggC := z.1.proof.aggC }
         z.1.transcript.x0Nonce) = some z.1.transcript.x0) ∧
       z.2 (.kzg
         { bridgeChallenge := z.1.transcript.bridge, vFinal := z.1.proof.vFinal,
@@ -692,11 +699,13 @@ private theorem fsRandomFunction_replay_cached
             out.transcript.roundAnswer ∧
           LeafData stmt out.proof out.transcript ∧ ChallengesAccepted out) ∧
         cache (.randomizer
-          { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+          { comA := out.proof.ComA.1, comB := out.proof.ComB,
+            comC := out.proof.ComA.2 }
           out.transcript.randomizerNonce) = some out.transcript.randomizer ∧
         cache (.x0
-          { r := out.transcript.randomizer, comA := stmt.ComA.1, comB := stmt.ComB,
-            comC := stmt.ComA.2, ipAb := out.proof.ipAb, aggC := out.proof.aggC }
+          { r := out.transcript.randomizer, comA := out.proof.ComA.1,
+            comB := out.proof.ComB, comC := out.proof.ComA.2,
+            ipAb := out.proof.ipAb, aggC := out.proof.aggC }
           out.transcript.x0Nonce) = some out.transcript.x0) ∧
         cache (.kzg
           { bridgeChallenge := out.transcript.bridge, vFinal := out.proof.vFinal,
@@ -1484,7 +1493,8 @@ theorem accepted_source_randomizer_query
     (haccept : out.accept = true) :
     QueryAnswered sourceLog
       (Sum.inr (.randomizer
-        { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+        { comA := out.proof.ComA.1, comB := out.proof.ComB,
+          comC := out.proof.ComA.2 }
         out.transcript.randomizerNonce)) out.transcript.randomizer := by
   obtain ⟨_cache, _hlogCache, hcacheLog, haccepted⟩ :=
     fsRandomFunction_replay_cached stmt adv h
@@ -1507,13 +1517,68 @@ theorem accepted_source_x0_query
     (haccept : out.accept = true) :
     QueryAnswered sourceLog
       (Sum.inr (.x0
-        { r := out.transcript.randomizer, comA := stmt.ComA.1,
-          comB := stmt.ComB, comC := stmt.ComA.2,
+        { r := out.transcript.randomizer, comA := out.proof.ComA.1,
+          comB := out.proof.ComB, comC := out.proof.ComA.2,
           ipAb := out.proof.ipAb, aggC := out.proof.aggC }
         out.transcript.x0Nonce)) out.transcript.x0 := by
   obtain ⟨_cache, _hlogCache, hcacheLog, haccepted⟩ :=
     fsRandomFunction_replay_cached stmt adv h
   exact hcacheLog _ _ (haccepted haccept).1.1.2.2
+
+/-- Wrapping, caching, and replay cannot change the proof selected by a pure
+shipping adversary. -/
+theorem wrapped_pure_game_proof_eq
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (proof : Proof μ F G1 G2 GT)
+    {run : WrappedFsRun
+      (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+      (FsResult μ F G1 G2 GT)}
+    {log : QueryLog (FsWrappedSpec F)}
+    (h : (run, log) ∈ support (replayFirstRun
+      (wrapFs (FsGame stmt
+        (pure proof :
+          OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+            (Proof μ F G1 G2 GT)))))) :
+    run.out.proof = proof := by
+  have hwrapped :
+      run.out ∈ support
+        (fsRandomFunction
+          (FsGame stmt
+            (pure proof :
+              OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+                (Proof μ F G1 G2 GT)))) := by
+    apply wrapFsFrom_output_mem_support
+      (fsRandomFunction
+        (FsGame stmt
+          (pure proof :
+            OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+              (Proof μ F G1 G2 GT)))) []
+    simpa [wrapFs] using h
+  have hgame :
+      run.out ∈ support
+        (FsGame stmt
+          (pure proof :
+            OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+              (Proof μ F G1 G2 GT))) := by
+    apply support_simulateQ_run'_subset
+      (fsSourceOracle
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT)) F)
+      (FsGame stmt
+        (pure proof :
+          OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT)
+            (Proof μ F G1 G2 GT))) ∅
+    simpa [fsRandomFunction, StateT.run'_eq] using hwrapped
+  rw [FsGame, support_bind] at hgame
+  simp only [Set.mem_iUnion] at hgame
+  obtain ⟨selectedProof, hselected, hverifier⟩ := hgame
+  have hselectedEq : selectedProof = proof := by
+    simpa only [support_pure, Set.mem_singleton_iff] using hselected
+  subst selectedProof
+  exact fsVerifier_support_proof_eq stmt proof hverifier
 
 /-- An accepting wrapped support run satisfies the verifier relation, including
 the aggregate Groth16 pairing equation consumed by the S1 capstone. -/
@@ -1679,6 +1744,157 @@ theorem acceptTree_node_of_answers
     AcceptTree cmA cmB cmT ip (μ + 1) ckA ckB pub ComA ComB ComT := by
   exact .node LA RA LB RB LT RT answer hinjective hnonzero child
 
+/-- Both accepted terminal keys equal the structured MSMs fixed by this leaf's
+transcript. -/
+def KzgLeafStructured
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F) : Prop :=
+  proof.vFinal =
+      msm (transcriptCoeffs (reversedView transcript.roundAnswer) 1)
+        stmt.srsV ∧
+    proof.wFinal =
+      msm (transcriptCoeffs
+        (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
+        transcript.randomizer⁻¹) stmt.srsW
+
+/-- An accepted leaf carries a concrete false KZG opening: at least one
+accepted terminal key is not its transcript-defined structured MSM. -/
+def KzgFalseOpening
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F) : Prop :=
+  LeafData stmt proof transcript ∧
+    ¬KzgLeafStructured stmt proof transcript
+
+/-- The `v`-lane component of an accepted false KZG opening.  This event
+retains the exact accepted verifier relation and identifies the failed
+structured-key equality; it is the output relation a concrete G2 KZG
+reduction must produce. -/
+def KzgVFalseOpening
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F) : Prop :=
+  LeafData stmt proof transcript ∧
+    proof.vFinal ≠
+      msm (transcriptCoeffs (reversedView transcript.roundAnswer) 1)
+        stmt.srsV
+
+/-- The `w`-lane component of an accepted false KZG opening.  This is the
+exact G1 relation a concrete deployed-KZG reduction must output. -/
+def KzgWFalseOpening
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F) : Prop :=
+  LeafData stmt proof transcript ∧
+    proof.wFinal ≠
+      msm (transcriptCoeffs
+        (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
+        transcript.randomizer⁻¹) stmt.srsW
+
+/-- The combined leaf-local KZG bad event is exactly the union of its two
+deployed opening lanes.  No universal binding statement is used. -/
+theorem kzgFalseOpening_iff_lane
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F) :
+    KzgFalseOpening stmt proof transcript ↔
+      KzgVFalseOpening stmt proof transcript ∨
+        KzgWFalseOpening stmt proof transcript := by
+  classical
+  let vStructured : Prop :=
+    proof.vFinal =
+      msm (transcriptCoeffs (reversedView transcript.roundAnswer) 1)
+        stmt.srsV
+  let wStructured : Prop :=
+    proof.wFinal =
+      msm (transcriptCoeffs
+        (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
+        transcript.randomizer⁻¹) stmt.srsW
+  letI : Decidable vStructured := Classical.propDecidable vStructured
+  change
+    (LeafData stmt proof transcript ∧ ¬(vStructured ∧ wStructured)) ↔
+      (LeafData stmt proof transcript ∧ ¬vStructured) ∨
+        (LeafData stmt proof transcript ∧ ¬wStructured)
+  constructor
+  · rintro ⟨hleaf, hnot⟩
+    by_cases hv : vStructured
+    · exact Or.inr ⟨hleaf, fun hw => hnot ⟨hv, hw⟩⟩
+    · exact Or.inl ⟨hleaf, hv⟩
+  · rintro (⟨hleaf, hv⟩ | ⟨hleaf, hw⟩)
+    · exact ⟨hleaf, fun h => hv h.1⟩
+    · exact ⟨hleaf, fun h => hw h.2⟩
+
+/-- A `v`-lane bad leaf exposes exactly an accepted deployed verifier equation
+whose claimed terminal key differs from the structured SRS MSM. -/
+theorem kzgVFalseOpening_relation
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F)
+    (hbad : KzgVFalseOpening stmt proof transcript) :
+    stmt.acceptV transcript.kzg
+        (transcriptCoeffs (reversedView transcript.roundAnswer) 1)
+        proof.vFinal proof.vOpening ∧
+      proof.vFinal ≠
+        msm (transcriptCoeffs (reversedView transcript.roundAnswer) 1)
+          stmt.srsV := by
+  rcases hbad with ⟨hleaf, hfalse⟩
+  dsimp [LeafData] at hleaf
+  obtain ⟨_, _, _, _, _, haccept, _⟩ := hleaf
+  exact ⟨haccept, hfalse⟩
+
+/-- A `w`-lane bad leaf exposes exactly an accepted deployed verifier equation
+whose claimed terminal key differs from the structured SRS MSM. -/
+theorem kzgWFalseOpening_relation
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F)
+    (hbad : KzgWFalseOpening stmt proof transcript) :
+    stmt.acceptW transcript.kzg
+        (transcriptCoeffs
+          (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
+          transcript.randomizer⁻¹)
+        proof.wFinal proof.wOpening ∧
+      proof.wFinal ≠
+        msm (transcriptCoeffs
+          (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
+          transcript.randomizer⁻¹) stmt.srsW := by
+  rcases hbad with ⟨hleaf, hfalse⟩
+  dsimp [LeafData] at hleaf
+  obtain ⟨_, _, _, _, _, _, haccept⟩ := hleaf
+  exact ⟨haccept, hfalse⟩
+
+/-- The legacy universal binding idealization rules out a concrete false
+opening at one accepted leaf. -/
+theorem kzgLeafStructured_of_leafData
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F)
+    (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
+    (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
+    (hleaf : LeafData stmt proof transcript) :
+    KzgLeafStructured stmt proof transcript := by
+  dsimp [LeafData] at hleaf
+  obtain ⟨_h1, _h2, _h3, _h4, _h5, hkzgV, hkzgW⟩ := hleaf
+  exact ⟨hbindV transcript.kzg _ _ _ hkzgV,
+    hbindW transcript.kzg _ _ _ hkzgW⟩
+
 /-- The three lane equalities supplied by `leaf_accept_to_base` from U5d(3)
 leaf data. With lane-native folds (DESIGN §U5d(4) lane-nativity) these are
 the FULL lane values — the tagged `AcceptTree.base` equalities follow by
@@ -1689,7 +1905,7 @@ def LeafBaseComponents
     {μ : Nat}
     (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
     (transcript : FsTranscript μ F) : Prop :=
-  let folded := terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer
+  let folded := terminalFold proof.ComA proof.ComB proof transcript.roundAnswer
   let xV := reversedView transcript.roundAnswer
   let xW := fun i => gipaChallenge (reversedView transcript.roundAnswer i)
   let rShift := transcript.randomizer⁻¹
@@ -1706,6 +1922,37 @@ def LeafBaseComponents
         (proof.bFinal,
           terminalR transcript.randomizer (reversedView transcript.roundAnswer)))
 
+/-- Leaf assembly from the explicit no-false-opening postcondition used by the
+computational KZG experiment. -/
+theorem leafData_to_base_components_of_structured
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    (transcript : FsTranscript μ F)
+    (hleaf : LeafData stmt proof transcript)
+    (hstructured : KzgLeafStructured stmt proof transcript) :
+    LeafBaseComponents stmt proof transcript := by
+  dsimp [LeafData] at hleaf
+  dsimp [KzgLeafStructured] at hstructured
+  dsimp [LeafBaseComponents]
+  obtain ⟨h1, h2, h3, h4, h5, _hkzgV, _hkzgW⟩ := hleaf
+  have hbase := leaf_accept_to_base_of_structured stmt.e stmt.srsV stmt.srsW
+    (reversedView transcript.roundAnswer)
+    (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
+    transcript.randomizer⁻¹ proof.vFinal proof.wFinal
+    proof.aFinal proof.cFinal proof.bFinal
+    (terminalR transcript.randomizer (reversedView transcript.roundAnswer))
+    (terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comA.1
+    (terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comB
+    (terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comT.1
+    (terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comA.2
+    (terminalFold proof.ComA proof.ComB proof transcript.roundAnswer).comT.2
+    h1 h2 h3 h4 h5 hstructured.1 hstructured.2
+  obtain ⟨hA1, hA2⟩ := Prod.ext_iff.mp hbase.1
+  obtain ⟨hT1, hT2⟩ := Prod.ext_iff.mp hbase.2.2
+  exact ⟨Prod.ext hA1 hA2, hbase.2.1, Prod.ext hT1 hT2⟩
+
 /-- U5d(4) leaf assembly up to the full-tag purity boundary. -/
 theorem leafData_to_base_components
     [Field F] [AddCommGroup G1] [Module F G1]
@@ -1718,23 +1965,11 @@ theorem leafData_to_base_components
     (hleaf : LeafData stmt proof transcript) :
     LeafBaseComponents stmt proof transcript := by
   dsimp [LeafData] at hleaf
-  dsimp [LeafBaseComponents]
   obtain ⟨h1, h2, h3, h4, h5, hkzgV, hkzgW⟩ := hleaf
-  have hbase := leaf_accept_to_base stmt.e stmt.srsV stmt.srsW stmt.acceptV
-    stmt.acceptW transcript.kzg (reversedView transcript.roundAnswer)
-    (fun i => gipaChallenge (reversedView transcript.roundAnswer i))
-    transcript.randomizer⁻¹ proof.vFinal proof.vOpening proof.wFinal proof.wOpening
-    proof.aFinal proof.cFinal proof.bFinal
-    (terminalR transcript.randomizer (reversedView transcript.roundAnswer))
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.1
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comB
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.1
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comA.2
-    (terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer).comT.2
-    h1 h2 h3 h4 h5 hbindV hbindW hkzgV hkzgW
-  obtain ⟨hA1, hA2⟩ := Prod.ext_iff.mp hbase.1
-  obtain ⟨hT1, hT2⟩ := Prod.ext_iff.mp hbase.2.2
-  exact ⟨Prod.ext hA1 hA2, hbase.2.1, Prod.ext hT1 hT2⟩
+  apply leafData_to_base_components_of_structured stmt proof transcript
+  · exact ⟨h1, h2, h3, h4, h5, hkzgV, hkzgW⟩
+  · exact kzgLeafStructured_of_leafData stmt proof transcript hbindV hbindW
+      ⟨h1, h2, h3, h4, h5, hkzgV, hkzgW⟩
 
 /-- `foldKey` over a reversed transcript consumes the chronological head
 first, exactly as one `AcceptTree` node folds its key vector. -/
@@ -1944,7 +2179,9 @@ def wrappedRandomizerPoint {μ : Nat}
       (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT)) :
     FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) :=
-  .randomizer { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 }
+  .randomizer
+    { comA := run.out.proof.ComA.1, comB := run.out.proof.ComB,
+      comC := run.out.proof.ComA.2 }
     run.out.transcript.randomizerNonce
 
 /-- The accepted x0 point of a run (stage `tipp-mipp.x0`; payload
@@ -1957,8 +2194,8 @@ def wrappedX0Point {μ : Nat}
       (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT)) :
     FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT) :=
-  .x0 { r := run.out.transcript.randomizer, comA := stmt.ComA.1,
-        comB := stmt.ComB, comC := stmt.ComA.2,
+  .x0 { r := run.out.transcript.randomizer, comA := run.out.proof.ComA.1,
+        comB := run.out.proof.ComB, comC := run.out.proof.ComA.2,
         ipAb := run.out.proof.ipAb, aggC := run.out.proof.aggC }
     run.out.transcript.x0Nonce
 
@@ -2376,7 +2613,7 @@ private theorem structuredPoint_eq_to_shared_prefix
   exact ⟨Option.some.inj (hpointAInB.symm.trans hsomeB), rfl⟩
 
 /-- At one fork node, equality of the chained x0 answers pins the complete x0
-payload, hence the randomizer and the two root T-lane values. -/
+payload, hence the proof-owned root commitments and root T-lane values. -/
 theorem sharedRootData_of_x0
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
@@ -2405,6 +2642,8 @@ theorem sharedRootData_of_x0
     (hinjective : StructuredAnswersInjective (F := F) runA.trace.length logA)
     (hx0 : runA.out.transcript.x0 = runB.out.transcript.x0) :
     runA.out.transcript.randomizer = runB.out.transcript.randomizer ∧
+      runA.out.proof.ComA = runB.out.proof.ComA ∧
+      runA.out.proof.ComB = runB.out.proof.ComB ∧
       runA.out.proof.ipAb = runB.out.proof.ipAb ∧
       runA.out.proof.aggC = runB.out.proof.aggC := by
   obtain ⟨_, ⟨iA, hposA, hiA⟩⟩ := hdepA level s hslotA
@@ -2419,8 +2658,8 @@ theorem sharedRootData_of_x0
     ).1
   change ChallengePoint.x0 _ _ = ChallengePoint.x0 _ _ at hpoint
   injection hpoint with hpayload _
-  injection hpayload with hr _ _ _ hip hagg
-  exact ⟨hr, hip, hagg⟩
+  injection hpayload with hr hcomA hcomB hcomC hip hagg
+  exact ⟨hr, Prod.ext hcomA hcomC, hcomB, hip, hagg⟩
 
 /-- Data fixed by the replay path before a subtree at `level`: root payloads,
 each earlier round record, its selector ordinal, and transcript chaining. -/
@@ -2435,6 +2674,8 @@ structure PathPrefix
   slot_strict : ∀ a b, a < b → b < level → slot a < slot b
   randomizer : run.out.transcript.randomizer = root.out.transcript.randomizer
   x0 : run.out.transcript.x0 = root.out.transcript.x0
+  ComA : run.out.proof.ComA = root.out.proof.ComA
+  ComB : run.out.proof.ComB = root.out.proof.ComB
   ipAb : run.out.proof.ipAb = root.out.proof.ipAb
   aggC : run.out.proof.aggC = root.out.proof.aggC
   round : ∀ (j : Nat) (hj : j < level) (hjμ : j < μ),
@@ -2464,7 +2705,7 @@ theorem PathPrefix.refl
     (hchain : TranscriptChaining run.out.transcript.x0
       run.out.transcript.roundPrev run.out.transcript.roundAnswer) :
     PathPrefix qb level slot run run := by
-  refine ⟨hstrict, rfl, rfl, rfl, rfl, ?_, hchain⟩
+  refine ⟨hstrict, rfl, rfl, rfl, rfl, rfl, rfl, ?_, hchain⟩
   intro j hj hjμ
   have hs := hslots j hj hjμ
   exact ⟨rfl, rfl, rfl, rfl, hs, hs⟩
@@ -2497,8 +2738,8 @@ theorem PathPrefix.extend
     (hslotRoot : roundSlot qb level root = some s)
     (hslotRun : roundSlot qb level run = some s) :
     PathPrefix qb (level + 1) (extendPathSlot level slot s) root run := by
-  refine ⟨?_, hpath.randomizer, hpath.x0, hpath.ipAb, hpath.aggC, ?_,
-    hpath.chaining⟩
+  refine ⟨?_, hpath.randomizer, hpath.x0, hpath.ComA, hpath.ComB,
+    hpath.ipAb, hpath.aggC, ?_, hpath.chaining⟩
   · intro a b hab hb
     by_cases hbeq : b = level
     · subst b
@@ -2617,8 +2858,10 @@ theorem PathPrefix.preserveChild
     hslotA hslotB hrankA hrankB hprefix hinputA hinputB
     hgoodA.2.2.2.2.1 hgoodB.2.2.2.2.1 hgoodA.2.2.2.2.2 hx0BA.symm
   refine ⟨hpath.slot_strict, hroot.1.symm.trans hpath.randomizer,
-    hx0BA.trans hpath.x0, hroot.2.1.symm.trans hpath.ipAb,
-    hroot.2.2.symm.trans hpath.aggC, ?_, hchainB⟩
+    hx0BA.trans hpath.x0, hroot.2.1.symm.trans hpath.ComA,
+    hroot.2.2.1.symm.trans hpath.ComB,
+    hroot.2.2.2.1.symm.trans hpath.ipAb,
+    hroot.2.2.2.2.symm.trans hpath.aggC, ?_, hchainB⟩
   intro j hj hjμ
   have hfields := hrecover.2 j (Nat.zero_le j) hj
   have hrootFields := hpath.round j hj hjμ
@@ -2636,8 +2879,6 @@ private theorem tree_to_acceptTree_aux
     (stmt : FsStatement μ F G1 G2 GT)
     (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
     (qb : (FsWrappedSpec F).Domain → Nat)
-    (hbindV : KzgStructuredKeyBinding stmt.srsV stmt.acceptV)
-    (hbindW : KzgStructuredKeyBinding stmt.srsW stmt.acceptW)
     {depth level : Nat} (hsize : level + depth = μ)
     {lower : Option (Fin (qb (Sum.inr ()) + 1))}
     {tree : RunTree (FsWrappedSpec F)
@@ -2649,6 +2890,8 @@ private theorem tree_to_acceptTree_aux
       (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
       level lower tree)
     (hgood : tree.All (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2))
+    (hstructured : tree.All (fun run =>
+      KzgLeafStructured stmt run.1.out.proof run.1.out.transcript))
     (root : WrappedFsRun
       (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
       (FsResult μ F G1 G2 GT))
@@ -2657,7 +2900,7 @@ private theorem tree_to_acceptTree_aux
     (hlower : lower = if level = 0 then none else some (slot (level - 1))) :
     let r := root.out.transcript.randomizer
     let folded := foldRoundsUpTo root.out.transcript.roundAnswer root.out.proof.rounds
-      { comA := stmt.ComA, comB := stmt.ComB,
+      { comA := root.out.proof.ComA, comB := root.out.proof.ComB,
         comT := (root.out.proof.ipAb, root.out.proof.aggC) }
       level depth hsize
     AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
@@ -2674,13 +2917,13 @@ private theorem tree_to_acceptTree_aux
   | leaf level lower run hsupport hgate =>
       have hlevel : level = μ := by omega
       subst level
-      dsimp only [RunTree.root] at hpath hgood ⊢
+      dsimp only [RunTree.root] at hpath hgood hstructured ⊢
       obtain ⟨sourceLog, htrace, hlog, hsource⟩ :=
         wrapFs_support_exists_source (FsGame stmt adv) hsupport
       have hleaf : LeafData stmt run.1.out.proof run.1.out.transcript := by
         exact ((wrapped_source_leaf_data stmt adv hsource).2 hgood.1).2.2.1
-      have hbase := leafData_to_base_components stmt run.1.out.proof
-        run.1.out.transcript hbindV hbindW hleaf
+      have hbase := leafData_to_base_components_of_structured
+        stmt run.1.out.proof run.1.out.transcript hleaf hstructured
       have hx (j : Nat) (hj : j < μ) :
           root.out.transcript.roundAnswer ⟨j, hj⟩ =
             run.1.out.transcript.roundAnswer ⟨j, hj⟩ :=
@@ -2690,21 +2933,22 @@ private theorem tree_to_acceptTree_aux
         (hpath.round j (by omega) hj).2.1.symm
       have hfold :
           foldRoundsUpTo root.out.transcript.roundAnswer root.out.proof.rounds
-              { comA := stmt.ComA, comB := stmt.ComB,
+              { comA := root.out.proof.ComA, comB := root.out.proof.ComB,
                 comT := (root.out.proof.ipAb, root.out.proof.aggC) }
               μ 0 hsize =
-            terminalFold stmt.ComA stmt.ComB run.1.out.proof
+            terminalFold run.1.out.proof.ComA run.1.out.proof.ComB run.1.out.proof
               run.1.out.transcript.roundAnswer := by
         calc
           _ = foldRoundsUpTo run.1.out.transcript.roundAnswer run.1.out.proof.rounds
-                { comA := stmt.ComA, comB := stmt.ComB,
+                { comA := run.1.out.proof.ComA, comB := run.1.out.proof.ComB,
                   comT := (run.1.out.proof.ipAb, run.1.out.proof.aggC) }
                 μ 0 (by omega) := by
-              rw [← hpath.ipAb, ← hpath.aggC]
+              rw [← hpath.ComA, ← hpath.ComB, ← hpath.ipAb, ← hpath.aggC]
               apply foldRoundsUpTo_congr
               · exact hx
               · exact hrounds
-          _ = _ := foldRoundsUpTo_complete stmt.ComA stmt.ComB run.1.out.proof _
+          _ = _ := foldRoundsUpTo_complete run.1.out.proof.ComA
+            run.1.out.proof.ComB run.1.out.proof _
       have hkeyA :
           foldKeysUpTo id root.out.transcript.roundAnswer
               (fun i => (stmt.srsV i, stmt.srsV i)) μ 0 hsize =
@@ -2763,7 +3007,8 @@ private theorem tree_to_acceptTree_aux
       · change u4AEmbedding _ = u4AEmbedding (u4ALaneAtom stmt.e _ _)
         apply congrArg u4AEmbedding
         calc
-          _ = (terminalFold stmt.ComA stmt.ComB run.1.out.proof
+          _ = (terminalFold run.1.out.proof.ComA run.1.out.proof.ComB
+                run.1.out.proof
                 run.1.out.transcript.roundAnswer).comA := congrArg FoldedValues.comA hfold
           _ = u4ALaneAtom stmt.e
                 ((foldKey (reversedView run.1.out.transcript.roundAnswer)
@@ -2773,7 +3018,8 @@ private theorem tree_to_acceptTree_aux
       · change u4BEmbedding _ = u4BEmbedding (u4BLaneAtom stmt.e _ _)
         apply congrArg u4BEmbedding
         calc
-          _ = (terminalFold stmt.ComA stmt.ComB run.1.out.proof
+          _ = (terminalFold run.1.out.proof.ComA run.1.out.proof.ComB
+                run.1.out.proof
                 run.1.out.transcript.roundAnswer).comB := congrArg FoldedValues.comB hfold
           _ = u4BLaneAtom stmt.e
                 ((foldKey (fun i => gipaChallenge
@@ -2784,7 +3030,8 @@ private theorem tree_to_acceptTree_aux
       · change u4TCommitMap _ = u4TCommitMap (u4TLanePairing stmt.e _ (_, _))
         apply congrArg u4TCommitMap
         calc
-          _ = (terminalFold stmt.ComA stmt.ComB run.1.out.proof
+          _ = (terminalFold run.1.out.proof.ComA run.1.out.proof.ComB
+                run.1.out.proof
                 run.1.out.transcript.roundAnswer).comT := congrArg FoldedValues.comT hfold
           _ = u4TLanePairing stmt.e
                 (run.1.out.proof.aFinal, run.1.out.proof.cFinal)
@@ -2887,19 +3134,21 @@ private theorem tree_to_acceptTree_aux
       have hfold (k : Fin 4) :
           foldRoundsUpTo (children k).root.1.out.transcript.roundAnswer
               (children k).root.1.out.proof.rounds
-              { comA := stmt.ComA, comB := stmt.ComB,
+              { comA := (children k).root.1.out.proof.ComA,
+                comB := (children k).root.1.out.proof.ComB,
                 comT := ((children k).root.1.out.proof.ipAb,
                   (children k).root.1.out.proof.aggC) }
               (level + 1) depth (by omega) =
             foldOne (answers k)
               ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩)
               (foldRoundsUpTo root.out.transcript.roundAnswer root.out.proof.rounds
-                { comA := stmt.ComA, comB := stmt.ComB,
+                { comA := root.out.proof.ComA, comB := root.out.proof.ComB,
                   comT := (root.out.proof.ipAb, root.out.proof.aggC) }
                 level (depth + 1) (by omega)) := by
         rw [foldRoundsUpTo_succ, hanswer, hround]
         congr 1
-        rw [(hpathK k).ipAb, (hpathK k).aggC]
+        rw [(hpathK k).ComA, (hpathK k).ComB,
+          (hpathK k).ipAb, (hpathK k).aggC]
         apply foldRoundsUpTo_congr
         · intro j hj
           exact (hpathK k).round j hj (by omega) |>.1
@@ -2923,7 +3172,7 @@ private theorem tree_to_acceptTree_aux
               (u4AEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).LA)
               (u4AEmbedding (foldRoundsUpTo root.out.transcript.roundAnswer
                 root.out.proof.rounds
-                { comA := stmt.ComA, comB := stmt.ComB,
+                { comA := root.out.proof.ComA, comB := root.out.proof.ComB,
                   comT := (root.out.proof.ipAb, root.out.proof.aggC) }
                 level (depth + 1) (by omega)).comA)
               (u4AEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).RA))
@@ -2931,7 +3180,7 @@ private theorem tree_to_acceptTree_aux
               (u4BEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).LB)
               (u4BEmbedding (foldRoundsUpTo root.out.transcript.roundAnswer
                 root.out.proof.rounds
-                { comA := stmt.ComA, comB := stmt.ComB,
+                { comA := root.out.proof.ComA, comB := root.out.proof.ComB,
                   comT := (root.out.proof.ipAb, root.out.proof.aggC) }
                 level (depth + 1) (by omega)).comB)
               (u4BEmbedding ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).RB))
@@ -2939,7 +3188,7 @@ private theorem tree_to_acceptTree_aux
               (u4TCommitMap ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).LT)
               (u4TCommitMap (foldRoundsUpTo root.out.transcript.roundAnswer
                 root.out.proof.rounds
-                { comA := stmt.ComA, comB := stmt.ComB,
+                { comA := root.out.proof.ComA, comB := root.out.proof.ComB,
                   comT := (root.out.proof.ipAb, root.out.proof.aggC) }
                 level (depth + 1) (by omega)).comT)
               (u4TCommitMap ((children 0).root.1.out.proof.rounds ⟨level, hlevel⟩).RT)) := by
@@ -2950,7 +3199,8 @@ private theorem tree_to_acceptTree_aux
             (hpathK k).chaining
         have hext := PathPrefix.extend hlevel hself hgreater rfl rfl rfl rfl
           (hcf k) (hcf k)
-        have hc := ih k (hsize := by omega) (hgood k) (children k).root.1
+        have hc := ih k (hsize := by omega) (hgood k) (hstructured k)
+          (children k).root.1
           (extendPathSlot level slot s) hext (by simp [extendPathSlot])
         dsimp only at hc
         rw [hkeyA k, hkeyB k, hpub k, hfold k] at hc
@@ -2969,12 +3219,106 @@ private theorem tree_to_acceptTree_aux
         exact (hgoodRoot k).2.1.2.2.2.1 ⟨level, hlevel⟩
       · exact hchild
 
+/-- Assemble the wrapped U5c replay tree when every accepting leaf has the
+explicit structured KZG terminal keys. -/
+theorem tree_to_acceptTree_of_structured
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    {tree : RunTree (FsWrappedSpec F)
+      (WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT)) μ}
+    (hconsistent : TreeConsistent (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+      (fun level run => roundSlot (qb (Sum.inr ())) level run)
+      (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+      0 none tree)
+    (hstructured : tree.All (fun run =>
+      KzgLeafStructured stmt run.1.out.proof run.1.out.transcript)) :
+    let r := tree.root.1.out.transcript.randomizer
+    AcceptTree (u4ACommitAtom stmt.e) (u4BCommitAtom stmt.e) u4TCommitMap
+      (u4TLanePairing stmt.e) μ
+      (fun i => (stmt.srsV i, stmt.srsV i))
+      (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
+      (fun i => r ^ (i : Nat))
+      (u4AEmbedding tree.root.1.out.proof.ComA)
+      (u4BEmbedding tree.root.1.out.proof.ComB)
+      (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
+  have hsupport := TreeConsistent.all_support (wrapFs (FsGame stmt adv)) qb
+    (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run)
+    (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2) hconsistent
+  have hgood := hconsistent.all_leafOk
+  have hchain := wrapped_supports_transcript_chaining stmt adv hsupport.root hgood.root.1
+  apply tree_to_acceptTree_aux stmt adv qb (hsize := by omega)
+    hconsistent hgood hstructured tree.root.1 (fun _ => 0)
+  · exact PathPrefix.refl tree.root.1 (fun _ => 0)
+      (by intro a b hab hb; omega) (by intro j hj; omega) hchain
+  · rfl
+
+private theorem all_leafData_of_all_support_good
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ depth : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (queryBound : Nat)
+    {tree : RunTree (FsWrappedSpec F)
+      (WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT)) depth}
+    (hsupport : tree.All (fun run =>
+      run ∈ support (replayFirstRun (wrapFs (FsGame stmt adv)))))
+    (hgood : tree.All (fun run =>
+      WrappedRunGood queryBound stmt run.1 run.2)) :
+    tree.All (fun run =>
+      LeafData stmt run.1.out.proof run.1.out.transcript) := by
+  induction tree with
+  | leaf run =>
+      dsimp [RunTree.All] at hsupport hgood ⊢
+      obtain ⟨sourceLog, _htrace, _hlog, hsource⟩ :=
+        wrapFs_support_exists_source (FsGame stmt adv) hsupport
+      exact ((wrapped_source_leaf_data stmt adv hsource).2 hgood.1).2.2.1
+  | node children ih =>
+      intro k
+      exact ih k (hsupport k) (hgood k)
+
+/-- Every leaf in a consistent accepting replay tree carries the exact
+terminal verifier relation, independently of any binding assumption. -/
+theorem treeConsistent_all_leafData
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
+    [DecidableEq F] [DecidableEq G1] [DecidableEq G2] [DecidableEq GT]
+    {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT)
+    (adv : OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (Proof μ F G1 G2 GT))
+    (qb : (FsWrappedSpec F).Domain → Nat)
+    {tree : RunTree (FsWrappedSpec F)
+      (WrappedFsRun
+        (FsPoint (F := F) (G1 := G1) (G2 := G2) (GT := GT))
+        (FsResult μ F G1 G2 GT)) μ}
+    (hconsistent : TreeConsistent (wrapFs (FsGame stmt adv)) qb (Sum.inr ())
+      (fun level run => roundSlot (qb (Sum.inr ())) level run)
+      (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2)
+      0 none tree) :
+    tree.All (fun run =>
+      LeafData stmt run.1.out.proof run.1.out.transcript) := by
+  have hsupport := TreeConsistent.all_support (wrapFs (FsGame stmt adv)) qb
+    (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run)
+    (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2) hconsistent
+  have hgood := hconsistent.all_leafOk
+  exact all_leafData_of_all_support_good stmt adv
+    (qb (Sum.inr ())) hsupport hgood
+
 /-- Assemble the wrapped U5c replay tree into the product-lane `AcceptTree`
 consumed by `u4_capstone` (DESIGN §U5d(4); `tipp-mipp.gipa`,
-`fs.stage-labels`).
-
-The proof threads ancestor-prefix correspondence, shared root data, and the
-three truncated fold accumulators through the replay-tree induction. -/
+`fs.stage-labels`). The universal binding parameters are retained only as an
+idealized compatibility wrapper; production S1 uses
+`tree_to_acceptTree_of_structured`. -/
 theorem tree_to_acceptTree
     [Field F] [AddCommGroup G1] [Module F G1]
     [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT]
@@ -2999,18 +3343,14 @@ theorem tree_to_acceptTree
       (fun i => (stmt.srsV i, stmt.srsV i))
       (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
       (fun i => r ^ (i : Nat))
-      (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
+      (u4AEmbedding tree.root.1.out.proof.ComA)
+      (u4BEmbedding tree.root.1.out.proof.ComB)
       (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
-  have hsupport := TreeConsistent.all_support (wrapFs (FsGame stmt adv)) qb
-    (Sum.inr ()) (fun level run => roundSlot (qb (Sum.inr ())) level run)
-    (fun run => WrappedRunGood (qb (Sum.inr ())) stmt run.1 run.2) hconsistent
-  have hgood := hconsistent.all_leafOk
-  have hchain := wrapped_supports_transcript_chaining stmt adv hsupport.root hgood.root.1
-  apply tree_to_acceptTree_aux stmt adv qb hbindV hbindW (hsize := by omega)
-    hconsistent hgood tree.root.1 (fun _ => 0)
-  · exact PathPrefix.refl tree.root.1 (fun _ => 0)
-      (by intro a b hab hb; omega) (by intro j hj; omega) hchain
-  · rfl
+  have hleaf := treeConsistent_all_leafData stmt adv qb hconsistent
+  have hstructured := hleaf.imp (fun run hrun =>
+    kzgLeafStructured_of_leafData stmt run.1.out.proof
+      run.1.out.transcript hbindV hbindW hrun)
+  exact tree_to_acceptTree_of_structured stmt adv qb hconsistent hstructured
 
 noncomputable local instance wrappedRunGoodDecidablePred
     [Field F] [AddCommGroup G1] [Module F G1]
@@ -3205,7 +3545,8 @@ theorem fsFork_success_acceptTree
       (fun i => (stmt.srsV i, stmt.srsV i))
       (fun i => (r ^ (i : Nat))⁻¹ • stmt.srsW i)
       (fun i => r ^ (i : Nat))
-      (u4AEmbedding stmt.ComA) (u4BEmbedding stmt.ComB)
+      (u4AEmbedding tree.root.1.out.proof.ComA)
+      (u4BEmbedding tree.root.1.out.proof.ComB)
       (u4TCommitMap (tree.root.1.out.proof.ipAb, tree.root.1.out.proof.aggC)) := by
   apply tree_to_acceptTree stmt adv qb hbindV hbindW
     (forkTreeCombined_support_props μ (wrapFs (FsGame stmt adv)) qb (Sum.inr ())

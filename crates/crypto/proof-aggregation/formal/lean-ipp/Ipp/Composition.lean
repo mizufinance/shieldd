@@ -335,9 +335,51 @@ theorem u4_key_identification {μ : ℕ}
   kzg_final_keys_structured srsV srsW acceptV acceptW z xV xW rShiftV rShiftW
     vFinal vOpening wFinal wOpening hbindV hbindW haccV haccW
 
-/-- Convert the five real terminal verifier equations and the two KZG checks
-    into the three equations carried by an `AcceptTree.base` leaf at the
-    honestly folded U4 keys and public scalar. -/
+/-- Convert the five terminal equations plus explicit structured terminal-key
+equalities into the three equations carried by an `AcceptTree.base` leaf.
+This is the deterministic boundary used by the computational KZG reduction. -/
+theorem leaf_accept_to_base_of_structured {μ : ℕ}
+    (e : G1 →ₗ[F] G2 →ₗ[F] GT)
+    (srsV : Fin (2 ^ μ) → G2) (srsW : Fin (2 ^ μ) → G1)
+    (xV xW : Fin μ → F) (rShift : F)
+    (vFinal : G2) (wFinal : G1)
+    (aFinal cFinal : G1) (bFinal : G2) (rFinal : F)
+    (foldedComA foldedComB foldedIpAb foldedComC : GT)
+    (foldedAggC : G1)
+    (hterminalA : e aFinal vFinal = foldedComA)
+    (hterminalB : e wFinal bFinal = foldedComB)
+    (hterminalT : e aFinal bFinal = foldedIpAb)
+    (hterminalC : e cFinal vFinal = foldedComC)
+    (hterminalR : rFinal • cFinal = foldedAggC)
+    (hv : vFinal = msm (transcriptCoeffs xV 1) srsV)
+    (hw : wFinal = msm (transcriptCoeffs xW rShift) srsW) :
+    (foldedComA, foldedComC) =
+        u4ALaneAtom e
+          ((foldKey xV (fun i => (srsV i, srsV i))) 0) (aFinal, cFinal) ∧
+    foldedComB =
+        u4BLaneAtom e
+          ((foldKey xW (fun i => rShift ^ (i : ℕ) • srsW i)) 0)
+          bFinal ∧
+    (foldedIpAb, foldedAggC) =
+        u4TLanePairing e (aFinal, cFinal) (bFinal, rFinal) := by
+  have hfoldV : foldKey xV srsV 0 = vFinal := by
+    rw [foldKey_transcriptCoeffs]
+    exact hv.symm
+  have hfoldW :
+      foldKey xW (fun i => rShift ^ (i : ℕ) • srsW i) 0 = wFinal := by
+    rw [foldKey_transcriptCoeffs, ← msm_shift]
+    exact hw.symm
+  constructor
+  · rw [foldKey_prod]
+    ext <;> simp [u4ALaneAtom, hfoldV, hterminalA, hterminalC]
+  constructor
+  · simp [u4BLaneAtom, hfoldW, hterminalB]
+  · ext <;> simp [u4TLanePairing, hterminalT, hterminalR]
+
+/-- Idealized wrapper retained for algebraic clients: universal KZG binding
+derives the explicit structured-key equalities consumed by
+`leaf_accept_to_base_of_structured`. Production soundness uses the
+experiment-relative false-opening event instead. -/
 theorem leaf_accept_to_base {μ : ℕ}
     (e : G1 →ₗ[F] G2 →ₗ[F] GT)
     (srsV : Fin (2 ^ μ) → G2) (srsW : Fin (2 ^ μ) → G1)
@@ -368,19 +410,10 @@ theorem leaf_accept_to_base {μ : ℕ}
         u4TLanePairing e (aFinal, cFinal) (bFinal, rFinal) := by
   obtain ⟨hv, hw⟩ := u4_key_identification srsV srsW acceptV acceptW z
     xV xW 1 rShift vFinal vOpening wFinal wOpening hbindV hbindW haccV haccW
-  have hfoldV : foldKey xV srsV 0 = vFinal := by
-    rw [foldKey_transcriptCoeffs]
-    exact hv.symm
-  have hfoldW :
-      foldKey xW (fun i => rShift ^ (i : ℕ) • srsW i) 0 = wFinal := by
-    rw [foldKey_transcriptCoeffs, ← msm_shift]
-    exact hw.symm
-  constructor
-  · rw [foldKey_prod]
-    ext <;> simp [u4ALaneAtom, hfoldV, hterminalA, hterminalC]
-  constructor
-  · simp [u4BLaneAtom, hfoldW, hterminalB]
-  · ext <;> simp [u4TLanePairing, hterminalT, hterminalR]
+  exact leaf_accept_to_base_of_structured e srsV srsW xV xW rShift
+    vFinal wFinal aFinal cFinal bFinal rFinal foldedComA foldedComB
+    foldedIpAb foldedComC foldedAggC hterminalA hterminalB hterminalT
+    hterminalC hterminalR hv hw
 
 /-- U4 extraction-instantiation lemma: an accepted 4-ary GIPA tree yields
     openings for the instantiated lanes, via U2's `gipa_extract`. Spec rows

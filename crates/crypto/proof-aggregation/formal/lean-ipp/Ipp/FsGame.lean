@@ -137,6 +137,10 @@ abbrev SnarkpackFsSpec (F G1 G2 GT : Type) : OracleSpec (ChallengePoint F G1 G2 
 
 /-- Aggregate proof data consumed by the U5d verifier. -/
 structure Proof (μ : Nat) (F G1 G2 GT : Type) where
+  /-- Root commitment to the ordered A/C witness vectors. -/
+  ComA : GT × GT
+  /-- Root commitment to the ordered B witness vector. -/
+  ComB : GT
   rounds : Fin μ → RoundComs G1 GT
   aFinal : G1
   bFinal : G2
@@ -158,15 +162,10 @@ structure FsStatement (μ : Nat) (F G1 G2 GT : Type) [CommSemiring F]
   srsW : Fin (2 ^ μ) → G1
   acceptV : F → (Fin (2 ^ μ) → F) → G2 → G2 → Prop
   acceptW : F → (Fin (2 ^ μ) → F) → G1 → G1 → Prop
-  ComA : GT × GT
-  ComB : GT
   alpha : G1
   beta : G2
   gamma : G2
   delta : G2
-  A : Fin (2 ^ μ) → G1
-  B : Fin (2 ^ μ) → G2
-  C : Fin (2 ^ μ) → G1
   Aic : Fin (2 ^ μ) → G1
   /-- Maximum attempts per scalar stage. Exhaustion rejects the run. -/
   rejectionFuel : Nat
@@ -340,7 +339,7 @@ def LeafData {F G1 G2 GT : Type}
     (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
     (transcript : FsTranscript μ F) :
     Prop :=
-  let folded := terminalFold stmt.ComA stmt.ComB proof transcript.roundAnswer
+  let folded := terminalFold proof.ComA proof.ComB proof transcript.roundAnswer
   stmt.e proof.aFinal proof.vFinal = folded.comA.1 ∧
   stmt.e proof.wFinal proof.bFinal = folded.comB ∧
   stmt.e proof.aFinal proof.bFinal = folded.comT.1 ∧
@@ -415,14 +414,14 @@ def fsVerifier {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
     OracleComp (unifSpec + SnarkpackFsSpec F G1 G2 GT) (FsResult μ F G1 G2 GT) := do
   let rSample ← queryAccepting
     (fun nonce => .randomizer
-      { comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2 } nonce)
+      { comA := proof.ComA.1, comB := proof.ComB, comC := proof.ComA.2 } nonce)
     randomizerAcceptedB stmt.rejectionFuel 0
   match rSample with
   | none => pure (rejectedResult proof)
   | some (r, rNonce) =>
     let x0Sample ← queryAccepting
       (fun nonce => .x0
-        { r := r, comA := stmt.ComA.1, comB := stmt.ComB, comC := stmt.ComA.2,
+        { r := r, comA := proof.ComA.1, comB := proof.ComB, comC := proof.ComA.2,
           ipAb := proof.ipAb, aggC := proof.aggC } nonce)
       nonzeroB stmt.rejectionFuel 0
     match x0Sample with
@@ -461,6 +460,68 @@ def fsVerifier {F G1 G2 GT : Type} [Field F] [AddCommGroup G1] [Module F G1]
               accept := @ite Bool (FsAccepts stmt proof transcript)
                 (Classical.propDecidable _) true false
             }
+
+/-- Every verifier exit, including rejection-sampler exhaustion, returns the
+same proof supplied by the caller. -/
+theorem fsVerifier_support_proof_eq {F G1 G2 GT : Type}
+    [Field F] [AddCommGroup G1] [Module F G1]
+    [AddCommGroup G2] [Module F G2] [AddCommGroup GT] [Module F GT] {μ : Nat}
+    (stmt : FsStatement μ F G1 G2 GT) (proof : Proof μ F G1 G2 GT)
+    {out : FsResult μ F G1 G2 GT}
+    (h : out ∈ support (fsVerifier stmt proof)) :
+    out.proof = proof := by
+  rw [fsVerifier, support_bind] at h
+  simp only [Set.mem_iUnion] at h
+  obtain ⟨rSample, _, hrest⟩ := h
+  cases rSample with
+  | none =>
+      simp only [support_pure, Set.mem_singleton_iff] at hrest
+      subst out
+      rfl
+  | some rPair =>
+      rcases rPair with ⟨r, rNonce⟩
+      rw [support_bind] at hrest
+      simp only [Set.mem_iUnion] at hrest
+      obtain ⟨x0Sample, _, hx0rest⟩ := hrest
+      cases x0Sample with
+      | none =>
+          simp only [support_pure, Set.mem_singleton_iff] at hx0rest
+          subst out
+          rfl
+      | some x0Pair =>
+          rcases x0Pair with ⟨x0, x0Nonce⟩
+          rw [support_bind] at hx0rest
+          simp only [Set.mem_iUnion] at hx0rest
+          obtain ⟨roundSample, _, hroundRest⟩ := hx0rest
+          cases roundSample with
+          | none =>
+              simp only [support_pure, Set.mem_singleton_iff] at hroundRest
+              subst out
+              rfl
+          | some rounds =>
+              rw [support_bind] at hroundRest
+              simp only [Set.mem_iUnion] at hroundRest
+              obtain ⟨bridgeSample, _, hbridgeRest⟩ := hroundRest
+              cases bridgeSample with
+              | none =>
+                  simp only [support_pure, Set.mem_singleton_iff] at hbridgeRest
+                  subst out
+                  rfl
+              | some bridgePair =>
+                  rcases bridgePair with ⟨bridge, bridgeNonce⟩
+                  rw [support_bind] at hbridgeRest
+                  simp only [Set.mem_iUnion] at hbridgeRest
+                  obtain ⟨zSample, _, hzRest⟩ := hbridgeRest
+                  cases zSample with
+                  | none =>
+                      simp only [support_pure, Set.mem_singleton_iff] at hzRest
+                      subst out
+                      rfl
+                  | some zPair =>
+                      rcases zPair with ⟨z, zNonce⟩
+                      simp only [support_pure, Set.mem_singleton_iff] at hzRest
+                      subst out
+                      rfl
 
 /-- The bounded rejection sampler makes at most one oracle query per unit of fuel. -/
 theorem queryAccepting_isTotalQueryBound {F G1 G2 GT : Type}

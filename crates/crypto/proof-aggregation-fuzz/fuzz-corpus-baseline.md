@@ -23,7 +23,7 @@ slow units now reject in 1-3 ms after `DEFAULT_DEV_SRS_ID` was checked in.
 The Lean differential conformance layer is **not** a fuzz target. The transcript-
 shape domain is finite (one shape per power of two up to the SRS max), so it is
 exhaustively enumerated by `proof-aggregation-lean-conformance`, not sampled —
-see `docs/snarkpack/verification.md` (ALG-I4). The `feature/coverage` columns below describe
+see `docs/snarkpack/verification.md` (TXN-I5). The `feature/coverage` columns below describe
 machine-fuzzed byte boundaries only.
 
 ## Minimized Corpora

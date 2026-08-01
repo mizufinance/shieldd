@@ -120,8 +120,9 @@ pub fn decode_wrapped_aggregate_proof_inner_range(
 mod tests {
     use super::{
         decode_wrapped_aggregate_proof, decode_wrapped_aggregate_proof_inner_range,
-        encode_wrapped_aggregate_proof, AggregateProofBytesError,
+        encode_wrapped_aggregate_proof, AggregateProofBytesError, AGGREGATE_PROOF_WRAPPER_DOMAIN,
     };
+    use crate::app_verifier::app_verify_shipping_wrapper_projection_from_parts;
     use proptest::prelude::*;
 
     #[test]
@@ -146,6 +147,28 @@ mod tests {
             .expect("wrapper decode");
 
         assert_eq!(&wrapped[range], inner.as_slice());
+    }
+
+    #[test]
+    fn arbitrary_external_wrapper_decode_is_retained_exactly() {
+        let digest = [7u8; 32];
+        let inner = [1u8, 2, 3, 4, 5];
+        let mut wrapped = AGGREGATE_PROOF_WRAPPER_DOMAIN.to_vec();
+        wrapped.extend_from_slice(&digest);
+        wrapped.extend_from_slice(&(inner.len() as u32).to_le_bytes());
+        wrapped.extend_from_slice(&inner);
+
+        let decoded =
+            decode_wrapped_aggregate_proof(&wrapped, digest, None).expect("wrapper decode");
+        let projection = app_verify_shipping_wrapper_projection_from_parts(
+            digest.to_vec(),
+            wrapped.clone(),
+            decoded.to_vec(),
+        );
+
+        assert_eq!(projection.statement_digest, digest);
+        assert_eq!(projection.wrapped_proof_bytes, wrapped);
+        assert_eq!(projection.inner_proof_bytes, inner);
     }
 
     #[test]
