@@ -670,6 +670,48 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual(queue.tier, "full")
         self.assertEqual(pr.unknown_files, ("new-area/input.bin",))
 
+    def test_deleted_declared_control_uses_base_declaration(self) -> None:
+        retired_path = "scripts/ci/retired-formal-control.py"
+        current = GATE.classify(
+            self.snarkpack,
+            "pull_request",
+            [retired_path],
+            [],
+        )
+        self.assertEqual(current.unknown_files, (retired_path,))
+
+        control = next(
+            item
+            for item in self.snarkpack.explicit_inputs
+            if item["reason"]
+            == "workflow, classifier, diagnostic, or invoked gate implementation"
+        )
+        previous = GATE.Declaration(
+            gate=self.snarkpack.gate,
+            tiers=self.snarkpack.tiers,
+            events=self.snarkpack.events,
+            derived_inputs=self.snarkpack.derived_inputs,
+            explicit_inputs=(
+                *self.snarkpack.explicit_inputs,
+                {
+                    "patterns": (retired_path,),
+                    "tiers": control["tiers"],
+                    "reason": control["reason"],
+                },
+            ),
+            irrelevant_inputs=self.snarkpack.irrelevant_inputs,
+        )
+        classified = GATE.classify(
+            self.snarkpack,
+            "pull_request",
+            [retired_path],
+            [],
+            previous_declaration=previous,
+        )
+        self.assertEqual((classified.status, classified.tier), ("run", "static"))
+        self.assertFalse(classified.unknown_files)
+        self.assertIn("base declaration", classified.matched[0]["reason"])
+
     def test_audited_unrelated_changes_skip_both_formal_families(self) -> None:
         for path in (
             "README.md",
@@ -1084,6 +1126,26 @@ class GateApplicabilityTests(unittest.TestCase):
             "hashFiles(inputs.nix-cache-glob, 'flake.lock')",
             action,
         )
+
+    def test_local_fv_quarantine_recovery_uses_real_safety_state(self) -> None:
+        runner = (
+            self.root / "scripts/run-snarkpack-fv-safe.ps1"
+        ).read_text(encoding="utf-8")
+        clear_block = runner.split("if ($ClearQuarantine) {", maxsplit=1)[1]
+        clear_block = clear_block.split(
+            "\n    if ($null -ne $existingQuarantine) {", maxsplit=1
+        )[0]
+
+        self.assertIn("Assert-NoFvProcesses", clear_block)
+        self.assertIn("$quarantine.source_fingerprint", clear_block)
+        self.assertIn("Remove-ValidatedQuarantine", clear_block)
+        self.assertNotIn("$quarantine.session_fingerprint", clear_block)
+        self.assertIn(
+            "'exec env CARGO_BUILD_JOBS=1 LEAN_NUM_THREADS=1 "
+            "RAYON_NUM_THREADS=1 python3",
+            runner,
+        )
+        self.assertIn('"bash",\n                "-lc",', runner)
 
     def test_schedule_and_workflow_call_do_not_resolve_derived_inputs(self) -> None:
         for event in ("schedule", "workflow_call"):

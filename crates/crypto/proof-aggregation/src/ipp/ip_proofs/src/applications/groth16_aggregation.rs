@@ -3767,6 +3767,7 @@ trait TippMippAdapterPrimitive<F, G1, G2, GT, ABT, CT> {
         messages: &[u8],
     ) -> Result<F, String>;
     fn inverse(&self, value: &F) -> Option<F>;
+    #[allow(dead_code)] // Formal effect boundary; production uses TippMippEffect.
     fn fold_gt_commitments(
         &self,
         roots: (&GT, &GT, &ABT, &GT),
@@ -3781,6 +3782,7 @@ trait TippMippAdapterPrimitive<F, G1, G2, GT, ABT, CT> {
     fn msm_inner_product(&self, messages: &[G1], scalars: &[F]) -> Result<G1, String>;
 }
 
+#[allow(dead_code)] // Type identity retained for the formal fold boundary.
 type TippMippProverRound<P> = (
     TippMippCoreCommitment<
         PairingOutput<P>,
@@ -4003,6 +4005,7 @@ where
     effect.inverse(value)
 }
 
+#[allow(dead_code)] // Focused formal adapter; production folds through TippMippEffect.
 fn arkworks_tipp_fold_gt_commitments_adapter_core<F, G1, G2, GT, ABT, CT, FX>(
     effect: &FX,
     roots: (&GT, &GT, &ABT, &GT),

@@ -142,7 +142,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "39352df6f7955b89b56c2b32db2c13bfea2d5cb29c3fb294c5412ed3da084d55"
+    "e2484a848fa97ac2633d7ce9e63adb9fe631cb1affccb2968e3e35b45a4eb0de"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (

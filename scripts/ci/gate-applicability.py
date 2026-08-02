@@ -193,6 +193,16 @@ def load_declaration(path: Path, expected_gate: str | None = None) -> Declaratio
     except json.JSONDecodeError as error:
         raise ClassificationError(f"malformed declaration {path}: {error}") from error
 
+    return declaration_from_data(raw_value, str(path), expected_gate)
+
+
+def declaration_from_data(
+    raw_value: Any,
+    path: str,
+    expected_gate: str | None = None,
+) -> Declaration:
+    """Validate one gate declaration loaded from any repository revision."""
+
     raw = _object(raw_value, str(path))
     expected_fields = {
         "schema_version",
@@ -1248,6 +1258,8 @@ def classify(
     event: str,
     files: Iterable[str],
     derived: Iterable[InputRule],
+    *,
+    previous_declaration: Declaration | None = None,
 ) -> Decision:
     if event not in SUPPORTED_EVENTS:
         raise ClassificationError(f"unsupported event {event!r}")
@@ -1275,6 +1287,43 @@ def classify(
                 reason=item["reason"],
             )
         )
+    if previous_declaration is not None:
+        if previous_declaration.gate != declaration.gate:
+            raise ClassificationError(
+                "base declaration gate differs from the current declaration"
+            )
+        for item in previous_declaration.explicit_inputs:
+            tier = tier_for(item["tiers"], event, "base explicit input")
+            declaration.rank(tier)
+            if any(
+                rule.patterns == item["patterns"] and rule.tier == tier
+                for rule in rules
+            ):
+                continue
+            rules.append(
+                InputRule(
+                    patterns=item["patterns"],
+                    tier=tier,
+                    reason=f"base declaration: {item['reason']}",
+                )
+            )
+
+    irrelevant_inputs = declaration.irrelevant_inputs
+    if previous_declaration is not None:
+        irrelevant_inputs = (
+            *irrelevant_inputs,
+            *(
+                {
+                    **item,
+                    "reason": f"base declaration: {item['reason']}",
+                }
+                for item in previous_declaration.irrelevant_inputs
+                if not any(
+                    current["patterns"] == item["patterns"]
+                    for current in declaration.irrelevant_inputs
+                )
+            ),
+        )
 
     selected_tier = "skip"
     matched: list[dict[str, Any]] = []
@@ -1294,7 +1343,7 @@ def classify(
         irrelevant = next(
             (
                 item
-                for item in declaration.irrelevant_inputs
+                for item in irrelevant_inputs
                 if _matches(path, item["patterns"])
             ),
             None,
@@ -1406,6 +1455,24 @@ def main(argv: list[str] | None = None) -> int:
     )
     try:
         declaration = load_declaration(declaration_path, args.gate)
+        previous_declaration = None
+        if args.event in CANDIDATE_EVENTS and args.base:
+            declaration_relative = _relative_to_root(
+                root,
+                str(declaration_path),
+                "declaration",
+            )
+            previous_value = _git_json_file(
+                root,
+                args.base,
+                declaration_relative,
+            )
+            if previous_value is not None:
+                previous_declaration = declaration_from_data(
+                    previous_value,
+                    f"{args.base}:{declaration_relative}",
+                    args.gate,
+                )
         if args.extraction_manifest:
             sources = [
                 source
@@ -1451,7 +1518,13 @@ def main(argv: list[str] | None = None) -> int:
                 args.base,
                 changed_files=files,
             )
-            decision = classify(declaration, args.event, files, rules)
+            decision = classify(
+                declaration,
+                args.event,
+                files,
+                rules,
+                previous_declaration=previous_declaration,
+            )
     except ClassificationError as error:
         decision = blocked(error)
     except Exception as error:  # Defensive boundary: classifier bugs must block.

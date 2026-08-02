@@ -403,7 +403,7 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-          "sha256": "bd5be3617706caf9b3cff6814f3e37de4e6b7cf866f9c650a433c675917b3d0c"
+          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
         },
         {
           "path": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Bls12377GtMembership.lean",

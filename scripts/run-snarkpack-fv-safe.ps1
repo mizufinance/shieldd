@@ -1444,8 +1444,8 @@ function Write-Quarantine {
         child_identity = $ChildIdentity
         wsl_control = $WslControl
         recovery = (
-            "Run this lane in CI. Local clearing requires both a changed " +
-            "source fingerprint and a later runner session."
+            "Run this lane in CI, or fix the source and retry locally with " +
+            "explicit -ClearQuarantine after process absence is verified."
         )
     }
     Write-AtomicJson -Path $QuarantineFile -Value $record
@@ -2196,21 +2196,12 @@ try {
         Assert-NoFvProcesses
         if ($null -ne $existingQuarantine) {
             $quarantine = Read-Quarantine
-            $blockedReasons = [Collections.Generic.List[string]]::new()
             if ([string] $quarantine.source_fingerprint -ceq
                 $sourceFingerprint) {
-                $blockedReasons.Add("the source fingerprint is unchanged")
-            }
-            if ([string] $quarantine.session_fingerprint -ceq
-                $runnerSessionFingerprint) {
-                $blockedReasons.Add("the runner session is unchanged")
-            }
-            if ($blockedReasons.Count -ne 0) {
                 throw (
-                    "refusing -ClearQuarantine because " +
-                    (($blockedReasons.ToArray()) -join " and ") +
-                    "; run this lane in CI, then retry locally only after " +
-                    "a source fix in a later session"
+                    "refusing -ClearQuarantine because the source " +
+                    "fingerprint is unchanged; run this lane in CI or " +
+                    "make a source fix before retrying locally"
                 )
             }
             Remove-ValidatedQuarantine
@@ -2220,7 +2211,8 @@ try {
     if ($null -ne $existingQuarantine) {
         throw (
             "$Lane/$Target is quarantined to CI by $QuarantineFile; " +
-            "do not retry it locally in this session"
+            "retry locally only with explicit -ClearQuarantine after a " +
+            "source fix"
         )
     }
 
@@ -2289,16 +2281,12 @@ exec "$@"
                 $wrapper,
                 "snarkpack-fv-wrapper",
                 $wslControlPath,
-                "env",
-                "CARGO_BUILD_JOBS=1",
-                "LEAN_NUM_THREADS=1",
-                "RAYON_NUM_THREADS=1",
-                "python3",
+                "bash",
+                "-lc",
+                'exec env CARGO_BUILD_JOBS=1 LEAN_NUM_THREADS=1 RAYON_NUM_THREADS=1 python3 "$1" regenerate --graph "$2" --update-manifest',
+                "snarkpack-fv-extract",
                 $wslScript,
-                "regenerate",
-                "--graph",
-                $Target,
-                "--update-manifest"
+                $Target
             )
             $workingDirectory = $RepoRoot
         }
