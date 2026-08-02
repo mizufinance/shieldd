@@ -440,11 +440,27 @@ publish_local_lean_cache() {
   ((${#audit_modules[@]} > 0)) ||
     fail "declared Lean audit module inventory is empty"
 
+  local selected_modules=("${audit_modules[@]}")
+  if [[ -n "${SNARKPACK_LEAN_MODULES_JSON:-}" ]]; then
+    local requested_module_text
+    if ! requested_module_text="$(
+      parse_json_string_array \
+        SNARKPACK_LEAN_MODULES_JSON "${SNARKPACK_LEAN_MODULES_JSON}"
+    )"; then
+      fail "could not parse requested local Lean cache modules"
+    fi
+    local requested_modules=()
+    if [[ -n "$requested_module_text" ]]; then
+      mapfile -t requested_modules <<< "$requested_module_text"
+    fi
+    selected_modules+=("${requested_modules[@]}")
+  fi
+
   local modules_json
   modules_json="$(
-    printf '%s\n' "${audit_modules[@]}" |
+    printf '%s\n' "${selected_modules[@]}" |
       python3 -c \
-        'import json, sys; print(json.dumps([line.rstrip("\n") for line in sys.stdin if line.rstrip("\n")], separators=(",", ":")))'
+        'import json, sys; print(json.dumps(list(dict.fromkeys(line.rstrip("\n") for line in sys.stdin if line.rstrip("\n"))), separators=(",", ":")))'
   )"
 
   # Local publication is deliberately serialized and checkpointed. A stopped

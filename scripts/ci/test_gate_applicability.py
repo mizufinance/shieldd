@@ -1147,6 +1147,21 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         self.assertIn('"bash",\n                "-lc",', runner)
 
+    def test_local_lean_cache_includes_ci_selected_modules(self) -> None:
+        runner = (self.root / "scripts/snarkpack-fv.sh").read_text(
+            encoding="utf-8"
+        )
+        publisher = runner.split(
+            "publish_local_lean_cache() {", maxsplit=1
+        )[1].split("\n}\n\nreproduce_lean_cache()", maxsplit=1)[0]
+
+        self.assertIn("SNARKPACK_LEAN_MODULES_JSON", publisher)
+        self.assertIn("parse_json_string_array", publisher)
+        self.assertIn('selected_modules+=("${requested_modules[@]}")', publisher)
+        self.assertIn("dict.fromkeys", publisher)
+        self.assertIn('run_lean "${pending_modules[@]}"', publisher)
+        self.assertIn("--exact-cache", publisher)
+
     def test_schedule_and_workflow_call_do_not_resolve_derived_inputs(self) -> None:
         for event in ("schedule", "workflow_call"):
             with self.subTest(event=event):
