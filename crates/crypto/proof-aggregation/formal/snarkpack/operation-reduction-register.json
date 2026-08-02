@@ -130,7 +130,7 @@
       "id": "E1-SHARED-GT-MULTIEXP",
       "category": "exact-v1",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: none",
-      "proposed_vector": "default every dimension = same as baseline; overrides: verifier.backend extension_field_multiplications/extension_field_squarings = open strict decreases from a shared GIPA GT multi-exponentiation schedule; every protocol dimension remains the same",
+      "proposed_vector": "default every dimension = same as baseline; overrides: the four verifier GIPA GT recurrences are flattened into four (1+2*mu)-term variable-base GT MSMs sharing one scalar schedule; verifier.backend extension_field_multiplications/extension_field_squarings are benchmark-dependent open decreases; every protocol dimension remains the same",
       "deltas": {
         "prover": "default every protocol/backend dimension = 0; overrides: none",
         "verifier": "default every protocol/backend dimension = 0; overrides: extension_field_multiplications and extension_field_squarings = open negative",
@@ -140,11 +140,11 @@
         "v1 GIPA GT folds",
         "Goal validity unchanged"
       ],
-      "theorem": "Exact equality of deferred folds and the current per-round exponentiation schedule, plus strict Backend.ComponentwiseLE",
+      "theorem": "Ipp.Optimization.shared_gt_fold_exact proves equality of the flattened and chronological recurrences; strict Backend.ComponentwiseLE remains open pending a concrete Arkworks MSM cost vector",
       "transcript_wire_impact": "none; v1 proof bytes and challenge trace must be identical",
       "assumptions": [],
       "error_term": "0",
-      "boundary": "GIPA verifier GT arithmetic below SnarkPackV1",
+      "boundary": "Implemented in verify_tipp_mipp_challenge_prefix_core via fold_arkworks_gt_commitments_msm; bench-baseline retains the chronological recurrence",
       "status": "open",
       "rejection_reason": ""
     },
@@ -152,9 +152,9 @@
       "id": "E2-REGROUP-PAIRING-TERMS",
       "category": "exact-v1",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: none",
-      "proposed_vector": "default every dimension = same as baseline; overrides: prover.protocol miller_terms = an open decrease only at a concrete site where exact bilinear regrouping removes a logical pair while preserving every separately serialized GT output; final_exponentiations remain unchanged; affected backend dimensions = open",
+      "proposed_vector": "default every dimension = same as baseline; overrides for padded n=2^mu and authenticated real count m: prover.protocol miller_terms = 9*n+3*m-8, an exact decrease of 3*(n-m); final_exponentiations unchanged; prover.backend curve_additions add (n-m) G1 and (n-m) G2 key additions because the shared G2 suffix sum is reused by comA/comC; induced pairing backend dimensions remain open",
       "deltas": {
-        "prover": "default every protocol/backend dimension = 0; overrides: miller_terms and induced extension-field dimensions = open; final_exponentiations = 0",
+        "prover": "default every protocol/backend dimension = 0; overrides: miller_terms = -3*(n-m); curve_additions = +(n-m) G1 plus +(n-m) G2 at the typed group boundary; induced extension-field dimensions = open; final_exponentiations = 0",
         "verifier": "default every protocol/backend dimension = 0; overrides: none unless a verifier site is separately specified and proved",
         "setup": "default every protocol/backend dimension = 0; overrides: none"
       },
@@ -163,13 +163,13 @@
         "v1 KZG equations",
         "Goal PPEs unchanged"
       ],
-      "theorem": "Exact equality from concrete pairing bilinearity and identity handling",
+      "theorem": "Ipp.Optimization.repeated_left_pairing_exact and repeated_right_pairing_exact prove value equality; Ipp.Cost.prover_padding_pairing_exact_saving and prover_padding_pairing_strictly_fewer prove the exact Miller delta",
       "transcript_wire_impact": "none",
       "assumptions": [
         "concrete pairing bilinearity"
       ],
       "error_term": "0",
-      "boundary": "pairing-product construction below SnarkPackV1",
+      "boundary": "Implemented for comA/comB/comC in initial_commitments_profiled using authenticated real_count; malformed internal suffixes fall back to the historical full pairing path",
       "status": "open",
       "rejection_reason": ""
     },
@@ -177,9 +177,9 @@
       "id": "E3-REGROUP-MSM-COEFFICIENTS",
       "category": "exact-v1",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: none",
-      "proposed_vector": "default every dimension = same as baseline; overrides: prover.protocol g1_msm_terms and/or g2_msm_terms = open negative only if bases are eliminated; otherwise only prover.backend curve_additions/curve_doublings = open negative",
+      "proposed_vector": "default every dimension = same as baseline; overrides: prover KZG-opening subset g1_msm_terms = 2*n-2 and g2_msm_terms = 2*n-2, exactly one fewer submitted term in each lane; every other protocol dimension remains the same",
       "deltas": {
-        "prover": "default every protocol/backend dimension = 0; overrides: g1_msm_terms, g2_msm_terms, curve_additions, and curve_doublings = open",
+        "prover": "default every protocol/backend dimension = 0; overrides: g1_msm_terms = -1 and g2_msm_terms = -1; induced curve_additions/curve_doublings are nonpositive but remain backend-open",
         "verifier": "default every protocol/backend dimension = 0; overrides: none",
         "setup": "default every protocol/backend dimension = 0; overrides: none"
       },
@@ -187,11 +187,11 @@
         "v1 KZG commitments",
         "v1 fold commitments"
       ],
-      "theorem": "Exact MSM linearity with complete zero, infinity, and duplicate-base coverage",
+      "theorem": "Ipp.Optimization.omit_trailing_zero_msm_exact proves value equality; Ipp.Cost.prover_unpadded_kzg_exact_saving proves one fewer logical term per lane",
       "transcript_wire_impact": "none",
       "assumptions": [],
       "error_term": "0",
-      "boundary": "MSM coefficient construction and S3 MSM kernel",
+      "boundary": "Implemented in prove_commitment_key_kzg_opening_adapter_core; the full zero-padded coefficient vector remains in the extraction witness while the primitive receives only the nonzero-length prefix",
       "status": "open",
       "rejection_reason": ""
     },
@@ -265,21 +265,21 @@
       "id": "E7-CYCLOTOMIC-FP12",
       "category": "exact-v1",
       "baseline_vector": "default every declared role/layer/dimension = shipping-v1; overrides: each concrete raw-Fp12 exponentiation site's extension-field vector = open",
-      "proposed_vector": "default every dimension = same as baseline; overrides: extension_field_multiplications and/or extension_field_squarings = a proved strict decrease only at sites with proved cyclotomic membership",
+      "proposed_vector": "default every protocol dimension = same as baseline; overrides at every shipping BLS12-377 accepted-wire GT site: replace generic 253-bit x^r validation with nonzero, x^(q^4)*x=x^(q^2), and x^q=x^BLS_X; extension-field multiplication/squaring/Frobenius counts require a concrete backend vector",
       "deltas": {
         "prover": "default every protocol/backend dimension = 0; overrides: extension_field_multiplications and extension_field_squarings = open at registered cyclotomic sites",
-        "verifier": "default every protocol/backend dimension = 0; overrides: extension_field_multiplications and extension_field_squarings = open at registered cyclotomic sites",
+        "verifier": "default every protocol/backend dimension = 0; overrides: extension_field_multiplications, extension_field_squarings, and extension-field Frobenius work = open strict trade against each generic 253-bit validation exponentiation",
         "setup": "default every protocol/backend dimension = 0; overrides: none"
       },
       "affected_clauses": [
         "v1 GT exponentiation",
         "v1 subgroup validation"
       ],
-      "theorem": "Membership in the cyclotomic subgroup at every substituted site and equality of exponentiation results",
+      "theorem": "Ipp.Bls12377.fastGtUnitMembership_iff proves the concrete cyclotomic-plus-seed predicate iff x^r=1 using the exact BLS12-377 exponent gcd",
       "transcript_wire_impact": "none",
       "assumptions": [],
       "error_term": "0",
-      "boundary": "S3 Fp12 and GT kernels",
+      "boundary": "Implemented by validate_bls12_377_gt_fast and validate_decoded_aggregate_proof; canonical bytes and Arkworks G1/G2 validation remain unchanged; bench-baseline retains PairingOutput::check",
       "status": "open",
       "rejection_reason": ""
     },

@@ -88,6 +88,17 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.directory.cleanup()
 
+    def test_default_cache_is_committed_not_lake_state(self) -> None:
+        self.assertEqual(
+            ATTESTATION.DEFAULT_MARKER_DIR,
+            ATTESTATION.EVIDENCE_ROOT / "modules",
+        )
+        self.assertEqual(
+            ATTESTATION.DEFAULT_AUDIT_DIR,
+            ATTESTATION.EVIDENCE_ROOT / "audits",
+        )
+        self.assertNotIn(".lake", ATTESTATION.EVIDENCE_ROOT.parts)
+
     @staticmethod
     def _impact_source() -> str:
         real = Path(__file__).with_name("snarkpack_fv_impact.py")
@@ -177,7 +188,7 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
             'lean = "leanprover/lean4:v4.19.0"\n'
             'hax_commit = "changed-but-unrelated"\n'
             'image_digest = "sha256:'
-            + "1" * 64
+            + "2" * 64
             + '"\n',
             encoding="utf-8",
         )
@@ -188,7 +199,7 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
             'lean = "leanprover/lean4:v4.20.0"\n'
             'hax_commit = "changed-but-unrelated"\n'
             'image_digest = "sha256:'
-            + "2" * 64
+            + "3" * 64
             + '"\n',
             encoding="utf-8",
         )
@@ -222,7 +233,8 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
     def test_exact_cache_missing_or_mismatched_marker_is_fatal(self) -> None:
         values = self._fingerprints(("Ipp.Middle",))
         with self.assertRaisesRegex(
-            ATTESTATION.AttestationError, "exact Lean cache has missing marker"
+            ATTESTATION.AttestationError,
+            "committed Lean cache has missing marker",
         ):
             ATTESTATION.plan(
                 values, self.markers, exact_cache=True, force_all=False
@@ -232,7 +244,7 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
         marker.write_text("0" * 64 + "\n", encoding="ascii")
         with self.assertRaisesRegex(
             ATTESTATION.AttestationError,
-            "exact Lean cache has mismatched marker",
+            "committed Lean cache has mismatched marker",
         ):
             ATTESTATION.plan(
                 values, self.markers, exact_cache=True, force_all=False
@@ -355,6 +367,55 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
             ),
             text,
         )
+
+    def test_fresh_audit_comparison_is_read_only_and_exact(self) -> None:
+        values = self._fingerprints(("Ipp.ProofAuditTest",))
+        refreshed = self.root / "refreshed"
+        refreshed.mkdir()
+        source = refreshed / "Ipp.ProofAuditTest.log"
+        diagnostic = {
+            "data": "'base' does not depend on any axioms",
+            "fileName": "Ipp/ProofAuditTest.lean",
+            "pos": {"column": 0, "line": 3},
+            "severity": "information",
+        }
+        source.write_text(json.dumps(diagnostic) + "\n", encoding="utf-8")
+        ATTESTATION.record(values, self.markers)
+        ATTESTATION.record_audit_evidence_from_dir(
+            values,
+            self.audits,
+            refreshed,
+            validator=lambda _module, _text: None,
+        )
+        before = {
+            path.name: path.read_bytes()
+            for path in self.audits.iterdir()
+        }
+
+        checked = ATTESTATION.compare_audit_evidence_from_dir(
+            values,
+            self.audits,
+            refreshed,
+            validator=lambda _module, _text: None,
+        )
+        self.assertEqual(checked, 1)
+        self.assertEqual(
+            before,
+            {path.name: path.read_bytes() for path in self.audits.iterdir()},
+        )
+
+        diagnostic["data"] = "'base' depends on axioms: [propext]"
+        source.write_text(json.dumps(diagnostic) + "\n", encoding="utf-8")
+        with self.assertRaisesRegex(
+            ATTESTATION.AttestationError,
+            "fresh Lean audit differs from committed evidence",
+        ):
+            ATTESTATION.compare_audit_evidence_from_dir(
+                values,
+                self.audits,
+                refreshed,
+                validator=lambda _module, _text: None,
+            )
 
     def test_missing_or_tampered_audit_evidence_rebuilds_or_fails_exact(self) -> None:
         values = self._fingerprints(("Ipp.ProofAuditTest",))

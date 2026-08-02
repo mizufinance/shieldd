@@ -1,4 +1,6 @@
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, SerializationError};
+#[cfg(not(feature = "bench-baseline"))]
+use ark_serialize::{Compress, Validate};
 
 /// Accept only the serializer's canonical image: full byte consumption plus an
 /// exact compressed re-serialization round trip. This rejects arkworks'
@@ -12,6 +14,34 @@ where
     if !remaining.is_empty() {
         return Err(SerializationError::InvalidData);
     }
+
+    let mut canonical = Vec::new();
+    value.serialize_compressed(&mut canonical)?;
+    if canonical != bytes {
+        return Err(SerializationError::InvalidData);
+    }
+
+    Ok(value)
+}
+
+/// Strict canonical decoding with a caller-owned validation predicate.
+///
+/// This is used when an exactly equivalent, formally justified validation
+/// kernel replaces a type's default `Valid::check` implementation.
+#[cfg(not(feature = "bench-baseline"))]
+pub(crate) fn deserialize_compressed_strict_with<T>(
+    bytes: &[u8],
+    validate: impl FnOnce(&T) -> Result<(), SerializationError>,
+) -> Result<T, SerializationError>
+where
+    T: CanonicalDeserialize + CanonicalSerialize,
+{
+    let mut remaining = bytes;
+    let value = T::deserialize_with_mode(&mut remaining, Compress::Yes, Validate::No)?;
+    if !remaining.is_empty() {
+        return Err(SerializationError::InvalidData);
+    }
+    validate(&value)?;
 
     let mut canonical = Vec::new();
     value.serialize_compressed(&mut canonical)?;

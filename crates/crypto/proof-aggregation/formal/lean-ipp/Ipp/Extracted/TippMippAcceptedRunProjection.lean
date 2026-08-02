@@ -28,14 +28,12 @@ abbrev Effects (FX : Type) :=
       ArkPairingOutput g1PrimeSubgroup String
 
 abbrev RoundState (FX : Type) :=
-  core.ops.range.Range × FX × ArkPairingOutput × ArkPairingOutput ×
-    ArkPairingOutput × ArkPairingOutput × g1PrimeSubgroup × Fr × Fr ×
-    alloc.vec.Vec Fr × alloc.vec.Vec Fr × Option String
+  core.ops.range.Range × FX × g1PrimeSubgroup × Fr × Fr × alloc.vec.Vec Fr ×
+    alloc.vec.Vec Fr × Option String
 
 abbrev RoundOutput (FX : Type) :=
-  FX × ArkPairingOutput × ArkPairingOutput × ArkPairingOutput ×
-    ArkPairingOutput × g1PrimeSubgroup × Fr × alloc.vec.Vec Fr ×
-    alloc.vec.Vec Fr × Option String
+  FX × g1PrimeSubgroup × Fr × alloc.vec.Vec Fr × alloc.vec.Vec Fr ×
+    Option String
 
 private def finVec {T : Type} {n : Nat} (values : Fin n → T) :
     alloc.vec.Vec T :=
@@ -45,24 +43,14 @@ private def roundBody {FX : Type}
     (effects : Effects FX) (rounds : alloc.vec.Vec Round)
     (roundCount : Usize) :
     RoundState FX → Result (ControlFlow (RoundState FX) (RoundOutput FX)) :=
-  fun (iter, effect, comA, comB, comT, comC, comZ, prior, last, raw,
-      inverse, roundError) =>
+  fun (iter, effect, comZ, prior, last, raw, inverse, roundError) =>
     applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body
       (Ipp.Extracted.VerifyTippMipp.modelClone Fr)
-      (Ipp.Extracted.VerifyTippMipp.modelClone ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelDefault ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelAdd ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelSmulAssign ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelClone ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelDefault ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelAdd ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelSmulAssign ArkPairingOutput)
       (Ipp.Extracted.VerifyTippMipp.modelClone g1PrimeSubgroup)
       (Ipp.Extracted.VerifyTippMipp.modelDefault g1PrimeSubgroup)
       (Ipp.Extracted.VerifyTippMipp.modelAdd g1PrimeSubgroup)
       (Ipp.Extracted.VerifyTippMipp.modelSmulAssign g1PrimeSubgroup)
-      effects rounds roundCount iter effect comA comB comT comC comZ prior last
-      raw inverse roundError
+      effects rounds roundCount iter effect comZ prior last raw inverse roundError
 
 private theorem usizeSub (left right : Nat) (h : right ≤ left) :
     (({ val := left } : Usize) - ({ val := right } : Usize) : Result Usize) =
@@ -194,7 +182,6 @@ private theorem successfulRoundStep {FX : Type} {n : Nat}
     (effects : Effects FX) (rounds : Fin n → Round)
     (k : Nat) (hk : k < n)
     (effect nextEffect : FX)
-    (comA comB comT comC : ArkPairingOutput)
     (comZ : g1PrimeSubgroup) (prior last value inverseValue : Fr)
     (raw inverse : alloc.vec.Vec Fr)
     (hderive :
@@ -206,22 +193,10 @@ private theorem successfulRoundStep {FX : Type} {n : Nat}
       effects.invert_round nextEffect value =
         .ok (.Ok inverseValue)) :
     roundBody effects (finVec rounds) ⟨n⟩
-        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT,
-          comC, comZ, prior, last, raw, inverse, none) =
+        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+          inverse, none) =
       .ok (.cont
         ({ start := ⟨k + 1⟩, «end» := ⟨n⟩ }, nextEffect,
-          foldValue inverseValue value
-            (rounds (Fin.rev ⟨k, hk⟩)).1.ab.1 comA
-            (rounds (Fin.rev ⟨k, hk⟩)).2.ab.1,
-          foldValue inverseValue value
-            (rounds (Fin.rev ⟨k, hk⟩)).1.ab.2.1 comB
-            (rounds (Fin.rev ⟨k, hk⟩)).2.ab.2.1,
-          foldValue inverseValue value
-            (rounds (Fin.rev ⟨k, hk⟩)).1.ab.2.2 comT
-            (rounds (Fin.rev ⟨k, hk⟩)).2.ab.2.2,
-          foldValue inverseValue value
-            (rounds (Fin.rev ⟨k, hk⟩)).1.c.1 comC
-            (rounds (Fin.rev ⟨k, hk⟩)).2.c.1,
           foldValue inverseValue value
             (rounds (Fin.rev ⟨k, hk⟩)).1.c.2 comZ
             (rounds (Fin.rev ⟨k, hk⟩)).2.c.2,
@@ -250,44 +225,31 @@ private theorem successfulRoundStep {FX : Type} {n : Nat}
 private theorem noAcceptedTailAfterError {FX : Type} {n k : Nat}
     (effects : Effects FX) (rounds : Fin n → Round) (hk : k ≤ n)
     (effect finalEffect : FX)
-    (comA comB comT comC : ArkPairingOutput)
-    (comZ : g1PrimeSubgroup)
-    (finalComA finalComB finalComT finalComC : ArkPairingOutput)
-    (finalComZ : g1PrimeSubgroup)
+    (comZ finalComZ : g1PrimeSubgroup)
     (prior last finalPrior : Fr)
     (raw inverse finalRaw finalInverse : alloc.vec.Vec Fr)
     (error : String)
     (hrun :
       LoopResult (roundBody effects (finVec rounds) ⟨n⟩)
-        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT,
-          comC, comZ, prior, last, raw, inverse, some error)
-        (.ok (finalEffect, finalComA, finalComB, finalComT, finalComC,
-          finalComZ, finalPrior, finalRaw, finalInverse, none))) :
+        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+          inverse, some error)
+        (.ok (finalEffect, finalComZ, finalPrior, finalRaw, finalInverse,
+          none))) :
     False := by
   have hrunEq := loop_eq_of_result hrun
   have hterminal :=
     Ipp.Extracted.VerifyTippMipp.roundError_terminal
       (Ipp.Extracted.VerifyTippMipp.modelClone Fr)
-      (Ipp.Extracted.VerifyTippMipp.modelClone ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelDefault ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelAdd ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelSmulAssign ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelClone ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelDefault ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelAdd ArkPairingOutput)
-      (Ipp.Extracted.VerifyTippMipp.modelSmulAssign ArkPairingOutput)
       (Ipp.Extracted.VerifyTippMipp.modelClone g1PrimeSubgroup)
       (Ipp.Extracted.VerifyTippMipp.modelDefault g1PrimeSubgroup)
       (Ipp.Extracted.VerifyTippMipp.modelAdd g1PrimeSubgroup)
       (Ipp.Extracted.VerifyTippMipp.modelSmulAssign g1PrimeSubgroup)
-      effects rounds hk effect comA comB comC comT comZ prior last raw inverse
-      error
+      effects rounds hk effect comZ prior last raw inverse error
   have hterminal' :
       loop (roundBody effects (finVec rounds) ⟨n⟩)
-          ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT,
-            comC, comZ, prior, last, raw, inverse, some error) =
-        .ok (effect, comA, comB, comT, comC, comZ, last, raw, inverse,
-          some error) := by
+          ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+            inverse, some error) =
+        .ok (effect, comZ, last, raw, inverse, some error) := by
     simpa [roundBody, finVec] using hterminal
   rw [hterminal'] at hrunEq
   simp at hrunEq
@@ -295,19 +257,16 @@ private theorem noAcceptedTailAfterError {FX : Type} {n k : Nat}
 private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
     (effects : Effects FX) (rounds : Fin n → Round) (hk : k ≤ n)
     (effect finalEffect : FX)
-    (comA comB comT comC : ArkPairingOutput)
-    (comZ : g1PrimeSubgroup)
-    (finalComA finalComB finalComT finalComC : ArkPairingOutput)
-    (finalComZ : g1PrimeSubgroup)
+    (comZ finalComZ : g1PrimeSubgroup)
     (prior last finalPrior : Fr)
     (hpriorLast : prior = last)
     (raw inverse finalRaw finalInverse : alloc.vec.Vec Fr)
     (hrun :
       LoopResult (roundBody effects (finVec rounds) ⟨n⟩)
-        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT,
-          comC, comZ, prior, last, raw, inverse, none)
-        (.ok (finalEffect, finalComA, finalComB, finalComT, finalComC,
-          finalComZ, finalPrior, finalRaw, finalInverse, none))) :
+        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+          inverse, none)
+        (.ok (finalEffect, finalComZ, finalPrior, finalRaw, finalInverse,
+          none))) :
     Nonempty
       (RoundSegment effects rounds k effect prior finalEffect finalPrior) := by
   by_cases hdone : k = n
@@ -316,12 +275,11 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
     | done hbody =>
         have hbody' :
             (.ok (.done
-              (effect, comA, comB, comT, comC, comZ, last, raw, inverse,
-                none)) :
+              (effect, comZ, last, raw, inverse, none)) :
               Result (ControlFlow (RoundState FX) (RoundOutput FX))) =
             .ok (.done
-              (finalEffect, finalComA, finalComB, finalComT, finalComC,
-                finalComZ, finalPrior, finalRaw, finalInverse, none)) := by
+              (finalEffect, finalComZ, finalPrior, finalRaw, finalInverse,
+                none)) := by
           simpa [roundBody,
             applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body,
             core.iter.range.IteratorRange.next] using hbody
@@ -402,34 +360,21 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
                 have hfailure :=
                   Ipp.Extracted.VerifyTippMipp.deriveFailure_step
                     (Ipp.Extracted.VerifyTippMipp.modelClone Fr)
-                    (Ipp.Extracted.VerifyTippMipp.modelClone ArkPairingOutput)
-                    (Ipp.Extracted.VerifyTippMipp.modelDefault ArkPairingOutput)
-                    (Ipp.Extracted.VerifyTippMipp.modelAdd ArkPairingOutput)
-                    (Ipp.Extracted.VerifyTippMipp.modelSmulAssign
-                      ArkPairingOutput)
-                    (Ipp.Extracted.VerifyTippMipp.modelClone ArkPairingOutput)
-                    (Ipp.Extracted.VerifyTippMipp.modelDefault
-                      ArkPairingOutput)
-                    (Ipp.Extracted.VerifyTippMipp.modelAdd ArkPairingOutput)
-                    (Ipp.Extracted.VerifyTippMipp.modelSmulAssign
-                      ArkPairingOutput)
                     (Ipp.Extracted.VerifyTippMipp.modelClone g1PrimeSubgroup)
                     (Ipp.Extracted.VerifyTippMipp.modelDefault g1PrimeSubgroup)
                     (Ipp.Extracted.VerifyTippMipp.modelAdd g1PrimeSubgroup)
                     (Ipp.Extracted.VerifyTippMipp.modelSmulAssign
                       g1PrimeSubgroup)
-                    effects rounds k hlt effect nextEffect comA comB comC comT
-                    comZ prior last raw inverse error hderive
+                    effects rounds k hlt effect nextEffect comZ prior last raw
+                    inverse error hderive
                 rw [show roundBody effects (finVec rounds) ⟨n⟩
-                    ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA, comB,
-                      comT, comC, comZ, prior, last, raw, inverse, none) =
+                    ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ, prior,
+                      last, raw, inverse, none) =
                     _ by simpa [roundBody, finVec] using hfailure] at hstep
                 cases hstep
                 exact (noAcceptedTailAfterError effects rounds (by omega)
-                  nextEffect finalEffect comA comB comT comC comZ
-                  finalComA finalComB finalComT finalComC finalComZ
-                  prior last finalPrior raw inverse finalRaw finalInverse
-                  error htail).elim
+                  nextEffect finalEffect comZ finalComZ prior last finalPrior
+                  raw inverse finalRaw finalInverse error htail).elim
             | Ok value =>
                 cases hinvert :
                     effects.invert_round nextEffect value with
@@ -466,22 +411,6 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
                           Ipp.Extracted.VerifyTippMipp.inversionFailure_step
                             (Ipp.Extracted.VerifyTippMipp.modelClone Fr)
                             (Ipp.Extracted.VerifyTippMipp.modelClone
-                              ArkPairingOutput)
-                            (Ipp.Extracted.VerifyTippMipp.modelDefault
-                              ArkPairingOutput)
-                            (Ipp.Extracted.VerifyTippMipp.modelAdd
-                              ArkPairingOutput)
-                            (Ipp.Extracted.VerifyTippMipp.modelSmulAssign
-                              ArkPairingOutput)
-                            (Ipp.Extracted.VerifyTippMipp.modelClone
-                              ArkPairingOutput)
-                            (Ipp.Extracted.VerifyTippMipp.modelDefault
-                              ArkPairingOutput)
-                            (Ipp.Extracted.VerifyTippMipp.modelAdd
-                              ArkPairingOutput)
-                            (Ipp.Extracted.VerifyTippMipp.modelSmulAssign
-                              ArkPairingOutput)
-                            (Ipp.Extracted.VerifyTippMipp.modelClone
                               g1PrimeSubgroup)
                             (Ipp.Extracted.VerifyTippMipp.modelDefault
                               g1PrimeSubgroup)
@@ -489,48 +418,32 @@ private theorem segmentOfLoopResult {FX : Type} {n k : Nat}
                               g1PrimeSubgroup)
                             (Ipp.Extracted.VerifyTippMipp.modelSmulAssign
                               g1PrimeSubgroup)
-                            effects rounds k hlt effect nextEffect comA comB
-                            comC comT comZ prior last value raw inverse error
-                            hderive hinvert
+                            effects rounds k hlt effect nextEffect comZ prior
+                            last value raw inverse error hderive hinvert
                         rw [show roundBody effects (finVec rounds) ⟨n⟩
-                            ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA,
-                              comB, comT, comC, comZ, prior, last, raw,
-                              inverse, none) = _ by
+                            ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ,
+                              prior, last, raw, inverse, none) = _ by
                           simpa [roundBody, finVec] using hfailure] at hstep
                         cases hstep
                         exact
                           (noAcceptedTailAfterError effects rounds (by omega)
-                            nextEffect finalEffect comA comB comT comC comZ
-                            finalComA finalComB finalComT finalComC finalComZ
-                            prior last finalPrior raw inverse finalRaw
-                            finalInverse error htail).elim
+                            nextEffect finalEffect comZ finalComZ prior last
+                            finalPrior raw inverse finalRaw finalInverse error
+                            htail).elim
                     | Ok inverseValue =>
                         have hsuccess :=
                           successfulRoundStep effects rounds k hlt effect
-                            nextEffect comA comB comT comC comZ prior last
-                            value inverseValue raw inverse hderive hinvert
+                            nextEffect comZ prior last value inverseValue raw
+                            inverse hderive hinvert
                         rw [hsuccess] at hstep
                         cases hstep
                         obtain ⟨tail⟩ :=
                           segmentOfLoopResult effects rounds (by omega)
                             nextEffect finalEffect
                             (foldValue inverseValue value
-                              (rounds (Fin.rev ⟨k, hlt⟩)).1.ab.1 comA
-                              (rounds (Fin.rev ⟨k, hlt⟩)).2.ab.1)
-                            (foldValue inverseValue value
-                              (rounds (Fin.rev ⟨k, hlt⟩)).1.ab.2.1 comB
-                              (rounds (Fin.rev ⟨k, hlt⟩)).2.ab.2.1)
-                            (foldValue inverseValue value
-                              (rounds (Fin.rev ⟨k, hlt⟩)).1.ab.2.2 comT
-                              (rounds (Fin.rev ⟨k, hlt⟩)).2.ab.2.2)
-                            (foldValue inverseValue value
-                              (rounds (Fin.rev ⟨k, hlt⟩)).1.c.1 comC
-                              (rounds (Fin.rev ⟨k, hlt⟩)).2.c.1)
-                            (foldValue inverseValue value
                               (rounds (Fin.rev ⟨k, hlt⟩)).1.c.2 comZ
                               (rounds (Fin.rev ⟨k, hlt⟩)).2.c.2)
-                            finalComA finalComB finalComT finalComC finalComZ
-                            value value finalPrior rfl
+                            finalComZ value value finalPrior rfl
                             ⟨raw.val ++ [value]⟩
                             ⟨inverse.val ++ [inverseValue]⟩
                             finalRaw finalInverse htail
@@ -672,28 +585,18 @@ private theorem carriesEffect_bind {A B FX : Type} (expected : FX)
 private theorem extractedRoundLoop_eq {FX : Type} {n : Nat}
     (effects : Effects FX) (rounds : Fin n → Round)
     (iter : core.ops.range.Range) (effect : FX)
-    (comA comB comT comC : ArkPairingOutput)
     (comZ : g1PrimeSubgroup) (prior last : Fr)
     (raw inverse : alloc.vec.Vec Fr) (roundError : Option String) :
     applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
         (Ipp.Extracted.VerifyTippMipp.modelClone Fr)
-        (Ipp.Extracted.VerifyTippMipp.modelClone ArkPairingOutput)
-        (Ipp.Extracted.VerifyTippMipp.modelDefault ArkPairingOutput)
-        (Ipp.Extracted.VerifyTippMipp.modelAdd ArkPairingOutput)
-        (Ipp.Extracted.VerifyTippMipp.modelSmulAssign ArkPairingOutput)
-        (Ipp.Extracted.VerifyTippMipp.modelClone ArkPairingOutput)
-        (Ipp.Extracted.VerifyTippMipp.modelDefault ArkPairingOutput)
-        (Ipp.Extracted.VerifyTippMipp.modelAdd ArkPairingOutput)
-        (Ipp.Extracted.VerifyTippMipp.modelSmulAssign ArkPairingOutput)
         (Ipp.Extracted.VerifyTippMipp.modelClone g1PrimeSubgroup)
         (Ipp.Extracted.VerifyTippMipp.modelDefault g1PrimeSubgroup)
         (Ipp.Extracted.VerifyTippMipp.modelAdd g1PrimeSubgroup)
         (Ipp.Extracted.VerifyTippMipp.modelSmulAssign g1PrimeSubgroup)
-        effects iter (finVec rounds) effect comA comB comT comC comZ prior
-        last raw inverse roundError ⟨n⟩ =
+        effects iter (finVec rounds) effect comZ prior last raw inverse
+        roundError ⟨n⟩ =
       loop (roundBody effects (finVec rounds) ⟨n⟩)
-        (iter, effect, comA, comB, comT, comC, comZ, prior, last, raw,
-          inverse, roundError) := by
+        (iter, effect, comZ, prior, last, raw, inverse, roundError) := by
   rfl
 
 /-- The values in a recovered segment induce exactly the `priorAt` schedule
@@ -796,10 +699,6 @@ private structure PrefixCallWitness {FX : Type} {n : Nat}
   roundEffect : FX
   roundFinalEffect : FX
   bridgeEffect : FX
-  finalComA : ArkPairingOutput
-  finalComB : ArkPairingOutput
-  finalComT : ArkPairingOutput
-  finalComC : ArkPairingOutput
   finalComZ : g1PrimeSubgroup
   lastRound : Fr
   raw : alloc.vec.Vec Fr
@@ -825,10 +724,8 @@ private structure PrefixCallWitness {FX : Type} {n : Nat}
             (Ipp.Extracted.VerifyTippMipp.extractedRounds proof.rounds))
           ⟨n⟩)
         ({ start := ⟨0⟩, «end» := ⟨n⟩ }, roundEffect,
-          proof.ComA.1, proof.ComB, proof.ipAb, proof.ComA.2, proof.aggC,
-          x0, x0, ⟨[]⟩, ⟨[]⟩, none) =
-      .ok (roundFinalEffect, finalComA, finalComB, finalComT, finalComC,
-        finalComZ, lastRound, raw, inverse, none)
+          proof.aggC, x0, x0, ⟨[]⟩, ⟨[]⟩, none) =
+      .ok (roundFinalEffect, finalComZ, lastRound, raw, inverse, none)
   bridgeCall :
     (Ipp.Extracted.TippMippAdapter.effectOfPrimitive primitive
       (@Ipp.Extracted.TippMippAdapter.partialEq
@@ -869,10 +766,8 @@ private theorem PrefixCallWitness.toEffectTrace {FX : Type} {n : Nat}
             (Ipp.Extracted.VerifyTippMipp.extractedRounds proof.rounds))
           ⟨n⟩)
         ({ start := ⟨0⟩, «end» := ⟨n⟩ }, calls.roundEffect,
-          proof.ComA.1, proof.ComB, proof.ipAb, proof.ComA.2, proof.aggC,
-          calls.x0, calls.x0, ⟨[]⟩, ⟨[]⟩, none)
-        (.ok (calls.roundFinalEffect, calls.finalComA, calls.finalComB,
-          calls.finalComT, calls.finalComC, calls.finalComZ, calls.lastRound,
+          proof.aggC, calls.x0, calls.x0, ⟨[]⟩, ⟨[]⟩, none)
+        (.ok (calls.roundFinalEffect, calls.finalComZ, calls.lastRound,
           calls.raw, calls.inverse, none)) :=
     loopResult_of_eq (by simp) calls.rounds
   obtain ⟨segment⟩ :=
@@ -884,10 +779,8 @@ private theorem PrefixCallWitness.toEffectTrace {FX : Type} {n : Nat}
           g1PrimeSubgroup (Classical.decEq _)))
       (Ipp.Extracted.VerifyTippMipp.extractedRounds proof.rounds)
       (Nat.zero_le n) calls.roundEffect calls.roundFinalEffect
-      proof.ComA.1 proof.ComB proof.ipAb proof.ComA.2 proof.aggC
-      calls.finalComA calls.finalComB calls.finalComT calls.finalComC
-      calls.finalComZ calls.x0 calls.x0 calls.lastRound rfl ⟨[]⟩ ⟨[]⟩
-      calls.raw calls.inverse hrun
+      proof.aggC calls.finalComZ calls.x0 calls.x0 calls.lastRound rfl
+      ⟨[]⟩ ⟨[]⟩ calls.raw calls.inverse hrun
   exact
     ⟨effectTraceOfSegment primitive proof randomizer effect0 calls.roundEffect
       calls.roundFinalEffect calls.bridgeEffect finalEffect calls.x0
@@ -957,9 +850,8 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
           have hloop :=
             extractedRoundLoop_eq effects
               (Ipp.Extracted.VerifyTippMipp.extractedRounds proof.rounds)
-              { start := ⟨0⟩, «end» := ⟨n⟩ } roundEffect proof.ComA.1
-              proof.ComB proof.ipAb proof.ComA.2 proof.aggC x0 x0 ⟨[]⟩
-              ⟨[]⟩ none
+              { start := ⟨0⟩, «end» := ⟨n⟩ } roundEffect proof.aggC x0 x0
+              ⟨[]⟩ ⟨[]⟩ none
           simp only [Ipp.Extracted.VerifyTippMipp.modelClone, finVec] at hloop
           rw [hloop] at hprefix
           cases hrounds :
@@ -970,7 +862,6 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
                       proof.rounds)⟩
                   ⟨n⟩)
                 ({ start := ⟨0⟩, «end» := ⟨n⟩ }, roundEffect,
-                  proof.ComA.1, proof.ComB, proof.ipAb, proof.ComA.2,
                   proof.aggC, x0, x0, ⟨[]⟩, ⟨[]⟩, none) with
           | fail error =>
               simp [hrounds] at hprefix
@@ -978,8 +869,8 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
               simp [hrounds] at hprefix
           | ok roundsOutput =>
               rcases roundsOutput with
-                ⟨roundFinalEffect, finalComA, finalComB, finalComT,
-                  finalComC, finalComZ, lastRound, raw, inverse, roundError⟩
+                ⟨roundFinalEffect, finalComZ, lastRound, raw, inverse,
+                  roundError⟩
               cases roundError with
               | some error =>
                   simp [hrounds] at hprefix
@@ -988,6 +879,34 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
                     alloc.vec.CloneVec.clone_identity,
                     alloc.vec.Vec.deref_mut, core.slice.Slice.reverse, lift]
                     at hprefix
+                  have hfoldSuccess :
+                      ∃ folded : ArkPairingOutput × ArkPairingOutput ×
+                          ArkPairingOutput × ArkPairingOutput,
+                        effects.fold_gt_commitments roundFinalEffect
+                            (proof.ComA.1, proof.ComB, proof.ipAb,
+                              proof.ComA.2)
+                            (alloc.vec.Vec.deref
+                              ⟨List.ofFn
+                                (Ipp.Extracted.VerifyTippMipp.extractedRounds
+                                  proof.rounds)⟩)
+                            (alloc.vec.Vec.deref inverse)
+                            (alloc.vec.Vec.deref raw) =
+                          .ok folded := by
+                    cases hfold :
+                        effects.fold_gt_commitments roundFinalEffect
+                          (proof.ComA.1, proof.ComB, proof.ipAb, proof.ComA.2)
+                          (alloc.vec.Vec.deref
+                            ⟨List.ofFn
+                              (Ipp.Extracted.VerifyTippMipp.extractedRounds
+                                proof.rounds)⟩)
+                          (alloc.vec.Vec.deref inverse)
+                          (alloc.vec.Vec.deref raw) with
+                    | fail error => simp [hfold] at hprefix
+                    | div => simp [hfold] at hprefix
+                    | ok folded => exact ⟨folded, rfl⟩
+                  obtain ⟨folded, hfold⟩ := hfoldSuccess
+                  rw [hfold] at hprefix
+                  simp only [Result.bind_ok] at hprefix
                   cases hbridge :
                       effects.derive_final_bridge roundFinalEffect lastRound
                         (proof.vFinal, proof.wFinal)
@@ -1063,10 +982,6 @@ private theorem prefixCallWitness_of_success {FX : Type} {n : Nat}
                                             roundFinalEffect :=
                                               roundFinalEffect
                                             bridgeEffect := bridgeEffect
-                                            finalComA := finalComA
-                                            finalComB := finalComB
-                                            finalComT := finalComT
-                                            finalComC := finalComC
                                             finalComZ := finalComZ
                                             lastRound := lastRound
                                             raw := raw

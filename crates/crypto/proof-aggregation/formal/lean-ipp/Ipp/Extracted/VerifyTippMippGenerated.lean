@@ -65,6 +65,10 @@ structure applications.groth16_aggregation.TippMippEffect (Self : Type) (F :
     applications.groth16_aggregation.TippMippCoreCommitment GT ABT CT →
     Result ((core.result.Result F E) × Self)
   invert_round : Self → F → Result (core.result.Result F E)
+  fold_gt_commitments : Self → (GT × GT × ABT × GT) → Slice
+    ((applications.groth16_aggregation.TippMippCoreCommitment GT ABT CT) ×
+    (applications.groth16_aggregation.TippMippCoreCommitment GT ABT CT)) →
+    Slice F → Slice F → Result (GT × GT × ABT × GT)
   derive_final_bridge : Self → F → (G2 × G1) → (G1 × G2 × G1) →
     Result ((core.result.Result F E) × Self)
   derive_kzg : Self → F → (G2 × G1) → Result ((core.result.Result F E)
@@ -176,35 +180,27 @@ def
   applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body
   {F : Type} {G1 : Type} {G2 : Type} {GT : Type} {ABT : Type} {CT : Type} {E :
   Type} {FX : Type} (corecloneCloneInst : core.clone.Clone F)
-  (corecloneCloneInst1 : core.clone.Clone GT) (coredefaultDefaultInst :
-  core.default.Default GT) (coreopsarithAddInst : core.ops.arith.Add GT GT GT)
-  (coreopsarithMulAssignInst : core.ops.arith.MulAssign GT F)
-  (corecloneCloneInst2 : core.clone.Clone ABT) (coredefaultDefaultInst1 :
-  core.default.Default ABT) (coreopsarithAddInst1 : core.ops.arith.Add ABT ABT
-  ABT) (coreopsarithMulAssignInst1 : core.ops.arith.MulAssign ABT F)
-  (corecloneCloneInst3 : core.clone.Clone CT) (coredefaultDefaultInst2 :
-  core.default.Default CT) (coreopsarithAddInst2 : core.ops.arith.Add CT CT CT)
-  (coreopsarithMulAssignInst2 : core.ops.arith.MulAssign CT F)
+  (corecloneCloneInst1 : core.clone.Clone CT) (coredefaultDefaultInst :
+  core.default.Default CT) (coreopsarithAddInst : core.ops.arith.Add CT CT CT)
+  (coreopsarithMulAssignInst : core.ops.arith.MulAssign CT F)
   (TippMippEffectInst : applications.groth16_aggregation.TippMippEffect FX F G1
   G2 GT ABT CT E)
   (v : alloc.vec.Vec ((applications.groth16_aggregation.TippMippCoreCommitment
   GT ABT CT) × (applications.groth16_aggregation.TippMippCoreCommitment GT ABT
   CT))) (round_count : Std.Usize) (iter : core.ops.range.Range Std.Usize)
-  (effect : FX) (com_a : GT) (com_b : GT) (com_t : ABT) (com_c : GT)
-  (com_z : CT) (prior_raw_challenge : F) (last_raw_challenge : F)
+  (effect : FX) (com_z : CT) (prior_raw_challenge : F) (last_raw_challenge : F)
   (raw_transcript_chrono : alloc.vec.Vec F)
   (inv_transcript_chrono : alloc.vec.Vec F) (round_error : Option E) :
-  Result (ControlFlow ((core.ops.range.Range Std.Usize) × FX × GT × GT ×
-    ABT × GT × CT × F × F × (alloc.vec.Vec F) × (alloc.vec.Vec F) ×
-    (Option E)) (FX × GT × GT × ABT × GT × CT × F × (alloc.vec.Vec F) ×
-    (alloc.vec.Vec F) × (Option E)))
+  Result (ControlFlow ((core.ops.range.Range Std.Usize) × FX × CT × F × F
+    × (alloc.vec.Vec F) × (alloc.vec.Vec F) × (Option E)) (FX × CT × F ×
+    (alloc.vec.Vec F) × (alloc.vec.Vec F) × (Option E)))
   := do
   let (o, iter1) ←
     core.iter.range.IteratorRange.next core.iter.range.StepUsize iter
   match o with
   | none =>
-    ok (done (effect, com_a, com_b, com_t, com_c, com_z, last_raw_challenge,
-      raw_transcript_chrono, inv_transcript_chrono, round_error))
+    ok (done (effect, com_z, last_raw_challenge, raw_transcript_chrono,
+      inv_transcript_chrono, round_error))
   | some round_offset =>
     let i ← round_count - round_offset
     let round_index ← i - 1#usize
@@ -223,91 +219,58 @@ def
         let r1 ← TippMippEffectInst.invert_round effect1 raw_challenge
         match r1 with
         | core.result.Result.Ok inv_challenge =>
-          let (t, t1, t2) := left.ab
-          let (t3, t4, t5) := right.ab
-          let com_a1 ←
-            gipa.fold_output corecloneCloneInst1 coredefaultDefaultInst
-              coreopsarithAddInst coreopsarithMulAssignInst corecloneCloneInst
-              t com_a t3 inv_challenge raw_challenge
-          let com_b1 ←
-            gipa.fold_output corecloneCloneInst1 coredefaultDefaultInst
-              coreopsarithAddInst coreopsarithMulAssignInst corecloneCloneInst
-              t1 com_b t4 inv_challenge raw_challenge
-          let com_t1 ←
-            gipa.fold_output corecloneCloneInst2 coredefaultDefaultInst1
-              coreopsarithAddInst1 coreopsarithMulAssignInst1
-              corecloneCloneInst t2 com_t t5 inv_challenge raw_challenge
-          let (t6, t7) := left.c
-          let (t8, t9) := right.c
-          let com_c1 ←
-            gipa.fold_output corecloneCloneInst1 coredefaultDefaultInst
-              coreopsarithAddInst coreopsarithMulAssignInst corecloneCloneInst
-              t6 com_c t8 inv_challenge raw_challenge
+          let (_, t) := left.c
+          let (_, t1) := right.c
           let com_z1 ←
-            gipa.fold_output corecloneCloneInst3 coredefaultDefaultInst2
-              coreopsarithAddInst2 coreopsarithMulAssignInst2
-              corecloneCloneInst t7 com_z t9 inv_challenge raw_challenge
-          let t10 ← corecloneCloneInst.clone raw_challenge
+            gipa.fold_output corecloneCloneInst1 coredefaultDefaultInst
+              coreopsarithAddInst coreopsarithMulAssignInst corecloneCloneInst
+              t com_z t1 inv_challenge raw_challenge
+          let t2 ← corecloneCloneInst.clone raw_challenge
           let raw_transcript_chrono1 ←
-            alloc.vec.Vec.push raw_transcript_chrono t10
+            alloc.vec.Vec.push raw_transcript_chrono t2
           let inv_transcript_chrono1 ←
             alloc.vec.Vec.push inv_transcript_chrono inv_challenge
-          ok (cont (iter1, effect1, com_a1, com_b1, com_t1, com_c1, com_z1,
-            t10, raw_challenge, raw_transcript_chrono1, inv_transcript_chrono1,
-            round_error))
+          ok (cont (iter1, effect1, com_z1, t2, raw_challenge,
+            raw_transcript_chrono1, inv_transcript_chrono1, round_error))
         | core.result.Result.Err error =>
-          ok (cont (iter1, effect1, com_a, com_b, com_t, com_c, com_z,
-            prior_raw_challenge, last_raw_challenge, raw_transcript_chrono,
-            inv_transcript_chrono, some error))
+          ok (cont (iter1, effect1, com_z, prior_raw_challenge,
+            last_raw_challenge, raw_transcript_chrono, inv_transcript_chrono,
+            some error))
       | core.result.Result.Err error =>
-        ok (cont (iter1, effect1, com_a, com_b, com_t, com_c, com_z,
-          prior_raw_challenge, last_raw_challenge, raw_transcript_chrono,
-          inv_transcript_chrono, some error))
+        ok (cont (iter1, effect1, com_z, prior_raw_challenge,
+          last_raw_challenge, raw_transcript_chrono, inv_transcript_chrono,
+          some error))
     else
-      ok (cont (iter1, effect, com_a, com_b, com_t, com_c, com_z,
-        prior_raw_challenge, last_raw_challenge, raw_transcript_chrono,
-        inv_transcript_chrono, round_error))
+      ok (cont (iter1, effect, com_z, prior_raw_challenge, last_raw_challenge,
+        raw_transcript_chrono, inv_transcript_chrono, round_error))
 def
   applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
   {F : Type} {G1 : Type} {G2 : Type} {GT : Type} {ABT : Type} {CT : Type} {E :
   Type} {FX : Type} (corecloneCloneInst : core.clone.Clone F)
-  (corecloneCloneInst1 : core.clone.Clone GT) (coredefaultDefaultInst :
-  core.default.Default GT) (coreopsarithAddInst : core.ops.arith.Add GT GT GT)
-  (coreopsarithMulAssignInst : core.ops.arith.MulAssign GT F)
-  (corecloneCloneInst2 : core.clone.Clone ABT) (coredefaultDefaultInst1 :
-  core.default.Default ABT) (coreopsarithAddInst1 : core.ops.arith.Add ABT ABT
-  ABT) (coreopsarithMulAssignInst1 : core.ops.arith.MulAssign ABT F)
-  (corecloneCloneInst3 : core.clone.Clone CT) (coredefaultDefaultInst2 :
-  core.default.Default CT) (coreopsarithAddInst2 : core.ops.arith.Add CT CT CT)
-  (coreopsarithMulAssignInst2 : core.ops.arith.MulAssign CT F)
+  (corecloneCloneInst1 : core.clone.Clone CT) (coredefaultDefaultInst :
+  core.default.Default CT) (coreopsarithAddInst : core.ops.arith.Add CT CT CT)
+  (coreopsarithMulAssignInst : core.ops.arith.MulAssign CT F)
   (TippMippEffectInst : applications.groth16_aggregation.TippMippEffect FX F G1
   G2 GT ABT CT E) (iter : core.ops.range.Range Std.Usize)
   (v : alloc.vec.Vec ((applications.groth16_aggregation.TippMippCoreCommitment
   GT ABT CT) × (applications.groth16_aggregation.TippMippCoreCommitment GT ABT
-  CT))) (effect : FX) (com_a : GT) (com_b : GT) (com_t : ABT) (com_c : GT)
-  (com_z : CT) (prior_raw_challenge : F) (last_raw_challenge : F)
-  (raw_transcript_chrono : alloc.vec.Vec F)
+  CT))) (effect : FX) (com_z : CT) (prior_raw_challenge : F)
+  (last_raw_challenge : F) (raw_transcript_chrono : alloc.vec.Vec F)
   (inv_transcript_chrono : alloc.vec.Vec F) (round_error : Option E)
   (round_count : Std.Usize) :
-  Result (FX × GT × GT × ABT × GT × CT × F × (alloc.vec.Vec F) ×
-    (alloc.vec.Vec F) × (Option E))
+  Result (FX × CT × F × (alloc.vec.Vec F) × (alloc.vec.Vec F) × (Option
+    E))
   := do
   loop
-    (fun (iter1, effect1, com_a1, com_b1, com_t1, com_c1, com_z1,
-      prior_raw_challenge1, last_raw_challenge1, raw_transcript_chrono1,
-      inv_transcript_chrono1, round_error1) =>
+    (fun (iter1, effect1, com_z1, prior_raw_challenge1, last_raw_challenge1,
+      raw_transcript_chrono1, inv_transcript_chrono1, round_error1) =>
       applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body
       corecloneCloneInst corecloneCloneInst1 coredefaultDefaultInst
-      coreopsarithAddInst coreopsarithMulAssignInst corecloneCloneInst2
-      coredefaultDefaultInst1 coreopsarithAddInst1 coreopsarithMulAssignInst1
-      corecloneCloneInst3 coredefaultDefaultInst2 coreopsarithAddInst2
-      coreopsarithMulAssignInst2 TippMippEffectInst v round_count iter1 effect1
-      com_a1 com_b1 com_t1 com_c1 com_z1 prior_raw_challenge1
-      last_raw_challenge1 raw_transcript_chrono1 inv_transcript_chrono1
-      round_error1)
-    (iter, effect, com_a, com_b, com_t, com_c, com_z, prior_raw_challenge,
-      last_raw_challenge, raw_transcript_chrono, inv_transcript_chrono,
-      round_error)
+      coreopsarithAddInst coreopsarithMulAssignInst TippMippEffectInst v
+      round_count iter1 effect1 com_z1 prior_raw_challenge1 last_raw_challenge1
+      raw_transcript_chrono1 inv_transcript_chrono1 round_error1)
+    (iter, effect, com_z, prior_raw_challenge, last_raw_challenge,
+      raw_transcript_chrono, inv_transcript_chrono, round_error)
 def applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core
   {F : Type} {G1 : Type} {G2 : Type} {GT : Type} {ABT : Type} {CT : Type} {E :
   Type} {FX : Type} (corecloneCloneInst : core.clone.Clone F)
@@ -336,10 +299,6 @@ def applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core
     (applications.groth16_aggregation.TippMippChallengePrefix F GT ABT CT) E)
     × FX)
   := do
-  let com_a ← corecloneCloneInst3.clone input.com_a
-  let com_b ← corecloneCloneInst3.clone input.com_b
-  let com_t ← corecloneCloneInst4.clone input.com_t
-  let com_c ← corecloneCloneInst3.clone input.com_c
   let com_z ← corecloneCloneInst5.clone input.com_z
   let (r, effect1) ←
     TippMippEffectInst.derive_x0 effect input.r input.com_a input.com_b
@@ -349,27 +308,30 @@ def applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core
   | core.ops.control_flow.ControlFlow.Continue val =>
     let trace_x0 ← corecloneCloneInst.clone val
     let round_count := alloc.vec.Vec.len input.proof.gipa_proof
-    let (effect2, com_a1, com_b1, com_t1, com_c1, com_z1, last_raw_challenge,
-      raw_transcript_chrono, inv_transcript_chrono, round_error) ←
+    let (effect2, com_z1, last_raw_challenge, raw_transcript_chrono,
+      inv_transcript_chrono, round_error) ←
       applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
-        corecloneCloneInst corecloneCloneInst3 coredefaultDefaultInst
-        coreopsarithAddInst1 coreopsarithMulAssignInst corecloneCloneInst4
-        coredefaultDefaultInst1 coreopsarithAddInst2 coreopsarithMulAssignInst1
-        corecloneCloneInst5 coredefaultDefaultInst2 coreopsarithAddInst3
-        coreopsarithMulAssignInst2 TippMippEffectInst
+        corecloneCloneInst corecloneCloneInst5 coredefaultDefaultInst2
+        coreopsarithAddInst3 coreopsarithMulAssignInst2 TippMippEffectInst
         { start := 0#usize, «end» := round_count } input.proof.gipa_proof
-        effect1 com_a com_b com_t com_c com_z trace_x0 val (alloc.vec.Vec.new
-        F) (alloc.vec.Vec.new F) none round_count
+        effect1 com_z trace_x0 val (alloc.vec.Vec.new F) (alloc.vec.Vec.new F)
+        none round_count
     match round_error with
     | none =>
+      let s := alloc.vec.Vec.deref input.proof.gipa_proof
+      let s1 := alloc.vec.Vec.deref inv_transcript_chrono
+      let s2 := alloc.vec.Vec.deref raw_transcript_chrono
+      let (com_a, com_b, com_t, com_c) ←
+        TippMippEffectInst.fold_gt_commitments effect2 (input.com_a,
+          input.com_b, input.com_t, input.com_c) s s1 s2
       let round_challenges_chrono ←
         alloc.vec.CloneVec.clone corecloneCloneInst raw_transcript_chrono
-      let (s, deref_mut_back) ←
+      let (s3, deref_mut_back) ←
         lift (alloc.vec.Vec.deref_mut raw_transcript_chrono)
-      let s1 ← lift (core.slice.Slice.reverse s)
-      let (s2, deref_mut_back1) ←
+      let s4 ← lift (core.slice.Slice.reverse s3)
+      let (s5, deref_mut_back1) ←
         lift (alloc.vec.Vec.deref_mut inv_transcript_chrono)
-      let s3 ← lift (core.slice.Slice.reverse s2)
+      let s6 ← lift (core.slice.Slice.reverse s5)
       let (r1, effect3) ←
         TippMippEffectInst.derive_final_bridge effect2 last_raw_challenge
           input.proof.final_ck input.proof.final_messages
@@ -385,8 +347,8 @@ def applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core
           let cf3 ← core.result.Result.Insts.CoreOpsTry.branch r3
           match cf3 with
           | core.ops.control_flow.ControlFlow.Continue val3 =>
-            let raw_transcript_chrono1 := deref_mut_back s1
-            let inv_transcript_chrono1 := deref_mut_back1 s3
+            let raw_transcript_chrono1 := deref_mut_back s4
+            let inv_transcript_chrono1 := deref_mut_back1 s6
             ok (core.result.Result.Ok
               {
                 challenges :=
@@ -399,10 +361,10 @@ def applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core
                   },
                 inverse_challenges_reversed := inv_transcript_chrono1,
                 randomizer_inverse := val3,
-                com_a := com_a1,
-                com_b := com_b1,
-                com_t := com_t1,
-                com_c := com_c1,
+                com_a,
+                com_b,
+                com_t,
+                com_c,
                 com_z := com_z1
               }, effect4)
           | core.ops.control_flow.ControlFlow.Break residual =>

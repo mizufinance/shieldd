@@ -29,7 +29,6 @@ parallel = [
     "ark-r1cs-std/parallel",
 ]
 bench-mimalloc = ["dep:mimalloc"]
-bench-baseline = ["shieldd-sdk-proof-aggregation/bench-baseline"]
 
 # --- Vanilla benchmarks ---
 
@@ -46,11 +45,6 @@ harness = false
 [[bench]]
 name = "bls_threshold"
 path = "benches/vanilla/bls_threshold.rs"
-harness = false
-
-[[bench]]
-name = "snarkpack"
-path = "benches/vanilla/snarkpack.rs"
 harness = false
 
 [[bench]]

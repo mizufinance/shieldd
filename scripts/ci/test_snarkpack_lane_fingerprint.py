@@ -231,7 +231,7 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
     def test_every_heavy_lane_has_declared_roots_and_controls(self) -> None:
         self.assertEqual(
             set(FINGERPRINT.LANE_PACKAGES),
-            {"parity", "rust-reference", "slow", "fuzz", "dos"},
+            {"parity", "runtime"},
         )
         self.assertEqual(
             set(FINGERPRINT.LANE_PACKAGES),
@@ -261,7 +261,7 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
         self.assertNotIn(verification_manifest, parity_controls)
         self.assertNotIn(
             verification_manifest,
-            FINGERPRINT.LANE_CONTROLS["rust-reference"],
+            FINGERPRINT.LANE_CONTROLS["runtime"],
         )
         parity_extraction = set(
             FINGERPRINT.parity_extraction_controls(FINGERPRINT.ROOT)
@@ -360,7 +360,7 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
                     parser.parse_args(
                         [
                             "--lane",
-                            "fuzz",
+                            "runtime",
                             "--cargo-metadata-timeout-seconds",
                             value,
                         ]

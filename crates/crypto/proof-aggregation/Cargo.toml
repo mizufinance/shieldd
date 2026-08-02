@@ -15,6 +15,10 @@ fuzzing = []
 # optimization-playbook.md (in this crate).
 bench-baseline = ["ark-ip-proofs/bench-baseline"]
 
+[[bench]]
+name = "snarkpack"
+harness = false
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(hax)'] }
 
@@ -44,4 +48,5 @@ sha2 = { workspace = true }
 ark-r1cs-std = { workspace = true }
 ark-relations = { workspace = true }
 ark-snark = { workspace = true }
+criterion = { workspace = true, features = ["html_reports"] }
 proptest = { workspace = true }

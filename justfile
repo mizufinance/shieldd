@@ -150,6 +150,10 @@ snarkpack-invariants:
 snarkpack-fv:
     bash scripts/snarkpack-fv.sh
 
+# Build and publish the committed SnarkPack Lean cache locally.
+snarkpack-lean-cache:
+    SNARKPACK_FV_MODE=lean-cache bash scripts/snarkpack-fv.sh
+
 # Run pinned SnarkPack formal extraction and F* proof checks.
 snarkpack-formal:
     ./scripts/snarkpack-formal.sh

@@ -7,6 +7,7 @@ EXTRACTIONS="$LEAN_DIR/scripts/extractions.py"
 NORMALIZER="$LEAN_DIR/scripts/normalize_aeneas_lean.py"
 MANIFEST="$ROOT/crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json"
 VERIFICATION_MANIFEST="$LEAN_DIR/scripts/verification_manifest.py"
+LEAN_ATTESTATION="$ROOT/scripts/ci/snarkpack_lean_attestation.py"
 MODE="${SNARKPACK_FV_MODE:-full}"
 cd "$ROOT"
 
@@ -100,7 +101,6 @@ run_static() {
   python3 -m unittest discover -s "$LEAN_DIR/scripts" -p 'test_*.py'
   python3 "$ROOT/scripts/ci/test_enforce_formal_result.py"
   python3 "$ROOT/scripts/ci/test_gate_applicability.py"
-  python3 "$ROOT/scripts/ci/test_snarkpack_extraction_attestation.py"
   python3 "$ROOT/scripts/ci/test_snarkpack_fv_impact.py"
   python3 "$ROOT/scripts/ci/test_snarkpack_lane_fingerprint.py"
   python3 "$ROOT/scripts/ci/test_snarkpack_lean_attestation.py"
@@ -267,11 +267,19 @@ configure_lake() {
   elif command -v lake >/dev/null 2>&1; then
     lake_command=(lake)
   elif command -v powershell.exe >/dev/null 2>&1 && command -v wslpath >/dev/null 2>&1; then
-    local windows_home candidate
+    local windows_home windows_lake candidate wrapper pinned_toolchain toolchain_dir
     windows_home="$(powershell.exe -NoProfile -Command '$env:USERPROFILE' | tr -d '\r')"
-    candidate="$(wslpath "$windows_home")/.elan/toolchains/leanprover--lean4---v4.30.0/bin/lake.exe"
-    [[ -x "$candidate" ]] || fail "pinned Lean v4.30.0 Lake is not installed at $candidate"
-    lake_command=("$candidate")
+    pinned_toolchain="$(tr -d '\r\n' < "$LEAN_DIR/lean-toolchain")"
+    toolchain_dir="${pinned_toolchain//\//--}"
+    toolchain_dir="${toolchain_dir//:/---}"
+    windows_lake="$windows_home\\.elan\\toolchains\\$toolchain_dir\\bin\\lake.exe"
+    candidate="$(wslpath "$windows_lake")"
+    [[ -x "$candidate" ]] ||
+      fail "pinned Lean toolchain $pinned_toolchain is not installed at $windows_lake"
+    wrapper="$(wslpath -w "$ROOT/scripts/snarkpack-lean-single-threaded.ps1")"
+    lake_command=(
+      powershell.exe -NoProfile -File "$wrapper" -Lake "$windows_lake"
+    )
   else
     fail "lake is not installed"
   fi
@@ -395,6 +403,171 @@ run_lean_audit_refresh() {
   done
 }
 
+attestation_plan_field() {
+  local field="$1"
+  python3 -c '
+import json
+import sys
+
+payload = json.load(sys.stdin)
+values = json.loads(payload[sys.argv[1]])
+if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+    raise SystemExit(f"invalid attestation plan field: {sys.argv[1]}")
+for value in values:
+    print(value)
+' "$field"
+}
+
+publish_local_lean_cache() {
+  configure_lake
+  local expected_toolchain expected_version lake_version
+  expected_toolchain="$(tr -d '\r\n' < "$LEAN_DIR/lean-toolchain")"
+  expected_version="${expected_toolchain##*:v}"
+  lake_version="$("${lake_command[@]}" --version)"
+  [[ "$lake_version" == *"Lean version $expected_version"* ]] ||
+    fail "local Lake does not use pinned Lean $expected_version: $lake_version"
+
+  local audit_module_output
+  if ! audit_module_output="$(
+    python3 "$VERIFICATION_MANIFEST" audit-modules
+  )"; then
+    fail "could not enumerate declared Lean audit modules"
+  fi
+  local audit_modules=()
+  if [[ -n "$audit_module_output" ]]; then
+    mapfile -t audit_modules <<< "$audit_module_output"
+  fi
+  ((${#audit_modules[@]} > 0)) ||
+    fail "declared Lean audit module inventory is empty"
+
+  local modules_json
+  modules_json="$(
+    printf '%s\n' "${audit_modules[@]}" |
+      python3 -c \
+        'import json, sys; print(json.dumps([line.rstrip("\n") for line in sys.stdin if line.rstrip("\n")], separators=(",", ":")))'
+  )"
+
+  # Local publication is deliberately serialized and checkpointed. A stopped
+  # refresh resumes from committed, source-bound markers and audit records.
+  # PR CI only reads this evidence; the scheduled release audit reproduces it
+  # without recording or modifying the committed cache.
+  local plan_json pending_output
+  plan_json="$(
+    python3 "$LEAN_ATTESTATION" plan --modules-json "$modules_json"
+  )"
+  if ! pending_output="$(
+    attestation_plan_field pending_modules <<< "$plan_json"
+  )"; then
+    fail "could not read pending Lean modules from attestation plan"
+  fi
+  local pending_modules=()
+  if [[ -n "$pending_output" ]]; then
+    mapfile -t pending_modules <<< "$pending_output"
+  fi
+  if ((${#pending_modules[@]} > 0)); then
+    run_lean "${pending_modules[@]}"
+    local pending_modules_json
+    pending_modules_json="$(
+      printf '%s\n' "${pending_modules[@]}" |
+        python3 -c \
+          'import json, sys; print(json.dumps([line.rstrip("\n") for line in sys.stdin if line.rstrip("\n")], separators=(",", ":")))'
+    )"
+    python3 "$LEAN_ATTESTATION" record \
+      --modules-json "$pending_modules_json"
+  else
+    echo "snarkpack FV: committed Lean module markers are current"
+  fi
+
+  plan_json="$(
+    python3 "$LEAN_ATTESTATION" plan --modules-json "$modules_json"
+  )"
+  if ! pending_output="$(
+    attestation_plan_field pending_audit_modules <<< "$plan_json"
+  )"; then
+    fail "could not read pending Lean audits from attestation plan"
+  fi
+  local pending_audits=()
+  if [[ -n "$pending_output" ]]; then
+    mapfile -t pending_audits <<< "$pending_output"
+  fi
+
+  local audit_log_dir audit_module audit_module_json
+  for audit_module in "${pending_audits[@]}"; do
+    audit_log_dir="$(mktemp -d)"
+    SNARKPACK_LEAN_AUDIT_LOG_DIR="$audit_log_dir" \
+      run_lean_audit_refresh "$audit_module"
+    audit_module_json="$(
+      printf '%s\n' "$audit_module" |
+        python3 -c \
+          'import json, sys; print(json.dumps([line.rstrip("\n") for line in sys.stdin if line.rstrip("\n")], separators=(",", ":")))'
+    )"
+    python3 "$LEAN_ATTESTATION" record-audit \
+      --modules-json "$audit_module_json" \
+      --input-dir "$audit_log_dir"
+    rm -rf -- "$audit_log_dir"
+  done
+  if ((${#pending_audits[@]} == 0)); then
+    echo "snarkpack FV: committed Lean audit evidence is current"
+  fi
+
+  python3 "$LEAN_ATTESTATION" plan \
+    --modules-json "$modules_json" \
+    --exact-cache
+  python3 "$LEAN_ATTESTATION" validate-audit \
+    --modules-json "$modules_json"
+}
+
+reproduce_lean_cache() {
+  configure_lake
+  export LEAN_NUM_THREADS=1
+  local expected_toolchain expected_version lake_version
+  expected_toolchain="$(tr -d '\r\n' < "$LEAN_DIR/lean-toolchain")"
+  expected_version="${expected_toolchain##*:v}"
+  lake_version="$("${lake_command[@]}" --version)"
+  [[ "$lake_version" == *"Lean version $expected_version"* ]] ||
+    fail "release-audit Lake does not use pinned Lean $expected_version: $lake_version"
+
+  local audit_module_output
+  if ! audit_module_output="$(
+    python3 "$VERIFICATION_MANIFEST" audit-modules
+  )"; then
+    fail "could not enumerate declared Lean audit modules"
+  fi
+  local audit_modules=()
+  if [[ -n "$audit_module_output" ]]; then
+    mapfile -t audit_modules <<< "$audit_module_output"
+  fi
+  ((${#audit_modules[@]} > 0)) ||
+    fail "declared Lean audit module inventory is empty"
+
+  local modules_json
+  modules_json="$(
+    printf '%s\n' "${audit_modules[@]}" |
+      python3 -c \
+        'import json, sys; print(json.dumps([line.rstrip("\n") for line in sys.stdin if line.rstrip("\n")], separators=(",", ":")))'
+  )"
+
+  python3 "$LEAN_ATTESTATION" plan \
+    --modules-json "$modules_json" \
+    --exact-cache
+
+  # Dependency packages may be restored, but the proof build itself must be
+  # fresh so the release audit is independent of a previous Lake result.
+  rm -rf -- "$LEAN_DIR/.lake/build"
+  run_lean "${audit_modules[@]}"
+
+  local audit_log_dir
+  audit_log_dir="$(mktemp -d)"
+  trap 'rm -rf -- "$audit_log_dir"' RETURN
+  SNARKPACK_LEAN_AUDIT_LOG_DIR="$audit_log_dir" \
+    run_lean_audit_refresh "${audit_modules[@]}"
+  python3 "$LEAN_ATTESTATION" compare-audit \
+    --modules-json "$modules_json" \
+    --input-dir "$audit_log_dir"
+  rm -rf -- "$audit_log_dir"
+  trap - RETURN
+}
+
 main() {
   local require_publication_closure=0
   case "$MODE" in
@@ -437,6 +610,9 @@ main() {
         run_lean_audit_refresh "${selected_lean_modules[@]}"
       fi
       ;;
+    lean-cache)
+      publish_local_lean_cache
+      ;;
     publication)
       require_publication_closure=1
       ;;
@@ -447,8 +623,15 @@ main() {
       run_lean
       require_publication_closure=1
       ;;
+    release)
+      run_static
+      run_extract all
+      run_parity
+      reproduce_lean_cache
+      require_publication_closure=1
+      ;;
     *)
-      fail "SNARKPACK_FV_MODE must be static, extract-changed, extract-all, parity-changed, parity-all, lean-changed, lean-audit-changed, lean, publication, or full (got $MODE)"
+      fail "SNARKPACK_FV_MODE must be static, extract-changed, extract-all, parity-changed, parity-all, lean-changed, lean-audit-changed, lean-cache, lean, publication, full, or release (got $MODE)"
       ;;
   esac
 

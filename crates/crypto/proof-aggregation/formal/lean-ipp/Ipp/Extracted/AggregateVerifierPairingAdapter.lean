@@ -27,6 +27,16 @@ structure ArkworksTippKernelContract
       FX Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput) where
   inverse_nonzero : ∀ effect value, value ≠ 0 →
     primitive.inverse effect value = .ok (some value⁻¹)
+  fold_gt_commitments : ∀ {n : Nat} effect
+      (proof : Ipp.Proof n Fr g1PrimeSubgroup g2PrimeSubgroup ArkPairingOutput)
+      (raw : Fin n → Fr),
+    primitive.fold_gt_commitments effect
+        (proof.ComA.1, proof.ComB, proof.ipAb, proof.ComA.2)
+        ⟨List.ofFn (Ipp.Extracted.VerifyTippMipp.extractedRounds proof.rounds)⟩
+        ⟨List.ofFn fun i => (raw i)⁻¹⟩ ⟨List.ofFn raw⟩ =
+      let terminal := Ipp.terminalFold proof.ComA proof.ComB proof raw
+      .ok (terminal.comA.1, terminal.comB, terminal.comT.1,
+        terminal.comA.2)
   pairing_singleton : ∀ effect left right,
     primitive.pairing_inner_product effect ⟨[left]⟩ ⟨[right]⟩ =
       .ok (.Ok ((executablePairingLinear hbilinear) left right))
@@ -336,6 +346,18 @@ theorem arkworks_tipp_primitive_refinement_statement
       (trace.effect (k + 1)) (transcript.roundAnswer ⟨k, hk⟩)
       (transcript.roundAnswer ⟨k, hk⟩)⁻¹
       (kernel.inverse_nonzero _ _ (trace.round_nonzero ⟨k, hk⟩))
+  have hfold :
+      effects.fold_gt_commitments (trace.effect n)
+          (proof.ComA.1, proof.ComB, proof.ipAb, proof.ComA.2)
+          ⟨List.ofFn (Ipp.Extracted.VerifyTippMipp.extractedRounds proof.rounds)⟩
+          ⟨List.ofFn inverse⟩ ⟨List.ofFn transcript.roundAnswer⟩ =
+        let terminal := Ipp.terminalFold proof.ComA proof.ComB proof
+          transcript.roundAnswer
+        .ok (terminal.comA.1, terminal.comB, terminal.comT.1,
+          terminal.comA.2) := by
+    rw [Ipp.Extracted.TippMippAdapter.effect_fold_gt_commitments_exact]
+    simpa only [inverse] using
+      kernel.fold_gt_commitments (trace.effect n) proof transcript.roundAnswer
   have hbridge :
       effects.derive_final_bridge (trace.effect n)
           (Ipp.Extracted.VerifyTippMipp.priorAt
@@ -464,7 +486,7 @@ theorem arkworks_tipp_primitive_refinement_statement
       effects outcome stmt proof transcript g gBeta h hAlpha pairing
       effect0 trace.effect trace.effect3 trace.effect4 inverse
       leftAccepted rightAccepted targetAccepted cAccepted zAccepted
-      hx0 hderive hinvert (fun _ => rfl) trace.round_nonzero hbridge hkzg
+      hx0 hderive hinvert (fun _ => rfl) trace.round_nonzero hfold hbridge hkzg
       hrandomizer hbaseInner hbaseLeft hbaseRight hbaseTarget
       (by simp [leftAccepted, folded])
       (by simp [rightAccepted, folded])

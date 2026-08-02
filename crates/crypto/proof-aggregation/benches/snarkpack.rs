@@ -12,6 +12,7 @@ use shieldd_sdk_proof_aggregation::{
 };
 use shieldd_sdk_proof_params::batch::BatchItem;
 use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalFamilyId;
+use std::env;
 use std::path::PathBuf;
 
 #[derive(Clone)]
@@ -51,8 +52,11 @@ struct Fixture {
 /// `count` only — the `SquareCircuit` proving key and proofs do not depend on
 /// the aggregation family (the family only selects the transcript domain).
 fn corpus_path(count: usize) -> PathBuf {
-    PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/corpus/snarkpack"))
-        .join(format!("items_{count}.bin"))
+    PathBuf::from(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../bench/corpus/snarkpack"
+    ))
+    .join(format!("items_{count}.bin"))
 }
 
 /// Load the proof corpus for `count` from disk, generating and persisting it on
@@ -150,9 +154,31 @@ fn build_fixture(family_id: ProofFamilyId, count: usize, srs: &DevSrs) -> Fixtur
     }
 }
 
+fn benchmark_counts() -> Vec<usize> {
+    match env::var("SNARKPACK_BENCH_COUNTS") {
+        Ok(value) => {
+            let counts = value
+                .split(',')
+                .map(str::trim)
+                .filter(|part| !part.is_empty())
+                .map(|part| {
+                    part.parse::<usize>()
+                        .expect("SNARKPACK_BENCH_COUNTS entries must be positive integers")
+                })
+                .collect::<Vec<_>>();
+            assert!(
+                !counts.is_empty() && counts.iter().all(|count| *count > 0),
+                "SNARKPACK_BENCH_COUNTS must contain at least one positive count"
+            );
+            counts
+        }
+        Err(_) => vec![1, 2, 4, 8, 48, 64],
+    }
+}
+
 fn snarkpack_bench(c: &mut Criterion) {
     let srs = DevSrs::default();
-    let counts = [1usize, 2, 4, 8, 64];
+    let counts = benchmark_counts();
     let families = [
         ProofFamilyId::Transfer,
         ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NOTE_RESHAPE_FAMILY_SPECS[0].id),
@@ -161,7 +187,7 @@ fn snarkpack_bench(c: &mut Criterion) {
 
     let fixtures: Vec<_> = families
         .into_iter()
-        .flat_map(|family_id| counts.into_iter().map(move |count| (family_id, count)))
+        .flat_map(|family_id| counts.iter().copied().map(move |count| (family_id, count)))
         .map(|(family_id, count)| build_fixture(family_id, count, &srs))
         .collect();
 
