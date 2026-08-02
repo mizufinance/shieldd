@@ -35,7 +35,7 @@ OPERATION_REGISTER_PATH = (
     "operation-reduction-register.json"
 )
 OPERATION_REGISTER_SHA256 = (
-    "958f8ab242e7190963a963db6171e2ddaa1ddb57bff67b0ad9ea627249201c00"
+    "b79662b0ed9d2e531dadda4f72013c18bf5a1ca27e8fdd5ceaa3967265cf393a"
 )
 FSTAR_CHECKER_EVIDENCE_PATH = (
     REPO_ROOT
@@ -142,7 +142,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "d1ef72673e83768962bf663f1ce05b44842c29f1185cd744fa9fe0438e35b719"
+    "4c979b22b7c28f2e28f231ec9b9436cff348ad58256f4ab13e42e3cd0108574c"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -2985,19 +2985,21 @@ def validate_toolchain_roles(manifest: dict[str, Any], repo_root: Path) -> None:
         raise VerificationError(
             "Aeneas image digest does not match its named toolchain lock"
         )
-    formal_workflow = (
-        repo_root / ".github/workflows/formal.yml"
-    ).read_text(encoding="utf-8")
-    image_digests = re.findall(
-        r"shieldd-snarkpack-fv-toolchain@(sha256:[0-9a-f]{64})",
-        formal_workflow,
+    workflow_paths = (
+        repo_root / ".github/workflows/formal.yml",
+        repo_root / ".github/workflows/snarkpack-release-audit.yml",
     )
-    if len(image_digests) != 2 or set(image_digests) != {
-        aeneas_image_digest
-    }:
-        raise VerificationError(
-            "formal workflow Aeneas images differ from the named image lock"
+    for workflow_path in workflow_paths:
+        workflow = workflow_path.read_text(encoding="utf-8")
+        image_digests = re.findall(
+            r"shieldd-snarkpack-fv-toolchain@(sha256:[0-9a-f]{64})",
+            workflow,
         )
+        if image_digests != [aeneas_image_digest]:
+            relative = workflow_path.relative_to(repo_root).as_posix()
+            raise VerificationError(
+                f"{relative} Aeneas image differs from the named image lock"
+            )
 
     evidence_paths = {
         "hax-fstar": repo_root / ".github/workflows/formal.yml",

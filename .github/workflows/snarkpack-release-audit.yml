@@ -1,0 +1,202 @@
+name: snarkpack-release-audit
+
+on:
+  schedule:
+    - cron: '17 11 * * *' # nightly dev
+    - cron: '41 11 * * 0' # weekly main
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Branch whose committed state is audited.
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && inputs.target_ref || (github.event.schedule == '17 11 * * *' && 'dev' || 'main') }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+
+env:
+  CANDIDATE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.target_ref || (github.event.schedule == '17 11 * * *' && 'dev' || 'main') }}
+  SNARKPACK_FV_IMAGE: ghcr.io/mizufinance/shieldd-snarkpack-fv-toolchain@sha256:63fb57a0c07de6c4a3ded67410b26a2804d090a3ae51929708c8e4650a686282
+  SNARKPACK_FUZZ_TOOLCHAIN: nightly-2025-09-30
+  CARGO_FUZZ_VERSION: 0.13.2
+
+jobs:
+  release-audit:
+    name: 'snarkpack: release audit'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+          lfs: true
+
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          free-disk: "true"
+          rust-cache-prefix: snarkpack-release-audit
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore Lean dependency cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: crates/crypto/proof-aggregation/formal/lean-ipp/.lake/packages
+          key: snarkpack-release-lean-deps-v1-${{ runner.os }}-${{ hashFiles('crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain', 'crates/crypto/proof-aggregation/formal/lean-ipp/lake-manifest.json') }}
+          restore-keys: |
+            snarkpack-release-lean-deps-v1-${{ runner.os }}-
+
+      - name: Restore Aeneas compiler cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .ci-cache/snarkpack-release-audit/aeneas-target
+          key: snarkpack-release-aeneas-v1-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml', 'crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml') }}
+          restore-keys: |
+            snarkpack-release-aeneas-v1-${{ runner.os }}-
+
+      - name: Reproduce extraction, parity, and Lean evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ci-cache/snarkpack-release-audit/aeneas-target
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --env CI=true \
+            --env HOME=/tmp/snarkpack-release-audit \
+            --env CARGO_TARGET_DIR=/workspace/.ci-cache/snarkpack-release-audit/aeneas-target \
+            --env LEAN_NUM_THREADS=1 \
+            --env SNARKPACK_FV_MODE=release \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            --workdir /workspace \
+            "$SNARKPACK_FV_IMAGE" \
+            bash -lc 'mkdir -p "$HOME" && bash scripts/snarkpack-fv.sh'
+
+      - name: Install pinned Z3
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -fsSL -o /tmp/z3.zip \
+            https://github.com/Z3Prover/z3/releases/download/z3-4.14.1/z3-4.14.1-x64-glibc-2.35.zip
+          unzip -q /tmp/z3.zip -d "$HOME/.local/opt"
+          echo "$HOME/.local/opt/z3-4.14.1-x64-glibc-2.35/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned F*
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          curl -fsSL -o /tmp/fstar.tar.gz \
+            https://github.com/FStarLang/FStar/releases/download/v2026.05.24/fstar-v2026.05.24-Linux-x86_64.tar.gz
+          tar -xzf /tmp/fstar.tar.gz -C "$HOME/.local/opt"
+          echo "$HOME/.local/opt/fstar/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned hax
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/opt"
+          hax_dir="$HOME/.local/opt/hax-v0.3.7"
+          git clone --depth 1 --branch hax-lib-v0.3.7 https://github.com/cryspen/hax "$hax_dir"
+          nix profile install "$hax_dir#hax" "$hax_dir#hax-engine"
+          echo "HAX_PROOF_LIBS_HOME=$hax_dir/hax-lib/proof-libs/fstar" >> "$GITHUB_ENV"
+
+      - name: Reproduce every F* proof
+        env:
+          SNARKPACK_FSTAR_FORCE_ALL: "1"
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack release F*"
+          -- nix develop --command scripts/snarkpack-formal.sh
+
+      - name: Install exact cargo-fuzz
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$SNARKPACK_FUZZ_TOOLCHAIN" --profile minimal
+          cargo +"$SNARKPACK_FUZZ_TOOLCHAIN" install cargo-fuzz --locked --version "$CARGO_FUZZ_VERSION"
+
+      - name: Run production, reference, and application suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_shipping_log="$(mktemp)"
+          trap 'rm -f "$app_shipping_log"' EXIT
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack release production Rust suite" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-proof-aggregation --lib
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack release independent reference suite" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-proof-aggregation-reference --lib
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack release application aggregate suite" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-app --lib aggregate_ -- --test-threads=1
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack release shipping-input retention" \
+            -- nix develop --command cargo test \
+              -p shieldd-sdk-app --lib \
+              app::tests::async_verifier_outcome_retains_its_exact_shipping_input \
+              -- --exact --test-threads=1 2>&1 | tee "$app_shipping_log"
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack release shipping-input test evidence" \
+            -- nix develop --command python3 \
+              crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py \
+              test-log "$app_shipping_log" \
+              --expected 1 \
+              --label "async_verifier_outcome_retains_its_exact_shipping_input" \
+              --test-name "app::tests::async_verifier_outcome_retains_its_exact_shipping_input"
+          python3 scripts/ci/run_with_annotation.py \
+            --title "SnarkPack release challenge boundaries" \
+            -- nix develop --command just snarkpack-challenge-boundaries
+
+      - name: Run slow interoperability suite
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack release slow interoperability suite"
+          -- nix develop --command just snarkpack-slow
+
+      - name: Run bounded release fuzz
+        env:
+          SNARKPACK_FUZZ_RUNS: "256"
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack release fuzz"
+          -- nix develop --command just snarkpack-fuzz-smoke
+
+      - name: Run release DoS thresholds
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack release DoS"
+          -- nix develop --command just snarkpack-dos-gate
+
+      - name: Recheck publication closure
+        env:
+          SNARKPACK_FV_MODE: publication
+        run: >-
+          python3 scripts/ci/run_with_annotation.py
+          --title "SnarkPack release publication closure"
+          -- nix develop --command just snarkpack-fv
+
+      - name: Require a read-only audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- .
+          test -z "$(git status --porcelain --untracked-files=no)"

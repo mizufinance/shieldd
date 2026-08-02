@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plan and record content-addressed SnarkPack Lean module attestations."""
+"""Publish and validate locally generated SnarkPack Lean evidence."""
 
 from __future__ import annotations
 
@@ -22,8 +22,11 @@ ROOT = Path(__file__).resolve().parents[2]
 SELF = Path("scripts/ci/snarkpack_lean_attestation.py")
 IMPACT_SCRIPT = Path("scripts/ci/snarkpack_fv_impact.py")
 LEAN_ROOT = Path("crates/crypto/proof-aggregation/formal/lean-ipp")
-DEFAULT_MARKER_DIR = LEAN_ROOT / ".lake/snarkpack-ci-success-v7"
-DEFAULT_AUDIT_DIR = LEAN_ROOT / ".lake/snarkpack-ci-audit-v1"
+EVIDENCE_ROOT = Path(
+    "crates/crypto/proof-aggregation/formal/snarkpack/lean-cache-v1"
+)
+DEFAULT_MARKER_DIR = EVIDENCE_ROOT / "modules"
+DEFAULT_AUDIT_DIR = EVIDENCE_ROOT / "audits"
 VERIFICATION_SCRIPT = LEAN_ROOT / "scripts/verification_manifest.py"
 LEAN_ENVIRONMENT_INPUT = Path(
     "crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml"
@@ -188,6 +191,8 @@ def _digest_files(
         if relative.is_absolute() or ".." in relative.parts:
             raise AttestationError(f"unsafe attestation input path: {relative}")
         content = _read_required(root / relative, "attestation input")
+        # Git's text contract is LF; local generators may reintroduce CRLF.
+        content = content.replace(b"\r\n", b"\n")
         records.append(
             (relative.as_posix(), hashlib.sha256(content).hexdigest())
         )
@@ -218,23 +223,14 @@ def _lean_environment_digest(root: Path, path: Path) -> str:
             f"Lean environment contract has no [toolchain] table: {path}"
         )
     lean = toolchain.get("lean")
-    image_digest = toolchain.get("image_digest")
     if not isinstance(lean, str) or not lean:
         raise AttestationError(
             f"Lean environment contract has invalid toolchain.lean: {path}"
         )
-    if (
-        not isinstance(image_digest, str)
-        or re.fullmatch(r"sha256:[0-9a-f]{64}", image_digest) is None
-    ):
-        raise AttestationError(
-            f"Lean environment contract has invalid toolchain.image_digest: {path}"
-        )
     projected = json.dumps(
         {
-            "image_digest": image_digest,
             "lean": lean,
-            "schema_version": 1,
+            "schema_version": 2,
         },
         ensure_ascii=True,
         separators=(",", ":"),
@@ -272,7 +268,7 @@ def fingerprints(
 
     build_sha256 = _digest_files(
         root,
-        domain="snarkpack-lean-build-inputs-v7",
+        domain="snarkpack-lean-build-inputs-v8",
         paths=build_inputs,
     )
     environment_sha256 = _lean_environment_digest(root, environment_input)
@@ -280,7 +276,7 @@ def fingerprints(
     for module in selected:
         dependency_sha256 = _digest_files(
             root,
-            domain=f"snarkpack-lean-module-v7:{module}",
+            domain=f"snarkpack-lean-module-v8:{module}",
             paths=(modules[dependency] for dependency in closures[module]),
         )
         payload = json.dumps(
@@ -289,7 +285,7 @@ def fingerprints(
                 "dependency_sha256": dependency_sha256,
                 "environment_sha256": environment_sha256,
                 "module": module,
-                "schema_version": 7,
+                "schema_version": 8,
             },
             ensure_ascii=True,
             separators=(",", ":"),
@@ -303,7 +299,7 @@ def fingerprints(
                 [module, by_module[module]]
                 for module in selected
             ],
-            "schema_version": 7,
+            "schema_version": 8,
         },
         ensure_ascii=True,
         separators=(",", ":"),
@@ -527,7 +523,8 @@ def plan(
             else:
                 detail = "missing or stale audit evidence"
             raise AttestationError(
-                f"exact Lean cache has {detail} for {module}"
+                f"committed Lean cache has {detail} for {module}; "
+                "run `just snarkpack-lean-cache` locally and commit the result"
             )
         if force_all or not proof_current:
             pending.append(module)
@@ -698,6 +695,52 @@ def record_audit_evidence_from_dir(
         _atomic_write(_audit_metadata_path(audit_dir, module), metadata)
 
 
+def compare_audit_evidence_from_dir(
+    fingerprint_set: FingerprintSet,
+    audit_dir: Path,
+    input_dir: Path,
+    *,
+    validator: AuditValidator,
+) -> int:
+    """Require fresh diagnostics to equal committed source-bound evidence."""
+    checked = 0
+    for module in fingerprint_set.selected:
+        if AUDIT_MODULE_RE.fullmatch(module) is None:
+            continue
+        expected = _read_current_audit_log(
+            audit_dir, module, fingerprint_set.fingerprints[module]
+        )
+        if expected is None:
+            raise AttestationError(
+                f"missing or stale cached Lean audit evidence for {module}"
+            )
+        source = input_dir / f"{module}.log"
+        try:
+            fresh_text = _read_required(
+                source, "fresh Lean audit log"
+            ).decode("utf-8")
+        except UnicodeError as error:
+            raise AttestationError(
+                f"fresh Lean audit log is not UTF-8 for {module}: {error}"
+            ) from error
+        fresh = _module_audit_log(fresh_text, module)
+        validator(module, expected)
+        validator(module, fresh)
+        if fresh != expected:
+            expected_sha256 = hashlib.sha256(
+                expected.encode("utf-8")
+            ).hexdigest()
+            fresh_sha256 = hashlib.sha256(
+                fresh.encode("utf-8")
+            ).hexdigest()
+            raise AttestationError(
+                f"fresh Lean audit differs from committed evidence for {module}; "
+                f"expected {expected_sha256}, got {fresh_sha256}"
+            )
+        checked += 1
+    return checked
+
+
 def validate_audit_evidence(
     fingerprint_set: FingerprintSet,
     audit_dir: Path,
@@ -740,6 +783,7 @@ def parser() -> argparse.ArgumentParser:
         "plan",
         "record",
         "record-audit",
+        "compare-audit",
         "validate-audit",
     ):
         child = subparsers.add_parser(command)
@@ -751,7 +795,7 @@ def parser() -> argparse.ArgumentParser:
         if command == "plan":
             child.add_argument("--exact-cache", action="store_true")
             child.add_argument("--force-all", action="store_true")
-        if command == "record-audit":
+        if command in {"record-audit", "compare-audit"}:
             child.add_argument("--input-dir", type=Path, required=True)
     return result
 
@@ -798,6 +842,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.audit_dir,
                 args.input_dir,
                 validator=_manifest_audit_validator(ROOT),
+            )
+        elif args.command == "compare-audit":
+            checked = compare_audit_evidence_from_dir(
+                values,
+                args.audit_dir,
+                args.input_dir,
+                validator=_manifest_audit_validator(ROOT),
+            )
+            print(
+                f"{checked} fresh Lean audit module(s) match committed evidence"
             )
         else:
             checked = validate_audit_evidence(

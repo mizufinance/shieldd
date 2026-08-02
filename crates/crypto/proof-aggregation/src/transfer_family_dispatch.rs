@@ -26,12 +26,18 @@ pub(crate) fn verify_transfer_aggregate_profiled_status(
     )
 }
 
-pub(crate) fn aggregate_transfer(
+pub(crate) fn aggregate_transfer_real_count(
     challenge_context: &ChallengeContext,
     items: &[BatchItem],
+    real_count: usize,
     srs: &DevSrs,
 ) -> Result<Vec<u8>> {
-    crate::backend::aggregate_with_digest::<TransferTranscriptDigest>(challenge_context, items, srs)
+    crate::backend::aggregate_with_digest_real_count::<TransferTranscriptDigest>(
+        challenge_context,
+        items,
+        real_count,
+        srs,
+    )
 }
 
 pub(crate) fn verify_transfer_aggregate(
@@ -50,13 +56,15 @@ pub(crate) fn verify_transfer_aggregate(
     )
 }
 
-pub(crate) fn aggregate_transfer_profiled(
+pub(crate) fn aggregate_transfer_profiled_real_count(
     items: &[BatchItem],
+    real_count: usize,
     srs: &DevSrs,
     challenge_context: &ChallengeContext,
 ) -> Result<(Vec<u8>, AggregateBuildBackendProfile)> {
-    crate::backend::aggregate_with_digest_profiled::<TransferTranscriptDigest>(
+    crate::backend::aggregate_with_digest_profiled_real_count::<TransferTranscriptDigest>(
         items,
+        real_count,
         srs,
         challenge_context,
     )

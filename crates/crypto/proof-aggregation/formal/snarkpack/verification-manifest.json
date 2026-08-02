@@ -2,7 +2,7 @@
   "schema_version": 1,
   "fstar_checker_evidence": {
     "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
-    "sha256": "302e83de8c8f0eb532b7ebc25b80d74a209be6f38b5069d4bcb991218e9c4d28"
+    "sha256": "f64bdc38c58c270922b2141d5f32d8acc3bae925a39e4a5b22bea455d573657b"
   },
   "deployed_srs_evidence": {
     "schema_version": 1,
@@ -395,7 +395,19 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "sha256": "ab936eba635ab69ea03c4423d65bbc04c4d147d188581fbfc901a6d0994f2953"
+          "sha256": "d6e82900bd14a7f523abeaf1b3fee6021374e5536048cd64a90fe70fcf941266"
+        },
+        {
+          "path": "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
+          "sha256": "14e549fa83de3ec8b5899b0058f1dfc32c9e6862686b1c2ff32062cd968b8549"
+        },
+        {
+          "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+          "sha256": "cd25749a8214ec26a239210c316d37c1f92c954dc61cf9cade35e4f26830666a"
+        },
+        {
+          "path": "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Bls12377GtMembership.lean",
+          "sha256": "35dad9b474f61dabeab6c4e50c651a4fdcd70dcc7374c3ea6606187b9d6544d1"
         }
       ],
       "toolchain_role": "external",
@@ -897,6 +909,24 @@
         "Ipp.Cost.verifier_gt_subgroup_validations",
         "Ipp.Cost.verifier_gt_exponentiations",
         "Ipp.Cost.verifier_final_exponentiations"
+      ]
+    },
+    {
+      "path": "Ipp/ProofAuditOptimization.lean",
+      "expected_capstones": 11,
+      "capstone_roots_sha256": "66bcb92cb86d13a6f3a174d9587252b7eb76bc8ecb09df515b5912401b3ab426",
+      "required_roots": [
+        "Ipp.Optimization.repeated_left_pairing_exact",
+        "Ipp.Optimization.repeated_right_pairing_exact",
+        "Ipp.Optimization.omit_trailing_zero_msm_exact",
+        "Ipp.Optimization.shared_gt_fold_exact",
+        "Ipp.Cost.prover_exact_optimized_miller_terms",
+        "Ipp.Cost.prover_padding_pairing_exact_saving",
+        "Ipp.Cost.prover_padding_pairing_strictly_fewer",
+        "Ipp.Cost.prover_exact_optimized_g1_kzg_msm_terms",
+        "Ipp.Cost.prover_exact_optimized_g2_kzg_msm_terms",
+        "Ipp.Cost.prover_unpadded_kzg_exact_saving",
+        "Ipp.Bls12377.fastGtUnitMembership_iff"
       ]
     },
     {

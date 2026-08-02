@@ -24,24 +24,25 @@ def full_environment() -> dict[str, str]:
             "SNARKPACK_EXPLANATION": "selected",
             "STATIC_RUN": "true",
             "EXTRACT_RUN": "true",
+            "EXTRACT_CACHE_HIT": "",
             "SNARKPACK_LEAN_RUN": "true",
             "FSTAR_RUN": "true",
+            "FSTAR_FORCE_ALL": "false",
+            "FSTAR_CACHE_HIT": "",
             "PARITY_RUN": "true",
+            "PARITY_CACHE_HIT": "",
             "RUST_REFERENCE_RUN": "true",
             "FUZZ_RUN": "true",
             "DOS_RUN": "true",
+            "RUNTIME_CACHE_HIT": "",
             "SOUNDNESS_STATUS": "run",
             "SOUNDNESS_TIER": "full",
             "SOUNDNESS_EXPLANATION": "selected",
             "STATIC": "success",
             "EXTRACT": "success",
-            "SNARKPACK_LEAN": "success",
             "FSTAR": "success",
             "PARITY": "success",
-            "RUST_REFERENCE": "success",
-            "SLOW": "success",
-            "FUZZ": "success",
-            "DOS": "success",
+            "RUNTIME": "success",
             "PUBLICATION": "success",
             "GATE": "success",
             "SEAM": "success",
@@ -79,16 +80,17 @@ def select_snarkpack_skip(env: dict[str, str]) -> None:
         "DOS_RUN",
     ):
         env[name] = "false"
+    env["FSTAR_FORCE_ALL"] = "false"
+    env["EXTRACT_CACHE_HIT"] = ""
+    env["FSTAR_CACHE_HIT"] = ""
+    env["PARITY_CACHE_HIT"] = ""
+    env["RUNTIME_CACHE_HIT"] = ""
     for name in (
         "STATIC",
         "EXTRACT",
-        "SNARKPACK_LEAN",
         "FSTAR",
         "PARITY",
-        "RUST_REFERENCE",
-        "SLOW",
-        "FUZZ",
-        "DOS",
+        "RUNTIME",
         "PUBLICATION",
     ):
         env[name] = "skipped"
@@ -109,17 +111,52 @@ class EnforceFormalResultTests(unittest.TestCase):
 
     def test_selected_failure_is_fatal(self) -> None:
         env = full_environment()
-        env["SNARKPACK_LEAN"] = "failure"
+        env["RUNTIME"] = "failure"
         result = run_summary(env)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("snarkpack-lean=failure", result.stderr)
+        self.assertIn("snarkpack-runtime=failure", result.stderr)
 
-    def test_slow_lane_is_required_with_rust_reference(self) -> None:
+    def test_runtime_lane_is_required_with_rust_reference(self) -> None:
         env = full_environment()
-        env["SLOW"] = "skipped"
+        env["RUNTIME"] = "skipped"
         result = run_summary(env)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("snarkpack-slow=skipped", result.stderr)
+        self.assertIn("snarkpack-runtime=skipped", result.stderr)
+
+    def test_exact_cache_hits_skip_compute_lanes(self) -> None:
+        env = full_environment()
+        env["EXTRACT_CACHE_HIT"] = "true"
+        env["FSTAR_CACHE_HIT"] = "true"
+        env["PARITY_CACHE_HIT"] = "true"
+        env["RUNTIME_CACHE_HIT"] = "true"
+        env["FSTAR"] = "skipped"
+        env["EXTRACT"] = "skipped"
+        env["PARITY"] = "skipped"
+        env["RUNTIME"] = "skipped"
+        result = run_summary(env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_cached_lane_must_actually_skip_compute(self) -> None:
+        env = full_environment()
+        env["RUNTIME_CACHE_HIT"] = "true"
+        result = run_summary(env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(
+            "cached snarkpack-runtime lane returned success; expected skipped",
+            result.stderr,
+        )
+
+    def test_forced_fstar_ignores_exact_cache(self) -> None:
+        env = full_environment()
+        env["FSTAR_FORCE_ALL"] = "true"
+        result = run_summary(env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        env["FSTAR_CACHE_HIT"] = "true"
+        env["FSTAR"] = "skipped"
+        result = run_summary(env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("incorrectly served from cache", result.stderr)
 
     def test_unselected_lane_must_report_skipped(self) -> None:
         env = full_environment()
@@ -134,23 +171,26 @@ class EnforceFormalResultTests(unittest.TestCase):
 
     def test_unselected_lane_failure_is_fatal(self) -> None:
         env = full_environment()
+        env["RUST_REFERENCE_RUN"] = "false"
         env["FUZZ_RUN"] = "false"
-        env["FUZZ"] = "failure"
+        env["DOS_RUN"] = "false"
+        env["RUNTIME"] = "failure"
         result = run_summary(env)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "unselected snarkpack-fuzz lane returned failure; expected skipped",
+            "unselected snarkpack-runtime lane returned failure; expected skipped",
             result.stderr,
         )
 
-    def test_slow_lane_selection_tracks_rust_reference(self) -> None:
+    def test_runtime_lane_selection_tracks_all_runtime_modes(self) -> None:
         env = full_environment()
         env["RUST_REFERENCE_RUN"] = "false"
-        env["RUST_REFERENCE"] = "skipped"
+        env["FUZZ_RUN"] = "false"
+        env["DOS_RUN"] = "false"
         result = run_summary(env)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "unselected snarkpack-slow lane returned success; expected skipped",
+            "unselected snarkpack-runtime lane returned success; expected skipped",
             result.stderr,
         )
 
@@ -175,11 +215,11 @@ class EnforceFormalResultTests(unittest.TestCase):
     def test_snarkpack_skip_must_not_run_any_lane(self) -> None:
         env = full_environment()
         select_snarkpack_skip(env)
-        env["SNARKPACK_LEAN"] = "success"
+        env["RUNTIME"] = "success"
         result = run_summary(env)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "unselected snarkpack-lean lane returned success; expected skipped",
+            "unselected snarkpack-runtime lane returned success; expected skipped",
             result.stderr,
         )
 

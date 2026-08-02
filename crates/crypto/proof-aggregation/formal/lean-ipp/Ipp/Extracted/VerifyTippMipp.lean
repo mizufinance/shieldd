@@ -20,12 +20,11 @@ abbrev Round (GT ABT CT : Type) :=
   Commitment GT ABT CT × Commitment GT ABT CT
 
 abbrev RoundState (F GT ABT CT E FX : Type) :=
-  core.ops.range.Range × FX × GT × GT × ABT × GT × CT × F × F ×
-    alloc.vec.Vec F × alloc.vec.Vec F × Option E
+  core.ops.range.Range × FX × CT × F × F × alloc.vec.Vec F ×
+    alloc.vec.Vec F × Option E
 
 abbrev RoundOutput (F GT ABT CT E FX : Type) :=
-  FX × GT × GT × ABT × GT × CT × F ×
-    alloc.vec.Vec F × alloc.vec.Vec F × Option E
+  FX × CT × F × alloc.vec.Vec F × alloc.vec.Vec F × Option E
 
 private def finVec {T : Type} {n : Nat} (values : Fin n → T) : alloc.vec.Vec T :=
   ⟨List.ofFn values⟩
@@ -46,12 +45,6 @@ section GeneratedLoop
 
 variable {F G1 G2 GT ABT CT E FX : Type}
 variable (cloneF : core.clone.Clone F)
-variable (cloneGT : core.clone.Clone GT) (defaultGT : core.default.Default GT)
-variable (addGT : ark_ip_proofs.core.ops.arith.Add GT GT GT)
-variable (mulGT : ark_ip_proofs.core.ops.arith.MulAssign GT F)
-variable (cloneABT : core.clone.Clone ABT) (defaultABT : core.default.Default ABT)
-variable (addABT : ark_ip_proofs.core.ops.arith.Add ABT ABT ABT)
-variable (mulABT : ark_ip_proofs.core.ops.arith.MulAssign ABT F)
 variable (cloneCT : core.clone.Clone CT) (defaultCT : core.default.Default CT)
 variable (addCT : ark_ip_proofs.core.ops.arith.Add CT CT CT)
 variable (mulCT : ark_ip_proofs.core.ops.arith.MulAssign CT F)
@@ -63,12 +56,10 @@ def roundBody (rounds : alloc.vec.Vec (Round GT ABT CT)) (roundCount : Usize) :
     RoundState F GT ABT CT E FX →
       Result (ControlFlow (RoundState F GT ABT CT E FX)
         (RoundOutput F GT ABT CT E FX)) :=
-  fun (iter, effect, comA, comB, comT, comC, comZ, prior, last, raw,
-      inverse, roundError) =>
+  fun (iter, effect, comZ, prior, last, raw, inverse, roundError) =>
     ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body
-      cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT mulABT
-      cloneCT defaultCT addCT mulCT effects rounds roundCount iter effect comA comB
-      comT comC comZ prior last raw inverse roundError
+      cloneF cloneCT defaultCT addCT mulCT effects rounds roundCount iter effect
+      comZ prior last raw inverse roundError
 
 private theorem reverseIndex {n k : Nat} (hk : k < n) :
     n - k - 1 = (Fin.rev ⟨k, hk⟩ : Fin n) := by
@@ -102,18 +93,16 @@ private theorem reverseRoundIndex {n : Nat} (rounds : Fin n → Round GT ABT CT)
   congr 2
 
 /-- Once the single-exit error state is set, a valid later round advances only
-    the iterator; effects, folds, challenges, transcripts, and the error agree. -/
+    the iterator; effects, challenges, transcripts, and the error agree. -/
 theorem roundError_step {n : Nat} (rounds : Fin n → Round GT ABT CT)
-    (k : Nat) (hk : k < n) (effect : FX) (comA comB comC : GT)
-    (comT : ABT) (comZ : CT) (prior last : F) (raw inverse : alloc.vec.Vec F)
-    (error : E) :
-    roundBody cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT
-        mulABT cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩
-        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT,
-          comC, comZ, prior, last, raw, inverse, some error) =
+    (k : Nat) (hk : k < n) (effect : FX) (comZ : CT) (prior last : F)
+    (raw inverse : alloc.vec.Vec F) (error : E) :
+    roundBody cloneF cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩
+        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+          inverse, some error) =
       .ok (.cont
-        ({ start := ⟨k + 1⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT,
-          comC, comZ, prior, last, raw, inverse, some error)) := by
+        ({ start := ⟨k + 1⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+          inverse, some error)) := by
   simp only [roundBody,
     ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body,
     core.iter.range.IteratorRange.next, hk, ↓reduceIte, Result.bind_ok]
@@ -127,21 +116,18 @@ theorem roundError_step {n : Nat} (rounds : Fin n → Round GT ABT CT)
   rfl
 
 /-- A challenge-derivation error enters the terminal round-error state without
-    changing folds, challenges, or transcripts. -/
+    changing challenges or transcripts. -/
 theorem deriveFailure_step {n : Nat} (rounds : Fin n → Round GT ABT CT)
-    (k : Nat) (hk : k < n) (effect effect' : FX) (comA comB comC : GT)
-    (comT : ABT) (comZ : CT) (prior last : F) (raw inverse : alloc.vec.Vec F)
-    (error : E)
+    (k : Nat) (hk : k < n) (effect effect' : FX) (comZ : CT)
+    (prior last : F) (raw inverse : alloc.vec.Vec F) (error : E)
     (hderive : effects.derive_round effect prior (rounds (Fin.rev ⟨k, hk⟩)).1
-        (rounds (Fin.rev ⟨k, hk⟩)).2 =
-      .ok (.Err error, effect')) :
-    roundBody cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT
-        mulABT cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩
-        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT,
-          comC, comZ, prior, last, raw, inverse, none) =
+        (rounds (Fin.rev ⟨k, hk⟩)).2 = .ok (.Err error, effect')) :
+    roundBody cloneF cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩
+        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+          inverse, none) =
       .ok (.cont
-        ({ start := ⟨k + 1⟩, «end» := ⟨n⟩ }, effect', comA, comB, comT,
-          comC, comZ, prior, last, raw, inverse, some error)) := by
+        ({ start := ⟨k + 1⟩, «end» := ⟨n⟩ }, effect', comZ, prior, last, raw,
+          inverse, some error)) := by
   simp only [roundBody,
     ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body,
     core.iter.range.IteratorRange.next, hk, ↓reduceIte, Result.bind_ok]
@@ -158,20 +144,17 @@ theorem deriveFailure_step {n : Nat} (rounds : Fin n → Round GT ABT CT)
 /-- An inversion error enters the same terminal state after retaining the
     effect returned by challenge derivation. -/
 theorem inversionFailure_step {n : Nat} (rounds : Fin n → Round GT ABT CT)
-    (k : Nat) (hk : k < n) (effect effect' : FX) (comA comB comC : GT)
-    (comT : ABT) (comZ : CT) (prior last rawChallenge : F)
-    (raw inverse : alloc.vec.Vec F) (error : E)
+    (k : Nat) (hk : k < n) (effect effect' : FX) (comZ : CT)
+    (prior last rawChallenge : F) (raw inverse : alloc.vec.Vec F) (error : E)
     (hderive : effects.derive_round effect prior (rounds (Fin.rev ⟨k, hk⟩)).1
-        (rounds (Fin.rev ⟨k, hk⟩)).2 =
-      .ok (.Ok rawChallenge, effect'))
+        (rounds (Fin.rev ⟨k, hk⟩)).2 = .ok (.Ok rawChallenge, effect'))
     (hinvert : effects.invert_round effect' rawChallenge = .ok (.Err error)) :
-    roundBody cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT
-        mulABT cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩
-        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT,
-          comC, comZ, prior, last, raw, inverse, none) =
+    roundBody cloneF cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩
+        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+          inverse, none) =
       .ok (.cont
-        ({ start := ⟨k + 1⟩, «end» := ⟨n⟩ }, effect', comA, comB, comT,
-          comC, comZ, prior, last, raw, inverse, some error)) := by
+        ({ start := ⟨k + 1⟩, «end» := ⟨n⟩ }, effect', comZ, prior, last, raw,
+          inverse, some error)) := by
   simp only [roundBody,
     ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop.body,
     core.iter.range.IteratorRange.next, hk, ↓reduceIte, Result.bind_ok]
@@ -188,16 +171,14 @@ theorem inversionFailure_step {n : Nat} (rounds : Fin n → Round GT ABT CT)
   rfl
 
 private theorem roundErrorFuel {n : Nat} (rounds : Fin n → Round GT ABT CT)
-    (start count : Nat) (hend : start + count = n)
-    (effect : FX) (comA comB comC : GT) (comT : ABT) (comZ : CT)
+    (start count : Nat) (hend : start + count = n) (effect : FX) (comZ : CT)
     (prior last : F) (raw inverse : alloc.vec.Vec F) (error : E) :
     loopFuel
-      (roundBody cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT
-        mulABT cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩)
+      (roundBody cloneF cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩)
       (count + 1)
-      ({ start := ⟨start⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT,
-        comC, comZ, prior, last, raw, inverse, some error) =
-      .ok (effect, comA, comB, comT, comC, comZ, last, raw, inverse, some error) := by
+      ({ start := ⟨start⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+        inverse, some error) =
+      .ok (effect, comZ, last, raw, inverse, some error) := by
   induction count generalizing start with
   | zero =>
       have hsn : start = n := by omega
@@ -207,144 +188,117 @@ private theorem roundErrorFuel {n : Nat} (rounds : Fin n → Round GT ABT CT)
         core.iter.range.IteratorRange.next]
   | succ remaining ih =>
       have hlt : start < n := by omega
-      rw [loopFuel, roundError_step cloneF cloneGT defaultGT addGT mulGT cloneABT
-        defaultABT addABT mulABT cloneCT defaultCT addCT mulCT effects rounds start hlt]
+      rw [loopFuel, roundError_step cloneF cloneCT defaultCT addCT mulCT effects
+        rounds start hlt]
       exact ih (start + 1) (by omega)
 
 /-- The extracted finite loop preserves the first stored round error through
     every remaining iteration and returns it unchanged. -/
 theorem roundError_terminal {n k : Nat} (rounds : Fin n → Round GT ABT CT)
-    (hk : k ≤ n) (effect : FX) (comA comB comC : GT) (comT : ABT) (comZ : CT)
-    (prior last : F) (raw inverse : alloc.vec.Vec F) (error : E) :
+    (hk : k ≤ n) (effect : FX) (comZ : CT) (prior last : F)
+    (raw inverse : alloc.vec.Vec F) (error : E) :
     ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
-      cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT mulABT
-      cloneCT defaultCT addCT mulCT effects
-      { start := ⟨k⟩, «end» := ⟨n⟩ } (finVec rounds) effect comA comB comT
-      comC comZ prior last raw inverse (some error) ⟨n⟩ =
-      .ok (effect, comA, comB, comT, comC, comZ, last, raw, inverse, some error) := by
+      cloneF cloneCT defaultCT addCT mulCT effects
+      { start := ⟨k⟩, «end» := ⟨n⟩ } (finVec rounds) effect comZ prior last raw
+      inverse (some error) ⟨n⟩ =
+      .ok (effect, comZ, last, raw, inverse, some error) := by
   unfold ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
   apply loop_eq_of_fuel (fuel := n - k + 1) (by simp)
-  exact roundErrorFuel cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT
-    addABT mulABT cloneCT defaultCT addCT mulCT effects rounds k (n - k) (by omega)
-    effect comA comB
-    comC comT comZ prior last raw inverse error
+  exact roundErrorFuel cloneF cloneCT defaultCT addCT mulCT effects rounds k
+    (n - k) (by omega) effect comZ prior last raw inverse error
 
 /-- If round `k` is the first challenge-derivation failure, that error is the
     extracted loop's final error and every later round is observationally inert. -/
 theorem deriveFailure_terminal {n : Nat} (rounds : Fin n → Round GT ABT CT)
-    (k : Nat) (hk : k < n) (effect effect' : FX) (comA comB comC : GT)
-    (comT : ABT) (comZ : CT) (prior last : F) (raw inverse : alloc.vec.Vec F)
-    (error : E)
+    (k : Nat) (hk : k < n) (effect effect' : FX) (comZ : CT)
+    (prior last : F) (raw inverse : alloc.vec.Vec F) (error : E)
     (hderive : effects.derive_round effect prior (rounds (Fin.rev ⟨k, hk⟩)).1
         (rounds (Fin.rev ⟨k, hk⟩)).2 = .ok (.Err error, effect')) :
     ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
-      cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT mulABT
-      cloneCT defaultCT addCT mulCT effects
-      { start := ⟨k⟩, «end» := ⟨n⟩ } (finVec rounds) effect comA comB comT
-      comC comZ prior last raw inverse none ⟨n⟩ =
-      .ok (effect', comA, comB, comT, comC, comZ, last, raw, inverse,
-        some error) := by
+      cloneF cloneCT defaultCT addCT mulCT effects
+      { start := ⟨k⟩, «end» := ⟨n⟩ } (finVec rounds) effect comZ prior last raw
+      inverse none ⟨n⟩ =
+      .ok (effect', comZ, last, raw, inverse, some error) := by
   unfold ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
   apply loop_eq_of_fuel (fuel := n - k + 1) (by simp)
   change loopFuel
-      (roundBody cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT
-        mulABT cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩)
+      (roundBody cloneF cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩)
       (n - k + 1)
-      ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT, comC, comZ,
-        prior, last, raw, inverse, none) = _
+      ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+        inverse, none) = _
   rw [show n - k + 1 = (n - (k + 1) + 1) + 1 by omega, loopFuel,
-    deriveFailure_step cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT
-      addABT mulABT cloneCT defaultCT addCT mulCT effects rounds k hk effect
-      effect' comA comB comC comT comZ prior last raw inverse error hderive]
-  exact roundErrorFuel cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT
-    addABT mulABT cloneCT defaultCT addCT mulCT effects rounds (k + 1)
-    (n - (k + 1)) (by omega) effect' comA comB comC comT comZ prior last raw
-    inverse error
+    deriveFailure_step cloneF cloneCT defaultCT addCT mulCT effects rounds k hk
+      effect effect' comZ prior last raw inverse error hderive]
+  exact roundErrorFuel cloneF cloneCT defaultCT addCT mulCT effects rounds
+    (k + 1) (n - (k + 1)) (by omega) effect' comZ prior last raw inverse error
 
 /-- If round `k` is the first inversion failure, the derivation's updated
     effect and that error are final; all later rounds are no-ops. -/
 theorem inversionFailure_terminal {n : Nat} (rounds : Fin n → Round GT ABT CT)
-    (k : Nat) (hk : k < n) (effect effect' : FX) (comA comB comC : GT)
-    (comT : ABT) (comZ : CT) (prior last rawChallenge : F)
-    (raw inverse : alloc.vec.Vec F) (error : E)
+    (k : Nat) (hk : k < n) (effect effect' : FX) (comZ : CT)
+    (prior last rawChallenge : F) (raw inverse : alloc.vec.Vec F) (error : E)
     (hderive : effects.derive_round effect prior (rounds (Fin.rev ⟨k, hk⟩)).1
         (rounds (Fin.rev ⟨k, hk⟩)).2 = .ok (.Ok rawChallenge, effect'))
     (hinvert : effects.invert_round effect' rawChallenge = .ok (.Err error)) :
     ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
-      cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT mulABT
-      cloneCT defaultCT addCT mulCT effects
-      { start := ⟨k⟩, «end» := ⟨n⟩ } (finVec rounds) effect comA comB comT
-      comC comZ prior last raw inverse none ⟨n⟩ =
-      .ok (effect', comA, comB, comT, comC, comZ, last, raw, inverse,
-        some error) := by
+      cloneF cloneCT defaultCT addCT mulCT effects
+      { start := ⟨k⟩, «end» := ⟨n⟩ } (finVec rounds) effect comZ prior last raw
+      inverse none ⟨n⟩ =
+      .ok (effect', comZ, last, raw, inverse, some error) := by
   unfold ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
   apply loop_eq_of_fuel (fuel := n - k + 1) (by simp)
   change loopFuel
-      (roundBody cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT
-        mulABT cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩)
+      (roundBody cloneF cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩)
       (n - k + 1)
-      ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comA, comB, comT, comC, comZ,
-        prior, last, raw, inverse, none) = _
+      ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect, comZ, prior, last, raw,
+        inverse, none) = _
   rw [show n - k + 1 = (n - (k + 1) + 1) + 1 by omega, loopFuel,
-    inversionFailure_step cloneF cloneGT defaultGT addGT mulGT cloneABT
-      defaultABT addABT mulABT cloneCT defaultCT addCT mulCT effects rounds k hk
-      effect effect' comA comB comC comT comZ prior last rawChallenge raw inverse
-      error hderive hinvert]
-  exact roundErrorFuel cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT
-    addABT mulABT cloneCT defaultCT addCT mulCT effects rounds (k + 1)
-    (n - (k + 1)) (by omega) effect' comA comB comC comT comZ prior last raw
-    inverse error
+    inversionFailure_step cloneF cloneCT defaultCT addCT mulCT effects rounds k
+      hk effect effect' comZ prior last rawChallenge raw inverse error hderive
+      hinvert]
+  exact roundErrorFuel cloneF cloneCT defaultCT addCT mulCT effects rounds
+    (k + 1) (n - (k + 1)) (by omega) effect' comZ prior last raw inverse error
 
-/-- Reusable successful-loop interface. S2-32 supplies the five accumulator
-    functions and proves one generated-body step for each reversed proof round. -/
+/-- Reusable successful-loop interface for the challenge state retained inside
+    the generated loop. GT commitment folds are delegated after this loop. -/
 structure SuccessInvariant (n : Nat) (rounds : Fin n → Round GT ABT CT) where
   effect : Nat → FX
-  comA : Nat → GT
-  comB : Nat → GT
-  comT : Nat → ABT
-  comC : Nat → GT
   comZ : Nat → CT
   prior : Nat → F
   last : Nat → F
   raw : Fin n → F
   inverse : Fin n → F
   step : ∀ k (hk : k < n),
-    roundBody cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT
-        mulABT cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩
-        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect k, comA k, comB k, comT k,
-          comC k, comZ k, prior k, last k, ⟨tracePrefix raw k hk.le⟩,
-          ⟨tracePrefix inverse k hk.le⟩, none) =
+    roundBody cloneF cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩
+        ({ start := ⟨k⟩, «end» := ⟨n⟩ }, effect k, comZ k, prior k, last k,
+          ⟨tracePrefix raw k hk.le⟩, ⟨tracePrefix inverse k hk.le⟩, none) =
       .ok (.cont
-        ({ start := ⟨k + 1⟩, «end» := ⟨n⟩ }, effect (k + 1), comA (k + 1),
-          comB (k + 1), comT (k + 1), comC (k + 1), comZ (k + 1),
-          prior (k + 1), last (k + 1), ⟨tracePrefix raw (k + 1) (by omega)⟩,
+        ({ start := ⟨k + 1⟩, «end» := ⟨n⟩ }, effect (k + 1), comZ (k + 1),
+          prior (k + 1), last (k + 1),
+          ⟨tracePrefix raw (k + 1) (by omega)⟩,
           ⟨tracePrefix inverse (k + 1) (by omega)⟩, none))
 
 private theorem successFuel {n : Nat} {rounds : Fin n → Round GT ABT CT}
-    (inv : SuccessInvariant cloneF cloneGT defaultGT addGT mulGT cloneABT
-      defaultABT addABT mulABT cloneCT defaultCT addCT mulCT effects n rounds) :
+    (inv : SuccessInvariant cloneF cloneCT defaultCT addCT mulCT effects n rounds) :
     loopFuel
-      (roundBody cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT
-        mulABT cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩)
+      (roundBody cloneF cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩)
       (n + 1)
-      ({ start := ⟨0⟩, «end» := ⟨n⟩ }, inv.effect 0, inv.comA 0, inv.comB 0,
-        inv.comT 0, inv.comC 0, inv.comZ 0, inv.prior 0, inv.last 0,
-        ⟨tracePrefix inv.raw 0 (Nat.zero_le n)⟩,
+      ({ start := ⟨0⟩, «end» := ⟨n⟩ }, inv.effect 0, inv.comZ 0,
+        inv.prior 0, inv.last 0, ⟨tracePrefix inv.raw 0 (Nat.zero_le n)⟩,
         ⟨tracePrefix inv.inverse 0 (Nat.zero_le n)⟩, none) =
-      .ok (inv.effect n, inv.comA n, inv.comB n, inv.comT n, inv.comC n,
-        inv.comZ n, inv.last n, finVec inv.raw, finVec inv.inverse, none) := by
+      .ok (inv.effect n, inv.comZ n, inv.last n, finVec inv.raw,
+        finVec inv.inverse, none) := by
   suffices h : ∀ start count (hend : start + count = n),
       loopFuel
-        (roundBody cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT
-          mulABT cloneCT defaultCT addCT mulCT effects (finVec rounds) ⟨n⟩)
+        (roundBody cloneF cloneCT defaultCT addCT mulCT effects
+          (finVec rounds) ⟨n⟩)
         (count + 1)
         ({ start := ⟨start⟩, «end» := ⟨n⟩ }, inv.effect start,
-          inv.comA start, inv.comB start, inv.comT start, inv.comC start,
           inv.comZ start, inv.prior start, inv.last start,
           ⟨tracePrefix inv.raw start (by omega)⟩,
           ⟨tracePrefix inv.inverse start (by omega)⟩, none) =
-        .ok (inv.effect n, inv.comA n, inv.comB n, inv.comT n, inv.comC n,
-          inv.comZ n, inv.last n, finVec inv.raw, finVec inv.inverse, none) by
+        .ok (inv.effect n, inv.comZ n, inv.last n, finVec inv.raw,
+          finVec inv.inverse, none) by
     simpa using h 0 n (by omega)
   intro start count hend
   induction count generalizing start with
@@ -362,19 +316,17 @@ private theorem successFuel {n : Nat} {rounds : Fin n → Round GT ABT CT}
 /-- An arbitrary successful execution emits raw and inverse challenges in
     derivation chronology while traversing proof rounds by `Fin.rev`. -/
 theorem success_transcripts {n : Nat} {rounds : Fin n → Round GT ABT CT}
-    (inv : SuccessInvariant cloneF cloneGT defaultGT addGT mulGT cloneABT
-      defaultABT addABT mulABT cloneCT defaultCT addCT mulCT effects n rounds) :
+    (inv : SuccessInvariant cloneF cloneCT defaultCT addCT mulCT effects n rounds) :
     ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
-      cloneF cloneGT defaultGT addGT mulGT cloneABT defaultABT addABT mulABT
-      cloneCT defaultCT addCT mulCT effects { start := ⟨0⟩, «end» := ⟨n⟩ }
-      (finVec rounds) (inv.effect 0) (inv.comA 0) (inv.comB 0) (inv.comT 0)
-      (inv.comC 0) (inv.comZ 0) (inv.prior 0) (inv.last 0) ⟨[]⟩ ⟨[]⟩ none ⟨n⟩ =
-      .ok (inv.effect n, inv.comA n, inv.comB n, inv.comT n, inv.comC n,
-        inv.comZ n, inv.last n, finVec inv.raw, finVec inv.inverse, none) := by
+      cloneF cloneCT defaultCT addCT mulCT effects { start := ⟨0⟩, «end» := ⟨n⟩ }
+      (finVec rounds) (inv.effect 0) (inv.comZ 0) (inv.prior 0) (inv.last 0)
+      ⟨[]⟩ ⟨[]⟩ none ⟨n⟩ =
+      .ok (inv.effect n, inv.comZ n, inv.last n, finVec inv.raw,
+        finVec inv.inverse, none) := by
   unfold ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
   apply loop_eq_of_fuel (fuel := n + 1) (by simp)
-  simpa [tracePrefix] using successFuel cloneF cloneGT defaultGT addGT mulGT cloneABT
-    defaultABT addABT mulABT cloneCT defaultCT addCT mulCT effects inv
+  simpa [tracePrefix] using successFuel cloneF cloneCT defaultCT addCT mulCT
+    effects inv
 
 /-- Reversing a successful chronological transcript is exactly the model's
     `reversedView`, for every round count. -/
@@ -520,9 +472,8 @@ def priorAt {n : Nat} (raw : Fin n → F) (initial : F) : Nat → F
   | 0 => initial
   | k + 1 => if hk : k < n then raw ⟨k, hk⟩ else initial
 
-/-- Successful extracted folding returns exactly the five lane-native fields of
-    `Ipp.terminalFold`. The raw transcript feeds the model; its inverses are the
-    left fold coefficients used by the extracted verifier. -/
+/-- The successful extracted round loop returns the exact `com_z` fold and both
+    chronological challenge transcripts. GT folds are delegated after it. -/
 theorem success_terminal_folds {n : Nat} {G2 E FX : Type}
     (effects : ark_ip_proofs.applications.groth16_aggregation.TippMippEffect
       FX F G1 G2 GT GT G1 E)
@@ -540,29 +491,19 @@ theorem success_terminal_folds {n : Nat} {G2 E FX : Type}
     (hinverse : ∀ i, inverse i = (raw i)⁻¹)
     (hnonzero : ∀ i, raw i ≠ 0) :
     ark_ip_proofs.applications.groth16_aggregation.verify_tipp_mipp_challenge_prefix_core_loop
-      (modelClone F) (modelClone GT) (modelDefault GT) (modelAdd GT)
-      (modelSmulAssign GT) (modelClone GT) (modelDefault GT) (modelAdd GT)
-      (modelSmulAssign GT) (modelClone G1) (modelDefault G1) (modelAdd G1)
+      (modelClone F) (modelClone G1) (modelDefault G1) (modelAdd G1)
       (modelSmulAssign G1) effects { start := ⟨0⟩, «end» := ⟨n⟩ }
-      (finVec (extractedRounds proof.rounds)) (effect 0) ComA.1 ComB proof.ipAb
-      ComA.2 proof.aggC initialPrior initialLast ⟨[]⟩ ⟨[]⟩ none ⟨n⟩ =
+      (finVec (extractedRounds proof.rounds)) (effect 0) proof.aggC
+      initialPrior initialLast ⟨[]⟩ ⟨[]⟩ none ⟨n⟩ =
       let terminal := Ipp.terminalFold ComA ComB proof raw
-      .ok (effect n, terminal.comA.1, terminal.comB, terminal.comT.1,
-        terminal.comA.2, terminal.comT.2, priorAt raw initialLast n,
-        finVec raw, finVec inverse, none) := by
+      .ok (effect n, terminal.comT.2, priorAt raw initialLast n, finVec raw,
+        finVec inverse, none) := by
   let initial : Ipp.FoldedValues G1 GT :=
     { comA := ComA, comB := ComB, comT := (proof.ipAb, proof.aggC) }
   let folded := foldState raw proof.rounds initial
-  let inv : SuccessInvariant (modelClone F) (modelClone GT) (modelDefault GT)
-      (modelAdd GT) (modelSmulAssign GT) (modelClone GT) (modelDefault GT)
-      (modelAdd GT) (modelSmulAssign GT) (modelClone G1) (modelDefault G1)
-      (modelAdd G1) (modelSmulAssign G1) effects n
-      (extractedRounds proof.rounds) :=
+  let inv : SuccessInvariant (modelClone F) (modelClone G1) (modelDefault G1)
+      (modelAdd G1) (modelSmulAssign G1) effects n (extractedRounds proof.rounds) :=
     { effect := effect
-      comA := fun k => (folded k).comA.1
-      comB := fun k => (folded k).comB
-      comT := fun k => (folded k).comT.1
-      comC := fun k => (folded k).comA.2
       comZ := fun k => (folded k).comT.2
       prior := priorAt raw initialPrior
       last := priorAt raw initialLast
@@ -590,30 +531,14 @@ theorem success_terminal_folds {n : Nat} {G2 E FX : Type}
         have hraw : raw ⟨k, hk⟩ = (inverse ⟨k, hk⟩)⁻¹ := by
           rw [hinverse, inv_inv]
         rw [hraw]
-        rw [foldOutput_eq_foldCom _ _ _ _ hi,
-          foldOutput_eq_foldCom _ _ _ _ hi,
-          foldOutput_eq_foldCom _ _ _ _ hi,
-          foldOutput_eq_foldCom _ _ _ _ hi,
-          foldOutput_eq_foldCom _ _ _ _ hi]
+        rw [foldOutput_eq_foldCom _ _ _ _ hi]
         simp only [Result.bind_ok, modelClone, alloc.vec.Vec.push]
         simp only [Result.ok.injEq, ControlFlow.cont.injEq, Prod.mk.injEq]
         dsimp only [folded]
         constructor
         · rfl
         constructor
-        · simp
-        constructor
-        · simp [foldState, hk, Ipp.foldOne, Ipp.foldCom,
-            Ipp.gipaChallenge, extractedRounds, hinverse]
-        constructor
-        · simp [foldState, hk, Ipp.foldOne, Ipp.foldCom,
-            Ipp.gipaChallenge, extractedRounds, hinverse]
-        constructor
-        · simp [foldState, hk, Ipp.foldOne, Ipp.foldCom,
-            Ipp.gipaChallenge, extractedRounds, hinverse]
-        constructor
-        · rw [foldState_succ_comA_snd raw proof.rounds initial hk]
-          simp [extractedRounds, hinverse]
+        · trivial
         constructor
         · rw [foldState_succ_comT_snd raw proof.rounds initial hk]
           simp [extractedRounds, hinverse]
@@ -822,6 +747,16 @@ theorem verify_tipp_mipp_refinement_statement
         .ok (.Ok (inverse ⟨k, hk⟩)))
     (hinverse : ∀ i, inverse i = (transcript.roundAnswer i)⁻¹)
     (hnonzero : ∀ i, transcript.roundAnswer i ≠ 0)
+    (hfold : effects.fold_gt_commitments (effect n)
+      (proof.ComA.1, proof.ComB, proof.ipAb, proof.ComA.2)
+      (ark_ip_proofs.alloc.vec.Vec.deref
+        (finVec (extractedRounds proof.rounds)))
+      (ark_ip_proofs.alloc.vec.Vec.deref (finVec inverse))
+      (ark_ip_proofs.alloc.vec.Vec.deref (finVec transcript.roundAnswer)) =
+        let terminal :=
+          Ipp.terminalFold proof.ComA proof.ComB proof transcript.roundAnswer
+        .ok (terminal.comA.1, terminal.comB, terminal.comT.1,
+          terminal.comA.2))
     (hbridge : effects.derive_final_bridge (effect n)
       (priorAt transcript.roundAnswer transcript.x0 n)
       (proof.vFinal, proof.wFinal)
@@ -906,6 +841,7 @@ theorem verify_tipp_mipp_refinement_statement
     transcript.x0 transcript.x0 transcript.roundAnswer inverse hderive hinvert
     hinverse hnonzero
   simp only [modelClone, modelDefault, modelAdd, modelSmulAssign, finVec] at hloop
+  simp only [finVec] at hfold
   have hv := hax_translated_verify_g2_kzg_opening_eq stmt.e outcome pairing
     (Ipp.reversedView transcript.roundAnswer) 1 transcript.kzg g gBeta h
     proof.vFinal proof.vOpening
@@ -992,6 +928,8 @@ theorem verify_tipp_mipp_refinement_statement
     Result.bind_ok, ark_ip_proofs.alloc.vec.Vec.len,
     ark_ip_proofs.alloc.vec.Vec.new, finVec, List.length_ofFn, Usize.ofNat]
   rw [hloop]
+  simp only [Result.bind_ok]
+  rw [hfold]
   simp only [Result.bind_ok, ark_ip_proofs.alloc.vec.Vec.deref_mut,
     ark_ip_proofs.core.slice.Slice.reverse, lift,
     ark_ip_proofs.alloc.vec.CloneVec.clone_identity]

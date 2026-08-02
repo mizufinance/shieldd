@@ -567,6 +567,23 @@ class ImpactPlannerTests(unittest.TestCase):
         self.assertTrue(result.static)
         self.assertEqual(result.lean_modules, ())
 
+    def test_committed_lean_cache_change_validates_every_audit_root(self) -> None:
+        result = IMPACT.plan(
+            ROOT,
+            event="pull_request",
+            status="run",
+            changed=(
+                IMPACT.LEAN_EVIDENCE_PREFIX
+                + "modules/Ipp.ProofAudit.sha256",
+            ),
+            declared_graphs=(),
+        )
+        modules, _ = IMPACT.lean_import_graph(ROOT)
+        self.assertEqual(
+            set(result.lean_modules),
+            set(IMPACT.lean_audit_modules(modules)),
+        )
+
     def test_fv_control_changes_do_not_schedule_proof_builds(self) -> None:
         controls = (
             ".github/workflows/formal.yml",
@@ -635,6 +652,9 @@ class ImpactPlannerTests(unittest.TestCase):
         extractor_changed["toolchain"]["hax_commit"] = "new"
         extractor_changed["toolchain"]["charon_commit"] = "new"
         extractor_changed["toolchain"]["aeneas_commit"] = "new"
+        extractor_changed["toolchain"]["image_digest"] = (
+            "sha256:" + "2" * 64
+        )
         self.assertEqual(
             IMPACT._lean_environment_control_projection(current),
             IMPACT._lean_environment_control_projection(extractor_changed),

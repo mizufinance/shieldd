@@ -44,6 +44,9 @@ LEAN_ENVIRONMENT_MANIFEST = Path(
     "crates/crypto/proof-aggregation/formal/snarkpack/"
     "aeneas-toolchain.toml"
 )
+LEAN_EVIDENCE_PREFIX = (
+    "crates/crypto/proof-aggregation/formal/snarkpack/lean-cache-v1/"
+)
 
 CANDIDATE_EVENTS = {"pull_request", "merge_group"}
 UNCONDITIONAL_EVENTS = {"schedule", "workflow_call", "workflow_dispatch"}
@@ -340,17 +343,9 @@ def _lean_environment_control_projection(
     if not isinstance(toolchain, dict):
         raise ImpactError("Aeneas toolchain manifest lacks [toolchain]")
     lean = toolchain.get("lean")
-    image_digest = toolchain.get("image_digest")
     if not isinstance(lean, str) or not lean:
         raise ImpactError("Aeneas toolchain manifest has invalid Lean pin")
-    if (
-        not isinstance(image_digest, str)
-        or re.fullmatch(r"sha256:[0-9a-f]{64}", image_digest) is None
-    ):
-        raise ImpactError(
-            "Aeneas toolchain manifest has invalid image digest"
-        )
-    return {"image_digest": image_digest, "lean": lean}
+    return {"lean": lean}
 
 
 def lean_environment_control_changed(root: Path, base: str) -> bool:
@@ -603,7 +598,7 @@ def plan(
     lean_global = any(path in LEAN_GLOBAL_INPUTS for path in paths) or (
         LEAN_ENVIRONMENT_MANIFEST.as_posix() in paths
         and lean_environment_control_change
-    )
+    ) or any(path.startswith(LEAN_EVIDENCE_PREFIX) for path in paths)
     lean_modules = affected_lean_modules(root, paths, force_audit=lean_global)
 
     evidence = _json_file(root / FSTAR_EVIDENCE, "F* evidence")

@@ -48,17 +48,12 @@ COMMON_CONTROLS = (
 
 LANE_PACKAGES = {
     "parity": ("ark-ip-proofs",),
-    "rust-reference": (
+    "runtime": (
         "shieldd-sdk-proof-aggregation",
+        "shieldd-sdk-proof-aggregation-fuzz",
         "shieldd-sdk-proof-aggregation-reference",
         "shieldd-sdk-app",
     ),
-    "slow": (
-        "shieldd-sdk-proof-aggregation",
-        "shieldd-sdk-proof-aggregation-reference",
-    ),
-    "fuzz": ("shieldd-sdk-proof-aggregation-fuzz",),
-    "dos": ("shieldd-sdk-proof-aggregation",),
 }
 
 LANE_CONTROLS = {
@@ -96,20 +91,7 @@ LANE_CONTROLS = {
             "crates/crypto/proof-aggregation/formal/lean-ipp/lean-toolchain"
         ),
     ),
-    "rust-reference": (
-        Path(
-            "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
-            "verification_manifest.py"
-        ),
-    ),
-    "slow": (
-        Path(
-            "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
-            "verification_manifest.py"
-        ),
-    ),
-    "fuzz": (),
-    "dos": (
+    "runtime": (
         Path(
             "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/"
             "verification_manifest.py"

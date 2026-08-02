@@ -82,6 +82,66 @@ theorem pairingOutputModelOfValue_injective :
 def arkworksPairingOutputCheckedMembership (x : Fq12Model) : Prop :=
   fq12Pow x scalarModulus = fq12One
 
+/-! ### Exact Frobenius/seed membership criterion -/
+
+def cyclotomicOrder : Nat := baseModulus ^ 4 - baseModulus ^ 2 + 1
+
+def seedRelationExponent : Nat := baseModulus - ateLoopParameter
+
+theorem seed_relation_factorization :
+    seedRelationExponent =
+      scalarModulus * (((ateLoopParameter - 1) ^ 2) / 3) := by
+  norm_num [seedRelationExponent, baseModulus, scalarModulus, ateLoopParameter]
+
+theorem fast_membership_exponents_gcd :
+    Nat.gcd cyclotomicOrder seedRelationExponent = scalarModulus := by
+  norm_num [cyclotomicOrder, seedRelationExponent, baseModulus,
+    scalarModulus, ateLoopParameter]
+
+/-- The two equations implemented by the fast BLS12-377 GT check. On units,
+the Frobenius equations are the corresponding powers by `q`. -/
+def fastGtUnitMembership (x : Fq12Canonicalˣ) : Prop :=
+  x ^ cyclotomicOrder = 1 ∧
+    x ^ baseModulus = x ^ ateLoopParameter
+
+/-- Cyclotomic membership plus the BLS seed/Frobenius relation accepts exactly
+the same order-`r` subgroup as Arkworks' generic exponentiation check. -/
+theorem fastGtUnitMembership_iff (x : Fq12Canonicalˣ) :
+    fastGtUnitMembership x ↔ x ^ scalarModulus = 1 := by
+  constructor
+  · rintro ⟨hcyclotomic, hseed⟩
+    have hsplit :
+        baseModulus = ateLoopParameter + seedRelationExponent := by
+      norm_num [seedRelationExponent, baseModulus, ateLoopParameter]
+    have hrelation : x ^ seedRelationExponent = 1 := by
+      have hcancel :
+          x ^ ateLoopParameter * x ^ seedRelationExponent =
+            x ^ ateLoopParameter * 1 := by
+        simpa [hsplit, pow_add] using hseed
+      exact mul_left_cancel hcancel
+    have hgcd : x ^ Nat.gcd cyclotomicOrder seedRelationExponent = 1 :=
+      (pow_gcd_eq_one).2 ⟨hcyclotomic, hrelation⟩
+    simpa [fast_membership_exponents_gcd] using hgcd
+  · intro hr
+    have hcyclotomicFactor :
+        cyclotomicOrder = scalarModulus * gtCyclotomicCofactor := by
+      exact cyclotomic_order_factorization
+    have hseedFactor := seed_relation_factorization
+    constructor
+    · rw [hcyclotomicFactor, pow_mul, hr, one_pow]
+    · have hsplit :
+          baseModulus = ateLoopParameter + seedRelationExponent := by
+        norm_num [seedRelationExponent, baseModulus, ateLoopParameter]
+      calc
+        x ^ baseModulus =
+            x ^ (ateLoopParameter + seedRelationExponent) :=
+          congrArg (fun exponent : Nat => x ^ exponent) hsplit
+        _ = x ^ ateLoopParameter * x ^ seedRelationExponent := pow_add _ _ _
+        _ = x ^ ateLoopParameter *
+            x ^ (scalarModulus * (((ateLoopParameter - 1) ^ 2) / 3)) := by
+          rw [hseedFactor]
+        _ = x ^ ateLoopParameter := by rw [pow_mul, hr, one_pow, mul_one]
+
 /-- The concrete boolean supplied to GAP-04's parameterized checked decoder. -/
 noncomputable def pairingOutputValueMember (x : PairingOutputValue) : Bool := by
   classical

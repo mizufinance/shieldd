@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import subprocess
 import sys
 import unittest
@@ -184,74 +185,36 @@ class FormalWorkflowWiringTests(unittest.TestCase):
         ):
             self.assertIn(f'--title "{title}"', self.workflow)
         self.assertIn(
-            '--title "SnarkPack extraction ${{ matrix.graph }}"',
+            '--title "SnarkPack affected extraction graphs"',
             self.workflow,
         )
         self.assertIn(
-            '--title "SnarkPack pending Lean modules"',
-            self.workflow,
-        )
-        self.assertIn(
-            '--title "SnarkPack slow ${{ matrix.test }}"',
+            '--title "SnarkPack slow interoperability suite"',
             self.workflow,
         )
 
-    def test_unstamped_extraction_routes_directly_to_fail_closed_recovery(self) -> None:
-        self.assertIn(
-            "source-stamp-state --graph \"$SELECTED_GRAPH\"",
-            self.workflow,
-        )
-        self.assertIn(
-            "if: steps.extraction_source_stamp.outputs.state == 'present'",
-            self.workflow,
-        )
-        self.assertIn(
-            "steps.extraction_source_stamp.outputs.state == 'present' &&\n"
-            "          steps.extraction_pass_cache.outputs.cache-hit != 'true'",
-            self.workflow,
-        )
-        self.assertIn(
-            "id: extraction_recovery\n"
-            "        if: >-\n"
-            "          always() &&\n"
-            "          steps.extraction_pass_cache.outputs.cache-hit != 'true' &&\n"
-            "          (\n"
-            "            steps.extraction_source_stamp.outputs.state == 'missing' ||\n"
-            "            steps.extraction_fingerprint.outcome == 'failure' ||\n"
-            "            steps.extraction_compare.outcome == 'failure'",
-            self.workflow,
-        )
-        self.assertIn(
-            "Require recovered extraction evidence in the candidate tree",
-            self.workflow,
-        )
-        self.assertIn(
-            'echo "$SELECTED_GRAPH: recovery evidence must be committed" >&2',
-            self.workflow,
-        )
-        self.assertIn(
-            "snarkpack-extraction-graph-${{ matrix.graph }}-"
-            "${{ needs.applicability.outputs.candidate_sha }}-"
-            "${{ github.run_attempt }}",
-            self.workflow,
-        )
-        self.assertIn(
-            "snarkpack-extraction-merged-"
-            "${{ needs.applicability.outputs.candidate_sha }}-"
-            "${{ github.run_attempt }}",
-            self.workflow,
-        )
+    def test_extraction_has_no_ci_recovery_fanout(self) -> None:
+        self.assertNotIn("matrix.graph", self.workflow)
+        self.assertNotIn("snarkpack-extraction-recovery:", self.workflow)
+        self.assertNotIn("extraction_recovery", self.workflow)
 
-    def test_formal_caches_have_exact_success_and_progress_keys(self) -> None:
-        self.assertIn("snarkpack-extract-v4-", self.workflow)
-        self.assertIn("-progress-${{ github.run_id }}-", self.workflow)
-        self.assertIn("lean-ipp-v7-", self.workflow)
-        self.assertIn("snarkpack-extraction-pass-v1-", self.workflow)
+    def test_formal_caches_are_aggregate_and_lean_is_committed(self) -> None:
+        self.assertIn("snarkpack-extract-v5-", self.workflow)
+        self.assertIn("snarkpack-extract-pass-v2-", self.workflow)
+        self.assertIn("snarkpack-runtime-pass-v2-", self.workflow)
+        applicability = self.workflow.split("  snarkpack-static:", maxsplit=1)[0]
+        self.assertIn("Look up exact parity success", applicability)
+        self.assertIn("Look up exact extraction success", applicability)
+        self.assertIn("Look up exact runtime success", applicability)
+        self.assertIn("Look up exact F* success", applicability)
+        self.assertNotIn("-progress-${{ github.run_id }}-", self.workflow)
+        self.assertNotIn("lean-ipp-v", self.workflow)
+        self.assertNotIn("snarkpack-extraction-pass-v1-", self.workflow)
         self.assertIn(
             "steps.extraction_compare.outcome == 'success'",
             self.workflow,
         )
-        self.assertIn("steps.lean_build.outcome == 'success'", self.workflow)
+        self.assertIn("Validate the locally generated Lean cache", self.workflow)
 
     def test_workflow_does_not_mask_diagnostic_failures(self) -> None:
         lines = self.workflow.splitlines()
@@ -301,6 +264,22 @@ class RustWorkflowWiringTests(unittest.TestCase):
                 )
                 self.assertIn(f'--title "{title}"', self.workflow)
 
+    def test_runner_policy_accelerates_only_critical_rust_lanes(self) -> None:
+        jobs = dict(
+            re.findall(
+                r"(?ms)^  ([a-z0-9-]+):\n"
+                r"(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+                self.workflow,
+            )
+        )
+        self.assertIn("runs-on: ubuntu-24.04", jobs["gnark-rust"])
+        for lane in ("features", "test"):
+            with self.subTest(blacksmith_lane=lane):
+                self.assertIn(
+                    "runs-on: blacksmith-8vcpu-ubuntu-2404",
+                    jobs[lane],
+                )
+
 
 class OrbisWorkflowWiringTests(unittest.TestCase):
     def test_integration_flow_publishes_bounded_diagnostics(self) -> None:
@@ -313,6 +292,111 @@ class OrbisWorkflowWiringTests(unittest.TestCase):
         self.assertIn(
             '--title "Shieldd Orbis integration flow"', workflow
         )
+
+
+class GeneralRunnerPolicyWiringTests(unittest.TestCase):
+    def test_smoke_accelerates_only_the_compute_lane(self) -> None:
+        root = SCRIPT.parents[2]
+        smoke = (root / ".github/workflows/smoke.yml").read_text(
+            encoding="utf-8"
+        )
+        jobs = dict(
+            re.findall(
+                r"(?ms)^  ([a-z0-9-]+):\n"
+                r"(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+                smoke,
+            )
+        )
+        self.assertIn(
+            "runs-on: blacksmith-16vcpu-ubuntu-2404",
+            jobs["smoke"],
+        )
+        for lane in ("paths", "summary"):
+            with self.subTest(github_hosted_lane=lane):
+                self.assertIn("runs-on: ubuntu-24.04", jobs[lane])
+                self.assertNotIn("runs-on: blacksmith-", jobs[lane])
+
+    def test_noncritical_and_scheduled_lanes_use_github_runners(self) -> None:
+        root = SCRIPT.parents[2]
+        provers = (
+            root / ".github/workflows/soundness-provers.yml"
+        ).read_text(encoding="utf-8")
+        formal = (root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertNotIn("runs-on: blacksmith-", provers)
+        self.assertEqual(formal.count("runs-on: blacksmith-"), 1)
+        self.assertEqual(
+            formal.count("runs-on: blacksmith-16vcpu-ubuntu-2404"),
+            1,
+        )
+
+    def test_orbis_remains_accelerated(self) -> None:
+        workflow = (
+            SCRIPT.parents[2] / ".github/workflows/orbis-integration.yml"
+        ).read_text(encoding="utf-8")
+        self.assertEqual(
+            workflow.count("runs-on: blacksmith-16vcpu-ubuntu-2404"),
+            1,
+        )
+
+
+class SnarkPackReleaseAuditWorkflowWiringTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        root = SCRIPT.parents[2]
+        cls.workflow = (
+            root / ".github/workflows/snarkpack-release-audit.yml"
+        ).read_text(encoding="utf-8")
+        cls.runner = (root / "scripts/snarkpack-fv.sh").read_text(
+            encoding="utf-8"
+        )
+
+    def test_release_audit_is_one_github_hosted_scheduled_job(self) -> None:
+        self.assertIn("- cron: '17 11 * * *' # nightly dev", self.workflow)
+        self.assertIn("- cron: '41 11 * * 0' # weekly main", self.workflow)
+        self.assertNotIn("pull_request:", self.workflow)
+        self.assertNotIn("merge_group:", self.workflow)
+        jobs = self.workflow.split("\njobs:\n", maxsplit=1)[1]
+        self.assertEqual(
+            len(re.findall(r"(?m)^  [a-z0-9-]+:\n", jobs)),
+            1,
+        )
+        self.assertEqual(self.workflow.count("runs-on: ubuntu-24.04"), 1)
+        self.assertNotIn("runs-on: blacksmith-", self.workflow)
+
+    def test_release_audit_bypasses_success_caches_and_replays_every_lane(
+        self,
+    ) -> None:
+        for forbidden in (
+            "snarkpack-extract-pass-",
+            "snarkpack-fstar-pass-",
+            "snarkpack-parity-pass-",
+            "snarkpack-runtime-pass-",
+        ):
+            with self.subTest(success_cache=forbidden):
+                self.assertNotIn(forbidden, self.workflow)
+        for required in (
+            "--env SNARKPACK_FV_MODE=release",
+            'SNARKPACK_FSTAR_FORCE_ALL: "1"',
+            'SNARKPACK_FUZZ_RUNS: "256"',
+            "just snarkpack-slow",
+            "just snarkpack-fuzz-smoke",
+            "just snarkpack-dos-gate",
+            "SNARKPACK_FV_MODE: publication",
+            "git diff --exit-code -- .",
+        ):
+            with self.subTest(release_control=required):
+                self.assertIn(required, self.workflow)
+        self.assertIn("release)", self.runner)
+        self.assertIn("reproduce_lean_cache", self.runner)
+        self.assertIn("compare-audit", self.runner)
+
+    def test_release_audit_uses_only_dependency_and_compiler_caches(self) -> None:
+        self.assertIn("snarkpack-release-lean-deps-v1-", self.workflow)
+        self.assertIn("snarkpack-release-aeneas-v1-", self.workflow)
+        self.assertNotIn("actions/cache/save@", self.workflow)
 
 
 if __name__ == "__main__":

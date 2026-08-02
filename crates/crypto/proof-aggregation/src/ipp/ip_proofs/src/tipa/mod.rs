@@ -1203,8 +1203,20 @@ where
     assert_eq!(srs_powers.len(), coefficients.len());
     let (evaluation, mut quotient_coefficients) =
         effect.evaluation_and_quotient(&coefficients, transcript, r_shift, kzg_challenge);
+    let opening = if quotient_coefficients.len() < srs_powers.len() {
+        effect.msm(
+            &srs_powers[..quotient_coefficients.len()],
+            &quotient_coefficients,
+        )?
+    } else {
+        // Preserve the historical backend error path for malformed effect
+        // outputs whose quotient is not shorter than the coefficient vector.
+        effect.msm(srs_powers, &quotient_coefficients)?
+    };
+    // Retain the historical full-length execution witness for extraction. The
+    // appended coefficient is definitionally zero and is no longer submitted
+    // to the production MSM.
     quotient_coefficients.resize(srs_powers.len(), F::zero());
-    let opening = effect.msm(srs_powers, &quotient_coefficients)?;
     Ok(kzg_opening_execution_from_parts(
         coefficients,
         evaluation,
@@ -1727,8 +1739,8 @@ mod tests {
             effect.calls,
             vec!["coefficients", "evaluation-and-quotient", "msm"]
         );
-        assert_eq!(effect.msm_bases, vec![23, 29, 31]);
-        assert_eq!(effect.msm_scalars, vec![13, 17, 0]);
+        assert_eq!(effect.msm_bases, vec![23, 29]);
+        assert_eq!(effect.msm_scalars, vec![13, 17]);
         assert_eq!(output.coefficients, vec![2, 5, 3]);
         assert_eq!(output.evaluation, 11);
         assert_eq!(output.quotient_coefficients, vec![13, 17, 0]);

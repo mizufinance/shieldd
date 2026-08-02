@@ -10,6 +10,79 @@ The current conditional Rust → SnarkPack v1 → `Ipp.Goal` theorem is the sema
 baseline. Deployment SRS provenance remains a separate assumption and is not an
 optimization task.
 
+## Current protocol decision
+
+Keep SnarkPack v1 for this optimization tranche. The review started above the
+IPP implementation rather than assuming that IPP itself was the only target:
+
+| Candidate | Published advantage | Decision for this branch |
+| --- | --- | --- |
+| [SnarkPack](https://eprint.iacr.org/2021/529) | Aggregates existing Groth16 proofs without their witnesses and preserves the deployed proof-production boundary. | Retain and reduce its exact arithmetic. |
+| [Hadamard Product Arguments](https://eprint.iacr.org/2024/981) | Removes the aggregation-specific trusted setup under SXDH. | Not a throughput replacement: the reported prover time is comparable to SnarkPack and the verifier is slower. |
+| [SnarkFold](https://eprint.iacr.org/2023/1946) | Constant-size proof and verifier through recursive folding. | Not a demonstrated 2× saturated-throughput win for this workload; it adds recursive-circuit proving and a different proof stack. |
+| [FLIP](https://eprint.iacr.org/2024/1364) | Avoids generating all individual Groth16 proofs when one prover already owns every witness. | Different workload and setup: Shieldd aggregates already-produced proofs and does not give the aggregator their witnesses. |
+| [Mira / SnarkStar](https://eprint.iacr.org/2024/2025) | Reports 5.8× faster proving than its state-of-the-art proof-aggregation baseline and constant-size proofs. | Worth a separate protocol spike, but not an in-place SnarkPack optimization: the available implementation describes itself as an academic proof of concept, and the published comparison is not an A/B against Shieldd's BLS12-377 SnarkPack path. Require a representative-corpus prototype before replacing the wire format, setup, verifier, and FV model. |
+
+Mira is the only reviewed alternative whose published claim clears the 2×
+screen. That makes it a credible follow-up experiment, not evidence that this
+shipping path would gain 2×. No protocol replacement is made until the same
+Shieldd corpus, curve, verifier boundary, and saturated workload demonstrate
+that gain.
+
+This tranche deliberately excludes transaction-bundle orchestration, Rayon
+policy, thread counts, scheduling, and machine-specific kernels. Those are a
+separate optimization session.
+
+## Implemented exact reductions
+
+The branch currently makes four value-preserving changes before relying on
+timing measurements:
+
+- Repeat-final padding is coalesced in the three initial Groth16 commitments.
+  For padded length `n` and authenticated real length `m`, this removes exactly
+  `3 * (n - m)` Miller-loop terms, with `(n - m)` G1 and `(n - m)` G2 additions
+  used to form the shared suffix sums. The random-power `ipAb` commitment stays
+  uncoalesced.
+- The KZG quotient's structurally known trailing zero is omitted from both MSM
+  calls. This removes exactly one G1 and one G2 MSM term per aggregate while the
+  extraction witness retains the full polynomial shape.
+- The four verifier GT commitment folds share one flattened scalar schedule,
+  replacing four independent variable-base exponentiation traversals without
+  changing challenge order.
+- BLS12-377 GT decoding uses the equivalent Frobenius/cyclotomic membership
+  relation instead of generic exponentiation by the scalar-field order. G1/G2
+  checks, canonical reserialization, full consumption, and errors remain strict.
+- Shipping NoteReshape aggregation dispatches directly to the ordinary backend
+  instead of collecting the full profiling timeline. The explicit profiled API
+  remains available and a byte-parity test binds both paths.
+
+The algebraic equalities and operation counts are proved in
+`Ipp.Optimization`, `Ipp.Cost`, and `Ipp.Bls12377GtMembership`. The generated
+operation register remains the authoritative status of the Rust-refinement and
+cost-evidence frontier.
+
+## Count-48 milestone
+
+Criterion was run under WSL on the same deterministic 48-proof corpus, with 10
+samples, a 1-second warm-up, and a nominal 3-second measurement window. No
+thread or machine policy was changed. Medians are end-to-end shipping calls:
+
+| Family/path | Baseline | Optimized | Change |
+| --- | ---: | ---: | ---: |
+| Transfer aggregate | 756.85 ms | 559.39 ms | -26.09% |
+| NoteReshape aggregate | 930.25 ms | 555.59 ms | -40.27% |
+| ICS20 aggregate | 746.69 ms | 565.01 ms | -24.33% |
+| Transfer verify | 149.97 ms | 71.545 ms | -51.96% |
+| NoteReshape verify | 150.78 ms | 71.610 ms | -52.53% |
+| ICS20 verify | 151.77 ms | 71.608 ms | -52.62% |
+
+The NoteReshape total includes removal of production profiling overhead. A
+focused before/after run on the already-optimized arithmetic measured that
+dispatch fix alone at -37.44%. The aggregate arithmetic savings grow with the
+padding gap; the GT decoding improvement is largely independent of proof count.
+These timings are evidence for this milestone, not a replacement for the exact
+operation-count proofs and not a 5,000-proof saturated-throughput claim.
+
 ## Start here
 
 1. Profile the production aggregate or verify path at a representative proof
@@ -19,8 +92,8 @@ optimization task.
 4. Record the expected operation-vector change and affected proof graph.
 5. Implement the smallest production change and an equivalence oracle when one
    is useful.
-6. Measure work reduction with one Rayon thread, then measure the intended
-   deployment regimes.
+6. Confirm the proved work reduction, then measure a representative end-to-end
+   A/B at the current runtime configuration.
 7. Run the proof-impact and validation gates for the change class.
 8. Land only a measured improvement or a materially simpler implementation.
 
@@ -61,10 +134,11 @@ Do not copy rankings or cost formulas into new planning files. Update
 `operation-reduction-register.json`, validate the manifest, and regenerate the
 register so one source remains authoritative.
 
-The first optimization task should normally be measurement conformance: confirm
-the profile and counters for the chosen production path. The current register
-marks full backend cost conformance open. An unmeasured symbolic opportunity is
-not yet a performance result.
+Prefer an exact operation-count proof when a change removes work independently
+of the machine. The current register still marks full backend cost conformance
+open, so such a proof establishes a durable reduction but not a wall-clock
+speedup. Use end-to-end A/B measurements at milestones instead of benchmarking
+after every algebraic edit.
 
 Good exact-computation investigations include:
 
@@ -109,26 +183,31 @@ regenerate them rather than editing them directly.
 ## Measurement loop
 
 The end-to-end Criterion benchmark is
-`crates/bench/benches/vanilla/snarkpack.rs`. It measures aggregate and verify for
-counts `1, 2, 4, 8, 64` using deterministic corpus inputs.
+`crates/crypto/proof-aggregation/benches/snarkpack.rs`. It measures aggregate
+and verify for counts `1, 2, 4, 8, 48, 64` using deterministic corpus inputs.
+Count 48 is an
+intentional non-power-of-two case: it authenticates 48 real proofs in a padded
+64-proof aggregate and exercises padding coalescing. Override the set without
+editing code, including a 5,000-proof throughput corpus, with
+`SNARKPACK_BENCH_COUNTS=48,5000`.
 
-Measure the work floor first:
+Run a matched optimized/baseline milestone:
 
 ```sh
-RAYON_NUM_THREADS=1 cargo bench -p shieldd-sdk-bench --bench snarkpack -- \
-  "snarkpack verify"
+SNARKPACK_BENCH_COUNTS=48 cargo bench -p shieldd-sdk-proof-aggregation \
+  --bench snarkpack
 ```
 
-Use the aggregate filter when optimizing the prover. Record Criterion estimates
-and uncertainty, the commit, toolchain, CPU, thread count, proof family, count,
-and whether the corpus was already present.
+Use the aggregate or verify filter when isolating one side. Record Criterion
+estimates and uncertainty, the commit, toolchain, CPU, proof family, count, and
+whether the corpus was already present.
 
 For a production-path A/B, either compare two commits or use the existing
 compile-time `bench-baseline` seam when it already covers the changed site:
 
 ```sh
-RAYON_NUM_THREADS=1 cargo bench -p shieldd-sdk-bench --bench snarkpack \
-  --features shieldd-sdk-proof-aggregation/bench-baseline -- \
+SNARKPACK_BENCH_COUNTS=48 cargo bench -p shieldd-sdk-proof-aggregation \
+  --bench snarkpack --features bench-baseline -- \
   "snarkpack verify"
 ```
 
@@ -136,18 +215,9 @@ Add a new `bench-baseline` branch only when it will be an active equivalence or
 A/B oracle. Delete it after the comparison if it no longer pays for its code
 surface. Never add a runtime protocol branch for benchmarking.
 
-After a work-floor win, measure the regimes that matter:
-
-- latency: one aggregate with the available thread pool;
-- throughput: enough concurrent aggregates to saturate the machine, with low
-  per-aggregate thread demand; and
-- hybrid: bounded intra-aggregate parallelism with concurrent aggregates.
-
-Do not hardcode a production core count before deployment hardware is known.
-Rayon may help or regress depending on contention and problem size, so measure
-instead of claiming that a scheduling change is inherently faster. Record every
-introduced threshold or chunk size as a named tunable beside its benchmark
-rationale.
+Do not change thread policy, scheduling, chunk thresholds, or machine-specific
+kernels in this tranche. A later session will measure those independently so
+their effects are not confounded with arithmetic work reduction.
 
 A microbenchmark may diagnose a primitive, but only the end-to-end aggregate or
 verify result is a shipping performance result. Reject noise and report

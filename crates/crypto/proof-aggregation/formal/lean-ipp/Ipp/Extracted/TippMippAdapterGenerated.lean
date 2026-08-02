@@ -36,6 +36,10 @@ structure applications.groth16_aggregation.TippMippAdapterPrimitive (Self :
     applications.groth16_aggregation.TippMippChallengeStage → Slice UInt8
     → Result ((core.result.Result F String) × Self)
   inverse : Self → F → Result (Option F)
+  fold_gt_commitments : Self → (GT × GT × ABT × GT) → Slice
+    ((applications.groth16_aggregation.TippMippCoreCommitment GT ABT CT) ×
+    (applications.groth16_aggregation.TippMippCoreCommitment GT ABT CT)) →
+    Slice F → Slice F → Result (GT × GT × ABT × GT)
   pairing_inner_product : Self → Slice G1 → Slice G2 → Result
     (core.result.Result GT String)
   msm_inner_product : Self → Slice G1 → Slice F → Result

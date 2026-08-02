@@ -308,6 +308,8 @@ boundary is the production Arkworks adapter. -/
     inverseResult "round challenge must be non-zero" <|
       applications.groth16_aggregation.arkworks_tipp_inverse_adapter_core
         primitive effect value
+  fold_gt_commitments := fun effect roots rounds inverse raw =>
+    primitive.fold_gt_commitments effect roots rounds inverse raw
   derive_final_bridge := fun effect last finalCk finalMessages =>
     applications.groth16_aggregation.arkworks_tipp_final_bridge_adapter_core
       primitive effect last finalCk finalMessages
@@ -353,6 +355,18 @@ theorem effect_derive_round_exact
         effect prior left right =
       applications.groth16_aggregation.arkworks_tipp_round_adapter_core
         primitive effect prior left right := by
+  simp only [effectOfPrimitive]
+
+theorem effect_fold_gt_commitments_exact
+    {FX F G1 G2 GT : Type}
+    (primitive : Primitive FX F G1 G2 GT)
+    (eqGT : core.cmp.PartialEq GT GT) (eqG1 : core.cmp.PartialEq G1 G1)
+    (effect : FX) (roots : GT × GT × GT × GT)
+    (rounds : Slice (Commitment GT G1 × Commitment GT G1))
+    (inverse raw : Slice F) :
+    (effectOfPrimitive primitive eqGT eqG1).fold_gt_commitments
+        effect roots rounds inverse raw =
+      primitive.fold_gt_commitments effect roots rounds inverse raw := by
   simp only [effectOfPrimitive]
 
 theorem effect_final_bridge_exact

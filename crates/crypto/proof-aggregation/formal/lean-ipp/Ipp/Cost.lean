@@ -334,6 +334,32 @@ def proverSchedule (μ : Nat) : List Step :=
     proverRoundsSchedule μ ++
     proverKzgSchedule μ
 
+/-! ### Exact prover schedules after v1-preserving reductions -/
+
+/-- The authenticated real prefix determines the number of distinct proof
+messages in `comA`, `comB`, and `comC`. The randomized `ipAb` messages remain
+distinct across the full padded domain. -/
+def proverPaddingAwareInitialSchedule
+    (paddedCount realCount : Nat) : List Step :=
+  proverInitialPairingBatch realCount .comA ++
+  proverInitialPairingBatch realCount .comC ++
+  proverInitialPairingBatch realCount .comB ++
+  proverInitialPairingBatch paddedCount .ipAb
+
+/-- Synthetic division returns one fewer coefficient than the full SRS. The
+historical trailing zero is retained in the semantic witness but omitted from
+both opening MSM calls. -/
+def proverUnpaddedKzgSchedule (μ : Nat) : List Step :=
+  repeatBlock (Ipp.Extracted.ShippingProver.fullSrsLength μ - 1)
+      [.proverKzgMsm .v] ++
+    repeatBlock (Ipp.Extracted.ShippingProver.fullSrsLength μ - 1)
+      [.proverKzgMsm .w]
+
+def proverExactOptimizedSchedule (μ realCount : Nat) : List Step :=
+  proverPaddingAwareInitialSchedule (2 ^ μ) realCount ++
+    proverRoundsSchedule μ ++
+    proverUnpaddedKzgSchedule μ
+
 def verifierRootDecodeSchedule : List Step :=
   [.verifierRootGtDecode .comA,
    .verifierRootGtDecode .comB,
@@ -869,6 +895,79 @@ theorem prover_schedule_g2_kzg_msm_terms (μ : Nat) :
     if_pos, if_neg, zero_add, add_zero, mul_one, mul_zero,
     proverRounds_g2_msm_terms]
   rfl
+
+theorem prover_exact_optimized_miller_terms (μ realCount : Nat) :
+    eventCount .prover .millerTerm
+        (proverExactOptimizedSchedule μ realCount) =
+      9 * 2 ^ μ + 3 * realCount - 8 := by
+  have hpow : 0 < 2 ^ μ := pow_pos (by decide) μ
+  simp [proverExactOptimizedSchedule,
+    proverPaddingAwareInitialSchedule, proverInitialPairingBatch,
+    proverUnpaddedKzgSchedule, eventCount_append, eventCount_repeatBlock,
+    eventCount, Step.role, Step.operation, proverRounds_miller_terms] <;>
+  omega
+
+/-- Coalescing the three repeated-message root commitments saves exactly
+three Miller inputs per padded proof. The theorem states the equality without
+natural-number subtraction on the total, so the strict result is immediate. -/
+theorem prover_padding_pairing_exact_saving (μ realCount : Nat)
+    (hreal : realCount ≤ 2 ^ μ) :
+    eventCount .prover .millerTerm (proverSchedule μ) =
+      eventCount .prover .millerTerm
+          (proverExactOptimizedSchedule μ realCount) +
+        3 * (2 ^ μ - realCount) := by
+  rw [prover_schedule_miller_terms,
+    prover_exact_optimized_miller_terms]
+  have hpow : 0 < 2 ^ μ := pow_pos (by decide) μ
+  omega
+
+theorem prover_padding_pairing_strictly_fewer (μ realCount : Nat)
+    (hreal : realCount < 2 ^ μ) :
+    eventCount .prover .millerTerm
+        (proverExactOptimizedSchedule μ realCount) <
+      eventCount .prover .millerTerm (proverSchedule μ) := by
+  rw [prover_schedule_miller_terms,
+    prover_exact_optimized_miller_terms]
+  have hpow : 0 < 2 ^ μ := pow_pos (by decide) μ
+  omega
+
+theorem prover_exact_optimized_g1_kzg_msm_terms (μ realCount : Nat) :
+    eventCount .prover .g1MsmTerm
+        (proverExactOptimizedSchedule μ realCount) =
+      2 * 2 ^ μ - 2 := by
+  simp [proverExactOptimizedSchedule,
+    proverPaddingAwareInitialSchedule, proverInitialPairingBatch,
+    proverUnpaddedKzgSchedule, eventCount_append, eventCount_repeatBlock,
+    eventCount, Step.role, Step.operation, proverRounds_g1_msm_terms,
+    Ipp.Extracted.ShippingProver.fullSrsLength, pow_succ]
+  have hpow : 0 < 2 ^ μ := pow_pos (by decide) μ
+  omega
+
+theorem prover_exact_optimized_g2_kzg_msm_terms (μ realCount : Nat) :
+    eventCount .prover .g2MsmTerm
+        (proverExactOptimizedSchedule μ realCount) =
+      2 * 2 ^ μ - 2 := by
+  simp [proverExactOptimizedSchedule,
+    proverPaddingAwareInitialSchedule, proverInitialPairingBatch,
+    proverUnpaddedKzgSchedule, eventCount_append, eventCount_repeatBlock,
+    eventCount, Step.role, Step.operation, proverRounds_g2_msm_terms,
+    Ipp.Extracted.ShippingProver.fullSrsLength, pow_succ]
+  have hpow : 0 < 2 ^ μ := pow_pos (by decide) μ
+  omega
+
+theorem prover_unpadded_kzg_exact_saving (μ realCount : Nat) :
+    (eventCount .prover .g1MsmTerm (proverSchedule μ) =
+      eventCount .prover .g1MsmTerm
+        (proverExactOptimizedSchedule μ realCount) + 1) ∧
+    (eventCount .prover .g2MsmTerm (proverSchedule μ) =
+      eventCount .prover .g2MsmTerm
+        (proverExactOptimizedSchedule μ realCount) + 1) := by
+  rw [prover_schedule_g1_kzg_msm_terms,
+    prover_schedule_g2_kzg_msm_terms,
+    prover_exact_optimized_g1_kzg_msm_terms,
+    prover_exact_optimized_g2_kzg_msm_terms]
+  have hpow : 0 < 2 ^ μ := pow_pos (by decide) μ
+  omega
 
 theorem verifier_schedule_gt_decode_validation_sites (μ : Nat) :
     eventCount .verifier .gtDecodeValidationSite (verifierSchedule μ) =

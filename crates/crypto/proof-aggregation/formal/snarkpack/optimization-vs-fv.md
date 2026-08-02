@@ -32,6 +32,27 @@ their implementation refinement is re-established. Randomized batch checks,
 subgroup-validation batching, or any other acceptance-strength change need an
 additional error term and proof.
 
+## Exact reductions in `optimize/snarkpack`
+
+The current branch adds four reusable equivalence results:
+
+| Shipping reduction | Lean root |
+| --- | --- |
+| Coalesce a repeat-final G1 or G2 suffix before pairing | `Ipp.repeated_left_pairing_exact`, `Ipp.repeated_right_pairing_exact` |
+| Omit the KZG quotient's known trailing-zero MSM term | `Ipp.omit_trailing_zero_msm_exact` |
+| Flatten four chronological GT folds onto one scalar schedule | `Ipp.shared_gt_fold_exact` |
+| Replace BLS12-377 `x^r = 1` decoding with the curve-specific Frobenius/seed relation | `Ipp.fastGtUnitMembership_iff` |
+
+`Ipp.Cost` separately proves the exact padding and KZG operation deltas. The
+Rust paths retain the previous implementation behind the compile-time
+`bench-baseline` feature only as an A/B and equivalence oracle; it is not a
+runtime protocol branch.
+
+Committed proof bytes, challenge traces, statement encoding, caller-order real
+prefixes, repeat-final padding, and verifier acceptance remain the v1 semantic
+targets. Modular extraction and the operation register track whether the
+shipping Rust boundary has been re-established for each changed source path.
+
 ## What the theorem does not optimize
 
 Formal closure does not establish that a candidate is faster. Use the measured

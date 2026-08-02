@@ -398,7 +398,7 @@ class VerificationManifestTests(unittest.TestCase):
                     )
                 self.assertIn("does not match", str(raised.exception))
 
-    def test_aeneas_image_digest_is_bound_to_extraction_and_workflow(self):
+    def test_aeneas_image_digest_is_bound_to_extraction_and_workflows(self):
         toolchain = VERIFICATION.tomllib.loads(
             (
                 VERIFICATION.REPO_ROOT
@@ -420,6 +420,39 @@ class VerificationManifestTests(unittest.TestCase):
         VERIFICATION.validate_toolchain_roles(
             self.manifest, VERIFICATION.REPO_ROOT
         )
+
+        workflow_paths = (
+            ".github/workflows/formal.yml",
+            ".github/workflows/snarkpack-release-audit.yml",
+        )
+        toolchain_paths = (
+            "crates/crypto/proof-aggregation/formal/snarkpack/toolchain.toml",
+            "crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml",
+            "crates/crypto/proof-aggregation/formal/snarkpack/lean-extraction-manifest.json",
+        )
+        for workflow_path in workflow_paths:
+            with self.subTest(workflow=workflow_path), tempfile.TemporaryDirectory(
+                prefix="snarkpack-workflow-image-lock-"
+            ) as directory:
+                repo_root = Path(directory)
+                for relative in toolchain_paths + workflow_paths:
+                    source = VERIFICATION.REPO_ROOT / relative
+                    destination = repo_root / relative
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    destination.write_bytes(source.read_bytes())
+
+                tampered = repo_root / workflow_path
+                tampered.write_text(
+                    tampered.read_text(encoding="utf-8").replace(
+                        toolchain["image_digest"],
+                        "sha256:" + "0" * 64,
+                        1,
+                    ),
+                    encoding="utf-8",
+                )
+                with self.assertRaises(VERIFICATION.VerificationError) as raised:
+                    VERIFICATION.validate_toolchain_roles(self.manifest, repo_root)
+                self.assertIn(workflow_path, str(raised.exception))
 
     def test_empty_audit_and_duplicate_claim_roots_fail_closed(self):
         manifest = copy.deepcopy(self.manifest)
@@ -1373,15 +1406,14 @@ class VerificationManifestTests(unittest.TestCase):
                         str(raised.exception),
                     )
 
-    def test_summary_enforces_rust_reference_lane_for_full_tier(self):
+    def test_summary_enforces_consolidated_runtime_lane_for_full_tier(self):
         workflow = (
             VERIFICATION.REPO_ROOT / ".github/workflows/formal.yml"
         ).read_text(encoding="utf-8")
         summary = workflow.split("\n  summary:\n", maxsplit=1)[1]
-        self.assertIn("- snarkpack-rust-reference", summary)
+        self.assertIn("- snarkpack-runtime", summary)
         self.assertIn(
-            "RUST_REFERENCE: "
-            "${{ needs.snarkpack-rust-reference.result }}",
+            "RUNTIME: ${{ needs.snarkpack-runtime.result }}",
             summary,
         )
         enforcer = (
@@ -1392,7 +1424,7 @@ class VerificationManifestTests(unittest.TestCase):
             enforcer,
         )
         self.assertIn(
-            '"snarkpack-rust-reference": value("RUST_REFERENCE")',
+            '"snarkpack-runtime": value("RUNTIME")',
             enforcer,
         )
 
