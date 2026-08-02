@@ -965,7 +965,13 @@ class GateApplicabilityTests(unittest.TestCase):
             "  # ---------------------------------------------------------------- soundness",
             maxsplit=1,
         )[0]
-        self.assertNotIn("runs-on: blacksmith-", snarkpack_section)
+        self.assertEqual(snarkpack_section.count("runs-on: blacksmith-"), 1)
+        self.assertEqual(
+            snarkpack_section.count(
+                "runs-on: blacksmith-16vcpu-ubuntu-2404"
+            ),
+            1,
+        )
         for forbidden in (
             "lake build",
             "lake env lean",
@@ -1040,10 +1046,15 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn(
             "snarkpack_runtime_cache_hit != 'true'", runtime
         )
-        for lane in (fstar, parity, runtime):
+        for lane in (fstar, parity):
             with self.subTest(github_hosted_lane=lane):
                 self.assertEqual(lane.count("runs-on: ubuntu-24.04"), 1)
                 self.assertNotIn("runs-on: blacksmith-", lane)
+        self.assertIn(
+            "runs-on: blacksmith-16vcpu-ubuntu-2404",
+            runtime,
+        )
+        self.assertNotIn("runs-on: ubuntu-24.04", runtime)
         self.assertNotIn("restore-keys:", runtime)
         self.assertNotIn("runner.temp }}/snarkpack", workflow)
 

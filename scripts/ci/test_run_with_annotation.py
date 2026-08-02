@@ -326,7 +326,11 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
         )
 
         self.assertNotIn("runs-on: blacksmith-", provers)
-        self.assertNotIn("runs-on: blacksmith-", formal)
+        self.assertEqual(formal.count("runs-on: blacksmith-"), 1)
+        self.assertEqual(
+            formal.count("runs-on: blacksmith-16vcpu-ubuntu-2404"),
+            1,
+        )
 
     def test_orbis_remains_accelerated(self) -> None:
         workflow = (

@@ -553,7 +553,7 @@ jobs:
         needs.applicability.outputs.snarkpack_dos_run == 'true'
       ) &&
       needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-16vcpu-ubuntu-2404
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
