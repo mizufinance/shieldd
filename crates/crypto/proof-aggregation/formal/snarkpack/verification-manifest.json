@@ -395,7 +395,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "sha256": "71bfad855010c751be5dd3f71b8a1b1fc6b77edd03b8cdb2472819e30b5f19aa"
+          "sha256": "697ec66ce1274400b3f1b5000830c50d9e8ec8e4e1789fe429bc143370c27fc1"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
