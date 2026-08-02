@@ -1127,7 +1127,7 @@ mod tests {
     use ark_ip_proofs::challenge::{ChallengeTraceEntry, VecChallengeTraceSink};
     use ark_r1cs_std::{alloc::AllocVar, eq::EqGadget, fields::fp::FpVar};
     use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
-    use ark_serialize::{CanonicalDeserialize, Valid};
+    use ark_serialize::CanonicalDeserialize;
     use ark_snark::SNARK;
     use decaf377::Fq;
     use proptest::prelude::*;
