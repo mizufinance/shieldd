@@ -295,11 +295,29 @@ class OrbisWorkflowWiringTests(unittest.TestCase):
 
 
 class GeneralRunnerPolicyWiringTests(unittest.TestCase):
-    def test_noncritical_and_scheduled_lanes_use_github_runners(self) -> None:
+    def test_smoke_accelerates_only_the_compute_lane(self) -> None:
         root = SCRIPT.parents[2]
         smoke = (root / ".github/workflows/smoke.yml").read_text(
             encoding="utf-8"
         )
+        jobs = dict(
+            re.findall(
+                r"(?ms)^  ([a-z0-9-]+):\n"
+                r"(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+                smoke,
+            )
+        )
+        self.assertIn(
+            "runs-on: blacksmith-16vcpu-ubuntu-2404",
+            jobs["smoke"],
+        )
+        for lane in ("paths", "summary"):
+            with self.subTest(github_hosted_lane=lane):
+                self.assertIn("runs-on: ubuntu-24.04", jobs[lane])
+                self.assertNotIn("runs-on: blacksmith-", jobs[lane])
+
+    def test_noncritical_and_scheduled_lanes_use_github_runners(self) -> None:
+        root = SCRIPT.parents[2]
         provers = (
             root / ".github/workflows/soundness-provers.yml"
         ).read_text(encoding="utf-8")
@@ -307,7 +325,6 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-        self.assertNotIn("runs-on: blacksmith-", smoke)
         self.assertNotIn("runs-on: blacksmith-", provers)
         self.assertNotIn("runs-on: blacksmith-", formal)
 
