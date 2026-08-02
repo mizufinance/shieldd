@@ -191,6 +191,8 @@ def _digest_files(
         if relative.is_absolute() or ".." in relative.parts:
             raise AttestationError(f"unsafe attestation input path: {relative}")
         content = _read_required(root / relative, "attestation input")
+        # Git's text contract is LF; local generators may reintroduce CRLF.
+        content = content.replace(b"\r\n", b"\n")
         records.append(
             (relative.as_posix(), hashlib.sha256(content).hexdigest())
         )

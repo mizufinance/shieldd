@@ -133,6 +133,13 @@ class SnarkPackLeanAttestationTests(unittest.TestCase):
             after.fingerprints["Ipp.Top"],
         )
 
+    def test_fingerprint_uses_git_canonical_line_endings(self) -> None:
+        before = self._fingerprints(("Ipp.Middle",))
+        base = self.lean / "Base.lean"
+        base.write_bytes(base.read_bytes().replace(b"\n", b"\r\n"))
+        after = self._fingerprints(("Ipp.Middle",))
+        self.assertEqual(before, after)
+
     def test_build_input_change_invalidates_every_selected_module(self) -> None:
         before = self._fingerprints(("Ipp.Middle", "Ipp.Other"))
         (self.root / self.build_inputs[0]).write_text(
