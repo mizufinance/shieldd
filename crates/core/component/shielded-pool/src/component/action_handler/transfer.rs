@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use cnidarium_component::ActionHandler;
-use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
+use shieldd_sdk_compliance::{params::StateReadExt as _, registry::ComplianceRegistryRead};
 use shieldd_sdk_proof_params::batch::{self, BatchItem};
 use shieldd_sdk_proto::{DomainType as _, StateWriteProto as _};
 use shieldd_sdk_sct::component::{
@@ -130,6 +130,15 @@ impl ActionHandler for Transfer {
     }
 
     async fn check_and_execute<S: StateWrite>(&self, mut state: S) -> Result<()> {
+        let (ciphertext, _) = parse_transfer_output_compliance(&self.body.outputs)?;
+        let compliance_params = state.get_compliance_params().await?;
+        anyhow::ensure!(
+            ciphertext.fuzzy_tags.precision == compliance_params.fuzzy_precision,
+            "transfer fuzzy precision {} does not match protocol precision {}",
+            ciphertext.fuzzy_tags.precision.bits(),
+            compliance_params.fuzzy_precision.bits(),
+        );
+
         state
             .validate_compliance_anchors(&self.body.compliance_anchor, &self.body.asset_anchor)
             .await

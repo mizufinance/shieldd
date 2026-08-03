@@ -66,7 +66,9 @@ or re-checks it, and where regressions should be caught.
 - Enforced in: transfer construction and the transfer compliance circuit.
 - Verified at: the circuit recomputes sender and receiver Poseidon-DH tags from
   the registered clue keys, matching core-tier randomizers, asset ID,
-  authorization ID, authorization timestamp, and role.
+  authorization ID, authorization timestamp, and role. It constrains the public
+  precision to 7 through 12 and zeros every inactive high tag bit. Execution
+  requires that precision to equal the current compliance protocol parameter.
 - Tested by: `fuzzy::*`, audit CLI prefilter tests, Rust/Go witness parity, and
   transfer circuit adversarial tests.
 - Violation: the transfer proof rejects. Off-chain examination may admit false

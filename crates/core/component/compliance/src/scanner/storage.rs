@@ -358,7 +358,7 @@ impl SqliteScannerStore {
             INSERT OR IGNORE INTO scanner_runtime (id) VALUES (1);
 
             INSERT OR IGNORE INTO scanner_schema_version (id, version)
-            VALUES (1, 2);
+            VALUES (1, 3);
             "#,
         )?;
         let version = Self::schema_version(conn)?.context("scanner DB schema version missing")?;
@@ -1120,7 +1120,8 @@ mod tests {
                 output_core_c2: decaf377::Fq::from(3u64),
                 output_ext_c2: decaf377::Fq::from(4u64),
                 detection_tag: [0u8; crate::structs::DETECTION_TAG_BYTES],
-                fuzzy_tags: crate::fuzzy::TransferFuzzyTags::from_bytes([1, 2]),
+                fuzzy_tags: crate::fuzzy::TransferFuzzyTags::from_bytes([8, 1, 0, 2, 0])
+                    .expect("valid fuzzy tags"),
                 encrypted_sender_core: [0u8; 32],
                 encrypted_sender_ext: [0u8; 96],
                 encrypted_output_core: [0u8; 32],

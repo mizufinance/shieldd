@@ -98,6 +98,7 @@ type TransferComplianceExtFields struct {
 type TransferComplianceFields struct {
 	TransferNonceRoot   frontend.Variable
 	DetectionCiphertext [compliance.TransferDetectionFQCount]frontend.Variable
+	FuzzyPrecision      frontend.Variable `gnark:",public"`
 	FuzzyTags           frontend.Variable `gnark:",public"`
 	SenderRCore         frontend.Variable
 	SenderRExt          frontend.Variable

@@ -196,6 +196,7 @@ type transferFuzzyTagsProfileCircuit struct {
 	AssetID                frontend.Variable
 	AuthorizationID        frontend.Variable
 	AuthorizationTimestamp frontend.Variable
+	Precision              frontend.Variable
 	PackedTags             frontend.Variable
 }
 
@@ -209,6 +210,7 @@ func (c *transferFuzzyTagsProfileCircuit) Define(api frontend.API) error {
 		c.AssetID,
 		c.AuthorizationID,
 		c.AuthorizationTimestamp,
+		c.Precision,
 		c.PackedTags,
 		nil,
 	)

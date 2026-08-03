@@ -3,7 +3,7 @@ use decaf377::{Fq, Fr};
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::{asset, Balance};
-use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf};
+use shieldd_sdk_compliance::{AssetPolicy, ComplianceLeaf, FuzzyPrecision};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_keys::{
     symmetric::{PayloadKey, WrappedMemoKey},
@@ -38,6 +38,7 @@ pub struct TransferPlan {
     pub balance: Balance,
     pub spends: Vec<ShieldedInputPlan>,
     pub outputs: Vec<ShieldedOutputPlan>,
+    pub fuzzy_precision: FuzzyPrecision,
 }
 
 impl TransferPlan {
@@ -90,6 +91,7 @@ impl TransferPlan {
             balance,
             spends,
             outputs,
+            fuzzy_precision: FuzzyPrecision::default(),
         };
         plan.body = plan.placeholder_body();
         plan.validate_invariants()?;
@@ -114,6 +116,10 @@ impl TransferPlan {
 
     pub fn outputs(&self) -> &[ShieldedOutputPlan] {
         &self.outputs
+    }
+
+    pub fn set_fuzzy_precision(&mut self, precision: FuzzyPrecision) {
+        self.fuzzy_precision = precision;
     }
 
     pub fn spend_randomizers(&self) -> impl Iterator<Item = Fr> + '_ {
@@ -403,6 +409,7 @@ impl TransferPlan {
             &self.spends[0].asset_indexed_leaf,
             self.spends[0].target_timestamp,
             self.spends[0].tx_blinding_nonce,
+            self.fuzzy_precision,
         )?;
 
         let inputs = self
@@ -518,6 +525,7 @@ impl TransferPlan {
             &self.spends[0].asset_indexed_leaf,
             self.spends[0].target_timestamp,
             self.spends[0].tx_blinding_nonce,
+            self.fuzzy_precision,
         )
         .map_err(|e| crate::ProofError::InvalidPublicInput(e.to_string()))?;
 
@@ -730,6 +738,7 @@ impl From<TransferPlan> for pb::TransferPlan {
             balance: Some(msg.balance.into()),
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
+            fuzzy_precision_bits: u32::from(msg.fuzzy_precision.bits()),
         }
     }
 }
@@ -764,6 +773,10 @@ impl TryFrom<pb::TransferPlan> for TransferPlan {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<_>, _>>()?,
+            fuzzy_precision: FuzzyPrecision::new(
+                u8::try_from(proto.fuzzy_precision_bits)
+                    .map_err(|_| anyhow!("fuzzy precision does not fit in u8"))?,
+            )?,
         };
         plan.validate_invariants()?;
         Ok(plan)
@@ -905,6 +918,20 @@ mod tests {
         assert_eq!(plan.body.asset_anchor, spend.asset_anchor);
         assert_eq!(plan.body.compliance_anchor, spend.compliance_anchor);
         assert_eq!(plan.body.target_timestamp, spend.target_timestamp);
+    }
+
+    #[test]
+    fn protobuf_round_trip_preserves_fuzzy_precision() {
+        let (spend, output, _, _) = transfer_parts(100, 100);
+        let mut plan = TransferPlan::new(vec![spend], vec![output], Fr::from(5u64))
+            .expect("transfer plan should be valid");
+        let precision = FuzzyPrecision::new(11).unwrap();
+        plan.set_fuzzy_precision(precision);
+
+        let proto: pb::TransferPlan = plan.clone().into();
+        assert_eq!(proto.fuzzy_precision_bits, 11);
+        let decoded = TransferPlan::try_from(proto).expect("transfer plan should decode");
+        assert_eq!(decoded.fuzzy_precision, precision);
     }
 
     // Regression: the fee-funding enricher mutates spend/output anchors after

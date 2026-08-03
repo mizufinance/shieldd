@@ -201,6 +201,8 @@ message TransferPlan {
   repeated ShieldedInputPlan spends = 4;
   // The shielded output plans fused into this transfer.
   repeated ShieldedOutputPlan outputs = 5;
+  // Protocol-selected fuzzy clue precision for this transfer.
+  uint32 fuzzy_precision_bits = 6;
 }
 
 // Releases shielded value to a recipient on the host chain.

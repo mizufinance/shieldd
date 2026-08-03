@@ -102,6 +102,7 @@ type TransferWitnessV1Binary struct {
 	TransferNonceRoot        [32]byte
 
 	DetectionCiphertext [][32]byte
+	FuzzyPrecision      [32]byte
 	FuzzyTags           [32]byte
 	SenderCore          TransferComplianceCiphertextWitnessV1Binary
 	SenderExt           TransferComplianceCiphertextWitnessV1Binary
@@ -243,6 +244,9 @@ func decodeTransferWitnessV1(
 		return nil, err
 	}
 	if witness.DetectionCiphertext, err = readVec32(reader); err != nil {
+		return nil, err
+	}
+	if witness.FuzzyPrecision, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.FuzzyTags, err = read32(reader); err != nil {

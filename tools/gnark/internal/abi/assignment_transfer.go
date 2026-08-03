@@ -209,6 +209,7 @@ func newTransferComplianceFields(
 
 	fields := circuits.TransferComplianceFields{
 		TransferNonceRoot: fqString(witness.TransferNonceRoot),
+		FuzzyPrecision:    fqString(witness.FuzzyPrecision),
 		FuzzyTags:         fqString(witness.FuzzyTags),
 		SenderRCore:       fqString(witness.SenderRCore),
 		SenderRExt:        fqString(witness.SenderRExt),

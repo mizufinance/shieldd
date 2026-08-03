@@ -197,6 +197,12 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			},
 		},
 		{
+			name: "fuzzy precision",
+			mutate: func(c *circuits.TransferCircuit) {
+				c.Compliance.FuzzyPrecision = mutateFieldByOne(c.Compliance.FuzzyPrecision)
+			},
+		},
+		{
 			name: "fuzzy tags",
 			mutate: func(c *circuits.TransferCircuit) {
 				c.Compliance.FuzzyTags = mutateFieldByOne(c.Compliance.FuzzyTags)

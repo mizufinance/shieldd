@@ -1203,6 +1203,7 @@ mod tests {
             false,
             AuthorizationId::from_fq(decaf377::Fq::from(99u64)),
             0,
+            shieldd_sdk_compliance::FuzzyPrecision::default(),
             decaf377::Fq::from(9u64),
         )
         .expect("transfer ciphertext should build")
@@ -1449,6 +1450,7 @@ mod tests {
         let asset_id = asset::Id(Fq::from(77u64));
         let authorization_id = AuthorizationId::from_fq(Fq::from(99u64));
         let authorization_timestamp = 1_700_000_000;
+        let fuzzy_precision = shieldd_sdk_compliance::FuzzyPrecision::default();
         let sender_r = Fr::from(11u64);
         let receiver_r = Fr::from(13u64);
         let sender_epk = Element::GENERATOR * sender_r;
@@ -1467,12 +1469,14 @@ mod tests {
                 sender_epk_bytes: sender_epk.vartime_compress().0,
                 receiver_epk_bytes: receiver_epk.vartime_compress().0,
                 tags: TransferFuzzyTags {
+                    precision: fuzzy_precision,
                     sender: clue_key.create_tag(
                         sender_r,
                         asset_id.0,
                         authorization_id,
                         authorization_timestamp,
                         FuzzyRole::Sender,
+                        fuzzy_precision,
                     ),
                     receiver: clue_key.create_tag(
                         receiver_r,
@@ -1480,6 +1484,7 @@ mod tests {
                         authorization_id,
                         authorization_timestamp,
                         FuzzyRole::Receiver,
+                        fuzzy_precision,
                     ),
                 },
             }),

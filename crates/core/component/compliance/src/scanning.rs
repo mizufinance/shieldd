@@ -27,8 +27,8 @@ pub struct FullComplianceData {
 
 /// Test a serialized transfer against a released user detection key.
 ///
-/// A candidate is always a true match for that user's transfers, plus the expected 8-bit
-/// false positives. Callers send only candidates to the authorized decryptor.
+/// A candidate is always a true match for that user's transfers, plus false positives at the
+/// precision carried by the ciphertext. Callers send only candidates to the decryptor.
 pub fn screen_user_clue(
     ciphertext: &TransferComplianceCiphertext,
     detection_key: FuzzyDetectionKey,
@@ -154,6 +154,7 @@ mod tests {
             true,
             crate::AuthorizationId::from_fq(decaf377::Fq::from(1u64)),
             0,
+            crate::FuzzyPrecision::default(),
             decaf377::Fq::from(0u64),
         )
         .unwrap()
@@ -203,6 +204,7 @@ mod tests {
             false,
             crate::AuthorizationId::from_fq(decaf377::Fq::from(2u64)),
             0,
+            crate::FuzzyPrecision::default(),
             decaf377::Fq::from(1u64),
         )
         .unwrap()

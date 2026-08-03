@@ -21,6 +21,9 @@ pub struct ComplianceParameters {
     /// Number of recent compliance anchors accepted for proof validation.
     #[prost(uint64, tag = "1")]
     pub anchor_validation_window_blocks: u64,
+    /// Protocol-selected fuzzy clue precision, in bits.
+    #[prost(uint32, tag = "2")]
+    pub fuzzy_precision_bits: u32,
 }
 impl ::prost::Name for ComplianceParameters {
     const NAME: &'static str = "ComplianceParameters";

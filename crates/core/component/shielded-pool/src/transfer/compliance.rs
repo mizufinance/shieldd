@@ -59,6 +59,7 @@ pub(crate) fn build_transfer_compliance(
     asset_indexed_leaf: &IndexedLeaf,
     target_timestamp: u64,
     transfer_nonce_root: Fr,
+    fuzzy_precision: shieldd_sdk_compliance::FuzzyPrecision,
 ) -> Result<BuildTransferComplianceResult> {
     let receiver_output = outputs
         .get(RECEIVER_OUTPUT_INDEX)
@@ -110,6 +111,7 @@ pub(crate) fn build_transfer_compliance(
         is_flagged,
         authorization_id,
         target_timestamp,
+        fuzzy_precision,
         detection_salt,
     )?;
 
@@ -316,6 +318,7 @@ pub(crate) fn transfer_compliance_public_from_parts(
         output_core_c2,
         output_ext_c2,
         detection_ciphertext,
+        fuzzy_precision,
         fuzzy_tags,
         sender_core_ciphertext,
         sender_ext_ciphertext,
@@ -325,6 +328,7 @@ pub(crate) fn transfer_compliance_public_from_parts(
 
     Ok(TransferCompliancePublic {
         detection_ciphertext: detection_ciphertext.to_vec(),
+        fuzzy_precision,
         fuzzy_tags,
         sender_core: TransferComplianceCiphertextPublic {
             epk: sender_core_epk,

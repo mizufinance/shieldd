@@ -412,7 +412,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         &mut self,
         view: &mut V,
         source: AddressIndex,
-        actions: Vec<ActionPlan>,
+        mut actions: Vec<ActionPlan>,
     ) -> Result<NoteManagerPlanningResult> {
         if actions.is_empty() {
             return Ok(NoteManagerPlanningResult::UnsupportedIntent {
@@ -1294,9 +1294,15 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         fee_funding: Option<FeeFundingPlan>,
         fee: Fee,
     ) -> Result<TransactionPlan> {
+        let app_params = view.app_params().await?;
         let mut transaction_parameters = self.transaction_parameters.clone();
         transaction_parameters.fee = fee;
-        transaction_parameters.chain_id = view.app_params().await?.chain_id;
+        transaction_parameters.chain_id = app_params.chain_id;
+        for action in &mut actions {
+            if let ActionPlan::Transfer(transfer) = action {
+                transfer.set_fuzzy_precision(app_params.compliance_params.fuzzy_precision);
+            }
+        }
 
         let mut plan = TransactionPlan {
             actions,

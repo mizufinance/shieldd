@@ -55,6 +55,7 @@ impl AppParameters {
             compliance_params:
                 ComplianceParameters {
                     anchor_validation_window_blocks: _,
+                    fuzzy_precision: _,
                 },
             fee_params:
                 FeeParameters {
@@ -135,6 +136,7 @@ impl AppParameters {
             compliance_params:
                 ComplianceParameters {
                     anchor_validation_window_blocks,
+                    fuzzy_precision: _,
                 },
             fee_params:
                 FeeParameters {
@@ -294,5 +296,15 @@ mod tests {
                 .contains("compliance anchor validation window"),
             "unexpected error: {err:#}"
         );
+    }
+
+    #[test]
+    fn compliance_fuzzy_precision_may_change() {
+        let old = valid_params();
+        let mut new = old.clone();
+        new.compliance_params.fuzzy_precision =
+            shieldd_sdk_compliance::FuzzyPrecision::new(11).unwrap();
+
+        old.check_valid_update(&new).unwrap();
     }
 }

@@ -10,15 +10,15 @@ transfer compliance ciphertext. Transfer inputs and change outputs must carry
 empty compliance bytes.
 
 ```text
-TransferComplianceCiphertext: 578 bytes
+TransferComplianceCiphertext: 581 bytes
   0..128    4 EPKs: sender_core, sender_ext, output_core, output_ext
   128..256  4 C2 envelopes, one per audit tier
   256..320  detection tier: asset id + flag, salt
-  320..322  sender and receiver 8-bit fuzzy tags
-  322..354  encrypted sender_core amount
-  354..450  encrypted sender_ext receiver address
-  450..482  encrypted output_core amount
-  482..578  encrypted output_ext sender address
+  320..325  precision byte + sender and receiver fixed 12-bit fuzzy-tag slots
+  325..357  encrypted sender_core amount
+  357..453  encrypted sender_ext receiver address
+  453..485  encrypted output_core amount
+  485..581  encrypted output_ext sender address
 
 TransferComplianceDleqProofs: 256 bytes
   4 * (challenge, response)
@@ -217,38 +217,44 @@ The fuzzy tag for a role is:
 
 ```text
 shared = r * clue_public_key
-tag = low8(Poseidon(domain, Compress(shared), asset_id,
-                    authorization_id, authorization_timestamp, role))
+tag = low_n(Poseidon(domain, Compress(shared), asset_id,
+                     authorization_id, authorization_timestamp, role))
 ```
 
 The tag reuses the matching core-tier randomizer and EPK. The transfer circuit
-binds both tags to the registered clue keys and proof-bound authorization
-metadata. For unrelated transfers, either of two 8-bit role tags matching has
-probability `1 - (255/256)^2`, about 0.779% or 7,797 candidates per million.
+binds both tags to the registered clue keys, proof-bound authorization metadata,
+and public precision `n`. For unrelated transfers, one role matches with
+probability `2^-n`; either of two role tags matches with probability
+`1 - (1 - 2^-n)^2`. At the default 8 bits this is about 0.779%, or 7,797
+candidates per million.
 
 ### Precision And Constraint Cost
 
-The circuit decomposes each Poseidon output to all 253 canonical bits before
-selecting the low tag bits. Changing tag precision within the practical range
-therefore changes wire size and false-positive rate, but not the constraint
-count of the current construction.
+`ComplianceParameters.fuzzy_precision_bits` selects 7 through 12 bits for new
+transactions; 8 is the default. The precision is copied into the transfer plan,
+stored in the ciphertext, included in the proof's public statement, and checked
+against the current protocol parameter during execution. Historical clues keep
+their original precision.
+
+The circuit has one fixed shape. It decomposes each Poseidon output once, keeps
+the low 12 bits, and uses constrained selectors to zero the inactive high bits.
+Changing the public precision therefore changes only the false-positive rate,
+not wire size, proving key, or constraint count.
 
 | Bits per role | Either-role false positives | Candidates per million | Constraint delta vs 8-bit |
 |---:|---:|---:|---:|
-| 4 | 12.109% | 121,094 | 0 |
-| 6 | 3.101% | 31,006 | 0 |
 | 7 | 1.556% | 15,564 | 0 |
 | 8 | 0.780% | 7,797 | baseline |
+| 9 | 0.390% | 3,902 | 0 |
 | 10 | 0.195% | 1,952 | 0 |
 | 11 | 0.098% | 976 | 0 |
 | 12 | 0.049% | 488 | 0 |
 
-The measured two-role fuzzy-tag gadget is 11,103 constraints, 4.40% of the
-previous 252,323-constraint transfer circuit. The complete new transfer circuit
-is 265,974 constraints (`+13,651`, 5.41%); the remainder comes from binding both
-the user and clue curve public keys in each compliance leaf. Eight bits is
-the smallest precision in the requested 0.1%-1% range and minimizes public clue
-bytes, so it is the selected prototype value.
+The measured dynamic two-role fuzzy-tag gadget is 11,136 constraints, 33 more
+than the prior fixed 8-bit gadget. The complete transfer circuit is 266,012
+constraints, 38 more than the fixed-precision version. Eight bits gives the
+requested sub-1% either-role candidate rate and is the selected prototype
+default; 11 bits gives approximately 0.1%.
 
 ## Restrictions
 
@@ -259,6 +265,9 @@ bytes, so it is the selected prototype value.
 - No key rotation is currently defined.
 - Releasing a fuzzy detection key intentionally grants probabilistic user
   transaction discovery; it does not grant decryption.
+- Precision is protocol-wide, not issuer-specific. Asset ID is private in the
+  transfer proof, so an issuer-specific public setting would require expanding
+  the asset-policy leaf across every circuit that commits to it.
 - Cross-tier independence is mandatory: independent EPK/randomness per tier.
 - Orbis PRE operates on one encrypted-seed object per tier.
 - Transfer-circuit constraints that compliance assumes are tracked separately in

@@ -15,6 +15,8 @@ const (
 	TransferDetectionFQCount      = 2
 	TransferCoreCiphertextFQCount = 1
 	TransferExtCiphertextFQCount  = 3
+	MinFuzzyPrecisionBits         = 7
+	MaxFuzzyPrecisionBits         = 12
 )
 
 var (
@@ -25,7 +27,7 @@ var (
 	TransferOutputCoreSaltLabel   = transferSaltConstant("output_core")
 	TransferOutputExtSaltLabel    = transferSaltConstant("output_ext")
 	TransferAuthorizationIDDomain = transferSaltConstant("shieldd.transfer.compliance.authorization_id.v1")
-	TransferFuzzyTagDomain        = transferSaltConstant("shieldd.compliance.fuzzy_tag.v1")
+	TransferFuzzyTagDomain        = transferSaltConstant("shieldd.compliance.fuzzy_tag.v2")
 )
 
 func DeriveAuthorizationID(
@@ -119,6 +121,7 @@ func fuzzyTag(
 	r frontend.Variable,
 	cluePK gnarkte.Point,
 	assetID, authorizationID, authorizationTimestamp, role frontend.Variable,
+	activeBits [MaxFuzzyPrecisionBits]frontend.Variable,
 	roleLabel string,
 	trace func(string, ...string),
 ) (frontend.Variable, error) {
@@ -161,8 +164,46 @@ func fuzzyTag(
 	if trace != nil {
 		trace("gadget.canonical_fq_bits", "in=fuzzy."+roleLabel+".hash", "out=fuzzy."+roleLabel+".bits")
 	}
+	return truncateFuzzyHash(api, hash, activeBits), nil
+}
+
+func truncateFuzzyHash(
+	api frontend.API,
+	hash frontend.Variable,
+	activeBits [MaxFuzzyPrecisionBits]frontend.Variable,
+) frontend.Variable {
 	bits := api.ToBinary(hash, 253)
-	return api.FromBinary(bits[:8]...), nil
+	masked := make([]frontend.Variable, MaxFuzzyPrecisionBits)
+	for i := range masked {
+		masked[i] = api.Mul(bits[i], activeBits[i])
+	}
+	return api.FromBinary(masked...)
+}
+
+func fuzzyPrecisionActiveBits(
+	api frontend.API,
+	precision frontend.Variable,
+) [MaxFuzzyPrecisionBits]frontend.Variable {
+	var exact [MaxFuzzyPrecisionBits - MinFuzzyPrecisionBits + 1]frontend.Variable
+	allowed := frontend.Variable(0)
+	for i := range exact {
+		exact[i] = api.IsZero(api.Sub(precision, MinFuzzyPrecisionBits+i))
+		allowed = api.Add(allowed, exact[i])
+	}
+	api.AssertIsEqual(allowed, 1)
+
+	var active [MaxFuzzyPrecisionBits]frontend.Variable
+	for i := range active {
+		if i < MinFuzzyPrecisionBits {
+			active[i] = 1
+			continue
+		}
+		active[i] = 0
+		for precisionOffset := i + 1 - MinFuzzyPrecisionBits; precisionOffset < len(exact); precisionOffset++ {
+			active[i] = api.Add(active[i], exact[precisionOffset])
+		}
+	}
+	return active
 }
 
 func VerifyTransferFuzzyTags(
@@ -171,25 +212,26 @@ func VerifyTransferFuzzyTags(
 	senderCluePK gnarkte.Point,
 	receiverR frontend.Variable,
 	receiverCluePK gnarkte.Point,
-	assetID, authorizationID, authorizationTimestamp, packedTags frontend.Variable,
+	assetID, authorizationID, authorizationTimestamp, precision, packedTags frontend.Variable,
 	trace func(string, ...string),
 ) error {
 	curve, err := gnarkte.NewEdCurve(api, curves.BLS12_377)
 	if err != nil {
 		return err
 	}
-	sender, err := fuzzyTag(api, curve, senderR, senderCluePK, assetID, authorizationID, authorizationTimestamp, 1, "sender", trace)
+	activeBits := fuzzyPrecisionActiveBits(api, precision)
+	sender, err := fuzzyTag(api, curve, senderR, senderCluePK, assetID, authorizationID, authorizationTimestamp, 1, activeBits, "sender", trace)
 	if err != nil {
 		return err
 	}
-	receiver, err := fuzzyTag(api, curve, receiverR, receiverCluePK, assetID, authorizationID, authorizationTimestamp, 2, "receiver", trace)
+	receiver, err := fuzzyTag(api, curve, receiverR, receiverCluePK, assetID, authorizationID, authorizationTimestamp, 2, activeBits, "receiver", trace)
 	if err != nil {
 		return err
 	}
 	if trace != nil {
-		trace("assert.eq", "lhs=compliance.fuzzy_tags", "rhs=fuzzy.sender_tag+256*fuzzy.receiver_tag")
+		trace("assert.eq", "lhs=compliance.fuzzy_tags", "rhs=fuzzy.sender_tag+4096*fuzzy.receiver_tag")
 	}
-	api.AssertIsEqual(packedTags, api.Add(sender, api.Mul(receiver, 256)))
+	api.AssertIsEqual(packedTags, api.Add(sender, api.Mul(receiver, 1<<MaxFuzzyPrecisionBits)))
 	return nil
 }
 

@@ -10,6 +10,8 @@ use shieldd_sdk_proto::DomainType;
 #[cfg(feature = "component")]
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
 
+use crate::FuzzyPrecision;
+
 #[cfg(feature = "component")]
 use crate::state_key;
 
@@ -22,6 +24,8 @@ use crate::state_key;
 pub struct ComplianceParameters {
     /// Number of recent compliance anchors accepted for proof validation.
     pub anchor_validation_window_blocks: u64,
+    /// Protocol-selected fuzzy clue precision.
+    pub fuzzy_precision: FuzzyPrecision,
 }
 
 impl DomainType for ComplianceParameters {
@@ -34,6 +38,10 @@ impl TryFrom<pb::ComplianceParameters> for ComplianceParameters {
     fn try_from(msg: pb::ComplianceParameters) -> anyhow::Result<Self> {
         Ok(Self {
             anchor_validation_window_blocks: msg.anchor_validation_window_blocks,
+            fuzzy_precision: FuzzyPrecision::new(
+                u8::try_from(msg.fuzzy_precision_bits)
+                    .map_err(|_| anyhow::anyhow!("fuzzy precision does not fit in u8"))?,
+            )?,
         })
     }
 }
@@ -42,6 +50,7 @@ impl From<ComplianceParameters> for pb::ComplianceParameters {
     fn from(params: ComplianceParameters) -> Self {
         Self {
             anchor_validation_window_blocks: params.anchor_validation_window_blocks,
+            fuzzy_precision_bits: u32::from(params.fuzzy_precision.bits()),
         }
     }
 }
@@ -51,6 +60,7 @@ impl Default for ComplianceParameters {
         Self {
             // 14 days at today's 5s target block time.
             anchor_validation_window_blocks: (14 * 24 * 3600) / 5,
+            fuzzy_precision: FuzzyPrecision::default(),
         }
     }
 }
@@ -80,3 +90,30 @@ pub trait StateWriteExt: StateWrite {
 
 #[cfg(feature = "component")]
 impl<T: StateWrite + ?Sized> StateWriteExt for T {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn protobuf_round_trip_preserves_precision() {
+        let params = ComplianceParameters {
+            anchor_validation_window_blocks: 42,
+            fuzzy_precision: FuzzyPrecision::new(11).unwrap(),
+        };
+        let proto: pb::ComplianceParameters = params.clone().into();
+        assert_eq!(proto.fuzzy_precision_bits, 11);
+        assert_eq!(ComplianceParameters::try_from(proto).unwrap(), params);
+    }
+
+    #[test]
+    fn protobuf_rejects_precision_outside_protocol_range() {
+        for fuzzy_precision_bits in [0, 6, 13, u32::MAX] {
+            let proto = pb::ComplianceParameters {
+                anchor_validation_window_blocks: 42,
+                fuzzy_precision_bits,
+            };
+            assert!(ComplianceParameters::try_from(proto).is_err());
+        }
+    }
+}

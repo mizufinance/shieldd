@@ -467,6 +467,7 @@ pub(crate) mod tests {
             false,
             authorization_id,
             target_timestamp,
+            crate::FuzzyPrecision::default(),
             salt,
         )
         .unwrap();

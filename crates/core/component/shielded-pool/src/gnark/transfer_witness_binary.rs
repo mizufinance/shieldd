@@ -47,6 +47,7 @@ impl TransferWitnessV1 {
         put_bytes(&mut buf, &self.sender_clue_public_key);
         put_bytes(&mut buf, &self.transfer_nonce_root);
         encode_vec_32(&mut buf, &self.detection_ciphertext)?;
+        put_bytes(&mut buf, &self.fuzzy_precision);
         put_bytes(&mut buf, &self.fuzzy_tags);
         encode_compliance_tier(&mut buf, &self.sender_core)?;
         encode_compliance_tier(&mut buf, &self.sender_ext)?;
@@ -127,6 +128,7 @@ impl TransferWitnessV1 {
         let sender_clue_public_key = cursor.read_fixed::<32>()?;
         let transfer_nonce_root = cursor.read_fixed::<32>()?;
         let detection_ciphertext = cursor.read_vec_32()?;
+        let fuzzy_precision = cursor.read_fixed::<32>()?;
         let fuzzy_tags = cursor.read_fixed::<32>()?;
         let sender_core = decode_compliance_tier(&mut cursor)?;
         let sender_ext = decode_compliance_tier(&mut cursor)?;
@@ -167,6 +169,7 @@ impl TransferWitnessV1 {
             sender_clue_public_key,
             transfer_nonce_root,
             detection_ciphertext,
+            fuzzy_precision,
             fuzzy_tags,
             sender_core,
             sender_ext,

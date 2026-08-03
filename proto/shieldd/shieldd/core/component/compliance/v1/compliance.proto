@@ -16,6 +16,8 @@ message ComplianceViewingKey {
 message ComplianceParameters {
   // Number of recent compliance anchors accepted for proof validation.
   uint64 anchor_validation_window_blocks = 1;
+  // Protocol-selected fuzzy clue precision, in bits.
+  uint32 fuzzy_precision_bits = 2;
 }
 
 // A compliance leaf in the public on-chain registry for regulated assets.

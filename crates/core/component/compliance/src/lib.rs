@@ -6,8 +6,9 @@ pub use authorization::{AuthorizationId, AUTHORIZATION_ID_DOMAIN};
 
 pub mod fuzzy;
 pub use fuzzy::{
-    FuzzyClueKey, FuzzyDetectionKey, FuzzyMatch, FuzzyRole, FuzzyTag, TransferFuzzyTags,
-    FUZZY_TAG_BITS,
+    FuzzyClueKey, FuzzyDetectionKey, FuzzyMatch, FuzzyPrecision, FuzzyRole, FuzzyTag,
+    TransferFuzzyTags, DEFAULT_FUZZY_PRECISION_BITS, FUZZY_TAG_BYTES, MAX_FUZZY_PRECISION_BITS,
+    MIN_FUZZY_PRECISION_BITS, TRANSFER_FUZZY_TAGS_BYTES,
 };
 
 pub mod event;
@@ -473,6 +474,7 @@ mod tests {
             false,
             crate::AuthorizationId::from_fq(Fq::from(1u64)),
             0,
+            crate::FuzzyPrecision::default(),
             Fq::from(0u64),
         )
         .unwrap()
@@ -540,6 +542,7 @@ mod tests {
             true,
             crate::AuthorizationId::from_fq(Fq::from(2u64)),
             0,
+            crate::FuzzyPrecision::default(),
             Fq::from(7u64),
         )
         .unwrap()

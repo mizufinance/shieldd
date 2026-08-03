@@ -96,6 +96,9 @@ fn emit_gnark_runtime_rerun_hints() -> anyhow::Result<()> {
 
 fn emit_rerun_hints_recursive(path: &Path) -> anyhow::Result<()> {
     if path.is_dir() {
+        if path.file_name().and_then(|name| name.to_str()) == Some(".lake") {
+            return Ok(());
+        }
         for entry in
             std::fs::read_dir(path).with_context(|| format!("read directory {}", path.display()))?
         {

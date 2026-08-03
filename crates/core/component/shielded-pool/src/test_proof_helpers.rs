@@ -1064,7 +1064,7 @@ pub mod proof_test_helpers {
         let item = proof.to_batch_item(&public).unwrap_or_else(|error| {
             panic!("can build transfer batch item: {error}");
         });
-        assert_eq!(item.public_inputs.len(), 1);
+        assert_eq!(item.public_inputs.len(), 3);
         eprintln!(
             "[transfer roundtrip] mode={mode} built batch item in {:.2}s",
             phase_started.elapsed().as_secs_f64()

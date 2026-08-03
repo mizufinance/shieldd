@@ -132,20 +132,24 @@ sender extension contains the receiver address, and the output extension
 contains the sender address. The audit API maps these role-relative tiers to
 independent `sender`, `amount`, and `receiver` disclosures.
 
-The public clue bytes contain one 8-bit sender tag and one 8-bit receiver tag:
+The public clue bytes carry the protocol-selected precision `n` and fixed
+12-bit slots for sender and receiver tags. Only the low `n` bits in each slot
+may be nonzero:
 
 ```text
 shared = r * clue_public_key
-tag = low8(Poseidon(fuzzy_domain, Compress(shared), asset_id,
-                    authorization_id, authorization_timestamp, role))
+tag = low_n(Poseidon(fuzzy_domain, Compress(shared), asset_id,
+                     authorization_id, authorization_timestamp, role))
 ```
 
 The sender tag reuses the sender-core randomizer/EPK; the receiver tag reuses
 the output-core randomizer/EPK. The proof binds both tags to those randomizers,
-the registered clue keys, the asset, and authorization metadata. A released
-fuzzy detection key can recompute tags from public EPKs, reducing an unrelated
-million-transfer range to about 7,797 Orbis candidates on average. The key does
-not decrypt any tier.
+the registered clue keys, the asset, authorization metadata, and public
+precision. `ComplianceParameters.fuzzy_precision_bits` selects `n` between 7
+and 12 without changing the circuit shape; the prototype default is 8. At that
+default, a released fuzzy detection key reduces an unrelated million-transfer
+range to about 7,797 Orbis candidates on average. The key does not decrypt any
+tier.
 
 The transfer circuit owns value/nullifier/note/balance soundness. Compliance
 owns asset-policy binding, threshold flag correctness, ciphertext construction,

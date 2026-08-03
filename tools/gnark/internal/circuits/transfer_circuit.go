@@ -789,6 +789,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		shared.sharedAssetID,
 		authorizationID,
 		c.TargetTimestamp,
+		c.Compliance.FuzzyPrecision,
 		c.Compliance.FuzzyTags,
 		c.traceWiring,
 	); err != nil {
@@ -1042,6 +1043,7 @@ func (c *TransferCircuit) buildTransferStatementFields(
 	fields = append(fields, statementData.nullifiersAndRKs...)
 	fields = append(fields, c.AssetAnchor, c.ComplianceAnchor)
 	fields = append(fields, c.Compliance.DetectionCiphertext[:]...)
+	fields = append(fields, c.Compliance.FuzzyPrecision)
 	fields = append(fields, c.Compliance.FuzzyTags)
 
 	appendCoreTier := func(epkFq frontend.Variable, tier TransferComplianceCoreFields) {

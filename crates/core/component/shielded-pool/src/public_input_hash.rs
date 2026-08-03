@@ -17,7 +17,7 @@ use crate::{
 pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 80;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 81;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 10;
@@ -331,6 +331,7 @@ pub fn transfer_statement_fields(
             .ok_or_else(|| transfer_field_encoding_error("compliance_anchor"))?,
     );
     fields.extend(compliance.detection_ciphertext.iter().copied());
+    fields.push(compliance.fuzzy_precision);
     fields.push(compliance.fuzzy_tags);
     for (label, tier) in [
         ("sender_core", &compliance.sender_core),

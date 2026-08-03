@@ -111,6 +111,7 @@ pub struct TransferWitnessV1 {
     pub sender_clue_public_key: [u8; 32],
     pub transfer_nonce_root: [u8; 32],
     pub detection_ciphertext: Vec<[u8; 32]>,
+    pub fuzzy_precision: [u8; 32],
     pub fuzzy_tags: [u8; 32],
     pub sender_core: TransferComplianceCiphertextWitnessV1,
     pub sender_ext: TransferComplianceCiphertextWitnessV1,
@@ -341,6 +342,7 @@ impl TransferWitnessV1 {
                 .iter()
                 .map(|value| value.to_bytes())
                 .collect(),
+            fuzzy_precision: public.compliance.fuzzy_precision.to_bytes(),
             fuzzy_tags: public.compliance.fuzzy_tags.to_bytes(),
             sender_core: compliance_tier_witness(&public.compliance.sender_core)?,
             sender_ext: compliance_tier_witness(&public.compliance.sender_ext)?,

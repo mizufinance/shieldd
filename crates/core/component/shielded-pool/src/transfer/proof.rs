@@ -66,6 +66,7 @@ impl TransferComplianceProofPublic {
 #[derive(Clone, Debug)]
 pub struct TransferCompliancePublic {
     pub detection_ciphertext: Vec<Fq>,
+    pub fuzzy_precision: Fq,
     pub fuzzy_tags: Fq,
     pub sender_core: TransferComplianceCiphertextPublic,
     pub sender_ext: TransferComplianceCiphertextPublic,
@@ -199,7 +200,11 @@ impl TransferProof {
 
         Ok(shieldd_sdk_proof_params::batch::BatchItem {
             proof,
-            public_inputs: vec![statement_hash],
+            public_inputs: vec![
+                statement_hash,
+                public.compliance.fuzzy_precision,
+                public.compliance.fuzzy_tags,
+            ],
         })
     }
 

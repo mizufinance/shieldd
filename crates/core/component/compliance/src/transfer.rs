@@ -10,7 +10,9 @@ use crate::{
         compliance_stream_block, compute_dleq_native, compute_transfer_metadata_hash,
         encrypt_tier_bytes, ISSUER_DETECTION_DOMAIN,
     },
-    fuzzy::{FuzzyClueKey, FuzzyRole, TransferFuzzyTags},
+    fuzzy::{
+        FuzzyClueKey, FuzzyPrecision, FuzzyRole, TransferFuzzyTags, TRANSFER_FUZZY_TAGS_BYTES,
+    },
     issuer_keys::detection_plaintext_fq,
     structs::{DleqProof, C2_BYTES, DETECTION_TAG_BYTES, EPK_BYTES, FQ_BYTES},
 };
@@ -26,7 +28,7 @@ pub const TRANSFER_CIPHERTEXT_FQS: usize = TRANSFER_DETECTION_FQS
 pub const TRANSFER_WIRE_BYTES: usize = EPK_BYTES * 4
     + C2_BYTES * 4
     + DETECTION_TAG_BYTES
-    + 2
+    + TRANSFER_FUZZY_TAGS_BYTES
     + FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS
     + FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS
     + FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS
@@ -62,6 +64,7 @@ pub struct TransferCompliancePublicInputs {
     pub output_core_c2: Fq,
     pub output_ext_c2: Fq,
     pub detection_ciphertext: [Fq; TRANSFER_DETECTION_FQS],
+    pub fuzzy_precision: Fq,
     pub fuzzy_tags: Fq,
     pub sender_core_ciphertext: [Fq; TRANSFER_CORE_CIPHERTEXT_FQS],
     pub sender_ext_ciphertext: [Fq; TRANSFER_EXT_CIPHERTEXT_FQS],
@@ -161,10 +164,10 @@ impl TransferComplianceCiphertext {
                 .try_into()
                 .map_err(|_| anyhow!("invalid transfer detection tag length"))?;
         let fuzzy_tags = TransferFuzzyTags::from_bytes(
-            read_fixed(&mut offset, 2)?
+            read_fixed(&mut offset, TRANSFER_FUZZY_TAGS_BYTES)?
                 .try_into()
                 .map_err(|_| anyhow!("invalid transfer fuzzy tags length"))?,
-        );
+        )?;
         let encrypted_sender_core: [u8; FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS] =
             read_fixed(&mut offset, FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS)?
                 .try_into()
@@ -221,6 +224,7 @@ impl TransferComplianceCiphertext {
             output_core_c2: self.output_core_c2,
             output_ext_c2: self.output_ext_c2,
             detection_ciphertext: decode_fqs(&self.detection_tag),
+            fuzzy_precision: Fq::from(self.fuzzy_tags.precision.bits()),
             fuzzy_tags: Fq::from(self.fuzzy_tags.packed()),
             sender_core_ciphertext: decode_fqs(&self.encrypted_sender_core),
             sender_ext_ciphertext: decode_fqs(&self.encrypted_sender_ext),
@@ -290,6 +294,7 @@ pub fn encrypt_transfer(
     is_flagged: bool,
     authorization_id: AuthorizationId,
     authorization_timestamp: u64,
+    fuzzy_precision: FuzzyPrecision,
     detection_salt: Fq,
 ) -> Result<TransferEncryptionResult> {
     let sender = PartyTierMaterial {
@@ -357,12 +362,14 @@ pub fn encrypt_transfer(
     detection_tag[..32].copy_from_slice(&detection_0.to_bytes());
     detection_tag[32..64].copy_from_slice(&detection_1.to_bytes());
     let fuzzy_tags = TransferFuzzyTags {
+        precision: fuzzy_precision,
         sender: sender_clue_key.create_tag(
             sender.core.r,
             receiver_value.asset_id.0,
             authorization_id,
             authorization_timestamp,
             FuzzyRole::Sender,
+            fuzzy_precision,
         ),
         receiver: receiver_clue_key.create_tag(
             output.core.r,
@@ -370,6 +377,7 @@ pub fn encrypt_transfer(
             authorization_id,
             authorization_timestamp,
             FuzzyRole::Receiver,
+            fuzzy_precision,
         ),
     };
 

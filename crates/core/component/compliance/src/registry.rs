@@ -1506,6 +1506,7 @@ mod tests {
     fn put_test_compliance_params<S: cnidarium::StateWrite>(state: &mut S) {
         state.put_compliance_params(ComplianceParameters {
             anchor_validation_window_blocks: TEST_ANCHOR_WINDOW_BLOCKS,
+            ..Default::default()
         });
     }
 
@@ -2738,6 +2739,7 @@ mod tests {
 
         state.put_compliance_params(ComplianceParameters {
             anchor_validation_window_blocks: 10,
+            ..Default::default()
         });
         state.put_block_height(12);
 
@@ -2777,6 +2779,7 @@ mod tests {
 
         state.put_compliance_params(ComplianceParameters {
             anchor_validation_window_blocks: 10,
+            ..Default::default()
         });
         state.put_block_height(50);
         state.record_compliance_anchors(50).await.unwrap();

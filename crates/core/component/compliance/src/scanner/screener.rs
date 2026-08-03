@@ -120,6 +120,7 @@ mod tests {
             is_flagged,
             crate::AuthorizationId::from_fq(decaf377::Fq::from(1u64)),
             0,
+            crate::FuzzyPrecision::default(),
             salt,
         )
         .unwrap()

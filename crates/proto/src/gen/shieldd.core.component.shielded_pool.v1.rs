@@ -527,6 +527,9 @@ pub struct TransferPlan {
     /// The shielded output plans fused into this transfer.
     #[prost(message, repeated, tag = "5")]
     pub outputs: ::prost::alloc::vec::Vec<ShieldedOutputPlan>,
+    /// Protocol-selected fuzzy clue precision for this transfer.
+    #[prost(uint32, tag = "6")]
+    pub fuzzy_precision_bits: u32,
 }
 impl ::prost::Name for TransferPlan {
     const NAME: &'static str = "TransferPlan";
