@@ -278,6 +278,8 @@ mod tests {
 
         let out_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../../../../tools/gnark/internal/primitives/vectors");
+        let testfixture_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../../tools/gnark/internal/testfixtures/vectors");
         std::fs::create_dir_all(&out_dir)
             .unwrap_or_else(|e| panic!("create transfer testdata dir {out_dir:?}: {e}"));
 
@@ -290,6 +292,12 @@ mod tests {
             let path = out_dir.join(filename);
             std::fs::write(&path, &encoded)
                 .unwrap_or_else(|e| panic!("write transfer witness fixture {path:?}: {e}"));
+            if is_regulated {
+                let testfixture_path = testfixture_dir.join(filename);
+                std::fs::write(&testfixture_path, &encoded).unwrap_or_else(|e| {
+                    panic!("write transfer witness fixture {testfixture_path:?}: {e}")
+                });
+            }
             eprintln!("wrote {} bytes to {path:?}", encoded.len());
         }
     }

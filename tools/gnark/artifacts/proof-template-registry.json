@@ -201,15 +201,6 @@
       "canonical_relation_file": "proof-template-relations/9751fe87fa2c56ff1ab94b413c6c480f6675c29236b522f924826fe36f060dd3.sr1cs.gz"
     },
     {
-      "proof_template_id": "decaf.assert_equivalent@c83f4311b5aa10465b63e41fe912ef41939be506d260e6f6d6a0d45505fecc9e",
-      "op": "decaf.assert_equivalent",
-      "coarse_shape_sha256_hex": "101fbfdf232c4d88e40cbda5ac28ed8615d746545627c82a961a32d350ff6e7f",
-      "local_wire_count": 959,
-      "row_count": 445,
-      "canonical_relation_sha256_hex": "c83f4311b5aa10465b63e41fe912ef41939be506d260e6f6d6a0d45505fecc9e",
-      "canonical_relation_file": "proof-template-relations/c83f4311b5aa10465b63e41fe912ef41939be506d260e6f6d6a0d45505fecc9e.sr1cs.gz"
-    },
-    {
       "proof_template_id": "decaf.assert_equivalent@ce02fb5b14b91c97c79ab560615ee72c620bac327f5e342c9dc69ea1c024f9e5",
       "op": "decaf.assert_equivalent",
       "coarse_shape_sha256_hex": "dcd2c08e5c3ee56aacfaf29373fa1b2d0d4d68e1d6d7b0993542a9ef3116a884",
@@ -399,6 +390,15 @@
       "canonical_relation_file": "proof-template-relations/7ed4d1493ce26d81f07303eef3a974b0984f27e620c8a1cf87da2aeacf7dd58b.sr1cs.gz"
     },
     {
+      "proof_template_id": "gadget.authorization_id@ecbeedda123ec71859b51dda3628a10862b1942ca296d0250c960f0e31217695",
+      "op": "gadget.authorization_id",
+      "coarse_shape_sha256_hex": "e371f05e11657cec7b6d15311b671dd1b37ff216f250eb45a6a5ff0c3faf7892",
+      "local_wire_count": 232,
+      "row_count": 230,
+      "canonical_relation_sha256_hex": "ecbeedda123ec71859b51dda3628a10862b1942ca296d0250c960f0e31217695",
+      "canonical_relation_file": "proof-template-relations/ecbeedda123ec71859b51dda3628a10862b1942ca296d0250c960f0e31217695.sr1cs.gz"
+    },
+    {
       "proof_template_id": "gadget.compliance_leaf@a9196c1f31383683ba070d601a8c3118e288bf3c77ebdd12bb6f95fa0c6e5c0c",
       "op": "gadget.compliance_leaf",
       "coarse_shape_sha256_hex": "c55a4344dcc2ee2b75efff37f624b658b5d1417cd6111af10c6d7fe79c2e8184",
@@ -417,13 +417,13 @@
       "canonical_relation_file": "proof-template-relations/2a3f117a202779a437f2df75ee159a3ed89304a07296aca041fb911ec6836a32.sr1cs.gz"
     },
     {
-      "proof_template_id": "gadget.dleq@93cf915ec9286a31df97111073868ec2c4d2ea2bdda3b352386a12a6649fb54b",
+      "proof_template_id": "gadget.dleq@6ba8798ee6d3e14605dd4746c29327fe07782c9f35e9e58c05d6fae7cedaa3fc",
       "op": "gadget.dleq",
-      "coarse_shape_sha256_hex": "f62f1d03ea935532b3d89bef53bf73e4567379c5f6fa858a3f57d211dfe0506a",
-      "local_wire_count": 14879,
+      "coarse_shape_sha256_hex": "6b9998e4f5b839b876113b37c4d051a787cf958c98917d95406ca1fe363e6067",
+      "local_wire_count": 14880,
       "row_count": 17834,
-      "canonical_relation_sha256_hex": "93cf915ec9286a31df97111073868ec2c4d2ea2bdda3b352386a12a6649fb54b",
-      "canonical_relation_file": "proof-template-relations/93cf915ec9286a31df97111073868ec2c4d2ea2bdda3b352386a12a6649fb54b.sr1cs.gz"
+      "canonical_relation_sha256_hex": "6ba8798ee6d3e14605dd4746c29327fe07782c9f35e9e58c05d6fae7cedaa3fc",
+      "canonical_relation_file": "proof-template-relations/6ba8798ee6d3e14605dd4746c29327fe07782c9f35e9e58c05d6fae7cedaa3fc.sr1cs.gz"
     },
     {
       "proof_template_id": "gadget.is_zero@f86255d819c7c0651266670438637db9143483a034e8100b1d451f78c8ab9991",
@@ -435,31 +435,40 @@
       "canonical_relation_file": "proof-template-relations/f86255d819c7c0651266670438637db9143483a034e8100b1d451f78c8ab9991.sr1cs.gz"
     },
     {
-      "proof_template_id": "gadget.metadata_hash@54c5c80fc46b5dd2473e98e23011854e3b05517baeb112c86b109f7da65775f2",
+      "proof_template_id": "gadget.metadata_hash@5932cb20b439fe3d915c3390bdb7ac1607a19086fa8ed3ae5f0f18421e249fa2",
       "op": "gadget.metadata_hash",
-      "coarse_shape_sha256_hex": "bffc41fd47fca176e98561f601290c833c3fd0451ea775fd6a61eee249366591",
-      "local_wire_count": 453,
-      "row_count": 442,
-      "canonical_relation_sha256_hex": "54c5c80fc46b5dd2473e98e23011854e3b05517baeb112c86b109f7da65775f2",
-      "canonical_relation_file": "proof-template-relations/54c5c80fc46b5dd2473e98e23011854e3b05517baeb112c86b109f7da65775f2.sr1cs.gz"
+      "coarse_shape_sha256_hex": "eb99e74b603bc7954cfb26c8d9bdc0aea2aafab1eee12b6eea6586e71842b8f3",
+      "local_wire_count": 496,
+      "row_count": 483,
+      "canonical_relation_sha256_hex": "5932cb20b439fe3d915c3390bdb7ac1607a19086fa8ed3ae5f0f18421e249fa2",
+      "canonical_relation_file": "proof-template-relations/5932cb20b439fe3d915c3390bdb7ac1607a19086fa8ed3ae5f0f18421e249fa2.sr1cs.gz"
     },
     {
-      "proof_template_id": "gadget.metadata_hash@7cc2c97bfcac0ef04c026090d48c9da1bb8a66a0cb339ad662b3b7d56ea5fdf5",
+      "proof_template_id": "gadget.metadata_hash@9862f474ac2d1cc3227d4cb497a314dc88c34fae9128a9ef1c8747b64986b14f",
       "op": "gadget.metadata_hash",
-      "coarse_shape_sha256_hex": "bffc41fd47fca176e98561f601290c833c3fd0451ea775fd6a61eee249366591",
-      "local_wire_count": 453,
-      "row_count": 442,
-      "canonical_relation_sha256_hex": "7cc2c97bfcac0ef04c026090d48c9da1bb8a66a0cb339ad662b3b7d56ea5fdf5",
-      "canonical_relation_file": "proof-template-relations/7cc2c97bfcac0ef04c026090d48c9da1bb8a66a0cb339ad662b3b7d56ea5fdf5.sr1cs.gz"
+      "coarse_shape_sha256_hex": "eb99e74b603bc7954cfb26c8d9bdc0aea2aafab1eee12b6eea6586e71842b8f3",
+      "local_wire_count": 496,
+      "row_count": 483,
+      "canonical_relation_sha256_hex": "9862f474ac2d1cc3227d4cb497a314dc88c34fae9128a9ef1c8747b64986b14f",
+      "canonical_relation_file": "proof-template-relations/9862f474ac2d1cc3227d4cb497a314dc88c34fae9128a9ef1c8747b64986b14f.sr1cs.gz"
     },
     {
-      "proof_template_id": "gadget.metadata_hash@bcc3f94d7b07528e399aca6a4e1ee0f7932db89ae05d630ce3a7f5fe7d1d336f",
+      "proof_template_id": "gadget.metadata_hash@ba92a32f78a8a36d03855ec489ab1e49898aa666b78fc178196beb4113f87ed6",
       "op": "gadget.metadata_hash",
-      "coarse_shape_sha256_hex": "bffc41fd47fca176e98561f601290c833c3fd0451ea775fd6a61eee249366591",
-      "local_wire_count": 453,
-      "row_count": 442,
-      "canonical_relation_sha256_hex": "bcc3f94d7b07528e399aca6a4e1ee0f7932db89ae05d630ce3a7f5fe7d1d336f",
-      "canonical_relation_file": "proof-template-relations/bcc3f94d7b07528e399aca6a4e1ee0f7932db89ae05d630ce3a7f5fe7d1d336f.sr1cs.gz"
+      "coarse_shape_sha256_hex": "eb99e74b603bc7954cfb26c8d9bdc0aea2aafab1eee12b6eea6586e71842b8f3",
+      "local_wire_count": 496,
+      "row_count": 483,
+      "canonical_relation_sha256_hex": "ba92a32f78a8a36d03855ec489ab1e49898aa666b78fc178196beb4113f87ed6",
+      "canonical_relation_file": "proof-template-relations/ba92a32f78a8a36d03855ec489ab1e49898aa666b78fc178196beb4113f87ed6.sr1cs.gz"
+    },
+    {
+      "proof_template_id": "gadget.metadata_hash@d62fb0dfa5544f9e655433a946803eceb96ef7c5165142887f0dc3a296c3e914",
+      "op": "gadget.metadata_hash",
+      "coarse_shape_sha256_hex": "eb99e74b603bc7954cfb26c8d9bdc0aea2aafab1eee12b6eea6586e71842b8f3",
+      "local_wire_count": 496,
+      "row_count": 483,
+      "canonical_relation_sha256_hex": "d62fb0dfa5544f9e655433a946803eceb96ef7c5165142887f0dc3a296c3e914",
+      "canonical_relation_file": "proof-template-relations/d62fb0dfa5544f9e655433a946803eceb96ef7c5165142887f0dc3a296c3e914.sr1cs.gz"
     },
     {
       "proof_template_id": "gadget.note_commitment@7f731e7786ff543dfb887454e906de20ca99621a73884496ba759b555129382f",
@@ -678,6 +687,15 @@
       "canonical_relation_file": "proof-template-relations/253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.sr1cs.gz"
     },
     {
+      "proof_template_id": "statement.hash@4b70f526a137364d8b79b2954719b0d16deba27be1e54b315bc3aba6aa7f5055",
+      "op": "statement.hash",
+      "coarse_shape_sha256_hex": "4387dfe63a32eaea29341a4f91e491fde24fbd666af5ca04012352c7b874054a",
+      "local_wire_count": 7137,
+      "row_count": 7030,
+      "canonical_relation_sha256_hex": "4b70f526a137364d8b79b2954719b0d16deba27be1e54b315bc3aba6aa7f5055",
+      "canonical_relation_file": "proof-template-relations/4b70f526a137364d8b79b2954719b0d16deba27be1e54b315bc3aba6aa7f5055.sr1cs.gz"
+    },
+    {
       "proof_template_id": "statement.hash@4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7",
       "op": "statement.hash",
       "coarse_shape_sha256_hex": "9c15a208422c77f91b83fe4b62f3b6b9e768c264e7ffd81e67e0759053aaa4d7",
@@ -685,15 +703,6 @@
       "row_count": 930,
       "canonical_relation_sha256_hex": "4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7",
       "canonical_relation_file": "proof-template-relations/4cafd325b545493415e47321733b6b69a04b20d1ef002f440729f6bf4a70a0b7.sr1cs.gz"
-    },
-    {
-      "proof_template_id": "statement.hash@954385455be36f5111913fb2e5f815b62f04b784911ae898c26d6abd58cead31",
-      "op": "statement.hash",
-      "coarse_shape_sha256_hex": "41bccf689d1506fb9050137e9b9fd6a1921833319105308f5e1dfe648e15e134",
-      "local_wire_count": 6673,
-      "row_count": 6570,
-      "canonical_relation_sha256_hex": "954385455be36f5111913fb2e5f815b62f04b784911ae898c26d6abd58cead31",
-      "canonical_relation_file": "proof-template-relations/954385455be36f5111913fb2e5f815b62f04b784911ae898c26d6abd58cead31.sr1cs.gz"
     },
     {
       "proof_template_id": "statement.hash@ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1",

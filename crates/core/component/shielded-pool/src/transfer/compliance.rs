@@ -5,8 +5,8 @@ use shieldd_sdk_asset::Value;
 #[cfg(feature = "component")]
 use shieldd_sdk_compliance::TRANSFER_WIRE_BYTES;
 use shieldd_sdk_compliance::{
-    build_orbis_encrypted_seed_upload_package_with_randomness, derive_transfer_salt,
-    encrypt_transfer, AssetPolicy, IndexedLeaf, TransferComplianceCiphertext,
+    build_orbis_encrypted_seed_upload_package_with_randomness, derive_authorization_id,
+    derive_transfer_salt, encrypt_transfer, AssetPolicy, IndexedLeaf, TransferComplianceCiphertext,
     TransferCompliancePublicInputs, TransferOrbisUploadBundle, TransferTierKind,
     TransferTierMetadataStatement,
 };
@@ -87,6 +87,7 @@ pub(crate) fn build_transfer_compliance(
     let receiver_ack = ring_pk * Fr::from_le_bytes_mod_order(&receiver_leaf.d.to_bytes());
 
     let detection_salt = derive_transfer_salt(transfer_nonce_root, b"detection");
+    let authorization_id = derive_authorization_id(transfer_nonce_root);
     let sender_core_salt = derive_transfer_salt(transfer_nonce_root, b"sender_core");
     let sender_ext_salt = derive_transfer_salt(transfer_nonce_root, b"sender_ext");
     let output_core_salt = derive_transfer_salt(transfer_nonce_root, b"output_core");
@@ -131,6 +132,7 @@ pub(crate) fn build_transfer_compliance(
                 permission,
                 TransferTierKind::SenderCore,
                 target_timestamp,
+                authorization_id,
                 sender_core_salt,
             ),
             ring_id,
@@ -154,6 +156,7 @@ pub(crate) fn build_transfer_compliance(
                 permission,
                 TransferTierKind::SenderExt,
                 target_timestamp,
+                authorization_id,
                 sender_ext_salt,
             ),
             ring_id,
@@ -177,6 +180,7 @@ pub(crate) fn build_transfer_compliance(
                 permission,
                 TransferTierKind::OutputCore,
                 target_timestamp,
+                authorization_id,
                 output_core_salt,
             ),
             ring_id,
@@ -200,6 +204,7 @@ pub(crate) fn build_transfer_compliance(
                 permission,
                 TransferTierKind::OutputExt,
                 target_timestamp,
+                authorization_id,
                 output_ext_salt,
             ),
             ring_id,

@@ -9,16 +9,13 @@ edition = {workspace = true}
 
 [features]
 component = [
+    "scanner",
     "cnidarium",
     "cnidarium-component",
-    "ibc-proto",
     "shieldd-sdk-proto/cnidarium",
-    "shieldd-sdk-proto/rpc",
     "shieldd-sdk-sct/component",
-    "rusqlite",
-    "tokio",
-    "tonic",
 ]
+scanner = ["ibc-proto", "shieldd-sdk-proto/rpc", "rusqlite", "tokio", "tonic"]
 default = ["component"]
 sqlite-bundled = ["rusqlite/bundled"]
 test-helpers = ["decaf377-fmd", "decaf377-ka"]

@@ -85,7 +85,9 @@ or re-checks it, and where regressions should be caught.
 ### Tier Metadata
 
 - Enforced in: transfer DLEQ metadata hash construction for
-  policy/resource/permission hash, tier label, target timestamp, and salt.
+  policy/resource/permission hash, tier label, authorization timestamp,
+  authorization ID, and salt. The circuit derives the authorization ID from
+  the transfer nonce root and requires the same value in all four tiers.
 - Verified at: `TransferTierMetadataStatement::validate_shape`,
   `validate_audit_evidence`, and upload bundle validation.
 - Tested by: `audit_validation::tests::tampered_tier_label_is_invalid_evidence`,

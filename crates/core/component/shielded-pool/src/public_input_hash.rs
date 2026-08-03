@@ -17,7 +17,7 @@ use crate::{
 pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 77;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 81;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 10;
@@ -413,6 +413,18 @@ pub fn transfer_statement_fields(
                 .to_field_elements()
                 .ok_or_else(|| {
                     transfer_field_encoding_error(&format!("{label}_target_timestamp"))
+                })?,
+        );
+        fields.extend(
+            statement
+                .authorization_id()
+                .map_err(|e| {
+                    transfer_field_encoding_error(&format!("{label}_authorization_id: {e}"))
+                })?
+                .to_fq()
+                .to_field_elements()
+                .ok_or_else(|| {
+                    transfer_field_encoding_error(&format!("{label}_authorization_id"))
                 })?,
         );
         fields.extend(

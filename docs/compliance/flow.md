@@ -109,11 +109,10 @@ planner:
 ```
 
 The receiver output carries a unified transfer compliance ciphertext and DLEQ
-(Discrete Logarithm Equality) material for each audit tier. The DLEQ material is
-for Orbis authorization-time binding: after ACP authorizes access to a specific
-policy/resource/permission/tier/timestamp tuple, Orbis verifies that the
-requested ciphertext was encrypted under matching metadata before running PRE.
-Inputs and change outputs carry no compliance ciphertext.
+(Discrete Logarithm Equality) material for each audit tier. Shieldd binds each
+tier to a common authorization ID and authorization timestamp, in addition to
+policy/resource/permission/tier/salt. Inputs and change outputs carry no
+compliance ciphertext.
 
 | Tier | Content | Unflagged Encryption | Flagged Encryption |
 |------|---------|----------------------|--------------------|
@@ -123,15 +122,22 @@ Inputs and change outputs carry no compliance ciphertext.
 | Output core | amount | receiver ACK | `dk_pub` |
 | Output ext | sender address | receiver ACK | `dk_pub` |
 
+`authorization_id` is a dedicated, domain-separated Poseidon identifier derived
+from the transfer nonce root. It is not a Shieldd transaction ID and is not
+reused as a salt or another metadata field. The current authorization timestamp
+uses the transfer target timestamp, but scanner and audit records name it by its
+authorization purpose rather than treating it as block time.
+
 `dk_pub` is the issuer Detection Key public key from `AssetPolicy`. Detection
 is always issuer-DK decryptable and carries the slot ids needed to select the
 one slot derivation for PRE. The slot ids may also be public without extra
 privacy loss, because the registered `slot_derivation` already reveals same-slot
 clustering. ACK encryption routes unflagged audit tiers to authorized
 subject/ring access through Orbis PRE; flagged transfers encrypt all audit tiers
-to issuer `dk_pub` directly. Core tiers carry values such as amount; extension
-tiers carry address/counterparty data so authorization can separate value access
-from address metadata access.
+to issuer `dk_pub` directly. Both core tiers contain the amount. The sender
+extension contains the receiver address, and the output extension contains the
+sender address. The audit API maps these role-relative tiers to independent
+`sender`, `amount`, and `receiver` disclosures.
 
 The transfer circuit owns value/nullifier/note/balance soundness. Compliance
 owns asset-policy binding, threshold flag correctness, ciphertext construction,
@@ -252,3 +258,33 @@ ACP grant
 Audit-demo and reports are exporters over the scanner DB. The frontend state
 shape remains `scan`, `scanner`, `ledgerRows`, and `audits`; backend state comes
 from the DB.
+
+## Audit Demo
+
+The demo keeps Orbis storage and PRE in the path but does not implement the
+future ACP authorization-envelope flow or require an Orbis metadata change. A
+user audit identifies the subject first and uses the subject-derived key. A
+master audit identifies transfers only by the
+proof-bound authorization ID or authorization timestamp range and uses the
+Orbis ring authority. `--field` may be repeated or comma-separated; omitting it
+requests sender, amount, and receiver.
+
+```bash
+# Known subject: audit that user's activity over an authorization-time range.
+orbis-integration audit-demo audit-user Alice \
+  --from-timestamp <from> --to-timestamp <to>
+
+# Unknown subject: inspect the transaction associated with an incident ID.
+orbis-integration audit-demo audit-transaction <authorization-id>
+
+# Demonstrate master-key field granularity.
+orbis-integration audit-demo audit-transaction <authorization-id> --field sender
+orbis-integration audit-demo audit-transaction <authorization-id> --field amount
+orbis-integration audit-demo audit-transaction <authorization-id> --field receiver
+
+# Unknown subject and unknown transaction: inspect an incident time window.
+orbis-integration audit-demo audit-range <from> <to>
+
+# Run the complete comparison above.
+orbis-integration audit-demo scenario Alice <authorization-id> <from> <to>
+```

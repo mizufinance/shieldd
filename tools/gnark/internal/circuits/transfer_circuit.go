@@ -726,6 +726,11 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 			return err
 		}
 	}
+	c.traceWiring("gadget.authorization_id", "nonce_root=compliance.transfer_nonce_root", "out=authorization_id")
+	authorizationID, err := DeriveAuthorizationID(api, c.Compliance.TransferNonceRoot)
+	if err != nil {
+		return err
+	}
 
 	c.traceWiring("decaf.shared_secret", "tier=sender_core", "esk=compliance.sender_r_core", "ack=sender.ack", "dk_pub=effective.dk_pub", "flag=is_flagged", "epk=compliance.sender_core.epk", "out=sender_core.shared")
 	ssDetection, _, senderCoreShared, err := DeriveSharedSecretsSpend(
@@ -872,18 +877,21 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 		AssertEqualIf(api, proof.Statement.PermissionHash, shared.indexedLeaf.PermissionHash, c.IsRegulated)
 		api.AssertIsEqual(proof.Statement.Tier, expectedTier)
 		api.AssertIsEqual(proof.Statement.TargetTimestamp, c.TargetTimestamp)
+		api.AssertIsEqual(proof.Statement.AuthorizationID, authorizationID)
 		api.AssertIsEqual(proof.Statement.Salt, expectedSalt)
-		return ComputeMetadataHash(
+		return ComputeTransferMetadataHash(
 			api,
 			proof.Statement.PolicyIDHash,
 			proof.Statement.ResourceHash,
 			proof.Statement.PermissionHash,
 			proof.Statement.Tier,
 			proof.Statement.TargetTimestamp,
+			proof.Statement.AuthorizationID,
 			proof.Statement.Salt,
 		)
 	}
 
+	c.traceWiring("gadget.metadata_hash", "tier=sender_core", "out=sender_core.metadata_hash")
 	senderCoreMetadataHash, err := verifyProofStatement(
 		c.Compliance.SenderCore.Proof,
 		c.Sender.SlotDerivation,
@@ -893,7 +901,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
-	c.traceWiring("gadget.metadata_hash", "tier=sender_core", "out=sender_core.metadata_hash")
+	c.traceWiring("gadget.metadata_hash", "tier=sender_ext", "out=sender_ext.metadata_hash")
 	senderExtMetadataHash, err := verifyProofStatement(
 		c.Compliance.SenderExt.Proof,
 		c.Sender.SlotDerivation,
@@ -903,7 +911,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
-	c.traceWiring("gadget.metadata_hash", "tier=sender_ext", "out=sender_ext.metadata_hash")
+	c.traceWiring("gadget.metadata_hash", "tier=output_core", "out=output_core.metadata_hash")
 	outputCoreMetadataHash, err := verifyProofStatement(
 		c.Compliance.OutputCore.Proof,
 		statementData.receiverSlotDerivation,
@@ -913,7 +921,7 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
-	c.traceWiring("gadget.metadata_hash", "tier=output_core", "out=output_core.metadata_hash")
+	c.traceWiring("gadget.metadata_hash", "tier=output_ext", "out=output_ext.metadata_hash")
 	outputExtMetadataHash, err := verifyProofStatement(
 		c.Compliance.OutputExt.Proof,
 		statementData.receiverSlotDerivation,
@@ -923,7 +931,6 @@ func (c *TransferCircuit) verifyTransferComplianceCiphertexts(
 	if err != nil {
 		return err
 	}
-	c.traceWiring("gadget.metadata_hash", "tier=output_ext", "out=output_ext.metadata_hash")
 
 	c.traceWiring("gadget.dleq", "tier=sender_core", "r=compliance.sender_r_core", "derived_pk=compliance.sender_core.proof.derived_pk", "shared_point=compliance.sender_core.proof.shared_point", "enc_cmt=compliance.sender_core.proof.enc_cmt", "metadata=sender_core.metadata_hash", "challenge=compliance.sender_core.proof.challenge", "response=compliance.sender_core.proof.response")
 	if err := VerifyDLEQ(
@@ -1066,6 +1073,7 @@ func (c *TransferCircuit) buildTransferStatementFields(
 			proof.Statement.PermissionHash,
 			proof.Statement.Tier,
 			proof.Statement.TargetTimestamp,
+			proof.Statement.AuthorizationID,
 			proof.Statement.Salt,
 			derivedPKFq,
 			encCmtFq,

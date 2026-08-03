@@ -75,6 +75,7 @@ the transaction crate, keep the transaction-crate parity test mandatory.
 | `scanner_blocks` | committed block identity and scan status |
 | `scanner_ciphertexts` | raw extracted output ciphertexts and screening status |
 | `scanner_detections` | DK-detected private transfer outputs and audit status |
+| `audit_authorizations` | validated authorization ID/timestamp index keyed by output ref |
 | `scanner_invalid_ciphertexts` | first capped malformed ciphertext rows per block |
 | `scanner_invalid_ciphertext_summaries` | overflow count for invalid rows above cap |
 | `scanner_clear_flows` | public shield/withdraw rows |
@@ -156,10 +157,12 @@ where `d` comes from the registered slot derivation, not from the address
 diversifier:
 
 ```text
+authorization_id = Poseidon(auth_id_domain, transfer_nonce_root)
 S  = r * ACK
 R  = k * G
 R' = k * ACK
-M  = Poseidon(policy_id_hash, resource_hash, permission_hash, tier, timestamp, salt)
+M  = Poseidon(policy_id_hash, resource_hash, permission_hash, tier,
+              authorization_timestamp, authorization_id, salt)
 c  = Poseidon(ACK, EPK, S, R, R', M)
 s  = k + c * r
 ```
@@ -181,12 +184,35 @@ Tier constants:
 | output_core | 3 |
 | output_ext | 4 |
 
-The same proof material is authorization-critical in Orbis PRE: after JWT
-authentication and ACP authorization, Orbis verifies the stored encrypted-seed
-object's proof against the same policy/resource/permission/tier/timestamp
-metadata before running PRE. `C2` correctness remains separate: it is
-established by the transfer construction and by validating the decrypted seed
-against `C2` after PRE or issuer-DK decryption.
+The authorization ID is a dedicated selector, distinct from the Shieldd
+transaction ID, tier salt, and block metadata. All four statements in a
+transfer must carry the same authorization ID and timestamp. The transfer
+circuit derives the ID and constrains both values in each tier's metadata hash.
+The scanner indexes them only after the evidence object and upload bundle have
+validated.
+
+Current Orbis encrypted-seed objects retain their existing
+policy/resource/permission/tier/timestamp/salt metadata and proof. Shieldd
+therefore validates two proofs in an upload package: the Shieldd transfer proof
+above, which includes `authorization_id`, and the existing Orbis object proof.
+The demo selects and revalidates the Shieldd authorization metadata before
+requesting Orbis PRE; it needs no Orbis or ACP change. A future ACP integration
+must carry the Shieldd authorization tuple through the Orbis authorization
+boundary. `C2` correctness remains separate: it is established by the transfer
+construction and by validating the decrypted seed against `C2` after PRE or
+issuer-DK decryption.
+
+## Audit Selection And Authority
+
+`AuditSelection` supports exact authorization ID and inclusive authorization
+timestamp bounds. Master audits require at least one bound; user audits may
+scan all validated candidates for the named subject. Selection is checked both
+against the scanner index and against the extracted, validated upload bundle.
+
+User authority matches the subject's derived slot key and decrypts only the
+tiers needed for the requested fields. Master authority uses the Orbis ring key
+path and does not require a subject address. Both paths support independent
+`sender`, `amount`, and `receiver` output fields.
 
 ## Restrictions
 

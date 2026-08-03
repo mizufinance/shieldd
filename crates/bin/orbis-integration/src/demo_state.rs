@@ -243,22 +243,29 @@ pub struct DetectedRow {
     pub is_flagged: bool,
     #[serde(default)]
     pub flow_type: Option<String>,
+    #[serde(default)]
+    pub authorization_id: Option<String>,
+    #[serde(default)]
+    pub authorization_timestamp: Option<u64>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }
 
 impl DetectedRow {
-    pub fn row_ref(&self) -> RowRef {
-        RowRef {
-            height: self.height,
-            tx_hash: self.tx_hash.clone(),
-            action_index: self.action_index,
-            output_index: self.output_index,
-        }
-    }
-
     pub fn is_private_transfer(&self) -> bool {
         self.flow_type.as_deref() == Some("private_transfer")
+    }
+
+    pub fn matches_authorization_range(
+        &self,
+        from_timestamp: Option<u64>,
+        to_timestamp: Option<u64>,
+    ) -> bool {
+        let Some(timestamp) = self.authorization_timestamp else {
+            return false;
+        };
+        from_timestamp.is_none_or(|from| timestamp >= from)
+            && to_timestamp.is_none_or(|to| timestamp <= to)
     }
 }
 
@@ -286,82 +293,6 @@ pub struct LedgerRow {
     pub audited_subjects: Vec<String>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
-}
-
-impl LedgerRow {
-    pub fn matches_ref(&self, row_ref: &RowRef) -> bool {
-        self.height == Some(row_ref.height)
-            && self.tx_hash.as_deref() == Some(row_ref.tx_hash.as_str())
-            && self.action_index == Some(row_ref.action_index)
-            && self.output_index.unwrap_or_default() == row_ref.output_index
-    }
-
-    pub fn has_amount(&self) -> bool {
-        self.amount.as_ref().is_some_and(|amount| !amount.is_null())
-    }
-
-    pub fn self_alias_matches(&self, name: &str) -> bool {
-        self.self_alias
-            .as_deref()
-            .is_some_and(|alias| alias == name || alias.starts_with(&format!("{name} ")))
-    }
-
-    pub fn counterparty_alias_known(&self) -> bool {
-        self.counterparty_alias
-            .as_deref()
-            .is_some_and(|alias| !alias.is_empty())
-    }
-
-    pub fn fully_known(&self) -> bool {
-        let has_self = self
-            .self_alias
-            .as_deref()
-            .is_some_and(|alias| !alias.is_empty());
-        match self.flow_type.as_deref() {
-            Some("shield" | "withdraw") => self.has_amount() && has_self,
-            _ => self.has_amount() && has_self && self.counterparty_alias_known(),
-        }
-    }
-
-    pub fn is_clear_flow_for(&self, name: &str) -> bool {
-        matches!(self.flow_type.as_deref(), Some("shield" | "withdraw"))
-            && self.self_alias_matches(name)
-    }
-
-    pub fn audited_for(&self, name: &str) -> bool {
-        self.audited_subjects.iter().any(|subject| subject == name)
-    }
-
-    pub fn row_ref(&self) -> Option<RowRef> {
-        Some(RowRef {
-            height: self.height?,
-            tx_hash: self.tx_hash.clone()?,
-            action_index: self.action_index?,
-            output_index: self.output_index.unwrap_or_default(),
-        })
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct RowRef {
-    pub height: i64,
-    pub tx_hash: String,
-    pub action_index: i64,
-    pub output_index: i64,
-}
-
-impl RowRef {
-    pub fn from_value(value: &Value) -> Option<Self> {
-        Some(Self {
-            height: value.get("height")?.as_i64()?,
-            tx_hash: value.get("tx_hash")?.as_str()?.to_string(),
-            action_index: value.get("action_index")?.as_i64()?,
-            output_index: value
-                .get("output_index")
-                .and_then(Value::as_i64)
-                .unwrap_or_default(),
-        })
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -419,7 +350,7 @@ pub fn missing_ring() -> anyhow::Error {
 
 #[cfg(test)]
 mod tests {
-    use super::{AuditDemoState, LedgerRow, UserState};
+    use super::{AuditDemoState, UserState};
 
     #[test]
     fn typed_state_roundtrips() {
@@ -445,17 +376,5 @@ mod tests {
         let error = serde_json::from_str::<AuditDemoState>(r#"{"setup": "bad"}"#)
             .expect_err("malformed state should fail");
         assert!(error.to_string().contains("invalid type"));
-    }
-
-    #[test]
-    fn ledger_row_tracks_completeness() {
-        let row: LedgerRow = serde_json::from_value(serde_json::json!({
-            "flow_type": "private_transfer",
-            "amount": "17",
-            "self_alias": "Alice",
-            "counterparty_alias": "Bob"
-        }))
-        .expect("row should decode");
-        assert!(row.fully_known());
     }
 }

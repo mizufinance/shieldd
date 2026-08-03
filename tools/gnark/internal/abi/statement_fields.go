@@ -142,6 +142,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV1(
 			tier.PermissionHash,
 			uint64ToLE32(tier.Tier),
 			tier.StatementTimestamp,
+			tier.AuthorizationID,
 			tier.Salt,
 			derivedPK,
 			encCmt,

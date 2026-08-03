@@ -1,4 +1,4 @@
-import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg106Defs21
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg106Defs23
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 50000000
@@ -126,8 +126,8 @@ def spec (rho : Nat -> F) : Prop := Specs.deployedSpec106 rho
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
 segmentIndex := 106,
-relationSha256Hex := "7fd7f29bc6a2bc309b69c54e26550c07f56928601f0b301870aad8a51f4045b7",
-wireRoleSha256Hex := "d84ea350deafe8f98a314e1ce858cf18a9fdc45189b55f6b8beffa5723e7fd21",
+relationSha256Hex := "20868c3dc79425633d376e29aa37622cf0bc8888d38b9390ad1c41d9a243c21e",
+wireRoleSha256Hex := "48973435d030c188c28deedddc1dd1fd8af19bb3378436f1a286309673bb5a78",
 relation := relation,
 spec := spec
 }

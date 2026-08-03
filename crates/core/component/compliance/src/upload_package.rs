@@ -211,7 +211,37 @@ impl TransferOrbisUploadBundle {
         self.sender_ext.validate()?;
         self.output_core.validate()?;
         self.output_ext.validate()?;
+        let authorization_id = self.sender_core.statement.authorization_id()?;
+        let timestamp = self.sender_core.statement.target_timestamp;
+        for package in [&self.sender_ext, &self.output_core, &self.output_ext] {
+            anyhow::ensure!(
+                package.statement.authorization_id()? == authorization_id,
+                "transfer upload tiers do not share one authorization id"
+            );
+            anyhow::ensure!(
+                package.statement.target_timestamp == timestamp,
+                "transfer upload tiers do not share one authorization timestamp"
+            );
+        }
+        anyhow::ensure!(
+            self.sender_core.derivation_bytes() == self.sender_ext.derivation_bytes(),
+            "sender upload tiers do not share one subject derivation"
+        );
+        anyhow::ensure!(
+            self.output_core.derivation_bytes() == self.output_ext.derivation_bytes(),
+            "receiver upload tiers do not share one subject derivation"
+        );
         Ok(())
+    }
+
+    pub fn authorization_id(&self) -> Result<crate::AuthorizationId> {
+        self.validate()?;
+        self.sender_core.statement.authorization_id()
+    }
+
+    pub fn authorization_timestamp(&self) -> Result<u64> {
+        self.validate()?;
+        Ok(self.sender_core.statement.target_timestamp)
     }
 }
 
@@ -595,6 +625,7 @@ mod tests {
             "read",
             TransferTierKind::OutputCore,
             1_700_000_000,
+            crate::AuthorizationId::from_fq(Fq::from(123u64)),
             Fq::from(99u64),
         );
         let seed = Fq::from(7u64);
@@ -637,6 +668,7 @@ mod tests {
             "read",
             TransferTierKind::OutputCore,
             1_700_000_000,
+            crate::AuthorizationId::from_fq(Fq::from(123u64)),
             Fq::from(99u64),
         );
 
@@ -668,5 +700,69 @@ mod tests {
         package
             .validate()
             .expect("proof should validate with Orbis metadata");
+
+        let mut tampered = package;
+        tampered.statement.authorization_id_bytes =
+            crate::AuthorizationId::from_fq(Fq::from(124u64)).to_bytes();
+        assert!(
+            tampered.validate().is_err(),
+            "changing the authorization id must invalidate the Shieldd DLEQ"
+        );
+    }
+
+    #[test]
+    fn ring_master_key_decrypts_a_package_encrypted_for_a_derived_user_key() {
+        let mut rng = OsRng;
+        let ring_sk = Fr::rand(&mut rng);
+        let ring_pk = Element::GENERATOR * ring_sk;
+        let statement = TransferTierMetadataStatement::from_identifiers(
+            Fq::from(42u64),
+            "ring-id",
+            "policy-id",
+            "document",
+            "read",
+            TransferTierKind::SenderCore,
+            1_700_000_000,
+            crate::AuthorizationId::from_fq(Fq::from(123u64)),
+            Fq::from(99u64),
+        );
+        let derivation = statement.subject_derivation_bytes;
+        let seed = Fq::from(7u64);
+        let package = build_orbis_encrypted_seed_upload_package(
+            &mut rng,
+            &ring_pk,
+            seed,
+            statement,
+            "ring-id",
+            "policy-id",
+            "document",
+            "read",
+            TransferTierKind::SenderCore,
+            1_700_000_000,
+            Fq::from(99u64),
+        )
+        .expect("package should build");
+
+        let child_sk = ring_sk * derive_capability_scalar(&derivation);
+        let shared_from_master = package.enc_cmt().expect("enc_cmt") * child_sk;
+        assert_eq!(
+            shared_from_master,
+            package.shared_point().expect("shared point")
+        );
+
+        let secret: OrbisSecretEnvelope = serde_json::from_slice(&package.encrypted_document)
+            .expect("encrypted document should deserialize");
+        let cipher = Aes256Gcm::new(&derive_key_from_point(&shared_from_master).unwrap().into());
+        let aad = build_aad(&secret.enc_cmt, &shared_from_master.vartime_compress().0);
+        let plaintext = cipher
+            .decrypt(
+                Nonce::from_slice(&secret.nonce),
+                Payload {
+                    msg: &secret.encrypted_data,
+                    aad: &aad,
+                },
+            )
+            .expect("ring master should decrypt the derived package");
+        assert_eq!(plaintext, seed.to_bytes());
     }
 }

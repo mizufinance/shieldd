@@ -101,6 +101,13 @@ pub static DLEQ_METADATA_DOMAIN: Lazy<Fq> = Lazy::new(|| {
     )
 });
 
+/// Domain for transfer DLEQ metadata including the authorization identifier.
+pub static TRANSFER_DLEQ_METADATA_DOMAIN: Lazy<Fq> = Lazy::new(|| {
+    Fq::from_le_bytes_mod_order(
+        blake2b_simd::blake2b(b"shieldd.compliance.transfer.dleq_metadata.v2").as_bytes(),
+    )
+});
+
 /// Domain separator for DLEQ Fiat-Shamir challenge: c = Poseidon_6(domain, points...).
 pub static DLEQ_CHALLENGE_DOMAIN: Lazy<Fq> = Lazy::new(|| {
     Fq::from_le_bytes_mod_order(
@@ -144,6 +151,30 @@ pub fn compute_metadata_hash(
             permission_hash,
             tier,
             target_timestamp,
+            salt,
+        ),
+    )
+}
+
+/// Bind policy, disclosure tier, authorization lookup, time, and salt to a transfer DLEQ.
+pub fn compute_transfer_metadata_hash(
+    policy_id_hash: Fq,
+    resource_hash: Fq,
+    permission_hash: Fq,
+    tier: Fq,
+    target_timestamp: Fq,
+    authorization_id: Fq,
+    salt: Fq,
+) -> Fq {
+    poseidon377::hash_7(
+        &TRANSFER_DLEQ_METADATA_DOMAIN,
+        (
+            policy_id_hash,
+            resource_hash,
+            permission_hash,
+            tier,
+            target_timestamp,
+            authorization_id,
             salt,
         ),
     )

@@ -139,6 +139,7 @@ structure ComplianceTier where
   stmtPermissionHash : F
   stmtTier : F
   stmtTargetTimestamp : F
+  stmtAuthorizationID : F
   stmtSalt : F
   dleq : DleqBridge.DleqInputs
 
@@ -579,7 +580,7 @@ exact order of `buildTransferStatementFields`'s `appendProofTier`. -/
 def proofStatementChunk (tier : ComplianceTier) : List F :=
   [tier.stmtSubjectDerivation, tier.stmtRingIDHash, tier.stmtPolicyIDHash,
    tier.stmtResourceHash, tier.stmtPermissionHash, tier.stmtTier,
-   tier.stmtTargetTimestamp, tier.stmtSalt,
+   tier.stmtTargetTimestamp, tier.stmtAuthorizationID, tier.stmtSalt,
    tier.proofDerivedPKFq, tier.proofEncCmtFq, tier.proofSharedPointFq,
    tier.proofChallenge, tier.proofResponse]
 

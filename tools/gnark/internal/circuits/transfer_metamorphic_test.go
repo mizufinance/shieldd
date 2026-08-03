@@ -385,6 +385,9 @@ func tierMetadataMutations() []transferMutation {
 		{name: "timestamp", mutate: func(s *circuits.TransferComplianceStatementFields) {
 			s.TargetTimestamp = mutateFieldByOne(s.TargetTimestamp)
 		}},
+		{name: "authorization id", mutate: func(s *circuits.TransferComplianceStatementFields) {
+			s.AuthorizationID = mutateFieldByOne(s.AuthorizationID)
+		}},
 		{name: "salt", mutate: func(s *circuits.TransferComplianceStatementFields) {
 			s.Salt = mutateFieldByOne(s.Salt)
 		}},

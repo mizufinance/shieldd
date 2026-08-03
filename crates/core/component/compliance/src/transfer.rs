@@ -5,9 +5,10 @@ use shieldd_sdk_asset::Value;
 use shieldd_sdk_keys::Address;
 
 use crate::{
+    authorization::AuthorizationId,
     crypto::{
-        compliance_stream_block, compute_dleq_native, compute_metadata_hash, encrypt_tier_bytes,
-        ISSUER_DETECTION_DOMAIN,
+        compliance_stream_block, compute_dleq_native, compute_transfer_metadata_hash,
+        encrypt_tier_bytes, ISSUER_DETECTION_DOMAIN,
     },
     issuer_keys::detection_plaintext_fq,
     structs::{DleqProof, C2_BYTES, DETECTION_TAG_BYTES, EPK_BYTES, FQ_BYTES},
@@ -260,6 +261,10 @@ pub fn derive_transfer_salt(root: Fr, label: &[u8]) -> Fq {
     )
 }
 
+pub fn derive_authorization_id(root: Fr) -> AuthorizationId {
+    AuthorizationId::derive(root)
+}
+
 pub fn encrypt_transfer(
     mut rng: impl RngCore + CryptoRng,
     ack_sender: &Element,
@@ -393,6 +398,7 @@ pub fn compute_transfer_dleqs(
     policy_id_hash: Fq,
     resource_hash: Fq,
     permission_hash: Fq,
+    authorization_id: AuthorizationId,
     sender_core_salt: Fq,
     sender_ext_salt: Fq,
     output_core_salt: Fq,
@@ -404,36 +410,40 @@ pub fn compute_transfer_dleqs(
     let output_core_epk = Element::GENERATOR * output.core.r;
     let output_ext_epk = Element::GENERATOR * output.ext.r;
 
-    let sender_core_metadata = compute_metadata_hash(
+    let sender_core_metadata = compute_transfer_metadata_hash(
         policy_id_hash,
         resource_hash,
         permission_hash,
         Fq::from(1u64),
         Fq::from(target_timestamp),
+        authorization_id.to_fq(),
         sender_core_salt,
     );
-    let sender_ext_metadata = compute_metadata_hash(
+    let sender_ext_metadata = compute_transfer_metadata_hash(
         policy_id_hash,
         resource_hash,
         permission_hash,
         Fq::from(2u64),
         Fq::from(target_timestamp),
+        authorization_id.to_fq(),
         sender_ext_salt,
     );
-    let output_core_metadata = compute_metadata_hash(
+    let output_core_metadata = compute_transfer_metadata_hash(
         policy_id_hash,
         resource_hash,
         permission_hash,
         Fq::from(3u64),
         Fq::from(target_timestamp),
+        authorization_id.to_fq(),
         output_core_salt,
     );
-    let output_ext_metadata = compute_metadata_hash(
+    let output_ext_metadata = compute_transfer_metadata_hash(
         policy_id_hash,
         resource_hash,
         permission_hash,
         Fq::from(4u64),
         Fq::from(target_timestamp),
+        authorization_id.to_fq(),
         output_ext_salt,
     );
 

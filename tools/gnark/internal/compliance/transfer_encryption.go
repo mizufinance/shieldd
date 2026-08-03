@@ -17,13 +17,21 @@ const (
 )
 
 var (
-	TransferSaltDomain          = transferSaltConstant("shieldd.transfer.compliance.salt")
-	TransferDetectionSaltLabel  = transferSaltConstant("detection")
-	TransferSenderCoreSaltLabel = transferSaltConstant("sender_core")
-	TransferSenderExtSaltLabel  = transferSaltConstant("sender_ext")
-	TransferOutputCoreSaltLabel = transferSaltConstant("output_core")
-	TransferOutputExtSaltLabel  = transferSaltConstant("output_ext")
+	TransferSaltDomain            = transferSaltConstant("shieldd.transfer.compliance.salt")
+	TransferDetectionSaltLabel    = transferSaltConstant("detection")
+	TransferSenderCoreSaltLabel   = transferSaltConstant("sender_core")
+	TransferSenderExtSaltLabel    = transferSaltConstant("sender_ext")
+	TransferOutputCoreSaltLabel   = transferSaltConstant("output_core")
+	TransferOutputExtSaltLabel    = transferSaltConstant("output_ext")
+	TransferAuthorizationIDDomain = transferSaltConstant("shieldd.transfer.compliance.authorization_id.v1")
 )
+
+func DeriveAuthorizationID(
+	api frontend.API,
+	transferNonceRoot frontend.Variable,
+) (frontend.Variable, error) {
+	return primitives.Poseidon377Hash1(api, TransferAuthorizationIDDomain, transferNonceRoot)
+}
 
 func transferSaltConstant(label string) *big.Int {
 	sum := blake2b.Sum512([]byte(label))

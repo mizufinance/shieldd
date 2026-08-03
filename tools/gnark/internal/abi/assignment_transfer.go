@@ -166,6 +166,7 @@ func transferTierProofFields(
 			PermissionHash:    fqString(tier.PermissionHash),
 			Tier:              tier.Tier,
 			TargetTimestamp:   fqString(tier.StatementTimestamp),
+			AuthorizationID:   fqString(tier.AuthorizationID),
 			Salt:              fqString(tier.Salt),
 		},
 		Challenge:   fqString(tier.Challenge),

@@ -6,8 +6,9 @@ use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::audit_records::{
-    classify_orbis_import_row, detected_ref_from_row_parts, AuditDetectedRef, AuditImportRow,
-    AuditScanExport, DetectedRefRowParts, OrbisAuditEntry, OrbisImportEligibility,
+    classify_orbis_import_row, detected_ref_from_row_parts, AuditAuthority, AuditDetectedRef,
+    AuditImportRow, AuditScanExport, DetectedRefRowParts, OrbisAuditEntry, OrbisImportEligibility,
+    TransferRole,
 };
 use crate::audit_status::{AuditStatus, DecryptedVia, FlowType};
 use crate::scanner::storage::SqliteScannerStore;
@@ -20,8 +21,8 @@ use crate::scanner::types::{
 use crate::scanning::decrypt_full_flagged;
 use crate::transfer::TransferComplianceCiphertext;
 use crate::{
-    validate_audit_evidence, AuditValidationInput, AuditValidationStatus, ComplianceEvidenceObject,
-    DetectionKey, OutputRef, TransferOrbisUploadBundle,
+    validate_audit_evidence, AuditValidationInput, AuditValidationStatus, AuthorizationId,
+    ComplianceEvidenceObject, DetectionKey, OutputRef, TransferOrbisUploadBundle,
 };
 
 pub const EVIDENCE_STAGE_BUILD: &str = "build_evidence";
@@ -31,6 +32,19 @@ pub const EVIDENCE_STAGE_ORBIS_IMPORT: &str = "validate_orbis_import";
 pub(crate) const MAX_FAILURE_REASON_BYTES: usize = 1024;
 
 const FAILURE_TRUNCATION_SUFFIX: &str = "...[truncated]";
+
+fn authorization_id_from_sql(bytes: Vec<u8>, column: usize) -> rusqlite::Result<AuthorizationId> {
+    let bytes: [u8; 32] = bytes.try_into().map_err(|bytes: Vec<u8>| {
+        rusqlite::Error::FromSqlConversionFailure(
+            column,
+            rusqlite::types::Type::Blob,
+            anyhow!("authorization id must be 32 bytes, got {}", bytes.len()).into(),
+        )
+    })?;
+    AuthorizationId::from_bytes(bytes).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(column, rusqlite::types::Type::Blob, error.into())
+    })
+}
 
 pub(crate) fn bounded_failure_reason(reason: &str) -> String {
     if reason.len() <= MAX_FAILURE_REASON_BYTES {
@@ -284,11 +298,17 @@ pub fn decrypt_flagged_rows(store: &SqliteScannerStore, dk: &DetectionKey) -> Re
 pub fn export_orbis_pending_scan(store: &SqliteScannerStore) -> Result<AuditScanExport> {
     let conn = store.lock_conn()?;
     let mut rows = conn.prepare(
-        "SELECT height, tx_hash, action_index, output_index, asset_id, is_flagged, ?1
-         FROM scanner_detections
-         WHERE is_flagged = 0
-           AND audit_status = ?2
-         ORDER BY height, tx_hash, action_index, output_index",
+        "SELECT d.height, d.tx_hash, d.action_index, d.output_index, d.asset_id, d.is_flagged, ?1,
+                a.authorization_id, a.authorization_timestamp
+         FROM scanner_detections d
+         JOIN audit_authorizations a
+           ON a.height = d.height
+          AND a.tx_hash = d.tx_hash
+          AND a.action_index = d.action_index
+          AND a.output_index = d.output_index
+         WHERE d.is_flagged = 0
+           AND d.audit_status = ?2
+         ORDER BY d.height, d.tx_hash, d.action_index, d.output_index",
     )?;
     let detected = rows
         .query_map(
@@ -304,6 +324,8 @@ pub fn export_orbis_pending_scan(store: &SqliteScannerStore) -> Result<AuditScan
                 let asset_id: String = row.get(4)?;
                 let is_flagged: i64 = row.get(5)?;
                 let flow_type: String = row.get(6)?;
+                let authorization_id = authorization_id_from_sql(row.get(7)?, 7)?;
+                let authorization_timestamp: i64 = row.get(8)?;
                 Ok(detected_ref_from_row_parts(DetectedRefRowParts {
                     height: height as u64,
                     tx_hash,
@@ -318,6 +340,8 @@ pub fn export_orbis_pending_scan(store: &SqliteScannerStore) -> Result<AuditScan
                             error.into(),
                         )
                     })?,
+                    authorization_id: Some(authorization_id),
+                    authorization_timestamp: Some(authorization_timestamp as u64),
                 }))
             },
         )?
@@ -339,38 +363,70 @@ pub fn import_orbis_audit_entries(
     let tx = conn.unchecked_transaction()?;
     let mut updated = 0u64;
     for entry in entries {
+        anyhow::ensure!(
+            entry.authority == AuditAuthority::User,
+            "master audit results are disclosures, not user-ledger imports"
+        );
         let tx_hash = decode_tx_hash(&entry.tx_hash)?;
-        let row_status: Option<(String, i64)> = tx
+        let row_status: Option<(String, i64, Option<Vec<u8>>, Option<i64>)> = tx
             .query_row(
-                "SELECT audit_status, is_flagged
-                 FROM scanner_detections
-                 WHERE height = ?1 AND tx_hash = ?2 AND action_index = ?3 AND output_index = ?4",
+                "SELECT d.audit_status,
+                        d.is_flagged,
+                        a.authorization_id,
+                        a.authorization_timestamp
+                 FROM scanner_detections d
+                 LEFT JOIN audit_authorizations a
+                   ON a.height = d.height
+                  AND a.tx_hash = d.tx_hash
+                  AND a.action_index = d.action_index
+                  AND a.output_index = d.output_index
+                 WHERE d.height = ?1
+                   AND d.tx_hash = ?2
+                   AND d.action_index = ?3
+                   AND d.output_index = ?4",
                 params![
                     entry.height as i64,
                     tx_hash.as_slice(),
                     entry.action_index as i64,
                     entry.output_index as i64,
                 ],
-                |row| Ok((row.get(0)?, row.get(1)?)),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
             )
             .optional()?;
         let row = row_status
-            .map(|(audit_status, is_flagged)| {
+            .map(
+                |(audit_status, is_flagged, authorization_id, authorization_timestamp)| {
+                    let authorization_id = authorization_id
+                        .map(|bytes| authorization_id_from_sql(bytes, 2))
+                        .transpose()?;
+                    let authorization_timestamp = authorization_timestamp
+                        .map(|timestamp| {
+                            u64::try_from(timestamp).map_err(|error| {
+                                anyhow!(
+                                    "validated authorization timestamp is outside u64 range: {error}"
+                                )
+                            })
+                        })
+                        .transpose()?;
                 Ok::<AuditImportRow, anyhow::Error>(AuditImportRow {
                     audit_status: AuditStatus::from_str(&audit_status)?,
                     is_flagged: is_flagged != 0,
+                    authorization_id,
+                    authorization_timestamp,
                 })
-            })
+                },
+            )
             .transpose()?;
         let current_status = row.as_ref().map(|row| row.audit_status);
-        match classify_orbis_import_row(row) {
+        match classify_orbis_import_row(row, entry.authorization_id, entry.authorization_timestamp)
+        {
             OrbisImportEligibility::Eligible => {
                 if let Some(status) = current_status {
                     AuditStatus::try_advance(status, AuditStatus::AuditComplete)?;
                 }
             }
             OrbisImportEligibility::Ineligible { reason } => {
-                record_evidence_failure_tx(
+                insert_evidence_failure_tx(
                     &tx,
                     entry.height,
                     tx_hash.as_slice(),
@@ -384,13 +440,13 @@ pub fn import_orbis_audit_entries(
         }
         let changed = tx.execute(
             "UPDATE audit_rows
-             SET amount = ?1,
+             SET amount = COALESCE(?1, amount),
                  self_address = CASE
-                     WHEN self_address IS NULL OR self_address = '' THEN ?2
+                     WHEN ?2 IS NOT NULL AND (self_address IS NULL OR self_address = '') THEN ?2
                      ELSE self_address
                  END,
                  counterparty_address = CASE
-                     WHEN ?3 != '' THEN ?3
+                     WHEN ?3 IS NOT NULL THEN ?3
                      ELSE counterparty_address
                  END,
                  decrypted_via = ?4,
@@ -401,8 +457,12 @@ pub fn import_orbis_audit_entries(
                AND output_index = ?9",
             params![
                 entry.amount,
-                entry.self_address,
-                entry.counterparty,
+                entry.subject_address,
+                match entry.role {
+                    Some(TransferRole::Sender) => entry.receiver_address.as_deref(),
+                    Some(TransferRole::Receiver) => entry.sender_address.as_deref(),
+                    None => None,
+                },
                 entry.decrypted_via.as_str(),
                 now_unix(),
                 entry.height as i64,
@@ -627,6 +687,10 @@ pub fn validate_and_save_evidence_object(
 
     let object_hash = evidence.object_hash();
     let object_bytes = evidence.to_bytes();
+    let authorization_id = evidence.authorization_id()?;
+    let authorization_timestamp = evidence.authorization_timestamp()?;
+    let authorization_timestamp = i64::try_from(authorization_timestamp)
+        .context("authorization timestamp exceeds SQLite integer range")?;
     tx.execute(
         "INSERT OR REPLACE INTO compliance_evidence_objects
          (object_hash, height, tx_hash, action_index, output_index, object_bytes, created_at_unix)
@@ -639,6 +703,19 @@ pub fn validate_and_save_evidence_object(
             output_ref.output_index as i64,
             object_bytes.as_slice(),
             now_unix(),
+        ],
+    )?;
+    tx.execute(
+        "INSERT OR REPLACE INTO audit_authorizations
+         (height, tx_hash, action_index, output_index, authorization_id, authorization_timestamp)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        params![
+            tx_ref.block.height as i64,
+            tx_ref.tx_hash.as_ref(),
+            output_ref.action.action_index as i64,
+            output_ref.output_index as i64,
+            authorization_id.to_bytes().as_slice(),
+            authorization_timestamp,
         ],
     )?;
     tx.execute(
@@ -695,10 +772,16 @@ pub fn validate_and_save_evidence_object(
 pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetectedRef>> {
     let conn = store.lock_conn()?;
     let mut rows = conn.prepare(
-        "SELECT height, tx_hash, action_index, output_index, asset_id, is_flagged, ?1
-         FROM scanner_detections
+        "SELECT d.height, d.tx_hash, d.action_index, d.output_index, d.asset_id, d.is_flagged, ?1,
+                a.authorization_id, a.authorization_timestamp
+         FROM scanner_detections d
+         LEFT JOIN audit_authorizations a
+           ON a.height = d.height
+          AND a.tx_hash = d.tx_hash
+          AND a.action_index = d.action_index
+          AND a.output_index = d.output_index
          UNION ALL
-         SELECT height, tx_hash, action_index, output_index, asset_id, 0, flow_type
+         SELECT height, tx_hash, action_index, output_index, asset_id, 0, flow_type, NULL, NULL
          FROM scanner_clear_flows
          ORDER BY height, tx_hash, action_index, output_index",
     )?;
@@ -711,6 +794,8 @@ pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetec
             let asset_id: String = row.get(4)?;
             let is_flagged: i64 = row.get(5)?;
             let flow_type: String = row.get(6)?;
+            let authorization_id: Option<Vec<u8>> = row.get(7)?;
+            let authorization_timestamp: Option<i64> = row.get(8)?;
             Ok(detected_ref_from_row_parts(DetectedRefRowParts {
                 height: height as u64,
                 tx_hash,
@@ -725,6 +810,10 @@ pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetec
                         error.into(),
                     )
                 })?,
+                authorization_id: authorization_id
+                    .map(|bytes| authorization_id_from_sql(bytes, 7))
+                    .transpose()?,
+                authorization_timestamp: authorization_timestamp.map(|timestamp| timestamp as u64),
             }))
         })?
         .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -947,6 +1036,36 @@ fn record_evidence_failure_tx(
     stage: &str,
     reason: &str,
 ) -> Result<()> {
+    insert_evidence_failure_tx(
+        tx,
+        height,
+        tx_hash,
+        action_index,
+        output_index,
+        stage,
+        reason,
+    )?;
+    update_audit_status_tx(
+        tx,
+        height,
+        tx_hash,
+        action_index,
+        output_index,
+        AuditStatus::EvidenceInvalid,
+        &[AuditStatus::Pending, AuditStatus::EvidenceInvalid],
+    )?;
+    Ok(())
+}
+
+fn insert_evidence_failure_tx(
+    tx: &rusqlite::Transaction<'_>,
+    height: u64,
+    tx_hash: &[u8],
+    action_index: u32,
+    output_index: u32,
+    stage: &str,
+    reason: &str,
+) -> Result<()> {
     let reason = bounded_failure_reason(reason);
     tx.execute(
         "INSERT OR REPLACE INTO audit_evidence_failures
@@ -961,15 +1080,6 @@ fn record_evidence_failure_tx(
             reason.as_str(),
             now_unix(),
         ],
-    )?;
-    update_audit_status_tx(
-        tx,
-        height,
-        tx_hash,
-        action_index,
-        output_index,
-        AuditStatus::EvidenceInvalid,
-        &[AuditStatus::Pending, AuditStatus::EvidenceInvalid],
     )?;
     Ok(())
 }
@@ -1128,10 +1238,7 @@ mod tests {
                 .unwrap(),
             0
         );
-        assert_eq!(
-            audit_status(&store, &evidence),
-            AUDIT_STATUS_EVIDENCE_INVALID
-        );
+        assert_eq!(audit_status(&store, &evidence), AUDIT_STATUS_PENDING);
 
         validate_and_save_evidence_object(&store, &evidence, &bundle, &ring_pk).unwrap();
         assert_eq!(
@@ -1139,6 +1246,36 @@ mod tests {
             1
         );
         assert_eq!(audit_status(&store, &evidence), AUDIT_STATUS_AUDIT_COMPLETE);
+    }
+
+    #[tokio::test]
+    async fn orbis_import_rejects_authorization_metadata_not_bound_to_evidence() {
+        let store = SqliteScannerStore::new(":memory:").unwrap();
+        let (evidence, bundle, ring_pk) = crate::evidence::tests::valid_evidence_fixture();
+        persist_evidence_detection(&store, &evidence, &bundle, false).await;
+        validate_and_save_evidence_object(&store, &evidence, &bundle, &ring_pk).unwrap();
+
+        let mut entry = orbis_entry(&evidence);
+        entry.authorization_id = AuthorizationId::from_fq(decaf377::Fq::from(999u64));
+        assert_eq!(
+            import_orbis_audit_entries(&store, &[entry], Some("alice")).unwrap(),
+            0
+        );
+        assert_eq!(audit_status(&store, &evidence), AUDIT_STATUS_EVIDENCE_VALID);
+
+        let reason: String = store
+            .lock_conn()
+            .unwrap()
+            .query_row(
+                "SELECT reason FROM audit_evidence_failures WHERE stage = ?1",
+                params![EVIDENCE_STAGE_ORBIS_IMPORT],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            reason,
+            "audit authorization id does not match validated evidence"
+        );
     }
 
     #[tokio::test]
@@ -1244,6 +1381,7 @@ mod tests {
         let conn = store.lock_conn().unwrap();
         for table in [
             "compliance_evidence_objects",
+            "audit_authorizations",
             "audit_evidence_failures",
             "scanner_detections",
             "audit_rows",
@@ -1255,6 +1393,25 @@ mod tests {
                 .unwrap();
             assert_eq!(count, 0, "{table} should be empty after rollback");
         }
+    }
+
+    #[tokio::test]
+    async fn validated_evidence_exports_proof_bound_authorization_metadata() {
+        let store = SqliteScannerStore::new(":memory:").unwrap();
+        let (evidence, bundle, ring_pk) = crate::evidence::tests::valid_evidence_fixture();
+        persist_evidence_detection(&store, &evidence, &bundle, false).await;
+        validate_and_save_evidence_object(&store, &evidence, &bundle, &ring_pk).unwrap();
+
+        let scan = export_orbis_pending_scan(&store).unwrap();
+        assert_eq!(scan.detected.len(), 1);
+        assert_eq!(
+            scan.detected[0].authorization_id,
+            Some(evidence.authorization_id().unwrap())
+        );
+        assert_eq!(
+            scan.detected[0].authorization_timestamp,
+            Some(evidence.authorization_timestamp().unwrap())
+        );
     }
 
     async fn persist_evidence_detection(
@@ -1315,9 +1472,14 @@ mod tests {
             tx_hash: hex::encode(evidence.output_ref.action.tx.tx_hash.as_ref()),
             action_index: evidence.output_ref.action.action_index,
             output_index: evidence.output_ref.output_index,
-            amount: "1234".to_string(),
-            self_address: "receiver".to_string(),
-            counterparty: "sender".to_string(),
+            authorization_id: evidence.authorization_id().unwrap(),
+            authorization_timestamp: evidence.authorization_timestamp().unwrap(),
+            authority: AuditAuthority::User,
+            role: Some(TransferRole::Receiver),
+            subject_address: Some("receiver".to_string()),
+            sender_address: Some("sender".to_string()),
+            amount: Some("1234".to_string()),
+            receiver_address: Some("receiver".to_string()),
             decrypted_via: DecryptedVia::OrbisPre,
         }
     }

@@ -3,7 +3,8 @@ use decaf377::{Element, Encoding, Fq, Fr};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    crypto::{compute_metadata_hash, derive_compliance_scalar, verify_dleq_native},
+    authorization::AuthorizationId,
+    crypto::{compute_transfer_metadata_hash, derive_compliance_scalar, verify_dleq_native},
     indexed_tree::string_to_fq,
     structs::DleqProof,
 };
@@ -49,6 +50,7 @@ pub struct TransferTierMetadataStatement {
     pub permission_hash_bytes: [u8; 32],
     pub tier: TransferTierKind,
     pub target_timestamp: u64,
+    pub authorization_id_bytes: [u8; 32],
     pub salt_bytes: [u8; 32],
 }
 
@@ -61,6 +63,7 @@ impl TransferTierMetadataStatement {
         permission_hash: Fq,
         tier: TransferTierKind,
         target_timestamp: u64,
+        authorization_id: AuthorizationId,
         salt: Fq,
     ) -> Self {
         Self {
@@ -71,6 +74,7 @@ impl TransferTierMetadataStatement {
             permission_hash_bytes: permission_hash.to_bytes(),
             tier,
             target_timestamp,
+            authorization_id_bytes: authorization_id.to_bytes(),
             salt_bytes: salt.to_bytes(),
         }
     }
@@ -83,6 +87,7 @@ impl TransferTierMetadataStatement {
         permission: &str,
         tier: TransferTierKind,
         target_timestamp: u64,
+        authorization_id: AuthorizationId,
         salt: Fq,
     ) -> Self {
         Self::new(
@@ -93,6 +98,7 @@ impl TransferTierMetadataStatement {
             string_to_fq(permission),
             tier,
             target_timestamp,
+            authorization_id,
             salt,
         )
     }
@@ -103,6 +109,7 @@ impl TransferTierMetadataStatement {
         self.policy_id_hash()?;
         self.resource_hash()?;
         self.permission_hash()?;
+        self.authorization_id()?;
         self.salt()?;
 
         if self.target_timestamp == 0 {
@@ -114,12 +121,13 @@ impl TransferTierMetadataStatement {
 
     pub fn metadata_hash(&self) -> Result<Fq> {
         self.validate_shape()?;
-        Ok(compute_metadata_hash(
+        Ok(compute_transfer_metadata_hash(
             self.policy_id_hash()?,
             self.resource_hash()?,
             self.permission_hash()?,
             Fq::from(self.tier.as_u64()),
             Fq::from(self.target_timestamp),
+            self.authorization_id()?.to_fq(),
             self.salt()?,
         ))
     }
@@ -133,6 +141,10 @@ impl TransferTierMetadataStatement {
 
     pub fn subject_derivation(&self) -> Result<Fq> {
         parse_fq(self.subject_derivation_bytes, "subject_derivation_bytes")
+    }
+
+    pub fn authorization_id(&self) -> Result<AuthorizationId> {
+        AuthorizationId::from_bytes(self.authorization_id_bytes)
     }
 
     pub fn policy_id_hash(&self) -> Result<Fq> {
@@ -284,6 +296,7 @@ mod tests {
             "read",
             TransferTierKind::OutputCore,
             1_700_000_000,
+            crate::AuthorizationId::from_fq(Fq::from(123u64)),
             Fq::from(777u64),
         );
         let ack = statement.subject_ack(&ring_pk).expect("ack should derive");

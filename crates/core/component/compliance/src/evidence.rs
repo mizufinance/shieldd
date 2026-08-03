@@ -12,10 +12,10 @@ use crate::{
         TransferComplianceCiphertext, TransferComplianceDleqProofs, TRANSFER_DLEQ_BYTES,
         TRANSFER_WIRE_BYTES,
     },
-    ActionRef, BlockRef, OutputRef, TransferOrbisUploadBundle, TxRef,
+    ActionRef, AuthorizationId, BlockRef, OutputRef, TransferOrbisUploadBundle, TxRef,
 };
 
-pub const COMPLIANCE_EVIDENCE_VERSION: u32 = 1;
+pub const COMPLIANCE_EVIDENCE_VERSION: u32 = 2;
 const MAX_EVIDENCE_TIER_COUNT: usize = 4;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -48,6 +48,38 @@ pub struct ComplianceEvidenceObject {
 }
 
 impl ComplianceEvidenceObject {
+    pub fn authorization_id(&self) -> Result<AuthorizationId> {
+        let first = self
+            .tier_objects
+            .first()
+            .ok_or_else(|| anyhow!("evidence has no transfer tier objects"))?
+            .statement
+            .authorization_id()?;
+        ensure!(
+            self.tier_objects
+                .iter()
+                .all(|tier| tier.statement.authorization_id().ok() == Some(first)),
+            "evidence tiers do not share one authorization id"
+        );
+        Ok(first)
+    }
+
+    pub fn authorization_timestamp(&self) -> Result<u64> {
+        let timestamp = self
+            .tier_objects
+            .first()
+            .ok_or_else(|| anyhow!("evidence has no transfer tier objects"))?
+            .statement
+            .target_timestamp;
+        ensure!(
+            self.tier_objects
+                .iter()
+                .all(|tier| tier.statement.target_timestamp == timestamp),
+            "evidence tiers do not share one authorization timestamp"
+        );
+        Ok(timestamp)
+    }
+
     pub fn new_transfer(
         output_ref: OutputRef,
         asset_id: asset::Id,
@@ -291,6 +323,7 @@ fn write_tier_object(out: &mut Vec<u8>, tier: &PublicTransferTierDecodeObject) {
     out.extend_from_slice(&statement.permission_hash_bytes);
     out.push(statement.tier as u8);
     out.extend_from_slice(&statement.target_timestamp.to_le_bytes());
+    out.extend_from_slice(&statement.authorization_id_bytes);
     out.extend_from_slice(&statement.salt_bytes);
     out.extend_from_slice(&tier.epk_bytes);
     out.extend_from_slice(&tier.c2_bytes);
@@ -308,6 +341,7 @@ fn read_tier_object(reader: &mut EvidenceReader<'_>) -> Result<PublicTransferTie
         permission_hash_bytes: reader.read_array::<32>()?,
         tier: tier_kind_from_byte(reader.read_u8()?)?,
         target_timestamp: reader.read_u64()?,
+        authorization_id_bytes: reader.read_array::<32>()?,
         salt_bytes: reader.read_array::<32>()?,
     };
     Ok(PublicTransferTierDecodeObject {
@@ -439,6 +473,7 @@ pub(crate) mod tests {
         .unwrap();
 
         let target_timestamp = 1_700_000_000;
+        let authorization_id = crate::AuthorizationId::from_fq(Fq::from(10u64));
         let ring_id = "ring-id";
         let policy_id = "policy-id";
         let resource = "document";
@@ -461,6 +496,7 @@ pub(crate) mod tests {
             string_to_fq(policy_id),
             string_to_fq(resource),
             string_to_fq(permission),
+            authorization_id,
             tier_salts[0],
             tier_salts[1],
             tier_salts[2],
@@ -479,6 +515,7 @@ pub(crate) mod tests {
                 permission,
                 TransferTierKind::SenderCore,
                 target_timestamp,
+                authorization_id,
                 tier_salts[0],
             ),
             TransferTierMetadataStatement::from_identifiers(
@@ -489,6 +526,7 @@ pub(crate) mod tests {
                 permission,
                 TransferTierKind::SenderExt,
                 target_timestamp,
+                authorization_id,
                 tier_salts[1],
             ),
             TransferTierMetadataStatement::from_identifiers(
@@ -499,6 +537,7 @@ pub(crate) mod tests {
                 permission,
                 TransferTierKind::OutputCore,
                 target_timestamp,
+                authorization_id,
                 tier_salts[2],
             ),
             TransferTierMetadataStatement::from_identifiers(
@@ -509,6 +548,7 @@ pub(crate) mod tests {
                 permission,
                 TransferTierKind::OutputExt,
                 target_timestamp,
+                authorization_id,
                 tier_salts[3],
             ),
         ];

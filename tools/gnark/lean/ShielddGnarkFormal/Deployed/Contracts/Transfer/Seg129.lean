@@ -1,9 +1,9 @@
-import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg125Defs29
+import ShielddGnarkFormal.Deployed.Contracts.Transfer.Seg129Defs28
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 50000000
 
-namespace Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg125
+namespace Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg129
 
 def relation (rho : Nat -> F) : Prop :=
     relationPart0 rho ∧
@@ -232,14 +232,14 @@ def relation (rho : Nat -> F) : Prop :=
 
 /-- Semantic projection: the hand-authored Layer-2 endpoint for this
 deployed segment, seated on this slice's wire roles. -/
-def spec (rho : Nat -> F) : Prop := Specs.deployedSpec125 rho
+def spec (rho : Nat -> F) : Prop := Specs.deployedSpec129 rho
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
-segmentIndex := 125,
-relationSha256Hex := "6c674fef0a50a82270bee0d1b332a086972f0cba42b790110edd21ea616321ef",
-wireRoleSha256Hex := "9fe41f8fa8cf566c7fc1bb7a6bd10d0f7e24c02758c42ec857c05d74d71a0d70",
+segmentIndex := 129,
+relationSha256Hex := "95435b342492b60596d49c58c166c0c5492daba51d65506d26f589e4745b560c",
+wireRoleSha256Hex := "58c3b8c51a96f2d36108bd73456f354a4e4d77233cee707eebda75d7941882c3",
 relation := relation,
 spec := spec
 }
 
-end Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg125
+end Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg129

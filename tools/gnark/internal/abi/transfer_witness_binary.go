@@ -10,7 +10,7 @@ import (
 
 const (
 	transferWitnessV1Magic   = "PTWG"
-	transferWitnessV1Version = 8
+	transferWitnessV1Version = 9
 )
 
 type TransferComplianceCiphertextWitnessV1Binary struct {
@@ -23,6 +23,7 @@ type TransferComplianceCiphertextWitnessV1Binary struct {
 	PermissionHash     [32]byte
 	Tier               uint64
 	StatementTimestamp [32]byte
+	AuthorizationID    [32]byte
 	Salt               [32]byte
 	Challenge          [32]byte
 	Response           [32]byte
@@ -432,6 +433,9 @@ func readTransferComplianceTier(reader *bytes.Reader) (TransferComplianceCiphert
 		return tier, err
 	}
 	if tier.StatementTimestamp, err = read32(reader); err != nil {
+		return tier, err
+	}
+	if tier.AuthorizationID, err = read32(reader); err != nil {
 		return tier, err
 	}
 	if tier.Salt, err = read32(reader); err != nil {

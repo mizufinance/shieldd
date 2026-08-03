@@ -390,6 +390,8 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound", true
 	case "gadget.transfer_salt":
 		return "gadget-poseidon2", "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound", true
+	case "gadget.authorization_id":
+		return "gadget-poseidon-hash1", "Shieldd.GnarkFormal.Poseidon1Bridge.circuit_sound", true
 	case "gadget.poseidon_encryption.detection":
 		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_sound", true
 	case "gadget.poseidon_encryption.amount":
@@ -397,7 +399,7 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 	case "gadget.poseidon_encryption.address":
 		return "gadget-poseidon-hash4", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_sound", true
 	case "gadget.metadata_hash":
-		return "gadget-poseidon-hash6", "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound", true
+		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound", true
 	case "gadget.dleq":
 		return "gadget-dleq", "Shieldd.GnarkFormal.DleqBridge.dleq_sound", true
 	case "statement.hash":

@@ -16,7 +16,7 @@ use crate::{
 };
 
 const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTWG";
-const TRANSFER_WITNESS_VERSION: u32 = 8;
+const TRANSFER_WITNESS_VERSION: u32 = 9;
 
 impl TransferWitnessV1 {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -200,6 +200,7 @@ fn encode_compliance_tier(
     put_bytes(buf, &tier.permission_hash);
     put_u64(buf, tier.tier);
     put_bytes(buf, &tier.statement_target_timestamp);
+    put_bytes(buf, &tier.authorization_id);
     put_bytes(buf, &tier.salt);
     put_bytes(buf, &tier.challenge);
     put_bytes(buf, &tier.response);
@@ -223,6 +224,7 @@ fn decode_compliance_tier(
         permission_hash: cursor.read_fixed::<32>()?,
         tier: cursor.read_u64()?,
         statement_target_timestamp: cursor.read_fixed::<32>()?,
+        authorization_id: cursor.read_fixed::<32>()?,
         salt: cursor.read_fixed::<32>()?,
         challenge: cursor.read_fixed::<32>()?,
         response: cursor.read_fixed::<32>()?,

@@ -79,6 +79,7 @@ type TransferComplianceStatementFields struct {
 	PermissionHash    frontend.Variable
 	Tier              frontend.Variable
 	TargetTimestamp   frontend.Variable
+	AuthorizationID   frontend.Variable
 	Salt              frontend.Variable
 }
 

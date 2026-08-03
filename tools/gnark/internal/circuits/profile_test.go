@@ -156,17 +156,19 @@ type transferMetadataProfileCircuit struct {
 	ResourceHash    frontend.Variable
 	PermissionHash  frontend.Variable
 	TargetTimestamp frontend.Variable
+	AuthorizationID frontend.Variable
 	Salt            frontend.Variable
 }
 
 func (c *transferMetadataProfileCircuit) Define(api frontend.API) error {
-	_, err := compliance.ComputeMetadataHash(
+	_, err := compliance.ComputeTransferMetadataHash(
 		api,
 		c.PolicyIDHash,
 		c.ResourceHash,
 		c.PermissionHash,
 		2,
 		c.TargetTimestamp,
+		c.AuthorizationID,
 		c.Salt,
 	)
 	return err

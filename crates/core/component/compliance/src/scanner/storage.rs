@@ -15,7 +15,7 @@ use crate::audit_status::{AuditStatus, DetectionStatus, ScreenStatus};
 use crate::{ComplianceEvidenceObject, TransferOrbisUploadBundle};
 
 pub const MAX_INVALID_CIPHERTEXTS_PER_BLOCK: usize = 256;
-const SCANNER_DB_SCHEMA_VERSION: i64 = 1;
+const SCANNER_DB_SCHEMA_VERSION: i64 = 2;
 pub const HEARTBEAT_STALE_SECS: i64 = 30;
 const READ_POOL_SIZE: usize = 4;
 const SQLITE_BUSY_TIMEOUT: Duration = Duration::from_secs(5);
@@ -194,6 +194,19 @@ impl SqliteScannerStore {
             CREATE INDEX IF NOT EXISTS idx_scanner_detections_is_flagged
                 ON scanner_detections(is_flagged);
 
+            CREATE TABLE IF NOT EXISTS audit_authorizations (
+                height INTEGER NOT NULL,
+                tx_hash BLOB NOT NULL,
+                action_index INTEGER NOT NULL,
+                output_index INTEGER NOT NULL,
+                authorization_id BLOB NOT NULL UNIQUE CHECK (length(authorization_id) = 32),
+                authorization_timestamp INTEGER NOT NULL CHECK (authorization_timestamp >= 0),
+                PRIMARY KEY(height, tx_hash, action_index, output_index)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_audit_authorizations_timestamp
+                ON audit_authorizations(authorization_timestamp);
+
             CREATE TABLE IF NOT EXISTS scanner_ciphertexts (
                 height INTEGER NOT NULL,
                 block_hash BLOB NOT NULL,
@@ -347,7 +360,7 @@ impl SqliteScannerStore {
             INSERT OR IGNORE INTO scanner_runtime (id) VALUES (1);
 
             INSERT OR IGNORE INTO scanner_schema_version (id, version)
-            VALUES (1, 1);
+            VALUES (1, 2);
             "#,
         )?;
         let version = Self::schema_version(conn)?.context("scanner DB schema version missing")?;
@@ -867,6 +880,10 @@ impl ScannerStore for SqliteScannerStore {
         let tx = conn.unchecked_transaction()?;
         tx.execute(
             "DELETE FROM compliance_evidence_objects WHERE height > ?1",
+            params![height as i64],
+        )?;
+        tx.execute(
+            "DELETE FROM audit_authorizations WHERE height > ?1",
             params![height as i64],
         )?;
         tx.execute(

@@ -1,48 +1,44 @@
-use shieldd_sdk_compliance::{AuditDetectedRef, DecryptedVia, OrbisAuditEntry};
-use shieldd_sdk_num::Amount;
+use anyhow::{Context, Result};
+use shieldd_sdk_compliance::{
+    AuditAuthority, AuditDetectedRef, DecryptedVia, OrbisAuditEntry, TransferRole,
+};
 
 #[derive(Clone, Debug)]
 pub struct AddressData {
     pub transmission_key_hex: String,
 }
 
-#[derive(Clone, Debug)]
-pub enum TransferMatch {
-    Sender {
-        amount: Amount,
-        receiver: AddressData,
-    },
-    Receiver {
-        amount: Amount,
-        sender: AddressData,
-    },
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct TransferDisclosure {
+    pub sender: Option<String>,
+    pub amount: Option<String>,
+    pub receiver: Option<String>,
 }
 
-pub fn candidate_to_entry(
+pub fn entry(
     tx_ref: &AuditDetectedRef,
-    candidate: TransferMatch,
-    tier_mode: &str,
-    subject_transmission_key_hex: &str,
-) -> OrbisAuditEntry {
-    let (amount, counterparty) = match (tier_mode, candidate) {
-        ("default", TransferMatch::Receiver { amount, .. })
-        | ("default", TransferMatch::Sender { amount, .. }) => (amount, String::new()),
-        ("extension", TransferMatch::Receiver { amount, sender }) => {
-            (amount, sender.transmission_key_hex)
-        }
-        ("extension", TransferMatch::Sender { amount, receiver }) => {
-            (amount, receiver.transmission_key_hex)
-        }
-        _ => unreachable!("tier already validated"),
-    };
-    OrbisAuditEntry {
+    authority: AuditAuthority,
+    role: Option<TransferRole>,
+    subject_address: Option<String>,
+    disclosure: TransferDisclosure,
+) -> Result<OrbisAuditEntry> {
+    Ok(OrbisAuditEntry {
         height: tx_ref.height,
         tx_hash: tx_ref.tx_hash.clone(),
         action_index: tx_ref.action_index,
         output_index: tx_ref.output_index,
-        amount: amount.value().to_string(),
-        self_address: subject_transmission_key_hex.to_string(),
-        counterparty,
+        authorization_id: tx_ref
+            .authorization_id
+            .context("selected audit row is missing its authorization id")?,
+        authorization_timestamp: tx_ref
+            .authorization_timestamp
+            .context("selected audit row is missing its authorization timestamp")?,
+        authority,
+        role,
+        subject_address,
+        sender_address: disclosure.sender,
+        amount: disclosure.amount,
+        receiver_address: disclosure.receiver,
         decrypted_via: DecryptedVia::OrbisPre,
-    }
+    })
 }

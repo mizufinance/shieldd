@@ -15,7 +15,7 @@ hex = { workspace = true }
 orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "b5d229aaadef4c0127203c2fccafb6771f38eaca" }
 orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "b5d229aaadef4c0127203c2fccafb6771f38eaca" }
 shieldd-orbis-client = { workspace = true }
-shieldd-sdk-compliance = { workspace = true, features = ["component", "sqlite-bundled"] }
+shieldd-sdk-compliance = { workspace = true, default-features = false, features = ["scanner", "sqlite-bundled"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }

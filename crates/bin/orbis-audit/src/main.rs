@@ -10,7 +10,7 @@ use clap::Parser;
 use decaf377::{Element, Fq, Fr};
 use did_key::{generate, Ed25519KeyPair as DidEd25519KeyPair, Fingerprint};
 use extract::{extract_transfer_data, TransferExtraction};
-use match_rows::{candidate_to_entry, AddressData, TransferMatch};
+use match_rows::{entry, AddressData, TransferDisclosure};
 use orbis_authn::JwtSigner;
 use orbis_common::blockchain::{ChainConfig, SourceHubClient, TxSigner, TEST_ACCOUNT_HEX_KEY};
 use serde::{Deserialize, Serialize};
@@ -18,9 +18,10 @@ use sha2::{Digest, Sha256};
 use shieldd_orbis_client::OrbisClient;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_compliance::{
-    decrypt_orbis_reencrypted_seed, decrypt_tier_bytes, AuditDetectedRef, AuditScanExport,
-    ComplianceLeaf, OrbisAuditEntry, OrbisEncryptedSeedUploadPackage, TransferComplianceCiphertext,
-    TransferOrbisUploadBundle,
+    decrypt_orbis_reencrypted_seed, decrypt_tier_bytes, AuditAuthority, AuditDetectedRef,
+    AuditScanExport, AuditSelection, ComplianceLeaf, DisclosureField, OrbisAuditEntry,
+    OrbisEncryptedSeedUploadPackage, TransferComplianceCiphertext, TransferOrbisUploadBundle,
+    TransferRole,
 };
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
@@ -51,20 +52,26 @@ struct Args {
     #[clap(long, default_value = "/tmp/alice-audit.json")]
     output: PathBuf,
 
-    #[clap(long, default_value = "default")]
-    tier: String,
+    #[clap(long, default_value = "user")]
+    authority: String,
+
+    #[clap(long = "field", value_delimiter = ',')]
+    fields: Vec<String>,
 
     #[clap(long)]
-    sender_address: Option<String>,
+    authorization_id: Option<String>,
+
+    #[clap(long)]
+    from_timestamp: Option<u64>,
+
+    #[clap(long)]
+    to_timestamp: Option<u64>,
 
     #[clap(long = "subject-address")]
     subject_addresses: Vec<String>,
 
     #[clap(long)]
     orbis_endpoint: String,
-
-    #[clap(long = "known-address")]
-    known_addresses: Vec<String>,
 
     #[clap(long)]
     timings_json: Option<PathBuf>,
@@ -152,10 +159,7 @@ struct AuditContext<'a> {
     reader_did_uri: Option<&'a str>,
     dk: &'a Fr,
     dk_pub: &'a Element,
-    subject_transmission_key_hex: &'a str,
-    subject_derivation_bytes: &'a [u8; 32],
-    known_transmission_keys: &'a HashSet<String>,
-    tier_mode: &'a str,
+    fields: &'a HashSet<DisclosureField>,
 }
 
 #[derive(Clone, Debug)]
@@ -173,9 +177,11 @@ struct SubjectData {
 
 #[derive(Clone, Debug, Default, Serialize)]
 struct AuditTimings {
-    tier: String,
+    authority: AuditAuthority,
+    fields: Vec<DisclosureField>,
     candidate_refs: u64,
     skipped_flagged: u64,
+    skipped_selector: u64,
     no_ciphertext: u64,
     transaction_fetch_ms: u128,
     ciphertext_extraction_ms: u128,
@@ -204,26 +210,30 @@ struct AuditTimings {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let tier_mode = match args.tier.as_str() {
-        "default" | "extension" => args.tier.as_str(),
-        other => anyhow::bail!("--tier must be 'default' or 'extension', got '{other}'"),
+    let authority = match args.authority.as_str() {
+        "user" => AuditAuthority::User,
+        "master" => AuditAuthority::Master,
+        other => anyhow::bail!("--authority must be 'user' or 'master', got '{other}'"),
     };
+    let fields = parse_fields(&args.fields)?;
+    let selection = AuditSelection {
+        authorization_id: args
+            .authorization_id
+            .as_deref()
+            .map(str::parse)
+            .transpose()?,
+        from_timestamp: args.from_timestamp,
+        to_timestamp: args.to_timestamp,
+    };
+    selection.validate()?;
+    anyhow::ensure!(
+        authority != AuditAuthority::Master || selection.is_bounded(),
+        "master audits require --authorization-id or a timestamp bound"
+    );
 
     let dk = parse_fr(&args.dk_hex, "DK")?;
     let dk_pub = Element::GENERATOR * dk;
-
-    let subject_inputs = parse_subjects(&args)?;
-
-    let mut known_transmission_keys = HashSet::new();
-    for subject in &subject_inputs {
-        known_transmission_keys.insert(subject.transmission_key_hex.clone());
-    }
-    for address in &args.known_addresses {
-        let address: Address = address
-            .parse()
-            .with_context(|| format!("failed to parse --known-address {address}"))?;
-        known_transmission_keys.insert(hex::encode(address.transmission_key().0));
-    }
+    let subject_inputs = parse_subjects(&args, authority)?;
 
     let cli = OrbisClient::new(args.orbis_endpoint.clone())?;
     let sourcehub = sourcehub_client().await?;
@@ -239,39 +249,70 @@ async fn main() -> Result<()> {
     );
 
     let channel = connect_to_node(&args.node).await?;
-    let subjects =
-        resolve_subject_slot_derivations(channel.clone(), &subject_inputs, &scan).await?;
-    eprintln!(
-        "orbis-audit: targets={}...",
-        subject_inputs
-            .iter()
-            .map(|subject| &subject.transmission_key_hex[..16])
-            .collect::<Vec<_>>()
-            .join(",")
-    );
+    let subjects = if authority == AuditAuthority::User {
+        resolve_subject_slot_derivations(channel.clone(), &subject_inputs, &scan).await?
+    } else {
+        Vec::new()
+    };
+    if authority == AuditAuthority::User {
+        eprintln!(
+            "orbis-audit: targets={}...",
+            subject_inputs
+                .iter()
+                .map(|subject| &subject.transmission_key_hex[..16])
+                .collect::<Vec<_>>()
+                .join(",")
+        );
+    }
     let total_started = Instant::now();
     let mut object_cache = load_object_cache(args.object_cache.as_ref())?;
     let mut timings = AuditTimings {
-        tier: args.tier.clone(),
+        authority,
+        fields: [
+            DisclosureField::Sender,
+            DisclosureField::Amount,
+            DisclosureField::Receiver,
+        ]
+        .into_iter()
+        .filter(|field| fields.contains(field))
+        .collect(),
         ..Default::default()
     };
     let mut results = Vec::new();
     let mut attempted = 0u64;
     let mut decrypted = 0u64;
     let mut no_ciphertext = 0u64;
+    let ctx = AuditContext {
+        cli: &cli,
+        sourcehub: Some(&sourcehub),
+        jwt_signer: Some(&jwt_signer),
+        reader_did_uri: Some(&reader_did_uri),
+        dk: &dk,
+        dk_pub: &dk_pub,
+        fields: &fields,
+    };
 
     for tx_ref in &scan.detected {
         if tx_ref.is_flagged {
             timings.skipped_flagged += 1;
             continue;
         }
+        if !selection.matches(tx_ref) {
+            timings.skipped_selector += 1;
+            continue;
+        }
         let tx_subjects = subjects
             .iter()
             .filter(|subject| subject.asset_id == tx_ref.asset_id)
             .collect::<Vec<_>>();
-        attempted += tx_subjects.len() as u64;
-        timings.candidate_refs += tx_subjects.len() as u64;
-        if tx_subjects.is_empty() {
+        let candidate_count = if authority == AuditAuthority::Master {
+            1
+        } else {
+            tx_subjects.len() as u64
+        };
+        attempted += candidate_count;
+        timings.candidate_refs += candidate_count;
+        if candidate_count == 0 {
             timings.subject_mismatch += 1;
             continue;
         }
@@ -304,30 +345,55 @@ async fn main() -> Result<()> {
                 }
             };
             timings.ciphertext_extraction_ms += started.elapsed().as_millis();
+            bundle.validate()?;
+            if Some(bundle.authorization_id()?) != tx_ref.authorization_id
+                || Some(bundle.authorization_timestamp()?) != tx_ref.authorization_timestamp
+            {
+                continue;
+            }
 
-            for subject in &tx_subjects {
-                let ctx = AuditContext {
-                    cli: &cli,
-                    sourcehub: Some(&sourcehub),
-                    jwt_signer: Some(&jwt_signer),
-                    reader_did_uri: Some(&reader_did_uri),
-                    dk: &dk,
-                    dk_pub: &dk_pub,
-                    subject_transmission_key_hex: &subject.transmission_key_hex,
-                    subject_derivation_bytes: &subject.subject_derivation_bytes,
-                    known_transmission_keys: &known_transmission_keys,
-                    tier_mode,
-                };
+            if authority == AuditAuthority::Master {
                 if args.prepare_only {
-                    prepare_transfer(&bundle, &ctx, &mut timings, &mut object_cache).await?;
-                    continue;
-                }
-                if let Some(entry) =
-                    audit_transfer(tx_ref, &ct, &bundle, &ctx, &mut timings, &mut object_cache)
-                        .await?
-                {
+                    prepare_master_transfer(&bundle, &ctx, &mut timings, &mut object_cache).await?;
+                } else {
+                    results.push(
+                        audit_master_transfer(
+                            tx_ref,
+                            &ct,
+                            &bundle,
+                            &ctx,
+                            &mut timings,
+                            &mut object_cache,
+                        )
+                        .await?,
+                    );
                     decrypted += 1;
-                    results.push(entry);
+                }
+            } else {
+                for subject in &tx_subjects {
+                    if args.prepare_only {
+                        prepare_user_transfer(
+                            &bundle,
+                            subject,
+                            &ctx,
+                            &mut timings,
+                            &mut object_cache,
+                        )
+                        .await?;
+                    } else if let Some(result) = audit_user_transfer(
+                        tx_ref,
+                        &ct,
+                        &bundle,
+                        subject,
+                        &ctx,
+                        &mut timings,
+                        &mut object_cache,
+                    )
+                    .await?
+                    {
+                        results.push(result);
+                        decrypted += 1;
+                    }
                 }
             }
         }
@@ -338,8 +404,8 @@ async fn main() -> Result<()> {
     out_file.write_all(json.as_bytes())?;
 
     eprintln!(
-        "orbis-audit: Decrypted {}/{} non-flagged transfers (tier={}).",
-        decrypted, attempted, args.tier
+        "orbis-audit: Decrypted {}/{} selected transfers (authority={}).",
+        decrypted, attempted, args.authority
     );
     if no_ciphertext > 0 {
         eprintln!(
@@ -388,18 +454,21 @@ fn percentile(samples: &[u128], percentile: usize) -> u128 {
     values[index]
 }
 
-fn parse_subjects(args: &Args) -> Result<Vec<SubjectInput>> {
-    let mut subject_addresses = args.subject_addresses.clone();
-    if let Some(sender_address) = &args.sender_address {
-        subject_addresses.push(sender_address.clone());
+fn parse_subjects(args: &Args, authority: AuditAuthority) -> Result<Vec<SubjectInput>> {
+    if authority == AuditAuthority::Master {
+        anyhow::ensure!(
+            args.subject_addresses.is_empty(),
+            "master audits do not accept --subject-address"
+        );
+        return Ok(Vec::new());
     }
-    if subject_addresses.is_empty() {
-        anyhow::bail!("at least one --subject-address or --sender-address is required");
+    if args.subject_addresses.is_empty() {
+        anyhow::bail!("user audits require at least one --subject-address");
     }
 
     let mut seen = HashSet::new();
     let mut subjects = Vec::new();
-    for subject_address in subject_addresses {
+    for subject_address in &args.subject_addresses {
         let address: Address = subject_address
             .parse()
             .with_context(|| format!("failed to parse subject address {subject_address}"))?;
@@ -412,6 +481,23 @@ fn parse_subjects(args: &Args) -> Result<Vec<SubjectInput>> {
         }
     }
     Ok(subjects)
+}
+
+fn parse_fields(values: &[String]) -> Result<HashSet<DisclosureField>> {
+    let values = if values.is_empty() {
+        vec!["sender", "amount", "receiver"]
+    } else {
+        values.iter().map(String::as_str).collect()
+    };
+    values
+        .into_iter()
+        .map(|value| match value {
+            "sender" => Ok(DisclosureField::Sender),
+            "amount" => Ok(DisclosureField::Amount),
+            "receiver" => Ok(DisclosureField::Receiver),
+            other => anyhow::bail!("--field must be sender, amount, or receiver; got '{other}'"),
+        })
+        .collect()
 }
 
 async fn resolve_subject_slot_derivations(
@@ -512,161 +598,252 @@ async fn resolve_subject_slot_derivations(
     Ok(subjects)
 }
 
-async fn audit_transfer(
+async fn audit_user_transfer(
+    tx_ref: &AuditDetectedRef,
+    ct: &TransferComplianceCiphertext,
+    bundle: &TransferOrbisUploadBundle,
+    subject: &SubjectData,
+    ctx: &AuditContext<'_>,
+    timings: &mut AuditTimings,
+    object_cache: &mut ObjectCache,
+) -> Result<Option<OrbisAuditEntry>> {
+    let role = if bundle.output_core.derivation_bytes() == subject.subject_derivation_bytes {
+        TransferRole::Receiver
+    } else if bundle.sender_core.derivation_bytes() == subject.subject_derivation_bytes {
+        TransferRole::Sender
+    } else {
+        timings.subject_mismatch += 1;
+        return Ok(None);
+    };
+
+    let mut disclosure = TransferDisclosure::default();
+    if ctx.fields.contains(&DisclosureField::Sender) {
+        disclosure.sender = Some(match role {
+            TransferRole::Sender => subject.transmission_key_hex.clone(),
+            TransferRole::Receiver => {
+                decrypt_address_package(
+                    ctx,
+                    &bundle.output_ext,
+                    ct.output_ext_c2,
+                    &ct.encrypted_output_ext,
+                    timings,
+                    object_cache,
+                )
+                .await?
+                .transmission_key_hex
+            }
+        });
+    }
+    if ctx.fields.contains(&DisclosureField::Amount) {
+        let (package, c2, encrypted) = match role {
+            TransferRole::Sender => (
+                &bundle.sender_core,
+                ct.sender_core_c2,
+                ct.encrypted_sender_core.as_slice(),
+            ),
+            TransferRole::Receiver => (
+                &bundle.output_core,
+                ct.output_core_c2,
+                ct.encrypted_output_core.as_slice(),
+            ),
+        };
+        disclosure.amount = Some(
+            decrypt_amount_package(ctx, package, c2, encrypted, timings, object_cache)
+                .await?
+                .value()
+                .to_string(),
+        );
+    }
+    if ctx.fields.contains(&DisclosureField::Receiver) {
+        disclosure.receiver = Some(match role {
+            TransferRole::Sender => {
+                decrypt_address_package(
+                    ctx,
+                    &bundle.sender_ext,
+                    ct.sender_ext_c2,
+                    &ct.encrypted_sender_ext,
+                    timings,
+                    object_cache,
+                )
+                .await?
+                .transmission_key_hex
+            }
+            TransferRole::Receiver => subject.transmission_key_hex.clone(),
+        });
+    }
+
+    Ok(Some(entry(
+        tx_ref,
+        AuditAuthority::User,
+        Some(role),
+        Some(subject.transmission_key_hex.clone()),
+        disclosure,
+    )?))
+}
+
+async fn audit_master_transfer(
     tx_ref: &AuditDetectedRef,
     ct: &TransferComplianceCiphertext,
     bundle: &TransferOrbisUploadBundle,
     ctx: &AuditContext<'_>,
     timings: &mut AuditTimings,
     object_cache: &mut ObjectCache,
-) -> Result<Option<OrbisAuditEntry>> {
-    if let Some(candidate) = try_receiver_match(ct, bundle, ctx, timings, object_cache).await? {
-        return Ok(Some(candidate_to_entry(
-            tx_ref,
-            candidate,
-            ctx.tier_mode,
-            ctx.subject_transmission_key_hex,
-        )));
+) -> Result<OrbisAuditEntry> {
+    let mut disclosure = TransferDisclosure::default();
+    if ctx.fields.contains(&DisclosureField::Sender) {
+        disclosure.sender = Some(
+            decrypt_address_package(
+                ctx,
+                &bundle.output_ext,
+                ct.output_ext_c2,
+                &ct.encrypted_output_ext,
+                timings,
+                object_cache,
+            )
+            .await?
+            .transmission_key_hex,
+        );
     }
-    if let Some(candidate) = try_sender_match(ct, bundle, ctx, timings, object_cache).await? {
-        return Ok(Some(candidate_to_entry(
-            tx_ref,
-            candidate,
-            ctx.tier_mode,
-            ctx.subject_transmission_key_hex,
-        )));
+    if ctx.fields.contains(&DisclosureField::Amount) {
+        disclosure.amount = Some(
+            decrypt_amount_package(
+                ctx,
+                &bundle.sender_core,
+                ct.sender_core_c2,
+                &ct.encrypted_sender_core,
+                timings,
+                object_cache,
+            )
+            .await?
+            .value()
+            .to_string(),
+        );
     }
-    Ok(None)
+    if ctx.fields.contains(&DisclosureField::Receiver) {
+        disclosure.receiver = Some(
+            decrypt_address_package(
+                ctx,
+                &bundle.sender_ext,
+                ct.sender_ext_c2,
+                &ct.encrypted_sender_ext,
+                timings,
+                object_cache,
+            )
+            .await?
+            .transmission_key_hex,
+        );
+    }
+    entry(tx_ref, AuditAuthority::Master, None, None, disclosure)
 }
 
-async fn prepare_transfer(
+async fn prepare_user_transfer(
+    bundle: &TransferOrbisUploadBundle,
+    subject: &SubjectData,
+    ctx: &AuditContext<'_>,
+    timings: &mut AuditTimings,
+    object_cache: &mut ObjectCache,
+) -> Result<()> {
+    let packages = if bundle.output_core.derivation_bytes() == subject.subject_derivation_bytes {
+        [
+            ctx.fields
+                .contains(&DisclosureField::Amount)
+                .then_some(&bundle.output_core),
+            ctx.fields
+                .contains(&DisclosureField::Sender)
+                .then_some(&bundle.output_ext),
+        ]
+    } else if bundle.sender_core.derivation_bytes() == subject.subject_derivation_bytes {
+        [
+            ctx.fields
+                .contains(&DisclosureField::Amount)
+                .then_some(&bundle.sender_core),
+            ctx.fields
+                .contains(&DisclosureField::Receiver)
+                .then_some(&bundle.sender_ext),
+        ]
+    } else {
+        timings.subject_mismatch += 1;
+        return Ok(());
+    };
+    prepare_packages(packages.into_iter().flatten(), ctx, timings, object_cache).await
+}
+
+async fn prepare_master_transfer(
     bundle: &TransferOrbisUploadBundle,
     ctx: &AuditContext<'_>,
     timings: &mut AuditTimings,
     object_cache: &mut ObjectCache,
 ) -> Result<()> {
-    let TransferOrbisUploadBundle {
-        output_core,
-        output_ext,
-        sender_core,
-        sender_ext,
-    } = bundle.clone();
+    prepare_packages(
+        [
+            ctx.fields
+                .contains(&DisclosureField::Sender)
+                .then_some(&bundle.output_ext),
+            ctx.fields
+                .contains(&DisclosureField::Amount)
+                .then_some(&bundle.sender_core),
+            ctx.fields
+                .contains(&DisclosureField::Receiver)
+                .then_some(&bundle.sender_ext),
+        ]
+        .into_iter()
+        .flatten(),
+        ctx,
+        timings,
+        object_cache,
+    )
+    .await
+}
 
-    if output_core.derivation_bytes() == *ctx.subject_derivation_bytes {
-        let ring_id = output_core.ring_id.clone();
-        ensure_package_object(ctx, &ring_id, output_core, timings, object_cache).await?;
-        ensure_package_object(ctx, &ring_id, output_ext, timings, object_cache).await?;
-    } else {
-        timings.subject_mismatch += 1;
+async fn prepare_packages<'a>(
+    packages: impl IntoIterator<Item = &'a OrbisEncryptedSeedUploadPackage>,
+    ctx: &AuditContext<'_>,
+    timings: &mut AuditTimings,
+    object_cache: &mut ObjectCache,
+) -> Result<()> {
+    for package in packages {
+        ensure_package_object(
+            ctx,
+            &package.ring_id,
+            package.clone(),
+            timings,
+            object_cache,
+        )
+        .await?;
     }
-
-    if sender_core.derivation_bytes() == *ctx.subject_derivation_bytes {
-        let ring_id = sender_core.ring_id.clone();
-        ensure_package_object(ctx, &ring_id, sender_core, timings, object_cache).await?;
-        ensure_package_object(ctx, &ring_id, sender_ext, timings, object_cache).await?;
-    } else {
-        timings.subject_mismatch += 1;
-    }
-
     Ok(())
 }
 
-async fn try_receiver_match(
-    ct: &TransferComplianceCiphertext,
-    bundle: &TransferOrbisUploadBundle,
+async fn decrypt_amount_package(
     ctx: &AuditContext<'_>,
+    package: &OrbisEncryptedSeedUploadPackage,
+    c2: Fq,
+    encrypted: &[u8],
     timings: &mut AuditTimings,
     object_cache: &mut ObjectCache,
-) -> Result<Option<TransferMatch>> {
-    let ring_id = bundle.output_core.ring_id.clone();
-    let TransferOrbisUploadBundle {
-        output_core,
-        output_ext,
-        ..
-    } = bundle.clone();
-    if output_core.derivation_bytes() != *ctx.subject_derivation_bytes {
-        timings.subject_mismatch += 1;
-        return Ok(None);
-    }
-    let output_core_seed =
-        pre_package_seed(ctx, &ring_id, &output_core, timings, object_cache).await?;
-    output_core.validate_c2_seed(ct.output_core_c2, output_core_seed)?;
+) -> Result<Amount> {
+    let seed = pre_package_seed(ctx, &package.ring_id, package, timings, object_cache).await?;
+    package.validate_c2_seed(c2, seed)?;
     let started = Instant::now();
-    let amount = decrypt_amount_with_seed(output_core_seed, &ct.encrypted_output_core)?;
+    let amount = decrypt_amount_with_seed(seed, encrypted)?;
     timings.amount_decrypt_ms += started.elapsed().as_millis();
-
-    let output_ext_seed =
-        pre_package_seed(ctx, &ring_id, &output_ext, timings, object_cache).await?;
-    output_ext.validate_c2_seed(ct.output_ext_c2, output_ext_seed)?;
-    let started = Instant::now();
-    let sender = match decrypt_address_with_seed(output_ext_seed, &ct.encrypted_output_ext) {
-        Ok(sender) => {
-            timings.address_decrypt_ms += started.elapsed().as_millis();
-            sender
-        }
-        Err(_) => {
-            timings.address_decrypt_ms += started.elapsed().as_millis();
-            return Ok(None);
-        }
-    };
-
-    if !ctx
-        .known_transmission_keys
-        .contains(&sender.transmission_key_hex)
-    {
-        return Ok(None);
-    }
-
-    Ok(Some(TransferMatch::Receiver { amount, sender }))
+    Ok(amount)
 }
 
-async fn try_sender_match(
-    ct: &TransferComplianceCiphertext,
-    bundle: &TransferOrbisUploadBundle,
+async fn decrypt_address_package(
     ctx: &AuditContext<'_>,
+    package: &OrbisEncryptedSeedUploadPackage,
+    c2: Fq,
+    encrypted: &[u8],
     timings: &mut AuditTimings,
     object_cache: &mut ObjectCache,
-) -> Result<Option<TransferMatch>> {
-    let ring_id = bundle.sender_core.ring_id.clone();
-    let TransferOrbisUploadBundle {
-        sender_core,
-        sender_ext,
-        ..
-    } = bundle.clone();
-    if sender_core.derivation_bytes() != *ctx.subject_derivation_bytes {
-        timings.subject_mismatch += 1;
-        return Ok(None);
-    }
-    let sender_core_seed =
-        pre_package_seed(ctx, &ring_id, &sender_core, timings, object_cache).await?;
-    sender_core.validate_c2_seed(ct.sender_core_c2, sender_core_seed)?;
+) -> Result<AddressData> {
+    let seed = pre_package_seed(ctx, &package.ring_id, package, timings, object_cache).await?;
+    package.validate_c2_seed(c2, seed)?;
     let started = Instant::now();
-    let amount = decrypt_amount_with_seed(sender_core_seed, &ct.encrypted_sender_core)?;
-    timings.amount_decrypt_ms += started.elapsed().as_millis();
-
-    let sender_ext_seed =
-        pre_package_seed(ctx, &ring_id, &sender_ext, timings, object_cache).await?;
-    sender_ext.validate_c2_seed(ct.sender_ext_c2, sender_ext_seed)?;
-    let started = Instant::now();
-    let receiver = match decrypt_address_with_seed(sender_ext_seed, &ct.encrypted_sender_ext) {
-        Ok(receiver) => {
-            timings.address_decrypt_ms += started.elapsed().as_millis();
-            receiver
-        }
-        Err(_) => {
-            timings.address_decrypt_ms += started.elapsed().as_millis();
-            return Ok(None);
-        }
-    };
-
-    if !ctx
-        .known_transmission_keys
-        .contains(&receiver.transmission_key_hex)
-    {
-        return Ok(None);
-    }
-
-    Ok(Some(TransferMatch::Sender { amount, receiver }))
+    let address = decrypt_address_with_seed(seed, encrypted)?;
+    timings.address_decrypt_ms += started.elapsed().as_millis();
+    Ok(address)
 }
 
 fn decrypt_amount_with_seed(seed: Fq, encrypted: &[u8]) -> Result<Amount> {
@@ -908,7 +1085,7 @@ mod tests {
     use decaf377::{Element, Fr};
     use shieldd_sdk_asset::{asset, Value};
     use shieldd_sdk_compliance::transfer::encrypt_transfer;
-    use shieldd_sdk_compliance::DecryptedVia;
+    use shieldd_sdk_compliance::AuthorizationId;
     use shieldd_sdk_compliance::{derive_compliance_scalar, issuer_keys::DetectionKey};
     use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
     use shieldd_sdk_num::Amount;
@@ -916,7 +1093,6 @@ mod tests {
         NoteReshape, NoteReshapeBody, Transfer, TransferBody, TransferOutputBody,
     };
     use shieldd_sdk_proto::core::transaction::v1::action::Action;
-    use std::collections::HashSet;
 
     fn derive_ack(ring_pk: &Element, slot_derivation: decaf377::Fq) -> Element {
         let d = derive_compliance_scalar(slot_derivation);
@@ -955,30 +1131,6 @@ mod tests {
         .to_bytes()
     }
 
-    fn dummy_context<'a>(tier_mode: &'a str, subject: &'a str) -> AuditContext<'a> {
-        let cli = Box::leak(Box::new(
-            OrbisClient::new("http://127.0.0.1:8080").expect("dummy endpoint should parse"),
-        ));
-        let dk = Box::leak(Box::new(Fr::from(3u64)));
-        let dk_pub = Box::leak(Box::new(Element::GENERATOR * Fr::from(3u64)));
-        let mut known_transmission_keys = HashSet::new();
-        known_transmission_keys.insert(subject.to_string());
-        let known_transmission_keys = Box::leak(Box::new(known_transmission_keys));
-
-        AuditContext {
-            cli,
-            sourcehub: None,
-            jwt_signer: None,
-            reader_did_uri: None,
-            dk,
-            dk_pub,
-            subject_transmission_key_hex: subject,
-            subject_derivation_bytes: &[0u8; 32],
-            known_transmission_keys,
-            tier_mode,
-        }
-    }
-
     #[test]
     fn extract_transfer_data_ignores_non_transfer_actions() {
         let note_reshape_action = shieldd_sdk_proto::core::transaction::v1::Action {
@@ -1009,6 +1161,7 @@ mod tests {
         let permission = "read";
         let ring_id = "ring-id";
         let timestamp = 1_700_000_000;
+        let authorization_id = AuthorizationId::from_fq(decaf377::Fq::from(99u64));
         let sender_core_salt = decaf377::Fq::from(11u64);
         let sender_ext_salt = decaf377::Fq::from(12u64);
         let output_core_salt = decaf377::Fq::from(13u64);
@@ -1027,6 +1180,7 @@ mod tests {
                     permission,
                     shieldd_sdk_compliance::TransferTierKind::SenderCore,
                     timestamp,
+                    authorization_id,
                     sender_core_salt,
                 ),
                 ring_id,
@@ -1050,6 +1204,7 @@ mod tests {
                     permission,
                     shieldd_sdk_compliance::TransferTierKind::SenderExt,
                     timestamp,
+                    authorization_id,
                     sender_ext_salt,
                 ),
                 ring_id,
@@ -1073,6 +1228,7 @@ mod tests {
                     permission,
                     shieldd_sdk_compliance::TransferTierKind::OutputCore,
                     timestamp,
+                    authorization_id,
                     output_core_salt,
                 ),
                 ring_id,
@@ -1096,6 +1252,7 @@ mod tests {
                     permission,
                     shieldd_sdk_compliance::TransferTierKind::OutputExt,
                     timestamp,
+                    authorization_id,
                     output_ext_salt,
                 ),
                 ring_id,
@@ -1169,7 +1326,8 @@ mod tests {
     }
 
     #[test]
-    fn candidate_to_entry_uses_semantic_transfer_rendering() {
+    fn entry_preserves_authorization_and_granular_disclosure() {
+        let authorization_id = AuthorizationId::from_fq(Fq::from(99u64));
         let tx_ref = AuditDetectedRef {
             height: 290,
             tx_hash: "tx".to_string(),
@@ -1178,43 +1336,32 @@ mod tests {
             asset_id: "asset".to_string(),
             is_flagged: false,
             flow_type: shieldd_sdk_compliance::FlowType::PrivateTransfer,
+            authorization_id: Some(authorization_id),
+            authorization_timestamp: Some(1_700_000_000),
         };
         let self_tk = "aa".repeat(32);
         let counterparty_tk = "bb".repeat(32);
 
-        let default_ctx = dummy_context("default", &self_tk);
-        let default_entry = candidate_to_entry(
+        let result = entry(
             &tx_ref,
-            TransferMatch::Sender {
-                amount: Amount::from(400u128),
-                receiver: AddressData {
-                    transmission_key_hex: counterparty_tk.clone(),
-                },
+            AuditAuthority::Master,
+            None,
+            None,
+            TransferDisclosure {
+                sender: None,
+                amount: Some("400".to_owned()),
+                receiver: Some(counterparty_tk.clone()),
             },
-            default_ctx.tier_mode,
-            default_ctx.subject_transmission_key_hex,
+        )
+        .expect("entry should build");
+        assert_eq!(result.authorization_id, authorization_id);
+        assert_eq!(result.authorization_timestamp, 1_700_000_000);
+        assert_eq!(result.sender_address, None);
+        assert_eq!(result.amount.as_deref(), Some("400"));
+        assert_eq!(
+            result.receiver_address.as_deref(),
+            Some(counterparty_tk.as_str())
         );
-        assert_eq!(default_entry.amount, "400");
-        assert_eq!(default_entry.output_index, 2);
-        assert_eq!(default_entry.self_address, self_tk);
-        assert_eq!(default_entry.counterparty, "");
-        assert_eq!(default_entry.decrypted_via, DecryptedVia::OrbisPre);
-
-        let extension_ctx = dummy_context("extension", &self_tk);
-        let extension_entry = candidate_to_entry(
-            &tx_ref,
-            TransferMatch::Receiver {
-                amount: Amount::from(600u128),
-                sender: AddressData {
-                    transmission_key_hex: counterparty_tk.clone(),
-                },
-            },
-            extension_ctx.tier_mode,
-            extension_ctx.subject_transmission_key_hex,
-        );
-        assert_eq!(extension_entry.amount, "600");
-        assert_eq!(extension_entry.self_address, self_tk);
-        assert_eq!(extension_entry.counterparty, counterparty_tk);
-        assert_eq!(extension_entry.decrypted_via, DecryptedVia::OrbisPre);
+        assert_eq!(self_tk.len(), 64);
     }
 }

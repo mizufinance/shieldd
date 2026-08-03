@@ -45,7 +45,7 @@ SHARED_SEMANTICS = (
     "tools/gnark/lean/ShielddGnarkFormal/RvkFixedSplitRungChoiceFree.lean",
     "tools/gnark/lean/ShielddGnarkFormal/RvkFixedRunChoiceFree.lean",
     *(
-        str(path.relative_to(ROOT))
+        path.relative_to(ROOT).as_posix()
         for path in sorted(
             (LEAN / "ShielddGnarkFormal/RvkFixedGenInst0ChoiceFree").glob("*.lean")
         )
@@ -112,7 +112,7 @@ def owned_files(template: dict) -> list[dict[str, str]]:
         if path.is_file():
             files.append(
                 {
-                    "path": str(path.relative_to(ROOT)),
+                    "path": path.relative_to(ROOT).as_posix(),
                     "sha256_hex": sha256(path),
                 }
             )
@@ -177,7 +177,7 @@ def render() -> dict:
             shared.append({"path": relative, "sha256_hex": sha256(path)})
     for path in sorted((FORMAL / "Semantics").glob("Poseidon3ScalarRound*.lean")):
         shared.append(
-            {"path": str(path.relative_to(ROOT)), "sha256_hex": sha256(path)}
+            {"path": path.relative_to(ROOT).as_posix(), "sha256_hex": sha256(path)}
         )
 
     return {

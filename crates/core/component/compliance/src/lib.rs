@@ -1,6 +1,9 @@
 pub mod enrichment;
 pub use enrichment::{AssetProofData, BatchComplianceData, ComplianceProofProvider, UserProofData};
 
+pub mod authorization;
+pub use authorization::{AuthorizationId, AUTHORIZATION_ID_DOMAIN};
+
 pub mod event;
 
 pub mod issuer_keys;
@@ -39,10 +42,10 @@ pub use structs::{
 
 pub mod transfer;
 pub use transfer::{
-    compute_transfer_dleqs, derive_transfer_salt, encrypt_transfer, TransferComplianceCiphertext,
-    TransferComplianceDleqProofs, TransferCompliancePublicInputs, TransferEncryptionResult,
-    TRANSFER_CIPHERTEXT_FQS, TRANSFER_CORE_CIPHERTEXT_FQS, TRANSFER_DETECTION_FQS,
-    TRANSFER_DLEQ_BYTES, TRANSFER_EXT_CIPHERTEXT_FQS, TRANSFER_WIRE_BYTES,
+    compute_transfer_dleqs, derive_authorization_id, derive_transfer_salt, encrypt_transfer,
+    TransferComplianceCiphertext, TransferComplianceDleqProofs, TransferCompliancePublicInputs,
+    TransferEncryptionResult, TRANSFER_CIPHERTEXT_FQS, TRANSFER_CORE_CIPHERTEXT_FQS,
+    TRANSFER_DETECTION_FQS, TRANSFER_DLEQ_BYTES, TRANSFER_EXT_CIPHERTEXT_FQS, TRANSFER_WIRE_BYTES,
 };
 
 pub mod tree;
@@ -85,10 +88,11 @@ pub use r1cs::{
 
 pub mod crypto;
 pub use crypto::{
-    compute_dleq_native, compute_metadata_hash, decrypt, decrypt_detection_tier,
-    decrypt_tier_bytes, derive_compliance_scalar, encrypt_tier_bytes, fq_to_challenge_scalar,
-    verify_dleq_native, DecryptedComplianceData, COMPLIANCE_STREAM_CIPHER_DOMAIN,
-    DLEQ_CHALLENGE_DOMAIN, DLEQ_METADATA_DOMAIN, ENCRYPT_PROOF_DOMAIN, ISSUER_DETECTION_DOMAIN,
+    compute_dleq_native, compute_metadata_hash, compute_transfer_metadata_hash, decrypt,
+    decrypt_detection_tier, decrypt_tier_bytes, derive_compliance_scalar, encrypt_tier_bytes,
+    fq_to_challenge_scalar, verify_dleq_native, DecryptedComplianceData,
+    COMPLIANCE_STREAM_CIPHER_DOMAIN, DLEQ_CHALLENGE_DOMAIN, DLEQ_METADATA_DOMAIN,
+    ENCRYPT_PROOF_DOMAIN, ISSUER_DETECTION_DOMAIN, TRANSFER_DLEQ_METADATA_DOMAIN,
     UNREGULATED_SINK_DK_PUB, UNREGULATED_SINK_RING_PK,
 };
 
@@ -108,11 +112,14 @@ pub mod audit_status;
 pub use audit_status::{AuditStatus, DecryptedVia, FlowType};
 
 pub mod audit_records;
-pub use audit_records::{AuditDetectedRef, AuditScanExport, OrbisAuditEntry};
+pub use audit_records::{
+    AuditAuthority, AuditDetectedRef, AuditScanExport, AuditSelection, DisclosureField,
+    OrbisAuditEntry, TransferRole,
+};
 
-#[cfg(feature = "component")]
+#[cfg(feature = "scanner")]
 pub mod audit;
-#[cfg(feature = "component")]
+#[cfg(feature = "scanner")]
 pub use audit::{
     decrypt_flagged_rows, export_detected_refs, export_ledger_rows, export_ledger_rows_json,
     export_orbis_pending_scan, export_scan_json, import_orbis_audit_entries, mark_row_audited,
@@ -124,9 +131,9 @@ mod tx_id;
 pub use tx_id::scanner_transaction_id_from_proto;
 
 // Scanner requires tokio and rusqlite for async storage
-#[cfg(feature = "component")]
+#[cfg(feature = "scanner")]
 pub mod scanner;
-#[cfg(feature = "component")]
+#[cfg(feature = "scanner")]
 pub use scanner::{
     extract_clear_flows, extract_compliance_ciphertexts, AuditAdviceProvider, AuditLedgerRow,
     AuditRowKey, BlockIdentityProvider, ClearFlowEvent, ClearFlowKind, ComplianceScreener,
