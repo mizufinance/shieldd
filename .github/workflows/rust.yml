@@ -59,32 +59,8 @@ jobs:
         with:
           command: check
 
-  # As of 2025Q1, the "features" job is the slowest in the CI suite.
-  # Consider moving to a scheduled job on main, rather than running on PRs.
-  features:
-    runs-on: blacksmith-8vcpu-ubuntu-2404
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
-
-      - uses: ./.github/actions/setup-nix-rust
-        with:
-          free-disk: "true"
-
-      # Build each crate separately, to validate that the feature-gating is working.
-      # This is a lighter-weight version of `cargo check-all-features --workspace --release`.
-      - name: check crate features
-        run: >-
-          nix develop --command python3 scripts/ci/run_with_annotation.py
-          --title "Rust crate feature checks"
-          -- ./deployments/scripts/check-crate-feature-sets
-
-      - name: check wasm compatibility
-        run: >-
-          nix develop --command python3 scripts/ci/run_with_annotation.py
-          --title "Rust wasm compatibility"
-          -- ./deployments/scripts/check-wasm-compat.sh
+  # The feature-set / wasm-compat build moved to rust-features.yml: it runs on
+  # push to main/dev and daily via formal-scheduled.yml, not on PRs.
 
   test:
     runs-on: blacksmith-8vcpu-ubuntu-2404
@@ -156,7 +132,7 @@ jobs:
         run: nix develop --command just ci-gnark-proof-tests
 
   summary:
-    needs: [lint, deny, features, test, go-gnark, gnark-rust]
+    needs: [lint, deny, test, go-gnark, gnark-rust]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -164,7 +140,6 @@ jobs:
         env:
           LINT_RESULT: ${{ needs.lint.result }}
           DENY_RESULT: ${{ needs.deny.result }}
-          FEATURES_RESULT: ${{ needs.features.result }}
           TEST_RESULT: ${{ needs.test.result }}
           GO_GNARK_RESULT: ${{ needs['go-gnark'].result }}
           GNARK_RUST_RESULT: ${{ needs['gnark-rust'].result }}
@@ -173,7 +148,6 @@ jobs:
           for job in \
             "lint:$LINT_RESULT" \
             "deny:$DENY_RESULT" \
-            "features:$FEATURES_RESULT" \
             "test:$TEST_RESULT" \
             "go-gnark:$GO_GNARK_RESULT" \
             "gnark-rust:$GNARK_RUST_RESULT"

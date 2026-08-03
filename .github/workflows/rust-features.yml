@@ -1,0 +1,65 @@
+name: rust-features
+
+# The feature-set / wasm-compat build is the slowest lane in the Rust suite and
+# rarely regresses per-PR, so it no longer runs on pull requests. Instead it
+# runs on every push to main/dev (post-merge coverage) and once daily via
+# formal-scheduled.yml, matching the reusable-workflow shape formal.yml uses.
+
+on:
+  push:
+    branches: [main, dev]
+  workflow_call:
+    inputs:
+      target_ref:
+        description: Branch whose committed state is the reusable-run candidate.
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Branch whose committed state is the manual-run candidate.
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ inputs.target_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Reusable/dispatch runs supply an explicit target; push runs check out their
+  # own pushed commit (empty ref).
+  CANDIDATE_REF: ${{ inputs.target_ref || '' }}
+
+jobs:
+  features:
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.CANDIDATE_REF }}
+          lfs: true
+
+      - uses: ./.github/actions/setup-nix-rust
+        with:
+          free-disk: "true"
+
+      # Build each crate separately, to validate that the feature-gating is working.
+      # This is a lighter-weight version of `cargo check-all-features --workspace --release`.
+      - name: check crate features
+        run: >-
+          nix develop --command python3 scripts/ci/run_with_annotation.py
+          --title "Rust crate feature checks"
+          -- ./deployments/scripts/check-crate-feature-sets
+
+      - name: check wasm compatibility
+        run: >-
+          nix develop --command python3 scripts/ci/run_with_annotation.py
+          --title "Rust wasm compatibility"
+          -- ./deployments/scripts/check-wasm-compat.sh

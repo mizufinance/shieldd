@@ -22,6 +22,12 @@ jobs:
     with:
       target_ref: dev
 
+  features-dev:
+    if: github.event.schedule == '17 9 * * *'
+    uses: ./.github/workflows/rust-features.yml
+    with:
+      target_ref: dev
+
   formal-main:
     if: github.event.schedule == '41 9 * * *'
     uses: ./.github/workflows/formal.yml
@@ -31,5 +37,11 @@ jobs:
   provers-main:
     if: github.event.schedule == '41 9 * * *'
     uses: ./.github/workflows/soundness-provers.yml
+    with:
+      target_ref: main
+
+  features-main:
+    if: github.event.schedule == '41 9 * * *'
+    uses: ./.github/workflows/rust-features.yml
     with:
       target_ref: main
