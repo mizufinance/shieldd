@@ -1510,6 +1510,13 @@ mod tests {
         });
     }
 
+    fn compliance_leaf(address: Address, asset_id: asset::Id) -> ComplianceLeaf {
+        let user_public_key = *address.diversified_generator();
+        let clue_public_key = user_public_key * decaf377::Fr::from(2u64);
+        ComplianceLeaf::new(address, asset_id, user_public_key, clue_public_key)
+            .expect("distinct non-identity compliance keys")
+    }
+
     #[tokio::test]
     async fn test_add_compliance_leaf() {
         let storage = TempStorage::new().await.unwrap();
@@ -1517,10 +1524,9 @@ mod tests {
         let mut state = cnidarium::StateDelta::new(snapshot);
 
         // Create a dummy compliance leaf
-        let leaf = ComplianceLeaf::new(
+        let leaf = compliance_leaf(
             Address::dummy(&mut rand::thread_rng()),
             asset::Id(Fq::from(1u64)),
-            Fq::from(0u64),
         );
 
         // Add the leaf
@@ -1543,10 +1549,9 @@ mod tests {
         let capacity = QuadTree::max_leaves_for_depth(crate::tree::DEFAULT_DEPTH);
         state.put_proto(state_key::user_count().to_string(), capacity);
 
-        let leaf = ComplianceLeaf::new(
+        let leaf = compliance_leaf(
             Address::dummy(&mut rand::thread_rng()),
             asset::Id(Fq::from(1u64)),
-            Fq::from(7u64),
         );
         let err = state
             .add_compliance_leaf(leaf)
@@ -1570,10 +1575,9 @@ mod tests {
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
 
-        let leaf = ComplianceLeaf::new(
+        let leaf = compliance_leaf(
             Address::dummy(&mut rand::thread_rng()),
             asset::Id(Fq::from(1u64)),
-            Fq::from(7u64),
         );
         state.add_compliance_leaf(leaf).await.unwrap();
         let root = state.get_user_tree_root().await.unwrap();
@@ -1594,10 +1598,9 @@ mod tests {
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
 
-        let leaf = ComplianceLeaf::new(
+        let leaf = compliance_leaf(
             Address::dummy(&mut rand::thread_rng()),
             asset::Id(Fq::from(1u64)),
-            Fq::from(7u64),
         );
         state.add_compliance_leaf(leaf).await.unwrap();
         state.verify_committed_tree_roots().await.unwrap();
@@ -1739,8 +1742,7 @@ mod tests {
         for step in 0..32u64 {
             if rng.gen_bool(0.5) {
                 let asset_id = asset::Id(Fq::from(10_000u64 + step));
-                let leaf =
-                    ComplianceLeaf::new(Address::dummy(&mut rng), asset_id, Fq::from(step + 1));
+                let leaf = compliance_leaf(Address::dummy(&mut rng), asset_id);
                 let commitment = leaf.commit();
                 let position = state.add_compliance_leaf(leaf).await.unwrap();
                 user_positions.push((position, commitment));
@@ -1875,7 +1877,7 @@ mod tests {
             )
             .await
             .unwrap();
-        let leaf = ComplianceLeaf::new(Address::dummy(&mut rng), asset_id, Fq::from(9u64));
+        let leaf = compliance_leaf(Address::dummy(&mut rng), asset_id);
         let position = state.add_compliance_leaf(leaf).await.unwrap();
 
         state.object_delete(state_key::cache::cached_user_tree());
@@ -1898,11 +1900,7 @@ mod tests {
 
         // Add multiple leaves
         for i in 0..5 {
-            let leaf = ComplianceLeaf::new(
-                Address::dummy(&mut rng),
-                asset::Id(Fq::from(i as u64)),
-                Fq::from(0u64),
-            );
+            let leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(i as u64)));
             state.add_compliance_leaf(leaf).await.unwrap();
         }
 
@@ -1977,11 +1975,7 @@ mod tests {
         let mut rng = rand::thread_rng();
 
         // Create a compliance leaf
-        let leaf = ComplianceLeaf::new(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(100u64)),
-            Fq::from(0u64),
-        );
+        let leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(100u64)));
 
         // Before adding, verification should fail
         let verified = state.verify_compliance_leaf(&leaf).await.unwrap();
@@ -1995,11 +1989,7 @@ mod tests {
         assert!(verified, "Leaf should be verified after being added");
 
         // Create a different leaf with same asset but different wallet
-        let different_leaf = ComplianceLeaf::new(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(100u64)),
-            Fq::from(0u64),
-        );
+        let different_leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(100u64)));
 
         // Different leaf should not verify
         let verified = state.verify_compliance_leaf(&different_leaf).await.unwrap();
@@ -2011,11 +2001,7 @@ mod tests {
         let mut rng = rand::thread_rng();
 
         // Create a compliance leaf
-        let original_leaf = ComplianceLeaf::new(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(200u64)),
-            Fq::from(0u64),
-        );
+        let original_leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(200u64)));
 
         // Export to JSON
         let json = original_leaf
@@ -2052,11 +2038,7 @@ mod tests {
         let mut rng = rand::thread_rng();
 
         // User creates their compliance leaf (private)
-        let user_leaf = ComplianceLeaf::new(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(300u64)),
-            Fq::from(0u64),
-        );
+        let user_leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(300u64)));
 
         // User registers on-chain
         state.add_compliance_leaf(user_leaf.clone()).await.unwrap();
@@ -2090,11 +2072,7 @@ mod tests {
         // Add multiple leaves
         let mut leaves = Vec::new();
         for i in 0..5u64 {
-            let leaf = ComplianceLeaf::new(
-                Address::dummy(&mut rng),
-                asset::Id(Fq::from(i)),
-                Fq::from(0u64),
-            );
+            let leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(i)));
             state.add_compliance_leaf(leaf.clone()).await.unwrap();
             leaves.push(leaf);
         }
@@ -2106,11 +2084,7 @@ mod tests {
         }
 
         // A new leaf not in the tree should not verify
-        let new_leaf = ComplianceLeaf::new(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(999u64)),
-            Fq::from(0u64),
-        );
+        let new_leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(999u64)));
         let verified = state.verify_compliance_leaf(&new_leaf).await.unwrap();
         assert!(!verified, "Non-registered leaf should not verify");
     }
@@ -2154,9 +2128,9 @@ mod tests {
 
         // Multiple wallets for same user
         let wallet1 = Address::dummy(&mut rng);
-        let leaf1 = ComplianceLeaf::new(wallet1.clone(), usdc_asset_id, Fq::from(0u64));
-        let leaf2 = ComplianceLeaf::new(Address::dummy(&mut rng), usdc_asset_id, Fq::from(0u64));
-        let leaf3 = ComplianceLeaf::new(Address::dummy(&mut rng), usdc_asset_id, Fq::from(0u64));
+        let leaf1 = compliance_leaf(wallet1.clone(), usdc_asset_id);
+        let leaf2 = compliance_leaf(Address::dummy(&mut rng), usdc_asset_id);
+        let leaf3 = compliance_leaf(Address::dummy(&mut rng), usdc_asset_id);
 
         state.add_compliance_leaf(leaf1.clone()).await.unwrap();
         state.add_compliance_leaf(leaf2.clone()).await.unwrap();
@@ -2203,7 +2177,7 @@ mod tests {
             )
             .await
             .unwrap();
-        let leaf1_dai = ComplianceLeaf::new(wallet1, dai_asset_id, Fq::from(0u64));
+        let leaf1_dai = compliance_leaf(wallet1, dai_asset_id);
         state.add_compliance_leaf(leaf1_dai.clone()).await.unwrap();
         assert!(state.verify_compliance_leaf(&leaf1).await.unwrap());
         assert!(state.verify_compliance_leaf(&leaf1_dai).await.unwrap());
@@ -2223,9 +2197,9 @@ mod tests {
         let usdc = asset::Id(Fq::from(12345u64));
         let dai = asset::Id(Fq::from(67890u64));
 
-        let leaf1 = ComplianceLeaf::new(wallet1.clone(), usdc, Fq::from(0u64));
-        let leaf2 = ComplianceLeaf::new(wallet1.clone(), dai, Fq::from(0u64));
-        let leaf3 = ComplianceLeaf::new(wallet2.clone(), usdc, Fq::from(0u64));
+        let leaf1 = compliance_leaf(wallet1.clone(), usdc);
+        let leaf2 = compliance_leaf(wallet1.clone(), dai);
+        let leaf3 = compliance_leaf(wallet2.clone(), usdc);
 
         state.add_compliance_leaf(leaf1.clone()).await.unwrap();
         state.add_compliance_leaf(leaf2.clone()).await.unwrap();
@@ -2286,7 +2260,7 @@ mod tests {
         let wallet = Address::dummy(&mut rng);
         let asset_id = asset::Id(Fq::from(12345u64));
 
-        let original_leaf = ComplianceLeaf::new(wallet.clone(), asset_id, Fq::from(0u64));
+        let original_leaf = compliance_leaf(wallet.clone(), asset_id);
         state
             .add_compliance_leaf(original_leaf.clone())
             .await
@@ -2513,11 +2487,7 @@ mod tests {
         state.put_block_height(1);
 
         // Add a user and asset
-        let leaf = ComplianceLeaf::new(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(100u64)),
-            Fq::from(0u64),
-        );
+        let leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(100u64)));
         state.add_compliance_leaf(leaf).await.unwrap();
         state
             .register_regulated_asset(
@@ -2611,11 +2581,7 @@ mod tests {
 
         // Add a user and record at height 2
         state.put_block_height(2);
-        let leaf = ComplianceLeaf::new(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(100u64)),
-            Fq::from(0u64),
-        );
+        let leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(100u64)));
         state.add_compliance_leaf(leaf).await.unwrap();
         state.record_compliance_anchors(2).await.unwrap();
         let anchor_at_2 = state.get_user_tree_root().await.unwrap();
@@ -2662,11 +2628,7 @@ mod tests {
         let old_asset_anchor = state.get_asset_imt_root().await.unwrap();
 
         // Add something to change the tree roots (so old anchors remain distinct)
-        let leaf = ComplianceLeaf::new(
-            Address::dummy(&mut rng),
-            asset::Id(Fq::from(9999u64)),
-            Fq::from(0u64),
-        );
+        let leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(9999u64)));
         state.add_compliance_leaf(leaf).await.unwrap();
 
         // Advance to height just past the configured validation window.
@@ -2767,10 +2729,9 @@ mod tests {
 
         state.put_block_height(2);
         state
-            .add_compliance_leaf(ComplianceLeaf::new(
+            .add_compliance_leaf(compliance_leaf(
                 Address::dummy(&mut rng),
                 asset::Id(Fq::from(9090u64)),
-                Fq::from(0u64),
             ))
             .await
             .unwrap();
@@ -2971,10 +2932,9 @@ mod tests {
 
         state.put_block_height(2);
         state
-            .add_compliance_leaf(ComplianceLeaf::new(
+            .add_compliance_leaf(compliance_leaf(
                 Address::dummy(&mut rng),
                 asset::Id(Fq::from(4242u64)),
-                Fq::from(0u64),
             ))
             .await
             .unwrap();

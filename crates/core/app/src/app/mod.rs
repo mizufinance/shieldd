@@ -8393,12 +8393,16 @@ mod tests {
     async fn app_readiness_fails_on_corrupted_compliance_nv() -> Result<()> {
         let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
+        let address = Address::dummy(&mut rand::thread_rng());
+        let user_public_key = *address.diversified_generator();
+        let clue_public_key = user_public_key * decaf377::Fr::from(2u64);
         state
             .add_compliance_leaf(ComplianceLeaf::new(
-                Address::dummy(&mut rand::thread_rng()),
+                address,
                 asset::Id(Fq::from(123u64)),
-                Fq::from(7u64),
-            ))
+                user_public_key,
+                clue_public_key,
+            )?)
             .await?;
         state
             .register_regulated_asset(

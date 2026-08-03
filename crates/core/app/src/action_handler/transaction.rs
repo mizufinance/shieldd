@@ -1267,18 +1267,9 @@ mod tests {
         output.asset_position = position;
         output.asset_indexed_leaf = indexed_leaf;
 
-        // Create leaves with real d (matching what the circuit derives)
-        let recv_b_d_fq = output
-            .dest_address
-            .diversified_generator()
-            .vartime_compress_to_field();
         let recipient_leaf =
-            ComplianceLeaf::new(output.dest_address.clone(), asset_id, recv_b_d_fq);
-
-        let send_b_d_fq = sender_address
-            .diversified_generator()
-            .vartime_compress_to_field();
-        let sender_leaf = ComplianceLeaf::new(sender_address.clone(), asset_id, send_b_d_fq);
+            ComplianceLeaf::synthetic_unregulated(output.dest_address.clone(), asset_id);
+        let sender_leaf = ComplianceLeaf::synthetic_unregulated(sender_address.clone(), asset_id);
 
         output
             .set_compliance_details(

@@ -124,9 +124,15 @@ pub async fn setup_proof_storage(
         test_keys::ADDRESS_0.deref().clone(),
         test_keys::ADDRESS_1.deref().clone(),
     ] {
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
+        let user_public_key = *address.diversified_generator();
+        let clue_public_key = user_public_key * decaf377::Fr::from(2u64);
         state
-            .add_compliance_leaf(ComplianceLeaf::new(address, *BASE_ASSET_ID, b_d_fq))
+            .add_compliance_leaf(ComplianceLeaf::new(
+                address,
+                *BASE_ASSET_ID,
+                user_public_key,
+                clue_public_key,
+            )?)
             .await?;
     }
     storage.commit(state).await?;

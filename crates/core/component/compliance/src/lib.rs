@@ -254,16 +254,22 @@ mod tests {
     use shieldd_sdk_keys::Address;
     use shieldd_sdk_tct::StateCommitment;
 
+    fn compliance_leaf(address: Address, asset_id: asset::Id) -> ComplianceLeaf {
+        let user_public_key = *address.diversified_generator();
+        let clue_public_key = user_public_key * decaf377::Fr::from(2u64);
+        ComplianceLeaf::new(address, asset_id, user_public_key, clue_public_key)
+            .expect("distinct non-identity compliance keys")
+    }
+
     #[tokio::test]
     async fn test_compliance_path_generation() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = StateDelta::new(snapshot);
 
-        let leaf = ComplianceLeaf::new(
+        let leaf = compliance_leaf(
             Address::dummy(&mut rand::thread_rng()),
             asset::Id(Fq::from(100u64)),
-            Fq::from(0u64),
         );
 
         let user1_commit = leaf.commit();
@@ -320,11 +326,7 @@ mod tests {
         let mut commitments = Vec::new();
 
         for i in 0..4u64 {
-            let leaf = ComplianceLeaf::new(
-                Address::dummy(&mut rng),
-                asset::Id(Fq::from(i)),
-                Fq::from(0u64),
-            );
+            let leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(i)));
             commitments.push(leaf.commit());
             state.add_compliance_leaf(leaf).await.unwrap();
         }
@@ -355,19 +357,12 @@ mod tests {
 
         for &pos in &positions {
             while state.get_user_count().await.unwrap() < pos {
-                let dummy_leaf = ComplianceLeaf::new(
-                    Address::dummy(&mut rng),
-                    asset::Id(Fq::from(0u64)),
-                    Fq::from(0u64),
-                );
+                let dummy_leaf =
+                    compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(0u64)));
                 state.add_compliance_leaf(dummy_leaf).await.unwrap();
             }
 
-            let leaf = ComplianceLeaf::new(
-                Address::dummy(&mut rng),
-                asset::Id(Fq::from(pos)),
-                Fq::from(0u64),
-            );
+            let leaf = compliance_leaf(Address::dummy(&mut rng), asset::Id(Fq::from(pos)));
             state.add_compliance_leaf(leaf.clone()).await.unwrap();
             leaves.push((pos, leaf.commit()));
         }

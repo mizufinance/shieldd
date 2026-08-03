@@ -16,6 +16,13 @@ use shieldd_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, ComplianceR
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan};
 
+fn compliance_leaf(address: Address, asset_id: asset::Id) -> ComplianceLeaf {
+    let user_public_key = *address.diversified_generator();
+    let clue_public_key = user_public_key * decaf377::Fr::from(2u64);
+    ComplianceLeaf::new(address, asset_id, user_public_key, clue_public_key)
+        .expect("distinct non-identity compliance keys")
+}
+
 #[allow(dead_code)]
 pub fn align_transfer_planning_metadata(
     spends: &mut [ShieldedInputPlan],
@@ -59,11 +66,10 @@ pub async fn register_assets_for_compliance<S: StateWrite + ComplianceRegistryRe
     Ok(())
 }
 
-/// Register test users in the compliance registry with BLACK_HOLE_ACK.
+/// Register test users with deterministic, distinct compliance keys.
 ///
-/// This helper registers the given addresses for the specified assets as unregulated
-/// users (using BLACK_HOLE_ACK). This is necessary for tests that build transactions
-/// with shielded input/output plans, as the compliance circuit requires valid Merkle proofs.
+/// This is necessary for tests that build transactions with shielded input/output plans,
+/// as the compliance circuit requires valid Merkle proofs.
 ///
 /// # Example
 /// ```ignore
@@ -83,8 +89,7 @@ pub async fn register_test_users_for_compliance<S: StateWrite>(
 ) -> anyhow::Result<()> {
     for address in addresses {
         for &asset_id in asset_ids {
-            let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-            let leaf = ComplianceLeaf::new(address.clone(), asset_id, b_d_fq);
+            let leaf = compliance_leaf(address.clone(), asset_id);
             state.add_compliance_leaf(leaf).await?;
         }
     }
@@ -109,11 +114,10 @@ pub async fn state_with_compliance_for_build(
 
     let mut delta = StateDelta::new(storage.latest_snapshot());
 
-    // Register users with real d (matching what the circuit derives from the address)
+    // Register users with deterministic keys derived from each test address.
     for address in addresses {
         for &asset_id in asset_ids {
-            let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-            let leaf = ComplianceLeaf::new(address.clone(), asset_id, b_d_fq);
+            let leaf = compliance_leaf(address.clone(), asset_id);
             delta.add_compliance_leaf(leaf).await?;
         }
     }
