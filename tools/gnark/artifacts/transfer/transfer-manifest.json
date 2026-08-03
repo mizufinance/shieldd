@@ -6,10 +6,10 @@
     "n_out": 2
   },
   "nb_constraints": 266012,
-  "nb_public_variables": 4,
-  "nb_secret_variables": 550,
+  "nb_public_variables": 2,
+  "nb_secret_variables": 552,
   "nb_internal_variables": 234537,
-  "sr1cs_sha256_hex": "83393e6cfbda0dac56a4d7462bacdeac5d00ea6d3baa1f8f5ac276e03080e940",
+  "sr1cs_sha256_hex": "373f85c820292b78f23d30bc4383e0c22951b8a7161da2d0c6c0f829d36534c4",
   "segments": [
     {
       "index": 1,

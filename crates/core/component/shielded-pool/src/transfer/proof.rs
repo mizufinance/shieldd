@@ -200,11 +200,7 @@ impl TransferProof {
 
         Ok(shieldd_sdk_proof_params::batch::BatchItem {
             proof,
-            public_inputs: vec![
-                statement_hash,
-                public.compliance.fuzzy_precision,
-                public.compliance.fuzzy_tags,
-            ],
+            public_inputs: vec![statement_hash],
         })
     }
 

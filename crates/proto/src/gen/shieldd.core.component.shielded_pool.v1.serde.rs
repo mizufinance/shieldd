@@ -8400,7 +8400,7 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                             if fuzzy_precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("fuzzyPrecisionBits"));
                             }
-                            fuzzy_precision_bits__ =
+                            fuzzy_precision_bits__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

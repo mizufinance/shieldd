@@ -1679,7 +1679,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                             if user_public_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("userPublicKey"));
                             }
-                            user_public_key__ =
+                            user_public_key__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1687,7 +1687,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                             if clue_public_key__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("cluePublicKey"));
                             }
-                            clue_public_key__ =
+                            clue_public_key__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -2214,7 +2214,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
                             if fuzzy_precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("fuzzyPrecisionBits"));
                             }
-                            fuzzy_precision_bits__ =
+                            fuzzy_precision_bits__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

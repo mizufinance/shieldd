@@ -412,7 +412,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         &mut self,
         view: &mut V,
         source: AddressIndex,
-        mut actions: Vec<ActionPlan>,
+        actions: Vec<ActionPlan>,
     ) -> Result<NoteManagerPlanningResult> {
         if actions.is_empty() {
             return Ok(NoteManagerPlanningResult::UnsupportedIntent {
@@ -1290,7 +1290,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         &mut self,
         view: &mut V,
         source: AddressIndex,
-        actions: Vec<ActionPlan>,
+        mut actions: Vec<ActionPlan>,
         fee_funding: Option<FeeFundingPlan>,
         fee: Fee,
     ) -> Result<TransactionPlan> {
