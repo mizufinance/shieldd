@@ -7,7 +7,7 @@ use decaf377::{Element, Encoding, Fq, Fr};
 use hkdf::Hkdf;
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256, Sha512};
+use sha2::{Digest, Sha256};
 
 use crate::{
     crypto::verify_dleq_native,
@@ -17,7 +17,6 @@ use crate::{
 
 const ENCRYPT_PROOF_DOMAIN: &[u8; 24] = b"elgamal-encrypt-proof-v1";
 const AAD_DOMAIN: &[u8; 15] = b"elgamal-aad-v1\0";
-const DERIVATION_DOMAIN: &[u8; 23] = b"elgamal-derivation-v1\0\0";
 const POLICY_METADATA_DOMAIN: &[u8] = b"orbis-policy-metadata-v1";
 const HKDF_INFO: &[u8] = b"elgamal-aes-key-v1";
 
@@ -66,8 +65,8 @@ struct EncryptionProof {
 }
 
 impl OrbisEncryptedSeedUploadPackage {
-    pub fn derivation_bytes(&self) -> [u8; 32] {
-        self.statement.subject_derivation_bytes
+    pub fn subject_user_public_key_bytes(&self) -> [u8; 32] {
+        self.statement.subject_user_public_key_bytes
     }
 
     pub fn metadata_hash_fq(&self) -> Result<Fq> {
@@ -224,12 +223,14 @@ impl TransferOrbisUploadBundle {
             );
         }
         anyhow::ensure!(
-            self.sender_core.derivation_bytes() == self.sender_ext.derivation_bytes(),
-            "sender upload tiers do not share one subject derivation"
+            self.sender_core.subject_user_public_key_bytes()
+                == self.sender_ext.subject_user_public_key_bytes(),
+            "sender upload tiers do not share one user public key"
         );
         anyhow::ensure!(
-            self.output_core.derivation_bytes() == self.output_ext.derivation_bytes(),
-            "receiver upload tiers do not share one subject derivation"
+            self.output_core.subject_user_public_key_bytes()
+                == self.output_ext.subject_user_public_key_bytes(),
+            "receiver upload tiers do not share one user public key"
         );
         Ok(())
     }
@@ -313,7 +314,7 @@ pub fn build_orbis_encrypted_seed_upload_package(
 
 pub fn build_orbis_encrypted_seed_upload_package_with_randomness(
     rng: &mut (impl RngCore + CryptoRng),
-    ring_pk: &Element,
+    _ring_pk: &Element,
     seed: Fq,
     r: Fr,
     statement: TransferTierMetadataStatement,
@@ -326,7 +327,7 @@ pub fn build_orbis_encrypted_seed_upload_package_with_randomness(
     salt: Fq,
 ) -> Result<OrbisEncryptedSeedUploadPackage> {
     statement.validate_shape()?;
-    let derivation_bytes = statement.subject_derivation_bytes;
+    let subject_user_public_key = statement.subject_user_public_key()?;
     anyhow::ensure!(
         string_to_fq(ring_id) == statement.ring_id_hash()?,
         "ring_id does not match statement ring_id_hash"
@@ -367,10 +368,9 @@ pub fn build_orbis_encrypted_seed_upload_package_with_randomness(
 
     let (enc_cmt, encrypted_secret, proof) = encrypt_secret_with_randomness(
         rng,
-        ring_pk,
+        &subject_user_public_key,
         &seed.to_bytes(),
         r,
-        Some(&derivation_bytes),
         Some(&transfer_metadata_hash),
     )?;
     let derived_pk = parse_element(&proof.derived_pk, "derived_pk")?;
@@ -438,7 +438,6 @@ fn encrypt_secret_with_randomness(
     dkg_pk: &Element,
     data: &[u8],
     r: Fr,
-    derivation: Option<&[u8]>,
     metadata: Option<&[u8]>,
 ) -> Result<(Element, OrbisSecretEnvelope, EncryptionProof)> {
     if *dkg_pk == Element::default() {
@@ -446,19 +445,8 @@ fn encrypt_secret_with_randomness(
     }
     let enc_cmt = Element::GENERATOR * r;
 
-    let (effective_pk, derived_pk) = if let Some(deriv_bytes) = derivation {
-        let d = derive_capability_scalar(deriv_bytes);
-        if d == Fr::from(0u64) {
-            bail!("derivation produced zero scalar");
-        }
-        let derived_pk = *dkg_pk * d;
-        if derived_pk == Element::default() {
-            bail!("derived public key is the identity element");
-        }
-        (derived_pk, derived_pk.vartime_compress().0.to_vec())
-    } else {
-        (*dkg_pk, dkg_pk.vartime_compress().0.to_vec())
-    };
+    let effective_pk = *dkg_pk;
+    let derived_pk = dkg_pk.vartime_compress().0.to_vec();
 
     let shared_point = effective_pk * r;
     let (challenge, response) =
@@ -502,14 +490,6 @@ fn encrypt_secret_with_randomness(
 
 /// Derive a capability scalar — must match Orbis `derive_capability_scalar`
 /// (SHA-512 digest reduced mod `Fr`, wide reduction).
-fn derive_capability_scalar(derivation: &[u8]) -> Fr {
-    let mut hasher = Sha512::new();
-    hasher.update(DERIVATION_DOMAIN);
-    hasher.update(derivation);
-    let hash = hasher.finalize();
-    Fr::from_le_bytes_mod_order(&hash)
-}
-
 fn derive_key_from_point(point: &Element) -> Result<[u8; 32]> {
     let point_bytes = point.vartime_compress().0;
     let hkdf = Hkdf::<Sha256>::new(None, &point_bytes);
@@ -618,7 +598,7 @@ mod tests {
         let ring_sk = Fr::rand(&mut rng);
         let ring_pk = Element::GENERATOR * ring_sk;
         let statement = TransferTierMetadataStatement::from_identifiers(
-            Fq::from(42u64),
+            ring_pk,
             "ring-id",
             "policy-id",
             "document",
@@ -660,8 +640,9 @@ mod tests {
     fn upload_package_binds_orbis_policy_metadata() {
         let mut rng = OsRng;
         let ring_pk = Element::GENERATOR * Fr::rand(&mut rng);
+        let user_public_key = Element::GENERATOR * Fr::rand(&mut rng);
         let statement = TransferTierMetadataStatement::from_identifiers(
-            Fq::from(42u64),
+            user_public_key,
             "ring-id",
             "policy-id",
             "document",
@@ -711,12 +692,14 @@ mod tests {
     }
 
     #[test]
-    fn ring_master_key_decrypts_a_package_encrypted_for_a_derived_user_key() {
+    fn registered_user_key_decrypts_its_package() {
         let mut rng = OsRng;
         let ring_sk = Fr::rand(&mut rng);
         let ring_pk = Element::GENERATOR * ring_sk;
+        let user_sk = Fr::rand(&mut rng);
+        let user_public_key = Element::GENERATOR * user_sk;
         let statement = TransferTierMetadataStatement::from_identifiers(
-            Fq::from(42u64),
+            user_public_key,
             "ring-id",
             "policy-id",
             "document",
@@ -726,7 +709,6 @@ mod tests {
             crate::AuthorizationId::from_fq(Fq::from(123u64)),
             Fq::from(99u64),
         );
-        let derivation = statement.subject_derivation_bytes;
         let seed = Fq::from(7u64);
         let package = build_orbis_encrypted_seed_upload_package(
             &mut rng,
@@ -743,8 +725,64 @@ mod tests {
         )
         .expect("package should build");
 
-        let child_sk = ring_sk * derive_capability_scalar(&derivation);
-        let shared_from_master = package.enc_cmt().expect("enc_cmt") * child_sk;
+        let shared_from_user = package.enc_cmt().expect("enc_cmt") * user_sk;
+        assert_eq!(
+            shared_from_user,
+            package.shared_point().expect("shared point")
+        );
+
+        let secret: OrbisSecretEnvelope = serde_json::from_slice(&package.encrypted_document)
+            .expect("encrypted document should deserialize");
+        let cipher = Aes256Gcm::new(&derive_key_from_point(&shared_from_user).unwrap().into());
+        let aad = build_aad(&secret.enc_cmt, &shared_from_user.vartime_compress().0);
+        let plaintext = cipher
+            .decrypt(
+                Nonce::from_slice(&secret.nonce),
+                Payload {
+                    msg: &secret.encrypted_data,
+                    aad: &aad,
+                },
+            )
+            .expect("registered user should decrypt the package");
+        assert_eq!(plaintext, seed.to_bytes());
+    }
+
+    #[test]
+    fn ring_master_with_user_derivation_decrypts_package() {
+        let mut rng = OsRng;
+        let ring_sk = Fr::rand(&mut rng);
+        let ring_pk = Element::GENERATOR * ring_sk;
+        let user_derivation = Fr::rand(&mut rng);
+        let user_public_key = ring_pk * user_derivation;
+        let statement = TransferTierMetadataStatement::from_identifiers(
+            user_public_key,
+            "ring-id",
+            "policy-id",
+            "document",
+            "read",
+            TransferTierKind::SenderCore,
+            1_700_000_000,
+            crate::AuthorizationId::from_fq(Fq::from(123u64)),
+            Fq::from(99u64),
+        );
+        let seed = Fq::from(7u64);
+        let package = build_orbis_encrypted_seed_upload_package(
+            &mut rng,
+            &ring_pk,
+            seed,
+            statement,
+            "ring-id",
+            "policy-id",
+            "document",
+            "read",
+            TransferTierKind::SenderCore,
+            1_700_000_000,
+            Fq::from(99u64),
+        )
+        .expect("package should build");
+
+        let derived_user_sk = ring_sk * user_derivation;
+        let shared_from_master = package.enc_cmt().expect("enc_cmt") * derived_user_sk;
         assert_eq!(
             shared_from_master,
             package.shared_point().expect("shared point")
@@ -762,7 +800,7 @@ mod tests {
                     aad: &aad,
                 },
             )
-            .expect("ring master should decrypt the derived package");
+            .expect("ring master should derive the user key and decrypt the package");
         assert_eq!(plaintext, seed.to_bytes());
     }
 }

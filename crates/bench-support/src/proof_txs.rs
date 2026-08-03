@@ -95,7 +95,6 @@ pub async fn setup_proof_storage(
                 asset_id: *BASE_ASSET_ID,
                 is_regulated: true,
                 dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
-                slot_count: shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
                 registration_authority_vk: Some(authority_vk),
             }],
             ..Default::default()

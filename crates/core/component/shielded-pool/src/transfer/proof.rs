@@ -66,6 +66,7 @@ impl TransferComplianceProofPublic {
 #[derive(Clone, Debug)]
 pub struct TransferCompliancePublic {
     pub detection_ciphertext: Vec<Fq>,
+    pub fuzzy_tags: Fq,
     pub sender_core: TransferComplianceCiphertextPublic,
     pub sender_ext: TransferComplianceCiphertextPublic,
     pub output_core: TransferComplianceCiphertextPublic,
@@ -276,7 +277,7 @@ impl TryFrom<pb::ZkTransferProof> for TransferProof {
     }
 }
 
-#[cfg(all(test, any(unix, windows)))]
+#[cfg(all(test, feature = "component", any(unix, windows)))]
 mod tests {
     use std::sync::{LazyLock, Mutex};
 
@@ -298,8 +299,13 @@ mod tests {
     static TRANSFER_PROOF_TEST_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     fn compliance_leaf_for(address: &shieldd_sdk_keys::Address) -> ComplianceLeaf {
-        let slot_derivation = address.diversified_generator().vartime_compress_to_field();
-        ComplianceLeaf::new(address.clone(), *BASE_ASSET_ID, slot_derivation)
+        ComplianceLeaf::new(
+            address.clone(),
+            *BASE_ASSET_ID,
+            decaf377::Element::GENERATOR * Fr::from(3u64),
+            decaf377::Element::GENERATOR * Fr::from(5u64),
+        )
+        .expect("valid compliance keys")
     }
 
     fn sender_recipient_compliance_witnesses() -> (

@@ -19,9 +19,9 @@ use shieldd_orbis_client::OrbisClient;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_compliance::{
     decrypt_orbis_reencrypted_seed, decrypt_tier_bytes, AuditAuthority, AuditDetectedRef,
-    AuditScanExport, AuditSelection, ComplianceLeaf, DisclosureField, OrbisAuditEntry,
-    OrbisEncryptedSeedUploadPackage, TransferComplianceCiphertext, TransferOrbisUploadBundle,
-    TransferRole,
+    AuditScanExport, AuditSelection, ComplianceLeaf, DisclosureField, FuzzyDetectionKey,
+    OrbisAuditEntry, OrbisEncryptedSeedUploadPackage, TransferComplianceCiphertext,
+    TransferOrbisUploadBundle, TransferRole,
 };
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
@@ -69,6 +69,10 @@ struct Args {
 
     #[clap(long = "subject-address")]
     subject_addresses: Vec<String>,
+
+    /// Released fuzzy detection key for user-audit candidate screening.
+    #[clap(long)]
+    clue_detection_key_hex: Option<String>,
 
     #[clap(long)]
     orbis_endpoint: String,
@@ -172,7 +176,7 @@ struct SubjectInput {
 struct SubjectData {
     asset_id: String,
     transmission_key_hex: String,
-    subject_derivation_bytes: [u8; 32],
+    user_public_key_bytes: [u8; 32],
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
@@ -203,6 +207,8 @@ struct AuditTimings {
     object_cache_misses: u64,
     object_cache_stale: u64,
     subject_mismatch: u64,
+    clue_examined: u64,
+    clue_candidates: u64,
     #[serde(skip)]
     pre_call_samples_ms: Vec<u128>,
 }
@@ -234,6 +240,19 @@ async fn main() -> Result<()> {
     let dk = parse_fr(&args.dk_hex, "DK")?;
     let dk_pub = Element::GENERATOR * dk;
     let subject_inputs = parse_subjects(&args, authority)?;
+    let clue_detection_key = args
+        .clue_detection_key_hex
+        .as_deref()
+        .map(parse_fuzzy_detection_key)
+        .transpose()?;
+    anyhow::ensure!(
+        authority != AuditAuthority::User || clue_detection_key.is_some(),
+        "user audits require --clue-detection-key-hex"
+    );
+    anyhow::ensure!(
+        authority != AuditAuthority::Master || clue_detection_key.is_none(),
+        "master audits do not accept --clue-detection-key-hex"
+    );
 
     let cli = OrbisClient::new(args.orbis_endpoint.clone())?;
     let sourcehub = sourcehub_client().await?;
@@ -250,7 +269,7 @@ async fn main() -> Result<()> {
 
     let channel = connect_to_node(&args.node).await?;
     let subjects = if authority == AuditAuthority::User {
-        resolve_subject_slot_derivations(channel.clone(), &subject_inputs, &scan).await?
+        resolve_subject_public_keys(channel.clone(), &subject_inputs, &scan).await?
     } else {
         Vec::new()
     };
@@ -300,6 +319,13 @@ async fn main() -> Result<()> {
         if !selection.matches(tx_ref) {
             timings.skipped_selector += 1;
             continue;
+        }
+        if let Some(clue_detection_key) = clue_detection_key {
+            timings.clue_examined += 1;
+            if !matches_fuzzy_clue(tx_ref, clue_detection_key)? {
+                continue;
+            }
+            timings.clue_candidates += 1;
         }
         let tx_subjects = subjects
             .iter()
@@ -403,6 +429,17 @@ async fn main() -> Result<()> {
     let mut out_file = File::create(&args.output)?;
     out_file.write_all(json.as_bytes())?;
 
+    if clue_detection_key.is_some() {
+        let candidate_rate = if timings.clue_examined == 0 {
+            0.0
+        } else {
+            100.0 * timings.clue_candidates as f64 / timings.clue_examined as f64
+        };
+        eprintln!(
+            "orbis-audit: Fuzzy prefilter selected {}/{} transactions ({candidate_rate:.3}%).",
+            timings.clue_candidates, timings.clue_examined
+        );
+    }
     eprintln!(
         "orbis-audit: Decrypted {}/{} selected transfers (authority={}).",
         decrypted, attempted, args.authority
@@ -500,7 +537,48 @@ fn parse_fields(values: &[String]) -> Result<HashSet<DisclosureField>> {
         .collect()
 }
 
-async fn resolve_subject_slot_derivations(
+fn parse_fuzzy_detection_key(value: &str) -> Result<FuzzyDetectionKey> {
+    let bytes = hex::decode(value).context("invalid fuzzy detection key hex")?;
+    let bytes: [u8; 32] = bytes
+        .try_into()
+        .map_err(|_| anyhow!("fuzzy detection key must be 32 bytes"))?;
+    FuzzyDetectionKey::from_bytes(bytes)
+}
+
+fn matches_fuzzy_clue(tx_ref: &AuditDetectedRef, detection_key: FuzzyDetectionKey) -> Result<bool> {
+    let clue = tx_ref
+        .fuzzy_clue
+        .ok_or_else(|| anyhow!("private transfer is missing fuzzy clue data"))?;
+    let authorization_id = tx_ref
+        .authorization_id
+        .ok_or_else(|| anyhow!("private transfer is missing authorization id"))?;
+    let authorization_timestamp = tx_ref
+        .authorization_timestamp
+        .ok_or_else(|| anyhow!("private transfer is missing authorization timestamp"))?;
+    let asset_id: asset::Id = tx_ref
+        .asset_id
+        .parse()
+        .with_context(|| format!("invalid detected asset id {}", tx_ref.asset_id))?;
+    let sender_epk = decaf377::Encoding(clue.sender_epk_bytes)
+        .vartime_decompress()
+        .map_err(|_| anyhow!("invalid sender fuzzy clue EPK"))?;
+    let receiver_epk = decaf377::Encoding(clue.receiver_epk_bytes)
+        .vartime_decompress()
+        .map_err(|_| anyhow!("invalid receiver fuzzy clue EPK"))?;
+    Ok(clue
+        .tags
+        .examine(
+            detection_key,
+            &sender_epk,
+            &receiver_epk,
+            asset_id.0,
+            authorization_id,
+            authorization_timestamp,
+        )
+        .any())
+}
+
+async fn resolve_subject_public_keys(
     channel: Channel,
     subject_inputs: &[SubjectInput],
     scan: &AuditScanExport,
@@ -578,7 +656,7 @@ async fn resolve_subject_slot_derivations(
                 Ok(Some(SubjectData {
                     asset_id: asset_id_text,
                     transmission_key_hex,
-                    subject_derivation_bytes: leaf.slot_derivation.to_bytes(),
+                    user_public_key_bytes: leaf.user_public_key.vartime_compress().0,
                 }))
             });
 
@@ -592,7 +670,7 @@ async fn resolve_subject_slot_derivations(
     }
 
     if subjects.is_empty() {
-        anyhow::bail!("no subject has a registered compliance slot for any detected asset");
+        anyhow::bail!("no subject has a registered compliance key for any detected asset");
     }
 
     Ok(subjects)
@@ -607,9 +685,11 @@ async fn audit_user_transfer(
     timings: &mut AuditTimings,
     object_cache: &mut ObjectCache,
 ) -> Result<Option<OrbisAuditEntry>> {
-    let role = if bundle.output_core.derivation_bytes() == subject.subject_derivation_bytes {
+    let role = if bundle.output_core.subject_user_public_key_bytes()
+        == subject.user_public_key_bytes
+    {
         TransferRole::Receiver
-    } else if bundle.sender_core.derivation_bytes() == subject.subject_derivation_bytes {
+    } else if bundle.sender_core.subject_user_public_key_bytes() == subject.user_public_key_bytes {
         TransferRole::Sender
     } else {
         timings.subject_mismatch += 1;
@@ -743,7 +823,9 @@ async fn prepare_user_transfer(
     timings: &mut AuditTimings,
     object_cache: &mut ObjectCache,
 ) -> Result<()> {
-    let packages = if bundle.output_core.derivation_bytes() == subject.subject_derivation_bytes {
+    let packages = if bundle.output_core.subject_user_public_key_bytes()
+        == subject.user_public_key_bytes
+    {
         [
             ctx.fields
                 .contains(&DisclosureField::Amount)
@@ -752,7 +834,7 @@ async fn prepare_user_transfer(
                 .contains(&DisclosureField::Sender)
                 .then_some(&bundle.output_ext),
         ]
-    } else if bundle.sender_core.derivation_bytes() == subject.subject_derivation_bytes {
+    } else if bundle.sender_core.subject_user_public_key_bytes() == subject.user_public_key_bytes {
         [
             ctx.fields
                 .contains(&DisclosureField::Amount)
@@ -993,7 +1075,7 @@ async fn pre_package_seed(
         .start_pre(
             &hex::encode(ctx.dk_pub.vartime_compress().0),
             &object.object_id,
-            &hex::encode(object.package.derivation_bytes()),
+            &hex::encode(object.package.subject_user_public_key_bytes()),
             Some(&object.package.salt),
             Some(object.package.timestamp),
             jwt_signer,
@@ -1009,7 +1091,7 @@ async fn pre_package_seed(
             .start_pre(
                 &hex::encode(ctx.dk_pub.vartime_compress().0),
                 &object.object_id,
-                &hex::encode(object.package.derivation_bytes()),
+                &hex::encode(object.package.subject_user_public_key_bytes()),
                 Some(&object.package.salt),
                 Some(object.package.timestamp),
                 jwt_signer,
@@ -1086,7 +1168,9 @@ mod tests {
     use shieldd_sdk_asset::{asset, Value};
     use shieldd_sdk_compliance::transfer::encrypt_transfer;
     use shieldd_sdk_compliance::AuthorizationId;
-    use shieldd_sdk_compliance::{derive_compliance_scalar, issuer_keys::DetectionKey};
+    use shieldd_sdk_compliance::{
+        issuer_keys::DetectionKey, AuditFuzzyClue, FuzzyDetectionKey, FuzzyRole, TransferFuzzyTags,
+    };
     use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
     use shieldd_sdk_num::Amount;
     use shieldd_sdk_proto::core::component::shielded_pool::v1::{
@@ -1094,26 +1178,21 @@ mod tests {
     };
     use shieldd_sdk_proto::core::transaction::v1::action::Action;
 
-    fn derive_ack(ring_pk: &Element, slot_derivation: decaf377::Fq) -> Element {
-        let d = derive_compliance_scalar(slot_derivation);
-        let d_fr = Fr::from_le_bytes_mod_order(&d.to_bytes());
-        *ring_pk * d_fr
-    }
-
     fn make_transfer_ciphertext_bytes() -> Vec<u8> {
         let dk = DetectionKey::new(Fr::from(5u64));
         let dk_pub = dk.public_key();
-        let ring_pk = Element::GENERATOR * Fr::from(11u64);
+        let sender_public_key = Element::GENERATOR * Fr::from(11u64);
+        let receiver_public_key = Element::GENERATOR * Fr::from(13u64);
         let sender = test_keys::ADDRESS_0.clone();
         let receiver = test_keys::FULL_VIEWING_KEY
             .payment_address(AddressIndex::from(1u32))
             .0;
-        let sender_slot_derivation = sender.diversified_generator().vartime_compress_to_field();
-        let receiver_slot_derivation = receiver.diversified_generator().vartime_compress_to_field();
         encrypt_transfer(
             &mut rand_core::OsRng,
-            &derive_ack(&ring_pk, sender_slot_derivation),
-            &derive_ack(&ring_pk, receiver_slot_derivation),
+            &sender_public_key,
+            &receiver_public_key,
+            &FuzzyDetectionKey::generate(&mut rand_core::OsRng).clue_key(),
+            &FuzzyDetectionKey::generate(&mut rand_core::OsRng).clue_key(),
             &dk_pub,
             &receiver,
             &sender,
@@ -1122,7 +1201,7 @@ mod tests {
                 asset_id: asset::Id(decaf377::Fq::from(77u64)),
             },
             false,
-            0,
+            AuthorizationId::from_fq(decaf377::Fq::from(99u64)),
             0,
             decaf377::Fq::from(9u64),
         )
@@ -1150,12 +1229,8 @@ mod tests {
         let mut rng = rand_core::OsRng;
         let ring_sk = Fr::rand(&mut rng);
         let ring_pk = Element::GENERATOR * ring_sk;
-        let sender = test_keys::ADDRESS_0.clone();
-        let receiver = test_keys::FULL_VIEWING_KEY
-            .payment_address(AddressIndex::from(1u32))
-            .0;
-        let sender_slot_derivation = sender.diversified_generator().vartime_compress_to_field();
-        let receiver_slot_derivation = receiver.diversified_generator().vartime_compress_to_field();
+        let sender_public_key = Element::GENERATOR * Fr::from(11u64);
+        let receiver_public_key = Element::GENERATOR * Fr::from(13u64);
         let policy_id = "policy-id";
         let resource = "document";
         let permission = "read";
@@ -1173,7 +1248,7 @@ mod tests {
                 &ring_pk,
                 decaf377::Fq::from(21u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
-                    sender_slot_derivation,
+                    sender_public_key,
                     ring_id,
                     policy_id,
                     resource,
@@ -1197,7 +1272,7 @@ mod tests {
                 &ring_pk,
                 decaf377::Fq::from(22u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
-                    sender_slot_derivation,
+                    sender_public_key,
                     ring_id,
                     policy_id,
                     resource,
@@ -1221,7 +1296,7 @@ mod tests {
                 &ring_pk,
                 decaf377::Fq::from(23u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
-                    receiver_slot_derivation,
+                    receiver_public_key,
                     ring_id,
                     policy_id,
                     resource,
@@ -1245,7 +1320,7 @@ mod tests {
                 &ring_pk,
                 decaf377::Fq::from(24u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
-                    receiver_slot_derivation,
+                    receiver_public_key,
                     ring_id,
                     policy_id,
                     resource,
@@ -1338,6 +1413,7 @@ mod tests {
             flow_type: shieldd_sdk_compliance::FlowType::PrivateTransfer,
             authorization_id: Some(authorization_id),
             authorization_timestamp: Some(1_700_000_000),
+            fuzzy_clue: None,
         };
         let self_tk = "aa".repeat(32);
         let counterparty_tk = "bb".repeat(32);
@@ -1363,5 +1439,55 @@ mod tests {
             Some(counterparty_tk.as_str())
         );
         assert_eq!(self_tk.len(), 64);
+    }
+
+    #[test]
+    fn released_detection_key_prefilters_matching_transfer_clue() {
+        let detection_key =
+            FuzzyDetectionKey::from_bytes(Fr::from(5u64).to_bytes()).expect("valid key");
+        let clue_key = detection_key.clue_key();
+        let asset_id = asset::Id(Fq::from(77u64));
+        let authorization_id = AuthorizationId::from_fq(Fq::from(99u64));
+        let authorization_timestamp = 1_700_000_000;
+        let sender_r = Fr::from(11u64);
+        let receiver_r = Fr::from(13u64);
+        let sender_epk = Element::GENERATOR * sender_r;
+        let receiver_epk = Element::GENERATOR * receiver_r;
+        let tx_ref = AuditDetectedRef {
+            height: 290,
+            tx_hash: "tx".to_string(),
+            action_index: 1,
+            output_index: 2,
+            asset_id: asset_id.to_string(),
+            is_flagged: false,
+            flow_type: shieldd_sdk_compliance::FlowType::PrivateTransfer,
+            authorization_id: Some(authorization_id),
+            authorization_timestamp: Some(authorization_timestamp),
+            fuzzy_clue: Some(AuditFuzzyClue {
+                sender_epk_bytes: sender_epk.vartime_compress().0,
+                receiver_epk_bytes: receiver_epk.vartime_compress().0,
+                tags: TransferFuzzyTags {
+                    sender: clue_key.create_tag(
+                        sender_r,
+                        asset_id.0,
+                        authorization_id,
+                        authorization_timestamp,
+                        FuzzyRole::Sender,
+                    ),
+                    receiver: clue_key.create_tag(
+                        receiver_r,
+                        asset_id.0,
+                        authorization_id,
+                        authorization_timestamp,
+                        FuzzyRole::Receiver,
+                    ),
+                },
+            }),
+        };
+
+        assert!(matches_fuzzy_clue(&tx_ref, detection_key).expect("clue should examine"));
+        let wrong_key =
+            FuzzyDetectionKey::from_bytes(Fr::from(6u64).to_bytes()).expect("valid key");
+        assert!(!matches_fuzzy_clue(&tx_ref, wrong_key).expect("clue should examine"));
     }
 }

@@ -36,7 +36,6 @@ type IndexedLeafFields struct {
 	NextValue      frontend.Variable
 	DKPub          Point2D
 	Threshold      frontend.Variable
-	SlotCount      frontend.Variable
 	ChannelsHash   frontend.Variable
 	RingPK         Point2D
 	RingIDHash     frontend.Variable
@@ -52,14 +51,13 @@ type AssetTreeFields struct {
 }
 
 type UserComplianceFields struct {
-	DivGen         Point2D
-	Transmission   Point2D
-	AssetID        frontend.Variable
-	SlotID         frontend.Variable
-	SlotDerivation frontend.Variable
-	D              frontend.Variable
-	Path           [compliance.ComplianceQuadTreeDepth][3]frontend.Variable
-	Position       frontend.Variable
+	DivGen       Point2D
+	Transmission Point2D
+	AssetID      frontend.Variable
+	UserPK       Point2D
+	CluePK       Point2D
+	Path         [compliance.ComplianceQuadTreeDepth][3]frontend.Variable
+	Position     frontend.Variable
 }
 
 type TransferComplianceProofFields struct {
@@ -72,15 +70,15 @@ type TransferComplianceProofFields struct {
 }
 
 type TransferComplianceStatementFields struct {
-	SubjectDerivation frontend.Variable
-	RingIDHash        frontend.Variable
-	PolicyIDHash      frontend.Variable
-	ResourceHash      frontend.Variable
-	PermissionHash    frontend.Variable
-	Tier              frontend.Variable
-	TargetTimestamp   frontend.Variable
-	AuthorizationID   frontend.Variable
-	Salt              frontend.Variable
+	SubjectUserPublicKey Point2D
+	RingIDHash           frontend.Variable
+	PolicyIDHash         frontend.Variable
+	ResourceHash         frontend.Variable
+	PermissionHash       frontend.Variable
+	Tier                 frontend.Variable
+	TargetTimestamp      frontend.Variable
+	AuthorizationID      frontend.Variable
+	Salt                 frontend.Variable
 }
 
 type TransferComplianceCoreFields struct {
@@ -100,6 +98,7 @@ type TransferComplianceExtFields struct {
 type TransferComplianceFields struct {
 	TransferNonceRoot   frontend.Variable
 	DetectionCiphertext [compliance.TransferDetectionFQCount]frontend.Variable
+	FuzzyTags           frontend.Variable `gnark:",public"`
 	SenderRCore         frontend.Variable
 	SenderRExt          frontend.Variable
 	OutputRCore         frontend.Variable

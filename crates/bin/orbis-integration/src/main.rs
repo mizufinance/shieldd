@@ -41,7 +41,7 @@ mod demo_auth;
 mod demo_config;
 mod demo_state;
 
-fn compliance_slot_derivation_hex(label: &str) -> String {
+fn compliance_key_scalar(label: &str) -> decaf377::Fr {
     let mut hash = 0xcbf29ce484222325u64;
     for byte in label.as_bytes() {
         hash ^= u64::from(*byte);
@@ -50,9 +50,34 @@ fn compliance_slot_derivation_hex(label: &str) -> String {
     if hash == 0 {
         hash = 1;
     }
-    let mut bytes = [0u8; 32];
-    bytes[..8].copy_from_slice(&hash.to_le_bytes());
-    hex::encode(bytes)
+    decaf377::Fr::from(hash)
+}
+
+fn compliance_clue_public_key_hex(label: &str) -> String {
+    let scalar = compliance_key_scalar(label);
+    hex::encode((decaf377::Element::GENERATOR * scalar).vartime_compress().0)
+}
+
+fn compliance_user_public_key_hex(ring_pk_hex: &str, label: &str) -> Result<String> {
+    let bytes = hex::decode(ring_pk_hex).context("invalid Orbis ring public key hex")?;
+    let encoded: [u8; 32] = bytes
+        .try_into()
+        .map_err(|_| anyhow!("Orbis ring public key must be 32 bytes"))?;
+    let ring_pk = decaf377::Encoding(encoded)
+        .vartime_decompress()
+        .map_err(|_| anyhow!("invalid Orbis ring public key encoding"))?;
+    if ring_pk == decaf377::Element::default() {
+        bail!("Orbis ring public key must not be the identity");
+    }
+    Ok(hex::encode(
+        (ring_pk * compliance_key_scalar(label))
+            .vartime_compress()
+            .0,
+    ))
+}
+
+fn compliance_detection_key_hex(label: &str) -> String {
+    hex::encode(compliance_key_scalar(label).to_bytes())
 }
 
 fn add_audit_selection_args(
@@ -503,8 +528,9 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
     )?
     .trim()
     .to_string();
-    let alice_slot_derivation_0 = compliance_slot_derivation_hex("alice:regulated_usd:0");
-    let alice_slot_derivation_1 = compliance_slot_derivation_hex("alice:regulated_usd:1");
+    let alice_user_public_key =
+        compliance_user_public_key_hex(&ring.ring_pk_hex, "alice:regulated_usd:user")?;
+    let alice_clue_public_key = compliance_clue_public_key_hex("alice:regulated_usd:clue");
     let alice_grant_0 = capture_pcli(
         repo,
         &env,
@@ -517,10 +543,10 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "regulated_usd",
             "--address",
             env.get("ALICE_ADDRESS")?,
-            "--slot-id",
-            "0",
-            "--slot-derivation-hex",
-            &alice_slot_derivation_0,
+            "--user-public-key-hex",
+            &alice_user_public_key,
+            "--clue-public-key-hex",
+            &alice_clue_public_key,
             "--policy-id",
             &policy_id,
             "--registration-authority-sk-hex",
@@ -541,10 +567,10 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "regulated_usd",
             "--address",
             &alice_address_1,
-            "--slot-id",
-            "1",
-            "--slot-derivation-hex",
-            &alice_slot_derivation_1,
+            "--user-public-key-hex",
+            &alice_user_public_key,
+            "--clue-public-key-hex",
+            &alice_clue_public_key,
             "--policy-id",
             &policy_id,
             "--registration-authority-sk-hex",
@@ -564,10 +590,10 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "compliance",
             "register-user",
             "regulated_usd",
-            "--slot-id",
-            "0",
-            "--slot-derivation-hex",
-            &alice_slot_derivation_0,
+            "--user-public-key-hex",
+            &alice_user_public_key,
+            "--clue-public-key-hex",
+            &alice_clue_public_key,
             "--user-registration-grant-hex",
             &alice_grant_0,
         ],
@@ -597,19 +623,21 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "regulated_usd",
             "--address-index",
             "1",
-            "--slot-id",
-            "1",
-            "--slot-derivation-hex",
-            &alice_slot_derivation_1,
+            "--user-public-key-hex",
+            &alice_user_public_key,
+            "--clue-public-key-hex",
+            &alice_clue_public_key,
             "--user-registration-grant-hex",
             &alice_grant_1,
         ],
     )?;
-    for (slot_id, who) in [(2u32, "BOB_HOME"), (3u32, "CHARLIE_HOME")] {
+    for who in ["BOB_HOME", "CHARLIE_HOME"] {
         let address_key = who.trim_end_matches("_HOME").to_string() + "_ADDRESS";
-        let slot_id_text = slot_id.to_string();
-        let slot_derivation_hex =
-            compliance_slot_derivation_hex(&format!("{who}:regulated_usd:{slot_id}"));
+        let user_public_key = compliance_user_public_key_hex(
+            &ring.ring_pk_hex,
+            &format!("{who}:regulated_usd:user"),
+        )?;
+        let clue_public_key = compliance_clue_public_key_hex(&format!("{who}:regulated_usd:clue"));
         let grant = capture_pcli(
             repo,
             &env,
@@ -622,10 +650,10 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
                 "regulated_usd",
                 "--address",
                 env.get(&address_key)?,
-                "--slot-id",
-                &slot_id_text,
-                "--slot-derivation-hex",
-                &slot_derivation_hex,
+                "--user-public-key-hex",
+                &user_public_key,
+                "--clue-public-key-hex",
+                &clue_public_key,
                 "--policy-id",
                 &policy_id,
                 "--registration-authority-sk-hex",
@@ -644,10 +672,10 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
                 "compliance",
                 "register-user",
                 "regulated_usd",
-                "--slot-id",
-                &slot_id_text,
-                "--slot-derivation-hex",
-                &slot_derivation_hex,
+                "--user-public-key-hex",
+                &user_public_key,
+                "--clue-public-key-hex",
+                &clue_public_key,
                 "--user-registration-grant-hex",
                 &grant,
             ],
@@ -918,6 +946,10 @@ fn run_orbis_audit(
     subject_address: &str,
     endpoints: &OrbisEndpoints,
 ) -> Result<()> {
+    let clue_detection_key = compliance_detection_key_hex(&format!(
+        "{}:regulated_usd:clue",
+        user_name.to_ascii_lowercase()
+    ));
     run_command(
         Command::new(&repo.orbis_audit_bin)
             .current_dir(&repo.root)
@@ -934,6 +966,8 @@ fn run_orbis_audit(
             .arg(repo.tmp.join("orbis-audit-object-cache.json"))
             .arg("--authority")
             .arg("user")
+            .arg("--clue-detection-key-hex")
+            .arg(clue_detection_key)
             .arg("--subject-address")
             .arg(subject_address)
             .arg("--timings-json")
@@ -1716,13 +1750,13 @@ impl AuditDemo {
             self.sync_wallet(slug)?;
         }
         let address = self.address_for(slug, 0)?;
-        let policy_id = self
+        let ring = self
             .state()?
             .ring
             .as_ref()
             .ok_or_else(missing_ring)?
-            .policy_id
             .clone();
+        let policy_id = ring.policy_id.clone();
         let authority_sk = process_env_or_default(
             "COMPLIANCE_DEV_AUTHORITY_SK_HEX",
             DEFAULT_COMPLIANCE_DEV_AUTHORITY_SK_HEX,
@@ -1731,8 +1765,12 @@ impl AuditDemo {
             "COMPLIANCE_GRANT_VALID_UNTIL_UNIX",
             DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
         );
-        let slot_derivation_hex =
-            compliance_slot_derivation_hex(&format!("audit-demo:{slug}:{}:{address}", self.asset));
+        let user_public_key = compliance_user_public_key_hex(
+            &ring.ring_pk_hex,
+            &format!("audit-demo:{slug}:{}:user", self.asset),
+        )?;
+        let clue_public_key =
+            compliance_clue_public_key_hex(&format!("audit-demo:{slug}:{}:clue", self.asset));
         let user_grant = self.capture_pcli(
             slug,
             [
@@ -1742,10 +1780,10 @@ impl AuditDemo {
                 &self.asset,
                 "--address",
                 &address,
-                "--slot-id",
-                "0",
-                "--slot-derivation-hex",
-                &slot_derivation_hex,
+                "--user-public-key-hex",
+                &user_public_key,
+                "--clue-public-key-hex",
+                &clue_public_key,
                 "--policy-id",
                 &policy_id,
                 "--registration-authority-sk-hex",
@@ -1763,10 +1801,10 @@ impl AuditDemo {
                 &self.asset,
                 "--address-index",
                 "0",
-                "--slot-id",
-                "0",
-                "--slot-derivation-hex",
-                &slot_derivation_hex,
+                "--user-public-key-hex",
+                &user_public_key,
+                "--clue-public-key-hex",
+                &clue_public_key,
                 "--user-registration-grant-hex",
                 &user_grant,
             ],
@@ -1848,6 +1886,10 @@ impl AuditDemo {
         to_timestamp: Option<u64>,
         fields: &[String],
     ) -> Result<()> {
+        let clue_detection_key = compliance_detection_key_hex(&format!(
+            "audit-demo:{}:{}:clue",
+            subject.slug, self.asset
+        ));
         let mut command = Command::new("orbis-audit");
         command
             .current_dir(&self.root)
@@ -1869,6 +1911,8 @@ impl AuditDemo {
             .arg(self.demo_dir.join("orbis-object-cache.json"))
             .arg("--authority")
             .arg("user")
+            .arg("--clue-detection-key-hex")
+            .arg(clue_detection_key)
             .arg("--orbis-endpoint")
             .arg(&self.orbis_endpoint)
             .arg("--subject-address")

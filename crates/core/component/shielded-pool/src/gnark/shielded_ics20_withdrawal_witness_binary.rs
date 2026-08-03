@@ -17,7 +17,7 @@ use crate::{
 };
 
 const SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC: &[u8; 4] = b"PIWG";
-const SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION: u32 = 2;
+const SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION: u32 = 3;
 
 impl ShieldedIcs20WithdrawalWitnessV1 {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -48,9 +48,8 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
         encode_merkle_path(&mut buf, &self.sender_compliance_path)?;
         put_u64(&mut buf, self.sender_compliance_position);
         put_bytes(&mut buf, &self.sender_asset_id);
-        put_bytes(&mut buf, &self.sender_slot_id);
-        put_bytes(&mut buf, &self.sender_slot_derivation);
-        put_bytes(&mut buf, &self.sender_d);
+        put_bytes(&mut buf, &self.sender_user_public_key);
+        put_bytes(&mut buf, &self.sender_clue_public_key);
         for spend in &self.spends {
             encode_spend(&mut buf, spend)?;
         }
@@ -61,6 +60,8 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
         encode_point_affine(&mut buf, &self.asset_indexed_leaf_ring_pk_affine);
         encode_point_affine(&mut buf, &self.sender_diversified_generator_affine);
         encode_point_affine(&mut buf, &self.sender_transmission_key_affine);
+        encode_point_affine(&mut buf, &self.sender_user_public_key_affine);
+        encode_point_affine(&mut buf, &self.sender_clue_public_key_affine);
 
         let total_len = u32::try_from(buf.len())
             .context("encoded shielded ICS-20 withdrawal witness exceeds u32")?;
@@ -122,9 +123,8 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
             sender_compliance_path: cursor.read_merkle_path()?,
             sender_compliance_position: cursor.read_u64()?,
             sender_asset_id: cursor.read_fixed::<32>()?,
-            sender_slot_id: cursor.read_fixed::<32>()?,
-            sender_slot_derivation: cursor.read_fixed::<32>()?,
-            sender_d: cursor.read_fixed::<32>()?,
+            sender_user_public_key: cursor.read_fixed::<32>()?,
+            sender_clue_public_key: cursor.read_fixed::<32>()?,
             spends: (0..n_in)
                 .map(|_| decode_spend(&mut cursor))
                 .collect::<Result<Vec<_>>>()?,
@@ -135,6 +135,8 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
             asset_indexed_leaf_ring_pk_affine: cursor.read_point_affine()?,
             sender_diversified_generator_affine: cursor.read_point_affine()?,
             sender_transmission_key_affine: cursor.read_point_affine()?,
+            sender_user_public_key_affine: cursor.read_point_affine()?,
+            sender_clue_public_key_affine: cursor.read_point_affine()?,
         };
 
         cursor.finish(family_id.label())?;

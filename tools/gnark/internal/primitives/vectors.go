@@ -160,7 +160,6 @@ type IndexedLeafFixture struct {
 	NextValue      []byte      `json:"next_value"`
 	DKPub          []byte      `json:"dk_pub"`
 	Threshold      json.Number `json:"threshold"`
-	SlotCount      json.Number `json:"slot_count"`
 	ChannelsHash   []byte      `json:"channels_hash"`
 	RingPK         []byte      `json:"ring_pk"`
 	RingIDHash     []byte      `json:"ring_id_hash"`
@@ -178,11 +177,10 @@ type AssetIDFixture struct {
 }
 
 type ComplianceLeafFixture struct {
-	Address        AddressFixture `json:"address"`
-	AssetID        AssetIDFixture `json:"assetId"`
-	SlotID         string         `json:"slot_id"`
-	SlotDerivation string         `json:"slot_derivation"`
-	D              string         `json:"d"`
+	Address       AddressFixture `json:"address"`
+	AssetID       AssetIDFixture `json:"assetId"`
+	UserPublicKey []byte         `json:"user_public_key"`
+	CluePublicKey []byte         `json:"clue_public_key"`
 }
 
 type SpendPrivateFixture struct {
@@ -212,7 +210,8 @@ type SpendPrivateFixture struct {
 	CompliancePosition             uint64                      `json:"compliance_position"`
 	UserLeaf                       ComplianceLeafFixture       `json:"user_leaf"`
 	UserLeafCommitment             string                      `json:"user_leaf_commitment"`
-	UserDDecimal                   string                      `json:"user_d_decimal"`
+	UserPublicKeyAffine            PointAffineFixture          `json:"user_public_key_affine"`
+	CluePublicKeyAffine            PointAffineFixture          `json:"clue_public_key_affine"`
 	UserDiversifiedGeneratorAffine PointAffineFixture          `json:"user_diversified_generator_affine"`
 	UserTransmissionKeyAffine      PointAffineFixture          `json:"user_transmission_key_affine"`
 	ComplianceEphemeralSecret      string                      `json:"compliance_ephemeral_secret"`

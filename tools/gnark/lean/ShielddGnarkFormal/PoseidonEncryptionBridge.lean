@@ -28,14 +28,12 @@ def detectionPlaintext (assetID isFlagged flagBit : F) : F :=
 
 def DetectionSpec
     (streamDomain issuerDomain flagBit isRegulated isFlagged ssFq senderCoreEPKFq
-      detectionSalt assetID senderSlotID receiverSlotID : F)
-    (cipher0 cipher1 cipher2 cipher3 : F) : Prop :=
+      detectionSalt assetID : F)
+    (cipher0 cipher1 : F) : Prop :=
   isRegulated = 1 →
     let seed := Poseidon2Bridge.permSpec2 issuerDomain ssFq senderCoreEPKFq
     cipher0 = detectionPlaintext assetID isFlagged flagBit + streamBlock streamDomain seed 0 ∧
-    cipher1 = detectionSalt + streamBlock streamDomain seed 1 ∧
-    cipher2 = senderSlotID + streamBlock streamDomain seed 2 ∧
-    cipher3 = receiverSlotID + streamBlock streamDomain seed 3
+    cipher1 = detectionSalt + streamBlock streamDomain seed 1
 
 def DetectionCircuit := DetectionSpec
 
@@ -60,13 +58,11 @@ def AddressCircuit := AddressSpec
 
 theorem detection_sound
     (streamDomain issuerDomain flagBit isRegulated isFlagged ssFq senderCoreEPKFq
-      detectionSalt assetID senderSlotID receiverSlotID cipher0 cipher1 cipher2 cipher3 : F) :
+      detectionSalt assetID cipher0 cipher1 : F) :
     DetectionCircuit streamDomain issuerDomain flagBit isRegulated isFlagged ssFq
-      senderCoreEPKFq detectionSalt assetID senderSlotID receiverSlotID
-      cipher0 cipher1 cipher2 cipher3 →
+      senderCoreEPKFq detectionSalt assetID cipher0 cipher1 →
     DetectionSpec streamDomain issuerDomain flagBit isRegulated isFlagged ssFq
-      senderCoreEPKFq detectionSalt assetID senderSlotID receiverSlotID
-      cipher0 cipher1 cipher2 cipher3 := by
+      senderCoreEPKFq detectionSalt assetID cipher0 cipher1 := by
   intro h
   exact h
 

@@ -85,9 +85,6 @@ pub struct NativeAssetRegistration {
     /// Immutable authority key that signs user registration grants for this asset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub registration_authority_vk: Option<VerificationKey<SpendAuth>>,
-    /// Number of ACP-authorized compliance slots for this asset.
-    #[serde(default)]
-    pub slot_count: u32,
 }
 
 impl DomainType for NativeAssetRegistration {
@@ -120,7 +117,6 @@ impl TryFrom<pb::NativeAssetRegistration> for NativeAssetRegistration {
                 .map(TryInto::try_into)
                 .transpose()
                 .map_err(|e| anyhow::anyhow!("invalid genesis registration_authority_vk: {e}"))?,
-            slot_count: value.slot_count,
         })
     }
 }
@@ -132,7 +128,6 @@ impl From<NativeAssetRegistration> for pb::NativeAssetRegistration {
             is_regulated: value.is_regulated,
             dk_pub: value.dk_pub.map(Vec::from).unwrap_or_default(),
             registration_authority_vk: value.registration_authority_vk.map(Into::into),
-            slot_count: value.slot_count,
         }
     }
 }

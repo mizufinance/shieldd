@@ -59,7 +59,6 @@ pub mod proof_test_helpers {
         let policy = shieldd_sdk_compliance::AssetPolicy::new(
             dk_pub,
             u128::MAX,
-            shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
             vec![],
             None,
             "test-ring-id".to_string(),
@@ -93,7 +92,6 @@ pub mod proof_test_helpers {
         let policy = shieldd_sdk_compliance::AssetPolicy::new(
             low_dk_pub,
             low_threshold,
-            shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
             vec![],
             None,
             "low-ring-id".to_string(),
@@ -208,7 +206,6 @@ pub mod proof_test_helpers {
             shieldd_sdk_compliance::AssetPolicy::new(
                 dk_pub,
                 asset_indexed_leaf.params.threshold,
-                shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
                 vec![],
                 None,
                 "test-ring-id".to_string(),
@@ -221,28 +218,25 @@ pub mod proof_test_helpers {
             shieldd_sdk_compliance::AssetPolicy::default_unregulated()
         };
 
-        // Receiver ACK
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let d = shieldd_sdk_compliance::derive_compliance_scalar(b_d_fq);
-        let d_fr = Fr::from_le_bytes_mod_order(&d.to_bytes());
-        let ack_receiver = ring_pk * d_fr;
+        let ack_receiver = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
+        let receiver_clue_key = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
+        let ack_sender = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
+        let sender_clue_key = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
 
-        // Sender ACK used by transfer-side compliance fixtures.
-        let sender_b_d_fq = sender_address
-            .diversified_generator()
-            .vartime_compress_to_field();
-        let sender_d = shieldd_sdk_compliance::derive_compliance_scalar(sender_b_d_fq);
-        let sender_d_fr = Fr::from_le_bytes_mod_order(&sender_d.to_bytes());
-        let ack_sender = ring_pk * sender_d_fr;
-
-        let user_leaf =
-            shieldd_sdk_compliance::ComplianceLeaf::new(address.clone(), value.asset_id, b_d_fq);
-
+        let user_leaf = shieldd_sdk_compliance::ComplianceLeaf::new(
+            address.clone(),
+            value.asset_id,
+            ack_receiver,
+            receiver_clue_key,
+        )
+        .expect("valid receiver compliance keys");
         let counterparty_leaf = shieldd_sdk_compliance::ComplianceLeaf::new(
             sender_address.clone(),
             value.asset_id,
-            sender_b_d_fq,
-        );
+            ack_sender,
+            sender_clue_key,
+        )
+        .expect("valid sender compliance keys");
 
         let (compliance_anchor, compliance_path, compliance_position) =
             create_user_tree_proof(&user_leaf);
@@ -353,6 +347,7 @@ pub mod proof_test_helpers {
             spend.target_timestamp = base.target_timestamp;
             spend.tx_blinding_nonce = tx_blinding_nonce;
             spend.asset_policy = Some(base.asset_policy.clone());
+            spend.compliance_leaf = Some(base.user_leaf.clone());
             spend
                 .set_compliance_details(rng)
                 .expect("set transfer spend compliance details");
@@ -519,6 +514,7 @@ pub mod proof_test_helpers {
         spend.target_timestamp = base.target_timestamp;
         spend.tx_blinding_nonce = tx_blinding_nonce;
         spend.asset_policy = Some(base.asset_policy.clone());
+        spend.compliance_leaf = Some(base.user_leaf.clone());
         spend
             .set_compliance_details(rng)
             .expect("set hidden-arity transfer spend compliance details");
@@ -528,14 +524,17 @@ pub mod proof_test_helpers {
             .clone()
             .expect("hidden-arity transfer spend must have sender leaf");
 
-        let recipient_b_d_fq = recipient_address
-            .diversified_generator()
-            .vartime_compress_to_field();
-        let recipient_leaf = shieldd_sdk_compliance::ComplianceLeaf::new(
-            recipient_address.clone(),
-            asset_id,
-            recipient_b_d_fq,
-        );
+        let recipient_leaf = if send_to_self {
+            base.user_leaf.clone()
+        } else {
+            shieldd_sdk_compliance::ComplianceLeaf::new(
+                recipient_address.clone(),
+                asset_id,
+                decaf377::Element::GENERATOR * Fr::rand(&mut *rng),
+                decaf377::Element::GENERATOR * Fr::rand(&mut *rng),
+            )
+            .expect("valid recipient compliance keys")
+        };
         let (
             shared_compliance_anchor,
             sender_compliance_path,
@@ -687,6 +686,7 @@ pub mod proof_test_helpers {
             spend.target_timestamp = base.target_timestamp;
             spend.tx_blinding_nonce = tx_blinding_nonce;
             spend.asset_policy = Some(base.asset_policy.clone());
+            spend.compliance_leaf = Some(base.user_leaf.clone());
             spend
                 .set_compliance_details(&mut rng)
                 .expect("set transfer spend compliance details");

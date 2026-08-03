@@ -4,6 +4,12 @@ pub use enrichment::{AssetProofData, BatchComplianceData, ComplianceProofProvide
 pub mod authorization;
 pub use authorization::{AuthorizationId, AUTHORIZATION_ID_DOMAIN};
 
+pub mod fuzzy;
+pub use fuzzy::{
+    FuzzyClueKey, FuzzyDetectionKey, FuzzyMatch, FuzzyRole, FuzzyTag, TransferFuzzyTags,
+    FUZZY_TAG_BITS,
+};
+
 pub mod event;
 
 pub mod issuer_keys;
@@ -32,7 +38,6 @@ pub use structs::{
     AMOUNT_BYTES,
     ASSET_ID_BYTES,
     C2_BYTES,
-    DEFAULT_COMPLIANCE_SLOT_COUNT,
     DETECTION_TAG_BYTES,
     EPK_BYTES,
     FQ_BYTES,
@@ -89,11 +94,10 @@ pub use r1cs::{
 pub mod crypto;
 pub use crypto::{
     compute_dleq_native, compute_metadata_hash, compute_transfer_metadata_hash, decrypt,
-    decrypt_detection_tier, decrypt_tier_bytes, derive_compliance_scalar, encrypt_tier_bytes,
-    fq_to_challenge_scalar, verify_dleq_native, DecryptedComplianceData,
-    COMPLIANCE_STREAM_CIPHER_DOMAIN, DLEQ_CHALLENGE_DOMAIN, DLEQ_METADATA_DOMAIN,
-    ENCRYPT_PROOF_DOMAIN, ISSUER_DETECTION_DOMAIN, TRANSFER_DLEQ_METADATA_DOMAIN,
-    UNREGULATED_SINK_DK_PUB, UNREGULATED_SINK_RING_PK,
+    decrypt_detection_tier, decrypt_tier_bytes, encrypt_tier_bytes, fq_to_challenge_scalar,
+    verify_dleq_native, DecryptedComplianceData, COMPLIANCE_STREAM_CIPHER_DOMAIN,
+    DLEQ_CHALLENGE_DOMAIN, DLEQ_METADATA_DOMAIN, ENCRYPT_PROOF_DOMAIN, ISSUER_DETECTION_DOMAIN,
+    TRANSFER_DLEQ_METADATA_DOMAIN, UNREGULATED_SINK_DK_PUB, UNREGULATED_SINK_RING_PK,
 };
 
 pub mod scanning;
@@ -113,8 +117,8 @@ pub use audit_status::{AuditStatus, DecryptedVia, FlowType};
 
 pub mod audit_records;
 pub use audit_records::{
-    AuditAuthority, AuditDetectedRef, AuditScanExport, AuditSelection, DisclosureField,
-    OrbisAuditEntry, TransferRole,
+    AuditAuthority, AuditDetectedRef, AuditFuzzyClue, AuditScanExport, AuditSelection,
+    DisclosureField, OrbisAuditEntry, TransferRole,
 };
 
 #[cfg(feature = "scanner")]
@@ -166,8 +170,8 @@ pub use upload_package::{
 
 pub mod orbis_interop;
 pub use orbis_interop::{
-    compute_reencrypt_commitment, compute_ring_pk, recover_seed,
-    verify_and_compute_reencrypt_commitment, verify_reencrypt_proof,
+    compute_reencrypt_commitment, recover_seed, verify_and_compute_reencrypt_commitment,
+    verify_reencrypt_proof,
 };
 
 /// Create valid IMT non-membership proof for an unregulated asset.
@@ -409,16 +413,20 @@ mod tests {
 
         let sender_address = Address::dummy(&mut rng);
         let receiver_address = Address::dummy(&mut rng);
-        let sender_slot_derivation = sender_address
-            .diversified_generator()
-            .vartime_compress_to_field();
-        let receiver_slot_derivation = receiver_address
-            .diversified_generator()
-            .vartime_compress_to_field();
-        let sender_leaf =
-            ComplianceLeaf::new(sender_address.clone(), asset_id, sender_slot_derivation);
-        let receiver_leaf =
-            ComplianceLeaf::new(receiver_address.clone(), asset_id, receiver_slot_derivation);
+        let sender_leaf = ComplianceLeaf::new(
+            sender_address.clone(),
+            asset_id,
+            decaf377::Element::GENERATOR * decaf377::Fr::from(3u64),
+            decaf377::Element::GENERATOR * decaf377::Fr::from(5u64),
+        )
+        .unwrap();
+        let receiver_leaf = ComplianceLeaf::new(
+            receiver_address.clone(),
+            asset_id,
+            decaf377::Element::GENERATOR * decaf377::Fr::from(7u64),
+            decaf377::Element::GENERATOR * decaf377::Fr::from(11u64),
+        )
+        .unwrap();
 
         state
             .add_compliance_leaf(sender_leaf.clone())
@@ -442,14 +450,19 @@ mod tests {
 
         let sender_auth_path = state.get_user_auth_path(sender_position).await.unwrap();
         let receiver_auth_path = state.get_user_auth_path(receiver_position).await.unwrap();
-        let sender_ack = ring_pk * decaf377::Fr::from_le_bytes_mod_order(&sender_leaf.d.to_bytes());
-        let receiver_ack =
-            ring_pk * decaf377::Fr::from_le_bytes_mod_order(&receiver_leaf.d.to_bytes());
+        let sender_ack = sender_leaf.user_public_key;
+        let receiver_ack = receiver_leaf.user_public_key;
+        let sender_clue_key =
+            crate::FuzzyClueKey::from_element(sender_leaf.clue_public_key).unwrap();
+        let receiver_clue_key =
+            crate::FuzzyClueKey::from_element(receiver_leaf.clue_public_key).unwrap();
 
         let ciphertext = encrypt_transfer(
             &mut OsRng,
             &sender_ack,
             &receiver_ack,
+            &sender_clue_key,
+            &receiver_clue_key,
             &issuer_dk_pub,
             &receiver_address,
             &sender_address,
@@ -458,7 +471,7 @@ mod tests {
                 asset_id,
             },
             false,
-            0,
+            crate::AuthorizationId::from_fq(Fq::from(1u64)),
             0,
             Fq::from(0u64),
         )
@@ -489,7 +502,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_end_to_end_detection_and_decryption() {
-        use crate::crypto::derive_compliance_scalar;
+        use crate::fuzzy::FuzzyDetectionKey;
         use crate::issuer_keys::DetectionKey;
         use crate::transfer::encrypt_transfer;
         use rand_core::OsRng;
@@ -504,41 +517,28 @@ mod tests {
 
         let issuer_dk = DetectionKey::demo();
         let issuer_dk_pub = issuer_dk.public_key();
-        let ring_pk = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
         let sender_address = test_helpers::make_address(1);
         let receiver_address = test_helpers::make_address(2);
         let asset_id = asset::Id(decaf377::Fq::from(999999u64));
         let amount = Amount::from(1_000_000u128);
 
-        let sender_ack = ring_pk
-            * decaf377::Fr::from_le_bytes_mod_order(
-                &derive_compliance_scalar(
-                    sender_address
-                        .diversified_generator()
-                        .vartime_compress_to_field(),
-                )
-                .to_bytes(),
-            );
-        let receiver_ack = ring_pk
-            * decaf377::Fr::from_le_bytes_mod_order(
-                &derive_compliance_scalar(
-                    receiver_address
-                        .diversified_generator()
-                        .vartime_compress_to_field(),
-                )
-                .to_bytes(),
-            );
+        let sender_ack = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
+        let receiver_ack = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
+        let sender_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
+        let receiver_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
 
         let ciphertext = encrypt_transfer(
             &mut OsRng,
             &sender_ack,
             &receiver_ack,
+            &sender_clue_key,
+            &receiver_clue_key,
             &issuer_dk_pub,
             &receiver_address,
             &sender_address,
             Value { amount, asset_id },
             true,
-            0,
+            crate::AuthorizationId::from_fq(Fq::from(2u64)),
             0,
             Fq::from(7u64),
         )

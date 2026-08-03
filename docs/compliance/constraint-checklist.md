@@ -30,15 +30,12 @@ or re-checks it, and where regressions should be caught.
 - Tested by: compliance registry tests and transfer gnark metamorphic tests.
 - Violation: transaction planning fails or the transfer proof rejects.
 
-### Compliance Slot Binding
+### Compliance User And Clue Key Binding
 
 - Enforced in: `ComplianceLeaf::commit`, registration validation, and transfer
   compliance circuits.
-- Verified at: `MsgRegisterUser` checks `slot_id < slot_count` and
-  `d == derive_compliance_scalar(slot_derivation)`.
-- Privacy note: `slot_id` secrecy is not a constraint when `slot_derivation` is
-  visible; same-slot linkability comes from shared `slot_derivation`, `d`, and
-  ACK.
+- Verified at: `MsgRegisterUser` validates non-identity, distinct user/clue
+  public keys and the authority signature over the full leaf.
 - Tested by: compliance leaf/proto tests, registry registration tests, and
   gnark transfer witness parity tests.
 - Violation: registration fails, transfer planning cannot use a synthetic
@@ -56,14 +53,24 @@ or re-checks it, and where regressions should be caught.
 ### Detection Tier
 
 - Enforced in: transfer compliance ciphertext construction and circuit public
-  inputs. The detection plaintext contains asset id plus flag, salt, sender
-  slot id, and receiver slot id.
+  inputs. The detection plaintext contains asset id plus flag and salt.
 - Verified at: `ComplianceScreener::screen` and
   `DetectionKey::try_decrypt_detection`.
 - Tested by: `scanner::screener::*` tests and
   `issuer_keys::tests::test_detection_tier_roundtrip`.
 - Violation: ciphertext is marked irrelevant or invalid; malformed rows are
   capped and persisted.
+
+### Fuzzy Clue Binding
+
+- Enforced in: transfer construction and the transfer compliance circuit.
+- Verified at: the circuit recomputes sender and receiver Poseidon-DH tags from
+  the registered clue keys, matching core-tier randomizers, asset ID,
+  authorization ID, authorization timestamp, and role.
+- Tested by: `fuzzy::*`, audit CLI prefilter tests, Rust/Go witness parity, and
+  transfer circuit adversarial tests.
+- Violation: the transfer proof rejects. Off-chain examination may admit false
+  positives but a valid clue must not produce a false negative.
 
 ### Tier Encryption And DLEQ Binding
 
@@ -116,8 +123,7 @@ or re-checks it, and where regressions should be caught.
 ### DK Plaintext Match
 
 - Enforced in: `validate_and_save_evidence_object`.
-- Verified at: comparison against `scanner_detections` asset, flag, salt, and
-  slot ids.
+- Verified at: comparison against `scanner_detections` asset, flag, and salt.
 - Tested by: audit validation tamper tests and screener tests.
 - Violation: evidence failure is recorded and the row cannot complete audit.
 

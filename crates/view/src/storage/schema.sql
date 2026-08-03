@@ -141,7 +141,6 @@ CREATE TABLE compliance_asset_leaves (
     next_value BLOB NOT NULL,
     dk_pub BLOB NOT NULL,          -- 32 bytes compressed curve point
     threshold BLOB NOT NULL,       -- 16 bytes little-endian u128
-    slot_count BIGINT NOT NULL,
     route_policy_hash BLOB NOT NULL,   -- 32 bytes Fq
     ring_pk BLOB NOT NULL,         -- 32 bytes compressed curve point
     ring_id_hash BLOB NOT NULL,    -- 32 bytes Fq
@@ -172,9 +171,8 @@ CREATE TABLE compliance_user_leaf_data (
     address BLOB NOT NULL,
     asset_id BLOB NOT NULL,
     position BIGINT NOT NULL,
-    slot_id BIGINT NOT NULL,
-    slot_derivation BLOB NOT NULL,     -- 32 bytes Fq
-    d BLOB NOT NULL,                   -- 32 bytes Fq
+    user_public_key BLOB NOT NULL,     -- 32 bytes compressed curve point
+    clue_public_key BLOB NOT NULL,     -- 32 bytes compressed curve point
     commitment BLOB NOT NULL,
     PRIMARY KEY (address, asset_id)
 );

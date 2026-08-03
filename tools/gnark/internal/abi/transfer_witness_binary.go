@@ -10,27 +10,27 @@ import (
 
 const (
 	transferWitnessV1Magic   = "PTWG"
-	transferWitnessV1Version = 9
+	transferWitnessV1Version = 10
 )
 
 type TransferComplianceCiphertextWitnessV1Binary struct {
-	C2                 [32]byte
-	Ciphertext         [][32]byte
-	SubjectDerivation  [32]byte
-	RingIDHash         [32]byte
-	PolicyIDHash       [32]byte
-	ResourceHash       [32]byte
-	PermissionHash     [32]byte
-	Tier               uint64
-	StatementTimestamp [32]byte
-	AuthorizationID    [32]byte
-	Salt               [32]byte
-	Challenge          [32]byte
-	Response           [32]byte
-	EPKAffine          PointAffineBinary
-	DerivedPKAffine    PointAffineBinary
-	EncCmtAffine       PointAffineBinary
-	SharedPointAffine  PointAffineBinary
+	C2                   [32]byte
+	Ciphertext           [][32]byte
+	SubjectUserPublicKey [32]byte
+	RingIDHash           [32]byte
+	PolicyIDHash         [32]byte
+	ResourceHash         [32]byte
+	PermissionHash       [32]byte
+	Tier                 uint64
+	StatementTimestamp   [32]byte
+	AuthorizationID      [32]byte
+	Salt                 [32]byte
+	Challenge            [32]byte
+	Response             [32]byte
+	EPKAffine            PointAffineBinary
+	DerivedPKAffine      PointAffineBinary
+	EncCmtAffine         PointAffineBinary
+	SharedPointAffine    PointAffineBinary
 }
 
 type TransferSpendWitnessV1Binary struct {
@@ -62,15 +62,16 @@ type TransferOutputWitnessV1Binary struct {
 	RecipientCompliancePath     MerklePathBinary
 	RecipientCompliancePosition uint64
 	RecipientAssetID            [32]byte
-	RecipientSlotID             [32]byte
-	RecipientSlotDerivation     [32]byte
-	RecipientD                  [32]byte
+	RecipientUserPublicKey      [32]byte
+	RecipientCluePublicKey      [32]byte
 	// Output 0 is the receiver leg. Output 1, when present, is sender-owned change.
 	IsReceiver                    bool
 	CreatedDiversifiedGeneratorXY PointAffineBinary
 	CreatedTransmissionKeyXY      PointAffineBinary
 	RecipientDiversifiedGenerator PointAffineBinary
 	RecipientTransmissionKey      PointAffineBinary
+	RecipientUserPublicKeyAffine  PointAffineBinary
+	RecipientCluePublicKeyAffine  PointAffineBinary
 }
 
 type TransferWitnessV1Binary struct {
@@ -96,12 +97,12 @@ type TransferWitnessV1Binary struct {
 	SenderCompliancePath     MerklePathBinary
 	SenderCompliancePosition uint64
 	SenderAssetID            [32]byte
-	SenderSlotID             [32]byte
-	SenderSlotDerivation     [32]byte
-	SenderD                  [32]byte
+	SenderUserPublicKey      [32]byte
+	SenderCluePublicKey      [32]byte
 	TransferNonceRoot        [32]byte
 
 	DetectionCiphertext [][32]byte
+	FuzzyTags           [32]byte
 	SenderCore          TransferComplianceCiphertextWitnessV1Binary
 	SenderExt           TransferComplianceCiphertextWitnessV1Binary
 	OutputCore          TransferComplianceCiphertextWitnessV1Binary
@@ -120,6 +121,8 @@ type TransferWitnessV1Binary struct {
 	AssetIndexedLeafRingPK     PointAffineBinary
 	SenderDiversifiedGenerator PointAffineBinary
 	SenderTransmissionKey      PointAffineBinary
+	SenderUserPublicKeyAffine  PointAffineBinary
+	SenderCluePublicKeyAffine  PointAffineBinary
 }
 
 func DecodeTransferWitnessV1(payload []byte) (*TransferWitnessV1Binary, generated.TransferFamilySpec, error) {
@@ -230,19 +233,19 @@ func decodeTransferWitnessV1(
 	if witness.SenderAssetID, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderSlotID, err = read32(reader); err != nil {
+	if witness.SenderUserPublicKey, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderSlotDerivation, err = read32(reader); err != nil {
-		return nil, err
-	}
-	if witness.SenderD, err = read32(reader); err != nil {
+	if witness.SenderCluePublicKey, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.TransferNonceRoot, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.DetectionCiphertext, err = readVec32(reader); err != nil {
+		return nil, err
+	}
+	if witness.FuzzyTags, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.SenderCore, err = readTransferComplianceTier(reader); err != nil {
@@ -351,13 +354,10 @@ func decodeTransferWitnessV1(
 		if witness.Outputs[i].RecipientAssetID, err = read32(reader); err != nil {
 			return nil, err
 		}
-		if witness.Outputs[i].RecipientSlotID, err = read32(reader); err != nil {
+		if witness.Outputs[i].RecipientUserPublicKey, err = read32(reader); err != nil {
 			return nil, err
 		}
-		if witness.Outputs[i].RecipientSlotDerivation, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientD, err = read32(reader); err != nil {
+		if witness.Outputs[i].RecipientCluePublicKey, err = read32(reader); err != nil {
 			return nil, err
 		}
 		if witness.Outputs[i].IsReceiver, err = readBool(reader); err != nil {
@@ -373,6 +373,12 @@ func decodeTransferWitnessV1(
 			return nil, err
 		}
 		if witness.Outputs[i].RecipientTransmissionKey, err = readPointAffine(reader); err != nil {
+			return nil, err
+		}
+		if witness.Outputs[i].RecipientUserPublicKeyAffine, err = readPointAffine(reader); err != nil {
+			return nil, err
+		}
+		if witness.Outputs[i].RecipientCluePublicKeyAffine, err = readPointAffine(reader); err != nil {
 			return nil, err
 		}
 	}
@@ -395,6 +401,12 @@ func decodeTransferWitnessV1(
 	if witness.SenderTransmissionKey, err = readPointAffine(reader); err != nil {
 		return nil, err
 	}
+	if witness.SenderUserPublicKeyAffine, err = readPointAffine(reader); err != nil {
+		return nil, err
+	}
+	if witness.SenderCluePublicKeyAffine, err = readPointAffine(reader); err != nil {
+		return nil, err
+	}
 
 	if extra, err := readExact(reader, int(reader.Len())); err != nil {
 		return nil, err
@@ -414,7 +426,7 @@ func readTransferComplianceTier(reader *bytes.Reader) (TransferComplianceCiphert
 	if tier.Ciphertext, err = readVec32(reader); err != nil {
 		return tier, err
 	}
-	if tier.SubjectDerivation, err = read32(reader); err != nil {
+	if tier.SubjectUserPublicKey, err = read32(reader); err != nil {
 		return tier, err
 	}
 	if tier.RingIDHash, err = read32(reader); err != nil {

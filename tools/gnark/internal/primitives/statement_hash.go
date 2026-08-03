@@ -10,7 +10,7 @@ import (
 
 const SpendStatementFieldCount = 17
 const OutputStatementFieldCount = 29
-const TransferStatementBaseFields = 81
+const TransferStatementBaseFields = 80
 const TransferStatementFieldsPerInput = 2
 const TransferStatementFieldsPerOutput = 1
 const NoteReshapeStatementBaseFields = 2

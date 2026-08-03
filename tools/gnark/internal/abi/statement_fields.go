@@ -84,6 +84,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV1(
 		)
 	}
 	fields = append(fields, witness.DetectionCiphertext...)
+	fields = append(fields, witness.FuzzyTags)
 
 	appendTier := func(label string, tier TransferComplianceCiphertextWitnessV1Binary, expectedCiphertext int) error {
 		if len(tier.Ciphertext) != expectedCiphertext {
@@ -135,7 +136,7 @@ func ReconstructedTransferStatementFieldsFromWitnessV1(
 		}
 		fields = append(
 			fields,
-			tier.SubjectDerivation,
+			tier.SubjectUserPublicKey,
 			tier.RingIDHash,
 			tier.PolicyIDHash,
 			tier.ResourceHash,

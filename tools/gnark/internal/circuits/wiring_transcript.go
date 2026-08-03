@@ -374,6 +374,8 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 		return "gadget-ack-two-step", "Shieldd.GnarkFormal.AckBridge.ack_sound", true
 	case "decaf.shared_secret":
 		return "gadget-ack-two-step", "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound", true
+	case "decaf.fuzzy_scalar_mul":
+		return "gadget-scalar-mul-step", "Shieldd.GnarkFormal.ScalarMulBridge.scalarMulLE251_sound", true
 	case "gadget.nullifier":
 		return "gadget-nullifier", "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound", true
 	case "gadget.synthetic_dummy_nullifier":
@@ -392,6 +394,10 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 		return "gadget-poseidon2", "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound", true
 	case "gadget.authorization_id":
 		return "gadget-poseidon-hash1", "Shieldd.GnarkFormal.Poseidon1Bridge.circuit_sound", true
+	case "gadget.fuzzy_poseidon":
+		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound", true
+	case "gadget.canonical_fq_bits":
+		return "gadget-canonical-fq-bits", "Shieldd.GnarkFormal.CanonicalFqBitsManifestBridge.canonical_sound", true
 	case "gadget.poseidon_encryption.detection":
 		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_sound", true
 	case "gadget.poseidon_encryption.amount":

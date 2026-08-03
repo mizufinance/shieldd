@@ -5,8 +5,11 @@ use decaf377::{Element, Fr};
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_num::Amount;
 
-use crate::crypto::{decrypt_detection_tier, decrypt_tier_bytes};
 use crate::transfer::TransferComplianceCiphertext;
+use crate::{
+    crypto::{decrypt_detection_tier, decrypt_tier_bytes},
+    AuthorizationId, FuzzyDetectionKey, FuzzyMatch,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AddressData {
@@ -20,6 +23,27 @@ pub struct FullComplianceData {
     pub amount: Amount,
     pub sender_address: AddressData,
     pub receiver_address: AddressData,
+}
+
+/// Test a serialized transfer against a released user detection key.
+///
+/// A candidate is always a true match for that user's transfers, plus the expected 8-bit
+/// false positives. Callers send only candidates to the authorized decryptor.
+pub fn screen_user_clue(
+    ciphertext: &TransferComplianceCiphertext,
+    detection_key: FuzzyDetectionKey,
+    asset_id: asset::Id,
+    authorization_id: AuthorizationId,
+    authorization_timestamp: u64,
+) -> FuzzyMatch {
+    ciphertext.fuzzy_tags.examine(
+        detection_key,
+        &ciphertext.sender_core_epk,
+        &ciphertext.output_core_epk,
+        asset_id.0,
+        authorization_id,
+        authorization_timestamp,
+    )
 }
 
 fn decrypt_amount_with_seed(seed: decaf377::Fq, encrypted: &[u8]) -> anyhow::Result<Amount> {
@@ -53,7 +77,7 @@ pub fn decrypt_full_flagged(
     ciphertext: &TransferComplianceCiphertext,
     asset_id: asset::Id,
 ) -> anyhow::Result<Option<FullComplianceData>> {
-    let (_, is_flagged, _, _, _) = decrypt_detection_tier(
+    let (_, is_flagged, _) = decrypt_detection_tier(
         dk_secret,
         &ciphertext.sender_core_epk,
         &ciphertext.detection_tag,
@@ -97,28 +121,21 @@ pub fn decrypt_full_flagged(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::derive_compliance_scalar;
+    use crate::fuzzy::FuzzyDetectionKey;
     use crate::issuer_keys::DetectionKey;
     use crate::test_helpers::make_address;
     use crate::transfer::encrypt_transfer;
     use rand_core::OsRng;
     use shieldd_sdk_asset::Value;
 
-    fn derive_ack(
-        ring_pk: &decaf377::Element,
-        address: &shieldd_sdk_keys::Address,
-    ) -> decaf377::Element {
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let d = derive_compliance_scalar(b_d_fq);
-        let d_fr = decaf377::Fr::from_le_bytes_mod_order(&d.to_bytes());
-        *ring_pk * d_fr
-    }
-
     #[test]
     fn test_decrypt_full_flagged_transfer() {
         let dk = DetectionKey::demo();
         let dk_pub = dk.public_key();
-        let ring_pk = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
+        let sender_key = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
+        let receiver_key = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
+        let sender_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
+        let receiver_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
         let sender_address = make_address(31);
         let receiver_address = make_address(32);
         let asset_id = asset::Id(decaf377::Fq::from(4242u64));
@@ -126,14 +143,16 @@ mod tests {
 
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &derive_ack(&ring_pk, &sender_address),
-            &derive_ack(&ring_pk, &receiver_address),
+            &sender_key,
+            &receiver_key,
+            &sender_clue_key,
+            &receiver_clue_key,
             &dk_pub,
             &receiver_address,
             &sender_address,
             Value { amount, asset_id },
             true,
-            0,
+            crate::AuthorizationId::from_fq(decaf377::Fq::from(1u64)),
             0,
             decaf377::Fq::from(0u64),
         )
@@ -160,15 +179,20 @@ mod tests {
     fn test_decrypt_full_flagged_rejects_unflagged_transfer() {
         let dk = DetectionKey::demo();
         let dk_pub = dk.public_key();
-        let ring_pk = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
+        let sender_key = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
+        let receiver_key = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
+        let sender_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
+        let receiver_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
         let sender_address = make_address(41);
         let receiver_address = make_address(42);
         let asset_id = asset::Id(decaf377::Fq::from(999u64));
 
         let ciphertext = encrypt_transfer(
             &mut OsRng,
-            &derive_ack(&ring_pk, &sender_address),
-            &derive_ack(&ring_pk, &receiver_address),
+            &sender_key,
+            &receiver_key,
+            &sender_clue_key,
+            &receiver_clue_key,
             &dk_pub,
             &receiver_address,
             &sender_address,
@@ -177,7 +201,7 @@ mod tests {
                 asset_id,
             },
             false,
-            0,
+            crate::AuthorizationId::from_fq(decaf377::Fq::from(2u64)),
             0,
             decaf377::Fq::from(1u64),
         )

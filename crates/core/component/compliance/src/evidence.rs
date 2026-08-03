@@ -316,7 +316,7 @@ fn dleq_from_upload_package(package: &crate::OrbisEncryptedSeedUploadPackage) ->
 
 fn write_tier_object(out: &mut Vec<u8>, tier: &PublicTransferTierDecodeObject) {
     let statement = &tier.statement;
-    out.extend_from_slice(&statement.subject_derivation_bytes);
+    out.extend_from_slice(&statement.subject_user_public_key_bytes);
     out.extend_from_slice(&statement.ring_id_hash_bytes);
     out.extend_from_slice(&statement.policy_id_hash_bytes);
     out.extend_from_slice(&statement.resource_hash_bytes);
@@ -334,7 +334,7 @@ fn write_tier_object(out: &mut Vec<u8>, tier: &PublicTransferTierDecodeObject) {
 
 fn read_tier_object(reader: &mut EvidenceReader<'_>) -> Result<PublicTransferTierDecodeObject> {
     let statement = TransferTierMetadataStatement {
-        subject_derivation_bytes: reader.read_array::<32>()?,
+        subject_user_public_key_bytes: reader.read_array::<32>()?,
         ring_id_hash_bytes: reader.read_array::<32>()?,
         policy_id_hash_bytes: reader.read_array::<32>()?,
         resource_hash_bytes: reader.read_array::<32>()?,
@@ -427,20 +427,13 @@ pub(crate) mod tests {
     use shieldd_sdk_num::Amount;
 
     use crate::{
-        crypto::derive_compliance_scalar,
         decode_object::TransferTierMetadataStatement,
+        fuzzy::FuzzyDetectionKey,
         indexed_tree::string_to_fq,
         test_helpers::make_address,
         transfer::{compute_transfer_dleqs, encrypt_transfer},
         upload_package::build_orbis_encrypted_seed_upload_package_with_randomness,
     };
-
-    fn derive_ack(ring_pk: &Element, address: &shieldd_sdk_keys::Address) -> Element {
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let d = derive_compliance_scalar(b_d_fq);
-        let d_fr = Fr::from_le_bytes_mod_order(&d.to_bytes());
-        *ring_pk * d_fr
-    }
 
     pub(crate) fn valid_evidence_fixture(
     ) -> (ComplianceEvidenceObject, TransferOrbisUploadBundle, Element) {
@@ -450,14 +443,20 @@ pub(crate) mod tests {
         let ring_pk = Element::GENERATOR * ring_sk;
         let sender = make_address(9);
         let receiver = make_address(10);
-        let ack_sender = derive_ack(&ring_pk, &sender);
-        let ack_receiver = derive_ack(&ring_pk, &receiver);
+        let ack_sender = Element::GENERATOR * Fr::rand(&mut OsRng);
+        let ack_receiver = Element::GENERATOR * Fr::rand(&mut OsRng);
+        let sender_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
+        let receiver_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
         let asset_id = asset::Id(Fq::from(444u64));
         let salt = Fq::from(77u64);
+        let target_timestamp = 1_700_000_000;
+        let authorization_id = crate::AuthorizationId::from_fq(Fq::from(10u64));
         let encrypted = encrypt_transfer(
             &mut OsRng,
             &ack_sender,
             &ack_receiver,
+            &sender_clue_key,
+            &receiver_clue_key,
             &dk_pub,
             &receiver,
             &sender,
@@ -466,14 +465,12 @@ pub(crate) mod tests {
                 asset_id,
             },
             false,
-            0,
-            0,
+            authorization_id,
+            target_timestamp,
             salt,
         )
         .unwrap();
 
-        let target_timestamp = 1_700_000_000;
-        let authorization_id = crate::AuthorizationId::from_fq(Fq::from(10u64));
         let ring_id = "ring-id";
         let policy_id = "policy-id";
         let resource = "document";
@@ -504,11 +501,9 @@ pub(crate) mod tests {
             target_timestamp,
         );
 
-        let sender_bd = sender.diversified_generator().vartime_compress_to_field();
-        let receiver_bd = receiver.diversified_generator().vartime_compress_to_field();
         let statements = [
             TransferTierMetadataStatement::from_identifiers(
-                sender_bd,
+                ack_sender,
                 ring_id,
                 policy_id,
                 resource,
@@ -519,7 +514,7 @@ pub(crate) mod tests {
                 tier_salts[0],
             ),
             TransferTierMetadataStatement::from_identifiers(
-                sender_bd,
+                ack_sender,
                 ring_id,
                 policy_id,
                 resource,
@@ -530,7 +525,7 @@ pub(crate) mod tests {
                 tier_salts[1],
             ),
             TransferTierMetadataStatement::from_identifiers(
-                receiver_bd,
+                ack_receiver,
                 ring_id,
                 policy_id,
                 resource,
@@ -541,7 +536,7 @@ pub(crate) mod tests {
                 tier_salts[2],
             ),
             TransferTierMetadataStatement::from_identifiers(
-                receiver_bd,
+                ack_receiver,
                 ring_id,
                 policy_id,
                 resource,

@@ -455,7 +455,6 @@ impl TestNodeWithIBC {
                 is_regulated: false,
                 dk_pub: None,
                 threshold: None,
-                slot_count: 0,
                 allowed_ibc_routes: vec![],
                 ibc_origin: None,
                 ring_pk: None,
@@ -472,8 +471,13 @@ impl TestNodeWithIBC {
         // Create MsgRegisterUser for each (address, asset) pair
         for address in addresses {
             for &asset_id in asset_ids {
-                let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-                let leaf = ComplianceLeaf::new(address.clone(), asset_id, b_d_fq);
+                let leaf = ComplianceLeaf::new(
+                    address.clone(),
+                    asset_id,
+                    decaf377::Element::GENERATOR * decaf377::Fr::from(3u64),
+                    decaf377::Element::GENERATOR * decaf377::Fr::from(5u64),
+                )
+                .expect("valid compliance keys");
                 let msg = MsgRegisterUser { leaf, grant: None };
                 actions.push(Action::ComplianceRegisterUser(msg));
             }
@@ -525,7 +529,6 @@ impl TestNodeWithIBC {
             is_regulated: true,
             dk_pub: Some(decaf377::Element::GENERATOR),
             threshold: None,
-            slot_count: shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
             allowed_ibc_routes,
             ibc_origin,
             ring_pk: None,
@@ -548,8 +551,13 @@ impl TestNodeWithIBC {
         actions.push(Action::ComplianceRegisterAsset(asset_msg));
 
         for address in addresses {
-            let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-            let leaf = ComplianceLeaf::new(address.clone(), asset, b_d_fq);
+            let leaf = ComplianceLeaf::new(
+                address.clone(),
+                asset,
+                decaf377::Element::GENERATOR * decaf377::Fr::from(3u64),
+                decaf377::Element::GENERATOR * decaf377::Fr::from(5u64),
+            )
+            .expect("valid compliance keys");
             let body = UserRegistrationGrantBody {
                 leaf: leaf.clone(),
                 policy_id: "benchmark-policy".to_string(),

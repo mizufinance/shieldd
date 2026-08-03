@@ -64,7 +64,6 @@ func indexedLeafInputsFromIndexedLeafBinary(
 		NextValue:      primitives.LittleEndianBytesToBigInt(leaf.NextValue[:]).String(),
 		DKPub:          circuits.PointAffineToNative(pointAffineBinaryToStrings(dkPub)),
 		Threshold:      primitives.LittleEndianBytesToBigInt(leaf.Threshold[:]).String(),
-		SlotCount:      primitives.LittleEndianBytesToBigInt(leaf.SlotCount[:]).String(),
 		ChannelsHash:   primitives.LittleEndianBytesToBigInt(leaf.ChannelsHash[:]).String(),
 		RingPK:         circuits.PointAffineToNative(pointAffineBinaryToStrings(ringPK)),
 		RingIDHash:     primitives.LittleEndianBytesToBigInt(leaf.RingIDHash[:]).String(),
@@ -88,7 +87,6 @@ func indexedLeafFieldsFromIndexedLeafBinary(
 			Y: primitives.LittleEndianBytesToBigInt(dkPub.Y[:]).String(),
 		},
 		Threshold:    primitives.LittleEndianBytesToBigInt(leaf.Threshold[:]).String(),
-		SlotCount:    primitives.LittleEndianBytesToBigInt(leaf.SlotCount[:]).String(),
 		ChannelsHash: primitives.LittleEndianBytesToBigInt(leaf.ChannelsHash[:]).String(),
 		RingPK: circuits.Point2D{
 			X: primitives.LittleEndianBytesToBigInt(ringPK.X[:]).String(),
@@ -169,7 +167,7 @@ func noteFields(
 }
 
 func indexedLeafFields(
-	value, nextValue, threshold, slotCount, channelsHash frontend.Variable,
+	value, nextValue, threshold, channelsHash frontend.Variable,
 	nextIndex frontend.Variable,
 	dkPubX, dkPubY frontend.Variable,
 	ringPKX, ringPKY frontend.Variable,
@@ -181,7 +179,6 @@ func indexedLeafFields(
 		NextValue:      nextValue,
 		DKPub:          circuits.Point2D{X: dkPubX, Y: dkPubY},
 		Threshold:      threshold,
-		SlotCount:      slotCount,
 		ChannelsHash:   channelsHash,
 		RingPK:         circuits.Point2D{X: ringPKX, Y: ringPKY},
 		RingIDHash:     ringIDHash,
@@ -194,18 +191,18 @@ func indexedLeafFields(
 func userComplianceFields(
 	divGenX, divGenY frontend.Variable,
 	transX, transY frontend.Variable,
-	assetID, slotID, slotDerivation, d frontend.Variable,
+	assetID frontend.Variable,
+	userPKX, userPKY, cluePKX, cluePKY frontend.Variable,
 	path [compliance.ComplianceQuadTreeDepth][3]frontend.Variable,
 	position frontend.Variable,
 ) circuits.UserComplianceFields {
 	return circuits.UserComplianceFields{
-		DivGen:         circuits.Point2D{X: divGenX, Y: divGenY},
-		Transmission:   circuits.Point2D{X: transX, Y: transY},
-		AssetID:        assetID,
-		SlotID:         slotID,
-		SlotDerivation: slotDerivation,
-		D:              d,
-		Path:           path,
-		Position:       position,
+		DivGen:       circuits.Point2D{X: divGenX, Y: divGenY},
+		Transmission: circuits.Point2D{X: transX, Y: transY},
+		AssetID:      assetID,
+		UserPK:       circuits.Point2D{X: userPKX, Y: userPKY},
+		CluePK:       circuits.Point2D{X: cluePKX, Y: cluePKY},
+		Path:         path,
+		Position:     position,
 	}
 }

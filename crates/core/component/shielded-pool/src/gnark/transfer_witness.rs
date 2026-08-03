@@ -46,22 +46,23 @@ pub struct TransferOutputWitnessV1 {
     pub recipient_compliance_path: MerklePathBinary,
     pub recipient_compliance_position: u64,
     pub recipient_asset_id: [u8; 32],
-    pub recipient_slot_id: [u8; 32],
-    pub recipient_slot_derivation: [u8; 32],
-    pub recipient_d: [u8; 32],
+    pub recipient_user_public_key: [u8; 32],
+    pub recipient_clue_public_key: [u8; 32],
     /// Output 0 is the receiver leg. Output 1, when present, is sender-owned change.
     pub is_receiver: bool,
     pub created_diversified_generator_affine: PointAffineBytes,
     pub created_transmission_key_affine: PointAffineBytes,
     pub recipient_diversified_generator_affine: PointAffineBytes,
     pub recipient_transmission_key_affine: PointAffineBytes,
+    pub recipient_user_public_key_affine: PointAffineBytes,
+    pub recipient_clue_public_key_affine: PointAffineBytes,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TransferComplianceCiphertextWitnessV1 {
     pub c2: [u8; 32],
     pub ciphertext: Vec<[u8; 32]>,
-    pub subject_derivation: [u8; 32],
+    pub subject_user_public_key: [u8; 32],
     pub ring_id_hash: [u8; 32],
     pub policy_id_hash: [u8; 32],
     pub resource_hash: [u8; 32],
@@ -106,11 +107,11 @@ pub struct TransferWitnessV1 {
     pub sender_compliance_path: MerklePathBinary,
     pub sender_compliance_position: u64,
     pub sender_asset_id: [u8; 32],
-    pub sender_slot_id: [u8; 32],
-    pub sender_slot_derivation: [u8; 32],
-    pub sender_d: [u8; 32],
+    pub sender_user_public_key: [u8; 32],
+    pub sender_clue_public_key: [u8; 32],
     pub transfer_nonce_root: [u8; 32],
     pub detection_ciphertext: Vec<[u8; 32]>,
+    pub fuzzy_tags: [u8; 32],
     pub sender_core: TransferComplianceCiphertextWitnessV1,
     pub sender_ext: TransferComplianceCiphertextWitnessV1,
     pub output_core: TransferComplianceCiphertextWitnessV1,
@@ -125,17 +126,16 @@ pub struct TransferWitnessV1 {
     pub asset_indexed_leaf_ring_pk_affine: PointAffineBytes,
     pub sender_diversified_generator_affine: PointAffineBytes,
     pub sender_transmission_key_affine: PointAffineBytes,
+    pub sender_user_public_key_affine: PointAffineBytes,
+    pub sender_clue_public_key_affine: PointAffineBytes,
 }
 
-fn compliance_leaf_parts(
-    leaf: &ComplianceLeafBinary,
-) -> ([u8; 80], [u8; 32], [u8; 32], [u8; 32], [u8; 32]) {
+fn compliance_leaf_parts(leaf: &ComplianceLeafBinary) -> ([u8; 80], [u8; 32], [u8; 32], [u8; 32]) {
     (
         leaf.address,
         leaf.asset_id,
-        leaf.slot_id,
-        leaf.slot_derivation,
-        leaf.d,
+        leaf.user_public_key,
+        leaf.clue_public_key,
     )
 }
 
@@ -159,7 +159,7 @@ fn compliance_tier_witness(
             .iter()
             .map(|value| value.to_bytes())
             .collect(),
-        subject_derivation: statement.subject_derivation_bytes,
+        subject_user_public_key: statement.subject_user_public_key_bytes,
         ring_id_hash: statement.ring_id_hash_bytes,
         policy_id_hash: statement.policy_id_hash_bytes,
         resource_hash: statement.resource_hash_bytes,
@@ -191,7 +191,7 @@ impl TransferWitnessV1 {
             .with_context(|| format!("compute {TRANSFER_PROOF_LABEL} statement fields"))?;
 
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
-        let (_, sender_asset_id, sender_slot_id, sender_slot_derivation, sender_d) =
+        let (_, sender_asset_id, sender_user_public_key, sender_clue_public_key) =
             compliance_leaf_parts(&sender_leaf);
 
         let spends = public
@@ -254,13 +254,8 @@ impl TransferWitnessV1 {
             .enumerate()
             .map(|(index, (public_output, private_output))| {
                 let recipient_leaf = compliance_leaf_from_typed(&private_output.recipient_leaf)?;
-                let (
-                    _,
-                    recipient_asset_id,
-                    recipient_slot_id,
-                    recipient_slot_derivation,
-                    recipient_d,
-                ) = compliance_leaf_parts(&recipient_leaf);
+                let (_, recipient_asset_id, recipient_user_public_key, recipient_clue_public_key) =
+                    compliance_leaf_parts(&recipient_leaf);
                 Ok(TransferOutputWitnessV1 {
                     note_commitment: public_output.note_commitment.0.to_bytes(),
                     created_note_blinding: private_output.created_note.note_blinding().to_bytes(),
@@ -277,9 +272,8 @@ impl TransferWitnessV1 {
                     )?,
                     recipient_compliance_position: private_output.recipient_compliance_position,
                     recipient_asset_id,
-                    recipient_slot_id,
-                    recipient_slot_derivation,
-                    recipient_d,
+                    recipient_user_public_key,
+                    recipient_clue_public_key,
                     is_receiver: private_output.is_receiver,
                     created_diversified_generator_affine: point_affine_bytes(
                         private_output.created_note.diversified_generator(),
@@ -303,6 +297,12 @@ impl TransferWitnessV1 {
                             .map_err(|e| {
                                 anyhow!("decompress recipient transmission key {index}: {e:?}")
                             })?,
+                    )?,
+                    recipient_user_public_key_affine: point_affine_bytes(
+                        private_output.recipient_leaf.user_public_key,
+                    )?,
+                    recipient_clue_public_key_affine: point_affine_bytes(
+                        private_output.recipient_leaf.clue_public_key,
                     )?,
                 })
             })
@@ -332,9 +332,8 @@ impl TransferWitnessV1 {
             sender_compliance_path: merkle_path_from_typed(&private.sender_compliance_path)?,
             sender_compliance_position: private.sender_compliance_position,
             sender_asset_id,
-            sender_slot_id,
-            sender_slot_derivation,
-            sender_d,
+            sender_user_public_key,
+            sender_clue_public_key,
             transfer_nonce_root: private.compliance.transfer_nonce_root.to_bytes(),
             detection_ciphertext: public
                 .compliance
@@ -342,6 +341,7 @@ impl TransferWitnessV1 {
                 .iter()
                 .map(|value| value.to_bytes())
                 .collect(),
+            fuzzy_tags: public.compliance.fuzzy_tags.to_bytes(),
             sender_core: compliance_tier_witness(&public.compliance.sender_core)?,
             sender_ext: compliance_tier_witness(&public.compliance.sender_ext)?,
             output_core: compliance_tier_witness(&public.compliance.output_core)?,
@@ -372,6 +372,8 @@ impl TransferWitnessV1 {
                     .vartime_decompress()
                     .map_err(|e| anyhow!("decompress sender transmission key: {e:?}"))?,
             )?,
+            sender_user_public_key_affine: point_affine_bytes(private.sender_leaf.user_public_key)?,
+            sender_clue_public_key_affine: point_affine_bytes(private.sender_leaf.clue_public_key)?,
         };
         witness.total_length = u32::try_from(witness.encode()?.len())
             .map_err(|_| anyhow!("encoded {TRANSFER_PROOF_LABEL} witness exceeds u32"))?;

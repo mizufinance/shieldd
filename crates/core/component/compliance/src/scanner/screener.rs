@@ -36,24 +36,21 @@ impl ComplianceScreener {
             }
         };
 
-        let (asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id) =
-            match self.detection_key.try_decrypt_detection(
-                &ciphertext.sender_core_epk,
-                &ciphertext.sender_core_epk,
-                &ciphertext.detection_tag,
-                &self.target_asset_id,
-            ) {
-                Ok(result) => result,
-                Err(_) => return ScreeningResult::Irrelevant,
-            };
+        let (asset_id, is_flagged, salt) = match self.detection_key.try_decrypt_detection(
+            &ciphertext.sender_core_epk,
+            &ciphertext.sender_core_epk,
+            &ciphertext.detection_tag,
+            &self.target_asset_id,
+        ) {
+            Ok(result) => result,
+            Err(_) => return ScreeningResult::Irrelevant,
+        };
 
         ScreeningResult::Detected(DetectionEvent {
             output_ref: extracted.output_ref,
             asset_id,
             is_flagged,
             salt,
-            sender_slot_id,
-            receiver_slot_id,
             ciphertext,
             raw_bytes: extracted.raw_bytes,
         })
@@ -63,22 +60,12 @@ impl ComplianceScreener {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::derive_compliance_scalar;
+    use crate::fuzzy::FuzzyDetectionKey;
     use crate::test_helpers::make_address;
     use crate::transfer::encrypt_transfer;
     use rand_core::OsRng;
     use shieldd_sdk_asset::Value;
     use shieldd_sdk_num::Amount;
-
-    fn derive_ack(
-        ring_pk: &decaf377::Element,
-        address: &shieldd_sdk_keys::Address,
-    ) -> decaf377::Element {
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let d = derive_compliance_scalar(b_d_fq);
-        let d_fr = decaf377::Fr::from_le_bytes_mod_order(&d.to_bytes());
-        *ring_pk * d_fr
-    }
 
     fn make_extracted(raw_bytes: Vec<u8>, asset_id: asset::Id) -> ExtractedComplianceCiphertext {
         use shieldd_sdk_txhash::TransactionId;
@@ -122,14 +109,16 @@ mod tests {
     ) -> TransferComplianceCiphertext {
         encrypt_transfer(
             &mut OsRng,
-            &derive_ack(ring_pk, sender_address),
-            &derive_ack(ring_pk, receiver_address),
+            ring_pk,
+            &(ring_pk * decaf377::Fr::from(2u64)),
+            &FuzzyDetectionKey::generate(&mut OsRng).clue_key(),
+            &FuzzyDetectionKey::generate(&mut OsRng).clue_key(),
             dk_pub,
             receiver_address,
             sender_address,
             Value { amount, asset_id },
             is_flagged,
-            0,
+            crate::AuthorizationId::from_fq(decaf377::Fq::from(1u64)),
             0,
             salt,
         )

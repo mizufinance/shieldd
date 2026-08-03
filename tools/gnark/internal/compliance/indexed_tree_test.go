@@ -20,7 +20,6 @@ type indexedLeafCommitmentCircuit struct {
 	DKPubX         frontend.Variable
 	DKPubY         frontend.Variable
 	Threshold      frontend.Variable
-	SlotCount      frontend.Variable
 	ChannelsHash   frontend.Variable
 	RingPKX        frontend.Variable
 	RingPKY        frontend.Variable
@@ -39,7 +38,6 @@ func (c *indexedLeafCommitmentCircuit) Define(api frontend.API) error {
 		NextValue:      c.NextValue,
 		DKPub:          gnarkte.Point{X: c.DKPubX, Y: c.DKPubY},
 		Threshold:      c.Threshold,
-		SlotCount:      c.SlotCount,
 		ChannelsHash:   c.ChannelsHash,
 		RingPK:         gnarkte.Point{X: c.RingPKX, Y: c.RingPKY},
 		RingIDHash:     c.RingIDHash,
@@ -88,7 +86,6 @@ func syntheticIndexedLeafInputs(t *testing.T) IndexedLeafInputs {
 			Y: primitives.MustBigInt(vectors.Decaf377CompanionCurve.GeneratorY),
 		},
 		Threshold:    "5",
-		SlotCount:    "10",
 		ChannelsHash: big.NewInt(33),
 		RingPK: gnarkte.Point{
 			X: primitives.MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorX),
@@ -166,7 +163,6 @@ func TestIndexedLeafCircuitMatchesNativeCommitment(t *testing.T) {
 		DKPubX:         inputs.DKPub.X,
 		DKPubY:         inputs.DKPub.Y,
 		Threshold:      inputs.Threshold,
-		SlotCount:      inputs.SlotCount,
 		ChannelsHash:   inputs.ChannelsHash,
 		RingPKX:        inputs.RingPK.X,
 		RingPKY:        inputs.RingPK.Y,

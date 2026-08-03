@@ -195,7 +195,7 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 252323, public: 2, secret: 546, internal: 225311},
+			stats:   circuitStats{constraints: 265974, public: 3, secret: 550, internal: 234510},
 		},
 		{
 			name:    "note_reshape2x1",
@@ -220,7 +220,7 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
-			stats:   circuitStats{constraints: 89962, public: 2, secret: 327, internal: 83443},
+			stats:   circuitStats{constraints: 91974, public: 2, secret: 327, internal: 84769},
 		},
 	}
 }

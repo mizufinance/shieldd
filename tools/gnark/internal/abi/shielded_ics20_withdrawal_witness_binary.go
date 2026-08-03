@@ -9,7 +9,7 @@ import (
 
 const (
 	shieldedIcs20WithdrawalWitnessV1Magic = "PIWG"
-	shieldedIcs20WithdrawalWitnessVersion = 2
+	shieldedIcs20WithdrawalWitnessVersion = 3
 	maxShieldedIcs20WithdrawalInputs      = 2
 	minShieldedIcs20WithdrawalSpendBytes  = 32*7 + 8 + 4 + 32 + 1 + 32 + 32 + 64*3
 	minShieldedIcs20WithdrawalChangeBytes = 32*6 + 64*2
@@ -73,9 +73,8 @@ type ShieldedIcs20WithdrawalWitnessV1Binary struct {
 	SenderCompliancePath     MerklePathBinary
 	SenderCompliancePosition uint64
 	SenderAssetID            [32]byte
-	SenderSlotID             [32]byte
-	SenderSlotDerivation     [32]byte
-	SenderD                  [32]byte
+	SenderUserPublicKey      [32]byte
+	SenderCluePublicKey      [32]byte
 
 	Spends       []ShieldedIcs20WithdrawalSpendWitnessV1Binary
 	ChangeOutput ShieldedIcs20WithdrawalChangeWitnessV1Binary
@@ -86,6 +85,8 @@ type ShieldedIcs20WithdrawalWitnessV1Binary struct {
 	AssetIndexedLeafRingPK     PointAffineBinary
 	SenderDiversifiedGenerator PointAffineBinary
 	SenderTransmissionKey      PointAffineBinary
+	SenderUserPublicKeyAffine  PointAffineBinary
+	SenderCluePublicKeyAffine  PointAffineBinary
 }
 
 func DecodeShieldedIcs20WithdrawalWitnessV1(payload []byte) (*ShieldedIcs20WithdrawalWitnessV1Binary, generated.ShieldedIcs20WithdrawalFamilySpec, error) {
@@ -208,13 +209,10 @@ func DecodeShieldedIcs20WithdrawalWitnessV1(payload []byte) (*ShieldedIcs20Withd
 	if out.SenderAssetID, err = read32(reader); err != nil {
 		return nil, family, err
 	}
-	if out.SenderSlotID, err = read32(reader); err != nil {
+	if out.SenderUserPublicKey, err = read32(reader); err != nil {
 		return nil, family, err
 	}
-	if out.SenderSlotDerivation, err = read32(reader); err != nil {
-		return nil, family, err
-	}
-	if out.SenderD, err = read32(reader); err != nil {
+	if out.SenderCluePublicKey, err = read32(reader); err != nil {
 		return nil, family, err
 	}
 	out.Spends = make([]ShieldedIcs20WithdrawalSpendWitnessV1Binary, nIn)
@@ -242,6 +240,12 @@ func DecodeShieldedIcs20WithdrawalWitnessV1(payload []byte) (*ShieldedIcs20Withd
 		return nil, family, err
 	}
 	if out.SenderTransmissionKey, err = readPointAffine(reader); err != nil {
+		return nil, family, err
+	}
+	if out.SenderUserPublicKeyAffine, err = readPointAffine(reader); err != nil {
+		return nil, family, err
+	}
+	if out.SenderCluePublicKeyAffine, err = readPointAffine(reader); err != nil {
 		return nil, family, err
 	}
 	if reader.Len() != 0 {

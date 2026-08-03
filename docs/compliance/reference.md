@@ -10,14 +10,15 @@ transfer compliance ciphertext. Transfer inputs and change outputs must carry
 empty compliance bytes.
 
 ```text
-TransferComplianceCiphertext: 640 bytes
+TransferComplianceCiphertext: 578 bytes
   0..128    4 EPKs: sender_core, sender_ext, output_core, output_ext
   128..256  4 C2 envelopes, one per audit tier
-  256..384  detection tier: asset id + flag, salt, sender slot, receiver slot
-  384..416  encrypted sender_core amount
-  416..512  encrypted sender_ext receiver address
-  512..544  encrypted output_core amount
-  544..640  encrypted output_ext sender address
+  256..320  detection tier: asset id + flag, salt
+  320..322  sender and receiver 8-bit fuzzy tags
+  322..354  encrypted sender_core amount
+  354..450  encrypted sender_ext receiver address
+  450..482  encrypted output_core amount
+  482..578  encrypted output_ext sender address
 
 TransferComplianceDleqProofs: 256 bytes
   4 * (challenge, response)
@@ -46,14 +47,11 @@ proofs for regulated assets and non-membership proofs for unregulated assets.
 The nullifier set uses a dedicated JMT-style sparse tree instead because
 nullifier insertion is validator-executed, not proved inside a circuit.
 
-`ComplianceLeaf` commits to the registered address, asset id, slot id,
-`slot_derivation`, and `d`. Chain-side registration checks only mechanical
-facts: `slot_id < AssetPolicy.slot_count`, `d == derive(slot_derivation)`, and
-the grant/signature over the full leaf. ACP decides which addresses may use
-which slot. Multiple addresses may share a slot, but that shares
-`slot_derivation`, `d`, and ACK, so it is address-clustering metadata.
-`slot_id` can be public without adding meaningful leakage, because it is only a
-label for the already-visible `slot_derivation` equivalence class.
+`ComplianceLeaf` commits to the registered address, asset id, one user public
+child key, and one independent fuzzy clue public key. Both keys must be
+non-identity and distinct. The registration grant signs the full leaf, so the
+chain registers the keys as one authority-approved fact. There are no user key
+indexes or slots.
 
 ## Scanner References
 
@@ -109,7 +107,8 @@ detected transfer:
 
 ```text
 output ref
-asset id, flag, detection salt, sender slot, receiver slot
+asset id, flag, detection salt
+sender and receiver fuzzy tags plus their tier EPKs
 transfer ciphertext
 transfer DLEQ bundle
 public tier decode objects
@@ -152,9 +151,8 @@ Each audit tier carries Chaum-Pedersen/DLEQ material so Orbis can bind a PRE
 request to the metadata that ACP authorized. The proof is verified when the
 transaction is accepted because the transaction sender chooses the ciphertext
 and proof. Issuers can later use the accepted DLEQ material as evidence that
-the encrypted audit tier matches the authorized metadata. `ACK = d * ring_pk`,
-where `d` comes from the registered slot derivation, not from the address
-diversifier:
+the encrypted audit tier matches the authorized metadata. `ACK` is the user
+public child key committed in the compliance leaf:
 
 ```text
 authorization_id = Poseidon(auth_id_domain, transfer_nonce_root)
@@ -196,11 +194,10 @@ policy/resource/permission/tier/timestamp/salt metadata and proof. Shieldd
 therefore validates two proofs in an upload package: the Shieldd transfer proof
 above, which includes `authorization_id`, and the existing Orbis object proof.
 The demo selects and revalidates the Shieldd authorization metadata before
-requesting Orbis PRE; it needs no Orbis or ACP change. A future ACP integration
-must carry the Shieldd authorization tuple through the Orbis authorization
-boundary. `C2` correctness remains separate: it is established by the transfer
-construction and by validating the decrypted seed against `C2` after PRE or
-issuer-DK decryption.
+requesting Orbis PRE. A future ACP integration must carry the Shieldd
+authorization tuple through the Orbis authorization boundary. `C2` correctness
+remains separate: it is established by the transfer construction and by
+validating the decrypted seed against `C2` after PRE or issuer-DK decryption.
 
 ## Audit Selection And Authority
 
@@ -209,10 +206,49 @@ timestamp bounds. Master audits require at least one bound; user audits may
 scan all validated candidates for the named subject. Selection is checked both
 against the scanner index and against the extracted, validated upload bundle.
 
-User authority matches the subject's derived slot key and decrypts only the
-tiers needed for the requested fields. Master authority uses the Orbis ring key
-path and does not require a subject address. Both paths support independent
-`sender`, `amount`, and `receiver` output fields.
+User authority first examines public fuzzy clues with the released detection
+key, then sends only matching candidates to Orbis. False positives can reach
+Orbis but false negatives are not expected for valid clues. The subject's
+registered user key selects the decryptable sender or receiver tiers. Master
+authority uses the Orbis ring-key path and does not require a subject address.
+Both paths support independent `sender`, `amount`, and `receiver` output fields.
+
+The fuzzy tag for a role is:
+
+```text
+shared = r * clue_public_key
+tag = low8(Poseidon(domain, Compress(shared), asset_id,
+                    authorization_id, authorization_timestamp, role))
+```
+
+The tag reuses the matching core-tier randomizer and EPK. The transfer circuit
+binds both tags to the registered clue keys and proof-bound authorization
+metadata. For unrelated transfers, either of two 8-bit role tags matching has
+probability `1 - (255/256)^2`, about 0.779% or 7,797 candidates per million.
+
+### Precision And Constraint Cost
+
+The circuit decomposes each Poseidon output to all 253 canonical bits before
+selecting the low tag bits. Changing tag precision within the practical range
+therefore changes wire size and false-positive rate, but not the constraint
+count of the current construction.
+
+| Bits per role | Either-role false positives | Candidates per million | Constraint delta vs 8-bit |
+|---:|---:|---:|---:|
+| 4 | 12.109% | 121,094 | 0 |
+| 6 | 3.101% | 31,006 | 0 |
+| 7 | 1.556% | 15,564 | 0 |
+| 8 | 0.780% | 7,797 | baseline |
+| 10 | 0.195% | 1,952 | 0 |
+| 11 | 0.098% | 976 | 0 |
+| 12 | 0.049% | 488 | 0 |
+
+The measured two-role fuzzy-tag gadget is 11,103 constraints, 4.40% of the
+previous 252,323-constraint transfer circuit. The complete new transfer circuit
+is 265,974 constraints (`+13,651`, 5.41%); the remainder comes from binding both
+the user and clue curve public keys in each compliance leaf. Eight bits is
+the smallest precision in the requested 0.1%-1% range and minimizes public clue
+bytes, so it is the selected prototype value.
 
 ## Restrictions
 
@@ -221,6 +257,8 @@ path and does not require a subject address. Both paths support independent
 - Registrations and asset policies are immutable.
 - Channel whitelist enforcement is first-hop only.
 - No key rotation is currently defined.
+- Releasing a fuzzy detection key intentionally grants probabilistic user
+  transaction discovery; it does not grant decryption.
 - Cross-tier independence is mandatory: independent EPK/randomness per tier.
 - Orbis PRE operates on one encrypted-seed object per tier.
 - Transfer-circuit constraints that compliance assumes are tracked separately in
@@ -231,6 +269,7 @@ path and does not require a subject address. Both paths support independent
 | Component | Location |
 |-----------|----------|
 | Transfer ciphertext/DLEQ | `crates/core/component/compliance/src/transfer.rs` |
+| Fuzzy clue creation/examination | `crates/core/component/compliance/src/fuzzy.rs` |
 | Crypto helpers | `crates/core/component/compliance/src/crypto.rs` |
 | Compliance circuits | `crates/core/component/compliance/src/r1cs.rs` |
 | Registry/trees | `crates/core/component/compliance/src/registry.rs`, `tree.rs`, `indexed_tree.rs` |

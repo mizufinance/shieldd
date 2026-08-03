@@ -8,12 +8,13 @@ import ShielddGnarkFormal.Decaf377Assumptions
 import ShielddGnarkFormal.RvkBridge
 import ShielddGnarkFormal.DtkBridge
 import ShielddGnarkFormal.NetBalanceCommitment2Bridge
-import ShielddGnarkFormal.AckBridge
+import ShielddGnarkFormal.ScalarMulBridge
 import ShielddGnarkFormal.SharedSecretBridge
 import ShielddGnarkFormal.TransferSaltBridge
 import ShielddGnarkFormal.PoseidonEncryptionBridge
 import ShielddGnarkFormal.DleqBridge
 import ShielddGnarkFormal.ThresholdRegulatedBridge
+import ShielddGnarkFormal.CanonicalFqBitsBridge
 
 set_option maxRecDepth 100000
 set_option maxHeartbeats 1000000
@@ -81,9 +82,8 @@ structure Output where
   recipientDivGen : Point
   recipientTransmission : Point
   recipientAssetID : F
-  recipientSlotID : F
-  recipientSlotDerivation : F
-  recipientD : F
+  recipientUserPK : Point
+  recipientCluePK : Point
   recipientLeafCommitment : F
   recipientPath : Path16
   recipientPosition : F
@@ -99,7 +99,6 @@ structure AssetLeaf where
   dkPub : Point
   dkPubFq : F
   threshold : F
-  slotCount : F
   channelsHash : F
   paramsHash : F
   ringPK : Point
@@ -114,6 +113,7 @@ structure AssetLeaf where
   position : F
 
 structure ComplianceTier where
+  r : F
   epk : Point
   epkFq : F
   c2 : F
@@ -132,7 +132,7 @@ structure ComplianceTier where
   proofChallenge : F
   proofResponse : F
   -- Public DLEQ statement metadata, hashed into the transfer statement vector.
-  stmtSubjectDerivation : F
+  stmtSubjectUserPublicKey : F
   stmtRingIDHash : F
   stmtPolicyIDHash : F
   stmtResourceHash : F
@@ -143,8 +143,15 @@ structure ComplianceTier where
   stmtSalt : F
   dleq : DleqBridge.DleqInputs
 
+structure FuzzyRole where
+  shared : Point
+  sharedFq : F
+  hash : F
+  tag : F
+
 structure Compliance where
   transferNonceRoot : F
+  authorizationID : F
   isFlagged : F
   salt0 : F
   salt1 : F
@@ -154,8 +161,9 @@ structure Compliance where
   ssDetectionFq : F
   detectionCipher0 : F
   detectionCipher1 : F
-  detectionCipher2 : F
-  detectionCipher3 : F
+  fuzzyTags : F
+  fuzzySender : FuzzyRole
+  fuzzyReceiver : FuzzyRole
   senderCore : ComplianceTier
   senderExt : ComplianceTier
   outputCore : ComplianceTier
@@ -169,6 +177,8 @@ structure Inputs where
   statementPad0 : F
   statementPad1 : F
   transferSaltDomain : F
+  authorizationIDDomain : F
+  fuzzyTagDomain : F
   transferSaltLabel0 : F
   transferSaltLabel1 : F
   transferSaltLabel2 : F
@@ -187,7 +197,6 @@ structure Inputs where
   balanceCommitmentFq : F
   actionBalanceBlinding : F
   isRegulated : F
-  unregulatedRingPK : Point
   unregulatedDKPub : Point
   nk : F
   sharedAK : Point
@@ -198,17 +207,15 @@ structure Inputs where
   senderTransmission : Point
   senderTransmissionFq : F
   senderAssetID : F
-  senderSlotID : F
-  senderSlotDerivation : F
-  senderD : F
-  effectiveRingPK : Point
+  senderUserPK : Point
+  senderCluePK : Point
   effectiveDKPub : Point
   senderAck : Point
   receiverAmount : F
   receiverDivGenFq : F
   receiverTransmissionFq : F
-  receiverSlotID : F
-  receiverSlotDerivation : F
+  receiverUserPK : Point
+  receiverCluePK : Point
   receiverAck : Point
   asset : AssetLeaf
   spend0 : Spend
@@ -354,7 +361,7 @@ def outputCircuit (i : Inputs) (o : Output) : Prop :=
   ThresholdRegulatedBridge.AssertEquivalentIfCircuit 1 o.recipientTransmission o.note.transmission ∧
   Decaf377Assumptions.CompressToFieldCircuit o.note.transmission o.note.transmissionFq ∧
   (i.isRegulated = 1 → o.recipientComplianceRoot = i.complianceAnchor) ∧
-  (o.isReceiver = 1 → AckBridge.AckCircuit i.effectiveRingPK o.recipientD o.ack)
+  (o.isReceiver = 1 → Decaf377Assumptions.DecafEquivalent o.recipientUserPK o.ack)
 
 def outputSpec (i : Inputs) (o : Output) : Prop :=
   noteCommitmentSpec i.noteCommitDomain o.note ∧
@@ -365,7 +372,7 @@ def outputSpec (i : Inputs) (o : Output) : Prop :=
   ThresholdRegulatedBridge.AssertEquivalentIfSpec 1 o.recipientTransmission o.note.transmission ∧
   Decaf377Assumptions.CompressToFieldSpec o.note.transmission o.note.transmissionFq ∧
   (i.isRegulated = 1 → o.recipientComplianceRoot = i.complianceAnchor) ∧
-  (o.isReceiver = 1 → AckBridge.AckSpec i.effectiveRingPK o.recipientD o.ack)
+  (o.isReceiver = 1 → Decaf377Assumptions.DecafEquivalent o.recipientUserPK o.ack)
 
 theorem output_sound (i : Inputs) (o : Output) :
     outputCircuit i o → outputSpec i o := by
@@ -384,14 +391,12 @@ theorem output_sound (i : Inputs) (o : Output) :
     Decaf377Assumptions.decaf377_compressToField_sound o.note.transmission
       o.note.transmissionFq htransmissionFq,
     hroot,
-    by
-      intro hrecv
-      exact AckBridge.ack_sound i.effectiveRingPK o.recipientD o.ack (hack hrecv)
+    hack
   ⟩
 
 def tierCircuit (i : Inputs) (tier : ComplianceTier) : Prop :=
   Decaf377Assumptions.CompressToFieldCircuit tier.epk tier.epkFq ∧
-  SharedSecretBridge.SharedSecretsCircuit tier.dleq.response tier.dleq.ack
+  SharedSecretBridge.SharedSecretsCircuit tier.r tier.dleq.ack
     i.effectiveDKPub tier.epk i.compliance.isFlagged tier.shared ∧
   Decaf377Assumptions.CompressToFieldCircuit tier.shared.selected tier.sharedSelectedFq ∧
   Decaf377Assumptions.CompressToFieldCircuit tier.proofDerivedPK tier.proofDerivedPKFq ∧
@@ -401,7 +406,7 @@ def tierCircuit (i : Inputs) (tier : ComplianceTier) : Prop :=
 
 def tierSpec (i : Inputs) (tier : ComplianceTier) : Prop :=
   Decaf377Assumptions.CompressToFieldSpec tier.epk tier.epkFq ∧
-  SharedSecretBridge.SharedSecretsSpec tier.dleq.response tier.dleq.ack
+  SharedSecretBridge.SharedSecretsSpec tier.r tier.dleq.ack
     i.effectiveDKPub tier.epk i.compliance.isFlagged tier.shared ∧
   Decaf377Assumptions.CompressToFieldSpec tier.shared.selected tier.sharedSelectedFq ∧
   Decaf377Assumptions.CompressToFieldSpec tier.proofDerivedPK tier.proofDerivedPKFq ∧
@@ -415,7 +420,7 @@ theorem tier_sound (i : Inputs) (tier : ComplianceTier) :
   rcases h with ⟨hepk, hshared, hselected, hderived, hencCmt, hsharedPt, hdleq⟩
   exact ⟨
     Decaf377Assumptions.decaf377_compressToField_sound tier.epk tier.epkFq hepk,
-    SharedSecretBridge.shared_secrets_sound tier.dleq.response tier.dleq.ack
+    SharedSecretBridge.shared_secrets_sound tier.r tier.dleq.ack
       i.effectiveDKPub tier.epk i.compliance.isFlagged tier.shared hshared,
     Decaf377Assumptions.decaf377_compressToField_sound tier.shared.selected
       tier.sharedSelectedFq hselected,
@@ -426,6 +431,81 @@ theorem tier_sound (i : Inputs) (tier : ComplianceTier) :
     Decaf377Assumptions.decaf377_compressToField_sound tier.proofSharedPoint
       tier.proofSharedPointFq hsharedPt,
     DleqBridge.dleq_sound tier.dleq hdleq
+  ⟩
+
+def low8Value (bits : List.Vector F 253) : F :=
+  bits[0] + 2 * bits[1] + 4 * bits[2] + 8 * bits[3] +
+    16 * bits[4] + 32 * bits[5] + 64 * bits[6] + 128 * bits[7]
+
+def fuzzyRoleCircuit
+    (domain r assetID authorizationID authorizationTimestamp role : F)
+    (cluePK : Point) (w : FuzzyRole) : Prop :=
+  EdwardsBridge.onCurve ⟨cluePK.x, cluePK.y⟩ ∧
+  Extracted.ScalarMulLE251.circuit cluePK.x cluePK.y r w.shared.x w.shared.y ∧
+  Decaf377Assumptions.CompressToFieldCircuit w.shared w.sharedFq ∧
+  Extracted.PoseidonHash5.circuit domain w.sharedFq assetID authorizationID
+    authorizationTimestamp role w.hash ∧
+  Extracted.CanonicalFqBits.canonicalFqBitsGadget w.hash
+    (fun bits => w.tag = low8Value bits)
+
+def fuzzyRoleSpec
+    (domain r assetID authorizationID authorizationTimestamp role : F)
+    (cluePK : Point) (w : FuzzyRole) : Prop :=
+  w.shared = Decaf377Assumptions.scalarMulLE 251 cluePK r ∧
+  Decaf377Assumptions.CompressToFieldSpec w.shared w.sharedFq ∧
+  Extracted.PoseidonHash5.circuit domain w.sharedFq assetID authorizationID
+    authorizationTimestamp role w.hash ∧
+  ∃ (bits : List.Vector Bool 253),
+    Gates.to_binary w.hash 253 (bits.map Bool.toZMod) ∧
+    (Fin.ofBitsLE bits).val < Extracted.CanonicalFqBits.Order ∧
+    w.tag = low8Value (bits.map Bool.toZMod)
+
+theorem fuzzy_role_sound
+    (domain r assetID authorizationID authorizationTimestamp role : F)
+    (cluePK : Point) (w : FuzzyRole) :
+    fuzzyRoleCircuit domain r assetID authorizationID authorizationTimestamp role cluePK w →
+      fuzzyRoleSpec domain r assetID authorizationID authorizationTimestamp role cluePK w := by
+  rintro ⟨honCurve, hscalar, hcompress, hhash, hbits⟩
+  have hshared := ScalarMulBridge.scalarMulLE251_sound cluePK.x cluePK.y r
+    w.shared.x w.shared.y honCurve hscalar
+  obtain ⟨bits, hrecover, hlt, htag⟩ :=
+    Extracted.CanonicalFqBits.canonicalFqBitsGadget_canonical w.hash
+      (fun values => w.tag = low8Value values) hbits
+  exact ⟨hshared,
+    Decaf377Assumptions.decaf377_compressToField_sound w.shared w.sharedFq hcompress,
+    hhash, bits, hrecover, hlt, htag⟩
+
+def fuzzyTagsCircuit (i : Inputs) : Prop :=
+  fuzzyRoleCircuit i.fuzzyTagDomain i.compliance.senderCore.r i.spend0.note.assetID
+    i.compliance.authorizationID i.targetTimestamp 1 i.senderCluePK
+    i.compliance.fuzzySender ∧
+  fuzzyRoleCircuit i.fuzzyTagDomain i.compliance.outputCore.r i.spend0.note.assetID
+    i.compliance.authorizationID i.targetTimestamp 2 i.receiverCluePK
+    i.compliance.fuzzyReceiver ∧
+  i.compliance.fuzzyTags =
+    i.compliance.fuzzySender.tag + 256 * i.compliance.fuzzyReceiver.tag
+
+def fuzzyTagsSpec (i : Inputs) : Prop :=
+  fuzzyRoleSpec i.fuzzyTagDomain i.compliance.senderCore.r i.spend0.note.assetID
+    i.compliance.authorizationID i.targetTimestamp 1 i.senderCluePK
+    i.compliance.fuzzySender ∧
+  fuzzyRoleSpec i.fuzzyTagDomain i.compliance.outputCore.r i.spend0.note.assetID
+    i.compliance.authorizationID i.targetTimestamp 2 i.receiverCluePK
+    i.compliance.fuzzyReceiver ∧
+  i.compliance.fuzzyTags =
+    i.compliance.fuzzySender.tag + 256 * i.compliance.fuzzyReceiver.tag
+
+theorem fuzzy_tags_sound (i : Inputs) :
+    fuzzyTagsCircuit i → fuzzyTagsSpec i := by
+  rintro ⟨hsender, hreceiver, hpacked⟩
+  exact ⟨
+    fuzzy_role_sound i.fuzzyTagDomain i.compliance.senderCore.r i.spend0.note.assetID
+      i.compliance.authorizationID i.targetTimestamp 1 i.senderCluePK
+      i.compliance.fuzzySender hsender,
+    fuzzy_role_sound i.fuzzyTagDomain i.compliance.outputCore.r i.spend0.note.assetID
+      i.compliance.authorizationID i.targetTimestamp 2 i.receiverCluePK
+      i.compliance.fuzzyReceiver hreceiver,
+    hpacked
   ⟩
 
 def complianceCircuit (i : Inputs) : Prop :=
@@ -441,6 +521,9 @@ def complianceCircuit (i : Inputs) : Prop :=
     i.transferSaltLabel3 i.compliance.salt3 ∧
   TransferSaltBridge.TransferSaltCircuit i.transferSaltDomain i.compliance.transferNonceRoot
     i.transferSaltLabel4 i.compliance.salt4 ∧
+  Extracted.PoseidonHash1.circuit i.authorizationIDDomain i.compliance.transferNonceRoot
+    i.compliance.authorizationID ∧
+  fuzzyTagsCircuit i ∧
   tierCircuit i i.compliance.senderCore ∧
   tierCircuit i i.compliance.senderExt ∧
   tierCircuit i i.compliance.outputCore ∧
@@ -448,8 +531,7 @@ def complianceCircuit (i : Inputs) : Prop :=
   PoseidonEncryptionBridge.DetectionCircuit i.complianceStreamDomain i.issuerDetectionDomain
     i.flagBit i.isRegulated i.compliance.isFlagged i.compliance.ssDetectionFq
     i.compliance.senderCore.epkFq i.compliance.salt0 i.spend0.note.assetID
-    i.senderSlotID i.receiverSlotID i.compliance.detectionCipher0
-    i.compliance.detectionCipher1 i.compliance.detectionCipher2 i.compliance.detectionCipher3 ∧
+    i.compliance.detectionCipher0 i.compliance.detectionCipher1 ∧
   PoseidonEncryptionBridge.AmountCircuit i.complianceStreamDomain i.isRegulated
     i.compliance.senderCore.sharedSelectedFq i.compliance.senderCore.c2 i.receiverAmount
     i.compliance.senderCore.ciphertext0 ∧
@@ -478,6 +560,9 @@ def complianceSpec (i : Inputs) : Prop :=
     i.transferSaltLabel3 i.compliance.salt3 ∧
   TransferSaltBridge.TransferSaltSpec i.transferSaltDomain i.compliance.transferNonceRoot
     i.transferSaltLabel4 i.compliance.salt4 ∧
+  Extracted.PoseidonHash1.circuit i.authorizationIDDomain i.compliance.transferNonceRoot
+    i.compliance.authorizationID ∧
+  fuzzyTagsSpec i ∧
   tierSpec i i.compliance.senderCore ∧
   tierSpec i i.compliance.senderExt ∧
   tierSpec i i.compliance.outputCore ∧
@@ -485,8 +570,7 @@ def complianceSpec (i : Inputs) : Prop :=
   PoseidonEncryptionBridge.DetectionSpec i.complianceStreamDomain i.issuerDetectionDomain
     i.flagBit i.isRegulated i.compliance.isFlagged i.compliance.ssDetectionFq
     i.compliance.senderCore.epkFq i.compliance.salt0 i.spend0.note.assetID
-    i.senderSlotID i.receiverSlotID i.compliance.detectionCipher0
-    i.compliance.detectionCipher1 i.compliance.detectionCipher2 i.compliance.detectionCipher3 ∧
+    i.compliance.detectionCipher0 i.compliance.detectionCipher1 ∧
   PoseidonEncryptionBridge.AmountSpec i.complianceStreamDomain i.isRegulated
     i.compliance.senderCore.sharedSelectedFq i.compliance.senderCore.c2 i.receiverAmount
     i.compliance.senderCore.ciphertext0 ∧
@@ -505,7 +589,7 @@ def complianceSpec (i : Inputs) : Prop :=
 theorem compliance_sound (i : Inputs) :
     complianceCircuit i → complianceSpec i := by
   intro h
-  rcases h with ⟨hflag, hsalt0, hsalt1, hsalt2, hsalt3, hsalt4,
+  rcases h with ⟨hflag, hsalt0, hsalt1, hsalt2, hsalt3, hsalt4, hauth, hfuzzy,
     hsenderCore, hsenderExt, houtputCore, houtputExt, hdetection,
     hsenderAmount, hsenderAddress, houtputAmount, houtputAddress⟩
   exact ⟨
@@ -521,6 +605,9 @@ theorem compliance_sound (i : Inputs) :
       i.compliance.transferNonceRoot i.transferSaltLabel3 i.compliance.salt3 hsalt3,
     TransferSaltBridge.transfer_salt_sound i.transferSaltDomain
       i.compliance.transferNonceRoot i.transferSaltLabel4 i.compliance.salt4 hsalt4,
+    Poseidon1Bridge.circuit_sound i.authorizationIDDomain i.compliance.transferNonceRoot
+      i.compliance.authorizationID hauth,
+    fuzzy_tags_sound i hfuzzy,
     tier_sound i i.compliance.senderCore hsenderCore,
     tier_sound i i.compliance.senderExt hsenderExt,
     tier_sound i i.compliance.outputCore houtputCore,
@@ -528,9 +615,8 @@ theorem compliance_sound (i : Inputs) :
     PoseidonEncryptionBridge.detection_sound i.complianceStreamDomain
       i.issuerDetectionDomain i.flagBit i.isRegulated i.compliance.isFlagged
       i.compliance.ssDetectionFq i.compliance.senderCore.epkFq i.compliance.salt0
-      i.spend0.note.assetID i.senderSlotID i.receiverSlotID
-      i.compliance.detectionCipher0 i.compliance.detectionCipher1
-      i.compliance.detectionCipher2 i.compliance.detectionCipher3 hdetection,
+      i.spend0.note.assetID i.compliance.detectionCipher0
+      i.compliance.detectionCipher1 hdetection,
     PoseidonEncryptionBridge.amount_sound i.complianceStreamDomain i.isRegulated
       i.compliance.senderCore.sharedSelectedFq i.compliance.senderCore.c2
       i.receiverAmount i.compliance.senderCore.ciphertext0 hsenderAmount,
@@ -578,7 +664,7 @@ def tierStatementChunk (tier : ComplianceTier) (extCiphertext : Bool) : List F :
 /-- A compliance tier's DLEQ proof contribution to the statement vector, in the
 exact order of `buildTransferStatementFields`'s `appendProofTier`. -/
 def proofStatementChunk (tier : ComplianceTier) : List F :=
-  [tier.stmtSubjectDerivation, tier.stmtRingIDHash, tier.stmtPolicyIDHash,
+  [tier.stmtSubjectUserPublicKey, tier.stmtRingIDHash, tier.stmtPolicyIDHash,
    tier.stmtResourceHash, tier.stmtPermissionHash, tier.stmtTier,
    tier.stmtTargetTimestamp, tier.stmtAuthorizationID, tier.stmtSalt,
    tier.proofDerivedPKFq, tier.proofEncCmtFq, tier.proofSharedPointFq,
@@ -596,7 +682,7 @@ def transferStatementFields (i : Inputs) : List F :=
     ++ [i.spend0.nullifier, i.spend0.rkCompressed,
         i.spend1.nullifier, i.spend1.rkCompressed]
     ++ [i.assetAnchor, i.complianceAnchor]
-    ++ [c.detectionCipher0, c.detectionCipher1, c.detectionCipher2, c.detectionCipher3]
+    ++ [c.detectionCipher0, c.detectionCipher1, c.fuzzyTags]
     ++ tierStatementChunk c.senderCore false
     ++ tierStatementChunk c.senderExt true
     ++ tierStatementChunk c.outputCore false
@@ -619,13 +705,11 @@ structure DefineModel (i : Inputs) : Prop where
     Decaf377Assumptions.CompressToFieldCircuit i.senderDivGen i.senderDivGenFq
   senderTransmissionCompressed :
     Decaf377Assumptions.CompressToFieldCircuit i.senderTransmission i.senderTransmissionFq
-  effectiveRingPK :
-    ThresholdRegulatedBridge.SelectPointCircuit i.isRegulated i.asset.ringPK i.unregulatedRingPK i.effectiveRingPK
   effectiveDKPub :
     ThresholdRegulatedBridge.SelectPointCircuit i.isRegulated i.asset.dkPub i.unregulatedDKPub i.effectiveDKPub
   assetLeaf : complianceLeafCircuit i.noteCommitDomain i.noteCommitDomain i.asset
-  senderAck : AckBridge.AckCircuit i.effectiveRingPK i.senderD i.senderAck
-  receiverAck : AckBridge.AckCircuit i.effectiveRingPK i.output0.recipientD i.receiverAck
+  senderAck : Decaf377Assumptions.DecafEquivalent i.senderUserPK i.senderAck
+  receiverAck : Decaf377Assumptions.DecafEquivalent i.output0.recipientUserPK i.receiverAck
   spend0 : spendCircuit i i.spend0
   spend1 : spendCircuit i i.spend1
   output0 : outputCircuit i i.output0
@@ -645,13 +729,11 @@ structure SoundSpec (i : Inputs) : Prop where
     Decaf377Assumptions.CompressToFieldSpec i.senderDivGen i.senderDivGenFq
   senderTransmissionCompressed :
     Decaf377Assumptions.CompressToFieldSpec i.senderTransmission i.senderTransmissionFq
-  effectiveRingPK :
-    ThresholdRegulatedBridge.SelectPointSpec i.isRegulated i.asset.ringPK i.unregulatedRingPK i.effectiveRingPK
   effectiveDKPub :
     ThresholdRegulatedBridge.SelectPointSpec i.isRegulated i.asset.dkPub i.unregulatedDKPub i.effectiveDKPub
   assetLeaf : complianceLeafSpec i.noteCommitDomain i.noteCommitDomain i.asset
-  senderAck : AckBridge.AckSpec i.effectiveRingPK i.senderD i.senderAck
-  receiverAck : AckBridge.AckSpec i.effectiveRingPK i.output0.recipientD i.receiverAck
+  senderAck : Decaf377Assumptions.DecafEquivalent i.senderUserPK i.senderAck
+  receiverAck : Decaf377Assumptions.DecafEquivalent i.output0.recipientUserPK i.receiverAck
   spend0 : spendSpec i i.spend0
   spend1 : spendSpec i i.spend1
   output0 : outputSpec i i.output0
@@ -672,14 +754,11 @@ theorem transfer_circuit_sound (i : Inputs) :
       i.senderDivGen i.senderDivGenFq h.senderDivGenCompressed
     senderTransmissionCompressed := Decaf377Assumptions.decaf377_compressToField_sound
       i.senderTransmission i.senderTransmissionFq h.senderTransmissionCompressed
-    effectiveRingPK := ThresholdRegulatedBridge.select_point_sound
-      i.isRegulated i.asset.ringPK i.unregulatedRingPK i.effectiveRingPK h.effectiveRingPK
     effectiveDKPub := ThresholdRegulatedBridge.select_point_sound
       i.isRegulated i.asset.dkPub i.unregulatedDKPub i.effectiveDKPub h.effectiveDKPub
     assetLeaf := compliance_leaf_sound i.noteCommitDomain i.noteCommitDomain i.asset h.assetLeaf
-    senderAck := AckBridge.ack_sound i.effectiveRingPK i.senderD i.senderAck h.senderAck
-    receiverAck := AckBridge.ack_sound i.effectiveRingPK i.output0.recipientD i.receiverAck
-      h.receiverAck
+    senderAck := h.senderAck
+    receiverAck := h.receiverAck
     spend0 := spend_sound i i.spend0 h.spend0
     spend1 := spend_sound i i.spend1 h.spend1
     output0 := output_sound i i.output0 h.output0

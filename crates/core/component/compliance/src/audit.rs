@@ -7,8 +7,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::audit_records::{
     classify_orbis_import_row, detected_ref_from_row_parts, AuditAuthority, AuditDetectedRef,
-    AuditImportRow, AuditScanExport, DetectedRefRowParts, OrbisAuditEntry, OrbisImportEligibility,
-    TransferRole,
+    AuditFuzzyClue, AuditImportRow, AuditScanExport, DetectedRefRowParts, OrbisAuditEntry,
+    OrbisImportEligibility, TransferRole,
 };
 use crate::audit_status::{AuditStatus, DecryptedVia, FlowType};
 use crate::scanner::storage::SqliteScannerStore;
@@ -32,6 +32,27 @@ pub const EVIDENCE_STAGE_ORBIS_IMPORT: &str = "validate_orbis_import";
 pub(crate) const MAX_FAILURE_REASON_BYTES: usize = 1024;
 
 const FAILURE_TRUNCATION_SUFFIX: &str = "...[truncated]";
+
+fn attach_fuzzy_clue(
+    detected: &mut AuditDetectedRef,
+    ciphertext_bytes: &[u8],
+    column: usize,
+) -> rusqlite::Result<()> {
+    let ciphertext =
+        TransferComplianceCiphertext::from_bytes(ciphertext_bytes).map_err(|error| {
+            rusqlite::Error::FromSqlConversionFailure(
+                column,
+                rusqlite::types::Type::Blob,
+                error.into(),
+            )
+        })?;
+    detected.fuzzy_clue = Some(AuditFuzzyClue {
+        sender_epk_bytes: ciphertext.sender_core_epk.vartime_compress().0,
+        receiver_epk_bytes: ciphertext.output_core_epk.vartime_compress().0,
+        tags: ciphertext.fuzzy_tags,
+    });
+    Ok(())
+}
 
 fn authorization_id_from_sql(bytes: Vec<u8>, column: usize) -> rusqlite::Result<AuthorizationId> {
     let bytes: [u8; 32] = bytes.try_into().map_err(|bytes: Vec<u8>| {
@@ -299,7 +320,7 @@ pub fn export_orbis_pending_scan(store: &SqliteScannerStore) -> Result<AuditScan
     let conn = store.lock_conn()?;
     let mut rows = conn.prepare(
         "SELECT d.height, d.tx_hash, d.action_index, d.output_index, d.asset_id, d.is_flagged, ?1,
-                a.authorization_id, a.authorization_timestamp
+                a.authorization_id, a.authorization_timestamp, d.ciphertext_bytes
          FROM scanner_detections d
          JOIN audit_authorizations a
            ON a.height = d.height
@@ -326,7 +347,7 @@ pub fn export_orbis_pending_scan(store: &SqliteScannerStore) -> Result<AuditScan
                 let flow_type: String = row.get(6)?;
                 let authorization_id = authorization_id_from_sql(row.get(7)?, 7)?;
                 let authorization_timestamp: i64 = row.get(8)?;
-                Ok(detected_ref_from_row_parts(DetectedRefRowParts {
+                let mut detected = detected_ref_from_row_parts(DetectedRefRowParts {
                     height: height as u64,
                     tx_hash,
                     action_index: action_index as u32,
@@ -342,7 +363,10 @@ pub fn export_orbis_pending_scan(store: &SqliteScannerStore) -> Result<AuditScan
                     })?,
                     authorization_id: Some(authorization_id),
                     authorization_timestamp: Some(authorization_timestamp as u64),
-                }))
+                });
+                let ciphertext_bytes: Vec<u8> = row.get(9)?;
+                attach_fuzzy_clue(&mut detected, &ciphertext_bytes, 9)?;
+                Ok(detected)
             },
         )?
         .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -781,7 +805,7 @@ pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetec
           AND a.action_index = d.action_index
           AND a.output_index = d.output_index
          UNION ALL
-         SELECT height, tx_hash, action_index, output_index, asset_id, 0, flow_type, NULL, NULL
+         SELECT height, tx_hash, action_index, output_index, asset_id, 0, flow_type, NULL, NULL, NULL
          FROM scanner_clear_flows
          ORDER BY height, tx_hash, action_index, output_index",
     )?;
@@ -796,7 +820,8 @@ pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetec
             let flow_type: String = row.get(6)?;
             let authorization_id: Option<Vec<u8>> = row.get(7)?;
             let authorization_timestamp: Option<i64> = row.get(8)?;
-            Ok(detected_ref_from_row_parts(DetectedRefRowParts {
+            let ciphertext_bytes: Option<Vec<u8>> = row.get(9)?;
+            let mut detected = detected_ref_from_row_parts(DetectedRefRowParts {
                 height: height as u64,
                 tx_hash,
                 action_index: action_index as u32,
@@ -814,7 +839,11 @@ pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetec
                     .map(|bytes| authorization_id_from_sql(bytes, 7))
                     .transpose()?,
                 authorization_timestamp: authorization_timestamp.map(|timestamp| timestamp as u64),
-            }))
+            });
+            if let Some(ciphertext_bytes) = ciphertext_bytes {
+                attach_fuzzy_clue(&mut detected, &ciphertext_bytes, 9)?;
+            }
+            Ok(detected)
         })?
         .collect::<std::result::Result<Vec<_>, _>>()?;
     Ok(refs)
@@ -1224,6 +1253,10 @@ mod tests {
             export.detected[0].output_index,
             evidence.output_ref.output_index
         );
+        assert_eq!(
+            export.detected[0].fuzzy_clue.expect("fuzzy clue").tags,
+            evidence.transfer_ciphertext.fuzzy_tags
+        );
     }
 
     #[tokio::test]
@@ -1412,6 +1445,10 @@ mod tests {
             scan.detected[0].authorization_timestamp,
             Some(evidence.authorization_timestamp().unwrap())
         );
+        assert_eq!(
+            scan.detected[0].fuzzy_clue.expect("fuzzy clue").tags,
+            evidence.transfer_ciphertext.fuzzy_tags
+        );
     }
 
     async fn persist_evidence_detection(
@@ -1440,8 +1477,6 @@ mod tests {
                 asset_id: evidence.asset_id,
                 is_flagged: evidence.is_flagged,
                 salt: evidence.detection_salt,
-                sender_slot_id: 0,
-                receiver_slot_id: 0,
                 ciphertext: evidence.transfer_ciphertext.clone(),
                 raw_bytes: evidence.transfer_ciphertext.to_bytes(),
             })

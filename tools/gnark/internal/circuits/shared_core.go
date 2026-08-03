@@ -100,24 +100,23 @@ func ComplianceLeafCommitmentFromFixtureNative(fixture SpendFixture) (*big.Int, 
 		return nil, err
 	}
 
-	slotID := big.NewInt(0)
-	if fixture.Private.UserLeaf.SlotID != "" {
-		slotID = MustBigInt(fixture.Private.UserLeaf.SlotID)
+	userPKFq, err := decafgnark.CompressToFieldNative(PointAffineToNative(fixture.Private.UserPublicKeyAffine))
+	if err != nil {
+		return nil, err
 	}
-	slotDerivation := big.NewInt(0)
-	if fixture.Private.UserLeaf.SlotDerivation != "" {
-		slotDerivation = MustBigInt(fixture.Private.UserLeaf.SlotDerivation)
+	cluePKFq, err := decafgnark.CompressToFieldNative(PointAffineToNative(fixture.Private.CluePublicKeyAffine))
+	if err != nil {
+		return nil, err
 	}
 
-	return Poseidon377Hash6Native(
+	return Poseidon377Hash5Native(
 		MustBigInt(vectors.Poseidon377.ComplianceLeafDomain),
-		[6]*big.Int{
+		[5]*big.Int{
 			diversifiedGeneratorFq,
 			transmissionKeyFq,
 			MustBigInt(fixture.Private.NoteAssetID),
-			slotID,
-			slotDerivation,
-			MustBigInt(fixture.Private.UserDDecimal),
+			userPKFq,
+			cluePKFq,
 		},
 	)
 }
@@ -127,9 +126,8 @@ func ComplianceLeafCommitment(
 	diversifiedGenerator gnarkte.Point,
 	transmissionKey gnarkte.Point,
 	assetID frontend.Variable,
-	slotID frontend.Variable,
-	slotDerivation frontend.Variable,
-	d frontend.Variable,
+	userPK gnarkte.Point,
+	cluePK gnarkte.Point,
 ) (frontend.Variable, error) {
 	diversifiedGeneratorFq, err := decafgnark.CompressToField(api, diversifiedGenerator)
 	if err != nil {
@@ -139,15 +137,22 @@ func ComplianceLeafCommitment(
 	if err != nil {
 		return nil, err
 	}
+	userPKFq, err := decafgnark.CompressToField(api, userPK)
+	if err != nil {
+		return nil, err
+	}
+	cluePKFq, err := decafgnark.CompressToField(api, cluePK)
+	if err != nil {
+		return nil, err
+	}
 
 	return ComplianceLeafCommitmentFromCompressed(
 		api,
 		diversifiedGeneratorFq,
 		transmissionKeyFq,
 		assetID,
-		slotID,
-		slotDerivation,
-		d,
+		userPKFq,
+		cluePKFq,
 	)
 }
 
@@ -156,25 +161,23 @@ func ComplianceLeafCommitmentFromCompressed(
 	diversifiedGeneratorFq frontend.Variable,
 	transmissionKeyFq frontend.Variable,
 	assetID frontend.Variable,
-	slotID frontend.Variable,
-	slotDerivation frontend.Variable,
-	d frontend.Variable,
+	userPKFq frontend.Variable,
+	cluePKFq frontend.Variable,
 ) (frontend.Variable, error) {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {
 		return nil, err
 	}
 
-	return Poseidon377Hash6(
+	return Poseidon377Hash5(
 		api,
 		MustBigInt(vectors.Poseidon377.ComplianceLeafDomain),
-		[6]frontend.Variable{
+		[5]frontend.Variable{
 			diversifiedGeneratorFq,
 			transmissionKeyFq,
 			assetID,
-			slotID,
-			slotDerivation,
-			d,
+			userPKFq,
+			cluePKFq,
 		},
 	)
 }

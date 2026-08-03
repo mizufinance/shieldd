@@ -31,9 +31,14 @@ const DEFAULT_COMPLIANCE_DEV_AUTHORITY_SK_HEX: &str =
 const DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX: &str =
     "b2ecf9b9082d6306538be73b0d6ee741141f3222152da78685d6596efc8c1506";
 const DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX: &str = "4102444800";
-const TEST_SLOT_ID: &str = "0";
-const TEST_SLOT_DERIVATION_HEX: &str =
-    "0300000000000000000000000000000000000000000000000000000000000000";
+
+fn compliance_public_key_hex(scalar: u64) -> String {
+    hex::encode(
+        (decaf377::Element::GENERATOR * decaf377::Fr::from(scalar))
+            .vartime_compress()
+            .0,
+    )
+}
 
 /// Import the wallet from seed phrase into a temporary directory.
 fn load_wallet_into_tmpdir() -> TempDir {
@@ -152,6 +157,8 @@ fn sign_user_grant(tmpdir: &TempDir, asset_denom: &str, address: Address) -> Str
         DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
     );
     let address = address.to_string();
+    let user_public_key = compliance_public_key_hex(3);
+    let clue_public_key = compliance_public_key_hex(4);
     let mut cmd = Command::cargo_bin("pcli").unwrap();
     cmd.args([
         "--home",
@@ -162,10 +169,10 @@ fn sign_user_grant(tmpdir: &TempDir, asset_denom: &str, address: Address) -> Str
         asset_denom,
         "--address",
         &address,
-        "--slot-id",
-        TEST_SLOT_ID,
-        "--slot-derivation-hex",
-        TEST_SLOT_DERIVATION_HEX,
+        "--user-public-key-hex",
+        &user_public_key,
+        "--clue-public-key-hex",
+        &clue_public_key,
         "--registration-authority-sk-hex",
         &authority_sk,
         "--valid-until-unix",
@@ -396,6 +403,8 @@ fn compliance_register_user() {
     let smoke_asset =
         std::env::var("COMPLIANCE_SMOKE_ASSET").unwrap_or_else(|_| "regulated_usd".to_string());
     let grant = sign_user_grant(&tmpdir, &smoke_asset, address.clone());
+    let user_public_key = compliance_public_key_hex(3);
+    let clue_public_key = compliance_public_key_hex(4);
 
     let mut cmd = Command::cargo_bin("pcli").unwrap();
     cmd.args([
@@ -405,10 +414,10 @@ fn compliance_register_user() {
         "compliance",
         "register-user",
         &smoke_asset,
-        "--slot-id",
-        TEST_SLOT_ID,
-        "--slot-derivation-hex",
-        TEST_SLOT_DERIVATION_HEX,
+        "--user-public-key-hex",
+        &user_public_key,
+        "--clue-public-key-hex",
+        &clue_public_key,
         "--user-registration-grant-hex",
         &grant,
     ])

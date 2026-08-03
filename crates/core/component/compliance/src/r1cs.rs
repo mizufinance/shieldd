@@ -122,14 +122,12 @@ pub fn verify_quad_path(
 
 /// R1CS variable representing a Compliance Leaf.
 ///
-/// Contains address, asset_id, slot metadata, and derivation scalar `d`.
-/// ACK = d × ring_pk, computed in-circuit.
+/// Contains the registered address, asset, user public key, and clue public key.
 pub struct ComplianceLeafVar {
     pub address: shieldd_sdk_keys::AddressVar,
     pub asset_id: FqVar,
-    pub slot_id: FqVar,
-    pub slot_derivation: FqVar,
-    pub d: FqVar,
+    pub user_public_key: ElementVar,
+    pub clue_public_key: ElementVar,
 }
 
 impl ComplianceLeafVar {
@@ -147,16 +145,18 @@ impl ComplianceLeafVar {
         let div_gen_fq = self.address.diversified_generator().compress_to_field()?;
         let pk_d_fq = self.address.transmission_key().compress_to_field()?;
 
-        poseidon377::r1cs::hash_6(
+        let user_public_key = self.user_public_key.compress_to_field()?;
+        let clue_public_key = self.clue_public_key.compress_to_field()?;
+
+        poseidon377::r1cs::hash_5(
             cs,
             &domain_sep,
             (
                 div_gen_fq,
                 pk_d_fq,
                 self.asset_id.clone(),
-                self.slot_id.clone(),
-                self.slot_derivation.clone(),
-                self.d.clone(),
+                user_public_key,
+                clue_public_key,
             ),
         )
     }
@@ -178,17 +178,15 @@ impl AllocVar<ComplianceLeaf, Fq> for ComplianceLeafVar {
             shieldd_sdk_keys::AddressVar::new_variable(cs.clone(), || Ok(&leaf_ref.address), mode)?;
         let asset_id_fq = leaf_ref.asset_id.0;
         let asset_id = FqVar::new_variable(cs.clone(), || Ok(asset_id_fq), mode)?;
-        let slot_id = FqVar::new_variable(cs.clone(), || Ok(Fq::from(leaf_ref.slot_id)), mode)?;
-        let slot_derivation =
-            FqVar::new_variable(cs.clone(), || Ok(leaf_ref.slot_derivation), mode)?;
-        let d = FqVar::new_variable(cs, || Ok(leaf_ref.d), mode)?;
+        let user_public_key =
+            ElementVar::new_variable(cs.clone(), || Ok(leaf_ref.user_public_key), mode)?;
+        let clue_public_key = ElementVar::new_variable(cs, || Ok(leaf_ref.clue_public_key), mode)?;
 
         Ok(Self {
             address,
             asset_id,
-            slot_id,
-            slot_derivation,
-            d,
+            user_public_key,
+            clue_public_key,
         })
     }
 }
@@ -224,7 +222,6 @@ pub struct IndexedLeafVar {
     // Shieldd-decided policy (bound by IMT proof)
     pub dk_pub: ElementVar,
     pub threshold: FqVar,
-    pub slot_count: FqVar,
     pub route_policy_hash: FqVar,
     // Orbis-decided policy (bound by IMT proof)
     pub ring_pk: ElementVar,
@@ -245,7 +242,6 @@ impl IndexedLeafVar {
         let next_value = FqVar::new_witness(cs.clone(), || Ok(leaf.next_value))?;
         let dk_pub = ElementVar::new_witness(cs.clone(), || Ok(leaf.params.dk_pub))?;
         let threshold = FqVar::new_witness(cs.clone(), || Ok(Fq::from(leaf.params.threshold)))?;
-        let slot_count = FqVar::new_witness(cs.clone(), || Ok(Fq::from(leaf.params.slot_count)))?;
         let route_policy_hash =
             FqVar::new_witness(cs.clone(), || Ok(leaf.params.route_policy_hash))?;
         let ring_pk = ElementVar::new_witness(cs.clone(), || Ok(leaf.ring.ring_pk))?;
@@ -259,7 +255,6 @@ impl IndexedLeafVar {
             next_value,
             dk_pub,
             threshold,
-            slot_count,
             route_policy_hash,
             ring_pk,
             ring_id_hash,
@@ -271,7 +266,7 @@ impl IndexedLeafVar {
 
     /// Compute the leaf commitment matching native IndexedLeaf::commit().
     ///
-    /// params_hash = hash_4(PARAMS_DOMAIN, dk_pub_fq, threshold, slot_count, route_policy_hash)
+    /// params_hash = hash_3(PARAMS_DOMAIN, dk_pub_fq, threshold, route_policy_hash)
     /// ring_hash   = hash_5(RING_DOMAIN, ring_pk_fq, ring_id_hash, policy_id_hash, permission_hash, resource_hash)
     /// leaf_commit = hash_5(LEAF_DOMAIN, value, next_index, next_value, params_hash, ring_hash)
     pub fn commit(&self, cs: ConstraintSystemRef<Fq>) -> Result<FqVar, SynthesisError> {
@@ -281,13 +276,12 @@ impl IndexedLeafVar {
 
         // Sub-hash 1: Shieldd-decided params
         let dk_pub_fq = self.dk_pub.compress_to_field()?;
-        let params_hash = poseidon377::r1cs::hash_4(
+        let params_hash = poseidon377::r1cs::hash_3(
             cs.clone(),
             &params_domain,
             (
                 dk_pub_fq,
                 self.threshold.clone(),
-                self.slot_count.clone(),
                 self.route_policy_hash.clone(),
             ),
         )?;
@@ -319,12 +313,6 @@ impl IndexedLeafVar {
             ),
         )
     }
-}
-
-/// Derive ACK from the leaf's `d` scalar and ring_pk: `ACK = d × ring_pk`.
-fn derive_ack_from_leaf_d(ring_pk: &ElementVar, d: &FqVar) -> Result<ElementVar, SynthesisError> {
-    let d_bits = d.to_bits_le()?;
-    ring_pk.scalar_mul_le(d_bits.iter())
 }
 
 /// Circuit variable representation of compliance plaintext.
@@ -479,9 +467,7 @@ pub fn verify_compliance_integrity(
     r_1: Fr,
     r_2: Fr,
     r_3: Fr,
-    // Counterparty's d scalar (already allocated from counterparty_leaf_var)
-    counterparty_d: FqVar,
-    counterparty_slot_id: FqVar,
+    counterparty_user_public_key: ElementVar,
     witness: ComplianceWitness,
 ) -> Result<Vec<Boolean<Fq>>, SynthesisError> {
     let (
@@ -527,9 +513,8 @@ pub fn verify_compliance_integrity(
         &is_flagged,
     )?;
 
-    // ACK per party from leaf's `d` scalar: ACK = d × ring_pk
-    let ack_receiver = derive_ack_from_leaf_d(&asset_indexed_leaf.ring_pk, &user_leaf_var.d)?;
-    let ack_sender = derive_ack_from_leaf_d(&asset_indexed_leaf.ring_pk, &counterparty_d)?;
+    let ack_receiver = user_leaf_var.user_public_key.clone();
+    let ack_sender = counterparty_user_public_key;
 
     // Derive shared secrets with 3 independent ephemeral scalars
     let (ss_detection, ss_core, ss_ext, ss_sext, r1_bits, r2_bits, r3_bits) =
@@ -563,8 +548,6 @@ pub fn verify_compliance_integrity(
         &c2_sext,
         &epk_1,
         &salt_var,
-        &counterparty_slot_id,
-        &user_leaf_var.slot_id,
         note_amount,
         note_asset_id,
         note_diversified_generator,
@@ -851,8 +834,7 @@ fn compliance_stream_block_r1cs(
 
 /// Verify 4-tier Poseidon stream cipher encryption with hybrid KEM/DEM.
 ///
-/// Ciphertext layout: [detection:4] [core:3] [ext:3] [sext:3] = 13 Fqs.
-/// Detection slots: asset_id+flag, salt, sender_slot_id, receiver_slot_id.
+/// Ciphertext layout: [detection:2] [core:3] [ext:3] [sext:3] = 11 Fqs.
 ///
 /// Detection uses epk_1. Core/ext/sext use seeds from C2 ElGamal envelopes.
 /// Conditional on `is_regulated` — unregulated assets skip enforcement.
@@ -869,8 +851,6 @@ fn verify_poseidon_encryption(
     c2_sext: &FqVar,
     epk_1: &ElementVar,
     salt: &FqVar,
-    sender_slot_id: &FqVar,
-    receiver_slot_id: &FqVar,
     note_amount: FqVar,
     note_asset_id: FqVar,
     self_diversified_generator: ElementVar,
@@ -879,7 +859,7 @@ fn verify_poseidon_encryption(
     counterparty_transmission_key: ElementVar,
     compliance_ciphertext: &[FqVar],
 ) -> Result<(), SynthesisError> {
-    if compliance_ciphertext.len() != 13 {
+    if compliance_ciphertext.len() != 11 {
         return Err(SynthesisError::Unsatisfiable);
     }
 
@@ -896,7 +876,7 @@ fn verify_poseidon_encryption(
         counterparty_transmission_key,
     };
 
-    // === DETECTION: 4 Fq elements ===
+    // === DETECTION: 2 Fq elements ===
     let seed_detection = poseidon377::r1cs::hash_2(
         cs.clone(),
         &issuer_domain_sep,
@@ -917,15 +897,7 @@ fn verify_poseidon_encryption(
     let computed_detection_1 = salt + &keystream_1;
     computed_detection_1.conditional_enforce_equal(&compliance_ciphertext[1], is_regulated)?;
 
-    let keystream_2 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 2)?;
-    let computed_detection_2 = sender_slot_id + &keystream_2;
-    computed_detection_2.conditional_enforce_equal(&compliance_ciphertext[2], is_regulated)?;
-
-    let keystream_3 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 3)?;
-    let computed_detection_3 = receiver_slot_id + &keystream_3;
-    computed_detection_3.conditional_enforce_equal(&compliance_ciphertext[3], is_regulated)?;
-
-    // === CORE: 3 Fq elements (amount + self address), starting at index 4 ===
+    // === CORE: 3 Fq elements (amount + self address), starting at index 2 ===
     let ss_core_fq = ss_core.compress_to_field()?;
     let seed_core = c2_core - &ss_core_fq;
 
@@ -933,10 +905,10 @@ fn verify_poseidon_encryption(
     for (i, plain_var) in core_plaintexts.iter().enumerate() {
         let keystream = compliance_stream_block_r1cs(cs.clone(), &seed_core, i as u64)?;
         let computed_cipher = plain_var + &keystream;
-        computed_cipher.conditional_enforce_equal(&compliance_ciphertext[4 + i], is_regulated)?;
+        computed_cipher.conditional_enforce_equal(&compliance_ciphertext[2 + i], is_regulated)?;
     }
 
-    // === EXT: 3 Fq elements (counterparty address), starting at index 7 ===
+    // === EXT: 3 Fq elements (counterparty address), starting at index 5 ===
     let ss_ext_fq = ss_ext.compress_to_field()?;
     let seed_ext = c2_ext - &ss_ext_fq;
 
@@ -944,17 +916,17 @@ fn verify_poseidon_encryption(
     for (i, plain_var) in extension_plaintexts.iter().enumerate() {
         let keystream = compliance_stream_block_r1cs(cs.clone(), &seed_ext, i as u64)?;
         let computed_cipher = plain_var + &keystream;
-        computed_cipher.conditional_enforce_equal(&compliance_ciphertext[7 + i], is_regulated)?;
+        computed_cipher.conditional_enforce_equal(&compliance_ciphertext[5 + i], is_regulated)?;
     }
 
-    // === SEXT: 3 Fq elements (same plaintext as core), starting at index 10 ===
+    // === SEXT: 3 Fq elements (same plaintext as core), starting at index 8 ===
     let ss_sext_fq = ss_sext.compress_to_field()?;
     let seed_sext = c2_sext - &ss_sext_fq;
 
     for (i, plain_var) in core_plaintexts.iter().enumerate() {
         let keystream = compliance_stream_block_r1cs(cs.clone(), &seed_sext, i as u64)?;
         let computed_cipher = plain_var + &keystream;
-        computed_cipher.conditional_enforce_equal(&compliance_ciphertext[10 + i], is_regulated)?;
+        computed_cipher.conditional_enforce_equal(&compliance_ciphertext[8 + i], is_regulated)?;
     }
 
     Ok(())
@@ -1185,8 +1157,7 @@ pub fn derive_shared_secrets_output(
 
 /// Verify Poseidon encryption for the reduced ciphertext (detection + core only).
 ///
-/// Expected ciphertext layout: [detection: 4] [core: 3] = 7 Fq elements.
-/// Detection slots: asset_id+flag, salt, sender_slot_id, receiver_slot_id.
+/// Expected ciphertext layout: [detection: 2] [core: 3] = 5 Fq elements.
 fn verify_poseidon_encryption_spend(
     cs: ConstraintSystemRef<Fq>,
     is_regulated: &Boolean<Fq>,
@@ -1202,7 +1173,7 @@ fn verify_poseidon_encryption_spend(
     self_transmission_key: ElementVar,
     compliance_ciphertext: &[FqVar],
 ) -> Result<(), SynthesisError> {
-    if compliance_ciphertext.len() != 7 {
+    if compliance_ciphertext.len() != 5 {
         return Err(SynthesisError::Unsatisfiable);
     }
 
@@ -1241,14 +1212,6 @@ fn verify_poseidon_encryption_spend(
     let computed_detection_1 = salt + &keystream_1;
     computed_detection_1.conditional_enforce_equal(&compliance_ciphertext[1], is_regulated)?;
 
-    let keystream_2 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 2)?;
-    let computed_detection_2 = FqVar::zero() + &keystream_2;
-    computed_detection_2.conditional_enforce_equal(&compliance_ciphertext[2], is_regulated)?;
-
-    let keystream_3 = compliance_stream_block_r1cs(cs.clone(), &seed_detection, 3)?;
-    let computed_detection_3 = FqVar::zero() + &keystream_3;
-    computed_detection_3.conditional_enforce_equal(&compliance_ciphertext[3], is_regulated)?;
-
     // Core: seed from C2 envelope
     let ss_core_fq = ss_core.compress_to_field()?;
     let seed_core = c2_core - &ss_core_fq;
@@ -1257,7 +1220,7 @@ fn verify_poseidon_encryption_spend(
     for (i, plain_var) in core_plaintexts.iter().enumerate() {
         let keystream = compliance_stream_block_r1cs(cs.clone(), &seed_core, i as u64)?;
         let computed_cipher = plain_var + &keystream;
-        computed_cipher.conditional_enforce_equal(&compliance_ciphertext[4 + i], is_regulated)?;
+        computed_cipher.conditional_enforce_equal(&compliance_ciphertext[2 + i], is_regulated)?;
     }
 
     Ok(())
@@ -1331,8 +1294,7 @@ pub fn verify_compliance_spend(
         &is_flagged,
     )?;
 
-    // Single ACK from leaf's `d` scalar: ACK = d × ring_pk
-    let ack = derive_ack_from_leaf_d(&asset_indexed_leaf.ring_pk, &user_leaf_var.d)?;
+    let ack = user_leaf_var.user_public_key.clone();
 
     let (ss_detection, ss_core, r_s_bits) = derive_shared_secrets_spend(
         cs.clone(),
@@ -1408,29 +1370,6 @@ mod tests {
         AssetPolicy::default_unregulated()
     }
 
-    /// Test: derive_ack_from_leaf_d matches native d × ring_pk
-    #[test]
-    fn test_ack_derivation_circuit_vs_native() {
-        let mut rng = OsRng;
-        let cs = ConstraintSystem::<Fq>::new_ref();
-
-        let sk_ring = Fr::rand(&mut rng);
-        let ring_pk = Element::GENERATOR * sk_ring;
-        let d = Fq::from(42u64);
-
-        // Native: ACK = d × ring_pk (d interpreted as scalar via from_le_bytes_mod_order)
-        let d_fr = Fr::from_le_bytes_mod_order(&d.to_bytes());
-        let ack_native = ring_pk * d_fr;
-
-        // Circuit derivation
-        let ring_pk_var = ElementVar::new_witness(cs.clone(), || Ok(ring_pk)).unwrap();
-        let d_var = FqVar::new_witness(cs.clone(), || Ok(d)).unwrap();
-        let ack_circuit = derive_ack_from_leaf_d(&ring_pk_var, &d_var).unwrap();
-
-        assert!(cs.is_satisfied().unwrap());
-        assert_eq!(ack_circuit.value().unwrap(), ack_native);
-    }
-
     /// Test: ComplianceLeafVar commitment matches native implementation
     #[test]
     fn test_compliance_leaf_var_commit() {
@@ -1447,8 +1386,13 @@ mod tests {
         let diversifier = Diversifier([1u8; 16]);
         let address = Address::from_components(diversifier, pk_d, ck_d).expect("valid address");
 
-        let leaf =
-            ComplianceLeaf::with_slot(address, asset::Id(Fq::from(42u64)), 0, Fq::from(123u64));
+        let leaf = ComplianceLeaf::new(
+            address,
+            asset::Id(Fq::from(42u64)),
+            Element::GENERATOR * Fr::from(3u64),
+            Element::GENERATOR * Fr::from(5u64),
+        )
+        .unwrap();
 
         let native_commitment = leaf.commit();
 

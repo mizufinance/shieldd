@@ -9,6 +9,8 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -168,6 +170,7 @@ func runExportWiringTranscript(args []string) error {
 	fs := flag.NewFlagSet("export-wiring-transcript", flag.ContinueOnError)
 	circuit := fs.String("circuit", "", "supported circuit label")
 	outPath := fs.String("out", "", "output canonical wiring transcript path")
+	leanNamespace := fs.String("lean-namespace", "", "render a Lean List String in this namespace")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -186,6 +189,9 @@ func runExportWiringTranscript(args []string) error {
 	if err != nil {
 		return err
 	}
+	if *leanNamespace != "" {
+		out = renderWiringTranscriptLean(*leanNamespace, *circuit, out)
+	}
 	if err := os.MkdirAll(filepath.Dir(*outPath), 0o755); err != nil {
 		return fmt.Errorf("create output dir: %w", err)
 	}
@@ -194,6 +200,29 @@ func runExportWiringTranscript(args []string) error {
 	}
 	fmt.Fprintf(os.Stderr, "wrote %s\n", *outPath)
 	return nil
+}
+
+func renderWiringTranscriptLean(namespace, circuit, transcript string) string {
+	lines := strings.Split(strings.TrimSuffix(transcript, "\n"), "\n")
+	var out strings.Builder
+	fmt.Fprintf(&out, "/-! Canonical wiring transcript expected from the Go `%s` Define path. -/\n\n", circuit)
+	fmt.Fprintf(&out, "namespace %s\n\n", namespace)
+	out.WriteString("def lines : List String :=\n")
+	for index, line := range lines {
+		if index == 0 {
+			out.WriteString("  [")
+		} else {
+			out.WriteString("   ")
+		}
+		out.WriteString(strconv.Quote(line))
+		if index+1 == len(lines) {
+			out.WriteString("]\n")
+		} else {
+			out.WriteString(",\n")
+		}
+	}
+	fmt.Fprintf(&out, "\nend %s\n", namespace)
+	return out.String()
 }
 
 func runExportManifest(args []string) error {

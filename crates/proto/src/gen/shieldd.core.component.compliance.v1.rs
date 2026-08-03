@@ -41,15 +41,12 @@ pub struct ComplianceLeaf {
     /// The asset ID this compliance leaf applies to.
     #[prost(message, optional, tag = "3")]
     pub asset_id: ::core::option::Option<super::super::super::asset::v1::AssetId>,
-    /// Derivation scalar: d = SHA256_derive(slot_derivation). Verified at registration.
+    /// User's public child key in the asset's compliance ring.
     #[prost(bytes = "vec", tag = "4")]
-    pub d: ::prost::alloc::vec::Vec<u8>,
-    /// Compliance slot authorized by the ACP for this address/asset registration.
-    #[prost(uint32, tag = "5")]
-    pub slot_id: u32,
-    /// Canonical random derivation material for the slot.
-    #[prost(bytes = "vec", tag = "6")]
-    pub slot_derivation: ::prost::alloc::vec::Vec<u8>,
+    pub user_public_key: ::prost::alloc::vec::Vec<u8>,
+    /// Independent public key used to create fuzzy transaction clues.
+    #[prost(bytes = "vec", tag = "5")]
+    pub clue_public_key: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for ComplianceLeaf {
     const NAME: &'static str = "ComplianceLeaf";
@@ -105,9 +102,6 @@ pub struct MsgRegisterAsset {
     /// External IBC origin for a regulated voucher asset, if any.
     #[prost(message, optional, tag = "13")]
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
-    /// Number of ACP-authorized compliance slots for this asset.
-    #[prost(uint32, tag = "14")]
-    pub slot_count: u32,
 }
 impl ::prost::Name for MsgRegisterAsset {
     const NAME: &'static str = "MsgRegisterAsset";
@@ -150,8 +144,6 @@ pub struct AssetRegistrationGrantBody {
     pub valid_until_unix: u64,
     #[prost(message, optional, tag = "13")]
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
-    #[prost(uint32, tag = "14")]
-    pub slot_count: u32,
 }
 impl ::prost::Name for AssetRegistrationGrantBody {
     const NAME: &'static str = "AssetRegistrationGrantBody";
@@ -631,8 +623,6 @@ pub struct IndexedLeafData {
     pub threshold: ::prost::alloc::vec::Vec<u8>,
     #[prost(bytes = "vec", tag = "6")]
     pub route_policy_hash: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "12")]
-    pub slot_count: ::prost::alloc::vec::Vec<u8>,
     /// Orbis-decided policy (RingData)
     #[prost(bytes = "vec", tag = "7")]
     pub ring_pk: ::prost::alloc::vec::Vec<u8>,
@@ -682,8 +672,6 @@ pub struct AssetPolicy {
     >,
     #[prost(message, optional, tag = "10")]
     pub ibc_origin: ::core::option::Option<IbcAssetOrigin>,
-    #[prost(uint32, tag = "11")]
-    pub slot_count: u32,
 }
 impl ::prost::Name for AssetPolicy {
     const NAME: &'static str = "AssetPolicy";
@@ -730,8 +718,6 @@ pub struct NativeAssetRegistration {
     pub registration_authority_vk: ::core::option::Option<
         super::super::super::super::crypto::decaf377_rdsa::v1::SpendVerificationKey,
     >,
-    #[prost(uint32, tag = "5")]
-    pub slot_count: u32,
 }
 impl ::prost::Name for NativeAssetRegistration {
     const NAME: &'static str = "NativeAssetRegistration";

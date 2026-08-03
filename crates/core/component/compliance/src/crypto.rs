@@ -4,7 +4,7 @@
 //! stream cipher. Three tiers: detection (issuer-only, always), core (amount + self
 //! address), extension (counterparty), sender-extension (sender's copy).
 //!
-//! Unflagged transactions encrypt core/ext/sext to per-tier ACKs derived from ring_pk.
+//! Unflagged transactions encrypt core/ext/sext to registered user public keys.
 //! Flagged transactions encrypt all tiers to issuer DK_pub.
 //!
 //! ## Abbreviations
@@ -17,34 +17,8 @@ use once_cell::sync::Lazy;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_num::Amount;
 
-use sha2::{Digest, Sha512};
-
 use crate::issuer_keys::DETECTION_TIER_BYTES;
 use crate::structs::{ComplianceCiphertext, DleqProof};
-
-#[cfg(test)]
-use shieldd_sdk_keys::Address;
-
-/// Domain separator for SHA-512 derivation — matches Orbis `DERIVATION_DOMAIN` exactly.
-const DERIVATION_DOMAIN: &[u8; 23] = b"elgamal-derivation-v1\0\0";
-
-/// Derive the compliance scalar `d` from canonical slot derivation material.
-///
-/// `d = Fr::from_le_bytes_mod_order(SHA512(DERIVATION_DOMAIN || slot_derivation.to_bytes()))`
-///
-/// This MUST match Orbis's `derive_capability_scalar()` so PRE math cancels correctly.
-/// Orbis uses a 64-byte SHA-512 digest reduced mod `Fr` (wide reduction, negligible
-/// bias). The result is stored as Fq in the compliance leaf (Fr fits losslessly in Fq).
-pub fn derive_compliance_scalar(slot_derivation: Fq) -> Fq {
-    let mut hasher = Sha512::new();
-    hasher.update(DERIVATION_DOMAIN);
-    hasher.update(slot_derivation.to_bytes());
-    let hash = hasher.finalize();
-    // Reduce mod r first (matching Orbis's Fr::from_le_bytes_mod_order), then embed into Fq.
-    // r < q for decaf377, so this conversion is lossless.
-    let fr = Fr::from_le_bytes_mod_order(&hash);
-    Fq::from_le_bytes_mod_order(&fr.to_bytes())
-}
 
 /// Domain separator for Poseidon stream cipher seed derivation.
 pub static COMPLIANCE_STREAM_CIPHER_DOMAIN: Lazy<Fq> = Lazy::new(|| {
@@ -286,7 +260,7 @@ pub fn decrypt_detection_tier(
     epk_1: &Element,
     detection_ciphertext: &[u8; DETECTION_TIER_BYTES],
     expected_asset_id: &asset::Id,
-) -> anyhow::Result<(asset::Id, bool, Fq, u32, u32)> {
+) -> anyhow::Result<(asset::Id, bool, Fq)> {
     let ss = *epk_1 * *dk;
 
     let epk_1_fq = epk_1.vartime_compress_to_field();
@@ -305,39 +279,10 @@ pub fn decrypt_detection_tier(
     let keystream_1 = compliance_stream_block(seed, 1);
     let salt = ct_salt - keystream_1;
 
-    let slot_id_from_fq = |value: Fq, field: &str| -> anyhow::Result<u32> {
-        let bytes = value.to_bytes();
-        anyhow::ensure!(
-            bytes[4..].iter().all(|byte| *byte == 0),
-            "{field} is not a canonical u32 slot id"
-        );
-        Ok(u32::from_le_bytes(bytes[..4].try_into()?))
-    };
-
-    let ct_sender_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[64..96]);
-    let keystream_2 = compliance_stream_block(seed, 2);
-    let sender_slot_id = slot_id_from_fq(ct_sender_slot - keystream_2, "sender_slot_id")?;
-
-    let ct_receiver_slot = Fq::from_le_bytes_mod_order(&detection_ciphertext[96..128]);
-    let keystream_3 = compliance_stream_block(seed, 3);
-    let receiver_slot_id = slot_id_from_fq(ct_receiver_slot - keystream_3, "receiver_slot_id")?;
-
     if pt_fq == expected_asset_id.0 {
-        Ok((
-            *expected_asset_id,
-            false,
-            salt,
-            sender_slot_id,
-            receiver_slot_id,
-        ))
+        Ok((*expected_asset_id, false, salt))
     } else if pt_fq == expected_asset_id.0 + *crate::issuer_keys::FLAG_SENTINEL {
-        Ok((
-            *expected_asset_id,
-            true,
-            salt,
-            sender_slot_id,
-            receiver_slot_id,
-        ))
+        Ok((*expected_asset_id, true, salt))
     } else {
         anyhow::bail!("detection tier does not match expected asset")
     }
@@ -454,19 +399,10 @@ mod tests {
         (sk_ring, ring_pk)
     }
 
-    fn derive_ack(ring_pk: &Element, b_d_fq: Fq) -> Element {
-        let d = derive_compliance_scalar(b_d_fq);
-        let d_fr = Fr::from_le_bytes_mod_order(&d.to_bytes());
-        *ring_pk * d_fr
-    }
-
     #[test]
     fn test_dleq_native_roundtrip() {
         let mut rng = OsRng;
-        let (_, ring_pk) = make_ring_keys(&mut rng);
-        let address = Address::dummy(&mut rng);
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let ack = derive_ack(&ring_pk, b_d_fq);
+        let (_, ack) = make_ring_keys(&mut rng);
 
         let r = Fr::rand(&mut rng);
         let k = Fr::rand(&mut rng);
@@ -519,10 +455,7 @@ mod tests {
 
         // Verify that DleqProof.c has high bits zeroed (truncated challenge)
         let mut rng = OsRng;
-        let (_, ring_pk) = make_ring_keys(&mut rng);
-        let address = Address::dummy(&mut rng);
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let ack = derive_ack(&ring_pk, b_d_fq);
+        let (_, ack) = make_ring_keys(&mut rng);
 
         let r = Fr::rand(&mut rng);
         let k = Fr::rand(&mut rng);
@@ -555,10 +488,7 @@ mod tests {
     #[test]
     fn test_metadata_to_dleq_native_roundtrip() {
         let mut rng = OsRng;
-        let (_, ring_pk) = make_ring_keys(&mut rng);
-        let address = Address::dummy(&mut rng);
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let ack = derive_ack(&ring_pk, b_d_fq);
+        let (_, ack) = make_ring_keys(&mut rng);
 
         let r = Fr::rand(&mut rng);
         let k = Fr::rand(&mut rng);
@@ -753,10 +683,7 @@ mod tests {
     #[test]
     fn test_verify_dleq_native_valid() {
         let mut rng = OsRng;
-        let (_, ring_pk) = make_ring_keys(&mut rng);
-        let address = Address::dummy(&mut rng);
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let ack = derive_ack(&ring_pk, b_d_fq);
+        let (_, ack) = make_ring_keys(&mut rng);
 
         let r = Fr::rand(&mut rng);
         let k = Fr::rand(&mut rng);
@@ -781,10 +708,7 @@ mod tests {
     #[test]
     fn test_verify_dleq_native_wrong_metadata() {
         let mut rng = OsRng;
-        let (_, ring_pk) = make_ring_keys(&mut rng);
-        let address = Address::dummy(&mut rng);
-        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
-        let ack = derive_ack(&ring_pk, b_d_fq);
+        let (_, ack) = make_ring_keys(&mut rng);
 
         let r = Fr::rand(&mut rng);
         let k = Fr::rand(&mut rng);
@@ -825,13 +749,8 @@ mod tests {
     #[test]
     fn test_verify_dleq_native_wrong_ack() {
         let mut rng = OsRng;
-        let (_, ring_pk) = make_ring_keys(&mut rng);
-        let addr1 = Address::dummy(&mut rng);
-        let addr2 = Address::dummy(&mut rng);
-        let b_d_fq1 = addr1.diversified_generator().vartime_compress_to_field();
-        let b_d_fq2 = addr2.diversified_generator().vartime_compress_to_field();
-        let ack_correct = derive_ack(&ring_pk, b_d_fq1);
-        let ack_wrong = derive_ack(&ring_pk, b_d_fq2);
+        let (_, ack_correct) = make_ring_keys(&mut rng);
+        let (_, ack_wrong) = make_ring_keys(&mut rng);
 
         let r = Fr::rand(&mut rng);
         let k = Fr::rand(&mut rng);
@@ -861,24 +780,6 @@ mod tests {
         assert!(
             result.is_err(),
             "DLEQ verification with wrong ACK should fail"
-        );
-    }
-
-    #[test]
-    fn test_derive_compliance_scalar_deterministic() {
-        let fq1 = Fq::from(12345u64);
-        let fq2 = Fq::from(12345u64);
-        let fq3 = Fq::from(99999u64);
-
-        assert_eq!(
-            derive_compliance_scalar(fq1),
-            derive_compliance_scalar(fq2),
-            "same input must produce same scalar"
-        );
-        assert_ne!(
-            derive_compliance_scalar(fq1),
-            derive_compliance_scalar(fq3),
-            "different inputs must produce different scalars"
         );
     }
 

@@ -8,7 +8,6 @@ import (
 	"github.com/consensys/gnark/test"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/abi"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
-	"github.com/mizufinance/shieldd/tools/gnark/internal/compliance"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/testfixtures"
 )
@@ -103,38 +102,6 @@ func transferAssignmentWithFalseRegulatedBranch(t *testing.T) *circuits.Transfer
 		t.Fatalf("build transfer assignment: %v", err)
 	}
 
-	unregulatedRingPK, _, err := compliance.UnregulatedComplianceKeys()
-	if err != nil {
-		t.Fatalf("derive unregulated compliance keys: %v", err)
-	}
-	senderAck, err := compliance.DeriveACKFromLeafDNative(
-		unregulatedRingPK,
-		primitives.LittleEndianBytesToBigInt(witness.SenderD[:]),
-	)
-	if err != nil {
-		t.Fatalf("derive unregulated sender ACK: %v", err)
-	}
-	receiverAck, err := compliance.DeriveACKFromLeafDNative(
-		unregulatedRingPK,
-		primitives.LittleEndianBytesToBigInt(witness.Outputs[0].RecipientD[:]),
-	)
-	if err != nil {
-		t.Fatalf("derive unregulated receiver ACK: %v", err)
-	}
-
-	senderPoint := abi.PointAffineBinary{
-		X: le32FromBigInt(t, senderAck.X.(*big.Int)),
-		Y: le32FromBigInt(t, senderAck.Y.(*big.Int)),
-	}
-	receiverPoint := abi.PointAffineBinary{
-		X: le32FromBigInt(t, receiverAck.X.(*big.Int)),
-		Y: le32FromBigInt(t, receiverAck.Y.(*big.Int)),
-	}
-	witness.SenderCore.DerivedPKAffine = senderPoint
-	witness.SenderExt.DerivedPKAffine = senderPoint
-	witness.OutputCore.DerivedPKAffine = receiverPoint
-	witness.OutputExt.DerivedPKAffine = receiverPoint
-
 	fields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV1(witness)
 	if err != nil {
 		t.Fatalf("reconstruct transfer statement fields: %v", err)
@@ -150,10 +117,6 @@ func transferAssignmentWithFalseRegulatedBranch(t *testing.T) *circuits.Transfer
 
 	assignment.IsRegulated = 0
 	assignment.ClaimedStatementHash = statementHash.String()
-	assignment.Compliance.SenderCore.Proof.DerivedPK = pointFromNative(t, senderAck.X.(*big.Int), senderAck.Y.(*big.Int))
-	assignment.Compliance.SenderExt.Proof.DerivedPK = pointFromNative(t, senderAck.X.(*big.Int), senderAck.Y.(*big.Int))
-	assignment.Compliance.OutputCore.Proof.DerivedPK = pointFromNative(t, receiverAck.X.(*big.Int), receiverAck.Y.(*big.Int))
-	assignment.Compliance.OutputExt.Proof.DerivedPK = pointFromNative(t, receiverAck.X.(*big.Int), receiverAck.Y.(*big.Int))
 	return assignment
 }
 
@@ -231,6 +194,24 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			mutate: func(c *circuits.TransferCircuit) {
 				c.Outputs[0].IsReceiver = 0
 				c.Outputs[1].IsReceiver = 1
+			},
+		},
+		{
+			name: "fuzzy tags",
+			mutate: func(c *circuits.TransferCircuit) {
+				c.Compliance.FuzzyTags = mutateFieldByOne(c.Compliance.FuzzyTags)
+			},
+		},
+		{
+			name: "sender clue public key",
+			mutate: func(c *circuits.TransferCircuit) {
+				c.Sender.CluePK.X = mutateFieldByOne(c.Sender.CluePK.X)
+			},
+		},
+		{
+			name: "receiver clue public key",
+			mutate: func(c *circuits.TransferCircuit) {
+				c.Outputs[0].Recipient.CluePK.X = mutateFieldByOne(c.Outputs[0].Recipient.CluePK.X)
 			},
 		},
 	}
@@ -370,6 +351,9 @@ func tierMetadataMutations() []transferMutation {
 		name   string
 		mutate func(*circuits.TransferComplianceStatementFields)
 	}{
+		{name: "subject user public key", mutate: func(s *circuits.TransferComplianceStatementFields) {
+			s.SubjectUserPublicKey.X = mutateFieldByOne(s.SubjectUserPublicKey.X)
+		}},
 		{name: "tier label", mutate: func(s *circuits.TransferComplianceStatementFields) {
 			s.Tier = mutateFieldByOne(s.Tier)
 		}},

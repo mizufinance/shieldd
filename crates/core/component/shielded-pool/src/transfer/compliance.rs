@@ -83,8 +83,8 @@ pub(crate) fn build_transfer_compliance(
     let receiver_amount: u128 = receiver_note.amount().into();
     let is_flagged = receiver_amount >= asset_indexed_leaf.params.threshold;
 
-    let sender_ack = ring_pk * Fr::from_le_bytes_mod_order(&sender_leaf.d.to_bytes());
-    let receiver_ack = ring_pk * Fr::from_le_bytes_mod_order(&receiver_leaf.d.to_bytes());
+    let sender_ack = sender_leaf.user_public_key;
+    let receiver_ack = receiver_leaf.user_public_key;
 
     let detection_salt = derive_transfer_salt(transfer_nonce_root, b"detection");
     let authorization_id = derive_authorization_id(transfer_nonce_root);
@@ -98,6 +98,8 @@ pub(crate) fn build_transfer_compliance(
         &mut rng,
         &sender_ack,
         &receiver_ack,
+        &shieldd_sdk_compliance::FuzzyClueKey::from_element(sender_leaf.clue_public_key)?,
+        &shieldd_sdk_compliance::FuzzyClueKey::from_element(receiver_leaf.clue_public_key)?,
         &dk_pub,
         &receiver_note.address(),
         &sender_leaf.address,
@@ -106,13 +108,13 @@ pub(crate) fn build_transfer_compliance(
             asset_id: receiver_note.asset_id(),
         },
         is_flagged,
-        sender_leaf.slot_id,
-        receiver_leaf.slot_id,
+        authorization_id,
+        target_timestamp,
         detection_salt,
     )?;
 
-    let sender_slot_derivation = sender_leaf.slot_derivation;
-    let receiver_slot_derivation = receiver_leaf.slot_derivation;
+    let sender_user_public_key = sender_leaf.user_public_key;
+    let receiver_user_public_key = receiver_leaf.user_public_key;
     let policy_id = &asset_policy.ring.policy_id;
     let ring_id = &asset_policy.ring.ring_id;
     let resource = &asset_policy.ring.resource;
@@ -125,7 +127,7 @@ pub(crate) fn build_transfer_compliance(
             encryption.sender.core.seed,
             encryption.sender.core.r,
             TransferTierMetadataStatement::from_identifiers(
-                sender_slot_derivation,
+                sender_user_public_key,
                 ring_id,
                 policy_id,
                 resource,
@@ -149,7 +151,7 @@ pub(crate) fn build_transfer_compliance(
             encryption.sender.ext.seed,
             encryption.sender.ext.r,
             TransferTierMetadataStatement::from_identifiers(
-                sender_slot_derivation,
+                sender_user_public_key,
                 ring_id,
                 policy_id,
                 resource,
@@ -173,7 +175,7 @@ pub(crate) fn build_transfer_compliance(
             encryption.output.core.seed,
             encryption.output.core.r,
             TransferTierMetadataStatement::from_identifiers(
-                receiver_slot_derivation,
+                receiver_user_public_key,
                 ring_id,
                 policy_id,
                 resource,
@@ -197,7 +199,7 @@ pub(crate) fn build_transfer_compliance(
             encryption.output.ext.seed,
             encryption.output.ext.r,
             TransferTierMetadataStatement::from_identifiers(
-                receiver_slot_derivation,
+                receiver_user_public_key,
                 ring_id,
                 policy_id,
                 resource,
@@ -314,6 +316,7 @@ pub(crate) fn transfer_compliance_public_from_parts(
         output_core_c2,
         output_ext_c2,
         detection_ciphertext,
+        fuzzy_tags,
         sender_core_ciphertext,
         sender_ext_ciphertext,
         output_core_ciphertext,
@@ -322,6 +325,7 @@ pub(crate) fn transfer_compliance_public_from_parts(
 
     Ok(TransferCompliancePublic {
         detection_ciphertext: detection_ciphertext.to_vec(),
+        fuzzy_tags,
         sender_core: TransferComplianceCiphertextPublic {
             epk: sender_core_epk,
             c2: sender_core_c2,

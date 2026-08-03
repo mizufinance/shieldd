@@ -1964,9 +1964,8 @@ impl ViewService for ViewServer {
                     let leaf_proto = compliance_pb::ComplianceLeaf {
                         address: Some(address.clone().into()),
                         asset_id: Some(asset_id.into()),
-                        d: leaf_data.d.to_vec(),
-                        slot_id: leaf_data.slot_id,
-                        slot_derivation: leaf_data.slot_derivation.to_vec(),
+                        user_public_key: leaf_data.user_public_key.to_vec(),
+                        clue_public_key: leaf_data.clue_public_key.to_vec(),
                     };
 
                     tracing::debug!(
@@ -2125,15 +2124,14 @@ impl ViewService for ViewServer {
             .map_err(|e| tonic::Status::internal(format!("storage error: {e}")))?;
 
         if let Some(leaf_data) = local_leaf_data {
-            // Local storage hit - reconstruct the leaf from stored slot material.
+            // Local storage hit - reconstruct the registered key pair.
             tracing::debug!(?address, ?asset_id, "using local storage for user leaf");
 
             let leaf = compliance_pb::ComplianceLeaf {
                 address: request_inner.address,
                 asset_id: request_inner.asset_id,
-                d: leaf_data.d.to_vec(),
-                slot_id: leaf_data.slot_id,
-                slot_derivation: leaf_data.slot_derivation.to_vec(),
+                user_public_key: leaf_data.user_public_key.to_vec(),
+                clue_public_key: leaf_data.clue_public_key.to_vec(),
             };
 
             return Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
@@ -2172,9 +2170,8 @@ impl ViewService for ViewServer {
         let leaf = response.leaf.map(|l| compliance_pb::ComplianceLeaf {
             address: l.address,
             asset_id: l.asset_id,
-            d: l.d,
-            slot_id: l.slot_id,
-            slot_derivation: l.slot_derivation,
+            user_public_key: l.user_public_key,
+            clue_public_key: l.clue_public_key,
         });
 
         Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
@@ -2275,9 +2272,8 @@ impl ViewService for ViewServer {
                         let leaf_proto = compliance_pb::ComplianceLeaf {
                             address: Some(address.clone().into()),
                             asset_id: Some(asset_id.into()),
-                            d: leaf_data.d.to_vec(),
-                            slot_id: leaf_data.slot_id,
-                            slot_derivation: leaf_data.slot_derivation.to_vec(),
+                            user_public_key: leaf_data.user_public_key.to_vec(),
+                            clue_public_key: leaf_data.clue_public_key.to_vec(),
                         };
 
                         tracing::debug!(

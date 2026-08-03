@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     authorization::AuthorizationId,
-    crypto::{compute_transfer_metadata_hash, derive_compliance_scalar, verify_dleq_native},
+    crypto::{compute_transfer_metadata_hash, verify_dleq_native},
     indexed_tree::string_to_fq,
     structs::DleqProof,
 };
@@ -42,8 +42,8 @@ impl TransferTierKind {
 /// `store_secret`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TransferTierMetadataStatement {
-    /// Canonical 32-byte little-endian encoding of the subject's slot derivation.
-    pub subject_derivation_bytes: [u8; 32],
+    /// Canonical compressed encoding of the registered user public key.
+    pub subject_user_public_key_bytes: [u8; 32],
     pub ring_id_hash_bytes: [u8; 32],
     pub policy_id_hash_bytes: [u8; 32],
     pub resource_hash_bytes: [u8; 32],
@@ -56,7 +56,7 @@ pub struct TransferTierMetadataStatement {
 
 impl TransferTierMetadataStatement {
     pub fn new(
-        subject_derivation: Fq,
+        subject_user_public_key: Element,
         ring_id_hash: Fq,
         policy_id_hash: Fq,
         resource_hash: Fq,
@@ -67,7 +67,7 @@ impl TransferTierMetadataStatement {
         salt: Fq,
     ) -> Self {
         Self {
-            subject_derivation_bytes: subject_derivation.to_bytes(),
+            subject_user_public_key_bytes: subject_user_public_key.vartime_compress().0,
             ring_id_hash_bytes: ring_id_hash.to_bytes(),
             policy_id_hash_bytes: policy_id_hash.to_bytes(),
             resource_hash_bytes: resource_hash.to_bytes(),
@@ -80,7 +80,7 @@ impl TransferTierMetadataStatement {
     }
 
     pub fn from_identifiers(
-        subject_derivation: Fq,
+        subject_user_public_key: Element,
         ring_id: &str,
         policy_id: &str,
         resource: &str,
@@ -91,7 +91,7 @@ impl TransferTierMetadataStatement {
         salt: Fq,
     ) -> Self {
         Self::new(
-            subject_derivation,
+            subject_user_public_key,
             string_to_fq(ring_id),
             string_to_fq(policy_id),
             string_to_fq(resource),
@@ -104,7 +104,7 @@ impl TransferTierMetadataStatement {
     }
 
     pub fn validate_shape(&self) -> Result<()> {
-        self.subject_derivation()?;
+        self.subject_user_public_key()?;
         self.ring_id_hash()?;
         self.policy_id_hash()?;
         self.resource_hash()?;
@@ -132,15 +132,14 @@ impl TransferTierMetadataStatement {
         ))
     }
 
-    pub fn subject_ack(&self, ring_pk: &Element) -> Result<Element> {
-        let d = derive_compliance_scalar(self.subject_derivation()?);
-        let d_fr = Fr::from_bytes_checked(&d.to_bytes())
-            .map_err(|_| anyhow!("derived compliance scalar is not a canonical Fr"))?;
-        Ok(*ring_pk * d_fr)
+    pub fn subject_ack(&self, _ring_pk: &Element) -> Result<Element> {
+        self.subject_user_public_key()
     }
 
-    pub fn subject_derivation(&self) -> Result<Fq> {
-        parse_fq(self.subject_derivation_bytes, "subject_derivation_bytes")
+    pub fn subject_user_public_key(&self) -> Result<Element> {
+        Encoding(self.subject_user_public_key_bytes)
+            .vartime_decompress()
+            .map_err(|_| anyhow!("invalid subject_user_public_key_bytes"))
     }
 
     pub fn authorization_id(&self) -> Result<AuthorizationId> {
@@ -287,9 +286,9 @@ mod tests {
         let sk_ring = Fr::rand(&mut rng);
         let ring_pk = Element::GENERATOR * sk_ring;
 
-        let subject_derivation = Fq::from(42u64);
+        let subject_user_public_key = Element::GENERATOR * Fr::from(42u64);
         let statement = TransferTierMetadataStatement::from_identifiers(
-            subject_derivation,
+            subject_user_public_key,
             "ring-id",
             "policy-id",
             "document",
@@ -360,7 +359,8 @@ mod tests {
     #[test]
     fn transfer_tier_decode_object_rejects_wrong_subject_linkage() {
         let (mut object, ring_pk, _) = valid_decode_object();
-        object.statement.subject_derivation_bytes = Fq::from(999u64).to_bytes();
+        object.statement.subject_user_public_key_bytes =
+            (Element::GENERATOR * Fr::from(999u64)).vartime_compress().0;
 
         let error = object
             .validate(&ring_pk)

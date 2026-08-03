@@ -17,7 +17,7 @@ use crate::{
 pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 81;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 80;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 10;
@@ -331,6 +331,7 @@ pub fn transfer_statement_fields(
             .ok_or_else(|| transfer_field_encoding_error("compliance_anchor"))?,
     );
     fields.extend(compliance.detection_ciphertext.iter().copied());
+    fields.push(compliance.fuzzy_tags);
     for (label, tier) in [
         ("sender_core", &compliance.sender_core),
         ("sender_ext", &compliance.sender_ext),
@@ -362,8 +363,8 @@ pub fn transfer_statement_fields(
         ("transfer_output_ext_proof", &compliance.output_ext.proof),
     ] {
         let statement = &proof.statement;
-        let subject_derivation = statement.subject_derivation().map_err(|e| {
-            transfer_field_encoding_error(&format!("{label}_subject_derivation: {e}"))
+        let subject_user_public_key = statement.subject_user_public_key().map_err(|e| {
+            transfer_field_encoding_error(&format!("{label}_subject_user_public_key: {e}"))
         })?;
         let ring_id_hash = statement
             .ring_id_hash()
@@ -380,8 +381,8 @@ pub fn transfer_statement_fields(
         let salt = statement
             .salt()
             .map_err(|e| transfer_field_encoding_error(&format!("{label}_salt: {e}")))?;
-        fields.extend(subject_derivation.to_field_elements().ok_or_else(|| {
-            transfer_field_encoding_error(&format!("{label}_subject_derivation"))
+        fields.extend(subject_user_public_key.to_field_elements().ok_or_else(|| {
+            transfer_field_encoding_error(&format!("{label}_subject_user_public_key"))
         })?);
         fields.extend(
             ring_id_hash

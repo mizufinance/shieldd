@@ -3017,7 +3017,6 @@ mod tests {
         let policy = AssetPolicy::new(
             decaf377::Element::GENERATOR,
             500,
-            crate::structs::DEFAULT_COMPLIANCE_SLOT_COUNT,
             vec![route.clone()],
             Some(crate::IbcAssetOrigin {
                 route,
@@ -3061,7 +3060,6 @@ mod tests {
         let policy = AssetPolicy::new(
             decaf377::Element::GENERATOR,
             500,
-            crate::structs::DEFAULT_COMPLIANCE_SLOT_COUNT,
             vec![old_route.clone()],
             None,
             String::new(),

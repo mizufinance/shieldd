@@ -42,7 +42,6 @@ AssetPolicy {
   dk_pub,
   ring_pk,
   threshold,
-  slot_count,
   allowed_channels,
   ring_id,
   policy_id,
@@ -59,34 +58,31 @@ in NV storage and is checked at readiness.
 
 3. **User registration**: user completes KYC with Defra, publishes a hidden-doc
    proof through SourceHub/Orbis, then registers a `(address, asset)` compliance
-   leaf on Shieldd. ACP assigns or authorizes a slot for the asset and supplies
-   canonical random slot derivation material.
+   leaf on Shieldd. The registration authority signs the user public child key
+   and an independent fuzzy clue public key together.
 
 ```text
-slot_id < AssetPolicy.slot_count
-d   = SHA256("elgamal-derivation-v1\0\0" || slot_derivation)
-ACK = d * ring_pk
+user_public_key = user_derivation * ring_pk
+                = (user_derivation * sk_ring) * G
+clue_public_key = fuzzy_detection_key * G
+
+ComplianceLeaf = (address, asset_id, user_public_key, clue_public_key)
 ```
 
-Normal Shieldd address generation is unchanged. `slot_derivation` is opaque
-canonical slot material, not an address diversifier. `ACK` means Audit
-Compliance Key: it is the per-slot key used for audit-tier encryption. `d` and
-`slot_derivation` are stored in the compliance leaf; `ACK` is derived from `d`
-and the asset's `ring_pk`, but is not stored.
+Normal Shieldd address generation is unchanged. Each user has one compliance
+key for the asset, not a set of indexed keys. The public child key is derived
+from the asset's Orbis ring key and is the audit encryption key (`ACK`) used by
+transfer tiers. The clue key is independent so
+releasing its secret grants discovery without granting decryption. Chain-side
+registration validates key encodings, rejects identity/equal keys, and verifies
+the authority grant over the complete leaf.
 
-Reusing a slot for multiple registered addresses reuses the same
-`slot_derivation`, `d`, and ACK, so those addresses are clusterable. This is
-allowed for regulated assets, but docs and clients should recommend one
-registered address per slot unless the user intentionally accepts that
-clustering. v1 uses bounded slots per asset; later versions can raise the bound
-or make it effectively unbounded.
-
-`slot_id` is not an additional privacy boundary when the corresponding
-`slot_derivation` is visible: the derivation material already defines the
-linkable class. Making `slot_id` public only names that class and does not add
-meaningful leakage beyond public registration data. Hiding `slot_id` would only
-matter in a future design that also hides `slot_derivation` from the same
-observer set.
+The user-controlled enrollment client generates the fuzzy detection key and
+deposits that secret under the future ACP release policy; the registrar sees
+and attests only its public clue key. This avoids giving the registrar an
+unlogged global scanning capability. The current Shieldd CLI accepts both
+public keys during registration, while `FuzzyDetectionKey::generate` provides
+the key primitive for enrollment tooling.
 
 ## Transfer
 
@@ -103,9 +99,9 @@ Both sender and receiver must have compliance leaves for the regulated asset.
 planner:
   fetch sender/receiver compliance leaves
   fetch AssetPolicy
-  derive sender/receiver ACKs from leaf d
+  use sender/receiver user public keys as ACKs
   set is_flagged = amount >= threshold
-  create one receiver-output compliance ciphertext
+  create one receiver-output compliance ciphertext and two public fuzzy tags
 ```
 
 The receiver output carries a unified transfer compliance ciphertext and DLEQ
@@ -116,7 +112,7 @@ compliance ciphertext.
 
 | Tier | Content | Unflagged Encryption | Flagged Encryption |
 |------|---------|----------------------|--------------------|
-| Detection | asset id, flag, salt, sender slot id, receiver slot id | `dk_pub` | `dk_pub` |
+| Detection | asset id, flag, salt | `dk_pub` | `dk_pub` |
 | Sender core | amount | sender ACK | `dk_pub` |
 | Sender ext | receiver address | sender ACK | `dk_pub` |
 | Output core | amount | receiver ACK | `dk_pub` |
@@ -129,15 +125,27 @@ uses the transfer target timestamp, but scanner and audit records name it by its
 authorization purpose rather than treating it as block time.
 
 `dk_pub` is the issuer Detection Key public key from `AssetPolicy`. Detection
-is always issuer-DK decryptable and carries the slot ids needed to select the
-one slot derivation for PRE. The slot ids may also be public without extra
-privacy loss, because the registered `slot_derivation` already reveals same-slot
-clustering. ACK encryption routes unflagged audit tiers to authorized
-subject/ring access through Orbis PRE; flagged transfers encrypt all audit tiers
-to issuer `dk_pub` directly. Both core tiers contain the amount. The sender
-extension contains the receiver address, and the output extension contains the
-sender address. The audit API maps these role-relative tiers to independent
-`sender`, `amount`, and `receiver` disclosures.
+is always issuer-DK decryptable. ACK encryption routes unflagged audit tiers to
+authorized subject/ring access through Orbis PRE; flagged transfers encrypt all
+audit tiers to issuer `dk_pub` directly. Both core tiers contain the amount. The
+sender extension contains the receiver address, and the output extension
+contains the sender address. The audit API maps these role-relative tiers to
+independent `sender`, `amount`, and `receiver` disclosures.
+
+The public clue bytes contain one 8-bit sender tag and one 8-bit receiver tag:
+
+```text
+shared = r * clue_public_key
+tag = low8(Poseidon(fuzzy_domain, Compress(shared), asset_id,
+                    authorization_id, authorization_timestamp, role))
+```
+
+The sender tag reuses the sender-core randomizer/EPK; the receiver tag reuses
+the output-core randomizer/EPK. The proof binds both tags to those randomizers,
+the registered clue keys, the asset, and authorization metadata. A released
+fuzzy detection key can recompute tags from public EPKs, reducing an unrelated
+million-transfer range to about 7,797 Orbis candidates on average. The key does
+not decrypt any tier.
 
 The transfer circuit owns value/nullifier/note/balance soundness. Compliance
 owns asset-policy binding, threshold flag correctness, ciphertext construction,
@@ -160,6 +168,7 @@ Chain
   -> Scan: extract raw OutputRef ciphertexts and clear public flows
   -> Scanner DB spine
   -> Screen: detection-tier DK decrypt marks detected / irrelevant / invalid
+  -> User prefilter: released fuzzy key selects likely sender/receiver matches
   -> Validate evidence: persisted ciphertext + upload bundle + policy/ring binding
   -> Decrypt audit tiers per detected output:
        flagged:   full-tier issuer DK decrypt
@@ -239,9 +248,9 @@ decrypt locally after evidence validates. Orbis is not used.
 
 ### Unflagged
 
-Only the detection tier decrypts locally. It includes sender and receiver slot
-ids, so audit can run PRE against the selected slot key instead of trying every
-registered address. Audit tiers require governance/ACP authorization and Orbis
+Only the detection tier decrypts locally. For a user audit, public fuzzy clues
+are examined before Orbis and only likely matches become PRE requests. Audit
+tiers require governance/ACP authorization and Orbis
 PRE. Each tier has an independent encrypted-seed upload package and independent
 PRE path.
 

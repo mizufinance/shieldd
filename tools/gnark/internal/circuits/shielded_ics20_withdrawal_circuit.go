@@ -137,7 +137,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 			NextValue:      c.Asset.Leaf.NextValue,
 			DKPub:          gnarkte.Point{X: c.Asset.Leaf.DKPub.X, Y: c.Asset.Leaf.DKPub.Y},
 			Threshold:      c.Asset.Leaf.Threshold,
-			SlotCount:      c.Asset.Leaf.SlotCount,
 			ChannelsHash:   c.Asset.Leaf.ChannelsHash,
 			RingPK:         gnarkte.Point{X: c.Asset.Leaf.RingPK.X, Y: c.Asset.Leaf.RingPK.Y},
 			RingIDHash:     c.Asset.Leaf.RingIDHash,
@@ -171,14 +170,21 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
 
+	senderUserPKFq, err := decafgnark.CompressToField(api, gnarkte.Point{X: c.Sender.UserPK.X, Y: c.Sender.UserPK.Y})
+	if err != nil {
+		return shieldedIcs20WithdrawalSharedContext{}, err
+	}
+	senderCluePKFq, err := decafgnark.CompressToField(api, gnarkte.Point{X: c.Sender.CluePK.X, Y: c.Sender.CluePK.Y})
+	if err != nil {
+		return shieldedIcs20WithdrawalSharedContext{}, err
+	}
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		senderDivGenFq,
 		senderTransmissionFq,
 		c.Sender.AssetID,
-		c.Sender.SlotID,
-		c.Sender.SlotDerivation,
-		c.Sender.D,
+		senderUserPKFq,
+		senderCluePKFq,
 	)
 	if err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err

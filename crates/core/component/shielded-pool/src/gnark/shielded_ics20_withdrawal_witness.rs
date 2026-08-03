@@ -77,9 +77,8 @@ pub struct ShieldedIcs20WithdrawalWitnessV1 {
     pub sender_compliance_path: MerklePathBinary,
     pub sender_compliance_position: u64,
     pub sender_asset_id: [u8; 32],
-    pub sender_slot_id: [u8; 32],
-    pub sender_slot_derivation: [u8; 32],
-    pub sender_d: [u8; 32],
+    pub sender_user_public_key: [u8; 32],
+    pub sender_clue_public_key: [u8; 32],
     pub spends: Vec<ShieldedIcs20WithdrawalSpendWitnessV1>,
     pub change_output: ShieldedIcs20WithdrawalChangeWitnessV1,
     pub balance_commitment_affine: PointAffineBytes,
@@ -88,17 +87,16 @@ pub struct ShieldedIcs20WithdrawalWitnessV1 {
     pub asset_indexed_leaf_ring_pk_affine: PointAffineBytes,
     pub sender_diversified_generator_affine: PointAffineBytes,
     pub sender_transmission_key_affine: PointAffineBytes,
+    pub sender_user_public_key_affine: PointAffineBytes,
+    pub sender_clue_public_key_affine: PointAffineBytes,
 }
 
-fn compliance_leaf_parts(
-    leaf: &ComplianceLeafBinary,
-) -> ([u8; 80], [u8; 32], [u8; 32], [u8; 32], [u8; 32]) {
+fn compliance_leaf_parts(leaf: &ComplianceLeafBinary) -> ([u8; 80], [u8; 32], [u8; 32], [u8; 32]) {
     (
         leaf.address,
         leaf.asset_id,
-        leaf.slot_id,
-        leaf.slot_derivation,
-        leaf.d,
+        leaf.user_public_key,
+        leaf.clue_public_key,
     )
 }
 
@@ -202,7 +200,7 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
             .map_err(|e| anyhow!("compute {} statement fields: {e}", public.family_id.label()))?;
 
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
-        let (_, sender_asset_id, sender_slot_id, sender_slot_derivation, sender_d) =
+        let (_, sender_asset_id, sender_user_public_key, sender_clue_public_key) =
             compliance_leaf_parts(&sender_leaf);
 
         let spends = public
@@ -243,9 +241,8 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
             sender_compliance_path: merkle_path_from_typed(&private.sender_compliance_path)?,
             sender_compliance_position: private.sender_compliance_position,
             sender_asset_id,
-            sender_slot_id,
-            sender_slot_derivation,
-            sender_d,
+            sender_user_public_key,
+            sender_clue_public_key,
             spends,
             change_output: change_witness(&public.change_output, &private.change_output)?,
             balance_commitment_affine: point_affine_bytes(public.balance_commitment.0)?,
@@ -267,6 +264,8 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
                     .vartime_decompress()
                     .map_err(|e| anyhow!("decompress sender transmission key: {e:?}"))?,
             )?,
+            sender_user_public_key_affine: point_affine_bytes(private.sender_leaf.user_public_key)?,
+            sender_clue_public_key_affine: point_affine_bytes(private.sender_leaf.clue_public_key)?,
         };
         witness.total_length = u32::try_from(witness.encode()?.len())
             .map_err(|_| anyhow!("encoded {} witness exceeds u32", witness.family_id.label()))?;
