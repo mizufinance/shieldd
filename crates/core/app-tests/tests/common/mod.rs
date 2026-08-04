@@ -16,9 +16,15 @@ use shieldd_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, ComplianceR
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan};
 
-fn compliance_leaf(address: Address, asset_id: asset::Id) -> ComplianceLeaf {
-    let user_public_key = *address.diversified_generator();
-    let clue_public_key = user_public_key * decaf377::Fr::from(2u64);
+fn compliance_leaf(
+    address: Address,
+    asset_id: asset::Id,
+    ring_pk: &decaf377::Element,
+) -> ComplianceLeaf {
+    let clue_public_key = *address.diversified_generator() * decaf377::Fr::from(2u64);
+    let user_public_key =
+        shieldd_sdk_compliance::derive_orbis_user_public_key(ring_pk, &clue_public_key)
+            .expect("derive test Orbis user key");
     ComplianceLeaf::new(address, asset_id, user_public_key, clue_public_key)
         .expect("distinct non-identity compliance keys")
 }
@@ -78,6 +84,7 @@ pub async fn register_assets_for_compliance<S: StateWrite + ComplianceRegistryRe
 ///     &mut state,
 ///     &[sender_address, recipient_address],
 ///     &[staking_token_id],
+///     ring_pk,
 /// ).await?;
 /// storage.commit(state).await?;
 /// ```
@@ -86,10 +93,11 @@ pub async fn register_test_users_for_compliance<S: StateWrite>(
     state: &mut S,
     addresses: &[Address],
     asset_ids: &[asset::Id],
+    ring_pk: decaf377::Element,
 ) -> anyhow::Result<()> {
     for address in addresses {
         for &asset_id in asset_ids {
-            let leaf = compliance_leaf(address.clone(), asset_id);
+            let leaf = compliance_leaf(address.clone(), asset_id, &ring_pk);
             state.add_compliance_leaf(leaf).await?;
         }
     }
@@ -109,6 +117,7 @@ pub async fn state_with_compliance_for_build(
     storage: &cnidarium::TempStorage,
     addresses: &[Address],
     asset_ids: &[asset::Id],
+    ring_pk: decaf377::Element,
 ) -> anyhow::Result<cnidarium::StateDelta<cnidarium::Snapshot>> {
     use cnidarium::StateDelta;
 
@@ -117,7 +126,7 @@ pub async fn state_with_compliance_for_build(
     // Register users with deterministic keys derived from each test address.
     for address in addresses {
         for &asset_id in asset_ids {
-            let leaf = compliance_leaf(address.clone(), asset_id);
+            let leaf = compliance_leaf(address.clone(), asset_id, &ring_pk);
             delta.add_compliance_leaf(leaf).await?;
         }
     }

@@ -97,6 +97,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
         &mut build_state,
         &[sender.clone(), recipient.clone()],
         &[asset_id],
+        ring_pk,
     )
     .await?;
 

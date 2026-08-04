@@ -32,11 +32,16 @@ const DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX: &str =
     "b2ecf9b9082d6306538be73b0d6ee741141f3222152da78685d6596efc8c1506";
 const DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX: &str = "4102444800";
 
-fn compliance_public_key_hex(scalar: u64) -> String {
-    hex::encode(
-        (decaf377::Element::GENERATOR * decaf377::Fr::from(scalar))
-            .vartime_compress()
-            .0,
+fn compliance_user_keys() -> (String, String) {
+    let clue_public_key = decaf377::Element::GENERATOR * decaf377::Fr::from(4u64);
+    let user_public_key = shieldd_sdk_compliance::derive_orbis_user_public_key(
+        &decaf377::Element::GENERATOR,
+        &clue_public_key,
+    )
+    .expect("user key derivation");
+    (
+        hex::encode(user_public_key.vartime_compress().0),
+        hex::encode(clue_public_key.vartime_compress().0),
     )
 }
 
@@ -157,17 +162,7 @@ fn sign_user_grant(tmpdir: &TempDir, asset_denom: &str, address: Address) -> Str
         DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
     );
     let address = address.to_string();
-    let clue_public_key_element = decaf377::Element::GENERATOR * decaf377::Fr::from(4u64);
-    let clue_public_key = hex::encode(clue_public_key_element.vartime_compress().0);
-    let user_public_key = hex::encode(
-        shieldd_sdk_compliance::derive_orbis_user_public_key(
-            &decaf377::Element::GENERATOR,
-            &clue_public_key_element,
-        )
-        .expect("user key derivation")
-        .vartime_compress()
-        .0,
-    );
+    let (user_public_key, clue_public_key) = compliance_user_keys();
     let mut cmd = Command::cargo_bin("pcli").unwrap();
     cmd.args([
         "--home",
@@ -412,8 +407,7 @@ fn compliance_register_user() {
     let smoke_asset =
         std::env::var("COMPLIANCE_SMOKE_ASSET").unwrap_or_else(|_| "regulated_usd".to_string());
     let grant = sign_user_grant(&tmpdir, &smoke_asset, address.clone());
-    let user_public_key = compliance_public_key_hex(3);
-    let clue_public_key = compliance_public_key_hex(4);
+    let (user_public_key, clue_public_key) = compliance_user_keys();
 
     let mut cmd = Command::cargo_bin("pcli").unwrap();
     cmd.args([
