@@ -1,13 +1,13 @@
 {
   "curve": "bls12-377",
   "circuit": "shielded_ics20_withdrawal",
-  "compile_ms": 639.31925,
-  "setup_ms": 3232.958125,
-  "proving_key_size_bytes": 23115025,
+  "compile_ms": 1515.0320000000002,
+  "setup_ms": 7906.7648,
+  "proving_key_size_bytes": 23416861,
   "verifying_key_size_bytes": 540,
-  "nb_constraints": 89962,
+  "nb_constraints": 91974,
   "nb_public_variables": 2,
   "nb_secret_variables": 327,
-  "proving_key_sha256_hex": "8af4cb61f9a72054c1e9ae8b3a702273c522ee9a0ac8815cccce7cc13b135b84",
-  "verifying_key_sha256_hex": "98e670fb8f7db194c1a40e3e7725c7505ec7310f816a8f1ec89fd0828f377f56"
+  "proving_key_sha256_hex": "3b8797c214c26eb599396bbed9cfbe9b308c6b9398a3805b5ca7e4b39b9588b6",
+  "verifying_key_sha256_hex": "9306bcf44b7894eaa7a2cad0c62f82e321681258842824f50a263f0143e9646a"
 }
