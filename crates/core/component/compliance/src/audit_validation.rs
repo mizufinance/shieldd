@@ -39,10 +39,12 @@ pub fn validate_audit_evidence(input: AuditValidationInput) -> AuditValidationSt
         &input.upload_bundle,
     ) {
         (Some(_), None) => AuditValidationStatus::MissingUploadBundle,
-        (_, Some(bundle)) => match validate_upload_bundle(&input.evidence, bundle) {
-            Ok(()) => AuditValidationStatus::Valid,
-            Err(error) => AuditValidationStatus::InvalidOrbisPackage(error.to_string()),
-        },
+        (_, Some(bundle)) => {
+            match validate_upload_bundle(&input.evidence, bundle, &input.ring_pk) {
+                Ok(()) => AuditValidationStatus::Valid,
+                Err(error) => AuditValidationStatus::InvalidOrbisPackage(error.to_string()),
+            }
+        }
         (None, None) => AuditValidationStatus::Valid,
     }
 }
@@ -130,8 +132,17 @@ fn validate_tier_matches_transfer(
 fn validate_upload_bundle(
     evidence: &ComplianceEvidenceObject,
     bundle: &TransferOrbisUploadBundle,
+    ring_pk: &Element,
 ) -> Result<()> {
     bundle.validate()?;
+    for package in [
+        &bundle.sender_core,
+        &bundle.sender_ext,
+        &bundle.output_core,
+        &bundle.output_ext,
+    ] {
+        package.validate_ring_derivation(ring_pk)?;
+    }
     if let Some(expected_hash) = evidence.orbis_upload_bundle_hash {
         let actual_hash: [u8; 32] = Sha256::digest(bundle.to_bytes()?).into();
         ensure!(

@@ -1069,13 +1069,15 @@ async fn pre_package_seed(
     let jwt_signer = ctx
         .jwt_signer
         .ok_or_else(|| anyhow!("missing Orbis JWT signer for PRE"))?;
+    let derivation_hex = (!object.package.user_key_derivation.is_empty())
+        .then(|| hex::encode(&object.package.user_key_derivation));
     let started = Instant::now();
     let mut pre_result = ctx
         .cli
         .start_pre(
             &hex::encode(ctx.dk_pub.vartime_compress().0),
             &object.object_id,
-            &hex::encode(object.package.subject_user_public_key_bytes()),
+            derivation_hex.as_deref(),
             Some(&object.package.salt),
             Some(object.package.timestamp),
             jwt_signer,
@@ -1091,7 +1093,7 @@ async fn pre_package_seed(
             .start_pre(
                 &hex::encode(ctx.dk_pub.vartime_compress().0),
                 &object.object_id,
-                &hex::encode(object.package.subject_user_public_key_bytes()),
+                derivation_hex.as_deref(),
                 Some(&object.package.salt),
                 Some(object.package.timestamp),
                 jwt_signer,
@@ -1230,8 +1232,16 @@ mod tests {
         let mut rng = rand_core::OsRng;
         let ring_sk = Fr::rand(&mut rng);
         let ring_pk = Element::GENERATOR * ring_sk;
-        let sender_public_key = Element::GENERATOR * Fr::from(11u64);
-        let receiver_public_key = Element::GENERATOR * Fr::from(13u64);
+        let sender_clue_public_key = Element::GENERATOR * Fr::from(11u64);
+        let receiver_clue_public_key = Element::GENERATOR * Fr::from(13u64);
+        let sender_public_key =
+            shieldd_sdk_compliance::derive_orbis_user_public_key(&ring_pk, &sender_clue_public_key)
+                .expect("sender user key should derive");
+        let receiver_public_key = shieldd_sdk_compliance::derive_orbis_user_public_key(
+            &ring_pk,
+            &receiver_clue_public_key,
+        )
+        .expect("receiver user key should derive");
         let policy_id = "policy-id";
         let resource = "document";
         let permission = "read";
@@ -1247,6 +1257,7 @@ mod tests {
             sender_core: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
+                Some(&sender_clue_public_key),
                 decaf377::Fq::from(21u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     sender_public_key,
@@ -1271,6 +1282,7 @@ mod tests {
             sender_ext: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
+                Some(&sender_clue_public_key),
                 decaf377::Fq::from(22u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     sender_public_key,
@@ -1295,6 +1307,7 @@ mod tests {
             output_core: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
+                Some(&receiver_clue_public_key),
                 decaf377::Fq::from(23u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     receiver_public_key,
@@ -1319,6 +1332,7 @@ mod tests {
             output_ext: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
+                Some(&receiver_clue_public_key),
                 decaf377::Fq::from(24u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     receiver_public_key,

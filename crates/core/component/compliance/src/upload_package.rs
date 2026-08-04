@@ -7,7 +7,7 @@ use decaf377::{Element, Encoding, Fq, Fr};
 use hkdf::Hkdf;
 use rand_core::{CryptoRng, RngCore};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use sha2::{Digest, Sha256, Sha512};
 
 use crate::{
     crypto::verify_dleq_native,
@@ -19,6 +19,7 @@ const ENCRYPT_PROOF_DOMAIN: &[u8; 24] = b"elgamal-encrypt-proof-v1";
 const AAD_DOMAIN: &[u8; 15] = b"elgamal-aad-v1\0";
 const POLICY_METADATA_DOMAIN: &[u8] = b"orbis-policy-metadata-v1";
 const HKDF_INFO: &[u8] = b"elgamal-aes-key-v1";
+const ORBIS_DERIVATION_DOMAIN: &[u8; 23] = b"elgamal-derivation-v1\0\0";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OrbisSecretEnvelope {
@@ -44,6 +45,9 @@ pub struct OrbisEncryptedSeedUploadPackage {
     pub response: Vec<u8>,
     pub orbis_challenge: Vec<u8>,
     pub orbis_response: Vec<u8>,
+    /// Public input used by Orbis to derive the registered user key; empty for
+    /// the unregulated sink, which uses the ring key directly.
+    pub user_key_derivation: Vec<u8>,
     pub derived_pk: Vec<u8>,
     pub metadata_hash: Vec<u8>,
 }
@@ -158,6 +162,14 @@ impl OrbisEncryptedSeedUploadPackage {
             "salt does not match statement salt"
         );
         let derived_pk = self.derived_pk()?;
+        anyhow::ensure!(
+            derived_pk == self.statement.subject_user_public_key()?,
+            "derived_pk does not match statement subject user public key"
+        );
+        anyhow::ensure!(
+            matches!(self.user_key_derivation.len(), 0 | 32),
+            "user_key_derivation must be empty or 32 bytes"
+        );
         let enc_cmt = self.enc_cmt()?;
         let shared_point = self.shared_point()?;
         let transfer_metadata_hash = self.statement.metadata_hash()?;
@@ -183,6 +195,21 @@ impl OrbisEncryptedSeedUploadPackage {
             &self.orbis_response_scalar()?,
             self.metadata_hash_fq()?,
         )
+    }
+
+    /// Validate that Orbis derives this package's user key from the ring key.
+    pub fn validate_ring_derivation(&self, ring_pk: &Element) -> Result<()> {
+        self.validate()?;
+        let expected = if self.user_key_derivation.is_empty() {
+            *ring_pk
+        } else {
+            derive_orbis_public_key(ring_pk, &self.user_key_derivation)?
+        };
+        anyhow::ensure!(
+            expected == self.derived_pk()?,
+            "user key does not match Orbis ring derivation"
+        );
+        Ok(())
     }
 
     pub fn validate_c2_seed(&self, c2: Fq, seed: Fq) -> Result<()> {
@@ -228,9 +255,17 @@ impl TransferOrbisUploadBundle {
             "sender upload tiers do not share one user public key"
         );
         anyhow::ensure!(
+            self.sender_core.user_key_derivation == self.sender_ext.user_key_derivation,
+            "sender upload tiers do not share one user key derivation"
+        );
+        anyhow::ensure!(
             self.output_core.subject_user_public_key_bytes()
                 == self.output_ext.subject_user_public_key_bytes(),
             "receiver upload tiers do not share one user public key"
+        );
+        anyhow::ensure!(
+            self.output_core.user_key_derivation == self.output_ext.user_key_derivation,
+            "receiver upload tiers do not share one user key derivation"
         );
         Ok(())
     }
@@ -244,6 +279,40 @@ impl TransferOrbisUploadBundle {
         self.validate()?;
         Ok(self.sender_core.statement.target_timestamp)
     }
+}
+
+/// Derive the Orbis ring child key registered for a fuzzy clue key.
+pub fn derive_orbis_user_public_key(
+    ring_pk: &Element,
+    clue_public_key: &Element,
+) -> Result<Element> {
+    anyhow::ensure!(
+        *clue_public_key != Element::default(),
+        "clue public key cannot be the identity"
+    );
+    derive_orbis_public_key(ring_pk, &clue_public_key.vartime_compress().0)
+}
+
+fn derive_orbis_public_key(ring_pk: &Element, derivation: &[u8]) -> Result<Element> {
+    anyhow::ensure!(
+        *ring_pk != Element::default(),
+        "ring key cannot be the identity"
+    );
+    let scalar = orbis_capability_scalar(derivation);
+    anyhow::ensure!(scalar != Fr::from(0u64), "Orbis derivation cannot be zero");
+    let public_key = *ring_pk * scalar;
+    anyhow::ensure!(
+        public_key != Element::default(),
+        "derived user key cannot be the identity"
+    );
+    Ok(public_key)
+}
+
+fn orbis_capability_scalar(derivation: &[u8]) -> Fr {
+    let mut hasher = Sha512::new();
+    hasher.update(ORBIS_DERIVATION_DOMAIN);
+    hasher.update(derivation);
+    Fr::from_le_bytes_mod_order(&hasher.finalize())
 }
 
 pub fn encode_orbis_policy_metadata(
@@ -288,6 +357,7 @@ pub fn encode_orbis_policy_metadata(
 pub fn build_orbis_encrypted_seed_upload_package(
     mut rng: impl RngCore + CryptoRng,
     ring_pk: &Element,
+    subject_clue_public_key: Option<&Element>,
     seed: Fq,
     statement: TransferTierMetadataStatement,
     ring_id: &str,
@@ -307,14 +377,26 @@ pub fn build_orbis_encrypted_seed_upload_package(
         }
     };
     build_orbis_encrypted_seed_upload_package_with_randomness(
-        &mut rng, ring_pk, seed, r, statement, ring_id, policy_id, resource, permission, tier,
-        timestamp, salt,
+        &mut rng,
+        ring_pk,
+        subject_clue_public_key,
+        seed,
+        r,
+        statement,
+        ring_id,
+        policy_id,
+        resource,
+        permission,
+        tier,
+        timestamp,
+        salt,
     )
 }
 
 pub fn build_orbis_encrypted_seed_upload_package_with_randomness(
     rng: &mut (impl RngCore + CryptoRng),
-    _ring_pk: &Element,
+    ring_pk: &Element,
+    subject_clue_public_key: Option<&Element>,
     seed: Fq,
     r: Fr,
     statement: TransferTierMetadataStatement,
@@ -328,6 +410,17 @@ pub fn build_orbis_encrypted_seed_upload_package_with_randomness(
 ) -> Result<OrbisEncryptedSeedUploadPackage> {
     statement.validate_shape()?;
     let subject_user_public_key = statement.subject_user_public_key()?;
+    let user_key_derivation = subject_clue_public_key
+        .map(|key| key.vartime_compress().0.to_vec())
+        .unwrap_or_default();
+    let expected_user_public_key = match subject_clue_public_key {
+        Some(clue_public_key) => derive_orbis_user_public_key(ring_pk, clue_public_key)?,
+        None => *ring_pk,
+    };
+    anyhow::ensure!(
+        expected_user_public_key == subject_user_public_key,
+        "statement user key does not match the Orbis derivation of the registered clue key"
+    );
     anyhow::ensure!(
         string_to_fq(ring_id) == statement.ring_id_hash()?,
         "ring_id does not match statement ring_id_hash"
@@ -401,6 +494,7 @@ pub fn build_orbis_encrypted_seed_upload_package_with_randomness(
         response: proof.response,
         orbis_challenge: orbis_challenge.to_bytes().to_vec(),
         orbis_response: orbis_response.to_bytes().to_vec(),
+        user_key_derivation,
         derived_pk: proof.derived_pk,
         metadata_hash,
     })
@@ -592,13 +686,22 @@ mod tests {
     use super::*;
     use rand_core::OsRng;
 
+    fn user_keys(rng: &mut OsRng, ring_pk: &Element) -> (Element, Fr, Element) {
+        let clue_public_key = Element::GENERATOR * Fr::rand(rng);
+        let derivation = clue_public_key.vartime_compress().0;
+        let scalar = orbis_capability_scalar(&derivation);
+        let user_public_key = derive_orbis_user_public_key(ring_pk, &clue_public_key).unwrap();
+        (clue_public_key, scalar, user_public_key)
+    }
+
     #[test]
     fn upload_package_roundtrips_seed_and_proof() {
         let mut rng = OsRng;
         let ring_sk = Fr::rand(&mut rng);
         let ring_pk = Element::GENERATOR * ring_sk;
+        let (clue_public_key, _, user_public_key) = user_keys(&mut rng, &ring_pk);
         let statement = TransferTierMetadataStatement::from_identifiers(
-            ring_pk,
+            user_public_key,
             "ring-id",
             "policy-id",
             "document",
@@ -612,6 +715,7 @@ mod tests {
         let package = build_orbis_encrypted_seed_upload_package(
             &mut rng,
             &ring_pk,
+            Some(&clue_public_key),
             seed,
             statement,
             "ring-id",
@@ -640,7 +744,7 @@ mod tests {
     fn upload_package_binds_orbis_policy_metadata() {
         let mut rng = OsRng;
         let ring_pk = Element::GENERATOR * Fr::rand(&mut rng);
-        let user_public_key = Element::GENERATOR * Fr::rand(&mut rng);
+        let (clue_public_key, _, user_public_key) = user_keys(&mut rng, &ring_pk);
         let statement = TransferTierMetadataStatement::from_identifiers(
             user_public_key,
             "ring-id",
@@ -656,6 +760,7 @@ mod tests {
         let package = build_orbis_encrypted_seed_upload_package(
             &mut rng,
             &ring_pk,
+            Some(&clue_public_key),
             Fq::from(7u64),
             statement.clone(),
             "ring-id",
@@ -692,12 +797,55 @@ mod tests {
     }
 
     #[test]
+    fn upload_package_rejects_user_key_from_another_derivation() {
+        let mut rng = OsRng;
+        let ring_pk = Element::GENERATOR * Fr::rand(&mut rng);
+        let (registered_clue_public_key, _, user_public_key) = user_keys(&mut rng, &ring_pk);
+        let other_clue_public_key = Element::GENERATOR * Fr::rand(&mut rng);
+        let statement = TransferTierMetadataStatement::from_identifiers(
+            user_public_key,
+            "ring-id",
+            "policy-id",
+            "document",
+            "read",
+            TransferTierKind::OutputCore,
+            1_700_000_000,
+            crate::AuthorizationId::from_fq(Fq::from(123u64)),
+            Fq::from(99u64),
+        );
+
+        let error = build_orbis_encrypted_seed_upload_package(
+            &mut rng,
+            &ring_pk,
+            Some(&other_clue_public_key),
+            Fq::from(7u64),
+            statement,
+            "ring-id",
+            "policy-id",
+            "document",
+            "read",
+            TransferTierKind::OutputCore,
+            1_700_000_000,
+            Fq::from(99u64),
+        )
+        .expect_err("a mismatched clue derivation must be rejected");
+
+        assert!(
+            error
+                .to_string()
+                .contains("does not match the Orbis derivation"),
+            "unexpected error: {error}"
+        );
+        assert_ne!(registered_clue_public_key, other_clue_public_key);
+    }
+
+    #[test]
     fn registered_user_key_decrypts_its_package() {
         let mut rng = OsRng;
         let ring_sk = Fr::rand(&mut rng);
         let ring_pk = Element::GENERATOR * ring_sk;
-        let user_sk = Fr::rand(&mut rng);
-        let user_public_key = Element::GENERATOR * user_sk;
+        let (clue_public_key, derivation, user_public_key) = user_keys(&mut rng, &ring_pk);
+        let user_sk = ring_sk * derivation;
         let statement = TransferTierMetadataStatement::from_identifiers(
             user_public_key,
             "ring-id",
@@ -713,6 +861,7 @@ mod tests {
         let package = build_orbis_encrypted_seed_upload_package(
             &mut rng,
             &ring_pk,
+            Some(&clue_public_key),
             seed,
             statement,
             "ring-id",
@@ -752,8 +901,7 @@ mod tests {
         let mut rng = OsRng;
         let ring_sk = Fr::rand(&mut rng);
         let ring_pk = Element::GENERATOR * ring_sk;
-        let user_derivation = Fr::rand(&mut rng);
-        let user_public_key = ring_pk * user_derivation;
+        let (clue_public_key, user_derivation, user_public_key) = user_keys(&mut rng, &ring_pk);
         let statement = TransferTierMetadataStatement::from_identifiers(
             user_public_key,
             "ring-id",
@@ -769,6 +917,7 @@ mod tests {
         let package = build_orbis_encrypted_seed_upload_package(
             &mut rng,
             &ring_pk,
+            Some(&clue_public_key),
             seed,
             statement,
             "ring-id",

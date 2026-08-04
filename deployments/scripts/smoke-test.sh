@@ -279,10 +279,12 @@ if [ -n "$dk_hex" ] && [ -n "$dk_pub_hex" ]; then
     require_address_output "smoke_addr_0" "$smoke_addr_0" "view address 0"
     smoke_addr_1=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 1)
     require_address_output "smoke_addr_1" "$smoke_addr_1" "view address 1"
-    smoke_user_public_key_0=2ebd42dd3a2307083c834e79fb9e787e352dd33e0d719f86ae4adb02fe382409
     smoke_clue_public_key_0=6acd327d70f9588fac373d165f4d9d5300510274dffdfdf2bf0955acd78da50d
-    smoke_user_public_key_1=460f913e516441c286d95dd30b0a2d2bf14264f325528b06455d7cb93ba13a0b
     smoke_clue_public_key_1=ec8798bcbb3bf29329549d769f89cf7993e15e2c68ec7aa2a956edf5ec62ae07
+    smoke_user_public_key_0=$(cargo_cmd run --release --bin pcli -- tx compliance derive-user-public-key \
+        --clue-public-key-hex "$smoke_clue_public_key_0")
+    smoke_user_public_key_1=$(cargo_cmd run --release --bin pcli -- tx compliance derive-user-public-key \
+        --clue-public-key-hex "$smoke_clue_public_key_1")
     user_grant_0_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-user-grant regulated_usd \
         --address "$smoke_addr_0" \
         --user-public-key-hex "$smoke_user_public_key_0" \

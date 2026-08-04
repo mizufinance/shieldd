@@ -157,8 +157,17 @@ fn sign_user_grant(tmpdir: &TempDir, asset_denom: &str, address: Address) -> Str
         DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
     );
     let address = address.to_string();
-    let user_public_key = compliance_public_key_hex(3);
-    let clue_public_key = compliance_public_key_hex(4);
+    let clue_public_key_element = decaf377::Element::GENERATOR * decaf377::Fr::from(4u64);
+    let clue_public_key = hex::encode(clue_public_key_element.vartime_compress().0);
+    let user_public_key = hex::encode(
+        shieldd_sdk_compliance::derive_orbis_user_public_key(
+            &decaf377::Element::GENERATOR,
+            &clue_public_key_element,
+        )
+        .expect("user key derivation")
+        .vartime_compress()
+        .0,
+    );
     let mut cmd = Command::cargo_bin("pcli").unwrap();
     cmd.args([
         "--home",

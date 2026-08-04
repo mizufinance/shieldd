@@ -31,9 +31,9 @@ use orbis_common::blockchain::{orbis::WhitelistTarget, SourceHubClient};
 use serde::Deserialize;
 use shieldd_orbis_client::{NodeInfo, OrbisClient};
 use shieldd_sdk_compliance::{
-    decrypt_flagged_rows, export_ledger_rows_json, export_scan_json, import_orbis_audit_entries,
-    record_address_alias, scanner_health_json, AuditScanExport, DetectionKey, OrbisAuditEntry,
-    SqliteScannerStore,
+    decrypt_flagged_rows, derive_orbis_user_public_key, export_ledger_rows_json, export_scan_json,
+    import_orbis_audit_entries, record_address_alias, scanner_health_json, AuditScanExport,
+    DetectionKey, OrbisAuditEntry, SqliteScannerStore,
 };
 
 mod command;
@@ -58,7 +58,7 @@ fn compliance_clue_public_key_hex(label: &str) -> String {
     hex::encode((decaf377::Element::GENERATOR * scalar).vartime_compress().0)
 }
 
-fn compliance_user_public_key_hex(ring_pk_hex: &str, label: &str) -> Result<String> {
+fn compliance_user_public_key_hex(ring_pk_hex: &str, clue_public_key_hex: &str) -> Result<String> {
     let bytes = hex::decode(ring_pk_hex).context("invalid Orbis ring public key hex")?;
     let encoded: [u8; 32] = bytes
         .try_into()
@@ -69,8 +69,15 @@ fn compliance_user_public_key_hex(ring_pk_hex: &str, label: &str) -> Result<Stri
     if ring_pk == decaf377::Element::default() {
         bail!("Orbis ring public key must not be the identity");
     }
+    let clue_bytes = hex::decode(clue_public_key_hex).context("invalid clue public key hex")?;
+    let clue_encoded: [u8; 32] = clue_bytes
+        .try_into()
+        .map_err(|_| anyhow!("clue public key must be 32 bytes"))?;
+    let clue_public_key = decaf377::Encoding(clue_encoded)
+        .vartime_decompress()
+        .map_err(|_| anyhow!("invalid clue public key encoding"))?;
     Ok(hex::encode(
-        (ring_pk * compliance_key_scalar(label))
+        derive_orbis_user_public_key(&ring_pk, &clue_public_key)?
             .vartime_compress()
             .0,
     ))
@@ -528,9 +535,9 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
     )?
     .trim()
     .to_string();
-    let alice_user_public_key =
-        compliance_user_public_key_hex(&ring.ring_pk_hex, "alice:regulated_usd:user")?;
     let alice_clue_public_key = compliance_clue_public_key_hex("alice:regulated_usd:clue");
+    let alice_user_public_key =
+        compliance_user_public_key_hex(&ring.ring_pk_hex, &alice_clue_public_key)?;
     let alice_grant_0 = capture_pcli(
         repo,
         &env,
@@ -633,11 +640,8 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
     )?;
     for who in ["BOB_HOME", "CHARLIE_HOME"] {
         let address_key = who.trim_end_matches("_HOME").to_string() + "_ADDRESS";
-        let user_public_key = compliance_user_public_key_hex(
-            &ring.ring_pk_hex,
-            &format!("{who}:regulated_usd:user"),
-        )?;
         let clue_public_key = compliance_clue_public_key_hex(&format!("{who}:regulated_usd:clue"));
+        let user_public_key = compliance_user_public_key_hex(&ring.ring_pk_hex, &clue_public_key)?;
         let grant = capture_pcli(
             repo,
             &env,
@@ -1765,12 +1769,9 @@ impl AuditDemo {
             "COMPLIANCE_GRANT_VALID_UNTIL_UNIX",
             DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
         );
-        let user_public_key = compliance_user_public_key_hex(
-            &ring.ring_pk_hex,
-            &format!("audit-demo:{slug}:{}:user", self.asset),
-        )?;
         let clue_public_key =
             compliance_clue_public_key_hex(&format!("audit-demo:{slug}:{}:clue", self.asset));
+        let user_public_key = compliance_user_public_key_hex(&ring.ring_pk_hex, &clue_public_key)?;
         let user_grant = self.capture_pcli(
             slug,
             [

@@ -126,6 +126,9 @@ pub(crate) fn build_transfer_compliance(
         sender_core: build_orbis_encrypted_seed_upload_package_with_randomness(
             &mut upload_rng,
             &ring_pk,
+            receiver_output
+                .is_regulated
+                .then_some(&sender_leaf.clue_public_key),
             encryption.sender.core.seed,
             encryption.sender.core.r,
             TransferTierMetadataStatement::from_identifiers(
@@ -150,6 +153,9 @@ pub(crate) fn build_transfer_compliance(
         sender_ext: build_orbis_encrypted_seed_upload_package_with_randomness(
             &mut upload_rng,
             &ring_pk,
+            receiver_output
+                .is_regulated
+                .then_some(&sender_leaf.clue_public_key),
             encryption.sender.ext.seed,
             encryption.sender.ext.r,
             TransferTierMetadataStatement::from_identifiers(
@@ -174,6 +180,9 @@ pub(crate) fn build_transfer_compliance(
         output_core: build_orbis_encrypted_seed_upload_package_with_randomness(
             &mut upload_rng,
             &ring_pk,
+            receiver_output
+                .is_regulated
+                .then_some(&receiver_leaf.clue_public_key),
             encryption.output.core.seed,
             encryption.output.core.r,
             TransferTierMetadataStatement::from_identifiers(
@@ -198,6 +207,9 @@ pub(crate) fn build_transfer_compliance(
         output_ext: build_orbis_encrypted_seed_upload_package_with_randomness(
             &mut upload_rng,
             &ring_pk,
+            receiver_output
+                .is_regulated
+                .then_some(&receiver_leaf.clue_public_key),
             encryption.output.ext.seed,
             encryption.output.ext.r,
             TransferTierMetadataStatement::from_identifiers(

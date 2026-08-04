@@ -51,7 +51,8 @@ nullifier insertion is validator-executed, not proved inside a circuit.
 child key, and one independent fuzzy clue public key. Both keys must be
 non-identity and distinct. The registration grant signs the full leaf, so the
 chain registers the keys as one authority-approved fact. There are no user key
-indexes or slots.
+indexes or slots. The child key is `ring_pk * OrbisHash(compress(clue_pk))`;
+registration checks this relation without adding another leaf field.
 
 ## Scanner References
 
@@ -193,6 +194,9 @@ Current Orbis encrypted-seed objects retain their existing
 policy/resource/permission/tier/timestamp/salt metadata and proof. Shieldd
 therefore validates two proofs in an upload package: the Shieldd transfer proof
 above, which includes `authorization_id`, and the existing Orbis object proof.
+The package also carries `compress(clue_pk)` as Orbis's public derivation input;
+Shieldd validates that it reconstructs the statement's user child key before
+encryption and evidence acceptance.
 The demo selects and revalidates the Shieldd authorization metadata before
 requesting Orbis PRE. A future ACP integration must carry the Shieldd
 authorization tuple through the Orbis authorization boundary. `C2` correctness

@@ -212,6 +212,11 @@ impl ActionHandler for MsgRegisterUser {
             .get_asset_policy(self.leaf.asset_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("missing regulated asset policy"))?;
+        anyhow::ensure!(
+            crate::derive_orbis_user_public_key(&policy.ring.ring_pk, &self.leaf.clue_public_key)?
+                == self.leaf.user_public_key,
+            "user public key does not match the Orbis derivation of the clue public key"
+        );
         let authority_vk = policy.registration_authority_vk.as_ref().ok_or_else(|| {
             anyhow::anyhow!("regulated asset policy missing registration authority")
         })?;
@@ -469,11 +474,13 @@ mod tests {
     }
 
     fn compliance_leaf(address: Address, asset_id: asset::Id) -> ComplianceLeaf {
+        let clue_public_key = decaf377::Element::GENERATOR * decaf377::Fr::from(5u64);
         ComplianceLeaf::new(
             address,
             asset_id,
-            decaf377::Element::GENERATOR * decaf377::Fr::from(3u64),
-            decaf377::Element::GENERATOR * decaf377::Fr::from(5u64),
+            crate::derive_orbis_user_public_key(&decaf377::Element::GENERATOR, &clue_public_key)
+                .expect("valid Orbis user key"),
+            clue_public_key,
         )
         .expect("valid compliance keys")
     }

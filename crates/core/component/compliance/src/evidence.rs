@@ -443,10 +443,14 @@ pub(crate) mod tests {
         let ring_pk = Element::GENERATOR * ring_sk;
         let sender = make_address(9);
         let receiver = make_address(10);
-        let ack_sender = Element::GENERATOR * Fr::rand(&mut OsRng);
-        let ack_receiver = Element::GENERATOR * Fr::rand(&mut OsRng);
         let sender_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
         let receiver_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
+        let sender_clue_public_key = sender_clue_key.inner();
+        let receiver_clue_public_key = receiver_clue_key.inner();
+        let ack_sender =
+            crate::derive_orbis_user_public_key(&ring_pk, &sender_clue_public_key).unwrap();
+        let ack_receiver =
+            crate::derive_orbis_user_public_key(&ring_pk, &receiver_clue_public_key).unwrap();
         let asset_id = asset::Id(Fq::from(444u64));
         let salt = Fq::from(77u64);
         let target_timestamp = 1_700_000_000;
@@ -585,6 +589,7 @@ pub(crate) mod tests {
             sender_core: build_orbis_encrypted_seed_upload_package_with_randomness(
                 &mut OsRng,
                 &ring_pk,
+                Some(&sender_clue_public_key),
                 encrypted.sender.core.seed,
                 encrypted.sender.core.r,
                 statements[0].clone(),
@@ -600,6 +605,7 @@ pub(crate) mod tests {
             sender_ext: build_orbis_encrypted_seed_upload_package_with_randomness(
                 &mut OsRng,
                 &ring_pk,
+                Some(&sender_clue_public_key),
                 encrypted.sender.ext.seed,
                 encrypted.sender.ext.r,
                 statements[1].clone(),
@@ -615,6 +621,7 @@ pub(crate) mod tests {
             output_core: build_orbis_encrypted_seed_upload_package_with_randomness(
                 &mut OsRng,
                 &ring_pk,
+                Some(&receiver_clue_public_key),
                 encrypted.output.core.seed,
                 encrypted.output.core.r,
                 statements[2].clone(),
@@ -630,6 +637,7 @@ pub(crate) mod tests {
             output_ext: build_orbis_encrypted_seed_upload_package_with_randomness(
                 &mut OsRng,
                 &ring_pk,
+                Some(&receiver_clue_public_key),
                 encrypted.output.ext.seed,
                 encrypted.output.ext.r,
                 statements[3].clone(),

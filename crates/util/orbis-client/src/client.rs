@@ -412,7 +412,7 @@ impl OrbisClient {
         &self,
         reader_pk_hex: &str,
         object_id: &str,
-        derivation_hex: &str,
+        derivation_hex: Option<&str>,
         salt: Option<&str>,
         timestamp: Option<u64>,
         jwt_signer: &JwtSigner,
@@ -427,13 +427,15 @@ impl OrbisClient {
 
         let reader_pk_bytes =
             hex::decode(reader_pk_hex).context("failed to decode reader key hex")?;
-        let derivation_bytes =
-            hex::decode(derivation_hex).context("failed to decode derivation hex")?;
+        let derivation_bytes = derivation_hex
+            .map(hex::decode)
+            .transpose()
+            .context("failed to decode derivation hex")?;
 
         let request = StartPreRequest {
             rdr_pk: reader_pk_bytes.clone(),
             object_id: object_id.to_string(),
-            derivation: Some(derivation_bytes.clone()),
+            derivation: derivation_bytes.clone(),
             salt: salt.map(str::to_owned),
             valid_window: timestamp.map(|ts| TimestampRange { start: ts, end: ts }),
         };
@@ -442,7 +444,7 @@ impl OrbisClient {
             .create_pre_jwt(
                 reader_pk_bytes,
                 object_id,
-                Some(derivation_bytes),
+                derivation_bytes,
                 salt.map(str::to_owned),
             )
             .map_err(|e| anyhow!("failed to create Orbis PRE JWT: {}", e))?;

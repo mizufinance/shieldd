@@ -190,6 +190,16 @@ pub enum ComplianceCmd {
         #[clap(long)]
         signing_key_hex: String,
     },
+
+    /// Derive an Orbis user public key from a ring and fuzzy-clue public key.
+    DeriveUserPublicKey {
+        /// Orbis ring public key; defaults to the registration command's generator key.
+        #[clap(long)]
+        ring_pk_hex: Option<String>,
+        /// Registered fuzzy-clue public key, hex-encoded compressed Decaf377 element.
+        #[clap(long)]
+        clue_public_key_hex: String,
+    },
 }
 
 impl ComplianceCmd {
@@ -203,6 +213,7 @@ impl ComplianceCmd {
             ComplianceCmd::SignAssetGrant { .. } => true,
             ComplianceCmd::SignUserGrant { .. } => true,
             ComplianceCmd::DeriveSpendVk { .. } => true,
+            ComplianceCmd::DeriveUserPublicKey { .. } => true,
         }
     }
 
@@ -222,6 +233,7 @@ impl ComplianceCmd {
             ComplianceCmd::SignAssetGrant { .. }
                 | ComplianceCmd::SignUserGrant { .. }
                 | ComplianceCmd::DeriveSpendVk { .. }
+                | ComplianceCmd::DeriveUserPublicKey { .. }
         )
     }
 
@@ -428,6 +440,24 @@ impl ComplianceCmd {
                 println!("{}", hex::encode(vk.to_bytes()));
                 Ok(())
             }
+            ComplianceCmd::DeriveUserPublicKey {
+                ring_pk_hex,
+                clue_public_key_hex,
+            } => {
+                let ring_pk = ring_pk_hex
+                    .as_ref()
+                    .map(|value| parse_decaf377_element(value, "ring_pk_hex"))
+                    .transpose()?
+                    .unwrap_or(decaf377::Element::GENERATOR);
+                let clue_public_key =
+                    parse_decaf377_element(clue_public_key_hex, "clue_public_key_hex")?;
+                let user_public_key = shieldd_sdk_compliance::derive_orbis_user_public_key(
+                    &ring_pk,
+                    &clue_public_key,
+                )?;
+                println!("{}", hex::encode(user_public_key.vartime_compress().0));
+                Ok(())
+            }
             _ => anyhow::bail!("exec_sign_grant called on non-grant command"),
         }
     }
@@ -591,7 +621,8 @@ impl ComplianceCmd {
 
             ComplianceCmd::SignAssetGrant { .. }
             | ComplianceCmd::SignUserGrant { .. }
-            | ComplianceCmd::DeriveSpendVk { .. } => anyhow::bail!(
+            | ComplianceCmd::DeriveSpendVk { .. }
+            | ComplianceCmd::DeriveUserPublicKey { .. } => anyhow::bail!(
                 "offline compliance helper commands don't create transactions - use exec_sign_grant instead"
             ),
         }

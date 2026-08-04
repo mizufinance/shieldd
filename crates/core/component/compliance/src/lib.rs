@@ -165,8 +165,8 @@ pub mod upload_package;
 pub use upload_package::{
     build_orbis_encrypted_seed_upload_package,
     build_orbis_encrypted_seed_upload_package_with_randomness, decrypt_orbis_reencrypted_seed,
-    encode_orbis_policy_metadata, OrbisEncryptedSeedUploadPackage, OrbisSecretEnvelope,
-    TransferOrbisUploadBundle,
+    derive_orbis_user_public_key, encode_orbis_policy_metadata, OrbisEncryptedSeedUploadPackage,
+    OrbisSecretEnvelope, TransferOrbisUploadBundle,
 };
 
 pub mod orbis_interop;

@@ -62,6 +62,7 @@ in NV storage and is checked at readiness.
    and an independent fuzzy clue public key together.
 
 ```text
+user_derivation = OrbisHash(compress(clue_public_key))
 user_public_key = user_derivation * ring_pk
                 = (user_derivation * sk_ring) * G
 clue_public_key = fuzzy_detection_key * G
@@ -71,11 +72,12 @@ ComplianceLeaf = (address, asset_id, user_public_key, clue_public_key)
 
 Normal Shieldd address generation is unchanged. Each user has one compliance
 key for the asset, not a set of indexed keys. The public child key is derived
-from the asset's Orbis ring key and is the audit encryption key (`ACK`) used by
-transfer tiers. The clue key is independent so
+from the asset's Orbis ring key using Orbis's domain-separated derivation and
+the compressed clue public key. It is the audit encryption key (`ACK`) used by
+transfer tiers. The clue secret remains independent, so
 releasing its secret grants discovery without granting decryption. Chain-side
-registration validates key encodings, rejects identity/equal keys, and verifies
-the authority grant over the complete leaf.
+registration validates the Orbis child-key relation, key encodings, and the
+authority grant over the complete leaf.
 
 The user-controlled enrollment client generates the fuzzy detection key and
 deposits that secret under the future ACP release policy; the registrar sees
@@ -188,7 +190,9 @@ or mutate audit state.
 An upload bundle is the client-produced set of per-tier encrypted-seed upload
 packages: encrypted seed material, tier metadata, policy/ring binding, and
 proofs needed by Orbis storage/PRE. "Encrypted-seed upload package" refers to
-one tier inside the bundle. See `reference.md` for the canonical fields.
+one tier inside the bundle. It carries the clue-key encoding as Orbis's public
+derivation input so PRE reconstructs the same child key. See `reference.md` for
+the canonical fields.
 
 Current Orbis storage no longer uses a Shieldd-facing bulletin namespace.
 `StoreSecret` posts a SourceHub-backed Orbis document record and returns its
