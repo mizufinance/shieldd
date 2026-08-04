@@ -797,7 +797,7 @@ pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetec
     let conn = store.lock_conn()?;
     let mut rows = conn.prepare(
         "SELECT d.height, d.tx_hash, d.action_index, d.output_index, d.asset_id, d.is_flagged, ?1,
-                a.authorization_id, a.authorization_timestamp
+                a.authorization_id, a.authorization_timestamp, d.ciphertext_bytes
          FROM scanner_detections d
          LEFT JOIN audit_authorizations a
            ON a.height = d.height
