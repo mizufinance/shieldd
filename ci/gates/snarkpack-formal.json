@@ -192,6 +192,7 @@
         "dist-workspace.toml",
         "docs/**",
         "poc/**",
+        "proto/**",
         "testnets/**"
       ],
       "reason": "audited non-runtime path outside the declared SnarkPack contract"
