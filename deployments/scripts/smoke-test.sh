@@ -279,12 +279,14 @@ if [ -n "$dk_hex" ] && [ -n "$dk_pub_hex" ]; then
     require_address_output "smoke_addr_0" "$smoke_addr_0" "view address 0"
     smoke_addr_1=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" view address 1)
     require_address_output "smoke_addr_1" "$smoke_addr_1" "view address 1"
-    smoke_slot_derivation_0=0100000000000000000000000000000000000000000000000000000000000000
-    smoke_slot_derivation_1=0200000000000000000000000000000000000000000000000000000000000000
+    smoke_user_public_key_0=2ebd42dd3a2307083c834e79fb9e787e352dd33e0d719f86ae4adb02fe382409
+    smoke_clue_public_key_0=6acd327d70f9588fac373d165f4d9d5300510274dffdfdf2bf0955acd78da50d
+    smoke_user_public_key_1=460f913e516441c286d95dd30b0a2d2bf14264f325528b06455d7cb93ba13a0b
+    smoke_clue_public_key_1=ec8798bcbb3bf29329549d769f89cf7993e15e2c68ec7aa2a956edf5ec62ae07
     user_grant_0_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-user-grant regulated_usd \
         --address "$smoke_addr_0" \
-        --slot-id 0 \
-        --slot-derivation-hex "$smoke_slot_derivation_0" \
+        --user-public-key-hex "$smoke_user_public_key_0" \
+        --clue-public-key-hex "$smoke_clue_public_key_0" \
         --registration-authority-sk-hex "$compliance_dev_authority_sk_hex" \
         --valid-until-unix "$compliance_grant_valid_until_unix" \
         2>&1) || {
@@ -296,8 +298,8 @@ if [ -n "$dk_hex" ] && [ -n "$dk_pub_hex" ]; then
     require_hex_output "user_grant_0" "$user_grant_0" "$user_grant_0_output" "tx compliance sign-user-grant smoke_addr_0"
     user_grant_1_output=$(cargo_cmd run --release --bin pcli -- --home "$pcli_test_home" tx compliance sign-user-grant regulated_usd \
         --address "$smoke_addr_1" \
-        --slot-id 1 \
-        --slot-derivation-hex "$smoke_slot_derivation_1" \
+        --user-public-key-hex "$smoke_user_public_key_1" \
+        --clue-public-key-hex "$smoke_clue_public_key_1" \
         --registration-authority-sk-hex "$compliance_dev_authority_sk_hex" \
         --valid-until-unix "$compliance_grant_valid_until_unix" \
         2>&1) || {
@@ -308,13 +310,13 @@ if [ -n "$dk_hex" ] && [ -n "$dk_pub_hex" ]; then
     user_grant_1=$(printf '%s\n' "$user_grant_1_output" | tail -1)
     require_hex_output "user_grant_1" "$user_grant_1" "$user_grant_1_output" "tx compliance sign-user-grant smoke_addr_1"
     pcli_tx_cmd tx compliance register-user regulated_usd \
-        --slot-id 0 \
-        --slot-derivation-hex "$smoke_slot_derivation_0" \
+        --user-public-key-hex "$smoke_user_public_key_0" \
+        --clue-public-key-hex "$smoke_clue_public_key_0" \
         --user-registration-grant-hex "$user_grant_0"
     pcli_tx_cmd tx compliance register-user regulated_usd \
         --address-index 1 \
-        --slot-id 1 \
-        --slot-derivation-hex "$smoke_slot_derivation_1" \
+        --user-public-key-hex "$smoke_user_public_key_1" \
+        --clue-public-key-hex "$smoke_clue_public_key_1" \
         --user-registration-grant-hex "$user_grant_1"
     >&2 echo "  User registered for regulated_usd."
 
