@@ -5,13 +5,13 @@ use futures::{Stream, StreamExt};
 use shieldd_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
 use shieldd_sdk_tct as tct;
 use std::{
+    fmt,
     ops::{Range, RangeFrom},
     pin::Pin,
 };
 use tct::builder::{block, epoch};
 use tct::storage::{AsyncRead as TctAsyncRead, AsyncWrite as TctAsyncWrite, StoredPosition};
 use tct::structure::Hash;
-use thiserror::Error;
 use tracing::instrument;
 
 use crate::{
@@ -27,15 +27,28 @@ pub struct ProposalNullifierBatchProfile {
 
 pub const SCT_BLOCK_COMMITMENT_CAPACITY: usize = u16::MAX as usize + 1;
 
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum SctCapacityError {
-    #[error("state commitment tree is full")]
     TreeFull,
-    #[error(
-        "SCT block commitment capacity exceeded: requested {requested}, remaining {remaining}"
-    )]
     Block { requested: usize, remaining: usize },
 }
+
+impl fmt::Display for SctCapacityError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::TreeFull => formatter.write_str("state commitment tree is full"),
+            Self::Block {
+                requested,
+                remaining,
+            } => write!(
+                formatter,
+                "SCT block commitment capacity exceeded: requested {requested}, remaining {remaining}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SctCapacityError {}
 
 fn ensure_block_capacity(
     tree: &tct::Tree,

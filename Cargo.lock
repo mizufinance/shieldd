@@ -8846,7 +8846,6 @@ dependencies = [
  "shieldd-sdk-tct",
  "shieldd-sdk-txhash",
  "tendermint 0.40.3",
- "thiserror 1.0.69",
  "tokio",
  "tonic 0.12.3",
  "tracing",
