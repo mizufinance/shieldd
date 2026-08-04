@@ -162,24 +162,6 @@ impl ::prost::Name for Nullifier {
         "/shieldd.core.component.sct.v1.Nullifier".into()
     }
 }
-/// Records information about what transaction spent a nullifier.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct NullificationInfo {
-    #[prost(bytes = "vec", tag = "1")]
-    pub id: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint64, tag = "2")]
-    pub spend_height: u64,
-}
-impl ::prost::Name for NullificationInfo {
-    const NAME: &'static str = "NullificationInfo";
-    const PACKAGE: &'static str = "shieldd.core.component.sct.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.sct.v1.NullificationInfo".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.sct.v1.NullificationInfo".into()
-    }
-}
 /// Event recording a new commitment added to the SCT.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EventCommitment {
@@ -427,9 +409,6 @@ impl ::prost::Name for NullifierRequest {
 pub struct NullifierResponse {
     #[prost(bool, tag = "1")]
     pub spent: bool,
-    /// Present only when spent = true.
-    #[prost(message, optional, tag = "2")]
-    pub nullification_info: ::core::option::Option<NullificationInfo>,
     /// The committed nullifier tree root used for this lookup; always present
     /// when the server has initialized SCT state.
     #[prost(bytes = "vec", tag = "3")]

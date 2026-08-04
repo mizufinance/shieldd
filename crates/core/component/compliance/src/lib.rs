@@ -62,7 +62,7 @@ pub use params::ComplianceParameters;
 #[cfg(feature = "component")]
 pub mod registry;
 #[cfg(feature = "component")]
-pub use registry::{ComplianceRegistryRead, ComplianceRegistryWrite};
+pub use registry::{ComplianceRegistryRead, ComplianceRegistryWrite, UserLeafRecord};
 
 #[cfg(feature = "component")]
 pub mod action_check;

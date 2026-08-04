@@ -1,7 +1,7 @@
 use anyhow::Result;
 use colored_json::prelude::*;
 use shieldd_sdk_proto::DomainType;
-use shieldd_sdk_sct::{CommitmentSource, NullificationInfo, Nullifier};
+use shieldd_sdk_sct::{CommitmentSource, Nullifier};
 use shieldd_sdk_tct::StateCommitment;
 
 #[derive(Debug, clap::Subcommand)]
@@ -53,10 +53,7 @@ impl ShieldedPool {
                 let commitment_source = CommitmentSource::decode(bytes)?;
                 serde_json::to_string_pretty(&commitment_source)?
             }
-            ShieldedPool::Nullifier { .. } => {
-                let note_source = NullificationInfo::decode(bytes)?;
-                serde_json::to_string_pretty(&note_source)?
-            }
+            ShieldedPool::Nullifier { .. } => unreachable!("nullifier queries use SCT RPC"),
         };
         println!("{}", json.to_colored_json_auto()?);
         Ok(())

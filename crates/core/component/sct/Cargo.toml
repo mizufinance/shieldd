@@ -55,6 +55,7 @@ tendermint = {workspace = true}
 tokio = {workspace = true, optional = true, features = ["rt"]}
 tonic = {workspace = true, optional = true}
 tracing = {workspace = true}
+thiserror = {workspace = true}
 chrono = { workspace = true, default-features = false, features = ["serde", "now"] }
 
 [dev-dependencies]

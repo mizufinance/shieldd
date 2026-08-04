@@ -3084,16 +3084,22 @@ impl App {
                         stateful_start.elapsed().as_secs_f64() * 1000.0;
                     return Ok((verdict, profile));
                 }
-                if self.state.spend_info(*nullifier).await?.is_some() {
-                    reject_stateful(
-                        &mut verdict,
-                        ValidationRejectReason::CommittedNullifierConflict,
-                    );
-                    profile.stateful_conflict_check_ms =
-                        stateful_start.elapsed().as_secs_f64() * 1000.0;
-                    return Ok((verdict, profile));
-                }
             }
+        }
+        let unique_nullifiers = seen_nullifiers.into_iter().collect::<Vec<_>>();
+        if self
+            .state
+            .contains_nullifiers(&unique_nullifiers)
+            .await?
+            .into_iter()
+            .any(|spent| spent)
+        {
+            reject_stateful(
+                &mut verdict,
+                ValidationRejectReason::CommittedNullifierConflict,
+            );
+            profile.stateful_conflict_check_ms = stateful_start.elapsed().as_secs_f64() * 1000.0;
+            return Ok((verdict, profile));
         }
         profile.stateful_conflict_check_ms = stateful_start.elapsed().as_secs_f64() * 1000.0;
         verdict.stateful.ok = true;
@@ -6823,7 +6829,7 @@ mod tests {
     use shieldd_sdk_sct::component::StateWriteExt as _;
     use shieldd_sdk_sct::epoch::Epoch;
     use shieldd_sdk_sct::params::SctParameters;
-    use shieldd_sdk_sct::{CommitmentSource, NullificationInfo, Nullifier};
+    use shieldd_sdk_sct::{CommitmentSource, Nullifier};
     use shieldd_sdk_shielded_pool::component::NoteManager as _;
     use shieldd_sdk_shielded_pool::{
         genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
@@ -8250,8 +8256,8 @@ mod tests {
 
         for nullifier in &nullifiers {
             assert_eq!(
-                repeated.spend_info(*nullifier).await?,
-                batched.spend_info(*nullifier).await?,
+                repeated.is_nullifier_spent(*nullifier).await?,
+                batched.is_nullifier_spent(*nullifier).await?,
             );
         }
 
@@ -8301,8 +8307,8 @@ mod tests {
 
         for (nullifier, _) in &entries {
             assert_eq!(
-                sequential.spend_info(*nullifier).await?,
-                proposal_batch.spend_info(*nullifier).await?,
+                sequential.is_nullifier_spent(*nullifier).await?,
+                proposal_batch.is_nullifier_spent(*nullifier).await?,
             );
         }
 
@@ -8313,17 +8319,8 @@ mod tests {
     async fn app_readiness_fails_on_corrupted_nullifier_tree_nv() -> Result<()> {
         let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
-        shieldd_sdk_sct::nullifier_tree::insert_batch(
-            &mut state,
-            [(
-                Nullifier(Fq::from(91u64)),
-                NullificationInfo {
-                    id: [9u8; 32],
-                    spend_height: 7,
-                },
-            )],
-        )
-        .await?;
+        shieldd_sdk_sct::nullifier_tree::insert_batch(&mut state, [Nullifier(Fq::from(91u64))])
+            .await?;
         storage.commit(state).await?;
         assert!(App::is_ready(storage.latest_snapshot()).await);
 

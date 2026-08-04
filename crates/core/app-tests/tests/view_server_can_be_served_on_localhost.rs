@@ -141,8 +141,8 @@ async fn view_server_can_be_served_on_localhost() -> anyhow::Result<()> {
 
     for nf in tx.spent_nullifiers() {
         use shieldd_sdk_sct::component::tree::SctRead as _;
-        assert!(pre_tx_snapshot.spend_info(nf).await?.is_none());
-        assert!(post_tx_snapshot.spend_info(nf).await?.is_some());
+        assert!(!pre_tx_snapshot.is_nullifier_spent(nf).await?);
+        assert!(post_tx_snapshot.is_nullifier_spent(nf).await?);
     }
 
     {

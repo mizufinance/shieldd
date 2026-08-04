@@ -117,8 +117,8 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
     let post_tx_snapshot = storage.latest_snapshot();
 
     for nf in tx.spent_nullifiers() {
-        assert!(pre_tx_snapshot.spend_info(nf).await?.is_none());
-        assert!(post_tx_snapshot.spend_info(nf).await?.is_some());
+        assert!(!pre_tx_snapshot.is_nullifier_spent(nf).await?);
+        assert!(post_tx_snapshot.is_nullifier_spent(nf).await?);
     }
 
     client.sync_to_latest(post_tx_snapshot).await?;
