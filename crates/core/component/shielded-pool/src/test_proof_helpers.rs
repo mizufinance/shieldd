@@ -218,10 +218,20 @@ pub mod proof_test_helpers {
             shieldd_sdk_compliance::AssetPolicy::default_unregulated()
         };
 
-        let ack_receiver = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
         let receiver_clue_key = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
-        let ack_sender = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
         let sender_clue_key = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
+        let ack_receiver = if is_regulated {
+            shieldd_sdk_compliance::derive_orbis_user_public_key(&ring_pk, &receiver_clue_key)
+                .expect("derive receiver Orbis user key")
+        } else {
+            ring_pk
+        };
+        let ack_sender = if is_regulated {
+            shieldd_sdk_compliance::derive_orbis_user_public_key(&ring_pk, &sender_clue_key)
+                .expect("derive sender Orbis user key")
+        } else {
+            ring_pk
+        };
 
         let user_leaf = shieldd_sdk_compliance::ComplianceLeaf::new(
             address.clone(),
@@ -527,11 +537,21 @@ pub mod proof_test_helpers {
         let recipient_leaf = if send_to_self {
             base.user_leaf.clone()
         } else {
+            let recipient_clue_key = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
+            let recipient_user_key = if is_regulated {
+                shieldd_sdk_compliance::derive_orbis_user_public_key(
+                    &base.ring_pk,
+                    &recipient_clue_key,
+                )
+                .expect("derive recipient Orbis user key")
+            } else {
+                base.ring_pk
+            };
             shieldd_sdk_compliance::ComplianceLeaf::new(
                 recipient_address.clone(),
                 asset_id,
-                decaf377::Element::GENERATOR * Fr::rand(&mut *rng),
-                decaf377::Element::GENERATOR * Fr::rand(&mut *rng),
+                recipient_user_key,
+                recipient_clue_key,
             )
             .expect("valid recipient compliance keys")
         };
