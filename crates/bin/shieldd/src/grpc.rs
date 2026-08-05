@@ -4,8 +4,9 @@ use shieldd_sdk_proto::execution_client::v1::{
     execution_client_service_server::ExecutionClientService, BeginBlockRequest, BeginBlockResponse,
     CheckTxRequest, CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest,
     DeliverTxResponse, DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse,
-    ExportGenesisRequest, ExportGenesisResponse, InitGenesisRequest, InitGenesisResponse,
-    RollbackRequest, RollbackResponse,
+    ExportGenesisRequest, ExportGenesisResponse, GetCommittedStateRequest,
+    GetCommittedStateResponse, InitGenesisRequest, InitGenesisResponse, RollbackRequest,
+    RollbackResponse,
 };
 use tokio::sync::RwLock;
 use tonic::{Request, Response, Status};
@@ -117,6 +118,19 @@ impl ExecutionClientService for GrpcExecutionClient {
             .write()
             .await
             .commit(request.into_inner())
+            .await
+            .map(Response::new)
+            .map_err(status)
+    }
+
+    async fn get_committed_state(
+        &self,
+        request: Request<GetCommittedStateRequest>,
+    ) -> std::result::Result<Response<GetCommittedStateResponse>, Status> {
+        self.service
+            .read()
+            .await
+            .get_committed_state(request.into_inner())
             .await
             .map(Response::new)
             .map_err(status)

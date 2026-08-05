@@ -45,6 +45,7 @@ enum shieldd_method {
   SHIELDD_METHOD_COMMIT = 7,
   SHIELDD_METHOD_ROLLBACK = 8,
   SHIELDD_METHOD_EXPORT_GENESIS = 9,
+  SHIELDD_METHOD_GET_COMMITTED_STATE = 10,
 };
 
 uint32_t shieldd_abi_version(void);

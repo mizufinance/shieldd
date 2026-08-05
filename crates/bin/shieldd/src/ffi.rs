@@ -26,6 +26,7 @@ const METHOD_END_BLOCK: u32 = 6;
 const METHOD_COMMIT: u32 = 7;
 const METHOD_ROLLBACK: u32 = 8;
 const METHOD_EXPORT_GENESIS: u32 = 9;
+const METHOD_GET_COMMITTED_STATE: u32 = 10;
 
 #[repr(C)]
 pub struct ShielddHandle {
@@ -292,6 +293,11 @@ async fn dispatch(
             .await
             .map(|response| response.encode_to_vec())
             .map_err(FfiError::service),
+        METHOD_GET_COMMITTED_STATE => service
+            .get_committed_state(decode(request)?)
+            .await
+            .map(|response| response.encode_to_vec())
+            .map_err(FfiError::service),
         METHOD_ROLLBACK => service
             .rollback(decode(request)?)
             .await
@@ -329,6 +335,11 @@ fn panic_message(payload: Box<dyn Any + Send>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use shieldd_sdk_app::genesis::{AppState, Content};
+    use shieldd_sdk_proto::execution_client::v1::{
+        CommitRequest, CommitResponse, GetCommittedStateRequest, GetCommittedStateResponse,
+        InitGenesisRequest, InitGenesisResponse,
+    };
 
     fn open(directory: &std::path::Path) -> *mut ShielddHandle {
         let path = directory
@@ -360,6 +371,28 @@ mod tests {
     fn free_result(mut result: ShielddResult) {
         shieldd_buffer_free(&mut result.response);
         shieldd_buffer_free(&mut result.error);
+    }
+
+    fn call<Request, Response>(
+        handle: *mut ShielddHandle,
+        method: u32,
+        request: Request,
+    ) -> Response
+    where
+        Request: Message,
+        Response: Message + Default,
+    {
+        let request = request.encode_to_vec();
+        let result = shieldd_call(handle, method, request.as_ptr(), request.len());
+        assert_eq!(result.status, STATUS_OK, "{}", error_text(&result));
+        let response = if result.response.len == 0 {
+            &[][..]
+        } else {
+            unsafe { slice::from_raw_parts(result.response.data, result.response.len) }
+        };
+        let response = Response::decode(response).expect("valid protobuf response");
+        free_result(result);
+        response
     }
 
     #[test]
@@ -429,6 +462,33 @@ mod tests {
         for thread in threads {
             thread.join().expect("call thread completed");
         }
+        close(handle);
+    }
+
+    #[test]
+    fn committed_state_is_available_through_the_ffi() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+
+        let _: InitGenesisResponse = call(
+            handle,
+            METHOD_INIT_GENESIS,
+            InitGenesisRequest {
+                genesis: Some(
+                    AppState::Content(Content::default().with_chain_id("bankd-local".to_owned()))
+                        .into(),
+                ),
+            },
+        );
+        let commit: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
+        let committed: GetCommittedStateResponse = call(
+            handle,
+            METHOD_GET_COMMITTED_STATE,
+            GetCommittedStateRequest {},
+        );
+
+        assert_eq!(committed.height, 0);
+        assert_eq!(committed.root_hash, commit.root_hash);
         close(handle);
     }
 

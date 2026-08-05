@@ -46,11 +46,22 @@ int main(int argc, char **argv) {
   }
   free_result(&result);
 
+  result =
+      shieldd_call(handle, SHIELDD_METHOD_GET_COMMITTED_STATE, NULL, 0);
+  if (result.status != SHIELDD_STATUS_FAILED_PRECONDITION) {
+    print_error(&result);
+    free_result(&result);
+    result = shieldd_close(handle);
+    free_result(&result);
+    return 6;
+  }
+  free_result(&result);
+
   result = shieldd_close(handle);
   if (result.status != SHIELDD_STATUS_OK) {
     print_error(&result);
     free_result(&result);
-    return 6;
+    return 7;
   }
   free_result(&result);
   return 0;

@@ -18,8 +18,8 @@ use shieldd_sdk_proto::{
         CommitResponse, DeliverTxRequest, DeliverTxResponse, DepositRequest, DepositResponse,
         EndBlockRequest, EndBlockResponse, Event as ProtoEvent,
         EventAttribute as ProtoEventAttribute, ExportGenesisRequest, ExportGenesisResponse,
-        InitGenesisRequest, InitGenesisResponse, RollbackRequest, RollbackResponse,
-        Withdrawal as ProtoWithdrawal,
+        GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest,
+        InitGenesisResponse, RollbackRequest, RollbackResponse, Withdrawal as ProtoWithdrawal,
     },
 };
 use tendermint::{abci, Time};
@@ -213,6 +213,21 @@ impl ExecutionService {
         })
     }
 
+    pub async fn get_committed_state(
+        &self,
+        _request: GetCommittedStateRequest,
+    ) -> std::result::Result<GetCommittedStateResponse, ServiceError> {
+        let execution = self.execution.as_ref().ok_or_else(ServiceError::closed)?;
+        let committed = execution
+            .committed_state()
+            .await
+            .map_err(ServiceError::failed_precondition)?;
+        Ok(GetCommittedStateResponse {
+            height: committed.height,
+            root_hash: committed.root_hash,
+        })
+    }
+
     pub async fn rollback(
         &mut self,
         _request: RollbackRequest,
@@ -325,6 +340,16 @@ fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use shieldd_sdk_app::genesis::{AppState, Content};
+
+    fn init_genesis_request() -> InitGenesisRequest {
+        InitGenesisRequest {
+            genesis: Some(
+                AppState::Content(Content::default().with_chain_id("bankd-local".to_owned()))
+                    .into(),
+            ),
+        }
+    }
 
     #[test]
     fn decode_host_block_converts_valid_time() {
@@ -398,6 +423,47 @@ mod tests {
         let mut reopened = ExecutionService::open(directory.path())
             .await
             .expect("storage was released");
+        reopened.close().await.expect("close reopened service");
+    }
+
+    #[tokio::test]
+    async fn committed_state_survives_reopening_the_service() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let mut service = ExecutionService::open(directory.path())
+            .await
+            .expect("open execution service");
+
+        let error = service
+            .get_committed_state(GetCommittedStateRequest {})
+            .await
+            .expect_err("uninitialized storage has no committed state");
+        assert_eq!(error.kind(), ErrorKind::FailedPrecondition);
+
+        service
+            .init_genesis(init_genesis_request())
+            .await
+            .expect("initialize genesis");
+        let commit = service
+            .commit(CommitRequest {})
+            .await
+            .expect("commit genesis");
+        let committed = service
+            .get_committed_state(GetCommittedStateRequest {})
+            .await
+            .expect("get committed genesis");
+        assert_eq!(committed.height, 0);
+        assert_eq!(committed.root_hash, commit.root_hash);
+
+        service.close().await.expect("close execution service");
+
+        let mut reopened = ExecutionService::open(directory.path())
+            .await
+            .expect("reopen execution service");
+        let reopened_committed = reopened
+            .get_committed_state(GetCommittedStateRequest {})
+            .await
+            .expect("get committed state after reopening");
+        assert_eq!(reopened_committed, committed);
         reopened.close().await.expect("close reopened service");
     }
 }
