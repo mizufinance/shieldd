@@ -26,5 +26,12 @@ tonic = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter", "ansi"] }
 
+# Rust-side global allocator. With the baked `dirty_decay_ms:0` config (see lib.rs),
+# freed pages are returned to the OS promptly instead of being held in per-thread
+# arenas, which shrinks the RSS high-water from transient per-block allocation
+# bursts. Only covers Rust allocations (not RocksDB's C++ or the gnark Go runtime).
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.6"
+
 [dev-dependencies]
 tempfile = { workspace = true }
