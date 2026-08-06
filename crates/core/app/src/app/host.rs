@@ -80,6 +80,12 @@ pub struct HostCommit {
     pub root_hash: Vec<u8>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct HostCommittedState {
+    pub height: u64,
+    pub root_hash: Vec<u8>,
+}
+
 /// Drives Shieldd execution from a host chain without owning validator state.
 ///
 /// This adapter uses host-only lifecycle hooks, not the standalone ABCI lifecycle
@@ -172,6 +178,22 @@ impl HostExecution {
 
         let root_hash = self.storage.latest_snapshot().root_hash().await?;
         Ok(AppState::Checkpoint(root_hash.0.to_vec()))
+    }
+
+    /// Returns the host height and application root from the latest durable state.
+    pub async fn committed_state(&self) -> Result<HostCommittedState> {
+        ensure!(
+            self.storage.latest_version() != u64::MAX,
+            "cannot get committed state from uninitialized storage"
+        );
+
+        let snapshot = self.storage.latest_snapshot();
+        let height = snapshot.get_block_height().await?;
+        let root_hash = snapshot.root_hash().await?;
+        Ok(HostCommittedState {
+            height,
+            root_hash: root_hash.0.to_vec(),
+        })
     }
 
     async fn begin_block_request(&self, block: HostBlock) -> Result<request::BeginBlock> {
@@ -356,6 +378,19 @@ impl HostExecution {
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         self.app = app;
         self.phase = HostExecutionPhase::Idle;
+    }
+
+    /// Drops application snapshots before shutting down Cnidarium and RocksDB.
+    pub async fn release(self) {
+        let Self {
+            storage,
+            app,
+            stateless_cache,
+            phase: _,
+        } = self;
+        drop(app);
+        drop(stateless_cache);
+        storage.release().await;
     }
 }
 
@@ -884,6 +919,32 @@ mod tests {
 
         assert_eq!(commit.root_hash.len(), 32);
         assert_eq!(host.phase(), HostExecutionPhase::Idle);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn host_execution_reports_only_the_latest_committed_state() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host = HostExecution::new(storage.deref().clone());
+
+        assert!(host.committed_state().await.is_err());
+
+        host.init_genesis(host_genesis()).await?;
+        let genesis_commit = host.commit().await?;
+        let committed = host.committed_state().await?;
+        assert_eq!(committed.height, 0);
+        assert_eq!(committed.root_hash, genesis_commit.root_hash);
+
+        host.begin_block(host_block(1)).await?;
+        let still_committed = host.committed_state().await?;
+        assert_eq!(still_committed, committed);
+
+        host.end_block(1).await?;
+        let block_commit = host.commit().await?;
+        let committed = host.committed_state().await?;
+        assert_eq!(committed.height, 1);
+        assert_eq!(committed.root_hash, block_commit.root_hash);
 
         Ok(())
     }

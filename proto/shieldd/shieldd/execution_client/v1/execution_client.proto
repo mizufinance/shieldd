@@ -26,6 +26,8 @@ service ExecutionClientService {
   rpc EndBlock(EndBlockRequest) returns (EndBlockResponse) {}
   // Commit persists the pending Shieldd state and returns the committed root.
   rpc Commit(CommitRequest) returns (CommitResponse) {}
+  // GetCommittedState returns the latest state durably committed by Shieldd.
+  rpc GetCommittedState(GetCommittedStateRequest) returns (GetCommittedStateResponse) {}
   // Rollback discards uncommitted Shieldd state for the current execution phase.
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
   // ExportGenesis exports the currently committed Shieldd state as genesis.
@@ -187,6 +189,18 @@ message CommitRequest {}
 message CommitResponse {
   // Committed Shieldd application root hash.
   bytes root_hash = 1;
+}
+
+// GetCommittedStateRequest is empty because Shieldd always returns its latest
+// durable state.
+message GetCommittedStateRequest {}
+
+// GetCommittedStateResponse identifies the latest durable Shieldd state.
+message GetCommittedStateResponse {
+  // Host-chain block height stored in the committed Shieldd state.
+  uint64 height = 1;
+  // Committed Shieldd application root hash.
+  bytes root_hash = 2;
 }
 
 // RollbackRequest is empty because rollback applies to the current pending

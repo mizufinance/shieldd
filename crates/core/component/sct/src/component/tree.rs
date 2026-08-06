@@ -256,10 +256,21 @@ impl<S: StateWrite + Send + Sync + ?Sized> TctAsyncWrite for SctNvStorage<'_, S>
         below_height: u8,
         positions: Range<tct::Position>,
     ) -> Result<()> {
+        // The forgotten subtree spans `positions`, whose width is 4^height and can be
+        // billions of positions near the top of the tree. The tree is sparse though -
+        // only a handful of positions in that span were ever written. Staging a
+        // point-delete for *every* position (the old behavior) piled up millions of
+        // dead tombstones in the in-memory write cache per block and OOM'd the node.
+        //
+        // Instead, range-scan the two prefixes for the keys that actually exist in the
+        // span and delete only those. Positions are zero-padded fixed width ({:020}),
+        // so lexicographic byte order matches numeric order and the range bounds (which
+        // cnidarium appends to the prefix) select exactly [start, end).
         let start = u64::from(positions.start);
         let end = u64::from(positions.end);
 
-        let mut keys_to_delete = Vec::new();
+        // Collect before deleting because the range streams borrow state immutably.
+        let mut keys_to_delete: Vec<Vec<u8>> = Vec::new();
         let commitment_start = format!("{start:020}").into_bytes();
         let commitment_end = format!("{end:020}").into_bytes();
         {
@@ -288,7 +299,6 @@ impl<S: StateWrite + Send + Sync + ?Sized> TctAsyncWrite for SctNvStorage<'_, S>
                 }
             }
         }
-
         for key in keys_to_delete {
             self.state.nonverifiable_delete(key);
         }
