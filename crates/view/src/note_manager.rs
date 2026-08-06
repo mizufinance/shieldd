@@ -1398,6 +1398,7 @@ fn fee_funding_excluded_note_commitments(
             ActionPlan::Transfer(plan) => Some(&plan.spends),
             ActionPlan::NoteReshape(plan) => Some(&plan.spends),
             ActionPlan::ShieldedIcs20Withdrawal(plan) => Some(&plan.spends),
+            ActionPlan::ShieldedHostWithdrawal(plan) => Some(&plan.spends),
             _ => None,
         };
 
