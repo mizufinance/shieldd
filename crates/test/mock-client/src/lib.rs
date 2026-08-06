@@ -213,6 +213,11 @@ impl MockClient {
                 .iter()
                 .map(|spend| spend.note.commit())
                 .collect::<Vec<_>>(),
+            ActionPlan::ShieldedHostWithdrawal(plan) => plan
+                .spends
+                .iter()
+                .map(|spend| spend.note.commit())
+                .collect::<Vec<_>>(),
             _ => Vec::new(),
         });
 
