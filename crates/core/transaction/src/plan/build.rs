@@ -55,6 +55,7 @@ impl TransactionPlan {
                 ActionPlan::Transfer(plan) => plan.spends.len(),
                 ActionPlan::NoteReshape(plan) => plan.spends.len(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.spends.len(),
+                ActionPlan::ShieldedHostWithdrawal(plan) => plan.spends.len(),
                 _ => 0,
             })
             .sum::<usize>()
@@ -108,6 +109,18 @@ impl TransactionPlan {
                 (
                     ActionPlan::ShieldedIcs20Withdrawal(plan),
                     Action::ShieldedIcs20Withdrawal(withdrawal),
+                ) => {
+                    for (index, auth_sig) in withdrawal.auth_sigs.iter_mut().enumerate() {
+                        if index < plan.spends.len() {
+                            *auth_sig = spend_auths.next().expect("checked spend auth count");
+                        } else {
+                            *auth_sig = plan.synthetic_dummy_auth_sig(index, effect_hash.as_ref());
+                        }
+                    }
+                }
+                (
+                    ActionPlan::ShieldedHostWithdrawal(plan),
+                    Action::ShieldedHostWithdrawal(withdrawal),
                 ) => {
                     for (index, auth_sig) in withdrawal.auth_sigs.iter_mut().enumerate() {
                         if index < plan.spends.len() {
@@ -232,6 +245,12 @@ impl TransactionPlan {
                     }
                 }
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => {
+                    for spend in &plan.spends {
+                        let (commitment, proof) = witness_note(spend)?;
+                        state_commitment_proofs.insert(commitment, proof);
+                    }
+                }
+                ActionPlan::ShieldedHostWithdrawal(plan) => {
                     for spend in &plan.spends {
                         let (commitment, proof) = witness_note(spend)?;
                         state_commitment_proofs.insert(commitment, proof);

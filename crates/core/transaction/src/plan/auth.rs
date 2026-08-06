@@ -35,6 +35,12 @@ impl TransactionPlan {
                         spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
                     }
                 }
+                crate::ActionPlan::ShieldedHostWithdrawal(plan) => {
+                    for spend_plan in &plan.spends {
+                        let rsk = sk.spend_auth_key().randomize(&spend_plan.randomizer);
+                        spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
+                    }
+                }
                 _ => {}
             }
         }

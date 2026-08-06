@@ -8,7 +8,10 @@ use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{Address, FullViewingKey, PayloadKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
-use shieldd_sdk_shielded_pool::{Ics20Withdrawal, ShieldedIcs20WithdrawalPlan, TransferPlan};
+use shieldd_sdk_shielded_pool::{
+    HostWithdrawal, Ics20Withdrawal, ShieldedHostWithdrawalPlan, ShieldedIcs20WithdrawalPlan,
+    TransferPlan,
+};
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 mod action;
@@ -154,6 +157,28 @@ impl TransactionPlan {
         })
     }
 
+    pub fn shielded_host_withdrawal_plans(
+        &self,
+    ) -> impl Iterator<Item = &ShieldedHostWithdrawalPlan> {
+        self.actions.iter().filter_map(|action| {
+            if let ActionPlan::ShieldedHostWithdrawal(plan) = action {
+                Some(plan)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn host_withdrawals(&self) -> impl Iterator<Item = &HostWithdrawal> {
+        self.actions.iter().filter_map(|action| {
+            if let ActionPlan::ShieldedHostWithdrawal(plan) = action {
+                Some(&plan.withdrawal)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn dest_addresses(&self) -> Vec<Address> {
         let mut addresses = self
             .actions
@@ -166,6 +191,7 @@ impl TransactionPlan {
                     .map(|output| output.dest_address.clone())
                     .collect::<Vec<_>>(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => vec![plan.created_output_address()],
+                ActionPlan::ShieldedHostWithdrawal(plan) => vec![plan.created_output_address()],
                 _ => Vec::new(),
             })
             .collect::<Vec<_>>();
@@ -191,6 +217,7 @@ impl TransactionPlan {
                 ActionPlan::Transfer(plan) => plan.outputs.len(),
                 ActionPlan::NoteReshape(plan) => plan.outputs.len(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.note_creating_output_count(),
+                ActionPlan::ShieldedHostWithdrawal(plan) => plan.note_creating_output_count(),
                 _ => 0,
             })
             .sum::<usize>();
@@ -212,6 +239,7 @@ impl TransactionPlan {
                 ActionPlan::Transfer(plan) => plan.spends.len(),
                 ActionPlan::NoteReshape(plan) => plan.spends.len(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.spends.len(),
+                ActionPlan::ShieldedHostWithdrawal(plan) => plan.spends.len(),
                 _ => 0,
             })
             .sum::<usize>();
@@ -232,7 +260,8 @@ impl TransactionPlan {
             .map(|action| match action {
                 ActionPlan::Transfer(_)
                 | ActionPlan::NoteReshape(_)
-                | ActionPlan::ShieldedIcs20Withdrawal(_) => 1,
+                | ActionPlan::ShieldedIcs20Withdrawal(_)
+                | ActionPlan::ShieldedHostWithdrawal(_) => 1,
                 _ => 0,
             })
             .sum::<usize>();

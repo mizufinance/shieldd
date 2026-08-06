@@ -12,7 +12,9 @@ use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{symmetric::PayloadKey, FullViewingKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb_t, DomainType};
-use shieldd_sdk_shielded_pool::{NoteReshapePlan, ShieldedIcs20WithdrawalPlan, TransferPlan};
+use shieldd_sdk_shielded_pool::{
+    NoteReshapePlan, ShieldedHostWithdrawalPlan, ShieldedIcs20WithdrawalPlan, TransferPlan,
+};
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 /// A declaration of a planned [`Action`], for use in transaction creation.
@@ -29,6 +31,7 @@ pub enum ActionPlan {
     ProposalSubmit(ProposalSubmit),
     ValidatorVote(ValidatorVote),
     ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalPlan),
+    ShieldedHostWithdrawal(ShieldedHostWithdrawalPlan),
     /// Register an asset's regulation status in the compliance registry.
     ComplianceRegisterAsset(MsgRegisterAsset),
     /// Register a user's compliance key for a regulated asset.
@@ -134,6 +137,33 @@ impl ActionPlan {
                     })?,
                 )
             }
+            ShieldedHostWithdrawal(plan) => {
+                let dummy_payload_key: PayloadKey = [0u8; 32].into();
+                let auth_paths = plan
+                    .spends
+                    .iter()
+                    .map(|spend| {
+                        let note_commitment = spend.note.commit();
+                        witness_data
+                            .state_commitment_proofs
+                            .get(&note_commitment)
+                            .cloned()
+                            .context(format!("could not get proof for {note_commitment:?}"))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                Action::ShieldedHostWithdrawal(
+                    plan.shielded_host_withdrawal(
+                        fvk,
+                        vec![[0; 64].into(); plan.spends.len()],
+                        auth_paths,
+                        witness_data.anchor,
+                        memo_key.as_ref().unwrap_or(&dummy_payload_key),
+                    )
+                    .map_err(|e| {
+                        anyhow::anyhow!("shielded host withdrawal proof generation failed: {}", e)
+                    })?,
+                )
+            }
             ComplianceRegisterAsset(msg) => Action::ComplianceRegisterAsset(msg.clone()),
             ComplianceRegisterUser(msg) => Action::ComplianceRegisterUser(msg.clone()),
         })
@@ -151,6 +181,7 @@ impl ActionPlan {
             ActionPlan::ComplianceRegisterAsset(_) => 80,
             ActionPlan::ComplianceRegisterUser(_) => 81,
             ActionPlan::ShieldedIcs20Withdrawal(_) => 200,
+            ActionPlan::ShieldedHostWithdrawal(_) => 201,
         }
     }
 
@@ -162,6 +193,7 @@ impl ActionPlan {
             NoteReshape(action) => action.balance(),
             ProposalSubmit(action) => action.balance(),
             ShieldedIcs20Withdrawal(action) => action.balance(),
+            ShieldedHostWithdrawal(action) => action.balance(),
             IbcAction(_)
             | ValidatorDefinition(_)
             | ValidatorVote(_)
@@ -177,6 +209,7 @@ impl ActionPlan {
             Transfer(action) => action.value_blinding,
             NoteReshape(action) => action.value_blinding,
             ShieldedIcs20Withdrawal(action) => action.value_blinding,
+            ShieldedHostWithdrawal(action) => action.value_blinding,
             ValidatorDefinition(_)
             | IbcAction(_)
             | ProposalSubmit(_)
@@ -206,6 +239,9 @@ impl ActionPlan {
             ProposalSubmit(plan) => plan.effect_hash(),
             ValidatorVote(plan) => plan.effect_hash(),
             ShieldedIcs20Withdrawal(plan) => plan
+                .action_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
+                .map(|body| body.effect_hash())?,
+            ShieldedHostWithdrawal(plan) => plan
                 .action_body(fvk, memo_key, shieldd_sdk_tct::Tree::default().root())
                 .map(|body| body.effect_hash())?,
             ComplianceRegisterAsset(plan) => plan.effect_hash(),
@@ -258,6 +294,12 @@ impl From<ShieldedIcs20WithdrawalPlan> for ActionPlan {
     }
 }
 
+impl From<ShieldedHostWithdrawalPlan> for ActionPlan {
+    fn from(inner: ShieldedHostWithdrawalPlan) -> ActionPlan {
+        ActionPlan::ShieldedHostWithdrawal(inner)
+    }
+}
+
 impl From<MsgRegisterAsset> for ActionPlan {
     fn from(inner: MsgRegisterAsset) -> ActionPlan {
         ActionPlan::ComplianceRegisterAsset(inner)
@@ -297,6 +339,11 @@ impl From<ActionPlan> for pb_t::ActionPlan {
             },
             ActionPlan::ShieldedIcs20Withdrawal(inner) => pb_t::ActionPlan {
                 action: Some(pb_t::action_plan::Action::ShieldedIcs20Withdrawal(
+                    inner.into(),
+                )),
+            },
+            ActionPlan::ShieldedHostWithdrawal(inner) => pb_t::ActionPlan {
+                action: Some(pb_t::action_plan::Action::ShieldedHostWithdrawal(
                     inner.into(),
                 )),
             },
@@ -346,6 +393,9 @@ impl TryFrom<pb_t::ActionPlan> for ActionPlan {
             }
             pb_t::action_plan::Action::ShieldedIcs20Withdrawal(inner) => {
                 Ok(ActionPlan::ShieldedIcs20Withdrawal(inner.try_into()?))
+            }
+            pb_t::action_plan::Action::ShieldedHostWithdrawal(inner) => {
+                Ok(ActionPlan::ShieldedHostWithdrawal(inner.try_into()?))
             }
             pb_t::action_plan::Action::ComplianceRegisterAsset(inner) => {
                 Ok(ActionPlan::ComplianceRegisterAsset(inner.try_into()?))
