@@ -180,7 +180,7 @@
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "pass"
+        "last_result": "stale"
       }
     },
     {
