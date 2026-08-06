@@ -212,18 +212,61 @@ impl<S: StateWrite + Send + Sync + ?Sized> TctAsyncWrite for SctNvStorage<'_, S>
         below_height: u8,
         positions: Range<tct::Position>,
     ) -> Result<()> {
+        // The forgotten subtree spans `positions`, whose width is 4^height and can be
+        // billions of positions near the top of the tree. The tree is sparse though -
+        // only a handful of positions in that span were ever written. Staging a
+        // point-delete for *every* position (the old behavior) piled up millions of
+        // dead tombstones in the in-memory write cache per block and OOM'd the node.
+        //
+        // Instead, range-scan the two prefixes for the keys that actually exist in the
+        // span and delete only those. Positions are zero-padded fixed width ({:020}),
+        // so lexicographic byte order matches numeric order and the range bounds (which
+        // cnidarium appends to the prefix) select exactly [start, end).
         let start = u64::from(positions.start);
         let end = u64::from(positions.end);
-        for position in start..end {
-            let position = tct::Position::from(position);
-            self.state.nonverifiable_delete(
-                state_key::tree::incremental_commitment(position).into_bytes(),
-            );
-            for height in 0..below_height {
-                self.state.nonverifiable_delete(
-                    state_key::tree::incremental_hash(position, height).into_bytes(),
-                );
+
+        // range bounds are the position suffix appended after the prefix by cnidarium.
+        let lower = format!("{start:020}").into_bytes();
+        let upper = format!("{end:020}").into_bytes();
+
+        // Collect first, then delete: the range stream borrows the state immutably, and
+        // the collected set is bounded by the sparse stored keys, not the span width.
+        let mut keys_to_delete: Vec<Vec<u8>> = Vec::new();
+
+        {
+            let commitment_stream = self.state.nonverifiable_range_raw(
+                Some(state_key::tree::incremental_commitment_prefix().as_bytes()),
+                lower.clone()..upper.clone(),
+            )?;
+            futures::pin_mut!(commitment_stream);
+            while let Some((key, _)) = commitment_stream.next().await.transpose()? {
+                keys_to_delete.push(key);
             }
+        }
+
+        {
+            let hash_stream = self.state.nonverifiable_range_raw(
+                Some(state_key::tree::incremental_hash_prefix().as_bytes()),
+                lower..upper,
+            )?;
+            futures::pin_mut!(hash_stream);
+            while let Some((key, _)) = hash_stream.next().await.transpose()? {
+                // Hash keys are "<prefix><position:020>/<height:03>"; keep only the
+                // heights strictly below `below_height`, matching the original loop so
+                // the subtree root's essential hash and its ancestors survive.
+                let height = key
+                    .rsplit(|&b| b == b'/')
+                    .next()
+                    .and_then(|h| std::str::from_utf8(h).ok())
+                    .and_then(|h| h.parse::<u8>().ok());
+                if matches!(height, Some(h) if h < below_height) {
+                    keys_to_delete.push(key);
+                }
+            }
+        }
+
+        for key in keys_to_delete {
+            self.state.nonverifiable_delete(key);
         }
         Ok(())
     }

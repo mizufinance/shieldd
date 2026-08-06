@@ -8,14 +8,11 @@ use std::{
 
 use anyhow::Context;
 use clap::{Parser, Subcommand};
-use cnidarium::Storage;
-use execution_client::GrpcExecutionClient;
-use shieldd_sdk_app::{APP_VERSION, SUBSTORE_PREFIXES};
+use shieldd::{ExecutionService, GrpcExecutionClient};
+use shieldd_sdk_app::APP_VERSION;
 use shieldd_sdk_proto::execution_client::v1::execution_client_service_server::ExecutionClientServiceServer;
 use tonic::transport::Server;
 use tracing_subscriber::{prelude::*, EnvFilter};
-
-mod execution_client;
 
 #[derive(Debug, Parser)]
 #[clap(
@@ -58,9 +55,13 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn start(db: PathBuf, bind: SocketAddr) -> anyhow::Result<()> {
-    let storage = Storage::load(db.clone(), SUBSTORE_PREFIXES.to_vec())
-        .await
-        .with_context(|| format!("failed to open Shieldd RocksDB at {}", db.display()))?;
+    let service = ExecutionService::open(&db).await.with_context(|| {
+        format!(
+            "failed to open Shieldd execution service for {}",
+            db.display()
+        )
+    })?;
+    let grpc = GrpcExecutionClient::new(service);
 
     tracing::info!(
         app_version = APP_VERSION,
@@ -69,23 +70,33 @@ async fn start(db: PathBuf, bind: SocketAddr) -> anyhow::Result<()> {
         "starting Shieldd execution-client server"
     );
 
-    if storage.latest_version() == u64::MAX {
-        tracing::info!("Shieldd app state is not initialized; waiting for InitGenesis");
-    } else if shieldd_sdk_app::app::App::is_ready(storage.latest_snapshot()).await {
-        tracing::info!("Shieldd app state is ready");
-    } else {
-        anyhow::bail!("Shieldd app state is not ready");
-    }
-
-    Server::builder()
-        .add_service(ExecutionClientServiceServer::new(GrpcExecutionClient::new(
-            storage,
-        )))
-        .serve(bind)
+    let server_result = Server::builder()
+        .add_service(ExecutionClientServiceServer::new(grpc.clone()))
+        .serve_with_shutdown(bind, shutdown_signal())
         .await
         .map_err(|error| {
             anyhow::anyhow!("Shieldd execution-client server failed on {bind}: {error:?}")
-        })
+        });
+    let close_result = grpc
+        .close()
+        .await
+        .context("failed to close Shieldd execution service");
+
+    match (server_result, close_result) {
+        (Err(server_error), Err(close_error)) => {
+            Err(server_error.context(format!("also failed during shutdown: {close_error:#}")))
+        }
+        (Err(server_error), Ok(())) => Err(server_error),
+        (Ok(()), Err(close_error)) => Err(close_error),
+        (Ok(()), Ok(())) => Ok(()),
+    }
+}
+
+async fn shutdown_signal() {
+    match tokio::signal::ctrl_c().await {
+        Ok(()) => tracing::info!("received shutdown signal"),
+        Err(error) => tracing::error!(?error, "failed to listen for shutdown signal"),
+    }
 }
 
 fn init_tracing() -> anyhow::Result<()> {
