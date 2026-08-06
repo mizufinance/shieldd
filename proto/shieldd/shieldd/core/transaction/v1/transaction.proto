@@ -298,6 +298,7 @@ message ActionPlan {
     component.governance.v1.ValidatorVote validator_vote = 20;
 
     component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan shielded_ics20_withdrawal = 200;
+    component.shielded_pool.v1.ShieldedHostWithdrawalPlan shielded_host_withdrawal = 201;
 
     // Compliance
     component.compliance.v1.MsgRegisterAsset compliance_register_asset = 80;

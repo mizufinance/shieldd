@@ -101,7 +101,7 @@ The data that is _not_ effecting data is *authorizing data*:
 >"Authorizing data" is the rest of the data within a transaction. It does not contribute to the effects of the transaction on global state, but allows those effects to take place. This data can be changed arbitrarily without resulting in a different transaction (but the changes may alter whether the transaction is allowed to be applied or not).
 
 For example, the nullifier on a shielded input inside a `Transfer`,
-`NoteReshape` or `ShieldedIcs20Withdrawal` is effecting data, whereas
+`NoteReshape`, `ShieldedIcs20Withdrawal`, or `ShieldedHostWithdrawal` is effecting data, whereas
 the proofs or signatures associated with that action are authorizing data.
 
 In Shieldd, the effect hash of each transaction is computed using the BLAKE2b-512

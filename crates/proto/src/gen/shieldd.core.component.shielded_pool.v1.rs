@@ -538,15 +538,24 @@ impl ::prost::Name for TransferPlan {
         "/shieldd.core.component.shielded_pool.v1.TransferPlan".into()
     }
 }
-/// Releases shielded value to a recipient on the host chain.
+/// Releases shielded value for transfer or execution on the host chain.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HostWithdrawal {
-    /// The host-chain recipient.
-    #[prost(string, tag = "1")]
-    pub recipient: ::prost::alloc::string::String,
     /// The canonical Shieldd value to release.
-    #[prost(message, optional, tag = "2")]
+    #[prost(message, optional, tag = "1")]
     pub value: ::core::option::Option<super::super::super::asset::v1::Value>,
+    #[prost(oneof = "host_withdrawal::Destination", tags = "2, 3")]
+    pub destination: ::core::option::Option<host_withdrawal::Destination>,
+}
+/// Nested message and enum types in `HostWithdrawal`.
+pub mod host_withdrawal {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Destination {
+        #[prost(message, tag = "2")]
+        Transfer(super::HostTransfer),
+        #[prost(message, tag = "3")]
+        Execution(super::HostExecution),
+    }
 }
 impl ::prost::Name for HostWithdrawal {
     const NAME: &'static str = "HostWithdrawal";
@@ -556,6 +565,64 @@ impl ::prost::Name for HostWithdrawal {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.shielded_pool.v1.HostWithdrawal".into()
+    }
+}
+/// Transfers withdrawn value directly to a host-chain recipient.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct HostTransfer {
+    #[prost(string, tag = "1")]
+    pub recipient: ::prost::alloc::string::String,
+}
+impl ::prost::Name for HostTransfer {
+    const NAME: &'static str = "HostTransfer";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.HostTransfer".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.HostTransfer".into()
+    }
+}
+/// Executes an ordered, atomic host-chain call batch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct HostExecution {
+    /// Shieldd address credited if host execution fails.
+    #[prost(string, tag = "1")]
+    pub refund_address: ::prost::alloc::string::String,
+    /// Maximum host-chain gas available to the call batch.
+    #[prost(uint64, tag = "2")]
+    pub gas_limit: u64,
+    /// Calls executed in order from the withdrawal's derived executor.
+    #[prost(message, repeated, tag = "3")]
+    pub calls: ::prost::alloc::vec::Vec<EvmCall>,
+}
+impl ::prost::Name for HostExecution {
+    const NAME: &'static str = "HostExecution";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.HostExecution".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.HostExecution".into()
+    }
+}
+/// A host-chain EVM call.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct EvmCall {
+    /// The 20-byte EVM contract address.
+    #[prost(bytes = "vec", tag = "1")]
+    pub contract: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub calldata: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for EvmCall {
+    const NAME: &'static str = "EvmCall";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.EvmCall".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.EvmCall".into()
     }
 }
 /// Withdraws shielded funds to the host chain while keeping shielded change in the same action.

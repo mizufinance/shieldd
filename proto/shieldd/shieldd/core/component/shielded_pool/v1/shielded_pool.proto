@@ -203,12 +203,36 @@ message TransferPlan {
   repeated ShieldedOutputPlan outputs = 5;
 }
 
-// Releases shielded value to a recipient on the host chain.
+// Releases shielded value for transfer or execution on the host chain.
 message HostWithdrawal {
-  // The host-chain recipient.
-  string recipient = 1;
   // The canonical Shieldd value to release.
-  asset.v1.Value value = 2;
+  asset.v1.Value value = 1;
+  oneof destination {
+    HostTransfer transfer = 2;
+    HostExecution execution = 3;
+  }
+}
+
+// Transfers withdrawn value directly to a host-chain recipient.
+message HostTransfer {
+  string recipient = 1;
+}
+
+// Executes an ordered, atomic host-chain call batch.
+message HostExecution {
+  // Shieldd address credited if host execution fails.
+  string refund_address = 1;
+  // Maximum host-chain gas available to the call batch.
+  uint64 gas_limit = 2;
+  // Calls executed in order from the withdrawal's derived executor.
+  repeated EvmCall calls = 3;
+}
+
+// A host-chain EVM call.
+message EvmCall {
+  // The 20-byte EVM contract address.
+  bytes contract = 1;
+  bytes calldata = 2;
 }
 
 // Withdraws shielded funds to the host chain while keeping shielded change in the same action.

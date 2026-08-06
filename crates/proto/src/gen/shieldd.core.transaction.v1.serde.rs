@@ -273,6 +273,9 @@ impl serde::Serialize for ActionPlan {
                 action_plan::Action::ShieldedIcs20Withdrawal(v) => {
                     struct_ser.serialize_field("shieldedIcs20Withdrawal", v)?;
                 }
+                action_plan::Action::ShieldedHostWithdrawal(v) => {
+                    struct_ser.serialize_field("shieldedHostWithdrawal", v)?;
+                }
                 action_plan::Action::ComplianceRegisterAsset(v) => {
                     struct_ser.serialize_field("complianceRegisterAsset", v)?;
                 }
@@ -304,6 +307,8 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
             "validatorVote",
             "shielded_ics20_withdrawal",
             "shieldedIcs20Withdrawal",
+            "shielded_host_withdrawal",
+            "shieldedHostWithdrawal",
             "compliance_register_asset",
             "complianceRegisterAsset",
             "compliance_register_user",
@@ -319,6 +324,7 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
             ProposalSubmit,
             ValidatorVote,
             ShieldedIcs20Withdrawal,
+            ShieldedHostWithdrawal,
             ComplianceRegisterAsset,
             ComplianceRegisterUser,
             __SkipField__,
@@ -350,6 +356,7 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
                             "proposalSubmit" | "proposal_submit" => Ok(GeneratedField::ProposalSubmit),
                             "validatorVote" | "validator_vote" => Ok(GeneratedField::ValidatorVote),
                             "shieldedIcs20Withdrawal" | "shielded_ics20_withdrawal" => Ok(GeneratedField::ShieldedIcs20Withdrawal),
+                            "shieldedHostWithdrawal" | "shielded_host_withdrawal" => Ok(GeneratedField::ShieldedHostWithdrawal),
                             "complianceRegisterAsset" | "compliance_register_asset" => Ok(GeneratedField::ComplianceRegisterAsset),
                             "complianceRegisterUser" | "compliance_register_user" => Ok(GeneratedField::ComplianceRegisterUser),
                             _ => Ok(GeneratedField::__SkipField__),
@@ -421,6 +428,13 @@ impl<'de> serde::Deserialize<'de> for ActionPlan {
                                 return Err(serde::de::Error::duplicate_field("shieldedIcs20Withdrawal"));
                             }
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::ShieldedIcs20Withdrawal)
+;
+                        }
+                        GeneratedField::ShieldedHostWithdrawal => {
+                            if action__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("shieldedHostWithdrawal"));
+                            }
+                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action_plan::Action::ShieldedHostWithdrawal)
 ;
                         }
                         GeneratedField::ComplianceRegisterAsset => {

@@ -246,10 +246,28 @@ impl TransactionViewExt for TransactionView {
                             withdrawal,
                         } => &withdrawal.body.withdrawal,
                     };
-                    action = format!(
-                        "{} of {} to {}",
-                        withdrawal.value.amount, withdrawal.value.asset_id, withdrawal.recipient,
-                    );
+                    action = match &withdrawal.destination {
+                        shieldd_sdk_shielded_pool::HostWithdrawalDestination::Transfer(
+                            transfer,
+                        ) => {
+                            format!(
+                                "{} of {} to {}",
+                                withdrawal.value.amount,
+                                withdrawal.value.asset_id,
+                                transfer.recipient,
+                            )
+                        }
+                        shieldd_sdk_shielded_pool::HostWithdrawalDestination::Execution(
+                            execution,
+                        ) => format!(
+                            "{} of {} via {} host calls (gas {}, refund {})",
+                            withdrawal.value.amount,
+                            withdrawal.value.asset_id,
+                            execution.calls.len(),
+                            execution.gas_limit,
+                            execution.refund_address,
+                        ),
+                    };
                     ["Host Withdrawal", &action]
                 }
                 shieldd_sdk_transaction::ActionView::ProposalSubmit(proposal_submit) => {

@@ -10,6 +10,7 @@ The reduced chain supports three main categories of actions:
   - `Transfer`
   - `NoteReshape`
   - `ShieldedIcs20Withdrawal`
+  - `ShieldedHostWithdrawal`
 - validator and governance actions:
   - `ValidatorDefinition`
   - `ProposalSubmit`
