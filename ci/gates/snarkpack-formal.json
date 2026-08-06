@@ -119,6 +119,17 @@
     },
     {
       "patterns": [
+        "tools/proto-compiler/**"
+      ],
+      "tiers": {
+        "pull_request": "static",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "protobuf code generator can alter generated Rust inputs in the SnarkPack Cargo closure"
+    },
+    {
+      "patterns": [
         "crates/core/app/Cargo.toml",
         "crates/core/app/src/action_handler/actions.rs",
         "crates/core/app/src/app/mod.rs",

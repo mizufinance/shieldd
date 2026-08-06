@@ -239,7 +239,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ =
+                            height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -467,7 +467,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlockRangeRequest {
                             if start_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("startHeight"));
                             }
-                            start_height__ =
+                            start_height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -475,7 +475,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlockRangeRequest {
                             if end_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("endHeight"));
                             }
-                            end_height__ =
+                            end_height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -678,7 +678,7 @@ impl<'de> serde::Deserialize<'de> for CompactBlockRequest {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ =
+                            height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -916,7 +916,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryBlock {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ =
+                            height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1057,7 +1057,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryBlockRangeRequest {
                             if start_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("startHeight"));
                             }
-                            start_height__ =
+                            start_height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1065,7 +1065,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryBlockRangeRequest {
                             if end_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("endHeight"));
                             }
-                            end_height__ =
+                            end_height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1285,7 +1285,7 @@ impl<'de> serde::Deserialize<'de> for NoteCandidatesRequest {
                             if start_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("startHeight"));
                             }
-                            start_height__ =
+                            start_height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1293,7 +1293,7 @@ impl<'de> serde::Deserialize<'de> for NoteCandidatesRequest {
                             if end_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("endHeight"));
                             }
-                            end_height__ =
+                            end_height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1422,7 +1422,7 @@ impl<'de> serde::Deserialize<'de> for NoteCandidatesResponse {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ =
+                            height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1430,7 +1430,7 @@ impl<'de> serde::Deserialize<'de> for NoteCandidatesResponse {
                             if state_payload_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("statePayloadIndex"));
                             }
-                            state_payload_index__ =
+                            state_payload_index__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

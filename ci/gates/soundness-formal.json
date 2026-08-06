@@ -94,6 +94,17 @@
         "default": "full"
       },
       "reason": "soundness proof, artifact, generator, runtime, or invoked gate input"
+    },
+    {
+      "patterns": [
+        "tools/proto-compiler/**"
+      ],
+      "tiers": {
+        "pull_request": "stamps",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "protobuf code generator can alter generated Rust inputs in the soundness Cargo closure"
     }
   ],
   "irrelevant_inputs": [

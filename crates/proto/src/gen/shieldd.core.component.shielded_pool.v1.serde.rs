@@ -476,7 +476,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryParameters {
                             if precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("precisionBits"));
                             }
-                            precision_bits__ =
+                            precision_bits__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -484,7 +484,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryParameters {
                             if as_of_block_height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("asOfBlockHeight"));
                             }
-                            as_of_block_height__ =
+                            as_of_block_height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -593,7 +593,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryTag {
                             if precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("precisionBits"));
                             }
-                            precision_bits__ =
+                            precision_bits__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -601,7 +601,7 @@ impl<'de> serde::Deserialize<'de> for DiscoveryTag {
                             if value__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("value"));
                             }
-                            value__ =
+                            value__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2934,7 +2934,7 @@ impl<'de> serde::Deserialize<'de> for NoteReshapePlan {
                             if discovery_precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("discoveryPrecisionBits"));
                             }
-                            discovery_precision_bits__ =
+                            discovery_precision_bits__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -5060,7 +5060,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedIcs20WithdrawalPlan {
                             if discovery_precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("discoveryPrecisionBits"));
                             }
-                            discovery_precision_bits__ =
+                            discovery_precision_bits__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -7070,7 +7070,7 @@ impl<'de> serde::Deserialize<'de> for ShieldedPoolParameters {
                             if discovery_grace_period_blocks__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("discoveryGracePeriodBlocks"));
                             }
-                            discovery_grace_period_blocks__ =
+                            discovery_grace_period_blocks__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -7929,7 +7929,7 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                             if discovery_precision_bits__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("discoveryPrecisionBits"));
                             }
-                            discovery_precision_bits__ =
+                            discovery_precision_bits__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
