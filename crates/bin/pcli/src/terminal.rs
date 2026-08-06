@@ -82,7 +82,6 @@ fn pretty_print_transaction_plan(
                 .collect(),
             transaction_parameters: plan.transaction_parameters.clone(),
             fee_funding: None,
-            detection_data: None,
             memo_view: None,
         },
     };

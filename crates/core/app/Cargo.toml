@@ -112,7 +112,6 @@ tracing                          = { workspace = true }
 url                              = { workspace = true }
 
 [dev-dependencies]
-decaf377-fmd                     = { workspace = true, default-features = true }
 ed25519-consensus                = { workspace = true }
 shieldd-sdk-mock-client         = { workspace = true }
 shieldd-sdk-mock-consensus      = { workspace = true }

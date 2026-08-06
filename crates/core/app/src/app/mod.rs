@@ -76,7 +76,6 @@ use shieldd_sdk_sct::component::tree::SctRead as _;
 use shieldd_sdk_sct::component::{StateReadExt as _, StateWriteExt as _};
 use shieldd_sdk_sct::epoch::Epoch;
 use shieldd_sdk_sct::{CommitmentSource, Nullifier};
-use shieldd_sdk_shielded_pool::component::ClueManager as _;
 use shieldd_sdk_shielded_pool::component::{
     transfer_extract_public, transfer_to_batch_item, NoteManager as _, ShieldedPool,
     StateReadExt as _, StateWriteExt as _,
@@ -398,7 +397,6 @@ struct VerifiedStatefulTxBreakdown {
     serial_event_emit_ms: f64,
     serial_fee_apply_ms: f64,
     other_action_execute_ms: f64,
-    record_clues_ms: f64,
     apply_ms: f64,
 }
 
@@ -546,7 +544,6 @@ pub struct ExecutionBlockProfile {
     pub output_action_execute_ms: f64,
     pub output_add_note_payload_ms: f64,
     pub other_action_execute_ms: f64,
-    pub record_clues_ms: f64,
     pub apply_ms: f64,
 }
 
@@ -1293,7 +1290,6 @@ impl App {
         profile.stateful_filter_serial_fee_apply_ms += execution_profile.serial_fee_apply_ms;
         profile.stateful_filter_other_action_execute_ms +=
             execution_profile.other_action_execute_ms;
-        profile.stateful_filter_record_clues_ms += execution_profile.record_clues_ms;
         profile.stateful_filter_apply_ms += execution_profile.apply_ms;
     }
 
@@ -1508,7 +1504,7 @@ impl App {
     )> {
         use crate::action_handler::transaction::stateless::{
             check_memo_exists_if_outputs_absent_if_not, check_non_empty_transaction,
-            num_clues_equal_to_num_outputs, valid_binding_signature,
+            valid_binding_signature,
         };
         use cnidarium_component::ActionHandler as _;
         use shieldd_sdk_shielded_pool::component::Ics20Transfer;
@@ -1521,7 +1517,6 @@ impl App {
             let precheck_start = Instant::now();
             Self::ensure_user_tx_has_no_internal_actions(tx)?;
             valid_binding_signature(tx)?;
-            num_clues_equal_to_num_outputs(tx)?;
             check_memo_exists_if_outputs_absent_if_not(tx)?;
             check_non_empty_transaction(tx)?;
             profile.precheck_ms += precheck_start.elapsed().as_secs_f64() * 1000.0;
@@ -2003,7 +1998,6 @@ impl App {
                     fee: Fee::default(),
                 },
                 fee_funding: None,
-                detection_data: None,
                 memo: None,
             },
             binding_sig: [0; 64].into(),
@@ -2069,7 +2063,6 @@ impl App {
                     fee: Fee::default(),
                 },
                 fee_funding: None,
-                detection_data: None,
                 memo: None,
             },
             binding_sig: [0; 64].into(),
@@ -2305,10 +2298,6 @@ impl App {
         anyhow::ensure!(
             tx.transaction_body.memo.is_none(),
             "aggregate bundle tx must not contain a memo"
-        );
-        anyhow::ensure!(
-            tx.transaction_body.detection_data.is_none(),
-            "aggregate bundle tx must not contain detection data"
         );
         anyhow::ensure!(
             tx.transaction_body.transaction_parameters.fee == Fee::default(),
@@ -3286,7 +3275,6 @@ impl App {
             profile.output_action_execute_ms += execute_profile.output_action_execute_ms;
             profile.output_add_note_payload_ms += execute_profile.output_add_note_payload_ms;
             profile.other_action_execute_ms += execute_profile.other_action_execute_ms;
-            profile.record_clues_ms += execute_profile.record_clues_ms;
             profile.apply_ms += execute_profile.apply_ms;
         }
         profile.deliver_txs_wall_ms = deliver_txs_start.elapsed().as_secs_f64() * 1000.0;
@@ -4805,7 +4793,6 @@ impl App {
                 execution_profile.output_add_note_payload_ms;
             profile.stateful_replay_other_action_execute_ms +=
                 execution_profile.other_action_execute_ms;
-            profile.stateful_replay_record_clues_ms += execution_profile.record_clues_ms;
             profile.stateful_replay_apply_ms += execution_profile.apply_ms;
         }
         profile.stateful_replay_execute_ms = stateful_replay_start.elapsed().as_secs_f64() * 1000.0;
@@ -5182,7 +5169,6 @@ impl App {
         profile.execute_output_action_execute_ms = execute_profile.output_action_execute_ms;
         profile.execute_output_add_note_payload_ms = execute_profile.output_add_note_payload_ms;
         profile.execute_other_action_execute_ms = execute_profile.other_action_execute_ms;
-        profile.execute_record_clues_ms = execute_profile.record_clues_ms;
         profile.execute_apply_ms = execute_profile.apply_ms;
         profile.checktx_candidate_read_wall_ms = execute_profile.candidate_read_wall_ms;
         profile.checktx_candidate_effects_build_ms = execute_profile.read_effects_build_ms;
@@ -5575,7 +5561,6 @@ impl App {
         profile.read_committed_nullifier_ms = execute_profile.read_committed_nullifier_ms;
         profile.read_effects_build_ms = execute_profile.read_effects_build_ms;
         profile.other_action_execute_ms = execute_profile.other_action_execute_ms;
-        profile.record_clues_ms = execute_profile.record_clues_ms;
         profile.apply_ms = execute_profile.apply_ms;
 
         Ok((events, profile))
@@ -5678,7 +5663,6 @@ impl App {
             .spend_nullifier_committed_check_ms;
         profile.output_action_execute_ms = prepared.execution_profile.output_action_execute_ms;
         profile.output_add_note_payload_ms = prepared.execution_profile.output_add_note_payload_ms;
-        profile.record_clues_ms = prepared.execution_profile.record_clues_ms;
 
         let begin_state_tx_start = Instant::now();
         let mut state_tx = self
@@ -5792,10 +5776,6 @@ impl App {
             }
         }
 
-        // CheckTx runs against an ephemeral fork, so clue bookkeeping is dead work:
-        // it only feeds block-level FMD counters and events, and the fork is discarded.
-        profile.record_clues_ms = 0.0;
-
         let sct_append_start = Instant::now();
         if let Some(context) = self.checktx_shared_context.as_ref() {
             let base_position_u64: u64 = context.sct_base_position.into();
@@ -5884,7 +5864,6 @@ impl App {
             .spend_nullifier_committed_check_ms;
         profile.output_action_execute_ms = prepared.execution_profile.output_action_execute_ms;
         profile.output_add_note_payload_ms = prepared.execution_profile.output_add_note_payload_ms;
-        profile.record_clues_ms = prepared.execution_profile.record_clues_ms;
 
         let begin_state_tx_start = Instant::now();
         let mut state_tx = self
@@ -5982,18 +5961,6 @@ impl App {
                 profile.serial_event_emit_ms += event_emit_start.elapsed().as_secs_f64() * 1000.0;
             }
         }
-
-        let record_clues_start = Instant::now();
-        state_tx.put_current_source(None);
-        for clue in tx
-            .transaction_body
-            .detection_data
-            .iter()
-            .flat_map(|x| x.fmd_clues.iter())
-        {
-            state_tx.record_clue(clue.clone(), tx_id.clone()).await?;
-        }
-        profile.record_clues_ms += record_clues_start.elapsed().as_secs_f64() * 1000.0;
 
         let sct_append_start = Instant::now();
         let positioned_sct_payloads = self
@@ -6394,7 +6361,7 @@ impl App {
         profile.index_tx_ms = index_start.elapsed().as_secs_f64() * 1000.0;
 
         let check_and_execute_start = Instant::now();
-        let execution_profile = check_and_execute_profiled(Arc::as_ref(&tx), &mut state_tx, false)
+        let execution_profile = check_and_execute_profiled(Arc::as_ref(&tx), &mut state_tx)
             .await
             .context("executing transaction")?;
         profile.check_and_execute_ms = check_and_execute_start.elapsed().as_secs_f64() * 1000.0;
@@ -6421,7 +6388,6 @@ impl App {
         profile.output_action_execute_ms = execution_profile.output_action_execute_ms;
         profile.output_add_note_payload_ms = execution_profile.output_add_note_payload_ms;
         profile.other_action_execute_ms = execution_profile.other_action_execute_ms;
-        profile.record_clues_ms = execution_profile.record_clues_ms;
 
         // At this point, we've completed execution successfully with no errors,
         // so we can apply the transaction to the State. Otherwise, we'd have
@@ -6838,7 +6804,7 @@ mod tests {
     use shieldd_sdk_transaction::{
         memo::{MemoCiphertext, MemoPlaintext, MEMO_CIPHERTEXT_LEN_BYTES},
         plan::MemoPlan,
-        Action, DetectionData, Transaction, TransactionParameters, TransactionPlan,
+        Action, Transaction, TransactionParameters, TransactionPlan,
     };
     use shieldd_sdk_txhash::AuthorizingData;
     use tendermint::v0_37::abci::{request, response};
@@ -7061,14 +7027,12 @@ mod tests {
                     &mut OsRng,
                     MemoPlaintext::blank_memo(test_keys::ADDRESS_0.deref().clone()),
                 )),
-                detection_data: None,
                 fee_funding: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                     ..Default::default()
                 },
-            }
-            .with_populated_detection_data(OsRng, Default::default());
+            };
 
             let tx = client
                 .witness_auth_build_with_compliance(&mut plan, storage.latest_snapshot())
@@ -7841,8 +7805,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn ensure_aggregate_bundle_tx_shape_rejects_memo_detection_fee_and_extra_action(
-    ) -> Result<()> {
+    async fn ensure_aggregate_bundle_tx_shape_rejects_memo_fee_and_extra_action() -> Result<()> {
         let (_storage, _artifacts, bundle, bundle_tx) = aggregate_fixture(1).await?;
 
         let mut with_memo = bundle_tx.clone();
@@ -7852,14 +7815,6 @@ mod tests {
         assert!(memo_error
             .to_string()
             .contains("aggregate bundle tx must not contain a memo"));
-
-        let mut with_detection = bundle_tx.clone();
-        with_detection.transaction_body.detection_data = Some(DetectionData { fmd_clues: vec![] });
-        let detection_error = App::ensure_aggregate_bundle_tx_shape(&with_detection)
-            .expect_err("detection data must be rejected");
-        assert!(detection_error
-            .to_string()
-            .contains("aggregate bundle tx must not contain detection data"));
 
         let mut with_fee = bundle_tx.clone();
         with_fee.transaction_body.transaction_parameters.fee =
@@ -7894,26 +7849,22 @@ mod tests {
                     fee: Fee::default(),
                 },
                 fee_funding: None,
-                detection_data: None,
                 memo: None,
             },
             binding_sig: [0; 64].into(),
             anchor: shieldd_sdk_tct::Root(shieldd_sdk_tct::structure::Hash::zero()),
         };
 
-        match mode % 6 {
+        match mode % 5 {
             0 => tx.transaction_body.actions.clear(),
             1 => {
                 tx.transaction_body.memo = Some(MemoCiphertext([0; MEMO_CIPHERTEXT_LEN_BYTES]));
             }
             2 => {
-                tx.transaction_body.detection_data = Some(DetectionData { fmd_clues: vec![] });
-            }
-            3 => {
                 tx.transaction_body.transaction_parameters.fee =
                     Fee::from_staking_token_amount(1u64.into());
             }
-            4 => tx
+            3 => tx
                 .transaction_body
                 .actions
                 .push(Action::AggregateBundle(bundle)),
@@ -7932,7 +7883,7 @@ mod tests {
 
         #[test]
         fn ensure_aggregate_bundle_tx_shape_do_not_panic(
-            mode in 0u8..6,
+            mode in 0u8..5,
             version in any::<u32>(),
             srs_id in prop::collection::vec(any::<u8>(), 0usize..=64),
             aggregate_proof in prop::collection::vec(any::<u8>(), 0usize..=1024),
@@ -7952,8 +7903,8 @@ mod tests {
             let tx = aggregate_bundle_shape_test_tx(bundle, mode);
             let result = App::ensure_aggregate_bundle_tx_shape(&tx);
 
-            match mode % 6 {
-                0 | 4 => prop_assert!(
+            match mode % 5 {
+                0 | 3 => prop_assert!(
                     result
                         .expect_err("aggregate action shape mutation must reject")
                         .to_string()
@@ -7966,12 +7917,6 @@ mod tests {
                         .contains("must not contain a memo")
                 ),
                 2 => prop_assert!(
-                    result
-                        .expect_err("detection mutation must reject")
-                        .to_string()
-                        .contains("must not contain detection data")
-                ),
-                3 => prop_assert!(
                     result
                         .expect_err("fee mutation must reject")
                         .to_string()
@@ -8135,20 +8080,22 @@ mod tests {
             direct_context.block_timestamp
         );
         assert_eq!(
-            shared_context.historical_check_context.fmd_meta_params,
-            direct_context.fmd_meta_params
+            shared_context
+                .historical_check_context
+                .discovery_grace_period_blocks,
+            direct_context.discovery_grace_period_blocks
         );
         assert_eq!(
             shared_context
                 .historical_check_context
-                .previous_fmd_parameters,
-            direct_context.previous_fmd_parameters
+                .previous_discovery_parameters,
+            direct_context.previous_discovery_parameters
         );
         assert_eq!(
             shared_context
                 .historical_check_context
-                .current_fmd_parameters,
-            direct_context.current_fmd_parameters
+                .current_discovery_parameters,
+            direct_context.current_discovery_parameters
         );
 
         Ok(())

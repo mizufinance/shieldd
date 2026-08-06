@@ -67,7 +67,6 @@ fn main() -> anyhow::Result<()> {
                 "../../proto/shieldd/shieldd/core/keys/v1/keys.proto",
                 "../../proto/shieldd/shieldd/core/num/v1/num.proto",
                 "../../proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
-                "../../proto/shieldd/shieldd/crypto/decaf377_fmd/v1/decaf377_fmd.proto",
                 "../../proto/shieldd/shieldd/crypto/decaf377_frost/v1/decaf377_frost.proto",
                 "../../proto/shieldd/shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto",
                 "../../proto/shieldd/shieldd/crypto/tct/v1/tct.proto",

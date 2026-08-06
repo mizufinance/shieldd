@@ -9,7 +9,7 @@ use shieldd_sdk_proto::{
     shieldd::core::component::compact_block::v1 as pb, DomainType,
 };
 use shieldd_sdk_sct::Nullifier;
-use shieldd_sdk_shielded_pool::fmd;
+use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_tct::{
     builder::{block, epoch},
     StateCommitment,
@@ -31,8 +31,8 @@ pub struct CompactBlock {
     pub block_root: block::Root,
     /// The epoch root of this epoch, if this block ends an epoch (`None` otherwise).
     pub epoch_root: Option<epoch::Root>,
-    /// Latest FMD parameters. `None` if unchanged.
-    pub fmd_parameters: Option<fmd::Parameters>,
+    /// Latest discovery parameters. `None` if unchanged.
+    pub discovery_parameters: Option<discovery::Parameters>,
     /// If the block indicated a proposal was being started.
     pub proposal_started: bool,
     /// Set if the app parameters have been updated. Notifies the client that it should re-sync from the fullnode RPC.
@@ -65,7 +65,7 @@ impl Default for CompactBlock {
             nullifiers: Vec::new(),
             block_root: block::Finalized::default().root(),
             epoch_root: None,
-            fmd_parameters: None,
+            discovery_parameters: None,
             proposal_started: false,
             app_parameters_updated: false,
             gas_prices: None,
@@ -84,7 +84,7 @@ impl CompactBlock {
     pub fn requires_scanning(&self) -> bool {
         !self.state_payloads.is_empty() // need to scan notes
             || !self.nullifiers.is_empty() // need to collect nullifiers
-            || self.fmd_parameters.is_some() // need to save latest FMD parameters
+            || self.discovery_parameters.is_some() // need to save latest discovery parameters
             || self.proposal_started // need to process proposal start
             || self.app_parameters_updated // need to save latest app parameters
             || self.gas_prices.is_some() // need to save latest gas prices
@@ -111,7 +111,7 @@ impl From<CompactBlock> for pb::CompactBlock {
                 Some(cb.block_root.into())
             },
             epoch_root: cb.epoch_root.map(Into::into),
-            fmd_parameters: cb.fmd_parameters.map(Into::into),
+            discovery_parameters: cb.discovery_parameters.map(Into::into),
             proposal_started: cb.proposal_started,
             app_parameters_updated: cb.app_parameters_updated,
             gas_prices: cb.gas_prices.map(Into::into),
@@ -181,7 +181,10 @@ impl TryFrom<pb::CompactBlock> for CompactBlock {
                 // If the block root wasn't present, that means it's the default finalized block root
                 .unwrap_or_else(|| block::Finalized::default().root()),
             epoch_root: value.epoch_root.map(TryInto::try_into).transpose()?,
-            fmd_parameters: value.fmd_parameters.map(TryInto::try_into).transpose()?,
+            discovery_parameters: value
+                .discovery_parameters
+                .map(TryInto::try_into)
+                .transpose()?,
             proposal_started: value.proposal_started,
             app_parameters_updated: value.app_parameters_updated,
             gas_prices: value.gas_prices.map(TryInto::try_into).transpose()?,

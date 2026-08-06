@@ -3,15 +3,16 @@ use shieldd_sdk_proto::shieldd::core::component::shielded_pool::v1 as pb;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::DomainType;
 
-use crate::fmd;
+use crate::discovery;
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(
     try_from = "pb::ShieldedPoolParameters",
     into = "pb::ShieldedPoolParameters"
 )]
 pub struct ShieldedPoolParameters {
-    pub fmd_meta_params: fmd::MetaParameters,
+    pub discovery_params: discovery::Parameters,
+    pub discovery_grace_period_blocks: u64,
 }
 
 impl DomainType for ShieldedPoolParameters {
@@ -23,20 +24,29 @@ impl TryFrom<pb::ShieldedPoolParameters> for ShieldedPoolParameters {
 
     fn try_from(msg: pb::ShieldedPoolParameters) -> anyhow::Result<Self> {
         Ok(ShieldedPoolParameters {
-            fmd_meta_params: msg
-                .fmd_meta_params
-                .ok_or_else(|| anyhow::anyhow!("missing fmd_meta_params"))?
+            discovery_params: msg
+                .discovery_params
+                .ok_or_else(|| anyhow::anyhow!("missing discovery_params"))?
                 .try_into()?,
+            discovery_grace_period_blocks: msg.discovery_grace_period_blocks,
         })
     }
 }
 
 impl From<ShieldedPoolParameters> for pb::ShieldedPoolParameters {
     fn from(params: ShieldedPoolParameters) -> Self {
-        #[allow(deprecated)]
         pb::ShieldedPoolParameters {
-            fmd_meta_params: Some(params.fmd_meta_params.into()),
-            fixed_fmd_params: None,
+            discovery_params: Some(params.discovery_params.into()),
+            discovery_grace_period_blocks: params.discovery_grace_period_blocks,
+        }
+    }
+}
+
+impl Default for ShieldedPoolParameters {
+    fn default() -> Self {
+        Self {
+            discovery_params: discovery::Parameters::default(),
+            discovery_grace_period_blocks: discovery::DEFAULT_GRACE_PERIOD_BLOCKS,
         }
     }
 }

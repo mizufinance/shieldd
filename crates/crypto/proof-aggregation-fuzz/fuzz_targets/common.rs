@@ -18,7 +18,7 @@ use shieldd_sdk_proof_aggregation::{
     AggregateStatement, DevSrs, FamilyAggregate, ProofFamilyId, AGGREGATE_PROTOCOL_VERSION,
 };
 use shieldd_sdk_proof_params::batch::BatchItem;
-use shieldd_sdk_transaction::{Action, DetectionData, Transaction, TransactionParameters};
+use shieldd_sdk_transaction::{Action, Transaction, TransactionParameters};
 use shieldd_sdk_txhash::AuthorizingData;
 
 struct SquareCircuit {
@@ -133,7 +133,7 @@ pub fn bundle_from_bytes(data: &[u8]) -> AggregateBundle {
 }
 
 pub fn aggregate_bundle_tx(data: &[u8]) -> Transaction {
-    let mode = data.first().copied().unwrap_or(0) % 6;
+    let mode = data.first().copied().unwrap_or(0) % 5;
     let bundle = bundle_from_bytes(data.get(1..).unwrap_or_default());
     let mut tx = Transaction {
         transaction_body: shieldd_sdk_transaction::TransactionBody {
@@ -144,7 +144,6 @@ pub fn aggregate_bundle_tx(data: &[u8]) -> Transaction {
                 fee: Fee::default(),
             },
             fee_funding: None,
-            detection_data: None,
             memo: None,
         },
         binding_sig: [0; 64].into(),
@@ -154,13 +153,10 @@ pub fn aggregate_bundle_tx(data: &[u8]) -> Transaction {
     match mode {
         0 => tx.transaction_body.actions.clear(),
         1 => {
-            tx.transaction_body.detection_data = Some(DetectionData { fmd_clues: vec![] });
-        }
-        2 => {
             tx.transaction_body.transaction_parameters.fee =
                 Fee::from_staking_token_amount(1u64.into());
         }
-        3 => tx
+        2 => tx
             .transaction_body
             .actions
             .push(Action::AggregateBundle(bundle)),

@@ -48,24 +48,6 @@ pub(crate) fn valid_binding_signature(tx: &Transaction) -> Result<()> {
         .context("binding signature failed to verify")
 }
 
-pub fn num_clues_equal_to_num_outputs(tx: &Transaction) -> anyhow::Result<()> {
-    let num_note_creating_actions = note_creating_output_count(tx);
-    if tx
-        .transaction_body()
-        .detection_data
-        .unwrap_or_default()
-        .fmd_clues
-        .len()
-        != num_note_creating_actions
-    {
-        Err(anyhow::anyhow!(
-            "consensus rule violated: must have equal number of outputs and FMD clues"
-        ))
-    } else {
-        Ok(())
-    }
-}
-
 #[allow(clippy::if_same_then_else)]
 pub fn check_memo_exists_if_outputs_absent_if_not(tx: &Transaction) -> anyhow::Result<()> {
     let num_outputs = note_creating_output_count(tx);

@@ -95,14 +95,12 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
             &mut OsRng,
             MemoPlaintext::blank_memo(test_keys::ADDRESS_0.clone()),
         )),
-        detection_data: None,
         fee_funding: None,
         transaction_parameters: TransactionParameters {
             chain_id: TestNode::<()>::CHAIN_ID.to_string(),
             ..Default::default()
         },
-    }
-    .with_populated_detection_data(OsRng, Default::default());
+    };
 
     let tx = client
         .witness_auth_build_with_compliance(&mut plan, storage.latest_snapshot())

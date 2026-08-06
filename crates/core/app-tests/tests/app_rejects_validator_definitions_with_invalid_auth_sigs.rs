@@ -107,14 +107,12 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
             actions: vec![action.into()],
             // Now fill out the remaining parts of the transaction needed for verification:
             memo: None,
-            detection_data: None, // We'll set this automatically below
             fee_funding: None,
             transaction_parameters: TransactionParameters {
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                 ..Default::default()
             },
         };
-        plan.populate_detection_data(rand_core::OsRng, Default::default());
         plan
     };
     let tx = client.witness_auth_build(&plan).await?;

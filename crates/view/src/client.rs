@@ -18,7 +18,7 @@ use shieldd_sdk_proto::view::v1::{
     BroadcastTransactionResponse, WitnessRequest,
 };
 use shieldd_sdk_sct::Nullifier;
-use shieldd_sdk_shielded_pool::{fmd, note};
+use shieldd_sdk_shielded_pool::{discovery, note};
 use shieldd_sdk_transaction::{
     txhash::TransactionId, AuthorizationData, Transaction, TransactionPlan, WitnessData,
 };
@@ -70,10 +70,10 @@ pub trait ViewClient {
     /// Get a copy of the gas prices.
     fn gas_prices(&mut self) -> Pin<Box<dyn Future<Output = Result<GasPrices>> + Send + 'static>>;
 
-    /// Get a copy of the FMD parameters.
-    fn fmd_parameters(
+    /// Get a copy of the discovery parameters.
+    fn discovery_parameters(
         &mut self,
-    ) -> Pin<Box<dyn Future<Output = Result<fmd::Parameters>> + Send + 'static>>;
+    ) -> Pin<Box<dyn Future<Output = Result<discovery::Parameters>> + Send + 'static>>;
 
     /// Queries for notes.
     fn notes(
@@ -446,19 +446,19 @@ where
         .boxed()
     }
 
-    fn fmd_parameters(
+    fn discovery_parameters(
         &mut self,
-    ) -> Pin<Box<dyn Future<Output = Result<fmd::Parameters>> + Send + 'static>> {
+    ) -> Pin<Box<dyn Future<Output = Result<discovery::Parameters>> + Send + 'static>> {
         let mut self2 = self.clone();
         async move {
-            let parameters = ViewServiceClient::fmd_parameters(
+            let parameters = ViewServiceClient::discovery_parameters(
                 &mut self2,
-                tonic::Request::new(pb::FmdParametersRequest {}),
+                tonic::Request::new(pb::DiscoveryParametersRequest {}),
             );
             let parameters = parameters.await?.into_inner().parameters;
 
             parameters
-                .ok_or_else(|| anyhow::anyhow!("empty FmdParametersRequest message"))?
+                .ok_or_else(|| anyhow::anyhow!("empty DiscoveryParametersRequest message"))?
                 .try_into()
         }
         .boxed()

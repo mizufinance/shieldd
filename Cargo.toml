@@ -32,7 +32,6 @@ members = [
   "crates/core/num",
   "crates/core/transaction",
   "crates/core/txhash",
-  "crates/crypto/decaf377-fmd",
   "crates/crypto/decaf377-frost",
   "crates/crypto/decaf377-ka",
   "crates/crypto/eddy",
@@ -141,7 +140,6 @@ cnidarium-component              = { default-features = false, version = "2.1.0"
 cometindex                       = { version = "2.1.0", path = "crates/util/cometindex" }
 criterion                        = { version = "0.4" }
 decaf377                         = { default-features = false, version = "0.10.1" }
-decaf377-fmd                     = { version = "2.1.0", path = "crates/crypto/decaf377-fmd" }
 decaf377-ka                      = { version = "2.1.0", path = "crates/crypto/decaf377-ka" }
 decaf377-rdsa                    = { version = "0.11.0" }
 derivative                       = { version = "2.2" }
