@@ -355,6 +355,11 @@ fn spend_randomizers(plan: &TransactionPlan) -> impl Iterator<Item = decaf377::F
                 .iter()
                 .map(|spend| spend.randomizer)
                 .collect::<Vec<_>>(),
+            shieldd_sdk_transaction::ActionPlan::ShieldedHostWithdrawal(plan) => plan
+                .spends
+                .iter()
+                .map(|spend| spend.randomizer)
+                .collect::<Vec<_>>(),
             _ => Vec::new(),
         })
         .chain(plan.fee_funding.iter().flat_map(|fee_funding| {

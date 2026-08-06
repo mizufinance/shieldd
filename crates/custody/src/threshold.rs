@@ -648,6 +648,11 @@ mod test {
                 .iter()
                 .map(|spend| spend.randomizer)
                 .collect::<Vec<_>>(),
+            shieldd_sdk_transaction::ActionPlan::ShieldedHostWithdrawal(plan) => plan
+                .spends
+                .iter()
+                .map(|spend| spend.randomizer)
+                .collect::<Vec<_>>(),
             _ => Vec::new(),
         });
         for (randomizer, sig) in spend_randomizers.zip(tx_authorization_data.spend_auths) {
