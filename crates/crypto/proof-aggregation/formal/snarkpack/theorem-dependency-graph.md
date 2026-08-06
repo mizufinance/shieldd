@@ -64,7 +64,7 @@ flowchart LR
   a24["DEPLOYED-BLAKE2B-EXECUTION<br/>assumed"]
   a25["ARKWORKS-PROVER-CURVE-OPERATIONS<br/>assumed"]
   a26["WELL-FORMED-PROVING-SRS<br/>assumed"]
-  e0["contract:familyRegistered<br/>pass"]
+  e0["contract:familyRegistered<br/>stale"]
   e1["contract:canonicalStatementExact<br/>pass"]
   e2["contract:canonicalStatementInjective<br/>pass"]
   e3["contract:vkDigestPreimageInjective<br/>pass"]
@@ -254,7 +254,8 @@ flowchart LR
   class n31,n32 tested
   class n6 open
   class a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12,a13,a14,a15,a16,a17,a18,a19,a20,a21,a22,a23,a24,a25,a26 assumed
-  class e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11 evidencePass
+  class e1,e2,e3,e4,e5,e6,e7,e8,e9,e10,e11 evidencePass
+  class e0 evidenceStale
 ```
 
 Open graph claims: `DEPLOYED-SRS-SOUNDNESS`. The manifest dependencies keep the explicit modular-reduction budget and the distinct SHA-256 and Blake2b security advantages separate. `SHIPPING-TO-GOAL` is `proved` and `FULL-ADAPTIVE-END-TO-END-FV` is `proved`. Every F* statement-contract row must carry a source-digest-pinned `pass` result.
