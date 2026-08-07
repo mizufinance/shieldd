@@ -376,6 +376,40 @@ impl ::prost::Name for CommitResponse {
         "/shieldd.execution_client.v1.CommitResponse".into()
     }
 }
+/// GetCommittedStateRequest is empty because Shieldd always returns its latest
+/// durable state.
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct GetCommittedStateRequest {}
+impl ::prost::Name for GetCommittedStateRequest {
+    const NAME: &'static str = "GetCommittedStateRequest";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.GetCommittedStateRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.GetCommittedStateRequest".into()
+    }
+}
+/// GetCommittedStateResponse identifies the latest durable Shieldd state.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetCommittedStateResponse {
+    /// Host-chain block height stored in the committed Shieldd state.
+    #[prost(uint64, tag = "1")]
+    pub height: u64,
+    /// Committed Shieldd application root hash.
+    #[prost(bytes = "vec", tag = "2")]
+    pub root_hash: ::prost::alloc::vec::Vec<u8>,
+}
+impl ::prost::Name for GetCommittedStateResponse {
+    const NAME: &'static str = "GetCommittedStateResponse";
+    const PACKAGE: &'static str = "shieldd.execution_client.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.execution_client.v1.GetCommittedStateResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.execution_client.v1.GetCommittedStateResponse".into()
+    }
+}
 /// RollbackRequest is empty because rollback applies to the current pending
 /// execution phase.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
@@ -739,6 +773,36 @@ pub mod execution_client_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /// GetCommittedState returns the latest state durably committed by Shieldd.
+        pub async fn get_committed_state(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetCommittedStateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetCommittedStateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.execution_client.v1.ExecutionClientService/GetCommittedState",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.execution_client.v1.ExecutionClientService",
+                        "GetCommittedState",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         /// Rollback discards uncommitted Shieldd state for the current execution phase.
         pub async fn rollback(
             &mut self,
@@ -865,6 +929,14 @@ pub mod execution_client_service_server {
             &self,
             request: tonic::Request<super::CommitRequest>,
         ) -> std::result::Result<tonic::Response<super::CommitResponse>, tonic::Status>;
+        /// GetCommittedState returns the latest state durably committed by Shieldd.
+        async fn get_committed_state(
+            &self,
+            request: tonic::Request<super::GetCommittedStateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetCommittedStateResponse>,
+            tonic::Status,
+        >;
         /// Rollback discards uncommitted Shieldd state for the current execution phase.
         async fn rollback(
             &self,
@@ -1267,6 +1339,55 @@ pub mod execution_client_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = CommitSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.execution_client.v1.ExecutionClientService/GetCommittedState" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetCommittedStateSvc<T: ExecutionClientService>(pub Arc<T>);
+                    impl<
+                        T: ExecutionClientService,
+                    > tonic::server::UnaryService<super::GetCommittedStateRequest>
+                    for GetCommittedStateSvc<T> {
+                        type Response = super::GetCommittedStateResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetCommittedStateRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as ExecutionClientService>::get_committed_state(
+                                        &inner,
+                                        request,
+                                    )
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetCommittedStateSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

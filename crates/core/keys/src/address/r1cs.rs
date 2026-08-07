@@ -57,7 +57,7 @@ impl AllocVar<Address, Fq> for AddressVar {
         )?;
         let clue_key = FqVar::new_variable(
             cs,
-            || Ok(Fq::from_le_bytes_mod_order(&address.clue_key().0[..])),
+            || Ok(Fq::from_le_bytes_mod_order(&address.discovery_key().0[..])),
             mode,
         )?;
 
@@ -80,7 +80,7 @@ impl ToConstraintField<Fq> for Address {
             .vartime_decompress()
             .expect("transmission key is valid decaf377 Element");
         elements.extend([transmission_key_fq.vartime_compress_to_field()]);
-        elements.extend(Fq::from_bytes_checked(&self.clue_key().0));
+        elements.extend(Fq::from_bytes_checked(&self.discovery_key().0));
         Some(elements)
     }
 }

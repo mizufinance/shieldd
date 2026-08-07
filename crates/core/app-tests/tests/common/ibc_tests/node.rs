@@ -492,7 +492,6 @@ impl TestNodeWithIBC {
                 fee: Default::default(),
             },
             fee_funding: None,
-            detection_data: None,
             memo: None,
         };
 
@@ -589,7 +588,6 @@ impl TestNodeWithIBC {
                 fee: Default::default(),
             },
             fee_funding: None,
-            detection_data: None,
             memo: None,
         };
 

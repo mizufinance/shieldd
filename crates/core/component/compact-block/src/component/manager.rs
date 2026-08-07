@@ -66,15 +66,13 @@ trait Inner: StateWrite {
             (None, Vec::new())
         };
 
-        let fmd_parameters = if height == 0 {
-            Some(
-                self.get_current_fmd_parameters()
-                    .await
-                    .context("could not get FMD parameters")?,
-            )
-        } else {
-            None
-        };
+        let current_discovery_parameters = self
+            .get_current_discovery_parameters()
+            .await
+            .context("could not get discovery parameters")?;
+        let discovery_parameters = (height == 0
+            || current_discovery_parameters.as_of_block_height == height)
+            .then_some(current_discovery_parameters);
 
         // Check to see if a governance proposal has started, and mark this fact if so.
         let proposal_started = self.proposal_started();
@@ -130,7 +128,7 @@ trait Inner: StateWrite {
             block_root,
             epoch_root,
             proposal_started,
-            fmd_parameters,
+            discovery_parameters,
             app_parameters_updated,
             gas_prices,
             alt_gas_prices,

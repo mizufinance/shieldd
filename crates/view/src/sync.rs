@@ -4,7 +4,7 @@ use shieldd_sdk_compact_block::{CompactBlock, StatePayload};
 use shieldd_sdk_fee::GasPrices;
 use shieldd_sdk_keys::FullViewingKey;
 use shieldd_sdk_sct::Nullifier;
-use shieldd_sdk_shielded_pool::{fmd, Note, NotePayload};
+use shieldd_sdk_shielded_pool::{discovery, Note, NotePayload};
 use shieldd_sdk_tct::{self as tct, StateCommitment};
 use tracing::Instrument;
 
@@ -18,7 +18,7 @@ pub struct FilteredBlock {
     pub new_notes: BTreeMap<StateCommitment, SpendableNoteRecord>,
     pub spent_nullifiers: Vec<Nullifier>,
     pub height: u64,
-    pub fmd_parameters: Option<fmd::Parameters>,
+    pub discovery_parameters: Option<discovery::Parameters>,
     pub app_parameters_updated: bool,
     pub gas_prices: Option<GasPrices>,
 }
@@ -33,7 +33,7 @@ pub async fn scan_block(
         nullifiers,
         block_root,
         epoch_root,
-        fmd_parameters,
+        discovery_parameters,
         app_parameters_updated,
         gas_prices,
         // TODO: do we need this, or is there a bug in scan_block?
@@ -169,7 +169,7 @@ pub async fn scan_block(
         new_notes,
         spent_nullifiers: filtered_nullifiers,
         height,
-        fmd_parameters,
+        discovery_parameters,
         app_parameters_updated,
         gas_prices,
     };

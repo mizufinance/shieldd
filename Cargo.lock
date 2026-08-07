@@ -1018,7 +1018,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.11.0",
+ "itertools 0.12.1",
  "lazy_static",
  "lazycell",
  "log",
@@ -1041,7 +1041,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "proc-macro2 1.0.93",
  "quote",
  "regex",
@@ -2279,21 +2279,6 @@ dependencies = [
  "rand_core 0.6.4",
  "subtle",
  "zeroize",
-]
-
-[[package]]
-name = "decaf377-fmd"
-version = "2.1.0"
-dependencies = [
- "ark-ff",
- "ark-serialize",
- "bitvec",
- "blake2b_simd 1.0.2",
- "criterion",
- "decaf377",
- "proptest",
- "rand_core 0.6.4",
- "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -6476,7 +6461,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0f3e5beed80eb580c68e2c600937ac2c4eedabdfd5ef1e5b7ea4f3fba84497b"
 dependencies = [
  "heck 0.5.0",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "log",
  "multimap",
  "once_cell",
@@ -6496,7 +6481,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "343d3bd7056eda839b03204e68deff7d1b13aba7af2b2fd16890697274262ee7"
 dependencies = [
  "heck 0.5.0",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "log",
  "multimap",
  "petgraph 0.8.3",
@@ -6517,7 +6502,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.11.0",
+ "itertools 0.12.1",
  "proc-macro2 1.0.93",
  "quote",
  "syn 2.0.96",
@@ -6530,7 +6515,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "157c5a9d7ea5c2ed2d9fb8f495b64759f7816c7eaea54ba3978f0d63000162e3"
 dependencies = [
  "anyhow",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "proc-macro2 1.0.93",
  "quote",
  "syn 2.0.96",
@@ -6543,7 +6528,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27c6023962132f4b30eb4c172c91ce92d933da334c59c23cddee82358ddafb0b"
 dependencies = [
  "anyhow",
- "itertools 0.11.0",
+ "itertools 0.13.0",
  "proc-macro2 1.0.93",
  "quote",
  "syn 2.0.96",
@@ -7842,8 +7827,10 @@ dependencies = [
  "prost 0.13.4",
  "shieldd-sdk-app",
  "shieldd-sdk-proto",
+ "tempfile",
  "tendermint 0.40.3",
  "tendermint-proto 0.40.3",
+ "tikv-jemallocator",
  "tokio",
  "tonic 0.12.3",
  "tracing",
@@ -7905,7 +7892,6 @@ dependencies = [
  "cnidarium",
  "cnidarium-component",
  "decaf377",
- "decaf377-fmd",
  "decaf377-rdsa",
  "ed25519-consensus",
  "futures",
@@ -7994,7 +7980,6 @@ dependencies = [
  "cnidarium",
  "cnidarium-component",
  "decaf377",
- "decaf377-fmd",
  "decaf377-rdsa",
  "ed25519-consensus",
  "futures",
@@ -8079,7 +8064,6 @@ dependencies = [
  "blake2b_simd 1.0.2",
  "bytes",
  "decaf377",
- "decaf377-fmd",
  "decaf377-rdsa",
  "derivative",
  "ethnum",
@@ -8141,7 +8125,6 @@ dependencies = [
  "criterion",
  "csv",
  "decaf377",
- "decaf377-fmd",
  "decaf377-ka",
  "decaf377-rdsa",
  "futures",
@@ -8275,7 +8258,6 @@ dependencies = [
  "cnidarium",
  "cnidarium-component",
  "decaf377",
- "decaf377-fmd",
  "decaf377-ka",
  "decaf377-rdsa",
  "futures",
@@ -8517,7 +8499,6 @@ dependencies = [
  "bytes",
  "chacha20poly1305",
  "decaf377",
- "decaf377-fmd",
  "decaf377-ka",
  "decaf377-rdsa",
  "derivative",
@@ -8642,7 +8623,6 @@ dependencies = [
  "blake2b_simd 1.0.2",
  "bytes",
  "decaf377",
- "decaf377-fmd",
  "decaf377-rdsa",
  "derivative",
  "ethnum",
@@ -8784,7 +8764,6 @@ dependencies = [
  "bytes",
  "chrono",
  "cnidarium",
- "decaf377-fmd",
  "decaf377-rdsa",
  "futures",
  "hex",
@@ -8872,7 +8851,6 @@ dependencies = [
  "cnidarium",
  "cnidarium-component",
  "decaf377",
- "decaf377-fmd",
  "decaf377-ka",
  "decaf377-rdsa",
  "futures",
@@ -9061,7 +9039,6 @@ dependencies = [
  "bytes",
  "chacha20poly1305",
  "decaf377",
- "decaf377-fmd",
  "decaf377-ka",
  "decaf377-rdsa",
  "derivative",
@@ -10104,6 +10081,26 @@ checksum = "8b9ef9bad013ada3808854ceac7b46812a6465ba368859a37e2100283d2d719c"
 dependencies = [
  "cfg-if",
  "once_cell",
+]
+
+[[package]]
+name = "tikv-jemalloc-sys"
+version = "0.6.1+5.3.0-1-ge13ca993e8ccb9ba9847cc330696e02839f328f7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd8aa5b2ab86a2cefa406d889139c162cbb230092f7d1d7cbc1716405d852a3b"
+dependencies = [
+ "cc",
+ "libc",
+]
+
+[[package]]
+name = "tikv-jemallocator"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0359b4327f954e0567e69fb191cf1436617748813819c94b8cd4a431422d053a"
+dependencies = [
+ "libc",
+ "tikv-jemalloc-sys",
 ]
 
 [[package]]

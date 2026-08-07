@@ -9,6 +9,7 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -63,6 +64,7 @@ class Decision:
 
     def as_dict(self) -> dict[str, Any]:
         return {
+            "schema_version": 1,
             "status": self.status,
             "tier": self.tier,
             "run": self.status == "run",
@@ -70,6 +72,21 @@ class Decision:
             "changed_files": list(self.changed_files),
             "matched": list(self.matched),
             "unknown_files": list(self.unknown_files),
+            "graphs": list(self.graphs),
+        }
+
+    def summary_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": 1,
+            "status": self.status,
+            "tier": self.tier,
+            "run": self.status == "run",
+            "explanation": _bounded_utf8(
+                self.explanation, GITHUB_EXPLANATION_MAX_BYTES
+            ),
+            "changed_file_count": len(self.changed_files),
+            "matched_rule_count": len(self.matched),
+            "unknown_file_count": len(self.unknown_files),
             "graphs": list(self.graphs),
         }
 
@@ -529,6 +546,191 @@ def cargo_closure_rules(
                 reason=(
                     "known local Cargo package outside the declared closure "
                     f"({len(outside)} packages)"
+                ),
+            )
+        )
+    return rules
+
+
+def _git_toml_file(root: Path, revision: str, path: str) -> dict[str, Any]:
+    result = _run_git(root, ["show", f"{revision}:{path}"])
+    if result.returncode:
+        detail = str(result.stderr).strip()
+        raise ClassificationError(
+            f"cannot read {path} at {revision}: {detail or result.returncode}"
+        )
+    try:
+        value = tomllib.loads(str(result.stdout))
+    except tomllib.TOMLDecodeError as error:
+        raise ClassificationError(
+            f"malformed TOML at {revision}:{path}: {error}"
+        ) from error
+    return _object(value, f"{revision}:{path}")
+
+
+def cargo_closure_rules_at_revision(
+    root: Path,
+    source: dict[str, Any],
+    event: str,
+    revision: str,
+) -> list[InputRule]:
+    """Classify paths from a base revision after packages were deleted."""
+    root_manifest = _git_toml_file(root, revision, "Cargo.toml")
+    workspace = _object(
+        root_manifest.get("workspace"), f"{revision}:Cargo.toml.workspace"
+    )
+    members = _strings(
+        workspace.get("members"), f"{revision}:Cargo.toml.workspace.members"
+    )
+    excludes_value = workspace.get("exclude", [])
+    if not isinstance(excludes_value, list) or any(
+        not isinstance(item, str) or not item for item in excludes_value
+    ):
+        raise ClassificationError(
+            f"{revision}:Cargo.toml.workspace.exclude must contain strings"
+        )
+    excludes = tuple(
+        normalize_repo_path(item, f"{revision}: workspace exclusion")
+        for item in excludes_value
+    )
+
+    tree = _run_git(root, ["ls-tree", "-r", "--name-only", revision])
+    if tree.returncode:
+        detail = str(tree.stderr).strip()
+        raise ClassificationError(
+            f"cannot enumerate Cargo manifests at {revision}: "
+            f"{detail or tree.returncode}"
+        )
+    manifest_dirs = {
+        path[: -len("/Cargo.toml")]
+        for path in str(tree.stdout).splitlines()
+        if path.endswith("/Cargo.toml")
+    }
+    workspace_dirs = {
+        directory
+        for directory in manifest_dirs
+        if any(_path_pattern_matches(directory, member) for member in members)
+        and not any(
+            _path_pattern_matches(directory, exclusion)
+            for exclusion in excludes
+        )
+    }
+    unmatched = tuple(
+        member
+        for member in members
+        if not any(
+            _path_pattern_matches(directory, member)
+            for directory in workspace_dirs
+        )
+    )
+    if unmatched:
+        raise ClassificationError(
+            f"workspace member(s) missing at {revision}: " + ", ".join(unmatched)
+        )
+
+    directories_by_name: dict[str, str] = {}
+    for directory in sorted(workspace_dirs):
+        manifest = _git_toml_file(
+            root, revision, f"{directory}/Cargo.toml"
+        )
+        package = _object(
+            manifest.get("package"),
+            f"{revision}:{directory}/Cargo.toml.package",
+        )
+        name = _string(
+            package.get("name"),
+            f"{revision}:{directory}/Cargo.toml.package.name",
+        )
+        if name in directories_by_name:
+            raise ClassificationError(
+                f"duplicate workspace package {name!r} at {revision}"
+            )
+        directories_by_name[name] = directory
+
+    lock = _git_toml_file(root, revision, "Cargo.lock")
+    packages = lock.get("package")
+    if not isinstance(packages, list):
+        raise ClassificationError(f"{revision}:Cargo.lock lacks package entries")
+    local_lock_packages: dict[str, dict[str, Any]] = {}
+    for index, value in enumerate(packages):
+        package = _object(value, f"{revision}:Cargo.lock.package[{index}]")
+        if package.get("source") is not None:
+            continue
+        name = _string(
+            package.get("name"),
+            f"{revision}:Cargo.lock.package[{index}].name",
+        )
+        if name in local_lock_packages:
+            raise ClassificationError(
+                f"duplicate local lock package {name!r} at {revision}"
+            )
+        local_lock_packages[name] = package
+
+    pending: list[str] = []
+    for name in source["packages"]:
+        has_manifest = name in directories_by_name
+        has_lock_entry = name in local_lock_packages
+        if has_manifest and has_lock_entry:
+            pending.append(name)
+        elif has_manifest != has_lock_entry:
+            raise ClassificationError(
+                f"Cargo root package {name!r} is inconsistent at {revision}: "
+                f"manifest={'present' if has_manifest else 'absent'}, "
+                f"lock={'present' if has_lock_entry else 'absent'}"
+            )
+        # A root absent from both historical inventories was introduced after
+        # this revision and contributes no paths to the base closure.
+    closure_names: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if name in closure_names:
+            continue
+        if name not in directories_by_name or name not in local_lock_packages:
+            raise ClassificationError(
+                f"Cargo dependency package {name!r} is absent at {revision}"
+            )
+        closure_names.add(name)
+        dependencies = local_lock_packages[name].get("dependencies", [])
+        if not isinstance(dependencies, list) or any(
+            not isinstance(dependency, str) for dependency in dependencies
+        ):
+            raise ClassificationError(
+                f"invalid dependencies for Cargo package {name!r} at {revision}"
+            )
+        for dependency in dependencies:
+            dependency_name = dependency.split(" ", maxsplit=1)[0]
+            if dependency_name in directories_by_name:
+                pending.append(dependency_name)
+
+    closure = {directories_by_name[name] for name in closure_names}
+    outside = workspace_dirs - closure
+
+    def patterns(directories: Iterable[str]) -> tuple[str, ...]:
+        return tuple(
+            pattern
+            for directory in sorted(directories)
+            for pattern in (f"{directory}/**", f"{directory}/Cargo.toml")
+        )
+
+    relevant_tier = tier_for(source["tiers"], event, "base Cargo closure")
+    rules = [
+        InputRule(
+            patterns=patterns(closure),
+            tier=relevant_tier,
+            reason=(
+                f"base Cargo package dependency closure at {revision} "
+                f"({len(closure)} local packages)"
+            ),
+        )
+    ]
+    if outside:
+        rules.append(
+            InputRule(
+                patterns=patterns(outside),
+                tier="skip",
+                reason=(
+                    f"base Cargo package outside the declared closure at "
+                    f"{revision} ({len(outside)} packages)"
                 ),
             )
         )
@@ -1069,6 +1271,12 @@ def derived_rules(
     for source in declaration.derived_inputs:
         if source["type"] == "cargo_local_closure":
             rules.extend(cargo_closure_rules(root, source, event))
+            if base:
+                rules.extend(
+                    cargo_closure_rules_at_revision(
+                        root, source, event, base
+                    )
+                )
             continue
         manifest_path = root / source["path"]
         try:
@@ -1405,28 +1613,56 @@ def blocked(error: Exception) -> Decision:
     )
 
 
+GITHUB_OUTPUT_MAX_BYTES = 64 * 1024
+GITHUB_EXPLANATION_MAX_BYTES = 4 * 1024
+
+
+def _bounded_utf8(value: str, limit: int) -> str:
+    encoded = value.encode("utf-8")
+    if len(encoded) <= limit:
+        return value
+    suffix = "… [truncated]"
+    budget = limit - len(suffix.encode("utf-8"))
+    return encoded[:budget].decode("utf-8", errors="ignore") + suffix
+
+
+def write_decision_file(path: Path, decision: Decision) -> None:
+    try:
+        path.write_text(
+            json.dumps(decision.as_dict(), indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+    except OSError as error:
+        raise ClassificationError(
+            f"cannot write decision file {path}: {error}"
+        ) from error
+
+
 def write_github_output(path: Path, decision: Decision) -> None:
     values = {
         "status": decision.status,
         "tier": decision.tier,
         "run": str(decision.status == "run").lower(),
-        "explanation": decision.explanation,
+        "explanation": _bounded_utf8(
+            decision.explanation, GITHUB_EXPLANATION_MAX_BYTES
+        ),
         "graphs": json.dumps(list(decision.graphs), separators=(",", ":")),
-        "changed_files": json.dumps(
-            list(decision.changed_files), separators=(",", ":")
-        ),
-        "unknown_files": json.dumps(
-            list(decision.unknown_files), separators=(",", ":")
-        ),
     }
+    lines: list[str] = []
+    for key, value in values.items():
+        if "\n" in value or "\r" in value:
+            raise ClassificationError(f"GitHub output {key} contains a newline")
+        lines.append(f"{key}={value}\n")
+    payload = "".join(lines)
+    if len(payload.encode("utf-8")) > GITHUB_OUTPUT_MAX_BYTES:
+        raise ClassificationError(
+            "bounded GitHub outputs exceed "
+            f"{GITHUB_OUTPUT_MAX_BYTES} bytes"
+        )
     try:
         with path.open("a", encoding="utf-8", newline="\n") as output:
-            for key, value in values.items():
-                if "\n" in value or "\r" in value:
-                    raise ClassificationError(
-                        f"GitHub output {key} contains a newline"
-                    )
-                output.write(f"{key}={value}\n")
+            output.write(payload)
     except OSError as error:
         raise ClassificationError(f"cannot write GitHub output {path}: {error}") from error
 
@@ -1442,6 +1678,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--changed-file", action="append", default=[])
     result.add_argument("--declaration", type=Path)
     result.add_argument("--extraction-manifest")
+    result.add_argument("--decision-file", type=Path)
     result.add_argument("--github-output", type=Path)
     result.add_argument("--pretty", action="store_true")
     return result
@@ -1534,14 +1771,28 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
 
+    if args.decision_file:
+        try:
+            write_decision_file(args.decision_file, decision)
+        except ClassificationError as error:
+            decision = blocked(error)
     if args.github_output:
         try:
             write_github_output(args.github_output, decision)
         except ClassificationError as error:
             decision = blocked(error)
+            if args.decision_file:
+                try:
+                    write_decision_file(args.decision_file, decision)
+                except ClassificationError:
+                    pass
+            try:
+                write_github_output(args.github_output, decision)
+            except ClassificationError:
+                pass
     print(
         json.dumps(
-            decision.as_dict(),
+            decision.summary_dict() if args.decision_file else decision.as_dict(),
             indent=2 if args.pretty else None,
             sort_keys=True,
         )

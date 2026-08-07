@@ -102,30 +102,6 @@ impl TryFrom<SpendVerificationKey> for VerificationKey<SpendAuth> {
     }
 }
 
-// Fuzzy Message Detection
-use crate::shieldd::crypto::decaf377_fmd::v1::Clue as ProtoClue;
-use decaf377_fmd::Clue;
-
-impl DomainType for Clue {
-    type Proto = ProtoClue;
-}
-
-impl From<Clue> for ProtoClue {
-    fn from(msg: Clue) -> Self {
-        ProtoClue { inner: msg.into() }
-    }
-}
-
-impl TryFrom<ProtoClue> for Clue {
-    type Error = anyhow::Error;
-
-    fn try_from(proto: ProtoClue) -> Result<Self, Self::Error> {
-        proto.inner[..]
-            .try_into()
-            .map_err(|_| anyhow::anyhow!("expected 68-byte clue"))
-    }
-}
-
 // Consensus key
 //
 // The tendermint-rs PublicKey type already has a tendermint-proto type;

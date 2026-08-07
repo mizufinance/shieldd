@@ -117,22 +117,15 @@ pub fn ibc_origin_asset(base_denom: &str) -> String {
     format!("compliance/ibc_origin/{}", hex::encode(hash.as_bytes()))
 }
 
-/// State key for reverse lookup: (address, asset_id) -> position in user tree
-/// This enables O(1) lookup of a user's leaf position for merkle path generation
-pub fn user_leaf_position(
+/// Nonverifiable key for a user's position and full compliance leaf.
+pub fn user_leaf_record(
     address: &shieldd_sdk_keys::Address,
     asset_id: &shieldd_sdk_asset::asset::Id,
-) -> String {
-    format!("compliance/user_lookup/{}/{}", address, asset_id)
-}
-
-/// State key for storing the full ComplianceLeaf data for a user
-/// This allows retrieving the complete leaf (including ACK) for proof generation
-pub fn user_leaf_data(
-    address: &shieldd_sdk_keys::Address,
-    asset_id: &shieldd_sdk_asset::asset::Id,
-) -> String {
-    format!("compliance/user_leaf/{}/{}", address, asset_id)
+) -> Vec<u8> {
+    let mut key = b"compliance/user/record/".to_vec();
+    key.extend_from_slice(&address.to_vec());
+    key.extend_from_slice(&asset_id.0.to_bytes());
+    key
 }
 
 /// State key for pending user registrations (buffered during block execution).

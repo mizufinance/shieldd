@@ -17,6 +17,7 @@ use super::compliance::{
     build_transfer_compliance, change_output_transfer_compliance, is_change_output_index,
     is_receiver_output_index, receiver_output_transfer_compliance, CHANGE_OUTPUT_INDEX,
 };
+use crate::discovery::Precision;
 use crate::note_reshape_padding::dummy_spend_auth_sig;
 use crate::note_reshape_padding::dummy_state_commitment_proof;
 use crate::note_reshape_padding::{pad_to_len, HiddenArityPadder};
@@ -39,6 +40,7 @@ pub struct TransferPlan {
     pub spends: Vec<ShieldedInputPlan>,
     pub outputs: Vec<ShieldedOutputPlan>,
     pub fuzzy_precision: FuzzyPrecision,
+    pub discovery_precision: Precision,
 }
 
 impl TransferPlan {
@@ -92,6 +94,7 @@ impl TransferPlan {
             spends,
             outputs,
             fuzzy_precision: FuzzyPrecision::default(),
+            discovery_precision: Precision::default(),
         };
         plan.body = plan.placeholder_body();
         plan.validate_invariants()?;
@@ -120,6 +123,11 @@ impl TransferPlan {
 
     pub fn set_fuzzy_precision(&mut self, precision: FuzzyPrecision) {
         self.fuzzy_precision = precision;
+    }
+
+    pub fn set_discovery_precision(&mut self, precision: Precision) {
+        self.discovery_precision = precision;
+        self.body = self.placeholder_body();
     }
 
     pub fn spend_randomizers(&self) -> impl Iterator<Item = Fr> + '_ {
@@ -243,7 +251,7 @@ impl TransferPlan {
             .outputs
             .iter()
             .map(|output| TransferOutputBody {
-                note_payload: output.output_note().payload(),
+                note_payload: output.output_note().payload(self.discovery_precision),
                 wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
                 ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
                 compliance_ciphertext: Vec::new(),
@@ -252,7 +260,9 @@ impl TransferPlan {
             .collect::<Vec<_>>();
         pad_to_len(&mut outputs, PADDED_TRANSFER_OUTPUTS, |slot| {
             TransferOutputBody {
-                note_payload: self.synthetic_dummy_output_note(slot).payload(),
+                note_payload: self
+                    .synthetic_dummy_output_note(slot)
+                    .payload(self.discovery_precision),
                 wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
                 ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
                 compliance_ciphertext: Vec::new(),
@@ -437,7 +447,7 @@ impl TransferPlan {
             .enumerate()
             .map(|(index, output)| {
                 let (note_payload, wrapped_memo_key, ovk_wrapped_key) =
-                    output.action_output_parts(fvk.outgoing(), memo_key);
+                    output.action_output_parts(fvk.outgoing(), memo_key, self.discovery_precision);
                 let compliance_bytes = if is_receiver_output_index(index) {
                     receiver_output_transfer_compliance(&compliance.ciphertext, &compliance.bundle)?
                 } else if is_change_output_index(index) {
@@ -458,7 +468,7 @@ impl TransferPlan {
         pad_to_len(&mut outputs, PADDED_TRANSFER_OUTPUTS, |slot| {
             let dummy_note = self.synthetic_dummy_output_note(slot);
             TransferOutputBody {
-                note_payload: dummy_note.payload(),
+                note_payload: dummy_note.payload(self.discovery_precision),
                 // Body-level dummy sentinel: proof/public commitments still use the synthetic
                 // note commitment, but consensus/view code can identify padded outputs
                 // without relying on note commitment zeroing.
@@ -739,6 +749,7 @@ impl From<TransferPlan> for pb::TransferPlan {
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
             fuzzy_precision_bits: u32::from(msg.fuzzy_precision.bits()),
+            discovery_precision_bits: msg.discovery_precision.into(),
         }
     }
 }
@@ -777,6 +788,7 @@ impl TryFrom<pb::TransferPlan> for TransferPlan {
                 u8::try_from(proto.fuzzy_precision_bits)
                     .map_err(|_| anyhow!("fuzzy precision does not fit in u8"))?,
             )?,
+            discovery_precision: proto.discovery_precision_bits.try_into()?,
         };
         plan.validate_invariants()?;
         Ok(plan)

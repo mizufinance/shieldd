@@ -127,7 +127,7 @@ fn spend_witness(
         spent_note_amount: Fq::from(private_input.spent_note.value().amount).to_bytes(),
         spent_note_asset_id: private_input.spent_note.asset_id().0.to_bytes(),
         spent_transmission_key: private_input.spent_note.transmission_key().0,
-        spent_clue_key: Fq::from_le_bytes_mod_order(&private_input.spent_note.clue_key().0)
+        spent_clue_key: Fq::from_le_bytes_mod_order(&private_input.spent_note.discovery_key().0)
             .to_bytes(),
         state_commitment_commitment: private_input
             .state_commitment_proof
@@ -165,8 +165,10 @@ fn change_witness(
         created_note_amount: Fq::from(private_output.created_note.value().amount).to_bytes(),
         created_note_asset_id: private_output.created_note.asset_id().0.to_bytes(),
         created_transmission_key: private_output.created_note.transmission_key().0,
-        created_clue_key: Fq::from_le_bytes_mod_order(&private_output.created_note.clue_key().0)
-            .to_bytes(),
+        created_clue_key: Fq::from_le_bytes_mod_order(
+            &private_output.created_note.discovery_key().0,
+        )
+        .to_bytes(),
         created_diversified_generator_affine: point_affine_bytes(
             private_output.created_note.diversified_generator(),
         )?,

@@ -1,11 +1,11 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use decaf377::Fq;
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use futures::StreamExt;
 use shieldd_sdk_asset::asset;
-use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
+use shieldd_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_tct::StateCommitment;
 use std::collections::BTreeMap;
@@ -43,6 +43,39 @@ pub fn check_timestamp_freshness(target_timestamp: u64, block_timestamp: u64) ->
 use bincode;
 
 pub use crate::enrichment::AssetProofData;
+
+/// Compact proof-service index for one registered compliance leaf.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UserLeafRecord {
+    /// Position of the authenticated leaf in the compliance user tree.
+    pub position: u64,
+    /// Full leaf data needed to construct a user proof.
+    pub leaf: ComplianceLeaf,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct StoredUserLeafRecord {
+    position: u64,
+    leaf: Vec<u8>,
+}
+
+fn encode_user_leaf_record(record: &UserLeafRecord) -> Result<Vec<u8>> {
+    bincode::serialize(&StoredUserLeafRecord {
+        position: record.position,
+        leaf: record.leaf.encode_to_vec(),
+    })
+    .context("encode compliance user record")
+}
+
+fn decode_user_leaf_record(bytes: &[u8]) -> Result<UserLeafRecord> {
+    let stored: StoredUserLeafRecord =
+        bincode::deserialize(bytes).context("decode stored compliance user record envelope")?;
+    Ok(UserLeafRecord {
+        position: stored.position,
+        leaf: ComplianceLeaf::decode(stored.leaf.as_slice())
+            .context("decode stored compliance user leaf")?,
+    })
+}
 
 fn decode_commitment(bytes: Vec<u8>) -> Result<StateCommitment> {
     let bytes: [u8; 32] = bytes.try_into().map_err(|bytes: Vec<u8>| {
@@ -554,8 +587,10 @@ pub trait ComplianceRegistryRead: StateRead {
         address: &shieldd_sdk_keys::Address,
         asset_id: asset::Id,
     ) -> Result<Option<u64>> {
-        let lookup_key = state_key::user_leaf_position(address, &asset_id);
-        self.get_proto(&lookup_key).await
+        Ok(self
+            .get_user_leaf_record(address, asset_id)
+            .await?
+            .map(|record| record.position))
     }
 
     /// Get the full ComplianceLeaf for a user.
@@ -575,17 +610,34 @@ pub trait ComplianceRegistryRead: StateRead {
         address: &shieldd_sdk_keys::Address,
         asset_id: asset::Id,
     ) -> Result<Option<ComplianceLeaf>> {
-        use shieldd_sdk_proto::DomainType;
+        Ok(self
+            .get_user_leaf_record(address, asset_id)
+            .await?
+            .map(|record| record.leaf))
+    }
 
-        let lookup_key = state_key::user_leaf_data(address, &asset_id);
-        match self.get_raw(&lookup_key).await? {
-            Some(bytes) => {
-                // Use proto decoding (ComplianceLeaf implements DomainType)
-                let leaf = ComplianceLeaf::decode(bytes.as_slice())?;
-                Ok(Some(leaf))
-            }
-            None => Ok(None),
-        }
+    /// Load and authenticate the proof-service record for a registered user.
+    async fn get_user_leaf_record(
+        &self,
+        address: &shieldd_sdk_keys::Address,
+        asset_id: asset::Id,
+    ) -> Result<Option<UserLeafRecord>> {
+        let key = state_key::user_leaf_record(address, &asset_id);
+        let Some(bytes) = self.nonverifiable_get_raw(&key).await? else {
+            return Ok(None);
+        };
+        let record =
+            decode_user_leaf_record(&bytes).context("invalid stored compliance user record")?;
+        anyhow::ensure!(
+            record.leaf.address == *address && record.leaf.asset_id == asset_id,
+            "stored compliance user record does not match its index key"
+        );
+        let stored_commitment = self.read_user_node(0, record.position).await?;
+        anyhow::ensure!(
+            stored_commitment == record.leaf.commit(),
+            "stored compliance user record does not match the committed user tree"
+        );
+        Ok(Some(record))
     }
 
     /// Verify that a compliance leaf exists on-chain by checking if its commitment
@@ -598,27 +650,13 @@ pub trait ComplianceRegistryRead: StateRead {
     /// * `leaf` - The compliance leaf to verify
     ///
     /// # Returns
-    /// Returns `Ok(true)` if the leaf's commitment is found in the tree at any position,
+    /// Returns `Ok(true)` if the indexed leaf matches the committed tree position,
     /// `Ok(false)` if not found.
-    ///
-    /// # Note
-    /// This is a linear scan through all user positions. For production, consider
-    /// adding a reverse mapping from commitment to position.
     async fn verify_compliance_leaf(&self, leaf: &ComplianceLeaf) -> Result<bool> {
-        let tree = self.get_user_tree().await?;
-        let user_count = self.get_user_count().await?;
-        let target_commitment = leaf.commit();
-
-        // Scan through all positions to find matching commitment
-        for position in 0..user_count {
-            if let Some(commitment) = tree.get_leaf(position) {
-                if commitment.0 == target_commitment.0 {
-                    return Ok(true);
-                }
-            }
-        }
-
-        Ok(false)
+        Ok(self
+            .get_user_leaf(&leaf.address, leaf.asset_id)
+            .await?
+            .is_some_and(|stored| stored == *leaf))
     }
 
     // ========== IBC Compliance Metadata ==========
@@ -1002,16 +1040,10 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
         self.object_delete(state_key::cache::cached_user_tree());
         self.mark_compliance_trees_modified();
 
-        // Store the reverse lookup index for O(1) position retrieval
-        let lookup_key = state_key::user_leaf_position(&leaf.address, &leaf.asset_id);
-        self.put_proto(lookup_key, position);
-
-        // Store the full leaf data for later retrieval during proof generation
-        // Use proto encoding since ComplianceLeaf has serde(try_from/into proto) attributes
-        use shieldd_sdk_proto::DomainType;
-        let leaf_data_key = state_key::user_leaf_data(&leaf.address, &leaf.asset_id);
-        let leaf_bytes = leaf.encode_to_vec();
-        self.put_raw(leaf_data_key, leaf_bytes);
+        // The user-tree root authenticates this compact proof-service index.
+        let key = state_key::user_leaf_record(&leaf.address, &leaf.asset_id);
+        let record = UserLeafRecord { position, leaf };
+        self.nonverifiable_put_raw(key, encode_user_leaf_record(&record)?);
 
         Ok(position)
     }
@@ -2279,6 +2311,59 @@ mod tests {
             .await
             .unwrap()
             .is_none());
+    }
+
+    #[tokio::test]
+    async fn user_leaf_record_is_compact_and_authenticated() {
+        let storage = TempStorage::new().await.unwrap();
+        let snapshot = storage.latest_snapshot();
+        let mut state = cnidarium::StateDelta::new(snapshot);
+        let mut rng = rand::thread_rng();
+        put_test_compliance_params(&mut state);
+
+        let wallet = Address::dummy(&mut rng);
+        let asset_id = asset::Id(Fq::from(54321u64));
+        let leaf = ComplianceLeaf::new(wallet.clone(), asset_id, Fq::from(3u64));
+        let position = state.add_compliance_leaf(leaf.clone()).await.unwrap();
+
+        let record = state
+            .get_user_leaf_record(&wallet, asset_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            record,
+            UserLeafRecord {
+                position,
+                leaf: leaf.clone()
+            }
+        );
+        assert!(state
+            .get_raw(&format!("compliance/user_lookup/{wallet}/{asset_id}"))
+            .await
+            .unwrap()
+            .is_none());
+        assert!(state
+            .get_raw(&format!("compliance/user_leaf/{wallet}/{asset_id}"))
+            .await
+            .unwrap()
+            .is_none());
+
+        let corrupt = UserLeafRecord {
+            position,
+            leaf: ComplianceLeaf::new(wallet.clone(), asset_id, Fq::from(4u64)),
+        };
+        state.nonverifiable_put_raw(
+            state_key::user_leaf_record(&wallet, &asset_id),
+            encode_user_leaf_record(&corrupt).unwrap(),
+        );
+        let error = state
+            .get_user_leaf(&wallet, asset_id)
+            .await
+            .expect_err("record that disagrees with the tree must be rejected");
+        assert!(error
+            .to_string()
+            .contains("does not match the committed user tree"));
     }
 
     // ========== IMT Tests ==========

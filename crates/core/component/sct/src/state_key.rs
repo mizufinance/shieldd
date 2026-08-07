@@ -35,6 +35,10 @@ pub mod epoch_manager {
 pub mod nullifier_set {
     use jmt::{storage::NodeKey, KeyHash};
 
+    pub fn schema_version() -> &'static str {
+        "sct/nullifier_set/schema_version"
+    }
+
     pub fn root() -> &'static str {
         "sct/nullifier_set/root"
     }

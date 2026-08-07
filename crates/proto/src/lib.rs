@@ -154,13 +154,6 @@ pub mod shieldd {
 
     /// Cryptography primitives used by Shieldd.
     pub mod crypto {
-        pub mod decaf377_fmd {
-            pub mod v1 {
-                include!("gen/shieldd.crypto.decaf377_fmd.v1.rs");
-                include!("gen/shieldd.crypto.decaf377_fmd.v1.serde.rs");
-            }
-        }
-
         pub mod decaf377_frost {
             pub mod v1 {
                 include!("gen/shieldd.crypto.decaf377_frost.v1.rs");

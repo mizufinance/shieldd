@@ -2,7 +2,7 @@
   "schema_version": 1,
   "fstar_checker_evidence": {
     "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
-    "sha256": "f64bdc38c58c270922b2141d5f32d8acc3bae925a39e4a5b22bea455d573657b"
+    "sha256": "b0dd7249d35cd0b8c87753653aa1522199482227a482e47bbeaf85c67a7a238b"
   },
   "deployed_srs_evidence": {
     "schema_version": 1,
@@ -161,7 +161,7 @@
         },
         {
           "path": "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
-          "sha256": "e6fc5ef060dc8d75806198a8d3ec4e72b28f1e20306e27d7569a46c3c9ace8f9"
+          "sha256": "c986d4a8761a84184ae25209d29017ea4ce9a126618d13f8b52454d0f5dfa8d8"
         },
         {
           "path": "crates/core/component/shielded-pool/src/note_reshape/generated.rs",

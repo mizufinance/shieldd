@@ -37,7 +37,6 @@ packages=(
     shieldd-sdk-txhash
     # N.B. we can't include those ones because they rely on `getrandom`,
     # but there's a `js` feature...
-    # decaf377-fmd
     # decaf377-frost
     # decaf377-ka
     # shieldd-num

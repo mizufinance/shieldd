@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -21,6 +22,35 @@ SPEC.loader.exec_module(IMPACT)
 
 
 class ImpactPlannerTests(unittest.TestCase):
+    def test_base_without_extraction_manifest_has_no_retired_graphs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(
+                ["git", "config", "user.email", "test@example.invalid"],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "Test"],
+                cwd=root,
+                check=True,
+            )
+            (root / "README.md").write_text("base\n", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(
+                ["git", "commit", "-qm", "base"], cwd=root, check=True
+            )
+            base = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+
+            self.assertEqual(IMPACT.extraction_graph_ids_at(root, base), ())
+
     def test_skip_selects_no_work(self) -> None:
         result = IMPACT.plan(
             ROOT,
@@ -47,6 +77,27 @@ class ImpactPlannerTests(unittest.TestCase):
                 declared_graphs=(),
                 unknown_files=("new-proof-input.bin",),
             )
+
+    def test_gate_decision_file_preserves_unbounded_planner_inputs(self) -> None:
+        decision = {
+            "schema_version": 1,
+            "status": "run",
+            "tier": "extract-all",
+            "run": True,
+            "explanation": "fixture",
+            "changed_files": ["Cargo.lock"],
+            "matched": [],
+            "unknown_files": ["new-proof-input.bin"],
+            "graphs": ["GraphA"],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "decision.json"
+            path.write_text(json.dumps(decision), encoding="utf-8")
+            loaded = IMPACT.load_gate_decision(path)
+
+        self.assertEqual(loaded.status, "run")
+        self.assertEqual(loaded.graphs, ("GraphA",))
+        self.assertEqual(loaded.unknown_files, ("new-proof-input.bin",))
 
     def test_retired_base_graph_is_static_only(self) -> None:
         result = IMPACT.plan(

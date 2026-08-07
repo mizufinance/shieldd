@@ -71,7 +71,7 @@ pub use params::ComplianceParameters;
 #[cfg(feature = "component")]
 pub mod registry;
 #[cfg(feature = "component")]
-pub use registry::{ComplianceRegistryRead, ComplianceRegistryWrite};
+pub use registry::{ComplianceRegistryRead, ComplianceRegistryWrite, UserLeafRecord};
 
 #[cfg(feature = "component")]
 pub mod action_check;
@@ -234,7 +234,7 @@ pub mod test_helpers {
         let pk_d = decaf377_ka::Public(point.vartime_compress().0);
         let mut ck_bytes = [0u8; 32];
         rng.fill_bytes(&mut ck_bytes);
-        let ck = decaf377_fmd::ClueKey(ck_bytes);
+        let ck = shieldd_sdk_keys::DiscoveryKey(ck_bytes);
         Address::from_components(diversifier, pk_d, ck).unwrap()
     }
 

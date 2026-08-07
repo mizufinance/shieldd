@@ -10,6 +10,10 @@ on:
   workflow_call:
   workflow_dispatch:
 
+concurrency:
+  group: containers-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: mizufinance/shieldd
@@ -18,6 +22,8 @@ jobs:
   build_amd64:
     name: Build and Push AMD64 Image
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     permissions:
       contents: read
       packages: write
@@ -26,19 +32,6 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           lfs: true
-
-      - name: Set IMAGE_TAG
-        shell: bash
-        run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            TAG="${GITHUB_REF_NAME#v}"
-            IMAGE_TAG="${TAG//[^a-zA-Z0-9_.-]/-}"
-          elif [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-            IMAGE_TAG="latest"
-          else
-            IMAGE_TAG="${GITHUB_REF_NAME//\//-}"
-          fi
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -51,12 +44,13 @@ jobs:
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Build and push AMD64 image
+        id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: deployments/containerfiles/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}-amd64
           platforms: linux/amd64
           provenance: false
           # Per-arch GHA layer cache so unchanged base/apt/go/rustup/dep layers
@@ -69,6 +63,8 @@ jobs:
   build_arm64:
     name: Build and Push ARM64 Image
     runs-on: ubuntu-24.04-arm
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     permissions:
       contents: read
       packages: write
@@ -77,19 +73,6 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           lfs: true
-
-      - name: Set IMAGE_TAG
-        shell: bash
-        run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            TAG="${GITHUB_REF_NAME#v}"
-            IMAGE_TAG="${TAG//[^a-zA-Z0-9_.-]/-}"
-          elif [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-            IMAGE_TAG="latest"
-          else
-            IMAGE_TAG="${GITHUB_REF_NAME//\//-}"
-          fi
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
@@ -102,12 +85,13 @@ jobs:
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Build and push ARM64 image
+        id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: deployments/containerfiles/Dockerfile
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}-arm64
           platforms: linux/arm64
           provenance: false
           # Per-arch GHA layer cache (separate scope from amd64 so the two arches
@@ -123,22 +107,6 @@ jobs:
       contents: read
       packages: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-
-      - name: Set IMAGE_TAG
-        shell: bash
-        run: |
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            TAG="${GITHUB_REF_NAME#v}"
-            IMAGE_TAG="${TAG//[^a-zA-Z0-9_.-]/-}"
-          elif [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-            IMAGE_TAG="latest"
-          else
-            IMAGE_TAG="${GITHUB_REF_NAME//\//-}"
-          fi
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_ENV
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
@@ -150,10 +118,28 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push multi-arch manifest
+        shell: bash
         run: |
-          export GIT_HASH=$(git rev-parse --short "$GITHUB_SHA")
+          set -euo pipefail
+          image="${REGISTRY}/${IMAGE_NAME}"
+          tags=(--tag "${image}:sha-${GITHUB_SHA}")
+          alias=""
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            alias="${version//[^a-zA-Z0-9_.-]/-}"
+            [[ -n "$alias" ]] || {
+              echo "release tag does not contain an OCI-safe name" >&2
+              exit 1
+            }
+          elif [[ "$GITHUB_REF_NAME" == "main" ]]; then
+            alias="latest"
+          elif [[ "$GITHUB_REF_NAME" == "dev" ]]; then
+            alias="dev"
+          fi
+          if [[ -n "$alias" ]]; then
+            tags+=(--tag "${image}:${alias}")
+          fi
           docker buildx imagetools create \
-            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
-            --tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:$GIT_HASH \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-amd64 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}-arm64
+            "${tags[@]}" \
+            "$image@${{ needs.build_amd64.outputs.digest }}" \
+            "$image@${{ needs.build_arm64.outputs.digest }}"

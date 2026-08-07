@@ -1,8 +1,8 @@
 use anyhow::{ensure, Result};
 use cnidarium::StateRead;
 use shieldd_sdk_sct::component::tree::VerificationExt;
-use shieldd_sdk_shielded_pool::fmd;
-use shieldd_sdk_transaction::{Transaction, TransactionParameters};
+use shieldd_sdk_shielded_pool::{discovery, NotePayload};
+use shieldd_sdk_transaction::{Action, Transaction, TransactionParameters};
 
 use super::HistoricalCheckContext;
 
@@ -35,15 +35,15 @@ pub fn tx_parameters_historical_check_with_context(
     Ok(())
 }
 
-pub fn fmd_parameters_valid_with_context(
+pub fn discovery_parameters_valid_with_context(
     transaction: &Transaction,
     context: &HistoricalCheckContext,
 ) -> Result<()> {
-    fmd_precision_within_grace_period(
+    discovery_precision_within_grace_period(
         transaction,
-        context.fmd_meta_params,
-        context.previous_fmd_parameters.clone(),
-        context.current_fmd_parameters.clone(),
+        context.discovery_grace_period_blocks,
+        context.previous_discovery_parameters.clone(),
+        context.current_discovery_parameters.clone(),
         context.block_height,
     )
 }
@@ -51,43 +51,88 @@ pub fn fmd_parameters_valid_with_context(
 #[tracing::instrument(
     skip_all,
     fields(
-        current_fmd.precision_bits = current_fmd_parameters.precision.bits(),
-        previous_fmd.precision_bits = previous_fmd_parameters.precision.bits(),
-        previous_fmd.as_of_block_height = previous_fmd_parameters.as_of_block_height,
+        current_discovery.precision_bits = current_discovery_parameters.precision.bits(),
+        previous_discovery.precision_bits = previous_discovery_parameters.precision.bits(),
+        current_discovery.as_of_block_height = current_discovery_parameters.as_of_block_height,
         block_height,
     )
 )]
-pub fn fmd_precision_within_grace_period(
+pub fn discovery_precision_within_grace_period(
     tx: &Transaction,
-    meta_params: fmd::MetaParameters,
-    previous_fmd_parameters: fmd::Parameters,
-    current_fmd_parameters: fmd::Parameters,
+    grace_period_blocks: u64,
+    previous_discovery_parameters: discovery::Parameters,
+    current_discovery_parameters: discovery::Parameters,
     block_height: u64,
 ) -> anyhow::Result<()> {
-    for clue in tx
-        .transaction_body()
-        .detection_data
-        .unwrap_or_default()
-        .fmd_clues
-    {
-        // Clue must be using the current `fmd::Parameters`, or be within
-        // `fmd_grace_period_blocks` of the previous `fmd::Parameters`.
-        let clue_precision = clue.precision()?;
-        let using_current_precision = clue_precision == current_fmd_parameters.precision;
-        let using_previous_precision = clue_precision == previous_fmd_parameters.precision;
-        let within_grace_period = block_height
-            < previous_fmd_parameters.as_of_block_height + meta_params.fmd_grace_period_blocks;
-        if using_current_precision || (using_previous_precision && within_grace_period) {
+    let mut payloads: Vec<&NotePayload> = Vec::new();
+    for action in tx.actions() {
+        match action {
+            Action::Transfer(transfer) => {
+                payloads.extend(
+                    transfer
+                        .body
+                        .outputs
+                        .iter()
+                        .map(|output| &output.note_payload),
+                );
+            }
+            Action::NoteReshape(reshape) => {
+                payloads.extend(
+                    reshape
+                        .body
+                        .outputs
+                        .iter()
+                        .map(|output| &output.note_payload),
+                );
+            }
+            Action::ShieldedIcs20Withdrawal(withdrawal) => {
+                payloads.push(&withdrawal.body.change_output.note_payload);
+            }
+            Action::ShieldedHostWithdrawal(withdrawal) => {
+                payloads.push(&withdrawal.body.change_output.note_payload);
+            }
+            _ => {}
+        }
+    }
+    let transaction_body = tx.transaction_body();
+    if let Some(fee_funding) = &transaction_body.fee_funding {
+        payloads.extend(
+            fee_funding
+                .transfer
+                .body
+                .outputs
+                .iter()
+                .map(|output| &output.note_payload),
+        );
+    }
+
+    for payload in payloads {
+        if payload.is_dummy() {
+            continue;
+        }
+        let tag_precision = payload.discovery_tag.precision;
+        if current_discovery_parameters.accepts_precision(
+            &previous_discovery_parameters,
+            grace_period_blocks,
+            block_height,
+            tag_precision,
+        ) {
             continue;
         } else {
+            let using_current_precision = tag_precision == current_discovery_parameters.precision;
+            let using_previous_precision = tag_precision == previous_discovery_parameters.precision;
+            let within_grace_period = block_height
+                < current_discovery_parameters
+                    .as_of_block_height
+                    .saturating_add(grace_period_blocks);
             tracing::error!(
-                %clue_precision,
+                precision_bits = tag_precision.bits(),
                 %using_current_precision,
                 %using_previous_precision,
                 %within_grace_period,
-                "invalid clue precision"
+                "invalid discovery-tag precision"
             );
-            anyhow::bail!("consensus rule violated: invalid clue precision");
+            anyhow::bail!("consensus rule violated: invalid discovery-tag precision");
         }
     }
     Ok(())

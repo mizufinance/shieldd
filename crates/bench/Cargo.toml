@@ -128,7 +128,6 @@ mimalloc = { version = "0.1", optional = true }
 [dev-dependencies]
 anyhow = {workspace = true}
 criterion = {workspace = true, features = ["html_reports"]}
-decaf377-fmd = {workspace = true}
 decaf377-ka = {workspace = true}
 decaf377-rdsa = {workspace = true}
 rand_chacha = {workspace = true}

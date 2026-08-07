@@ -6,7 +6,7 @@ use shieldd_sdk_keys::keys::FullViewingKey;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::{shieldd::core::component::shielded_pool::v1 as pb, DomainType};
 
-use crate::{note, Note, NoteCiphertext};
+use crate::{discovery, note, Note, NoteCiphertext};
 use decaf377_ka as ka;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -15,6 +15,7 @@ pub struct NotePayload {
     pub note_commitment: note::StateCommitment,
     pub ephemeral_key: ka::Public,
     pub encrypted_note: NoteCiphertext,
+    pub discovery_tag: discovery::Tag,
 }
 
 impl NotePayload {
@@ -23,6 +24,7 @@ impl NotePayload {
             note_commitment: note::StateCommitment(Fq::from(0u64)),
             ephemeral_key: ka::Public([0u8; 32]),
             encrypted_note: NoteCiphertext([0u8; crate::note::NOTE_CIPHERTEXT_BYTES]),
+            discovery_tag: discovery::Tag::default(),
         }
     }
 
@@ -61,6 +63,11 @@ impl NotePayload {
             tracing::warn!("decrypted note does not match provided note commitment");
             return None;
         }
+        if discovery::Tag::for_address(&note.address(), self.discovery_tag.precision)
+            != self.discovery_tag
+        {
+            tracing::warn!("decrypted note has a discovery tag that does not match its recipient");
+        }
 
         // NOTE: We intentionally return `Option` here instead of `Result`
         // such that we gracefully drop malformed notes instead of returning an error
@@ -81,6 +88,7 @@ impl std::fmt::Debug for NotePayload {
             .field("note_commitment", &self.note_commitment)
             .field("ephemeral_key", &self.ephemeral_key)
             .field("encrypted_note", &"...")
+            .field("discovery_tag", &self.discovery_tag)
             .finish()
     }
 }
@@ -96,6 +104,7 @@ impl From<NotePayload> for pb::NotePayload {
                 note_commitment: Some(msg.note_commitment.into()),
                 ephemeral_key: Vec::new(),
                 encrypted_note: None,
+                discovery_tag: Some(msg.discovery_tag.into()),
             };
         }
 
@@ -103,6 +112,7 @@ impl From<NotePayload> for pb::NotePayload {
             note_commitment: Some(msg.note_commitment.into()),
             ephemeral_key: msg.ephemeral_key.0.to_vec(),
             encrypted_note: Some(msg.encrypted_note.into()),
+            discovery_tag: Some(msg.discovery_tag.into()),
         }
     }
 }
@@ -134,6 +144,10 @@ impl TryFrom<pb::NotePayload> for NotePayload {
             encrypted_note: proto
                 .encrypted_note
                 .ok_or_else(|| anyhow::anyhow!("missing encrypted note"))?
+                .try_into()?,
+            discovery_tag: proto
+                .discovery_tag
+                .ok_or_else(|| anyhow::anyhow!("missing discovery tag"))?
                 .try_into()?,
         })
     }

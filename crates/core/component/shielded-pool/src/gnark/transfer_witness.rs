@@ -214,7 +214,7 @@ impl TransferWitnessV1 {
                     spent_note_asset_id: private_input.spent_note.asset_id().0.to_bytes(),
                     spent_transmission_key: private_input.spent_note.transmission_key().0,
                     spent_clue_key: Fq::from_le_bytes_mod_order(
-                        &private_input.spent_note.clue_key().0,
+                        &private_input.spent_note.discovery_key().0,
                     )
                     .to_bytes(),
                     state_commitment_commitment: private_input
@@ -265,7 +265,7 @@ impl TransferWitnessV1 {
                     created_note_asset_id: private_output.created_note.asset_id().0.to_bytes(),
                     created_transmission_key: private_output.created_note.transmission_key().0,
                     created_clue_key: Fq::from_le_bytes_mod_order(
-                        &private_output.created_note.clue_key().0,
+                        &private_output.created_note.discovery_key().0,
                     )
                     .to_bytes(),
                     recipient_compliance_path: merkle_path_from_typed(

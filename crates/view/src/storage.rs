@@ -31,7 +31,7 @@ use shieldd_sdk_proto::{
     DomainType,
 };
 use shieldd_sdk_sct::{CommitmentSource, Nullifier};
-use shieldd_sdk_shielded_pool::{fmd, note, Note, Rseed};
+use shieldd_sdk_shielded_pool::{discovery, note, Note, Rseed};
 use shieldd_sdk_tct::{self as tct, builder::epoch::Root};
 use shieldd_sdk_transaction::Transaction;
 use tct::StateCommitment;
@@ -534,17 +534,17 @@ impl Storage {
         .await?
     }
 
-    pub async fn fmd_parameters(&self) -> anyhow::Result<fmd::Parameters> {
+    pub async fn discovery_parameters(&self) -> anyhow::Result<discovery::Parameters> {
         let pool = self.pool.clone();
 
         spawn_blocking(move || {
             let bytes = pool
                 .get()?
-                .prepare_cached("SELECT v FROM kv WHERE k IS 'fmd_params' LIMIT 1")?
+                .prepare_cached("SELECT v FROM kv WHERE k IS 'discovery_params' LIMIT 1")?
                 .query_row([], |row| row.get::<_, Option<Vec<u8>>>("v"))?
-                .ok_or_else(|| anyhow!("missing fmd_params in kv table"))?;
+                .ok_or_else(|| anyhow!("missing discovery_params in kv table"))?;
 
-            fmd::Parameters::decode(bytes.as_slice())
+            discovery::Parameters::decode(bytes.as_slice())
         })
         .await?
     }
@@ -1236,15 +1236,15 @@ impl Storage {
                 }
             }
 
-            // Update FMD parameters if they've changed.
-            if filtered_block.fmd_parameters.is_some() {
-                let fmd_parameters_bytes =
-                    &fmd::Parameters::encode_to_vec(&filtered_block.fmd_parameters.ok_or_else(|| anyhow::anyhow!("missing fmd parameters in filtered block"))?)[..];
+            // Update discovery parameters if they've changed.
+            if filtered_block.discovery_parameters.is_some() {
+                let discovery_parameters_bytes =
+                    &discovery::Parameters::encode_to_vec(&filtered_block.discovery_parameters.ok_or_else(|| anyhow::anyhow!("missing discovery parameters in filtered block"))?)[..];
 
                 dbtx.execute(
-                    "INSERT INTO kv (k, v) VALUES ('fmd_params', ?1)
+                    "INSERT INTO kv (k, v) VALUES ('discovery_params', ?1)
                     ON CONFLICT(k) DO UPDATE SET v = excluded.v",
-                    [&fmd_parameters_bytes],
+                    [&discovery_parameters_bytes],
                 )?;
             }
 

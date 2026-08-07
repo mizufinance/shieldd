@@ -1,24 +1,26 @@
 use anyhow::{anyhow, ensure, Context, Result};
 use borsh::BorshDeserialize;
 use cnidarium::{StateRead, StateWrite};
-use futures::StreamExt;
+use futures::{stream, StreamExt, TryStreamExt};
 use jmt::{
     proof::SparseMerkleProof,
     storage::{LeafNode, Node, NodeKey, TreeReader},
     KeyHash, RootHash, Sha256Jmt, Version,
 };
 use sha2::Sha256;
-use shieldd_sdk_proto::DomainType as _;
 use std::{collections::BTreeMap, future::Future};
 
-use crate::{state_key, NullificationInfo, Nullifier};
+use crate::{state_key, Nullifier};
 
 pub const VERSION: Version = 0;
+const STORAGE_SCHEMA_VERSION: &[u8] = &[2];
+const SPENT_MARKER: &[u8] = &[1];
+const MAX_CONCURRENT_MARKER_READS: usize = 256;
 
 #[derive(Clone, Debug)]
 pub struct NullifierLookup {
     pub root: RootHash,
-    pub info: Option<NullificationInfo>,
+    pub spent: bool,
     pub proof: SparseMerkleProof<Sha256>,
 }
 
@@ -78,6 +80,15 @@ where
     F: Future<Output = Result<T>> + Send + 'static,
     T: Send + 'static,
 {
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        if handle.runtime_flavor() == tokio::runtime::RuntimeFlavor::MultiThread {
+            return tokio::task::block_in_place(|| handle.block_on(future));
+        }
+    }
+
+    // Unit tests and other callers may use a current-thread runtime, where
+    // block_in_place is unavailable. Production runs on a multi-thread runtime
+    // and therefore does not create a thread for each JMT node read.
     std::thread::Builder::new()
         .name("nullifier-tree-state-read".to_string())
         .spawn(move || {
@@ -90,6 +101,16 @@ where
         .context("spawn nullifier tree state-read thread")?
         .join()
         .map_err(|_| anyhow!("nullifier tree state-read thread panicked"))?
+}
+
+fn validate_spent_marker(bytes: &[u8]) -> Result<()> {
+    ensure!(
+        bytes == SPENT_MARKER,
+        "invalid nullifier spent marker: expected {:?}, got {:?}",
+        SPENT_MARKER,
+        bytes
+    );
+    Ok(())
 }
 
 fn read_rightmost_leaf_sync<S: StateRead + ?Sized>(state: &S) -> Result<Option<(NodeKey, Node)>> {
@@ -121,6 +142,18 @@ pub async fn committed_root<S: StateRead + ?Sized>(state: &S) -> Result<Option<R
         .await?
         .map(decode_root)
         .transpose()
+}
+
+async fn verify_storage_schema<S: StateRead + ?Sized>(state: &S) -> Result<()> {
+    let version = state
+        .get_raw(state_key::nullifier_set::schema_version())
+        .await?;
+    ensure!(
+        version.as_deref() == Some(STORAGE_SCHEMA_VERSION),
+        "unsupported nullifier storage schema; replay state with schema version {}",
+        STORAGE_SCHEMA_VERSION[0]
+    );
+    Ok(())
 }
 
 async fn read_rightmost_leaf<S: StateRead + ?Sized>(state: &S) -> Result<Option<(NodeKey, Node)>> {
@@ -198,8 +231,17 @@ async fn write_update_batch<S: StateWrite + ?Sized>(
 
 pub async fn initialize<S: StateWrite + ?Sized>(state: &mut S) -> Result<()> {
     if committed_root(state).await?.is_some() {
+        verify_storage_schema(state).await?;
         return Ok(());
     }
+
+    ensure!(
+        state
+            .get_raw(state_key::nullifier_set::schema_version())
+            .await?
+            .is_none(),
+        "nullifier storage schema exists without a committed root"
+    );
 
     let reader = EmptyReader;
     let tree = Sha256Jmt::new(&reader);
@@ -210,13 +252,25 @@ pub async fn initialize<S: StateWrite + ?Sized>(state: &mut S) -> Result<()> {
         state_key::nullifier_set::root().to_string(),
         root.0.to_vec(),
     );
+    state.put_raw(
+        state_key::nullifier_set::schema_version().to_string(),
+        STORAGE_SCHEMA_VERSION.to_vec(),
+    );
     Ok(())
 }
 
 pub async fn verify_committed_root<S: StateRead + ?Sized>(state: &S) -> Result<()> {
     let Some(committed) = committed_root(state).await? else {
+        ensure!(
+            state
+                .get_raw(state_key::nullifier_set::schema_version())
+                .await?
+                .is_none(),
+            "nullifier storage schema exists without a committed root"
+        );
         return Ok(());
     };
+    verify_storage_schema(state).await?;
     let reader = NvJmtReader::new(state);
     let tree = Sha256Jmt::new(&reader);
     let actual = tree
@@ -236,6 +290,7 @@ pub async fn lookup_with_proof<S: StateRead + ?Sized>(
     state: &S,
     nullifier: Nullifier,
 ) -> Result<NullifierLookup> {
+    verify_storage_schema(state).await?;
     let root = committed_root(state)
         .await?
         .ok_or_else(|| anyhow!("nullifier tree root missing from state"))?;
@@ -245,56 +300,74 @@ pub async fn lookup_with_proof<S: StateRead + ?Sized>(
     let (value, proof) = tree
         .get_with_proof(key, VERSION)
         .context("read nullifier JMT proof")?;
-    let info = value
-        .map(|bytes| NullificationInfo::decode(bytes.as_slice()))
-        .transpose()
-        .context("decode nullification info")?;
-    Ok(NullifierLookup { root, info, proof })
+    if let Some(bytes) = value.as_deref() {
+        validate_spent_marker(bytes)?;
+    }
+    Ok(NullifierLookup {
+        root,
+        spent: value.is_some(),
+        proof,
+    })
 }
 
-pub async fn spend_info<S: StateRead + ?Sized>(
+pub async fn is_spent<S: StateRead + ?Sized>(state: &S, nullifier: Nullifier) -> Result<bool> {
+    let Some(value) = state
+        .nonverifiable_get_raw(&state_key::nullifier_set::value(key_hash(&nullifier)))
+        .await?
+    else {
+        return Ok(false);
+    };
+    validate_spent_marker(&value)?;
+    Ok(true)
+}
+
+/// Check nullifiers through the direct value index without constructing Merkle proofs.
+pub async fn contains_batch<S: StateRead + ?Sized>(
     state: &S,
-    nullifier: Nullifier,
-) -> Result<Option<NullificationInfo>> {
-    lookup_with_proof(state, nullifier)
-        .await
-        .map(|lookup| lookup.info)
+    nullifiers: &[Nullifier],
+) -> Result<Vec<bool>> {
+    let mut results = stream::iter(nullifiers.iter().copied().enumerate())
+        .map(|(index, nullifier)| async move {
+            Ok::<_, anyhow::Error>((index, is_spent(state, nullifier).await?))
+        })
+        .buffer_unordered(MAX_CONCURRENT_MARKER_READS)
+        .try_collect::<Vec<_>>()
+        .await?;
+    results.sort_unstable_by_key(|(index, _)| *index);
+    Ok(results.into_iter().map(|(_, spent)| spent).collect())
 }
 
 pub async fn insert_batch<S: StateWrite + ?Sized>(
     state: &mut S,
-    entries: impl IntoIterator<Item = (Nullifier, NullificationInfo)>,
+    nullifiers: impl IntoIterator<Item = Nullifier>,
 ) -> Result<()> {
     initialize(state).await?;
 
     let mut values = BTreeMap::<KeyHash, Vec<u8>>::new();
-    for (nullifier, info) in entries {
+    let mut ordered_nullifiers = Vec::new();
+    for nullifier in nullifiers {
         let key = key_hash(&nullifier);
-        let value = info.encode_to_vec();
         ensure!(
-            values.insert(key, value).is_none(),
+            values.insert(key, SPENT_MARKER.to_vec()).is_none(),
             "duplicate nullifier {} in nullifier batch",
             nullifier
         );
+        ordered_nullifiers.push(nullifier);
     }
 
     if values.is_empty() {
         return Ok(());
     }
 
-    let reader = NvJmtReader::new(state);
-    let tree = Sha256Jmt::new(&reader);
-    for key_hash in values.keys().copied() {
-        if tree
-            .get_with_proof(key_hash, VERSION)
-            .context("checking nullifier absence")?
-            .0
-            .is_some()
-        {
-            anyhow::bail!("nullifier key {:?} was already spent", key_hash);
+    let spent = contains_batch(state, &ordered_nullifiers).await?;
+    for (nullifier, spent) in ordered_nullifiers.iter().zip(spent) {
+        if spent {
+            anyhow::bail!("nullifier {} was already spent", nullifier);
         }
     }
 
+    let reader = NvJmtReader::new(state);
+    let tree = Sha256Jmt::new(&reader);
     let value_set = values
         .into_iter()
         .map(|(key, value)| (key, Some(value)))
@@ -388,13 +461,6 @@ mod tests {
         Nullifier(Fq::from(value))
     }
 
-    fn info(value: u8, spend_height: u64) -> NullificationInfo {
-        NullificationInfo {
-            id: [value; 32],
-            spend_height,
-        }
-    }
-
     async fn tree_node_keys<S: StateRead>(state: &S) -> Result<Vec<Vec<u8>>> {
         let stream = state.nonverifiable_prefix_raw(state_key::nullifier_set::tree_node_prefix());
         futures::pin_mut!(stream);
@@ -414,7 +480,7 @@ mod tests {
         initialize(&mut state).await?;
         let lookup = lookup_with_proof(&state, nullifier(1)).await?;
 
-        assert!(lookup.info.is_none());
+        assert!(!lookup.spent);
         lookup
             .proof
             .verify_nonexistence(lookup.root, key_hash(&nullifier(1)))?;
@@ -428,15 +494,15 @@ mod tests {
         let storage = TempStorage::new().await?;
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
         let nf = nullifier(7);
-        let spent = info(9, 42);
 
-        insert_batch(&mut state, [(nf, spent)]).await?;
+        insert_batch(&mut state, [nf]).await?;
         let lookup = lookup_with_proof(&state, nf).await?;
 
-        assert_eq!(lookup.info, Some(spent));
+        assert!(lookup.spent);
         lookup
             .proof
-            .verify_existence(lookup.root, key_hash(&nf), spent.encode_to_vec())?;
+            .verify_existence(lookup.root, key_hash(&nf), SPENT_MARKER.to_vec())?;
+        assert!(is_spent(&state, nf).await?);
         verify_committed_root(&state).await?;
 
         Ok(())
@@ -448,12 +514,12 @@ mod tests {
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
         let nf = nullifier(11);
 
-        let err = insert_batch(&mut state, [(nf, info(1, 1)), (nf, info(2, 1))])
+        let err = insert_batch(&mut state, [nf, nf])
             .await
             .expect_err("duplicate nullifier should be rejected");
 
         assert!(err.to_string().contains("duplicate nullifier"));
-        assert_eq!(spend_info(&state, nf).await?, None);
+        assert!(!is_spent(&state, nf).await?);
 
         Ok(())
     }
@@ -464,15 +530,15 @@ mod tests {
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
         let nf = nullifier(13);
 
-        insert_batch(&mut state, [(nf, info(1, 1))]).await?;
+        insert_batch(&mut state, [nf]).await?;
         let root = committed_root(&state).await?.expect("root initialized");
-        let err = insert_batch(&mut state, [(nf, info(2, 2))])
+        let err = insert_batch(&mut state, [nf])
             .await
             .expect_err("already spent nullifier should be rejected");
 
         assert!(err.to_string().contains("already spent"));
         assert_eq!(committed_root(&state).await?, Some(root));
-        assert_eq!(spend_info(&state, nf).await?, Some(info(1, 1)));
+        assert!(is_spent(&state, nf).await?);
 
         Ok(())
     }
@@ -480,12 +546,7 @@ mod tests {
     #[tokio::test]
     async fn batch_root_matches_repeated_insert_root() -> Result<()> {
         let storage = TempStorage::new().await?;
-        let entries = vec![
-            (nullifier(21), info(1, 10)),
-            (nullifier(22), info(2, 10)),
-            (nullifier(23), info(3, 10)),
-            (nullifier(24), info(4, 10)),
-        ];
+        let entries = vec![nullifier(21), nullifier(22), nullifier(23), nullifier(24)];
 
         let mut repeated = cnidarium::StateDelta::new(storage.latest_snapshot());
         for entry in entries.iter().copied() {
@@ -506,12 +567,7 @@ mod tests {
     #[tokio::test]
     async fn batch_insertion_order_is_root_stable() -> Result<()> {
         let storage = TempStorage::new().await?;
-        let forward = vec![
-            (nullifier(31), info(1, 20)),
-            (nullifier(32), info(2, 20)),
-            (nullifier(33), info(3, 20)),
-            (nullifier(34), info(4, 20)),
-        ];
+        let forward = vec![nullifier(31), nullifier(32), nullifier(33), nullifier(34)];
         let mut reverse = forward.clone();
         reverse.reverse();
 
@@ -534,7 +590,7 @@ mod tests {
         let storage = TempStorage::new().await?;
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
 
-        insert_batch(&mut state, [(nullifier(41), info(1, 30))]).await?;
+        insert_batch(&mut state, [nullifier(41)]).await?;
         let keys = tree_node_keys(&state).await?;
         assert!(!keys.is_empty(), "insert should materialize NV tree nodes");
         for key in keys {
@@ -555,11 +611,29 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn stale_nullifier_schema_fails_closed() -> Result<()> {
+        let storage = TempStorage::new().await?;
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+
+        initialize(&mut state).await?;
+        state.delete(state_key::nullifier_set::schema_version().to_string());
+
+        let err = verify_committed_root(&state)
+            .await
+            .expect_err("missing schema marker must require a state replay");
+        assert!(err
+            .to_string()
+            .contains("unsupported nullifier storage schema"));
+
+        Ok(())
+    }
+
+    #[tokio::test]
     async fn old_jmt_nullifier_keys_are_not_written() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
 
-        insert_batch(&mut state, [(nullifier(51), info(1, 40))]).await?;
+        insert_batch(&mut state, [nullifier(51)]).await?;
 
         let old_prefix = "sct/nullifier_set/spent_nullifier_lookup/";
         let mut stream = state.prefix_raw(old_prefix);

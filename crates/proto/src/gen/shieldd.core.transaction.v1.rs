@@ -36,9 +36,6 @@ pub struct TransactionBody {
     /// Optional tx-level fee funding, present on nonzero-fee transactions.
     #[prost(message, optional, tag = "3")]
     pub fee_funding: ::core::option::Option<FeeFunding>,
-    /// Detection data for use with Fuzzy Message Detection
-    #[prost(message, optional, tag = "4")]
-    pub detection_data: ::core::option::Option<DetectionData>,
     /// The encrypted memo for this transaction.
     ///
     /// This field will be present if and only if the transaction has outputs.
@@ -116,25 +113,6 @@ impl ::prost::Name for TransactionSummary {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.transaction.v1.TransactionSummary".into()
-    }
-}
-/// Detection data used by a detection server performing Fuzzy Message Detection.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DetectionData {
-    /// A list of clues for use with Fuzzy Message Detection.
-    #[prost(message, repeated, tag = "4")]
-    pub fmd_clues: ::prost::alloc::vec::Vec<
-        super::super::super::crypto::decaf377_fmd::v1::Clue,
-    >,
-}
-impl ::prost::Name for DetectionData {
-    const NAME: &'static str = "DetectionData";
-    const PACKAGE: &'static str = "shieldd.core.transaction.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.transaction.v1.DetectionData".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.transaction.v1.DetectionData".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -445,10 +423,6 @@ pub struct TransactionBodyView {
     pub fee_funding: ::core::option::Option<
         super::super::component::shielded_pool::v1::TransferView,
     >,
-    /// The detection data in this transaction, only populated if
-    /// there are outputs in the actions of this transaction.
-    #[prost(message, optional, tag = "4")]
-    pub detection_data: ::core::option::Option<DetectionData>,
     /// An optional view of a transaction memo. It will only be populated if there are
     /// outputs in the actions of this transaction.
     #[prost(message, optional, tag = "5")]
@@ -586,9 +560,6 @@ pub struct TransactionPlan {
     /// Optional tx-level fee funding, present on nonzero-fee transactions.
     #[prost(message, optional, tag = "3")]
     pub fee_funding: ::core::option::Option<FeeFundingPlan>,
-    /// Detection data for use with Fuzzy Message Detection
-    #[prost(message, optional, tag = "4")]
-    pub detection_data: ::core::option::Option<DetectionDataPlan>,
     /// The memo plan for this transaction.
     #[prost(message, optional, tag = "5")]
     pub memo: ::core::option::Option<MemoPlan>,
@@ -637,21 +608,6 @@ impl ::prost::Name for FeeFundingPlan {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.transaction.v1.FeeFundingPlan".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct DetectionDataPlan {
-    #[prost(message, repeated, tag = "5")]
-    pub clue_plans: ::prost::alloc::vec::Vec<CluePlan>,
-}
-impl ::prost::Name for DetectionDataPlan {
-    const NAME: &'static str = "DetectionDataPlan";
-    const PACKAGE: &'static str = "shieldd.core.transaction.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.transaction.v1.DetectionDataPlan".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.transaction.v1.DetectionDataPlan".into()
     }
 }
 /// Describes a planned transaction action.
@@ -707,29 +663,6 @@ impl ::prost::Name for ActionPlan {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.transaction.v1.ActionPlan".into()
-    }
-}
-/// Describes a plan for forming a `Clue`.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct CluePlan {
-    /// The address.
-    #[prost(message, optional, tag = "1")]
-    pub address: ::core::option::Option<super::super::keys::v1::Address>,
-    /// The random seed to use for the clue plan.
-    #[prost(bytes = "vec", tag = "2")]
-    pub rseed: ::prost::alloc::vec::Vec<u8>,
-    /// The bits of precision.
-    #[prost(uint64, tag = "3")]
-    pub precision_bits: u64,
-}
-impl ::prost::Name for CluePlan {
-    const NAME: &'static str = "CluePlan";
-    const PACKAGE: &'static str = "shieldd.core.transaction.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.transaction.v1.CluePlan".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.transaction.v1.CluePlan".into()
     }
 }
 /// Describes a plan for forming the transaction memo.

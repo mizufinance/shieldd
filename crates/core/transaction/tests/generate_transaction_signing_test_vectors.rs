@@ -442,7 +442,6 @@ fn transaction_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Tran
             actions,
             transaction_parameters: params,
             fee_funding: None,
-            detection_data: None,
             memo: None,
         }
     })

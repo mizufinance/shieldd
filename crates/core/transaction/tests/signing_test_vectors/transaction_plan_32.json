@@ -4,7 +4,7 @@
       "ibcRelayAction": {
         "rawAction": {
           "typeUrl": "/ibc.core.channel.v1.MsgRecvPacket",
-          "value": "CrQBCO7qk4AHEgtkZWZhdWx0UG9ydBoJY2hhbm5lbC0wIgtkZWZhdWx0UG9ydCoJY2hhbm5lbC0wMmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOgwI1vXAkQIQsOu+kAFAgIS7mamnnuQYEgIKABoMCNb1wJECELDrvpABIo4Bc2hpZWxkZDFxeDJ2ZDhhbTVueHU3N3hscXJ5ZXljOXNhMHBldjVwN255MzA4MDdqeTN6Znl2aGhzZ3N5ZnY2dTRoNHY0eXo5Zmd6NW00bjBqc2tweXNncmp3eTg4c2V6emRsNGR6cGRmejBobTNlNnl0MDRnamZsaDNmcmM3bTZkeHhxdjdlN3hqa2prdg=="
+          "value": "CrQBCO7qk4AHEgtkZWZhdWx0UG9ydBoJY2hhbm5lbC0wIgtkZWZhdWx0UG9ydCoJY2hhbm5lbC0wMmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOgwI1vXAkQIQsOu+kAFAxILvtJGe4uQYEgIKABoMCNb1wJECELDrvpABIo4Bc2hpZWxkZDFuOTI3NmV4eGZqZ3U3M3E2NjZ6dDk5ZWU4bXRoOXpreDV3Nnp0d3A1MG1lNzJ6bWphbDN2N2tmZDd0emNsOXFtZmt0dXpqdGdleTl4MjVheXB1aHpoYzk1dHB4bWpwMjVnM2E3YWE5aHN0bDJscm5tYXJoNWo1enB5cHRlZngyMDkzcDQ0Mg=="
         }
       }
     },
@@ -12,7 +12,7 @@
       "ibcRelayAction": {
         "rawAction": {
           "typeUrl": "/ibc.core.channel.v1.MsgRecvPacket",
-          "value": "CrMBCKb53L4FEgtkZWZhdWx0UG9ydBoJY2hhbm5lbC0wIgtkZWZhdWx0UG9ydCoJY2hhbm5lbC0wMmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOgsI67TklwMQ4ZrOE0Ds7OjLqaee5BgSAgoAGgsI67TklwMQ4ZrOEyKOAXNoaWVsZGQxbDd6MzdsbGphOHc2ZjR0ZTVlcXZhemx2eGxodTc4bmNrMmg2ZHJqdHFjMjBubXN5azR0MDg1ZGowYXpqYzJha2Z3czRzeDhoZXFxcnhjbTN5cDJodnkycjdoN2Nndjdnc2d4a3NmMHVmeGU0YWxjNmtzMGM4M2Nld2txdTl3Y2p6eWt5aDI="
+          "value": "CrMBCKb53L4FEgtkZWZhdWx0UG9ydBoJY2hhbm5lbC0wIgtkZWZhdWx0UG9ydCoJY2hhbm5lbC0wMmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOgsI67TklwMQ4ZrOE0C0gOvRkZ7i5BgSAgoAGgsI67TklwMQ4ZrOEyKOAXNoaWVsZGQxMGRkaHZ5eG42ZjM2cGZ5cTRta21rN3l2cjg0ZTRwODJhZWZ6amw3c20yc3V2bHJrc2pjNWZzaDA4dnFldjR6N3d2dHpmcnd5c3Q1NHV6aHFqZzNxNzk1OXVoOHdmNHp4bTl6cXJuZ3Z2ZTB4OWhjdGNmbGxhOXF3bTRtZHE3dHhyZHVydHA="
         }
       }
     },
@@ -51,9 +51,9 @@
             "denom": {
               "denom": "ushieldd"
             },
-            "destinationChainAddress": "shieldd1q5g7zn7l0xxy82zsq3tjuxdpy77t9nzmuwtadgsxhfyunl2d66909fgpagdhjuqj7s3lnv0xxf69v8cqca6am8lz4pdeglmragv5qg5rtxft0f4pa3ztdapt4nxcfadmjhg8at",
+            "destinationChainAddress": "shieldd13duuh04z4vrfrgs76geer888wc6t274ed20ps3vfha8q30mav0m8mrqpp7glhhk3j7kn6hm6a6ners9yevqjtcdm93w03v3x59s2t82km449xmx7luz67qm7755v365frv5n5q",
             "returnAddress": {
-              "inner": "BRHhT995jEOoUARXLhmhJ7yyzFvjl9aiBrpJyf1N1orypQHqG3lwEvQj+bHmMnRWHwDHdd2f4qhblH9j6hlAIoNZkremoexEtvQrrM2E9bs="
+              "inner": "i3nLvqKrBpGiHtIzkZzndjS1erlqnhhFib9OCL99Y/Z9jAEPkfve0ZetPV967qeRwKTLASXhuyxc+LImoWClnVbdalNs3v8FrwN+9SjI6ok="
             },
             "timeoutHeight": {
               "revisionNumber": "717380016",
@@ -64,11 +64,15 @@
           "changeOutput": {
             "notePayload": {
               "noteCommitment": {
-                "inner": "B46zSRLVTfc1YglZ/CYAjfxgg6PkwucyO9BPb0XvLQI="
+                "inner": "mDduIvD6PSOOS7+lNFpbYZqmlRkkOWWRLxMmMhw/2w4="
               },
               "ephemeralKey": "IJgZVcClxpgql+45IgiyQygLh/q/CelaMSkzWK4f5AI=",
               "encryptedNote": {
-                "inner": "sQryOGsvER0Okn0ohVjIsH4UeDDUTTwtH2o3MRsyu2OqpQy+6WjV5Zecr6k9mmkVC0p7pttAy8S0KiFuOL85mfw6yiAAd9GEH0Rzo3EOmEDZr1B6zkxMHixqA17HJIaAjCg2sWXm7f/ed9w3h+uTKBBFCfuySpwjYuE8AejkNwFyki+LXhwmO2TQVMZj2WD2UmE+FsDc4V88VtS8RYFcgpoqB15MJcRHCI44BAoR2ME="
+                "inner": "Iy9YkKLV/WqvJqoO90dS1zMgFzfJb8AXnW4Q751jwrjPSfYuuMp5dvNQzJKuYVRoLQf72y5ppKNET1Oe/wSKIuvPImOc3cWSqtO9lfBv8e/Zr1B6zkxMHixqA17HJIaAjCg2sWXm7f/ed9w3h+uTKBBFCfuySpwjYuE8AejkNwFyki+LXhwmO2TQVMZj2WD2UmE+FsDc4V88VtS8RYFcgv9gONR+/3ouwNy/mOhd//k="
+              },
+              "discoveryTag": {
+                "precisionBits": 16,
+                "value": 3774349312
               }
             },
             "wrappedMemoKey": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -97,7 +101,7 @@
               },
               "rseed": "6zI3+DWxlmDSwYmJkvJtLsaL0McnONav+aN/DSarO14=",
               "address": {
-                "inner": "f5S87pFJRemOtMohDnOA8JE6v1moYepaF9LUFMbUhtbAlillFc83/YJQk1xWthW9oldw8HcoETnAmyKLDGgXQ9fXGnoT6opn0I0TsUULBE4="
+                "inner": "7bEWRlizqZ4vAB0HfGwal9wO0F61QxZgldbzykCF/w2letP1RG2bbuac8GfFTSjAhBrwjYIBfl4w/lB7y9Ok+MAi8jmPQJ5xZRrdh8RqbeE="
               }
             },
             "position": "200668897524652",
@@ -108,7 +112,7 @@
             "targetTimestamp": "1700000000",
             "complianceLeaf": {
               "address": {
-                "inner": "f5S87pFJRemOtMohDnOA8JE6v1moYepaF9LUFMbUhtbAlillFc83/YJQk1xWthW9oldw8HcoETnAmyKLDGgXQ9fXGnoT6opn0I0TsUULBE4="
+                "inner": "7bEWRlizqZ4vAB0HfGwal9wO0F61QxZgldbzykCF/w2letP1RG2bbuac8GfFTSjAhBrwjYIBfl4w/lB7y9Ok+MAi8jmPQJ5xZRrdh8RqbeE="
               },
               "assetId": {
                 "inner": "0Kp7JZHSfpBSYp/mDtlw0t435eDriqJHN8dYSUFLNQI="
@@ -383,16 +387,17 @@
           "denom": {
             "denom": "ushieldd"
           },
-          "destinationChainAddress": "shieldd1q5g7zn7l0xxy82zsq3tjuxdpy77t9nzmuwtadgsxhfyunl2d66909fgpagdhjuqj7s3lnv0xxf69v8cqca6am8lz4pdeglmragv5qg5rtxft0f4pa3ztdapt4nxcfadmjhg8at",
+          "destinationChainAddress": "shieldd13duuh04z4vrfrgs76geer888wc6t274ed20ps3vfha8q30mav0m8mrqpp7glhhk3j7kn6hm6a6ners9yevqjtcdm93w03v3x59s2t82km449xmx7luz67qm7755v365frv5n5q",
           "returnAddress": {
-            "inner": "BRHhT995jEOoUARXLhmhJ7yyzFvjl9aiBrpJyf1N1orypQHqG3lwEvQj+bHmMnRWHwDHdd2f4qhblH9j6hlAIoNZkremoexEtvQrrM2E9bs="
+            "inner": "i3nLvqKrBpGiHtIzkZzndjS1erlqnhhFib9OCL99Y/Z9jAEPkfve0ZetPV967qeRwKTLASXhuyxc+LImoWClnVbdalNs3v8FrwN+9SjI6ok="
           },
           "timeoutHeight": {
             "revisionNumber": "717380016",
             "revisionHeight": "116450831"
           },
           "sourceChannel": "channel-0"
-        }
+        },
+        "discoveryPrecisionBits": 16
       }
     }
   ],

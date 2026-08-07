@@ -70,6 +70,7 @@
     {
       "patterns": [
         ".cargo/config.toml",
+        ".gitattributes",
         "Cargo.lock",
         "Cargo.toml",
         "deployments/containerfiles/Dockerfile.snarkpack-fv-toolchain",
@@ -91,6 +92,7 @@
         "flake.nix",
         "justfile",
         "scripts/check-snarkpack-invariants.sh",
+        "scripts/check-snarkpack-filecoin-shape.sh",
         "scripts/check-snarkpack-runtime-invariants.sh",
         "scripts/ci/enforce_formal_result.py",
         "scripts/ci/gate-applicability.py",
@@ -108,7 +110,8 @@
         "scripts/snarkpack-lean-single-threaded.ps1",
         "scripts/run-snarkpack-fv-safe.ps1",
         "scripts/snarkpack-formal.sh",
-        "scripts/snarkpack-fv.sh"
+        "scripts/snarkpack-fv.sh",
+        "scripts/snarkpack-lean-conformance.sh"
       ],
       "tiers": {
         "pull_request": "static",
@@ -116,6 +119,17 @@
         "default": "full"
       },
       "reason": "workflow, classifier, diagnostic, or invoked gate implementation"
+    },
+    {
+      "patterns": [
+        "tools/proto-compiler/**"
+      ],
+      "tiers": {
+        "pull_request": "static",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "protobuf code generator can alter generated Rust inputs in the SnarkPack Cargo closure"
     },
     {
       "patterns": [
@@ -165,6 +179,44 @@
   "irrelevant_inputs": [
     {
       "patterns": [
+        "scripts/check-constraint-coverage.sh",
+        "scripts/check-extracted-lean-heartbeats.sh",
+        "scripts/check-fv-census.sh",
+        "scripts/check-lean-circuit-fv.sh",
+        "scripts/check-manifest-pin.sh",
+        "scripts/check-note-reshape-impact.py",
+        "scripts/check-soundness-invariants.sh",
+        "scripts/check-structured-lc-dtk-probes.sh",
+        "scripts/check-structured-lc-generation.sh",
+        "scripts/check-structured-lc-lint.sh",
+        "scripts/check-template-inventory.sh",
+        "scripts/check-vk-derivation.sh",
+        "scripts/check_poseidon377_parity.sh",
+        "scripts/circuit-constraint-check.sh",
+        "scripts/circuit-gadget-proof-check.sh",
+        "scripts/compliance-alloy.sh",
+        "scripts/compliance-lean-dleq.sh",
+        "scripts/compliance-symbolic.sh",
+        "scripts/fixtures/**",
+        "scripts/fv-census.py",
+        "scripts/fv-opt-loop-diff.py",
+        "scripts/fv-opt-loop.sh",
+        "scripts/gen-edwards-precondition.py",
+        "scripts/gen-note-reshape-family-artifacts.py",
+        "scripts/lean-build-safe.sh",
+        "scripts/lean-leaf-bench.sh",
+        "scripts/lint-emitted-lean.py",
+        "scripts/picus-diagnose.sh",
+        "scripts/refresh-lean-artifact-stamps.py",
+        "scripts/run-picus-bounded.sh",
+        "scripts/run-whole-circuit-picus.sh",
+        "scripts/shielded-pool-formal.sh",
+        "tools/gnark/**"
+      ],
+      "reason": "circuit soundness proof controls covered by the separate soundness family"
+    },
+    {
+      "patterns": [
         "scripts/lib/common.sh",
         "scripts/orbis-ci-cleanup.sh",
         "scripts/orbis-integration-preflight.sh",
@@ -177,10 +229,12 @@
     {
       "patterns": [
         ".github/ISSUE_TEMPLATE/**",
+        ".github/dependabot.yml",
         ".config/**",
         ".envrc.example",
         "AGENTS.md",
         "CLAUDE.md",
+        ".gitignore",
         "LICENSE",
         "LICENSE-*",
         "README.md",
@@ -192,6 +246,7 @@
         "dist-workspace.toml",
         "docs/**",
         "poc/**",
+        "proto/**",
         "testnets/**"
       ],
       "reason": "audited non-runtime path outside the declared SnarkPack contract"

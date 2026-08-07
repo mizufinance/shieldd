@@ -439,7 +439,6 @@ struct DetailedRunReport {
     execute_output_action_ms: f64,
     execute_output_write_ms: f64,
     execute_other_action_ms: f64,
-    execute_record_clues_ms: f64,
     execute_apply_ms: f64,
     execute_nullifier_check_ms: f64,
     inbound_receive: InboundReceiveBreakdownReport,
@@ -1150,13 +1149,11 @@ async fn build_inner_transfer_txs(
                     &mut OsRng,
                     MemoPlaintext::blank_memo(test_keys::ADDRESS_0.deref().clone()),
                 )),
-                detection_data: None,
                 transaction_parameters: TransactionParameters {
                     chain_id,
                     ..Default::default()
                 },
-            }
-            .with_populated_detection_data(OsRng, Default::default());
+            };
             let tx = client
                 .witness_auth_build_with_compliance(&mut plan, snapshot)
                 .await?;
@@ -1207,7 +1204,6 @@ async fn rebuild_ibc_relay_txs(
         let plan = TransactionPlan {
             actions: vec![ActionPlan::IbcAction(relay.clone())],
             memo: None,
-            detection_data: None,
             fee_funding: None,
             transaction_parameters: TransactionParameters {
                 chain_id: chain.chain_id.clone(),
@@ -1633,7 +1629,6 @@ impl DetailedRunReport {
         self.execute_output_action_ms += block.execute_output_action_ms;
         self.execute_output_write_ms += block.execute_output_write_ms;
         self.execute_other_action_ms += block.execute_other_action_ms;
-        self.execute_record_clues_ms += block.execute_record_clues_ms;
         self.execute_apply_ms += block.execute_apply_ms;
         self.execute_nullifier_check_ms += block.execute_nullifier_check_ms;
         self.inbound_receive.add(block.inbound_receive);
@@ -1801,7 +1796,6 @@ fn apply_execution_profile(report: &mut DetailedRunReport, profile: &ExecutionBl
     report.execute_output_action_ms += profile.output_action_execute_ms;
     report.execute_output_write_ms += profile.output_add_note_payload_ms;
     report.execute_other_action_ms += profile.other_action_execute_ms;
-    report.execute_record_clues_ms += profile.record_clues_ms;
     report.execute_apply_ms += profile.apply_ms;
     report.execute_nullifier_check_ms += profile.spend_nullifier_check_ms;
 }
@@ -2245,9 +2239,6 @@ fn render_markdown(report: &BenchmarkReport) -> String {
         });
         append_detail_ms_row(&mut out, scenario, "other action", |d| {
             d.execute_other_action_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "record clues", |d| {
-            d.execute_record_clues_ms
         });
         append_detail_ms_row(&mut out, scenario, "state tx apply", |d| d.execute_apply_ms);
         append_detail_ms_row(&mut out, scenario, "end block", |d| d.execute_end_block_ms);
