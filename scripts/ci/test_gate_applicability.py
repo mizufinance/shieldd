@@ -208,6 +208,105 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertFalse(decision.unknown_files)
         self.assertIn("base Cargo package", decision.matched[0]["reason"])
 
+    def test_base_cargo_closure_ignores_root_introduced_after_base(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+            subprocess.run(
+                ["git", "config", "user.email", "ci@example.invalid"],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "CI"], cwd=root, check=True
+            )
+            (root / "Cargo.toml").write_text(
+                '[workspace]\nmembers = ["historical-root", "outside"]\n',
+                encoding="utf-8",
+            )
+            (root / "Cargo.lock").write_text(
+                'version = 4\n\n'
+                '[[package]]\nname = "historical-root"\nversion = "0.1.0"\n\n'
+                '[[package]]\nname = "outside"\nversion = "0.1.0"\n',
+                encoding="utf-8",
+            )
+            for package in ("historical-root", "outside"):
+                package_root = root / package
+                package_root.mkdir()
+                (package_root / "Cargo.toml").write_text(
+                    f'[package]\nname = "{package}"\nversion = "0.1.0"\n',
+                    encoding="utf-8",
+                )
+            subprocess.run(
+                ["git", "add", "."], cwd=root, check=True, capture_output=True
+            )
+            subprocess.run(
+                ["git", "commit", "-m", "base"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+            )
+            base = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            source = {
+                "packages": ("historical-root", "introduced-later"),
+                "tiers": {
+                    "pull_request": "static",
+                    "merge_group": "full",
+                    "default": "full",
+                },
+                "reason": "fixture closure",
+            }
+
+            rules = GATE.cargo_closure_rules_at_revision(
+                root, source, "pull_request", base
+            )
+            selected = GATE.classify(
+                self.snarkpack,
+                "pull_request",
+                ["historical-root/src/lib.rs"],
+                rules,
+            )
+            outside = GATE.classify(
+                self.snarkpack,
+                "pull_request",
+                ["outside/src/lib.rs"],
+                rules,
+            )
+
+        self.assertEqual((selected.status, selected.tier), ("run", "static"))
+        self.assertEqual((outside.status, outside.tier), ("skip", "skip"))
+
+    def test_large_decision_uses_file_not_github_outputs_for_details(self) -> None:
+        paths = tuple(f"generated/path-{index:06d}.rs" for index in range(50000))
+        decision = GATE.Decision(
+            status="run",
+            tier="extract-all",
+            explanation="large candidate fixture",
+            changed_files=paths,
+            matched=(),
+            unknown_files=paths,
+            graphs=("GraphA",),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "github-output"
+            detail = Path(directory) / "decision.json"
+            GATE.write_github_output(output, decision)
+            GATE.write_decision_file(detail, decision)
+            output_text = output.read_text(encoding="utf-8")
+            detail_value = json.loads(detail.read_text(encoding="utf-8"))
+
+        self.assertLess(len(output_text.encode("utf-8")), 64 * 1024)
+        self.assertNotIn("changed_files=", output_text)
+        self.assertNotIn("unknown_files=", output_text)
+        self.assertEqual(detail_value["changed_files"], list(paths))
+        self.assertEqual(detail_value["unknown_files"], list(paths))
+
     def test_cargo_metadata_timeout_is_forwarded_and_bounded(self) -> None:
         metadata = {
             "packages": [
@@ -820,6 +919,37 @@ class GateApplicabilityTests(unittest.TestCase):
                 self.assertEqual((decision.status, decision.tier), ("run", tier))
                 self.assertFalse(decision.unknown_files)
 
+    def test_circuit_soundness_tree_is_outside_snarkpack_contract(self) -> None:
+        for path in (
+            "tools/gnark/lean/ShielddGnarkFormal/StructuredLC.lean",
+            "scripts/gen-note-reshape-family-artifacts.py",
+            "scripts/fixtures/fv-census/signed-coefficients.sr1cs",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.snarkpack,
+                    "pull_request",
+                    [path],
+                    [],
+                )
+                self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
+                self.assertFalse(decision.unknown_files)
+
+    def test_retired_snarkpack_controls_remain_classified(self) -> None:
+        for path in (
+            "scripts/check-snarkpack-filecoin-shape.sh",
+            "scripts/snarkpack-lean-conformance.sh",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.snarkpack,
+                    "pull_request",
+                    [path],
+                    [],
+                )
+                self.assertEqual((decision.status, decision.tier), ("run", "static"))
+                self.assertFalse(decision.unknown_files)
+
     def test_stack_orchestration_is_outside_formal_contracts(self) -> None:
         for path in (
             "scripts/lib/common.sh",
@@ -997,6 +1127,14 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn(
             "python3 scripts/ci/snarkpack_fv_impact.py", workflow
         )
+        self.assertIn(
+            "--decision-file .ci-state/snarkpack-decision.json", workflow
+        )
+        self.assertIn(
+            "--gate-decision .ci-state/snarkpack-decision.json", workflow
+        )
+        self.assertNotIn("steps.snarkpack.outputs.unknown_files", workflow)
+        self.assertIn("Upload applicability decisions", workflow)
         filtered_graphs = (
             "${{ needs.applicability.outputs.snarkpack_extract_graphs }}"
         )
