@@ -90,7 +90,7 @@ impl<'de> serde::Deserialize<'de> for BeginBlockRequest {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ =
+                            height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -693,7 +693,7 @@ impl<'de> serde::Deserialize<'de> for CommitResponse {
                             if root_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rootHash"));
                             }
-                            root_hash__ =
+                            root_hash__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1384,7 +1384,7 @@ impl<'de> serde::Deserialize<'de> for EndBlockRequest {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ =
+                            height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2071,7 +2071,7 @@ impl<'de> serde::Deserialize<'de> for GetCommittedStateResponse {
                             if height__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("height"));
                             }
-                            height__ =
+                            height__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -2079,7 +2079,7 @@ impl<'de> serde::Deserialize<'de> for GetCommittedStateResponse {
                             if root_hash__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("rootHash"));
                             }
-                            root_hash__ =
+                            root_hash__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
