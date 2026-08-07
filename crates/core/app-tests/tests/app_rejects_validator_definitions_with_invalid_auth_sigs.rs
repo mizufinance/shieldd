@@ -103,7 +103,7 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
             validator: new_validator.clone(),
             auth_sig,
         });
-        let mut plan = TransactionPlan {
+        TransactionPlan {
             actions: vec![action.into()],
             // Now fill out the remaining parts of the transaction needed for verification:
             memo: None,
@@ -112,8 +112,7 @@ async fn app_rejects_validator_definitions_with_invalid_auth_sigs() -> anyhow::R
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                 ..Default::default()
             },
-        };
-        plan
+        }
     };
     let tx = client.witness_auth_build(&plan).await?;
 

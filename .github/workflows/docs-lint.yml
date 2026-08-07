@@ -26,4 +26,8 @@ jobs:
 
       # Building with warm cache takes ~40s, depending on changes.
       - name: Build rustdocs
+        # jemalloc's configure probes use -Werror, while Nix's fortify headers
+        # reject the dev profile's default -O0 C flags.
+        env:
+          CFLAGS: -O1
         run: nix develop .#nightly --command ./deployments/scripts/rust-docs
