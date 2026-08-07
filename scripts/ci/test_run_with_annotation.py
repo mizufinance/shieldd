@@ -206,6 +206,10 @@ class FormalWorkflowWiringTests(unittest.TestCase):
         )
         self.assertIn('--graph "$graph"', self.workflow)
         self.assertIn('--artifact "$artifact_root/$graph"', self.workflow)
+        self.assertIn('python3 "$script" import-recovery', self.workflow)
+        self.assertIn("--maximal-compatible", self.workflow)
+        self.assertIn('git diff --binary -- . > "$patch"', self.workflow)
+        self.assertIn("git apply --index refresh.patch", self.workflow)
         self.assertIn(
             "snarkpack-extraction-refresh-${{ needs.applicability.outputs."
             "candidate_sha }}-${{ github.run_attempt }}",
@@ -309,6 +313,26 @@ class OrbisWorkflowWiringTests(unittest.TestCase):
 
 
 class GeneralRunnerPolicyWiringTests(unittest.TestCase):
+    def test_container_publication_uses_one_sha_across_architectures(self) -> None:
+        root = SCRIPT.parents[2]
+        workflow = (root / ".github/workflows/containers.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("group: containers-${{ github.ref }}", workflow)
+        self.assertIn("cancel-in-progress: true", workflow)
+        self.assertIn(":sha-${{ github.sha }}-amd64", workflow)
+        self.assertIn(":sha-${{ github.sha }}-arm64", workflow)
+        self.assertIn("digest: ${{ steps.build.outputs.digest }}", workflow)
+        self.assertIn(
+            '"$image@${{ needs.build_amd64.outputs.digest }}"', workflow
+        )
+        self.assertIn(
+            '"$image@${{ needs.build_arm64.outputs.digest }}"', workflow
+        )
+        self.assertIn('--tag "${image}:sha-${GITHUB_SHA}"', workflow)
+        self.assertNotIn(":${{ env.IMAGE_TAG }}-amd64", workflow)
+        self.assertNotIn(":${{ env.IMAGE_TAG }}-arm64", workflow)
+
     def test_smoke_accelerates_only_the_compute_lane(self) -> None:
         root = SCRIPT.parents[2]
         smoke = (root / ".github/workflows/smoke.yml").read_text(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import importlib.util
 import json
 import subprocess
@@ -7,7 +8,6 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -80,6 +80,21 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
 
     def test_context_change_invalidates_attestation(self) -> None:
         self.assertNotEqual(self._fingerprint("16"), self._fingerprint("256"))
+
+    def test_canonical_projection_invalidates_attestation(self) -> None:
+        before = FINGERPRINT.tracked_fingerprint(
+            self.root,
+            "fuzz",
+            (Path("control"), Path("crate")),
+            projections={"cargo-lock": b"selected-v1"},
+        )
+        after = FINGERPRINT.tracked_fingerprint(
+            self.root,
+            "fuzz",
+            (Path("control"), Path("crate")),
+            projections={"cargo-lock": b"selected-v2"},
+        )
+        self.assertNotEqual(before, after)
 
     def test_tracked_dependency_change_invalidates_attestation(self) -> None:
         before = self._fingerprint("16")
@@ -242,6 +257,8 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
             FINGERPRINT.COMMON_CONTROLS,
         )
         self.assertIn(FINGERPRINT.SELF, FINGERPRINT.COMMON_CONTROLS)
+        self.assertNotIn(Path("Cargo.lock"), FINGERPRINT.COMMON_CONTROLS)
+        self.assertNotIn(Path("Cargo.toml"), FINGERPRINT.COMMON_CONTROLS)
         self.assertIn(
             Path("crates/crypto/proof-aggregation/formal"),
             FINGERPRINT.PROOF_ONLY_PACKAGE_PATHS,
@@ -283,44 +300,106 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
             }.issubset(parity_extraction)
         )
 
-    def test_package_closure_uses_bounded_snarkpack_metadata_timeout(
+    def test_cargo_metadata_uses_bounded_timeout(
         self,
     ) -> None:
-        observed: list[int] = []
+        completed = subprocess.CompletedProcess(
+            args=["cargo", "metadata"],
+            returncode=0,
+            stdout='{"packages": []}',
+            stderr="",
+        )
+        with patch.object(FINGERPRINT.subprocess, "run", return_value=completed) as run:
+            FINGERPRINT.cargo_metadata(self.root, timeout_seconds=240)
+        self.assertEqual(run.call_args.kwargs["timeout"], 240)
+        self.assertIn("--locked", run.call_args.args[0])
+        self.assertIn("--offline", run.call_args.args[0])
+        self.assertIn("--no-deps", run.call_args.args[0])
 
-        def cargo_closure_rules(
-            root: Path,
-            source,
-            event: str,
-            *,
-            metadata_timeout_seconds: int,
-        ):
-            self.assertEqual(root, self.root)
-            self.assertEqual(source["packages"], ["fixture"])
-            self.assertEqual(event, "pull_request")
-            observed.append(metadata_timeout_seconds)
-            return [SimpleNamespace(patterns=("crate/**",))]
-
-        gate = SimpleNamespace(cargo_closure_rules=cargo_closure_rules)
-        with patch.object(FINGERPRINT, "_load_gate_module", return_value=gate):
-            self.assertEqual(
-                FINGERPRINT.local_package_closure(
-                    self.root, ("fixture",)
-                ),
-                (Path("crate"),),
-            )
-            self.assertEqual(
-                FINGERPRINT.local_package_closure(
-                    self.root,
-                    ("fixture",),
-                    metadata_timeout_seconds=240,
-                ),
-                (Path("crate"),),
-            )
-
+    def test_lock_projection_ignores_packages_outside_selected_closure(self) -> None:
+        lock = {
+            "version": 4,
+            "package": [
+                {
+                    "name": "selected",
+                    "version": "0.1.0",
+                    "dependencies": ["selected-dependency"],
+                },
+                {
+                    "name": "selected-dependency",
+                    "version": "1.0.0",
+                    "source": "registry+https://example.invalid/index",
+                    "checksum": "a" * 64,
+                },
+                {
+                    "name": "unrelated",
+                    "version": "9.0.0",
+                    "source": "registry+https://example.invalid/index",
+                    "checksum": "b" * 64,
+                },
+            ],
+        }
+        before = FINGERPRINT.cargo_lock_projection_from_data(lock, ("selected",))
+        unrelated = copy.deepcopy(lock)
+        unrelated["package"][2]["checksum"] = "c" * 64
         self.assertEqual(
-            observed,
-            [FINGERPRINT.DEFAULT_CARGO_METADATA_TIMEOUT_SECONDS, 240],
+            before,
+            FINGERPRINT.cargo_lock_projection_from_data(
+                unrelated, ("selected",)
+            ),
+        )
+        selected = copy.deepcopy(lock)
+        selected["package"][1]["checksum"] = "d" * 64
+        self.assertNotEqual(
+            before,
+            FINGERPRINT.cargo_lock_projection_from_data(
+                selected, ("selected",)
+            ),
+        )
+
+    def test_local_metadata_projection_ignores_unselected_workspace_package(
+        self,
+    ) -> None:
+        metadata = {
+            "packages": [
+                {
+                    "id": "path+file:///host/selected#0.1.0",
+                    "name": "selected",
+                    "version": "0.1.0",
+                    "manifest_path": str(self.root / "crate/Cargo.toml"),
+                    "features": {"default": ["dep:chosen"]},
+                    "dependencies": [],
+                    "targets": [],
+                },
+                {
+                    "id": "path+file:///host/unrelated#0.1.0",
+                    "name": "unrelated",
+                    "version": "0.1.0",
+                    "manifest_path": str(self.root / "other/Cargo.toml"),
+                    "features": {},
+                    "dependencies": [],
+                    "targets": [],
+                },
+            ]
+        }
+        before = FINGERPRINT.local_metadata_projection(
+            self.root, metadata, (Path("crate"),)
+        )
+        unrelated = copy.deepcopy(metadata)
+        unrelated["packages"][1]["features"] = {"new": []}
+        self.assertEqual(
+            before,
+            FINGERPRINT.local_metadata_projection(
+                self.root, unrelated, (Path("crate"),)
+            ),
+        )
+        selected = copy.deepcopy(metadata)
+        selected["packages"][0]["features"] = {"new": []}
+        self.assertNotEqual(
+            before,
+            FINGERPRINT.local_metadata_projection(
+                self.root, selected, (Path("crate"),)
+            ),
         )
 
     def test_package_proof_exclusion_requires_selected_parent_crate(
@@ -347,10 +426,8 @@ class SnarkPackLaneFingerprintTests(unittest.TestCase):
                     FINGERPRINT.FingerprintError,
                     "integer from 1 through 900 seconds",
                 ):
-                    FINGERPRINT.local_package_closure(
-                        self.root,
-                        ("fixture",),
-                        metadata_timeout_seconds=value,
+                    FINGERPRINT.cargo_metadata(
+                        self.root, timeout_seconds=value
                     )
 
         parser = FINGERPRINT.parser()

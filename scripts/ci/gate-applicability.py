@@ -64,6 +64,7 @@ class Decision:
 
     def as_dict(self) -> dict[str, Any]:
         return {
+            "schema_version": 1,
             "status": self.status,
             "tier": self.tier,
             "run": self.status == "run",
@@ -71,6 +72,21 @@ class Decision:
             "changed_files": list(self.changed_files),
             "matched": list(self.matched),
             "unknown_files": list(self.unknown_files),
+            "graphs": list(self.graphs),
+        }
+
+    def summary_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": 1,
+            "status": self.status,
+            "tier": self.tier,
+            "run": self.status == "run",
+            "explanation": _bounded_utf8(
+                self.explanation, GITHUB_EXPLANATION_MAX_BYTES
+            ),
+            "changed_file_count": len(self.changed_files),
+            "matched_rule_count": len(self.matched),
+            "unknown_file_count": len(self.unknown_files),
             "graphs": list(self.graphs),
         }
 
@@ -650,7 +666,20 @@ def cargo_closure_rules_at_revision(
             )
         local_lock_packages[name] = package
 
-    pending = list(source["packages"])
+    pending: list[str] = []
+    for name in source["packages"]:
+        has_manifest = name in directories_by_name
+        has_lock_entry = name in local_lock_packages
+        if has_manifest and has_lock_entry:
+            pending.append(name)
+        elif has_manifest != has_lock_entry:
+            raise ClassificationError(
+                f"Cargo root package {name!r} is inconsistent at {revision}: "
+                f"manifest={'present' if has_manifest else 'absent'}, "
+                f"lock={'present' if has_lock_entry else 'absent'}"
+            )
+        # A root absent from both historical inventories was introduced after
+        # this revision and contributes no paths to the base closure.
     closure_names: set[str] = set()
     while pending:
         name = pending.pop()
@@ -658,7 +687,7 @@ def cargo_closure_rules_at_revision(
             continue
         if name not in directories_by_name or name not in local_lock_packages:
             raise ClassificationError(
-                f"Cargo root package {name!r} is absent at {revision}"
+                f"Cargo dependency package {name!r} is absent at {revision}"
             )
         closure_names.add(name)
         dependencies = local_lock_packages[name].get("dependencies", [])
@@ -1584,28 +1613,56 @@ def blocked(error: Exception) -> Decision:
     )
 
 
+GITHUB_OUTPUT_MAX_BYTES = 64 * 1024
+GITHUB_EXPLANATION_MAX_BYTES = 4 * 1024
+
+
+def _bounded_utf8(value: str, limit: int) -> str:
+    encoded = value.encode("utf-8")
+    if len(encoded) <= limit:
+        return value
+    suffix = "… [truncated]"
+    budget = limit - len(suffix.encode("utf-8"))
+    return encoded[:budget].decode("utf-8", errors="ignore") + suffix
+
+
+def write_decision_file(path: Path, decision: Decision) -> None:
+    try:
+        path.write_text(
+            json.dumps(decision.as_dict(), indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+    except OSError as error:
+        raise ClassificationError(
+            f"cannot write decision file {path}: {error}"
+        ) from error
+
+
 def write_github_output(path: Path, decision: Decision) -> None:
     values = {
         "status": decision.status,
         "tier": decision.tier,
         "run": str(decision.status == "run").lower(),
-        "explanation": decision.explanation,
+        "explanation": _bounded_utf8(
+            decision.explanation, GITHUB_EXPLANATION_MAX_BYTES
+        ),
         "graphs": json.dumps(list(decision.graphs), separators=(",", ":")),
-        "changed_files": json.dumps(
-            list(decision.changed_files), separators=(",", ":")
-        ),
-        "unknown_files": json.dumps(
-            list(decision.unknown_files), separators=(",", ":")
-        ),
     }
+    lines: list[str] = []
+    for key, value in values.items():
+        if "\n" in value or "\r" in value:
+            raise ClassificationError(f"GitHub output {key} contains a newline")
+        lines.append(f"{key}={value}\n")
+    payload = "".join(lines)
+    if len(payload.encode("utf-8")) > GITHUB_OUTPUT_MAX_BYTES:
+        raise ClassificationError(
+            "bounded GitHub outputs exceed "
+            f"{GITHUB_OUTPUT_MAX_BYTES} bytes"
+        )
     try:
         with path.open("a", encoding="utf-8", newline="\n") as output:
-            for key, value in values.items():
-                if "\n" in value or "\r" in value:
-                    raise ClassificationError(
-                        f"GitHub output {key} contains a newline"
-                    )
-                output.write(f"{key}={value}\n")
+            output.write(payload)
     except OSError as error:
         raise ClassificationError(f"cannot write GitHub output {path}: {error}") from error
 
@@ -1621,6 +1678,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--changed-file", action="append", default=[])
     result.add_argument("--declaration", type=Path)
     result.add_argument("--extraction-manifest")
+    result.add_argument("--decision-file", type=Path)
     result.add_argument("--github-output", type=Path)
     result.add_argument("--pretty", action="store_true")
     return result
@@ -1713,14 +1771,28 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
 
+    if args.decision_file:
+        try:
+            write_decision_file(args.decision_file, decision)
+        except ClassificationError as error:
+            decision = blocked(error)
     if args.github_output:
         try:
             write_github_output(args.github_output, decision)
         except ClassificationError as error:
             decision = blocked(error)
+            if args.decision_file:
+                try:
+                    write_decision_file(args.decision_file, decision)
+                except ClassificationError:
+                    pass
+            try:
+                write_github_output(args.github_output, decision)
+            except ClassificationError:
+                pass
     print(
         json.dumps(
-            decision.as_dict(),
+            decision.summary_dict() if args.decision_file else decision.as_dict(),
             indent=2 if args.pretty else None,
             sort_keys=True,
         )

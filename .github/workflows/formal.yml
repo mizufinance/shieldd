@@ -106,6 +106,8 @@ jobs:
             exit 1
           }
           echo "sha=$candidate_sha" >> "$GITHUB_OUTPUT"
+      - name: Prepare bounded applicability state
+        run: mkdir -p .ci-state
       # GITHUB_OUTPUT is per-step, so both classifications can write `tier`
       # without colliding; they are read back as steps.<id>.outputs.tier.
       - name: Classify snarkpack applicability
@@ -118,6 +120,7 @@ jobs:
           args=(
             --gate snarkpack-formal
             --event "$GITHUB_EVENT_NAME"
+            --decision-file .ci-state/snarkpack-decision.json
             --github-output "$GITHUB_OUTPUT"
           )
           if [[ -n "$BASE_SHA" ]]; then
@@ -135,6 +138,7 @@ jobs:
             --gate soundness-formal
             --event "$GITHUB_EVENT_NAME"
             --head "$GITHUB_SHA"
+            --decision-file .ci-state/soundness-decision.json
             --github-output "$GITHUB_OUTPUT"
             --pretty
           )
@@ -147,17 +151,12 @@ jobs:
         shell: bash
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || '' }}
-          SNARKPACK_STATUS: ${{ steps.snarkpack.outputs.status }}
-          SNARKPACK_GRAPHS: ${{ steps.snarkpack.outputs.graphs }}
-          SNARKPACK_UNKNOWN_FILES: ${{ steps.snarkpack.outputs.unknown_files }}
         run: |
           set -euo pipefail
           args=(
             --event "$GITHUB_EVENT_NAME"
-            --status "$SNARKPACK_STATUS"
             --head "${{ steps.candidate.outputs.sha }}"
-            --graphs-json "$SNARKPACK_GRAPHS"
-            --unknown-files-json "$SNARKPACK_UNKNOWN_FILES"
+            --gate-decision .ci-state/snarkpack-decision.json
             --github-output "$GITHUB_OUTPUT"
             --pretty
           )
@@ -269,6 +268,14 @@ jobs:
           crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py
           validate-fstar-artifact
           --artifact ".ci-cache/snarkpack-fstar-pass/fstar-checker-evidence.json"
+      - name: Upload applicability decisions
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: formal-applicability-${{ steps.candidate.outputs.sha }}-${{ github.run_attempt }}
+          path: .ci-state
+          if-no-files-found: warn
+          retention-days: 7
 
   # ---------------------------------------------------------------- snarkpack
 
@@ -375,6 +382,34 @@ jobs:
                 --graph "$graph" \
                 --artifact "$artifact_root/$graph"
             done
+          mapfile -d '' artifacts < <(
+            find "$artifact_root" -mindepth 1 -maxdepth 1 -type d -print0 |
+              sort -z
+          )
+          import_args=()
+          for artifact in "${artifacts[@]}"; do
+            import_args+=(--artifact "$artifact")
+          done
+          python3 "$script" import-recovery \
+            --maximal-compatible \
+            "${import_args[@]}"
+          patch="$artifact_root/refresh.patch"
+          git diff --binary -- . > "$patch"
+          test -s "$patch"
+          {
+            echo "# SnarkPack extraction refresh"
+            echo
+            echo "Candidate: $GITHUB_SHA"
+            echo
+            echo "Review refresh.patch, then apply it from that exact candidate:"
+            echo
+            echo '```sh'
+            echo 'git apply --index refresh.patch'
+            echo 'just snarkpack-fv'
+            echo '```'
+            echo
+            echo "Recovery records are included for audit and later compatible waves."
+          } > "$artifact_root/README.md"
       - name: Upload exact extraction refresh artifacts
         if: failure() && steps.extraction_compare.outcome == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

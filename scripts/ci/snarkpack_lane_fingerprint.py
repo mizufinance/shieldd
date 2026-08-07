@@ -5,12 +5,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import json
 import subprocess
 import sys
+import tomllib
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -35,8 +36,6 @@ COMMON_CONTROLS = (
     Path(".cargo/config.toml"),
     Path(".gitattributes"),
     Path(".gitmodules"),
-    Path("Cargo.lock"),
-    Path("Cargo.toml"),
     Path("rust-toolchain.toml"),
     Path("flake.lock"),
     Path("flake.nix"),
@@ -107,22 +106,24 @@ class FingerprintError(RuntimeError):
     """The lane's exact tracked input set could not be established."""
 
 
-def _load_gate_module(root: Path):
-    path = root / GATE_SCRIPT
-    spec = importlib.util.spec_from_file_location(
-        "_snarkpack_gate_applicability", path
-    )
-    if spec is None or spec.loader is None:
-        raise FingerprintError(f"cannot load gate applicability module: {path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    try:
-        spec.loader.exec_module(module)
-    except (OSError, ImportError) as error:
-        raise FingerprintError(
-            f"cannot load gate applicability module: {error}"
-        ) from error
-    return module
+@dataclass(frozen=True)
+class CargoSelection:
+    directories: tuple[Path, ...]
+    metadata_projection: bytes
+    lock_projection: bytes
+
+
+@dataclass(frozen=True)
+class LockedPackage:
+    name: str
+    version: str
+    source: str | None
+    checksum: str | None
+    dependencies: tuple[str, ...]
+
+    @property
+    def identity(self) -> tuple[str, str, str | None]:
+        return (self.name, self.version, self.source)
 
 
 def _validated_cargo_metadata_timeout(value: int) -> int:
@@ -151,46 +152,358 @@ def _cargo_metadata_timeout_argument(value: str) -> int:
         raise argparse.ArgumentTypeError(str(error)) from error
 
 
-def local_package_closure(
+def cargo_metadata(
+    root: Path,
+    *,
+    timeout_seconds: int = DEFAULT_CARGO_METADATA_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    timeout = _validated_cargo_metadata_timeout(timeout_seconds)
+    try:
+        result = subprocess.run(
+            [
+                "cargo",
+                "metadata",
+                "--locked",
+                "--offline",
+                "--format-version=1",
+                "--no-deps",
+            ],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise FingerprintError(f"cargo metadata failed: {error}") from error
+    if result.returncode:
+        raise FingerprintError(
+            "cargo metadata --locked --offline failed: "
+            + (result.stderr.strip() or str(result.returncode))
+        )
+    try:
+        value = json.loads(result.stdout)
+    except json.JSONDecodeError as error:
+        raise FingerprintError(
+            f"cargo metadata returned malformed JSON: {error}"
+        ) from error
+    if not isinstance(value, dict):
+        raise FingerprintError("cargo metadata must be an object")
+    return value
+
+
+def _repo_relative_path(root: Path, value: str, label: str) -> Path:
+    try:
+        path = Path(value)
+        absolute = path.resolve() if path.is_absolute() else (root / path).resolve()
+        return absolute.relative_to(root.resolve())
+    except (OSError, ValueError) as error:
+        raise FingerprintError(f"{label} is outside the repository: {value}") from error
+
+
+_METADATA_PATH_FIELDS = {
+    "license_file",
+    "manifest_path",
+    "path",
+    "readme",
+    "src_path",
+}
+
+
+def _canonical_metadata_value(
+    root: Path, value: Any, *, field: str | None = None
+) -> Any:
+    if isinstance(value, dict):
+        return {
+            key: _canonical_metadata_value(root, item, field=key)
+            for key, item in sorted(value.items())
+            if key != "id"
+        }
+    if isinstance(value, list):
+        return [
+            _canonical_metadata_value(root, item, field=field) for item in value
+        ]
+    if field in _METADATA_PATH_FIELDS and isinstance(value, str):
+        return _repo_relative_path(root, value, f"Cargo metadata {field}").as_posix()
+    return value
+
+
+def _canonical_json(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+
+
+def local_metadata_projection(
+    root: Path,
+    metadata: Mapping[str, Any],
+    directories: Iterable[Path],
+) -> bytes:
+    selected = {path.as_posix() for path in directories}
+    packages = metadata.get("packages")
+    if not isinstance(packages, list):
+        raise FingerprintError("cargo metadata.packages must be an array")
+    projected: list[dict[str, Any]] = []
+    found: set[str] = set()
+    for index, value in enumerate(packages):
+        if not isinstance(value, dict):
+            raise FingerprintError(f"cargo metadata package {index} is not an object")
+        manifest = value.get("manifest_path")
+        if not isinstance(manifest, str):
+            raise FingerprintError(
+                f"cargo metadata package {index} has no manifest path"
+            )
+        directory = _repo_relative_path(
+            root, str(Path(manifest).parent), f"Cargo package {index}"
+        ).as_posix()
+        if directory not in selected:
+            continue
+        found.add(directory)
+        package = _canonical_metadata_value(root, value)
+        assert isinstance(package, dict)
+        for field in ("dependencies", "targets"):
+            items = package.get(field)
+            if isinstance(items, list):
+                package[field] = sorted(items, key=_canonical_json)
+        projected.append(package)
+    missing = sorted(selected - found)
+    if missing:
+        raise FingerprintError(
+            "selected Cargo package metadata is missing: " + ", ".join(missing)
+        )
+    projected.sort(key=_canonical_json)
+    return _canonical_json({"schema_version": 1, "packages": projected})
+
+
+def _lock_string(value: Any, label: str) -> str:
+    if not isinstance(value, str) or not value:
+        raise FingerprintError(f"{label} must be a non-empty string")
+    return value
+
+
+def _locked_packages(value: Mapping[str, Any]) -> tuple[LockedPackage, ...]:
+    raw_packages = value.get("package")
+    if not isinstance(raw_packages, list) or not raw_packages:
+        raise FingerprintError("Cargo.lock must contain package entries")
+    packages: list[LockedPackage] = []
+    identities: set[tuple[str, str, str | None]] = set()
+    for index, raw in enumerate(raw_packages):
+        if not isinstance(raw, dict):
+            raise FingerprintError(f"Cargo.lock package {index} is not an object")
+        source = raw.get("source")
+        checksum = raw.get("checksum")
+        if source is not None and not isinstance(source, str):
+            raise FingerprintError(f"Cargo.lock package {index}.source is invalid")
+        if checksum is not None and not isinstance(checksum, str):
+            raise FingerprintError(f"Cargo.lock package {index}.checksum is invalid")
+        dependencies = raw.get("dependencies", [])
+        if not isinstance(dependencies, list) or any(
+            not isinstance(item, str) or not item for item in dependencies
+        ):
+            raise FingerprintError(
+                f"Cargo.lock package {index}.dependencies is invalid"
+            )
+        package = LockedPackage(
+            name=_lock_string(raw.get("name"), f"Cargo.lock package {index}.name"),
+            version=_lock_string(
+                raw.get("version"), f"Cargo.lock package {index}.version"
+            ),
+            source=source,
+            checksum=checksum,
+            dependencies=tuple(dependencies),
+        )
+        if package.identity in identities:
+            raise FingerprintError(
+                f"duplicate Cargo.lock package identity {package.identity!r}"
+            )
+        identities.add(package.identity)
+        packages.append(package)
+    return tuple(packages)
+
+
+def _resolve_locked_dependency(
+    dependency: str,
+    packages_by_name: Mapping[str, tuple[LockedPackage, ...]],
+) -> LockedPackage:
+    matches: list[LockedPackage] = []
+    for name, packages in packages_by_name.items():
+        if dependency != name and not dependency.startswith(f"{name} "):
+            continue
+        for package in packages:
+            forms = {package.name, f"{package.name} {package.version}"}
+            if package.source is not None:
+                forms.add(
+                    f"{package.name} {package.version} ({package.source})"
+                )
+            if dependency in forms:
+                matches.append(package)
+    if len(matches) != 1:
+        raise FingerprintError(
+            f"Cargo.lock dependency {dependency!r} resolved to {len(matches)} packages"
+        )
+    return matches[0]
+
+
+def cargo_lock_projection_from_data(
+    value: Mapping[str, Any], roots: Sequence[str]
+) -> bytes:
+    packages = _locked_packages(value)
+    by_name: dict[str, tuple[LockedPackage, ...]] = {}
+    for name in sorted({package.name for package in packages}):
+        by_name[name] = tuple(
+            package for package in packages if package.name == name
+        )
+
+    pending: list[LockedPackage] = []
+    for name in roots:
+        candidates = tuple(
+            package for package in by_name.get(name, ()) if package.source is None
+        )
+        if len(candidates) != 1:
+            raise FingerprintError(
+                f"Cargo.lock root package {name!r} resolved to "
+                f"{len(candidates)} packages"
+            )
+        pending.append(candidates[0])
+
+    selected: dict[tuple[str, str, str | None], LockedPackage] = {}
+    edges: dict[tuple[str, str, str | None], tuple[LockedPackage, ...]] = {}
+    while pending:
+        package = pending.pop()
+        if package.identity in selected:
+            continue
+        selected[package.identity] = package
+        dependencies = tuple(
+            _resolve_locked_dependency(dependency, by_name)
+            for dependency in package.dependencies
+        )
+        edges[package.identity] = dependencies
+        pending.extend(dependencies)
+
+    def identity_value(package: LockedPackage) -> dict[str, str | None]:
+        return {
+            "name": package.name,
+            "version": package.version,
+            "source": package.source,
+        }
+
+    projection = []
+    for identity in sorted(
+        selected, key=lambda item: (item[0], item[1], item[2] or "")
+    ):
+        package = selected[identity]
+        dependencies = sorted(
+            (identity_value(item) for item in edges[identity]),
+            key=_canonical_json,
+        )
+        projection.append(
+            {
+                **identity_value(package),
+                "checksum": package.checksum,
+                "dependencies": dependencies,
+            }
+        )
+    return _canonical_json({"schema_version": 1, "packages": projection})
+
+
+def cargo_lock_projection(root: Path, roots: Sequence[str]) -> bytes:
+    path = root / "Cargo.lock"
+    try:
+        value = tomllib.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError) as error:
+        raise FingerprintError(f"cannot read Cargo.lock: {error}") from error
+    return cargo_lock_projection_from_data(value, roots)
+
+
+def cargo_selection(
     root: Path,
     packages: Sequence[str],
     *,
     metadata_timeout_seconds: int = DEFAULT_CARGO_METADATA_TIMEOUT_SECONDS,
-) -> tuple[Path, ...]:
-    timeout = _validated_cargo_metadata_timeout(metadata_timeout_seconds)
-    gate = _load_gate_module(root)
-    source = {
-        "packages": list(packages),
-        "tiers": {"default": "full"},
-        "reason": "SnarkPack lane fingerprint",
-    }
-    try:
-        rules = gate.cargo_closure_rules(
+) -> CargoSelection:
+    metadata = cargo_metadata(root, timeout_seconds=metadata_timeout_seconds)
+    raw_packages = metadata.get("packages")
+    if not isinstance(raw_packages, list) or not raw_packages:
+        raise FingerprintError("cargo metadata.packages must be a non-empty array")
+    by_name: dict[str, list[dict[str, Any]]] = {}
+    by_dir: dict[str, dict[str, Any]] = {}
+    for index, value in enumerate(raw_packages):
+        if not isinstance(value, dict):
+            raise FingerprintError(f"cargo metadata package {index} is not an object")
+        name = _lock_string(value.get("name"), f"cargo package {index}.name")
+        manifest = _lock_string(
+            value.get("manifest_path"), f"cargo package {name}.manifest_path"
+        )
+        directory = _repo_relative_path(
+            root, str(Path(manifest).parent), f"cargo package {name}"
+        ).as_posix()
+        if directory in by_dir:
+            raise FingerprintError(f"duplicate local Cargo directory {directory}")
+        by_name.setdefault(name, []).append(value)
+        by_dir[directory] = value
+
+    pending: list[dict[str, Any]] = []
+    for name in packages:
+        candidates = by_name.get(name, [])
+        if len(candidates) != 1:
+            raise FingerprintError(
+                f"cargo root package {name!r} resolved to {len(candidates)} packages"
+            )
+        pending.append(candidates[0])
+
+    directories: set[str] = set()
+    while pending:
+        package = pending.pop()
+        name = str(package["name"])
+        directory = _repo_relative_path(
             root,
-            source,
-            "pull_request",
-            metadata_timeout_seconds=timeout,
-        )
-    except (OSError, RuntimeError, TypeError, ValueError) as error:
-        raise FingerprintError(
-            f"cannot resolve local Cargo closure: {error}"
-        ) from error
-    if not rules:
-        raise FingerprintError("local Cargo closure is empty")
-    suffix = "/**"
-    directories = tuple(
-        sorted(
-            {
-                Path(pattern[: -len(suffix)])
-                for pattern in rules[0].patterns
-                if pattern.endswith(suffix)
-            },
-            key=lambda path: path.as_posix(),
-        )
+            str(Path(str(package["manifest_path"])).parent),
+            f"cargo package {name}",
+        ).as_posix()
+        if directory in directories:
+            continue
+        directories.add(directory)
+        dependencies = package.get("dependencies")
+        if not isinstance(dependencies, list):
+            raise FingerprintError(
+                f"cargo package {name}.dependencies must be an array"
+            )
+        for dependency in dependencies:
+            if not isinstance(dependency, dict):
+                raise FingerprintError(
+                    f"cargo package {name} dependency is not an object"
+                )
+            dependency_path = dependency.get("path")
+            if dependency_path is None:
+                continue
+            if not isinstance(dependency_path, str):
+                raise FingerprintError(
+                    f"cargo package {name} dependency path is invalid"
+                )
+            dependency_dir = _repo_relative_path(
+                root, dependency_path, f"cargo dependency of {name}"
+            ).as_posix()
+            if dependency_dir not in by_dir:
+                raise FingerprintError(
+                    f"cargo dependency {dependency_dir!r} is absent from metadata"
+                )
+            pending.append(by_dir[dependency_dir])
+
+    selected_directories = tuple(
+        Path(directory) for directory in sorted(directories)
     )
-    if not directories:
+    if not selected_directories:
         raise FingerprintError("local Cargo closure contains no directories")
-    return directories
+    return CargoSelection(
+        directories=selected_directories,
+        metadata_projection=local_metadata_projection(
+            root, metadata, selected_directories
+        ),
+        lock_projection=cargo_lock_projection(root, packages),
+    )
 
 
 def _run_git(
@@ -365,6 +678,7 @@ def tracked_fingerprint(
     *,
     excluded_paths: Iterable[Path] = (),
     additional_paths: Iterable[Path] = (),
+    projections: Mapping[str, bytes] | None = None,
 ) -> str:
     normalized = _normalized_paths(paths)
     excluded = _normalized_paths(excluded_paths)
@@ -411,8 +725,17 @@ def tracked_fingerprint(
             "lane inputs differ from the frozen candidate commit"
         )
 
+    projection_items = sorted((projections or {}).items())
+    for label, value in projection_items:
+        if (
+            not label
+            or any(character in label for character in ("\0", "\n", "\r"))
+            or not isinstance(value, bytes)
+        ):
+            raise FingerprintError("lane projection must map safe labels to bytes")
+
     digest = hashlib.sha256()
-    digest.update(b"snarkpack-lane-pass-v1\0")
+    digest.update(b"snarkpack-lane-pass-v2\0")
     digest.update(lane.encode("utf-8"))
     digest.update(b"\0")
     for context in contexts:
@@ -420,6 +743,14 @@ def tracked_fingerprint(
         digest.update(b"\0")
     for record in sorted(inventory):
         digest.update(record)
+        digest.update(b"\0")
+    for label, value in projection_items:
+        digest.update(b"projection\0")
+        digest.update(label.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(str(len(value)).encode("ascii"))
+        digest.update(b"\0")
+        digest.update(value)
         digest.update(b"\0")
     return digest.hexdigest()
 
@@ -433,7 +764,7 @@ def fingerprint(
 ) -> str:
     if lane not in LANE_PACKAGES:
         raise FingerprintError(f"unknown SnarkPack lane: {lane}")
-    closure = local_package_closure(
+    selection = cargo_selection(
         root,
         LANE_PACKAGES[lane],
         metadata_timeout_seconds=metadata_timeout_seconds,
@@ -442,10 +773,14 @@ def fingerprint(
     return tracked_fingerprint(
         root,
         lane,
-        closure,
+        selection.directories,
         contexts,
-        excluded_paths=package_proof_exclusions(closure),
+        excluded_paths=package_proof_exclusions(selection.directories),
         additional_paths=controls,
+        projections={
+            "cargo-lock-closure-v1": selection.lock_projection,
+            "cargo-local-metadata-v1": selection.metadata_projection,
+        },
     )
 
 
