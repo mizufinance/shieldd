@@ -34,8 +34,8 @@ use crate::{
         action_view::{NoteReshapeView, TransferView},
         MemoView, TransactionBodyView,
     },
-    Action, ActionView, DetectionData, IsAction, MemoPlaintextView, TransactionParameters,
-    TransactionPerspective, TransactionView,
+    Action, ActionView, IsAction, MemoPlaintextView, TransactionParameters, TransactionPerspective,
+    TransactionView,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -43,7 +43,6 @@ pub struct TransactionBody {
     pub actions: Vec<Action>,
     pub transaction_parameters: TransactionParameters,
     pub fee_funding: Option<FeeFunding>,
-    pub detection_data: Option<DetectionData>,
     pub memo: Option<MemoCiphertext>,
 }
 
@@ -71,11 +70,6 @@ impl EffectingData for TransactionBody {
             .as_ref()
             .map(|memo| memo.effect_hash())
             .unwrap_or_default();
-        let detection_data_hash = self
-            .detection_data
-            .as_ref()
-            .map(|detection_data| detection_data.effect_hash())
-            .unwrap_or_default();
         let fee_funding_hash = self
             .fee_funding
             .as_ref()
@@ -84,7 +78,6 @@ impl EffectingData for TransactionBody {
 
         state.update(parameters_hash.as_bytes());
         state.update(memo_hash.as_bytes());
-        state.update(detection_data_hash.as_bytes());
         state.update(fee_funding_hash.as_bytes());
 
         let num_actions = self.actions.len() as u32;
@@ -417,20 +410,11 @@ impl Transaction {
             None => None,
         };
 
-        let detection_data =
-            self.transaction_body()
-                .detection_data
-                .as_ref()
-                .map(|detection_data| DetectionData {
-                    fmd_clues: detection_data.fmd_clues.clone(),
-                });
-
         TransactionView {
             body_view: TransactionBodyView {
                 action_views,
                 transaction_parameters: self.transaction_parameters(),
                 fee_funding,
-                detection_data,
                 memo_view,
             },
             binding_sig: self.binding_sig,
@@ -788,6 +772,7 @@ mod tests {
                             )),
                             ephemeral_key: decaf377_ka::Public([6u8; 32]),
                             encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([7u8; 176]),
+                            discovery_tag: Default::default(),
                         },
                         wrapped_memo_key: WrappedMemoKey([8u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([9u8; 48]),
@@ -801,6 +786,7 @@ mod tests {
                             )),
                             ephemeral_key: decaf377_ka::Public([60u8; 32]),
                             encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([70u8; 176]),
+                            discovery_tag: Default::default(),
                         },
                         wrapped_memo_key: WrappedMemoKey([80u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([90u8; 48]),
@@ -854,6 +840,7 @@ mod tests {
                         )),
                         ephemeral_key: decaf377_ka::Public([3u8; 32]),
                         encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([4u8; 176]),
+                        discovery_tag: Default::default(),
                     },
                     wrapped_memo_key: WrappedMemoKey([5u8; 48]),
                     ovk_wrapped_key: OvkWrappedKey([6u8; 48]),
@@ -919,6 +906,7 @@ mod tests {
                                     ephemeral_key: decaf377_ka::Public([7u8; 32]),
                                     encrypted_note:
                                         shieldd_sdk_shielded_pool::NoteCiphertext([8u8; 176]),
+                                    discovery_tag: Default::default(),
                                 },
                                 wrapped_memo_key: WrappedMemoKey([9u8; 48]),
                                 ovk_wrapped_key: OvkWrappedKey([10u8; 48]),
@@ -950,6 +938,7 @@ mod tests {
                                         encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
                                             [18u8; 176],
                                         ),
+                                        discovery_tag: Default::default(),
                                     },
                                     wrapped_memo_key: WrappedMemoKey([19u8; 48]),
                                     ovk_wrapped_key: OvkWrappedKey([20u8; 48]),
@@ -1011,6 +1000,7 @@ mod tests {
                                                 shieldd_sdk_shielded_pool::NoteCiphertext(
                                                     [29u8; 176],
                                                 ),
+                                            discovery_tag: Default::default(),
                                         },
                                         wrapped_memo_key: WrappedMemoKey([30u8; 48]),
                                         ovk_wrapped_key: OvkWrappedKey([31u8; 48]),
@@ -1089,7 +1079,6 @@ impl From<TransactionBody> for pbt::TransactionBody {
             actions: msg.actions.into_iter().map(Into::into).collect(),
             transaction_parameters: Some(msg.transaction_parameters.into()),
             fee_funding: msg.fee_funding.map(Into::into),
-            detection_data: msg.detection_data.map(Into::into),
             memo: msg.memo.map(Into::into),
         }
     }
@@ -1115,11 +1104,6 @@ impl TryFrom<pbt::TransactionBody> for TransactionBody {
             .transpose()
             .context("encrypted memo malformed while parsing transaction body")?;
 
-        let detection_data = proto
-            .detection_data
-            .map(TryFrom::try_from)
-            .transpose()
-            .context("detection data malformed while parsing transaction body")?;
         let fee_funding = proto
             .fee_funding
             .map(TryFrom::try_from)
@@ -1136,7 +1120,6 @@ impl TryFrom<pbt::TransactionBody> for TransactionBody {
             actions,
             transaction_parameters,
             fee_funding,
-            detection_data,
             memo,
         })
     }

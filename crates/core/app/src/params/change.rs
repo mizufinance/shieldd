@@ -79,7 +79,11 @@ impl AppParameters {
                     epoch_duration,
                     sct_anchor_retention_blocks: _,
                 },
-            shielded_pool_params: ShieldedPoolParameters { fmd_meta_params: _ },
+            shielded_pool_params:
+                ShieldedPoolParameters {
+                    discovery_params: _,
+                    discovery_grace_period_blocks: _,
+                },
             validator_params:
                 ValidatorParameters {
                     active_validator_limit,
@@ -159,7 +163,11 @@ impl AppParameters {
                     epoch_duration,
                     sct_anchor_retention_blocks,
                 },
-            shielded_pool_params: ShieldedPoolParameters { fmd_meta_params: _ },
+            shielded_pool_params:
+                ShieldedPoolParameters {
+                    discovery_params: _,
+                    discovery_grace_period_blocks: _,
+                },
             validator_params:
                 ValidatorParameters {
                     active_validator_limit,

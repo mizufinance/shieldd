@@ -940,336 +940,6 @@ impl<'de> serde::Deserialize<'de> for AuthorizationData {
         deserializer.deserialize_struct("shieldd.core.transaction.v1.AuthorizationData", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for CluePlan {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.address.is_some() {
-            len += 1;
-        }
-        if !self.rseed.is_empty() {
-            len += 1;
-        }
-        if self.precision_bits != 0 {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.CluePlan", len)?;
-        if let Some(v) = self.address.as_ref() {
-            struct_ser.serialize_field("address", v)?;
-        }
-        if !self.rseed.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("rseed", pbjson::private::base64::encode(&self.rseed).as_str())?;
-        }
-        if self.precision_bits != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("precisionBits", ToString::to_string(&self.precision_bits).as_str())?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for CluePlan {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "address",
-            "rseed",
-            "precision_bits",
-            "precisionBits",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Address,
-            Rseed,
-            PrecisionBits,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "address" => Ok(GeneratedField::Address),
-                            "rseed" => Ok(GeneratedField::Rseed),
-                            "precisionBits" | "precision_bits" => Ok(GeneratedField::PrecisionBits),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = CluePlan;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.transaction.v1.CluePlan")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CluePlan, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut address__ = None;
-                let mut rseed__ = None;
-                let mut precision_bits__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Address => {
-                            if address__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("address"));
-                            }
-                            address__ = map_.next_value()?;
-                        }
-                        GeneratedField::Rseed => {
-                            if rseed__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("rseed"));
-                            }
-                            rseed__ = 
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::PrecisionBits => {
-                            if precision_bits__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("precisionBits"));
-                            }
-                            precision_bits__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(CluePlan {
-                    address: address__,
-                    rseed: rseed__.unwrap_or_default(),
-                    precision_bits: precision_bits__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.transaction.v1.CluePlan", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for DetectionData {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.fmd_clues.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.DetectionData", len)?;
-        if !self.fmd_clues.is_empty() {
-            struct_ser.serialize_field("fmdClues", &self.fmd_clues)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for DetectionData {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "fmd_clues",
-            "fmdClues",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            FmdClues,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "fmdClues" | "fmd_clues" => Ok(GeneratedField::FmdClues),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = DetectionData;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.transaction.v1.DetectionData")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<DetectionData, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut fmd_clues__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::FmdClues => {
-                            if fmd_clues__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("fmdClues"));
-                            }
-                            fmd_clues__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(DetectionData {
-                    fmd_clues: fmd_clues__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.transaction.v1.DetectionData", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for DetectionDataPlan {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.clue_plans.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.DetectionDataPlan", len)?;
-        if !self.clue_plans.is_empty() {
-            struct_ser.serialize_field("cluePlans", &self.clue_plans)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for DetectionDataPlan {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "clue_plans",
-            "cluePlans",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            CluePlans,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "cluePlans" | "clue_plans" => Ok(GeneratedField::CluePlans),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = DetectionDataPlan;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.transaction.v1.DetectionDataPlan")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<DetectionDataPlan, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut clue_plans__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::CluePlans => {
-                            if clue_plans__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("cluePlans"));
-                            }
-                            clue_plans__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(DetectionDataPlan {
-                    clue_plans: clue_plans__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.transaction.v1.DetectionDataPlan", FIELDS, GeneratedVisitor)
-    }
-}
 impl serde::Serialize for FamilyAggregate {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -2870,9 +2540,6 @@ impl serde::Serialize for TransactionBody {
         if self.fee_funding.is_some() {
             len += 1;
         }
-        if self.detection_data.is_some() {
-            len += 1;
-        }
         if self.memo.is_some() {
             len += 1;
         }
@@ -2885,9 +2552,6 @@ impl serde::Serialize for TransactionBody {
         }
         if let Some(v) = self.fee_funding.as_ref() {
             struct_ser.serialize_field("feeFunding", v)?;
-        }
-        if let Some(v) = self.detection_data.as_ref() {
-            struct_ser.serialize_field("detectionData", v)?;
         }
         if let Some(v) = self.memo.as_ref() {
             struct_ser.serialize_field("memo", v)?;
@@ -2907,8 +2571,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
             "transactionParameters",
             "fee_funding",
             "feeFunding",
-            "detection_data",
-            "detectionData",
             "memo",
         ];
 
@@ -2917,7 +2579,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
             Actions,
             TransactionParameters,
             FeeFunding,
-            DetectionData,
             Memo,
             __SkipField__,
         }
@@ -2944,7 +2605,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                             "actions" => Ok(GeneratedField::Actions),
                             "transactionParameters" | "transaction_parameters" => Ok(GeneratedField::TransactionParameters),
                             "feeFunding" | "fee_funding" => Ok(GeneratedField::FeeFunding),
-                            "detectionData" | "detection_data" => Ok(GeneratedField::DetectionData),
                             "memo" => Ok(GeneratedField::Memo),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -2968,7 +2628,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                 let mut actions__ = None;
                 let mut transaction_parameters__ = None;
                 let mut fee_funding__ = None;
-                let mut detection_data__ = None;
                 let mut memo__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -2990,12 +2649,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                             }
                             fee_funding__ = map_.next_value()?;
                         }
-                        GeneratedField::DetectionData => {
-                            if detection_data__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("detectionData"));
-                            }
-                            detection_data__ = map_.next_value()?;
-                        }
                         GeneratedField::Memo => {
                             if memo__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("memo"));
@@ -3011,7 +2664,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                     actions: actions__.unwrap_or_default(),
                     transaction_parameters: transaction_parameters__,
                     fee_funding: fee_funding__,
-                    detection_data: detection_data__,
                     memo: memo__,
                 })
             }
@@ -3036,9 +2688,6 @@ impl serde::Serialize for TransactionBodyView {
         if self.fee_funding.is_some() {
             len += 1;
         }
-        if self.detection_data.is_some() {
-            len += 1;
-        }
         if self.memo_view.is_some() {
             len += 1;
         }
@@ -3051,9 +2700,6 @@ impl serde::Serialize for TransactionBodyView {
         }
         if let Some(v) = self.fee_funding.as_ref() {
             struct_ser.serialize_field("feeFunding", v)?;
-        }
-        if let Some(v) = self.detection_data.as_ref() {
-            struct_ser.serialize_field("detectionData", v)?;
         }
         if let Some(v) = self.memo_view.as_ref() {
             struct_ser.serialize_field("memoView", v)?;
@@ -3074,8 +2720,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
             "transactionParameters",
             "fee_funding",
             "feeFunding",
-            "detection_data",
-            "detectionData",
             "memo_view",
             "memoView",
         ];
@@ -3085,7 +2729,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
             ActionViews,
             TransactionParameters,
             FeeFunding,
-            DetectionData,
             MemoView,
             __SkipField__,
         }
@@ -3112,7 +2755,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                             "actionViews" | "action_views" => Ok(GeneratedField::ActionViews),
                             "transactionParameters" | "transaction_parameters" => Ok(GeneratedField::TransactionParameters),
                             "feeFunding" | "fee_funding" => Ok(GeneratedField::FeeFunding),
-                            "detectionData" | "detection_data" => Ok(GeneratedField::DetectionData),
                             "memoView" | "memo_view" => Ok(GeneratedField::MemoView),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -3136,7 +2778,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                 let mut action_views__ = None;
                 let mut transaction_parameters__ = None;
                 let mut fee_funding__ = None;
-                let mut detection_data__ = None;
                 let mut memo_view__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -3158,12 +2799,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                             }
                             fee_funding__ = map_.next_value()?;
                         }
-                        GeneratedField::DetectionData => {
-                            if detection_data__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("detectionData"));
-                            }
-                            detection_data__ = map_.next_value()?;
-                        }
                         GeneratedField::MemoView => {
                             if memo_view__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("memoView"));
@@ -3179,7 +2814,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                     action_views: action_views__.unwrap_or_default(),
                     transaction_parameters: transaction_parameters__,
                     fee_funding: fee_funding__,
-                    detection_data: detection_data__,
                     memo_view: memo_view__,
                 })
             }
@@ -3953,9 +3587,6 @@ impl serde::Serialize for TransactionPlan {
         if self.fee_funding.is_some() {
             len += 1;
         }
-        if self.detection_data.is_some() {
-            len += 1;
-        }
         if self.memo.is_some() {
             len += 1;
         }
@@ -3968,9 +3599,6 @@ impl serde::Serialize for TransactionPlan {
         }
         if let Some(v) = self.fee_funding.as_ref() {
             struct_ser.serialize_field("feeFunding", v)?;
-        }
-        if let Some(v) = self.detection_data.as_ref() {
-            struct_ser.serialize_field("detectionData", v)?;
         }
         if let Some(v) = self.memo.as_ref() {
             struct_ser.serialize_field("memo", v)?;
@@ -3990,8 +3618,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
             "transactionParameters",
             "fee_funding",
             "feeFunding",
-            "detection_data",
-            "detectionData",
             "memo",
         ];
 
@@ -4000,7 +3626,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
             Actions,
             TransactionParameters,
             FeeFunding,
-            DetectionData,
             Memo,
             __SkipField__,
         }
@@ -4027,7 +3652,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                             "actions" => Ok(GeneratedField::Actions),
                             "transactionParameters" | "transaction_parameters" => Ok(GeneratedField::TransactionParameters),
                             "feeFunding" | "fee_funding" => Ok(GeneratedField::FeeFunding),
-                            "detectionData" | "detection_data" => Ok(GeneratedField::DetectionData),
                             "memo" => Ok(GeneratedField::Memo),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -4051,7 +3675,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                 let mut actions__ = None;
                 let mut transaction_parameters__ = None;
                 let mut fee_funding__ = None;
-                let mut detection_data__ = None;
                 let mut memo__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -4073,12 +3696,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                             }
                             fee_funding__ = map_.next_value()?;
                         }
-                        GeneratedField::DetectionData => {
-                            if detection_data__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("detectionData"));
-                            }
-                            detection_data__ = map_.next_value()?;
-                        }
                         GeneratedField::Memo => {
                             if memo__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("memo"));
@@ -4094,7 +3711,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                     actions: actions__.unwrap_or_default(),
                     transaction_parameters: transaction_parameters__,
                     fee_funding: fee_funding__,
-                    detection_data: detection_data__,
                     memo: memo__,
                 })
             }

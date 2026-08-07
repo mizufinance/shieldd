@@ -66,12 +66,6 @@ message Nullifier {
   bytes inner = 1;
 }
 
-// Records information about what transaction spent a nullifier.
-message NullificationInfo {
-  bytes id = 1;
-  uint64 spend_height = 2;
-}
-
 // Event recording a new commitment added to the SCT.
 message EventCommitment {
   crypto.tct.v1.StateCommitment commitment = 1;
@@ -147,9 +141,9 @@ message NullifierRequest {
 }
 
 message NullifierResponse {
+  reserved 2;
+  reserved "nullification_info";
   bool spent = 1;
-  // Present only when spent = true.
-  NullificationInfo nullification_info = 2;
   // The committed nullifier tree root used for this lookup; always present
   // when the server has initialized SCT state.
   bytes nullifier_root = 3;

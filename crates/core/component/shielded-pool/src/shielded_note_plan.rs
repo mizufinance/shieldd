@@ -15,6 +15,7 @@ use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
 use std::convert::{TryFrom, TryInto};
 
+use crate::discovery::Precision;
 use crate::{Backref, Note, Rseed, TransferInputBody};
 
 // Bare shielded plan constructors are used heavily by tests, vector generation,
@@ -394,6 +395,7 @@ impl ShieldedOutputPlan {
         &self,
         ovk: &OutgoingViewingKey,
         memo_key: &PayloadKey,
+        discovery_precision: Precision,
     ) -> (crate::NotePayload, WrappedMemoKey, OvkWrappedKey) {
         let note = self.output_note();
         let esk: ka::Secret = note.ephemeral_secret_key();
@@ -404,7 +406,11 @@ impl ShieldedOutputPlan {
             note.transmission_key(),
             &note.diversified_generator(),
         );
-        (note.payload(), wrapped_memo_key, ovk_wrapped_key)
+        (
+            note.payload(discovery_precision),
+            wrapped_memo_key,
+            ovk_wrapped_key,
+        )
     }
 
     pub fn is_viewed_by(&self, ivk: &IncomingViewingKey) -> bool {

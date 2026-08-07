@@ -48,8 +48,8 @@ service ViewService {
   // Query for the current gas prices.
   rpc GasPrices(GasPricesRequest) returns (GasPricesResponse);
 
-  // Query for the current FMD parameters.
-  rpc FMDParameters(FMDParametersRequest) returns (FMDParametersResponse);
+  // Query for the current note-discovery parameters.
+  rpc DiscoveryParameters(DiscoveryParametersRequest) returns (DiscoveryParametersResponse);
 
   // Query for an address given an address index
   rpc AddressByIndex(AddressByIndexRequest) returns (AddressByIndexResponse);
@@ -416,11 +416,11 @@ message GasPricesResponse {
   repeated core.component.fee.v1.GasPrices alt_gas_prices = 2;
 }
 
-// Requests the current FMD parameters from the view service.
-message FMDParametersRequest {}
+// Requests the current note-discovery parameters from the view service.
+message DiscoveryParametersRequest {}
 
-message FMDParametersResponse {
-  core.component.shielded_pool.v1.FmdParameters parameters = 1;
+message DiscoveryParametersResponse {
+  core.component.shielded_pool.v1.DiscoveryParameters parameters = 1;
 }
 
 message NoteByCommitmentRequest {

@@ -20,8 +20,8 @@ message CompactBlock {
   crypto.tct.v1.MerkleRoot epoch_root = 5;
   // If a proposal started voting in this block, this is set to `true`.
   bool proposal_started = 6;
-  // Latest Fuzzy Message Detection parameters.
-  shielded_pool.v1.FmdParameters fmd_parameters = 7;
+  // Latest note-discovery parameters. Absent when unchanged.
+  shielded_pool.v1.DiscoveryParameters discovery_parameters = 7;
   // Indicates updated app parameters.
   bool app_parameters_updated = 9;
   // Updated gas prices, if they have changed.
@@ -65,6 +65,10 @@ service QueryService {
   //
   // Clients requesting multiple compact blocks should generally use the streaming RPC.
   rpc CompactBlock(CompactBlockRequest) returns (CompactBlockResponse);
+  // Streams public discovery tags without encrypted note payloads.
+  rpc DiscoveryBlockRange(DiscoveryBlockRangeRequest) returns (stream DiscoveryBlockRangeResponse);
+  // Finds encrypted note candidates by public discovery tag without requiring an index.
+  rpc NoteCandidates(NoteCandidatesRequest) returns (stream NoteCandidatesResponse);
 }
 
 // Requests a range of compact block data.
@@ -88,4 +92,33 @@ message CompactBlockRequest {
 
 message CompactBlockResponse {
   core.component.compact_block.v1.CompactBlock compact_block = 1;
+}
+
+message DiscoveryBlock {
+  uint64 height = 1;
+  crypto.tct.v1.MerkleRoot block_root = 2;
+  crypto.tct.v1.MerkleRoot epoch_root = 3;
+  repeated shielded_pool.v1.DiscoveryTag tags = 4;
+  shielded_pool.v1.DiscoveryParameters discovery_parameters = 5;
+}
+
+message DiscoveryBlockRangeRequest {
+  uint64 start_height = 1;
+  uint64 end_height = 2;
+}
+
+message DiscoveryBlockRangeResponse {
+  DiscoveryBlock discovery_block = 1;
+}
+
+message NoteCandidatesRequest {
+  uint64 start_height = 1;
+  uint64 end_height = 2;
+  repeated shielded_pool.v1.DiscoveryTag tags = 3;
+}
+
+message NoteCandidatesResponse {
+  uint64 height = 1;
+  uint32 state_payload_index = 2;
+  shielded_pool.v1.NotePayload note_payload = 3;
 }

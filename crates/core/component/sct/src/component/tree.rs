@@ -5,6 +5,7 @@ use futures::{Stream, StreamExt};
 use shieldd_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
 use shieldd_sdk_tct as tct;
 use std::{
+    fmt,
     ops::{Range, RangeFrom},
     pin::Pin,
 };
@@ -15,13 +16,54 @@ use tracing::instrument;
 
 use crate::{
     component::{clock::EpochRead, sct::StateReadExt},
-    event, nullifier_tree, state_key, CommitmentSource, NullificationInfo, Nullifier,
+    event, nullifier_tree, state_key, CommitmentSource, Nullifier,
 };
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ProposalNullifierBatchProfile {
     pub lookup_write_ms: f64,
     pub pending_stage_ms: f64,
+}
+
+pub const SCT_BLOCK_COMMITMENT_CAPACITY: usize = u16::MAX as usize + 1;
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum SctCapacityError {
+    TreeFull,
+    Block { requested: usize, remaining: usize },
+}
+
+impl fmt::Display for SctCapacityError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::TreeFull => formatter.write_str("state commitment tree is full"),
+            Self::Block {
+                requested,
+                remaining,
+            } => write!(
+                formatter,
+                "SCT block commitment capacity exceeded: requested {requested}, remaining {remaining}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for SctCapacityError {}
+
+fn ensure_block_capacity(
+    tree: &tct::Tree,
+    requested: usize,
+) -> std::result::Result<(), SctCapacityError> {
+    let position = tree.position().ok_or(SctCapacityError::TreeFull)?;
+    let used = position.commitment() as usize;
+    let remaining = SCT_BLOCK_COMMITMENT_CAPACITY - used;
+    if requested > remaining {
+        return Err(SctCapacityError::Block {
+            requested,
+            remaining,
+        });
+    }
+    Ok(())
 }
 
 struct SctNvStorage<'a, S: ?Sized> {
@@ -179,12 +221,14 @@ impl<S: StateWrite + Send + Sync + ?Sized> TctAsyncWrite for SctNvStorage<'_, S>
         position: tct::Position,
         height: u8,
         hash: Hash,
-        _essential: bool,
+        essential: bool,
     ) -> Result<()> {
-        self.state.nonverifiable_put_raw(
-            state_key::tree::incremental_hash(position, height).into_bytes(),
-            hash.to_bytes().to_vec(),
-        );
+        if essential {
+            self.state.nonverifiable_put_raw(
+                state_key::tree::incremental_hash(position, height).into_bytes(),
+                hash.to_bytes().to_vec(),
+            );
+        }
         Ok(())
     }
 
@@ -225,18 +269,14 @@ impl<S: StateWrite + Send + Sync + ?Sized> TctAsyncWrite for SctNvStorage<'_, S>
         let start = u64::from(positions.start);
         let end = u64::from(positions.end);
 
-        // range bounds are the position suffix appended after the prefix by cnidarium.
-        let lower = format!("{start:020}").into_bytes();
-        let upper = format!("{end:020}").into_bytes();
-
-        // Collect first, then delete: the range stream borrows the state immutably, and
-        // the collected set is bounded by the sparse stored keys, not the span width.
+        // Collect before deleting because the range streams borrow state immutably.
         let mut keys_to_delete: Vec<Vec<u8>> = Vec::new();
-
+        let commitment_start = format!("{start:020}").into_bytes();
+        let commitment_end = format!("{end:020}").into_bytes();
         {
             let commitment_stream = self.state.nonverifiable_range_raw(
                 Some(state_key::tree::incremental_commitment_prefix().as_bytes()),
-                lower.clone()..upper.clone(),
+                commitment_start..commitment_end,
             )?;
             futures::pin_mut!(commitment_stream);
             while let Some((key, _)) = commitment_stream.next().await.transpose()? {
@@ -244,27 +284,21 @@ impl<S: StateWrite + Send + Sync + ?Sized> TctAsyncWrite for SctNvStorage<'_, S>
             }
         }
 
+        let hash_start = format!("{start:020}/").into_bytes();
+        let hash_end = format!("{end:020}/").into_bytes();
         {
             let hash_stream = self.state.nonverifiable_range_raw(
                 Some(state_key::tree::incremental_hash_prefix().as_bytes()),
-                lower..upper,
+                hash_start..hash_end,
             )?;
             futures::pin_mut!(hash_stream);
-            while let Some((key, _)) = hash_stream.next().await.transpose()? {
-                // Hash keys are "<prefix><position:020>/<height:03>"; keep only the
-                // heights strictly below `below_height`, matching the original loop so
-                // the subtree root's essential hash and its ancestors survive.
-                let height = key
-                    .rsplit(|&b| b == b'/')
-                    .next()
-                    .and_then(|h| std::str::from_utf8(h).ok())
-                    .and_then(|h| h.parse::<u8>().ok());
-                if matches!(height, Some(h) if h < below_height) {
+            while let Some((key, bytes)) = hash_stream.next().await.transpose()? {
+                let (_, height, _) = decode_hash_row(&key, bytes)?;
+                if height < below_height {
                     keys_to_delete.push(key);
                 }
             }
         }
-
         for key in keys_to_delete {
             self.state.nonverifiable_delete(key);
         }
@@ -381,9 +415,14 @@ pub trait SctRead: StateRead {
         Ok(())
     }
 
-    /// Return metadata on the specified nullifier, if it has been spent.
-    async fn spend_info(&self, nullifier: Nullifier) -> Result<Option<NullificationInfo>> {
-        nullifier_tree::spend_info(self, nullifier).await
+    /// Return whether the specified nullifier has been spent.
+    async fn is_nullifier_spent(&self, nullifier: Nullifier) -> Result<bool> {
+        nullifier_tree::is_spent(self, nullifier).await
+    }
+
+    /// Check a batch through the direct spent-marker index without constructing proofs.
+    async fn contains_nullifiers(&self, nullifiers: &[Nullifier]) -> Result<Vec<bool>> {
+        nullifier_tree::contains_batch(self, nullifiers).await
     }
 
     /// Return the set of nullifiers that have been spent in the current block.
@@ -490,6 +529,7 @@ pub trait SctManager: StateWrite {
     ) -> Result<tct::Position> {
         // Record in the SCT
         let mut tree = self.get_sct().await;
+        ensure_block_capacity(&tree, 1)?;
         let position = tree.insert(tct::Witness::Forget, commitment)?;
         self.write_sct_cache(tree);
 
@@ -510,6 +550,7 @@ pub trait SctManager: StateWrite {
         F: FnOnce(tct::Position) -> Result<(tct::StateCommitment, T)> + Send,
     {
         let mut tree = self.get_sct().await;
+        ensure_block_capacity(&tree, 1)?;
         let expected_position = tree.position().expect("state commitment tree is not full");
         let (commitment, output) = build(expected_position)?;
         let position = tree.insert(tct::Witness::Forget, commitment)?;
@@ -532,6 +573,7 @@ pub trait SctManager: StateWrite {
         expected_position: tct::Position,
     ) -> Result<()> {
         let mut tree = self.get_sct().await;
+        ensure_block_capacity(&tree, 1)?;
         let position = tree.insert(tct::Witness::Forget, commitment)?;
         ensure!(
             position == expected_position,
@@ -552,6 +594,7 @@ pub trait SctManager: StateWrite {
         }
 
         let mut tree = self.get_sct().await;
+        ensure_block_capacity(&tree, entries.len())?;
         for (expected_position, commitment) in entries {
             let position = tree.insert(tct::Witness::Forget, commitment)?;
             ensure!(
@@ -585,19 +628,11 @@ pub trait SctManager: StateWrite {
 
         tracing::debug!(count = nullifiers.len(), "marking batch as spent");
 
-        let id = source
-            .id()
-            .expect("nullifiers are only consumed by transactions");
-        let spend_height = self.get_block_height().await.expect("block height is set");
-
-        nullifier_tree::insert_batch(
-            self,
-            nullifiers
-                .iter()
-                .copied()
-                .map(|nullifier| (nullifier, NullificationInfo { id, spend_height })),
-        )
-        .await?;
+        ensure!(
+            source.id().is_some(),
+            "nullifiers are only consumed by transactions"
+        );
+        nullifier_tree::insert_batch(self, nullifiers.iter().copied()).await?;
 
         // Record the nullifiers to be inserted into the compact block in one object-store rewrite.
         let mut pending_nullifiers = self.pending_nullifiers();
@@ -628,25 +663,14 @@ pub trait SctManager: StateWrite {
             "marking proposal nullifier batch as spent"
         );
 
-        let spend_height = self.get_block_height().await.expect("block height is set");
         let mut profile = ProposalNullifierBatchProfile::default();
 
         let lookup_write_start = std::time::Instant::now();
-        nullifier_tree::insert_batch(
-            self,
-            entries.iter().map(|(nullifier, source)| {
-                (
-                    *nullifier,
-                    NullificationInfo {
-                        id: source
-                            .id()
-                            .expect("nullifiers are only consumed by transactions"),
-                        spend_height,
-                    },
-                )
-            }),
-        )
-        .await?;
+        ensure!(
+            entries.iter().all(|(_, source)| source.id().is_some()),
+            "nullifiers are only consumed by transactions"
+        );
+        nullifier_tree::insert_batch(self, entries.iter().map(|(nullifier, _)| *nullifier)).await?;
         profile.lookup_write_ms = lookup_write_start.elapsed().as_secs_f64() * 1000.0;
 
         let pending_stage_start = std::time::Instant::now();
@@ -743,12 +767,8 @@ pub trait VerificationExt: StateRead {
     }
 
     async fn check_nullifier_unspent(&self, nullifier: Nullifier) -> Result<()> {
-        if let Some(info) = self.spend_info(nullifier).await? {
-            anyhow::bail!(
-                "nullifier {} was already spent in {:?}",
-                nullifier,
-                hex::encode(info.id),
-            );
+        if self.is_nullifier_spent(nullifier).await? {
+            anyhow::bail!("nullifier {} was already spent", nullifier);
         }
         Ok(())
     }
@@ -933,5 +953,106 @@ mod tests {
             .await
             .expect_err("missing SCT NV state should fail root verification");
         assert!(err.to_string().contains("SCT root mismatch"));
+    }
+
+    #[test]
+    fn sct_capacity_is_checked_before_block_mutation() {
+        let position = tct::Position::from((SCT_BLOCK_COMMITMENT_CAPACITY - 2) as u64);
+        let tree = tct::Tree::load(
+            StoredPosition::Position(position),
+            tct::Forgotten::default(),
+        )
+        .load_hashes()
+        .finish();
+
+        assert_eq!(ensure_block_capacity(&tree, 2), Ok(()));
+        assert_eq!(
+            ensure_block_capacity(&tree, 3),
+            Err(SctCapacityError::Block {
+                requested: 3,
+                remaining: 2,
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn sct_nv_storage_skips_recalculable_hashes() {
+        let storage = TempStorage::new().await.unwrap();
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let position = tct::Position::from(7u64);
+        let key = state_key::tree::incremental_hash(position, 0);
+
+        let mut writer = SctNvStorage::new(&mut state);
+        writer
+            .add_hash(position, 0, Hash::zero(), false)
+            .await
+            .unwrap();
+        assert!(state
+            .nonverifiable_get_raw(key.as_bytes())
+            .await
+            .unwrap()
+            .is_none());
+
+        let mut writer = SctNvStorage::new(&mut state);
+        writer
+            .add_hash(position, 0, Hash::zero(), true)
+            .await
+            .unwrap();
+        assert!(state
+            .nonverifiable_get_raw(key.as_bytes())
+            .await
+            .unwrap()
+            .is_some());
+    }
+
+    #[tokio::test]
+    async fn sct_delete_range_deletes_only_materialized_rows() {
+        let storage = TempStorage::new().await.unwrap();
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        let inside = tct::Position::from(7u64);
+        let outside = tct::Position::from(9u64);
+
+        let mut writer = SctNvStorage::new(&mut state);
+        writer
+            .add_hash(inside, 0, Hash::zero(), true)
+            .await
+            .unwrap();
+        writer
+            .add_hash(outside, 0, Hash::zero(), true)
+            .await
+            .unwrap();
+        writer
+            .add_commitment(inside, tct::StateCommitment(decaf377::Fq::from(7u64)))
+            .await
+            .unwrap();
+        writer
+            .add_commitment(outside, tct::StateCommitment(decaf377::Fq::from(9u64)))
+            .await
+            .unwrap();
+        writer
+            .delete_range(1, inside..tct::Position::from(8u64))
+            .await
+            .unwrap();
+
+        assert!(state
+            .nonverifiable_get_raw(state_key::tree::incremental_hash(inside, 0).as_bytes(),)
+            .await
+            .unwrap()
+            .is_none());
+        assert!(state
+            .nonverifiable_get_raw(state_key::tree::incremental_hash(outside, 0).as_bytes(),)
+            .await
+            .unwrap()
+            .is_some());
+        assert!(state
+            .nonverifiable_get_raw(state_key::tree::incremental_commitment(inside).as_bytes(),)
+            .await
+            .unwrap()
+            .is_none());
+        assert!(state
+            .nonverifiable_get_raw(state_key::tree::incremental_commitment(outside).as_bytes(),)
+            .await
+            .unwrap()
+            .is_some());
     }
 }

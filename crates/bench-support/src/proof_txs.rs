@@ -229,13 +229,11 @@ pub async fn build_proof_transactions(
                     &mut OsRng,
                     MemoPlaintext::blank_memo(test_keys::ADDRESS_0.deref().clone()),
                 )),
-                detection_data: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                     ..Default::default()
                 },
-            }
-            .with_populated_detection_data(OsRng, Default::default());
+            };
 
             let tx = client
                 .witness_auth_build_with_compliance(&mut plan, snapshot)

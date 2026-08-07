@@ -359,6 +359,30 @@ jobs:
           python3 scripts/ci/run_with_annotation.py
           --title "SnarkPack affected extraction graphs"
           -- just snarkpack-fv
+      - name: Generate exact extraction refresh artifacts
+        if: failure() && steps.extraction_compare.outcome == 'failure'
+        shell: bash
+        env:
+          SNARKPACK_FV_GRAPHS_JSON: ${{ needs.applicability.outputs.snarkpack_extract_graphs }}
+        run: |
+          set -euo pipefail
+          script="crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py"
+          artifact_root=".ci-artifacts/snarkpack-extraction-refresh"
+          mkdir -p "$artifact_root"
+          jq -er '.[]' <<< "$SNARKPACK_FV_GRAPHS_JSON" |
+            while IFS= read -r graph; do
+              python3 "$script" regenerate \
+                --graph "$graph" \
+                --artifact "$artifact_root/$graph"
+            done
+      - name: Upload exact extraction refresh artifacts
+        if: failure() && steps.extraction_compare.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: snarkpack-extraction-refresh-${{ needs.applicability.outputs.candidate_sha }}-${{ github.run_attempt }}
+          path: .ci-artifacts/snarkpack-extraction-refresh
+          if-no-files-found: error
+          retention-days: 7
       - name: Save the successful shared extraction compiler cache
         if: >-
           steps.extraction_compare.outcome == 'success' &&

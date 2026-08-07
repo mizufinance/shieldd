@@ -2,11 +2,10 @@
 /// Configuration data for the shielded pool component.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct ShieldedPoolParameters {
-    #[deprecated]
     #[prost(message, optional, tag = "1")]
-    pub fixed_fmd_params: ::core::option::Option<FmdParameters>,
-    #[prost(message, optional, tag = "2")]
-    pub fmd_meta_params: ::core::option::Option<FmdMetaParameters>,
+    pub discovery_params: ::core::option::Option<DiscoveryParameters>,
+    #[prost(uint64, tag = "2")]
+    pub discovery_grace_period_blocks: u64,
 }
 impl ::prost::Name for ShieldedPoolParameters {
     const NAME: &'static str = "ShieldedPoolParameters";
@@ -61,137 +60,40 @@ impl ::prost::Name for GenesisContent {
         "/shieldd.core.component.shielded_pool.v1.GenesisContent".into()
     }
 }
-/// The parameters which control how the FMD parameters evolve over time.
+/// Protocol-controlled precision for public note-discovery tags.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct FmdMetaParameters {
-    /// How much time users have to transition to new parameters.
-    #[prost(uint64, tag = "1")]
-    pub fmd_grace_period_blocks: u64,
-    /// The algorithm governing how the parameters change.
-    #[prost(oneof = "fmd_meta_parameters::Algorithm", tags = "2, 3")]
-    pub algorithm: ::core::option::Option<fmd_meta_parameters::Algorithm>,
-}
-/// Nested message and enum types in `FmdMetaParameters`.
-pub mod fmd_meta_parameters {
-    /// A sliding window algorithm for updating the parameters.
-    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-    pub struct AlgorithmSlidingWindow {
-        /// The window size, in terms of the number of update periods.
-        ///
-        /// The update period is 16 blocks, by default, but can change with governance.
-        #[prost(uint32, tag = "1")]
-        pub window_update_periods: u32,
-        /// The number of detections we aim to see per window.
-        #[prost(uint32, tag = "2")]
-        pub targeted_detections_per_window: u32,
-    }
-    impl ::prost::Name for AlgorithmSlidingWindow {
-        const NAME: &'static str = "AlgorithmSlidingWindow";
-        const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-        fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.core.component.shielded_pool.v1.FmdMetaParameters.AlgorithmSlidingWindow"
-                .into()
-        }
-        fn type_url() -> ::prost::alloc::string::String {
-            "/shieldd.core.component.shielded_pool.v1.FmdMetaParameters.AlgorithmSlidingWindow"
-                .into()
-        }
-    }
-    /// The algorithm governing how the parameters change.
-    #[derive(Clone, Copy, PartialEq, ::prost::Oneof)]
-    pub enum Algorithm {
-        #[prost(uint32, tag = "2")]
-        FixedPrecisionBits(u32),
-        #[prost(message, tag = "3")]
-        SlidingWindow(AlgorithmSlidingWindow),
-    }
-}
-impl ::prost::Name for FmdMetaParameters {
-    const NAME: &'static str = "FmdMetaParameters";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.FmdMetaParameters".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.FmdMetaParameters".into()
-    }
-}
-/// Used to potentially store state for the FMD Meta Parameters algorithm.
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct FmdMetaParametersAlgorithmState {
-    #[prost(oneof = "fmd_meta_parameters_algorithm_state::State", tags = "1, 2")]
-    pub state: ::core::option::Option<fmd_meta_parameters_algorithm_state::State>,
-}
-/// Nested message and enum types in `FmdMetaParametersAlgorithmState`.
-pub mod fmd_meta_parameters_algorithm_state {
-    /// The state used for the fixed algorithm.
-    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-    pub struct FixedState {}
-    impl ::prost::Name for FixedState {
-        const NAME: &'static str = "FixedState";
-        const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-        fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.core.component.shielded_pool.v1.FmdMetaParametersAlgorithmState.FixedState"
-                .into()
-        }
-        fn type_url() -> ::prost::alloc::string::String {
-            "/shieldd.core.component.shielded_pool.v1.FmdMetaParametersAlgorithmState.FixedState"
-                .into()
-        }
-    }
-    /// The state used for the sliding window algorithm.
-    #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-    pub struct SlidingWindowState {
-        /// The number of clues previously observed, approximately.
-        #[prost(uint32, tag = "1")]
-        pub approximate_clue_count: u32,
-    }
-    impl ::prost::Name for SlidingWindowState {
-        const NAME: &'static str = "SlidingWindowState";
-        const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-        fn full_name() -> ::prost::alloc::string::String {
-            "shieldd.core.component.shielded_pool.v1.FmdMetaParametersAlgorithmState.SlidingWindowState"
-                .into()
-        }
-        fn type_url() -> ::prost::alloc::string::String {
-            "/shieldd.core.component.shielded_pool.v1.FmdMetaParametersAlgorithmState.SlidingWindowState"
-                .into()
-        }
-    }
-    #[derive(Clone, Copy, PartialEq, ::prost::Oneof)]
-    pub enum State {
-        #[prost(message, tag = "1")]
-        Fixed(FixedState),
-        #[prost(message, tag = "2")]
-        SlidingWindow(SlidingWindowState),
-    }
-}
-impl ::prost::Name for FmdMetaParametersAlgorithmState {
-    const NAME: &'static str = "FmdMetaParametersAlgorithmState";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.FmdMetaParametersAlgorithmState".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.FmdMetaParametersAlgorithmState".into()
-    }
-}
-/// Parameters for Fuzzy Message Detection
-#[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct FmdParameters {
+pub struct DiscoveryParameters {
     #[prost(uint32, tag = "1")]
     pub precision_bits: u32,
     #[prost(uint64, tag = "2")]
     pub as_of_block_height: u64,
 }
-impl ::prost::Name for FmdParameters {
-    const NAME: &'static str = "FmdParameters";
+impl ::prost::Name for DiscoveryParameters {
+    const NAME: &'static str = "DiscoveryParameters";
     const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.FmdParameters".into()
+        "shieldd.core.component.shielded_pool.v1.DiscoveryParameters".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.FmdParameters".into()
+        "/shieldd.core.component.shielded_pool.v1.DiscoveryParameters".into()
+    }
+}
+/// Public best-effort routing tag for an encrypted note.
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DiscoveryTag {
+    #[prost(uint32, tag = "1")]
+    pub precision_bits: u32,
+    #[prost(fixed32, tag = "2")]
+    pub value: u32,
+}
+impl ::prost::Name for DiscoveryTag {
+    const NAME: &'static str = "DiscoveryTag";
+    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.shielded_pool.v1.DiscoveryTag".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.shielded_pool.v1.DiscoveryTag".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -265,6 +167,9 @@ pub struct NotePayload {
     /// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
     #[prost(message, optional, tag = "3")]
     pub encrypted_note: ::core::option::Option<NoteCiphertext>,
+    /// Public best-effort routing metadata. It does not grant decryption capability.
+    #[prost(message, optional, tag = "4")]
+    pub discovery_tag: ::core::option::Option<DiscoveryTag>,
 }
 impl ::prost::Name for NotePayload {
     const NAME: &'static str = "NotePayload";
@@ -527,6 +432,9 @@ pub struct TransferPlan {
     /// The shielded output plans fused into this transfer.
     #[prost(message, repeated, tag = "5")]
     pub outputs: ::prost::alloc::vec::Vec<ShieldedOutputPlan>,
+    /// Protocol precision used by all real and padded output discovery tags.
+    #[prost(uint32, tag = "6")]
+    pub discovery_precision_bits: u32,
 }
 impl ::prost::Name for TransferPlan {
     const NAME: &'static str = "TransferPlan";
@@ -923,6 +831,9 @@ pub struct ShieldedIcs20WithdrawalPlan {
     /// The embedded outbound ICS-20 withdrawal payload.
     #[prost(message, optional, tag = "6")]
     pub withdrawal: ::core::option::Option<super::super::ibc::v1::Ics20Withdrawal>,
+    /// Protocol precision used by the change or padded output discovery tag.
+    #[prost(uint32, tag = "7")]
+    pub discovery_precision_bits: u32,
 }
 impl ::prost::Name for ShieldedIcs20WithdrawalPlan {
     const NAME: &'static str = "ShieldedIcs20WithdrawalPlan";
@@ -1117,6 +1028,9 @@ pub struct NoteReshapePlan {
     /// The shielded output plans fused into this reshape.
     #[prost(message, repeated, tag = "5")]
     pub outputs: ::prost::alloc::vec::Vec<ShieldedOutputPlan>,
+    /// Protocol precision used by all real and padded output discovery tags.
+    #[prost(uint32, tag = "6")]
+    pub discovery_precision_bits: u32,
 }
 impl ::prost::Name for NoteReshapePlan {
     const NAME: &'static str = "NoteReshapePlan";
@@ -1160,26 +1074,6 @@ impl ::prost::Name for EventNoteCreated {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.shielded_pool.v1.EventNoteCreated".into()
-    }
-}
-/// ABCI Event recording a clue.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct EventBroadcastClue {
-    #[prost(message, optional, tag = "1")]
-    pub clue: ::core::option::Option<
-        super::super::super::super::crypto::decaf377_fmd::v1::Clue,
-    >,
-    #[prost(message, optional, tag = "2")]
-    pub tx: ::core::option::Option<super::super::super::txhash::v1::TransactionId>,
-}
-impl ::prost::Name for EventBroadcastClue {
-    const NAME: &'static str = "EventBroadcastClue";
-    const PACKAGE: &'static str = "shieldd.core.component.shielded_pool.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.component.shielded_pool.v1.EventBroadcastClue".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.component.shielded_pool.v1.EventBroadcastClue".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]

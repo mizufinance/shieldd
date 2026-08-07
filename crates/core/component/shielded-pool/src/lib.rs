@@ -9,8 +9,8 @@ pub use ics20_withdrawal::Ics20Withdrawal;
 mod host_withdrawal;
 pub use host_withdrawal::HostWithdrawal;
 
+pub mod discovery;
 pub mod event;
-pub mod fmd;
 pub mod genesis;
 pub mod gnark;
 pub mod params;

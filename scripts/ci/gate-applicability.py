@@ -9,6 +9,7 @@ import json
 import re
 import subprocess
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -529,6 +530,178 @@ def cargo_closure_rules(
                 reason=(
                     "known local Cargo package outside the declared closure "
                     f"({len(outside)} packages)"
+                ),
+            )
+        )
+    return rules
+
+
+def _git_toml_file(root: Path, revision: str, path: str) -> dict[str, Any]:
+    result = _run_git(root, ["show", f"{revision}:{path}"])
+    if result.returncode:
+        detail = str(result.stderr).strip()
+        raise ClassificationError(
+            f"cannot read {path} at {revision}: {detail or result.returncode}"
+        )
+    try:
+        value = tomllib.loads(str(result.stdout))
+    except tomllib.TOMLDecodeError as error:
+        raise ClassificationError(
+            f"malformed TOML at {revision}:{path}: {error}"
+        ) from error
+    return _object(value, f"{revision}:{path}")
+
+
+def cargo_closure_rules_at_revision(
+    root: Path,
+    source: dict[str, Any],
+    event: str,
+    revision: str,
+) -> list[InputRule]:
+    """Classify paths from a base revision after packages were deleted."""
+    root_manifest = _git_toml_file(root, revision, "Cargo.toml")
+    workspace = _object(
+        root_manifest.get("workspace"), f"{revision}:Cargo.toml.workspace"
+    )
+    members = _strings(
+        workspace.get("members"), f"{revision}:Cargo.toml.workspace.members"
+    )
+    excludes_value = workspace.get("exclude", [])
+    if not isinstance(excludes_value, list) or any(
+        not isinstance(item, str) or not item for item in excludes_value
+    ):
+        raise ClassificationError(
+            f"{revision}:Cargo.toml.workspace.exclude must contain strings"
+        )
+    excludes = tuple(
+        normalize_repo_path(item, f"{revision}: workspace exclusion")
+        for item in excludes_value
+    )
+
+    tree = _run_git(root, ["ls-tree", "-r", "--name-only", revision])
+    if tree.returncode:
+        detail = str(tree.stderr).strip()
+        raise ClassificationError(
+            f"cannot enumerate Cargo manifests at {revision}: "
+            f"{detail or tree.returncode}"
+        )
+    manifest_dirs = {
+        path[: -len("/Cargo.toml")]
+        for path in str(tree.stdout).splitlines()
+        if path.endswith("/Cargo.toml")
+    }
+    workspace_dirs = {
+        directory
+        for directory in manifest_dirs
+        if any(_path_pattern_matches(directory, member) for member in members)
+        and not any(
+            _path_pattern_matches(directory, exclusion)
+            for exclusion in excludes
+        )
+    }
+    unmatched = tuple(
+        member
+        for member in members
+        if not any(
+            _path_pattern_matches(directory, member)
+            for directory in workspace_dirs
+        )
+    )
+    if unmatched:
+        raise ClassificationError(
+            f"workspace member(s) missing at {revision}: " + ", ".join(unmatched)
+        )
+
+    directories_by_name: dict[str, str] = {}
+    for directory in sorted(workspace_dirs):
+        manifest = _git_toml_file(
+            root, revision, f"{directory}/Cargo.toml"
+        )
+        package = _object(
+            manifest.get("package"),
+            f"{revision}:{directory}/Cargo.toml.package",
+        )
+        name = _string(
+            package.get("name"),
+            f"{revision}:{directory}/Cargo.toml.package.name",
+        )
+        if name in directories_by_name:
+            raise ClassificationError(
+                f"duplicate workspace package {name!r} at {revision}"
+            )
+        directories_by_name[name] = directory
+
+    lock = _git_toml_file(root, revision, "Cargo.lock")
+    packages = lock.get("package")
+    if not isinstance(packages, list):
+        raise ClassificationError(f"{revision}:Cargo.lock lacks package entries")
+    local_lock_packages: dict[str, dict[str, Any]] = {}
+    for index, value in enumerate(packages):
+        package = _object(value, f"{revision}:Cargo.lock.package[{index}]")
+        if package.get("source") is not None:
+            continue
+        name = _string(
+            package.get("name"),
+            f"{revision}:Cargo.lock.package[{index}].name",
+        )
+        if name in local_lock_packages:
+            raise ClassificationError(
+                f"duplicate local lock package {name!r} at {revision}"
+            )
+        local_lock_packages[name] = package
+
+    pending = list(source["packages"])
+    closure_names: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if name in closure_names:
+            continue
+        if name not in directories_by_name or name not in local_lock_packages:
+            raise ClassificationError(
+                f"Cargo root package {name!r} is absent at {revision}"
+            )
+        closure_names.add(name)
+        dependencies = local_lock_packages[name].get("dependencies", [])
+        if not isinstance(dependencies, list) or any(
+            not isinstance(dependency, str) for dependency in dependencies
+        ):
+            raise ClassificationError(
+                f"invalid dependencies for Cargo package {name!r} at {revision}"
+            )
+        for dependency in dependencies:
+            dependency_name = dependency.split(" ", maxsplit=1)[0]
+            if dependency_name in directories_by_name:
+                pending.append(dependency_name)
+
+    closure = {directories_by_name[name] for name in closure_names}
+    outside = workspace_dirs - closure
+
+    def patterns(directories: Iterable[str]) -> tuple[str, ...]:
+        return tuple(
+            pattern
+            for directory in sorted(directories)
+            for pattern in (f"{directory}/**", f"{directory}/Cargo.toml")
+        )
+
+    relevant_tier = tier_for(source["tiers"], event, "base Cargo closure")
+    rules = [
+        InputRule(
+            patterns=patterns(closure),
+            tier=relevant_tier,
+            reason=(
+                f"base Cargo package dependency closure at {revision} "
+                f"({len(closure)} local packages)"
+            ),
+        )
+    ]
+    if outside:
+        rules.append(
+            InputRule(
+                patterns=patterns(outside),
+                tier="skip",
+                reason=(
+                    f"base Cargo package outside the declared closure at "
+                    f"{revision} ({len(outside)} packages)"
                 ),
             )
         )
@@ -1069,6 +1242,12 @@ def derived_rules(
     for source in declaration.derived_inputs:
         if source["type"] == "cargo_local_closure":
             rules.extend(cargo_closure_rules(root, source, event))
+            if base:
+                rules.extend(
+                    cargo_closure_rules_at_revision(
+                        root, source, event, base
+                    )
+                )
             continue
         manifest_path = root / source["path"]
         try:

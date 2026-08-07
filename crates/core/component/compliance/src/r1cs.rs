@@ -1443,7 +1443,7 @@ mod tests {
         let mut ck_d_bytes = [0u8; 32];
         use rand_core::RngCore;
         rng.fill_bytes(&mut ck_d_bytes);
-        let ck_d = decaf377_fmd::ClueKey(ck_d_bytes);
+        let ck_d = shieldd_sdk_keys::DiscoveryKey(ck_d_bytes);
         let diversifier = Diversifier([1u8; 16]);
         let address = Address::from_components(diversifier, pk_d, ck_d).expect("valid address");
 

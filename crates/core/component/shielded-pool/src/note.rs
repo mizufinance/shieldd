@@ -3,7 +3,6 @@ use std::convert::{TryFrom, TryInto};
 use crate::genesis::Allocation;
 use blake2b_simd;
 use decaf377::Fq;
-use decaf377_fmd as fmd;
 use decaf377_ka as ka;
 use once_cell::sync::Lazy;
 use rand::{CryptoRng, Rng};
@@ -11,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use shieldd_sdk_keys::{
     keys::{Diversifier, FullViewingKey, IncomingViewingKey, OutgoingViewingKey},
     symmetric::{OutgoingCipherKey, OvkWrappedKey, PayloadKey, PayloadKind},
-    Address, AddressView,
+    Address, AddressView, DiscoveryKey,
 };
 use shieldd_sdk_proto::shieldd::core::component::shielded_pool::v1 as pb;
 use thiserror;
@@ -24,7 +23,7 @@ pub use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_asset::{asset, balance, Value, ValueView};
 use shieldd_sdk_num::Amount;
 
-use crate::{NotePayload, Rseed};
+use crate::{discovery, NotePayload, Rseed};
 
 pub const NOTE_LEN_BYTES: usize = 160;
 pub const NOTE_CIPHERTEXT_BYTES: usize = 176;
@@ -119,16 +118,16 @@ impl Note {
                 return true;
             }
 
-            // Get the expected clue key and check it matches what is on the provided note address.
+            // Check that the address carries the discovery key derived by this viewing key.
             let (expected_address, _) = fvk.incoming().payment_address(address_index);
-            let expected_ck_d = expected_address.clue_key();
+            let expected_discovery_key = expected_address.discovery_key();
 
             let transmission_key_matches = *self.transmission_key()
                 == fvk
                     .incoming()
                     .diversified_public(&self.diversified_generator());
 
-            return transmission_key_matches && self.clue_key() == expected_ck_d;
+            return transmission_key_matches && self.discovery_key() == expected_discovery_key;
         } else {
             false
         }
@@ -163,11 +162,12 @@ impl Note {
         })
     }
 
-    pub fn payload(&self) -> NotePayload {
+    pub fn payload(&self, precision: discovery::Precision) -> NotePayload {
         NotePayload {
             note_commitment: self.commit(),
             ephemeral_key: self.ephemeral_public_key(),
             encrypted_note: self.encrypt(),
+            discovery_tag: discovery::Tag::for_address(&self.address, precision),
         }
     }
 
@@ -195,8 +195,8 @@ impl Note {
         self.transmission_key_s
     }
 
-    pub fn clue_key(&self) -> &fmd::ClueKey {
-        self.address.clue_key()
+    pub fn discovery_key(&self) -> &DiscoveryKey {
+        self.address.discovery_key()
     }
 
     pub fn diversifier(&self) -> &Diversifier {
@@ -355,7 +355,7 @@ impl Note {
             self.value,
             self.diversified_generator(),
             self.transmission_key_s,
-            self.address.clue_key(),
+            self.address.discovery_key(),
         )
     }
 
@@ -370,7 +370,7 @@ pub fn commitment(
     value: Value,
     diversified_generator: decaf377::Element,
     transmission_key_s: Fq,
-    clue_key: &fmd::ClueKey,
+    discovery_key: &DiscoveryKey,
 ) -> StateCommitment {
     let commit = poseidon377::hash_6(
         &NOTECOMMIT_DOMAIN_SEP,
@@ -380,7 +380,7 @@ pub fn commitment(
             value.asset_id.0,
             diversified_generator.vartime_compress_to_field(),
             transmission_key_s,
-            Fq::from_le_bytes_mod_order(&clue_key.0[..]),
+            Fq::from_le_bytes_mod_order(&discovery_key.0[..]),
         ),
     );
 
@@ -403,7 +403,7 @@ pub fn commitment_from_address(
             value.asset_id.0,
             address.diversified_generator().vartime_compress_to_field(),
             transmission_key_s,
-            Fq::from_le_bytes_mod_order(&address.clue_key().0[..]),
+            Fq::from_le_bytes_mod_order(&address.discovery_key().0[..]),
         ),
     );
 

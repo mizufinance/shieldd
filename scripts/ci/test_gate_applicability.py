@@ -70,7 +70,7 @@ class GateApplicabilityTests(unittest.TestCase):
             label="fixture manifest",
         )
 
-    def test_orbis_closure_contains_at_least_40_local_packages(self) -> None:
+    def test_orbis_closure_contains_at_least_39_local_packages(self) -> None:
         source = next(
             item
             for item in self.orbis.derived_inputs
@@ -79,7 +79,7 @@ class GateApplicabilityTests(unittest.TestCase):
         relevant, outside = GATE.cargo_closure_rules(
             self.root, source, "pull_request"
         )
-        self.assertGreaterEqual(len(relevant.patterns) // 2, 40)
+        self.assertGreaterEqual(len(relevant.patterns) // 2, 39)
         self.assertIn("crates/core/app/**", relevant.patterns)
         self.assertEqual(relevant.tier, "full")
         self.assertEqual(outside.tier, "skip")
@@ -136,6 +136,77 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
         self.assertIn("declared skips", decision.explanation)
         self.assertIn("outside the declared closure", decision.matched[0]["reason"])
+
+    def test_base_cargo_closure_classifies_deleted_workspace_package(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init"], cwd=root, check=True, capture_output=True)
+            subprocess.run(
+                ["git", "config", "user.email", "ci@example.invalid"],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "CI"], cwd=root, check=True
+            )
+            (root / "Cargo.toml").write_text(
+                '[workspace]\nmembers = ["root-package", "removed-package"]\n',
+                encoding="utf-8",
+            )
+            (root / "Cargo.lock").write_text(
+                'version = 4\n\n'
+                '[[package]]\nname = "root-package"\nversion = "0.1.0"\n\n'
+                '[[package]]\nname = "removed-package"\nversion = "0.1.0"\n',
+                encoding="utf-8",
+            )
+            for package in ("root-package", "removed-package"):
+                package_root = root / package
+                package_root.mkdir()
+                (package_root / "Cargo.toml").write_text(
+                    f'[package]\nname = "{package}"\nversion = "0.1.0"\n',
+                    encoding="utf-8",
+                )
+            subprocess.run(
+                ["git", "add", "."], cwd=root, check=True, capture_output=True
+            )
+            subprocess.run(
+                ["git", "commit", "-m", "base"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+            )
+            base = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+            source = {
+                "packages": ("root-package",),
+                "tiers": {
+                    "pull_request": "static",
+                    "merge_group": "full",
+                    "default": "full",
+                },
+                "reason": "fixture closure",
+            }
+
+            rules = GATE.cargo_closure_rules_at_revision(
+                root, source, "pull_request", base
+            )
+            decision = GATE.classify(
+                self.snarkpack,
+                "pull_request",
+                ["removed-package/src/lib.rs"],
+                rules,
+            )
+
+        self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
+        self.assertFalse(decision.unknown_files)
+        self.assertIn("base Cargo package", decision.matched[0]["reason"])
 
     def test_cargo_metadata_timeout_is_forwarded_and_bounded(self) -> None:
         metadata = {
@@ -718,6 +789,7 @@ class GateApplicabilityTests(unittest.TestCase):
             ".envrc.example",
             "deployments/compose/README.md",
             "docs/architecture/unrelated.md",
+            "proto/shieldd/shieldd/core/component/sct/v1/sct.proto",
         ):
             for declaration in (self.snarkpack, self.soundness):
                 with self.subTest(path=path, gate=declaration.gate):
@@ -732,6 +804,21 @@ class GateApplicabilityTests(unittest.TestCase):
                         ("skip", "skip"),
                     )
                     self.assertIn("declared skips", decision.explanation)
+
+    def test_proto_compiler_selects_formal_validation(self) -> None:
+        for declaration, tier in (
+            (self.snarkpack, "static"),
+            (self.soundness, "stamps"),
+        ):
+            with self.subTest(gate=declaration.gate):
+                decision = GATE.classify(
+                    declaration,
+                    "pull_request",
+                    ["tools/proto-compiler/src/main.rs"],
+                    [],
+                )
+                self.assertEqual((decision.status, decision.tier), ("run", tier))
+                self.assertFalse(decision.unknown_files)
 
     def test_stack_orchestration_is_outside_formal_contracts(self) -> None:
         for path in (

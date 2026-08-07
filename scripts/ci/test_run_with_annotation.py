@@ -197,6 +197,20 @@ class FormalWorkflowWiringTests(unittest.TestCase):
         self.assertNotIn("matrix.graph", self.workflow)
         self.assertNotIn("snarkpack-extraction-recovery:", self.workflow)
         self.assertNotIn("extraction_recovery", self.workflow)
+        self.assertIn(
+            "Generate exact extraction refresh artifacts", self.workflow
+        )
+        self.assertIn(
+            'python3 "$script" regenerate',
+            self.workflow,
+        )
+        self.assertIn('--graph "$graph"', self.workflow)
+        self.assertIn('--artifact "$artifact_root/$graph"', self.workflow)
+        self.assertIn(
+            "snarkpack-extraction-refresh-${{ needs.applicability.outputs."
+            "candidate_sha }}-${{ github.run_attempt }}",
+            self.workflow,
+        )
 
     def test_formal_caches_are_aggregate_and_lean_is_committed(self) -> None:
         self.assertIn("snarkpack-extract-v5-", self.workflow)

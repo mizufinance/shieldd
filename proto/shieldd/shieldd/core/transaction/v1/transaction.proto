@@ -12,7 +12,6 @@ import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
 import "shieldd/core/component/validator/v1/validator.proto";
 import "shieldd/core/keys/v1/keys.proto";
 import "shieldd/core/txhash/v1/txhash.proto";
-import "shieldd/crypto/decaf377_fmd/v1/decaf377_fmd.proto";
 import "shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto";
 import "shieldd/crypto/tct/v1/tct.proto";
 
@@ -34,8 +33,6 @@ message TransactionBody {
   TransactionParameters transaction_parameters = 2;
   // Optional tx-level fee funding, present on nonzero-fee transactions.
   FeeFunding fee_funding = 3;
-  // Detection data for use with Fuzzy Message Detection
-  DetectionData detection_data = 4;
   // The encrypted memo for this transaction.
   //
   // This field will be present if and only if the transaction has outputs.
@@ -63,12 +60,6 @@ message TransactionSummary {
     asset.v1.Balance balance = 2;
   }
   repeated Effects effects = 1;
-}
-
-// Detection data used by a detection server performing Fuzzy Message Detection.
-message DetectionData {
-  // A list of clues for use with Fuzzy Message Detection.
-  repeated crypto.decaf377_fmd.v1.Clue fmd_clues = 4;
 }
 
 enum ProofFamilyId {
@@ -196,9 +187,6 @@ message TransactionBodyView {
   TransactionParameters transaction_parameters = 2;
   // Optional tx-level fee funding, present on nonzero-fee transactions.
   component.shielded_pool.v1.TransferView fee_funding = 3;
-  // The detection data in this transaction, only populated if
-  // there are outputs in the actions of this transaction.
-  DetectionData detection_data = 4;
   // An optional view of a transaction memo. It will only be populated if there are
   // outputs in the actions of this transaction.
   MemoView memo_view = 5;
@@ -259,8 +247,6 @@ message TransactionPlan {
   TransactionParameters transaction_parameters = 2;
   // Optional tx-level fee funding, present on nonzero-fee transactions.
   FeeFundingPlan fee_funding = 3;
-  // Detection data for use with Fuzzy Message Detection
-  DetectionDataPlan detection_data = 4;
   // The memo plan for this transaction.
   MemoPlan memo = 5;
 }
@@ -273,10 +259,6 @@ message FeeFunding {
 // Planned tx-level fee funding backed by the transfer proof machinery.
 message FeeFundingPlan {
   component.shielded_pool.v1.TransferPlan transfer = 1;
-}
-
-message DetectionDataPlan {
-  repeated CluePlan clue_plans = 5;
 }
 
 // Describes a planned transaction action.
@@ -303,16 +285,6 @@ message ActionPlan {
     component.compliance.v1.MsgRegisterAsset compliance_register_asset = 80;
     component.compliance.v1.MsgRegisterUser compliance_register_user = 81;
   }
-}
-
-// Describes a plan for forming a `Clue`.
-message CluePlan {
-  // The address.
-  keys.v1.Address address = 1;
-  // The random seed to use for the clue plan.
-  bytes rseed = 2;
-  // The bits of precision.
-  uint64 precision_bits = 3;
 }
 
 // Describes a plan for forming the transaction memo.

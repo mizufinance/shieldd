@@ -10,6 +10,7 @@ use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::EffectingData;
 use std::convert::{TryFrom, TryInto};
 
+use crate::discovery::Precision;
 use crate::note_reshape_padding::{dummy_state_commitment_proof, pad_to_len, HiddenArityPadder};
 use crate::{ShieldedInputPlan, ShieldedOutputPlan};
 #[cfg(any(unix, windows))]
@@ -31,6 +32,7 @@ pub struct NoteReshapePlan {
     pub balance: Balance,
     pub spends: Vec<ShieldedInputPlan>,
     pub outputs: Vec<ShieldedOutputPlan>,
+    pub discovery_precision: Precision,
 }
 
 impl NoteReshapePlan {
@@ -115,11 +117,13 @@ impl NoteReshapePlan {
                 family_id,
                 value_blinding,
                 balance.commit(value_blinding),
+                Precision::default(),
             ),
             value_blinding,
             balance,
             spends,
             outputs,
+            discovery_precision: Precision::default(),
         };
         plan.validate_invariants()?;
         Ok(plan)
@@ -131,6 +135,7 @@ impl NoteReshapePlan {
         family_id: NoteReshapeFamilyId,
         value_blinding: Fr,
         balance_commitment: shieldd_sdk_asset::balance::Commitment,
+        discovery_precision: Precision,
     ) -> NoteReshapeBody {
         let padder = Self::padder_for(spends, outputs, value_blinding);
         let mut inputs = spends
@@ -151,14 +156,16 @@ impl NoteReshapePlan {
         let mut output_bodies = outputs
             .iter()
             .map(|output| NoteReshapeOutputBody {
-                note_payload: output.output_note().payload(),
+                note_payload: output.output_note().payload(discovery_precision),
                 wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
                 ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
             })
             .collect::<Vec<_>>();
         pad_to_len(&mut output_bodies, family_id.output_count(), |slot| {
             NoteReshapeOutputBody {
-                note_payload: padder.synthetic_dummy_output_note(slot).payload(),
+                note_payload: padder
+                    .synthetic_dummy_output_note(slot)
+                    .payload(discovery_precision),
                 wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
                 ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
             }
@@ -171,6 +178,18 @@ impl NoteReshapePlan {
             inputs,
             outputs: output_bodies,
         }
+    }
+
+    pub fn set_discovery_precision(&mut self, precision: Precision) {
+        self.discovery_precision = precision;
+        self.body = Self::placeholder_body(
+            &self.spends,
+            &self.outputs,
+            self.body.family_id,
+            self.value_blinding,
+            self.balance.commit(self.value_blinding),
+            precision,
+        );
     }
 
     fn padder_for(
@@ -445,7 +464,7 @@ impl NoteReshapePlan {
             .iter()
             .map(|output| {
                 let (note_payload, wrapped_memo_key, ovk_wrapped_key) =
-                    output.action_output_parts(fvk.outgoing(), memo_key);
+                    output.action_output_parts(fvk.outgoing(), memo_key, self.discovery_precision);
                 NoteReshapeOutputBody {
                     note_payload,
                     wrapped_memo_key,
@@ -455,7 +474,9 @@ impl NoteReshapePlan {
             .collect::<Vec<_>>();
         pad_to_len(&mut outputs, self.family_id().output_count(), |slot| {
             NoteReshapeOutputBody {
-                note_payload: padder.synthetic_dummy_output_note(slot).payload(),
+                note_payload: padder
+                    .synthetic_dummy_output_note(slot)
+                    .payload(self.discovery_precision),
                 wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([0u8; 48]),
                 ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
             }
@@ -519,6 +540,7 @@ impl From<NoteReshapePlan> for pb::NoteReshapePlan {
             balance: Some(msg.balance.into()),
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
+            discovery_precision_bits: msg.discovery_precision.into(),
         }
     }
 }
@@ -554,6 +576,7 @@ impl TryFrom<pb::NoteReshapePlan> for NoteReshapePlan {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
+            discovery_precision: proto.discovery_precision_bits.try_into()?,
         };
         plan.validate_invariants()?;
         Ok(plan)

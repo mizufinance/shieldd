@@ -95,14 +95,12 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
             &mut OsRng,
             MemoPlaintext::blank_memo(test_keys::ADDRESS_0.clone()),
         )),
-        detection_data: None,
         fee_funding: None,
         transaction_parameters: TransactionParameters {
             chain_id: TestNode::<()>::CHAIN_ID.to_string(),
             ..Default::default()
         },
-    }
-    .with_populated_detection_data(OsRng, Default::default());
+    };
 
     let tx = client
         .witness_auth_build_with_compliance(&mut plan, storage.latest_snapshot())
@@ -117,8 +115,8 @@ async fn app_can_transfer_notes_and_detect_new_notes() -> anyhow::Result<()> {
     let post_tx_snapshot = storage.latest_snapshot();
 
     for nf in tx.spent_nullifiers() {
-        assert!(pre_tx_snapshot.spend_info(nf).await?.is_none());
-        assert!(post_tx_snapshot.spend_info(nf).await?.is_some());
+        assert!(!pre_tx_snapshot.is_nullifier_spent(nf).await?);
+        assert!(post_tx_snapshot.is_nullifier_spent(nf).await?);
     }
 
     client.sync_to_latest(post_tx_snapshot).await?;

@@ -80,14 +80,12 @@ async fn app_activates_post_genesis_validator_definitions_with_equal_weight() ->
         TransactionPlan {
             actions: vec![action.into()],
             memo: None,
-            detection_data: None,
             fee_funding: None,
             transaction_parameters: TransactionParameters {
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
                 ..Default::default()
             },
         }
-        .with_populated_detection_data(OsRng, Default::default())
     };
 
     node.block()

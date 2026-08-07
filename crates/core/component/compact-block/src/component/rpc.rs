@@ -1,18 +1,25 @@
-use std::pin::Pin;
+use std::{collections::BTreeSet, pin::Pin};
 
 use anyhow::bail;
 use cnidarium::Storage;
 use futures::{StreamExt, TryFutureExt, TryStreamExt};
 use shieldd_sdk_proto::core::component::compact_block::v1::{
-    query_service_server::QueryService, CompactBlock, CompactBlockRangeRequest,
-    CompactBlockRangeResponse, CompactBlockRequest, CompactBlockResponse,
+    query_service_server::QueryService, CompactBlock as ProtoCompactBlock,
+    CompactBlockRangeRequest, CompactBlockRangeResponse, CompactBlockRequest, CompactBlockResponse,
+    DiscoveryBlockRangeRequest, DiscoveryBlockRangeResponse, NoteCandidatesRequest,
+    NoteCandidatesResponse,
 };
 use shieldd_sdk_sct::component::clock::EpochRead;
+use shieldd_sdk_shielded_pool::discovery;
 use tokio::sync::mpsc;
 use tonic::Status;
 use tracing::{instrument, Instrument};
 
 use super::{metrics, StateReadExt};
+use crate::{DiscoveryBlock, NoteCandidate, StatePayload};
+
+const MAX_DISCOVERY_BLOCKS_PER_REQUEST: u64 = 10_000;
+const MAX_DISCOVERY_TAGS_PER_REQUEST: usize = 256;
 
 // TODO: Hide this and only expose a Router?
 pub struct Server {
@@ -30,6 +37,11 @@ impl QueryService for Server {
     type CompactBlockRangeStream = Pin<
         Box<dyn futures::Stream<Item = Result<CompactBlockRangeResponse, tonic::Status>> + Send>,
     >;
+    type DiscoveryBlockRangeStream = Pin<
+        Box<dyn futures::Stream<Item = Result<DiscoveryBlockRangeResponse, tonic::Status>> + Send>,
+    >;
+    type NoteCandidatesStream =
+        Pin<Box<dyn futures::Stream<Item = Result<NoteCandidatesResponse, tonic::Status>> + Send>>;
 
     async fn compact_block(
         &self,
@@ -230,6 +242,193 @@ impl QueryService for Server {
                 .boxed(),
         ))
     }
+
+    #[instrument(
+        skip(self, request),
+        fields(
+            start_height = request.get_ref().start_height,
+            end_height = request.get_ref().end_height,
+        ),
+    )]
+    async fn discovery_block_range(
+        &self,
+        request: tonic::Request<DiscoveryBlockRangeRequest>,
+    ) -> Result<tonic::Response<Self::DiscoveryBlockRangeStream>, Status> {
+        let DiscoveryBlockRangeRequest {
+            start_height,
+            end_height,
+        } = request.into_inner();
+        let end_height = bounded_discovery_end(&self.storage, start_height, end_height).await?;
+        let storage = self.storage.clone();
+        let (tx, rx) = mpsc::channel(10);
+
+        tokio::spawn(async move {
+            let snapshot = storage.latest_snapshot();
+            let mut blocks = snapshot.stream_compact_block(start_height);
+            while let Some(result) = blocks.next().await {
+                let proto_block = match result {
+                    Ok(block) if block.height <= end_height => block,
+                    Ok(_) => break,
+                    Err(error) => {
+                        let _ = tx
+                            .send(Err(Status::internal(format!(
+                                "error streaming discovery blocks: {error:#}"
+                            ))))
+                            .await;
+                        return;
+                    }
+                };
+                let block = match crate::CompactBlock::try_from(proto_block) {
+                    Ok(block) => block,
+                    Err(error) => {
+                        let _ = tx
+                            .send(Err(Status::internal(format!(
+                                "invalid stored compact block: {error:#}"
+                            ))))
+                            .await;
+                        return;
+                    }
+                };
+                let response = DiscoveryBlockRangeResponse {
+                    discovery_block: Some(DiscoveryBlock::from(block).into()),
+                };
+                if tx.send(Ok(response)).await.is_err() {
+                    return;
+                }
+            }
+        });
+
+        Ok(tonic::Response::new(
+            tokio_stream::wrappers::ReceiverStream::new(rx).boxed(),
+        ))
+    }
+
+    #[instrument(
+        skip(self, request),
+        fields(
+            start_height = request.get_ref().start_height,
+            end_height = request.get_ref().end_height,
+            tag_count = request.get_ref().tags.len(),
+        ),
+    )]
+    async fn note_candidates(
+        &self,
+        request: tonic::Request<NoteCandidatesRequest>,
+    ) -> Result<tonic::Response<Self::NoteCandidatesStream>, Status> {
+        let NoteCandidatesRequest {
+            start_height,
+            end_height,
+            tags,
+        } = request.into_inner();
+        if tags.is_empty() {
+            return Err(Status::invalid_argument(
+                "at least one discovery tag is required",
+            ));
+        }
+        if tags.len() > MAX_DISCOVERY_TAGS_PER_REQUEST {
+            return Err(Status::invalid_argument(format!(
+                "at most {MAX_DISCOVERY_TAGS_PER_REQUEST} discovery tags are allowed"
+            )));
+        }
+        let tags = tags
+            .into_iter()
+            .map(discovery::Tag::try_from)
+            .collect::<std::result::Result<BTreeSet<_>, _>>()
+            .map_err(|error| Status::invalid_argument(format!("invalid discovery tag: {error}")))?;
+        let end_height = bounded_discovery_end(&self.storage, start_height, end_height).await?;
+        let storage = self.storage.clone();
+        let (tx, rx) = mpsc::channel(10);
+
+        tokio::spawn(async move {
+            let snapshot = storage.latest_snapshot();
+            let mut blocks = snapshot.stream_compact_block(start_height);
+            while let Some(result) = blocks.next().await {
+                let proto_block = match result {
+                    Ok(block) if block.height <= end_height => block,
+                    Ok(_) => break,
+                    Err(error) => {
+                        let _ = tx
+                            .send(Err(Status::internal(format!(
+                                "error scanning note candidates: {error:#}"
+                            ))))
+                            .await;
+                        return;
+                    }
+                };
+                let block = match crate::CompactBlock::try_from(proto_block) {
+                    Ok(block) => block,
+                    Err(error) => {
+                        let _ = tx
+                            .send(Err(Status::internal(format!(
+                                "invalid stored compact block: {error:#}"
+                            ))))
+                            .await;
+                        return;
+                    }
+                };
+                for (index, payload) in block.state_payloads.into_iter().enumerate() {
+                    let StatePayload::Note { note, .. } = payload else {
+                        continue;
+                    };
+                    if note.is_dummy() || !tags.contains(&note.discovery_tag) {
+                        continue;
+                    }
+                    let state_payload_index = match u32::try_from(index) {
+                        Ok(index) => index,
+                        Err(_) => {
+                            let _ = tx
+                                .send(Err(Status::internal(
+                                    "compact block has more than u32::MAX state payloads",
+                                )))
+                                .await;
+                            return;
+                        }
+                    };
+                    let response: NoteCandidatesResponse = NoteCandidate {
+                        height: block.height,
+                        state_payload_index,
+                        note_payload: *note,
+                    }
+                    .into();
+                    if tx.send(Ok(response)).await.is_err() {
+                        return;
+                    }
+                }
+            }
+        });
+
+        Ok(tonic::Response::new(
+            tokio_stream::wrappers::ReceiverStream::new(rx).boxed(),
+        ))
+    }
+}
+
+async fn bounded_discovery_end(
+    storage: &Storage,
+    start_height: u64,
+    requested_end_height: u64,
+) -> Result<u64, Status> {
+    let current_height = storage
+        .latest_snapshot()
+        .get_block_height()
+        .await
+        .map_err(|error| Status::unavailable(format!("error getting block height: {error}")))?;
+    let end_height = if requested_end_height == 0 {
+        current_height
+    } else {
+        requested_end_height.min(current_height)
+    };
+    if end_height < start_height {
+        return Err(Status::invalid_argument(
+            "end height must not be lower than start height",
+        ));
+    }
+    if end_height.saturating_sub(start_height) >= MAX_DISCOVERY_BLOCKS_PER_REQUEST {
+        return Err(Status::invalid_argument(format!(
+            "discovery requests may span at most {MAX_DISCOVERY_BLOCKS_PER_REQUEST} blocks; paginate larger ranges"
+        )));
+    }
+    Ok(end_height)
 }
 
 /// RAII guard used to increment and decrement an active connection counter.
@@ -253,11 +452,11 @@ impl Drop for CompactBlockConnectionCounter {
 /// Stateful wrapper for a mpsc that tracks the outbound height
 struct BlockSender {
     next_height: u64,
-    inner: mpsc::Sender<Result<CompactBlock, tonic::Status>>,
+    inner: mpsc::Sender<Result<ProtoCompactBlock, tonic::Status>>,
 }
 
 impl BlockSender {
-    async fn send(&mut self, block: CompactBlock) -> anyhow::Result<()> {
+    async fn send(&mut self, block: ProtoCompactBlock) -> anyhow::Result<()> {
         if block.height != self.next_height {
             bail!(
                 "block height mismatch while sending: expected {}, got {}",

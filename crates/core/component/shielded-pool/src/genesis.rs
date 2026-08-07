@@ -12,7 +12,7 @@ use crate::params::ShieldedPoolParameters;
 pub struct Content {
     /// The initial token allocations.
     pub allocations: Vec<Allocation>,
-    /// The initial FMD parameters.
+    /// Initial shielded-pool protocol parameters.
     pub shielded_pool_params: ShieldedPoolParameters,
 }
 
