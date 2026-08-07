@@ -610,7 +610,7 @@ mod test {
             output,
             decaf377::Fr::rand(&mut OsRng),
         )?;
-        let mut plan = TransactionPlan {
+        let plan = TransactionPlan {
             actions: vec![shieldd_sdk_transaction::ActionPlan::Transfer(transfer)],
             memo: None,
             fee_funding: None,
