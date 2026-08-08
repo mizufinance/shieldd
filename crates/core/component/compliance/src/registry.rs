@@ -2322,7 +2322,7 @@ mod tests {
 
         let wallet = Address::dummy(&mut rng);
         let asset_id = asset::Id(Fq::from(54321u64));
-        let leaf = ComplianceLeaf::new(wallet.clone(), asset_id, Fq::from(3u64));
+        let leaf = compliance_leaf(wallet.clone(), asset_id);
         let position = state.add_compliance_leaf(leaf.clone()).await.unwrap();
 
         let record = state
@@ -2350,7 +2350,12 @@ mod tests {
 
         let corrupt = UserLeafRecord {
             position,
-            leaf: ComplianceLeaf::new(wallet.clone(), asset_id, Fq::from(4u64)),
+            leaf: ComplianceLeaf::new(
+                wallet.clone(),
+                asset_id,
+                decaf377::Element::GENERATOR * decaf377::Fr::from(4u64),
+            )
+            .expect("non-identity compliance key"),
         };
         state.nonverifiable_put_raw(
             state_key::user_leaf_record(&wallet, &asset_id),

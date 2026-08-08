@@ -304,7 +304,6 @@ mod tests {
             address.clone(),
             *BASE_ASSET_ID,
             decaf377::Element::GENERATOR * Fr::from(3u64),
-            decaf377::Element::GENERATOR * Fr::from(5u64),
         )
         .expect("valid compliance keys")
     }

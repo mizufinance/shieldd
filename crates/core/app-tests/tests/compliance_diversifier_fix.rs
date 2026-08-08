@@ -147,7 +147,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
 
     assert_eq!(
         decrypted.sender_address.transmission_key,
-        sender.transmission_key(),
+        sender.transmission_key().0,
         "compliance ciphertext should preserve the sender transmission key",
     );
     assert_eq!(
