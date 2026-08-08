@@ -87,12 +87,12 @@ impl TryFrom<Vec<u8>> for MemoPlaintext {
     type Error = anyhow::Error;
 
     fn try_from(bytes: Vec<u8>) -> Result<Self, Self::Error> {
-        if bytes.len() < 80 {
+        if bytes.len() < ADDRESS_LEN_BYTES {
             anyhow::bail!("malformed memo plaintext: missing return address");
         }
-        let return_address_bytes = &bytes[..80];
+        let return_address_bytes = &bytes[..ADDRESS_LEN_BYTES];
         let return_address: Address = return_address_bytes.try_into()?;
-        let text = raw_bytes_to_text(&bytes[80..]);
+        let text = raw_bytes_to_text(&bytes[ADDRESS_LEN_BYTES..]);
 
         MemoPlaintext::new(return_address, text)
     }
@@ -139,9 +139,9 @@ impl MemoCiphertext {
     ) -> anyhow::Result<MemoPlaintext> {
         let plaintext_bytes = MemoCiphertext::decrypt_bytes(memo_key, ciphertext)?;
 
-        let return_address_bytes = &plaintext_bytes[..80];
+        let return_address_bytes = &plaintext_bytes[..ADDRESS_LEN_BYTES];
         let return_address: Address = return_address_bytes.try_into()?;
-        let text = raw_bytes_to_text(&plaintext_bytes[80..]);
+        let text = raw_bytes_to_text(&plaintext_bytes[ADDRESS_LEN_BYTES..]);
 
         MemoPlaintext::new(return_address, text)
     }
@@ -186,9 +186,9 @@ impl MemoCiphertext {
             anyhow!("post-decryption, could not fit plaintext into memo size {MEMO_LEN_BYTES}")
         })?;
 
-        let return_address_bytes = &plaintext_bytes[..80];
+        let return_address_bytes = &plaintext_bytes[..ADDRESS_LEN_BYTES];
         let return_address: Address = return_address_bytes.try_into()?;
-        let text = raw_bytes_to_text(&plaintext_bytes[80..]);
+        let text = raw_bytes_to_text(&plaintext_bytes[ADDRESS_LEN_BYTES..]);
 
         MemoPlaintext::new(return_address, text)
     }
@@ -276,7 +276,7 @@ mod tests {
         let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
-        let (dest, _dtk_d) = ivk.payment_address(0u32.into());
+        let dest = ivk.payment_address(0u32.into());
 
         let esk = ka::Secret::new(&mut rng);
 
@@ -317,7 +317,7 @@ mod tests {
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let ovk = fvk.outgoing();
-        let (dest, _dtk_d) = ivk.payment_address(0u32.into());
+        let dest = ivk.payment_address(0u32.into());
 
         let value = Value {
             amount: 10u64.into(),

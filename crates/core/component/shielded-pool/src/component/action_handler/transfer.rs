@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use async_trait::async_trait;
 use cnidarium::StateWrite;
 use cnidarium_component::ActionHandler;
-use shieldd_sdk_compliance::{params::StateReadExt as _, registry::ComplianceRegistryRead};
+use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
 use shieldd_sdk_proof_params::batch::{self, BatchItem};
 use shieldd_sdk_proto::{DomainType as _, StateWriteProto as _};
 use shieldd_sdk_sct::component::{
@@ -16,8 +16,11 @@ use crate::transfer::compliance::{
     parse_transfer_output_compliance, transfer_compliance_public_from_parts,
 };
 use crate::{
-    component::{action_handler::note_reshape, NoteManager},
-    event, Transfer, TransferInputBody, TransferOutputBody, TransferOutputPublic,
+    component::{
+        action_handler::note_reshape, DiscoveryManager, NoteManager,
+        StateReadExt as ShieldedPoolStateReadExt,
+    },
+    discovery, event, Transfer, TransferInputBody, TransferOutputBody, TransferOutputPublic,
     TransferProofPublic, TransferSpendPublic,
 };
 
@@ -131,12 +134,18 @@ impl ActionHandler for Transfer {
 
     async fn check_and_execute<S: StateWrite>(&self, mut state: S) -> Result<()> {
         let (ciphertext, _) = parse_transfer_output_compliance(&self.body.outputs)?;
-        let compliance_params = state.get_compliance_params().await?;
         anyhow::ensure!(
-            ciphertext.fuzzy_tags.precision == compliance_params.fuzzy_precision,
-            "transfer fuzzy precision {} does not match protocol precision {}",
-            ciphertext.fuzzy_tags.precision.bits(),
-            compliance_params.fuzzy_precision.bits(),
+            self.body.outputs.iter().enumerate().all(|(index, output)| {
+                let expected = if index == 0 {
+                    ciphertext.discovery_tags.receiver.value()
+                } else {
+                    ciphertext.discovery_tags.sender.value()
+                };
+                output.note_payload.discovery_tag.precision.bits()
+                    == ciphertext.discovery_tags.precision_bits
+                    && output.note_payload.discovery_tag.value == expected
+            }),
+            "participant discovery tags do not match output note discovery tags",
         );
 
         state
@@ -160,6 +169,36 @@ impl ActionHandler for Transfer {
         let source = state
             .get_current_source()
             .ok_or_else(|| anyhow::anyhow!("source should be set during execution"))?;
+
+        let discovery_precision =
+            discovery::Precision::new(ciphertext.discovery_tags.precision_bits)?;
+        let current_discovery = state.get_current_discovery_parameters().await?;
+        let previous_discovery = state.get_previous_discovery_parameters().await?;
+        let discovery_grace_period_blocks = state
+            .get_shielded_pool_params()
+            .await?
+            .discovery_grace_period_blocks;
+        let block_height = state.get_block_height().await?;
+        anyhow::ensure!(
+            current_discovery.accepts_precision(
+                &previous_discovery,
+                discovery_grace_period_blocks,
+                block_height,
+                discovery_precision,
+            ),
+            "transfer discovery precision is not active at this block",
+        );
+        state.record_transaction_discovery(discovery::Transaction {
+            transaction_id: source,
+            sender: discovery::Tag {
+                precision: discovery_precision,
+                value: ciphertext.discovery_tags.sender.value(),
+            },
+            receiver: discovery::Tag {
+                precision: discovery_precision,
+                value: ciphertext.discovery_tags.receiver.value(),
+            },
+        });
 
         for input in note_reshape::real_items(&self.body.inputs, TransferInputBody::is_dummy) {
             state.nullify(input.nullifier, source.into()).await?;

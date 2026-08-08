@@ -5,6 +5,7 @@ import "shieldd/core/component/compliance/v1/compliance.proto";
 import "shieldd/core/component/fee/v1/fee.proto";
 import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
+import "shieldd/core/txhash/v1/txhash.proto";
 import "shieldd/crypto/tct/v1/tct.proto";
 
 // Contains the minimum data needed to update client state.
@@ -38,6 +39,8 @@ message CompactBlock {
   repeated compliance.v1.EventUserRegistered compliance_user_registrations = 14;
   // Asset registrations in this block (for client sync).
   repeated compliance.v1.EventAssetRegistered compliance_asset_registrations = 15;
+  // Public, probabilistic routing metadata for shielded transfers.
+  repeated TransactionDiscovery transaction_discoveries = 16;
 }
 
 // An encrypted payload, corresponding to a single commitment in the state commitment tree.
@@ -69,6 +72,8 @@ service QueryService {
   rpc DiscoveryBlockRange(DiscoveryBlockRangeRequest) returns (stream DiscoveryBlockRangeResponse);
   // Finds encrypted note candidates by public discovery tag without requiring an index.
   rpc NoteCandidates(NoteCandidatesRequest) returns (stream NoteCandidatesResponse);
+  // Finds transaction IDs by proof-bound sender or receiver discovery tag.
+  rpc TransactionCandidates(TransactionCandidatesRequest) returns (stream TransactionCandidatesResponse);
 }
 
 // Requests a range of compact block data.
@@ -100,6 +105,15 @@ message DiscoveryBlock {
   crypto.tct.v1.MerkleRoot epoch_root = 3;
   repeated shielded_pool.v1.DiscoveryTag tags = 4;
   shielded_pool.v1.DiscoveryParameters discovery_parameters = 5;
+  repeated TransactionDiscovery transaction_discoveries = 6;
+}
+
+// Public routing metadata for one shielded transfer. These tags are candidate
+// selectors only and do not prove participation or grant authorization.
+message TransactionDiscovery {
+  core.txhash.v1.TransactionId transaction_id = 1;
+  shielded_pool.v1.DiscoveryTag sender = 2;
+  shielded_pool.v1.DiscoveryTag receiver = 3;
 }
 
 message DiscoveryBlockRangeRequest {
@@ -121,4 +135,17 @@ message NoteCandidatesResponse {
   uint64 height = 1;
   uint32 state_payload_index = 2;
   shielded_pool.v1.NotePayload note_payload = 3;
+}
+
+message TransactionCandidatesRequest {
+  uint64 start_height = 1;
+  uint64 end_height = 2;
+  repeated shielded_pool.v1.DiscoveryTag tags = 3;
+}
+
+message TransactionCandidatesResponse {
+  uint64 height = 1;
+  core.txhash.v1.TransactionId transaction_id = 2;
+  bool sender_match = 3;
+  bool receiver_match = 4;
 }

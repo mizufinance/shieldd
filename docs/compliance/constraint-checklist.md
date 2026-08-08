@@ -30,12 +30,12 @@ or re-checks it, and where regressions should be caught.
 - Tested by: compliance registry tests and transfer gnark metamorphic tests.
 - Violation: transaction planning fails or the transfer proof rejects.
 
-### Compliance User And Clue Key Binding
+### Compliance User And Address Binding
 
 - Enforced in: `ComplianceLeaf::commit`, registration validation, and transfer
   compliance circuits.
-- Verified at: `MsgRegisterUser` validates non-identity, distinct user/clue
-  public keys and the authority signature over the full leaf.
+- Verified at: `MsgRegisterUser` validates the independent Orbis user public key
+  and the authority signature over the full leaf.
 - Tested by: compliance leaf/proto tests, registry registration tests, and
   gnark transfer witness parity tests.
 - Violation: registration fails, transfer planning cannot use a synthetic
@@ -61,18 +61,19 @@ or re-checks it, and where regressions should be caught.
 - Violation: ciphertext is marked irrelevant or invalid; malformed rows are
   capped and persisted.
 
-### Fuzzy Clue Binding
+### Discovery Tag Binding
 
 - Enforced in: transfer construction and the transfer compliance circuit.
-- Verified at: the circuit recomputes sender and receiver Poseidon-DH tags from
-  the registered clue keys, matching core-tier randomizers, asset ID,
-  authorization ID, authorization timestamp, and role. It constrains the public
-  precision to 7 through 12 and zeros every inactive high tag bit. Execution
-  requires that precision to equal the current compliance protocol parameter.
-- Tested by: `fuzzy::*`, audit CLI prefilter tests, Rust/Go witness parity, and
+- Verified at: the circuit truncates the canonical transmission-key field
+  elements in the registered addresses and constrains those encodings to the
+  spent and created notes. It constrains public precision to 0 through 32
+  and zeros every inactive high tag bit. Execution requires that precision to
+  equal the current or grace-period previous shielded-pool parameter and records
+  the original transaction ID with the tags in the compact block.
+- Tested by: `participant::*`, discovery tests, audit CLI prefilter tests, Rust/Go witness parity, and
   transfer circuit adversarial tests.
-- Violation: the transfer proof rejects. Off-chain examination may admit false
-  positives but a valid clue must not produce a false negative.
+- Violation: the transfer proof or execution rejects. Off-chain examination may
+  admit false positives but a valid proof-bound tag must not produce a false negative.
 
 ### Tier Encryption And DLEQ Binding
 

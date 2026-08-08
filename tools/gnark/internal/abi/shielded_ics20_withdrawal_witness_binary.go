@@ -9,10 +9,10 @@ import (
 
 const (
 	shieldedIcs20WithdrawalWitnessV1Magic = "PIWG"
-	shieldedIcs20WithdrawalWitnessVersion = 3
+	shieldedIcs20WithdrawalWitnessVersion = 5
 	maxShieldedIcs20WithdrawalInputs      = 2
-	minShieldedIcs20WithdrawalSpendBytes  = 32*7 + 8 + 4 + 32 + 1 + 32 + 32 + 64*3
-	minShieldedIcs20WithdrawalChangeBytes = 32*6 + 64*2
+	minShieldedIcs20WithdrawalSpendBytes  = 32*6 + 8 + 4 + 32 + 1 + 32 + 32 + 64*3
+	minShieldedIcs20WithdrawalChangeBytes = 32*5 + 64*2
 	minShieldedIcs20WithdrawalTailBytes   = 64 * 6
 )
 
@@ -22,7 +22,6 @@ type ShieldedIcs20WithdrawalSpendWitnessV1Binary struct {
 	SpentNoteAmount           [32]byte
 	SpentNoteAssetID          [32]byte
 	SpentTransmissionKey      [32]byte
-	SpentClueKey              [32]byte
 	StateCommitmentCommitment [32]byte
 	StateCommitmentPosition   uint64
 	StateCommitmentAuthPath   [][3][32]byte
@@ -41,7 +40,6 @@ type ShieldedIcs20WithdrawalChangeWitnessV1Binary struct {
 	CreatedNoteAmount         [32]byte
 	CreatedNoteAssetID        [32]byte
 	CreatedTransmissionKey    [32]byte
-	CreatedClueKey            [32]byte
 	CreatedDivGenAffine       PointAffineBinary
 	CreatedTransmissionAffine PointAffineBinary
 }
@@ -74,7 +72,6 @@ type ShieldedIcs20WithdrawalWitnessV1Binary struct {
 	SenderCompliancePosition uint64
 	SenderAssetID            [32]byte
 	SenderUserPublicKey      [32]byte
-	SenderCluePublicKey      [32]byte
 
 	Spends       []ShieldedIcs20WithdrawalSpendWitnessV1Binary
 	ChangeOutput ShieldedIcs20WithdrawalChangeWitnessV1Binary
@@ -86,7 +83,6 @@ type ShieldedIcs20WithdrawalWitnessV1Binary struct {
 	SenderDiversifiedGenerator PointAffineBinary
 	SenderTransmissionKey      PointAffineBinary
 	SenderUserPublicKeyAffine  PointAffineBinary
-	SenderCluePublicKeyAffine  PointAffineBinary
 }
 
 func DecodeShieldedIcs20WithdrawalWitnessV1(payload []byte) (*ShieldedIcs20WithdrawalWitnessV1Binary, generated.ShieldedIcs20WithdrawalFamilySpec, error) {
@@ -212,9 +208,6 @@ func DecodeShieldedIcs20WithdrawalWitnessV1(payload []byte) (*ShieldedIcs20Withd
 	if out.SenderUserPublicKey, err = read32(reader); err != nil {
 		return nil, family, err
 	}
-	if out.SenderCluePublicKey, err = read32(reader); err != nil {
-		return nil, family, err
-	}
 	out.Spends = make([]ShieldedIcs20WithdrawalSpendWitnessV1Binary, nIn)
 	for i := range out.Spends {
 		if out.Spends[i], err = readShieldedIcs20WithdrawalSpend(reader); err != nil {
@@ -245,9 +238,6 @@ func DecodeShieldedIcs20WithdrawalWitnessV1(payload []byte) (*ShieldedIcs20Withd
 	if out.SenderUserPublicKeyAffine, err = readPointAffine(reader); err != nil {
 		return nil, family, err
 	}
-	if out.SenderCluePublicKeyAffine, err = readPointAffine(reader); err != nil {
-		return nil, family, err
-	}
 	if reader.Len() != 0 {
 		return nil, family, fmt.Errorf("trailing bytes in shielded ICS-20 withdrawal witness: %d", reader.Len())
 	}
@@ -270,9 +260,6 @@ func readShieldedIcs20WithdrawalSpend(reader *bytes.Reader) (ShieldedIcs20Withdr
 		return out, err
 	}
 	if out.SpentTransmissionKey, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.SpentClueKey, err = read32(reader); err != nil {
 		return out, err
 	}
 	if out.StateCommitmentCommitment, err = read32(reader); err != nil {
@@ -326,9 +313,6 @@ func readShieldedIcs20WithdrawalChange(reader *bytes.Reader) (ShieldedIcs20Withd
 		return out, err
 	}
 	if out.CreatedTransmissionKey, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.CreatedClueKey, err = read32(reader); err != nil {
 		return out, err
 	}
 	if out.CreatedDivGenAffine, err = readPointAffine(reader); err != nil {

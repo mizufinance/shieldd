@@ -1037,8 +1037,8 @@ async fn register_regulated_assets(relayer: &mut MockRelayer) -> Result<()> {
 
     let chain_a_client = relayer.chain_a_ibc.client().await?;
     let chain_b_client = relayer.chain_b_ibc.client().await?;
-    let address_a = chain_a_client.fvk.payment_address(AddressIndex::new(0)).0;
-    let address_b = chain_b_client.fvk.payment_address(AddressIndex::new(0)).0;
+    let address_a = chain_a_client.fvk.payment_address(AddressIndex::new(0));
+    let address_b = chain_b_client.fvk.payment_address(AddressIndex::new(0));
     relayer
         .chain_a_ibc
         .execute_regulated_compliance_setup(

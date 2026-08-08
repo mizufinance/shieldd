@@ -21,12 +21,17 @@ fn compliance_leaf(
     asset_id: asset::Id,
     ring_pk: &decaf377::Element,
 ) -> ComplianceLeaf {
-    let clue_public_key = *address.diversified_generator() * decaf377::Fr::from(2u64);
+    let registration_id = [17u8; 32];
     let user_public_key =
-        shieldd_sdk_compliance::derive_orbis_user_public_key(ring_pk, &clue_public_key)
-            .expect("derive test Orbis user key");
-    ComplianceLeaf::new(address, asset_id, user_public_key, clue_public_key)
-        .expect("distinct non-identity compliance keys")
+        shieldd_sdk_compliance::derive_orbis_user_public_key(ring_pk, &registration_id)
+            .expect("valid Orbis user key");
+    ComplianceLeaf::new_with_orbis_registration_id(
+        address,
+        asset_id,
+        user_public_key,
+        registration_id,
+    )
+    .expect("non-identity compliance key")
 }
 
 #[allow(dead_code)]

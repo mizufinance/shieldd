@@ -316,13 +316,11 @@ mod tests {
         let sender = sender_sk
             .full_viewing_key()
             .incoming()
-            .payment_address(AddressIndex::from(0u32))
-            .0;
+            .payment_address(AddressIndex::from(0u32));
         let recipient = recipient_sk
             .full_viewing_key()
             .incoming()
-            .payment_address(AddressIndex::from(0u32))
-            .0;
+            .payment_address(AddressIndex::from(0u32));
         let value = Value {
             amount: 100u64.into(),
             asset_id: *BASE_ASSET_ID,

@@ -54,7 +54,7 @@ message NoteView {
 }
 
 // An encrypted note.
-// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
 message NoteCiphertext {
   bytes inner = 1;
 }
@@ -67,7 +67,7 @@ message NotePayload {
   // The encoding of an ephemeral public key. 32 bytes.
   bytes ephemeral_key = 2;
   // An encryption of the newly created note.
-  // 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+  // 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
   NoteCiphertext encrypted_note = 3;
   // Public best-effort routing metadata. It does not grant decryption capability.
   DiscoveryTag discovery_tag = 4;
@@ -171,8 +171,8 @@ message TransferPlan {
   repeated ShieldedOutputPlan outputs = 5;
   // Protocol precision used by all real and padded output discovery tags.
   uint32 discovery_precision_bits = 6;
-  // Protocol-selected auditor fuzzy-clue precision for this transfer.
-  uint32 fuzzy_precision_bits = 7;
+  reserved 7;
+  reserved "fuzzy_precision_bits";
 }
 
 // Releases shielded value to a recipient on the host chain.

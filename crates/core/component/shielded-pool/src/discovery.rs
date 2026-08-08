@@ -1,16 +1,19 @@
 //! Public, Miden-style routing tags for encrypted note discovery.
-//! Tags disclose a protocol-sized prefix derived from the recipient address but no decryption key.
+//! Tags disclose a protocol-sized prefix of the recipient address but no decryption key.
 //! Precision changes are governance-controlled and allow the previous precision for a grace period.
-//! Tags are best-effort metadata, not circuit-bound; a full compact-block scan remains the recovery path.
+//! Transfer tags are proof-bound candidate metadata; they do not grant decryption or prove participation.
+//! A full compact-block scan remains the recovery path for ordinary note discovery.
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use shieldd_sdk_keys::{Address, DiscoveryKey};
+use shieldd_sdk_keys::Address;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
+use shieldd_sdk_txhash::TransactionId;
 
 pub mod state_key;
 
-pub const DEFAULT_PRECISION_BITS: u8 = 16;
+/// Default protocol precision: roughly 0.1% of unrelated two-party transfers match either tag.
+pub const DEFAULT_PRECISION_BITS: u8 = 11;
 pub const DEFAULT_GRACE_PERIOD_BLOCKS: u64 = 16;
 
 /// Number of public routing bits disclosed by a note.
@@ -36,7 +39,8 @@ impl Precision {
     fn mask(self) -> u32 {
         match self.0 {
             0 => 0,
-            bits => u32::MAX << (32 - bits),
+            32 => u32::MAX,
+            bits => (1u32 << bits) - 1,
         }
     }
 }
@@ -69,22 +73,30 @@ pub struct Tag {
     pub value: u32,
 }
 
-impl Tag {
-    pub fn derive(key: &DiscoveryKey, precision: Precision) -> Self {
-        let hash = blake2b_simd::Params::new()
-            .hash_length(32)
-            .personal(b"ShielddDiscTag1")
-            .hash(&key.0);
-        let value = u32::from_be_bytes(
-            hash.as_bytes()[..4]
-                .try_into()
-                .expect("four-byte slice always fits"),
-        ) & precision.mask();
-        Self { precision, value }
-    }
+/// Public routing metadata for one shielded transfer.
+///
+/// The transaction ID is the canonical chain transaction ID. The tags are only
+/// probabilistic selectors: a match identifies a transaction candidate, not an
+/// authorization or proof of participation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Transaction {
+    pub transaction_id: TransactionId,
+    pub sender: Tag,
+    pub receiver: Tag,
+}
 
+impl Transaction {
+    pub fn matches_any(&self, tags: &std::collections::BTreeSet<Tag>) -> (bool, bool) {
+        (tags.contains(&self.sender), tags.contains(&self.receiver))
+    }
+}
+
+impl Tag {
     pub fn for_address(address: &Address, precision: Precision) -> Self {
-        Self::derive(address.discovery_key(), precision)
+        let bytes = address.transmission_key().0;
+        let value = u32::from_le_bytes(bytes[..4].try_into().expect("four-byte slice always fits"))
+            & precision.mask();
+        Self { precision, value }
     }
 
     pub fn is_canonical(self) -> bool {
@@ -189,10 +201,10 @@ mod tests {
 
     #[test]
     fn tag_masks_every_precision_canonically() {
-        let key = DiscoveryKey([0xabu8; 32]);
+        let address = shieldd_sdk_keys::test_keys::ADDRESS_0.clone();
         for bits in 0..=32 {
             let precision = Precision::new(bits).unwrap();
-            let tag = Tag::derive(&key, precision);
+            let tag = Tag::for_address(&address, precision);
             assert!(tag.is_canonical());
             assert_eq!(tag.value & !precision.mask(), 0);
         }
@@ -200,10 +212,18 @@ mod tests {
 
     #[test]
     fn tag_prefixes_are_stable_across_precision_changes() {
-        let key = DiscoveryKey([7u8; 32]);
-        let short = Tag::derive(&key, Precision::new(12).unwrap());
-        let long = Tag::derive(&key, Precision::new(20).unwrap());
+        let address = shieldd_sdk_keys::test_keys::ADDRESS_0.clone();
+        let short = Tag::for_address(&address, Precision::new(12).unwrap());
+        let long = Tag::for_address(&address, Precision::new(20).unwrap());
         assert_eq!(short.value, long.value & Precision::new(12).unwrap().mask());
+    }
+
+    #[test]
+    fn diversified_addresses_have_independent_full_tags() {
+        let precision = Precision::MAX;
+        let first = Tag::for_address(&shieldd_sdk_keys::test_keys::ADDRESS_0, precision);
+        let second = Tag::for_address(&shieldd_sdk_keys::test_keys::ADDRESS_1, precision);
+        assert_ne!(first, second);
     }
 
     #[test]

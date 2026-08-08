@@ -103,8 +103,6 @@ func newTransferSharedAssignmentParts(
 		fqString(witness.SenderAssetID),
 		fqString(witness.SenderUserPublicKeyAffine.X),
 		fqString(witness.SenderUserPublicKeyAffine.Y),
-		fqString(witness.SenderCluePublicKeyAffine.X),
-		fqString(witness.SenderCluePublicKeyAffine.Y),
 		senderPath,
 		witness.SenderCompliancePosition,
 	)
@@ -208,17 +206,17 @@ func newTransferComplianceFields(
 	}
 
 	fields := circuits.TransferComplianceFields{
-		TransferNonceRoot: fqString(witness.TransferNonceRoot),
-		FuzzyPrecision:    fqString(witness.FuzzyPrecision),
-		FuzzyTags:         fqString(witness.FuzzyTags),
-		SenderRCore:       fqString(witness.SenderRCore),
-		SenderRExt:        fqString(witness.SenderRExt),
-		OutputRCore:       fqString(witness.OutputRCore),
-		OutputRExt:        fqString(witness.OutputRExt),
-		SenderCore:        senderCore,
-		SenderExt:         senderExt,
-		OutputCore:        outputCore,
-		OutputExt:         outputExt,
+		TransferNonceRoot:  fqString(witness.TransferNonceRoot),
+		DiscoveryPrecision: fqString(witness.DiscoveryPrecision),
+		DiscoveryTags:      fqString(witness.DiscoveryTags),
+		SenderRCore:        fqString(witness.SenderRCore),
+		SenderRExt:         fqString(witness.SenderRExt),
+		OutputRCore:        fqString(witness.OutputRCore),
+		OutputRExt:         fqString(witness.OutputRExt),
+		SenderCore:         senderCore,
+		SenderExt:          senderExt,
+		OutputCore:         outputCore,
+		OutputExt:          outputExt,
 	}
 	for i := range witness.DetectionCiphertext {
 		fields.DetectionCiphertext[i] = fqString(witness.DetectionCiphertext[i])
@@ -249,7 +247,6 @@ func newTransferSpendCircuitFields(
 			fqString(witness.SpentTransmissionKey),
 			fqString(witness.SpentTransmissionKeyXY.X),
 			fqString(witness.SpentTransmissionKeyXY.Y),
-			fqString(witness.SpentClueKey),
 		),
 		StateProof: circuits.StateCommitmentFields{
 			Commitment: fqString(witness.StateCommitmentCommitment),
@@ -286,7 +283,6 @@ func newTransferOutputCircuitFields(
 			fqString(witness.CreatedTransmissionKey),
 			fqString(witness.CreatedTransmissionKeyXY.X),
 			fqString(witness.CreatedTransmissionKeyXY.Y),
-			fqString(witness.CreatedClueKey),
 		),
 		Recipient: userComplianceFields(
 			fqString(witness.RecipientDiversifiedGenerator.X),
@@ -296,8 +292,6 @@ func newTransferOutputCircuitFields(
 			fqString(witness.RecipientAssetID),
 			fqString(witness.RecipientUserPublicKeyAffine.X),
 			fqString(witness.RecipientUserPublicKeyAffine.Y),
-			fqString(witness.RecipientCluePublicKeyAffine.X),
-			fqString(witness.RecipientCluePublicKeyAffine.Y),
 			recipientPath,
 			witness.RecipientCompliancePosition,
 		),

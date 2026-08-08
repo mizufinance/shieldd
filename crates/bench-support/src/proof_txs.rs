@@ -125,13 +125,11 @@ pub async fn setup_proof_storage(
         test_keys::ADDRESS_1.deref().clone(),
     ] {
         let user_public_key = *address.diversified_generator();
-        let clue_public_key = user_public_key * decaf377::Fr::from(2u64);
         state
             .add_compliance_leaf(ComplianceLeaf::new(
                 address,
                 *BASE_ASSET_ID,
                 user_public_key,
-                clue_public_key,
             )?)
             .await?;
     }

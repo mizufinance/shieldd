@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use shieldd_sdk_keys::{
     keys::{Diversifier, FullViewingKey, IncomingViewingKey, OutgoingViewingKey},
     symmetric::{OutgoingCipherKey, OvkWrappedKey, PayloadKey, PayloadKind},
-    Address, AddressView, DiscoveryKey,
+    Address, AddressView,
 };
 use shieldd_sdk_proto::shieldd::core::component::shielded_pool::v1 as pb;
 use thiserror;
@@ -25,8 +25,8 @@ use shieldd_sdk_num::Amount;
 
 use crate::{discovery, NotePayload, Rseed};
 
-pub const NOTE_LEN_BYTES: usize = 160;
-pub const NOTE_CIPHERTEXT_BYTES: usize = 176;
+pub const NOTE_LEN_BYTES: usize = 128;
+pub const NOTE_CIPHERTEXT_BYTES: usize = 144;
 
 /// A plaintext Shieldd note.
 #[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -118,16 +118,14 @@ impl Note {
                 return true;
             }
 
-            // Check that the address carries the discovery key derived by this viewing key.
-            let (expected_address, _) = fvk.incoming().payment_address(address_index);
-            let expected_discovery_key = expected_address.discovery_key();
+            let expected_address = fvk.incoming().payment_address(address_index);
 
             let transmission_key_matches = *self.transmission_key()
                 == fvk
                     .incoming()
                     .diversified_public(&self.diversified_generator());
 
-            return transmission_key_matches && self.discovery_key() == expected_discovery_key;
+            return transmission_key_matches && self.address == expected_address;
         } else {
             false
         }
@@ -193,10 +191,6 @@ impl Note {
 
     pub fn transmission_key_s(&self) -> Fq {
         self.transmission_key_s
-    }
-
-    pub fn discovery_key(&self) -> &DiscoveryKey {
-        self.address.discovery_key()
     }
 
     pub fn diversifier(&self) -> &Diversifier {
@@ -355,7 +349,6 @@ impl Note {
             self.value,
             self.diversified_generator(),
             self.transmission_key_s,
-            self.address.discovery_key(),
         )
     }
 
@@ -370,9 +363,8 @@ pub fn commitment(
     value: Value,
     diversified_generator: decaf377::Element,
     transmission_key_s: Fq,
-    discovery_key: &DiscoveryKey,
 ) -> StateCommitment {
-    let commit = poseidon377::hash_6(
+    let commit = poseidon377::hash_5(
         &NOTECOMMIT_DOMAIN_SEP,
         (
             note_blinding,
@@ -380,7 +372,6 @@ pub fn commitment(
             value.asset_id.0,
             diversified_generator.vartime_compress_to_field(),
             transmission_key_s,
-            Fq::from_le_bytes_mod_order(&discovery_key.0[..]),
         ),
     );
 
@@ -395,7 +386,7 @@ pub fn commitment_from_address(
 ) -> Result<StateCommitment, Error> {
     let transmission_key_s = Fq::from_bytes_checked(&address.transmission_key().0)
         .map_err(|_| Error::InvalidTransmissionKey)?;
-    let commit = poseidon377::hash_6(
+    let commit = poseidon377::hash_5(
         &NOTECOMMIT_DOMAIN_SEP,
         (
             note_blinding,
@@ -403,7 +394,6 @@ pub fn commitment_from_address(
             value.asset_id.0,
             address.diversified_generator().vartime_compress_to_field(),
             transmission_key_s,
-            Fq::from_le_bytes_mod_order(&address.discovery_key().0[..]),
         ),
     );
 
@@ -481,10 +471,10 @@ impl TryFrom<pb::NoteView> for NoteView {
 impl From<&Note> for [u8; NOTE_LEN_BYTES] {
     fn from(note: &Note) -> [u8; NOTE_LEN_BYTES] {
         let mut bytes = [0u8; NOTE_LEN_BYTES];
-        bytes[0..80].copy_from_slice(&note.address.to_vec());
-        bytes[80..96].copy_from_slice(&note.value.amount.to_le_bytes());
-        bytes[96..128].copy_from_slice(&note.value.asset_id.0.to_bytes());
-        bytes[128..160].copy_from_slice(&note.rseed.to_bytes());
+        bytes[0..48].copy_from_slice(&note.address.to_vec());
+        bytes[48..64].copy_from_slice(&note.value.amount.to_le_bytes());
+        bytes[64..96].copy_from_slice(&note.value.asset_id.0.to_bytes());
+        bytes[96..128].copy_from_slice(&note.rseed.to_bytes());
         bytes
     }
 }
@@ -514,18 +504,18 @@ impl TryFrom<&[u8]> for Note {
             return Err(Error::NoteDeserializationError);
         }
 
-        let amount_bytes: [u8; 16] = bytes[80..96]
+        let amount_bytes: [u8; 16] = bytes[48..64]
             .try_into()
             .map_err(|_| Error::NoteDeserializationError)?;
-        let asset_id_bytes: [u8; 32] = bytes[96..128]
+        let asset_id_bytes: [u8; 32] = bytes[64..96]
             .try_into()
             .map_err(|_| Error::NoteDeserializationError)?;
-        let rseed_bytes: [u8; 32] = bytes[128..160]
+        let rseed_bytes: [u8; 32] = bytes[96..128]
             .try_into()
             .map_err(|_| Error::NoteDeserializationError)?;
 
         Note::from_parts(
-            bytes[0..80]
+            bytes[0..48]
                 .try_into()
                 .map_err(|_| Error::NoteDeserializationError)?,
             Value {
@@ -589,7 +579,7 @@ mod tests {
         let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
-        let (dest, _dtk_d) = ivk.payment_address(0u32.into());
+        let dest = ivk.payment_address(0u32.into());
 
         let value = Value {
             amount: 10u64.into(),
@@ -625,7 +615,7 @@ mod tests {
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let ovk = fvk.outgoing();
-        let (dest, _dtk_d) = ivk.payment_address(0u32.into());
+        let dest = ivk.payment_address(0u32.into());
 
         let value = Value {
             amount: 10u64.into(),
@@ -659,7 +649,7 @@ mod tests {
         let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
-        let (dest, _dtk_d) = ivk.payment_address(0u32.into());
+        let dest = ivk.payment_address(0u32.into());
 
         let value = Value {
             amount: 10u64.into(),

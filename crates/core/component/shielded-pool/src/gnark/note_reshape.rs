@@ -317,7 +317,7 @@ mod tests {
     #[test]
     fn note_reshape_witness_v1_rejects_bad_version() {
         let mut encoded = corrupt();
-        encoded[4..8].copy_from_slice(&2u32.to_le_bytes());
+        encoded[4..8].copy_from_slice(&u32::MAX.to_le_bytes());
         assert!(decode_note_reshape_witness_v1(&encoded).is_err());
     }
 

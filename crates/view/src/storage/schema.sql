@@ -172,7 +172,7 @@ CREATE TABLE compliance_user_leaf_data (
     asset_id BLOB NOT NULL,
     position BIGINT NOT NULL,
     user_public_key BLOB NOT NULL,     -- 32 bytes compressed curve point
-    clue_public_key BLOB NOT NULL,     -- 32 bytes compressed curve point
+    orbis_registration_id BLOB NOT NULL, -- 32-byte Orbis PRE derivation input
     commitment BLOB NOT NULL,
     PRIMARY KEY (address, asset_id)
 );

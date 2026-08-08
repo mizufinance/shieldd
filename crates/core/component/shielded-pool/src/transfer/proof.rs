@@ -66,8 +66,8 @@ impl TransferComplianceProofPublic {
 #[derive(Clone, Debug)]
 pub struct TransferCompliancePublic {
     pub detection_ciphertext: Vec<Fq>,
-    pub fuzzy_precision: Fq,
-    pub fuzzy_tags: Fq,
+    pub discovery_precision: Fq,
+    pub discovery_tags: Fq,
     pub sender_core: TransferComplianceCiphertextPublic,
     pub sender_ext: TransferComplianceCiphertextPublic,
     pub output_core: TransferComplianceCiphertextPublic,

@@ -275,12 +275,9 @@ impl Opt {
 
                     let auth_policy = vec![
                         AuthPolicy::DestinationAllowList {
-                            allowed_destination_addresses: vec![
-                                spend_key
-                                    .incoming_viewing_key()
-                                    .payment_address(Default::default())
-                                    .0,
-                            ],
+                            allowed_destination_addresses: vec![spend_key
+                                .incoming_viewing_key()
+                                .payment_address(Default::default())],
                         },
                         AuthPolicy::OnlyIbcRelay,
                         AuthPolicy::PreAuthorization(PreAuthorizationPolicy::Ed25519 {

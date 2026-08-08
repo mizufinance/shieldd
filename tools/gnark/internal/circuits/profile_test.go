@@ -19,7 +19,6 @@ type noteCommitmentProfileCircuit struct {
 	DiversifiedGenX  frontend.Variable
 	DiversifiedGenY  frontend.Variable
 	TransmissionKeyS frontend.Variable
-	ClueKey          frontend.Variable
 }
 
 func (c *noteCommitmentProfileCircuit) Define(api frontend.API) error {
@@ -30,7 +29,6 @@ func (c *noteCommitmentProfileCircuit) Define(api frontend.API) error {
 		c.NoteAssetID,
 		gnarkte.Point{X: c.DiversifiedGenX, Y: c.DiversifiedGenY},
 		c.TransmissionKeyS,
-		c.ClueKey,
 	)
 	return err
 }
@@ -43,8 +41,6 @@ type complianceLeafProfileCircuit struct {
 	AssetID frontend.Variable
 	UserPKX frontend.Variable
 	UserPKY frontend.Variable
-	CluePKX frontend.Variable
-	CluePKY frontend.Variable
 }
 
 func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
@@ -54,7 +50,6 @@ func (c *complianceLeafProfileCircuit) Define(api frontend.API) error {
 		gnarkte.Point{X: c.TransX, Y: c.TransY},
 		c.AssetID,
 		gnarkte.Point{X: c.UserPKX, Y: c.UserPKY},
-		gnarkte.Point{X: c.CluePKX, Y: c.CluePKY},
 	)
 	return err
 }
@@ -186,30 +181,18 @@ type transferDetectionProfileCircuit struct {
 	Ciphertext1     frontend.Variable
 }
 
-type transferFuzzyTagsProfileCircuit struct {
-	SenderR                frontend.Variable
-	SenderCluePKX          frontend.Variable
-	SenderCluePKY          frontend.Variable
-	ReceiverR              frontend.Variable
-	ReceiverCluePKX        frontend.Variable
-	ReceiverCluePKY        frontend.Variable
-	AssetID                frontend.Variable
-	AuthorizationID        frontend.Variable
-	AuthorizationTimestamp frontend.Variable
-	Precision              frontend.Variable
-	PackedTags             frontend.Variable
+type transferDiscoveryTagsProfileCircuit struct {
+	SenderTransmissionKey   frontend.Variable
+	ReceiverTransmissionKey frontend.Variable
+	Precision               frontend.Variable
+	PackedTags              frontend.Variable
 }
 
-func (c *transferFuzzyTagsProfileCircuit) Define(api frontend.API) error {
-	return compliance.VerifyTransferFuzzyTags(
+func (c *transferDiscoveryTagsProfileCircuit) Define(api frontend.API) error {
+	return compliance.VerifyTransferDiscoveryTags(
 		api,
-		c.SenderR,
-		gnarkte.Point{X: c.SenderCluePKX, Y: c.SenderCluePKY},
-		c.ReceiverR,
-		gnarkte.Point{X: c.ReceiverCluePKX, Y: c.ReceiverCluePKY},
-		c.AssetID,
-		c.AuthorizationID,
-		c.AuthorizationTimestamp,
+		c.SenderTransmissionKey,
+		c.ReceiverTransmissionKey,
 		c.Precision,
 		c.PackedTags,
 		nil,
@@ -368,7 +351,7 @@ func TestConstraintProfiles(t *testing.T) {
 	compileConstraintCount(t, "spend shared secrets", &spendSharedSecretsProfileCircuit{})
 	transferSalt := compileConstraintCount(t, "transfer salt derivation", &transferSaltProfileCircuit{})
 	transferMetadata := compileConstraintCount(t, "transfer metadata hash", &transferMetadataProfileCircuit{})
-	transferFuzzyTags := compileConstraintCount(t, "transfer fuzzy tags", &transferFuzzyTagsProfileCircuit{})
+	transferDiscoveryTags := compileConstraintCount(t, "transfer discovery tags", &transferDiscoveryTagsProfileCircuit{})
 	transferDetection := compileConstraintCount(t, "transfer detection ciphertext", &transferDetectionProfileCircuit{})
 	transferAmount := compileConstraintCount(t, "transfer amount ciphertext", &transferAmountCiphertextProfileCircuit{})
 	transferAddress := compileConstraintCount(t, "transfer address ciphertext", &transferAddressCiphertextProfileCircuit{})
@@ -416,7 +399,7 @@ func TestConstraintProfiles(t *testing.T) {
 
 	counterpartyTierEstimate := transferSalt + 9033 + transferAddress + transferMetadata + 17835 + 1046
 	t.Logf("transfer compliance sub-gadgets:")
-	t.Logf("  transfer fuzzy tags: %d", transferFuzzyTags)
+	t.Logf("  transfer discovery tags: %d", transferDiscoveryTags)
 	t.Logf("  transfer detection ciphertext: %d", transferDetection)
 	t.Logf("  transfer amount ciphertext: %d", transferAmount)
 	t.Logf("  transfer address ciphertext: %d", transferAddress)

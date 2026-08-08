@@ -122,6 +122,7 @@ type shieldedIcs20WithdrawalSharedContext struct {
 	indexedLeaf              IndexedLeafInputs
 	senderDivGen             gnarkte.Point
 	senderTransmission       gnarkte.Point
+	senderTransmissionFq     frontend.Variable
 	sharedAssetID            frontend.Variable
 }
 
@@ -157,6 +158,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 	if err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
+	shared.senderTransmissionFq = senderTransmissionFq
 
 	if err := VerifyAssetRegistryIMT(
 		api,
@@ -174,17 +176,12 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySharedContext(
 	if err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
 	}
-	senderCluePKFq, err := decafgnark.CompressToField(api, gnarkte.Point{X: c.Sender.CluePK.X, Y: c.Sender.CluePK.Y})
-	if err != nil {
-		return shieldedIcs20WithdrawalSharedContext{}, err
-	}
 	senderLeafCommitment, err := ComplianceLeafCommitmentFromCompressed(
 		api,
 		senderDivGenFq,
 		senderTransmissionFq,
 		c.Sender.AssetID,
 		senderUserPKFq,
-		senderCluePKFq,
 	)
 	if err != nil {
 		return shieldedIcs20WithdrawalSharedContext{}, err
@@ -269,7 +266,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySpend(
 		spend.Note.AssetID,
 		spentDivGenFq,
 		spend.Note.TransmissionKeyS,
-		spend.Note.ClueKey,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -337,6 +333,7 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifySpend(
 	api.AssertIsEqual(c.Sender.AssetID, spend.Note.AssetID)
 	decafgnark.AssertEquivalentIf(api, shared.senderDivGen, spentDivGen, 1)
 	decafgnark.AssertEquivalentIf(api, shared.senderTransmission, spentTransmission, 1)
+	AssertEqualIf(api, spend.Note.TransmissionKeyS, shared.senderTransmissionFq, isNotDummy)
 
 	rkFq, err := decafgnark.CompressToField(api, rkClaimed)
 	if err != nil {
@@ -357,6 +354,11 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyChangeOutput(
 	if err != nil {
 		return nil, nil, err
 	}
+	createdTransmissionFq, err := decafgnark.CompressToField(api, createdTransmission)
+	if err != nil {
+		return nil, nil, err
+	}
+	api.AssertIsEqual(output.Note.TransmissionKeyS, createdTransmissionFq)
 	createdCommitment, err := NoteCommitmentWithCompressedDivGen(
 		api,
 		output.Note.Blinding,
@@ -364,7 +366,6 @@ func (c *ShieldedIcs20WithdrawalCircuit) verifyChangeOutput(
 		output.Note.AssetID,
 		createdDivGenFq,
 		output.Note.TransmissionKeyS,
-		output.Note.ClueKey,
 	)
 	if err != nil {
 		return nil, nil, err

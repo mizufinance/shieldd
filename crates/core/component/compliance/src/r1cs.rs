@@ -122,12 +122,11 @@ pub fn verify_quad_path(
 
 /// R1CS variable representing a Compliance Leaf.
 ///
-/// Contains the registered address, asset, user public key, and clue public key.
+/// Contains the registered address, asset, and independent Orbis user public key.
 pub struct ComplianceLeafVar {
     pub address: shieldd_sdk_keys::AddressVar,
     pub asset_id: FqVar,
     pub user_public_key: ElementVar,
-    pub clue_public_key: ElementVar,
 }
 
 impl ComplianceLeafVar {
@@ -146,18 +145,11 @@ impl ComplianceLeafVar {
         let pk_d_fq = self.address.transmission_key().compress_to_field()?;
 
         let user_public_key = self.user_public_key.compress_to_field()?;
-        let clue_public_key = self.clue_public_key.compress_to_field()?;
 
-        poseidon377::r1cs::hash_5(
+        poseidon377::r1cs::hash_4(
             cs,
             &domain_sep,
-            (
-                div_gen_fq,
-                pk_d_fq,
-                self.asset_id.clone(),
-                user_public_key,
-                clue_public_key,
-            ),
+            (div_gen_fq, pk_d_fq, self.asset_id.clone(), user_public_key),
         )
     }
 }
@@ -178,15 +170,12 @@ impl AllocVar<ComplianceLeaf, Fq> for ComplianceLeafVar {
             shieldd_sdk_keys::AddressVar::new_variable(cs.clone(), || Ok(&leaf_ref.address), mode)?;
         let asset_id_fq = leaf_ref.asset_id.0;
         let asset_id = FqVar::new_variable(cs.clone(), || Ok(asset_id_fq), mode)?;
-        let user_public_key =
-            ElementVar::new_variable(cs.clone(), || Ok(leaf_ref.user_public_key), mode)?;
-        let clue_public_key = ElementVar::new_variable(cs, || Ok(leaf_ref.clue_public_key), mode)?;
+        let user_public_key = ElementVar::new_variable(cs, || Ok(leaf_ref.user_public_key), mode)?;
 
         Ok(Self {
             address,
             asset_id,
             user_public_key,
-            clue_public_key,
         })
     }
 }
@@ -1379,18 +1368,13 @@ mod tests {
         let scalar = Fr::rand(&mut rng);
         let point = Element::GENERATOR * scalar;
         let pk_d = decaf377_ka::Public(point.vartime_compress().0);
-        let mut ck_d_bytes = [0u8; 32];
-        use rand_core::RngCore;
-        rng.fill_bytes(&mut ck_d_bytes);
-        let ck_d = shieldd_sdk_keys::DiscoveryKey(ck_d_bytes);
         let diversifier = Diversifier([1u8; 16]);
-        let address = Address::from_components(diversifier, pk_d, ck_d).expect("valid address");
+        let address = Address::from_components(diversifier, pk_d).expect("valid address");
 
         let leaf = ComplianceLeaf::new(
             address,
             asset::Id(Fq::from(42u64)),
             Element::GENERATOR * Fr::from(3u64),
-            Element::GENERATOR * Fr::from(5u64),
         )
         .unwrap();
 

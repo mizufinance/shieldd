@@ -2,6 +2,7 @@
 
 mod action_handler;
 mod assets;
+mod discovery;
 mod ics20_withdrawal_with_handler;
 mod metrics;
 mod note_manager;
@@ -10,6 +11,7 @@ mod transfer;
 
 pub use self::metrics::register_metrics;
 pub use assets::{AssetRegistry, AssetRegistryRead};
+pub use discovery::DiscoveryManager;
 pub use ics20_withdrawal_with_handler::Ics20WithdrawalWithHandler;
 pub use note_manager::{build_position_derived_mint_payload, NoteManager};
 pub use shielded_pool::{ShieldedPool, StateReadExt, StateWriteExt};

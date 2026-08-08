@@ -374,8 +374,6 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 		return "gadget-ack-two-step", "Shieldd.GnarkFormal.AckBridge.ack_sound", true
 	case "decaf.shared_secret":
 		return "gadget-ack-two-step", "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound", true
-	case "decaf.fuzzy_scalar_mul":
-		return "gadget-scalar-mul-step", "Shieldd.GnarkFormal.ScalarMulBridge.scalarMulLE251_sound", true
 	case "gadget.nullifier":
 		return "gadget-nullifier", "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound", true
 	case "gadget.synthetic_dummy_nullifier":
@@ -385,17 +383,17 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 	case "gadget.state_commitment_path", "gadget.compliance_path":
 		return "gadget-quad-path-24", "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24", true
 	case "gadget.note_commitment":
-		return "gadget-poseidon-hash6", "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound", true
+		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound", true
 	case "gadget.asset_registry_imt":
 		return "gadget-imt-gap", "Shieldd.GnarkFormal.Extracted.ImtGap.circuit_sound", true
 	case "gadget.compliance_leaf":
-		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound", true
+		return "gadget-poseidon-hash4", "Shieldd.GnarkFormal.Poseidon4Bridge.circuit_sound", true
 	case "gadget.transfer_salt":
 		return "gadget-poseidon2", "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound", true
 	case "gadget.authorization_id":
 		return "gadget-poseidon-hash1", "Shieldd.GnarkFormal.Poseidon1Bridge.circuit_sound", true
-	case "gadget.fuzzy_poseidon":
-		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound", true
+	case "gadget.discovery_prefix":
+		return "gadget-canonical-fq-bits", "Shieldd.GnarkFormal.CanonicalFqBitsManifestBridge.canonical_sound", true
 	case "gadget.canonical_fq_bits":
 		return "gadget-canonical-fq-bits", "Shieldd.GnarkFormal.CanonicalFqBitsManifestBridge.canonical_sound", true
 	case "gadget.poseidon_encryption.detection":

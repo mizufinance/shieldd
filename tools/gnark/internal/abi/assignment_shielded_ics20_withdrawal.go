@@ -43,7 +43,6 @@ func newShieldedIcs20WithdrawalSpendCircuitFields(
 			fqString(witness.SpentTransmissionKey),
 			fqString(witness.SpentTransmissionAffine.X),
 			fqString(witness.SpentTransmissionAffine.Y),
-			fqString(witness.SpentClueKey),
 		),
 		StateProof: circuits.StateCommitmentFields{
 			Commitment: fqString(witness.StateCommitmentCommitment),
@@ -68,7 +67,6 @@ func newShieldedIcs20WithdrawalChangeCircuitFields(
 			fqString(witness.CreatedTransmissionKey),
 			fqString(witness.CreatedTransmissionAffine.X),
 			fqString(witness.CreatedTransmissionAffine.Y),
-			fqString(witness.CreatedClueKey),
 		),
 	}
 }
@@ -155,8 +153,6 @@ func newShieldedIcs20WithdrawalCircuitAssignment(
 		fqString(witness.SenderAssetID),
 		fqString(witness.SenderUserPublicKeyAffine.X),
 		fqString(witness.SenderUserPublicKeyAffine.Y),
-		fqString(witness.SenderCluePublicKeyAffine.X),
-		fqString(witness.SenderCluePublicKeyAffine.Y),
 		senderPath,
 		witness.SenderCompliancePosition,
 	)

@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, path::Path};
 use anyhow::{anyhow, Context, Result};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use shieldd_sdk_compliance::AuditFuzzyClue;
+use shieldd_sdk_compliance::AuditDiscoveryTags;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -249,7 +249,7 @@ pub struct DetectedRow {
     #[serde(default)]
     pub authorization_timestamp: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fuzzy_clue: Option<AuditFuzzyClue>,
+    pub discovery_tags: Option<AuditDiscoveryTags>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, Value>,
 }

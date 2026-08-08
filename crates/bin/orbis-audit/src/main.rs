@@ -19,9 +19,9 @@ use shieldd_orbis_client::OrbisClient;
 use shieldd_sdk_asset::asset;
 use shieldd_sdk_compliance::{
     decrypt_orbis_reencrypted_seed, decrypt_tier_bytes, AuditAuthority, AuditDetectedRef,
-    AuditScanExport, AuditSelection, ComplianceLeaf, DisclosureField, FuzzyDetectionKey,
-    OrbisAuditEntry, OrbisEncryptedSeedUploadPackage, TransferComplianceCiphertext,
-    TransferOrbisUploadBundle, TransferRole,
+    AuditScanExport, AuditSelection, ComplianceLeaf, DisclosureField, OrbisAuditEntry,
+    OrbisEncryptedSeedUploadPackage, TransferComplianceCiphertext, TransferOrbisUploadBundle,
+    TransferRole,
 };
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
@@ -69,10 +69,6 @@ struct Args {
 
     #[clap(long = "subject-address")]
     subject_addresses: Vec<String>,
-
-    /// Released fuzzy detection key for user-audit candidate screening.
-    #[clap(long)]
-    clue_detection_key_hex: Option<String>,
 
     #[clap(long)]
     orbis_endpoint: String,
@@ -207,8 +203,8 @@ struct AuditTimings {
     object_cache_misses: u64,
     object_cache_stale: u64,
     subject_mismatch: u64,
-    clue_examined: u64,
-    clue_candidates: u64,
+    discovery_examined: u64,
+    discovery_candidates: u64,
     #[serde(skip)]
     pre_call_samples_ms: Vec<u128>,
 }
@@ -240,19 +236,10 @@ async fn main() -> Result<()> {
     let dk = parse_fr(&args.dk_hex, "DK")?;
     let dk_pub = Element::GENERATOR * dk;
     let subject_inputs = parse_subjects(&args, authority)?;
-    let clue_detection_key = args
-        .clue_detection_key_hex
-        .as_deref()
-        .map(parse_fuzzy_detection_key)
-        .transpose()?;
-    anyhow::ensure!(
-        authority != AuditAuthority::User || clue_detection_key.is_some(),
-        "user audits require --clue-detection-key-hex"
-    );
-    anyhow::ensure!(
-        authority != AuditAuthority::Master || clue_detection_key.is_none(),
-        "master audits do not accept --clue-detection-key-hex"
-    );
+    let discovery_addresses = subject_inputs
+        .iter()
+        .map(|subject| subject.address.clone())
+        .collect::<Vec<_>>();
 
     let cli = OrbisClient::new(args.orbis_endpoint.clone())?;
     let sourcehub = sourcehub_client().await?;
@@ -268,6 +255,31 @@ async fn main() -> Result<()> {
     );
 
     let channel = connect_to_node(&args.node).await?;
+    let chain_discovery = if authority == AuditAuthority::User {
+        let height_range = scan
+            .detected
+            .iter()
+            .fold(None::<(u64, u64)>, |range, tx_ref| {
+                Some(match range {
+                    None => (tx_ref.height, tx_ref.height),
+                    Some((start, end)) => (start.min(tx_ref.height), end.max(tx_ref.height)),
+                })
+            });
+        match height_range {
+            Some((start_height, end_height)) => Some(
+                fetch_user_transaction_candidates(
+                    channel.clone(),
+                    start_height,
+                    end_height,
+                    &discovery_addresses,
+                )
+                .await?,
+            ),
+            None => None,
+        }
+    } else {
+        None
+    };
     let subjects = if authority == AuditAuthority::User {
         resolve_subject_public_keys(channel.clone(), &subject_inputs, &scan).await?
     } else {
@@ -297,6 +309,10 @@ async fn main() -> Result<()> {
         .collect(),
         ..Default::default()
     };
+    if let Some(chain_discovery) = &chain_discovery {
+        timings.discovery_examined = chain_discovery.examined;
+        timings.discovery_candidates = chain_discovery.transaction_ids.len() as u64;
+    }
     let mut results = Vec::new();
     let mut attempted = 0u64;
     let mut decrypted = 0u64;
@@ -320,12 +336,21 @@ async fn main() -> Result<()> {
             timings.skipped_selector += 1;
             continue;
         }
-        if let Some(clue_detection_key) = clue_detection_key {
-            timings.clue_examined += 1;
-            if !matches_fuzzy_clue(tx_ref, clue_detection_key)? {
+        if authority == AuditAuthority::User {
+            if let Some(chain_discovery) = &chain_discovery {
+                if chain_discovery.examined == 0 {
+                    if !matches_discovery_tag(tx_ref, &discovery_addresses)? {
+                        continue;
+                    }
+                } else if !chain_discovery
+                    .transaction_ids
+                    .contains(&(tx_ref.height, tx_ref.tx_hash.to_ascii_lowercase()))
+                {
+                    continue;
+                }
+            } else if !matches_discovery_tag(tx_ref, &discovery_addresses)? {
                 continue;
             }
-            timings.clue_candidates += 1;
         }
         let tx_subjects = subjects
             .iter()
@@ -429,15 +454,15 @@ async fn main() -> Result<()> {
     let mut out_file = File::create(&args.output)?;
     out_file.write_all(json.as_bytes())?;
 
-    if clue_detection_key.is_some() {
-        let candidate_rate = if timings.clue_examined == 0 {
+    if authority == AuditAuthority::User {
+        let candidate_rate = if timings.discovery_examined == 0 {
             0.0
         } else {
-            100.0 * timings.clue_candidates as f64 / timings.clue_examined as f64
+            100.0 * timings.discovery_candidates as f64 / timings.discovery_examined as f64
         };
         eprintln!(
-            "orbis-audit: Fuzzy prefilter selected {}/{} transactions ({candidate_rate:.3}%).",
-            timings.clue_candidates, timings.clue_examined
+            "orbis-audit: Discovery tags selected {}/{} transactions ({candidate_rate:.3}%).",
+            timings.discovery_candidates, timings.discovery_examined
         );
     }
     eprintln!(
@@ -537,45 +562,97 @@ fn parse_fields(values: &[String]) -> Result<HashSet<DisclosureField>> {
         .collect()
 }
 
-fn parse_fuzzy_detection_key(value: &str) -> Result<FuzzyDetectionKey> {
-    let bytes = hex::decode(value).context("invalid fuzzy detection key hex")?;
-    let bytes: [u8; 32] = bytes
-        .try_into()
-        .map_err(|_| anyhow!("fuzzy detection key must be 32 bytes"))?;
-    FuzzyDetectionKey::from_bytes(bytes)
+fn matches_discovery_tag(tx_ref: &AuditDetectedRef, addresses: &[Address]) -> Result<bool> {
+    let tags = tx_ref
+        .discovery_tags
+        .ok_or_else(|| anyhow!("private transfer is missing discovery tags"))?;
+    Ok(addresses
+        .iter()
+        .any(|address| tags.tags.examine(address).any()))
 }
 
-fn matches_fuzzy_clue(tx_ref: &AuditDetectedRef, detection_key: FuzzyDetectionKey) -> Result<bool> {
-    let clue = tx_ref
-        .fuzzy_clue
-        .ok_or_else(|| anyhow!("private transfer is missing fuzzy clue data"))?;
-    let authorization_id = tx_ref
-        .authorization_id
-        .ok_or_else(|| anyhow!("private transfer is missing authorization id"))?;
-    let authorization_timestamp = tx_ref
-        .authorization_timestamp
-        .ok_or_else(|| anyhow!("private transfer is missing authorization timestamp"))?;
-    let asset_id: asset::Id = tx_ref
-        .asset_id
-        .parse()
-        .with_context(|| format!("invalid detected asset id {}", tx_ref.asset_id))?;
-    let sender_epk = decaf377::Encoding(clue.sender_epk_bytes)
-        .vartime_decompress()
-        .map_err(|_| anyhow!("invalid sender fuzzy clue EPK"))?;
-    let receiver_epk = decaf377::Encoding(clue.receiver_epk_bytes)
-        .vartime_decompress()
-        .map_err(|_| anyhow!("invalid receiver fuzzy clue EPK"))?;
-    Ok(clue
-        .tags
-        .examine(
-            detection_key,
-            &sender_epk,
-            &receiver_epk,
-            asset_id.0,
-            authorization_id,
-            authorization_timestamp,
-        )
-        .any())
+#[derive(Clone, Debug, Default)]
+struct ChainDiscoveryCandidates {
+    examined: u64,
+    transaction_ids: HashSet<(u64, String)>,
+}
+
+async fn fetch_user_transaction_candidates(
+    channel: Channel,
+    start_height: u64,
+    end_height: u64,
+    addresses: &[Address],
+) -> Result<ChainDiscoveryCandidates> {
+    use shieldd_sdk_proto::core::component::compact_block::v1::{
+        query_service_client::QueryServiceClient as CompactBlockQueryServiceClient,
+        DiscoveryBlockRangeRequest,
+    };
+    use shieldd_sdk_shielded_pool::discovery;
+    use shieldd_sdk_txhash::TransactionId;
+
+    const PAGE_BLOCKS: u64 = 10_000;
+
+    let mut result = ChainDiscoveryCandidates::default();
+    let mut page_start = start_height;
+    while page_start <= end_height {
+        let page_end = page_start.saturating_add(PAGE_BLOCKS - 1).min(end_height);
+        let mut client = CompactBlockQueryServiceClient::new(channel.clone());
+        let mut stream = client
+            .discovery_block_range(DiscoveryBlockRangeRequest {
+                start_height: page_start,
+                end_height: page_end,
+            })
+            .await
+            .context("failed to fetch transaction discovery blocks")?
+            .into_inner();
+
+        while let Some(response) = stream
+            .message()
+            .await
+            .context("failed while streaming transaction discovery blocks")?
+        {
+            let block = response
+                .discovery_block
+                .ok_or_else(|| anyhow!("discovery block response is empty"))?;
+            for transaction in block.transaction_discoveries {
+                result.examined += 1;
+                let sender: discovery::Tag = transaction
+                    .sender
+                    .ok_or_else(|| anyhow!("transaction discovery missing sender tag"))?
+                    .try_into()?;
+                let receiver: discovery::Tag = transaction
+                    .receiver
+                    .ok_or_else(|| anyhow!("transaction discovery missing receiver tag"))?
+                    .try_into()?;
+                let selected = addresses.iter().any(|address| {
+                    discovery::Tag::for_address(address, sender.precision) == sender
+                        || discovery::Tag::for_address(address, receiver.precision) == receiver
+                });
+                if !selected {
+                    continue;
+                }
+                let transaction_id: TransactionId = transaction
+                    .transaction_id
+                    .ok_or_else(|| anyhow!("transaction discovery missing transaction ID"))?
+                    .try_into()?;
+                result
+                    .transaction_ids
+                    .insert((block.height, transaction_id.to_string()));
+            }
+        }
+
+        let Some(next) = page_end.checked_add(1) else {
+            break;
+        };
+        page_start = next;
+    }
+
+    if result.examined == 0 {
+        eprintln!(
+            "orbis-audit: No chain transaction-discovery records were available; using the scan export tags for compatibility."
+        );
+    }
+    Ok(result)
 }
 
 async fn resolve_subject_public_keys(
@@ -1171,7 +1248,7 @@ mod tests {
     use shieldd_sdk_compliance::transfer::encrypt_transfer;
     use shieldd_sdk_compliance::AuthorizationId;
     use shieldd_sdk_compliance::{
-        issuer_keys::DetectionKey, AuditFuzzyClue, FuzzyDetectionKey, FuzzyRole, TransferFuzzyTags,
+        issuer_keys::DetectionKey, AuditDiscoveryTags, TransferDiscoveryTags,
     };
     use shieldd_sdk_keys::{keys::AddressIndex, test_keys};
     use shieldd_sdk_num::Amount;
@@ -1186,15 +1263,11 @@ mod tests {
         let sender_public_key = Element::GENERATOR * Fr::from(11u64);
         let receiver_public_key = Element::GENERATOR * Fr::from(13u64);
         let sender = test_keys::ADDRESS_0.clone();
-        let receiver = test_keys::FULL_VIEWING_KEY
-            .payment_address(AddressIndex::from(1u32))
-            .0;
+        let receiver = test_keys::FULL_VIEWING_KEY.payment_address(AddressIndex::from(1u32));
         encrypt_transfer(
             &mut rand_core::OsRng,
             &sender_public_key,
             &receiver_public_key,
-            &FuzzyDetectionKey::generate(&mut rand_core::OsRng).clue_key(),
-            &FuzzyDetectionKey::generate(&mut rand_core::OsRng).clue_key(),
             &dk_pub,
             &receiver,
             &sender,
@@ -1205,7 +1278,7 @@ mod tests {
             false,
             AuthorizationId::from_fq(decaf377::Fq::from(99u64)),
             0,
-            shieldd_sdk_compliance::FuzzyPrecision::default(),
+            16,
             decaf377::Fq::from(9u64),
         )
         .expect("transfer ciphertext should build")
@@ -1232,16 +1305,16 @@ mod tests {
         let mut rng = rand_core::OsRng;
         let ring_sk = Fr::rand(&mut rng);
         let ring_pk = Element::GENERATOR * ring_sk;
-        let sender_clue_public_key = Element::GENERATOR * Fr::from(11u64);
-        let receiver_clue_public_key = Element::GENERATOR * Fr::from(13u64);
+        let sender_registration_id = [11u8; 32];
+        let receiver_registration_id = [13u8; 32];
         let sender_public_key =
-            shieldd_sdk_compliance::derive_orbis_user_public_key(&ring_pk, &sender_clue_public_key)
-                .expect("sender user key should derive");
+            shieldd_sdk_compliance::derive_orbis_user_public_key(&ring_pk, &sender_registration_id)
+                .expect("sender child key should derive");
         let receiver_public_key = shieldd_sdk_compliance::derive_orbis_user_public_key(
             &ring_pk,
-            &receiver_clue_public_key,
+            &receiver_registration_id,
         )
-        .expect("receiver user key should derive");
+        .expect("receiver child key should derive");
         let policy_id = "policy-id";
         let resource = "document";
         let permission = "read";
@@ -1257,7 +1330,7 @@ mod tests {
             sender_core: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
-                Some(&sender_clue_public_key),
+                Some(&sender_registration_id),
                 decaf377::Fq::from(21u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     sender_public_key,
@@ -1282,7 +1355,7 @@ mod tests {
             sender_ext: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
-                Some(&sender_clue_public_key),
+                Some(&sender_registration_id),
                 decaf377::Fq::from(22u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     sender_public_key,
@@ -1307,7 +1380,7 @@ mod tests {
             output_core: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
-                Some(&receiver_clue_public_key),
+                Some(&receiver_registration_id),
                 decaf377::Fq::from(23u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     receiver_public_key,
@@ -1332,7 +1405,7 @@ mod tests {
             output_ext: shieldd_sdk_compliance::build_orbis_encrypted_seed_upload_package(
                 &mut rng,
                 &ring_pk,
-                Some(&receiver_clue_public_key),
+                Some(&receiver_registration_id),
                 decaf377::Fq::from(24u64),
                 shieldd_sdk_compliance::TransferTierMetadataStatement::from_identifiers(
                     receiver_public_key,
@@ -1428,7 +1501,7 @@ mod tests {
             flow_type: shieldd_sdk_compliance::FlowType::PrivateTransfer,
             authorization_id: Some(authorization_id),
             authorization_timestamp: Some(1_700_000_000),
-            fuzzy_clue: None,
+            discovery_tags: None,
         };
         let self_tk = "aa".repeat(32);
         let counterparty_tk = "bb".repeat(32);
@@ -1457,18 +1530,12 @@ mod tests {
     }
 
     #[test]
-    fn released_detection_key_prefilters_matching_transfer_clue() {
-        let detection_key =
-            FuzzyDetectionKey::from_bytes(Fr::from(5u64).to_bytes()).expect("valid key");
-        let clue_key = detection_key.clue_key();
+    fn public_address_prefilters_matching_transfer() {
+        let sender = shieldd_sdk_keys::test_keys::ADDRESS_0.clone();
+        let receiver = shieldd_sdk_keys::test_keys::ADDRESS_1.clone();
         let asset_id = asset::Id(Fq::from(77u64));
         let authorization_id = AuthorizationId::from_fq(Fq::from(99u64));
         let authorization_timestamp = 1_700_000_000;
-        let fuzzy_precision = shieldd_sdk_compliance::FuzzyPrecision::default();
-        let sender_r = Fr::from(11u64);
-        let receiver_r = Fr::from(13u64);
-        let sender_epk = Element::GENERATOR * sender_r;
-        let receiver_epk = Element::GENERATOR * receiver_r;
         let tx_ref = AuditDetectedRef {
             height: 290,
             tx_hash: "tx".to_string(),
@@ -1479,34 +1546,16 @@ mod tests {
             flow_type: shieldd_sdk_compliance::FlowType::PrivateTransfer,
             authorization_id: Some(authorization_id),
             authorization_timestamp: Some(authorization_timestamp),
-            fuzzy_clue: Some(AuditFuzzyClue {
-                sender_epk_bytes: sender_epk.vartime_compress().0,
-                receiver_epk_bytes: receiver_epk.vartime_compress().0,
-                tags: TransferFuzzyTags {
-                    precision: fuzzy_precision,
-                    sender: clue_key.create_tag(
-                        sender_r,
-                        asset_id.0,
-                        authorization_id,
-                        authorization_timestamp,
-                        FuzzyRole::Sender,
-                        fuzzy_precision,
-                    ),
-                    receiver: clue_key.create_tag(
-                        receiver_r,
-                        asset_id.0,
-                        authorization_id,
-                        authorization_timestamp,
-                        FuzzyRole::Receiver,
-                        fuzzy_precision,
-                    ),
-                },
+            discovery_tags: Some(AuditDiscoveryTags {
+                tags: TransferDiscoveryTags::derive(&sender, &receiver, 16).unwrap(),
             }),
         };
 
-        assert!(matches_fuzzy_clue(&tx_ref, detection_key).expect("clue should examine"));
-        let wrong_key =
-            FuzzyDetectionKey::from_bytes(Fr::from(6u64).to_bytes()).expect("valid key");
-        assert!(!matches_fuzzy_clue(&tx_ref, wrong_key).expect("clue should examine"));
+        assert!(
+            matches_discovery_tag(&tx_ref, std::slice::from_ref(&sender))
+                .expect("tag should examine")
+        );
+        let unrelated = shieldd_sdk_keys::test_keys::FULL_VIEWING_KEY.payment_address(2u32.into());
+        assert!(!matches_discovery_tag(&tx_ref, &[unrelated]).expect("tag should examine"));
     }
 }

@@ -7,7 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::audit_records::{
     classify_orbis_import_row, detected_ref_from_row_parts, AuditAuthority, AuditDetectedRef,
-    AuditFuzzyClue, AuditImportRow, AuditScanExport, DetectedRefRowParts, OrbisAuditEntry,
+    AuditDiscoveryTags, AuditImportRow, AuditScanExport, DetectedRefRowParts, OrbisAuditEntry,
     OrbisImportEligibility, TransferRole,
 };
 use crate::audit_status::{AuditStatus, DecryptedVia, FlowType};
@@ -33,7 +33,7 @@ pub(crate) const MAX_FAILURE_REASON_BYTES: usize = 1024;
 
 const FAILURE_TRUNCATION_SUFFIX: &str = "...[truncated]";
 
-fn attach_fuzzy_clue(
+fn attach_discovery_tags(
     detected: &mut AuditDetectedRef,
     ciphertext_bytes: &[u8],
     column: usize,
@@ -46,10 +46,8 @@ fn attach_fuzzy_clue(
                 error.into(),
             )
         })?;
-    detected.fuzzy_clue = Some(AuditFuzzyClue {
-        sender_epk_bytes: ciphertext.sender_core_epk.vartime_compress().0,
-        receiver_epk_bytes: ciphertext.output_core_epk.vartime_compress().0,
-        tags: ciphertext.fuzzy_tags,
+    detected.discovery_tags = Some(AuditDiscoveryTags {
+        tags: ciphertext.discovery_tags,
     });
     Ok(())
 }
@@ -365,7 +363,7 @@ pub fn export_orbis_pending_scan(store: &SqliteScannerStore) -> Result<AuditScan
                     authorization_timestamp: Some(authorization_timestamp as u64),
                 });
                 let ciphertext_bytes: Vec<u8> = row.get(9)?;
-                attach_fuzzy_clue(&mut detected, &ciphertext_bytes, 9)?;
+                attach_discovery_tags(&mut detected, &ciphertext_bytes, 9)?;
                 Ok(detected)
             },
         )?
@@ -841,7 +839,7 @@ pub fn export_detected_refs(store: &SqliteScannerStore) -> Result<Vec<AuditDetec
                 authorization_timestamp: authorization_timestamp.map(|timestamp| timestamp as u64),
             });
             if let Some(ciphertext_bytes) = ciphertext_bytes {
-                attach_fuzzy_clue(&mut detected, &ciphertext_bytes, 9)?;
+                attach_discovery_tags(&mut detected, &ciphertext_bytes, 9)?;
             }
             Ok(detected)
         })?
@@ -1254,8 +1252,11 @@ mod tests {
             evidence.output_ref.output_index
         );
         assert_eq!(
-            export.detected[0].fuzzy_clue.expect("fuzzy clue").tags,
-            evidence.transfer_ciphertext.fuzzy_tags
+            export.detected[0]
+                .discovery_tags
+                .expect("discovery tags")
+                .tags,
+            evidence.transfer_ciphertext.discovery_tags
         );
     }
 
@@ -1446,8 +1447,11 @@ mod tests {
             Some(evidence.authorization_timestamp().unwrap())
         );
         assert_eq!(
-            scan.detected[0].fuzzy_clue.expect("fuzzy clue").tags,
-            evidence.transfer_ciphertext.fuzzy_tags
+            scan.detected[0]
+                .discovery_tags
+                .expect("discovery tags")
+                .tags,
+            evidence.transfer_ciphertext.discovery_tags
         );
     }
 

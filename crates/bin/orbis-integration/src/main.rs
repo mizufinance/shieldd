@@ -53,12 +53,11 @@ fn compliance_key_scalar(label: &str) -> decaf377::Fr {
     decaf377::Fr::from(hash)
 }
 
-fn compliance_clue_public_key_hex(label: &str) -> String {
-    let scalar = compliance_key_scalar(label);
-    hex::encode((decaf377::Element::GENERATOR * scalar).vartime_compress().0)
+fn compliance_registration_id_hex(label: &str) -> String {
+    hex::encode(compliance_key_scalar(label).to_bytes())
 }
 
-fn compliance_user_public_key_hex(ring_pk_hex: &str, clue_public_key_hex: &str) -> Result<String> {
+fn compliance_user_public_key_hex(ring_pk_hex: &str, registration_id_hex: &str) -> Result<String> {
     let bytes = hex::decode(ring_pk_hex).context("invalid Orbis ring public key hex")?;
     let encoded: [u8; 32] = bytes
         .try_into()
@@ -69,22 +68,15 @@ fn compliance_user_public_key_hex(ring_pk_hex: &str, clue_public_key_hex: &str) 
     if ring_pk == decaf377::Element::default() {
         bail!("Orbis ring public key must not be the identity");
     }
-    let clue_bytes = hex::decode(clue_public_key_hex).context("invalid clue public key hex")?;
-    let clue_encoded: [u8; 32] = clue_bytes
+    let registration_id: [u8; 32] = hex::decode(registration_id_hex)
+        .context("invalid registration ID hex")?
         .try_into()
-        .map_err(|_| anyhow!("clue public key must be 32 bytes"))?;
-    let clue_public_key = decaf377::Encoding(clue_encoded)
-        .vartime_decompress()
-        .map_err(|_| anyhow!("invalid clue public key encoding"))?;
+        .map_err(|_| anyhow!("registration ID must be 32 bytes"))?;
     Ok(hex::encode(
-        derive_orbis_user_public_key(&ring_pk, &clue_public_key)?
+        derive_orbis_user_public_key(&ring_pk, &registration_id)?
             .vartime_compress()
             .0,
     ))
-}
-
-fn compliance_detection_key_hex(label: &str) -> String {
-    hex::encode(compliance_key_scalar(label).to_bytes())
 }
 
 fn add_audit_selection_args(
@@ -535,9 +527,9 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
     )?
     .trim()
     .to_string();
-    let alice_clue_public_key = compliance_clue_public_key_hex("alice:regulated_usd:clue");
+    let alice_registration_id = compliance_registration_id_hex("alice:regulated_usd:orbis");
     let alice_user_public_key =
-        compliance_user_public_key_hex(&ring.ring_pk_hex, &alice_clue_public_key)?;
+        compliance_user_public_key_hex(&ring.ring_pk_hex, &alice_registration_id)?;
     let alice_grant_0 = capture_pcli(
         repo,
         &env,
@@ -552,8 +544,8 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             env.get("ALICE_ADDRESS")?,
             "--user-public-key-hex",
             &alice_user_public_key,
-            "--clue-public-key-hex",
-            &alice_clue_public_key,
+            "--orbis-registration-id-hex",
+            &alice_registration_id,
             "--policy-id",
             &policy_id,
             "--registration-authority-sk-hex",
@@ -576,8 +568,8 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             &alice_address_1,
             "--user-public-key-hex",
             &alice_user_public_key,
-            "--clue-public-key-hex",
-            &alice_clue_public_key,
+            "--orbis-registration-id-hex",
+            &alice_registration_id,
             "--policy-id",
             &policy_id,
             "--registration-authority-sk-hex",
@@ -599,8 +591,8 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "regulated_usd",
             "--user-public-key-hex",
             &alice_user_public_key,
-            "--clue-public-key-hex",
-            &alice_clue_public_key,
+            "--orbis-registration-id-hex",
+            &alice_registration_id,
             "--user-registration-grant-hex",
             &alice_grant_0,
         ],
@@ -632,16 +624,16 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
             "1",
             "--user-public-key-hex",
             &alice_user_public_key,
-            "--clue-public-key-hex",
-            &alice_clue_public_key,
+            "--orbis-registration-id-hex",
+            &alice_registration_id,
             "--user-registration-grant-hex",
             &alice_grant_1,
         ],
     )?;
     for who in ["BOB_HOME", "CHARLIE_HOME"] {
         let address_key = who.trim_end_matches("_HOME").to_string() + "_ADDRESS";
-        let clue_public_key = compliance_clue_public_key_hex(&format!("{who}:regulated_usd:clue"));
-        let user_public_key = compliance_user_public_key_hex(&ring.ring_pk_hex, &clue_public_key)?;
+        let registration_id = compliance_registration_id_hex(&format!("{who}:regulated_usd:orbis"));
+        let user_public_key = compliance_user_public_key_hex(&ring.ring_pk_hex, &registration_id)?;
         let grant = capture_pcli(
             repo,
             &env,
@@ -656,8 +648,8 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
                 env.get(&address_key)?,
                 "--user-public-key-hex",
                 &user_public_key,
-                "--clue-public-key-hex",
-                &clue_public_key,
+                "--orbis-registration-id-hex",
+                &registration_id,
                 "--policy-id",
                 &policy_id,
                 "--registration-authority-sk-hex",
@@ -678,8 +670,8 @@ async fn seed(repo: &RepoPaths, endpoints: &OrbisEndpoints) -> Result<()> {
                 "regulated_usd",
                 "--user-public-key-hex",
                 &user_public_key,
-                "--clue-public-key-hex",
-                &clue_public_key,
+                "--orbis-registration-id-hex",
+                &registration_id,
                 "--user-registration-grant-hex",
                 &grant,
             ],
@@ -950,10 +942,6 @@ fn run_orbis_audit(
     subject_address: &str,
     endpoints: &OrbisEndpoints,
 ) -> Result<()> {
-    let clue_detection_key = compliance_detection_key_hex(&format!(
-        "{}:regulated_usd:clue",
-        user_name.to_ascii_lowercase()
-    ));
     run_command(
         Command::new(&repo.orbis_audit_bin)
             .current_dir(&repo.root)
@@ -970,8 +958,6 @@ fn run_orbis_audit(
             .arg(repo.tmp.join("orbis-audit-object-cache.json"))
             .arg("--authority")
             .arg("user")
-            .arg("--clue-detection-key-hex")
-            .arg(clue_detection_key)
             .arg("--subject-address")
             .arg(subject_address)
             .arg("--timings-json")
@@ -1769,9 +1755,9 @@ impl AuditDemo {
             "COMPLIANCE_GRANT_VALID_UNTIL_UNIX",
             DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
         );
-        let clue_public_key =
-            compliance_clue_public_key_hex(&format!("audit-demo:{slug}:{}:clue", self.asset));
-        let user_public_key = compliance_user_public_key_hex(&ring.ring_pk_hex, &clue_public_key)?;
+        let registration_id =
+            compliance_registration_id_hex(&format!("audit-demo:{slug}:{}:orbis", self.asset));
+        let user_public_key = compliance_user_public_key_hex(&ring.ring_pk_hex, &registration_id)?;
         let user_grant = self.capture_pcli(
             slug,
             [
@@ -1783,8 +1769,8 @@ impl AuditDemo {
                 &address,
                 "--user-public-key-hex",
                 &user_public_key,
-                "--clue-public-key-hex",
-                &clue_public_key,
+                "--orbis-registration-id-hex",
+                &registration_id,
                 "--policy-id",
                 &policy_id,
                 "--registration-authority-sk-hex",
@@ -1804,8 +1790,8 @@ impl AuditDemo {
                 "0",
                 "--user-public-key-hex",
                 &user_public_key,
-                "--clue-public-key-hex",
-                &clue_public_key,
+                "--orbis-registration-id-hex",
+                &registration_id,
                 "--user-registration-grant-hex",
                 &user_grant,
             ],
@@ -1887,10 +1873,6 @@ impl AuditDemo {
         to_timestamp: Option<u64>,
         fields: &[String],
     ) -> Result<()> {
-        let clue_detection_key = compliance_detection_key_hex(&format!(
-            "audit-demo:{}:{}:clue",
-            subject.slug, self.asset
-        ));
         let mut command = Command::new("orbis-audit");
         command
             .current_dir(&self.root)
@@ -1912,8 +1894,6 @@ impl AuditDemo {
             .arg(self.demo_dir.join("orbis-object-cache.json"))
             .arg("--authority")
             .arg("user")
-            .arg("--clue-detection-key-hex")
-            .arg(clue_detection_key)
             .arg("--orbis-endpoint")
             .arg(&self.orbis_endpoint)
             .arg("--subject-address")

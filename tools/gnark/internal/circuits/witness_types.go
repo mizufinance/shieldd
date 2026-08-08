@@ -12,7 +12,6 @@ type NoteFields struct {
 	DivGen           Point2D
 	TransmissionKeyS frontend.Variable
 	Transmission     Point2D
-	ClueKey          frontend.Variable
 }
 
 type StateCommitmentFields struct {
@@ -55,7 +54,6 @@ type UserComplianceFields struct {
 	Transmission Point2D
 	AssetID      frontend.Variable
 	UserPK       Point2D
-	CluePK       Point2D
 	Path         [compliance.ComplianceQuadTreeDepth][3]frontend.Variable
 	Position     frontend.Variable
 }
@@ -98,8 +96,8 @@ type TransferComplianceExtFields struct {
 type TransferComplianceFields struct {
 	TransferNonceRoot   frontend.Variable
 	DetectionCiphertext [compliance.TransferDetectionFQCount]frontend.Variable
-	FuzzyPrecision      frontend.Variable
-	FuzzyTags           frontend.Variable
+	DiscoveryPrecision  frontend.Variable
+	DiscoveryTags       frontend.Variable
 	SenderRCore         frontend.Variable
 	SenderRExt          frontend.Variable
 	OutputRCore         frontend.Variable

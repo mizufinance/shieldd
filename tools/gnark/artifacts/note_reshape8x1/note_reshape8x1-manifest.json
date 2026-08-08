@@ -5,11 +5,11 @@
     "n_in": 8,
     "n_out": 1
   },
-  "nb_constraints": 194226,
+  "nb_constraints": 194929,
   "nb_public_variables": 2,
-  "nb_secret_variables": 739,
-  "nb_internal_variables": 185235,
-  "sr1cs_sha256_hex": "4ffe04461c563ff06dbf48479a6d3181cc3583b249e060a579ccbc072aab2199",
+  "nb_secret_variables": 730,
+  "nb_internal_variables": 185586,
+  "sr1cs_sha256_hex": "54bfb864aa8ea81d4e4b1dc32949c9fbdbbcb45d6e0fc5635382f09ceb1c6e28",
   "segments": [
     {
       "index": 1,
@@ -201,6 +201,20 @@
     },
     {
       "index": 16,
+      "op": "decaf.compress_to_field",
+      "args": [
+        "in=shared.transmission",
+        "out=shared.transmission_fq"
+      ],
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 1085,
+      "end": 2131,
+      "constraint_count": 1046
+    },
+    {
+      "index": 17,
       "op": "decaf.diversified_transmission_key",
       "args": [
         "nk=auth.nk",
@@ -213,12 +227,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-dtk",
       "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
-      "start": 1085,
-      "end": 7162,
+      "start": 2131,
+      "end": 8208,
       "constraint_count": 6077
     },
     {
-      "index": 17,
+      "index": 18,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=shared.transmission.computed",
@@ -227,24 +241,24 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 7162,
-      "end": 7165,
+      "start": 8208,
+      "end": 8211,
       "constraint_count": 3
     },
     {
-      "index": 18,
+      "index": 19,
       "op": "spend.begin",
       "args": [
         "spend0"
       ],
       "kind": "marker",
-      "start": 7165,
-      "end": 7165,
+      "start": 8211,
+      "end": 8211,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 19,
+      "index": 20,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=spend0.note.blinding",
@@ -252,18 +266,17 @@
         "asset_id=spend0.note.asset_id",
         "div_gen_fq=spend0.note.div_gen_fq",
         "transmission_key_s=spend0.note.transmission_key_s",
-        "clue_key=spend0.note.clue_key",
         "out=spend0.note.commitment.computed"
       ],
       "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash6",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 7165,
-      "end": 7595,
-      "constraint_count": 430
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 8211,
+      "end": 8601,
+      "constraint_count": 390
     },
     {
-      "index": 20,
+      "index": 21,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend0.note.commitment.computed",
@@ -271,13 +284,13 @@
         "enabled=spend0.is_real"
       ],
       "kind": "glue",
-      "start": 7595,
-      "end": 7597,
+      "start": 8601,
+      "end": 8603,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 21,
+      "index": 22,
       "op": "gadget.nullifier",
       "args": [
         "nk=auth.nk",
@@ -288,12 +301,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-nullifier",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
-      "start": 7597,
-      "end": 7907,
+      "start": 8603,
+      "end": 8913,
       "constraint_count": 310
     },
     {
-      "index": 22,
+      "index": 23,
       "op": "gadget.state_commitment_path",
       "args": [
         "commitment=spend0.state_proof.commitment",
@@ -304,12 +317,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 7907,
-      "end": 16922,
+      "start": 8913,
+      "end": 17928,
       "constraint_count": 9015
     },
     {
-      "index": 23,
+      "index": 24,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend0.anchor.computed",
@@ -317,13 +330,13 @@
         "enabled=spend0.is_real"
       ],
       "kind": "glue",
-      "start": 16922,
-      "end": 16924,
+      "start": 17928,
+      "end": 17930,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 24,
+      "index": 25,
       "op": "gadget.synthetic_dummy_nullifier",
       "args": [
         "seed=spend0.dummy_nullifier_seed",
@@ -334,12 +347,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash3-specialized",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
-      "start": 16924,
-      "end": 17229,
+      "start": 17930,
+      "end": 18235,
       "constraint_count": 305
     },
     {
-      "index": 25,
+      "index": 26,
       "op": "dummy.mux",
       "args": [
         "flag=spend0.is_dummy",
@@ -348,26 +361,26 @@
         "out=spend0.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 17229,
-      "end": 17231,
+      "start": 18235,
+      "end": 18237,
       "constraint_count": 2,
       "classification_note": "allowed selector/range glue segment"
     },
     {
-      "index": 26,
+      "index": 27,
       "op": "assert.eq",
       "args": [
         "lhs=spend0.nullifier",
         "rhs=spend0.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 17231,
-      "end": 17232,
+      "start": 18237,
+      "end": 18238,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 27,
+      "index": 28,
       "op": "decaf.randomized_verification_key",
       "args": [
         "ak=shared.ak",
@@ -377,12 +390,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 17232,
-      "end": 19044,
+      "start": 18238,
+      "end": 20050,
       "constraint_count": 1812
     },
     {
-      "index": 28,
+      "index": 29,
       "op": "decaf.randomized_verification_key.dummy",
       "args": [
         "ak=spend0.dummy_spend_auth_key",
@@ -392,12 +405,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 19044,
-      "end": 22662,
+      "start": 20050,
+      "end": 23668,
       "constraint_count": 3618
     },
     {
-      "index": 29,
+      "index": 30,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend0.rk.real",
@@ -407,12 +420,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 22662,
-      "end": 22668,
+      "start": 23668,
+      "end": 23674,
       "constraint_count": 6
     },
     {
-      "index": 30,
+      "index": 31,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend0.rk.dummy",
@@ -422,12 +435,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 22668,
-      "end": 22673,
+      "start": 23674,
+      "end": 23679,
       "constraint_count": 5
     },
     {
-      "index": 31,
+      "index": 32,
       "op": "decaf.diversified_transmission_key",
       "args": [
         "nk=auth.nk",
@@ -440,12 +453,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-dtk",
       "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
-      "start": 22673,
-      "end": 28750,
+      "start": 23679,
+      "end": 29756,
       "constraint_count": 6077
     },
     {
-      "index": 32,
+      "index": 33,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend0.transmission.computed",
@@ -455,12 +468,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 28750,
-      "end": 28755,
+      "start": 29756,
+      "end": 29761,
       "constraint_count": 5
     },
     {
-      "index": 33,
+      "index": 34,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend0.note.amount",
@@ -468,25 +481,25 @@
         "enabled=spend0.is_dummy"
       ],
       "kind": "glue",
-      "start": 28755,
-      "end": 28757,
+      "start": 29761,
+      "end": 29763,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 34,
+      "index": 35,
       "op": "decaf.assert_on_curve",
       "args": [
         "point=spend0.note.transmission"
       ],
       "kind": "glue",
-      "start": 28757,
-      "end": 28761,
+      "start": 29763,
+      "end": 29767,
       "constraint_count": 4,
       "classification_note": "allowed raw affine Decaf on-curve assertion"
     },
     {
-      "index": 35,
+      "index": 36,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend0.note.div_gen",
@@ -495,12 +508,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 28761,
-      "end": 28764,
+      "start": 29767,
+      "end": 29770,
       "constraint_count": 3
     },
     {
-      "index": 36,
+      "index": 37,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend0.note.transmission",
@@ -509,25 +522,39 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 28764,
-      "end": 28767,
+      "start": 29770,
+      "end": 29773,
       "constraint_count": 3
     },
     {
-      "index": 37,
+      "index": 38,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend0.note.transmission_key_s",
+        "rhs=shared.transmission_fq",
+        "enabled=spend0.is_real"
+      ],
+      "kind": "glue",
+      "start": 29773,
+      "end": 29775,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 39,
       "op": "assert.eq",
       "args": [
         "lhs=spend0.note.asset_id",
         "rhs=shared.asset_id"
       ],
       "kind": "glue",
-      "start": 28767,
-      "end": 28768,
+      "start": 29775,
+      "end": 29776,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 38,
+      "index": 40,
       "op": "decaf.compress_to_field",
       "args": [
         "in=spend0.rk.claimed",
@@ -536,12 +563,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 28768,
-      "end": 29814,
+      "start": 29776,
+      "end": 30822,
       "constraint_count": 1046
     },
     {
-      "index": 39,
+      "index": 41,
       "op": "spend.collect",
       "args": [
         "spend0",
@@ -550,25 +577,25 @@
         "rk_compressed-\u003estatement.nullifiers_and_rks"
       ],
       "kind": "marker",
-      "start": 29814,
-      "end": 29814,
+      "start": 30822,
+      "end": 30822,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 40,
+      "index": 42,
       "op": "spend.begin",
       "args": [
         "spend1"
       ],
       "kind": "marker",
-      "start": 29814,
-      "end": 29814,
+      "start": 30822,
+      "end": 30822,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 41,
+      "index": 43,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=spend1.note.blinding",
@@ -576,18 +603,17 @@
         "asset_id=spend1.note.asset_id",
         "div_gen_fq=spend1.note.div_gen_fq",
         "transmission_key_s=spend1.note.transmission_key_s",
-        "clue_key=spend1.note.clue_key",
         "out=spend1.note.commitment.computed"
       ],
       "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash6",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 29814,
-      "end": 30244,
-      "constraint_count": 430
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 30822,
+      "end": 31212,
+      "constraint_count": 390
     },
     {
-      "index": 42,
+      "index": 44,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend1.note.commitment.computed",
@@ -595,13 +621,13 @@
         "enabled=spend1.is_real"
       ],
       "kind": "glue",
-      "start": 30244,
-      "end": 30246,
+      "start": 31212,
+      "end": 31214,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 43,
+      "index": 45,
       "op": "gadget.nullifier",
       "args": [
         "nk=auth.nk",
@@ -612,12 +638,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-nullifier",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
-      "start": 30246,
-      "end": 30556,
+      "start": 31214,
+      "end": 31524,
       "constraint_count": 310
     },
     {
-      "index": 44,
+      "index": 46,
       "op": "gadget.state_commitment_path",
       "args": [
         "commitment=spend1.state_proof.commitment",
@@ -628,12 +654,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 30556,
-      "end": 39571,
+      "start": 31524,
+      "end": 40539,
       "constraint_count": 9015
     },
     {
-      "index": 45,
+      "index": 47,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend1.anchor.computed",
@@ -641,13 +667,13 @@
         "enabled=spend1.is_real"
       ],
       "kind": "glue",
-      "start": 39571,
-      "end": 39573,
+      "start": 40539,
+      "end": 40541,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 46,
+      "index": 48,
       "op": "gadget.synthetic_dummy_nullifier",
       "args": [
         "seed=spend1.dummy_nullifier_seed",
@@ -658,12 +684,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash3-specialized",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
-      "start": 39573,
-      "end": 39878,
+      "start": 40541,
+      "end": 40846,
       "constraint_count": 305
     },
     {
-      "index": 47,
+      "index": 49,
       "op": "dummy.mux",
       "args": [
         "flag=spend1.is_dummy",
@@ -672,26 +698,26 @@
         "out=spend1.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 39878,
-      "end": 39880,
+      "start": 40846,
+      "end": 40848,
       "constraint_count": 2,
       "classification_note": "allowed selector/range glue segment"
     },
     {
-      "index": 48,
+      "index": 50,
       "op": "assert.eq",
       "args": [
         "lhs=spend1.nullifier",
         "rhs=spend1.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 39880,
-      "end": 39881,
+      "start": 40848,
+      "end": 40849,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 49,
+      "index": 51,
       "op": "decaf.randomized_verification_key",
       "args": [
         "ak=shared.ak",
@@ -701,12 +727,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 39881,
-      "end": 41693,
+      "start": 40849,
+      "end": 42661,
       "constraint_count": 1812
     },
     {
-      "index": 50,
+      "index": 52,
       "op": "decaf.randomized_verification_key.dummy",
       "args": [
         "ak=spend1.dummy_spend_auth_key",
@@ -716,12 +742,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 41693,
-      "end": 45311,
+      "start": 42661,
+      "end": 46279,
       "constraint_count": 3618
     },
     {
-      "index": 51,
+      "index": 53,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend1.rk.real",
@@ -731,12 +757,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 45311,
-      "end": 45317,
+      "start": 46279,
+      "end": 46285,
       "constraint_count": 6
     },
     {
-      "index": 52,
+      "index": 54,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend1.rk.dummy",
@@ -746,12 +772,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 45317,
-      "end": 45322,
+      "start": 46285,
+      "end": 46290,
       "constraint_count": 5
     },
     {
-      "index": 53,
+      "index": 55,
       "op": "decaf.diversified_transmission_key",
       "args": [
         "nk=auth.nk",
@@ -764,12 +790,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-dtk",
       "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
-      "start": 45322,
-      "end": 51399,
+      "start": 46290,
+      "end": 52367,
       "constraint_count": 6077
     },
     {
-      "index": 54,
+      "index": 56,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend1.transmission.computed",
@@ -779,12 +805,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 51399,
-      "end": 51404,
+      "start": 52367,
+      "end": 52372,
       "constraint_count": 5
     },
     {
-      "index": 55,
+      "index": 57,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend1.note.amount",
@@ -792,25 +818,25 @@
         "enabled=spend1.is_dummy"
       ],
       "kind": "glue",
-      "start": 51404,
-      "end": 51406,
+      "start": 52372,
+      "end": 52374,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 56,
+      "index": 58,
       "op": "decaf.assert_on_curve",
       "args": [
         "point=spend1.note.transmission"
       ],
       "kind": "glue",
-      "start": 51406,
-      "end": 51410,
+      "start": 52374,
+      "end": 52378,
       "constraint_count": 4,
       "classification_note": "allowed raw affine Decaf on-curve assertion"
     },
     {
-      "index": 57,
+      "index": 59,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend1.note.div_gen",
@@ -819,12 +845,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 51410,
-      "end": 51413,
+      "start": 52378,
+      "end": 52381,
       "constraint_count": 3
     },
     {
-      "index": 58,
+      "index": 60,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend1.note.transmission",
@@ -833,25 +859,39 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 51413,
-      "end": 51416,
+      "start": 52381,
+      "end": 52384,
       "constraint_count": 3
     },
     {
-      "index": 59,
+      "index": 61,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend1.note.transmission_key_s",
+        "rhs=shared.transmission_fq",
+        "enabled=spend1.is_real"
+      ],
+      "kind": "glue",
+      "start": 52384,
+      "end": 52386,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 62,
       "op": "assert.eq",
       "args": [
         "lhs=spend1.note.asset_id",
         "rhs=shared.asset_id"
       ],
       "kind": "glue",
-      "start": 51416,
-      "end": 51417,
+      "start": 52386,
+      "end": 52387,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 60,
+      "index": 63,
       "op": "decaf.compress_to_field",
       "args": [
         "in=spend1.rk.claimed",
@@ -860,12 +900,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 51417,
-      "end": 52463,
+      "start": 52387,
+      "end": 53433,
       "constraint_count": 1046
     },
     {
-      "index": 61,
+      "index": 64,
       "op": "spend.collect",
       "args": [
         "spend1",
@@ -874,25 +914,25 @@
         "rk_compressed-\u003estatement.nullifiers_and_rks"
       ],
       "kind": "marker",
-      "start": 52463,
-      "end": 52463,
+      "start": 53433,
+      "end": 53433,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 62,
+      "index": 65,
       "op": "spend.begin",
       "args": [
         "spend2"
       ],
       "kind": "marker",
-      "start": 52463,
-      "end": 52463,
+      "start": 53433,
+      "end": 53433,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 63,
+      "index": 66,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=spend2.note.blinding",
@@ -900,18 +940,17 @@
         "asset_id=spend2.note.asset_id",
         "div_gen_fq=spend2.note.div_gen_fq",
         "transmission_key_s=spend2.note.transmission_key_s",
-        "clue_key=spend2.note.clue_key",
         "out=spend2.note.commitment.computed"
       ],
       "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash6",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 52463,
-      "end": 52893,
-      "constraint_count": 430
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 53433,
+      "end": 53823,
+      "constraint_count": 390
     },
     {
-      "index": 64,
+      "index": 67,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend2.note.commitment.computed",
@@ -919,13 +958,13 @@
         "enabled=spend2.is_real"
       ],
       "kind": "glue",
-      "start": 52893,
-      "end": 52895,
+      "start": 53823,
+      "end": 53825,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 65,
+      "index": 68,
       "op": "gadget.nullifier",
       "args": [
         "nk=auth.nk",
@@ -936,12 +975,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-nullifier",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
-      "start": 52895,
-      "end": 53205,
+      "start": 53825,
+      "end": 54135,
       "constraint_count": 310
     },
     {
-      "index": 66,
+      "index": 69,
       "op": "gadget.state_commitment_path",
       "args": [
         "commitment=spend2.state_proof.commitment",
@@ -952,12 +991,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 53205,
-      "end": 62220,
+      "start": 54135,
+      "end": 63150,
       "constraint_count": 9015
     },
     {
-      "index": 67,
+      "index": 70,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend2.anchor.computed",
@@ -965,13 +1004,13 @@
         "enabled=spend2.is_real"
       ],
       "kind": "glue",
-      "start": 62220,
-      "end": 62222,
+      "start": 63150,
+      "end": 63152,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 68,
+      "index": 71,
       "op": "gadget.synthetic_dummy_nullifier",
       "args": [
         "seed=spend2.dummy_nullifier_seed",
@@ -982,12 +1021,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash3-specialized",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
-      "start": 62222,
-      "end": 62527,
+      "start": 63152,
+      "end": 63457,
       "constraint_count": 305
     },
     {
-      "index": 69,
+      "index": 72,
       "op": "dummy.mux",
       "args": [
         "flag=spend2.is_dummy",
@@ -996,26 +1035,26 @@
         "out=spend2.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 62527,
-      "end": 62529,
+      "start": 63457,
+      "end": 63459,
       "constraint_count": 2,
       "classification_note": "allowed selector/range glue segment"
     },
     {
-      "index": 70,
+      "index": 73,
       "op": "assert.eq",
       "args": [
         "lhs=spend2.nullifier",
         "rhs=spend2.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 62529,
-      "end": 62530,
+      "start": 63459,
+      "end": 63460,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 71,
+      "index": 74,
       "op": "decaf.randomized_verification_key",
       "args": [
         "ak=shared.ak",
@@ -1025,12 +1064,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 62530,
-      "end": 64342,
+      "start": 63460,
+      "end": 65272,
       "constraint_count": 1812
     },
     {
-      "index": 72,
+      "index": 75,
       "op": "decaf.randomized_verification_key.dummy",
       "args": [
         "ak=spend2.dummy_spend_auth_key",
@@ -1040,12 +1079,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 64342,
-      "end": 67960,
+      "start": 65272,
+      "end": 68890,
       "constraint_count": 3618
     },
     {
-      "index": 73,
+      "index": 76,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend2.rk.real",
@@ -1055,12 +1094,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 67960,
-      "end": 67966,
+      "start": 68890,
+      "end": 68896,
       "constraint_count": 6
     },
     {
-      "index": 74,
+      "index": 77,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend2.rk.dummy",
@@ -1070,12 +1109,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 67966,
-      "end": 67971,
+      "start": 68896,
+      "end": 68901,
       "constraint_count": 5
     },
     {
-      "index": 75,
+      "index": 78,
       "op": "decaf.diversified_transmission_key",
       "args": [
         "nk=auth.nk",
@@ -1088,12 +1127,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-dtk",
       "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
-      "start": 67971,
-      "end": 74048,
+      "start": 68901,
+      "end": 74978,
       "constraint_count": 6077
     },
     {
-      "index": 76,
+      "index": 79,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend2.transmission.computed",
@@ -1103,12 +1142,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 74048,
-      "end": 74053,
+      "start": 74978,
+      "end": 74983,
       "constraint_count": 5
     },
     {
-      "index": 77,
+      "index": 80,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend2.note.amount",
@@ -1116,25 +1155,25 @@
         "enabled=spend2.is_dummy"
       ],
       "kind": "glue",
-      "start": 74053,
-      "end": 74055,
+      "start": 74983,
+      "end": 74985,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 78,
+      "index": 81,
       "op": "decaf.assert_on_curve",
       "args": [
         "point=spend2.note.transmission"
       ],
       "kind": "glue",
-      "start": 74055,
-      "end": 74059,
+      "start": 74985,
+      "end": 74989,
       "constraint_count": 4,
       "classification_note": "allowed raw affine Decaf on-curve assertion"
     },
     {
-      "index": 79,
+      "index": 82,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend2.note.div_gen",
@@ -1143,12 +1182,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 74059,
-      "end": 74062,
+      "start": 74989,
+      "end": 74992,
       "constraint_count": 3
     },
     {
-      "index": 80,
+      "index": 83,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend2.note.transmission",
@@ -1157,25 +1196,39 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 74062,
-      "end": 74065,
+      "start": 74992,
+      "end": 74995,
       "constraint_count": 3
     },
     {
-      "index": 81,
+      "index": 84,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend2.note.transmission_key_s",
+        "rhs=shared.transmission_fq",
+        "enabled=spend2.is_real"
+      ],
+      "kind": "glue",
+      "start": 74995,
+      "end": 74997,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 85,
       "op": "assert.eq",
       "args": [
         "lhs=spend2.note.asset_id",
         "rhs=shared.asset_id"
       ],
       "kind": "glue",
-      "start": 74065,
-      "end": 74066,
+      "start": 74997,
+      "end": 74998,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 82,
+      "index": 86,
       "op": "decaf.compress_to_field",
       "args": [
         "in=spend2.rk.claimed",
@@ -1184,12 +1237,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 74066,
-      "end": 75112,
+      "start": 74998,
+      "end": 76044,
       "constraint_count": 1046
     },
     {
-      "index": 83,
+      "index": 87,
       "op": "spend.collect",
       "args": [
         "spend2",
@@ -1198,25 +1251,25 @@
         "rk_compressed-\u003estatement.nullifiers_and_rks"
       ],
       "kind": "marker",
-      "start": 75112,
-      "end": 75112,
+      "start": 76044,
+      "end": 76044,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 84,
+      "index": 88,
       "op": "spend.begin",
       "args": [
         "spend3"
       ],
       "kind": "marker",
-      "start": 75112,
-      "end": 75112,
+      "start": 76044,
+      "end": 76044,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 85,
+      "index": 89,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=spend3.note.blinding",
@@ -1224,18 +1277,17 @@
         "asset_id=spend3.note.asset_id",
         "div_gen_fq=spend3.note.div_gen_fq",
         "transmission_key_s=spend3.note.transmission_key_s",
-        "clue_key=spend3.note.clue_key",
         "out=spend3.note.commitment.computed"
       ],
       "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash6",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 75112,
-      "end": 75542,
-      "constraint_count": 430
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 76044,
+      "end": 76434,
+      "constraint_count": 390
     },
     {
-      "index": 86,
+      "index": 90,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend3.note.commitment.computed",
@@ -1243,13 +1295,13 @@
         "enabled=spend3.is_real"
       ],
       "kind": "glue",
-      "start": 75542,
-      "end": 75544,
+      "start": 76434,
+      "end": 76436,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 87,
+      "index": 91,
       "op": "gadget.nullifier",
       "args": [
         "nk=auth.nk",
@@ -1260,12 +1312,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-nullifier",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
-      "start": 75544,
-      "end": 75854,
+      "start": 76436,
+      "end": 76746,
       "constraint_count": 310
     },
     {
-      "index": 88,
+      "index": 92,
       "op": "gadget.state_commitment_path",
       "args": [
         "commitment=spend3.state_proof.commitment",
@@ -1276,12 +1328,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 75854,
-      "end": 84869,
+      "start": 76746,
+      "end": 85761,
       "constraint_count": 9015
     },
     {
-      "index": 89,
+      "index": 93,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend3.anchor.computed",
@@ -1289,13 +1341,13 @@
         "enabled=spend3.is_real"
       ],
       "kind": "glue",
-      "start": 84869,
-      "end": 84871,
+      "start": 85761,
+      "end": 85763,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 90,
+      "index": 94,
       "op": "gadget.synthetic_dummy_nullifier",
       "args": [
         "seed=spend3.dummy_nullifier_seed",
@@ -1306,12 +1358,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash3-specialized",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
-      "start": 84871,
-      "end": 85176,
+      "start": 85763,
+      "end": 86068,
       "constraint_count": 305
     },
     {
-      "index": 91,
+      "index": 95,
       "op": "dummy.mux",
       "args": [
         "flag=spend3.is_dummy",
@@ -1320,26 +1372,26 @@
         "out=spend3.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 85176,
-      "end": 85178,
+      "start": 86068,
+      "end": 86070,
       "constraint_count": 2,
       "classification_note": "allowed selector/range glue segment"
     },
     {
-      "index": 92,
+      "index": 96,
       "op": "assert.eq",
       "args": [
         "lhs=spend3.nullifier",
         "rhs=spend3.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 85178,
-      "end": 85179,
+      "start": 86070,
+      "end": 86071,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 93,
+      "index": 97,
       "op": "decaf.randomized_verification_key",
       "args": [
         "ak=shared.ak",
@@ -1349,12 +1401,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 85179,
-      "end": 86991,
+      "start": 86071,
+      "end": 87883,
       "constraint_count": 1812
     },
     {
-      "index": 94,
+      "index": 98,
       "op": "decaf.randomized_verification_key.dummy",
       "args": [
         "ak=spend3.dummy_spend_auth_key",
@@ -1364,12 +1416,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 86991,
-      "end": 90609,
+      "start": 87883,
+      "end": 91501,
       "constraint_count": 3618
     },
     {
-      "index": 95,
+      "index": 99,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend3.rk.real",
@@ -1379,12 +1431,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 90609,
-      "end": 90615,
+      "start": 91501,
+      "end": 91507,
       "constraint_count": 6
     },
     {
-      "index": 96,
+      "index": 100,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend3.rk.dummy",
@@ -1394,12 +1446,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 90615,
-      "end": 90620,
+      "start": 91507,
+      "end": 91512,
       "constraint_count": 5
     },
     {
-      "index": 97,
+      "index": 101,
       "op": "decaf.diversified_transmission_key",
       "args": [
         "nk=auth.nk",
@@ -1412,12 +1464,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-dtk",
       "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
-      "start": 90620,
-      "end": 96697,
+      "start": 91512,
+      "end": 97589,
       "constraint_count": 6077
     },
     {
-      "index": 98,
+      "index": 102,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend3.transmission.computed",
@@ -1427,12 +1479,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 96697,
-      "end": 96702,
+      "start": 97589,
+      "end": 97594,
       "constraint_count": 5
     },
     {
-      "index": 99,
+      "index": 103,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend3.note.amount",
@@ -1440,25 +1492,25 @@
         "enabled=spend3.is_dummy"
       ],
       "kind": "glue",
-      "start": 96702,
-      "end": 96704,
+      "start": 97594,
+      "end": 97596,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 100,
+      "index": 104,
       "op": "decaf.assert_on_curve",
       "args": [
         "point=spend3.note.transmission"
       ],
       "kind": "glue",
-      "start": 96704,
-      "end": 96708,
+      "start": 97596,
+      "end": 97600,
       "constraint_count": 4,
       "classification_note": "allowed raw affine Decaf on-curve assertion"
     },
     {
-      "index": 101,
+      "index": 105,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend3.note.div_gen",
@@ -1467,12 +1519,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 96708,
-      "end": 96711,
+      "start": 97600,
+      "end": 97603,
       "constraint_count": 3
     },
     {
-      "index": 102,
+      "index": 106,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend3.note.transmission",
@@ -1481,25 +1533,39 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 96711,
-      "end": 96714,
+      "start": 97603,
+      "end": 97606,
       "constraint_count": 3
     },
     {
-      "index": 103,
+      "index": 107,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend3.note.transmission_key_s",
+        "rhs=shared.transmission_fq",
+        "enabled=spend3.is_real"
+      ],
+      "kind": "glue",
+      "start": 97606,
+      "end": 97608,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 108,
       "op": "assert.eq",
       "args": [
         "lhs=spend3.note.asset_id",
         "rhs=shared.asset_id"
       ],
       "kind": "glue",
-      "start": 96714,
-      "end": 96715,
+      "start": 97608,
+      "end": 97609,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 104,
+      "index": 109,
       "op": "decaf.compress_to_field",
       "args": [
         "in=spend3.rk.claimed",
@@ -1508,12 +1574,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 96715,
-      "end": 97761,
+      "start": 97609,
+      "end": 98655,
       "constraint_count": 1046
     },
     {
-      "index": 105,
+      "index": 110,
       "op": "spend.collect",
       "args": [
         "spend3",
@@ -1522,25 +1588,25 @@
         "rk_compressed-\u003estatement.nullifiers_and_rks"
       ],
       "kind": "marker",
-      "start": 97761,
-      "end": 97761,
+      "start": 98655,
+      "end": 98655,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 106,
+      "index": 111,
       "op": "spend.begin",
       "args": [
         "spend4"
       ],
       "kind": "marker",
-      "start": 97761,
-      "end": 97761,
+      "start": 98655,
+      "end": 98655,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 107,
+      "index": 112,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=spend4.note.blinding",
@@ -1548,18 +1614,17 @@
         "asset_id=spend4.note.asset_id",
         "div_gen_fq=spend4.note.div_gen_fq",
         "transmission_key_s=spend4.note.transmission_key_s",
-        "clue_key=spend4.note.clue_key",
         "out=spend4.note.commitment.computed"
       ],
       "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash6",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 97761,
-      "end": 98191,
-      "constraint_count": 430
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 98655,
+      "end": 99045,
+      "constraint_count": 390
     },
     {
-      "index": 108,
+      "index": 113,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend4.note.commitment.computed",
@@ -1567,13 +1632,13 @@
         "enabled=spend4.is_real"
       ],
       "kind": "glue",
-      "start": 98191,
-      "end": 98193,
+      "start": 99045,
+      "end": 99047,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 109,
+      "index": 114,
       "op": "gadget.nullifier",
       "args": [
         "nk=auth.nk",
@@ -1584,12 +1649,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-nullifier",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
-      "start": 98193,
-      "end": 98503,
+      "start": 99047,
+      "end": 99357,
       "constraint_count": 310
     },
     {
-      "index": 110,
+      "index": 115,
       "op": "gadget.state_commitment_path",
       "args": [
         "commitment=spend4.state_proof.commitment",
@@ -1600,12 +1665,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 98503,
-      "end": 107518,
+      "start": 99357,
+      "end": 108372,
       "constraint_count": 9015
     },
     {
-      "index": 111,
+      "index": 116,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend4.anchor.computed",
@@ -1613,13 +1678,13 @@
         "enabled=spend4.is_real"
       ],
       "kind": "glue",
-      "start": 107518,
-      "end": 107520,
+      "start": 108372,
+      "end": 108374,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 112,
+      "index": 117,
       "op": "gadget.synthetic_dummy_nullifier",
       "args": [
         "seed=spend4.dummy_nullifier_seed",
@@ -1630,12 +1695,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash3-specialized",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
-      "start": 107520,
-      "end": 107825,
+      "start": 108374,
+      "end": 108679,
       "constraint_count": 305
     },
     {
-      "index": 113,
+      "index": 118,
       "op": "dummy.mux",
       "args": [
         "flag=spend4.is_dummy",
@@ -1644,26 +1709,26 @@
         "out=spend4.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 107825,
-      "end": 107827,
+      "start": 108679,
+      "end": 108681,
       "constraint_count": 2,
       "classification_note": "allowed selector/range glue segment"
     },
     {
-      "index": 114,
+      "index": 119,
       "op": "assert.eq",
       "args": [
         "lhs=spend4.nullifier",
         "rhs=spend4.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 107827,
-      "end": 107828,
+      "start": 108681,
+      "end": 108682,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 115,
+      "index": 120,
       "op": "decaf.randomized_verification_key",
       "args": [
         "ak=shared.ak",
@@ -1673,12 +1738,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 107828,
-      "end": 109640,
+      "start": 108682,
+      "end": 110494,
       "constraint_count": 1812
     },
     {
-      "index": 116,
+      "index": 121,
       "op": "decaf.randomized_verification_key.dummy",
       "args": [
         "ak=spend4.dummy_spend_auth_key",
@@ -1688,12 +1753,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 109640,
-      "end": 113258,
+      "start": 110494,
+      "end": 114112,
       "constraint_count": 3618
     },
     {
-      "index": 117,
+      "index": 122,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend4.rk.real",
@@ -1703,12 +1768,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 113258,
-      "end": 113264,
+      "start": 114112,
+      "end": 114118,
       "constraint_count": 6
     },
     {
-      "index": 118,
+      "index": 123,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend4.rk.dummy",
@@ -1718,12 +1783,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 113264,
-      "end": 113269,
+      "start": 114118,
+      "end": 114123,
       "constraint_count": 5
     },
     {
-      "index": 119,
+      "index": 124,
       "op": "decaf.diversified_transmission_key",
       "args": [
         "nk=auth.nk",
@@ -1736,12 +1801,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-dtk",
       "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
-      "start": 113269,
-      "end": 119346,
+      "start": 114123,
+      "end": 120200,
       "constraint_count": 6077
     },
     {
-      "index": 120,
+      "index": 125,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend4.transmission.computed",
@@ -1751,12 +1816,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 119346,
-      "end": 119351,
+      "start": 120200,
+      "end": 120205,
       "constraint_count": 5
     },
     {
-      "index": 121,
+      "index": 126,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend4.note.amount",
@@ -1764,25 +1829,25 @@
         "enabled=spend4.is_dummy"
       ],
       "kind": "glue",
-      "start": 119351,
-      "end": 119353,
+      "start": 120205,
+      "end": 120207,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 122,
+      "index": 127,
       "op": "decaf.assert_on_curve",
       "args": [
         "point=spend4.note.transmission"
       ],
       "kind": "glue",
-      "start": 119353,
-      "end": 119357,
+      "start": 120207,
+      "end": 120211,
       "constraint_count": 4,
       "classification_note": "allowed raw affine Decaf on-curve assertion"
     },
     {
-      "index": 123,
+      "index": 128,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend4.note.div_gen",
@@ -1791,12 +1856,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 119357,
-      "end": 119360,
+      "start": 120211,
+      "end": 120214,
       "constraint_count": 3
     },
     {
-      "index": 124,
+      "index": 129,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend4.note.transmission",
@@ -1805,25 +1870,39 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 119360,
-      "end": 119363,
+      "start": 120214,
+      "end": 120217,
       "constraint_count": 3
     },
     {
-      "index": 125,
+      "index": 130,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend4.note.transmission_key_s",
+        "rhs=shared.transmission_fq",
+        "enabled=spend4.is_real"
+      ],
+      "kind": "glue",
+      "start": 120217,
+      "end": 120219,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 131,
       "op": "assert.eq",
       "args": [
         "lhs=spend4.note.asset_id",
         "rhs=shared.asset_id"
       ],
       "kind": "glue",
-      "start": 119363,
-      "end": 119364,
+      "start": 120219,
+      "end": 120220,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 126,
+      "index": 132,
       "op": "decaf.compress_to_field",
       "args": [
         "in=spend4.rk.claimed",
@@ -1832,12 +1911,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 119364,
-      "end": 120410,
+      "start": 120220,
+      "end": 121266,
       "constraint_count": 1046
     },
     {
-      "index": 127,
+      "index": 133,
       "op": "spend.collect",
       "args": [
         "spend4",
@@ -1846,25 +1925,25 @@
         "rk_compressed-\u003estatement.nullifiers_and_rks"
       ],
       "kind": "marker",
-      "start": 120410,
-      "end": 120410,
+      "start": 121266,
+      "end": 121266,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 128,
+      "index": 134,
       "op": "spend.begin",
       "args": [
         "spend5"
       ],
       "kind": "marker",
-      "start": 120410,
-      "end": 120410,
+      "start": 121266,
+      "end": 121266,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 129,
+      "index": 135,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=spend5.note.blinding",
@@ -1872,18 +1951,17 @@
         "asset_id=spend5.note.asset_id",
         "div_gen_fq=spend5.note.div_gen_fq",
         "transmission_key_s=spend5.note.transmission_key_s",
-        "clue_key=spend5.note.clue_key",
         "out=spend5.note.commitment.computed"
       ],
       "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash6",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 120410,
-      "end": 120840,
-      "constraint_count": 430
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 121266,
+      "end": 121656,
+      "constraint_count": 390
     },
     {
-      "index": 130,
+      "index": 136,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend5.note.commitment.computed",
@@ -1891,13 +1969,13 @@
         "enabled=spend5.is_real"
       ],
       "kind": "glue",
-      "start": 120840,
-      "end": 120842,
+      "start": 121656,
+      "end": 121658,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 131,
+      "index": 137,
       "op": "gadget.nullifier",
       "args": [
         "nk=auth.nk",
@@ -1908,12 +1986,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-nullifier",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
-      "start": 120842,
-      "end": 121152,
+      "start": 121658,
+      "end": 121968,
       "constraint_count": 310
     },
     {
-      "index": 132,
+      "index": 138,
       "op": "gadget.state_commitment_path",
       "args": [
         "commitment=spend5.state_proof.commitment",
@@ -1924,12 +2002,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 121152,
-      "end": 130167,
+      "start": 121968,
+      "end": 130983,
       "constraint_count": 9015
     },
     {
-      "index": 133,
+      "index": 139,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend5.anchor.computed",
@@ -1937,13 +2015,13 @@
         "enabled=spend5.is_real"
       ],
       "kind": "glue",
-      "start": 130167,
-      "end": 130169,
+      "start": 130983,
+      "end": 130985,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 134,
+      "index": 140,
       "op": "gadget.synthetic_dummy_nullifier",
       "args": [
         "seed=spend5.dummy_nullifier_seed",
@@ -1954,12 +2032,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash3-specialized",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
-      "start": 130169,
-      "end": 130474,
+      "start": 130985,
+      "end": 131290,
       "constraint_count": 305
     },
     {
-      "index": 135,
+      "index": 141,
       "op": "dummy.mux",
       "args": [
         "flag=spend5.is_dummy",
@@ -1968,26 +2046,26 @@
         "out=spend5.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 130474,
-      "end": 130476,
+      "start": 131290,
+      "end": 131292,
       "constraint_count": 2,
       "classification_note": "allowed selector/range glue segment"
     },
     {
-      "index": 136,
+      "index": 142,
       "op": "assert.eq",
       "args": [
         "lhs=spend5.nullifier",
         "rhs=spend5.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 130476,
-      "end": 130477,
+      "start": 131292,
+      "end": 131293,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 137,
+      "index": 143,
       "op": "decaf.randomized_verification_key",
       "args": [
         "ak=shared.ak",
@@ -1997,12 +2075,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 130477,
-      "end": 132289,
+      "start": 131293,
+      "end": 133105,
       "constraint_count": 1812
     },
     {
-      "index": 138,
+      "index": 144,
       "op": "decaf.randomized_verification_key.dummy",
       "args": [
         "ak=spend5.dummy_spend_auth_key",
@@ -2012,12 +2090,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 132289,
-      "end": 135907,
+      "start": 133105,
+      "end": 136723,
       "constraint_count": 3618
     },
     {
-      "index": 139,
+      "index": 145,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend5.rk.real",
@@ -2027,12 +2105,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 135907,
-      "end": 135913,
+      "start": 136723,
+      "end": 136729,
       "constraint_count": 6
     },
     {
-      "index": 140,
+      "index": 146,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend5.rk.dummy",
@@ -2042,12 +2120,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 135913,
-      "end": 135918,
+      "start": 136729,
+      "end": 136734,
       "constraint_count": 5
     },
     {
-      "index": 141,
+      "index": 147,
       "op": "decaf.diversified_transmission_key",
       "args": [
         "nk=auth.nk",
@@ -2060,12 +2138,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-dtk",
       "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
-      "start": 135918,
-      "end": 141995,
+      "start": 136734,
+      "end": 142811,
       "constraint_count": 6077
     },
     {
-      "index": 142,
+      "index": 148,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend5.transmission.computed",
@@ -2075,12 +2153,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 141995,
-      "end": 142000,
+      "start": 142811,
+      "end": 142816,
       "constraint_count": 5
     },
     {
-      "index": 143,
+      "index": 149,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend5.note.amount",
@@ -2088,25 +2166,25 @@
         "enabled=spend5.is_dummy"
       ],
       "kind": "glue",
-      "start": 142000,
-      "end": 142002,
+      "start": 142816,
+      "end": 142818,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 144,
+      "index": 150,
       "op": "decaf.assert_on_curve",
       "args": [
         "point=spend5.note.transmission"
       ],
       "kind": "glue",
-      "start": 142002,
-      "end": 142006,
+      "start": 142818,
+      "end": 142822,
       "constraint_count": 4,
       "classification_note": "allowed raw affine Decaf on-curve assertion"
     },
     {
-      "index": 145,
+      "index": 151,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend5.note.div_gen",
@@ -2115,12 +2193,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 142006,
-      "end": 142009,
+      "start": 142822,
+      "end": 142825,
       "constraint_count": 3
     },
     {
-      "index": 146,
+      "index": 152,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend5.note.transmission",
@@ -2129,25 +2207,39 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 142009,
-      "end": 142012,
+      "start": 142825,
+      "end": 142828,
       "constraint_count": 3
     },
     {
-      "index": 147,
+      "index": 153,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend5.note.transmission_key_s",
+        "rhs=shared.transmission_fq",
+        "enabled=spend5.is_real"
+      ],
+      "kind": "glue",
+      "start": 142828,
+      "end": 142830,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 154,
       "op": "assert.eq",
       "args": [
         "lhs=spend5.note.asset_id",
         "rhs=shared.asset_id"
       ],
       "kind": "glue",
-      "start": 142012,
-      "end": 142013,
+      "start": 142830,
+      "end": 142831,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 148,
+      "index": 155,
       "op": "decaf.compress_to_field",
       "args": [
         "in=spend5.rk.claimed",
@@ -2156,12 +2248,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 142013,
-      "end": 143059,
+      "start": 142831,
+      "end": 143877,
       "constraint_count": 1046
     },
     {
-      "index": 149,
+      "index": 156,
       "op": "spend.collect",
       "args": [
         "spend5",
@@ -2170,25 +2262,25 @@
         "rk_compressed-\u003estatement.nullifiers_and_rks"
       ],
       "kind": "marker",
-      "start": 143059,
-      "end": 143059,
+      "start": 143877,
+      "end": 143877,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 150,
+      "index": 157,
       "op": "spend.begin",
       "args": [
         "spend6"
       ],
       "kind": "marker",
-      "start": 143059,
-      "end": 143059,
+      "start": 143877,
+      "end": 143877,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 151,
+      "index": 158,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=spend6.note.blinding",
@@ -2196,18 +2288,17 @@
         "asset_id=spend6.note.asset_id",
         "div_gen_fq=spend6.note.div_gen_fq",
         "transmission_key_s=spend6.note.transmission_key_s",
-        "clue_key=spend6.note.clue_key",
         "out=spend6.note.commitment.computed"
       ],
       "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash6",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 143059,
-      "end": 143489,
-      "constraint_count": 430
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 143877,
+      "end": 144267,
+      "constraint_count": 390
     },
     {
-      "index": 152,
+      "index": 159,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend6.note.commitment.computed",
@@ -2215,13 +2306,13 @@
         "enabled=spend6.is_real"
       ],
       "kind": "glue",
-      "start": 143489,
-      "end": 143491,
+      "start": 144267,
+      "end": 144269,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 153,
+      "index": 160,
       "op": "gadget.nullifier",
       "args": [
         "nk=auth.nk",
@@ -2232,12 +2323,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-nullifier",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
-      "start": 143491,
-      "end": 143801,
+      "start": 144269,
+      "end": 144579,
       "constraint_count": 310
     },
     {
-      "index": 154,
+      "index": 161,
       "op": "gadget.state_commitment_path",
       "args": [
         "commitment=spend6.state_proof.commitment",
@@ -2248,12 +2339,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 143801,
-      "end": 152816,
+      "start": 144579,
+      "end": 153594,
       "constraint_count": 9015
     },
     {
-      "index": 155,
+      "index": 162,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend6.anchor.computed",
@@ -2261,13 +2352,13 @@
         "enabled=spend6.is_real"
       ],
       "kind": "glue",
-      "start": 152816,
-      "end": 152818,
+      "start": 153594,
+      "end": 153596,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 156,
+      "index": 163,
       "op": "gadget.synthetic_dummy_nullifier",
       "args": [
         "seed=spend6.dummy_nullifier_seed",
@@ -2278,12 +2369,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash3-specialized",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
-      "start": 152818,
-      "end": 153123,
+      "start": 153596,
+      "end": 153901,
       "constraint_count": 305
     },
     {
-      "index": 157,
+      "index": 164,
       "op": "dummy.mux",
       "args": [
         "flag=spend6.is_dummy",
@@ -2292,26 +2383,26 @@
         "out=spend6.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 153123,
-      "end": 153125,
+      "start": 153901,
+      "end": 153903,
       "constraint_count": 2,
       "classification_note": "allowed selector/range glue segment"
     },
     {
-      "index": 158,
+      "index": 165,
       "op": "assert.eq",
       "args": [
         "lhs=spend6.nullifier",
         "rhs=spend6.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 153125,
-      "end": 153126,
+      "start": 153903,
+      "end": 153904,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 159,
+      "index": 166,
       "op": "decaf.randomized_verification_key",
       "args": [
         "ak=shared.ak",
@@ -2321,12 +2412,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 153126,
-      "end": 154938,
+      "start": 153904,
+      "end": 155716,
       "constraint_count": 1812
     },
     {
-      "index": 160,
+      "index": 167,
       "op": "decaf.randomized_verification_key.dummy",
       "args": [
         "ak=spend6.dummy_spend_auth_key",
@@ -2336,12 +2427,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 154938,
-      "end": 158556,
+      "start": 155716,
+      "end": 159334,
       "constraint_count": 3618
     },
     {
-      "index": 161,
+      "index": 168,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend6.rk.real",
@@ -2351,12 +2442,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 158556,
-      "end": 158562,
+      "start": 159334,
+      "end": 159340,
       "constraint_count": 6
     },
     {
-      "index": 162,
+      "index": 169,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend6.rk.dummy",
@@ -2366,12 +2457,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 158562,
-      "end": 158567,
+      "start": 159340,
+      "end": 159345,
       "constraint_count": 5
     },
     {
-      "index": 163,
+      "index": 170,
       "op": "decaf.diversified_transmission_key",
       "args": [
         "nk=auth.nk",
@@ -2384,12 +2475,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-dtk",
       "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
-      "start": 158567,
-      "end": 164644,
+      "start": 159345,
+      "end": 165422,
       "constraint_count": 6077
     },
     {
-      "index": 164,
+      "index": 171,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend6.transmission.computed",
@@ -2399,12 +2490,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 164644,
-      "end": 164649,
+      "start": 165422,
+      "end": 165427,
       "constraint_count": 5
     },
     {
-      "index": 165,
+      "index": 172,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend6.note.amount",
@@ -2412,25 +2503,25 @@
         "enabled=spend6.is_dummy"
       ],
       "kind": "glue",
-      "start": 164649,
-      "end": 164651,
+      "start": 165427,
+      "end": 165429,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 166,
+      "index": 173,
       "op": "decaf.assert_on_curve",
       "args": [
         "point=spend6.note.transmission"
       ],
       "kind": "glue",
-      "start": 164651,
-      "end": 164655,
+      "start": 165429,
+      "end": 165433,
       "constraint_count": 4,
       "classification_note": "allowed raw affine Decaf on-curve assertion"
     },
     {
-      "index": 167,
+      "index": 174,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend6.note.div_gen",
@@ -2439,12 +2530,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 164655,
-      "end": 164658,
+      "start": 165433,
+      "end": 165436,
       "constraint_count": 3
     },
     {
-      "index": 168,
+      "index": 175,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend6.note.transmission",
@@ -2453,25 +2544,39 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 164658,
-      "end": 164661,
+      "start": 165436,
+      "end": 165439,
       "constraint_count": 3
     },
     {
-      "index": 169,
+      "index": 176,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend6.note.transmission_key_s",
+        "rhs=shared.transmission_fq",
+        "enabled=spend6.is_real"
+      ],
+      "kind": "glue",
+      "start": 165439,
+      "end": 165441,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 177,
       "op": "assert.eq",
       "args": [
         "lhs=spend6.note.asset_id",
         "rhs=shared.asset_id"
       ],
       "kind": "glue",
-      "start": 164661,
-      "end": 164662,
+      "start": 165441,
+      "end": 165442,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 170,
+      "index": 178,
       "op": "decaf.compress_to_field",
       "args": [
         "in=spend6.rk.claimed",
@@ -2480,12 +2585,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 164662,
-      "end": 165708,
+      "start": 165442,
+      "end": 166488,
       "constraint_count": 1046
     },
     {
-      "index": 171,
+      "index": 179,
       "op": "spend.collect",
       "args": [
         "spend6",
@@ -2494,25 +2599,25 @@
         "rk_compressed-\u003estatement.nullifiers_and_rks"
       ],
       "kind": "marker",
-      "start": 165708,
-      "end": 165708,
+      "start": 166488,
+      "end": 166488,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 172,
+      "index": 180,
       "op": "spend.begin",
       "args": [
         "spend7"
       ],
       "kind": "marker",
-      "start": 165708,
-      "end": 165708,
+      "start": 166488,
+      "end": 166488,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 173,
+      "index": 181,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=spend7.note.blinding",
@@ -2520,18 +2625,17 @@
         "asset_id=spend7.note.asset_id",
         "div_gen_fq=spend7.note.div_gen_fq",
         "transmission_key_s=spend7.note.transmission_key_s",
-        "clue_key=spend7.note.clue_key",
         "out=spend7.note.commitment.computed"
       ],
       "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash6",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 165708,
-      "end": 166138,
-      "constraint_count": 430
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 166488,
+      "end": 166878,
+      "constraint_count": 390
     },
     {
-      "index": 174,
+      "index": 182,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend7.note.commitment.computed",
@@ -2539,13 +2643,13 @@
         "enabled=spend7.is_real"
       ],
       "kind": "glue",
-      "start": 166138,
-      "end": 166140,
+      "start": 166878,
+      "end": 166880,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 175,
+      "index": 183,
       "op": "gadget.nullifier",
       "args": [
         "nk=auth.nk",
@@ -2556,12 +2660,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-nullifier",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
-      "start": 166140,
-      "end": 166450,
+      "start": 166880,
+      "end": 167190,
       "constraint_count": 310
     },
     {
-      "index": 176,
+      "index": 184,
       "op": "gadget.state_commitment_path",
       "args": [
         "commitment=spend7.state_proof.commitment",
@@ -2572,12 +2676,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-quad-path-24",
       "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
-      "start": 166450,
-      "end": 175465,
+      "start": 167190,
+      "end": 176205,
       "constraint_count": 9015
     },
     {
-      "index": 177,
+      "index": 185,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend7.anchor.computed",
@@ -2585,13 +2689,13 @@
         "enabled=spend7.is_real"
       ],
       "kind": "glue",
-      "start": 175465,
-      "end": 175467,
+      "start": 176205,
+      "end": 176207,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 178,
+      "index": 186,
       "op": "gadget.synthetic_dummy_nullifier",
       "args": [
         "seed=spend7.dummy_nullifier_seed",
@@ -2602,12 +2706,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash3-specialized",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
-      "start": 175467,
-      "end": 175772,
+      "start": 176207,
+      "end": 176512,
       "constraint_count": 305
     },
     {
-      "index": 179,
+      "index": 187,
       "op": "dummy.mux",
       "args": [
         "flag=spend7.is_dummy",
@@ -2616,26 +2720,26 @@
         "out=spend7.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 175772,
-      "end": 175774,
+      "start": 176512,
+      "end": 176514,
       "constraint_count": 2,
       "classification_note": "allowed selector/range glue segment"
     },
     {
-      "index": 180,
+      "index": 188,
       "op": "assert.eq",
       "args": [
         "lhs=spend7.nullifier",
         "rhs=spend7.nullifier.selected"
       ],
       "kind": "glue",
-      "start": 175774,
-      "end": 175775,
+      "start": 176514,
+      "end": 176515,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 181,
+      "index": 189,
       "op": "decaf.randomized_verification_key",
       "args": [
         "ak=shared.ak",
@@ -2645,12 +2749,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 175775,
-      "end": 177587,
+      "start": 176515,
+      "end": 178327,
       "constraint_count": 1812
     },
     {
-      "index": 182,
+      "index": 190,
       "op": "decaf.randomized_verification_key.dummy",
       "args": [
         "ak=spend7.dummy_spend_auth_key",
@@ -2660,12 +2764,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-rvk",
       "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
-      "start": 177587,
-      "end": 181205,
+      "start": 178327,
+      "end": 181945,
       "constraint_count": 3618
     },
     {
-      "index": 183,
+      "index": 191,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend7.rk.real",
@@ -2675,12 +2779,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 181205,
-      "end": 181211,
+      "start": 181945,
+      "end": 181951,
       "constraint_count": 6
     },
     {
-      "index": 184,
+      "index": 192,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend7.rk.dummy",
@@ -2690,12 +2794,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 181211,
-      "end": 181216,
+      "start": 181951,
+      "end": 181956,
       "constraint_count": 5
     },
     {
-      "index": 185,
+      "index": 193,
       "op": "decaf.diversified_transmission_key",
       "args": [
         "nk=auth.nk",
@@ -2708,12 +2812,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-dtk",
       "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
-      "start": 181216,
-      "end": 187293,
+      "start": 181956,
+      "end": 188033,
       "constraint_count": 6077
     },
     {
-      "index": 186,
+      "index": 194,
       "op": "decaf.assert_equivalent_if",
       "args": [
         "lhs=spend7.transmission.computed",
@@ -2723,12 +2827,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 187293,
-      "end": 187298,
+      "start": 188033,
+      "end": 188038,
       "constraint_count": 5
     },
     {
-      "index": 187,
+      "index": 195,
       "op": "assert.eq_if",
       "args": [
         "lhs=spend7.note.amount",
@@ -2736,25 +2840,25 @@
         "enabled=spend7.is_dummy"
       ],
       "kind": "glue",
-      "start": 187298,
-      "end": 187300,
+      "start": 188038,
+      "end": 188040,
       "constraint_count": 2,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 188,
+      "index": 196,
       "op": "decaf.assert_on_curve",
       "args": [
         "point=spend7.note.transmission"
       ],
       "kind": "glue",
-      "start": 187300,
-      "end": 187304,
+      "start": 188040,
+      "end": 188044,
       "constraint_count": 4,
       "classification_note": "allowed raw affine Decaf on-curve assertion"
     },
     {
-      "index": 189,
+      "index": 197,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend7.note.div_gen",
@@ -2763,12 +2867,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 187304,
-      "end": 187307,
+      "start": 188044,
+      "end": 188047,
       "constraint_count": 3
     },
     {
-      "index": 190,
+      "index": 198,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=spend7.note.transmission",
@@ -2777,25 +2881,39 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 187307,
-      "end": 187310,
+      "start": 188047,
+      "end": 188050,
       "constraint_count": 3
     },
     {
-      "index": 191,
+      "index": 199,
+      "op": "assert.eq_if",
+      "args": [
+        "lhs=spend7.note.transmission_key_s",
+        "rhs=shared.transmission_fq",
+        "enabled=spend7.is_real"
+      ],
+      "kind": "glue",
+      "start": 188050,
+      "end": 188052,
+      "constraint_count": 2,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 200,
       "op": "assert.eq",
       "args": [
         "lhs=spend7.note.asset_id",
         "rhs=shared.asset_id"
       ],
       "kind": "glue",
-      "start": 187310,
-      "end": 187311,
+      "start": 188052,
+      "end": 188053,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 192,
+      "index": 201,
       "op": "decaf.compress_to_field",
       "args": [
         "in=spend7.rk.claimed",
@@ -2804,12 +2922,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 187311,
-      "end": 188357,
+      "start": 188053,
+      "end": 189099,
       "constraint_count": 1046
     },
     {
-      "index": 193,
+      "index": 202,
       "op": "spend.collect",
       "args": [
         "spend7",
@@ -2818,25 +2936,25 @@
         "rk_compressed-\u003estatement.nullifiers_and_rks"
       ],
       "kind": "marker",
-      "start": 188357,
-      "end": 188357,
+      "start": 189099,
+      "end": 189099,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 194,
+      "index": 203,
       "op": "output.begin",
       "args": [
         "output0"
       ],
       "kind": "marker",
-      "start": 188357,
-      "end": 188357,
+      "start": 189099,
+      "end": 189099,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 195,
+      "index": 204,
       "op": "gadget.note_commitment",
       "args": [
         "blinding=output0.note.blinding",
@@ -2844,43 +2962,42 @@
         "asset_id=output0.note.asset_id",
         "div_gen_fq=output0.note.div_gen_fq",
         "transmission_key_s=output0.note.transmission_key_s",
-        "clue_key=output0.note.clue_key",
         "out=output0.note.commitment.computed"
       ],
       "kind": "gadget",
-      "gadget_label": "gadget-poseidon-hash6",
-      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
-      "start": 188357,
-      "end": 188787,
-      "constraint_count": 430
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound",
+      "start": 189099,
+      "end": 189489,
+      "constraint_count": 390
     },
     {
-      "index": 196,
+      "index": 205,
       "op": "assert.eq",
       "args": [
         "lhs=output0.note.commitment.computed",
         "rhs=output0.note_commitment"
       ],
       "kind": "glue",
-      "start": 188787,
-      "end": 188788,
+      "start": 189489,
+      "end": 189490,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 197,
+      "index": 206,
       "op": "decaf.assert_on_curve",
       "args": [
         "point=output0.note.transmission"
       ],
       "kind": "glue",
-      "start": 188788,
-      "end": 188792,
+      "start": 189490,
+      "end": 189494,
       "constraint_count": 4,
       "classification_note": "allowed raw affine Decaf on-curve assertion"
     },
     {
-      "index": 198,
+      "index": 207,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=output0.note.div_gen",
@@ -2889,12 +3006,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 188792,
-      "end": 188795,
+      "start": 189494,
+      "end": 189497,
       "constraint_count": 3
     },
     {
-      "index": 199,
+      "index": 208,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=output0.note.transmission",
@@ -2903,25 +3020,38 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 188795,
-      "end": 188798,
+      "start": 189497,
+      "end": 189500,
       "constraint_count": 3
     },
     {
-      "index": 200,
+      "index": 209,
+      "op": "assert.eq",
+      "args": [
+        "lhs=output0.note.transmission_key_s",
+        "rhs=shared.transmission_fq"
+      ],
+      "kind": "glue",
+      "start": 189500,
+      "end": 189501,
+      "constraint_count": 1,
+      "classification_note": "allowed assertion/copy constraint segment"
+    },
+    {
+      "index": 210,
       "op": "assert.eq",
       "args": [
         "lhs=output0.note.asset_id",
         "rhs=shared.asset_id"
       ],
       "kind": "glue",
-      "start": 188798,
-      "end": 188799,
+      "start": 189501,
+      "end": 189502,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     },
     {
-      "index": 201,
+      "index": 211,
       "op": "output.collect",
       "args": [
         "output0",
@@ -2929,13 +3059,13 @@
         "commitment-\u003estatement.output_commitments"
       ],
       "kind": "marker",
-      "start": 188799,
-      "end": 188799,
+      "start": 189502,
+      "end": 189502,
       "constraint_count": 0,
       "classification_note": "semantic trace marker; expected to carry no constraints"
     },
     {
-      "index": 202,
+      "index": 212,
       "op": "decaf.conservation_net_balance_commitment",
       "args": [
         "inputs=input_amounts",
@@ -2946,12 +3076,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-conservation-net-balance-commitment",
       "bridge_theorem": "Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound",
-      "start": 188799,
-      "end": 191766,
+      "start": 189502,
+      "end": 192469,
       "constraint_count": 2967
     },
     {
-      "index": 203,
+      "index": 213,
       "op": "decaf.assert_equivalent",
       "args": [
         "lhs=balance_commitment.computed",
@@ -2960,12 +3090,12 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-assert-equivalent",
       "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
-      "start": 191766,
-      "end": 191769,
+      "start": 192469,
+      "end": 192472,
       "constraint_count": 3
     },
     {
-      "index": 204,
+      "index": 214,
       "op": "decaf.compress_to_field",
       "args": [
         "in=balance_commitment.computed",
@@ -2974,60 +3104,60 @@
       "kind": "gadget",
       "gadget_label": "gadget-decaf-compress-to-field",
       "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
-      "start": 191769,
-      "end": 192815,
+      "start": 192472,
+      "end": 193518,
       "constraint_count": 1046
     },
     {
-      "index": 205,
+      "index": 215,
       "op": "statement.append",
       "args": [
         "field=anchor"
       ],
       "kind": "adapter",
-      "start": 192815,
-      "end": 192815,
+      "start": 193518,
+      "end": 193518,
       "constraint_count": 0,
       "classification_note": "statement vector assembly; expected to carry no constraints"
     },
     {
-      "index": 206,
+      "index": 216,
       "op": "statement.append_all",
       "args": [
         "fields=output_commitments"
       ],
       "kind": "adapter",
-      "start": 192815,
-      "end": 192815,
+      "start": 193518,
+      "end": 193518,
       "constraint_count": 0,
       "classification_note": "statement vector assembly; expected to carry no constraints"
     },
     {
-      "index": 207,
+      "index": 217,
       "op": "statement.append",
       "args": [
         "field=balance_commitment.fq"
       ],
       "kind": "adapter",
-      "start": 192815,
-      "end": 192815,
+      "start": 193518,
+      "end": 193518,
       "constraint_count": 0,
       "classification_note": "statement vector assembly; expected to carry no constraints"
     },
     {
-      "index": 208,
+      "index": 218,
       "op": "statement.append_all",
       "args": [
         "fields=nullifiers_and_rks"
       ],
       "kind": "adapter",
-      "start": 192815,
-      "end": 192815,
+      "start": 193518,
+      "end": 193518,
       "constraint_count": 0,
       "classification_note": "statement vector assembly; expected to carry no constraints"
     },
     {
-      "index": 209,
+      "index": 219,
       "op": "statement.hash",
       "args": [
         "family=note_reshape8x1",
@@ -3037,36 +3167,36 @@
       "kind": "gadget",
       "gadget_label": "gadget-poseidon-hash7",
       "bridge_theorem": "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound",
-      "start": 192815,
-      "end": 194225,
+      "start": 193518,
+      "end": 194928,
       "constraint_count": 1410
     },
     {
-      "index": 210,
+      "index": 220,
       "op": "assert.eq",
       "args": [
         "lhs=statement_hash",
         "rhs=claimed_statement_hash"
       ],
       "kind": "glue",
-      "start": 194225,
-      "end": 194226,
+      "start": 194928,
+      "end": 194929,
       "constraint_count": 1,
       "classification_note": "allowed assertion/copy constraint segment"
     }
   ],
   "breakdown": {
-    "total_constraints": 194226,
+    "total_constraints": 194929,
     "constraints_by_kind": {
       "adapter": 0,
-      "gadget": 194068,
-      "glue": 158,
+      "gadget": 194754,
+      "glue": 175,
       "marker": 0
     },
     "segments_by_kind": {
       "adapter": 4,
-      "gadget": 114,
-      "glue": 73,
+      "gadget": 115,
+      "glue": 82,
       "marker": 19
     },
     "unclassified_constraints": 0,

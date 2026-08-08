@@ -872,7 +872,7 @@ impl ViewService for ViewServer {
             })?;
 
         Ok(tonic::Response::new(pb::AddressByIndexResponse {
-            address: Some(fvk.payment_address(address_index).0.into()),
+            address: Some(fvk.payment_address(address_index).into()),
         }))
     }
 
@@ -939,7 +939,7 @@ impl ViewService for ViewServer {
             })?;
 
         Ok(tonic::Response::new(pb::EphemeralAddressResponse {
-            address: Some(fvk.ephemeral_address(OsRng, address_index).0.into()),
+            address: Some(fvk.ephemeral_address(OsRng, address_index).into()),
         }))
     }
 
@@ -1964,7 +1964,7 @@ impl ViewService for ViewServer {
                         address: Some(address.clone().into()),
                         asset_id: Some(asset_id.into()),
                         user_public_key: leaf_data.user_public_key.to_vec(),
-                        clue_public_key: leaf_data.clue_public_key.to_vec(),
+                        orbis_registration_id: leaf_data.orbis_registration_id.to_vec(),
                     };
 
                     tracing::debug!(
@@ -2130,7 +2130,7 @@ impl ViewService for ViewServer {
                 address: request_inner.address,
                 asset_id: request_inner.asset_id,
                 user_public_key: leaf_data.user_public_key.to_vec(),
-                clue_public_key: leaf_data.clue_public_key.to_vec(),
+                orbis_registration_id: leaf_data.orbis_registration_id.to_vec(),
             };
 
             return Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
@@ -2170,7 +2170,7 @@ impl ViewService for ViewServer {
             address: l.address,
             asset_id: l.asset_id,
             user_public_key: l.user_public_key,
-            clue_public_key: l.clue_public_key,
+            orbis_registration_id: l.orbis_registration_id,
         });
 
         Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
@@ -2272,7 +2272,7 @@ impl ViewService for ViewServer {
                             address: Some(address.clone().into()),
                             asset_id: Some(asset_id.into()),
                             user_public_key: leaf_data.user_public_key.to_vec(),
-                            clue_public_key: leaf_data.clue_public_key.to_vec(),
+                            orbis_registration_id: leaf_data.orbis_registration_id.to_vec(),
                         };
 
                         tracing::debug!(

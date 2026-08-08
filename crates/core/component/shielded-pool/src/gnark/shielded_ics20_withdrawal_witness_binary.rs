@@ -17,7 +17,7 @@ use crate::{
 };
 
 const SHIELDED_ICS20_WITHDRAWAL_WITNESS_MAGIC: &[u8; 4] = b"PIWG";
-const SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION: u32 = 3;
+const SHIELDED_ICS20_WITHDRAWAL_WITNESS_VERSION: u32 = 5;
 
 impl ShieldedIcs20WithdrawalWitnessV1 {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -49,7 +49,6 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
         put_u64(&mut buf, self.sender_compliance_position);
         put_bytes(&mut buf, &self.sender_asset_id);
         put_bytes(&mut buf, &self.sender_user_public_key);
-        put_bytes(&mut buf, &self.sender_clue_public_key);
         for spend in &self.spends {
             encode_spend(&mut buf, spend)?;
         }
@@ -61,7 +60,6 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
         encode_point_affine(&mut buf, &self.sender_diversified_generator_affine);
         encode_point_affine(&mut buf, &self.sender_transmission_key_affine);
         encode_point_affine(&mut buf, &self.sender_user_public_key_affine);
-        encode_point_affine(&mut buf, &self.sender_clue_public_key_affine);
 
         let total_len = u32::try_from(buf.len())
             .context("encoded shielded ICS-20 withdrawal witness exceeds u32")?;
@@ -124,7 +122,6 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
             sender_compliance_position: cursor.read_u64()?,
             sender_asset_id: cursor.read_fixed::<32>()?,
             sender_user_public_key: cursor.read_fixed::<32>()?,
-            sender_clue_public_key: cursor.read_fixed::<32>()?,
             spends: (0..n_in)
                 .map(|_| decode_spend(&mut cursor))
                 .collect::<Result<Vec<_>>>()?,
@@ -136,7 +133,6 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
             sender_diversified_generator_affine: cursor.read_point_affine()?,
             sender_transmission_key_affine: cursor.read_point_affine()?,
             sender_user_public_key_affine: cursor.read_point_affine()?,
-            sender_clue_public_key_affine: cursor.read_point_affine()?,
         };
 
         cursor.finish(family_id.label())?;
@@ -150,7 +146,6 @@ fn encode_spend(buf: &mut Vec<u8>, spend: &ShieldedIcs20WithdrawalSpendWitnessV1
     put_bytes(buf, &spend.spent_note_amount);
     put_bytes(buf, &spend.spent_note_asset_id);
     put_bytes(buf, &spend.spent_transmission_key);
-    put_bytes(buf, &spend.spent_clue_key);
     put_bytes(buf, &spend.state_commitment_commitment);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
@@ -171,7 +166,6 @@ fn decode_spend(cursor: &mut BinaryCursor<'_>) -> Result<ShieldedIcs20Withdrawal
         spent_note_amount: cursor.read_fixed::<32>()?,
         spent_note_asset_id: cursor.read_fixed::<32>()?,
         spent_transmission_key: cursor.read_fixed::<32>()?,
-        spent_clue_key: cursor.read_fixed::<32>()?,
         state_commitment_commitment: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
@@ -191,7 +185,6 @@ fn encode_change_output(buf: &mut Vec<u8>, output: &ShieldedIcs20WithdrawalChang
     put_bytes(buf, &output.created_note_amount);
     put_bytes(buf, &output.created_note_asset_id);
     put_bytes(buf, &output.created_transmission_key);
-    put_bytes(buf, &output.created_clue_key);
     encode_point_affine(buf, &output.created_diversified_generator_affine);
     encode_point_affine(buf, &output.created_transmission_key_affine);
 }
@@ -205,7 +198,6 @@ fn decode_change_output(
         created_note_amount: cursor.read_fixed::<32>()?,
         created_note_asset_id: cursor.read_fixed::<32>()?,
         created_transmission_key: cursor.read_fixed::<32>()?,
-        created_clue_key: cursor.read_fixed::<32>()?,
         created_diversified_generator_affine: cursor.read_point_affine()?,
         created_transmission_key_affine: cursor.read_point_affine()?,
     })

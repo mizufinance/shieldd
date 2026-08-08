@@ -212,11 +212,8 @@ impl ActionHandler for MsgRegisterUser {
             .get_asset_policy(self.leaf.asset_id)
             .await?
             .ok_or_else(|| anyhow::anyhow!("missing regulated asset policy"))?;
-        anyhow::ensure!(
-            crate::derive_orbis_user_public_key(&policy.ring.ring_pk, &self.leaf.clue_public_key)?
-                == self.leaf.user_public_key,
-            "user public key does not match the Orbis derivation of the clue public key"
-        );
+        self.leaf
+            .validate_orbis_registration(&policy.ring.ring_pk)?;
         let authority_vk = policy.registration_authority_vk.as_ref().ok_or_else(|| {
             anyhow::anyhow!("regulated asset policy missing registration authority")
         })?;
@@ -474,13 +471,13 @@ mod tests {
     }
 
     fn compliance_leaf(address: Address, asset_id: asset::Id) -> ComplianceLeaf {
-        let clue_public_key = decaf377::Element::GENERATOR * decaf377::Fr::from(5u64);
-        ComplianceLeaf::new(
+        let registration_id = [5u8; 32];
+        ComplianceLeaf::new_with_orbis_registration_id(
             address,
             asset_id,
-            crate::derive_orbis_user_public_key(&decaf377::Element::GENERATOR, &clue_public_key)
+            crate::derive_orbis_user_public_key(&decaf377::Element::GENERATOR, &registration_id)
                 .expect("valid Orbis user key"),
-            clue_public_key,
+            registration_id,
         )
         .expect("valid compliance keys")
     }
@@ -605,7 +602,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_msg_register_user_rejects_reused_key() {
+    async fn test_msg_register_user_rejects_missing_orbis_registration_id() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -631,7 +628,6 @@ mod tests {
             Address::dummy(&mut rand::thread_rng()),
             asset_id,
             decaf377::Element::GENERATOR,
-            decaf377::Element::GENERATOR,
         );
         let msg = MsgRegisterUser {
             leaf: leaf.clone(),
@@ -644,11 +640,12 @@ mod tests {
         };
 
         let err = msg
-            .check_stateless(())
+            .check_and_execute(&mut state)
             .await
-            .expect_err("reusing the user key as the clue key must be rejected");
+            .expect_err("missing Orbis registration ID must be rejected");
         assert!(
-            err.to_string().contains("must be distinct"),
+            err.to_string()
+                .contains("registration ID cannot be all zeroes"),
             "unexpected error: {err}"
         );
         assert_eq!(state.get_user_count().await.unwrap(), 0);
@@ -926,7 +923,6 @@ mod tests {
             Address::dummy(&mut rand::thread_rng()),
             asset_id,
             decaf377::Element::default(),
-            decaf377::Element::GENERATOR,
         );
         let invalid_msg = MsgRegisterUser {
             leaf: invalid_leaf.clone(),

@@ -4,7 +4,6 @@ import (
 	decafgnark "github.com/mizufinance/decaf377-go/gnark"
 	"math/big"
 
-	curves "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/frontend"
 	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
@@ -15,8 +14,7 @@ const (
 	TransferDetectionFQCount      = 2
 	TransferCoreCiphertextFQCount = 1
 	TransferExtCiphertextFQCount  = 3
-	MinFuzzyPrecisionBits         = 7
-	MaxFuzzyPrecisionBits         = 12
+	MaxDiscoveryPrecisionBits     = 32
 )
 
 var (
@@ -27,7 +25,6 @@ var (
 	TransferOutputCoreSaltLabel   = transferSaltConstant("output_core")
 	TransferOutputExtSaltLabel    = transferSaltConstant("output_ext")
 	TransferAuthorizationIDDomain = transferSaltConstant("shieldd.transfer.compliance.authorization_id.v1")
-	TransferFuzzyTagDomain        = transferSaltConstant("shieldd.compliance.fuzzy_tag.v2")
 )
 
 func DeriveAuthorizationID(
@@ -115,123 +112,57 @@ func VerifyPoseidonEncryptionTransferDetection(
 	return nil
 }
 
-func fuzzyTag(
+func truncateDiscoveryPrefix(
 	api frontend.API,
-	curve gnarkte.Curve,
-	r frontend.Variable,
-	cluePK gnarkte.Point,
-	assetID, authorizationID, authorizationTimestamp, role frontend.Variable,
-	activeBits [MaxFuzzyPrecisionBits]frontend.Variable,
-	roleLabel string,
-	trace func(string, ...string),
-) (frontend.Variable, error) {
-	vectors, err := primitives.LoadPrototypeVectors()
-	if err != nil {
-		return nil, err
-	}
-	if trace != nil {
-		trace("decaf.assert_on_curve", "point=fuzzy."+roleLabel+".clue_pk")
-	}
-	curve.AssertIsOnCurve(cluePK)
-	if trace != nil {
-		trace("decaf.fuzzy_scalar_mul", "role="+roleLabel)
-	}
-	shared := ScalarMulLE(
-		api,
-		curve,
-		cluePK,
-		r,
-		primitives.MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen(),
-	)
-	if trace != nil {
-		trace("decaf.compress_to_field", "in=fuzzy."+roleLabel+".shared", "out=fuzzy."+roleLabel+".shared_fq")
-	}
-	sharedFq, err := decafgnark.CompressToField(api, shared)
-	if err != nil {
-		return nil, err
-	}
-	if trace != nil {
-		trace("gadget.fuzzy_poseidon", "role="+roleLabel)
-	}
-	hash, err := primitives.Poseidon377Hash5(
-		api,
-		TransferFuzzyTagDomain,
-		[5]frontend.Variable{sharedFq, assetID, authorizationID, authorizationTimestamp, role},
-	)
-	if err != nil {
-		return nil, err
-	}
-	if trace != nil {
-		trace("gadget.canonical_fq_bits", "in=fuzzy."+roleLabel+".hash", "out=fuzzy."+roleLabel+".bits")
-	}
-	return truncateFuzzyHash(api, hash, activeBits), nil
-}
-
-func truncateFuzzyHash(
-	api frontend.API,
-	hash frontend.Variable,
-	activeBits [MaxFuzzyPrecisionBits]frontend.Variable,
+	transmissionKeyFq frontend.Variable,
+	activeBits [MaxDiscoveryPrecisionBits]frontend.Variable,
 ) frontend.Variable {
-	bits := api.ToBinary(hash, 253)
-	masked := make([]frontend.Variable, MaxFuzzyPrecisionBits)
+	bits := api.ToBinary(transmissionKeyFq, 253)
+	masked := make([]frontend.Variable, MaxDiscoveryPrecisionBits)
 	for i := range masked {
 		masked[i] = api.Mul(bits[i], activeBits[i])
 	}
 	return api.FromBinary(masked...)
 }
 
-func fuzzyPrecisionActiveBits(
+func discoveryPrecisionActiveBits(
 	api frontend.API,
 	precision frontend.Variable,
-) [MaxFuzzyPrecisionBits]frontend.Variable {
-	var exact [MaxFuzzyPrecisionBits - MinFuzzyPrecisionBits + 1]frontend.Variable
+) [MaxDiscoveryPrecisionBits]frontend.Variable {
+	var exact [MaxDiscoveryPrecisionBits + 1]frontend.Variable
 	allowed := frontend.Variable(0)
 	for i := range exact {
-		exact[i] = api.IsZero(api.Sub(precision, MinFuzzyPrecisionBits+i))
+		exact[i] = api.IsZero(api.Sub(precision, i))
 		allowed = api.Add(allowed, exact[i])
 	}
 	api.AssertIsEqual(allowed, 1)
 
-	var active [MaxFuzzyPrecisionBits]frontend.Variable
+	var active [MaxDiscoveryPrecisionBits]frontend.Variable
 	for i := range active {
-		if i < MinFuzzyPrecisionBits {
-			active[i] = 1
-			continue
-		}
 		active[i] = 0
-		for precisionOffset := i + 1 - MinFuzzyPrecisionBits; precisionOffset < len(exact); precisionOffset++ {
+		for precisionOffset := i + 1; precisionOffset < len(exact); precisionOffset++ {
 			active[i] = api.Add(active[i], exact[precisionOffset])
 		}
 	}
 	return active
 }
 
-func VerifyTransferFuzzyTags(
+func VerifyTransferDiscoveryTags(
 	api frontend.API,
-	senderR frontend.Variable,
-	senderCluePK gnarkte.Point,
-	receiverR frontend.Variable,
-	receiverCluePK gnarkte.Point,
-	assetID, authorizationID, authorizationTimestamp, precision, packedTags frontend.Variable,
+	senderTransmissionKeyFq frontend.Variable,
+	receiverTransmissionKeyFq frontend.Variable,
+	precision frontend.Variable,
+	packedTags frontend.Variable,
 	trace func(string, ...string),
 ) error {
-	curve, err := gnarkte.NewEdCurve(api, curves.BLS12_377)
-	if err != nil {
-		return err
-	}
-	activeBits := fuzzyPrecisionActiveBits(api, precision)
-	sender, err := fuzzyTag(api, curve, senderR, senderCluePK, assetID, authorizationID, authorizationTimestamp, 1, activeBits, "sender", trace)
-	if err != nil {
-		return err
-	}
-	receiver, err := fuzzyTag(api, curve, receiverR, receiverCluePK, assetID, authorizationID, authorizationTimestamp, 2, activeBits, "receiver", trace)
-	if err != nil {
-		return err
-	}
+	activeBits := discoveryPrecisionActiveBits(api, precision)
+	sender := truncateDiscoveryPrefix(api, senderTransmissionKeyFq, activeBits)
+	receiver := truncateDiscoveryPrefix(api, receiverTransmissionKeyFq, activeBits)
 	if trace != nil {
-		trace("assert.eq", "lhs=compliance.fuzzy_tags", "rhs=fuzzy.sender_tag+4096*fuzzy.receiver_tag")
+		trace("gadget.discovery_prefix", "source=address.transmission_key")
+		trace("assert.eq", "lhs=compliance.discovery_tags", "rhs=discovery.sender_tag+2^32*discovery.receiver_tag")
 	}
-	api.AssertIsEqual(packedTags, api.Add(sender, api.Mul(receiver, 1<<MaxFuzzyPrecisionBits)))
+	api.AssertIsEqual(packedTags, api.Add(sender, api.Mul(receiver, uint64(1)<<MaxDiscoveryPrecisionBits)))
 	return nil
 }
 

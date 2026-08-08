@@ -21,7 +21,6 @@ pub struct NoteReshapeSpendWitnessV1 {
     pub spent_note_amount: [u8; 32],
     pub spent_note_asset_id: [u8; 32],
     pub spent_transmission_key: [u8; 32],
-    pub spent_clue_key: [u8; 32],
     pub state_commitment_commitment: [u8; 32],
     pub state_commitment_position: u64,
     pub state_commitment_auth_path: Vec<[[u8; 32]; 3]>,
@@ -38,7 +37,6 @@ pub struct NoteReshapeOutputWitnessV1 {
     pub created_note_amount: [u8; 32],
     pub created_note_asset_id: [u8; 32],
     pub created_transmission_key: [u8; 32],
-    pub created_clue_key: [u8; 32],
     pub created_diversified_generator_affine: PointAffineBytes,
     pub created_transmission_key_affine: PointAffineBytes,
 }
@@ -91,8 +89,6 @@ fn spend_witness(
         spent_note_amount: Fq::from(private.spent_note.value().amount).to_bytes(),
         spent_note_asset_id: private.spent_note.asset_id().0.to_bytes(),
         spent_transmission_key: private.spent_note.transmission_key().0,
-        spent_clue_key: Fq::from_le_bytes_mod_order(&private.spent_note.discovery_key().0)
-            .to_bytes(),
         state_commitment_commitment: private.state_commitment_proof.commitment().0.to_bytes(),
         state_commitment_position: u64::from(private.state_commitment_proof.position()),
         state_commitment_auth_path,
@@ -120,8 +116,6 @@ fn output_witness(
         created_note_amount: Fq::from(private.created_note.value().amount).to_bytes(),
         created_note_asset_id: private.created_note.asset_id().0.to_bytes(),
         created_transmission_key: private.created_note.transmission_key().0,
-        created_clue_key: Fq::from_le_bytes_mod_order(&private.created_note.discovery_key().0)
-            .to_bytes(),
         created_diversified_generator_affine: point_affine_bytes(
             private.created_note.diversified_generator(),
         )?,

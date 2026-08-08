@@ -60,7 +60,6 @@ impl ComplianceScreener {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fuzzy::FuzzyDetectionKey;
     use crate::test_helpers::make_address;
     use crate::transfer::encrypt_transfer;
     use rand_core::OsRng;
@@ -111,8 +110,6 @@ mod tests {
             &mut OsRng,
             ring_pk,
             &(ring_pk * decaf377::Fr::from(2u64)),
-            &FuzzyDetectionKey::generate(&mut OsRng).clue_key(),
-            &FuzzyDetectionKey::generate(&mut OsRng).clue_key(),
             dk_pub,
             receiver_address,
             sender_address,
@@ -120,7 +117,7 @@ mod tests {
             is_flagged,
             crate::AuthorizationId::from_fq(decaf377::Fq::from(1u64)),
             0,
-            crate::FuzzyPrecision::default(),
+            16,
             salt,
         )
         .unwrap()

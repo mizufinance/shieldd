@@ -1544,9 +1544,8 @@ mod tests {
 
     fn compliance_leaf(address: Address, asset_id: asset::Id) -> ComplianceLeaf {
         let user_public_key = *address.diversified_generator();
-        let clue_public_key = user_public_key * decaf377::Fr::from(2u64);
-        ComplianceLeaf::new(address, asset_id, user_public_key, clue_public_key)
-            .expect("distinct non-identity compliance keys")
+        ComplianceLeaf::new(address, asset_id, user_public_key)
+            .expect("non-identity compliance key")
     }
 
     #[tokio::test]

@@ -180,7 +180,6 @@ type ComplianceLeafFixture struct {
 	Address       AddressFixture `json:"address"`
 	AssetID       AssetIDFixture `json:"assetId"`
 	UserPublicKey []byte         `json:"user_public_key"`
-	CluePublicKey []byte         `json:"clue_public_key"`
 }
 
 type SpendPrivateFixture struct {
@@ -193,7 +192,6 @@ type SpendPrivateFixture struct {
 	DiversifiedGeneratorAffine     PointAffineFixture          `json:"diversified_generator_affine"`
 	TransmissionKeyHex             string                      `json:"transmission_key_hex"`
 	TransmissionKeyAffine          PointAffineFixture          `json:"transmission_key_affine"`
-	ClueKey                        string                      `json:"clue_key"`
 	StateCommitmentProof           StateCommitmentProofFixture `json:"state_commitment_proof"`
 	VBlinding                      string                      `json:"v_blinding"`
 	SpendAuthRandomizer            string                      `json:"spend_auth_randomizer"`
@@ -211,7 +209,6 @@ type SpendPrivateFixture struct {
 	UserLeaf                       ComplianceLeafFixture       `json:"user_leaf"`
 	UserLeafCommitment             string                      `json:"user_leaf_commitment"`
 	UserPublicKeyAffine            PointAffineFixture          `json:"user_public_key_affine"`
-	CluePublicKeyAffine            PointAffineFixture          `json:"clue_public_key_affine"`
 	UserDiversifiedGeneratorAffine PointAffineFixture          `json:"user_diversified_generator_affine"`
 	UserTransmissionKeyAffine      PointAffineFixture          `json:"user_transmission_key_affine"`
 	ComplianceEphemeralSecret      string                      `json:"compliance_ephemeral_secret"`

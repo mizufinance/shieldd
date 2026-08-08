@@ -135,7 +135,7 @@ impl ::prost::Name for NoteView {
     }
 }
 /// An encrypted note.
-/// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+/// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteCiphertext {
     #[prost(bytes = "vec", tag = "1")]
@@ -164,7 +164,7 @@ pub struct NotePayload {
     #[prost(bytes = "vec", tag = "2")]
     pub ephemeral_key: ::prost::alloc::vec::Vec<u8>,
     /// An encryption of the newly created note.
-    /// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+    /// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
     #[prost(message, optional, tag = "3")]
     pub encrypted_note: ::core::option::Option<NoteCiphertext>,
     /// Public best-effort routing metadata. It does not grant decryption capability.
@@ -435,9 +435,6 @@ pub struct TransferPlan {
     /// Protocol precision used by all real and padded output discovery tags.
     #[prost(uint32, tag = "6")]
     pub discovery_precision_bits: u32,
-    /// Protocol-selected auditor fuzzy-clue precision for this transfer.
-    #[prost(uint32, tag = "7")]
-    pub fuzzy_precision_bits: u32,
 }
 impl ::prost::Name for TransferPlan {
     const NAME: &'static str = "TransferPlan";

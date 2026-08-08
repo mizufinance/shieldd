@@ -9,8 +9,8 @@ output-bearing transactions that omit the memo when one is required.
 
 The plaintext of the memo contains:
 
-* a return address (80 bytes for Shieldd addresses)
-* a text string that is 432 bytes in length
+* a return address (48 bytes for Shieldd addresses)
+* a text string of up to 464 bytes
 
 ## Privacy
 

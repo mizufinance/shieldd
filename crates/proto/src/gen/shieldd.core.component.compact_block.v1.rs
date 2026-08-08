@@ -56,6 +56,9 @@ pub struct CompactBlock {
     pub compliance_asset_registrations: ::prost::alloc::vec::Vec<
         super::super::compliance::v1::EventAssetRegistered,
     >,
+    /// Public, probabilistic routing metadata for shielded transfers.
+    #[prost(message, repeated, tag = "16")]
+    pub transaction_discoveries: ::prost::alloc::vec::Vec<TransactionDiscovery>,
 }
 impl ::prost::Name for CompactBlock {
     const NAME: &'static str = "CompactBlock";
@@ -219,6 +222,8 @@ pub struct DiscoveryBlock {
     pub discovery_parameters: ::core::option::Option<
         super::super::shielded_pool::v1::DiscoveryParameters,
     >,
+    #[prost(message, repeated, tag = "6")]
+    pub transaction_discoveries: ::prost::alloc::vec::Vec<TransactionDiscovery>,
 }
 impl ::prost::Name for DiscoveryBlock {
     const NAME: &'static str = "DiscoveryBlock";
@@ -228,6 +233,29 @@ impl ::prost::Name for DiscoveryBlock {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compact_block.v1.DiscoveryBlock".into()
+    }
+}
+/// Public routing metadata for one shielded transfer. These tags are candidate
+/// selectors only and do not prove participation or grant authorization.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TransactionDiscovery {
+    #[prost(message, optional, tag = "1")]
+    pub transaction_id: ::core::option::Option<
+        super::super::super::txhash::v1::TransactionId,
+    >,
+    #[prost(message, optional, tag = "2")]
+    pub sender: ::core::option::Option<super::super::shielded_pool::v1::DiscoveryTag>,
+    #[prost(message, optional, tag = "3")]
+    pub receiver: ::core::option::Option<super::super::shielded_pool::v1::DiscoveryTag>,
+}
+impl ::prost::Name for TransactionDiscovery {
+    const NAME: &'static str = "TransactionDiscovery";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.TransactionDiscovery".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.TransactionDiscovery".into()
     }
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
@@ -300,6 +328,48 @@ impl ::prost::Name for NoteCandidatesResponse {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.component.compact_block.v1.NoteCandidatesResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TransactionCandidatesRequest {
+    #[prost(uint64, tag = "1")]
+    pub start_height: u64,
+    #[prost(uint64, tag = "2")]
+    pub end_height: u64,
+    #[prost(message, repeated, tag = "3")]
+    pub tags: ::prost::alloc::vec::Vec<super::super::shielded_pool::v1::DiscoveryTag>,
+}
+impl ::prost::Name for TransactionCandidatesRequest {
+    const NAME: &'static str = "TransactionCandidatesRequest";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.TransactionCandidatesRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.TransactionCandidatesRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TransactionCandidatesResponse {
+    #[prost(uint64, tag = "1")]
+    pub height: u64,
+    #[prost(message, optional, tag = "2")]
+    pub transaction_id: ::core::option::Option<
+        super::super::super::txhash::v1::TransactionId,
+    >,
+    #[prost(bool, tag = "3")]
+    pub sender_match: bool,
+    #[prost(bool, tag = "4")]
+    pub receiver_match: bool,
+}
+impl ::prost::Name for TransactionCandidatesResponse {
+    const NAME: &'static str = "TransactionCandidatesResponse";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.TransactionCandidatesResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.TransactionCandidatesResponse".into()
     }
 }
 /// Generated client implementations.
@@ -517,6 +587,38 @@ pub mod query_service_client {
                 );
             self.inner.server_streaming(req, path, codec).await
         }
+        /// Finds transaction IDs by proof-bound sender or receiver discovery tag.
+        pub async fn transaction_candidates(
+            &mut self,
+            request: impl tonic::IntoRequest<super::TransactionCandidatesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<
+                tonic::codec::Streaming<super::TransactionCandidatesResponse>,
+            >,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.core.component.compact_block.v1.QueryService/TransactionCandidates",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.core.component.compact_block.v1.QueryService",
+                        "TransactionCandidates",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -589,6 +691,23 @@ pub mod query_service_server {
             request: tonic::Request<super::NoteCandidatesRequest>,
         ) -> std::result::Result<
             tonic::Response<Self::NoteCandidatesStream>,
+            tonic::Status,
+        >;
+        /// Server streaming response type for the TransactionCandidates method.
+        type TransactionCandidatesStream: tonic::codegen::tokio_stream::Stream<
+                Item = std::result::Result<
+                    super::TransactionCandidatesResponse,
+                    tonic::Status,
+                >,
+            >
+            + std::marker::Send
+            + 'static;
+        /// Finds transaction IDs by proof-bound sender or receiver discovery tag.
+        async fn transaction_candidates(
+            &self,
+            request: tonic::Request<super::TransactionCandidatesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<Self::TransactionCandidatesStream>,
             tonic::Status,
         >;
     }
@@ -841,6 +960,54 @@ pub mod query_service_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = NoteCandidatesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.server_streaming(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.core.component.compact_block.v1.QueryService/TransactionCandidates" => {
+                    #[allow(non_camel_case_types)]
+                    struct TransactionCandidatesSvc<T: QueryService>(pub Arc<T>);
+                    impl<
+                        T: QueryService,
+                    > tonic::server::ServerStreamingService<
+                        super::TransactionCandidatesRequest,
+                    > for TransactionCandidatesSvc<T> {
+                        type Response = super::TransactionCandidatesResponse;
+                        type ResponseStream = T::TransactionCandidatesStream;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::ResponseStream>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::TransactionCandidatesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as QueryService>::transaction_candidates(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = TransactionCandidatesSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

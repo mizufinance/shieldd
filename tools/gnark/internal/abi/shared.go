@@ -153,7 +153,6 @@ func noteFields(
 	divGenX, divGenY frontend.Variable,
 	transmissionKeyS frontend.Variable,
 	transX, transY frontend.Variable,
-	clueKey frontend.Variable,
 ) circuits.NoteFields {
 	return circuits.NoteFields{
 		Blinding:         blinding,
@@ -162,7 +161,6 @@ func noteFields(
 		DivGen:           circuits.Point2D{X: divGenX, Y: divGenY},
 		TransmissionKeyS: transmissionKeyS,
 		Transmission:     circuits.Point2D{X: transX, Y: transY},
-		ClueKey:          clueKey,
 	}
 }
 
@@ -192,7 +190,7 @@ func userComplianceFields(
 	divGenX, divGenY frontend.Variable,
 	transX, transY frontend.Variable,
 	assetID frontend.Variable,
-	userPKX, userPKY, cluePKX, cluePKY frontend.Variable,
+	userPKX, userPKY frontend.Variable,
 	path [compliance.ComplianceQuadTreeDepth][3]frontend.Variable,
 	position frontend.Variable,
 ) circuits.UserComplianceFields {
@@ -201,7 +199,6 @@ func userComplianceFields(
 		Transmission: circuits.Point2D{X: transX, Y: transY},
 		AssetID:      assetID,
 		UserPK:       circuits.Point2D{X: userPKX, Y: userPKY},
-		CluePK:       circuits.Point2D{X: cluePKX, Y: cluePKY},
 		Path:         path,
 		Position:     position,
 	}

@@ -1567,7 +1567,7 @@ impl serde::Serialize for ComplianceLeaf {
         if !self.user_public_key.is_empty() {
             len += 1;
         }
-        if !self.clue_public_key.is_empty() {
+        if !self.orbis_registration_id.is_empty() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.ComplianceLeaf", len)?;
@@ -1582,10 +1582,10 @@ impl serde::Serialize for ComplianceLeaf {
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("userPublicKey", pbjson::private::base64::encode(&self.user_public_key).as_str())?;
         }
-        if !self.clue_public_key.is_empty() {
+        if !self.orbis_registration_id.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("cluePublicKey", pbjson::private::base64::encode(&self.clue_public_key).as_str())?;
+            struct_ser.serialize_field("orbisRegistrationId", pbjson::private::base64::encode(&self.orbis_registration_id).as_str())?;
         }
         struct_ser.end()
     }
@@ -1602,8 +1602,8 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
             "assetId",
             "user_public_key",
             "userPublicKey",
-            "clue_public_key",
-            "cluePublicKey",
+            "orbis_registration_id",
+            "orbisRegistrationId",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1611,7 +1611,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
             Address,
             AssetId,
             UserPublicKey,
-            CluePublicKey,
+            OrbisRegistrationId,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -1637,7 +1637,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                             "address" => Ok(GeneratedField::Address),
                             "assetId" | "asset_id" => Ok(GeneratedField::AssetId),
                             "userPublicKey" | "user_public_key" => Ok(GeneratedField::UserPublicKey),
-                            "cluePublicKey" | "clue_public_key" => Ok(GeneratedField::CluePublicKey),
+                            "orbisRegistrationId" | "orbis_registration_id" => Ok(GeneratedField::OrbisRegistrationId),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -1660,7 +1660,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                 let mut address__ = None;
                 let mut asset_id__ = None;
                 let mut user_public_key__ = None;
-                let mut clue_public_key__ = None;
+                let mut orbis_registration_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Address => {
@@ -1683,11 +1683,11 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::CluePublicKey => {
-                            if clue_public_key__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("cluePublicKey"));
+                        GeneratedField::OrbisRegistrationId => {
+                            if orbis_registration_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("orbisRegistrationId"));
                             }
-                            clue_public_key__ = 
+                            orbis_registration_id__ =
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
@@ -1700,7 +1700,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                     address: address__,
                     asset_id: asset_id__,
                     user_public_key: user_public_key__.unwrap_or_default(),
-                    clue_public_key: clue_public_key__.unwrap_or_default(),
+                    orbis_registration_id: orbis_registration_id__.unwrap_or_default(),
                 })
             }
         }
@@ -2123,17 +2123,11 @@ impl serde::Serialize for ComplianceParameters {
         if self.anchor_validation_window_blocks != 0 {
             len += 1;
         }
-        if self.fuzzy_precision_bits != 0 {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compliance.v1.ComplianceParameters", len)?;
         if self.anchor_validation_window_blocks != 0 {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
             struct_ser.serialize_field("anchorValidationWindowBlocks", ToString::to_string(&self.anchor_validation_window_blocks).as_str())?;
-        }
-        if self.fuzzy_precision_bits != 0 {
-            struct_ser.serialize_field("fuzzyPrecisionBits", &self.fuzzy_precision_bits)?;
         }
         struct_ser.end()
     }
@@ -2147,14 +2141,11 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
         const FIELDS: &[&str] = &[
             "anchor_validation_window_blocks",
             "anchorValidationWindowBlocks",
-            "fuzzy_precision_bits",
-            "fuzzyPrecisionBits",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             AnchorValidationWindowBlocks,
-            FuzzyPrecisionBits,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -2178,7 +2169,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
                     {
                         match value {
                             "anchorValidationWindowBlocks" | "anchor_validation_window_blocks" => Ok(GeneratedField::AnchorValidationWindowBlocks),
-                            "fuzzyPrecisionBits" | "fuzzy_precision_bits" => Ok(GeneratedField::FuzzyPrecisionBits),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -2199,7 +2189,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut anchor_validation_window_blocks__ = None;
-                let mut fuzzy_precision_bits__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::AnchorValidationWindowBlocks => {
@@ -2210,14 +2199,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::FuzzyPrecisionBits => {
-                            if fuzzy_precision_bits__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("fuzzyPrecisionBits"));
-                            }
-                            fuzzy_precision_bits__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -2225,7 +2206,6 @@ impl<'de> serde::Deserialize<'de> for ComplianceParameters {
                 }
                 Ok(ComplianceParameters {
                     anchor_validation_window_blocks: anchor_validation_window_blocks__.unwrap_or_default(),
-                    fuzzy_precision_bits: fuzzy_precision_bits__.unwrap_or_default(),
                 })
             }
         }

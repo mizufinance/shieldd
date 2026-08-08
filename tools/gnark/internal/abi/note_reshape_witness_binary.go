@@ -9,7 +9,7 @@ import (
 
 const (
 	noteReshapeWitnessV1Magic = "PNWG"
-	noteReshapeWitnessVersion = 1
+	noteReshapeWitnessVersion = 2
 	maxNoteReshapeItems       = 8
 )
 
@@ -22,7 +22,6 @@ type NoteReshapeSpendWitnessV1Binary struct {
 	SpentNoteAmount           [32]byte
 	SpentNoteAssetID          [32]byte
 	SpentTransmissionKey      [32]byte
-	SpentClueKey              [32]byte
 	StateCommitmentCommitment [32]byte
 	StateCommitmentPosition   uint64
 	StateCommitmentAuthPath   [][3][32]byte
@@ -38,7 +37,6 @@ type NoteReshapeOutputWitnessV1Binary struct {
 	CreatedNoteAmount         [32]byte
 	CreatedNoteAssetID        [32]byte
 	CreatedTransmissionKey    [32]byte
-	CreatedClueKey            [32]byte
 	CreatedDivGenAffine       PointAffineBinary
 	CreatedTransmissionAffine PointAffineBinary
 }
@@ -195,9 +193,6 @@ func readNoteReshapeSpend(reader *bytes.Reader, syntheticPrivatePadding bool) (N
 	if out.SpentTransmissionKey, err = read32(reader); err != nil {
 		return out, err
 	}
-	if out.SpentClueKey, err = read32(reader); err != nil {
-		return out, err
-	}
 	if out.StateCommitmentCommitment, err = read32(reader); err != nil {
 		return out, err
 	}
@@ -238,9 +233,6 @@ func readNoteReshapeOutput(reader *bytes.Reader) (NoteReshapeOutputWitnessV1Bina
 		return out, err
 	}
 	if out.CreatedTransmissionKey, err = read32(reader); err != nil {
-		return out, err
-	}
-	if out.CreatedClueKey, err = read32(reader); err != nil {
 		return out, err
 	}
 	if out.CreatedDivGenAffine, err = readPointAffine(reader); err != nil {

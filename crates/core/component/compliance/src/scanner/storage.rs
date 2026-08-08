@@ -1120,8 +1120,10 @@ mod tests {
                 output_core_c2: decaf377::Fq::from(3u64),
                 output_ext_c2: decaf377::Fq::from(4u64),
                 detection_tag: [0u8; crate::structs::DETECTION_TAG_BYTES],
-                fuzzy_tags: crate::fuzzy::TransferFuzzyTags::from_bytes([8, 1, 0, 2, 0])
-                    .expect("valid fuzzy tags"),
+                discovery_tags: crate::TransferDiscoveryTags::from_bytes([
+                    8, 1, 0, 0, 0, 2, 0, 0, 0,
+                ])
+                .expect("valid discovery tags"),
                 encrypted_sender_core: [0u8; 32],
                 encrypted_sender_ext: [0u8; 96],
                 encrypted_output_core: [0u8; 32],

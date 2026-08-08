@@ -197,27 +197,15 @@ func TestTransferCircuitRejectsTransferOwnedMutations(t *testing.T) {
 			},
 		},
 		{
-			name: "fuzzy precision",
+			name: "discovery precision",
 			mutate: func(c *circuits.TransferCircuit) {
-				c.Compliance.FuzzyPrecision = mutateFieldByOne(c.Compliance.FuzzyPrecision)
+				c.Compliance.DiscoveryPrecision = mutateFieldByOne(c.Compliance.DiscoveryPrecision)
 			},
 		},
 		{
-			name: "fuzzy tags",
+			name: "discovery tags",
 			mutate: func(c *circuits.TransferCircuit) {
-				c.Compliance.FuzzyTags = mutateFieldByOne(c.Compliance.FuzzyTags)
-			},
-		},
-		{
-			name: "sender clue public key",
-			mutate: func(c *circuits.TransferCircuit) {
-				c.Sender.CluePK.X = mutateFieldByOne(c.Sender.CluePK.X)
-			},
-		},
-		{
-			name: "receiver clue public key",
-			mutate: func(c *circuits.TransferCircuit) {
-				c.Outputs[0].Recipient.CluePK.X = mutateFieldByOne(c.Outputs[0].Recipient.CluePK.X)
+				c.Compliance.DiscoveryTags = mutateFieldByOne(c.Compliance.DiscoveryTags)
 			},
 		},
 	}

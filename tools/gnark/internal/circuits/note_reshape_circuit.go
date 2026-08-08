@@ -132,6 +132,11 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
+	c.traceWiring("decaf.compress_to_field", "in=shared.transmission", "out=shared.transmission_fq")
+	sharedTransmissionFq, err := decafgnark.CompressToField(api, sharedTransmission)
+	if err != nil {
+		return err
+	}
 
 	// T1-d: DTK depends only on circuit-global nk/ak/ivk and shared.div_gen
 	// (every note's div_gen is asserted decaf-equivalent to shared.div_gen,
@@ -171,6 +176,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 				sharedDivGen,
 				sharedDivGenFq,
 				sharedTransmission,
+				sharedTransmissionFq,
 				sharedAssetID,
 				&c.SyntheticSpends[i],
 				i,
@@ -183,6 +189,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 				sharedDivGen,
 				sharedDivGenFq,
 				sharedTransmission,
+				sharedTransmissionFq,
 				sharedAssetID,
 				&c.Spends[i],
 			)
@@ -205,6 +212,7 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 			sharedDivGen,
 			sharedDivGenFq,
 			sharedTransmission,
+			sharedTransmissionFq,
 			sharedAssetID,
 			&c.Outputs[i],
 		)
@@ -317,6 +325,7 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	sharedDivGen gnarkte.Point,
 	sharedDivGenFq frontend.Variable,
 	sharedTransmission gnarkte.Point,
+	sharedTransmissionFq frontend.Variable,
 	sharedAssetID frontend.Variable,
 	spend *NoteReshapeSyntheticSpendCircuitFields,
 	index int,
@@ -333,7 +342,6 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 		"asset_id="+name+".note.asset_id",
 		"div_gen_fq="+name+".note.div_gen_fq",
 		"transmission_key_s="+name+".note.transmission_key_s",
-		"clue_key="+name+".note.clue_key",
 		"out="+name+".note.commitment.computed",
 	)
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
@@ -343,7 +351,6 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 		spend.Note.AssetID,
 		sharedDivGenFq,
 		spend.Note.TransmissionKeyS,
-		spend.Note.ClueKey,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -422,6 +429,8 @@ func (c *NoteReshapeCircuit) verifyPaddedNoteReshapeSpend(
 	decafgnark.AssertEquivalent(api, spentDivGen, sharedDivGen)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.transmission", "rhs=shared.transmission")
 	decafgnark.AssertEquivalent(api, spentTransmission, sharedTransmission)
+	c.traceWiring("assert.eq_if", "lhs="+name+".note.transmission_key_s", "rhs=shared.transmission_fq", "enabled="+name+".is_real")
+	AssertEqualIf(api, spend.Note.TransmissionKeyS, sharedTransmissionFq, isNotDummy)
 	c.traceWiring("assert.eq", "lhs="+name+".note.asset_id", "rhs=shared.asset_id")
 	api.AssertIsEqual(spend.Note.AssetID, sharedAssetID)
 
@@ -440,6 +449,7 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	sharedDivGen gnarkte.Point,
 	sharedDivGenFq frontend.Variable,
 	sharedTransmission gnarkte.Point,
+	sharedTransmissionFq frontend.Variable,
 	sharedAssetID frontend.Variable,
 	spend *NoteReshapeSpendCircuitFields,
 ) (frontend.Variable, frontend.Variable, frontend.Variable, error) {
@@ -456,7 +466,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 		"asset_id="+name+".note.asset_id",
 		"div_gen_fq="+name+".note.div_gen_fq",
 		"transmission_key_s="+name+".note.transmission_key_s",
-		"clue_key="+name+".note.clue_key",
 		"out="+name+".note.commitment.computed",
 	)
 	spentCommitment, err := NoteCommitmentWithCompressedDivGen(
@@ -466,7 +475,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 		spend.Note.AssetID,
 		sharedDivGenFq,
 		spend.Note.TransmissionKeyS,
-		spend.Note.ClueKey,
 	)
 	if err != nil {
 		return nil, nil, nil, err
@@ -511,6 +519,8 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeSpend(
 	decafgnark.AssertEquivalent(api, spentDivGen, sharedDivGen)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.transmission", "rhs=shared.transmission")
 	decafgnark.AssertEquivalent(api, spentTransmission, sharedTransmission)
+	c.traceWiring("assert.eq", "lhs="+name+".note.transmission_key_s", "rhs=shared.transmission_fq")
+	api.AssertIsEqual(spend.Note.TransmissionKeyS, sharedTransmissionFq)
 	c.traceWiring("assert.eq", "lhs="+name+".note.asset_id", "rhs=shared.asset_id")
 	api.AssertIsEqual(spend.Note.AssetID, sharedAssetID)
 
@@ -524,6 +534,7 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 	sharedDivGen gnarkte.Point,
 	sharedDivGenFq frontend.Variable,
 	sharedTransmission gnarkte.Point,
+	sharedTransmissionFq frontend.Variable,
 	sharedAssetID frontend.Variable,
 	output *NoteReshapeOutputCircuitFields,
 ) (frontend.Variable, frontend.Variable, error) {
@@ -539,7 +550,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 		"asset_id="+name+".note.asset_id",
 		"div_gen_fq="+name+".note.div_gen_fq",
 		"transmission_key_s="+name+".note.transmission_key_s",
-		"clue_key="+name+".note.clue_key",
 		"out="+name+".note.commitment.computed",
 	)
 	noteCommitment, err := NoteCommitmentWithCompressedDivGen(
@@ -549,7 +559,6 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 		output.Note.AssetID,
 		sharedDivGenFq,
 		output.Note.TransmissionKeyS,
-		output.Note.ClueKey,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -563,6 +572,8 @@ func (c *NoteReshapeCircuit) verifyFixedNoteReshapeOutput(
 	decafgnark.AssertEquivalent(api, createdDivGen, sharedDivGen)
 	c.traceWiring("decaf.assert_equivalent", "lhs="+name+".note.transmission", "rhs=shared.transmission")
 	decafgnark.AssertEquivalent(api, createdTransmission, sharedTransmission)
+	c.traceWiring("assert.eq", "lhs="+name+".note.transmission_key_s", "rhs=shared.transmission_fq")
+	api.AssertIsEqual(output.Note.TransmissionKeyS, sharedTransmissionFq)
 	c.traceWiring("assert.eq", "lhs="+name+".note.asset_id", "rhs=shared.asset_id")
 	api.AssertIsEqual(output.Note.AssetID, sharedAssetID)
 

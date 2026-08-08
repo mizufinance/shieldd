@@ -204,10 +204,6 @@ mod test {
             shieldd_sdk_compliance::params::ComplianceParameters::default()
                 .anchor_validation_window_blocks
         );
-        assert_eq!(
-            content.compliance_content.compliance_params.fuzzy_precision,
-            shieldd_sdk_compliance::params::ComplianceParameters::default().fuzzy_precision
-        );
         Ok(())
     }
 }

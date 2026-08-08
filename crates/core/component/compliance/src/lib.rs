@@ -4,11 +4,10 @@ pub use enrichment::{AssetProofData, BatchComplianceData, ComplianceProofProvide
 pub mod authorization;
 pub use authorization::{AuthorizationId, AUTHORIZATION_ID_DOMAIN};
 
-pub mod fuzzy;
-pub use fuzzy::{
-    FuzzyClueKey, FuzzyDetectionKey, FuzzyMatch, FuzzyPrecision, FuzzyRole, FuzzyTag,
-    TransferFuzzyTags, DEFAULT_FUZZY_PRECISION_BITS, FUZZY_TAG_BYTES, MAX_FUZZY_PRECISION_BITS,
-    MIN_FUZZY_PRECISION_BITS, TRANSFER_FUZZY_TAGS_BYTES,
+pub mod participant;
+pub use participant::{
+    DiscoveryMatch, ParticipantTag, TransferDiscoveryTags, MAX_DISCOVERY_PRECISION_BITS,
+    TRANSFER_DISCOVERY_TAGS_BYTES,
 };
 
 pub mod event;
@@ -118,7 +117,7 @@ pub use audit_status::{AuditStatus, DecryptedVia, FlowType};
 
 pub mod audit_records;
 pub use audit_records::{
-    AuditAuthority, AuditDetectedRef, AuditFuzzyClue, AuditScanExport, AuditSelection,
+    AuditAuthority, AuditDetectedRef, AuditDiscoveryTags, AuditScanExport, AuditSelection,
     DisclosureField, OrbisAuditEntry, TransferRole,
 };
 
@@ -219,7 +218,7 @@ pub fn default_user_proof(
 #[cfg(any(test, feature = "test-helpers"))]
 pub mod test_helpers {
     use decaf377::{Fq, Fr};
-    use rand_core::{OsRng, RngCore};
+    use rand_core::OsRng;
     use shieldd_sdk_keys::keys::Diversifier;
     use shieldd_sdk_keys::Address;
 
@@ -232,10 +231,7 @@ pub mod test_helpers {
         let scalar = Fr::rand(&mut rng);
         let point = decaf377::Element::GENERATOR * scalar;
         let pk_d = decaf377_ka::Public(point.vartime_compress().0);
-        let mut ck_bytes = [0u8; 32];
-        rng.fill_bytes(&mut ck_bytes);
-        let ck = shieldd_sdk_keys::DiscoveryKey(ck_bytes);
-        Address::from_components(diversifier, pk_d, ck).unwrap()
+        Address::from_components(diversifier, pk_d).unwrap()
     }
 
     /// Create a test IndexedLeaf with default (unregulated) policy.
@@ -256,9 +252,8 @@ mod tests {
 
     fn compliance_leaf(address: Address, asset_id: asset::Id) -> ComplianceLeaf {
         let user_public_key = *address.diversified_generator();
-        let clue_public_key = user_public_key * decaf377::Fr::from(2u64);
-        ComplianceLeaf::new(address, asset_id, user_public_key, clue_public_key)
-            .expect("distinct non-identity compliance keys")
+        ComplianceLeaf::new(address, asset_id, user_public_key)
+            .expect("non-identity compliance key")
     }
 
     #[tokio::test]
@@ -413,14 +408,12 @@ mod tests {
             sender_address.clone(),
             asset_id,
             decaf377::Element::GENERATOR * decaf377::Fr::from(3u64),
-            decaf377::Element::GENERATOR * decaf377::Fr::from(5u64),
         )
         .unwrap();
         let receiver_leaf = ComplianceLeaf::new(
             receiver_address.clone(),
             asset_id,
             decaf377::Element::GENERATOR * decaf377::Fr::from(7u64),
-            decaf377::Element::GENERATOR * decaf377::Fr::from(11u64),
         )
         .unwrap();
 
@@ -448,17 +441,10 @@ mod tests {
         let receiver_auth_path = state.get_user_auth_path(receiver_position).await.unwrap();
         let sender_ack = sender_leaf.user_public_key;
         let receiver_ack = receiver_leaf.user_public_key;
-        let sender_clue_key =
-            crate::FuzzyClueKey::from_element(sender_leaf.clue_public_key).unwrap();
-        let receiver_clue_key =
-            crate::FuzzyClueKey::from_element(receiver_leaf.clue_public_key).unwrap();
-
         let ciphertext = encrypt_transfer(
             &mut OsRng,
             &sender_ack,
             &receiver_ack,
-            &sender_clue_key,
-            &receiver_clue_key,
             &issuer_dk_pub,
             &receiver_address,
             &sender_address,
@@ -469,7 +455,7 @@ mod tests {
             false,
             crate::AuthorizationId::from_fq(Fq::from(1u64)),
             0,
-            crate::FuzzyPrecision::default(),
+            16,
             Fq::from(0u64),
         )
         .unwrap()
@@ -499,7 +485,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_end_to_end_detection_and_decryption() {
-        use crate::fuzzy::FuzzyDetectionKey;
         use crate::issuer_keys::DetectionKey;
         use crate::transfer::encrypt_transfer;
         use rand_core::OsRng;
@@ -521,15 +506,10 @@ mod tests {
 
         let sender_ack = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
         let receiver_ack = decaf377::Element::GENERATOR * decaf377::Fr::rand(&mut OsRng);
-        let sender_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
-        let receiver_clue_key = FuzzyDetectionKey::generate(&mut OsRng).clue_key();
-
         let ciphertext = encrypt_transfer(
             &mut OsRng,
             &sender_ack,
             &receiver_ack,
-            &sender_clue_key,
-            &receiver_clue_key,
             &issuer_dk_pub,
             &receiver_address,
             &sender_address,
@@ -537,7 +517,7 @@ mod tests {
             true,
             crate::AuthorizationId::from_fq(Fq::from(2u64)),
             0,
-            crate::FuzzyPrecision::default(),
+            16,
             Fq::from(7u64),
         )
         .unwrap()

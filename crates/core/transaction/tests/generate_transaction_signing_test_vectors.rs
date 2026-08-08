@@ -91,7 +91,7 @@ fn address_strategy() -> impl Strategy<Value = Address> {
     prop::strategy::LazyJust::new(|| {
         let seed_phrase = with_vector_rng(|rng| SeedPhrase::generate(rng));
         let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
-        let addr = sk.full_viewing_key().payment_address(0u32.into()).0;
+        let addr = sk.full_viewing_key().payment_address(0u32.into());
 
         addr
     })
@@ -103,7 +103,7 @@ fn note_strategy(addr: Address) -> impl Strategy<Value = Note> {
 
 fn spend_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ShieldedInputPlan> {
     let tct_strategy = any::<shieldd_sdk_tct::Position>();
-    let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()).0);
+    let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()));
 
     (tct_strategy, note_strategy).prop_map(|(tct_pos, note)| {
         with_vector_rng(|rng| ShieldedInputPlan::new(rng, note, tct_pos))
@@ -262,7 +262,7 @@ fn validator_vote_strategy() -> impl Strategy<Value = ValidatorVote> {
 fn shielded_ics20_withdrawal_plan_strategy(
     fvk: &FullViewingKey,
 ) -> impl Strategy<Value = ShieldedIcs20WithdrawalPlan> {
-    let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()).0);
+    let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()));
     let position_strategy = any::<shieldd_sdk_tct::Position>();
 
     (
@@ -334,7 +334,7 @@ fn transfer_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Transfe
 fn note_reshape_two_to_one_plan_strategy(
     fvk: &FullViewingKey,
 ) -> impl Strategy<Value = NoteReshapePlan> {
-    let addr = fvk.incoming().payment_address(0u32.into()).0;
+    let addr = fvk.incoming().payment_address(0u32.into());
     (
         note_strategy(addr.clone()),
         any::<shieldd_sdk_tct::Position>(),
@@ -367,7 +367,7 @@ fn note_reshape_two_to_one_plan_strategy(
 fn note_reshape_one_to_eight_plan_strategy(
     fvk: &FullViewingKey,
 ) -> impl Strategy<Value = NoteReshapePlan> {
-    let addr = fvk.incoming().payment_address(0u32.into()).0;
+    let addr = fvk.incoming().payment_address(0u32.into());
     (
         note_strategy(addr.clone()),
         any::<shieldd_sdk_tct::Position>(),

@@ -120,8 +120,9 @@ pub(crate) static COMPLIANCE_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
 
 /// A compliance leaf in the public on-chain registry for regulated assets.
 ///
-/// The registration authority binds the user's ring child key and independent
-/// fuzzy clue key to one address and asset.
+/// The registration authority binds an independent Orbis user key to one
+/// address and asset. A public prefix of the address is used only for routing,
+/// while `orbis_registration_id` is used only to ask Orbis for that child key.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::ComplianceLeaf", into = "pb::ComplianceLeaf")]
 pub struct ComplianceLeaf {
@@ -131,8 +132,8 @@ pub struct ComplianceLeaf {
     pub asset_id: asset::Id,
     /// User's public child key in the asset's compliance ring.
     pub user_public_key: Element,
-    /// Independent public key used to create fuzzy transaction clues.
-    pub clue_public_key: Element,
+    /// Independent Orbis derivation identifier for `user_public_key`.
+    pub orbis_registration_id: [u8; 32],
 }
 
 impl ComplianceLeaf {
@@ -140,13 +141,23 @@ impl ComplianceLeaf {
         address: Address,
         asset_id: asset::Id,
         user_public_key: Element,
-        clue_public_key: Element,
+    ) -> anyhow::Result<Self> {
+        Self::new_with_orbis_registration_id(address, asset_id, user_public_key, [0u8; 32])
+    }
+
+    /// Construct a regulated registration with its independent Orbis child-key
+    /// derivation identifier.
+    pub fn new_with_orbis_registration_id(
+        address: Address,
+        asset_id: asset::Id,
+        user_public_key: Element,
+        orbis_registration_id: [u8; 32],
     ) -> anyhow::Result<Self> {
         let leaf = Self {
             address,
             asset_id,
             user_public_key,
-            clue_public_key,
+            orbis_registration_id,
         };
         leaf.validate_keys()?;
         Ok(leaf)
@@ -158,23 +169,18 @@ impl ComplianceLeaf {
             address,
             asset_id,
             user_public_key: *crate::crypto::UNREGULATED_SINK_RING_PK,
-            clue_public_key: Element::GENERATOR * Fr::from(2u64),
+            orbis_registration_id: [0u8; 32],
         }
     }
 
     /// Create a test-only leaf without key validation.
     #[cfg(any(test, feature = "test-helpers"))]
-    pub fn new_unchecked(
-        address: Address,
-        asset_id: asset::Id,
-        user_public_key: Element,
-        clue_public_key: Element,
-    ) -> Self {
+    pub fn new_unchecked(address: Address, asset_id: asset::Id, user_public_key: Element) -> Self {
         Self {
             address,
             asset_id,
             user_public_key,
-            clue_public_key,
+            orbis_registration_id: [0u8; 32],
         }
     }
 
@@ -183,18 +189,29 @@ impl ComplianceLeaf {
             self.user_public_key != Element::default(),
             "compliance user public key cannot be identity"
         );
+        Ok(())
+    }
+
+    /// Verify that the independent Orbis identifier derives the registered
+    /// child public key from this asset's ring key.
+    pub fn validate_orbis_registration(&self, ring_pk: &Element) -> anyhow::Result<()> {
         anyhow::ensure!(
-            self.clue_public_key != Element::default(),
-            "compliance clue public key cannot be identity"
+            self.orbis_registration_id != [0u8; 32],
+            "Orbis registration ID cannot be all zeroes"
         );
         anyhow::ensure!(
-            self.user_public_key != self.clue_public_key,
-            "compliance user and clue public keys must be distinct"
+            crate::derive_orbis_user_public_key(ring_pk, &self.orbis_registration_id)?
+                == self.user_public_key,
+            "Orbis registration ID does not derive the registered user public key"
         );
         Ok(())
     }
 
     /// Create the Poseidon commitment.
+    ///
+    /// The commitment binds the diversified address and the derived Orbis
+    /// public key. The derivation identifier is auxiliary routing data: action
+    /// validation proves it derives that committed public key before use.
     pub fn commit(&self) -> StateCommitment {
         let diversified_generator = self
             .address
@@ -204,14 +221,13 @@ impl ComplianceLeaf {
             .expect("transmission key is valid");
         let asset_id_field = self.asset_id.0;
 
-        let commit = poseidon377::hash_5(
+        let commit = poseidon377::hash_4(
             &COMPLIANCE_LEAF_DOMAIN_SEP,
             (
                 diversified_generator,
                 transmission_key_s,
                 asset_id_field,
                 self.user_public_key.vartime_compress_to_field(),
-                self.clue_public_key.vartime_compress_to_field(),
             ),
         );
 
@@ -244,13 +260,6 @@ impl TryFrom<pb::ComplianceLeaf> for ComplianceLeaf {
         let user_public_key = Encoding(user_public_key_bytes)
             .vartime_decompress()
             .map_err(|_| anyhow::anyhow!("invalid user_public_key encoding"))?;
-        let clue_public_key_bytes: [u8; 32] =
-            value.clue_public_key.try_into().map_err(|v: Vec<u8>| {
-                anyhow::anyhow!("clue_public_key must be 32 bytes, got {}", v.len())
-            })?;
-        let clue_public_key = Encoding(clue_public_key_bytes)
-            .vartime_decompress()
-            .map_err(|_| anyhow::anyhow!("invalid clue_public_key encoding"))?;
         let leaf = ComplianceLeaf {
             address: value
                 .address
@@ -261,7 +270,16 @@ impl TryFrom<pb::ComplianceLeaf> for ComplianceLeaf {
                 .ok_or_else(|| anyhow::anyhow!("missing asset_id"))?
                 .try_into()?,
             user_public_key,
-            clue_public_key,
+            orbis_registration_id: if value.orbis_registration_id.is_empty() {
+                [0u8; 32]
+            } else {
+                value
+                    .orbis_registration_id
+                    .try_into()
+                    .map_err(|v: Vec<u8>| {
+                        anyhow::anyhow!("orbis_registration_id must be 32 bytes, got {}", v.len())
+                    })?
+            },
         };
         leaf.validate_keys()?;
         Ok(leaf)
@@ -274,7 +292,9 @@ impl From<ComplianceLeaf> for pb::ComplianceLeaf {
             address: Some(value.address.into()),
             asset_id: Some(value.asset_id.into()),
             user_public_key: value.user_public_key.vartime_compress().0.to_vec(),
-            clue_public_key: value.clue_public_key.vartime_compress().0.to_vec(),
+            orbis_registration_id: (value.orbis_registration_id != [0u8; 32])
+                .then(|| value.orbis_registration_id.to_vec())
+                .unwrap_or_default(),
         }
     }
 }
@@ -1363,15 +1383,35 @@ mod tests {
         let address = Address::dummy(&mut rng);
         let asset_id = asset::Id(decaf377::Fq::from(100u64));
         let user_public_key = decaf377::Element::GENERATOR * decaf377::Fr::from(3u64);
-        let clue_public_key = decaf377::Element::GENERATOR * decaf377::Fr::from(5u64);
-
-        let leaf = ComplianceLeaf::new(address.clone(), asset_id, user_public_key, clue_public_key)
-            .unwrap();
+        let leaf = ComplianceLeaf::new(address.clone(), asset_id, user_public_key).unwrap();
 
         assert_eq!(leaf.address, address);
         assert_eq!(leaf.asset_id, asset_id);
         assert_eq!(leaf.user_public_key, user_public_key);
-        assert_eq!(leaf.clue_public_key, clue_public_key);
+        assert_eq!(leaf.orbis_registration_id, [0u8; 32]);
+    }
+
+    #[test]
+    fn test_compliance_leaf_validates_independent_orbis_registration() {
+        let mut rng = rand::thread_rng();
+        let address = Address::dummy(&mut rng);
+        let asset_id = asset::Id(decaf377::Fq::from(100u64));
+        let ring_pk = decaf377::Element::GENERATOR * decaf377::Fr::from(9u64);
+        let registration_id = [17u8; 32];
+        let user_public_key =
+            crate::derive_orbis_user_public_key(&ring_pk, &registration_id).unwrap();
+        let leaf = ComplianceLeaf::new_with_orbis_registration_id(
+            address,
+            asset_id,
+            user_public_key,
+            registration_id,
+        )
+        .unwrap();
+
+        leaf.validate_orbis_registration(&ring_pk).unwrap();
+        assert!(leaf
+            .validate_orbis_registration(&decaf377::Element::GENERATOR)
+            .is_err());
     }
 
     #[test]
@@ -1385,16 +1425,9 @@ mod tests {
             address1,
             asset_id,
             decaf377::Element::GENERATOR * decaf377::Fr::from(3u64),
-            decaf377::Element::GENERATOR * decaf377::Fr::from(5u64),
         )
         .unwrap();
-        let leaf2 = ComplianceLeaf::new(
-            address2,
-            asset_id,
-            leaf1.user_public_key,
-            leaf1.clue_public_key,
-        )
-        .unwrap();
+        let leaf2 = ComplianceLeaf::new(address2, asset_id, leaf1.user_public_key).unwrap();
 
         assert_ne!(
             leaf1.commit(),
@@ -1404,7 +1437,7 @@ mod tests {
     }
 
     #[test]
-    fn test_keys_are_bound_into_commitment() {
+    fn test_user_key_is_bound_into_commitment() {
         let mut rng = rand::thread_rng();
         let address = Address::dummy(&mut rng);
         let asset_id = asset::Id(decaf377::Fq::from(100u64));
@@ -1412,13 +1445,11 @@ mod tests {
             address.clone(),
             asset_id,
             decaf377::Element::GENERATOR * decaf377::Fr::from(3u64),
-            decaf377::Element::GENERATOR * decaf377::Fr::from(5u64),
         )
         .unwrap();
         let leaf2 = ComplianceLeaf::new(
             address,
             asset_id,
-            leaf1.user_public_key,
             decaf377::Element::GENERATOR * decaf377::Fr::from(7u64),
         )
         .unwrap();
@@ -1434,7 +1465,6 @@ mod tests {
             wallet,
             asset_id,
             decaf377::Element::GENERATOR * decaf377::Fr::from(3u64),
-            decaf377::Element::GENERATOR * decaf377::Fr::from(5u64),
         )
         .unwrap();
 
@@ -1444,7 +1474,10 @@ mod tests {
         assert_eq!(original.address, recovered.address);
         assert_eq!(original.asset_id, recovered.asset_id);
         assert_eq!(original.user_public_key, recovered.user_public_key);
-        assert_eq!(original.clue_public_key, recovered.clue_public_key);
+        assert_eq!(
+            original.orbis_registration_id,
+            recovered.orbis_registration_id
+        );
         assert_eq!(original.commit().0, recovered.commit().0);
     }
 
@@ -1455,60 +1488,13 @@ mod tests {
             address: Some(Address::dummy(&mut rng).into()),
             asset_id: Some(asset::Id(decaf377::Fq::from(999u64)).into()),
             user_public_key: vec![],
-            clue_public_key: (decaf377::Element::GENERATOR * decaf377::Fr::from(5u64))
-                .vartime_compress()
-                .0
-                .to_vec(),
+            orbis_registration_id: vec![0u8; 32],
         };
 
         let err = ComplianceLeaf::try_from(proto).expect_err("missing user key should fail");
 
         assert!(
             err.to_string().contains("user_public_key must be 32 bytes"),
-            "unexpected error: {err:#}"
-        );
-    }
-
-    #[test]
-    fn test_compliance_leaf_proto_rejects_identity_clue_key() {
-        let mut rng = rand::thread_rng();
-        let proto = pb::ComplianceLeaf {
-            address: Some(Address::dummy(&mut rng).into()),
-            asset_id: Some(asset::Id(decaf377::Fq::from(999u64)).into()),
-            user_public_key: (decaf377::Element::GENERATOR * decaf377::Fr::from(3u64))
-                .vartime_compress()
-                .0
-                .to_vec(),
-            clue_public_key: decaf377::Element::default().vartime_compress().0.to_vec(),
-        };
-
-        let err = ComplianceLeaf::try_from(proto).expect_err("identity clue key should fail");
-
-        assert!(
-            err.to_string()
-                .contains("clue public key cannot be identity"),
-            "unexpected error: {err:#}"
-        );
-    }
-
-    #[test]
-    fn test_compliance_leaf_proto_rejects_reused_key() {
-        let mut rng = rand::thread_rng();
-        let key = (decaf377::Element::GENERATOR * decaf377::Fr::from(3u64))
-            .vartime_compress()
-            .0
-            .to_vec();
-        let proto = pb::ComplianceLeaf {
-            address: Some(Address::dummy(&mut rng).into()),
-            asset_id: Some(asset::Id(decaf377::Fq::from(999u64)).into()),
-            user_public_key: key.clone(),
-            clue_public_key: key,
-        };
-
-        let err = ComplianceLeaf::try_from(proto).expect_err("reused key should fail");
-
-        assert!(
-            err.to_string().contains("must be distinct"),
             "unexpected error: {err:#}"
         );
     }

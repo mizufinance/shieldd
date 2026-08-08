@@ -27,7 +27,7 @@ pub struct IndexedLeafData {
 pub struct UserLeafData {
     pub position: u64,
     pub user_public_key: [u8; 32],
-    pub clue_public_key: [u8; 32],
+    pub orbis_registration_id: [u8; 32],
     pub commitment: StateCommitment,
 }
 
@@ -505,7 +505,7 @@ impl ComplianceTreeStore<'_, '_> {
         asset_id: &[u8],
         position: u64,
         user_public_key: &[u8],
-        clue_public_key: &[u8],
+        orbis_registration_id: &[u8],
         commitment: StateCommitment,
     ) -> anyhow::Result<()> {
         let position = position_to_i64(position)?;
@@ -514,7 +514,7 @@ impl ComplianceTreeStore<'_, '_> {
         self.0
             .prepare_cached(
                 "INSERT OR REPLACE INTO compliance_user_leaf_data \
-                 (address, asset_id, position, user_public_key, clue_public_key, commitment) \
+                 (address, asset_id, position, user_public_key, orbis_registration_id, commitment) \
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
             )
             .context("failed to prepare leaf data insert")?
@@ -523,7 +523,7 @@ impl ComplianceTreeStore<'_, '_> {
                 asset_id,
                 &position,
                 user_public_key,
-                clue_public_key,
+                orbis_registration_id,
                 &commitment,
             ))
             .context("failed to insert leaf data")?;
@@ -532,7 +532,7 @@ impl ComplianceTreeStore<'_, '_> {
     }
 
     /// Get full compliance leaf data for an address/asset pair.
-    /// Returns the registered user and clue public keys if found.
+    /// Returns the registered Orbis user public key if found.
     pub fn get_leaf_data(
         &mut self,
         address: &[u8],
@@ -541,7 +541,7 @@ impl ComplianceTreeStore<'_, '_> {
         let mut stmt = self
             .0
             .prepare_cached(
-                "SELECT position, user_public_key, clue_public_key, commitment \
+                "SELECT position, user_public_key, orbis_registration_id, commitment \
                  FROM compliance_user_leaf_data \
                  WHERE address = ?1 AND asset_id = ?2",
             )
@@ -551,15 +551,15 @@ impl ComplianceTreeStore<'_, '_> {
             .query_row((address, asset_id), |row| {
                 let position: i64 = row.get("position")?;
                 let user_public_key: Vec<u8> = row.get("user_public_key")?;
-                let clue_public_key: Vec<u8> = row.get("clue_public_key")?;
+                let orbis_registration_id: Vec<u8> = row.get("orbis_registration_id")?;
                 let commitment: Vec<u8> = row.get("commitment")?;
-                Ok((position, user_public_key, clue_public_key, commitment))
+                Ok((position, user_public_key, orbis_registration_id, commitment))
             })
             .optional()
             .context("failed to query leaf data")?;
 
         match result {
-            Some((position, user_public_key, clue_public_key, commitment)) => {
+            Some((position, user_public_key, orbis_registration_id, commitment)) => {
                 let user_public_key: [u8; 32] =
                     user_public_key.try_into().map_err(|v: Vec<u8>| {
                         anyhow::anyhow!(
@@ -567,10 +567,10 @@ impl ComplianceTreeStore<'_, '_> {
                             v.len()
                         )
                     })?;
-                let clue_public_key: [u8; 32] =
-                    clue_public_key.try_into().map_err(|v: Vec<u8>| {
+                let orbis_registration_id: [u8; 32] =
+                    orbis_registration_id.try_into().map_err(|v: Vec<u8>| {
                         anyhow::anyhow!(
-                            "leaf data clue_public_key must be 32 bytes, got {}",
+                            "leaf data orbis_registration_id must be 32 bytes, got {}",
                             v.len()
                         )
                     })?;
@@ -583,7 +583,7 @@ impl ComplianceTreeStore<'_, '_> {
                 Ok(Some(UserLeafData {
                     position: position as u64,
                     user_public_key,
-                    clue_public_key,
+                    orbis_registration_id,
                     commitment: StateCommitment::try_from(commitment)?,
                 }))
             }
@@ -711,6 +711,27 @@ mod tests {
         store.add_user_hash(0, 1, hash).unwrap();
         let retrieved = store.get_user_hash(0, 1).unwrap().unwrap();
         assert_eq!(<[u8; 32]>::from(retrieved), [2u8; 32]);
+
+        // Test full registered leaf routing data.
+        let address = [3u8; shieldd_sdk_keys::address::ADDRESS_LEN_BYTES];
+        let asset_id = [4u8; 32];
+        let user_public_key = [5u8; 32];
+        let orbis_registration_id = [6u8; 32];
+        store
+            .add_leaf_data(
+                &address,
+                &asset_id,
+                7,
+                &user_public_key,
+                &orbis_registration_id,
+                commitment,
+            )
+            .unwrap();
+        let leaf = store.get_leaf_data(&address, &asset_id).unwrap().unwrap();
+        assert_eq!(leaf.position, 7);
+        assert_eq!(leaf.user_public_key, user_public_key);
+        assert_eq!(leaf.orbis_registration_id, orbis_registration_id);
+        assert_eq!(leaf.commitment, commitment);
 
         // Test asset leaf operations
         let leaf = IndexedLeafData {

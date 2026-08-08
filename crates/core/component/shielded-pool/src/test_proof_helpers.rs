@@ -166,13 +166,13 @@ pub mod proof_test_helpers {
         let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
-        let (address, _dtk_d) = ivk.payment_address(0u32.into());
+        let address = ivk.payment_address(0u32.into());
 
         // Distinct sender identity for transfer-side compliance fixtures.
         let sender_seed = SeedPhrase::generate(&mut *rng);
         let sender_sk = SpendKey::from_seed_phrase_bip44(sender_seed, &Bip44Path::new(0));
         let sender_ivk = sender_sk.full_viewing_key().incoming();
-        let (sender_address, _) = sender_ivk.payment_address(0u32.into());
+        let sender_address = sender_ivk.payment_address(0u32.into());
 
         let value = Value {
             amount: Amount::from(amount),
@@ -218,35 +218,43 @@ pub mod proof_test_helpers {
             shieldd_sdk_compliance::AssetPolicy::default_unregulated()
         };
 
-        let receiver_clue_key = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
-        let sender_clue_key = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
+        let receiver_registration_id = [31u8; 32];
+        let sender_registration_id = [37u8; 32];
         let ack_receiver = if is_regulated {
-            shieldd_sdk_compliance::derive_orbis_user_public_key(&ring_pk, &receiver_clue_key)
-                .expect("derive receiver Orbis user key")
+            shieldd_sdk_compliance::derive_orbis_user_public_key(
+                &ring_pk,
+                &receiver_registration_id,
+            )
+            .expect("valid receiver Orbis child key")
         } else {
             ring_pk
         };
         let ack_sender = if is_regulated {
-            shieldd_sdk_compliance::derive_orbis_user_public_key(&ring_pk, &sender_clue_key)
-                .expect("derive sender Orbis user key")
+            shieldd_sdk_compliance::derive_orbis_user_public_key(&ring_pk, &sender_registration_id)
+                .expect("valid sender Orbis child key")
         } else {
             ring_pk
         };
 
-        let user_leaf = shieldd_sdk_compliance::ComplianceLeaf::new(
+        let user_leaf = shieldd_sdk_compliance::ComplianceLeaf::new_with_orbis_registration_id(
             address.clone(),
             value.asset_id,
             ack_receiver,
-            receiver_clue_key,
+            is_regulated
+                .then_some(receiver_registration_id)
+                .unwrap_or([0u8; 32]),
         )
         .expect("valid receiver compliance keys");
-        let counterparty_leaf = shieldd_sdk_compliance::ComplianceLeaf::new(
-            sender_address.clone(),
-            value.asset_id,
-            ack_sender,
-            sender_clue_key,
-        )
-        .expect("valid sender compliance keys");
+        let counterparty_leaf =
+            shieldd_sdk_compliance::ComplianceLeaf::new_with_orbis_registration_id(
+                sender_address.clone(),
+                value.asset_id,
+                ack_sender,
+                is_regulated
+                    .then_some(sender_registration_id)
+                    .unwrap_or([0u8; 32]),
+            )
+            .expect("valid sender compliance keys");
 
         let (compliance_anchor, compliance_path, compliance_position) =
             create_user_tree_proof(&user_leaf);
@@ -492,7 +500,6 @@ pub mod proof_test_helpers {
                 .full_viewing_key()
                 .incoming()
                 .payment_address(0u32.into())
-                .0
         };
 
         let note = crate::Note::from_parts(
@@ -537,21 +544,23 @@ pub mod proof_test_helpers {
         let recipient_leaf = if send_to_self {
             base.user_leaf.clone()
         } else {
-            let recipient_clue_key = decaf377::Element::GENERATOR * Fr::rand(&mut *rng);
+            let recipient_registration_id = [41u8; 32];
             let recipient_user_key = if is_regulated {
                 shieldd_sdk_compliance::derive_orbis_user_public_key(
                     &base.ring_pk,
-                    &recipient_clue_key,
+                    &recipient_registration_id,
                 )
-                .expect("derive recipient Orbis user key")
+                .expect("valid recipient Orbis child key")
             } else {
                 base.ring_pk
             };
-            shieldd_sdk_compliance::ComplianceLeaf::new(
+            shieldd_sdk_compliance::ComplianceLeaf::new_with_orbis_registration_id(
                 recipient_address.clone(),
                 asset_id,
                 recipient_user_key,
-                recipient_clue_key,
+                is_regulated
+                    .then_some(recipient_registration_id)
+                    .unwrap_or([0u8; 32]),
             )
             .expect("valid recipient compliance keys")
         };
@@ -588,7 +597,7 @@ pub mod proof_test_helpers {
                 .auth_path(recipient_position)
                 .expect("recipient hidden-arity auth path");
             (
-                tct::StateCommitment(user_tree.root().0),
+                user_tree.root(),
                 MerklePath::from_auth_path(sender_auth_path),
                 base.compliance_position,
                 MerklePath::from_auth_path(recipient_auth_path),

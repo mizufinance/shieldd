@@ -10,7 +10,7 @@ import (
 
 const (
 	transferWitnessV1Magic   = "PTWG"
-	transferWitnessV1Version = 10
+	transferWitnessV1Version = 12
 )
 
 type TransferComplianceCiphertextWitnessV1Binary struct {
@@ -39,7 +39,6 @@ type TransferSpendWitnessV1Binary struct {
 	SpentNoteAmount             [32]byte
 	SpentNoteAssetID            [32]byte
 	SpentTransmissionKey        [32]byte
-	SpentClueKey                [32]byte
 	StateCommitmentCommitment   [32]byte
 	StateCommitmentPosition     uint64
 	StateCommitmentAuthPath     [][3][32]byte
@@ -58,12 +57,10 @@ type TransferOutputWitnessV1Binary struct {
 	CreatedNoteAmount           [32]byte
 	CreatedNoteAssetID          [32]byte
 	CreatedTransmissionKey      [32]byte
-	CreatedClueKey              [32]byte
 	RecipientCompliancePath     MerklePathBinary
 	RecipientCompliancePosition uint64
 	RecipientAssetID            [32]byte
 	RecipientUserPublicKey      [32]byte
-	RecipientCluePublicKey      [32]byte
 	// Output 0 is the receiver leg. Output 1, when present, is sender-owned change.
 	IsReceiver                    bool
 	CreatedDiversifiedGeneratorXY PointAffineBinary
@@ -71,7 +68,6 @@ type TransferOutputWitnessV1Binary struct {
 	RecipientDiversifiedGenerator PointAffineBinary
 	RecipientTransmissionKey      PointAffineBinary
 	RecipientUserPublicKeyAffine  PointAffineBinary
-	RecipientCluePublicKeyAffine  PointAffineBinary
 }
 
 type TransferWitnessV1Binary struct {
@@ -98,12 +94,11 @@ type TransferWitnessV1Binary struct {
 	SenderCompliancePosition uint64
 	SenderAssetID            [32]byte
 	SenderUserPublicKey      [32]byte
-	SenderCluePublicKey      [32]byte
 	TransferNonceRoot        [32]byte
 
 	DetectionCiphertext [][32]byte
-	FuzzyPrecision      [32]byte
-	FuzzyTags           [32]byte
+	DiscoveryPrecision  [32]byte
+	DiscoveryTags       [32]byte
 	SenderCore          TransferComplianceCiphertextWitnessV1Binary
 	SenderExt           TransferComplianceCiphertextWitnessV1Binary
 	OutputCore          TransferComplianceCiphertextWitnessV1Binary
@@ -123,7 +118,6 @@ type TransferWitnessV1Binary struct {
 	SenderDiversifiedGenerator PointAffineBinary
 	SenderTransmissionKey      PointAffineBinary
 	SenderUserPublicKeyAffine  PointAffineBinary
-	SenderCluePublicKeyAffine  PointAffineBinary
 }
 
 func DecodeTransferWitnessV1(payload []byte) (*TransferWitnessV1Binary, generated.TransferFamilySpec, error) {
@@ -237,19 +231,16 @@ func decodeTransferWitnessV1(
 	if witness.SenderUserPublicKey, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.SenderCluePublicKey, err = read32(reader); err != nil {
-		return nil, err
-	}
 	if witness.TransferNonceRoot, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.DetectionCiphertext, err = readVec32(reader); err != nil {
 		return nil, err
 	}
-	if witness.FuzzyPrecision, err = read32(reader); err != nil {
+	if witness.DiscoveryPrecision, err = read32(reader); err != nil {
 		return nil, err
 	}
-	if witness.FuzzyTags, err = read32(reader); err != nil {
+	if witness.DiscoveryTags, err = read32(reader); err != nil {
 		return nil, err
 	}
 	if witness.SenderCore, err = readTransferComplianceTier(reader); err != nil {
@@ -292,9 +283,6 @@ func decodeTransferWitnessV1(
 			return nil, err
 		}
 		if witness.Spends[i].SpentTransmissionKey, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Spends[i].SpentClueKey, err = read32(reader); err != nil {
 			return nil, err
 		}
 		if witness.Spends[i].StateCommitmentCommitment, err = read32(reader); err != nil {
@@ -346,9 +334,6 @@ func decodeTransferWitnessV1(
 		if witness.Outputs[i].CreatedTransmissionKey, err = read32(reader); err != nil {
 			return nil, err
 		}
-		if witness.Outputs[i].CreatedClueKey, err = read32(reader); err != nil {
-			return nil, err
-		}
 		if witness.Outputs[i].RecipientCompliancePath, err = readMerklePath(reader); err != nil {
 			return nil, err
 		}
@@ -359,9 +344,6 @@ func decodeTransferWitnessV1(
 			return nil, err
 		}
 		if witness.Outputs[i].RecipientUserPublicKey, err = read32(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientCluePublicKey, err = read32(reader); err != nil {
 			return nil, err
 		}
 		if witness.Outputs[i].IsReceiver, err = readBool(reader); err != nil {
@@ -380,9 +362,6 @@ func decodeTransferWitnessV1(
 			return nil, err
 		}
 		if witness.Outputs[i].RecipientUserPublicKeyAffine, err = readPointAffine(reader); err != nil {
-			return nil, err
-		}
-		if witness.Outputs[i].RecipientCluePublicKeyAffine, err = readPointAffine(reader); err != nil {
 			return nil, err
 		}
 	}
@@ -406,9 +385,6 @@ func decodeTransferWitnessV1(
 		return nil, err
 	}
 	if witness.SenderUserPublicKeyAffine, err = readPointAffine(reader); err != nil {
-		return nil, err
-	}
-	if witness.SenderCluePublicKeyAffine, err = readPointAffine(reader); err != nil {
 		return nil, err
 	}
 

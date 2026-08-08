@@ -33,5 +33,7 @@ shieldd-sdk-asset = { workspace = true, default-features = false }
 shieldd-sdk-keys = { workspace = true, default-features = false }
 shieldd-sdk-num = { workspace = true, default-features = false }
 shieldd-sdk-proto = { workspace = true, features = ["rpc"], default-features = true }
+shieldd-sdk-shielded-pool = { workspace = true, default-features = false }
+shieldd-sdk-txhash = { workspace = true, default-features = false }
 poseidon377 = { workspace = true }
 rand_core = { workspace = true }

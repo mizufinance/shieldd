@@ -16,7 +16,7 @@ use crate::{
 };
 
 const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTWG";
-const TRANSFER_WITNESS_VERSION: u32 = 10;
+const TRANSFER_WITNESS_VERSION: u32 = 12;
 
 impl TransferWitnessV1 {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -44,11 +44,10 @@ impl TransferWitnessV1 {
         put_u64(&mut buf, self.sender_compliance_position);
         put_bytes(&mut buf, &self.sender_asset_id);
         put_bytes(&mut buf, &self.sender_user_public_key);
-        put_bytes(&mut buf, &self.sender_clue_public_key);
         put_bytes(&mut buf, &self.transfer_nonce_root);
         encode_vec_32(&mut buf, &self.detection_ciphertext)?;
-        put_bytes(&mut buf, &self.fuzzy_precision);
-        put_bytes(&mut buf, &self.fuzzy_tags);
+        put_bytes(&mut buf, &self.discovery_precision);
+        put_bytes(&mut buf, &self.discovery_tags);
         encode_compliance_tier(&mut buf, &self.sender_core)?;
         encode_compliance_tier(&mut buf, &self.sender_ext)?;
         encode_compliance_tier(&mut buf, &self.output_core)?;
@@ -70,7 +69,6 @@ impl TransferWitnessV1 {
         encode_point_affine(&mut buf, &self.sender_diversified_generator_affine);
         encode_point_affine(&mut buf, &self.sender_transmission_key_affine);
         encode_point_affine(&mut buf, &self.sender_user_public_key_affine);
-        encode_point_affine(&mut buf, &self.sender_clue_public_key_affine);
 
         let total_len = u32::try_from(buf.len()).context("encoded transfer witness exceeds u32")?;
         buf[8..12].copy_from_slice(&total_len.to_le_bytes());
@@ -125,11 +123,10 @@ impl TransferWitnessV1 {
         let sender_compliance_position = cursor.read_u64()?;
         let sender_asset_id = cursor.read_fixed::<32>()?;
         let sender_user_public_key = cursor.read_fixed::<32>()?;
-        let sender_clue_public_key = cursor.read_fixed::<32>()?;
         let transfer_nonce_root = cursor.read_fixed::<32>()?;
         let detection_ciphertext = cursor.read_vec_32()?;
-        let fuzzy_precision = cursor.read_fixed::<32>()?;
-        let fuzzy_tags = cursor.read_fixed::<32>()?;
+        let discovery_precision = cursor.read_fixed::<32>()?;
+        let discovery_tags = cursor.read_fixed::<32>()?;
         let sender_core = decode_compliance_tier(&mut cursor)?;
         let sender_ext = decode_compliance_tier(&mut cursor)?;
         let output_core = decode_compliance_tier(&mut cursor)?;
@@ -166,11 +163,10 @@ impl TransferWitnessV1 {
             sender_compliance_position,
             sender_asset_id,
             sender_user_public_key,
-            sender_clue_public_key,
             transfer_nonce_root,
             detection_ciphertext,
-            fuzzy_precision,
-            fuzzy_tags,
+            discovery_precision,
+            discovery_tags,
             sender_core,
             sender_ext,
             output_core,
@@ -186,7 +182,6 @@ impl TransferWitnessV1 {
             sender_diversified_generator_affine: cursor.read_point_affine()?,
             sender_transmission_key_affine: cursor.read_point_affine()?,
             sender_user_public_key_affine: cursor.read_point_affine()?,
-            sender_clue_public_key_affine: cursor.read_point_affine()?,
         };
 
         cursor.finish(TRANSFER_PROOF_LABEL)?;
@@ -260,7 +255,6 @@ fn encode_spend(buf: &mut Vec<u8>, spend: &TransferSpendWitnessV1) -> Result<()>
     put_bytes(buf, &spend.spent_note_amount);
     put_bytes(buf, &spend.spent_note_asset_id);
     put_bytes(buf, &spend.spent_transmission_key);
-    put_bytes(buf, &spend.spent_clue_key);
     put_bytes(buf, &spend.state_commitment_commitment);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
@@ -281,7 +275,6 @@ fn decode_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferSpendWitnessV1>
         spent_note_amount: cursor.read_fixed::<32>()?,
         spent_note_asset_id: cursor.read_fixed::<32>()?,
         spent_transmission_key: cursor.read_fixed::<32>()?,
-        spent_clue_key: cursor.read_fixed::<32>()?,
         state_commitment_commitment: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
@@ -301,19 +294,16 @@ fn encode_output(buf: &mut Vec<u8>, output: &TransferOutputWitnessV1) -> Result<
     put_bytes(buf, &output.created_note_amount);
     put_bytes(buf, &output.created_note_asset_id);
     put_bytes(buf, &output.created_transmission_key);
-    put_bytes(buf, &output.created_clue_key);
     encode_merkle_path(buf, &output.recipient_compliance_path)?;
     put_u64(buf, output.recipient_compliance_position);
     put_bytes(buf, &output.recipient_asset_id);
     put_bytes(buf, &output.recipient_user_public_key);
-    put_bytes(buf, &output.recipient_clue_public_key);
     put_u8(buf, u8::from(output.is_receiver));
     encode_point_affine(buf, &output.created_diversified_generator_affine);
     encode_point_affine(buf, &output.created_transmission_key_affine);
     encode_point_affine(buf, &output.recipient_diversified_generator_affine);
     encode_point_affine(buf, &output.recipient_transmission_key_affine);
     encode_point_affine(buf, &output.recipient_user_public_key_affine);
-    encode_point_affine(buf, &output.recipient_clue_public_key_affine);
     Ok(())
 }
 
@@ -324,18 +314,15 @@ fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<TransferOutputWitnessV
         created_note_amount: cursor.read_fixed::<32>()?,
         created_note_asset_id: cursor.read_fixed::<32>()?,
         created_transmission_key: cursor.read_fixed::<32>()?,
-        created_clue_key: cursor.read_fixed::<32>()?,
         recipient_compliance_path: cursor.read_merkle_path()?,
         recipient_compliance_position: cursor.read_u64()?,
         recipient_asset_id: cursor.read_fixed::<32>()?,
         recipient_user_public_key: cursor.read_fixed::<32>()?,
-        recipient_clue_public_key: cursor.read_fixed::<32>()?,
         is_receiver: cursor.read_u8()? != 0,
         created_diversified_generator_affine: cursor.read_point_affine()?,
         created_transmission_key_affine: cursor.read_point_affine()?,
         recipient_diversified_generator_affine: cursor.read_point_affine()?,
         recipient_transmission_key_affine: cursor.read_point_affine()?,
         recipient_user_public_key_affine: cursor.read_point_affine()?,
-        recipient_clue_public_key_affine: cursor.read_point_affine()?,
     })
 }

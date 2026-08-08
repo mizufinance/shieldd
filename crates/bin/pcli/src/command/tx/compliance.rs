@@ -94,9 +94,9 @@ pub enum ComplianceCmd {
         /// User public child key, hex-encoded compressed Decaf377 element.
         #[clap(long)]
         user_public_key_hex: String,
-        /// Independent fuzzy-clue public key, hex-encoded compressed Decaf377 element.
+        /// Independent 32-byte Orbis registration identifier, hex-encoded.
         #[clap(long)]
-        clue_public_key_hex: String,
+        orbis_registration_id_hex: String,
         /// The selected fee tier to multiply the fee amount by.
         #[clap(short, long, default_value_t)]
         fee_tier: FeeTier,
@@ -170,9 +170,9 @@ pub enum ComplianceCmd {
         /// User public child key, hex-encoded compressed Decaf377 element.
         #[clap(long)]
         user_public_key_hex: String,
-        /// Independent fuzzy-clue public key, hex-encoded compressed Decaf377 element.
+        /// Independent 32-byte Orbis registration identifier, hex-encoded.
         #[clap(long)]
-        clue_public_key_hex: String,
+        orbis_registration_id_hex: String,
         /// SourceHub policy ID bound to this grant.
         #[clap(long, default_value = "")]
         policy_id: String,
@@ -191,14 +191,14 @@ pub enum ComplianceCmd {
         signing_key_hex: String,
     },
 
-    /// Derive an Orbis user public key from a ring and fuzzy-clue public key.
+    /// Derive an Orbis user public key from a ring and independent registration ID.
     DeriveUserPublicKey {
         /// Orbis ring public key; defaults to the registration command's generator key.
         #[clap(long)]
         ring_pk_hex: Option<String>,
-        /// Registered fuzzy-clue public key, hex-encoded compressed Decaf377 element.
+        /// Independent 32-byte registration identifier, hex-encoded.
         #[clap(long)]
-        clue_public_key_hex: String,
+        registration_id_hex: String,
     },
 }
 
@@ -399,7 +399,7 @@ impl ComplianceCmd {
                 asset_id,
                 address,
                 user_public_key_hex,
-                clue_public_key_hex,
+                orbis_registration_id_hex,
                 policy_id,
                 registration_authority_sk_hex,
                 valid_until_unix,
@@ -407,13 +407,12 @@ impl ComplianceCmd {
                 let asset_id = Self::parse_asset_id(asset_id)?;
                 let user_public_key =
                     parse_decaf377_element(user_public_key_hex, "user_public_key_hex")?;
-                let clue_public_key =
-                    parse_decaf377_element(clue_public_key_hex, "clue_public_key_hex")?;
-                let leaf = ComplianceLeaf::new(
+                let orbis_registration_id = parse_orbis_registration_id(orbis_registration_id_hex)?;
+                let leaf = ComplianceLeaf::new_with_orbis_registration_id(
                     address.clone(),
                     asset_id,
                     user_public_key,
-                    clue_public_key,
+                    orbis_registration_id,
                 )?;
                 let mut nonce = vec![0u8; 16];
                 rand_core::RngCore::fill_bytes(&mut rand_core::OsRng, &mut nonce);
@@ -442,18 +441,20 @@ impl ComplianceCmd {
             }
             ComplianceCmd::DeriveUserPublicKey {
                 ring_pk_hex,
-                clue_public_key_hex,
+                registration_id_hex,
             } => {
                 let ring_pk = ring_pk_hex
                     .as_ref()
                     .map(|value| parse_decaf377_element(value, "ring_pk_hex"))
                     .transpose()?
                     .unwrap_or(decaf377::Element::GENERATOR);
-                let clue_public_key =
-                    parse_decaf377_element(clue_public_key_hex, "clue_public_key_hex")?;
+                let registration_id: [u8; 32] = hex::decode(registration_id_hex)
+                    .context("invalid registration_id_hex")?
+                    .try_into()
+                    .map_err(|_| anyhow::anyhow!("registration_id_hex must encode 32 bytes"))?;
                 let user_public_key = shieldd_sdk_compliance::derive_orbis_user_public_key(
                     &ring_pk,
-                    &clue_public_key,
+                    &registration_id,
                 )?;
                 println!("{}", hex::encode(user_public_key.vartime_compress().0));
                 Ok(())
@@ -568,7 +569,7 @@ impl ComplianceCmd {
                 address_index,
                 user_registration_grant_hex,
                 user_public_key_hex,
-                clue_public_key_hex,
+                orbis_registration_id_hex,
                 fee_tier,
             } => {
                 let asset_id = Self::parse_asset_id(asset_id)?;
@@ -577,17 +578,21 @@ impl ComplianceCmd {
                 let address = match address {
                     Some(address) => address.parse().context("invalid Shieldd address")?,
                     None => {
-                        let (address, _detection_key) = fvk.payment_address(address_index);
+                        let address = fvk.payment_address(address_index);
                         address
                     }
                 };
 
                 let user_public_key =
                     parse_decaf377_element(user_public_key_hex, "user_public_key_hex")?;
-                let clue_public_key =
-                    parse_decaf377_element(clue_public_key_hex, "clue_public_key_hex")?;
-                let leaf =
-                    ComplianceLeaf::new(address, asset_id, user_public_key, clue_public_key)?;
+                let orbis_registration_id =
+                    parse_orbis_registration_id(orbis_registration_id_hex)?;
+                let leaf = ComplianceLeaf::new_with_orbis_registration_id(
+                    address,
+                    asset_id,
+                    user_public_key,
+                    orbis_registration_id,
+                )?;
                 let grant = decode_user_registration_grant(user_registration_grant_hex)
                     .context("invalid --user-registration-grant-hex")?;
                 let msg = MsgRegisterUser {
@@ -829,6 +834,13 @@ fn parse_decaf377_element(hex_str: &str, label: &str) -> Result<decaf377::Elemen
     decaf377::Encoding(arr)
         .vartime_decompress()
         .map_err(|_| anyhow::anyhow!("invalid {label} encoding"))
+}
+
+fn parse_orbis_registration_id(hex_str: &str) -> Result<[u8; 32]> {
+    hex::decode(hex_str)
+        .context("invalid orbis_registration_id_hex")?
+        .try_into()
+        .map_err(|_| anyhow::anyhow!("orbis_registration_id_hex must encode 32 bytes"))
 }
 
 fn parse_spend_vk(hex_str: &str, label: &str) -> Result<VerificationKey<SpendAuth>> {

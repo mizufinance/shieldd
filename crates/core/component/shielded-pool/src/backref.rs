@@ -147,7 +147,7 @@ mod tests {
             let brk = fvk.backref_key();
 
             let ivk = fvk.incoming();
-            let (sender, _dtk_d) = ivk.payment_address(0u32.into());
+            let sender = ivk.payment_address(0u32.into());
 
             let value_to_send = Value {
                 amount: amount_to_send.into(),
@@ -186,7 +186,7 @@ mod tests {
             let brk = fvk.backref_key();
 
             let ivk = fvk.incoming();
-            let (sender, _dtk_d) = ivk.payment_address(0u32.into());
+            let sender = ivk.payment_address(0u32.into());
 
             let value_to_send = Value {
                 amount: amount_to_send.into(),

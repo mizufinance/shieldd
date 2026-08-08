@@ -15,7 +15,7 @@ use shieldd_sdk_tct::{
     StateCommitment,
 };
 
-use super::StatePayload;
+use super::{StatePayload, TransactionDiscovery};
 
 /// A compressed delta update with the minimal data from a block required to
 /// synchronize private client state.
@@ -51,6 +51,8 @@ pub struct CompactBlock {
     pub compliance_user_registrations: Vec<EventUserRegistered>,
     /// Asset registrations in this block (for compliance tree sync).
     pub compliance_asset_registrations: Vec<EventAssetRegistered>,
+    /// Proof-bound public routing tags for shielded transfers in this block.
+    pub transaction_discoveries: Vec<TransactionDiscovery>,
     // **IMPORTANT NOTE FOR FUTURE HUMANS**: if you want to add new fields to the `CompactBlock`,
     // you must update `CompactBlock::requires_scanning` to check for the emptiness of those fields,
     // because the client will skip processing any compact block that is marked as not requiring
@@ -75,6 +77,7 @@ impl Default for CompactBlock {
             compliance_asset_anchor: None,
             compliance_user_registrations: Vec::new(),
             compliance_asset_registrations: Vec::new(),
+            transaction_discoveries: Vec::new(),
         }
     }
 }
@@ -91,6 +94,7 @@ impl CompactBlock {
             || !self.alt_gas_prices.is_empty() // need to save latest alt gas prices
             || !self.compliance_user_registrations.is_empty() // need to sync user tree
             || !self.compliance_asset_registrations.is_empty() // need to sync asset tree
+            || !self.transaction_discoveries.is_empty() // need to expose transaction routing tags
     }
 }
 
@@ -132,6 +136,11 @@ impl From<CompactBlock> for pb::CompactBlock {
                 .collect(),
             compliance_asset_registrations: cb
                 .compliance_asset_registrations
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            transaction_discoveries: cb
+                .transaction_discoveries
                 .into_iter()
                 .map(Into::into)
                 .collect(),
@@ -206,6 +215,11 @@ impl TryFrom<pb::CompactBlock> for CompactBlock {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<EventAssetRegistered>>>()?,
+            transaction_discoveries: value
+                .transaction_discoveries
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<TransactionDiscovery>>>()?,
         })
     }
 }

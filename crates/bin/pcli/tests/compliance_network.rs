@@ -32,17 +32,17 @@ const DEFAULT_COMPLIANCE_DEV_AUTHORITY_VK_HEX: &str =
     "b2ecf9b9082d6306538be73b0d6ee741141f3222152da78685d6596efc8c1506";
 const DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX: &str = "4102444800";
 
-fn compliance_user_keys() -> (String, String) {
-    let clue_public_key = decaf377::Element::GENERATOR * decaf377::Fr::from(4u64);
+fn compliance_user_key() -> String {
     let user_public_key = shieldd_sdk_compliance::derive_orbis_user_public_key(
         &decaf377::Element::GENERATOR,
-        &clue_public_key,
+        &[4u8; 32],
     )
     .expect("user key derivation");
-    (
-        hex::encode(user_public_key.vartime_compress().0),
-        hex::encode(clue_public_key.vartime_compress().0),
-    )
+    hex::encode(user_public_key.vartime_compress().0)
+}
+
+fn compliance_registration_id() -> String {
+    hex::encode([4u8; 32])
 }
 
 /// Import the wallet from seed phrase into a temporary directory.
@@ -162,7 +162,8 @@ fn sign_user_grant(tmpdir: &TempDir, asset_denom: &str, address: Address) -> Str
         DEFAULT_COMPLIANCE_GRANT_VALID_UNTIL_UNIX,
     );
     let address = address.to_string();
-    let (user_public_key, clue_public_key) = compliance_user_keys();
+    let user_public_key = compliance_user_key();
+    let registration_id = compliance_registration_id();
     let mut cmd = Command::cargo_bin("pcli").unwrap();
     cmd.args([
         "--home",
@@ -175,8 +176,8 @@ fn sign_user_grant(tmpdir: &TempDir, asset_denom: &str, address: Address) -> Str
         &address,
         "--user-public-key-hex",
         &user_public_key,
-        "--clue-public-key-hex",
-        &clue_public_key,
+        "--orbis-registration-id-hex",
+        &registration_id,
         "--registration-authority-sk-hex",
         &authority_sk,
         "--valid-until-unix",
@@ -407,7 +408,8 @@ fn compliance_register_user() {
     let smoke_asset =
         std::env::var("COMPLIANCE_SMOKE_ASSET").unwrap_or_else(|_| "regulated_usd".to_string());
     let grant = sign_user_grant(&tmpdir, &smoke_asset, address.clone());
-    let (user_public_key, clue_public_key) = compliance_user_keys();
+    let user_public_key = compliance_user_key();
+    let registration_id = compliance_registration_id();
 
     let mut cmd = Command::cargo_bin("pcli").unwrap();
     cmd.args([
@@ -419,8 +421,8 @@ fn compliance_register_user() {
         &smoke_asset,
         "--user-public-key-hex",
         &user_public_key,
-        "--clue-public-key-hex",
-        &clue_public_key,
+        "--orbis-registration-id-hex",
+        &registration_id,
         "--user-registration-grant-hex",
         &grant,
     ])

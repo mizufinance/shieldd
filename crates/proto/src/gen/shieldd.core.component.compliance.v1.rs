@@ -21,9 +21,6 @@ pub struct ComplianceParameters {
     /// Number of recent compliance anchors accepted for proof validation.
     #[prost(uint64, tag = "1")]
     pub anchor_validation_window_blocks: u64,
-    /// Protocol-selected fuzzy clue precision, in bits.
-    #[prost(uint32, tag = "2")]
-    pub fuzzy_precision_bits: u32,
 }
 impl ::prost::Name for ComplianceParameters {
     const NAME: &'static str = "ComplianceParameters";
@@ -47,9 +44,10 @@ pub struct ComplianceLeaf {
     /// User's public child key in the asset's compliance ring.
     #[prost(bytes = "vec", tag = "4")]
     pub user_public_key: ::prost::alloc::vec::Vec<u8>,
-    /// Independent public key used to create fuzzy transaction clues.
-    #[prost(bytes = "vec", tag = "5")]
-    pub clue_public_key: ::prost::alloc::vec::Vec<u8>,
+    /// Independent Orbis derivation identifier for this child key (32 bytes).
+    /// This is not an address discovery key and is never used for chain scanning.
+    #[prost(bytes = "vec", tag = "6")]
+    pub orbis_registration_id: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for ComplianceLeaf {
     const NAME: &'static str = "ComplianceLeaf";

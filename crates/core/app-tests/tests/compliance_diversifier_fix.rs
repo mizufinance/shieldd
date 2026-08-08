@@ -44,9 +44,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
         .expect("custom test denom should parse as a base denom")
         .id();
 
-    let sender = test_keys::FULL_VIEWING_KEY
-        .payment_address(AddressIndex::from(1u32))
-        .0;
+    let sender = test_keys::FULL_VIEWING_KEY.payment_address(AddressIndex::from(1u32));
     let recipient = test_keys::ADDRESS_1.deref().clone();
 
     let _test_node = {
@@ -149,7 +147,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
 
     assert_eq!(
         decrypted.sender_address.transmission_key,
-        sender.transmission_key().0,
+        sender.transmission_key(),
         "compliance ciphertext should preserve the sender transmission key",
     );
     assert_eq!(

@@ -466,7 +466,7 @@ impl ValidatorCmd {
                 file,
                 tendermint_validator_keyfile,
             }) => {
-                let (_address, _dtk) = fvk.incoming().payment_address(0u32.into());
+                let _address = fvk.incoming().payment_address(0u32.into());
                 let identity_key = IdentityKey(fvk.spend_verification_key().clone().into());
                 // By default, the template sets the governance key to the same verification key as
                 // the identity key, but a validator can change this if they want to use different

@@ -771,7 +771,7 @@ mod tests {
                                 5u64,
                             )),
                             ephemeral_key: decaf377_ka::Public([6u8; 32]),
-                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([7u8; 176]),
+                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([7u8; 144]),
                             discovery_tag: Default::default(),
                         },
                         wrapped_memo_key: WrappedMemoKey([8u8; 48]),
@@ -785,7 +785,7 @@ mod tests {
                                 50u64,
                             )),
                             ephemeral_key: decaf377_ka::Public([60u8; 32]),
-                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([70u8; 176]),
+                            encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([70u8; 144]),
                             discovery_tag: Default::default(),
                         },
                         wrapped_memo_key: WrappedMemoKey([80u8; 48]),
@@ -839,7 +839,7 @@ mod tests {
                             300u64,
                         )),
                         ephemeral_key: decaf377_ka::Public([3u8; 32]),
-                        encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([4u8; 176]),
+                        encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext([4u8; 144]),
                         discovery_tag: Default::default(),
                     },
                     wrapped_memo_key: WrappedMemoKey([5u8; 48]),
@@ -905,7 +905,7 @@ mod tests {
                                     ),
                                     ephemeral_key: decaf377_ka::Public([7u8; 32]),
                                     encrypted_note:
-                                        shieldd_sdk_shielded_pool::NoteCiphertext([8u8; 176]),
+                                        shieldd_sdk_shielded_pool::NoteCiphertext([8u8; 144]),
                                     discovery_tag: Default::default(),
                                 },
                                 wrapped_memo_key: WrappedMemoKey([9u8; 48]),
@@ -936,7 +936,7 @@ mod tests {
                                         ),
                                         ephemeral_key: decaf377_ka::Public([17u8; 32]),
                                         encrypted_note: shieldd_sdk_shielded_pool::NoteCiphertext(
-                                            [18u8; 176],
+                                            [18u8; 144],
                                         ),
                                         discovery_tag: Default::default(),
                                     },
@@ -998,7 +998,7 @@ mod tests {
                                             ephemeral_key: decaf377_ka::Public([28u8; 32]),
                                             encrypted_note:
                                                 shieldd_sdk_shielded_pool::NoteCiphertext(
-                                                    [29u8; 176],
+                                                    [29u8; 144],
                                                 ),
                                             discovery_tag: Default::default(),
                                         },

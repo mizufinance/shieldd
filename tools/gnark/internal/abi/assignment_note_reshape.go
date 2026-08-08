@@ -79,7 +79,7 @@ func newNoteReshapeSpendCircuitFields(witness *NoteReshapeSpendWitnessV1Binary) 
 		Note: noteFields(
 			fqString(witness.SpentNoteBlinding), fqString(witness.SpentNoteAmount), fqString(witness.SpentNoteAssetID),
 			fqString(witness.SpentDivGenAffine.X), fqString(witness.SpentDivGenAffine.Y), fqString(witness.SpentTransmissionKey),
-			fqString(witness.SpentTransmissionAffine.X), fqString(witness.SpentTransmissionAffine.Y), fqString(witness.SpentClueKey),
+			fqString(witness.SpentTransmissionAffine.X), fqString(witness.SpentTransmissionAffine.Y),
 		),
 		StateProof:     circuits.StateCommitmentFields{Commitment: fqString(witness.StateCommitmentCommitment), Position: witness.StateCommitmentPosition, Path: statePath},
 		AuthRandomizer: fqString(witness.SpendAuthRandomizer),
@@ -92,7 +92,7 @@ func newNoteReshapeOutputCircuitFields(witness *NoteReshapeOutputWitnessV1Binary
 		Note: noteFields(
 			fqString(witness.CreatedNoteBlinding), fqString(witness.CreatedNoteAmount), fqString(witness.CreatedNoteAssetID),
 			fqString(witness.CreatedDivGenAffine.X), fqString(witness.CreatedDivGenAffine.Y), fqString(witness.CreatedTransmissionKey),
-			fqString(witness.CreatedTransmissionAffine.X), fqString(witness.CreatedTransmissionAffine.Y), fqString(witness.CreatedClueKey),
+			fqString(witness.CreatedTransmissionAffine.X), fqString(witness.CreatedTransmissionAffine.Y),
 		),
 	}
 }

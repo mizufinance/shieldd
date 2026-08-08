@@ -5,14 +5,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     audit_status::{AuditStatus, DecryptedVia, FlowType},
-    AuthorizationId, TransferFuzzyTags,
+    AuthorizationId, TransferDiscoveryTags,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AuditFuzzyClue {
-    pub sender_epk_bytes: [u8; 32],
-    pub receiver_epk_bytes: [u8; 32],
-    pub tags: TransferFuzzyTags,
+pub struct AuditDiscoveryTags {
+    pub tags: TransferDiscoveryTags,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -86,7 +84,7 @@ pub struct AuditDetectedRef {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub authorization_timestamp: Option<u64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fuzzy_clue: Option<AuditFuzzyClue>,
+    pub discovery_tags: Option<AuditDiscoveryTags>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -199,7 +197,7 @@ pub fn detected_ref_from_row_parts(row: DetectedRefRowParts) -> AuditDetectedRef
         flow_type: row.flow_type,
         authorization_id: row.authorization_id,
         authorization_timestamp: row.authorization_timestamp,
-        fuzzy_clue: None,
+        discovery_tags: None,
     }
 }
 
@@ -369,7 +367,7 @@ mod tests {
             flow_type: FlowType::PrivateTransfer,
             authorization_id: Some(id),
             authorization_timestamp: Some(100),
-            fuzzy_clue: None,
+            discovery_tags: None,
         };
         assert!(AuditSelection {
             authorization_id: Some(id),

@@ -12,7 +12,9 @@ pub fn compliance_leaf_to_proto(leaf: &ComplianceLeaf) -> compliance_pb::Complia
         address: Some(leaf.address.clone().into()),
         asset_id: Some(leaf.asset_id.into()),
         user_public_key: leaf.user_public_key.vartime_compress().0.to_vec(),
-        clue_public_key: leaf.clue_public_key.vartime_compress().0.to_vec(),
+        orbis_registration_id: (leaf.orbis_registration_id != [0u8; 32])
+            .then(|| leaf.orbis_registration_id.to_vec())
+            .unwrap_or_default(),
     }
 }
 

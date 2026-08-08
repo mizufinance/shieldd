@@ -18,55 +18,59 @@ shape n_in=2 n_out=1
 0003 decaf.assert_on_curve point=shared.div_gen
 0004 decaf.assert_on_curve point=shared.transmission
 0005 decaf.compress_to_field in=shared.div_gen out=shared.div_gen_fq
-0006 decaf.diversified_transmission_key nk=auth.nk ak=shared.ak div_gen=shared.div_gen ivk_reduced=auth.ivk_reduced ivk_quotient_a=auth.ivk_quotient_a out=shared.transmission.computed
-0007 decaf.assert_equivalent lhs=shared.transmission.computed rhs=shared.transmission
-0008 spend.begin spend0
-0009 gadget.note_commitment blinding=spend0.note.blinding amount=spend0.note.amount asset_id=spend0.note.asset_id div_gen_fq=spend0.note.div_gen_fq transmission_key_s=spend0.note.transmission_key_s clue_key=spend0.note.clue_key out=spend0.note.commitment.computed
-0010 assert.eq lhs=spend0.note.commitment.computed rhs=spend0.state_proof.commitment
-0011 gadget.nullifier nk=auth.nk commitment=spend0.state_proof.commitment position=spend0.state_proof.position out=spend0.nullifier.computed
-0012 assert.eq lhs=spend0.nullifier.computed rhs=spend0.nullifier
-0013 gadget.state_commitment_path commitment=spend0.state_proof.commitment position=spend0.state_proof.position path=spend0.state_proof.path out=spend0.anchor.computed
-0014 assert.eq lhs=spend0.anchor.computed rhs=anchor
-0015 decaf.randomized_verification_key ak=shared.ak randomizer=spend0.auth_randomizer out=spend0.rk.computed
-0016 decaf.assert_equivalent lhs=spend0.rk.computed rhs=spend0.rk.claimed
-0017 decaf.compress_to_field in=spend0.rk.claimed out=spend0.rk.compressed
-0018 decaf.assert_on_curve point=spend0.note.transmission
-0019 decaf.assert_equivalent lhs=spend0.note.div_gen rhs=shared.div_gen
-0020 decaf.assert_equivalent lhs=spend0.note.transmission rhs=shared.transmission
-0021 assert.eq lhs=spend0.note.asset_id rhs=shared.asset_id
-0022 spend.collect spend0 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
-0023 spend.begin spend1
-0024 gadget.note_commitment blinding=spend1.note.blinding amount=spend1.note.amount asset_id=spend1.note.asset_id div_gen_fq=spend1.note.div_gen_fq transmission_key_s=spend1.note.transmission_key_s clue_key=spend1.note.clue_key out=spend1.note.commitment.computed
-0025 assert.eq lhs=spend1.note.commitment.computed rhs=spend1.state_proof.commitment
-0026 gadget.nullifier nk=auth.nk commitment=spend1.state_proof.commitment position=spend1.state_proof.position out=spend1.nullifier.computed
-0027 assert.eq lhs=spend1.nullifier.computed rhs=spend1.nullifier
-0028 gadget.state_commitment_path commitment=spend1.state_proof.commitment position=spend1.state_proof.position path=spend1.state_proof.path out=spend1.anchor.computed
-0029 assert.eq lhs=spend1.anchor.computed rhs=anchor
-0030 decaf.randomized_verification_key ak=shared.ak randomizer=spend1.auth_randomizer out=spend1.rk.computed
-0031 decaf.assert_equivalent lhs=spend1.rk.computed rhs=spend1.rk.claimed
-0032 decaf.compress_to_field in=spend1.rk.claimed out=spend1.rk.compressed
-0033 decaf.assert_on_curve point=spend1.note.transmission
-0034 decaf.assert_equivalent lhs=spend1.note.div_gen rhs=shared.div_gen
-0035 decaf.assert_equivalent lhs=spend1.note.transmission rhs=shared.transmission
-0036 assert.eq lhs=spend1.note.asset_id rhs=shared.asset_id
-0037 spend.collect spend1 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
-0038 output.begin output0
-0039 gadget.note_commitment blinding=output0.note.blinding amount=output0.note.amount asset_id=output0.note.asset_id div_gen_fq=output0.note.div_gen_fq transmission_key_s=output0.note.transmission_key_s clue_key=output0.note.clue_key out=output0.note.commitment.computed
-0040 assert.eq lhs=output0.note.commitment.computed rhs=output0.note_commitment
-0041 decaf.assert_on_curve point=output0.note.transmission
-0042 decaf.assert_equivalent lhs=output0.note.div_gen rhs=shared.div_gen
-0043 decaf.assert_equivalent lhs=output0.note.transmission rhs=shared.transmission
-0044 assert.eq lhs=output0.note.asset_id rhs=shared.asset_id
-0045 output.collect output0 amount->output_amounts commitment->statement.output_commitments
-0046 decaf.conservation_net_balance_commitment inputs=input_amounts outputs=output_amounts blinding=action_balance_blinding out=balance_commitment.computed
-0047 decaf.assert_equivalent lhs=balance_commitment.computed rhs=claimed.balance_commitment
-0048 decaf.compress_to_field in=balance_commitment.computed out=balance_commitment.fq
-0049 statement.append field=anchor
-0050 statement.append_all fields=output_commitments
-0051 statement.append field=balance_commitment.fq
-0052 statement.append_all fields=nullifiers_and_rks
-0053 statement.hash family=note_reshape2x1 fields=statement_fields out=statement_hash
-0054 assert.eq lhs=statement_hash rhs=claimed_statement_hash
+0006 decaf.compress_to_field in=shared.transmission out=shared.transmission_fq
+0007 decaf.diversified_transmission_key nk=auth.nk ak=shared.ak div_gen=shared.div_gen ivk_reduced=auth.ivk_reduced ivk_quotient_a=auth.ivk_quotient_a out=shared.transmission.computed
+0008 decaf.assert_equivalent lhs=shared.transmission.computed rhs=shared.transmission
+0009 spend.begin spend0
+0010 gadget.note_commitment blinding=spend0.note.blinding amount=spend0.note.amount asset_id=spend0.note.asset_id div_gen_fq=spend0.note.div_gen_fq transmission_key_s=spend0.note.transmission_key_s out=spend0.note.commitment.computed
+0011 assert.eq lhs=spend0.note.commitment.computed rhs=spend0.state_proof.commitment
+0012 gadget.nullifier nk=auth.nk commitment=spend0.state_proof.commitment position=spend0.state_proof.position out=spend0.nullifier.computed
+0013 assert.eq lhs=spend0.nullifier.computed rhs=spend0.nullifier
+0014 gadget.state_commitment_path commitment=spend0.state_proof.commitment position=spend0.state_proof.position path=spend0.state_proof.path out=spend0.anchor.computed
+0015 assert.eq lhs=spend0.anchor.computed rhs=anchor
+0016 decaf.randomized_verification_key ak=shared.ak randomizer=spend0.auth_randomizer out=spend0.rk.computed
+0017 decaf.assert_equivalent lhs=spend0.rk.computed rhs=spend0.rk.claimed
+0018 decaf.compress_to_field in=spend0.rk.claimed out=spend0.rk.compressed
+0019 decaf.assert_on_curve point=spend0.note.transmission
+0020 decaf.assert_equivalent lhs=spend0.note.div_gen rhs=shared.div_gen
+0021 decaf.assert_equivalent lhs=spend0.note.transmission rhs=shared.transmission
+0022 assert.eq lhs=spend0.note.transmission_key_s rhs=shared.transmission_fq
+0023 assert.eq lhs=spend0.note.asset_id rhs=shared.asset_id
+0024 spend.collect spend0 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
+0025 spend.begin spend1
+0026 gadget.note_commitment blinding=spend1.note.blinding amount=spend1.note.amount asset_id=spend1.note.asset_id div_gen_fq=spend1.note.div_gen_fq transmission_key_s=spend1.note.transmission_key_s out=spend1.note.commitment.computed
+0027 assert.eq lhs=spend1.note.commitment.computed rhs=spend1.state_proof.commitment
+0028 gadget.nullifier nk=auth.nk commitment=spend1.state_proof.commitment position=spend1.state_proof.position out=spend1.nullifier.computed
+0029 assert.eq lhs=spend1.nullifier.computed rhs=spend1.nullifier
+0030 gadget.state_commitment_path commitment=spend1.state_proof.commitment position=spend1.state_proof.position path=spend1.state_proof.path out=spend1.anchor.computed
+0031 assert.eq lhs=spend1.anchor.computed rhs=anchor
+0032 decaf.randomized_verification_key ak=shared.ak randomizer=spend1.auth_randomizer out=spend1.rk.computed
+0033 decaf.assert_equivalent lhs=spend1.rk.computed rhs=spend1.rk.claimed
+0034 decaf.compress_to_field in=spend1.rk.claimed out=spend1.rk.compressed
+0035 decaf.assert_on_curve point=spend1.note.transmission
+0036 decaf.assert_equivalent lhs=spend1.note.div_gen rhs=shared.div_gen
+0037 decaf.assert_equivalent lhs=spend1.note.transmission rhs=shared.transmission
+0038 assert.eq lhs=spend1.note.transmission_key_s rhs=shared.transmission_fq
+0039 assert.eq lhs=spend1.note.asset_id rhs=shared.asset_id
+0040 spend.collect spend1 amount->input_amounts nullifier->statement.nullifiers_and_rks rk_compressed->statement.nullifiers_and_rks
+0041 output.begin output0
+0042 gadget.note_commitment blinding=output0.note.blinding amount=output0.note.amount asset_id=output0.note.asset_id div_gen_fq=output0.note.div_gen_fq transmission_key_s=output0.note.transmission_key_s out=output0.note.commitment.computed
+0043 assert.eq lhs=output0.note.commitment.computed rhs=output0.note_commitment
+0044 decaf.assert_on_curve point=output0.note.transmission
+0045 decaf.assert_equivalent lhs=output0.note.div_gen rhs=shared.div_gen
+0046 decaf.assert_equivalent lhs=output0.note.transmission rhs=shared.transmission
+0047 assert.eq lhs=output0.note.transmission_key_s rhs=shared.transmission_fq
+0048 assert.eq lhs=output0.note.asset_id rhs=shared.asset_id
+0049 output.collect output0 amount->output_amounts commitment->statement.output_commitments
+0050 decaf.conservation_net_balance_commitment inputs=input_amounts outputs=output_amounts blinding=action_balance_blinding out=balance_commitment.computed
+0051 decaf.assert_equivalent lhs=balance_commitment.computed rhs=claimed.balance_commitment
+0052 decaf.compress_to_field in=balance_commitment.computed out=balance_commitment.fq
+0053 statement.append field=anchor
+0054 statement.append_all fields=output_commitments
+0055 statement.append field=balance_commitment.fq
+0056 statement.append_all fields=nullifiers_and_rks
+0057 statement.hash family=note_reshape2x1 fields=statement_fields out=statement_hash
+0058 assert.eq lhs=statement_hash rhs=claimed_statement_hash
 `
 
 func TestNoteReshape2x1WiringTranscriptExact(t *testing.T) {
@@ -134,13 +138,13 @@ func TestNoteReshape2x1WiringTranscriptDetectsSemanticDrift(t *testing.T) {
 	}
 
 	mutations := map[string]string{
-		"dropped gadget call": strings.Replace(actual, "0011 gadget.nullifier nk=auth.nk commitment=spend0.state_proof.commitment position=spend0.state_proof.position out=spend0.nullifier.computed\n", "", 1),
+		"dropped gadget call": strings.Replace(actual, "0012 gadget.nullifier nk=auth.nk commitment=spend0.state_proof.commitment position=spend0.state_proof.position out=spend0.nullifier.computed\n", "", 1),
 		"swapped wiring":      strings.Replace(actual, "in=spend0.rk.claimed out=spend0.rk.compressed", "in=spend1.rk.claimed out=spend0.rk.compressed", 1),
-		"missing equivalence": strings.Replace(actual, "0047 decaf.assert_equivalent lhs=balance_commitment.computed rhs=claimed.balance_commitment\n", "", 1),
+		"missing equivalence": strings.Replace(actual, "0051 decaf.assert_equivalent lhs=balance_commitment.computed rhs=claimed.balance_commitment\n", "", 1),
 		"statement order": strings.Replace(
 			actual,
-			"0049 statement.append field=anchor\n0050 statement.append_all fields=output_commitments\n0051 statement.append field=balance_commitment.fq\n0052 statement.append_all fields=nullifiers_and_rks\n",
-			"0049 statement.append field=anchor\n0050 statement.append field=balance_commitment.fq\n0051 statement.append_all fields=output_commitments\n0052 statement.append_all fields=nullifiers_and_rks\n",
+			"0053 statement.append field=anchor\n0054 statement.append_all fields=output_commitments\n0055 statement.append field=balance_commitment.fq\n0056 statement.append_all fields=nullifiers_and_rks\n",
+			"0053 statement.append field=anchor\n0054 statement.append field=balance_commitment.fq\n0055 statement.append_all fields=output_commitments\n0056 statement.append_all fields=nullifiers_and_rks\n",
 			1,
 		),
 	}

@@ -475,7 +475,6 @@ impl TestNodeWithIBC {
                     address.clone(),
                     asset_id,
                     decaf377::Element::GENERATOR * decaf377::Fr::from(3u64),
-                    decaf377::Element::GENERATOR * decaf377::Fr::from(5u64),
                 )
                 .expect("valid compliance keys");
                 let msg = MsgRegisterUser { leaf, grant: None };
@@ -550,16 +549,10 @@ impl TestNodeWithIBC {
         actions.push(Action::ComplianceRegisterAsset(asset_msg));
 
         for address in addresses {
-            let clue_public_key = decaf377::Element::GENERATOR * decaf377::Fr::from(5u64);
             let leaf = ComplianceLeaf::new(
                 address.clone(),
                 asset,
-                shieldd_sdk_compliance::derive_orbis_user_public_key(
-                    &decaf377::Element::GENERATOR,
-                    &clue_public_key,
-                )
-                .expect("valid Orbis user key"),
-                clue_public_key,
+                decaf377::Element::GENERATOR * decaf377::Fr::from(7u64),
             )
             .expect("valid compliance keys");
             let body = UserRegistrationGrantBody {

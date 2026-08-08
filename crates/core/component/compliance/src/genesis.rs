@@ -144,10 +144,6 @@ mod tests {
             content.compliance_params.anchor_validation_window_blocks,
             crate::params::ComplianceParameters::default().anchor_validation_window_blocks
         );
-        assert_eq!(
-            content.compliance_params.fuzzy_precision,
-            crate::params::ComplianceParameters::default().fuzzy_precision
-        );
     }
 
     #[test]

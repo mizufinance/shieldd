@@ -1504,7 +1504,7 @@ impl Storage {
         let address_bytes = leaf.address.to_vec();
         let asset_bytes = leaf.asset_id.to_bytes().to_vec();
         let user_public_key = leaf.user_public_key.vartime_compress().0.to_vec();
-        let clue_public_key = leaf.clue_public_key.vartime_compress().0.to_vec();
+        let orbis_registration_id = leaf.orbis_registration_id.to_vec();
 
         spawn_blocking(move || {
             let mut conn = pool.get()?;
@@ -1516,7 +1516,7 @@ impl Storage {
                     &asset_bytes,
                     position,
                     &user_public_key,
-                    &clue_public_key,
+                    &orbis_registration_id,
                     commitment,
                 )?;
             }

@@ -26,7 +26,6 @@ pub struct ShieldedIcs20WithdrawalSpendWitnessV1 {
     pub spent_note_amount: [u8; 32],
     pub spent_note_asset_id: [u8; 32],
     pub spent_transmission_key: [u8; 32],
-    pub spent_clue_key: [u8; 32],
     pub state_commitment_commitment: [u8; 32],
     pub state_commitment_position: u64,
     pub state_commitment_auth_path: Vec<[[u8; 32]; 3]>,
@@ -46,7 +45,6 @@ pub struct ShieldedIcs20WithdrawalChangeWitnessV1 {
     pub created_note_amount: [u8; 32],
     pub created_note_asset_id: [u8; 32],
     pub created_transmission_key: [u8; 32],
-    pub created_clue_key: [u8; 32],
     pub created_diversified_generator_affine: PointAffineBytes,
     pub created_transmission_key_affine: PointAffineBytes,
 }
@@ -78,7 +76,6 @@ pub struct ShieldedIcs20WithdrawalWitnessV1 {
     pub sender_compliance_position: u64,
     pub sender_asset_id: [u8; 32],
     pub sender_user_public_key: [u8; 32],
-    pub sender_clue_public_key: [u8; 32],
     pub spends: Vec<ShieldedIcs20WithdrawalSpendWitnessV1>,
     pub change_output: ShieldedIcs20WithdrawalChangeWitnessV1,
     pub balance_commitment_affine: PointAffineBytes,
@@ -88,16 +85,10 @@ pub struct ShieldedIcs20WithdrawalWitnessV1 {
     pub sender_diversified_generator_affine: PointAffineBytes,
     pub sender_transmission_key_affine: PointAffineBytes,
     pub sender_user_public_key_affine: PointAffineBytes,
-    pub sender_clue_public_key_affine: PointAffineBytes,
 }
 
-fn compliance_leaf_parts(leaf: &ComplianceLeafBinary) -> ([u8; 80], [u8; 32], [u8; 32], [u8; 32]) {
-    (
-        leaf.address,
-        leaf.asset_id,
-        leaf.user_public_key,
-        leaf.clue_public_key,
-    )
+fn compliance_leaf_parts(leaf: &ComplianceLeafBinary) -> ([u8; 48], [u8; 32], [u8; 32]) {
+    (leaf.address, leaf.asset_id, leaf.user_public_key)
 }
 
 fn verification_key_point(
@@ -127,8 +118,6 @@ fn spend_witness(
         spent_note_amount: Fq::from(private_input.spent_note.value().amount).to_bytes(),
         spent_note_asset_id: private_input.spent_note.asset_id().0.to_bytes(),
         spent_transmission_key: private_input.spent_note.transmission_key().0,
-        spent_clue_key: Fq::from_le_bytes_mod_order(&private_input.spent_note.discovery_key().0)
-            .to_bytes(),
         state_commitment_commitment: private_input
             .state_commitment_proof
             .commitment()
@@ -165,10 +154,6 @@ fn change_witness(
         created_note_amount: Fq::from(private_output.created_note.value().amount).to_bytes(),
         created_note_asset_id: private_output.created_note.asset_id().0.to_bytes(),
         created_transmission_key: private_output.created_note.transmission_key().0,
-        created_clue_key: Fq::from_le_bytes_mod_order(
-            &private_output.created_note.discovery_key().0,
-        )
-        .to_bytes(),
         created_diversified_generator_affine: point_affine_bytes(
             private_output.created_note.diversified_generator(),
         )?,
@@ -202,8 +187,7 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
             .map_err(|e| anyhow!("compute {} statement fields: {e}", public.family_id.label()))?;
 
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
-        let (_, sender_asset_id, sender_user_public_key, sender_clue_public_key) =
-            compliance_leaf_parts(&sender_leaf);
+        let (_, sender_asset_id, sender_user_public_key) = compliance_leaf_parts(&sender_leaf);
 
         let spends = public
             .inputs
@@ -244,7 +228,6 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
             sender_compliance_position: private.sender_compliance_position,
             sender_asset_id,
             sender_user_public_key,
-            sender_clue_public_key,
             spends,
             change_output: change_witness(&public.change_output, &private.change_output)?,
             balance_commitment_affine: point_affine_bytes(public.balance_commitment.0)?,
@@ -267,7 +250,6 @@ impl ShieldedIcs20WithdrawalWitnessV1 {
                     .map_err(|e| anyhow!("decompress sender transmission key: {e:?}"))?,
             )?,
             sender_user_public_key_affine: point_affine_bytes(private.sender_leaf.user_public_key)?,
-            sender_clue_public_key_affine: point_affine_bytes(private.sender_leaf.clue_public_key)?,
         };
         witness.total_length = u32::try_from(witness.encode()?.len())
             .map_err(|_| anyhow!("encoded {} witness exceeds u32", witness.family_id.label()))?;

@@ -1295,12 +1295,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         let mut transaction_parameters = self.transaction_parameters.clone();
         transaction_parameters.fee = fee;
         transaction_parameters.chain_id = app_params.chain_id;
-        for action in &mut actions {
-            if let ActionPlan::Transfer(transfer) = action {
-                transfer.set_fuzzy_precision(app_params.compliance_params.fuzzy_precision);
-            }
-        }
-
         let mut plan = TransactionPlan {
             actions,
             transaction_parameters,
@@ -1527,7 +1521,6 @@ mod tests {
             .full_viewing_key()
             .incoming()
             .payment_address(index.into())
-            .0
     }
 
     fn test_spend_key(index: u32) -> SpendKey {

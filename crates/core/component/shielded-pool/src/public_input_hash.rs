@@ -331,8 +331,8 @@ pub fn transfer_statement_fields(
             .ok_or_else(|| transfer_field_encoding_error("compliance_anchor"))?,
     );
     fields.extend(compliance.detection_ciphertext.iter().copied());
-    fields.push(compliance.fuzzy_precision);
-    fields.push(compliance.fuzzy_tags);
+    fields.push(compliance.discovery_precision);
+    fields.push(compliance.discovery_tags);
     for (label, tier) in [
         ("sender_core", &compliance.sender_core),
         ("sender_ext", &compliance.sender_ext),

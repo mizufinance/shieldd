@@ -9,7 +9,7 @@ use crate::gnark::{
 };
 
 const NOTE_RESHAPE_WITNESS_MAGIC: &[u8; 4] = b"PNWG";
-const NOTE_RESHAPE_WITNESS_VERSION: u32 = 1;
+const NOTE_RESHAPE_WITNESS_VERSION: u32 = 2;
 
 impl NoteReshapeWitnessV1 {
     pub fn encode(&self) -> Result<Vec<u8>> {
@@ -135,7 +135,6 @@ fn encode_spend(
     put_bytes(buf, &spend.spent_note_amount);
     put_bytes(buf, &spend.spent_note_asset_id);
     put_bytes(buf, &spend.spent_transmission_key);
-    put_bytes(buf, &spend.spent_clue_key);
     put_bytes(buf, &spend.state_commitment_commitment);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
@@ -173,7 +172,6 @@ fn decode_spend(
         spent_note_amount: cursor.read_fixed::<32>()?,
         spent_note_asset_id: cursor.read_fixed::<32>()?,
         spent_transmission_key: cursor.read_fixed::<32>()?,
-        spent_clue_key: cursor.read_fixed::<32>()?,
         state_commitment_commitment: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
@@ -190,7 +188,6 @@ fn encode_output(buf: &mut Vec<u8>, output: &NoteReshapeOutputWitnessV1) {
     put_bytes(buf, &output.created_note_amount);
     put_bytes(buf, &output.created_note_asset_id);
     put_bytes(buf, &output.created_transmission_key);
-    put_bytes(buf, &output.created_clue_key);
     encode_point_affine(buf, &output.created_diversified_generator_affine);
     encode_point_affine(buf, &output.created_transmission_key_affine);
 }
@@ -202,7 +199,6 @@ fn decode_output(cursor: &mut BinaryCursor<'_>) -> Result<NoteReshapeOutputWitne
         created_note_amount: cursor.read_fixed::<32>()?,
         created_note_asset_id: cursor.read_fixed::<32>()?,
         created_transmission_key: cursor.read_fixed::<32>()?,
-        created_clue_key: cursor.read_fixed::<32>()?,
         created_diversified_generator_affine: cursor.read_point_affine()?,
         created_transmission_key_affine: cursor.read_point_affine()?,
     })

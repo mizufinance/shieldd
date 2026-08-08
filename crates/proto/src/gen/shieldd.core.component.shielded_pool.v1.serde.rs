@@ -7789,9 +7789,6 @@ impl serde::Serialize for TransferPlan {
         if self.discovery_precision_bits != 0 {
             len += 1;
         }
-        if self.fuzzy_precision_bits != 0 {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.shielded_pool.v1.TransferPlan", len)?;
         if let Some(v) = self.body.as_ref() {
             struct_ser.serialize_field("body", v)?;
@@ -7813,9 +7810,6 @@ impl serde::Serialize for TransferPlan {
         if self.discovery_precision_bits != 0 {
             struct_ser.serialize_field("discoveryPrecisionBits", &self.discovery_precision_bits)?;
         }
-        if self.fuzzy_precision_bits != 0 {
-            struct_ser.serialize_field("fuzzyPrecisionBits", &self.fuzzy_precision_bits)?;
-        }
         struct_ser.end()
     }
 }
@@ -7834,8 +7828,6 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
             "outputs",
             "discovery_precision_bits",
             "discoveryPrecisionBits",
-            "fuzzy_precision_bits",
-            "fuzzyPrecisionBits",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -7846,7 +7838,6 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
             Spends,
             Outputs,
             DiscoveryPrecisionBits,
-            FuzzyPrecisionBits,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -7875,7 +7866,6 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                             "spends" => Ok(GeneratedField::Spends),
                             "outputs" => Ok(GeneratedField::Outputs),
                             "discoveryPrecisionBits" | "discovery_precision_bits" => Ok(GeneratedField::DiscoveryPrecisionBits),
-                            "fuzzyPrecisionBits" | "fuzzy_precision_bits" => Ok(GeneratedField::FuzzyPrecisionBits),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -7901,7 +7891,6 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                 let mut spends__ = None;
                 let mut outputs__ = None;
                 let mut discovery_precision_bits__ = None;
-                let mut fuzzy_precision_bits__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Body => {
@@ -7944,14 +7933,6 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::FuzzyPrecisionBits => {
-                            if fuzzy_precision_bits__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("fuzzyPrecisionBits"));
-                            }
-                            fuzzy_precision_bits__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -7964,7 +7945,6 @@ impl<'de> serde::Deserialize<'de> for TransferPlan {
                     spends: spends__.unwrap_or_default(),
                     outputs: outputs__.unwrap_or_default(),
                     discovery_precision_bits: discovery_precision_bits__.unwrap_or_default(),
-                    fuzzy_precision_bits: fuzzy_precision_bits__.unwrap_or_default(),
                 })
             }
         }

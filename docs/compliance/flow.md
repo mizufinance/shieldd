@@ -58,33 +58,26 @@ in NV storage and is checked at readiness.
 
 3. **User registration**: user completes KYC with Defra, publishes a hidden-doc
    proof through SourceHub/Orbis, then registers a `(address, asset)` compliance
-   leaf on Shieldd. The registration authority signs the user public child key
-   and an independent fuzzy clue public key together.
+   leaf on Shieldd. The registration authority signs the address and one
+   independent Orbis user public key together.
 
 ```text
-user_derivation = OrbisHash(compress(clue_public_key))
+user_derivation = OrbisHash(independent_registration_id)
 user_public_key = user_derivation * ring_pk
                 = (user_derivation * sk_ring) * G
-clue_public_key = fuzzy_detection_key * G
 
-ComplianceLeaf = (address, asset_id, user_public_key, clue_public_key)
+ComplianceLeaf = (address, asset_id, user_public_key, independent_registration_id)
 ```
 
 Normal Shieldd address generation is unchanged. Each user has one compliance
-key for the asset, not a set of indexed keys. The public child key is derived
-from the asset's Orbis ring key using Orbis's domain-separated derivation and
-the compressed clue public key. It is the audit encryption key (`ACK`) used by
-transfer tiers. The clue secret remains independent, so
-releasing its secret grants discovery without granting decryption. Chain-side
-registration validates the Orbis child-key relation, key encodings, and the
-authority grant over the complete leaf.
-
-The user-controlled enrollment client generates the fuzzy detection key and
-deposits that secret under the future ACP release policy; the registrar sees
-and attests only its public clue key. This avoids giving the registrar an
-unlogged global scanning capability. The current Shieldd CLI accepts both
-public keys during registration, while `FuzzyDetectionKey::generate` provides
-the key primitive for enrollment tooling.
+key for the asset, not a set of indexed keys. The Orbis child key is the audit
+encryption key (`ACK`) used by transfer tiers. Its registration identifier is
+independent of address discovery; Shieldd does not derive one from the
+other. The chain validates that the registration identifier derives the child
+public key from the asset ring, and validates the authority grant over the full
+registration. The identifier is then carried in Orbis upload packages so PRE
+nodes can apply the child-key scalar. Discovery uses the ordinary diversified
+Shieldd address, so registration adds no routing keypair or secret.
 
 ## Transfer
 
@@ -103,7 +96,7 @@ planner:
   fetch AssetPolicy
   use sender/receiver user public keys as ACKs
   set is_flagged = amount >= threshold
-  create one receiver-output compliance ciphertext and two public fuzzy tags
+  create one receiver-output compliance ciphertext and two public discovery tags
 ```
 
 The receiver output carries a unified transfer compliance ciphertext and DLEQ
@@ -134,24 +127,29 @@ sender extension contains the receiver address, and the output extension
 contains the sender address. The audit API maps these role-relative tiers to
 independent `sender`, `amount`, and `receiver` disclosures.
 
-The public clue bytes carry the protocol-selected precision `n` and fixed
-12-bit slots for sender and receiver tags. Only the low `n` bits in each slot
-may be nonzero:
+The compliance ciphertext carries the protocol-selected precision `n` and two
+fixed 32-bit slots. Like Miden's public address-tag approach, each sender and
+receiver tag is the low `n` bits of the canonical little-endian diversified
+transmission-key encoding already present in its Shieldd address:
 
 ```text
-shared = r * clue_public_key
-tag = low_n(Poseidon(fuzzy_domain, Compress(shared), asset_id,
-                     authorization_id, authorization_timestamp, role))
+tag = low_n(address.transmission_key_s)
 ```
 
-The sender tag reuses the sender-core randomizer/EPK; the receiver tag reuses
-the output-core randomizer/EPK. The proof binds both tags to those randomizers,
-the registered clue keys, the asset, authorization metadata, and public
-precision. `ComplianceParameters.fuzzy_precision_bits` selects `n` between 7
-and 12 without changing the circuit shape; the prototype default is 8. At that
-default, a released fuzzy detection key reduces an unrelated million-transfer
-range to about 7,797 Orbis candidates on average. The key does not decrypt any
-tier.
+The transfer proof constrains the spent note to the registered sender address,
+each output note to its recipient address, each note's committed transmission
+key encoding to its address point, and both public tags to those encodings.
+Tags deliberately do not reuse tier randomness
+or authorization metadata: discovery is routing, while the DLEQ statement is
+authorization binding. `ShieldedPoolParameters.discovery_params` selects any
+precision from 0 through 32 without changing the circuit shape. The prototype
+default is 11 bits, selecting about 0.098% of unrelated two-party transfers
+(roughly 976 per million). An address-prefix match never decrypts an audit tier.
+
+At execution, the chain emits a compact transaction-discovery record containing
+the original Shieldd transaction ID and the proof-bound sender/receiver tags.
+This does not alter or replace the transaction ID. Auditors scan this compact
+stream locally and fetch only candidate transactions.
 
 The transfer circuit owns value/nullifier/note/balance soundness. Compliance
 owns asset-policy binding, threshold flag correctness, ciphertext construction,
@@ -174,7 +172,7 @@ Chain
   -> Scan: extract raw OutputRef ciphertexts and clear public flows
   -> Scanner DB spine
   -> Screen: detection-tier DK decrypt marks detected / irrelevant / invalid
-  -> User prefilter: released fuzzy key selects likely sender/receiver matches
+  -> User prefilter: public address prefix selects likely sender/receiver matches
   -> Validate evidence: persisted ciphertext + upload bundle + policy/ring binding
   -> Decrypt audit tiers per detected output:
        flagged:   full-tier issuer DK decrypt
@@ -190,9 +188,9 @@ or mutate audit state.
 An upload bundle is the client-produced set of per-tier encrypted-seed upload
 packages: encrypted seed material, tier metadata, policy/ring binding, and
 proofs needed by Orbis storage/PRE. "Encrypted-seed upload package" refers to
-one tier inside the bundle. It carries the clue-key encoding as Orbis's public
-derivation input so PRE reconstructs the same child key. See `reference.md` for
-the canonical fields.
+one tier inside the bundle. New regulated packages encrypt to the registered
+Orbis user public key and carry its independent registration ID as the PRE
+derivation input. See `reference.md` for the canonical fields.
 
 Current Orbis storage no longer uses a Shieldd-facing bulletin namespace.
 `StoreSecret` posts a SourceHub-backed Orbis document record and returns its
@@ -256,8 +254,8 @@ decrypt locally after evidence validates. Orbis is not used.
 
 ### Unflagged
 
-Only the detection tier decrypts locally. For a user audit, public fuzzy clues
-are examined before Orbis and only likely matches become PRE requests. Audit
+Only the detection tier decrypts locally. For a user audit, public transaction
+discovery records are examined before Orbis and only likely matches become PRE requests. Audit
 tiers require governance/ACP authorization and Orbis
 PRE. Each tier has an independent encrypted-seed upload package and independent
 PRE path.

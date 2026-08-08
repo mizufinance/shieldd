@@ -195,32 +195,32 @@ func compileCircuitFamilies() []struct {
 		{
 			name:    "transfer",
 			circuit: func() frontend.Circuit { return circuits.NewTransferCircuit() },
-			stats:   circuitStats{constraints: 266012, public: 2, secret: 552, internal: 234537},
+			stats:   circuitStats{constraints: 252669, public: 2, secret: 542, internal: 222856},
 		},
 		{
 			name:    "note_reshape2x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape2x1", 2, 1) },
-			stats:   circuitStats{constraints: 36553, public: 2, secret: 193, internal: 34439},
+			stats:   circuitStats{constraints: 37482, public: 2, secret: 190, internal: 35022},
 		},
 		{
 			name:    "note_reshape8x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape8x1", 8, 1) },
-			stats:   circuitStats{constraints: 194226, public: 2, secret: 739, internal: 185235},
+			stats:   circuitStats{constraints: 194929, public: 2, secret: 730, internal: 185586},
 		},
 		{
 			name:    "note_reshape4x1",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape4x1", 4, 1) },
-			stats:   circuitStats{constraints: 102620, public: 2, secret: 379, internal: 97517},
+			stats:   circuitStats{constraints: 103475, public: 2, secret: 374, internal: 98024},
 		},
 		{
 			name:    "note_reshape1x8",
 			circuit: func() frontend.Circuit { return circuits.NewNoteReshapeCircuit("note_reshape1x8", 1, 8) },
-			stats:   circuitStats{constraints: 28256, public: 2, secret: 176, internal: 26550},
+			stats:   circuitStats{constraints: 28951, public: 2, secret: 167, internal: 26893},
 		},
 		{
 			name:    "shielded_ics20_withdrawal",
 			circuit: func() frontend.Circuit { return circuits.NewShieldedIcs20WithdrawalCircuit(2) },
-			stats:   circuitStats{constraints: 91974, public: 2, secret: 327, internal: 84769},
+			stats:   circuitStats{constraints: 91819, public: 2, secret: 322, internal: 84611},
 		},
 	}
 }
