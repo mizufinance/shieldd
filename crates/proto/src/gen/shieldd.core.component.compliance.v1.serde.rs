@@ -1687,7 +1687,7 @@ impl<'de> serde::Deserialize<'de> for ComplianceLeaf {
                             if orbis_registration_id__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("orbisRegistrationId"));
                             }
-                            orbis_registration_id__ =
+                            orbis_registration_id__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
