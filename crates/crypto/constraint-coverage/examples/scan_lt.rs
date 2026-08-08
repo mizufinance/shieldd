@@ -14,7 +14,7 @@ fn main() {
     let rows = parse_rows(&sr1cs).unwrap();
     // DTK segment bounds: read from the manifest (op
     // decaf.diversified_transmission_key) when re-running after a reshape.
-    let (seg_start, seg_len) = (1058usize, 6077usize);
+    let (seg_start, seg_len) = (2104usize, 6077usize);
     let dtk = &rows[seg_start..seg_start + seg_len];
     let r = ltchain::scalar_order();
     let q4 = shieldd_constraint_coverage::field::modulus() - &r * 4u32;

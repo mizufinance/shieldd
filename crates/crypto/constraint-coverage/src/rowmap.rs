@@ -385,13 +385,13 @@ mod tests {
         };
         let sr1cs = parse_sr1cs(&data).unwrap();
         let rows = crate::ir::parse_rows(&sr1cs).unwrap();
-        let map = build_row_map(&sr1cs, &rows, "rvk_inst0", 16896, 18708);
+        let map = build_row_map(&sr1cs, &rows, "rvk_inst0", 17902, 19714);
         assert_eq!(map.row_count, 1812);
         assert_eq!(map.rows.len(), 1812);
         // exactly the 251 deployed bit wires, recomposed into the scalar wire.
         assert_eq!(map.bit_wires.len(), 251);
-        assert_eq!(*map.bit_wires.first().unwrap(), 16130);
-        assert_eq!(*map.bit_wires.last().unwrap(), 16380);
+        assert_eq!(*map.bit_wires.first().unwrap(), 16790);
+        assert_eq!(*map.bit_wires.last().unwrap(), 17040);
         // exactly one geometric recomposition row; the rest of to_binary is bitness.
         assert_eq!(map.counts.get("ToBinary:recomposition").copied(), Some(1));
         assert_eq!(map.counts.get("ToBinary:bitness").copied(), Some(251));

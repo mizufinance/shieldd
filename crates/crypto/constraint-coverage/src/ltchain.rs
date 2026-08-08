@@ -333,14 +333,14 @@ fn note_reshape2x1_ladders() -> Vec<LadderSeat> {
     vec![
         LadderSeat {
             label: "R",
-            bit_base: 1884,
+            bit_base: 2584,
             start: 1828,
             end: 2345,
             bound: r,
         },
         LadderSeat {
             label: "Q4",
-            bit_base: 1884,
+            bit_base: 2584,
             start: 2346,
             end: 2715,
             bound: q4,
@@ -485,9 +485,9 @@ mod tests {
     // Wave 2 T1-f moved its offset (shared compress inserted before it) and
     // T1-h shifted wire numbering (bits threaded from IVKModRDecomposition;
     // the redundant 251-bit ToBinary is gone, ladder rows unchanged).
-    const DTK_OFFSET: usize = 1058;
+    const DTK_OFFSET: usize = 2104;
     const DTK_ROWS: usize = 6077;
-    const BIT_BASE: usize = 1884;
+    const BIT_BASE: usize = 2584;
 
     fn dtk_rows() -> Vec<Constraint> {
         let path = concat!(
