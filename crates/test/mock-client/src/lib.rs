@@ -444,7 +444,7 @@ impl<S: StateRead + Send + Sync> shieldd_sdk_compliance::ComplianceProofProvider
         let user_tree = self.state.get_user_tree().await?;
 
         // Get anchors from the same tree instances used for proofs
-        let asset_anchor = tct::StateCommitment(asset_tree.root());
+        let asset_anchor = asset_tree.root();
         let compliance_anchor = tct::StateCommitment(user_tree.root().0);
 
         let mut asset_proofs = BTreeMap::new();

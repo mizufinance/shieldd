@@ -1287,7 +1287,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         &mut self,
         view: &mut V,
         source: AddressIndex,
-        mut actions: Vec<ActionPlan>,
+        actions: Vec<ActionPlan>,
         fee_funding: Option<FeeFundingPlan>,
         fee: Fee,
     ) -> Result<TransactionPlan> {
