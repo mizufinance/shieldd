@@ -604,7 +604,7 @@ mod tests {
             &mut OsRng,
             Value {
                 amount: 60u64.into(),
-                asset_id: asset::Id(note.asset_id()),
+                asset_id: note.asset_id(),
             },
             address,
         );

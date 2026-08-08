@@ -2313,9 +2313,8 @@ mod tests {
             address,
             *BASE_ASSET_ID,
             decaf377::Element::GENERATOR,
-            decaf377::Element::GENERATOR * decaf377::Fr::from(2u64),
         )
-        .expect("distinct non-identity compliance keys");
+        .expect("non-identity compliance key");
         let msg = shieldd_sdk_compliance::structs::MsgRegisterUser { leaf, grant: None };
 
         let mut note_manager = NoteManager::new(OsRng);
