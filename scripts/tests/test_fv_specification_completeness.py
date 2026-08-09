@@ -2702,6 +2702,20 @@ structure ClaimedFacts where
                 "fee-funding capability consumption|capability-gated",
             ),
             (
+                "fee-funding pre-transaction validation removed",
+                "crates/core/app/src/action_handler/transaction.rs",
+                "let validated = transfer_validate_verified(",
+                "let validated = transfer_execute_validated(",
+                "fee-funding pre-transaction validation|capability-gated",
+            ),
+            (
+                "fee-funding post-body capability detached",
+                "crates/core/app/src/action_handler/transaction.rs",
+                "validated_fee_funding.expect(\"fee funding validation must exist\")",
+                "panic!(\"discard prevalidation\")",
+                "fee-funding post-body effect capability|capability-gated",
+            ),
+            (
                 "artifact capability binding neutralized",
                 "crates/core/app/src/stateless_cache.rs",
                 (

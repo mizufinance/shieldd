@@ -16,8 +16,8 @@ use shieldd_sdk_sct::component::tree::VerificationExt as _;
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::component::{
     note_reshape_execute_verified, shielded_host_withdrawal_execute_verified,
-    shielded_ics20_withdrawal_execute_verified, transfer_execute_verified, Ics20Transfer,
-    StateReadExt as _,
+    shielded_ics20_withdrawal_execute_verified, transfer_execute_validated,
+    transfer_execute_verified, transfer_validate_verified, Ics20Transfer, StateReadExt as _,
 };
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_tct::StateCommitment;
@@ -654,6 +654,23 @@ where
     profile.pay_fee_ms = pay_fee_start.elapsed().as_secs_f64() * 1000.0;
 
     let action_execute_start = Instant::now();
+    // Fee funding is hashed before body actions and validates against the
+    // pre-transaction roots used to build its proof. Its effects remain in
+    // their original post-body position to preserve commitment ordering.
+    let validated_fee_funding = if let Some(fee_funding) = &tx.transaction_body.fee_funding {
+        let action_start = Instant::now();
+        let validated = transfer_validate_verified(
+            &fee_funding.transfer,
+            &tx_context,
+            artifact.proof_for_slot(ProofSlot::FeeFunding)?,
+            &mut state,
+        )
+        .await?;
+        profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
+        Some(validated)
+    } else {
+        None
+    };
     for (i, action) in tx.actions().enumerate() {
         let action_start = Instant::now();
         match action {
@@ -731,10 +748,10 @@ where
     }
     if let Some(fee_funding) = &tx.transaction_body.fee_funding {
         let action_start = Instant::now();
-        transfer_execute_verified(
+        transfer_execute_validated(
             &fee_funding.transfer,
             &tx_context,
-            artifact.proof_for_slot(ProofSlot::FeeFunding)?,
+            validated_fee_funding.expect("fee funding validation must exist"),
             &mut state,
         )
         .await?;

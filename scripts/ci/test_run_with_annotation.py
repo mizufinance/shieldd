@@ -300,15 +300,28 @@ class RustWorkflowWiringTests(unittest.TestCase):
 
 
 class OrbisWorkflowWiringTests(unittest.TestCase):
-    def test_integration_flow_publishes_bounded_diagnostics(self) -> None:
-        workflow = (
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = (
             SCRIPT.parents[2] / ".github/workflows/orbis-integration.yml"
         ).read_text(encoding="utf-8")
+
+    def test_integration_flow_publishes_bounded_diagnostics(self) -> None:
         self.assertIn(
-            "python3 scripts/ci/run_with_annotation.py", workflow
+            "python3 scripts/ci/run_with_annotation.py", self.workflow
         )
         self.assertIn(
-            '--title "Shieldd Orbis integration flow"', workflow
+            '--title "Shieldd Orbis integration flow"', self.workflow
+        )
+
+    def test_insecure_v0_pre_is_an_explained_skip(self) -> None:
+        self.assertIn("name: Explain disabled Orbis v0 PRE", self.workflow)
+        self.assertIn('echo "status=skip"', self.workflow)
+        self.assertIn('echo "tier=skip"', self.workflow)
+        self.assertIn('echo "run=false"', self.workflow)
+        self.assertIn(
+            "Orbis v0 transfer PRE is disabled until a non-disclosing protocol is available.",
+            self.workflow,
         )
 
 

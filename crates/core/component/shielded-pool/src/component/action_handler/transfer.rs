@@ -99,13 +99,18 @@ pub fn transfer_check_stateless_and_extract(
     transfer_to_batch_item(transfer, public)
 }
 
-/// Execute a Transfer whose exact proof item has already verified.
-pub async fn transfer_execute_verified<S: StateWrite>(
+/// Evidence that an exact verified Transfer passed its state preconditions.
+pub struct ValidatedTransferExecution {
+    item: BatchItem,
+}
+
+/// Validate an exact verified Transfer against the current state.
+pub async fn transfer_validate_verified<S: StateWrite>(
     transfer: &Transfer,
     context: &TransactionContext,
     verified_proof: &VerifiedBatchItem,
-    mut state: S,
-) -> Result<()> {
+    state: S,
+) -> Result<ValidatedTransferExecution> {
     let item = transfer_check_stateless_and_extract(transfer, context)?;
     verified_proof
         .ensure_binds(shieldd_sdk_proof_params::DeployedProofKey::Transfer, &item)
@@ -125,6 +130,22 @@ pub async fn transfer_execute_verified<S: StateWrite>(
         block_time.unix_timestamp(),
     )?;
 
+    Ok(ValidatedTransferExecution { item })
+}
+
+/// Apply proof-bound effects after exact Transfer preconditions were validated.
+pub async fn transfer_execute_validated<S: StateWrite>(
+    transfer: &Transfer,
+    context: &TransactionContext,
+    validated: ValidatedTransferExecution,
+    mut state: S,
+) -> Result<()> {
+    let item = transfer_check_stateless_and_extract(transfer, context)?;
+    anyhow::ensure!(
+        validated.item == item,
+        "validated transfer capability does not bind this exact action"
+    );
+
     note_reshape::execute_proof_bound_effects(
         &mut state,
         &transfer.body.inputs,
@@ -133,6 +154,18 @@ pub async fn transfer_execute_verified<S: StateWrite>(
         |output| &output.note_payload,
     )
     .await
+}
+
+/// Execute a Transfer whose exact proof item has already verified.
+pub async fn transfer_execute_verified<S: StateWrite>(
+    transfer: &Transfer,
+    context: &TransactionContext,
+    verified_proof: &VerifiedBatchItem,
+    mut state: S,
+) -> Result<()> {
+    let validated =
+        transfer_validate_verified(transfer, context, verified_proof, &mut state).await?;
+    transfer_execute_validated(transfer, context, validated, &mut state).await
 }
 
 #[async_trait]

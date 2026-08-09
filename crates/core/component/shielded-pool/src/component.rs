@@ -29,7 +29,8 @@ pub use action_handler::shielded_ics20_withdrawal::{
 #[cfg(all(test, any(unix, windows)))]
 pub(crate) use action_handler::transfer::transfer_extract_public;
 pub use action_handler::transfer::{
-    transfer_check_stateless_and_extract, transfer_execute_verified,
+    transfer_check_stateless_and_extract, transfer_execute_validated, transfer_execute_verified,
+    transfer_validate_verified, ValidatedTransferExecution,
 };
 
 pub mod rpc;

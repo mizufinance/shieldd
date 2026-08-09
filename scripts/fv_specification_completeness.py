@@ -10233,6 +10233,9 @@ def _validate_internal_action_acceptance_surface(
         (
             "let tx = artifact.tx().as_ref()",
             "ensure_transaction_resource_bounds(tx)?",
+            "let validated_fee_funding = if let Some(fee_funding)",
+            "transfer_validate_verified(",
+            "artifact.proof_for_slot(ProofSlot::FeeFunding)?",
             "for (i, action) in tx.actions().enumerate()",
             "Action::Transfer(action)",
             "transfer_execute_verified(",
@@ -10246,8 +10249,8 @@ def _validate_internal_action_acceptance_surface(
             "Action::AggregateBundle(_)",
             "anyhow::bail!(",
             "if let Some(fee_funding)",
-            "transfer_execute_verified(",
-            "artifact.proof_for_slot(ProofSlot::FeeFunding)?",
+            "transfer_execute_validated(",
+            "validated_fee_funding.expect(",
         ),
         "capability-gated Transaction execution",
     )
@@ -10262,6 +10265,18 @@ def _validate_internal_action_acceptance_surface(
         "artifact.proof_for_slot(ProofSlot::FeeFunding)?",
         1,
         "fee-funding capability consumption",
+    )
+    _require_occurrence_count(
+        profiled_execute["body"],
+        "transfer_validate_verified(",
+        1,
+        "fee-funding pre-transaction validation capability",
+    )
+    _require_occurrence_count(
+        profiled_execute["body"],
+        "transfer_execute_validated(",
+        1,
+        "fee-funding post-body effect capability",
     )
     for forbidden in (
         "tx.check_and_execute(",

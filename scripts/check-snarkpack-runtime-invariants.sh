@@ -178,7 +178,7 @@ check_orbis_dev_srs_boundary() {
 
   [[ "$(rg -n -F '#[cfg(feature = "orbis-dev-srs")]' "$app_source" | wc -l)" -ge 3 ]] \
     || fail "app must isolate the Orbis dev SRS implementation and focused test"
-  [[ "$(rg -n -F '#[cfg(not(any(' "$app_source" | wc -l)" -eq 2 ]] \
+  [[ "$(rg -n -F '#[cfg(not(any(test, feature = "fuzzing", feature = "orbis-dev-srs")))]' "$app_source" | wc -l)" -eq 2 ]] \
     || fail "normal app builds must retain both registered production SRS loaders"
   [[ "$(rg -n -F 'feature = "orbis-dev-srs"' "$app_source" | wc -l)" -ge 7 ]] \
     || fail "every SRS selection branch must account for orbis-dev-srs explicitly"
