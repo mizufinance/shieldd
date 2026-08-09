@@ -392,8 +392,9 @@ fn compliance_register_user() {
     let tmpdir = load_wallet_into_tmpdir();
     sync(&tmpdir);
     // Smoke setup already registers addresses 0 and 1 for transfer coverage.
-    // Use a fresh address so this test exercises a new registration.
+    // Register a fresh address while the funded primary address pays the fee.
     let address = wallet_address(&tmpdir, 2);
+    let address_string = address.to_string();
 
     let smoke_asset =
         std::env::var("COMPLIANCE_SMOKE_ASSET").unwrap_or_else(|_| "regulated_usd".to_string());
@@ -407,8 +408,8 @@ fn compliance_register_user() {
         "compliance",
         "register-user",
         &smoke_asset,
-        "--address-index",
-        "2",
+        "--address",
+        &address_string,
         "--slot-id",
         TEST_SLOT_ID,
         "--slot-derivation-hex",
