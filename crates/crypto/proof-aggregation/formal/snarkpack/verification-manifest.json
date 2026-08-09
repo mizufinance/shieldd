@@ -157,7 +157,7 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/bundle.rs",
-          "sha256": "179d9cb57023be7f7d4834dd105d9ec2aef89aab90cb67fa22c0c877fd2a8d56"
+          "sha256": "119135b1d1ea8bf6e1185f08f81eccf577286de8a3fea0f7418faf6ed7cc09bc"
         },
         {
           "path": "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
@@ -165,11 +165,11 @@
         },
         {
           "path": "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
-          "sha256": "4ea9bf93cdef46a2b100a4699e18f481d8d338de099dd78b3f6feb99c5095334"
+          "sha256": "f8604f8ea396efcbefdcc3dcfa05b8ebb137cb88d237ae4b1e85de85346daed9"
         },
         {
           "path": "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/generated.rs",
-          "sha256": "5b8f9937d3b435c4d6cad397c100bd47439f346ec64ac69ed48627687a5da388"
+          "sha256": "bfbd82cb470d6ee3f40efc86642aabc9ec5f3b918724c81e60457e2cdbcf6dd1"
         },
         {
           "path": "scripts/snarkpack-formal.sh",
@@ -180,7 +180,7 @@
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "pass"
+        "last_result": "stale"
       }
     },
     {
@@ -395,7 +395,7 @@
       "sources": [
         {
           "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "sha256": "d6e82900bd14a7f523abeaf1b3fee6021374e5536048cd64a90fe70fcf941266"
+          "sha256": "d2b4c2ec4eb26dbc856d1c5ca83c3be76fb4b4b8811f598051b6371413d333cb"
         },
         {
           "path": "crates/crypto/proof-aggregation/src/strict_deserialize.rs",

@@ -103,10 +103,10 @@ ASSUMPTION_LEDGER_SHA256 = (
 )
 V1_PROTOCOL_VERSION = 2
 V1_BYTE_BASELINE_SHA256 = (
-    "11effb096293247cc61c87fb03f82eac145339eca39e13168a1affaa6cd23b2b"
+    "025abfd5d10a3f67a7cc9893aeb3d35c95a582d7b1105893a6b68aa06817fb63"
 )
 V1_TRACE_BASELINE_SHA256 = (
-    "e2f05c697268e2e2cf60174110a38fa711e11525e590eda384878994c5727fb3"
+    "b344489e37c7eb198d79891b17aed87b20fae07e18ed4eff022fba88b1d61efd"
 )
 DEPLOYED_SRS_CLAIM_ID = "DEPLOYED-SRS-SOUNDNESS"
 DEPLOYED_SRS_OPEN_ROOT = (
@@ -123,12 +123,10 @@ DEPLOYED_SRS_ID_DOMAIN = b"shieldd.proof_aggregation.registered_srs.v1"
 DEPLOYED_SRS_BACKEND_ID = b"ripp-snarkpack"
 DEPLOYED_SRS_CURVE_ID = b"bls12-377"
 V1_BASELINE_FAMILIES = (
-    "Transfer",
-    "NoteReshape(NoteReshapeFamilyId(1))",
-    "NoteReshape(NoteReshapeFamilyId(2))",
-    "NoteReshape(NoteReshapeFamilyId(3))",
-    "NoteReshape(NoteReshapeFamilyId(4))",
-    "ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId(1))",
+    ("Transfer", 9_000),
+    ("NoteReshape(NoteReshapeFamilyId(2))", 9_200),
+    ("NoteReshape(NoteReshapeFamilyId(3))", 9_300),
+    ("ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId(1))", 9_500),
 )
 V1_BASELINE_COUNTS = (1, 2, 4, 8)
 VERIFICATION_CONTRACT_FIELDS = (
@@ -142,7 +140,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "81614a930c47e9dc3b038f093a476e46fab94a102352f53caad3210cbbd596eb"
+    "098910958c55bed5484ec7b61803081f760d210d8b3806897f25920b3d8d674f"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -1150,9 +1148,9 @@ def expected_v1_baseline_vectors() -> list[tuple[int, str, int, int]]:
             family_index * len(V1_BASELINE_COUNTS) + count_index,
             family,
             count,
-            9_000 + family_index * 100 + count,
+            seed_base + count,
         )
-        for family_index, family in enumerate(V1_BASELINE_FAMILIES)
+        for family_index, (family, seed_base) in enumerate(V1_BASELINE_FAMILIES)
         for count_index, count in enumerate(V1_BASELINE_COUNTS)
     ]
 
@@ -1208,12 +1206,12 @@ def validate_v1_baseline_fixtures(
     if byte_vectors != expected:
         raise VerificationError(
             "aggregate byte baseline vector inventory differs from the fixed "
-            "six-family, four-count v1 inventory"
+            "four-deployed-family, four-count v1 inventory"
         )
     if trace_vectors != expected:
         raise VerificationError(
             "challenge trace baseline vector inventory differs from the fixed "
-            "six-family, four-count v1 inventory"
+            "four-deployed-family, four-count v1 inventory"
         )
 
     if hashlib.sha256(byte_contents.encode("utf-8")).hexdigest() != (
