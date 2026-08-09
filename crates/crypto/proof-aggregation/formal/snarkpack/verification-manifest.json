@@ -2,7 +2,7 @@
   "schema_version": 1,
   "fstar_checker_evidence": {
     "path": "crates/crypto/proof-aggregation/formal/snarkpack/fstar-checker-evidence.json",
-    "sha256": "b0dd7249d35cd0b8c87753653aa1522199482227a482e47bbeaf85c67a7a238b"
+    "sha256": "fe8ccc78e897fe5bda24be7ee625c5ad2bed2e2b027269188948e876e7cca588"
   },
   "deployed_srs_evidence": {
     "schema_version": 1,
@@ -157,7 +157,7 @@
         },
         {
           "path": "crates/crypto/proof-aggregation/src/bundle.rs",
-          "sha256": "119135b1d1ea8bf6e1185f08f81eccf577286de8a3fea0f7418faf6ed7cc09bc"
+          "sha256": "b9bac0579272af65a6c5ce99bf2b539d0e42de1510b39de3228cfb67661a7cdf"
         },
         {
           "path": "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
@@ -173,14 +173,14 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "a797846ecbcee92cef6c12bc50af9410300a15381880bf0f5645abe96a9551ab"
+          "sha256": "0a9036418ec2d64d3e642342215b0265fb931023727f6fd9d207ca83fa60dd18"
         }
       ],
       "toolchain_role": "hax-fstar",
       "checker": {
         "command": "scripts/snarkpack-formal.sh",
         "required_result": "pass",
-        "last_result": "stale"
+        "last_result": "pass"
       }
     },
     {
@@ -222,7 +222,7 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "a797846ecbcee92cef6c12bc50af9410300a15381880bf0f5645abe96a9551ab"
+          "sha256": "0a9036418ec2d64d3e642342215b0265fb931023727f6fd9d207ca83fa60dd18"
         }
       ],
       "toolchain_role": "hax-fstar",
@@ -257,7 +257,7 @@
         },
         {
           "path": "scripts/snarkpack-formal.sh",
-          "sha256": "a797846ecbcee92cef6c12bc50af9410300a15381880bf0f5645abe96a9551ab"
+          "sha256": "0a9036418ec2d64d3e642342215b0265fb931023727f6fd9d207ca83fa60dd18"
         }
       ],
       "toolchain_role": "hax-fstar",

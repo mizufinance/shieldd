@@ -3857,12 +3857,15 @@ structure ClaimedFacts where
                 ):
                     CHECK.semantic_bundle_paths(root)
 
-    def test_semantic_bundle_excludes_generated_dependency_trees(self) -> None:
+    def test_semantic_bundle_excludes_local_and_generated_inputs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             crates = root / "crates"
             crates.mkdir()
             (crates / "owned.json").write_text("{}\n", encoding="utf-8")
+            local_runtime = crates / "bin/pcli/proposal.toml"
+            local_runtime.parent.mkdir(parents=True)
+            local_runtime.write_text("id = 0\n", encoding="utf-8")
             generated = crates / "node_modules" / "dependency"
             generated.mkdir(parents=True)
             (generated / "package.json").write_text(
@@ -3876,7 +3879,7 @@ structure ClaimedFacts where
                 patch.object(
                     CHECK,
                     "SEMANTIC_IMPLEMENTATION_ROOTS",
-                    (("crates", (".json",)),),
+                    (("crates", (".json", ".toml")),),
                 ),
                 patch.object(
                     CHECK, "semantic_relation_blob_paths", return_value=()

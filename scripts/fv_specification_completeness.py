@@ -214,6 +214,12 @@ SEMANTIC_IMPLEMENTATION_ROOTS = (
 SEMANTIC_EXCLUDED_DIRECTORY_NAMES = frozenset(
     {".git", ".lake", "__pycache__", "node_modules", "target"}
 )
+SEMANTIC_EXCLUDED_IMPLEMENTATION_PATHS = frozenset(
+    {
+        # Local pcli proposal input is deliberately ignored and is not source.
+        "crates/bin/pcli/proposal.toml",
+    }
+)
 PROOF_ACCEPTANCE_TEST_PATH = (
     "crates/core/app/src/app/tests/proof_acceptance_tests.rs"
 )
@@ -5175,6 +5181,8 @@ def semantic_bundle_paths(root: Path = ROOT) -> tuple[tuple[str, Path], ...]:
         )
         for path in candidates:
             relative = path.relative_to(root.resolve()).as_posix()
+            if relative in SEMANTIC_EXCLUDED_IMPLEMENTATION_PATHS:
+                continue
             add_path(relative, path)
 
     lean_root = canonical_repo_path(

@@ -55,7 +55,7 @@ This file is generated from `verification-manifest.json`. Do not edit claim or a
 
 | Field | Kind | Theorem roots | Toolchain role | Last checker result |
 | --- | --- | --- | --- | --- |
-| `familyRegistered` | `fstar` | `FamilyRoutingProofs.lemma_family_proto_fields_transfer_inverse`, `FamilyRoutingProofs.lemma_family_proto_fields_note_reshape_inverse`, `FamilyRoutingProofs.lemma_family_proto_fields_shielded_ics20_withdrawal_inverse`, `FamilyRoutingProofs.lemma_family_route_transfer_total`, `FamilyRoutingProofs.lemma_family_route_note_reshape_total`, `FamilyRoutingProofs.lemma_family_route_shielded_ics20_withdrawal_total`, `FamilyRoutingProofs.lemma_family_route_rejects_unknown_family`, `FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_missing`, `FamilyRoutingProofs.lemma_family_route_shielded_rejects_missing`, `FamilyRoutingProofs.lemma_family_route_transfer_rejects_cross_subids`, `FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_cross_subids`, `FamilyRoutingProofs.lemma_family_route_shielded_rejects_cross_subids`, `FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_unknown`, `FamilyRoutingProofs.lemma_family_route_shielded_rejects_unknown` | `hax-fstar` | `stale` |
+| `familyRegistered` | `fstar` | `FamilyRoutingProofs.lemma_family_proto_fields_transfer_inverse`, `FamilyRoutingProofs.lemma_family_proto_fields_note_reshape_inverse`, `FamilyRoutingProofs.lemma_family_proto_fields_shielded_ics20_withdrawal_inverse`, `FamilyRoutingProofs.lemma_family_route_transfer_total`, `FamilyRoutingProofs.lemma_family_route_note_reshape_total`, `FamilyRoutingProofs.lemma_family_route_shielded_ics20_withdrawal_total`, `FamilyRoutingProofs.lemma_family_route_rejects_unknown_family`, `FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_missing`, `FamilyRoutingProofs.lemma_family_route_shielded_rejects_missing`, `FamilyRoutingProofs.lemma_family_route_transfer_rejects_cross_subids`, `FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_cross_subids`, `FamilyRoutingProofs.lemma_family_route_shielded_rejects_cross_subids`, `FamilyRoutingProofs.lemma_family_route_note_reshape_rejects_unknown`, `FamilyRoutingProofs.lemma_family_route_shielded_rejects_unknown` | `hax-fstar` | `pass` |
 | `canonicalStatementExact` | `fstar` | `DigestBindingProofs.lemma_statement_digest_preimage_content`, `StatementEncodingProofs.lemma_statement_encoding_input_core_projection`, `StatementEncodingProofs.lemma_encode_statement_content` | `hax-fstar` | `pass` |
 | `canonicalStatementInjective` | `fstar` | `StatementEncodingProofs.lemma_encode_statement_injective` | `hax-fstar` | `pass` |
 | `vkDigestPreimageInjective` | `lean` | `Ipp.ShippingV1.vkDigestPreimage_injective` | `hax-aeneas` | `pass` |
@@ -104,6 +104,6 @@ This file is generated from `verification-manifest.json`. Do not edit claim or a
 
 - Required capstones: 737.
 - Open claims: 1.
-- Contract evidence awaiting its required checker result: 1.
+- Contract evidence awaiting its required checker result: 0.
 - Allowed kernel axioms: `propext`, `Classical.choice`, `Quot.sound`.
 - An `open` row is a recorded gap, not a passing proof result. Only the exact unregistered `DEPLOYED-SRS-SOUNDNESS` row may coexist with conditional publication closure; it still prevents an instantiated deployment security claim. Every other open row blocks publication.
