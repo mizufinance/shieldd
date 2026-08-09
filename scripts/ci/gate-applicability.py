@@ -6,8 +6,10 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import re
 import subprocess
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -25,6 +27,9 @@ SCHEMA_VERSION = 1
 CANDIDATE_EVENTS = {"pull_request", "merge_group"}
 UNCONDITIONAL_EVENTS = {"schedule", "workflow_call", "workflow_dispatch"}
 SUPPORTED_EVENTS = CANDIDATE_EVENTS | UNCONDITIONAL_EVENTS
+GRAPH_ID = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+CARGO_METADATA_TIMEOUT_SECONDS = 60
+MAX_CARGO_METADATA_TIMEOUT_SECONDS = 900
 
 
 class ClassificationError(RuntimeError):
@@ -67,6 +72,7 @@ class Decision:
 
     def as_dict(self) -> dict[str, Any]:
         return {
+            "schema_version": 1,
             "status": self.status,
             "tier": self.tier,
             "run": self.status == "run",
@@ -74,6 +80,21 @@ class Decision:
             "changed_files": list(self.changed_files),
             "matched": list(self.matched),
             "unknown_files": list(self.unknown_files),
+            "graphs": list(self.graphs),
+        }
+
+    def summary_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": 1,
+            "status": self.status,
+            "tier": self.tier,
+            "run": self.status == "run",
+            "explanation": _bounded_utf8(
+                self.explanation, GITHUB_EXPLANATION_MAX_BYTES
+            ),
+            "changed_file_count": len(self.changed_files),
+            "matched_rule_count": len(self.matched),
+            "unknown_file_count": len(self.unknown_files),
             "graphs": list(self.graphs),
         }
 
@@ -88,6 +109,15 @@ def _string(value: Any, where: str) -> str:
     if not isinstance(value, str) or not value:
         raise ClassificationError(f"{where} must be a non-empty string")
     return value
+
+
+def _graph_id(value: Any, where: str) -> str:
+    graph_id = _string(value, where)
+    if not GRAPH_ID.fullmatch(graph_id):
+        raise ClassificationError(
+            f"{where} must match [A-Za-z][A-Za-z0-9_]*"
+        )
+    return graph_id
 
 
 def _strings(value: Any, where: str) -> tuple[str, ...]:
@@ -186,6 +216,16 @@ def load_declaration(path: Path, expected_gate: str | None = None) -> Declaratio
     except StrictJsonError as error:
         raise ClassificationError(f"malformed declaration {path}: {error}") from error
 
+    return declaration_from_data(raw_value, str(path), expected_gate)
+
+
+def declaration_from_data(
+    raw_value: Any,
+    path: str,
+    expected_gate: str | None = None,
+) -> Declaration:
+    """Validate one gate declaration loaded from any repository revision."""
+
     raw = _object(raw_value, str(path))
     expected_fields = {
         "schema_version",
@@ -259,6 +299,7 @@ def load_declaration(path: Path, expected_gate: str | None = None) -> Declaratio
             expected = {
                 "type",
                 "path",
+                "source_inventory",
                 "global_inputs",
                 "graph_tiers",
                 "global_tiers",
@@ -266,16 +307,25 @@ def load_declaration(path: Path, expected_gate: str | None = None) -> Declaratio
             }
             if set(item) != expected:
                 raise ClassificationError(f"{where} has invalid fields")
+            source_inventory = normalize_repo_path(
+                item["source_inventory"], f"{where}.source_inventory"
+            )
+            global_inputs = tuple(
+                normalize_repo_path(value, f"{where}.global_inputs")
+                for value in _strings(
+                    item["global_inputs"], f"{where}.global_inputs"
+                )
+            )
+            if source_inventory not in global_inputs:
+                raise ClassificationError(
+                    f"{where}.source_inventory must also be a global input"
+                )
             derived.append(
                 {
                     "type": kind,
                     "path": normalize_repo_path(item["path"], f"{where}.path"),
-                    "global_inputs": tuple(
-                        normalize_repo_path(value, f"{where}.global_inputs")
-                        for value in _strings(
-                            item["global_inputs"], f"{where}.global_inputs"
-                        )
-                    ),
+                    "source_inventory": source_inventory,
+                    "global_inputs": global_inputs,
                     "graph_tiers": _tier_map(
                         item["graph_tiers"], f"{where}.graph_tiers", tiers
                     ),
@@ -377,8 +427,23 @@ def _relative_to_root(root: Path, value: str, where: str) -> str:
 
 
 def cargo_closure_rules(
-    root: Path, source: dict[str, Any], event: str
+    root: Path,
+    source: dict[str, Any],
+    event: str,
+    *,
+    metadata_timeout_seconds: int = CARGO_METADATA_TIMEOUT_SECONDS,
 ) -> list[InputRule]:
+    if (
+        isinstance(metadata_timeout_seconds, bool)
+        or not isinstance(metadata_timeout_seconds, int)
+        or not 1
+        <= metadata_timeout_seconds
+        <= MAX_CARGO_METADATA_TIMEOUT_SECONDS
+    ):
+        raise ClassificationError(
+            "cargo metadata timeout must be an integer from 1 through "
+            f"{MAX_CARGO_METADATA_TIMEOUT_SECONDS} seconds"
+        )
     try:
         result = subprocess.run(
             [
@@ -393,7 +458,7 @@ def cargo_closure_rules(
             check=False,
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=metadata_timeout_seconds,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
         raise ClassificationError(f"cargo metadata failed: {error}") from error
@@ -502,8 +567,267 @@ def cargo_closure_rules(
     return rules
 
 
+def _git_toml_file(root: Path, revision: str, path: str) -> dict[str, Any]:
+    result = _run_git(root, ["show", f"{revision}:{path}"])
+    if result.returncode:
+        detail = str(result.stderr).strip()
+        raise ClassificationError(
+            f"cannot read {path} at {revision}: {detail or result.returncode}"
+        )
+    try:
+        value = tomllib.loads(str(result.stdout))
+    except tomllib.TOMLDecodeError as error:
+        raise ClassificationError(
+            f"malformed TOML at {revision}:{path}: {error}"
+        ) from error
+    return _object(value, f"{revision}:{path}")
+
+
+def cargo_closure_rules_at_revision(
+    root: Path,
+    source: dict[str, Any],
+    event: str,
+    revision: str,
+) -> list[InputRule]:
+    """Classify paths from a base revision after packages were deleted."""
+    root_manifest = _git_toml_file(root, revision, "Cargo.toml")
+    workspace = _object(
+        root_manifest.get("workspace"), f"{revision}:Cargo.toml.workspace"
+    )
+    members = _strings(
+        workspace.get("members"), f"{revision}:Cargo.toml.workspace.members"
+    )
+    excludes_value = workspace.get("exclude", [])
+    if not isinstance(excludes_value, list) or any(
+        not isinstance(item, str) or not item for item in excludes_value
+    ):
+        raise ClassificationError(
+            f"{revision}:Cargo.toml.workspace.exclude must contain strings"
+        )
+    excludes = tuple(
+        normalize_repo_path(item, f"{revision}: workspace exclusion")
+        for item in excludes_value
+    )
+
+    tree = _run_git(root, ["ls-tree", "-r", "--name-only", revision])
+    if tree.returncode:
+        detail = str(tree.stderr).strip()
+        raise ClassificationError(
+            f"cannot enumerate Cargo manifests at {revision}: "
+            f"{detail or tree.returncode}"
+        )
+    manifest_dirs = {
+        path[: -len("/Cargo.toml")]
+        for path in str(tree.stdout).splitlines()
+        if path.endswith("/Cargo.toml")
+    }
+    workspace_dirs = {
+        directory
+        for directory in manifest_dirs
+        if any(_path_pattern_matches(directory, member) for member in members)
+        and not any(
+            _path_pattern_matches(directory, exclusion)
+            for exclusion in excludes
+        )
+    }
+    unmatched = tuple(
+        member
+        for member in members
+        if not any(
+            _path_pattern_matches(directory, member)
+            for directory in workspace_dirs
+        )
+    )
+    if unmatched:
+        raise ClassificationError(
+            f"workspace member(s) missing at {revision}: " + ", ".join(unmatched)
+        )
+
+    directories_by_name: dict[str, str] = {}
+    for directory in sorted(workspace_dirs):
+        manifest = _git_toml_file(
+            root, revision, f"{directory}/Cargo.toml"
+        )
+        package = _object(
+            manifest.get("package"),
+            f"{revision}:{directory}/Cargo.toml.package",
+        )
+        name = _string(
+            package.get("name"),
+            f"{revision}:{directory}/Cargo.toml.package.name",
+        )
+        if name in directories_by_name:
+            raise ClassificationError(
+                f"duplicate workspace package {name!r} at {revision}"
+            )
+        directories_by_name[name] = directory
+
+    lock = _git_toml_file(root, revision, "Cargo.lock")
+    packages = lock.get("package")
+    if not isinstance(packages, list):
+        raise ClassificationError(f"{revision}:Cargo.lock lacks package entries")
+    local_lock_packages: dict[str, dict[str, Any]] = {}
+    for index, value in enumerate(packages):
+        package = _object(value, f"{revision}:Cargo.lock.package[{index}]")
+        if package.get("source") is not None:
+            continue
+        name = _string(
+            package.get("name"),
+            f"{revision}:Cargo.lock.package[{index}].name",
+        )
+        if name in local_lock_packages:
+            raise ClassificationError(
+                f"duplicate local lock package {name!r} at {revision}"
+            )
+        local_lock_packages[name] = package
+
+    pending: list[str] = []
+    for name in source["packages"]:
+        has_manifest = name in directories_by_name
+        has_lock_entry = name in local_lock_packages
+        if has_manifest and has_lock_entry:
+            pending.append(name)
+        elif has_manifest != has_lock_entry:
+            raise ClassificationError(
+                f"Cargo root package {name!r} is inconsistent at {revision}: "
+                f"manifest={'present' if has_manifest else 'absent'}, "
+                f"lock={'present' if has_lock_entry else 'absent'}"
+            )
+        # A root absent from both historical inventories was introduced after
+        # this revision and contributes no paths to the base closure.
+    closure_names: set[str] = set()
+    while pending:
+        name = pending.pop()
+        if name in closure_names:
+            continue
+        if name not in directories_by_name or name not in local_lock_packages:
+            raise ClassificationError(
+                f"Cargo dependency package {name!r} is absent at {revision}"
+            )
+        closure_names.add(name)
+        dependencies = local_lock_packages[name].get("dependencies", [])
+        if not isinstance(dependencies, list) or any(
+            not isinstance(dependency, str) for dependency in dependencies
+        ):
+            raise ClassificationError(
+                f"invalid dependencies for Cargo package {name!r} at {revision}"
+            )
+        for dependency in dependencies:
+            dependency_name = dependency.split(" ", maxsplit=1)[0]
+            if dependency_name in directories_by_name:
+                pending.append(dependency_name)
+
+    closure = {directories_by_name[name] for name in closure_names}
+    outside = workspace_dirs - closure
+
+    def patterns(directories: Iterable[str]) -> tuple[str, ...]:
+        return tuple(
+            pattern
+            for directory in sorted(directories)
+            for pattern in (f"{directory}/**", f"{directory}/Cargo.toml")
+        )
+
+    relevant_tier = tier_for(source["tiers"], event, "base Cargo closure")
+    rules = [
+        InputRule(
+            patterns=patterns(closure),
+            tier=relevant_tier,
+            reason=(
+                f"base Cargo package dependency closure at {revision} "
+                f"({len(closure)} local packages)"
+            ),
+        )
+    ]
+    if outside:
+        rules.append(
+            InputRule(
+                patterns=patterns(outside),
+                tier="skip",
+                reason=(
+                    f"base Cargo package outside the declared closure at "
+                    f"{revision} ({len(outside)} packages)"
+                ),
+            )
+        )
+    return rules
+
+
 def _manifest_path(value: Any, where: str) -> str:
     return normalize_repo_path(value, where)
+
+
+def _extraction_output_module(output: str, where: str) -> str:
+    path = Path(output)
+    if path.suffix != ".lean":
+        raise ClassificationError(f"{where} must name a Lean output")
+    parts = path.with_suffix("").parts
+    try:
+        ipp_index = parts.index("Ipp")
+    except ValueError:
+        ipp_index = 0
+    return ".".join(parts[ipp_index:])
+
+
+def extraction_reuse_closure(
+    manifest: Any,
+    graph_ids: Iterable[str],
+    *,
+    label: str,
+) -> tuple[str, ...]:
+    """Expand graph ids through imports of generated extraction modules."""
+    graphs = _extraction_graphs_by_id(manifest, label)
+    selected = set(graph_ids)
+    unknown = sorted(selected - graphs.keys())
+    if unknown:
+        raise ClassificationError(
+            f"{label} references unknown extraction graph(s): "
+            + ", ".join(unknown)
+        )
+
+    module_owner: dict[str, str] = {}
+    for graph_id, graph in graphs.items():
+        output = _manifest_path(
+            graph.get("output"), f"{label}.graph {graph_id}.output"
+        )
+        module = _extraction_output_module(
+            output, f"{label}.graph {graph_id}.output"
+        )
+        if module in module_owner:
+            raise ClassificationError(
+                f"{label} contains duplicate generated module {module}"
+            )
+        module_owner[module] = graph_id
+
+    dependents = {graph_id: set() for graph_id in graphs}
+    for graph_id, graph in graphs.items():
+        normalization = _object(
+            graph.get("normalization"),
+            f"{label}.graph {graph_id}.normalization",
+        )
+        reuse = normalization.get("reuse_modules")
+        if not isinstance(reuse, list):
+            raise ClassificationError(
+                f"{label}.graph {graph_id}.normalization.reuse_modules "
+                "must be an array"
+            )
+        for index, value in enumerate(reuse):
+            module = _string(
+                value,
+                f"{label}.graph {graph_id}.normalization."
+                f"reuse_modules[{index}]",
+            )
+            owner = module_owner.get(module)
+            if owner is not None:
+                dependents[owner].add(graph_id)
+
+    pending = list(selected)
+    while pending:
+        owner = pending.pop()
+        for dependent in dependents[owner]:
+            if dependent not in selected:
+                selected.add(dependent)
+                pending.append(dependent)
+    return tuple(sorted(selected))
 
 
 def lean_manifest_rules_from_data(
@@ -513,10 +837,13 @@ def lean_manifest_rules_from_data(
     *,
     verify_root: Path | None,
     label: str,
+    include_manifest_input: bool = True,
+    stale_output_graphs: frozenset[str] | None = None,
+    evidence_tier: str | None = None,
 ) -> list[InputRule]:
     raw = _object(manifest, label)
-    if raw.get("schema_version") != 2:
-        raise ClassificationError(f"{label}.schema_version must be 2")
+    if raw.get("schema_version") != 3:
+        raise ClassificationError(f"{label}.schema_version must be 3")
     if not isinstance(raw.get("toolchains"), dict):
         raise ClassificationError(f"{label}.toolchains must be an object")
     graphs_value = raw.get("graphs")
@@ -531,16 +858,32 @@ def lean_manifest_rules_from_data(
     for index, value in enumerate(graphs_value):
         where = f"{label}.graphs[{index}]"
         graph = _object(value, where)
-        graph_id = _string(graph.get("id"), f"{where}.id")
+        graph_id = _graph_id(graph.get("id"), f"{where}.id")
         if graph_id in graph_ids:
             raise ClassificationError(
                 f"{label} contains duplicate graph id {graph_id!r}"
             )
         graph_ids.add(graph_id)
+        output = _manifest_path(graph.get("output"), f"{where}.output")
         paths = {
-            _manifest_path(graph.get("output"), f"{where}.output"),
             _manifest_path(graph.get("crate_manifest"), f"{where}.crate_manifest"),
         }
+        source_files = graph.get("source_files")
+        if not isinstance(source_files, list) or not source_files:
+            raise ClassificationError(
+                f"{where}.source_files must be a non-empty array"
+            )
+        for source_index, source_value in enumerate(source_files):
+            source_path = _manifest_path(
+                source_value,
+                f"{where}.source_files[{source_index}]",
+            )
+            if not source_path.endswith(".rs"):
+                raise ClassificationError(
+                    f"{where}.source_files[{source_index}] "
+                    "must be a Rust source"
+                )
+            paths.add(source_path)
         inputs = graph.get("inputs")
         if not isinstance(inputs, list) or not inputs:
             raise ClassificationError(f"{where}.inputs must be a non-empty array")
@@ -566,22 +909,65 @@ def lean_manifest_rules_from_data(
         if not isinstance(parity, list) or not parity:
             raise ClassificationError(f"{where}.parity must be a non-empty array")
         if verify_root is not None:
-            missing = sorted(path for path in paths if not (verify_root / path).is_file())
-            if missing:
+            missing_inputs = sorted(
+                path for path in paths if not (verify_root / path).is_file()
+            )
+            if missing_inputs:
                 raise ClassificationError(
-                    f"{where} references missing file(s): {', '.join(missing)}"
+                    f"{where} references missing input file(s): "
+                    + ", ".join(missing_inputs)
+                )
+            output_is_scheduled = (
+                stale_output_graphs is None
+                or graph_id in stale_output_graphs
+            )
+            if not (verify_root / output).is_file() and not output_is_scheduled:
+                raise ClassificationError(
+                    f"{where} references missing current generated output: "
+                    f"{output}"
                 )
         rules.append(
             InputRule(
                 patterns=tuple(sorted(paths)),
                 tier=graph_tier,
                 reason=f"{source['reason']}: graph {graph_id}",
-                graphs=(graph_id,),
+                graphs=extraction_reuse_closure(
+                    raw, (graph_id,), label=label
+                ),
+            )
+        )
+        output_is_stale = (
+            stale_output_graphs is None or graph_id in stale_output_graphs
+        )
+        rules.append(
+            InputRule(
+                patterns=(output,),
+                tier=(
+                    graph_tier
+                    if output_is_stale
+                    else evidence_tier or graph_tier
+                ),
+                reason=(
+                    f"{source['reason']}: stale generated output {graph_id}"
+                    if output_is_stale
+                    else (
+                        f"{source['reason']}: current committed extraction "
+                        f"evidence {graph_id}"
+                    )
+                ),
+                graphs=(
+                    extraction_reuse_closure(
+                        raw, (graph_id,), label=label
+                    )
+                    if output_is_stale
+                    else ()
+                ),
             )
         )
 
     global_paths = set(source["global_inputs"])
-    global_paths.add(source["path"])
+    if include_manifest_input:
+        global_paths.add(source["path"])
     global_paths.update(normalizers)
     if verify_root is not None:
         missing = sorted(
@@ -621,11 +1007,278 @@ def _git_json_file(root: Path, revision: str, path: str) -> Any | None:
         ) from error
 
 
+def _extraction_graphs_by_id(
+    manifest: Any,
+    label: str,
+) -> dict[str, dict[str, Any]]:
+    raw = _object(manifest, label)
+    graphs = raw.get("graphs")
+    if not isinstance(graphs, list) or not graphs:
+        raise ClassificationError(f"{label}.graphs must be a non-empty array")
+    result: dict[str, dict[str, Any]] = {}
+    for index, value in enumerate(graphs):
+        graph = _object(value, f"{label}.graphs[{index}]")
+        graph_id = _graph_id(graph.get("id"), f"{label}.graphs[{index}].id")
+        if graph_id in result:
+            raise ClassificationError(
+                f"{label} contains duplicate graph id {graph_id!r}"
+            )
+        result[graph_id] = graph
+    return result
+
+
+def extraction_recipe_projection(graph: dict[str, Any]) -> dict[str, Any]:
+    """Return graph instructions without regenerated evidence fields."""
+    projected = json.loads(json.dumps(graph))
+    projected.pop("source_sha256", None)
+    projected.pop("output_sha256", None)
+    inputs = projected.get("inputs")
+    if not isinstance(inputs, list):
+        raise ClassificationError("extraction graph inputs must be an array")
+    for index, value in enumerate(inputs):
+        item = _object(value, f"extraction graph inputs[{index}]")
+        item.pop("sha256", None)
+    normalization = _object(
+        projected.get("normalization"), "extraction graph normalization"
+    )
+    normalization.pop("selected_raw_declarations_sha256", None)
+    normalization.pop("normalized_sha256", None)
+    return projected
+
+
+def extraction_manifest_semantic_changes(
+    current: Any,
+    previous: Any | None,
+    *,
+    current_label: str,
+    previous_label: str,
+) -> tuple[frozenset[str], bool]:
+    """Return recipe-changed graphs and whether shared extraction state changed."""
+    current_raw = _object(current, current_label)
+    current_graphs = _extraction_graphs_by_id(current_raw, current_label)
+    if previous is None:
+        return frozenset(current_graphs), True
+    previous_raw = _object(previous, previous_label)
+    previous_graphs = _extraction_graphs_by_id(previous_raw, previous_label)
+    shared_changed = (
+        current_raw.get("schema_version") != previous_raw.get("schema_version")
+        or current_raw.get("toolchains") != previous_raw.get("toolchains")
+        or current_graphs.keys() != previous_graphs.keys()
+    )
+    if shared_changed:
+        return frozenset(current_graphs.keys() | previous_graphs.keys()), True
+    changed = frozenset(
+        graph_id
+        for graph_id in current_graphs
+        if extraction_recipe_projection(current_graphs[graph_id])
+        != extraction_recipe_projection(previous_graphs[graph_id])
+    )
+    return changed, False
+
+
+def extraction_stale_graphs(
+    root: Path,
+    source: dict[str, Any],
+    manifest: Any,
+) -> frozenset[str]:
+    """Validate the committed graph attestations and return only stale ids."""
+    inventory_path = root / source["source_inventory"]
+    manifest_path = root / source["path"]
+    graph_ids = frozenset(
+        _extraction_graphs_by_id(
+            manifest, "current extraction manifest"
+        )
+    )
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(inventory_path),
+                "--manifest",
+                str(manifest_path),
+                "stale",
+            ],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ClassificationError(
+            f"extraction evidence validation failed: {error}"
+        ) from error
+    if completed.returncode:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise ClassificationError(
+            "extraction evidence validation failed: "
+            + (detail or str(completed.returncode))
+        )
+    stale: list[str] = []
+    for line in completed.stdout.splitlines():
+        graph_id = _graph_id(line, "stale extraction graph")
+        if graph_id not in graph_ids:
+            raise ClassificationError(
+                f"stale extraction inventory returned unknown graph {graph_id}"
+            )
+        stale.append(graph_id)
+    if len(set(stale)) != len(stale):
+        raise ClassificationError(
+            "stale extraction inventory contains duplicate graph ids"
+        )
+    return frozenset(stale)
+
+
+def extraction_source_directory_rule(
+    root: Path,
+    source: dict[str, Any],
+    manifest: Any,
+    event: str,
+) -> InputRule:
+    inventory_path = root / source["source_inventory"]
+    manifest_path = root / source["path"]
+    try:
+        completed = subprocess.run(
+            [
+                sys.executable,
+                str(inventory_path),
+                "--manifest",
+                str(manifest_path),
+                "source-directories",
+            ],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        raise ClassificationError(
+            f"extraction source inventory failed: {error}"
+        ) from error
+    if completed.returncode:
+        detail = completed.stderr.strip() or completed.stdout.strip()
+        raise ClassificationError(
+            "extraction source inventory failed: "
+            + (detail or str(completed.returncode))
+        )
+    try:
+        payload = _object(
+            json.loads(completed.stdout), "extraction source inventory"
+        )
+    except json.JSONDecodeError as error:
+        raise ClassificationError(
+            f"extraction source inventory returned malformed JSON: {error}"
+        ) from error
+    if set(payload) != {"schema_version", "graphs", "directories"}:
+        raise ClassificationError(
+            "extraction source inventory has invalid fields"
+        )
+    if payload["schema_version"] != 1:
+        raise ClassificationError(
+            "extraction source inventory schema_version must be 1"
+        )
+    graph_ids = tuple(
+        sorted(
+            _graph_id(graph.get("id"), "extraction manifest graph id")
+            for graph in _object(manifest, "extraction manifest").get(
+                "graphs", ()
+            )
+        )
+    )
+    inventory_graphs = tuple(
+        sorted(
+            _graph_id(value, "extraction source inventory graph")
+            for value in _strings(
+                payload["graphs"], "extraction source inventory graphs"
+            )
+        )
+    )
+    if len(set(inventory_graphs)) != len(inventory_graphs):
+        raise ClassificationError(
+            "extraction source inventory contains duplicate graph ids"
+        )
+    if inventory_graphs != graph_ids:
+        raise ClassificationError(
+            "extraction source inventory graph ids do not match the manifest"
+        )
+    directories = tuple(
+        sorted(
+            normalize_repo_path(
+                value, "extraction source inventory directory"
+            )
+            for value in _strings(
+                payload["directories"],
+                "extraction source inventory directories",
+            )
+        )
+    )
+    if len(set(directories)) != len(directories):
+        raise ClassificationError(
+            "extraction source inventory contains duplicate directories"
+        )
+    missing = [
+        directory
+        for directory in directories
+        if not (root / directory).is_dir()
+    ]
+    if missing:
+        raise ClassificationError(
+            "extraction source inventory references missing directories: "
+            + ", ".join(missing)
+        )
+
+    declared_sources = {
+        normalize_repo_path(
+            value,
+            f"extraction manifest graph {graph_id}.source_files",
+        )
+        for graph_id, graph in _extraction_graphs_by_id(
+            manifest, "extraction manifest"
+        ).items()
+        for value in (
+            graph.get("source_files")
+            if isinstance(graph.get("source_files"), list)
+            else ()
+        )
+    }
+    undeclared_rust: set[str] = set()
+    shared_cargo: set[str] = set()
+    ignored_parts = {".git", "proofs", "target"}
+    for directory in directories:
+        directory_path = root / directory
+        manifest_path = directory_path / "Cargo.toml"
+        if manifest_path.is_file():
+            shared_cargo.add(manifest_path.relative_to(root).as_posix())
+        for path in directory_path.rglob("*.rs"):
+            relative_to_directory = path.relative_to(directory_path)
+            if ignored_parts.intersection(relative_to_directory.parts):
+                continue
+            repo_path = path.relative_to(root).as_posix()
+            if repo_path not in declared_sources:
+                undeclared_rust.add(repo_path)
+    return InputRule(
+        patterns=tuple(sorted(undeclared_rust | shared_cargo)),
+        tier=tier_for(
+            source["global_tiers"],
+            event,
+            "undeclared extraction source fallback",
+        ),
+        reason=(
+            f"{source['reason']}: undeclared extracted-crate Rust source "
+            "or shared Cargo configuration"
+        ),
+        graphs=graph_ids,
+    )
+
+
 def derived_rules(
     root: Path,
     declaration: Declaration,
     event: str,
     base: str | None,
+    *,
+    changed_files: Iterable[str] | None = None,
 ) -> list[InputRule]:
     if event not in CANDIDATE_EVENTS:
         raise ClassificationError(
@@ -635,6 +1288,12 @@ def derived_rules(
     for source in declaration.derived_inputs:
         if source["type"] == "cargo_local_closure":
             rules.extend(cargo_closure_rules(root, source, event))
+            if base:
+                rules.extend(
+                    cargo_closure_rules_at_revision(
+                        root, source, event, base
+                    )
+                )
             continue
         manifest_path = root / source["path"]
         try:
@@ -646,6 +1305,61 @@ def derived_rules(
             raise ClassificationError(
                 f"malformed extraction manifest {source['path']}: {error}"
             ) from error
+        previous = (
+            _git_json_file(root, base, source["path"])
+            if base
+            else None
+        )
+        current_graphs = _extraction_graphs_by_id(
+            current, source["path"]
+        )
+        previous_graphs = (
+            _extraction_graphs_by_id(
+                previous, f"{base}:{source['path']}"
+            )
+            if previous is not None
+            else {}
+        )
+        evidence_paths = {
+            source["path"],
+            *(
+                _manifest_path(
+                    graph.get("output"),
+                    f"graph {graph_id}.output",
+                )
+                for graphs in (current_graphs, previous_graphs)
+                for graph_id, graph in graphs.items()
+            ),
+        }
+        if changed_files is None:
+            # Direct callers that do not provide a candidate diff retain the
+            # conservative historical behavior without an expensive scan.
+            stale_graphs = frozenset(current_graphs)
+        else:
+            normalized_changes = frozenset(
+                normalize_repo_path(path, "changed path")
+                for path in changed_files
+            )
+            stale_graphs = (
+                extraction_stale_graphs(root, source, current)
+                if normalized_changes & evidence_paths
+                else frozenset()
+            )
+        semantic_graphs, shared_change = extraction_manifest_semantic_changes(
+            current,
+            previous,
+            current_label=source["path"],
+            previous_label=(
+                f"{base}:{source['path']}"
+                if base
+                else f"missing base:{source['path']}"
+            ),
+        )
+        evidence_tier = "static"
+        if evidence_tier not in declaration.tiers:
+            raise ClassificationError(
+                "lean extraction evidence requires a declared static tier"
+            )
         rules.extend(
             lean_manifest_rules_from_data(
                 current,
@@ -653,25 +1367,114 @@ def derived_rules(
                 event,
                 verify_root=root,
                 label=source["path"],
+                include_manifest_input=False,
+                stale_output_graphs=stale_graphs,
+                evidence_tier=evidence_tier,
             )
         )
-        if base:
-            previous = _git_json_file(root, base, source["path"])
-            if previous is not None:
-                rules.extend(
-                    lean_manifest_rules_from_data(
-                        previous,
-                        source,
-                        event,
-                        verify_root=None,
-                        label=f"{base}:{source['path']}",
-                    )
+        manifest_graphs = semantic_graphs | stale_graphs
+        if not shared_change:
+            manifest_graphs = frozenset(
+                extraction_reuse_closure(
+                    current,
+                    manifest_graphs,
+                    label=source["path"],
                 )
+            )
+        manifest_tier = (
+            tier_for(
+                source["global_tiers"],
+                event,
+                "shared extraction manifest change",
+            )
+            if shared_change
+            else (
+                tier_for(
+                    source["graph_tiers"],
+                    event,
+                    "graph extraction manifest change",
+                )
+                if manifest_graphs
+                else evidence_tier
+            )
+        )
+        rules.append(
+            InputRule(
+                patterns=(source["path"],),
+                tier=manifest_tier,
+                reason=(
+                    f"{source['reason']}: shared recipe/toolchain state"
+                    if shared_change
+                    else (
+                        f"{source['reason']}: changed or stale graph state"
+                        if manifest_graphs
+                        else (
+                            f"{source['reason']}: current committed "
+                            "extraction evidence"
+                        )
+                    )
+                ),
+                graphs=tuple(sorted(manifest_graphs)),
+            )
+        )
+        rules.append(
+            extraction_source_directory_rule(
+                root,
+                source,
+                current,
+                event,
+            )
+        )
+        if previous is not None and not shared_change:
+            rules.extend(
+                lean_manifest_rules_from_data(
+                    previous,
+                    source,
+                    event,
+                    verify_root=None,
+                    label=f"{base}:{source['path']}",
+                    include_manifest_input=False,
+                    stale_output_graphs=stale_graphs,
+                    evidence_tier=evidence_tier,
+                )
+            )
     return rules
 
 
+def _path_pattern_matches(path: str, pattern: str) -> bool:
+    """Match repository globs without allowing `*` to cross path separators."""
+    path_parts = path.split("/")
+    pattern_parts = pattern.split("/")
+    memo: dict[tuple[int, int], bool] = {}
+
+    def visit(path_index: int, pattern_index: int) -> bool:
+        key = (path_index, pattern_index)
+        if key in memo:
+            return memo[key]
+        if pattern_index == len(pattern_parts):
+            result = path_index == len(path_parts)
+        elif pattern_parts[pattern_index] == "**":
+            result = visit(path_index, pattern_index + 1) or (
+                path_index < len(path_parts)
+                and visit(path_index + 1, pattern_index)
+            )
+        else:
+            result = (
+                path_index < len(path_parts)
+                and fnmatch.fnmatchcase(
+                    path_parts[path_index],
+                    pattern_parts[pattern_index],
+                )
+                and visit(path_index + 1, pattern_index + 1)
+            )
+        memo[key] = result
+        return result
+
+    return visit(0, 0)
+
+
 def _matches(path: str, patterns: Iterable[str]) -> bool:
-    return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
+    return any(_path_pattern_matches(path, pattern) for pattern in patterns)
 
 
 def classify(
@@ -679,6 +1482,8 @@ def classify(
     event: str,
     files: Iterable[str],
     derived: Iterable[InputRule],
+    *,
+    previous_declaration: Declaration | None = None,
 ) -> Decision:
     if event not in SUPPORTED_EVENTS:
         raise ClassificationError(f"unsupported event {event!r}")
@@ -706,6 +1511,43 @@ def classify(
                 reason=item["reason"],
             )
         )
+    if previous_declaration is not None:
+        if previous_declaration.gate != declaration.gate:
+            raise ClassificationError(
+                "base declaration gate differs from the current declaration"
+            )
+        for item in previous_declaration.explicit_inputs:
+            tier = tier_for(item["tiers"], event, "base explicit input")
+            declaration.rank(tier)
+            if any(
+                rule.patterns == item["patterns"] and rule.tier == tier
+                for rule in rules
+            ):
+                continue
+            rules.append(
+                InputRule(
+                    patterns=item["patterns"],
+                    tier=tier,
+                    reason=f"base declaration: {item['reason']}",
+                )
+            )
+
+    irrelevant_inputs = declaration.irrelevant_inputs
+    if previous_declaration is not None:
+        irrelevant_inputs = (
+            *irrelevant_inputs,
+            *(
+                {
+                    **item,
+                    "reason": f"base declaration: {item['reason']}",
+                }
+                for item in previous_declaration.irrelevant_inputs
+                if not any(
+                    current["patterns"] == item["patterns"]
+                    for current in declaration.irrelevant_inputs
+                )
+            ),
+        )
 
     selected_tier = "skip"
     matched: list[dict[str, Any]] = []
@@ -725,7 +1567,7 @@ def classify(
         irrelevant = next(
             (
                 item
-                for item in declaration.irrelevant_inputs
+                for item in irrelevant_inputs
                 if _matches(path, item["patterns"])
             ),
             None,
@@ -787,22 +1629,56 @@ def blocked(error: Exception) -> Decision:
     )
 
 
+GITHUB_OUTPUT_MAX_BYTES = 64 * 1024
+GITHUB_EXPLANATION_MAX_BYTES = 4 * 1024
+
+
+def _bounded_utf8(value: str, limit: int) -> str:
+    encoded = value.encode("utf-8")
+    if len(encoded) <= limit:
+        return value
+    suffix = "… [truncated]"
+    budget = limit - len(suffix.encode("utf-8"))
+    return encoded[:budget].decode("utf-8", errors="ignore") + suffix
+
+
+def write_decision_file(path: Path, decision: Decision) -> None:
+    try:
+        path.write_text(
+            json.dumps(decision.as_dict(), indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+    except OSError as error:
+        raise ClassificationError(
+            f"cannot write decision file {path}: {error}"
+        ) from error
+
+
 def write_github_output(path: Path, decision: Decision) -> None:
     values = {
         "status": decision.status,
         "tier": decision.tier,
         "run": str(decision.status == "run").lower(),
-        "explanation": decision.explanation,
+        "explanation": _bounded_utf8(
+            decision.explanation, GITHUB_EXPLANATION_MAX_BYTES
+        ),
         "graphs": json.dumps(list(decision.graphs), separators=(",", ":")),
     }
+    lines: list[str] = []
+    for key, value in values.items():
+        if "\n" in value or "\r" in value:
+            raise ClassificationError(f"GitHub output {key} contains a newline")
+        lines.append(f"{key}={value}\n")
+    payload = "".join(lines)
+    if len(payload.encode("utf-8")) > GITHUB_OUTPUT_MAX_BYTES:
+        raise ClassificationError(
+            "bounded GitHub outputs exceed "
+            f"{GITHUB_OUTPUT_MAX_BYTES} bytes"
+        )
     try:
         with path.open("a", encoding="utf-8", newline="\n") as output:
-            for key, value in values.items():
-                if "\n" in value or "\r" in value:
-                    raise ClassificationError(
-                        f"GitHub output {key} contains a newline"
-                    )
-                output.write(f"{key}={value}\n")
+            output.write(payload)
     except OSError as error:
         raise ClassificationError(f"cannot write GitHub output {path}: {error}") from error
 
@@ -818,6 +1694,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("--changed-file", action="append", default=[])
     result.add_argument("--declaration", type=Path)
     result.add_argument("--extraction-manifest")
+    result.add_argument("--decision-file", type=Path)
     result.add_argument("--github-output", type=Path)
     result.add_argument("--pretty", action="store_true")
     return result
@@ -831,6 +1708,24 @@ def main(argv: list[str] | None = None) -> int:
     )
     try:
         declaration = load_declaration(declaration_path, args.gate)
+        previous_declaration = None
+        if args.event in CANDIDATE_EVENTS and args.base:
+            declaration_relative = _relative_to_root(
+                root,
+                str(declaration_path),
+                "declaration",
+            )
+            previous_value = _git_json_file(
+                root,
+                args.base,
+                declaration_relative,
+            )
+            if previous_value is not None:
+                previous_declaration = declaration_from_data(
+                    previous_value,
+                    f"{args.base}:{declaration_relative}",
+                    args.gate,
+                )
         if args.extraction_manifest:
             sources = [
                 source
@@ -869,8 +1764,20 @@ def main(argv: list[str] | None = None) -> int:
                 if args.changed_file
                 else changed_files(root, args.base, args.head)
             )
-            rules = derived_rules(root, declaration, args.event, args.base)
-            decision = classify(declaration, args.event, files, rules)
+            rules = derived_rules(
+                root,
+                declaration,
+                args.event,
+                args.base,
+                changed_files=files,
+            )
+            decision = classify(
+                declaration,
+                args.event,
+                files,
+                rules,
+                previous_declaration=previous_declaration,
+            )
     except ClassificationError as error:
         decision = blocked(error)
     except Exception as error:  # Defensive boundary: classifier bugs must block.
@@ -880,14 +1787,28 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
 
+    if args.decision_file:
+        try:
+            write_decision_file(args.decision_file, decision)
+        except ClassificationError as error:
+            decision = blocked(error)
     if args.github_output:
         try:
             write_github_output(args.github_output, decision)
         except ClassificationError as error:
             decision = blocked(error)
+            if args.decision_file:
+                try:
+                    write_decision_file(args.decision_file, decision)
+                except ClassificationError:
+                    pass
+            try:
+                write_github_output(args.github_output, decision)
+            except ClassificationError:
+                pass
     print(
         json.dumps(
-            decision.as_dict(),
+            decision.summary_dict() if args.decision_file else decision.as_dict(),
             indent=2 if args.pretty else None,
             sort_keys=True,
         )

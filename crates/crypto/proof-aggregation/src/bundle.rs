@@ -1,12 +1,14 @@
 use anyhow::{anyhow, Result};
-use prost::Message;
 use serde::{Deserialize, Serialize};
+use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
 
-const PROOF_FAMILY_UNSPECIFIED: u32 = 0;
-const PROOF_FAMILY_TRANSFER: u32 = 7;
-const PROOF_FAMILY_NOTE_RESHAPE: u32 = 8;
-const PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL: u32 = 10;
+const PROOF_FAMILY_TRANSFER: u32 = pb::ProofFamilyId::Transfer as u32;
+const PROOF_FAMILY_NOTE_RESHAPE: u32 = pb::ProofFamilyId::NoteReshape as u32;
+const PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL: u32 =
+    pb::ProofFamilyId::ShieldedIcs20Withdrawal as u32;
+
+const SHIELDED_ICS20_WITHDRAWAL_CANONICAL: u32 = 1;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum ProofFamilyId {
@@ -30,32 +32,6 @@ pub struct AggregateBundle {
     pub families: Vec<FamilyAggregate>,
 }
 
-#[derive(Clone, PartialEq, Message)]
-struct WireFamilyAggregate {
-    #[prost(uint32, tag = "1")]
-    family_id: u32,
-    #[prost(uint32, tag = "3")]
-    real_count: u32,
-    #[prost(uint32, tag = "4")]
-    padded_count: u32,
-    #[prost(bytes = "vec", tag = "5")]
-    aggregate_proof: Vec<u8>,
-    #[prost(uint32, tag = "6")]
-    note_reshape_family_id: u32,
-    #[prost(uint32, tag = "8")]
-    shielded_ics20_withdrawal_family_id: u32,
-}
-
-#[derive(Clone, PartialEq, Message)]
-struct WireAggregateBundle {
-    #[prost(uint32, tag = "1")]
-    version: u32,
-    #[prost(bytes = "vec", tag = "2")]
-    srs_id: Vec<u8>,
-    #[prost(message, repeated, tag = "3")]
-    families: Vec<WireFamilyAggregate>,
-}
-
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FamilyRouteKind {
     Transfer,
@@ -70,11 +46,42 @@ pub struct FamilyRoute {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct FamilyProtoFields {
+    pub family_id: u32,
+    pub note_reshape_family_id: u32,
+    pub shielded_ics20_withdrawal_family_id: u32,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FamilyRouteError {
     UnknownProofFamily,
     MissingSubfamily,
     UnexpectedSubfamily,
     UnknownSubfamily,
+}
+
+/// Canonical protobuf fields for a registered proof family.
+///
+/// Statement construction and bundle encoding both use this function, so the
+/// family bytes bound by Fiat--Shamir cannot drift from the inverse router.
+pub(crate) fn family_proto_fields(family_id: ProofFamilyId) -> FamilyProtoFields {
+    match family_id {
+        ProofFamilyId::Transfer => FamilyProtoFields {
+            family_id: PROOF_FAMILY_TRANSFER,
+            note_reshape_family_id: 0,
+            shielded_ics20_withdrawal_family_id: 0,
+        },
+        ProofFamilyId::NoteReshape(subfamily) => FamilyProtoFields {
+            family_id: PROOF_FAMILY_NOTE_RESHAPE,
+            note_reshape_family_id: subfamily.get(),
+            shielded_ics20_withdrawal_family_id: 0,
+        },
+        ProofFamilyId::ShieldedIcs20Withdrawal(subfamily) => FamilyProtoFields {
+            family_id: PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL,
+            note_reshape_family_id: 0,
+            shielded_ics20_withdrawal_family_id: subfamily.get(),
+        },
+    }
 }
 
 pub fn family_route_from_proto_fields(
@@ -112,9 +119,7 @@ pub fn family_route_from_proto_fields(
                 Err(FamilyRouteError::MissingSubfamily)
             } else if note_reshape_family_id != 0 {
                 Err(FamilyRouteError::UnexpectedSubfamily)
-            } else if ShieldedIcs20WithdrawalFamilyId::try_from(shielded_ics20_withdrawal_family_id)
-                .is_ok()
-            {
+            } else if shielded_ics20_withdrawal_family_id == SHIELDED_ICS20_WITHDRAWAL_CANONICAL {
                 Ok(FamilyRoute {
                     kind: FamilyRouteKind::ShieldedIcs20Withdrawal,
                     subfamily_id: shielded_ics20_withdrawal_family_id,
@@ -127,6 +132,16 @@ pub fn family_route_from_proto_fields(
     }
 }
 
+impl From<ProofFamilyId> for pb::ProofFamilyId {
+    fn from(value: ProofFamilyId) -> Self {
+        match value {
+            ProofFamilyId::Transfer => Self::Transfer,
+            ProofFamilyId::NoteReshape(_) => Self::NoteReshape,
+            ProofFamilyId::ShieldedIcs20Withdrawal(_) => Self::ShieldedIcs20Withdrawal,
+        }
+    }
+}
+
 impl ProofFamilyId {
     pub(crate) fn try_from_proto_fields(
         family_id: i32,
@@ -135,7 +150,7 @@ impl ProofFamilyId {
     ) -> Result<Self> {
         let family_id_u32 =
             u32::try_from(family_id).map_err(|_| anyhow!("unknown proof family id {family_id}"))?;
-        if family_id_u32 == PROOF_FAMILY_UNSPECIFIED {
+        if family_id_u32 == pb::ProofFamilyId::Unspecified as u32 {
             return Err(anyhow!("unspecified proof family id"));
         }
         let route = family_route_from_proto_fields(
@@ -150,28 +165,6 @@ impl ProofFamilyId {
             FamilyRouteKind::ShieldedIcs20Withdrawal => Ok(Self::ShieldedIcs20Withdrawal(
                 route.subfamily_id.try_into()?,
             )),
-        }
-    }
-
-    pub(crate) fn note_reshape_family_id(self) -> u32 {
-        match self {
-            ProofFamilyId::NoteReshape(family_id) => family_id.get(),
-            _ => 0,
-        }
-    }
-
-    pub(crate) fn shielded_ics20_withdrawal_family_id(self) -> u32 {
-        match self {
-            ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => family_id.get(),
-            _ => 0,
-        }
-    }
-
-    pub(crate) fn wire_id(self) -> u32 {
-        match self {
-            Self::Transfer => PROOF_FAMILY_TRANSFER,
-            Self::NoteReshape(_) => PROOF_FAMILY_NOTE_RESHAPE,
-            Self::ShieldedIcs20Withdrawal(_) => PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL,
         }
     }
 }
@@ -191,17 +184,19 @@ fn family_route_error_message(err: FamilyRouteError, family_id: i32) -> anyhow::
     }
 }
 
-impl AggregateBundle {
-    pub fn encode_to_vec(&self) -> Vec<u8> {
-        WireAggregateBundle::from(self.clone()).encode_to_vec()
-    }
+impl TryFrom<i32> for ProofFamilyId {
+    type Error = anyhow::Error;
 
-    pub fn decode(bytes: &[u8]) -> Result<Self> {
-        WireAggregateBundle::decode(bytes)?.try_into()
+    fn try_from(value: i32) -> Result<Self> {
+        Self::try_from_proto_fields(value, 0, 0)
     }
 }
 
-impl From<AggregateBundle> for WireAggregateBundle {
+impl DomainType for AggregateBundle {
+    type Proto = pb::AggregateBundle;
+}
+
+impl From<AggregateBundle> for pb::AggregateBundle {
     fn from(value: AggregateBundle) -> Self {
         Self {
             version: value.version,
@@ -211,10 +206,10 @@ impl From<AggregateBundle> for WireAggregateBundle {
     }
 }
 
-impl TryFrom<WireAggregateBundle> for AggregateBundle {
+impl TryFrom<pb::AggregateBundle> for AggregateBundle {
     type Error = anyhow::Error;
 
-    fn try_from(value: WireAggregateBundle) -> Result<Self> {
+    fn try_from(value: pb::AggregateBundle) -> Result<Self> {
         Ok(Self {
             version: value.version,
             srs_id: value.srs_id,
@@ -227,14 +222,17 @@ impl TryFrom<WireAggregateBundle> for AggregateBundle {
     }
 }
 
-impl From<FamilyAggregate> for WireFamilyAggregate {
+impl DomainType for FamilyAggregate {
+    type Proto = pb::FamilyAggregate;
+}
+
+impl From<FamilyAggregate> for pb::FamilyAggregate {
     fn from(value: FamilyAggregate) -> Self {
+        let fields = family_proto_fields(value.family_id);
         Self {
-            family_id: value.family_id.wire_id(),
-            note_reshape_family_id: value.family_id.note_reshape_family_id(),
-            shielded_ics20_withdrawal_family_id: value
-                .family_id
-                .shielded_ics20_withdrawal_family_id(),
+            family_id: fields.family_id as i32,
+            note_reshape_family_id: fields.note_reshape_family_id,
+            shielded_ics20_withdrawal_family_id: fields.shielded_ics20_withdrawal_family_id,
             real_count: value.real_count,
             padded_count: value.padded_count,
             aggregate_proof: value.aggregate_proof,
@@ -242,14 +240,13 @@ impl From<FamilyAggregate> for WireFamilyAggregate {
     }
 }
 
-impl TryFrom<WireFamilyAggregate> for FamilyAggregate {
+impl TryFrom<pb::FamilyAggregate> for FamilyAggregate {
     type Error = anyhow::Error;
 
-    fn try_from(value: WireFamilyAggregate) -> Result<Self> {
+    fn try_from(value: pb::FamilyAggregate) -> Result<Self> {
         Ok(Self {
             family_id: ProofFamilyId::try_from_proto_fields(
-                i32::try_from(value.family_id)
-                    .map_err(|_| anyhow!("unknown proof family id {}", value.family_id))?,
+                value.family_id,
                 value.note_reshape_family_id,
                 value.shielded_ics20_withdrawal_family_id,
             )?,
@@ -263,24 +260,109 @@ impl TryFrom<WireFamilyAggregate> for FamilyAggregate {
 #[cfg(test)]
 mod tests {
     use super::{
-        AggregateBundle, FamilyAggregate, ProofFamilyId, WireAggregateBundle, WireFamilyAggregate,
-        PROOF_FAMILY_UNSPECIFIED,
+        family_proto_fields, family_route_from_proto_fields, AggregateBundle, FamilyAggregate,
+        FamilyRouteKind, ProofFamilyId,
     };
-    use prost::Message;
+    use shieldd_sdk_proto::DomainType;
     use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
 
     #[test]
-    fn aggregate_bundle_private_wire_round_trip() {
+    fn canonical_family_fields_round_trip_through_router() {
+        let mut families = vec![
+            ProofFamilyId::Transfer,
+            ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
+        ];
+        families.extend(
+            NoteReshapeFamilyId::ALL
+                .into_iter()
+                .map(ProofFamilyId::NoteReshape),
+        );
+
+        for family in families {
+            let fields = family_proto_fields(family);
+            let route = family_route_from_proto_fields(
+                fields.family_id,
+                fields.note_reshape_family_id,
+                fields.shielded_ics20_withdrawal_family_id,
+            )
+            .expect("canonical family fields must route");
+            match family {
+                ProofFamilyId::Transfer => {
+                    assert_eq!(route.kind, FamilyRouteKind::Transfer);
+                    assert_eq!(route.subfamily_id, 0);
+                }
+                ProofFamilyId::NoteReshape(subfamily) => {
+                    assert_eq!(route.kind, FamilyRouteKind::NoteReshape);
+                    assert_eq!(route.subfamily_id, subfamily.get());
+                }
+                ProofFamilyId::ShieldedIcs20Withdrawal(subfamily) => {
+                    assert_eq!(route.kind, FamilyRouteKind::ShieldedIcs20Withdrawal);
+                    assert_eq!(route.subfamily_id, subfamily.get());
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn family_router_rejects_unknown_missing_and_cross_family_fields() {
+        let transfer = shieldd_sdk_proto::core::transaction::v1::ProofFamilyId::Transfer as u32;
+        let note_reshape =
+            shieldd_sdk_proto::core::transaction::v1::ProofFamilyId::NoteReshape as u32;
+        let withdrawal =
+            shieldd_sdk_proto::core::transaction::v1::ProofFamilyId::ShieldedIcs20Withdrawal as u32;
+
+        assert_eq!(
+            family_route_from_proto_fields(u32::MAX, 0, 0),
+            Err(super::FamilyRouteError::UnknownProofFamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(note_reshape, 0, 0),
+            Err(super::FamilyRouteError::MissingSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(note_reshape, 0, 1),
+            Err(super::FamilyRouteError::MissingSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(withdrawal, 0, 0),
+            Err(super::FamilyRouteError::MissingSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(withdrawal, 1, 0),
+            Err(super::FamilyRouteError::MissingSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(transfer, 1, 0),
+            Err(super::FamilyRouteError::UnexpectedSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(note_reshape, 1, 1),
+            Err(super::FamilyRouteError::UnexpectedSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(withdrawal, 1, 1),
+            Err(super::FamilyRouteError::UnexpectedSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(note_reshape, u32::MAX, 0),
+            Err(super::FamilyRouteError::UnknownSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(withdrawal, 0, u32::MAX),
+            Err(super::FamilyRouteError::UnknownSubfamily)
+        );
+        assert_eq!(
+            family_route_from_proto_fields(u32::MAX, 1, 1),
+            Err(super::FamilyRouteError::UnknownProofFamily)
+        );
+    }
+
+    #[test]
+    fn aggregate_bundle_proto_round_trip() {
         let bundle = AggregateBundle {
             version: 7,
             srs_id: vec![1, 2, 3, 4],
             families: vec![
-                FamilyAggregate {
-                    family_id: ProofFamilyId::Transfer,
-                    real_count: 1,
-                    padded_count: 1,
-                    aggregate_proof: vec![0],
-                },
                 FamilyAggregate {
                     family_id: ProofFamilyId::NoteReshape(NoteReshapeFamilyId::EightByOne),
                     real_count: 1,
@@ -293,77 +375,33 @@ mod tests {
                     padded_count: 2,
                     aggregate_proof: vec![4, 5, 6],
                 },
-                FamilyAggregate {
-                    family_id: ProofFamilyId::ShieldedIcs20Withdrawal(
-                        ShieldedIcs20WithdrawalFamilyId::Canonical,
-                    ),
-                    real_count: 4,
-                    padded_count: 4,
-                    aggregate_proof: vec![7, 8, 9],
-                },
             ],
         };
 
-        let encoded = bundle.encode_to_vec();
-        let decoded = AggregateBundle::decode(&encoded).expect("bundle round-trip");
+        let proto = bundle.to_proto();
+        let decoded = AggregateBundle::try_from(proto).expect("bundle round-trip");
         assert_eq!(decoded, bundle);
     }
 
     #[test]
-    fn aggregate_bundle_decode_rejects_invalid_family_routes() {
-        let cases = [
-            (
-                PROOF_FAMILY_UNSPECIFIED,
-                0,
-                0,
-                "unspecified proof family id",
-            ),
-            (
-                super::PROOF_FAMILY_NOTE_RESHAPE,
-                0,
-                0,
-                "missing its required subfamily id",
-            ),
-            (
-                super::PROOF_FAMILY_TRANSFER,
-                NoteReshapeFamilyId::EightByOne.get(),
-                0,
-                "has subfamily ids for another family",
-            ),
-            (
-                super::PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL,
-                0,
-                u32::MAX,
-                "has an unknown subfamily id",
-            ),
-        ];
+    fn aggregate_bundle_decode_rejects_unspecified_family() {
+        let proto = shieldd_sdk_proto::core::transaction::v1::AggregateBundle {
+            version: 1,
+            srs_id: vec![0; 32],
+            families: vec![shieldd_sdk_proto::core::transaction::v1::FamilyAggregate {
+                family_id: shieldd_sdk_proto::core::transaction::v1::ProofFamilyId::Unspecified
+                    as i32,
+                note_reshape_family_id: 0,
+                shielded_ics20_withdrawal_family_id: 0,
+                real_count: 1,
+                padded_count: 1,
+                aggregate_proof: vec![1, 2, 3],
+            }],
+        };
 
-        for (
-            family_id,
-            note_reshape_family_id,
-            shielded_ics20_withdrawal_family_id,
-            expected_error,
-        ) in cases
-        {
-            let wire = WireAggregateBundle {
-                version: 1,
-                srs_id: vec![0; 32],
-                families: vec![WireFamilyAggregate {
-                    family_id,
-                    note_reshape_family_id,
-                    shielded_ics20_withdrawal_family_id,
-                    real_count: 1,
-                    padded_count: 1,
-                    aggregate_proof: vec![1, 2, 3],
-                }],
-            };
+        let err = AggregateBundle::try_from(proto)
+            .expect_err("unspecified aggregate family should reject");
 
-            let err = AggregateBundle::decode(&wire.encode_to_vec())
-                .expect_err("invalid aggregate family route should reject");
-            assert!(
-                err.to_string().contains(expected_error),
-                "unexpected error for family {family_id}: {err}"
-            );
-        }
+        assert!(err.to_string().contains("unspecified proof family id"));
     }
 }

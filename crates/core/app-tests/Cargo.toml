@@ -103,7 +103,6 @@ url                              = { workspace = true }
 [dev-dependencies]
 axum-server                      = { workspace = true }
 camino                           = { workspace = true }
-decaf377-fmd                     = { workspace = true, default-features = true }
 ed25519-consensus                = { workspace = true }
 shieldd-sdk-mock-client             = { workspace = true }
 shieldd-sdk-mock-consensus          = { workspace = true }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use async_trait::async_trait;
 use cnidarium::{StateRead, StateWrite};
 use shieldd_sdk_shielded_pool::component::Ics20Transfer;
@@ -33,8 +33,12 @@ impl AppActionHandler for Action {
                     .await
             }
             Action::ShieldedIcs20Withdrawal(action) => action.check_stateless(context).await,
+            Action::ShieldedHostWithdrawal(action) => action.check_stateless(context).await,
             Action::ComplianceRegisterAsset(action) => action.check_stateless(()).await,
             Action::ComplianceRegisterUser(action) => action.check_stateless(()).await,
+            Action::AggregateBundle(_) => bail!(
+                "aggregate bundle actions are only permitted in the dedicated aggregation pipeline"
+            ),
         }
     }
 
@@ -53,8 +57,12 @@ impl AppActionHandler for Action {
                     .await
             }
             Action::ShieldedIcs20Withdrawal(action) => action.check_historical(state).await,
+            Action::ShieldedHostWithdrawal(action) => action.check_historical(state).await,
             Action::ComplianceRegisterAsset(action) => action.check_historical(state).await,
             Action::ComplianceRegisterUser(action) => action.check_historical(state).await,
+            Action::AggregateBundle(_) => bail!(
+                "aggregate bundle actions are only permitted in the dedicated aggregation pipeline"
+            ),
         }
     }
 
@@ -73,8 +81,12 @@ impl AppActionHandler for Action {
                     .await
             }
             Action::ShieldedIcs20Withdrawal(action) => action.check_and_execute(state).await,
+            Action::ShieldedHostWithdrawal(action) => action.check_and_execute(state).await,
             Action::ComplianceRegisterAsset(action) => action.check_and_execute(state).await,
             Action::ComplianceRegisterUser(action) => action.check_and_execute(state).await,
+            Action::AggregateBundle(_) => bail!(
+                "aggregate bundle actions are only permitted in the dedicated aggregation pipeline"
+            ),
         }
     }
 }

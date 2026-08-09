@@ -149,20 +149,32 @@ kill_tree() {
 }
 
 cleanup_smoke() {
-    if [ -n "${devnet_pid:-}" ]; then
-        kill_tree "$devnet_pid"
-        wait "$devnet_pid" 2>/dev/null || true
-    fi
+    local exit_status=$?
 
-    unset SHIELDD_DEVNET_HOME
+    {
+        if [ -n "${devnet_pid:-}" ]; then
+            kill_tree "$devnet_pid"
+            wait "$devnet_pid" 2>/dev/null || true
+        fi
 
-    case "${smoke_test_dir:-}" in
-        "$temp_root"/shieldd-smoke.*)
-            if [ -n "${smoke_test_dir}" ] && [ -d "${smoke_test_dir}" ]; then
-                rm -rf "${smoke_test_dir}"
-            fi
-            ;;
-    esac
+        if [ "$exit_status" -ne 0 ] && [ -f "${smoke_test_dir:-}/devnet.log" ]; then
+            >&2 echo "=== devnet log after smoke failure (last 200 lines) ==="
+            tail -200 "${smoke_test_dir}/devnet.log" >&2 || true
+            >&2 echo "=== end devnet log ==="
+        fi
+
+        unset SHIELDD_DEVNET_HOME
+
+        case "${smoke_test_dir:-}" in
+            "$temp_root"/shieldd-smoke.*)
+                if [ -n "${smoke_test_dir}" ] && [ -d "${smoke_test_dir}" ]; then
+                    rm -rf "${smoke_test_dir}"
+                fi
+                ;;
+        esac
+    } || true
+
+    return "$exit_status"
 }
 
 trap cleanup_smoke EXIT

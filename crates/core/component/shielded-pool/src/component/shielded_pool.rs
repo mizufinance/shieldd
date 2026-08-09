@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use super::fmd::ClueManagerInternal as _;
-use crate::fmd::should_update_fmd_params;
 use crate::params::ShieldedPoolParameters;
-use crate::{fmd, genesis, state_key};
+use crate::{discovery, genesis, state_key};
 use anyhow::anyhow;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -34,8 +32,12 @@ impl Component for ShieldedPool {
                 // TODO(erwan): the handling of those parameters is a bit weird.
                 // rationalize it before merging
                 state.put_shielded_pool_params(genesis.shielded_pool_params.clone());
-                state.put_current_fmd_parameters(fmd::Parameters::default());
-                state.put_previous_fmd_parameters(fmd::Parameters::default());
+                state.put_current_discovery_parameters(
+                    genesis.shielded_pool_params.discovery_params.clone(),
+                );
+                state.put_previous_discovery_parameters(
+                    genesis.shielded_pool_params.discovery_params.clone(),
+                );
                 let mut allocations_in_current_sct_block = 0usize;
 
                 // Register a denom for each asset in the genesis state
@@ -90,30 +92,21 @@ impl Component for ShieldedPool {
             .try_into()
             .expect("height should not be negative");
         let state = Arc::get_mut(state).expect("the state should not be shared");
-        let meta_params = state
+        let configured = state
             .get_shielded_pool_params()
             .await
-            .expect("should be able to read state")
-            .fmd_meta_params;
-        if should_update_fmd_params(meta_params.fmd_grace_period_blocks, height) {
-            let old = state
-                .get_current_fmd_parameters()
-                .await
-                .expect("should be able to read state");
-            let clue_count_delta = state
-                .flush_clue_count()
-                .await
-                .expect("should be able to read state");
-            let algorithm_state = state
-                .get_fmd_algorithm_state()
-                .await
-                .expect("should be able to read state");
-            let (new, algorithm_state) = meta_params
-                .updated_fmd_params(&old, algorithm_state, height, clue_count_delta)
-                .expect("FMD clue count should be monotonic within a block");
-            state.put_previous_fmd_parameters(old);
-            state.put_current_fmd_parameters(new);
-            state.put_fmd_algorithm_state(algorithm_state);
+            .expect("should be able to read state");
+        let current = state
+            .get_current_discovery_parameters()
+            .await
+            .expect("should be able to read state");
+        if configured.discovery_params.precision != current.precision {
+            let new = discovery::Parameters {
+                precision: configured.discovery_params.precision,
+                as_of_block_height: height,
+            };
+            state.put_previous_discovery_parameters(current);
+            state.put_current_discovery_parameters(new);
         }
     }
 
@@ -124,17 +117,17 @@ impl Component for ShieldedPool {
 /// Extension trait providing read access to shielded pool data.
 #[async_trait]
 pub trait StateReadExt: StateRead {
-    async fn get_current_fmd_parameters(&self) -> Result<fmd::Parameters> {
-        self.get(fmd::state_key::parameters::current())
+    async fn get_current_discovery_parameters(&self) -> Result<discovery::Parameters> {
+        self.get(discovery::state_key::parameters::current())
             .await?
-            .ok_or_else(|| anyhow!("Missing FmdParameters"))
+            .ok_or_else(|| anyhow!("missing current discovery parameters"))
     }
 
-    /// Gets the previous FMD parameters from the JMT.
-    async fn get_previous_fmd_parameters(&self) -> Result<fmd::Parameters> {
-        self.get(fmd::state_key::parameters::previous())
+    /// Gets the previously active discovery parameters.
+    async fn get_previous_discovery_parameters(&self) -> Result<discovery::Parameters> {
+        self.get(discovery::state_key::parameters::previous())
             .await?
-            .ok_or_else(|| anyhow!("Missing FmdParameters"))
+            .ok_or_else(|| anyhow!("missing previous discovery parameters"))
     }
 
     async fn get_shielded_pool_params(&self) -> Result<ShieldedPoolParameters> {
@@ -143,11 +136,11 @@ pub trait StateReadExt: StateRead {
             .ok_or_else(|| anyhow!("Missing ShieldedPoolParameters"))
     }
 
-    async fn get_fmd_algorithm_state(&self) -> Result<fmd::MetaParametersAlgorithmState> {
+    async fn host_withdrawals_enabled(&self) -> Result<bool> {
         Ok(self
-            .get(fmd::state_key::meta_parameters::algorithm_state())
+            .get_raw(state_key::host_withdrawals_enabled())
             .await?
-            .unwrap_or_default())
+            .is_some())
     }
 }
 
@@ -160,21 +153,20 @@ pub trait StateWriteExt: StateWrite + StateReadExt {
         self.put(crate::state_key::shielded_pool_params().into(), params)
     }
 
-    /// Writes the current FMD parameters to the JMT.
-    fn put_current_fmd_parameters(&mut self, params: fmd::Parameters) {
-        self.put(fmd::state_key::parameters::current().into(), params)
+    fn put_host_withdrawals_enabled(&mut self, enabled: bool) {
+        if enabled {
+            self.put_raw(crate::state_key::host_withdrawals_enabled().into(), vec![1])
+        } else {
+            self.delete(crate::state_key::host_withdrawals_enabled().into())
+        }
     }
 
-    /// Writes the previous FMD parameters to the JMT.
-    fn put_previous_fmd_parameters(&mut self, params: fmd::Parameters) {
-        self.put(fmd::state_key::parameters::previous().into(), params)
+    fn put_current_discovery_parameters(&mut self, params: discovery::Parameters) {
+        self.put(discovery::state_key::parameters::current().into(), params)
     }
 
-    fn put_fmd_algorithm_state(&mut self, state: fmd::MetaParametersAlgorithmState) {
-        self.put(
-            fmd::state_key::meta_parameters::algorithm_state().into(),
-            state,
-        )
+    fn put_previous_discovery_parameters(&mut self, params: discovery::Parameters) {
+        self.put(discovery::state_key::parameters::previous().into(), params)
     }
 }
 

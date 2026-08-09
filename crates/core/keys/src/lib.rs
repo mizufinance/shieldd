@@ -2,17 +2,18 @@
 // Requires nightly.
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-use decaf377_fmd as fmd;
 use decaf377_ka as ka;
 use decaf377_rdsa as rdsa;
 
 pub mod address;
+mod discovery_key;
 pub mod keys;
 pub mod prf;
 pub mod symmetric;
 pub mod test_keys;
 
 pub use address::{Address, AddressError, AddressVar, AddressView};
+pub use discovery_key::DiscoveryKey;
 pub use keys::{FullViewingKey, FullViewingKeyError, SpendKeyError};
 pub use symmetric::{BackreferenceKey, PayloadKey, PositionMetadataKey};
 

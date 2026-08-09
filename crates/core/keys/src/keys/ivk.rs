@@ -10,9 +10,9 @@ use decaf377::{
 
 use super::{AddressIndex, Diversifier, DiversifierKey};
 use crate::{
-    fmd, ka,
+    ka,
     keys::{AuthorizationKeyVar, NullifierKeyVar, IVK_DOMAIN_SEP},
-    prf, Address,
+    prf, Address, DiscoveryKey,
 };
 
 pub const IVK_LEN_BYTES: usize = 64;
@@ -39,22 +39,18 @@ pub struct IncomingViewingKey {
 
 impl IncomingViewingKey {
     /// Derive a shielded payment address with the given [`AddressIndex`].
-    pub fn payment_address(&self, index: AddressIndex) -> (Address, fmd::DetectionKey) {
+    pub fn payment_address(&self, index: AddressIndex) -> (Address, DiscoveryKey) {
         let d = self.dk.diversifier_for_index(&index);
         let g_d = d.diversified_generator();
         let pk_d = self.ivk.diversified_public(&g_d);
 
-        let dtk_d = fmd::DetectionKey::from_field(Fr::from_le_bytes_mod_order(
-            prf::expand(b"ShielddExpandFMD", &self.ivk.to_bytes(), d.as_ref()).as_bytes(),
-        ));
-        let ck_d = dtk_d.clue_key();
+        let discovery_key = DiscoveryKey::derive(
+            prf::expand(b"ShielddDiscovery", &self.ivk.to_bytes(), d.as_ref()).as_bytes(),
+        );
 
         (
-            Address::from_components(d, pk_d, ck_d).expect(
-                "address derivation relies on \
-                 ZK-ASSUME-DIVERSIFIER-HASH-TO-GENERATOR-NONIDENTITY",
-            ),
-            dtk_d,
+            Address::from_components(d, pk_d, discovery_key).expect("pk_d is valid"),
+            discovery_key,
         )
     }
 
@@ -67,12 +63,10 @@ impl IncomingViewingKey {
         let dzero = Diversifier([0u8; 16]);
         let g_dzero = dzero.diversified_generator();
         let pk_dzero = self.ivk.diversified_public(&g_dzero);
-        let ck_id = fmd::ClueKey([0u8; 32]);
+        let discovery_key = DiscoveryKey([0u8; 32]);
 
-        let address = Address::from_components(dzero, pk_dzero, ck_id).expect(
-            "transparent address derivation relies on \
-             ZK-ASSUME-DIVERSIFIER-HASH-TO-GENERATOR-NONIDENTITY",
-        );
+        let address =
+            Address::from_components(dzero, pk_dzero, discovery_key).expect("valid address");
 
         // This should never fail as we just constructed a valid transparent address
         address
@@ -85,7 +79,7 @@ impl IncomingViewingKey {
         &self,
         mut rng: R,
         mut address_index: AddressIndex,
-    ) -> (Address, fmd::DetectionKey) {
+    ) -> (Address, DiscoveryKey) {
         let mut random_index = [0u8; 12];
 
         rng.fill_bytes(&mut random_index);
@@ -252,24 +246,18 @@ mod test {
             .expect("a nonzero incoming-viewing-key witness must allocate");
         enforce_incoming_viewing_key_nonzero(nonzero_cs.clone(), &nonzero)
             .expect("the nonzero predicate must synthesize for a nonzero witness");
-        assert!(
-            nonzero_cs
-                .is_satisfied()
-                .expect("nonzero incoming-viewing-key satisfaction is defined"),
-            "the algebraic predicate must accept a nonzero scalar"
-        );
+        assert!(nonzero_cs
+            .is_satisfied()
+            .expect("nonzero incoming-viewing-key satisfaction is defined"));
 
         let zero_cs = ConstraintSystem::<Fq>::new_ref();
         let zero = FqVar::new_witness(zero_cs.clone(), || Ok(Fq::zero()))
             .expect("a zero incoming-viewing-key witness must allocate");
         enforce_incoming_viewing_key_nonzero(zero_cs.clone(), &zero)
             .expect("the nonzero predicate must synthesize for a zero witness");
-        assert!(
-            !zero_cs
-                .is_satisfied()
-                .expect("zero incoming-viewing-key satisfaction is defined"),
-            "the algebraic predicate must reject a zero scalar"
-        );
+        assert!(!zero_cs
+            .is_satisfied()
+            .expect("zero incoming-viewing-key satisfaction is defined"));
     }
 
     #[test]
@@ -302,8 +290,11 @@ mod test {
             reconstructed.transmission_key(),
             actual_address.transmission_key()
         );
-        // The clue keys should not match, as the clue key is zeroed out
-        assert_ne!(reconstructed.clue_key(), actual_address.clue_key());
+        // The discovery keys should not match because transparent addresses use the zero sentinel.
+        assert_ne!(
+            reconstructed.discovery_key(),
+            actual_address.discovery_key()
+        );
 
         println!("Transparent address: {}", transparent_address_str);
         println!("Reconstructed address: {}", reconstructed);

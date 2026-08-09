@@ -64,6 +64,7 @@ pub mod registry;
 pub use registry::{
     AssetGrantAdmission, ComplianceRegistryRead, ComplianceRegistryWrite,
     EnactedGovernanceAssetPolicyAdmission, GenesisAssetAdmission, UserGrantAdmission,
+    UserLeafRecord,
 };
 
 #[cfg(feature = "component")]
@@ -193,7 +194,7 @@ pub mod test_helpers {
         let scalar = Fr::rand(&mut rng);
         let point = decaf377::Element::GENERATOR * scalar;
         let pk_d = decaf377_ka::Public(point.vartime_compress().0);
-        let ck = decaf377_fmd::DetectionKey::new(&mut rng).clue_key();
+        let ck = shieldd_sdk_keys::DiscoveryKey(Fq::from(u64::from(div_byte) + 1).to_bytes());
         Address::from_components(diversifier, pk_d, ck).unwrap()
     }
 

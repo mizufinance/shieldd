@@ -7,6 +7,8 @@ use shieldd_sdk_proto::core::component::sct::v1::{
     TimestampByHeightRequest, TimestampByHeightResponse,
 };
 use shieldd_sdk_proto::crypto::tct::v1 as pb_tct;
+use std::sync::Arc;
+use tokio::sync::Semaphore;
 use tonic::Status;
 use tracing::instrument;
 
@@ -18,11 +20,17 @@ use super::tree::SctRead;
 // TODO: Hide this and only expose a Router?
 pub struct Server {
     storage: Storage,
+    nullifier_proofs: Arc<Semaphore>,
 }
 
 impl Server {
+    const MAX_CONCURRENT_NULLIFIER_PROOFS: usize = 32;
+
     pub fn new(storage: Storage) -> Self {
-        Self { storage }
+        Self {
+            storage,
+            nullifier_proofs: Arc::new(Semaphore::new(Self::MAX_CONCURRENT_NULLIFIER_PROOFS)),
+        }
     }
 }
 
@@ -156,20 +164,36 @@ impl QueryService for Server {
             .ok_or_else(|| tonic::Status::invalid_argument("missing nullifier"))?;
         let nullifier = Nullifier::try_from(nullifier)
             .map_err(|e| tonic::Status::invalid_argument(format!("invalid nullifier: {e}")))?;
-        let lookup = nullifier_tree::lookup_with_proof(&state, nullifier)
-            .await
-            .map_err(|e| tonic::Status::unknown(format!("could not query nullifier: {e}")))?;
-        let proof = if request.with_proof {
-            borsh::to_vec(&lookup.proof)
-                .map_err(|e| tonic::Status::internal(format!("could not encode proof: {e}")))?
+        let (root, spent, proof) = if request.with_proof {
+            let _permit = self
+                .nullifier_proofs
+                .clone()
+                .try_acquire_owned()
+                .map_err(|_| {
+                    tonic::Status::resource_exhausted(
+                        "nullifier proof service is at capacity; retry the request",
+                    )
+                })?;
+            let lookup = nullifier_tree::lookup_with_proof(&state, nullifier)
+                .await
+                .map_err(|e| tonic::Status::unknown(format!("could not query nullifier: {e}")))?;
+            let proof = borsh::to_vec(&lookup.proof)
+                .map_err(|e| tonic::Status::internal(format!("could not encode proof: {e}")))?;
+            (lookup.root, lookup.spent, proof)
         } else {
-            Vec::new()
+            let root = nullifier_tree::committed_root(&state)
+                .await
+                .map_err(|e| tonic::Status::unknown(format!("could not read nullifier root: {e}")))?
+                .ok_or_else(|| tonic::Status::unavailable("nullifier tree is not initialized"))?;
+            let spent = nullifier_tree::is_spent(&state, nullifier)
+                .await
+                .map_err(|e| tonic::Status::unknown(format!("could not query nullifier: {e}")))?;
+            (root, spent, Vec::new())
         };
 
         Ok(tonic::Response::new(NullifierResponse {
-            spent: lookup.info.is_some(),
-            nullification_info: lookup.info.map(Into::into),
-            nullifier_root: lookup.root.0.to_vec(),
+            spent,
+            nullifier_root: root.0.to_vec(),
             proof,
         }))
     }

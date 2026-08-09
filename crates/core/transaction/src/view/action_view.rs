@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
 use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
+use shieldd_sdk_proof_aggregation::AggregateBundle;
 use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
-use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalView;
+use shieldd_sdk_shielded_pool::{ShieldedHostWithdrawalView, ShieldedIcs20WithdrawalView};
 
 pub use shieldd_sdk_shielded_pool::NoteReshapeView;
 pub use shieldd_sdk_shielded_pool::TransferView;
@@ -21,8 +22,10 @@ pub enum ActionView {
     ProposalSubmit(ProposalSubmit),
     ValidatorVote(ValidatorVote),
     ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalView),
+    ShieldedHostWithdrawal(ShieldedHostWithdrawalView),
     ComplianceRegisterAsset(MsgRegisterAsset),
     ComplianceRegisterUser(MsgRegisterUser),
+    AggregateBundle(AggregateBundle),
 }
 
 impl DomainType for ActionView {
@@ -48,10 +51,12 @@ impl TryFrom<pbt::ActionView> for ActionView {
                 AV::ShieldedIcs20Withdrawal(x) => {
                     ActionView::ShieldedIcs20Withdrawal(x.try_into()?)
                 }
+                AV::ShieldedHostWithdrawal(x) => ActionView::ShieldedHostWithdrawal(x.try_into()?),
                 AV::ComplianceRegisterAsset(x) => {
                     ActionView::ComplianceRegisterAsset(x.try_into()?)
                 }
                 AV::ComplianceRegisterUser(x) => ActionView::ComplianceRegisterUser(x.try_into()?),
+                AV::AggregateBundle(x) => ActionView::AggregateBundle(x.try_into()?),
             },
         )
     }
@@ -69,8 +74,10 @@ impl From<ActionView> for pbt::ActionView {
                 ActionView::ProposalSubmit(x) => AV::ProposalSubmit(x.into()),
                 ActionView::ValidatorVote(x) => AV::ValidatorVote(x.into()),
                 ActionView::ShieldedIcs20Withdrawal(x) => AV::ShieldedIcs20Withdrawal(x.into()),
+                ActionView::ShieldedHostWithdrawal(x) => AV::ShieldedHostWithdrawal(x.into()),
                 ActionView::ComplianceRegisterAsset(x) => AV::ComplianceRegisterAsset(x.into()),
                 ActionView::ComplianceRegisterUser(x) => AV::ComplianceRegisterUser(x.into()),
+                ActionView::AggregateBundle(x) => AV::AggregateBundle(x.into()),
             }),
         }
     }
@@ -93,8 +100,17 @@ impl From<ActionView> for Action {
                     Action::ShieldedIcs20Withdrawal(withdrawal)
                 }
             },
+            ActionView::ShieldedHostWithdrawal(x) => match x {
+                ShieldedHostWithdrawalView::Visible { withdrawal, .. } => {
+                    Action::ShieldedHostWithdrawal(withdrawal)
+                }
+                ShieldedHostWithdrawalView::Opaque { withdrawal } => {
+                    Action::ShieldedHostWithdrawal(withdrawal)
+                }
+            },
             ActionView::ComplianceRegisterAsset(x) => Action::ComplianceRegisterAsset(x),
             ActionView::ComplianceRegisterUser(x) => Action::ComplianceRegisterUser(x),
+            ActionView::AggregateBundle(x) => Action::AggregateBundle(x),
         }
     }
 }

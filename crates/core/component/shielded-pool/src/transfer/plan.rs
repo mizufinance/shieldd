@@ -13,6 +13,8 @@ use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
 use std::convert::{TryFrom, TryInto};
 
+use crate::discovery::Precision;
+
 use super::compliance::{
     build_transfer_compliance, change_output_transfer_compliance, is_change_output_index,
     is_receiver_output_index, receiver_output_transfer_compliance, CHANGE_OUTPUT_INDEX,
@@ -37,6 +39,7 @@ pub struct TransferPlan {
     pub value_blinding: Fr,
     pub spends: Vec<ShieldedInputPlan>,
     pub outputs: Vec<ShieldedOutputPlan>,
+    pub discovery_precision: Precision,
 }
 
 impl TransferPlan {
@@ -49,6 +52,7 @@ impl TransferPlan {
             value_blinding,
             spends,
             outputs,
+            discovery_precision: Precision::default(),
         };
         plan.validate()?;
         Ok(plan)
@@ -72,6 +76,10 @@ impl TransferPlan {
 
     pub fn outputs(&self) -> &[ShieldedOutputPlan] {
         &self.outputs
+    }
+
+    pub fn set_discovery_precision(&mut self, precision: Precision) {
+        self.discovery_precision = precision;
     }
 
     pub fn spend_randomizers(&self) -> impl Iterator<Item = Fr> + '_ {
@@ -351,6 +359,7 @@ impl TransferPlan {
                     fvk.outgoing(),
                     memo_key,
                     action_balance_commitment,
+                    self.discovery_precision,
                 );
                 let compliance_bytes = if is_receiver_output_index(index) {
                     receiver_output_transfer_compliance(
@@ -379,6 +388,7 @@ impl TransferPlan {
                 fvk.outgoing(),
                 memo_key,
                 action_balance_commitment,
+                self.discovery_precision,
             );
             TransferOutputBody {
                 note_payload,
@@ -631,6 +641,7 @@ impl From<TransferPlan> for pb::TransferPlan {
             value_blinding: msg.value_blinding.to_bytes().to_vec(),
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
+            discovery_precision_bits: msg.discovery_precision.into(),
         }
     }
 }
@@ -657,6 +668,7 @@ impl TryFrom<pb::TransferPlan> for TransferPlan {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<Vec<_>, _>>()?,
+            discovery_precision: proto.discovery_precision_bits.try_into()?,
         };
         plan.validate()?;
         Ok(plan)
@@ -686,6 +698,7 @@ fn transfer_output_parts(
     ovk: &OutgoingViewingKey,
     memo_key: &PayloadKey,
     action_balance_commitment: balance::Commitment,
+    discovery_precision: Precision,
 ) -> (crate::NotePayload, WrappedMemoKey, OvkWrappedKey) {
     let esk = note.ephemeral_secret_key();
     let wrapped_memo_key = WrappedMemoKey::encrypt(
@@ -695,7 +708,11 @@ fn transfer_output_parts(
         &note.diversified_generator(),
     );
     let ovk_wrapped_key = note.encrypt_key(ovk, action_balance_commitment);
-    (note.payload(), wrapped_memo_key, ovk_wrapped_key)
+    (
+        note.payload(discovery_precision),
+        wrapped_memo_key,
+        ovk_wrapped_key,
+    )
 }
 
 #[cfg(test)]

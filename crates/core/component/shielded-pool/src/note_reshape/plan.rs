@@ -10,6 +10,8 @@ use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::EffectingData;
 use std::convert::{TryFrom, TryInto};
 
+use crate::discovery::Precision;
+
 #[cfg(any(unix, windows))]
 use super::{NoteReshape, NoteReshapeProof};
 use super::{
@@ -27,6 +29,7 @@ pub struct NoteReshapePlan {
     pub value_blinding: Fr,
     pub spends: Vec<ShieldedInputPlan>,
     pub outputs: Vec<ShieldedOutputPlan>,
+    pub discovery_precision: Precision,
 }
 
 impl NoteReshapePlan {
@@ -60,6 +63,7 @@ impl NoteReshapePlan {
             value_blinding,
             spends,
             outputs,
+            discovery_precision: Precision::default(),
         };
         plan.validate()?;
         Ok(plan)
@@ -105,6 +109,7 @@ impl NoteReshapePlan {
         fvk: &FullViewingKey,
         memo_key: &PayloadKey,
         action_balance_commitment: shieldd_sdk_asset::balance::Commitment,
+        discovery_precision: Precision,
     ) -> NoteReshapeOutputBody {
         let wrapped_memo_key = WrappedMemoKey::encrypt(
             memo_key,
@@ -114,10 +119,14 @@ impl NoteReshapePlan {
         );
         let ovk_wrapped_key = note.encrypt_key(fvk.outgoing(), action_balance_commitment);
         NoteReshapeOutputBody {
-            note_payload: note.payload(),
+            note_payload: note.payload(discovery_precision),
             wrapped_memo_key,
             ovk_wrapped_key,
         }
+    }
+
+    pub fn set_discovery_precision(&mut self, precision: Precision) {
+        self.discovery_precision = precision;
     }
 
     pub fn validate(&self) -> anyhow::Result<()> {
@@ -336,6 +345,7 @@ impl NoteReshapePlan {
                     fvk,
                     memo_key,
                     action_balance_commitment,
+                    self.discovery_precision,
                 )
             })
             .collect::<Vec<_>>();
@@ -345,6 +355,7 @@ impl NoteReshapePlan {
                 fvk,
                 memo_key,
                 action_balance_commitment,
+                self.discovery_precision,
             )
         });
 
@@ -403,6 +414,7 @@ impl From<NoteReshapePlan> for pb::NoteReshapePlan {
             value_blinding: msg.value_blinding.to_bytes_le().to_vec(),
             spends: msg.spends.into_iter().map(Into::into).collect(),
             outputs: msg.outputs.into_iter().map(Into::into).collect(),
+            discovery_precision_bits: msg.discovery_precision.into(),
         }
     }
 }
@@ -431,6 +443,7 @@ impl TryFrom<pb::NoteReshapePlan> for NoteReshapePlan {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
+            discovery_precision: proto.discovery_precision_bits.try_into()?,
         };
         plan.validate()?;
         Ok(plan)

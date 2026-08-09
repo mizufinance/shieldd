@@ -66,7 +66,7 @@ jobs:
     name: 'provers: tamarin-alloy'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -84,7 +84,7 @@ jobs:
     name: 'provers: dleq'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -109,7 +109,7 @@ jobs:
     name: 'provers: fstar'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -152,7 +152,7 @@ jobs:
     name: 'provers: picus'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -184,7 +184,7 @@ jobs:
     name: 'provers: acl2 (advisory)'
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     continue-on-error: true
     steps:

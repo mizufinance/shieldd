@@ -28,7 +28,6 @@ blake2b_simd = {workspace = true}
 bytes = {workspace = true}
 chacha20poly1305 = {workspace = true}
 decaf377 = {workspace = true}
-decaf377-fmd = {workspace = true}
 decaf377-ka = {workspace = true}
 decaf377-rdsa = {workspace = true}
 derivative = {workspace = true}
@@ -46,6 +45,7 @@ shieldd-sdk-ibc = {workspace = true, default-features = false}
 shieldd-sdk-keys = {workspace = true, default-features = false}
 shieldd-sdk-num = {workspace = true, default-features = false}
 shieldd-sdk-proof-params = {workspace = true, default-features = true}
+shieldd-sdk-proof-aggregation = {workspace = true, default-features = true}
 shieldd-sdk-proto = {workspace = true, default-features = true}
 shieldd-sdk-sct = {workspace = true, default-features = false}
 shieldd-sdk-shielded-pool = {workspace = true, default-features = false}

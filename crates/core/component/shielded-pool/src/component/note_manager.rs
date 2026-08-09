@@ -9,8 +9,11 @@ use shieldd_sdk_tct as tct;
 use tct::StateCommitment;
 use tracing::instrument;
 
+use super::StateReadExt;
+#[cfg(test)]
+use super::StateWriteExt;
 use crate::state_key;
-use crate::{Note, NotePayload, Rseed};
+use crate::{discovery, Note, NotePayload, Rseed};
 
 #[cfg(feature = "benchmark-helpers")]
 use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
@@ -19,7 +22,7 @@ use std::time::Instant;
 
 /// Manages the addition of new notes to the chain state.
 #[async_trait]
-pub trait NoteManager: StateWrite {
+pub trait NoteManager: StateWrite + StateReadExt {
     /// Mint a new (public) note into the shielded pool.
     ///
     /// Most notes in the shielded pool are created by client transactions.
@@ -36,6 +39,7 @@ pub trait NoteManager: StateWrite {
         let mint_note_start = Instant::now();
 
         tracing::debug!(?value, ?address, "minting tokens");
+        let discovery_precision = self.get_current_discovery_parameters().await?.precision;
 
         // These notes are public, so we don't need a blinding factor for
         // privacy, but since the note commitments are determined by the note
@@ -52,7 +56,12 @@ pub trait NoteManager: StateWrite {
             .add_sct_commitment_from_position(source_for_append, |position| {
                 #[cfg(feature = "benchmark-helpers")]
                 let note_build_start = Instant::now();
-                let note_payload = build_position_derived_mint_payload(value, address, position)?;
+                let note_payload = build_position_derived_mint_payload(
+                    value,
+                    address,
+                    position,
+                    discovery_precision,
+                )?;
                 #[cfg(feature = "benchmark-helpers")]
                 record_inbound_stage(InboundStage::MintNoteBuild, note_build_start.elapsed());
 
@@ -139,15 +148,16 @@ pub trait NoteManager: StateWrite {
     }
 }
 
-impl<T: StateWrite + ?Sized> NoteManager for T {}
+impl<T: StateWrite + StateReadExt + ?Sized> NoteManager for T {}
 
 pub fn build_position_derived_mint_payload(
     value: Value,
     address: &Address,
     position: tct::Position,
+    discovery_precision: discovery::Precision,
 ) -> Result<NotePayload> {
     let note = Note::from_parts(address.clone(), value, mint_rseed(position)?)?;
-    Ok(note.payload())
+    Ok(note.payload(discovery_precision))
 }
 
 fn mint_rseed(position: tct::Position) -> Result<Rseed> {
@@ -175,6 +185,7 @@ mod tests {
     async fn mint_note_stages_position_derived_payloads() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
+        state.put_current_discovery_parameters(discovery::Parameters::default());
         let address = test_keys::ADDRESS_0.deref().clone();
         let value = Value {
             amount: Amount::from(1u64),
@@ -197,7 +208,7 @@ mod tests {
 
         for (position, payload, source) in payloads {
             let expected_note = Note::from_parts(address.clone(), value, mint_rseed(position)?)?;
-            let expected_payload = expected_note.payload();
+            let expected_payload = expected_note.payload(discovery::Precision::default());
             assert_eq!(payload.note_commitment, expected_payload.note_commitment);
             assert_eq!(payload.ephemeral_key.0, expected_payload.ephemeral_key.0);
             assert_eq!(payload.encrypted_note.0, expected_payload.encrypted_note.0);
@@ -211,6 +222,7 @@ mod tests {
     async fn position_derived_mint_matches_immediate_mint_payload() -> Result<()> {
         let storage = TempStorage::new().await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
+        state.put_current_discovery_parameters(discovery::Parameters::default());
         let address = test_keys::ADDRESS_0.deref().clone();
         let value = Value {
             amount: Amount::from(1u64),
@@ -223,7 +235,12 @@ mod tests {
         let payloads = state.pending_note_payloads();
         let (position, immediate_payload, _) = &payloads[0];
 
-        let rebuilt_payload = build_position_derived_mint_payload(value, &address, *position)?;
+        let rebuilt_payload = build_position_derived_mint_payload(
+            value,
+            &address,
+            *position,
+            discovery::Precision::default(),
+        )?;
 
         assert_eq!(
             immediate_payload.note_commitment,

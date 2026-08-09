@@ -9,7 +9,9 @@ pub mod event;
 pub mod state_key;
 
 mod compact_block;
+mod discovery;
 mod state_payload;
 
 pub use compact_block::CompactBlock;
+pub use discovery::{DiscoveryBlock, NoteCandidate};
 pub use state_payload::{StatePayload, StatePayloadDebugKind};

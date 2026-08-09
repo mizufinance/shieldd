@@ -27,9 +27,10 @@ require_command() {
 }
 
 require_command cargo
+require_command python3
 require_command z3
 
-hax_pin="$(read_pin hax)"
+hax_pin="$(read_pin hax_fstar)"
 fstar_pin="$(read_pin fstar)"
 hax_version="$(without_v_prefix "$hax_pin")"
 fstar_version="$(without_v_prefix "$fstar_pin")"
@@ -147,87 +148,102 @@ prepare_fstar_inputs() {
 module FStar.Mul
 FSTAR
 
+  # prost owns these wire discriminants.  The extracted bundle router refers
+  # to the generated enum constants, while hax intentionally excludes the
+  # enormous generated protobuf module.  Keep the exact protocol constants in
+  # a narrow shim; Rust parity tests bind them to the live prost enum.
+  cat > "$FSTAR_SHIMS_DIR/Shieldd_sdk_proto.Shieldd.Core.Transaction.V1.fst" <<'FSTAR'
+module Shieldd_sdk_proto.Shieldd.Core.Transaction.V1
+open Core_models
+
+let anon_const_ProofFamilyId_Transfer__anon_const_0 : i32 = mk_i32 7
+let anon_const_ProofFamilyId_NoteReshape__anon_const_0 : i32 = mk_i32 8
+let anon_const_ProofFamilyId_ShieldedIcs20Withdrawal__anon_const_0 : i32 =
+  mk_i32 10
+FSTAR
+
   find "$FSTAR_HAX_PROOF_LIBS" "$FSTAR_HAX_LIB_EXTRACTION" \
     \( -name '*.fst' -o -name '*.fsti' \) \
     -exec perl -0pi -e 's/pred:\s*Type0/pred: Prims.prop/g; s/->\s*Type0;/-> Prims.prop;/g; s/->\s*Type0\)/-> Prims.prop)/g; s/->\s*Type0\n/-> Prims.prop\n/g; s/\(p: Type0\)/(p: Prims.prop)/g; s/\(v__formula: Type0\)/(v__formula: Prims.prop)/g' {} +
 
-  cat >> "$FSTAR_HAX_PROOF_LIBS/core/Core_models.Num.fst" <<'FSTAR'
-
-assume val impl_u32__is_power_of_two: u32 -> bool
-
-assume val impl_u32__to_le_bytes_injective: x: u32 -> y: u32
-  -> Lemma (requires impl_u32__to_le_bytes x == impl_u32__to_le_bytes y) (ensures x == y)
-
-assume val impl_u32__from_to_le_bytes: x: u32
-  -> Lemma (ensures impl_u32__from_le_bytes (impl_u32__to_le_bytes x) == x)
-
-assume val impl_usize_u32_cast_roundtrip: x: usize
-  -> Lemma
-      (requires v x <= 4294967295)
-      (ensures (cast (cast x <: u32) <: usize) == x)
-
-assume val impl_usize__checked_add_ok: x: usize -> y: usize
-  -> Lemma
-      (requires v x + v y <= max_usize)
-      (ensures impl_usize__checked_add x y == Core_models.Option.Option_Some (x +! y))
-
-assume val impl_u64__to_le_bytes_injective: x: u64 -> y: u64
-  -> Lemma (requires impl_u64__to_le_bytes x == impl_u64__to_le_bytes y) (ensures x == y)
-FSTAR
-
-  cat >> "$FSTAR_HAX_PROOF_LIBS/core/Core_models.Slice.fst" <<'FSTAR'
-
-assume val impl__starts_with: #v_T:Type0 -> t_Slice v_T -> t_Slice v_T -> bool
-
-assume val impl__starts_with_append: #v_T:Type0 -> prefix:t_Slice v_T -> rest:t_Slice v_T
-  -> Lemma (ensures impl__starts_with (FStar.Seq.append prefix rest) prefix == true)
-
-assume val impl__get_middle_append3:
-  #v_T:Type0 ->
-  prefix:t_Slice v_T ->
-  field:t_Slice v_T ->
-  suffix:t_Slice v_T ->
-  Lemma
-    (requires
-      Rust_primitives.Integers.v (impl__len prefix) +
-      Rust_primitives.Integers.v (impl__len field) +
-      Rust_primitives.Integers.v (impl__len suffix) <=
-      Rust_primitives.Integers.max_usize)
-    (ensures
-      impl__get #v_T
-        #(Core_models.Ops.Range.t_Range Rust_primitives.Integers.usize)
-        (FStar.Seq.append prefix (FStar.Seq.append field suffix))
-        ({
-            Core_models.Ops.Range.f_start = impl__len prefix;
-            Core_models.Ops.Range.f_end = impl__len prefix +! impl__len field
-          }
-          <:
-          Core_models.Ops.Range.t_Range Rust_primitives.Integers.usize)
-      ==
-      Core_models.Option.Option_Some field)
-FSTAR
-
-  cat >> "$FSTAR_HAX_PROOF_LIBS/core/Core_models.Convert.fst" <<'FSTAR'
-
-assume val impl__try_into_array_self_slice:
-  #v_T:Type0 ->
-  #v_N:Rust_primitives.Integers.usize ->
-  bytes:t_Array v_T v_N ->
-  Lemma
-    (ensures
-      f_try_into #(t_Slice v_T)
-        #(t_Array v_T v_N)
-        #FStar.Tactics.Typeclasses.solve
-        (bytes <: t_Slice v_T)
-      ==
-      Core_models.Result.Result_Ok bytes)
-FSTAR
+  python3 scripts/prepare_snarkpack_fstar_support.py "$FSTAR_HAX_PROOF_LIBS"
 }
 
+VERIFICATION_DRIVER="crates/crypto/proof-aggregation/formal/lean-ipp/scripts/verification_manifest.py"
+FSTAR_EVIDENCE="$FORMAL_DIR/fstar-checker-evidence.json"
+FSTAR_PLAN_FILE="$(mktemp)"
+FSTAR_CANDIDATE_FILE="$(mktemp)"
+cleanup() {
+  rm -f "$FSTAR_PLAN_FILE" "$FSTAR_CANDIDATE_FILE"
+}
+trap cleanup EXIT
+
+FSTAR_REQUEST_ARGS=()
+FSTAR_BASE_ARGS=()
+if [ -n "${SNARKPACK_FSTAR_BASE_EVIDENCE:-}" ]; then
+  [ -f "$SNARKPACK_FSTAR_BASE_EVIDENCE" ] ||
+    fail "F* base evidence is missing: $SNARKPACK_FSTAR_BASE_EVIDENCE"
+  FSTAR_BASE_ARGS+=(--base "$SNARKPACK_FSTAR_BASE_EVIDENCE")
+fi
+if [ -n "${SNARKPACK_FSTAR_PROOFS_JSON:-}" ]; then
+  FSTAR_REQUEST_ARGS+=(--requested-json "$SNARKPACK_FSTAR_PROOFS_JSON")
+else
+  FSTAR_REQUEST_ARGS+=(--force-all)
+fi
+if [ "${SNARKPACK_FSTAR_FORCE_ALL:-0}" = "1" ]; then
+  FSTAR_REQUEST_ARGS+=(--force-all)
+fi
+python3 "$VERIFICATION_DRIVER" \
+  fstar-plan \
+  "${FSTAR_BASE_ARGS[@]}" \
+  "${FSTAR_REQUEST_ARGS[@]}" \
+  >"$FSTAR_PLAN_FILE"
+mapfile -t FSTAR_PROOFS <"$FSTAR_PLAN_FILE"
+FSTAR_CHECKED_ARGS=()
+
+validate_fstar_boundary_cache() {
+  local expected=(
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Aggregate_proof_wrapper.fst
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Bundle.fst
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Padding.fst
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Preflight.fst
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Srs.fst
+    crates/crypto/proof-aggregation/proofs/fstar/extraction/Shieldd_sdk_proof_aggregation.Statement.fst
+    crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/fstar/extraction/Ark_ip_proofs.Challenge.fst
+    crates/core/component/shielded-pool/proofs/fstar/extraction/Anyhow.fst
+    crates/core/component/shielded-pool/proofs/fstar/extraction/Shieldd_sdk_shielded_pool.Note_reshape.Generated.fst
+    crates/core/component/shielded-pool/proofs/fstar/extraction/Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.fst
+  )
+  local observed=()
+  mapfile -t observed < <(
+    find \
+      crates/crypto/proof-aggregation/proofs/fstar/extraction \
+      crates/crypto/proof-aggregation/src/ipp/ip_proofs/proofs/fstar/extraction \
+      crates/core/component/shielded-pool/proofs/fstar/extraction \
+      -type f \( -name '*.fst' -o -name '*.fsti' \) \
+      -print 2>/dev/null | sort
+  )
+  mapfile -t expected < <(printf '%s\n' "${expected[@]}" | sort)
+  ((${#observed[@]} == ${#expected[@]})) ||
+    fail "F* boundary cache has an unexpected file count"
+  local index
+  for index in "${!expected[@]}"; do
+    [ "${observed[$index]}" = "${expected[$index]}" ] ||
+      fail "F* boundary cache inventory mismatch"
+    [ -s "${expected[$index]}" ] ||
+      fail "F* boundary cache contains an empty file: ${expected[$index]}"
+  done
+}
+
+if ((${#FSTAR_PROOFS[@]} > 0)); then
+if [ "${SNARKPACK_FSTAR_BOUNDARY_CACHE_HIT:-0}" = "1" ]; then
+  echo "snarkpack formal: using exact checked F* boundary cache"
+  validate_fstar_boundary_cache
+else
 pushd crates/crypto/proof-aggregation >/dev/null
 echo "snarkpack formal: extracting proof-aggregation statement boundary"
 cargo hax into \
-  -i '-** +shieldd_sdk_proof_aggregation::statement::StatementFieldBytes +shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow +shieldd_sdk_proof_aggregation::statement::StatementPaddedRows +shieldd_sdk_proof_aggregation::statement::StatementEncodingInput +shieldd_sdk_proof_aggregation::statement::encode_statement +shieldd_sdk_proof_aggregation::statement::vk_digest_preimage +shieldd_sdk_proof_aggregation::statement::validate_counts +shieldd_sdk_proof_aggregation::statement::validate_row_arity +shieldd_sdk_proof_aggregation::statement::validate_repeat_final_padding +shieldd_sdk_proof_aggregation::srs::dev_srs_supports_count +shieldd_sdk_proof_aggregation::srs::default_dev_srs_id_preimage +shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::encode_wrapped_aggregate_proof +shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::decode_wrapped_aggregate_proof +shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::decode_wrapped_aggregate_proof_inner_range +shieldd_sdk_proof_aggregation::preflight::PreflightCheapChecks +shieldd_sdk_proof_aggregation::preflight::PreflightWorkGate +shieldd_sdk_proof_aggregation::preflight::preflight_work_gate +shieldd_sdk_proof_aggregation::bundle::FamilyRouteKind +shieldd_sdk_proof_aggregation::bundle::FamilyRoute +shieldd_sdk_proof_aggregation::bundle::FamilyRouteError +shieldd_sdk_proof_aggregation::bundle::family_route_from_proto_fields' \
+  -i '-** +shieldd_sdk_proof_aggregation::statement::StatementFieldBytes +shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow +shieldd_sdk_proof_aggregation::statement::StatementPaddedRows +shieldd_sdk_proof_aggregation::statement::StatementEncodingInput +shieldd_sdk_proof_aggregation::statement::statement_encoding_input_core +shieldd_sdk_proof_aggregation::statement::encode_statement +shieldd_sdk_proof_aggregation::statement::statement_digest_preimage +shieldd_sdk_proof_aggregation::statement::vk_digest_preimage +shieldd_sdk_proof_aggregation::statement::validate_counts +shieldd_sdk_proof_aggregation::statement::validate_row_arity +shieldd_sdk_proof_aggregation::statement::validate_repeat_final_padding +shieldd_sdk_proof_aggregation::srs::dev_srs_supports_count +shieldd_sdk_proof_aggregation::srs::default_dev_srs_id_preimage +shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::encode_wrapped_aggregate_proof +shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::decode_wrapped_aggregate_proof +shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::decode_wrapped_aggregate_proof_inner_range +shieldd_sdk_proof_aggregation::preflight::PreflightCheapChecks +shieldd_sdk_proof_aggregation::preflight::PreflightWorkGate +shieldd_sdk_proof_aggregation::preflight::preflight_work_gate +shieldd_sdk_proof_aggregation::bundle::ProofFamilyId +shieldd_sdk_proof_aggregation::bundle::FamilyProtoFields +shieldd_sdk_proof_aggregation::bundle::family_proto_fields +shieldd_sdk_proof_aggregation::bundle::FamilyRouteKind +shieldd_sdk_proof_aggregation::bundle::FamilyRoute +shieldd_sdk_proof_aggregation::bundle::FamilyRouteError +shieldd_sdk_proof_aggregation::bundle::family_route_from_proto_fields' \
   fstar \
   || fail "hax extraction failed for proof-aggregation statement boundary"
 popd >/dev/null
@@ -244,10 +260,12 @@ pushd crates/core/component/shielded-pool >/dev/null
 echo "snarkpack formal: extracting NoteReshape family boundary"
 rm -rf proofs/fstar
 mkdir -p proofs/fstar/extraction
-cargo hax into \
-  -i '-** +shieldd_sdk_shielded_pool::note_reshape::generated::NoteReshapeFamilyId' \
+cargo hax \
+  -C --no-default-features ';' \
+  into \
+  -i '-** +shieldd_sdk_shielded_pool::note_reshape::generated::NoteReshapeFamilyId +shieldd_sdk_shielded_pool::shielded_ics20_withdrawal::generated::ShieldedIcs20WithdrawalFamilyId' \
   fstar \
-  || fail "hax extraction failed for NoteReshape family boundary"
+  || fail "hax extraction failed for shielded-pool family boundary"
 
 cat > proofs/fstar/extraction/Anyhow.fst <<'FSTAR'
 module Anyhow
@@ -257,6 +275,12 @@ type t_Error = | Error : t_Error
 FSTAR
 
 cat >> proofs/fstar/extraction/Shieldd_sdk_shielded_pool.Note_reshape.Generated.fst <<'FSTAR'
+
+let impl_NoteReshapeFamilyId__get
+      (self:t_NoteReshapeFamilyId)
+    : u32 =
+  match self <: t_NoteReshapeFamilyId with
+  | NoteReshapeFamilyId value -> value
 
 [@@ FStar.Tactics.Typeclasses.tcinstance]
 let impl_NoteReshapeFamilyId__try_from:
@@ -284,7 +308,18 @@ let impl_NoteReshapeFamilyId__try_from:
           <: Core_models.Result.t_Result t_NoteReshapeFamilyId Anyhow.t_Error
   }
 FSTAR
+
+cat >> proofs/fstar/extraction/Shieldd_sdk_shielded_pool.Shielded_ics20_withdrawal.Generated.fst <<'FSTAR'
+
+let impl_ShieldedIcs20WithdrawalFamilyId__get
+      (self:t_ShieldedIcs20WithdrawalFamilyId)
+    : u32 =
+  match self <: t_ShieldedIcs20WithdrawalFamilyId with
+  | ShieldedIcs20WithdrawalFamilyId value -> value
+FSTAR
 popd >/dev/null
+validate_fstar_boundary_cache
+fi
 
 prepare_fstar_inputs "$(find_hax_proof_libs)"
 
@@ -300,8 +335,25 @@ FSTAR_FLAGS=(
   --include "$FORMAL_DIR/fstar"
 )
 
-for proof in "$FORMAL_DIR"/fstar/*.fst; do
+for proof_name in "${FSTAR_PROOFS[@]}"; do
+  proof="$FORMAL_DIR/fstar/$proof_name"
+  [ -f "$proof" ] || fail "planned F* proof is missing: $proof"
   "$FSTAR" "${FSTAR_FLAGS[@]}" "$proof"
+  FSTAR_CHECKED_ARGS+=(--checked-module "$proof_name")
 done
+fi
+
+if [ "${SNARKPACK_FSTAR_EVIDENCE_UPDATE:-0}" = "1" ]; then
+  python3 "$VERIFICATION_DRIVER" \
+    fstar-evidence \
+    "${FSTAR_BASE_ARGS[@]}" \
+    "${FSTAR_REQUEST_ARGS[@]}" \
+    "${FSTAR_CHECKED_ARGS[@]}" \
+    --output "$FSTAR_CANDIDATE_FILE"
+  mv "$FSTAR_CANDIDATE_FILE" "$FSTAR_EVIDENCE"
+else
+  python3 "$VERIFICATION_DRIVER" \
+    fstar-evidence --check "$FSTAR_EVIDENCE"
+fi
 
 echo "snarkpack formal ok"

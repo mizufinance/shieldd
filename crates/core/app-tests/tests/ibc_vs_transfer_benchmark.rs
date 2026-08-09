@@ -415,7 +415,6 @@ struct DetailedRunReport {
     execute_commit_ms: f64,
     execute_end_block_ms: f64,
     execute_other_action_ms: f64,
-    execute_record_clues_ms: f64,
     execute_apply_ms: f64,
     inbound_receive: InboundReceiveBreakdownReport,
 }
@@ -1125,13 +1124,11 @@ async fn build_inner_transfer_txs(
                     &mut OsRng,
                     MemoPlaintext::blank_memo(test_keys::ADDRESS_0.deref().clone()),
                 )),
-                detection_data: None,
                 transaction_parameters: TransactionParameters {
                     chain_id,
                     ..Default::default()
                 },
-            }
-            .with_populated_detection_data(OsRng, Default::default());
+            };
             let tx = client
                 .witness_auth_build_with_compliance(&mut plan, snapshot)
                 .await?;
@@ -1182,7 +1179,6 @@ async fn rebuild_ibc_relay_txs(
         let plan = TransactionPlan {
             actions: vec![ActionPlan::IbcAction(relay.clone())],
             memo: None,
-            detection_data: None,
             fee_funding: None,
             transaction_parameters: TransactionParameters {
                 chain_id: chain.chain_id.clone(),
@@ -1434,18 +1430,24 @@ async fn profile_block(chain: &mut TestNodeWithIBC, txs: Vec<Vec<u8>>) -> Result
     let mut proposer = App::new(chain.storage.latest_snapshot());
     proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
     let prepare_start = Instant::now();
-    let (prepared, prepare_profile) = proposer
-        .prepare_proposal_v2_profiled_allow_oversized_for_bench(prepare_request, None)
+    let (prepared, prepare_profile, sidecar) = proposer
+        .prepare_proposal_v2_profiled(prepare_request, None, true)
         .await;
     detailed.prepare_proposal_wall_ms = elapsed_ms(prepare_start);
     apply_prepare_profile(&mut detailed, &prepare_profile);
     ensure_prepare_preserved_user_txs(&txs, &prepared)?;
+    let sidecar = sidecar.context("profiled proposal must retain its artifact sidecar")?;
+    let envelope = App::candidate_envelope_from_prepared_proposal_public(
+        &prepared,
+        &sidecar,
+        "ibc_vs_transfer_benchmark",
+    )?;
 
     let process_request = process_request_from_prepare_response(&prepared);
     let mut validator = App::new(chain.storage.latest_snapshot());
     let process_start = Instant::now();
     let (process_verdict, process_profile) = validator
-        .process_proposal_v2_profiled_allow_oversized_for_bench(process_request, None)
+        .process_proposal_v2_profiled(process_request, None, Some(&sidecar), true)
         .await;
     detailed.process_proposal_wall_ms = elapsed_ms(process_start);
     anyhow::ensure!(
@@ -1459,7 +1461,7 @@ async fn profile_block(chain: &mut TestNodeWithIBC, txs: Vec<Vec<u8>>) -> Result
     benchmarking::reset_inbound_receive_breakdown();
     let execute_start = Instant::now();
     let execution_profile = executor
-        .execute_block_profiled(&txs, chain.storage.as_ref().clone())
+        .execute_validated_candidate_envelope_profiled(&envelope, chain.storage.as_ref().clone())
         .await?;
     detailed.execute_profiled_wall_ms = elapsed_ms(execute_start);
     apply_execution_profile(&mut detailed, &execution_profile);
@@ -1506,11 +1508,11 @@ async fn run_checktx_cold(chain: &TestNodeWithIBC, txs: &[Vec<u8>]) -> Result<f6
 async fn run_checktx_warm(
     chain: &TestNodeWithIBC,
     txs: &[Vec<u8>],
-    artifacts: &[Arc<shieldd_sdk_app::stateless_cache::ExtractedTxArtifact>],
+    artifacts: &[Arc<shieldd_sdk_app::stateless_cache::TxArtifact>],
 ) -> Result<f64> {
     let cache = StatelessCache::new();
     for (tx, artifact) in txs.iter().zip(artifacts.iter()) {
-        cache.seed_extracted_for_benchmark(tx, artifact.clone())?;
+        cache.insert_extracted(tx, artifact.clone())?;
     }
 
     let start = Instant::now();
@@ -1566,7 +1568,6 @@ impl DetailedRunReport {
         self.execute_commit_ms += block.execute_commit_ms;
         self.execute_end_block_ms += block.execute_end_block_ms;
         self.execute_other_action_ms += block.execute_other_action_ms;
-        self.execute_record_clues_ms += block.execute_record_clues_ms;
         self.execute_apply_ms += block.execute_apply_ms;
         self.inbound_receive.add(block.inbound_receive);
     }
@@ -1680,12 +1681,12 @@ impl StageTimingReport {
 }
 
 fn apply_prepare_profile(report: &mut DetailedRunReport, profile: &PrepareProposalProfile) {
-    report.prepare_zk_proof_verify_ms += profile.artifact_fill_proof_verify_ms;
+    report.prepare_zk_proof_verify_ms += profile.artifact_fill_batch_verify_ms;
     report.prepare_stateful_filter_ms += profile.stateful_filter_execute_ms;
 }
 
 fn apply_process_profile(report: &mut DetailedRunReport, profile: &ProcessProposalProfile) {
-    report.process_independent_zk_verify_ms += profile.independent_proof_verify_ms;
+    report.process_independent_zk_verify_ms += profile.aggregate_verify_ms;
     report.process_stateful_replay_ms += profile.stateful_replay_execute_ms;
 }
 
@@ -1706,12 +1707,11 @@ fn apply_execution_profile(report: &mut DetailedRunReport, profile: &ExecutionBl
     report.execute_check_and_execute_ms += profile.check_and_execute_ms;
     report.execute_set_source_ms += profile.set_source_ms;
     report.execute_pay_fee_ms += profile.pay_fee_ms;
-    report.execute_historical_state_ms += profile.check_historical_ms;
+    report.execute_historical_state_ms += profile.read_historical_check_ms;
     report.execute_action_ms += profile.action_execute_ms;
     report.execute_commit_ms += profile.commit_ms;
     report.execute_end_block_ms += profile.end_block_ms;
     report.execute_other_action_ms += profile.other_action_execute_ms;
-    report.execute_record_clues_ms += profile.record_clues_ms;
     report.execute_apply_ms += profile.apply_ms;
 }
 
@@ -1748,8 +1748,9 @@ fn ensure_prepare_preserved_user_txs(
     prepared: &response::PrepareProposal,
 ) -> Result<()> {
     anyhow::ensure!(
-        prepared.txs.len() == input_txs.len(),
-        "prepared proposal changed tx count: input={}, prepared={}",
+        prepared.txs.len() == input_txs.len()
+            || prepared.txs.len() == input_txs.len().saturating_add(1),
+        "prepared proposal must contain every input and at most one aggregate bundle: input={}, prepared={}",
         input_txs.len(),
         prepared.txs.len()
     );
@@ -2090,9 +2091,6 @@ fn render_markdown(report: &BenchmarkReport) -> String {
         });
         append_detail_ms_row(&mut out, scenario, "other action", |d| {
             d.execute_other_action_ms
-        });
-        append_detail_ms_row(&mut out, scenario, "record clues", |d| {
-            d.execute_record_clues_ms
         });
         append_detail_ms_row(&mut out, scenario, "state tx apply", |d| d.execute_apply_ms);
         append_detail_ms_row(&mut out, scenario, "end block", |d| d.execute_end_block_ms);

@@ -14,9 +14,9 @@ use crate::{
 pub const SEED_PHRASE: &str = "comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate";
 
 /// These addresses both correspond to the test wallet above.
-pub const ADDRESS_0_STR: &str = "shieldd1072tem53f9z7nr45egssuuuq7zgn406e4ps75ksh6t2pf3k5smtvp93fv52u7dlasfgfxhzkkc2mmgjhwrc8w2q388qfkg5tp35pws7h6ud85yl23fnaprgnk9zskpzwykl2lh";
+pub const ADDRESS_0_STR: &str = "shieldd1akc3v3jckw5eutcqr5rhcmq6jlwqa5z7k4p3vcy46meu5sy9lux627kn74zxmxmwu6w0qe79f55vppq67zxcyqt7tcc0u5rme0f6f7xqyternr6qneck2xkaslzx5m0pf4gzgc";
 /// These addresses both correspond to the test wallet above.
-pub const ADDRESS_1_STR: &str = "shieldd1dh5nej4z5upx9cwafuhwn40v90nyct6xmhgleafech2tv6lq4dpxqn94s8relz2knt0x402pwzll20zukv97jmqtx83rruwqmalwnzrgvteq7a9hm86m45w2t2p3pz3g8q88ta";
+pub const ADDRESS_1_STR: &str = "shieldd1kmw4mxfk5mkp6yyyylduc5ez3e6hj0ptf5f0hh86ytw7tg23y3mwh6t39zy0aqe3hjllppq7dkml2v8q7tapsv6xpsfrrhzrycadwlqhze3ggj4k25utafkhklcpj2wsa6p3y0";
 
 pub static ADDRESS_0: Lazy<Address> = Lazy::new(|| {
     ADDRESS_0_STR
@@ -59,5 +59,17 @@ mod tests {
     #[test]
     fn test_fvk_matches() {
         assert_eq!(*FULL_VIEWING_KEY, *SPEND_KEY.full_viewing_key());
+    }
+
+    #[test]
+    fn test_addresses_match_viewing_key() {
+        assert_eq!(
+            ADDRESS_0_STR,
+            FULL_VIEWING_KEY.payment_address(0u32.into()).0.to_string()
+        );
+        assert_eq!(
+            ADDRESS_1_STR,
+            FULL_VIEWING_KEY.payment_address(1u32.into()).0.to_string()
+        );
     }
 }

@@ -28,14 +28,11 @@ impl TransactionPlan {
             .map(|memo_data| memo_data.memo())
             .transpose()?;
 
-        let detection_data = self.detection_data.as_ref().map(|x| x.detection_data());
-
         Ok(Transaction {
             transaction_body: TransactionBody {
                 actions,
                 transaction_parameters: self.transaction_parameters,
                 fee_funding,
-                detection_data,
                 memo,
             },
             anchor: witness_data.anchor,

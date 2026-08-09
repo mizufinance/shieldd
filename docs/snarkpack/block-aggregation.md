@@ -22,14 +22,13 @@ SnarkPack is a leaf operation with three hard properties:
 
 ## What Filecoin does (reference, not a template)
 
-Filecoin is the production SnarkPack deployment, but its model differs from ours:
-an individual **miner** aggregates **their own** sector proofs **off-chain** and
-submits one `ProveCommitAggregate` *message*. The batch is naturally homogeneous
-(same circuit/VK, hundreds of proofs) and padded to a power of two exactly like
-us. There is **no block-level aggregation** — the chain just verifies a submitted
-aggregate message. Filecoin gives us the primitive and the transcript discipline,
-not block orchestration. (They also added a batch-balancer fee to price the
-fixed overhead — an economic question we will eventually face too.)
+The pinned Filecoin deployment reviewed in
+[`filecoin-divergence-findings.md`](../../crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md)
+used a different model: a miner aggregated its own homogeneous sector proofs
+off-chain and submitted one `ProveCommitAggregate` message. It did not perform
+block-level aggregation. That review informs the primitive and transcript
+discipline, not Shieldd block orchestration or current Filecoin deployment
+status.
 
 ## Why Shieldd needs something Filecoin doesn't
 

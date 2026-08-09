@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package shieldd.execution_client.v1;
 
+import "cosmos/base/v1beta1/coin.proto";
 import "google/protobuf/timestamp.proto";
 import "shieldd/core/app/v1/app.proto";
 
@@ -25,6 +26,8 @@ service ExecutionClientService {
   rpc EndBlock(EndBlockRequest) returns (EndBlockResponse) {}
   // Commit persists the pending Shieldd state and returns the committed root.
   rpc Commit(CommitRequest) returns (CommitResponse) {}
+  // GetCommittedState returns the latest state durably committed by Shieldd.
+  rpc GetCommittedState(GetCommittedStateRequest) returns (GetCommittedStateResponse) {}
   // Rollback discards uncommitted Shieldd state for the current execution phase.
   rpc Rollback(RollbackRequest) returns (RollbackResponse) {}
   // ExportGenesis exports the currently committed Shieldd state as genesis.
@@ -136,6 +139,16 @@ message DeliverTxResponse {
   repeated Event events = 7;
   // Module or subsystem that produced a non-zero code.
   string codespace = 8;
+  // Host-chain withdrawals requested by the executed transaction.
+  repeated Withdrawal withdrawals = 9;
+}
+
+// Withdrawal describes a coin the host chain should send to a recipient.
+message Withdrawal {
+  // Host-chain recipient address.
+  string recipient = 1;
+  // Coin withdrawn from Shieldd.
+  cosmos.base.v1beta1.Coin coin = 2;
 }
 
 // EndBlockRequest identifies the host-chain block being finalized.
@@ -176,6 +189,18 @@ message CommitRequest {}
 message CommitResponse {
   // Committed Shieldd application root hash.
   bytes root_hash = 1;
+}
+
+// GetCommittedStateRequest is empty because Shieldd always returns its latest
+// durable state.
+message GetCommittedStateRequest {}
+
+// GetCommittedStateResponse identifies the latest durable Shieldd state.
+message GetCommittedStateResponse {
+  // Host-chain block height stored in the committed Shieldd state.
+  uint64 height = 1;
+  // Committed Shieldd application root hash.
+  bytes root_hash = 2;
 }
 
 // RollbackRequest is empty because rollback applies to the current pending

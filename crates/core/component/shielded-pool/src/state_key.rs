@@ -24,3 +24,7 @@ pub fn pending_rolled_up_payloads() -> &'static str {
 pub fn shielded_pool_params() -> &'static str {
     "shielded_pool/params"
 }
+
+pub fn host_withdrawals_enabled() -> &'static str {
+    "shielded_pool/host_withdrawals_enabled"
+}

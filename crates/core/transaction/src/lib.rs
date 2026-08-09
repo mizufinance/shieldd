@@ -18,7 +18,6 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 mod auth_data;
-mod detection_data;
 mod error;
 mod fee_funding;
 mod is_action;
@@ -34,7 +33,6 @@ pub mod view;
 
 pub use action::Action;
 pub use auth_data::AuthorizationData;
-pub use detection_data::DetectionData;
 pub use error::Error;
 pub use fee_funding::{FeeFunding, FeeFundingPlan};
 pub use is_action::IsAction;

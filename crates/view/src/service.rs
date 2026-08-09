@@ -30,7 +30,8 @@ use shieldd_sdk_proto::{
     core::component::compliance::v1 as compliance_pb,
     util::tendermint_proxy::v1::{
         tendermint_proxy_service_client::TendermintProxyServiceClient, BroadcastTxSyncRequest,
-        GetStatusRequest, GetStatusResponse, SyncInfo,
+        GetStatusRequest, GetStatusResponse, SyncInfo, BROADCAST_OUTCOME_METADATA_KEY,
+        BROADCAST_OUTCOME_NOT_SUBMITTED, BROADCAST_OUTCOME_UNKNOWN,
     },
     view::v1::{
         self as pb,
@@ -38,7 +39,7 @@ use shieldd_sdk_proto::{
         view_service_client::ViewServiceClient,
         view_service_server::{ViewService, ViewServiceServer},
         AppParametersResponse, AssetMetadataByIdRequest, AssetMetadataByIdResponse,
-        BroadcastTransactionResponse, FmdParametersResponse, GasPricesResponse,
+        BroadcastTransactionResponse, DiscoveryParametersResponse, GasPricesResponse,
         NoteByCommitmentResponse, StatusResponse, TransactionPlannerResponse, WalletIdRequest,
         WalletIdResponse, WitnessResponse,
     },
@@ -46,8 +47,8 @@ use shieldd_sdk_proto::{
 };
 use shieldd_sdk_tct::{Proof, StateCommitment};
 use shieldd_sdk_transaction::{
-    plan::ActionPlan, AuthorizationData, Transaction, TransactionPerspective, TransactionPlan,
-    WitnessData,
+    plan::ActionPlan, txhash::TransactionId, AuthorizationData, Transaction,
+    TransactionPerspective, TransactionPlan, WitnessData,
 };
 
 use crate::{
@@ -65,6 +66,141 @@ type BroadcastTransactionStream = Pin<
 
 const BROADCAST_NULLIFIER_DETECTION_TIMEOUT: std::time::Duration =
     std::time::Duration::from_secs(180);
+const BROADCAST_AMBIGUITY_RECONCILIATION_TIMEOUT: std::time::Duration =
+    BROADCAST_NULLIFIER_DETECTION_TIMEOUT;
+
+fn broadcast_outcome_unknown_status(message: impl Into<String>) -> tonic::Status {
+    let mut status = tonic::Status::unavailable(message.into());
+    status.metadata_mut().insert(
+        BROADCAST_OUTCOME_METADATA_KEY,
+        tonic::metadata::MetadataValue::from_static(BROADCAST_OUTCOME_UNKNOWN),
+    );
+    status
+}
+
+fn broadcast_outcome_is_unknown(status: &tonic::Status) -> bool {
+    status.code() == tonic::Code::Unavailable
+        && status
+            .metadata()
+            .get(BROADCAST_OUTCOME_METADATA_KEY)
+            .and_then(|value| value.to_str().ok())
+            != Some(BROADCAST_OUTCOME_NOT_SUBMITTED)
+}
+
+fn resolve_broadcast_detection(
+    broadcast_error: tonic::Status,
+    submitted_id: TransactionId,
+    detected: Option<(u64, TransactionId)>,
+) -> Result<u64, tonic::Status> {
+    if !broadcast_outcome_is_unknown(&broadcast_error) {
+        return Err(broadcast_error);
+    }
+
+    match detected {
+        Some((height, detected_id)) if detected_id == submitted_id => Ok(height),
+        Some((_, detected_id)) => Err(broadcast_outcome_unknown_status(format!(
+            "{}; detected transaction {} did not match submitted transaction {}",
+            broadcast_error.message(),
+            detected_id,
+            submitted_id,
+        ))),
+        None => Err(broadcast_outcome_unknown_status(format!(
+            "{}; submitted transaction {} was not detected",
+            broadcast_error.message(),
+            submitted_id,
+        ))),
+    }
+}
+
+#[cfg(test)]
+mod broadcast_detection_tests {
+    use super::{
+        broadcast_outcome_is_unknown, resolve_broadcast_detection, TransactionId,
+        BROADCAST_OUTCOME_METADATA_KEY, BROADCAST_OUTCOME_NOT_SUBMITTED, BROADCAST_OUTCOME_UNKNOWN,
+    };
+    use tonic::{Code, Status};
+
+    fn unknown_outcome(message: &'static str) -> Status {
+        let mut status = Status::unavailable(message);
+        status.metadata_mut().insert(
+            BROADCAST_OUTCOME_METADATA_KEY,
+            tonic::metadata::MetadataValue::from_static(BROADCAST_OUTCOME_UNKNOWN),
+        );
+        status
+    }
+
+    #[test]
+    fn unavailable_with_matching_transaction_recovers_height() {
+        let submitted_id = TransactionId([7; 32]);
+        let height = resolve_broadcast_detection(
+            unknown_outcome("response lost"),
+            submitted_id,
+            Some((42, submitted_id)),
+        )
+        .expect("matching transaction should reconcile an unavailable response");
+
+        assert_eq!(height, 42);
+    }
+
+    #[test]
+    fn unavailable_without_matching_transaction_remains_unavailable() {
+        let submitted_id = TransactionId([7; 32]);
+        let missing =
+            resolve_broadcast_detection(unknown_outcome("response lost"), submitted_id, None)
+                .expect_err("missing transaction must not reconcile");
+        assert_eq!(missing.code(), Code::Unavailable);
+        assert!(broadcast_outcome_is_unknown(&missing));
+        let expected_missing =
+            format!("response lost; submitted transaction {submitted_id} was not detected");
+        assert_eq!(missing.message(), expected_missing.as_str());
+
+        let detected_id = TransactionId([8; 32]);
+        let different = resolve_broadcast_detection(
+            unknown_outcome("response lost"),
+            submitted_id,
+            Some((42, detected_id)),
+        )
+        .expect_err("different transaction must not reconcile");
+        assert_eq!(different.code(), Code::Unavailable);
+        assert!(broadcast_outcome_is_unknown(&different));
+        let expected_different = format!(
+            "response lost; detected transaction {detected_id} did not match submitted transaction {submitted_id}"
+        );
+        assert_eq!(different.message(), expected_different.as_str());
+    }
+
+    #[test]
+    fn only_known_not_submitted_or_non_unavailable_status_skips_reconciliation() {
+        let submitted_id = TransactionId([7; 32]);
+        let unmarked = Status::unavailable("status trailers lost");
+        assert!(
+            broadcast_outcome_is_unknown(&unmarked),
+            "missing outcome metadata after invocation remains ambiguous"
+        );
+
+        let mut not_submitted = Status::unavailable("connection refused before submission");
+        not_submitted.metadata_mut().insert(
+            BROADCAST_OUTCOME_METADATA_KEY,
+            tonic::metadata::MetadataValue::from_static(BROADCAST_OUTCOME_NOT_SUBMITTED),
+        );
+        assert!(!broadcast_outcome_is_unknown(&not_submitted));
+        let error =
+            resolve_broadcast_detection(not_submitted, submitted_id, Some((42, submitted_id)))
+                .expect_err("known pre-submission failure must not reconcile");
+        assert_eq!(error.code(), Code::Unavailable);
+        assert_eq!(error.message(), "connection refused before submission");
+
+        let error = resolve_broadcast_detection(
+            Status::invalid_argument("definitive rejection"),
+            submitted_id,
+            Some((42, submitted_id)),
+        )
+        .expect_err("definitive status must not reconcile");
+
+        assert_eq!(error.code(), Code::InvalidArgument);
+        assert_eq!(error.message(), "definitive rejection");
+    }
+}
 
 /// A service that synchronizes private chain state and responds to queries
 /// about it.
@@ -230,6 +366,13 @@ impl ViewServer {
     ) -> BroadcastTransactionStream {
         let self2 = self.clone();
         try_stream! {
+                let transaction_id = transaction.id();
+                let spent_nullifier = if await_detection {
+                    transaction.spent_nullifiers().next()
+                } else {
+                    None
+                };
+
                 // 1. Broadcast the transaction to the network.
                 // Note that "synchronous" here means "wait for the tx to be accepted by
                 // the fullnode", not "wait for the tx to be included on chain.
@@ -246,63 +389,131 @@ impl ViewServer {
                         params: transaction.encode_to_vec(),
                         req_id: OsRng.gen(),
                     })
-                    .await
-                    .map_err(|e| {
-                        tonic::Status::unavailable(format!(
-                            "error broadcasting tx: {:#?}",
-                            e
-                        ))
-                    })?
-                    .into_inner();
-                tracing::info!(?node_rsp);
-                match node_rsp.code {
-                    0 => Ok(()),
-                    _ => Err(tonic::Status::new(
-                        tonic::Code::Internal,
-                        format!(
-                            "Error submitting transaction: code {}, log: {}",
-                            node_rsp.code,
-                            node_rsp.log,
-                        ),
-                    )),
-                }?;
+                    .await;
 
-                // The transaction was submitted so we provide a status update
-                yield BroadcastTransactionResponse{ status: Some(BroadcastStatus::BroadcastSuccess(BroadcastSuccess{id:Some(transaction.id().into())}))};
+                // A dropped HTTP response is ambiguous: CometBFT may have accepted
+                // the transaction before the proxy observed the disconnect. Never
+                // resubmit in that case. For transactions relevant to this view,
+                // reconcile the exact transaction hash after its nullifier is
+                // detected; otherwise preserve the original broadcast failure.
+                let reconciled_detection_height = match node_rsp {
+                    Ok(node_rsp) => {
+                        let node_rsp = node_rsp.into_inner();
+                        tracing::info!(?node_rsp);
+                        match node_rsp.code {
+                            0 => Ok(()),
+                            _ => Err(tonic::Status::new(
+                                tonic::Code::Internal,
+                                format!(
+                                    "Error submitting transaction: code {}, log: {}",
+                                    node_rsp.code,
+                                    node_rsp.log,
+                                ),
+                            )),
+                        }?;
+                        None
+                    }
+                    Err(broadcast_error) if broadcast_outcome_is_unknown(&broadcast_error) => {
+                        match spent_nullifier {
+                            Some(nullifier) => {
+                                let original_error = format!(
+                                    "error broadcasting tx: {:#?}",
+                                    broadcast_error
+                                );
+                                tracing::warn!(
+                                    ?transaction_id,
+                                    ?broadcast_error,
+                                    "broadcast response was ambiguous; awaiting exact transaction detection without resubmitting"
+                                );
+                                let detection = self2.storage.nullifier_status(nullifier, true);
+                                tokio::time::timeout(
+                                    BROADCAST_AMBIGUITY_RECONCILIATION_TIMEOUT,
+                                    detection,
+                                )
+                                .await
+                                .map_err(|_| {
+                                    broadcast_outcome_unknown_status(format!(
+                                        "{original_error}; transaction was not detected before the ambiguity timeout"
+                                    ))
+                                })?
+                                .map_err(|error| {
+                                    broadcast_outcome_unknown_status(format!(
+                                        "{original_error}; error while reconciling the ambiguous broadcast: {error:#}"
+                                    ))
+                                })?;
 
-                // 2. Optionally wait for the transaction to be detected by the view service.
-                let nullifier = if await_detection {
-                    transaction.spent_nullifiers().next()
-                } else {
-                    None
+                                let detected = self2.storage
+                                    .transaction_by_hash(&transaction_id.0)
+                                    .await
+                                    .map_err(|error| {
+                                        broadcast_outcome_unknown_status(format!(
+                                            "{original_error}; error querying the reconciled transaction: {error:#}"
+                                        ))
+                                    })?
+                                    .map(|(height, transaction)| (height, transaction.id()));
+                                let height = resolve_broadcast_detection(
+                                    broadcast_error,
+                                    transaction_id,
+                                    detected,
+                                )?;
+                                tracing::info!(
+                                    ?transaction_id,
+                                    height,
+                                    "reconciled ambiguous broadcast from exact transaction detection"
+                                );
+                                Some(height)
+                            }
+                            None => resolve_broadcast_detection(
+                                broadcast_error,
+                                transaction_id,
+                                None,
+                            )
+                            .map(Some)?,
+                        }
+                    }
+                    Err(broadcast_error) => resolve_broadcast_detection(
+                        broadcast_error,
+                        transaction_id,
+                        None,
+                    )
+                    .map(Some)?,
                 };
 
-                if let Some(nullifier) = nullifier {
-                    tracing::info!(?nullifier, "waiting for detection of nullifier");
-                    let detection = self2.storage.nullifier_status(nullifier, true);
-                    tokio::time::timeout(BROADCAST_NULLIFIER_DETECTION_TIMEOUT, detection)
-                        .await
-                        .map_err(|_| {
-                            tonic::Status::unavailable(
-                                "timeout waiting to detect nullifier of submitted transaction"
-                            )
-                        })?
-                        .map_err(|_| {
-                            tonic::Status::unavailable(
-                                "error while waiting for detection of submitted transaction"
-                            )
-                        })?;
+                // The transaction was submitted so we provide a status update
+                yield BroadcastTransactionResponse{ status: Some(BroadcastStatus::BroadcastSuccess(BroadcastSuccess{id:Some(transaction_id.into())}))};
+
+                // 2. Optionally wait for the transaction to be detected by the view service.
+                if reconciled_detection_height.is_none() {
+                    if let Some(nullifier) = spent_nullifier {
+                        tracing::info!(?nullifier, "waiting for detection of nullifier");
+                        let detection = self2.storage.nullifier_status(nullifier, true);
+                        tokio::time::timeout(BROADCAST_NULLIFIER_DETECTION_TIMEOUT, detection)
+                            .await
+                            .map_err(|_| {
+                                tonic::Status::unavailable(
+                                    "timeout waiting to detect nullifier of submitted transaction"
+                                )
+                            })?
+                            .map_err(|_| {
+                                tonic::Status::unavailable(
+                                    "error while waiting for detection of submitted transaction"
+                                )
+                            })?;
+                    }
                 }
 
-                let detection_height = self2.storage
-                    .transaction_by_hash(&transaction.id().0)
-                    .await
-                    .map_err(|e| tonic::Status::internal(format!("error querying storage: {:#}", e)))?
-                    .map(|(height, _tx)| height)
-                    // If we didn't find it for some reason, return 0 for unknown.
-                    // TODO: how does this change if we detach extended transaction fetch from scanning?
-                    .unwrap_or(0);
-                yield BroadcastTransactionResponse{ status: Some(BroadcastStatus::Confirmed(Confirmed{id:Some(transaction.id().into()), detection_height}))};
+                let detection_height = match reconciled_detection_height {
+                    Some(height) => height,
+                    None => self2.storage
+                        .transaction_by_hash(&transaction_id.0)
+                        .await
+                        .map_err(|e| tonic::Status::internal(format!("error querying storage: {:#}", e)))?
+                        .map(|(height, _tx)| height)
+                        // If we didn't find it for some reason, return 0 for unknown.
+                        // TODO: how does this change if we detach extended transaction fetch from scanning?
+                        .unwrap_or(0),
+                };
+                yield BroadcastTransactionResponse{ status: Some(BroadcastStatus::Confirmed(Confirmed{id:Some(transaction_id.into()), detection_height}))};
             }.boxed()
     }
 
@@ -1485,18 +1696,17 @@ impl ViewService for ViewServer {
     }
 
     #[instrument(skip_all, level = "trace")]
-    async fn fmd_parameters(
+    async fn discovery_parameters(
         &self,
-        _request: tonic::Request<pb::FmdParametersRequest>,
-    ) -> Result<tonic::Response<pb::FmdParametersResponse>, tonic::Status> {
+        _request: tonic::Request<pb::DiscoveryParametersRequest>,
+    ) -> Result<tonic::Response<pb::DiscoveryParametersResponse>, tonic::Status> {
         self.check_worker().await?;
 
-        let parameters =
-            self.storage.fmd_parameters().await.map_err(|e| {
-                tonic::Status::unavailable(format!("error getting FMD params: {e}"))
-            })?;
+        let parameters = self.storage.discovery_parameters().await.map_err(|e| {
+            tonic::Status::unavailable(format!("error getting discovery parameters: {e}"))
+        })?;
 
-        let response = FmdParametersResponse {
+        let response = DiscoveryParametersResponse {
             parameters: Some(parameters.into()),
         };
 

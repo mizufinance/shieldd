@@ -120,14 +120,12 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
             &mut OsRng,
             MemoPlaintext::blank_memo(sender.clone()),
         )),
-        detection_data: None,
         fee_funding: None,
         transaction_parameters: TransactionParameters {
             chain_id: TestNode::<()>::CHAIN_ID.to_string(),
             ..Default::default()
         },
-    }
-    .with_populated_detection_data(OsRng, Default::default());
+    };
 
     let provider = shieldd_sdk_mock_client::StateReadComplianceProvider::new(build_state);
     enrich_plan_with_compliance(&mut plan, &provider, &mut OsRng, None).await?;

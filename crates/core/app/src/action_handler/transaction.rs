@@ -1,18 +1,29 @@
-use std::sync::Arc;
+use std::collections::{BTreeSet, HashMap, HashSet};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
 use anyhow::{Context as _, Result};
 use async_trait::async_trait;
-use cnidarium::{StateRead, StateWrite};
+use cnidarium::{Snapshot, StateRead, StateWrite};
+use shieldd_sdk_compact_block::StatePayload;
+use shieldd_sdk_compliance::params::StateReadExt as _;
+use shieldd_sdk_compliance::registry::{check_timestamp_freshness, ComplianceRegistryRead as _};
 use shieldd_sdk_fee::component::FeePay as _;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext;
+use shieldd_sdk_sct::component::tree::VerificationExt as _;
+use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_shielded_pool::component::{
-    note_reshape_execute_verified, shielded_ics20_withdrawal_execute_verified,
-    transfer_execute_verified, ClueManager, Ics20Transfer, StateReadExt as _,
+    note_reshape_execute_verified, shielded_host_withdrawal_execute_verified,
+    shielded_ics20_withdrawal_execute_verified, transfer_execute_verified, Ics20Transfer,
+    StateReadExt as _,
 };
-use shieldd_sdk_shielded_pool::fmd;
+use shieldd_sdk_shielded_pool::discovery;
+use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_transaction::{gas::GasCost as _, Action, Transaction};
+use shieldd_sdk_txhash::TransactionId;
+use tokio::sync::OnceCell;
 use tokio::task::JoinSet;
 use tracing::{instrument, Instrument};
 
@@ -27,12 +38,12 @@ mod stateful;
 pub(crate) mod stateless;
 
 use self::stateful::{
-    claimed_anchor_is_valid, fmd_parameters_valid_with_context,
+    claimed_anchor_is_valid, discovery_parameters_valid_with_context,
     tx_parameters_historical_check_with_context,
 };
 use stateless::{
     check_memo_exists_if_outputs_absent_if_not, check_non_empty_transaction,
-    num_clues_equal_to_num_outputs, valid_binding_signature,
+    valid_binding_signature,
 };
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -40,21 +51,173 @@ pub(crate) struct TransactionExecutionProfile {
     pub set_source_ms: f64,
     pub pay_fee_ms: f64,
     pub action_execute_ms: f64,
+    pub read_local_precheck_ms: f64,
+    pub read_lookup_wait_or_join_ms: f64,
+    pub read_historical_check_ms: f64,
+    pub read_nullifier_wait_ms: f64,
+    pub read_anchor_cache_wait_ms: f64,
+    pub read_anchor_validation_ms: f64,
+    pub read_committed_nullifier_ms: f64,
+    pub read_effects_build_ms: f64,
+    pub nullifier_lookup_count: usize,
+    pub spend_action_execute_ms: f64,
+    pub spend_nullifier_check_ms: f64,
+    pub spend_nullifier_tx_local_scan_ms: f64,
+    pub spend_nullifier_block_log_lookup_ms: f64,
+    pub spend_nullifier_committed_check_ms: f64,
+    pub spend_nullifier_enqueue_ms: f64,
+    pub spend_nullifier_stage_ms: f64,
+    pub spend_nullifier_merge_ms: f64,
+    pub output_action_execute_ms: f64,
+    pub output_add_note_payload_ms: f64,
     pub other_action_execute_ms: f64,
-    pub record_clues_ms: f64,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct PreparedCandidateEffects {
+    pub spend_nullifiers: Vec<Nullifier>,
+    pub sct_payloads: Vec<StatePayload>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub(crate) struct PreparedCandidateRead {
+    pub check_historical_ms: f64,
+    pub read_wall_ms: f64,
+    pub checktx_fast_context_load_ms: f64,
+    pub checktx_fast_read_queue_wait_ms: f64,
+    pub checktx_fast_read_blocking_total_ms: f64,
+    pub execution_profile: TransactionExecutionProfile,
+    pub effects: PreparedCandidateEffects,
+}
+
+type AnchorValidationKey = (StateCommitment, StateCommitment, u64, u64);
+type ClaimedAnchorKey = shieldd_sdk_tct::Root;
+
+#[derive(Clone, Copy, Debug, Default)]
+pub(crate) struct HistoricalCheckProfile {
+    pub total_ms: f64,
+    pub await_ms: f64,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct AnchorValidationCache {
+    entries: RwLock<HashMap<AnchorValidationKey, Arc<OnceCell<std::result::Result<(), String>>>>>,
+    hits: AtomicUsize,
+    misses: AtomicUsize,
+}
+
+impl AnchorValidationCache {
+    fn entry(
+        &self,
+        key: AnchorValidationKey,
+    ) -> (Arc<OnceCell<std::result::Result<(), String>>>, bool, f64) {
+        let read_wait_start = Instant::now();
+        let existing = self
+            .entries
+            .read()
+            .expect("anchor cache poisoned")
+            .get(&key)
+            .cloned();
+        let mut wait_ms = read_wait_start.elapsed().as_secs_f64() * 1000.0;
+        if let Some(cell) = existing {
+            self.hits.fetch_add(1, Ordering::Relaxed);
+            return (cell, true, wait_ms);
+        }
+
+        let write_wait_start = Instant::now();
+        let mut entries = self.entries.write().expect("anchor cache poisoned");
+        wait_ms += write_wait_start.elapsed().as_secs_f64() * 1000.0;
+        if let Some(cell) = entries.get(&key).cloned() {
+            self.hits.fetch_add(1, Ordering::Relaxed);
+            return (cell, true, wait_ms);
+        }
+
+        let cell = Arc::new(OnceCell::new());
+        entries.insert(key, cell.clone());
+        self.misses.fetch_add(1, Ordering::Relaxed);
+        (cell, false, wait_ms)
+    }
+
+    pub(crate) fn stats(&self) -> (usize, usize, usize) {
+        (
+            self.hits.load(Ordering::Relaxed),
+            self.misses.load(Ordering::Relaxed),
+            self.entries.read().expect("anchor cache poisoned").len(),
+        )
+    }
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct ClaimedAnchorValidationCache {
+    entries: RwLock<HashMap<ClaimedAnchorKey, Arc<OnceCell<std::result::Result<(), String>>>>>,
+    hits: AtomicUsize,
+    misses: AtomicUsize,
+}
+
+impl ClaimedAnchorValidationCache {
+    fn entry(
+        &self,
+        anchor: ClaimedAnchorKey,
+    ) -> (Arc<OnceCell<std::result::Result<(), String>>>, bool) {
+        if let Some(cell) = self
+            .entries
+            .read()
+            .expect("claimed anchor cache poisoned")
+            .get(&anchor)
+            .cloned()
+        {
+            self.hits.fetch_add(1, Ordering::Relaxed);
+            return (cell, true);
+        }
+
+        let mut entries = self.entries.write().expect("claimed anchor cache poisoned");
+        if let Some(cell) = entries.get(&anchor).cloned() {
+            self.hits.fetch_add(1, Ordering::Relaxed);
+            return (cell, true);
+        }
+
+        let cell = Arc::new(OnceCell::new());
+        entries.insert(anchor, cell.clone());
+        self.misses.fetch_add(1, Ordering::Relaxed);
+        (cell, false)
+    }
+
+    pub(crate) fn stats(&self) -> (usize, usize, usize) {
+        (
+            self.hits.load(Ordering::Relaxed),
+            self.misses.load(Ordering::Relaxed),
+            self.entries
+                .read()
+                .expect("claimed anchor cache poisoned")
+                .len(),
+        )
+    }
+}
+
+#[derive(Clone, Debug)]
+struct TxExecutionContext {
+    block_timestamp: u64,
+    source: TransactionId,
 }
 
 #[derive(Clone, Debug)]
 pub(crate) struct HistoricalCheckContext {
     pub chain_id: String,
     pub block_height: u64,
-    pub fmd_meta_params: fmd::MetaParameters,
-    pub previous_fmd_parameters: fmd::Parameters,
-    pub current_fmd_parameters: fmd::Parameters,
+    pub block_timestamp: u64,
+    pub discovery_grace_period_blocks: u64,
+    pub previous_discovery_parameters: discovery::Parameters,
+    pub current_discovery_parameters: discovery::Parameters,
+    pub anchor_cache: Arc<AnchorValidationCache>,
+    pub claimed_anchor_cache: Arc<ClaimedAnchorValidationCache>,
 }
 
 impl HistoricalCheckContext {
     pub(crate) async fn load<S: StateRead>(state: &S) -> Result<Self> {
+        Self::load_inner(state).await
+    }
+
+    pub(crate) async fn load_for_checktx<S: StateRead>(state: &S) -> Result<Self> {
         Self::load_inner(state).await
     }
 
@@ -67,15 +230,18 @@ impl HistoricalCheckContext {
         Ok(Self {
             chain_id: state.get_chain_id().await?,
             block_height: state.get_block_height().await?,
-            fmd_meta_params: shielded_pool_params.fmd_meta_params,
-            previous_fmd_parameters: state
-                .get_previous_fmd_parameters()
+            block_timestamp: state.get_current_block_timestamp().await?.unix_timestamp() as u64,
+            discovery_grace_period_blocks: shielded_pool_params.discovery_grace_period_blocks,
+            previous_discovery_parameters: state
+                .get_previous_discovery_parameters()
                 .await
                 .expect("chain params request must succeed"),
-            current_fmd_parameters: state
-                .get_current_fmd_parameters()
+            current_discovery_parameters: state
+                .get_current_discovery_parameters()
                 .await
                 .expect("chain params request must succeed"),
+            anchor_cache: Arc::new(AnchorValidationCache::default()),
+            claimed_anchor_cache: Arc::new(ClaimedAnchorValidationCache::default()),
         })
     }
 }
@@ -139,9 +305,293 @@ pub(crate) fn ensure_transaction_resource_bounds(tx: &Transaction) -> Result<()>
 pub(crate) fn validate_transaction_envelope(tx: &Transaction) -> Result<()> {
     ensure_transaction_resource_bounds(tx)?;
     valid_binding_signature(tx)?;
-    num_clues_equal_to_num_outputs(tx)?;
     check_memo_exists_if_outputs_absent_if_not(tx)?;
     check_non_empty_transaction(tx)
+}
+
+async fn check_nullifier_read_only<S>(
+    state: &S,
+    _context: &HistoricalCheckContext,
+    nullifier: shieldd_sdk_sct::Nullifier,
+) -> Result<f64>
+where
+    S: StateRead,
+{
+    let committed_check_start = Instant::now();
+    state.check_nullifier_unspent(nullifier).await?;
+    Ok(committed_check_start.elapsed().as_secs_f64() * 1000.0)
+}
+
+async fn validate_compliance_anchors_read_only<S: StateRead>(
+    state: &S,
+    user_anchor: &StateCommitment,
+    asset_anchor: &StateCommitment,
+    block_height: u64,
+    anchor_cache: Arc<AnchorValidationCache>,
+) -> Result<(f64, f64)> {
+    let anchor_validation_window_blocks = state
+        .get_compliance_params()
+        .await?
+        .anchor_validation_window_blocks;
+    let anchor_key = (
+        *user_anchor,
+        *asset_anchor,
+        block_height,
+        anchor_validation_window_blocks,
+    );
+    let validate_start = Instant::now();
+    let (cell, _, cache_wait_ms) = anchor_cache.entry(anchor_key);
+
+    let result = cell
+        .get_or_init(|| async move {
+            let user_anchor_height = state
+                .check_user_anchor(user_anchor)
+                .await
+                .map_err(|e| e.to_string())?
+                .ok_or_else(|| "invalid user compliance anchor: not found in history".to_string())?;
+            if block_height > user_anchor_height + anchor_validation_window_blocks {
+                return Err(format!(
+                    "user compliance anchor too old: height {} is more than {} blocks behind current height {}",
+                    user_anchor_height,
+                    anchor_validation_window_blocks,
+                    block_height
+                ));
+            }
+
+            let current_asset_anchor = state
+                .get_asset_imt_root()
+                .await
+                .map_err(|e| e.to_string())?;
+            if *asset_anchor != current_asset_anchor {
+                return Err(
+                    "asset compliance anchor does not match the current asset compliance root"
+                        .to_string(),
+                );
+            }
+
+            Ok(())
+        })
+        .await;
+
+    match result {
+        Ok(()) => Ok((
+            validate_start.elapsed().as_secs_f64() * 1000.0,
+            cache_wait_ms,
+        )),
+        Err(error) => anyhow::bail!(error.clone()),
+    }
+}
+
+async fn validate_claimed_anchor_read_only<S: StateRead>(
+    state: Arc<S>,
+    tx: Arc<Transaction>,
+    claimed_anchor_cache: Arc<ClaimedAnchorValidationCache>,
+) -> Result<f64> {
+    let anchor = tx.anchor;
+    let wait_start = Instant::now();
+    let (cell, _) = claimed_anchor_cache.entry(anchor);
+    let result = cell
+        .get_or_init(|| async move {
+            claimed_anchor_is_valid(state, Arc::as_ref(&tx))
+                .await
+                .map_err(|e| e.to_string())
+        })
+        .await;
+    let elapsed_ms = wait_start.elapsed().as_secs_f64() * 1000.0;
+
+    match result {
+        Ok(()) => Ok(elapsed_ms),
+        Err(error) => anyhow::bail!(error.clone()),
+    }
+}
+
+pub(crate) fn supports_parallel_prepare(tx: &Transaction) -> bool {
+    tx.actions().all(|a| matches!(a, Action::Transfer(_)))
+}
+
+fn action_requires_historical_check(action: &Action) -> bool {
+    matches!(
+        action,
+        Action::IbcRelay(_)
+            | Action::ShieldedIcs20Withdrawal(_)
+            | Action::ShieldedHostWithdrawal(_)
+    )
+}
+
+fn check_nullifier_read_only_sync(
+    handle: &tokio::runtime::Handle,
+    snapshot: &Snapshot,
+    _context: &HistoricalCheckContext,
+    nullifier: shieldd_sdk_sct::Nullifier,
+) -> Result<f64> {
+    let committed_check_start = Instant::now();
+    handle.block_on(snapshot.check_nullifier_unspent(nullifier))?;
+    Ok(committed_check_start.elapsed().as_secs_f64() * 1000.0)
+}
+
+fn validate_compliance_anchors_read_only_sync(
+    handle: &tokio::runtime::Handle,
+    snapshot: &Snapshot,
+    user_anchor: &StateCommitment,
+    asset_anchor: &StateCommitment,
+    block_height: u64,
+    anchor_cache: Arc<AnchorValidationCache>,
+) -> Result<(f64, f64)> {
+    let anchor_validation_window_blocks = handle
+        .block_on(snapshot.get_compliance_params())?
+        .anchor_validation_window_blocks;
+    let anchor_key = (
+        *user_anchor,
+        *asset_anchor,
+        block_height,
+        anchor_validation_window_blocks,
+    );
+    let validate_start = Instant::now();
+    let (cell, _, cache_wait_ms) = anchor_cache.entry(anchor_key);
+    let snapshot = snapshot.clone();
+    let user_anchor = *user_anchor;
+    let asset_anchor = *asset_anchor;
+
+    let result = handle
+        .clone()
+        .block_on(cell.get_or_init(|| async move {
+            let user_anchor_height = snapshot
+                .get_raw(&shieldd_sdk_compliance::state_key::anchor::user_anchor_lookup(
+                    &user_anchor,
+                ))
+                .await
+                .map_err(|e| e.to_string())?
+                .map(|bytes| {
+                    <u64 as shieldd_sdk_proto::Message>::decode(bytes.as_slice())
+                        .map_err(|e| anyhow::anyhow!(e).to_string())
+                })
+                .transpose()?
+                .ok_or_else(|| "invalid user compliance anchor: not found in history".to_string())?;
+            if block_height > user_anchor_height + anchor_validation_window_blocks {
+                return Err(format!(
+                    "user compliance anchor too old: height {} is more than {} blocks behind current height {}",
+                    user_anchor_height,
+                    anchor_validation_window_blocks,
+                    block_height
+                ));
+            }
+
+            let current_asset_anchor = snapshot
+                .get_asset_imt_root()
+                .await
+                .map_err(|e| e.to_string())?;
+            if asset_anchor != current_asset_anchor {
+                return Err(
+                    "asset compliance anchor does not match the current asset compliance root"
+                        .to_string(),
+                );
+            }
+
+            Ok(())
+        }))
+        .clone();
+
+    match result {
+        Ok(()) => Ok((
+            validate_start.elapsed().as_secs_f64() * 1000.0,
+            cache_wait_ms,
+        )),
+        Err(error) => anyhow::bail!(error),
+    }
+}
+
+fn validate_claimed_anchor_read_only_sync(
+    handle: &tokio::runtime::Handle,
+    snapshot: &Snapshot,
+    tx: &Transaction,
+    claimed_anchor_cache: Arc<ClaimedAnchorValidationCache>,
+) -> Result<f64> {
+    let anchor = tx.anchor;
+    let wait_start = Instant::now();
+    let (cell, _) = claimed_anchor_cache.entry(anchor);
+    let snapshot = snapshot.clone();
+
+    let result = handle
+        .clone()
+        .block_on(cell.get_or_init(|| async move {
+            if anchor.is_empty() {
+                return Ok(());
+            }
+            if snapshot
+                .get_raw(&shieldd_sdk_sct::state_key::tree::anchor_lookup(anchor))
+                .await
+                .map_err(|e| e.to_string())?
+                .map(|bytes| {
+                    <u64 as shieldd_sdk_proto::Message>::decode(bytes.as_slice())
+                        .map_err(|e| anyhow::anyhow!(e).to_string())
+                })
+                .transpose()?
+                .is_some()
+            {
+                Ok(())
+            } else {
+                Err(format!(
+                    "provided anchor {} is not a valid SCT root",
+                    anchor
+                ))
+            }
+        }))
+        .clone();
+    let elapsed_ms = wait_start.elapsed().as_secs_f64() * 1000.0;
+
+    match result {
+        Ok(()) => Ok(elapsed_ms),
+        Err(error) => anyhow::bail!(error),
+    }
+}
+
+pub(crate) async fn check_historical_with_context_profiled<S: StateRead + 'static>(
+    tx: &Transaction,
+    state: Arc<S>,
+    context: &HistoricalCheckContext,
+) -> Result<HistoricalCheckProfile> {
+    let total_start = Instant::now();
+    let mut await_ms = 0.0;
+    let mut action_checks = JoinSet::new();
+
+    ensure_transaction_resource_bounds(tx)?;
+    tx_parameters_historical_check_with_context(tx, context)?;
+    discovery_parameters_valid_with_context(tx, context)?;
+
+    let claimed_anchor_tx = Arc::new(tx.clone());
+    let claimed_anchor_wait_start = Instant::now();
+    validate_claimed_anchor_read_only(
+        state.clone(),
+        claimed_anchor_tx,
+        context.claimed_anchor_cache.clone(),
+    )
+    .await?;
+    await_ms += claimed_anchor_wait_start.elapsed().as_secs_f64() * 1000.0;
+
+    for (i, action) in tx.actions().cloned().enumerate() {
+        if !action_requires_historical_check(&action) {
+            continue;
+        }
+
+        let state2 = state.clone();
+        let span = action.create_span(i);
+        action_checks.spawn(async move { action.check_historical(state2).await }.instrument(span));
+    }
+
+    while !action_checks.is_empty() {
+        let join_wait_start = Instant::now();
+        let check = action_checks
+            .join_next()
+            .await
+            .expect("join set must yield while not empty");
+        await_ms += join_wait_start.elapsed().as_secs_f64() * 1000.0;
+        check??;
+    }
+
+    Ok(HistoricalCheckProfile {
+        total_ms: total_start.elapsed().as_secs_f64() * 1000.0,
+        await_ms,
+    })
 }
 
 pub(crate) async fn check_historical_with_context<S: StateRead + 'static>(
@@ -149,21 +599,34 @@ pub(crate) async fn check_historical_with_context<S: StateRead + 'static>(
     state: Arc<S>,
     context: &HistoricalCheckContext,
 ) -> Result<()> {
+    check_historical_with_context_profiled(tx, state, context)
+        .await
+        .map(|_| ())
+}
+
+pub(crate) fn check_historical_with_context_sync_profiled(
+    tx: &Transaction,
+    snapshot: &Snapshot,
+    context: &HistoricalCheckContext,
+    handle: &tokio::runtime::Handle,
+) -> Result<HistoricalCheckProfile> {
+    let total_start = Instant::now();
+
     ensure_transaction_resource_bounds(tx)?;
     tx_parameters_historical_check_with_context(tx, context)?;
-    fmd_parameters_valid_with_context(tx, context)?;
+    discovery_parameters_valid_with_context(tx, context)?;
 
-    claimed_anchor_is_valid(state.clone(), tx).await?;
+    let await_ms = validate_claimed_anchor_read_only_sync(
+        handle,
+        snapshot,
+        tx,
+        context.claimed_anchor_cache.clone(),
+    )?;
 
-    let mut action_checks = JoinSet::new();
-    for (i, action) in tx.actions().cloned().enumerate() {
-        let state2 = state.clone();
-        let span = action.create_span(i);
-        action_checks.spawn(async move { action.check_historical(state2).await }.instrument(span));
-    }
-
-    drain_joinset_results(&mut action_checks, "historical action check task panicked").await?;
-    Ok(())
+    Ok(HistoricalCheckProfile {
+        total_ms: total_start.elapsed().as_secs_f64() * 1000.0,
+        await_ms,
+    })
 }
 
 pub(crate) async fn check_and_execute_profiled<S>(
@@ -224,6 +687,16 @@ where
                 .await?;
                 profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
             }
+            Action::ShieldedHostWithdrawal(action) => {
+                shielded_host_withdrawal_execute_verified(
+                    action,
+                    &tx_context,
+                    artifact.proof_for_slot(ProofSlot::BodyAction(i))?,
+                    &mut state,
+                )
+                .await?;
+                profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
+            }
             Action::IbcRelay(action) => {
                 let relay = action.clone().with_handler::<Ics20Transfer, ShielddHost>();
                 let execute = relay.check_and_execute(&mut state);
@@ -235,11 +708,7 @@ where
                 }
                 profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
             }
-            Action::ValidatorDefinition(_)
-            | Action::ProposalSubmit(_)
-            | Action::ValidatorVote(_)
-            | Action::ComplianceRegisterAsset(_)
-            | Action::ComplianceRegisterUser(_) => {
+            _ => {
                 if action_spans_enabled {
                     let span = action.create_span(i);
                     action
@@ -266,19 +735,388 @@ where
     }
     profile.action_execute_ms = action_execute_start.elapsed().as_secs_f64() * 1000.0;
 
-    let record_clues_start = Instant::now();
-    state.put_current_source(None);
-    for clue in tx
-        .transaction_body
-        .detection_data
-        .iter()
-        .flat_map(|x| x.fmd_clues.iter())
-    {
-        state.record_clue(clue.clone(), tx_id.clone()).await?;
-    }
-    profile.record_clues_ms = record_clues_start.elapsed().as_secs_f64() * 1000.0;
-
     Ok(profile)
+}
+
+pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
+    tx: Arc<Transaction>,
+    state: Arc<S>,
+    context: HistoricalCheckContext,
+    skip_historical: bool,
+) -> Result<PreparedCandidateRead> {
+    let read_start = Instant::now();
+    let mut prepared = PreparedCandidateRead::default();
+    ensure_transaction_resource_bounds(tx.as_ref())?;
+
+    let execution_context = TxExecutionContext {
+        block_timestamp: context.block_timestamp,
+        source: tx.id(),
+    };
+    let mut anchor_pairs = BTreeSet::new();
+    let mut output_payloads = Vec::new();
+    let mut spend_nullifiers = Vec::new();
+    let mut tx_nullifiers = HashSet::new();
+    let action_execute_start = Instant::now();
+    let local_precheck_start = Instant::now();
+
+    for (i, action) in tx.actions().enumerate() {
+        match action {
+            Action::Transfer(transfer) => {
+                check_action_timestamp_freshness(
+                    transfer.body.target_timestamp,
+                    execution_context.block_timestamp,
+                )?;
+                for input in &transfer.body.inputs {
+                    anyhow::ensure!(
+                        tx_nullifiers.insert(input.nullifier),
+                        "transaction contains duplicate spend nullifier {}",
+                        input.nullifier
+                    );
+                    spend_nullifiers.push(input.nullifier);
+                }
+                anchor_pairs.insert((transfer.body.compliance_anchor, transfer.body.asset_anchor));
+                output_payloads.extend(
+                    transfer
+                        .body
+                        .outputs
+                        .iter()
+                        .map(|output| output.note_payload.clone()),
+                );
+            }
+            // Note reshape has no compliance anchors. Every proof-bound input
+            // nullifier and output payload participates in prepared effects;
+            // body-only padding sentinels cannot suppress consensus writes.
+            Action::NoteReshape(note_reshape) => {
+                for input in &note_reshape.body.inputs {
+                    anyhow::ensure!(
+                        tx_nullifiers.insert(input.nullifier),
+                        "transaction contains duplicate spend nullifier {}",
+                        input.nullifier
+                    );
+                    spend_nullifiers.push(input.nullifier);
+                }
+                output_payloads.extend(
+                    note_reshape
+                        .body
+                        .outputs
+                        .iter()
+                        .map(|output| output.note_payload.clone()),
+                );
+            }
+            _ => anyhow::bail!(
+                "parallel prepare only supports transfer and note reshape actions, found unsupported action {:?} at index {}",
+                action,
+                i
+            ),
+        }
+    }
+    if let Some(fee_funding) = &tx.transaction_body.fee_funding {
+        check_action_timestamp_freshness(
+            fee_funding.transfer.body.target_timestamp,
+            execution_context.block_timestamp,
+        )?;
+        for input in &fee_funding.transfer.body.inputs {
+            anyhow::ensure!(
+                tx_nullifiers.insert(input.nullifier),
+                "transaction contains duplicate spend nullifier {}",
+                input.nullifier
+            );
+            spend_nullifiers.push(input.nullifier);
+        }
+        anchor_pairs.insert((
+            fee_funding.transfer.body.compliance_anchor,
+            fee_funding.transfer.body.asset_anchor,
+        ));
+        output_payloads.extend(
+            fee_funding
+                .transfer
+                .body
+                .outputs
+                .iter()
+                .map(|output| output.note_payload.clone()),
+        );
+    }
+    let read_nullifiers = spend_nullifiers.clone();
+    prepared.execution_profile.read_local_precheck_ms =
+        local_precheck_start.elapsed().as_secs_f64() * 1000.0;
+
+    enum ReadTaskResult {
+        Anchor { elapsed_ms: f64, cache_wait_ms: f64 },
+        Nullifier(f64),
+    }
+
+    let historical_future = async {
+        if skip_historical {
+            Ok(HistoricalCheckProfile::default())
+        } else {
+            check_historical_with_context_profiled(Arc::as_ref(&tx), state.clone(), &context).await
+        }
+    };
+
+    let mut read_tasks = JoinSet::new();
+    for (user_anchor, asset_anchor) in anchor_pairs {
+        let state = state.clone();
+        let anchor_cache = context.anchor_cache.clone();
+        read_tasks.spawn(async move {
+            validate_compliance_anchors_read_only(
+                Arc::as_ref(&state),
+                &user_anchor,
+                &asset_anchor,
+                context.block_height,
+                anchor_cache,
+            )
+            .await
+            .map(|(elapsed_ms, cache_wait_ms)| ReadTaskResult::Anchor {
+                elapsed_ms,
+                cache_wait_ms,
+            })
+        });
+    }
+    for nullifier in &read_nullifiers {
+        let state = state.clone();
+        let nullifier = *nullifier;
+        let context = context.clone();
+        read_tasks.spawn(async move {
+            check_nullifier_read_only(Arc::as_ref(&state), &context, nullifier)
+                .await
+                .map(ReadTaskResult::Nullifier)
+        });
+    }
+
+    let read_task_future = async {
+        let mut execution_profile = TransactionExecutionProfile::default();
+        while let Some(result) = read_tasks.join_next().await {
+            match result?? {
+                ReadTaskResult::Anchor {
+                    elapsed_ms,
+                    cache_wait_ms,
+                } => {
+                    execution_profile.read_anchor_validation_ms += elapsed_ms;
+                    execution_profile.read_anchor_cache_wait_ms += cache_wait_ms;
+                }
+                ReadTaskResult::Nullifier(elapsed_ms) => {
+                    execution_profile.read_committed_nullifier_ms += elapsed_ms;
+                    execution_profile.read_nullifier_wait_ms += elapsed_ms;
+                    execution_profile.spend_nullifier_committed_check_ms += elapsed_ms;
+                    execution_profile.spend_nullifier_check_ms += elapsed_ms;
+                    execution_profile.nullifier_lookup_count += 1;
+                }
+            }
+        }
+        Ok::<TransactionExecutionProfile, anyhow::Error>(execution_profile)
+    };
+
+    let read_lookup_wait_start = Instant::now();
+    let (historical_profile, read_task_profile) =
+        tokio::try_join!(historical_future, read_task_future)?;
+    prepared.execution_profile.read_lookup_wait_or_join_ms =
+        read_lookup_wait_start.elapsed().as_secs_f64() * 1000.0;
+
+    prepared.check_historical_ms = historical_profile.total_ms;
+    prepared.execution_profile.read_historical_check_ms = historical_profile.await_ms;
+    prepared.execution_profile.read_anchor_validation_ms +=
+        read_task_profile.read_anchor_validation_ms;
+    prepared.execution_profile.read_anchor_cache_wait_ms +=
+        read_task_profile.read_anchor_cache_wait_ms;
+    prepared.execution_profile.read_committed_nullifier_ms +=
+        read_task_profile.read_committed_nullifier_ms;
+    prepared.execution_profile.read_nullifier_wait_ms += read_task_profile.read_nullifier_wait_ms;
+    prepared
+        .execution_profile
+        .spend_nullifier_committed_check_ms += read_task_profile.spend_nullifier_committed_check_ms;
+    prepared.execution_profile.spend_nullifier_check_ms +=
+        read_task_profile.spend_nullifier_check_ms;
+    prepared.execution_profile.nullifier_lookup_count += read_task_profile.nullifier_lookup_count;
+
+    let effects_build_start = Instant::now();
+    prepared.effects.spend_nullifiers = spend_nullifiers;
+    prepared.effects.sct_payloads = output_payloads
+        .into_iter()
+        .map(|note_payload| (note_payload, execution_context.source.clone().into()).into())
+        .collect();
+    prepared.execution_profile.read_effects_build_ms =
+        effects_build_start.elapsed().as_secs_f64() * 1000.0;
+    prepared.execution_profile.output_add_note_payload_ms =
+        prepared.execution_profile.read_effects_build_ms;
+    prepared.execution_profile.output_action_execute_ms =
+        prepared.execution_profile.read_effects_build_ms;
+    prepared.execution_profile.action_execute_ms =
+        action_execute_start.elapsed().as_secs_f64() * 1000.0;
+    prepared.read_wall_ms = read_start.elapsed().as_secs_f64() * 1000.0;
+    Ok(prepared)
+}
+
+pub(crate) fn prepare_candidate_read_blocking_profiled(
+    tx: Arc<Transaction>,
+    snapshot: Snapshot,
+    context: HistoricalCheckContext,
+    skip_historical: bool,
+    handle: tokio::runtime::Handle,
+) -> Result<PreparedCandidateRead> {
+    let read_start = Instant::now();
+    let mut prepared = PreparedCandidateRead::default();
+    ensure_transaction_resource_bounds(tx.as_ref())?;
+
+    let execution_context = TxExecutionContext {
+        block_timestamp: context.block_timestamp,
+        source: tx.id(),
+    };
+    let mut anchor_pairs = BTreeSet::new();
+    let mut output_payloads = Vec::new();
+    let mut spend_nullifiers = Vec::new();
+    let mut tx_nullifiers = HashSet::new();
+    let action_execute_start = Instant::now();
+    let local_precheck_start = Instant::now();
+
+    for (i, action) in tx.actions().enumerate() {
+        match action {
+            Action::Transfer(transfer) => {
+                check_action_timestamp_freshness(
+                    transfer.body.target_timestamp,
+                    execution_context.block_timestamp,
+                )?;
+                for input in &transfer.body.inputs {
+                    anyhow::ensure!(
+                        tx_nullifiers.insert(input.nullifier),
+                        "transaction contains duplicate spend nullifier {}",
+                        input.nullifier
+                    );
+                    spend_nullifiers.push(input.nullifier);
+                }
+                anchor_pairs.insert((transfer.body.compliance_anchor, transfer.body.asset_anchor));
+                output_payloads.extend(
+                    transfer
+                        .body
+                        .outputs
+                        .iter()
+                        .map(|output| output.note_payload.clone()),
+                );
+            }
+            // Note reshape has no compliance anchors. Every proof-bound input
+            // nullifier and output payload participates in prepared effects;
+            // body-only padding sentinels cannot suppress consensus writes.
+            Action::NoteReshape(note_reshape) => {
+                for input in &note_reshape.body.inputs {
+                    anyhow::ensure!(
+                        tx_nullifiers.insert(input.nullifier),
+                        "transaction contains duplicate spend nullifier {}",
+                        input.nullifier
+                    );
+                    spend_nullifiers.push(input.nullifier);
+                }
+                output_payloads.extend(
+                    note_reshape
+                        .body
+                        .outputs
+                        .iter()
+                        .map(|output| output.note_payload.clone()),
+                );
+            }
+            _ => anyhow::bail!(
+                "parallel prepare only supports transfer and note reshape actions, found unsupported action {:?} at index {}",
+                action,
+                i
+            ),
+        }
+    }
+    if let Some(fee_funding) = &tx.transaction_body.fee_funding {
+        check_action_timestamp_freshness(
+            fee_funding.transfer.body.target_timestamp,
+            execution_context.block_timestamp,
+        )?;
+        for input in &fee_funding.transfer.body.inputs {
+            anyhow::ensure!(
+                tx_nullifiers.insert(input.nullifier),
+                "transaction contains duplicate spend nullifier {}",
+                input.nullifier
+            );
+            spend_nullifiers.push(input.nullifier);
+        }
+        anchor_pairs.insert((
+            fee_funding.transfer.body.compliance_anchor,
+            fee_funding.transfer.body.asset_anchor,
+        ));
+        output_payloads.extend(
+            fee_funding
+                .transfer
+                .body
+                .outputs
+                .iter()
+                .map(|output| output.note_payload.clone()),
+        );
+    }
+    let read_nullifiers = spend_nullifiers.clone();
+    prepared.execution_profile.read_local_precheck_ms =
+        local_precheck_start.elapsed().as_secs_f64() * 1000.0;
+
+    let lookup_wait_start = Instant::now();
+    if skip_historical {
+        prepared.check_historical_ms = 0.0;
+    } else {
+        let historical_profile = check_historical_with_context_sync_profiled(
+            Arc::as_ref(&tx),
+            &snapshot,
+            &context,
+            &handle,
+        )?;
+        prepared.check_historical_ms = historical_profile.total_ms;
+        prepared.execution_profile.read_historical_check_ms = historical_profile.await_ms;
+    }
+
+    for (user_anchor, asset_anchor) in anchor_pairs {
+        let (elapsed_ms, cache_wait_ms) = validate_compliance_anchors_read_only_sync(
+            &handle,
+            &snapshot,
+            &user_anchor,
+            &asset_anchor,
+            context.block_height,
+            context.anchor_cache.clone(),
+        )?;
+        prepared.execution_profile.read_anchor_validation_ms += elapsed_ms;
+        prepared.execution_profile.read_anchor_cache_wait_ms += cache_wait_ms;
+    }
+    for nullifier in &read_nullifiers {
+        let elapsed_ms = check_nullifier_read_only_sync(&handle, &snapshot, &context, *nullifier)?;
+        prepared.execution_profile.read_committed_nullifier_ms += elapsed_ms;
+        prepared.execution_profile.read_nullifier_wait_ms += elapsed_ms;
+        prepared
+            .execution_profile
+            .spend_nullifier_committed_check_ms += elapsed_ms;
+        prepared.execution_profile.spend_nullifier_check_ms += elapsed_ms;
+        prepared.execution_profile.nullifier_lookup_count += 1;
+    }
+    prepared.execution_profile.read_lookup_wait_or_join_ms =
+        lookup_wait_start.elapsed().as_secs_f64() * 1000.0;
+
+    let effects_build_start = Instant::now();
+    prepared.effects.spend_nullifiers = spend_nullifiers;
+    prepared.effects.sct_payloads = output_payloads
+        .into_iter()
+        .map(|note_payload| (note_payload, execution_context.source.clone().into()).into())
+        .collect();
+    prepared.execution_profile.read_effects_build_ms =
+        effects_build_start.elapsed().as_secs_f64() * 1000.0;
+    prepared.execution_profile.output_add_note_payload_ms =
+        prepared.execution_profile.read_effects_build_ms;
+    prepared.execution_profile.output_action_execute_ms =
+        prepared.execution_profile.read_effects_build_ms;
+    prepared.execution_profile.action_execute_ms =
+        action_execute_start.elapsed().as_secs_f64() * 1000.0;
+    prepared.read_wall_ms = read_start.elapsed().as_secs_f64() * 1000.0;
+    Ok(prepared)
+}
+
+fn check_action_timestamp_freshness(target_timestamp: u64, block_timestamp: u64) -> Result<()> {
+    if target_timestamp == 0
+        && std::env::var_os("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP").is_some()
+    {
+        return Ok(());
+    }
+    check_timestamp_freshness(
+        target_timestamp,
+        i64::try_from(block_timestamp).context("block timestamp exceeds i64 range")?,
+    )?;
+    Ok(())
 }
 
 #[async_trait]
@@ -337,6 +1175,10 @@ impl AppActionHandler for Transaction {
 mod tests {
     use std::sync::Arc;
 
+    // Serializes tests that read/write SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP to
+    // prevent env-var races when tests run in parallel.
+    static TIMESTAMP_ENV_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     use std::ops::Deref;
 
     use anyhow::Result;
@@ -348,53 +1190,80 @@ mod tests {
     use shieldd_sdk_keys::{test_keys, Address};
     use shieldd_sdk_shielded_pool::{Note, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
     use shieldd_sdk_tct as tct;
-    use shieldd_sdk_transaction::{
-        plan::{CluePlan, DetectionDataPlan, TransactionPlan},
-        TransactionParameters, WitnessData,
-    };
+    use shieldd_sdk_transaction::{plan::TransactionPlan, TransactionParameters, WitnessData};
 
     use crate::action_handler::AppActionHandler;
 
-    use super::{
-        drain_joinset_results, transaction_action_count_allowed,
-        transaction_nullifier_count_allowed,
-    };
+    use super::{AnchorValidationCache, ClaimedAnchorValidationCache};
 
-    #[test]
-    fn transaction_action_count_policy_is_fixed_at_boundary() {
-        assert!(transaction_action_count_allowed(512, false));
-        assert!(!transaction_action_count_allowed(513, false));
-        assert!(transaction_action_count_allowed(511, true));
-        assert!(!transaction_action_count_allowed(512, true));
-        assert!(!transaction_action_count_allowed(usize::MAX, true));
-    }
+    #[tokio::test]
+    async fn anchor_validation_cache_counts_shared_pair_once() -> Result<()> {
+        let cache = Arc::new(AnchorValidationCache::default());
+        let key = (
+            tct::StateCommitment::try_from([0; 32]).expect("valid commitment"),
+            tct::StateCommitment::try_from([1; 32]).expect("valid commitment"),
+            100,
+            50,
+        );
 
-    #[test]
-    fn transaction_nullifier_count_policy_is_fixed_at_boundary() {
-        assert!(transaction_nullifier_count_allowed(256));
-        assert!(!transaction_nullifier_count_allowed(257));
-        assert!(!transaction_nullifier_count_allowed(usize::MAX));
+        let mut tasks = tokio::task::JoinSet::new();
+        for _ in 0..8 {
+            let cache = cache.clone();
+            tasks.spawn(async move {
+                let (cell, _hit, _wait_ms) = cache.entry(key);
+                let result = cell
+                    .get_or_init(|| async { Ok::<(), String>(()) })
+                    .await
+                    .clone();
+                anyhow::ensure!(result.is_ok(), "cache cell should initialize successfully");
+                Ok::<(), anyhow::Error>(())
+            });
+        }
+
+        while let Some(result) = tasks.join_next().await {
+            result??;
+        }
+
+        let (hits, misses, unique_pairs) = cache.stats();
+        assert_eq!(misses, 1);
+        assert_eq!(hits, 7);
+        assert_eq!(unique_pairs, 1);
+
+        Ok(())
     }
 
     #[tokio::test]
-    async fn structured_join_drain_waits_for_transaction_siblings_after_error() {
-        let completed = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        let mut tasks = tokio::task::JoinSet::new();
-        tasks.spawn(async { anyhow::bail!("injected task failure") });
-        let completed_by_sibling = completed.clone();
-        tasks.spawn(async move {
-            tokio::task::yield_now().await;
-            completed_by_sibling.store(true, std::sync::atomic::Ordering::SeqCst);
-            Ok::<(), anyhow::Error>(())
-        });
+    async fn claimed_anchor_validation_cache_counts_shared_anchor_once() -> Result<()> {
+        let cache = Arc::new(ClaimedAnchorValidationCache::default());
+        let anchor = shieldd_sdk_tct::Tree::new().root();
 
-        let result = drain_joinset_results(&mut tasks, "injected transaction task panic").await;
-        assert!(result.is_err());
-        assert!(
-            completed.load(std::sync::atomic::Ordering::SeqCst),
-            "the sibling must complete before the first error is returned"
-        );
-        assert!(tasks.is_empty());
+        let mut tasks = tokio::task::JoinSet::new();
+        for _ in 0..8 {
+            let cache = cache.clone();
+            tasks.spawn(async move {
+                let (cell, _hit) = cache.entry(anchor);
+                let result = cell
+                    .get_or_init(|| async { Ok::<(), String>(()) })
+                    .await
+                    .clone();
+                anyhow::ensure!(
+                    result.is_ok(),
+                    "claimed anchor cell should initialize successfully"
+                );
+                Ok::<(), anyhow::Error>(())
+            });
+        }
+
+        while let Some(result) = tasks.join_next().await {
+            result??;
+        }
+
+        let (hits, misses, unique_values) = cache.stats();
+        assert_eq!(misses, 1);
+        assert_eq!(hits, 7);
+        assert_eq!(unique_values, 1);
+
+        Ok(())
     }
 
     /// Enrich a shielded input plan with valid compliance data for testing.
@@ -442,7 +1311,12 @@ mod tests {
 
     /// Enrich a shielded output plan with valid compliance data for testing.
     /// Uses unregulated compliance for simplicity.
-    fn enrich_output_for_test(output: &mut ShieldedOutputPlan, asset_id: asset::Id) {
+    fn enrich_output_for_test<R: rand_core::RngCore + rand_core::CryptoRng>(
+        _rng: &mut R,
+        output: &mut ShieldedOutputPlan,
+        _sender_address: &Address,
+        asset_id: asset::Id,
+    ) {
         // Create IMT non-membership proof (unregulated asset)
         let imt = IndexedMerkleTree::new();
         let (position, indexed_leaf, auth_path) = imt
@@ -451,6 +1325,7 @@ mod tests {
         let asset_anchor = tct::StateCommitment(imt.root().0);
         let asset_path = MerklePath::from_auth_path(auth_path);
 
+        // Set IMT data BEFORE set_compliance_details (it reads asset_indexed_leaf for DLEQ)
         output.asset_anchor = asset_anchor;
         output.asset_path = asset_path;
         output.asset_position = position;
@@ -465,10 +1340,7 @@ mod tests {
             ComplianceLeaf::new(output.dest_address.clone(), asset_id, recv_b_d_fq);
 
         output
-            .set_compliance_details(
-                &recipient_leaf,
-                Fr::from(0u64), // tx_blinding_nonce
-            )
+            .set_compliance_details(&recipient_leaf, Fr::from(0u64))
             .expect("can set compliance details");
 
         // Build user tree from the compliance_leaf that set_compliance_details created
@@ -565,7 +1437,12 @@ mod tests {
             ShieldedOutputPlan::new(&mut OsRng, value, test_keys::ADDRESS_1.deref().clone());
 
         enrich_spend_for_test(&mut OsRng, &mut spend1, &test_keys::ADDRESS_0);
-        enrich_output_for_test(&mut output1, value.asset_id);
+        enrich_output_for_test(
+            &mut OsRng,
+            &mut output1,
+            &test_keys::ADDRESS_0,
+            value.asset_id,
+        );
         align_transfer_compliance_for_test(&mut OsRng, &mut [&mut spend1], &mut [&mut output1]);
 
         let transfer =
@@ -580,13 +1457,6 @@ mod tests {
             },
             actions: vec![transfer.into()],
             fee_funding: None,
-            detection_data: Some(DetectionDataPlan {
-                clue_plans: vec![CluePlan::new(
-                    &mut OsRng,
-                    test_keys::ADDRESS_1.deref().clone(),
-                    1.try_into().unwrap(),
-                )],
-            }),
             memo: None,
         };
 
@@ -644,7 +1514,12 @@ mod tests {
             ShieldedOutputPlan::new(&mut OsRng, value, test_keys::ADDRESS_1.deref().clone());
 
         enrich_spend_for_test(&mut OsRng, &mut spend1, &test_keys::ADDRESS_0);
-        enrich_output_for_test(&mut output1, value.asset_id);
+        enrich_output_for_test(
+            &mut OsRng,
+            &mut output1,
+            &test_keys::ADDRESS_0,
+            value.asset_id,
+        );
         align_transfer_compliance_for_test(&mut OsRng, &mut [&mut spend1], &mut [&mut output1]);
 
         let transfer =
@@ -659,7 +1534,6 @@ mod tests {
             },
             actions: vec![transfer.into()],
             fee_funding: None,
-            detection_data: None,
             memo: None,
         };
 
@@ -693,5 +1567,28 @@ mod tests {
         assert!(result.is_err());
 
         Ok(())
+    }
+
+    #[test]
+    fn zero_timestamp_requires_benchmark_override() {
+        let _guard = TIMESTAMP_ENV_MUTEX.lock().unwrap();
+        std::env::remove_var("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP");
+        assert!(super::check_action_timestamp_freshness(0, 1_700_000_000).is_err());
+    }
+
+    #[test]
+    fn zero_timestamp_is_allowed_when_benchmark_override_is_set() {
+        let _guard = TIMESTAMP_ENV_MUTEX.lock().unwrap();
+        std::env::set_var("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP", "1");
+        let result = super::check_action_timestamp_freshness(0, 1_700_000_000);
+        std::env::remove_var("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn nonzero_timestamps_still_enforce_timestamp_freshness() {
+        let _guard = TIMESTAMP_ENV_MUTEX.lock().unwrap();
+        assert!(super::check_action_timestamp_freshness(1_700_000_000, 1_700_000_100).is_ok());
+        assert!(super::check_action_timestamp_freshness(1_700_000_000, 1_700_003_700).is_err());
     }
 }

@@ -21,7 +21,7 @@ component = [
 ]
 default = ["component"]
 sqlite-bundled = ["rusqlite/bundled"]
-test-helpers = ["decaf377-fmd", "decaf377-ka"]
+test-helpers = ["decaf377-ka"]
 
 [dependencies]
 anyhow = {workspace = true}
@@ -34,7 +34,6 @@ cnidarium = {workspace = true, optional = true, default-features = true}
 cnidarium-component = {workspace = true, optional = true, default-features = true}
 decaf377 = {workspace = true, default-features = true}
 decaf377-rdsa = {workspace = true}
-decaf377-fmd = {workspace = true, optional = true}
 decaf377-ka = {workspace = true, optional = true}
 once_cell = {workspace = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
@@ -60,7 +59,6 @@ tonic = {workspace = true, optional = true}
 tracing = {workspace = true}
 
 [dev-dependencies]
-decaf377-fmd = {workspace = true}
 decaf377-ka = {workspace = true}
 shieldd-sdk-keys = {workspace = true, features = ["demo"]}
 rand = {workspace = true}

@@ -36,8 +36,14 @@ impl serde::Serialize for Action {
                 action::Action::ComplianceRegisterUser(v) => {
                     struct_ser.serialize_field("complianceRegisterUser", v)?;
                 }
+                action::Action::AggregateBundle(v) => {
+                    struct_ser.serialize_field("aggregateBundle", v)?;
+                }
                 action::Action::ShieldedIcs20Withdrawal(v) => {
                     struct_ser.serialize_field("shieldedIcs20Withdrawal", v)?;
+                }
+                action::Action::ShieldedHostWithdrawal(v) => {
+                    struct_ser.serialize_field("shieldedHostWithdrawal", v)?;
                 }
             }
         }
@@ -66,8 +72,12 @@ impl<'de> serde::Deserialize<'de> for Action {
             "complianceRegisterAsset",
             "compliance_register_user",
             "complianceRegisterUser",
+            "aggregate_bundle",
+            "aggregateBundle",
             "shielded_ics20_withdrawal",
             "shieldedIcs20Withdrawal",
+            "shielded_host_withdrawal",
+            "shieldedHostWithdrawal",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -80,7 +90,9 @@ impl<'de> serde::Deserialize<'de> for Action {
             ValidatorVote,
             ComplianceRegisterAsset,
             ComplianceRegisterUser,
+            AggregateBundle,
             ShieldedIcs20Withdrawal,
+            ShieldedHostWithdrawal,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -111,7 +123,9 @@ impl<'de> serde::Deserialize<'de> for Action {
                             "validatorVote" | "validator_vote" => Ok(GeneratedField::ValidatorVote),
                             "complianceRegisterAsset" | "compliance_register_asset" => Ok(GeneratedField::ComplianceRegisterAsset),
                             "complianceRegisterUser" | "compliance_register_user" => Ok(GeneratedField::ComplianceRegisterUser),
+                            "aggregateBundle" | "aggregate_bundle" => Ok(GeneratedField::AggregateBundle),
                             "shieldedIcs20Withdrawal" | "shielded_ics20_withdrawal" => Ok(GeneratedField::ShieldedIcs20Withdrawal),
+                            "shieldedHostWithdrawal" | "shielded_host_withdrawal" => Ok(GeneratedField::ShieldedHostWithdrawal),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -190,11 +204,25 @@ impl<'de> serde::Deserialize<'de> for Action {
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::ComplianceRegisterUser)
 ;
                         }
+                        GeneratedField::AggregateBundle => {
+                            if action__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("aggregateBundle"));
+                            }
+                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::AggregateBundle)
+;
+                        }
                         GeneratedField::ShieldedIcs20Withdrawal => {
                             if action__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("shieldedIcs20Withdrawal"));
                             }
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::ShieldedIcs20Withdrawal)
+;
+                        }
+                        GeneratedField::ShieldedHostWithdrawal => {
+                            if action__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("shieldedHostWithdrawal"));
+                            }
+                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::ShieldedHostWithdrawal)
 ;
                         }
                         GeneratedField::__SkipField__ => {
@@ -460,8 +488,14 @@ impl serde::Serialize for ActionView {
                 action_view::ActionView::ComplianceRegisterUser(v) => {
                     struct_ser.serialize_field("complianceRegisterUser", v)?;
                 }
+                action_view::ActionView::AggregateBundle(v) => {
+                    struct_ser.serialize_field("aggregateBundle", v)?;
+                }
                 action_view::ActionView::ShieldedIcs20Withdrawal(v) => {
                     struct_ser.serialize_field("shieldedIcs20Withdrawal", v)?;
+                }
+                action_view::ActionView::ShieldedHostWithdrawal(v) => {
+                    struct_ser.serialize_field("shieldedHostWithdrawal", v)?;
                 }
             }
         }
@@ -490,8 +524,12 @@ impl<'de> serde::Deserialize<'de> for ActionView {
             "complianceRegisterAsset",
             "compliance_register_user",
             "complianceRegisterUser",
+            "aggregate_bundle",
+            "aggregateBundle",
             "shielded_ics20_withdrawal",
             "shieldedIcs20Withdrawal",
+            "shielded_host_withdrawal",
+            "shieldedHostWithdrawal",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -504,7 +542,9 @@ impl<'de> serde::Deserialize<'de> for ActionView {
             ValidatorVote,
             ComplianceRegisterAsset,
             ComplianceRegisterUser,
+            AggregateBundle,
             ShieldedIcs20Withdrawal,
+            ShieldedHostWithdrawal,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -535,7 +575,9 @@ impl<'de> serde::Deserialize<'de> for ActionView {
                             "validatorVote" | "validator_vote" => Ok(GeneratedField::ValidatorVote),
                             "complianceRegisterAsset" | "compliance_register_asset" => Ok(GeneratedField::ComplianceRegisterAsset),
                             "complianceRegisterUser" | "compliance_register_user" => Ok(GeneratedField::ComplianceRegisterUser),
+                            "aggregateBundle" | "aggregate_bundle" => Ok(GeneratedField::AggregateBundle),
                             "shieldedIcs20Withdrawal" | "shielded_ics20_withdrawal" => Ok(GeneratedField::ShieldedIcs20Withdrawal),
+                            "shieldedHostWithdrawal" | "shielded_host_withdrawal" => Ok(GeneratedField::ShieldedHostWithdrawal),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -614,11 +656,25 @@ impl<'de> serde::Deserialize<'de> for ActionView {
                             action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::ComplianceRegisterUser)
 ;
                         }
+                        GeneratedField::AggregateBundle => {
+                            if action_view__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("aggregateBundle"));
+                            }
+                            action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::AggregateBundle)
+;
+                        }
                         GeneratedField::ShieldedIcs20Withdrawal => {
                             if action_view__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("shieldedIcs20Withdrawal"));
                             }
                             action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::ShieldedIcs20Withdrawal)
+;
+                        }
+                        GeneratedField::ShieldedHostWithdrawal => {
+                            if action_view__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("shieldedHostWithdrawal"));
+                            }
+                            action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::ShieldedHostWithdrawal)
 ;
                         }
                         GeneratedField::__SkipField__ => {
@@ -632,6 +688,142 @@ impl<'de> serde::Deserialize<'de> for ActionView {
             }
         }
         deserializer.deserialize_struct("shieldd.core.transaction.v1.ActionView", FIELDS, GeneratedVisitor)
+    }
+}
+impl serde::Serialize for AggregateBundle {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.version != 0 {
+            len += 1;
+        }
+        if !self.srs_id.is_empty() {
+            len += 1;
+        }
+        if !self.families.is_empty() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.AggregateBundle", len)?;
+        if self.version != 0 {
+            struct_ser.serialize_field("version", &self.version)?;
+        }
+        if !self.srs_id.is_empty() {
+            #[allow(clippy::needless_borrow)]
+            #[allow(clippy::needless_borrows_for_generic_args)]
+            struct_ser.serialize_field("srsId", pbjson::private::base64::encode(&self.srs_id).as_str())?;
+        }
+        if !self.families.is_empty() {
+            struct_ser.serialize_field("families", &self.families)?;
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for AggregateBundle {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "version",
+            "srs_id",
+            "srsId",
+            "families",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Version,
+            SrsId,
+            Families,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "version" => Ok(GeneratedField::Version),
+                            "srsId" | "srs_id" => Ok(GeneratedField::SrsId),
+                            "families" => Ok(GeneratedField::Families),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = AggregateBundle;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.core.transaction.v1.AggregateBundle")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<AggregateBundle, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut version__ = None;
+                let mut srs_id__ = None;
+                let mut families__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Version => {
+                            if version__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("version"));
+                            }
+                            version__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::SrsId => {
+                            if srs_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("srsId"));
+                            }
+                            srs_id__ = 
+                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::Families => {
+                            if families__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("families"));
+                            }
+                            families__ = Some(map_.next_value()?);
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(AggregateBundle {
+                    version: version__.unwrap_or_default(),
+                    srs_id: srs_id__.unwrap_or_default(),
+                    families: families__.unwrap_or_default(),
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.core.transaction.v1.AggregateBundle", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for AuthorizationData {
@@ -748,7 +940,7 @@ impl<'de> serde::Deserialize<'de> for AuthorizationData {
         deserializer.deserialize_struct("shieldd.core.transaction.v1.AuthorizationData", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for CluePlan {
+impl serde::Serialize for FamilyAggregate {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
@@ -756,50 +948,79 @@ impl serde::Serialize for CluePlan {
     {
         use serde::ser::SerializeStruct;
         let mut len = 0;
-        if self.address.is_some() {
+        if self.family_id != 0 {
             len += 1;
         }
-        if !self.rseed.is_empty() {
+        if self.real_count != 0 {
             len += 1;
         }
-        if self.precision_bits != 0 {
+        if self.padded_count != 0 {
             len += 1;
         }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.CluePlan", len)?;
-        if let Some(v) = self.address.as_ref() {
-            struct_ser.serialize_field("address", v)?;
+        if !self.aggregate_proof.is_empty() {
+            len += 1;
         }
-        if !self.rseed.is_empty() {
+        if self.note_reshape_family_id != 0 {
+            len += 1;
+        }
+        if self.shielded_ics20_withdrawal_family_id != 0 {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.FamilyAggregate", len)?;
+        if self.family_id != 0 {
+            let v = ProofFamilyId::try_from(self.family_id)
+                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.family_id)))?;
+            struct_ser.serialize_field("familyId", &v)?;
+        }
+        if self.real_count != 0 {
+            struct_ser.serialize_field("realCount", &self.real_count)?;
+        }
+        if self.padded_count != 0 {
+            struct_ser.serialize_field("paddedCount", &self.padded_count)?;
+        }
+        if !self.aggregate_proof.is_empty() {
             #[allow(clippy::needless_borrow)]
             #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("rseed", pbjson::private::base64::encode(&self.rseed).as_str())?;
+            struct_ser.serialize_field("aggregateProof", pbjson::private::base64::encode(&self.aggregate_proof).as_str())?;
         }
-        if self.precision_bits != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("precisionBits", ToString::to_string(&self.precision_bits).as_str())?;
+        if self.note_reshape_family_id != 0 {
+            struct_ser.serialize_field("noteReshapeFamilyId", &self.note_reshape_family_id)?;
+        }
+        if self.shielded_ics20_withdrawal_family_id != 0 {
+            struct_ser.serialize_field("shieldedIcs20WithdrawalFamilyId", &self.shielded_ics20_withdrawal_family_id)?;
         }
         struct_ser.end()
     }
 }
-impl<'de> serde::Deserialize<'de> for CluePlan {
+impl<'de> serde::Deserialize<'de> for FamilyAggregate {
     #[allow(deprecated)]
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         const FIELDS: &[&str] = &[
-            "address",
-            "rseed",
-            "precision_bits",
-            "precisionBits",
+            "family_id",
+            "familyId",
+            "real_count",
+            "realCount",
+            "padded_count",
+            "paddedCount",
+            "aggregate_proof",
+            "aggregateProof",
+            "note_reshape_family_id",
+            "noteReshapeFamilyId",
+            "shielded_ics20_withdrawal_family_id",
+            "shieldedIcs20WithdrawalFamilyId",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
-            Address,
-            Rseed,
-            PrecisionBits,
+            FamilyId,
+            RealCount,
+            PaddedCount,
+            AggregateProof,
+            NoteReshapeFamilyId,
+            ShieldedIcs20WithdrawalFamilyId,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -822,9 +1043,12 @@ impl<'de> serde::Deserialize<'de> for CluePlan {
                         E: serde::de::Error,
                     {
                         match value {
-                            "address" => Ok(GeneratedField::Address),
-                            "rseed" => Ok(GeneratedField::Rseed),
-                            "precisionBits" | "precision_bits" => Ok(GeneratedField::PrecisionBits),
+                            "familyId" | "family_id" => Ok(GeneratedField::FamilyId),
+                            "realCount" | "real_count" => Ok(GeneratedField::RealCount),
+                            "paddedCount" | "padded_count" => Ok(GeneratedField::PaddedCount),
+                            "aggregateProof" | "aggregate_proof" => Ok(GeneratedField::AggregateProof),
+                            "noteReshapeFamilyId" | "note_reshape_family_id" => Ok(GeneratedField::NoteReshapeFamilyId),
+                            "shieldedIcs20WithdrawalFamilyId" | "shielded_ics20_withdrawal_family_id" => Ok(GeneratedField::ShieldedIcs20WithdrawalFamilyId),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -834,40 +1058,67 @@ impl<'de> serde::Deserialize<'de> for CluePlan {
         }
         struct GeneratedVisitor;
         impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = CluePlan;
+            type Value = FamilyAggregate;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.transaction.v1.CluePlan")
+                formatter.write_str("struct shieldd.core.transaction.v1.FamilyAggregate")
             }
 
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<CluePlan, V::Error>
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FamilyAggregate, V::Error>
                 where
                     V: serde::de::MapAccess<'de>,
             {
-                let mut address__ = None;
-                let mut rseed__ = None;
-                let mut precision_bits__ = None;
+                let mut family_id__ = None;
+                let mut real_count__ = None;
+                let mut padded_count__ = None;
+                let mut aggregate_proof__ = None;
+                let mut note_reshape_family_id__ = None;
+                let mut shielded_ics20_withdrawal_family_id__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
-                        GeneratedField::Address => {
-                            if address__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("address"));
+                        GeneratedField::FamilyId => {
+                            if family_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("familyId"));
                             }
-                            address__ = map_.next_value()?;
+                            family_id__ = Some(map_.next_value::<ProofFamilyId>()? as i32);
                         }
-                        GeneratedField::Rseed => {
-                            if rseed__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("rseed"));
+                        GeneratedField::RealCount => {
+                            if real_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("realCount"));
                             }
-                            rseed__ = 
+                            real_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::PaddedCount => {
+                            if padded_count__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("paddedCount"));
+                            }
+                            padded_count__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::AggregateProof => {
+                            if aggregate_proof__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("aggregateProof"));
+                            }
+                            aggregate_proof__ = 
                                 Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
                             ;
                         }
-                        GeneratedField::PrecisionBits => {
-                            if precision_bits__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("precisionBits"));
+                        GeneratedField::NoteReshapeFamilyId => {
+                            if note_reshape_family_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("noteReshapeFamilyId"));
                             }
-                            precision_bits__ = 
+                            note_reshape_family_id__ = 
+                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
+                            ;
+                        }
+                        GeneratedField::ShieldedIcs20WithdrawalFamilyId => {
+                            if shielded_ics20_withdrawal_family_id__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("shieldedIcs20WithdrawalFamilyId"));
+                            }
+                            shielded_ics20_withdrawal_family_id__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -876,206 +1127,17 @@ impl<'de> serde::Deserialize<'de> for CluePlan {
                         }
                     }
                 }
-                Ok(CluePlan {
-                    address: address__,
-                    rseed: rseed__.unwrap_or_default(),
-                    precision_bits: precision_bits__.unwrap_or_default(),
+                Ok(FamilyAggregate {
+                    family_id: family_id__.unwrap_or_default(),
+                    real_count: real_count__.unwrap_or_default(),
+                    padded_count: padded_count__.unwrap_or_default(),
+                    aggregate_proof: aggregate_proof__.unwrap_or_default(),
+                    note_reshape_family_id: note_reshape_family_id__.unwrap_or_default(),
+                    shielded_ics20_withdrawal_family_id: shielded_ics20_withdrawal_family_id__.unwrap_or_default(),
                 })
             }
         }
-        deserializer.deserialize_struct("shieldd.core.transaction.v1.CluePlan", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for DetectionData {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.fmd_clues.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.DetectionData", len)?;
-        if !self.fmd_clues.is_empty() {
-            struct_ser.serialize_field("fmdClues", &self.fmd_clues)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for DetectionData {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "fmd_clues",
-            "fmdClues",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            FmdClues,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "fmdClues" | "fmd_clues" => Ok(GeneratedField::FmdClues),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = DetectionData;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.transaction.v1.DetectionData")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<DetectionData, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut fmd_clues__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::FmdClues => {
-                            if fmd_clues__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("fmdClues"));
-                            }
-                            fmd_clues__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(DetectionData {
-                    fmd_clues: fmd_clues__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.transaction.v1.DetectionData", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for DetectionDataPlan {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.clue_plans.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.DetectionDataPlan", len)?;
-        if !self.clue_plans.is_empty() {
-            struct_ser.serialize_field("cluePlans", &self.clue_plans)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for DetectionDataPlan {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "clue_plans",
-            "cluePlans",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            CluePlans,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "cluePlans" | "clue_plans" => Ok(GeneratedField::CluePlans),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = DetectionDataPlan;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.transaction.v1.DetectionDataPlan")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<DetectionDataPlan, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut clue_plans__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::CluePlans => {
-                            if clue_plans__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("cluePlans"));
-                            }
-                            clue_plans__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(DetectionDataPlan {
-                    clue_plans: clue_plans__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.transaction.v1.DetectionDataPlan", FIELDS, GeneratedVisitor)
+        deserializer.deserialize_struct("shieldd.core.transaction.v1.FamilyAggregate", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for FeeFunding {
@@ -2254,6 +2316,83 @@ impl<'de> serde::Deserialize<'de> for PayloadKeyWithCommitment {
         deserializer.deserialize_struct("shieldd.core.transaction.v1.PayloadKeyWithCommitment", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for ProofFamilyId {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let variant = match self {
+            Self::Unspecified => "PROOF_FAMILY_ID_UNSPECIFIED",
+            Self::Transfer => "PROOF_FAMILY_ID_TRANSFER",
+            Self::NoteReshape => "PROOF_FAMILY_ID_NOTE_RESHAPE",
+            Self::ShieldedIcs20Withdrawal => "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL",
+        };
+        serializer.serialize_str(variant)
+    }
+}
+impl<'de> serde::Deserialize<'de> for ProofFamilyId {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "PROOF_FAMILY_ID_UNSPECIFIED",
+            "PROOF_FAMILY_ID_TRANSFER",
+            "PROOF_FAMILY_ID_NOTE_RESHAPE",
+            "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL",
+        ];
+
+        struct GeneratedVisitor;
+
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = ProofFamilyId;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "expected one of: {:?}", &FIELDS)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
+                    })
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                i32::try_from(v)
+                    .ok()
+                    .and_then(|x| x.try_into().ok())
+                    .ok_or_else(|| {
+                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
+                    })
+            }
+
+            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    "PROOF_FAMILY_ID_UNSPECIFIED" => Ok(ProofFamilyId::Unspecified),
+                    "PROOF_FAMILY_ID_TRANSFER" => Ok(ProofFamilyId::Transfer),
+                    "PROOF_FAMILY_ID_NOTE_RESHAPE" => Ok(ProofFamilyId::NoteReshape),
+                    "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL" => Ok(ProofFamilyId::ShieldedIcs20Withdrawal),
+                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
+                }
+            }
+        }
+        deserializer.deserialize_any(GeneratedVisitor)
+    }
+}
 impl serde::Serialize for Transaction {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -2401,9 +2540,6 @@ impl serde::Serialize for TransactionBody {
         if self.fee_funding.is_some() {
             len += 1;
         }
-        if self.detection_data.is_some() {
-            len += 1;
-        }
         if self.memo.is_some() {
             len += 1;
         }
@@ -2416,9 +2552,6 @@ impl serde::Serialize for TransactionBody {
         }
         if let Some(v) = self.fee_funding.as_ref() {
             struct_ser.serialize_field("feeFunding", v)?;
-        }
-        if let Some(v) = self.detection_data.as_ref() {
-            struct_ser.serialize_field("detectionData", v)?;
         }
         if let Some(v) = self.memo.as_ref() {
             struct_ser.serialize_field("memo", v)?;
@@ -2438,8 +2571,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
             "transactionParameters",
             "fee_funding",
             "feeFunding",
-            "detection_data",
-            "detectionData",
             "memo",
         ];
 
@@ -2448,7 +2579,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
             Actions,
             TransactionParameters,
             FeeFunding,
-            DetectionData,
             Memo,
             __SkipField__,
         }
@@ -2475,7 +2605,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                             "actions" => Ok(GeneratedField::Actions),
                             "transactionParameters" | "transaction_parameters" => Ok(GeneratedField::TransactionParameters),
                             "feeFunding" | "fee_funding" => Ok(GeneratedField::FeeFunding),
-                            "detectionData" | "detection_data" => Ok(GeneratedField::DetectionData),
                             "memo" => Ok(GeneratedField::Memo),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -2499,7 +2628,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                 let mut actions__ = None;
                 let mut transaction_parameters__ = None;
                 let mut fee_funding__ = None;
-                let mut detection_data__ = None;
                 let mut memo__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -2521,12 +2649,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                             }
                             fee_funding__ = map_.next_value()?;
                         }
-                        GeneratedField::DetectionData => {
-                            if detection_data__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("detectionData"));
-                            }
-                            detection_data__ = map_.next_value()?;
-                        }
                         GeneratedField::Memo => {
                             if memo__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("memo"));
@@ -2542,7 +2664,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBody {
                     actions: actions__.unwrap_or_default(),
                     transaction_parameters: transaction_parameters__,
                     fee_funding: fee_funding__,
-                    detection_data: detection_data__,
                     memo: memo__,
                 })
             }
@@ -2567,9 +2688,6 @@ impl serde::Serialize for TransactionBodyView {
         if self.fee_funding.is_some() {
             len += 1;
         }
-        if self.detection_data.is_some() {
-            len += 1;
-        }
         if self.memo_view.is_some() {
             len += 1;
         }
@@ -2582,9 +2700,6 @@ impl serde::Serialize for TransactionBodyView {
         }
         if let Some(v) = self.fee_funding.as_ref() {
             struct_ser.serialize_field("feeFunding", v)?;
-        }
-        if let Some(v) = self.detection_data.as_ref() {
-            struct_ser.serialize_field("detectionData", v)?;
         }
         if let Some(v) = self.memo_view.as_ref() {
             struct_ser.serialize_field("memoView", v)?;
@@ -2605,8 +2720,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
             "transactionParameters",
             "fee_funding",
             "feeFunding",
-            "detection_data",
-            "detectionData",
             "memo_view",
             "memoView",
         ];
@@ -2616,7 +2729,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
             ActionViews,
             TransactionParameters,
             FeeFunding,
-            DetectionData,
             MemoView,
             __SkipField__,
         }
@@ -2643,7 +2755,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                             "actionViews" | "action_views" => Ok(GeneratedField::ActionViews),
                             "transactionParameters" | "transaction_parameters" => Ok(GeneratedField::TransactionParameters),
                             "feeFunding" | "fee_funding" => Ok(GeneratedField::FeeFunding),
-                            "detectionData" | "detection_data" => Ok(GeneratedField::DetectionData),
                             "memoView" | "memo_view" => Ok(GeneratedField::MemoView),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -2667,7 +2778,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                 let mut action_views__ = None;
                 let mut transaction_parameters__ = None;
                 let mut fee_funding__ = None;
-                let mut detection_data__ = None;
                 let mut memo_view__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -2689,12 +2799,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                             }
                             fee_funding__ = map_.next_value()?;
                         }
-                        GeneratedField::DetectionData => {
-                            if detection_data__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("detectionData"));
-                            }
-                            detection_data__ = map_.next_value()?;
-                        }
                         GeneratedField::MemoView => {
                             if memo_view__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("memoView"));
@@ -2710,7 +2814,6 @@ impl<'de> serde::Deserialize<'de> for TransactionBodyView {
                     action_views: action_views__.unwrap_or_default(),
                     transaction_parameters: transaction_parameters__,
                     fee_funding: fee_funding__,
-                    detection_data: detection_data__,
                     memo_view: memo_view__,
                 })
             }
@@ -3484,9 +3587,6 @@ impl serde::Serialize for TransactionPlan {
         if self.fee_funding.is_some() {
             len += 1;
         }
-        if self.detection_data.is_some() {
-            len += 1;
-        }
         if self.memo.is_some() {
             len += 1;
         }
@@ -3499,9 +3599,6 @@ impl serde::Serialize for TransactionPlan {
         }
         if let Some(v) = self.fee_funding.as_ref() {
             struct_ser.serialize_field("feeFunding", v)?;
-        }
-        if let Some(v) = self.detection_data.as_ref() {
-            struct_ser.serialize_field("detectionData", v)?;
         }
         if let Some(v) = self.memo.as_ref() {
             struct_ser.serialize_field("memo", v)?;
@@ -3521,8 +3618,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
             "transactionParameters",
             "fee_funding",
             "feeFunding",
-            "detection_data",
-            "detectionData",
             "memo",
         ];
 
@@ -3531,7 +3626,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
             Actions,
             TransactionParameters,
             FeeFunding,
-            DetectionData,
             Memo,
             __SkipField__,
         }
@@ -3558,7 +3652,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                             "actions" => Ok(GeneratedField::Actions),
                             "transactionParameters" | "transaction_parameters" => Ok(GeneratedField::TransactionParameters),
                             "feeFunding" | "fee_funding" => Ok(GeneratedField::FeeFunding),
-                            "detectionData" | "detection_data" => Ok(GeneratedField::DetectionData),
                             "memo" => Ok(GeneratedField::Memo),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -3582,7 +3675,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                 let mut actions__ = None;
                 let mut transaction_parameters__ = None;
                 let mut fee_funding__ = None;
-                let mut detection_data__ = None;
                 let mut memo__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
@@ -3604,12 +3696,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                             }
                             fee_funding__ = map_.next_value()?;
                         }
-                        GeneratedField::DetectionData => {
-                            if detection_data__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("detectionData"));
-                            }
-                            detection_data__ = map_.next_value()?;
-                        }
                         GeneratedField::Memo => {
                             if memo__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("memo"));
@@ -3625,7 +3711,6 @@ impl<'de> serde::Deserialize<'de> for TransactionPlan {
                     actions: actions__.unwrap_or_default(),
                     transaction_parameters: transaction_parameters__,
                     fee_funding: fee_funding__,
-                    detection_data: detection_data__,
                     memo: memo__,
                 })
             }

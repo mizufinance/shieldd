@@ -14,7 +14,7 @@ for diagnosis, but the hard gate is `just snarkpack-dos-gate`.
 - size report:
   `cargo test -p shieldd-sdk-proof-aggregation aggregate_proof_size_report --lib -- --ignored --nocapture`
 - optional release benchmarks:
-  `cargo bench -p shieldd-sdk-bench --bench snarkpack`
+  `cargo bench -p shieldd-sdk-proof-aggregation --bench snarkpack`
 
 ## Size Gate
 
@@ -50,4 +50,3 @@ The asymmetry check is the security property: adversarial inputs must reject
 with bounded work and must remain materially cheaper than a valid aggregate
 verification. A regression that performs pairing work or full inner aggregate
 deserialization before these shape checks makes the gate fail.
-

@@ -248,7 +248,6 @@ impl MockRelayer {
                     TransactionPlan {
                         actions: vec![ics20_msg.into()],
                         memo: None,
-                        detection_data: None,
                         fee_funding: None,
                         transaction_parameters: TransactionParameters {
                             chain_id,
@@ -348,7 +347,6 @@ impl MockRelayer {
                 TransactionPlan {
                     actions: vec![ics20_msg],
                     memo: None,
-                    detection_data: None,
                     fee_funding: None,
                     transaction_parameters: TransactionParameters {
                         chain_id: self.chain_b_ibc.chain_id.clone(),
@@ -657,7 +655,6 @@ impl MockRelayer {
                     actions: vec![ibc_msg],
                     // Now fill out the remaining parts of the transaction needed for verification:
                     memo: None,
-                    detection_data: None, // We'll set this automatically below
                     fee_funding: None,
                     transaction_parameters: TransactionParameters {
                         chain_id: chain_a_ibc.chain_id.clone(),
@@ -707,7 +704,6 @@ impl MockRelayer {
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
-                detection_data: None, // We'll set this automatically below
                 fee_funding: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: chain_a_ibc.chain_id.clone(),
@@ -828,7 +824,6 @@ impl MockRelayer {
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
-                detection_data: None, // We'll set this automatically below
                 fee_funding: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: self.chain_b_ibc.chain_id.clone(),
@@ -920,7 +915,6 @@ impl MockRelayer {
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
-                detection_data: None, // We'll set this automatically below
                 fee_funding: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: chain_a_ibc.chain_id.clone(),
@@ -1101,7 +1095,6 @@ impl MockRelayer {
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
-                detection_data: None, // We'll set this automatically below
                 fee_funding: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: self.chain_a_ibc.chain_id.clone(),
@@ -1259,7 +1252,6 @@ impl MockRelayer {
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
-                detection_data: None, // We'll set this automatically below
                 fee_funding: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: self.chain_a_ibc.chain_id.clone(),
@@ -1442,7 +1434,6 @@ impl MockRelayer {
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
-                detection_data: None, // We'll set this automatically below
                 fee_funding: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: self.chain_b_ibc.chain_id.clone(),
@@ -1554,7 +1545,6 @@ impl MockRelayer {
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
-                detection_data: None, // We'll set this automatically below
                 fee_funding: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: self.chain_b_ibc.chain_id.clone(),
@@ -1655,7 +1645,6 @@ impl MockRelayer {
                 actions: vec![ibc_msg],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
-                detection_data: None, // We'll set this automatically below
                 fee_funding: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: self.chain_b_ibc.chain_id.clone(),
@@ -1835,7 +1824,6 @@ impl MockRelayer {
                 actions: vec![ics20_msg.into()],
                 // Now fill out the remaining parts of the transaction needed for verification:
                 memo: None,
-                detection_data: None,
                 fee_funding: None,
                 transaction_parameters: TransactionParameters {
                     chain_id: self.chain_a_ibc.chain_id.clone(),
@@ -1952,7 +1940,6 @@ impl MockRelayer {
                         actions: vec![ics20_msg],
                         // Now fill out the remaining parts of the transaction needed for verification:
                         memo: None,
-                        detection_data: None, // We'll set this automatically below
                         fee_funding: None,
                         transaction_parameters: TransactionParameters {
                             chain_id: self.chain_b_ibc.chain_id.clone(),
@@ -2073,7 +2060,6 @@ impl MockRelayer {
                         actions: vec![ics20_msg],
                         // Now fill out the remaining parts of the transaction needed for verification:
                         memo: None,
-                        detection_data: None, // We'll set this automatically below
                         fee_funding: None,
                         transaction_parameters: TransactionParameters {
                             chain_id: self.chain_a_ibc.chain_id.clone(),
@@ -2176,7 +2162,6 @@ async fn _build_update_client_tx(
             actions: vec![ibc_msg],
             // Now fill out the remaining parts of the transaction needed for verification:
             memo: None,
-            detection_data: None, // We'll set this automatically below
             fee_funding: None,
             transaction_parameters: TransactionParameters {
                 chain_id: chain_a_ibc.chain_id.clone(),

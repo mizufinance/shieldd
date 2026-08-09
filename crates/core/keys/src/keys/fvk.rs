@@ -12,9 +12,9 @@ use shieldd_sdk_proto::{serializers::bech32str, shieldd::core::keys::v1 as pb, D
 use crate::keys::wallet_id::WalletId;
 use crate::PositionMetadataKey;
 use crate::{
-    fmd, ka, prf,
+    ka, prf,
     rdsa::{SpendAuth, VerificationKey},
-    Address, AddressView, BackreferenceKey,
+    Address, AddressView, BackreferenceKey, DiscoveryKey,
 };
 
 use super::{AddressIndex, DiversifierKey, IncomingViewingKey, NullifierKey, OutgoingViewingKey};
@@ -49,7 +49,7 @@ pub enum FullViewingKeyError {
 
 impl FullViewingKey {
     /// Derive a shielded payment address with the given [`AddressIndex`].
-    pub fn payment_address(&self, index: AddressIndex) -> (Address, fmd::DetectionKey) {
+    pub fn payment_address(&self, index: AddressIndex) -> (Address, DiscoveryKey) {
         self.incoming().payment_address(index)
     }
 
@@ -58,7 +58,7 @@ impl FullViewingKey {
         &self,
         rng: R,
         address_index: AddressIndex,
-    ) -> (Address, fmd::DetectionKey) {
+    ) -> (Address, DiscoveryKey) {
         self.incoming().ephemeral_address(rng, address_index)
     }
 

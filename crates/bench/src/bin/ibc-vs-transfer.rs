@@ -229,17 +229,23 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
         proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         let prepare_request = prepare_request(txs);
         let prepare_start = Instant::now();
-        let (prepared, prepare_profile) = proposer
-            .prepare_proposal_v2_profiled_allow_oversized_for_bench(prepare_request, None)
+        let (prepared, prepare_profile, sidecar) = proposer
+            .prepare_proposal_v2_profiled(prepare_request, None, true)
             .await;
         let prepare_wall_ms = elapsed_ms(prepare_start);
         ensure_prepare_preserved_user_txs(txs, &prepared)?;
+        let sidecar = sidecar.context("profiled proposal must retain its artifact sidecar")?;
+        let envelope = App::candidate_envelope_from_prepared_proposal_public(
+            &prepared,
+            &sidecar,
+            "ibc_vs_transfer",
+        )?;
 
         let process_request = process_request_from_prepare_response(&prepared);
         let mut validator = App::new(storage.latest_snapshot());
         let process_start = Instant::now();
         let (process_verdict, process_profile) = validator
-            .process_proposal_v2_profiled_allow_oversized_for_bench(process_request, None)
+            .process_proposal_v2_profiled(process_request, None, Some(&sidecar), true)
             .await;
         let process_wall_ms = elapsed_ms(process_start);
         anyhow::ensure!(
@@ -247,16 +253,11 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
             "process proposal rejected run {run_index}: {process_verdict:?}"
         );
 
-        let execution_txs = prepared
-            .txs
-            .iter()
-            .map(|tx| tx.to_vec())
-            .collect::<Vec<_>>();
         let mut executor = App::new(storage.latest_snapshot());
         executor.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         let execute_start = Instant::now();
         let execution_profile = executor
-            .execute_block_profiled(&execution_txs, storage.as_ref().clone())
+            .execute_validated_candidate_envelope_profiled(&envelope, storage.as_ref().clone())
             .await
             .with_context(|| format!("executing run {run_index}"))?;
         let execute_wall_ms = elapsed_ms(execute_start);
@@ -265,8 +266,8 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
         let tx_count = args.tx_count as f64;
         let tps = tx_count / (total_wall_ms / 1000.0);
         let ms_per_tx = total_wall_ms / tx_count;
-        let proof_verification_ms = prepare_profile.artifact_fill_proof_verify_ms
-            + process_profile.independent_proof_verify_ms;
+        let proof_verification_ms =
+            prepare_profile.artifact_fill_batch_verify_ms + process_profile.aggregate_verify_ms;
         let execution_and_commit_ms = execution_profile.deliver_txs_wall_ms
             + execution_profile.end_block_ms
             + execution_profile.commit_ms;
@@ -330,8 +331,9 @@ fn ensure_prepare_preserved_user_txs(
     prepared: &response::PrepareProposal,
 ) -> Result<()> {
     anyhow::ensure!(
-        prepared.txs.len() == input_txs.len(),
-        "prepared proposal must contain exactly {} user transactions, got {}",
+        prepared.txs.len() == input_txs.len()
+            || prepared.txs.len() == input_txs.len().saturating_add(1),
+        "prepared proposal must contain {} user transactions and at most one aggregate bundle, got {} entries",
         input_txs.len(),
         prepared.txs.len()
     );

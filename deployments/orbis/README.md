@@ -14,7 +14,8 @@ Current contract line:
 - `ORBIS_IMAGE` and `SOURCEHUB_IMAGE` may override the lock for explicit local
   testing. CI rejects either override. `SOURCEHUB_PLATFORM` may select a local
   platform and defaults to `linux/amd64`.
-- The published orbis images are production builds (no self-funding); `orbis-funder` funds each node's SourceHub account from the genesis `test` account so the nodes can register and serve gRPC.
+- The published Orbis images do not self-fund. `orbis-funder` uses a dedicated
+  genesis account to fund all three nodes before the host flow starts.
 - Node controller key: each `orbis-node` must start with `--node-controller-key`.
   The default in [docker-compose.yml](docker-compose.yml) is the compressed
   public key for Orbis's `TEST_ACCOUNT_HEX_KEY`, matching the signer used by
@@ -40,8 +41,13 @@ SourceHub backend maps document, key-derivation, node-info, and ring records to
 
 `./scripts/orbis-stack.sh up` loads the pinned image digests via
 `ensure_orbis_images` and brings the stack up with `docker compose up -d
---pull missing` — no `orbis-rs`/`sourcehub` source build. This keeps CI fast
-(nothing to compile) while the runtime is reproducible.
+--pull missing`; it does not build `orbis-rs` or SourceHub. Docker assigns one
+available loopback port from each service's reserved range, and the launcher
+writes a typed endpoint record to `$COMPLIANCE_TMP/orbis-runtime.json`.
+Readiness requires the funder to exit successfully and each pinned node image
+to report its production server. The launcher then probes each published node
+endpoint. On a native Docker bridge where loopback publication is unavailable,
+it records the exact reachable container endpoint instead.
 
 To refresh an image:
 
@@ -58,10 +64,9 @@ To refresh an image:
 5. Dispatch the workflow on two refs within ten seconds and confirm the flow
    jobs serialize, both summaries pass, and no project remains afterward.
 
-CI serializes only the Orbis flow around the runner's fixed host ports. At the
-start of that critical section, `scripts/orbis-ci-cleanup.sh` removes stale
-Compose projects named `orbis-<run>-<attempt>` and tracked Shieldd processes
-whose executable and command line prove they belong to the matching
-`/tmp/orbis-<run>-<attempt>` root. It never kills an unidentified port owner.
-The workflow pulls images while Rust binaries compile, then performs both
-in-process and unconditional workflow cleanup.
+CI serializes the flow because Shieldd still launches host processes on a
+reserved port set. Orbis uses Docker-assigned ports and does not publish its
+P2P or metrics listeners. Before each run, `scripts/orbis-ci-cleanup.sh`
+removes only Compose projects and Shieldd processes whose labels, executable,
+and command line prove they belong to this workflow. Cleanup also runs after
+the flow regardless of its result.

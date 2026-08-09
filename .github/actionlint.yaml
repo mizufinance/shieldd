@@ -1,4 +1,0 @@
-self-hosted-runner:
-  labels:
-    - blacksmith-16vcpu-ubuntu-2404
-    - buildjet-16vcpu-ubuntu-2204

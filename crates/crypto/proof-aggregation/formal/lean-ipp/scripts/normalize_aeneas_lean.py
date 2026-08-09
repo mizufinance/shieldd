@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 
-NORMALIZER_REVISION = "normalize-aeneas-lean-v8"
+NORMALIZER_REVISION = "normalize-aeneas-lean-v9"
 # Serialized into generated Lean; bump only for an authorized artifact migration.
 NORMALIZED_ARTIFACT_REVISION = "normalize-aeneas-lean-v7"
 SELECTED_RAW_DECLARATIONS_DOMAIN = (
@@ -73,6 +73,7 @@ FORBIDDEN = (
     "UScalar.hcast",
     "IScalar.hcast",
     "#i64",
+    "#u32",
     "core.num.I64.",
     "UScalar.cast .U64",
     "UScalar.cast .U128",
@@ -292,6 +293,7 @@ def _strip_aeneas_attributes(text: str) -> str:
         "rust_loop",
         "rust_loop_body",
         "rust_trait",
+        "rust_trait_impl",
         "rust_type",
     }
     pieces: list[str] = []
@@ -388,7 +390,11 @@ def _strip_slice_array_make_ascriptions(text: str) -> str:
 
 def _transform_tokens(text: str, *, fixed_arrays: bool | None = None) -> str:
     if fixed_arrays is None:
-        fixed_arrays = "s3_07_arkworks_" in text
+        fixed_arrays = (
+            "s3_07_arkworks_" in text
+            or re.search(r"\bArray\s+Std\.U(?:8|64|128)\s+\d+#usize\b", text)
+            is not None
+        )
     replacements = [
         (
             re.compile(
@@ -428,6 +434,8 @@ def _transform_tokens(text: str, *, fixed_arrays: bool | None = None) -> str:
         (re.compile(r"\bStd\.U128\b"), "MacCampaign.U128"),
         (re.compile(r"\bStd\.U8\b"), "UInt8"),
         (re.compile(r"\bStd\.I8\b"), "Int"),
+        (re.compile(r"(\d+)#u8\b"), r"UInt8.ofNat \1"),
+        (re.compile(r"(\d+)#u32\b"), r"\1#usize"),
         (re.compile(r"(\(-?\d+\)|\d+)#i8\b"), r"\1"),
         (re.compile(r"\bcore\.num\.U64\.wrapping_mul\b"), "MacCampaign.wrappingMul64"),
         (re.compile(r"\bcore\.num\.U128\.wrapping_sub\b"), "MacCampaign.wrappingSub128"),
@@ -470,7 +478,12 @@ def _fail_closed(text: str) -> None:
     ]
     # These forms are implemented by the shared executable runtime. Keep the
     # list exact: accepting the namespace as a whole would hide new builtins.
-    unknown_audit = code.replace("UScalar.cast .U32", "")
+    unknown_audit = (
+        code.replace("Std.U32", "")
+        .replace("UScalar.cast .U32", "")
+        .replace("core.num.U32.MAX", "")
+        .replace("core.num.U64.MAX", "")
+    )
     for supported in (
         "core.num.Usize.ilog2",
         "core.num.Usize.is_power_of_two",
@@ -596,8 +609,14 @@ def normalize_files(
     if len(set(reuse_modules)) != len(reuse_modules):
         raise ValueError("reuse modules must be unique")
 
+    fixed_array_roots = {
+        "challenge.challenge_preimage_core",
+        "challenge.checked_next_challenge_nonce",
+    }
     fixed_arrays = not roots or all(
-        _lean_root_name(root).startswith("s3_07_arkworks_") for root in roots
+        _lean_root_name(root).startswith("s3_07_arkworks_")
+        or _lean_root_name(root) in fixed_array_roots
+        for root in roots
     )
     ordered: list[Declaration] = []
     by_name: dict[str, str] = {}

@@ -159,15 +159,15 @@ impl ShieldedIcs20WithdrawalWitnessV8 {
             );
         }
 
-        let sender_clue_key = private.sender_leaf.address.clue_key().0;
+        let sender_clue_key = private.sender_leaf.address.discovery_key().0;
         for (label, note) in [
             ("required input", &private.required_input.spent_note),
             ("optional input", &private.optional_input.spend.spent_note),
             ("change output", &private.change_output.created_note),
         ] {
-            if note.clue_key().0 != sender_clue_key {
+            if note.discovery_key().0 != sender_clue_key {
                 bail!(
-                    "shielded ICS-20 withdrawal {label} clue key does not match the shared sender address"
+                    "shielded ICS-20 withdrawal {label} discovery key does not match the shared sender address"
                 );
             }
         }
@@ -250,7 +250,7 @@ impl ShieldedIcs20WithdrawalWitnessV8 {
             sender_clue_key: Fq::from_bytes_checked(&sender_clue_key)
                 .map_err(|_| {
                     anyhow!(
-                        "shielded ICS-20 withdrawal sender clue key is not a canonical field encoding"
+                        "shielded ICS-20 withdrawal sender discovery key is not a canonical field encoding"
                     )
                 })?
                 .to_bytes(),

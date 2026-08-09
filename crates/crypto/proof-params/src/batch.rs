@@ -39,10 +39,11 @@ pub struct BatchItem {
     pub public_inputs: Vec<<Bls12_377 as Pairing>::ScalarField>,
 }
 
-/// Evidence that one exact proof item verified under one exact prepared key.
+/// Evidence that one exact public statement verified under one deployed key.
 ///
-/// The capability is reusable because proof validity is stateless. Consumers
-/// must bind it back to the action-derived item and deployed key before use.
+/// The proof serialization is deliberately not part of the capability identity:
+/// independent and aggregate proofs may establish the same statement. Consumers
+/// must bind the capability back to the action-derived public inputs and key.
 #[derive(Clone)]
 pub struct VerifiedBatchItem {
     key: DeployedProofKey,
@@ -50,16 +51,28 @@ pub struct VerifiedBatchItem {
 }
 
 impl VerifiedBatchItem {
-    /// Require this capability to name the exact key, proof, and public inputs.
+    /// Require this capability to name the exact key and public inputs.
     pub fn ensure_binds(
         &self,
         key: DeployedProofKey,
         item: &BatchItem,
     ) -> Result<(), BatchVerifyError> {
-        if self.key != key || self.item.as_ref() != item {
+        if self.key != key || self.item.public_inputs != item.public_inputs {
             return Err(BatchVerifyError::VerifiedItemMismatch);
         }
         Ok(())
+    }
+
+    /// Mint evidence after another verifier has established this exact statement.
+    ///
+    /// # Safety
+    ///
+    /// The caller must have verified a sound proof for `item.public_inputs`
+    /// under `key`. This is exposed only so the SnarkPack verifier crate can
+    /// translate its authenticated accepted result into the shared capability.
+    #[doc(hidden)]
+    pub unsafe fn from_verified_statement(key: DeployedProofKey, item: Arc<BatchItem>) -> Self {
+        Self { key, item }
     }
 }
 
@@ -93,9 +106,10 @@ impl std::fmt::Display for BatchVerifyError {
                     "proof {index}: expected {expected} public inputs, got {got}"
                 )
             }
-            Self::VerifiedItemMismatch => {
-                write!(f, "verified proof capability does not bind this item")
-            }
+            Self::VerifiedItemMismatch => write!(
+                f,
+                "verified proof capability does not bind this deployed statement"
+            ),
         }
     }
 }

@@ -1568,127 +1568,6 @@ impl<'de> serde::Deserialize<'de> for GenesisContent {
         deserializer.deserialize_struct("shieldd.core.component.sct.v1.GenesisContent", FIELDS, GeneratedVisitor)
     }
 }
-impl serde::Serialize for NullificationInfo {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.id.is_empty() {
-            len += 1;
-        }
-        if self.spend_height != 0 {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.NullificationInfo", len)?;
-        if !self.id.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("id", pbjson::private::base64::encode(&self.id).as_str())?;
-        }
-        if self.spend_height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("spendHeight", ToString::to_string(&self.spend_height).as_str())?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for NullificationInfo {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "id",
-            "spend_height",
-            "spendHeight",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Id,
-            SpendHeight,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "id" => Ok(GeneratedField::Id),
-                            "spendHeight" | "spend_height" => Ok(GeneratedField::SpendHeight),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = NullificationInfo;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.sct.v1.NullificationInfo")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<NullificationInfo, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut id__ = None;
-                let mut spend_height__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Id => {
-                            if id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("id"));
-                            }
-                            id__ = 
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::SpendHeight => {
-                            if spend_height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("spendHeight"));
-                            }
-                            spend_height__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(NullificationInfo {
-                    id: id__.unwrap_or_default(),
-                    spend_height: spend_height__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.sct.v1.NullificationInfo", FIELDS, GeneratedVisitor)
-    }
-}
 impl serde::Serialize for Nullifier {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -1912,9 +1791,6 @@ impl serde::Serialize for NullifierResponse {
         if self.spent {
             len += 1;
         }
-        if self.nullification_info.is_some() {
-            len += 1;
-        }
         if !self.nullifier_root.is_empty() {
             len += 1;
         }
@@ -1924,9 +1800,6 @@ impl serde::Serialize for NullifierResponse {
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.sct.v1.NullifierResponse", len)?;
         if self.spent {
             struct_ser.serialize_field("spent", &self.spent)?;
-        }
-        if let Some(v) = self.nullification_info.as_ref() {
-            struct_ser.serialize_field("nullificationInfo", v)?;
         }
         if !self.nullifier_root.is_empty() {
             #[allow(clippy::needless_borrow)]
@@ -1949,8 +1822,6 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
     {
         const FIELDS: &[&str] = &[
             "spent",
-            "nullification_info",
-            "nullificationInfo",
             "nullifier_root",
             "nullifierRoot",
             "proof",
@@ -1959,7 +1830,6 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Spent,
-            NullificationInfo,
             NullifierRoot,
             Proof,
             __SkipField__,
@@ -1985,7 +1855,6 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
                     {
                         match value {
                             "spent" => Ok(GeneratedField::Spent),
-                            "nullificationInfo" | "nullification_info" => Ok(GeneratedField::NullificationInfo),
                             "nullifierRoot" | "nullifier_root" => Ok(GeneratedField::NullifierRoot),
                             "proof" => Ok(GeneratedField::Proof),
                             _ => Ok(GeneratedField::__SkipField__),
@@ -2008,7 +1877,6 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
                     V: serde::de::MapAccess<'de>,
             {
                 let mut spent__ = None;
-                let mut nullification_info__ = None;
                 let mut nullifier_root__ = None;
                 let mut proof__ = None;
                 while let Some(k) = map_.next_key()? {
@@ -2018,12 +1886,6 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
                                 return Err(serde::de::Error::duplicate_field("spent"));
                             }
                             spent__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::NullificationInfo => {
-                            if nullification_info__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("nullificationInfo"));
-                            }
-                            nullification_info__ = map_.next_value()?;
                         }
                         GeneratedField::NullifierRoot => {
                             if nullifier_root__.is_some() {
@@ -2048,7 +1910,6 @@ impl<'de> serde::Deserialize<'de> for NullifierResponse {
                 }
                 Ok(NullifierResponse {
                     spent: spent__.unwrap_or_default(),
-                    nullification_info: nullification_info__,
                     nullifier_root: nullifier_root__.unwrap_or_default(),
                     proof: proof__.unwrap_or_default(),
                 })

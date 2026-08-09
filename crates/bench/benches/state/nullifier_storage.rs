@@ -1,9 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use shieldd_sdk_sct::{
-    component::tree::SctRead as _, nullifier_tree, NullificationInfo, Nullifier,
-};
+use shieldd_sdk_sct::{component::tree::SctRead as _, nullifier_tree, Nullifier};
 
 fn configured_sizes() -> Vec<usize> {
     std::env::var("SHIELDD_NULLIFIER_BENCH_SIZES")
@@ -27,16 +25,6 @@ fn nullifier_key(index: usize) -> [u8; 32] {
     nullifier(index).0.to_bytes()
 }
 
-fn info(index: usize) -> NullificationInfo {
-    let mut id = [0u8; 32];
-    let bytes = index.to_le_bytes();
-    id[..bytes.len()].copy_from_slice(&bytes);
-    NullificationInfo {
-        id,
-        spend_height: index as u64,
-    }
-}
-
 fn bench_nullifier_storage(c: &mut Criterion) {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let mut group = c.benchmark_group("nullifier_storage_lookup");
@@ -55,10 +43,9 @@ fn bench_nullifier_storage(c: &mut Criterion) {
         for index in 0..size {
             let nf = nullifier(index);
             let key = nullifier_key(index);
-            let info = info(index);
-            nullifier_entries.push((nf, info));
-            flat.insert(key, info);
-            ordered.insert(key, info);
+            nullifier_entries.push(nf);
+            flat.insert(key, ());
+            ordered.insert(key, ());
         }
         runtime
             .block_on(nullifier_tree::insert_batch(&mut state, nullifier_entries))
@@ -72,7 +59,7 @@ fn bench_nullifier_storage(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("dedicated_jmt_hit", size),
             &hit_nf,
-            |b, nf| b.iter(|| runtime.block_on(state.spend_info(*nf)).unwrap()),
+            |b, nf| b.iter(|| runtime.block_on(state.is_nullifier_spent(*nf)).unwrap()),
         );
 
         group.bench_with_input(

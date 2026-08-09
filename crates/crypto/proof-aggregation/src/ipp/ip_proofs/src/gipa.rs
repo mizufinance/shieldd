@@ -10,7 +10,10 @@ use std::{
 };
 
 use crate::{
-    challenge::{challenge_digest, ChallengeContext, ChallengeTraceSink, NoopChallengeTraceSink},
+    challenge::{
+        challenge_digest, sample_bounded_challenge, ChallengeContext, ChallengeTraceSink,
+        NoopChallengeTraceSink,
+    },
     mul_helper, Error, InnerProductArgumentError,
 };
 use ark_dh_commitments::DoublyHomomorphicCommitment;
@@ -749,10 +752,9 @@ where
 
                 // Fiat-Shamir challenge
                 let challenge_started = std::time::Instant::now();
-                let mut counter_nonce: u64 = 0;
                 let default_transcript = Default::default();
                 let transcript = r_transcript.last().unwrap_or(&default_transcript);
-                let (c, c_inv) = 'challenge: loop {
+                let (c, c_inv) = sample_bounded_challenge::<_, Error, _>(|nonce| {
                     let mut hash_input = Vec::new();
                     transcript.serialize_uncompressed(&mut hash_input)?;
                     com_1.0.serialize_uncompressed(&mut hash_input)?;
@@ -762,25 +764,16 @@ where
                     com_2.1.serialize_uncompressed(&mut hash_input)?;
                     com_2.2.serialize_uncompressed(&mut hash_input)?;
                     let c: LMC::Scalar = u128::from_be_bytes(
-                        challenge_digest::<D, _>(
-                            context,
-                            trace,
-                            stage_label,
-                            counter_nonce,
-                            &hash_input,
-                        )
-                        .as_slice()[0..16]
+                        challenge_digest::<D, _>(context, trace, stage_label, nonce, &hash_input)
+                            .as_slice()[0..16]
                             .try_into()
                             .unwrap(),
                     )
                     .into();
-                    if let Some(c_inv) = c.inverse() {
-                        // Optimization for multiexponentiation to rescale G2 elements with 128-bit challenge
-                        // Swap 'c' and 'c_inv' since can't control bit size of c_inv
-                        break 'challenge (c_inv, c);
-                    }
-                    counter_nonce += 1;
-                };
+                    // Optimization for multiexponentiation to rescale G2 elements with 128-bit challenge
+                    // Swap 'c' and 'c_inv' since can't control bit size of c_inv
+                    Ok(c.inverse().map(|c_inv| (c_inv, c)))
+                })?;
                 profile.challenge_ms += challenge_started.elapsed().as_secs_f64() * 1000.0;
 
                 // Set up values for next step of recursion
@@ -913,10 +906,9 @@ where
         let mut r_transcript: Vec<LMC::Scalar> = Vec::new();
         for (com_1, com_2) in proof.r_commitment_steps.iter().rev() {
             // Fiat-Shamir challenge
-            let mut counter_nonce: u64 = 0;
             let default_transcript = Default::default();
             let transcript = r_transcript.last().unwrap_or(&default_transcript);
-            let (c, c_inv) = 'challenge: loop {
+            let (c, c_inv) = sample_bounded_challenge::<_, Error, _>(|nonce| {
                 let mut hash_input = Vec::new();
                 transcript.serialize_uncompressed(&mut hash_input)?;
                 com_1.0.serialize_uncompressed(&mut hash_input)?;
@@ -926,25 +918,16 @@ where
                 com_2.1.serialize_uncompressed(&mut hash_input)?;
                 com_2.2.serialize_uncompressed(&mut hash_input)?;
                 let c: LMC::Scalar = u128::from_be_bytes(
-                    challenge_digest::<D, _>(
-                        context,
-                        trace,
-                        stage_label,
-                        counter_nonce,
-                        &hash_input,
-                    )
-                    .as_slice()[0..16]
+                    challenge_digest::<D, _>(context, trace, stage_label, nonce, &hash_input)
+                        .as_slice()[0..16]
                         .try_into()
                         .unwrap(),
                 )
                 .into();
-                if let Some(c_inv) = c.inverse() {
-                    // Optimization for multiexponentiation to rescale G2 elements with 128-bit challenge
-                    // Swap 'c' and 'c_inv' since can't control bit size of c_inv
-                    break 'challenge (c_inv, c);
-                }
-                counter_nonce += 1;
-            };
+                // Optimization for multiexponentiation to rescale G2 elements with 128-bit challenge
+                // Swap 'c' and 'c_inv' since can't control bit size of c_inv
+                Ok(c.inverse().map(|c_inv| (c_inv, c)))
+            })?;
 
             fold_output(&com_1.0, &mut com_a, &com_2.0, &c, &c_inv);
             fold_output(&com_1.1, &mut com_b, &com_2.1, &c, &c_inv);
@@ -1040,6 +1023,39 @@ mod tests {
     type SC1 = PedersenCommitment<<Bls12_381 as Pairing>::G1>;
     type SC2 = PedersenCommitment<<Bls12_381 as Pairing>::G2>;
     const TEST_SIZE: usize = 8;
+
+    #[test]
+    fn fold_output_matches_direct_expression() {
+        type Scalar = <Bls12_381 as Pairing>::ScalarField;
+
+        let left = Scalar::from(2u64);
+        let mut current = Scalar::from(3u64);
+        let right = Scalar::from(5u64);
+        let c = Scalar::from(7u64);
+        let c_inv = Scalar::from(11u64);
+        let expected = left * c + current + right * c_inv;
+
+        fold_output(&left, &mut current, &right, &c, &c_inv);
+
+        assert_eq!(current, expected);
+    }
+
+    #[test]
+    fn rescale_fold_matches_elementwise_expression() {
+        type Scalar = <Bls12_381 as Pairing>::ScalarField;
+
+        let scaled = [Scalar::from(2u64), Scalar::from(3u64)];
+        let unscaled = [Scalar::from(5u64), Scalar::from(7u64)];
+        let scalar = Scalar::from(11u64);
+
+        assert_eq!(
+            rescale_fold_inner(&scaled, &unscaled, &scalar),
+            vec![
+                scaled[0] * scalar + unscaled[0],
+                scaled[1] * scalar + unscaled[1],
+            ]
+        );
+    }
 
     #[test]
     fn pairing_inner_product_test() {

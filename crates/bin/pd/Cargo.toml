@@ -16,6 +16,8 @@ dist = true
 default = []
 std = ["ibc-types/std"]
 benchmark-system-allocator = []
+# Insecure Orbis integration only; never enable in production.
+orbis-dev-srs = ["shieldd-sdk-app/orbis-dev-srs"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

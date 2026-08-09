@@ -1,27 +1,23 @@
 //! Declarative transaction plans, used for transaction authorization and creation.
 
 use anyhow::Result;
-use decaf377_fmd::Precision;
-use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{Address, FullViewingKey, PayloadKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
-use shieldd_sdk_shielded_pool::{Ics20Withdrawal, ShieldedIcs20WithdrawalPlan, TransferPlan};
+use shieldd_sdk_shielded_pool::{
+    discovery::Precision, Ics20Withdrawal, ShieldedIcs20WithdrawalPlan, TransferPlan,
+};
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 mod action;
 mod auth;
 mod build;
-mod clue;
-mod detection_data;
 mod memo;
 mod spend;
 
 pub use action::ActionPlan;
-pub use clue::CluePlan;
-pub use detection_data::DetectionDataPlan;
 pub use memo::MemoPlan;
 
 use crate::FeeFundingPlan;
@@ -35,7 +31,6 @@ pub struct TransactionPlan {
     pub actions: Vec<ActionPlan>,
     pub transaction_parameters: TransactionParameters,
     pub fee_funding: Option<FeeFundingPlan>,
-    pub detection_data: Option<DetectionDataPlan>,
     pub memo: Option<MemoPlan>,
 }
 
@@ -54,11 +49,6 @@ impl TransactionPlan {
             Some(ref memo) => memo.memo()?.effect_hash(),
             None => EffectHash::default(),
         };
-        let detection_data_hash = self
-            .detection_data
-            .as_ref()
-            .map(|plan| plan.detection_data().effect_hash())
-            .unwrap_or_default();
         let memo_key = self.memo_key().unwrap_or([0u8; 32].into());
         let fee_funding_hash = self
             .fee_funding
@@ -68,7 +58,6 @@ impl TransactionPlan {
             .unwrap_or_default();
         state.update(parameters_hash.as_bytes());
         state.update(memo_hash.as_bytes());
-        state.update(detection_data_hash.as_bytes());
         state.update(fee_funding_hash.as_bytes());
 
         let num_actions = self.actions.len() as u32;
@@ -250,35 +239,24 @@ impl TransactionPlan {
         action_proofs + usize::from(self.fee_funding.is_some())
     }
 
-    pub fn populate_detection_data<R: CryptoRng + Rng>(
-        &mut self,
-        mut rng: R,
-        precision: Precision,
-    ) {
-        let mut clue_plans = vec![];
-        for dest_address in self.dest_addresses() {
-            clue_plans.push(CluePlan::new(&mut rng, dest_address, precision));
+    pub fn populate_discovery_precision(&mut self, precision: Precision) {
+        for action in &mut self.actions {
+            match action {
+                ActionPlan::Transfer(plan) => plan.set_discovery_precision(precision),
+                ActionPlan::NoteReshape(plan) => plan.set_discovery_precision(precision),
+                ActionPlan::ShieldedIcs20Withdrawal(plan) => {
+                    plan.set_discovery_precision(precision)
+                }
+                _ => {}
+            }
         }
-
-        let num_dummy_clues = self.num_outputs().saturating_sub(clue_plans.len());
-        for _ in 0..num_dummy_clues {
-            let dummy_address = Address::dummy(&mut rng);
-            clue_plans.push(CluePlan::new(&mut rng, dummy_address, precision));
+        if let Some(fee_funding) = &mut self.fee_funding {
+            fee_funding.transfer.set_discovery_precision(precision);
         }
-
-        self.detection_data = if clue_plans.is_empty() {
-            None
-        } else {
-            Some(DetectionDataPlan { clue_plans })
-        };
     }
 
-    pub fn with_populated_detection_data<R: CryptoRng + Rng>(
-        mut self,
-        rng: R,
-        precision_bits: Precision,
-    ) -> Self {
-        self.populate_detection_data(rng, precision_bits);
+    pub fn with_discovery_precision(mut self, precision: Precision) -> Self {
+        self.populate_discovery_precision(precision);
         self
     }
 
@@ -297,7 +275,6 @@ impl From<TransactionPlan> for pb::TransactionPlan {
             actions: msg.actions.into_iter().map(Into::into).collect(),
             transaction_parameters: Some(msg.transaction_parameters.into()),
             fee_funding: msg.fee_funding.map(Into::into),
-            detection_data: msg.detection_data.map(Into::into),
             memo: msg.memo.map(Into::into),
         }
     }
@@ -318,7 +295,6 @@ impl TryFrom<pb::TransactionPlan> for TransactionPlan {
                 .ok_or_else(|| anyhow::anyhow!("missing transaction parameters"))?
                 .try_into()?,
             fee_funding: value.fee_funding.map(TryInto::try_into).transpose()?,
-            detection_data: value.detection_data.map(TryInto::try_into).transpose()?,
             memo: value.memo.map(TryInto::try_into).transpose()?,
         })
     }
@@ -437,7 +413,7 @@ mod tests {
     }
 
     #[test]
-    fn detection_data_includes_dummy_clues_for_transfer_family_shape() {
+    fn discovery_precision_propagates_to_transfer_family() {
         let mut rng = OsRng;
         let sender_sk =
             SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut rng), &Bip44Path::new(0))
@@ -478,28 +454,24 @@ mod tests {
             actions: vec![ActionPlan::Transfer(transfer)],
             transaction_parameters: Default::default(),
             fee_funding: None,
-            detection_data: None,
             memo: None,
         };
-        plan.populate_detection_data(&mut rng, Precision::default());
+        let precision = Precision::new(20).unwrap();
+        plan.populate_discovery_precision(precision);
 
         assert_eq!(
             plan.num_outputs(),
             shieldd_sdk_shielded_pool::PADDED_TRANSFER_OUTPUTS,
             "transfer must count every proof-bound output slot"
         );
-        assert_eq!(
-            plan.detection_data
-                .as_ref()
-                .expect("detection data")
-                .clue_plans
-                .len(),
-            shieldd_sdk_shielded_pool::PADDED_TRANSFER_OUTPUTS
-        );
+        assert!(matches!(
+            &plan.actions[0],
+            ActionPlan::Transfer(transfer) if transfer.discovery_precision == precision
+        ));
     }
 
     #[test]
-    fn shielded_ics20_withdrawal_counts_change_output_for_destinations_and_clues() {
+    fn shielded_ics20_withdrawal_counts_change_output_for_discovery() {
         let spend_value = Value {
             amount: 50_000u64.into(),
             asset_id: *BASE_ASSET_ID,
@@ -535,24 +507,21 @@ mod tests {
             actions: vec![ActionPlan::ShieldedIcs20Withdrawal(withdrawal)],
             transaction_parameters: Default::default(),
             fee_funding: None,
-            detection_data: None,
             memo: None,
         };
-        plan.populate_detection_data(&mut OsRng, Precision::default());
+        let precision = Precision::new(18).unwrap();
+        plan.populate_discovery_precision(precision);
 
         assert_eq!(plan.num_outputs(), 1);
         assert_eq!(
             plan.dest_addresses(),
             vec![test_keys::ADDRESS_0.deref().clone()]
         );
-        assert_eq!(
-            plan.detection_data
-                .as_ref()
-                .expect("detection data")
-                .clue_plans
-                .len(),
-            1
-        );
+        assert!(matches!(
+            &plan.actions[0],
+            ActionPlan::ShieldedIcs20Withdrawal(withdrawal)
+                if withdrawal.discovery_precision == precision
+        ));
     }
 
     #[test]
@@ -583,24 +552,21 @@ mod tests {
             actions: vec![ActionPlan::ShieldedIcs20Withdrawal(withdrawal)],
             transaction_parameters: Default::default(),
             fee_funding: None,
-            detection_data: None,
             memo: None,
         };
-        plan.populate_detection_data(&mut OsRng, Precision::default());
+        let precision = Precision::new(14).unwrap();
+        plan.populate_discovery_precision(precision);
 
         assert_eq!(plan.num_outputs(), 1);
         assert_eq!(
             plan.dest_addresses(),
             vec![test_keys::ADDRESS_0.deref().clone()]
         );
-        assert_eq!(
-            plan.detection_data
-                .as_ref()
-                .expect("detection data")
-                .clue_plans
-                .len(),
-            1
-        );
+        assert!(matches!(
+            &plan.actions[0],
+            ActionPlan::ShieldedIcs20Withdrawal(withdrawal)
+                if withdrawal.discovery_precision == precision
+        ));
     }
 
     #[test]

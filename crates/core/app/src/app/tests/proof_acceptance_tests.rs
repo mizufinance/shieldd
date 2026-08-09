@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use ark_groth16::Proof;
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize};
+use cnidarium::ArcStateDeltaExt as _;
 use ibc_types::{
     core::{
         channel::{
@@ -34,6 +35,7 @@ use shieldd_sdk_ibc::{
     IBC_PROOF_SPECS,
 };
 use shieldd_sdk_proto::{StateReadProto as _, StateWriteProto as _};
+use shieldd_sdk_sct::component::tree::SctRead as _;
 use shieldd_sdk_shielded_pool::{
     Ics20Withdrawal, Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalPlan,
 };
@@ -230,7 +232,6 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
         let mut plan = TransactionPlan {
             actions: vec![action],
             memo: None,
-            detection_data: None,
             fee_funding: None,
             transaction_parameters: TransactionParameters {
                 chain_id: TestNode::<()>::CHAIN_ID.to_string(),
@@ -247,7 +248,6 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
     let mut fee_funding_plan = TransactionPlan {
         actions: vec![fee_funding_body_action],
         memo: None,
-        detection_data: None,
         fee_funding: Some(FeeFundingPlan {
             transfer: fee_funding_transfer,
         }),
@@ -265,7 +265,6 @@ async fn build_family_fixture_set() -> Result<FamilyFixtureSet> {
     let mut withdrawal_rollback_plan = TransactionPlan {
         actions: withdrawal_rollback_actions,
         memo: None,
-        detection_data: None,
         fee_funding: None,
         transaction_parameters: TransactionParameters {
             chain_id: TestNode::<()>::CHAIN_ID.to_string(),
@@ -504,7 +503,7 @@ fn assert_cache_not_promoted(
     assert!(
         !matches!(
             cache.get(hash, tx_bytes),
-            Some(CacheEntry::Groth16Verified(_))
+            Some(CacheEntry::FullyVerified(_))
         ),
         "{context}: failed validation must never promote a Groth16-verified cache entry"
     );
@@ -520,9 +519,8 @@ async fn assert_no_tx_effects(app: &App, tx: &Transaction, context: &str) -> Res
         "{context}: rejected proof staged note payloads"
     );
     for nullifier in tx.spent_nullifiers() {
-        assert_eq!(
-            app.state.spend_info(nullifier).await?,
-            None,
+        assert!(
+            !app.state.is_nullifier_spent(nullifier).await?,
             "{context}: rejected proof marked a nullifier spent"
         );
     }
@@ -652,7 +650,7 @@ async fn fv_runtime_process_proposal_rejects_decodable_invalid_groth16() -> Resu
         let proposal = process_request(&app, &invalid_bytes).await?;
 
         let (verdict, _) = app
-            .process_proposal_v2_profiled(proposal, Some(&cache))
+            .process_proposal_v2_profiled(proposal, Some(&cache), None, false)
             .await;
         assert!(
             matches!(verdict, response::ProcessProposal::Reject),
@@ -677,7 +675,7 @@ async fn fv_runtime_fee_funding_process_proposal_rejects_invalid_groth16() -> Re
     let proposal = process_request(&app, &invalid_bytes).await?;
 
     let (verdict, _) = app
-        .process_proposal_v2_profiled(proposal, Some(&cache))
+        .process_proposal_v2_profiled(proposal, Some(&cache), None, false)
         .await;
     assert!(
         matches!(verdict, response::ProcessProposal::Reject),
@@ -734,7 +732,7 @@ async fn fv_runtime_fee_funding_valid_proof_executes_and_persists() -> Result<()
         .await
         .context("valid fee-funding proof must execute")?;
     let hash = tx_hash(&fixture.tx_bytes);
-    let Some(CacheEntry::Groth16Verified(artifact)) = cache.get(&hash, &fixture.tx_bytes) else {
+    let Some(CacheEntry::FullyVerified(artifact)) = cache.get(&hash, &fixture.tx_bytes) else {
         anyhow::bail!("valid fee-funding delivery did not retain an exact proof capability")
     };
     artifact
@@ -746,7 +744,7 @@ async fn fv_runtime_fee_funding_valid_proof_executes_and_persists() -> Result<()
 
     for nullifier in &fee_nullifiers {
         assert!(
-            app.state.spend_info(*nullifier).await?.is_some(),
+            app.state.is_nullifier_spent(*nullifier).await?,
             "verified fee-funding execution did not stage nullifier {nullifier:?}"
         );
     }
@@ -774,7 +772,7 @@ async fn fv_runtime_fee_funding_valid_proof_executes_and_persists() -> Result<()
     );
     for nullifier in fee_nullifiers {
         assert!(
-            committed.spend_info(nullifier).await?.is_some(),
+            committed.is_nullifier_spent(nullifier).await?,
             "fee-funding nullifier {nullifier:?} was not durably committed"
         );
         assert!(
@@ -812,8 +810,8 @@ async fn fv_runtime_prepare_proposal_excludes_decodable_invalid_groth16() -> Res
         let mut app = App::new(family_set._storage_guard.latest_snapshot());
         let proposal = prepare_request(&app, invalid_bytes.clone()).await?;
 
-        let (prepared, _) = app
-            .prepare_proposal_v2_profiled(proposal, Some(&cache))
+        let (prepared, _, _) = app
+            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
             .await;
         assert!(
             prepared
@@ -1101,12 +1099,15 @@ async fn fv_runtime_extracted_cache_cannot_bypass_groth16_verification() -> Resu
         let (invalid_tx, invalid_bytes) = mutate_to_decodable_invalid_proof(fixture)?;
         let hash = tx_hash(&invalid_bytes);
         let cache = StatelessCache::new();
-        let (artifact, _) = App::build_tx_artifact_extracted_for_stage(
+        let mut artifacts = App::build_tx_artifacts_extracted_for_stage_public(
             "fv_runtime_preseed_extracted",
-            Arc::new(invalid_tx.clone()),
+            &[Arc::new(invalid_tx.clone())],
         )
         .await
         .with_context(|| format!("{} invalid proof remains extraction-valid", fixture.label()))?;
+        let artifact = artifacts
+            .pop()
+            .context("single extracted transaction artifact missing")?;
         cache.insert_extracted(&invalid_bytes, artifact)?;
         let mut app = App::new(family_set._storage_guard.latest_snapshot());
 
@@ -1212,7 +1213,7 @@ async fn fv_runtime_cache_promotion_never_exceeds_exact_groth16_attestation() ->
     stage_spent_nullifier(&mut process_app, &valid_tx).await?;
     let proposal = process_request(&process_app, &transfer.tx_bytes).await?;
     let (verdict, _) = process_app
-        .process_proposal_v2_profiled(proposal, Some(&process_cache))
+        .process_proposal_v2_profiled(proposal, Some(&process_cache), None, false)
         .await;
     assert!(matches!(verdict, response::ProcessProposal::Reject));
     assert_cache_not_promoted(
@@ -1239,7 +1240,7 @@ async fn fv_runtime_cache_promotion_never_exceeds_exact_groth16_attestation() ->
     assert!(
         matches!(
             deliver_cache.get(&valid_hash, &transfer.tx_bytes),
-            Some(CacheEntry::Groth16Verified(_))
+            Some(CacheEntry::FullyVerified(_))
         ),
         "stateful delivery failure may retain only the exact Groth16 attestation"
     );

@@ -11,10 +11,7 @@ use ibc_types::core::client::ClientId;
 use shieldd_sdk_ibc::component::ClientStateReadExt as _;
 use shieldd_sdk_ibc::component::ClientStateWriteExt as _;
 use shieldd_sdk_proto::{StateReadProto, StateWriteProto};
-use shieldd_sdk_sct::{
-    component::{clock::EpochRead, tree::SctRead},
-    Nullifier,
-};
+use shieldd_sdk_sct::{component::clock::EpochRead, Nullifier};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_validator::{
     component::{validator_handler::ValidatorDataRead, ConsensusIndexRead},
@@ -217,30 +214,6 @@ pub trait StateReadExt: StateRead + shieldd_sdk_validator::StateReadExt {
             }
         } else {
             anyhow::bail!("proposal {} does not exist", proposal_id);
-        }
-
-        Ok(())
-    }
-
-    /// Throw an error if the nullifier was spent before the proposal started.
-    async fn check_nullifier_unspent_before_start_block_height(
-        &self,
-        proposal_id: u64,
-        nullifier: &Nullifier,
-    ) -> Result<()> {
-        let Some(start_height) = self.proposal_voting_start(proposal_id).await? else {
-            anyhow::bail!("proposal {} does not exist", proposal_id);
-        };
-
-        if let Some(spend_info) = self.spend_info(*nullifier).await? {
-            if spend_info.spend_height < start_height {
-                anyhow::bail!(
-                    "nullifier {} was already spent at block height {} before proposal started at block height {}",
-                    nullifier,
-                    spend_info.spend_height,
-                    start_height
-                );
-            }
         }
 
         Ok(())

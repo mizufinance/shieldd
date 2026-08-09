@@ -1,0 +1,10 @@
+import Ipp.ShippingAdaptiveAcceptedReplayGipaProbabilityTransport
+
+/-!
+Axiom audit for fixed-deployed-setup GIPA probability transport.
+-/
+
+#print axioms Ipp.ShippingMultiStatement.cachePreservingCommonFork?_eq_some_rawTree
+#print axioms Ipp.ShippingMultiStatement.fixedAcceptedReplayBls12377GipaGame_eq_map
+#print axioms Ipp.ShippingMultiStatement.randomizerGoodCachePreservingGipaRootWin_le_fixedAcceptedReplayGipaRootWin
+#print axioms Ipp.ShippingMultiStatement.randomizerGoodCachePreservingGipaProductWin_le_fixedAcceptedReplayGipaProductWin

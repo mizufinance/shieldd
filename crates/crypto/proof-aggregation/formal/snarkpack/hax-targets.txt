@@ -19,24 +19,30 @@
 # DoublyHomomorphicCommitment/InnerProduct adapter is not extracted.
 # The S2-30 verifier graph is vendored in
 # formal/lean-ipp/Ipp/Extracted/VerifyTippMippGenerated.lean. Its typed
-# challenge effect, five-lane fold state, and terminal checks are extracted;
-# the concrete Arkworks adapter remains outside the graph.
+# challenge effect, five-lane fold state, and terminal checks are extracted.
+# The production adapter boundary used by that graph is separately extracted
+# into TippMippAdapterGenerated.lean, including serialization order, challenge
+# stage routing, inversion, pairing checks, target comparison, and MSM checks.
 # The S2-34 combined-check graph is vendored in
 # formal/lean-ipp/Ipp/Extracted/CombinedChecksGenerated.lean. Its explicit
 # combined records, count checks, PPE delegation, result propagation, and
 # trace-preserving TIPP effect are extracted; the refinement theorem is
 # CombinedChecks.verify_combined_checks_refinement_statement.
-# The S2-36 aggregate core graph is vendored in
-# formal/lean-ipp/Ipp/Extracted/AggregateVerifierGenerated.lean. Its typed
-# effect carries chronological randomizer attempts and the combined result;
-# the handwritten capstone is AggregateVerifier.verify_aggregate_proof_refinement_statement
-# under the named byte/digest trace correspondence.
+# The shipping non-profiled aggregate graph is vendored in
+# formal/lean-ipp/Ipp/Extracted/AggregateAdapterGenerated.lean. Its typed
+# randomizer effect, input/error/output records, constructor, and verifier core
+# replace the deleted AggregateVerifier callback graph. The handwritten
+# accepted_path theorem derives retry, randomizer installation, combined
+# delegation, and failure behavior directly from the production core. The
+# profiled wrapper remains a separate observational-parity target.
 
 shieldd_sdk_proof_aggregation::statement::StatementFieldBytes
 shieldd_sdk_proof_aggregation::statement::StatementPublicInputRow
 shieldd_sdk_proof_aggregation::statement::StatementPaddedRows
 shieldd_sdk_proof_aggregation::statement::StatementEncodingInput
+shieldd_sdk_proof_aggregation::statement::statement_encoding_input_core
 shieldd_sdk_proof_aggregation::statement::encode_statement
+shieldd_sdk_proof_aggregation::statement::statement_digest_preimage
 shieldd_sdk_proof_aggregation::statement::vk_digest_preimage
 shieldd_sdk_proof_aggregation::statement::validate_counts
 shieldd_sdk_proof_aggregation::statement::validate_row_arity
@@ -49,13 +55,19 @@ shieldd_sdk_proof_aggregation::aggregate_proof_wrapper::decode_wrapped_aggregate
 shieldd_sdk_proof_aggregation::preflight::PreflightCheapChecks
 shieldd_sdk_proof_aggregation::preflight::PreflightWorkGate
 shieldd_sdk_proof_aggregation::preflight::preflight_work_gate
+shieldd_sdk_proof_aggregation::bundle::ProofFamilyId
+shieldd_sdk_proof_aggregation::bundle::FamilyProtoFields
+shieldd_sdk_proof_aggregation::bundle::family_proto_fields
 shieldd_sdk_proof_aggregation::bundle::FamilyRouteKind
 shieldd_sdk_proof_aggregation::bundle::FamilyRoute
 shieldd_sdk_proof_aggregation::bundle::FamilyRouteError
 shieldd_sdk_proof_aggregation::bundle::family_route_from_proto_fields
+shieldd_sdk_shielded_pool::note_reshape::generated::NoteReshapeFamilyId
+shieldd_sdk_shielded_pool::shielded_ics20_withdrawal::generated::ShieldedIcs20WithdrawalFamilyId
 ark_ip_proofs::challenge::ChallengeContext
 ark_ip_proofs::challenge::challenge_context_preimage
 ark_ip_proofs::challenge::challenge_preimage
+ark_ip_proofs::challenge::challenge_preimage_core
 ark_ip_proofs::gipa::rescale_fold_inner
 ark_ip_proofs::gipa::compute_final_commitment_keys_core
 ark_ip_proofs::gipa::BaseCommitmentResult
@@ -82,13 +94,25 @@ ark_ip_proofs::applications::groth16_aggregation::verify_ppe_core
 ark_ip_proofs::applications::groth16_aggregation::fold_public_inputs_core
 ark_ip_proofs::applications::groth16_aggregation::verify_ppe
 ark_ip_proofs::applications::groth16_aggregation::verify_tipp_mipp_core
+ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_final_bridge_adapter_core
+ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_inner_product_adapter_core
+ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_inverse_adapter_core
+ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_kzg_adapter_core
+ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_msm_check_adapter_core
+ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_pairing_check_adapter_core
+ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_round_adapter_core
+ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_target_check_adapter_core
+ark_ip_proofs::applications::groth16_aggregation::arkworks_tipp_x0_adapter_core
 ark_ip_proofs::applications::groth16_aggregation::CombinedChecksPpeInput
 ark_ip_proofs::applications::groth16_aggregation::CombinedChecksCoreInput
 ark_ip_proofs::applications::groth16_aggregation::CombinedChecksError
 ark_ip_proofs::applications::groth16_aggregation::CombinedChecksCoreOutput
 ark_ip_proofs::applications::groth16_aggregation::verify_combined_ppe_core
 ark_ip_proofs::applications::groth16_aggregation::verify_combined_checks_core
-ark_ip_proofs::applications::groth16_aggregation::AggregateVerifierEffect
-ark_ip_proofs::applications::groth16_aggregation::AggregateVerifierCoreOutput
-ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_core
+ark_ip_proofs::applications::groth16_aggregation::AggregateRandomizerEffect
+ark_ip_proofs::applications::groth16_aggregation::AggregateAdapterCoreInput
+ark_ip_proofs::applications::groth16_aggregation::AggregateAdapterCoreError
+ark_ip_proofs::applications::groth16_aggregation::AggregateAdapterCoreOutput
+ark_ip_proofs::applications::groth16_aggregation::aggregate_adapter_core_input_from_parts
+ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_adapter_core
 ark_ip_proofs::applications::groth16_aggregation::verify_aggregate_proof_profiled_with_trace

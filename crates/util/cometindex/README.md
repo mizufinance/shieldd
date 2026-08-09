@@ -70,10 +70,6 @@ example invocations
 ```
 cargo run --bin pindexer -- -s "postgresql://localhost:5432/testnet_raw?sslmode=disable" -d "postgresql://localhost:5432/testnet_compiled?sslmode=disable"
 ```
-```
-cargo run --example fmd_clues -- -s "postgresql://localhost:5432/testnet_raw?sslmode=disable" -d "postgresql://localhost:5432/testnet_compiled?sslmode=disable"
-```
-
 # nixos
 
 initialize postgres

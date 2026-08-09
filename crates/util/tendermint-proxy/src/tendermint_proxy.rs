@@ -5,6 +5,7 @@ use shieldd_sdk_proto::{
         AbciQueryResponse, BroadcastTxAsyncRequest, BroadcastTxAsyncResponse,
         BroadcastTxSyncRequest, BroadcastTxSyncResponse, GetBlockByHeightRequest,
         GetBlockByHeightResponse, GetStatusRequest, GetStatusResponse, GetTxRequest, GetTxResponse,
+        BROADCAST_OUTCOME_METADATA_KEY, BROADCAST_OUTCOME_UNKNOWN,
     },
     DomainType,
 };
@@ -12,8 +13,17 @@ use shieldd_sdk_transaction::Transaction;
 use tap::TapFallible;
 use tendermint::{abci::Code, block::Height};
 use tendermint_rpc::Client;
-use tonic::Status;
+use tonic::{metadata::MetadataValue, Status};
 use tracing::instrument;
+
+fn broadcast_outcome_unknown(error: impl std::fmt::Display) -> Status {
+    let mut status = Status::unavailable(format!("error broadcasting tx sync: {error}"));
+    status.metadata_mut().insert(
+        BROADCAST_OUTCOME_METADATA_KEY,
+        MetadataValue::from_static(BROADCAST_OUTCOME_UNKNOWN),
+    );
+    status
+}
 
 #[tonic::async_trait]
 impl TendermintProxyService for TendermintProxy {
@@ -64,7 +74,7 @@ impl TendermintProxyService for TendermintProxy {
         &self,
         req: tonic::Request<BroadcastTxAsyncRequest>,
     ) -> Result<tonic::Response<BroadcastTxAsyncResponse>, Status> {
-        let client = self.client.clone();
+        let client = self.broadcast_client.clone();
 
         // Process the inbound request, recording the request ID in the tracing span.
         let BroadcastTxAsyncRequest { req_id, params } = req.into_inner();
@@ -89,7 +99,7 @@ impl TendermintProxyService for TendermintProxy {
         &self,
         req: tonic::Request<BroadcastTxSyncRequest>,
     ) -> Result<tonic::Response<BroadcastTxSyncResponse>, Status> {
-        let client = self.client.clone();
+        let client = self.broadcast_client.clone();
 
         // Process the inbound request, recording the request ID in the tracing span.
         let BroadcastTxSyncRequest { req_id, params } = req.into_inner();
@@ -101,7 +111,7 @@ impl TendermintProxyService for TendermintProxy {
             .await
             .map(BroadcastTxSyncResponse::from)
             .map(tonic::Response::new)
-            .map_err(|e| tonic::Status::unavailable(format!("error broadcasting tx sync: {e}")))
+            .map_err(broadcast_outcome_unknown)
             .tap_ok(|res| tracing::debug!("{:?}", res))
     }
 
@@ -186,5 +196,27 @@ impl TendermintProxyService for TendermintProxy {
                 }
             })
             .map(tonic::Response::new)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::broadcast_outcome_unknown;
+    use shieldd_sdk_proto::util::tendermint_proxy::v1::{
+        BROADCAST_OUTCOME_METADATA_KEY, BROADCAST_OUTCOME_UNKNOWN,
+    };
+
+    #[test]
+    fn attempted_broadcast_error_has_outcome_unknown_marker() {
+        let status = broadcast_outcome_unknown("lost response");
+
+        assert_eq!(status.code(), tonic::Code::Unavailable);
+        assert_eq!(
+            status
+                .metadata()
+                .get(BROADCAST_OUTCOME_METADATA_KEY)
+                .and_then(|value| value.to_str().ok()),
+            Some(BROADCAST_OUTCOME_UNKNOWN)
+        );
     }
 }

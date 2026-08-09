@@ -1,7 +1,9 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
 
 use anyhow::Result;
+use sha2::Digest as _;
 
 use cnidarium::Storage;
 use tendermint::abci::Event;
@@ -25,6 +27,10 @@ pub struct Consensus {
     stateless_cache: Arc<StatelessCache>,
     last_commit_finished_at: Option<Instant>,
     current_block_delivered_txs: usize,
+    prepared_proposal_height: Option<u64>,
+    prepared_proposal_digests: HashSet<[u8; 32]>,
+    aggregate_retry_cache: Option<crate::app::CachedProposalAggregate>,
+    force_process_proposal_profile: bool,
 }
 
 pub type ConsensusService = tower_actor::Actor<Request, Response, BoxError>;
@@ -66,6 +72,11 @@ impl Consensus {
     ) -> Self {
         let mut app = App::new(storage.latest_snapshot());
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
+        let force_process_proposal_profile =
+            std::env::var("SHIELDD_FORCE_PROCESS_PROPOSAL_PROFILE")
+                .ok()
+                .map(|value| matches!(value.as_str(), "1" | "true" | "TRUE" | "True"))
+                .unwrap_or(false);
         Self {
             queue,
             storage,
@@ -73,6 +84,10 @@ impl Consensus {
             stateless_cache,
             last_commit_finished_at: None,
             current_block_delivered_txs: 0,
+            prepared_proposal_height: None,
+            prepared_proposal_digests: HashSet::new(),
+            aggregate_retry_cache: None,
+            force_process_proposal_profile,
         }
     }
 
@@ -84,6 +99,17 @@ impl Consensus {
     fn record_block_tx_count(phase: &'static str, tx_count: usize) {
         metrics::histogram!(metrics::CONSENSUS_BLOCK_TX_COUNT, "phase" => phase)
             .record(tx_count as f64);
+    }
+
+    fn proposal_digest<T: AsRef<[u8]>>(txs: &[T]) -> [u8; 32] {
+        let mut hasher = sha2::Sha256::new();
+        hasher.update((txs.len() as u64).to_le_bytes());
+        for tx in txs {
+            let bytes = tx.as_ref();
+            hasher.update((bytes.len() as u64).to_le_bytes());
+            hasher.update(bytes);
+        }
+        hasher.finalize().into()
     }
 
     async fn run(mut self) -> Result<(), tower::BoxError> {
@@ -219,14 +245,23 @@ impl Consensus {
                 .record(last_commit_finished_at.elapsed().as_secs_f64());
         }
         Self::record_block_tx_count("proposed", proposal.txs.len());
+        if self.prepared_proposal_height != Some(proposal_height) {
+            self.prepared_proposal_height = Some(proposal_height);
+            self.prepared_proposal_digests.clear();
+            self.aggregate_retry_cache = None;
+        }
         // We prepare a proposal against an isolated fork of the application state.
         let mut tmp_app = App::new(self.storage.latest_snapshot());
         tmp_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
+        tmp_app.set_aggregate_retry_cache(self.aggregate_retry_cache.clone());
         // Once we are done, we discard it so that the application state doesn't get corrupted
         // if another round of consensus is required because the proposal fails to finalize.
-        let (response, _profile) = tmp_app
-            .prepare_proposal_v2_profiled(proposal, Some(self.stateless_cache.as_ref()))
+        let (response, profile, _) = tmp_app
+            .prepare_proposal_v2_profiled(proposal, Some(self.stateless_cache.as_ref()), false)
             .await;
+        self.aggregate_retry_cache = tmp_app.aggregate_retry_cache();
+        let response_digest = Self::proposal_digest(&response.txs);
+        self.prepared_proposal_digests.insert(response_digest);
         let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
         let included_tx_count = response.txs.len();
         let included_tx_bytes = response.txs.iter().map(|tx| tx.len()).sum::<usize>();
@@ -235,6 +270,7 @@ impl Consensus {
             candidate_tx_count,
             included_tx_count,
             included_tx_bytes,
+            tail_tx_count = profile.tail_tx_count,
             elapsed_ms,
             "prepare_proposal_finish"
         );
@@ -259,12 +295,34 @@ impl Consensus {
             "process_proposal_start"
         );
         Self::record_block_tx_count("processed", proposal_tx_count);
+        let proposal_digest = Self::proposal_digest(&proposal.txs);
+        if self.prepared_proposal_height == Some(proposal_height)
+            && self.prepared_proposal_digests.contains(&proposal_digest)
+            && !self.force_process_proposal_profile
+        {
+            let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
+            tracing::info!(
+                height = proposal_height,
+                proposal_hash = %proposal.hash,
+                verdict = "accept",
+                cache_reuse = true,
+                elapsed_ms,
+                "process_proposal_finish"
+            );
+            Self::record_phase_duration("process_proposal", started);
+            return Ok(response::ProcessProposal::Accept);
+        }
         // We process the proposal in an isolated state fork. Eventually, we should cache this work and
         // re-use it when processing a `FinalizeBlock` message (starting in `0.38.x`).
         let mut tmp_app = App::new(self.storage.latest_snapshot());
         tmp_app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
         let (response, profile) = tmp_app
-            .process_proposal_v2_profiled(proposal, Some(self.stateless_cache.as_ref()))
+            .process_proposal_v2_profiled(
+                proposal,
+                Some(self.stateless_cache.as_ref()),
+                None,
+                false,
+            )
             .await;
         let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
         let verdict = match response {
@@ -276,7 +334,7 @@ impl Consensus {
             height = proposal_height,
             verdict,
             cache_reuse = false,
-            independent_proof_verify_ms = profile.independent_proof_verify_ms,
+            aggregate_verify_ms = profile.aggregate_verify_ms,
             elapsed_ms,
             "process_proposal_finish"
         );
@@ -293,6 +351,9 @@ impl Consensus {
         // included in the span modeling the abci request handling.
         tracing::info!(time = ?begin_block.header.time, "beginning block");
         self.current_block_delivered_txs = 0;
+        self.prepared_proposal_height = None;
+        self.prepared_proposal_digests.clear();
+        self.aggregate_retry_cache = None;
 
         let events = self.app.begin_block(&begin_block).await;
         Self::record_phase_duration("begin_block", started);
@@ -369,6 +430,9 @@ impl Consensus {
         Self::record_phase_duration("commit", started);
         Self::record_block_tx_count("committed", self.current_block_delivered_txs);
         self.last_commit_finished_at = Some(Instant::now());
+        self.prepared_proposal_height = None;
+        self.prepared_proposal_digests.clear();
+        self.aggregate_retry_cache = None;
 
         Ok(response::Commit {
             data: app_hash.0.to_vec().into(),

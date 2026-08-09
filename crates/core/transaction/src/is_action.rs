@@ -3,8 +3,8 @@ use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
 use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_shielded_pool::{
-    Note, NoteReshape, NoteReshapeView, ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalView,
-    Transfer, TransferView,
+    Note, NoteReshape, NoteReshapeView, ShieldedHostWithdrawal, ShieldedHostWithdrawalView,
+    ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalView, Transfer, TransferView,
 };
 
 use crate::{ActionView, TransactionPerspective};
@@ -262,6 +262,67 @@ impl IsAction for ShieldedIcs20Withdrawal {
                 })
             }
             Err(_) => ActionView::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalView::Opaque {
+                withdrawal: self.to_owned(),
+            }),
+        }
+    }
+}
+
+impl IsAction for ShieldedHostWithdrawal {
+    fn balance_commitment(&self) -> balance::Commitment {
+        self.body.balance_commitment
+    }
+
+    fn view_from_perspective(&self, txp: &TransactionPerspective) -> ActionView {
+        let Some(payload_key) = txp
+            .payload_keys
+            .get(&self.body.change_output.note_payload.note_commitment)
+        else {
+            return ActionView::ShieldedHostWithdrawal(ShieldedHostWithdrawalView::Opaque {
+                withdrawal: self.to_owned(),
+            });
+        };
+
+        let Some(spent_notes) = self
+            .body
+            .inputs
+            .iter()
+            .map(|input| txp.spend_nullifiers.get(&input.nullifier).cloned())
+            .collect::<Option<Vec<_>>>()
+        else {
+            return ActionView::ShieldedHostWithdrawal(ShieldedHostWithdrawalView::Opaque {
+                withdrawal: self.to_owned(),
+            });
+        };
+
+        let Ok(change_note) = Note::decrypt_with_payload_key(
+            &self.body.change_output.note_payload.encrypted_note,
+            payload_key,
+            &self.body.change_output.note_payload.ephemeral_key,
+        ) else {
+            return ActionView::ShieldedHostWithdrawal(ShieldedHostWithdrawalView::Opaque {
+                withdrawal: self.to_owned(),
+            });
+        };
+
+        match self
+            .body
+            .change_output
+            .wrapped_memo_key
+            .decrypt_outgoing(payload_key)
+        {
+            Ok(decrypted_memo_key) => {
+                ActionView::ShieldedHostWithdrawal(ShieldedHostWithdrawalView::Visible {
+                    withdrawal: self.to_owned(),
+                    spent_notes: spent_notes
+                        .into_iter()
+                        .map(|note| txp.view_note(note))
+                        .collect(),
+                    change_note: txp.view_note(change_note),
+                    payload_key: decrypted_memo_key,
+                })
+            }
+            Err(_) => ActionView::ShieldedHostWithdrawal(ShieldedHostWithdrawalView::Opaque {
                 withdrawal: self.to_owned(),
             }),
         }

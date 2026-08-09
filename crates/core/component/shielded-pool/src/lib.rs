@@ -6,8 +6,11 @@ pub mod component;
 pub mod ics20_withdrawal;
 pub use ics20_withdrawal::Ics20Withdrawal;
 
+mod host_withdrawal;
+pub use host_withdrawal::HostWithdrawal;
+
+pub mod discovery;
 pub mod event;
-pub mod fmd;
 pub mod genesis;
 pub mod gnark;
 mod groth16_proof;
@@ -28,6 +31,7 @@ pub use shielded_note_plan::{ShieldedInputPlan, ShieldedOutputPlan};
 
 pub mod note_reshape;
 pub mod public_input_hash;
+pub mod shielded_host_withdrawal;
 pub mod shielded_ics20_withdrawal;
 pub mod transfer;
 
@@ -44,6 +48,9 @@ pub use note_reshape::{
     NoteReshapeInputPrivate, NoteReshapeInputPublic, NoteReshapeOutputBody,
     NoteReshapeOutputPrivate, NoteReshapeOutputPublic, NoteReshapePlan, NoteReshapeProof,
     NoteReshapeProofPrivate, NoteReshapeProofPublic, NoteReshapeView, NOTE_RESHAPE_FAMILY_SPECS,
+};
+pub use shielded_host_withdrawal::{
+    ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedHostWithdrawalView,
 };
 pub use shielded_ics20_withdrawal::{
     ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalBody, ShieldedIcs20WithdrawalChangeBody,

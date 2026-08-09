@@ -1,151 +1,95 @@
-# SnarkPack: Fork & Modifications
+# SnarkPack Design
 
-What Shieldd's proof-aggregation backend is, what upstream it descends from, and
-every deliberate change we made to that upstream, with rationale. Start here.
+Shieldd aggregates same-verifying-key Groth16 proofs with a local SnarkPack v1
+implementation. This document describes the production protocol and its
+intentional differences from the Arkworks/Filecoin lineage. See
+[verification.md](verification.md) for the proof boundary and current status.
 
-The companion doc is [verification.md](verification.md): how we check that this
-design is faithfully and securely implemented.
+The formal manifest and generated handoff are authoritative. The pinned
+[Filecoin divergence review](../../crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md)
+is historical provenance, not a live security specification.
 
-## Deployment security status
+## Protocol
 
-The current application uses a deterministic `DevSrs`. Its public seed makes
-the KZG trapdoor reconstructible, so the structured-key binding premise is not
-discharged and an aggregate proof is not authoritative acceptance evidence.
-Validators independently verify every constituent Groth16 proof under its exact
-bundled family key before execution or `Groth16Verified` cache promotion.
-SnarkPack is presently a redundant proposal-integrity and performance path;
-replacing `DevSrs` with a
-ceremony-derived SRS is required before aggregate verification can carry
-soundness on its own.
+For `N` proofs `(Aᵢ, Bᵢ, Cᵢ)` under one VK, the prover:
 
-The authoritative machine-checked details live in the Lean and F* formal artifacts;
-the Filecoin divergence review remains available as provenance:
+1. commits to the proof vectors with pairing-based inner-product commitments;
+2. randomizes each position with a Fiat-Shamir scalar;
+3. folds the vectors through a logarithmic GIPA recursion;
+4. opens the final folded commitment keys with KZG; and
+5. emits one aggregate checked by a final Groth16 pairing-product equation.
 
-- [filecoin-divergence-findings.md](../../crates/crypto/proof-aggregation/formal/snarkpack/filecoin-divergence-findings.md) — the behavioral review behind those differences.
+GIPA is the halving recursion. TIPA specializes it to the pairing inner product
+and KZG key openings. The combined TIPP/MIPP proof folds the AB pairing and C
+multiexponentiation relations with one challenge stream.
 
-## 1. What SnarkPack/RIPP is
+The production stages are `aggregate.randomizer`, `tipp-mipp.x0`,
+`tipp-mipp.gipa.round`, `tipp-mipp.final-bridge`, and `tipp-mipp.kzg`. Their
+ordered inputs are listed in [verification.md](verification.md#transcript).
 
-SnarkPack aggregates `N` already-valid Groth16 proofs for the **same** verifying
-key into one short proof that a verifier checks faster than `N` separate Groth16
-verifications. It is the RIPP (Rust Inner-Pairing-Product) construction from the
-SnarkPack paper.
+## Provenance
 
-### High level
+The code under
+[`src/ipp/ip_proofs`](../../crates/crypto/proof-aggregation/src/ipp/ip_proofs)
+descends from the Arkworks SnarkPack v1 lineage. Upstream code is a comparison
+aid, not the production-security baseline. The independent `Ipp.Goal` and
+`Ipp.SnarkPackV1` models define the local target.
 
-Given `N` Groth16 proofs `(Aᵢ, Bᵢ, Cᵢ)`:
+The conditional shipping Rust → SnarkPack v1 → `Ipp.Goal` adaptive theorem is
+proved. Exact external assumptions remain visible in the formal handoff, and
+the production SRS ceremony is the sole open claim.
 
-1. **Commit** to the vectors `A = [Aᵢ]`, `B = [Bᵢ]`, `C = [Cᵢ]` with pairing-based
-   inner-product commitments, using a structured reference string (SRS) of two
-   random generator ladders.
-2. **Randomize** each proof's contribution by a Fiat-Shamir scalar `r` so proofs
-   cannot be mixed across positions (inter-proof malleability).
-3. **Fold** the committed vectors down to a constant size with a logarithmic
-   recursion (GIPA), producing `log₂ N` round messages.
-4. **Open** the folded commitment keys at a Fiat-Shamir point with KZG.
-5. The verifier replays the folding from the round messages, checks the KZG
-   openings, and checks one final **pairing-product equation** (PPE) that stands
-   in for all `N` Groth16 checks at once.
+## Local protocol choices
 
-### Low level
+### BLS12-377
 
-- **GIPA** — the generalized inner-product argument: the `log₂ N`-round halving
-  recursion. Each round emits a left/right half-commitment `(L, R)` and consumes a
-  Fiat-Shamir fold challenge.
-- **TIPA** — GIPA specialized to the pairing inner product, plus KZG openings of
-  the two final folded commitment keys (`ck_a_final`, `ck_b_final`), tying the
-  folding the verifier recomputed to the SRS.
-- **Combined TIPP/MIPP** — one GIPA instance folds both the randomized AB pairing
-  relation and the C multiexponentiation relation with shared per-round
-  challenges, seeded by `x0 = Hash(r, hcom, Z_AB, Z_C)` and linked to KZG by a
-  final bridge challenge.
-- **Groth16 aggregation adapter** — derives `r`, drives the AB-path (TIPA) and the
-  C-path (SSM), folds the public inputs, and assembles the final PPE.
+Shieldd uses BLS12-377 to match the proving stack; the upstream lineage uses
+BLS12-381. No cross-curve byte equality is claimed.
 
-The Fiat-Shamir challenge stages on the Shieldd Groth16 path are
-`aggregate.randomizer`, `tipp-mipp.x0`, `tipp-mipp.gipa.round`,
-`tipp-mipp.final-bridge`, and `tipp-mipp.kzg` — enumerated input-by-input in
-[verification.md](verification.md#transcript--model).
+### Domain-separated transcript
 
-## 2. What we forked
+Blake2b derives the five Fiat-Shamir stages from a length-prefixed, stage- and
+nonce-bound preimage. SHA-256 separately binds the VK, canonical statement, and
+challenge context. Changing a stage label, field order, encoding, or dependency
+is a protocol change.
 
-The local stack under
-[`crates/crypto/proof-aggregation/src/ipp/ip_proofs`](../../crates/crypto/proof-aggregation/src/ipp/ip_proofs)
-is vendored from the arkworks `ark-ip-proofs` lineage (the SnarkPack v1 lineage).
-That lineage is **provenance and a comparison aid, not a production-security
-baseline** — audit scope is the full local implementation, not a diff against
-arkworks.
+### Canonical statement binding
 
-The formal SnarkPack implication is conditional on the published algebraic and
-structured-key assumptions. We check that our code faithfully refines that
-conditional construction (see [verification.md](verification.md)); the deployed
-deterministic SRS does not establish its unknown-trapdoor premise.
-
-## 3. Modifications we made (and why)
-
-Each is an intentional divergence from the arkworks/Filecoin upstream; the
-implementation and formal artifacts document the resulting local behavior.
-
-### BLS12-377 curve swap
-Upstream targets BLS12-381; Shieldd runs on BLS12-377 to match the rest of the
-proving stack. **Consequence:** no cross-curve byte equivalence to Filecoin is
-possible or claimed; Filecoin is a *discipline* reference, not a byte oracle.
-
-### Hand-rolled SHA-256 Fiat-Shamir
-We replaced the upstream transcript with our own SHA-256 challenge construction
-([`src/ipp/ip_proofs/src/challenge.rs`](../../crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs)).
-Every challenge preimage is domain-separated, length-prefixed, stage-labeled, and
-nonce-bound. **Why:** we own these bytes outright, so they carry the heaviest
-verification weight; the construction follows the Filecoin v2 transcript
-discipline (bind everything, fixed order, domain-separated) that fixed the
-SnarkPack v1 / Frozen-Heart omission bugs.
-
-### Statement binding
-A canonical aggregate-statement encoding
-([`src/statement.rs`](../../crates/crypto/proof-aggregation/src/statement.rs))
-binds protocol version, curve id, backend id, SRS id, proof family/variant, VK
-digest, real and padded counts, the canonical padding rule, and the ordered
-padded public inputs into the Fiat-Shamir context. **Why:** a malicious proposer
-must not be able to replace, reorder, omit, or mismatch any public statement
-material and still produce an accepted aggregate. Distinct statements must not
-share a transcript preimage (proved injective — see verification.md).
+The statement binds protocol version, curve/backend identity, SRS identifier,
+proof family, VK digest, real and padded counts, repeat-final padding, and the
+ordered padded public inputs. The production preflight and Rust-call
+construction are connected to this formal projection. Encoding injectivity is
+proved; collision resistance remains the explicit SHA-256 assumption.
 
 ### Repeat-final padding
-Inputs are padded to the next power of two by **repeating the final real proof**
-and its public inputs ([`src/padding.rs`](../../crates/crypto/proof-aggregation/src/padding.rs)).
-The verifier recomputes the padded inputs and checks both counts before
-verifying. **Why:** GIPA needs a power-of-two length; the padding rule is part of
-the statement, so changing it requires a new aggregate version.
 
-### Wrapper framing + size cap
-The aggregate proof ships in a versioned wrapper that stores only a recomputed
-statement digest (no second digest field) with a hard byte cap
-([`src/aggregate_proof_wrapper.rs`](../../crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs)).
-**Why:** cheap shape/size rejection before any expensive work, and a single
-canonical digest source.
+GIPA requires a power-of-two length. Inputs are padded by repeating the final
+real proof and public-input row. The verifier recomputes and checks the exact
+padding and preserves the caller-order real prefix.
 
-### Typed preflight gate
-[`src/preflight.rs`](../../crates/crypto/proof-aggregation/src/preflight.rs)
-recomputes SRS/VK facts and decodes the wrapper before SnarkPack verification.
-**Why:** validate prerequisites before doing downstream cryptographic work; keep
-adversarial rejection cheap.
+### Wrapper and preflight
 
-### Research-only integration boundary
-SnarkPack artifacts are not transaction actions and are not accepted by
-PrepareProposal, ProcessProposal, DeliverTx, or host execution. Deployed
-consensus verifies each circuit proof directly with its exact Groth16 key.
-Aggregation experiments consume extracted proof fixtures out of band in the
-research and benchmark crates.
+The versioned wrapper stores the statement digest and a bounded inner proof.
+Preflight validates size, framing, family, counts, VK/SRS facts, rows, padding,
+and strict proof decoding before expensive verification.
 
-### Optimization byte-lock
-Optimizations must preserve the Shieldd byte trace or explicitly version the
-protocol — never silently change transcript bytes. The rule:
+### Family and bundle routing
 
-| Category | Touches bytes? | How to land |
-|---|---|---|
-| 1 — internal compute | No | Default; golden baselines pass unchanged |
-| 2 — output/wire encoding | Wire bytes only | Version-bump path |
-| 3 — transcript / Fiat-Shamir input | Transcript bytes | **Forbidden** — that's a protocol change |
+The closed proof-family registry selects the compiled VK. Aggregate bundles are
+accepted only through the proposal aggregation pipeline and must be the unique
+final bundle in a proposal. They are not generic user actions.
 
-The full search-to-land process and candidate backlog is the contributor
-playbook in the crate:
+## Deployment SRS boundary
+
+Production fails closed unless an authenticated SRS artifact matches the
+compiled registry. The formal theorem assumes well-formed proving material and
+keeps `DEPLOYED-SRS-SOUNDNESS` open until a ceremony and its verification
+evidence are registered. No numerical production-security claim is made before
+that work.
+
+## Optimization byte-lock
+
+Internal compute changes must preserve semantics and the committed v1 proof and
+transcript bytes. Wire changes require a protocol-version bump. Transcript
+changes require a new protocol proof. The full workflow is in
 [optimization-playbook.md](../../crates/crypto/proof-aggregation/optimization-playbook.md).

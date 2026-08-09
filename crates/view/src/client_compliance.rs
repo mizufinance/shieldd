@@ -1330,7 +1330,6 @@ mod tests {
             fee_funding: Some(FeeFundingPlan {
                 transfer: fee_funding,
             }),
-            detection_data: None,
             memo: None,
         };
         let mut enrichment_rng = StdRng::seed_from_u64(11);

@@ -88,8 +88,8 @@
         ".cargo/config.toml",
         ".github/actions/setup-nix-rust/**",
         ".github/workflows/fv-toolchain-image.yml",
-        ".github/workflows/formal.yml",
         ".github/workflows/formal-scheduled.yml",
+        ".github/workflows/formal.yml",
         ".github/workflows/rust.yml",
         ".github/workflows/soundness-provers.yml",
         "Cargo.lock",
@@ -158,17 +158,54 @@
         "default": "full"
       },
       "reason": "soundness proof, artifact, generator, runtime, or invoked gate input"
+    },
+    {
+      "patterns": [
+        "tools/proto-compiler/**"
+      ],
+      "tiers": {
+        "pull_request": "stamps",
+        "merge_group": "full",
+        "default": "full"
+      },
+      "reason": "protobuf code generator can alter generated Rust inputs in the soundness Cargo closure"
     }
   ],
   "irrelevant_inputs": [
     {
       "patterns": [
+        "scripts/lib/common.sh",
+        "scripts/orbis-ci-cleanup.sh",
+        "scripts/orbis-integration-preflight.sh",
+        "scripts/orbis-stack.sh",
+        "scripts/shieldd-down.sh",
+        "scripts/shieldd-up.sh"
+      ],
+      "reason": "Orbis and local stack orchestration is outside the circuit soundness contract"
+    },
+    {
+      "patterns": [
         ".github/ISSUE_TEMPLATE/**",
+        ".github/**",
+        ".config/**",
+        ".envrc.example",
+        "AGENTS.md",
+        "CLAUDE.md",
         "LICENSE",
         "LICENSE-*",
-        "docs/**"
+        "README.md",
+        "assets/**",
+        "ci/**",
+        "clippy.toml",
+        "deny.toml",
+        "deployments/**",
+        "dist-workspace.toml",
+        "docs/**",
+        "poc/**",
+        "proto/**",
+        "testnets/**"
       ],
-      "reason": "documentation-only path outside the declared soundness contract"
+      "reason": "audited non-runtime path outside the declared soundness contract"
     }
   ]
 }

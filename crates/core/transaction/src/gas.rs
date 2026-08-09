@@ -1,7 +1,8 @@
 use shieldd_sdk_fee::Gas;
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_shielded_pool::{
-    NoteReshape, NoteReshapePlan, ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalPlan,
+    NoteReshape, NoteReshapePlan, ShieldedHostWithdrawal, ShieldedIcs20Withdrawal,
+    ShieldedIcs20WithdrawalPlan,
 };
 use shieldd_sdk_validator::validator::Definition as ValidatorDefinition;
 
@@ -56,7 +57,7 @@ pub fn note_reshape_gas_cost(input_count: usize, output_count: usize) -> Gas {
     gas
 }
 
-pub fn shielded_ics20_withdrawal_gas_cost() -> Gas {
+pub fn shielded_withdrawal_gas_cost() -> Gas {
     spend_gas_cost() + spend_gas_cost() + output_gas_cost()
 }
 
@@ -106,6 +107,7 @@ impl GasCost for Action {
             Action::ProposalSubmit(submit) => submit.gas_cost(),
             Action::ValidatorVote(vote) => vote.gas_cost(),
             Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.gas_cost(),
+            Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.gas_cost(),
             Action::IbcRelay(x) => x.gas_cost(),
             Action::ValidatorDefinition(x) => x.gas_cost(),
             Action::ComplianceRegisterAsset(_) | Action::ComplianceRegisterUser(_) => Gas {
@@ -113,6 +115,12 @@ impl GasCost for Action {
                 compact_block_space: 100,
                 verification: 0,
                 execution: 10,
+            },
+            Action::AggregateBundle(_) => Gas {
+                block_space: 0,
+                compact_block_space: 0,
+                verification: 0,
+                execution: 0,
             },
         }
     }
@@ -141,13 +149,19 @@ impl GasCost for NoteReshapePlan {
 
 impl GasCost for ShieldedIcs20WithdrawalPlan {
     fn gas_cost(&self) -> Gas {
-        shielded_ics20_withdrawal_gas_cost()
+        shielded_withdrawal_gas_cost()
     }
 }
 
 impl GasCost for ShieldedIcs20Withdrawal {
     fn gas_cost(&self) -> Gas {
-        shielded_ics20_withdrawal_gas_cost()
+        shielded_withdrawal_gas_cost()
+    }
+}
+
+impl GasCost for ShieldedHostWithdrawal {
+    fn gas_cost(&self) -> Gas {
+        shielded_withdrawal_gas_cost()
     }
 }
 

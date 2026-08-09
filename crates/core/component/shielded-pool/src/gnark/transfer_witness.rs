@@ -206,15 +206,15 @@ impl TransferWitnessV16 {
         let sender_leaf = compliance_leaf_from_typed(&private.sender_leaf)?;
         let (_, _, sender_slot_id, sender_slot_derivation, sender_d) =
             compliance_leaf_parts(&sender_leaf);
-        let sender_clue_key = private.sender_leaf.address.clue_key().0;
+        let sender_clue_key = private.sender_leaf.address.discovery_key().0;
         for (label, note) in [
             ("required spend", &private.required_input.spent_note),
             ("optional spend", &private.optional_input.spend.spent_note),
             ("change output", &private.change_output.created_note),
         ] {
-            if note.clue_key().0 != sender_clue_key {
+            if note.discovery_key().0 != sender_clue_key {
                 return Err(anyhow!(
-                    "{TRANSFER_PROOF_LABEL} {label} clue key does not match the shared sender address"
+                    "{TRANSFER_PROOF_LABEL} {label} discovery key does not match the shared sender address"
                 ));
             }
         }
@@ -251,10 +251,12 @@ impl TransferWitnessV16 {
             note_commitment: public.outputs[0].note_commitment.0.to_bytes(),
             created_note_blinding: receiver_private.created_note.note_blinding().to_bytes(),
             created_note_amount: Fq::from(receiver_private.created_note.value().amount).to_bytes(),
-            created_clue_key: Fq::from_bytes_checked(&receiver_private.created_note.clue_key().0)
+            created_clue_key: Fq::from_bytes_checked(
+                &receiver_private.created_note.discovery_key().0,
+            )
                 .map_err(|_| {
                     anyhow!(
-                    "{TRANSFER_PROOF_LABEL} receiver clue key is not a canonical field encoding"
+                    "{TRANSFER_PROOF_LABEL} receiver discovery key is not a canonical field encoding"
                 )
                 })?
                 .to_bytes(),
@@ -309,7 +311,7 @@ impl TransferWitnessV16 {
             sender_clue_key: Fq::from_bytes_checked(&sender_clue_key)
                 .map_err(|_| {
                     anyhow!(
-                        "{TRANSFER_PROOF_LABEL} sender clue key is not a canonical field encoding"
+                        "{TRANSFER_PROOF_LABEL} sender discovery key is not a canonical field encoding"
                     )
                 })?
                 .to_bytes(),

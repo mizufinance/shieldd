@@ -384,27 +384,28 @@ mod tests {
     use rand_core::Error;
 
     #[test]
-    fn compliance_address_plaintext_excludes_clue_key() {
+    fn compliance_address_plaintext_excludes_discovery_key() {
         let address = crate::test_helpers::make_address(7);
         let mut rng = rand_core::OsRng;
-        let different_clue_address = loop {
-            let clue_key = decaf377_fmd::DetectionKey::new(&mut rng).clue_key();
-            if &clue_key == address.clue_key() {
+        let different_discovery_address = loop {
+            let candidate = Address::dummy(&mut rng);
+            let discovery_key = *candidate.discovery_key();
+            if &discovery_key == address.discovery_key() {
                 continue;
             }
             break Address::from_components(
                 address.diversifier().clone(),
                 address.transmission_key().clone(),
-                clue_key,
+                discovery_key,
             )
-            .expect("alternate clue key is canonical");
+            .expect("alternate discovery key is canonical");
         };
 
-        assert!(address != different_clue_address);
+        assert!(address != different_discovery_address);
         assert_eq!(
             address_bytes(&address),
-            address_bytes(&different_clue_address),
-            "compliance disclosure must not include the independently bound clue key"
+            address_bytes(&different_discovery_address),
+            "compliance disclosure must not include the independently bound discovery key"
         );
 
         let mut expected = Vec::with_capacity(64);

@@ -9,12 +9,14 @@ fn note_creating_output_count(tx: &Transaction) -> usize {
             Action::Transfer(transfer) => transfer.body.outputs.len(),
             Action::NoteReshape(note_reshape) => note_reshape.body.outputs.len(),
             Action::ShieldedIcs20Withdrawal(_) => 1,
+            Action::ShieldedHostWithdrawal(_) => 1,
             Action::ValidatorDefinition(_)
             | Action::IbcRelay(_)
             | Action::ProposalSubmit(_)
             | Action::ValidatorVote(_)
             | Action::ComplianceRegisterAsset(_)
-            | Action::ComplianceRegisterUser(_) => 0,
+            | Action::ComplianceRegisterUser(_)
+            | Action::AggregateBundle(_) => 0,
         })
         .sum::<usize>();
 
@@ -52,24 +54,6 @@ pub(crate) fn valid_binding_signature(tx: &Transaction) -> Result<()> {
     } else {
         bvk.verify(auth_hash.as_bytes(), tx.binding_sig())
             .context("binding signature failed to verify")
-    }
-}
-
-pub fn num_clues_equal_to_num_outputs(tx: &Transaction) -> anyhow::Result<()> {
-    let num_note_creating_actions = note_creating_output_count(tx);
-    if tx
-        .transaction_body()
-        .detection_data
-        .unwrap_or_default()
-        .fmd_clues
-        .len()
-        != num_note_creating_actions
-    {
-        Err(anyhow::anyhow!(
-            "consensus rule violated: must have equal number of outputs and FMD clues"
-        ))
-    } else {
-        Ok(())
     }
 }
 

@@ -11,6 +11,7 @@ use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::EffectingData;
 
+use crate::discovery::Precision;
 use crate::note_reshape_padding::dummy_spend_auth_sig;
 use crate::note_reshape_padding::dummy_state_commitment_proof;
 use crate::note_reshape_padding::{pad_to_len, HiddenArityPadder};
@@ -40,6 +41,7 @@ pub struct ShieldedIcs20WithdrawalPlan {
     pub spends: Vec<ShieldedInputPlan>,
     pub change_output: Option<ShieldedOutputPlan>,
     pub withdrawal: Ics20Withdrawal,
+    pub discovery_precision: Precision,
 }
 
 impl ShieldedIcs20WithdrawalPlan {
@@ -54,9 +56,18 @@ impl ShieldedIcs20WithdrawalPlan {
             spends,
             change_output,
             withdrawal,
+            discovery_precision: Precision::default(),
         };
         plan.validate()?;
         Ok(plan)
+    }
+
+    pub fn family_id(&self) -> ShieldedIcs20WithdrawalFamilyId {
+        ShieldedIcs20WithdrawalFamilyId::Canonical
+    }
+
+    pub fn set_discovery_precision(&mut self, precision: Precision) {
+        self.discovery_precision = precision;
     }
 
     pub fn balance(&self) -> Balance {
@@ -379,7 +390,7 @@ impl ShieldedIcs20WithdrawalPlan {
             &change_note.diversified_generator(),
         );
         let change_output = ShieldedIcs20WithdrawalChangeBody {
-            note_payload: change_note.payload(),
+            note_payload: change_note.payload(self.discovery_precision),
             wrapped_memo_key,
             ovk_wrapped_key,
         };
@@ -493,6 +504,7 @@ impl From<ShieldedIcs20WithdrawalPlan> for pb::ShieldedIcs20WithdrawalPlan {
             spends: value.spends.into_iter().map(Into::into).collect(),
             change_output: value.change_output.map(Into::into),
             withdrawal: Some(value.withdrawal.into()),
+            discovery_precision_bits: value.discovery_precision.into(),
         }
     }
 }
@@ -520,6 +532,7 @@ impl TryFrom<pb::ShieldedIcs20WithdrawalPlan> for ShieldedIcs20WithdrawalPlan {
                 .withdrawal
                 .ok_or_else(|| anyhow!("missing embedded shielded ICS-20 withdrawal payload"))?
                 .try_into()?,
+            discovery_precision: value.discovery_precision_bits.try_into()?,
         };
         plan.validate()?;
         Ok(plan)

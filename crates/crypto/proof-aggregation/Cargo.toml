@@ -2,7 +2,7 @@
 name = "shieldd-sdk-proof-aggregation"
 authors = { workspace = true }
 repository = { workspace = true }
-description = "Research-only proof aggregation primitives"
+description = "Proof aggregation primitives for Shieldd consensus"
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
@@ -15,11 +15,17 @@ fuzzing = []
 # optimization-playbook.md (in this crate).
 bench-baseline = ["ark-ip-proofs/bench-baseline"]
 
+[[bench]]
+name = "snarkpack"
+harness = false
+
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(hax)'] }
 
 [dependencies]
 anyhow = { workspace = true }
+ark-ec = { workspace = true }
+ark-ff = { workspace = true }
 ark-groth16 = { workspace = true, default-features = false }
 ark-inner-products = { path = "src/ipp/inner_products" }
 ark-serialize = { workspace = true }
@@ -29,8 +35,8 @@ blake2 = "0.9"
 decaf377 = { workspace = true }
 digest = "0.9"
 hex = { workspace = true }
-prost = { workspace = true }
 shieldd-sdk-proof-params = { workspace = true, default-features = false }
+shieldd-sdk-proto = { workspace = true, default-features = true }
 shieldd-sdk-shielded-pool = { workspace = true, default-features = false }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
@@ -39,9 +45,8 @@ serde = { workspace = true, features = ["derive"] }
 sha2 = { workspace = true }
 
 [dev-dependencies]
-ark-ec = { workspace = true }
-ark-ff = { workspace = true }
 ark-r1cs-std = { workspace = true }
 ark-relations = { workspace = true }
 ark-snark = { workspace = true }
+criterion = { workspace = true, features = ["html_reports"] }
 proptest = { workspace = true }

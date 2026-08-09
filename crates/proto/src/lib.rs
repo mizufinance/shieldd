@@ -154,13 +154,6 @@ pub mod shieldd {
 
     /// Cryptography primitives used by Shieldd.
     pub mod crypto {
-        pub mod decaf377_fmd {
-            pub mod v1 {
-                include!("gen/shieldd.crypto.decaf377_fmd.v1.rs");
-                include!("gen/shieldd.crypto.decaf377_fmd.v1.serde.rs");
-            }
-        }
-
         pub mod decaf377_frost {
             pub mod v1 {
                 include!("gen/shieldd.crypto.decaf377_frost.v1.rs");
@@ -218,6 +211,12 @@ pub mod shieldd {
             pub mod v1 {
                 include!("gen/shieldd.util.tendermint_proxy.v1.rs");
                 include!("gen/shieldd.util.tendermint_proxy.v1.serde.rs");
+
+                /// gRPC metadata set only after the proxy attempted an
+                /// upstream transaction broadcast whose outcome is unknown.
+                pub const BROADCAST_OUTCOME_METADATA_KEY: &str = "shieldd-broadcast-outcome";
+                pub const BROADCAST_OUTCOME_UNKNOWN: &str = "unknown";
+                pub const BROADCAST_OUTCOME_NOT_SUBMITTED: &str = "not-submitted";
             }
         }
     }

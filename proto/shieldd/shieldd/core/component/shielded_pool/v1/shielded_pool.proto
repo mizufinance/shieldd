@@ -7,15 +7,13 @@ import "shieldd/core/component/ibc/v1/ibc.proto";
 import "shieldd/core/component/sct/v1/sct.proto";
 import "shieldd/core/keys/v1/keys.proto";
 import "shieldd/core/num/v1/num.proto";
-import "shieldd/core/txhash/v1/txhash.proto";
-import "shieldd/crypto/decaf377_fmd/v1/decaf377_fmd.proto";
 import "shieldd/crypto/decaf377_rdsa/v1/decaf377_rdsa.proto";
 import "shieldd/crypto/tct/v1/tct.proto";
 
 // Configuration data for the shielded pool component.
 message ShieldedPoolParameters {
-  FmdParameters fixed_fmd_params = 1 [deprecated = true];
-  FmdMetaParameters fmd_meta_params = 2;
+  DiscoveryParameters discovery_params = 1;
+  uint64 discovery_grace_period_blocks = 2;
 }
 
 // Genesis data for the shielded pool component.
@@ -31,48 +29,16 @@ message GenesisContent {
   repeated Allocation allocations = 3;
 }
 
-// The parameters which control how the FMD parameters evolve over time.
-message FmdMetaParameters {
-  // A sliding window algorithm for updating the parameters.
-  message AlgorithmSlidingWindow {
-    // The window size, in terms of the number of update periods.
-    //
-    // The update period is 16 blocks, by default, but can change with governance.
-    uint32 window_update_periods = 1;
-    // The number of detections we aim to see per window.
-    uint32 targeted_detections_per_window = 2;
-  }
-
-  // How much time users have to transition to new parameters.
-  uint64 fmd_grace_period_blocks = 1;
-  // The algorithm governing how the parameters change.
-  oneof algorithm {
-    uint32 fixed_precision_bits = 2;
-    AlgorithmSlidingWindow sliding_window = 3;
-  }
-}
-
-// Used to potentially store state for the FMD Meta Parameters algorithm.
-message FmdMetaParametersAlgorithmState {
-  // The state used for the fixed algorithm.
-  message FixedState {}
-
-  // The state used for the sliding window algorithm.
-  message SlidingWindowState {
-    // The number of clues previously observed, approximately.
-    uint32 approximate_clue_count = 1;
-  }
-
-  oneof state {
-    FixedState fixed = 1;
-    SlidingWindowState sliding_window = 2;
-  }
-}
-
-// Parameters for Fuzzy Message Detection
-message FmdParameters {
+// Protocol-controlled precision for public note-discovery tags.
+message DiscoveryParameters {
   uint32 precision_bits = 1;
   uint64 as_of_block_height = 2;
+}
+
+// Public best-effort routing tag for an encrypted note.
+message DiscoveryTag {
+  uint32 precision_bits = 1;
+  fixed32 value = 2;
 }
 
 message Note {
@@ -103,6 +69,8 @@ message NotePayload {
   // An encryption of the newly created note.
   // 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
   NoteCiphertext encrypted_note = 3;
+  // Public best-effort routing metadata. It does not grant decryption capability.
+  DiscoveryTag discovery_tag = 4;
 }
 
 // A Shieldd ZK transfer proof.
@@ -200,6 +168,80 @@ message TransferPlan {
   repeated ShieldedInputPlan spends = 4;
   // The shielded output plans fused into this transfer.
   repeated ShieldedOutputPlan outputs = 5;
+  // Protocol precision used by all real and padded output discovery tags.
+  uint32 discovery_precision_bits = 6;
+}
+
+// Releases shielded value to a recipient on the host chain.
+message HostWithdrawal {
+  // The host-chain recipient.
+  string recipient = 1;
+  // The canonical Shieldd value to release.
+  asset.v1.Value value = 2;
+}
+
+// Withdraws shielded funds to the host chain while keeping shielded change in the same action.
+message ShieldedHostWithdrawal {
+  // The effecting data of the withdrawal.
+  ShieldedHostWithdrawalBody body = 1;
+  // The authorizing signatures for each consumed input.
+  repeated crypto.decaf377_rdsa.v1.SpendAuthSignature auth_sigs = 2;
+  // The proof that the withdrawal is well-formed.
+  ZKShieldedIcs20WithdrawalProof proof = 3;
+}
+
+message ShieldedHostWithdrawalBody {
+  // The proving family this action uses.
+  uint32 family_id = 1;
+  // The state commitment tree anchor used during proof generation.
+  crypto.tct.v1.MerkleRoot anchor = 2;
+  // A commitment to the net balance of the action.
+  asset.v1.BalanceCommitment balance_commitment = 3;
+  // The consumed notes.
+  repeated TransferInputBody inputs = 4;
+  // The embedded host-chain withdrawal payload.
+  HostWithdrawal withdrawal = 5;
+  // The sender-owned change note or sender-owned zero-value dummy.
+  ShieldedIcs20WithdrawalChangeBody change_output = 6;
+  // Target timestamp for compliance verification (Unix UTC seconds).
+  uint64 target_timestamp = 7;
+  // Compliance tree anchor (user tree root) used during proof generation.
+  crypto.tct.v1.StateCommitment compliance_anchor = 8;
+  // Asset tree anchor used during proof generation.
+  crypto.tct.v1.StateCommitment asset_anchor = 9;
+}
+
+message ShieldedHostWithdrawalView {
+  message Visible {
+    ShieldedHostWithdrawal withdrawal = 1;
+    repeated NoteView spent_notes = 2;
+    NoteView change_note = 3;
+    keys.v1.PayloadKey payload_key = 4;
+  }
+
+  message Opaque {
+    ShieldedHostWithdrawal withdrawal = 1;
+  }
+
+  oneof shielded_host_withdrawal_view {
+    Visible visible = 1;
+    Opaque opaque = 2;
+  }
+}
+
+message ShieldedHostWithdrawalPlan {
+  // The public body this plan will produce.
+  ShieldedHostWithdrawalBody body = 1;
+  // The blinding factor to use for the net balance commitment.
+  bytes value_blinding = 2;
+  // The net action balance committed by the action body.
+  asset.v1.Balance balance = 3;
+  // The shielded input plans fused into this withdrawal.
+  repeated ShieldedInputPlan spends = 4;
+  // The sender-owned change output, if any.
+  ShieldedOutputPlan change_output = 5;
+  // The embedded host-chain withdrawal payload.
+  HostWithdrawal withdrawal = 6;
 }
 
 message ShieldedIcs20WithdrawalChangeBody {
@@ -271,6 +313,8 @@ message ShieldedIcs20WithdrawalPlan {
   ShieldedOutputPlan change_output = 5;
   // The embedded outbound ICS-20 withdrawal payload.
   shieldd.core.component.ibc.v1.Ics20Withdrawal withdrawal = 6;
+  // Protocol precision used by the change or padded output discovery tag.
+  uint32 discovery_precision_bits = 7;
 }
 
 message NoteReshapeInputBody {
@@ -343,6 +387,8 @@ message NoteReshapePlan {
   repeated ShieldedOutputPlan outputs = 5;
   // The deployed proving family selected for this reshape.
   uint32 family_id = 6;
+  // Protocol precision used by all real and padded output discovery tags.
+  uint32 discovery_precision_bits = 7;
 }
 
 // ABCI Event recording a spent nullifier.
@@ -353,12 +399,6 @@ message EventNullifierSpent {
 // ABCI Event recording a created note commitment.
 message EventNoteCreated {
   crypto.tct.v1.StateCommitment note_commitment = 1;
-}
-
-// ABCI Event recording a clue.
-message EventBroadcastClue {
-  crypto.decaf377_fmd.v1.Clue clue = 1;
-  txhash.v1.TransactionId tx = 2;
 }
 
 message ShieldedInputPlan {
