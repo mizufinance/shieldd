@@ -79,11 +79,11 @@ class GateApplicabilityTests(unittest.TestCase):
         relevant, outside = GATE.cargo_closure_rules(
             self.root, source, "pull_request"
         )
-        # Proof aggregation is research/benchmark-only and must not inflate the
-        # production Orbis closure.
+        # The application now verifies aggregate proofs in its production
+        # transaction path, so Orbis must follow that dependency transitively.
         self.assertGreaterEqual(len(relevant.patterns) // 2, 39)
         self.assertIn("crates/core/app/**", relevant.patterns)
-        self.assertNotIn("crates/crypto/proof-aggregation/**", relevant.patterns)
+        self.assertIn("crates/crypto/proof-aggregation/**", relevant.patterns)
         self.assertEqual(relevant.tier, "full")
         self.assertEqual(outside.tier, "skip")
         self.assertIn("outside the declared closure", outside.reason)
@@ -478,12 +478,16 @@ class GateApplicabilityTests(unittest.TestCase):
 
         summary = workflow[workflow.index("  summary:") :]
         self.assertIn(
-            """if [[ "$SOUNDNESS_TIER" != full ]]; then
-              required+=("soundness-key-coherence=$KEY_COHERENCE")
-            fi""",
+            "KEY_COHERENCE: "
+            "${{ needs.soundness-key-coherence.result }}",
             summary,
         )
-        self.assertIn('"soundness-lean-circuit-fv=$LEAN"', summary)
+        self.assertIn("- soundness-key-coherence", summary)
+        self.assertIn("- soundness-lean-circuit-fv", summary)
+        self.assertIn(
+            "run: python3 scripts/ci/enforce_formal_result.py",
+            summary,
+        )
 
         full_case = run_case[run_case.index("            full)") :]
         full_case = full_case[: full_case.index("            *)")]
@@ -1066,6 +1070,10 @@ class GateApplicabilityTests(unittest.TestCase):
         for path in (
             "tools/gnark/lean/ShielddGnarkFormal/StructuredLC.lean",
             "scripts/gen-note-reshape-family-artifacts.py",
+            "scripts/check-circuit-fv.sh",
+            "scripts/fv_specification_completeness.py",
+            "scripts/lib/soundness-symbol-cell.sh",
+            "scripts/tests/test_wiring_certificates.py",
             "scripts/fixtures/fv-census/signed-coefficients.sr1cs",
         ):
             with self.subTest(path=path):
@@ -1076,6 +1084,24 @@ class GateApplicabilityTests(unittest.TestCase):
                     [],
                 )
                 self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
+                self.assertFalse(decision.unknown_files)
+
+    def test_shared_strict_json_helper_selects_snarkpack_static_gate(self) -> None:
+        for path in (
+            "scripts/fv_strict_json.py",
+            "scripts/tests/test_fv_strict_json.py",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.snarkpack,
+                    "pull_request",
+                    [path],
+                    [],
+                )
+                self.assertEqual(
+                    (decision.status, decision.tier),
+                    ("run", "static"),
+                )
                 self.assertFalse(decision.unknown_files)
 
     def test_retired_snarkpack_controls_remain_classified(self) -> None:
@@ -1440,7 +1466,7 @@ class GateApplicabilityTests(unittest.TestCase):
             {
                 "soundness-gate",
                 "soundness-seam-and-pin",
-                "soundness-vk-derivation",
+                "soundness-key-coherence",
                 "soundness-alloy",
                 "soundness-lean-circuit-fv",
             },

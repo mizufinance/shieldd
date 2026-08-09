@@ -63,7 +63,8 @@ runs:
           echo "TCT visualizer package-lock.json was not found" >&2
           exit 1
         fi
-        npm ci --ignore-scripts --no-audit --no-fund --prefix "$asset_root"
+        npm ci --ignore-scripts --no-audit --no-bin-links --no-fund \
+          --prefix "$asset_root"
 
     - name: Load rust cache
       if: inputs.rust-cache == 'true' && inputs.rust-cache-prefix == ''
