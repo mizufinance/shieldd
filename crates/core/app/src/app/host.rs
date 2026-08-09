@@ -288,7 +288,8 @@ impl HostExecution {
             self.phase
         );
 
-        let tx = match Transaction::decode(tx_bytes).context("decoding host transaction") {
+        let tx = match Transaction::decode_canonical(tx_bytes).context("decoding host transaction")
+        {
             Ok(tx) => tx,
             Err(error) => return Ok(HostTxResponse::rejected(error)),
         };

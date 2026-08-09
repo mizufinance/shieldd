@@ -113,7 +113,7 @@ impl ActionHandler for ShieldedHostWithdrawal {
 
     async fn check_stateless(&self, context: TransactionContext) -> Result<()> {
         let item = shielded_host_withdrawal_check_stateless_and_extract(self, &context)?;
-        batch::batch_verify(
+        batch::verify_each(
             self.body.family_id.proof_verification_key(),
             std::slice::from_ref(&item),
         )

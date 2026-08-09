@@ -220,11 +220,6 @@ PROOF_ACCEPTANCE_TEST_PATH = (
 PROOF_ACCEPTANCE_REQUIRED_RECEIPTED_TESTS = (
     (
         "crates/core/app/src/app/mod.rs",
-        "artifact_extraction_cannot_bypass_action_stateless_checks",
-        "artifact extraction fail-closed evidence",
-    ),
-    (
-        "crates/core/app/src/app/mod.rs",
         "proposal_tx_count_policy_is_fixed_at_boundary",
         "proposal count-bound evidence",
     ),
@@ -464,6 +459,8 @@ RUST_TEST_PACKAGES = (
     ),
     ("crates/bin/pd/src/network/", "pd", "lib"),
     ("crates/bin/pd/", "pd", "bin:pd"),
+    ("crates/bin/shieldd/src/main.rs", "shieldd", "bin:shieldd"),
+    ("crates/bin/shieldd/src/", "shieldd", "lib"),
     ("crates/bin/shieldd/", "shieldd", "bin:shieldd"),
     ("crates/core/app/", "shieldd-sdk-app", "lib"),
     (
@@ -536,7 +533,7 @@ REQUIRED_TEST_KINDS: dict[str, frozenset[str]] = {
     ),
 }
 PREDICATE_SEMANTICS_SHA256 = (
-    "a525cf0ac4db7eedcedbf7e3811cb88eab651bc571af8069ec7595a40630fa9d"
+    "b64c74604bb04b36b12b6cd3d15f3c071517a7e31ec67067c96bacec38866b26"
 )
 PROPERTY_CONTRACT_SHA256 = (
     "78176f439345c0586a827f17d17961fc8bc7e3b120a3f42c7e19ad01c70c79da"
@@ -545,20 +542,20 @@ CONSEQUENCE_ROSTER_SHA256 = (
     "bca934c0054a7f5507991547996aea969504f2c5e1d73046cd3effb9571dc597"
 )
 PROOF_ACCEPTANCE_SURFACE_SHA256 = (
-    "074e5857d290fca1752c46df355551799d0581b042dd51445f3ac7dbe2448e47"
+    "47fa678515e0d244a318086e0a4a031cc67f1d3d3bc559ce290ee0b6c0d198be"
 )
 # Update only after independently reviewing every runtime-policy statement,
 # parameter, sink, test, and exact execution selector.
 RUNTIME_POLICY_CONTRACT_SHA256 = (
-    "67bdd0f125fb800a820b137e29f261ce13f08107632a27e5578627c986b9ae1f"
+    "c427df1eb36790374898f854cae5027fea4759b1ae1e4ac2f3f75acfc2cb20e8"
 )
 # Update these only after independently reviewing every owner, source file,
 # runnable selector, kind, and execution command in the corresponding ledger.
 PROPERTY_TEST_CONTRACT_SHA256 = (
-    "49e3b283c9c06c23f46916d83a053fc487046bbd9d9c1d76443e4abf3b29f8ca"
+    "a01ec1207b199bef319ca9b1c7f2067e5516ee0044434fe7a4b87ec36420a355"
 )
 ARTIFACT_TEST_CONTRACT_SHA256 = (
-    "6a5f3639f5d5c59ef44515047a8200dbf7ae63d916c1ebf713391814739cea61"
+    "2ce903b58f534957e0c42af73c8da750ee15d74235f616d95bfdb3c6e7389cd2"
 )
 REVIEWED_TEST_EXCLUSION_REASONS = frozenset(
     {
@@ -609,13 +606,16 @@ REVIEWED_TEST_SOURCE_CENSUS = (
     "crates/bin/pcli/tests/testnet.rs",
     "crates/bin/pd/src/network/generate.rs",
     "crates/bin/pd/src/network/join.rs",
-    "crates/bin/shieldd/src/execution_client.rs",
+    "crates/bin/shieldd/src/ffi.rs",
+    "crates/bin/shieldd/src/grpc.rs",
+    "crates/bin/shieldd/src/service.rs",
     "crates/core/app-tests/tests/ics23_transfer.rs",
     "crates/core/app/src/action_handler/transaction.rs",
     "crates/core/app/src/action_handler/transaction/stateless.rs",
     "crates/core/app/src/app/host.rs",
     "crates/core/app/src/app/mod.rs",
     "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
+    "crates/core/app/src/server/consensus.rs",
     "crates/core/app/src/server/mempool.rs",
     "crates/core/app/src/stateless_cache.rs",
     "crates/core/component/compliance/src/decode_object.rs",
@@ -789,7 +789,7 @@ REVIEWED_TEST_SOURCE_CENSUS = (
 # This pins every path/symbol/reason triple rendered in reviewed_test_census.
 # Update only after deciding whether each changed test is normative evidence.
 REVIEWED_TEST_EXCLUSIONS_SHA256 = (
-    "0c9807f0007b0d3a2eeedaa34ec0c558941b3f784ab01b001d96d7febcf9575a"
+    "cef1029b7020f594c98e5f301d86237befc8673440b0134d6c54cc07f5f88e53"
 )
 PROPERTY_TEST_SOURCE_CENSUS = (
     "crates/core/component/compliance/src/structs.rs",
@@ -866,9 +866,9 @@ ARTIFACT_TEST_SOURCE_CENSUS = (
 PROPERTY_TEST_CONTRACT_BASELINE = {
     "FIXED-ARITY-PRIVACY": tuple(
         """
-        PROPERTY-DETECTION-DATA-INCLUDES-DUMMY-CLUES-FOR-TRANSFER-FAMILY-SHAPE
+        PROPERTY-DISCOVERY-PRECISION-PROPAGATES-TO-TRANSFER-FAMILY
         PROPERTY-NOTE-RESHAPE-PUBLIC-ENCODINGS-HAVE-NO-DUMMY-FLAGS-AFTER-REDESIGN
-        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-COUNTS-CHANGE-OUTPUT-FOR-DESTINATIONS-AND-CLUES
+        PROPERTY-SHIELDED-ICS20-WITHDRAWAL-COUNTS-CHANGE-OUTPUT-FOR-DISCOVERY
         PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITHOUT-EXPLICIT-CHANGE-STILL-COUNTS-HIDDEN-CHANGE-NOTE
         """.split()
     ),
@@ -1180,12 +1180,14 @@ RUNTIME_POLICY_BASELINE = {
     },
     "RUNTIME-POLICY-EXACT-PROOF-CAPABILITIES": {
         "parameters": {
-            "deployed_proof_keys": 6,
+            "aggregate_statement_binding": 1,
+            "deployed_proof_keys": 4,
             "fee_funding_slot_binding": 1,
             "fee_funding_state_persistence": 1,
-            "process_cache_reverification": 1,
-            "production_aggregate_transport": 0,
+            "process_unprepared_aggregate_verification": 1,
+            "production_aggregate_transport": 1,
             "proof_slot_binding": 1,
+            "same_height_exact_prepared_reuse": 1,
         },
         "sinks": [
             "check_tx",
@@ -1194,6 +1196,15 @@ RUNTIME_POLICY_BASELINE = {
             "verified_execution",
         ],
         "test_ids": [
+            "RUNTIME-AGGREGATE-BAD-SRS-REJECTION",
+            "RUNTIME-AGGREGATE-HEADER-REJECTION",
+            "RUNTIME-AGGREGATE-INCOMPLETE-SEGMENT-COVERAGE",
+            "RUNTIME-AGGREGATE-JOIN-FAIL-CLOSED",
+            "RUNTIME-AGGREGATE-PLAN-COUNT-ORDER",
+            "RUNTIME-AGGREGATE-REDUCER-FAIL-CLOSED",
+            "RUNTIME-AGGREGATE-SEGMENT-ORDER",
+            "RUNTIME-AGGREGATE-SHIPPING-INPUT-BINDING",
+            "RUNTIME-AGGREGATE-TX-SHAPE",
             "RUNTIME-CACHE-CAPABILITY-BINDING",
             "RUNTIME-CACHE-RAW-ARTIFACT-BINDING",
             "RUNTIME-CAPABILITY-COMPACT-RETENTION",
@@ -1203,6 +1214,7 @@ RUNTIME_POLICY_BASELINE = {
             "RUNTIME-DEPLOYED-WITHDRAWAL-PROOF-KEY-MAPPING",
             "RUNTIME-FEE-FUNDING-PROOF-SLOT-PERSISTENCE",
             "RUNTIME-FEE-FUNDING-PROOF-SLOT-REJECTION",
+            "RUNTIME-PREPARED-PROPOSAL-EXACT-REUSE",
             "RUNTIME-PROCESS-INDEPENDENT-REVERIFICATION",
             "RUNTIME-RAW-NOTE-RESHAPE-CAPABILITY-GATE",
             "RUNTIME-RAW-TRANSFER-CAPABILITY-GATE",
@@ -1216,17 +1228,22 @@ RUNTIME_POLICY_BASELINE = {
     },
     "RUNTIME-POLICY-PROOF-ACCEPTANCE-FRONTDOORS": {
         "parameters": {
+            "ffi_frontdoors": 2,
             "grpc_frontdoors": 2,
             "host_frontdoors": 2,
             "static_sink_census_required": 1,
         },
         "sinks": [
+            "ffi_check_tx",
+            "ffi_deliver_tx",
             "grpc_check_tx",
             "grpc_deliver_tx",
             "host_check_tx",
             "host_deliver_tx",
         ],
         "test_ids": [
+            "RUNTIME-FFI-CHECKTX-PROOF-FRONTDOOR",
+            "RUNTIME-FFI-DELIVERTX-PROOF-FRONTDOOR",
             "RUNTIME-GRPC-CHECKTX-PROOF-FRONTDOOR",
             "RUNTIME-GRPC-DELIVERTX-PROOF-FRONTDOOR",
             "RUNTIME-HOST-CHECKTX-PROOF-FRONTDOOR",
@@ -1235,9 +1252,10 @@ RUNTIME_POLICY_BASELINE = {
     },
     "RUNTIME-POLICY-PROOF-WORKER-CONCURRENCY": {
         "parameters": {
-            "max_chunks_per_key": 8,
-            "max_concurrent_keys": 6,
-            "single_chunk_threshold_items": 512,
+            "max_aggregate_segment_workers": 2,
+            "max_aggregate_verify_workers": 4,
+            "max_exact_family_workers": 4,
+            "max_nested_aggregate_build_workers": 8,
         },
         "sinks": [
             "check_tx",
@@ -1328,18 +1346,27 @@ EXPECTED_NONPRODUCTION_FUNCTIONS = frozenset(
     {
         "batch_verify_artifacts_for_bench",
         "batch_verify_tx_artifact_for_bench",
-        "batch_verify_tx_artifacts_for_bench_stage",
-        "batch_verify_proof_keys",
         "benchmark_block_context",
+        "benchmark_zero_timestamp_allowed",
         "begin_block_request_from_context",
+        "build_aggregate_bundle_tx_for_snapshot_public",
+        "build_candidate_envelope_for_bench_profiled_public",
+        "build_exact_segmented_aggregate_bundle_for_artifacts_profiled_public",
+        "build_exact_segmented_family_aggregates_for_artifacts",
+        "build_segmented_aggregate_bundle_for_artifacts_profiled_public",
+        "build_segmented_aggregate_bundle_for_artifacts_public",
         "build_tx_artifacts_extracted_for_stage_public",
+        "build_tx_artifacts_extracted_profiled",
         "build_tx_artifacts_extracted_profiled_public",
-        "empty_proof_items",
-        "execute_block_profiled",
-        "merge_artifact_proof_items",
-        "prepare_proposal_v2_profiled_allow_oversized_for_bench",
-        "process_proposal_v2_profiled_allow_oversized_for_bench",
-        "verify_batch_family_chunks",
+        "candidate_envelope_from_prepared_proposal_public",
+        "deliver_tx_bytes_v2_extracted_profiled_for_bench",
+        "execute_validated_candidate_envelope_profiled",
+        "extract_spend_nullifiers_from_proto",
+        "process_candidate_envelope_profiled",
+        "process_proposal_request_from_envelope",
+        "validate_candidate_envelope_profiled",
+        "verify_aggregate_bundle_for_artifacts_public",
+        "verify_aggregate_bundle_for_artifacts_raw_public",
     }
 )
 EXPECTED_APP_BENCHMARK_CFG_BLOCK_OWNERS = Counter(
@@ -1353,6 +1380,7 @@ EXPECTED_HOST_EXECUTION_PUBLIC_METHODS = frozenset(
         "begin_block",
         "check_tx",
         "commit",
+        "committed_state",
         "deliver_tx",
         "deposit",
         "end_block",
@@ -1360,8 +1388,26 @@ EXPECTED_HOST_EXECUTION_PUBLIC_METHODS = frozenset(
         "init_genesis",
         "new",
         "phase",
+        "release",
         "rollback",
         "with_cache",
+    }
+)
+EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS = frozenset(
+    {
+        "begin_block",
+        "check_tx",
+        "close",
+        "commit",
+        "deliver_tx",
+        "deposit",
+        "end_block",
+        "export_genesis",
+        "get_committed_state",
+        "init_genesis",
+        "new",
+        "open",
+        "rollback",
     }
 )
 EXPECTED_GRPC_EXECUTION_METHODS = Counter(
@@ -1373,6 +1419,7 @@ EXPECTED_GRPC_EXECUTION_METHODS = Counter(
         "deposit": 1,
         "end_block": 1,
         "export_genesis": 1,
+        "get_committed_state": 1,
         "init_genesis": 1,
         "rollback": 1,
     }
@@ -1385,6 +1432,7 @@ EXPECTED_GRPC_PROTO_METHODS = (
     "Deposit",
     "EndBlock",
     "ExportGenesis",
+    "GetCommittedState",
     "InitGenesis",
     "Rollback",
 )
@@ -1400,6 +1448,7 @@ EXPECTED_CONSENSUS_METHODS = Counter(
         "new_with_cache": 1,
         "prepare_proposal": 1,
         "process_proposal": 1,
+        "proposal_digest": 1,
         "record_block_tx_count": 1,
         "record_phase_duration": 1,
         "run": 1,
@@ -1415,7 +1464,6 @@ EXPECTED_MEMPOOL_METHODS = Counter(
 )
 EXPECTED_LEGACY_BATCH_VERIFY_PATHS = frozenset(
     {
-        "crates/core/app/src/app/mod.rs",
         "crates/crypto/proof-aggregation/src/backend.rs",
         "crates/core/component/shielded-pool/src/test_proof_helpers.rs",
         "crates/core/component/shielded-pool/src/transfer/proof.rs",
@@ -2853,6 +2901,10 @@ ACTION_AUTHORIZATION_MODEL = {
         "ValidatorDefinition": "ValidatorDefinition",
         "ValidatorVote": "ValidatorVote",
     },
+    "non_plan_actions": (
+        "AggregateBundle",
+        "ShieldedHostWithdrawal",
+    ),
     "spend_bearing_action_plans": (
         "NoteReshape",
         "ShieldedIcs20Withdrawal",
@@ -3075,6 +3127,7 @@ ACTION_AUTHORIZATION_MODEL = {
     "classes": {
         "circuit_and_envelope_authorized": (
             "NoteReshape",
+            "ShieldedHostWithdrawal",
             "ShieldedIcs20Withdrawal",
             "Transfer",
         ),
@@ -3085,6 +3138,7 @@ ACTION_AUTHORIZATION_MODEL = {
             "ValidatorDefinition",
             "ValidatorVote",
         ),
+        "internal_consensus_only": ("AggregateBundle",),
         "permissionless_protocol_authorized": ("IbcRelay",),
     },
     "direct_actions": (
@@ -5530,15 +5584,37 @@ def validate_native_census(
                     f"{predicate_id}: R1CS negative test",
                 )
                 test_body = test_function["body"]
-                if re.search(
+                mentions_enforcement_directly = re.search(
+                    rf"\b{re.escape(source_symbol)}\s*\(",
+                    test_body,
+                ) is not None
+                invokes_enforcement_directly = re.search(
                     rf"\b{re.escape(source_symbol)}\s*\([^;]*\)"
                     r"\s*\.expect\s*\(",
                     test_body,
-                ) is None:
+                ) is not None
+                allocates_through_enforced_type = re.search(
+                    rf"\b{re.escape(native_type)}\s*::\s*new_witness\s*\([^;]*\)"
+                    r"\s*\.expect\s*\(",
+                    test_body,
+                ) is not None
+                if (
+                    mentions_enforcement_directly
+                    and not invokes_enforcement_directly
+                ):
                     reject(
                         f"{predicate_id}: R1CS negative test must directly "
                         "invoke the named enforcement function and require "
                         "successful synthesis"
+                    )
+                if (
+                    not mentions_enforcement_directly
+                    and not allocates_through_enforced_type
+                ):
+                    reject(
+                        f"{predicate_id}: R1CS negative test must invoke the "
+                        "named enforcement function directly or allocate the "
+                        "enforced native type and require successful synthesis"
                     )
                 if re.search(r"\bnew_witness\s*\(", test_body) is None:
                     reject(
@@ -8204,15 +8280,6 @@ def _validate_host_execution_frontdoors(root: Path) -> None:
             1,
             label,
         )
-        _require_ordered_symbols(
-            function,
-            (
-                ".deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))",
-                "Ok(events) => HostTxResponse::accepted(events)",
-                "Err(error) => HostTxResponse::rejected(error)",
-            ),
-            label,
-        )
     _require_ordered_symbols(
         check_tx,
         (
@@ -8220,6 +8287,8 @@ def _validate_host_execution_frontdoors(root: Path) -> None:
             "let mut app = App::new(self.storage.latest_snapshot())",
             "BlockTxIndexingMode::NoIndex",
             ".deliver_tx_bytes(",
+            "Ok(events) => HostTxResponse::accepted(events, Vec::new())",
+            "Err(error) => HostTxResponse::rejected(error)",
         ),
         "HostExecution CheckTx state isolation",
     )
@@ -8227,9 +8296,13 @@ def _validate_host_execution_frontdoors(root: Path) -> None:
         deliver_tx,
         (
             "self.phase == HostExecutionPhase::InBlock",
+            "Transaction::decode_canonical(tx_bytes)",
+            "self.resolve_host_withdrawals(&tx).await",
             ".deliver_tx_bytes(",
+            "Ok(events) => HostTxResponse::accepted(events, withdrawals)",
+            "Err(error) => HostTxResponse::rejected(error)",
         ),
-        "HostExecution DeliverTx phase guard",
+        "HostExecution DeliverTx proof and withdrawal ordering",
     )
 
     all_functions = _rust_function_declarations(source)
@@ -8254,7 +8327,7 @@ def _validate_host_execution_frontdoors(root: Path) -> None:
 
 
 def _validate_grpc_execution_frontdoors(root: Path) -> None:
-    relative = "crates/bin/shieldd/src/execution_client.rs"
+    relative = "crates/bin/shieldd/src/grpc.rs"
     source = _read_acceptance_source(
         root,
         relative,
@@ -8277,9 +8350,9 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
             f"extra={list((method_roster-EXPECTED_GRPC_EXECUTION_METHODS).elements())}"
         )
 
-    for name, request_type, response_helper in (
-        ("check_tx", "CheckTxRequest", "check_tx_response"),
-        ("deliver_tx", "DeliverTxRequest", "deliver_tx_response"),
+    for name, request_type, lock_method in (
+        ("check_tx", "CheckTxRequest", "read"),
+        ("deliver_tx", "DeliverTxRequest", "write"),
     ):
         function = _one_rust_function(
             functions,
@@ -8288,37 +8361,24 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
         )
         if f"Request<{request_type}>" not in function["header"]:
             reject(f"gRPC {name} request type drifted")
-        _require_exact_method_call_multiset(
-            function,
-            "inner",
-            (name,),
-            ((name, "&request.into_inner().tx"),),
-            f"gRPC {name} HostExecution delegation",
-        )
         _require_ordered_symbols(
             function,
             (
-                "self.inner.lock().await",
-                f".{name}(&request.into_inner().tx)",
+                "self.service",
+                f".{lock_method}()",
                 ".await",
-                ".map_err(failed_precondition)",
-                f"{response_helper}(response).map_err(internal)",
+                f".{name}(request.into_inner())",
+                ".await",
+                ".map(Response::new)",
+                ".map_err(status)",
             ),
-            f"gRPC {name} response propagation",
-        )
-
-    all_functions = _rust_function_declarations(source)
-    for helper_name in ("check_tx_response", "deliver_tx_response"):
-        helper = _one_rust_function(
-            all_functions,
-            helper_name,
-            "gRPC transaction response conversion",
+            f"gRPC {name} ExecutionService delegation",
         )
         _require_occurrence_count(
-            helper["body"],
-            "code: response.code",
+            function["body"],
+            f".{name}(request.into_inner())",
             1,
-            "gRPC transaction response conversion",
+            f"gRPC {name} ExecutionService delegation",
         )
     require_runnable_test_declaration(
         canonical_repo_path(root, relative, "gRPC CheckTx evidence"),
@@ -8339,8 +8399,8 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
     constructor_functions = _rust_function_declarations(constructor_impl)
     if Counter(
         function["name"] for function in constructor_functions
-    ) != Counter({"new": 1}):
-        reject("gRPC execution-client constructor API census drifted")
+    ) != Counter({"new": 1, "close": 1}):
+        reject("gRPC execution-client lifecycle API census drifted")
     constructor = _one_rust_function(
         constructor_functions,
         "new",
@@ -8349,9 +8409,190 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
     _require_ordered_symbols(
         constructor,
         (
-            "inner: Mutex::new(HostExecution::new(storage))",
+            "service: Arc::new(RwLock::new(service))",
         ),
-        "gRPC execution-client HostExecution wiring",
+        "gRPC execution-client service wiring",
+    )
+    close = _one_rust_function(
+        constructor_functions,
+        "close",
+        "gRPC execution-client shutdown",
+    )
+    _require_ordered_symbols(
+        close,
+        ("self.service.write().await.close().await",),
+        "gRPC execution-client shutdown",
+    )
+
+    service_relative = "crates/bin/shieldd/src/service.rs"
+    service_source = _read_acceptance_source(
+        root,
+        service_relative,
+        "execution service proof frontdoor",
+    )
+    execution_impl = _balanced_rust_declaration_block(
+        service_source,
+        r"^[ \t]*impl[ \t]+ExecutionService\b",
+        "ExecutionService implementation",
+    )
+    execution_functions = _rust_function_declarations(execution_impl)
+    execution_public = {
+        function["name"]
+        for function in execution_functions
+        if function["visibility"] == "pub"
+    }
+    if execution_public != EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS:
+        reject(
+            "ExecutionService public method census drifted: "
+            f"missing={sorted(EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS-execution_public)}, "
+            f"extra={sorted(execution_public-EXPECTED_EXECUTION_SERVICE_PUBLIC_METHODS)}"
+        )
+    for name, request_type, execution_accessor, response_helper in (
+        ("check_tx", "CheckTxRequest", "as_ref", "check_tx_response"),
+        ("deliver_tx", "DeliverTxRequest", "as_mut", "deliver_tx_response"),
+    ):
+        function = _one_rust_function(
+            execution_functions,
+            name,
+            f"ExecutionService {name} proof frontdoor",
+        )
+        if f"request: {request_type}" not in function["header"]:
+            reject(f"ExecutionService {name} request type drifted")
+        _require_ordered_symbols(
+            function,
+            (
+                f"self.execution.{execution_accessor}().ok_or_else(ServiceError::closed)?",
+                f".{name}(&request.tx)",
+                ".await",
+                ".map_err(ServiceError::failed_precondition)?",
+                f"{response_helper}(response).map_err(ServiceError::internal)",
+            ),
+            f"ExecutionService {name} HostExecution delegation",
+        )
+    service_functions = _rust_function_declarations(service_source)
+    check_response = _one_rust_function(
+        service_functions,
+        "check_tx_response",
+        "ExecutionService CheckTx response conversion",
+    )
+    deliver_response = _one_rust_function(
+        service_functions,
+        "deliver_tx_response",
+        "ExecutionService DeliverTx response conversion",
+    )
+    for helper, label in (
+        (check_response, "ExecutionService CheckTx response conversion"),
+        (deliver_response, "ExecutionService DeliverTx response conversion"),
+    ):
+        _require_occurrence_count(helper["body"], "code: response.code", 1, label)
+    _require_occurrence_count(
+        deliver_response["body"],
+        "withdrawals: encode_withdrawals(response.withdrawals)",
+        1,
+        "ExecutionService DeliverTx withdrawal propagation",
+    )
+    service_open = _one_rust_function(
+        execution_functions,
+        "open",
+        "ExecutionService storage readiness",
+    )
+    _require_ordered_symbols(
+        service_open,
+        (
+            "Storage::load(",
+            "App::is_ready(storage.latest_snapshot()).await",
+            "storage.release().await",
+            "return Err(ServiceError::failed_precondition(",
+            "Ok(Self::new(storage))",
+        ),
+        "ExecutionService storage readiness",
+    )
+
+    ffi_relative = "crates/bin/shieldd/src/ffi.rs"
+    ffi_source = _read_acceptance_source(
+        root,
+        ffi_relative,
+        "FFI execution-service proof frontdoor",
+    )
+    expected_ffi_methods = {
+        "METHOD_INIT_GENESIS": 1,
+        "METHOD_BEGIN_BLOCK": 2,
+        "METHOD_DEPOSIT": 3,
+        "METHOD_CHECK_TX": 4,
+        "METHOD_DELIVER_TX": 5,
+        "METHOD_END_BLOCK": 6,
+        "METHOD_COMMIT": 7,
+        "METHOD_ROLLBACK": 8,
+        "METHOD_EXPORT_GENESIS": 9,
+        "METHOD_GET_COMMITTED_STATE": 10,
+    }
+    ffi_methods = {
+        name: int(value)
+        for name, value in re.findall(
+            r"(?m)^const[ \t]+(METHOD_[A-Z_]+):[ \t]+u32[ \t]*=[ \t]*(\d+);",
+            ffi_source,
+        )
+    }
+    if ffi_methods != expected_ffi_methods:
+        reject(
+            "FFI execution method roster drifted: "
+            f"expected={expected_ffi_methods}, actual={ffi_methods}"
+        )
+    ffi_functions = _rust_function_declarations(ffi_source)
+    ffi_dispatch = _one_rust_function(
+        ffi_functions,
+        "dispatch",
+        "FFI execution-service dispatch",
+    )
+    for constant, method in (
+        ("METHOD_INIT_GENESIS", "init_genesis"),
+        ("METHOD_BEGIN_BLOCK", "begin_block"),
+        ("METHOD_DEPOSIT", "deposit"),
+        ("METHOD_CHECK_TX", "check_tx"),
+        ("METHOD_DELIVER_TX", "deliver_tx"),
+        ("METHOD_END_BLOCK", "end_block"),
+        ("METHOD_COMMIT", "commit"),
+        ("METHOD_GET_COMMITTED_STATE", "get_committed_state"),
+        ("METHOD_ROLLBACK", "rollback"),
+        ("METHOD_EXPORT_GENESIS", "export_genesis"),
+    ):
+        _require_ordered_symbols(
+            ffi_dispatch,
+            (
+                f"{constant} => service",
+                f".{method}(decode(request)?)",
+                ".await",
+                ".map(|response| response.encode_to_vec())",
+                ".map_err(FfiError::service)",
+            ),
+            f"FFI {method} ExecutionService delegation",
+        )
+    shieldd_call = {
+        "name": "shieldd_call",
+        "body": _balanced_rust_declaration_block(
+            ffi_source,
+            r"(?m)^pub[ \t]+extern[ \t]+fn[ \t]+shieldd_call\b",
+            "FFI shared-service boundary",
+        ),
+    }
+    _require_ordered_symbols(
+        shieldd_call,
+        (
+            "handle.runtime.block_on(async",
+            "handle.service.lock().await",
+            "dispatch(&mut service, method, request).await",
+        ),
+        "FFI shared-service boundary",
+    )
+    require_runnable_test_declaration(
+        canonical_repo_path(root, ffi_relative, "FFI CheckTx evidence"),
+        "ffi_execution_check_tx_rejects_invalid_transaction",
+        "FFI CheckTx evidence",
+    )
+    require_runnable_test_declaration(
+        canonical_repo_path(root, ffi_relative, "FFI DeliverTx evidence"),
+        "ffi_execution_deliver_tx_rejects_invalid_transaction",
+        "FFI DeliverTx evidence",
     )
 
     proto_relative = (
@@ -8424,12 +8665,13 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
     _require_ordered_symbols(
         start,
         (
-            "Storage::load",
-            "App::is_ready(storage.latest_snapshot()).await",
+            "ExecutionService::open(&db).await",
+            "GrpcExecutionClient::new(service)",
             "Server::builder()",
-            ".add_service(ExecutionClientServiceServer::new(GrpcExecutionClient::new(",
-            "storage",
-            ".serve(bind)",
+            ".add_service(ExecutionClientServiceServer::new(grpc.clone()))",
+            ".serve_with_shutdown(bind, shutdown_signal())",
+            "grpc",
+            ".close()",
         ),
         "shieldd gRPC server registration",
     )
@@ -8437,7 +8679,8 @@ def _validate_grpc_execution_frontdoors(root: Path) -> None:
         "ExecutionClientServiceServer::new(",
         "GrpcExecutionClient::new(",
         ".add_service(",
-        ".serve(bind)",
+        ".serve_with_shutdown(",
+        ".close()",
     ):
         _require_occurrence_count(
             start["body"],
@@ -8458,6 +8701,12 @@ def _validate_abci_server_wiring(root: Path) -> None:
         root,
         server_relative,
         "deployed ABCI server wiring",
+    )
+    _require_occurrence_count(
+        server_source,
+        '#[cfg(any(test, feature = "benchmark-helpers"))]\nmod diagnostics;',
+        1,
+        "ABCI diagnostic cfg boundary",
     )
     server_new = _one_rust_function(
         _rust_function_declarations(server_source),
@@ -8600,7 +8849,7 @@ def _validate_abci_server_wiring(root: Path) -> None:
             "prepare_proposal_v2_profiled",
             (
                 ".prepare_proposal_v2_profiled("
-                "proposal, Some(self.stateless_cache.as_ref()))"
+                "proposal, Some(self.stateless_cache.as_ref()), false)"
             ),
         ),
         (
@@ -8608,7 +8857,7 @@ def _validate_abci_server_wiring(root: Path) -> None:
             "process_proposal_v2_profiled",
             (
                 ".process_proposal_v2_profiled("
-                "proposal, Some(self.stateless_cache.as_ref()))"
+                "proposal, Some(self.stateless_cache.as_ref()), None, false,)"
             ),
         ),
         (
@@ -8632,11 +8881,64 @@ def _validate_abci_server_wiring(root: Path) -> None:
             1,
             f"ABCI Consensus {handler_name} canonical App call",
         )
-        if exact_call not in _normalize_rust_fragment(handler["body"]):
+        if re.sub(r"\s+", "", exact_call) not in re.sub(
+            r"\s+", "", _normalize_rust_fragment(handler["body"])
+        ):
             reject(
                 f"ABCI Consensus {handler_name} does not pass the shared "
                 "cache to the canonical App call"
             )
+    new_inner = _one_rust_function(
+        consensus_functions,
+        "new_inner",
+        "ABCI ProcessProposal diagnostic cfg boundary",
+    )
+    _require_ordered_symbols(
+        new_inner,
+        (
+            "#[cfg(any(test, feature =",
+            "super::diagnostics::force_process_proposal_profile()",
+            "#[cfg(not(any(test, feature =",
+            "let force_process_proposal_profile = false",
+        ),
+        "ABCI ProcessProposal diagnostic cfg boundary",
+    )
+    process_proposal = _one_rust_function(
+        consensus_functions,
+        "process_proposal",
+        "ABCI ProcessProposal prepared-proposal reuse",
+    )
+    _require_ordered_symbols(
+        _one_rust_function(
+            _rust_function_declarations(consensus_source),
+            "can_reuse_prepared_proposal",
+            "ABCI prepared-proposal reuse predicate",
+        ),
+        (
+            "prepared_height == Some(proposal_height)",
+            "prepared_digests.contains(proposal_digest)",
+            "!force_profile",
+        ),
+        "ABCI prepared-proposal reuse predicate",
+    )
+    _require_ordered_symbols(
+        process_proposal,
+        (
+            "let proposal_digest = Self::proposal_digest(&proposal.txs)",
+            "can_reuse_prepared_proposal(",
+            "self.prepared_proposal_height",
+            "&self.prepared_proposal_digests",
+            "&proposal_digest",
+            "self.force_process_proposal_profile",
+            "return Ok(response::ProcessProposal::Accept)",
+            "App::new(self.storage.latest_snapshot())",
+            ".process_proposal_v2_profiled(",
+            "Some(self.stateless_cache.as_ref())",
+            "None",
+            "false",
+        ),
+        "ABCI ProcessProposal prepared-proposal reuse",
+    )
     deliver_tx = _one_rust_function(
         consensus_functions,
         "deliver_tx",
@@ -8769,11 +9071,20 @@ def _reject_consensus_diagnostic_io(
             r"\bself\s+as\s+[A-Za-z_][A-Za-z0-9_]*"
         ),
         "file constructor": r"\b(?:File|OpenOptions)::",
-        "aggregate debug switch": r"\bSHIELDD_[A-Z0-9_]*AGGREGATE[A-Z0-9_]*\b",
-        "aggregate debug path": r"\baggregate_(?:debug|dump|trace)[A-Za-z0-9_]*\b",
     }
     for relative, source in sources:
         scrubbed = _without_source_comments(source)
+        production = list(scrubbed)
+        for start, end, expressions in _rust_cfg_scope_ranges(
+            _without_source_comments(source, mask_literals=False),
+            scrubbed,
+        ):
+            if any(
+                re.search(r"\btest\b|\bfeature\s*=\s*\"benchmark-helpers\"", expression)
+                for expression in expressions
+            ):
+                production[start:end] = " " * (end - start)
+        scrubbed = "".join(production)
         for kind, pattern in forbidden_patterns.items():
             if re.search(pattern, scrubbed, re.IGNORECASE):
                 reject(
@@ -9020,13 +9331,15 @@ def _validate_action_plan_construction_model(
             f"stale={sorted(set(mapping)-action_plan_variants)}"
         )
     mapped_actions = list(mapping.values())
+    non_plan_actions = set(model["non_plan_actions"])
     if (
-        set(mapped_actions) != action_variants
+        set(mapped_actions) != action_variants - non_plan_actions
         or len(mapped_actions) != len(set(mapped_actions))
+        or not non_plan_actions <= action_variants
     ):
         reject(
             "transaction ActionPlan-to-Action authorization mapping must "
-            "be a bijection"
+            "be a bijection over the exact user-plannable Action roster"
         )
 
     spend_bearing = set(model["spend_bearing_action_plans"])
@@ -9351,6 +9664,7 @@ def validate_action_authorization_model(root: Path) -> None:
     expected_class_names = {
         "circuit_and_envelope_authorized",
         "direct_signature_and_state_authorized",
+        "internal_consensus_only",
         "permissionless_protocol_authorized",
     }
     if set(classes) != expected_class_names:
@@ -9418,6 +9732,11 @@ def validate_action_authorization_model(root: Path) -> None:
             f"expected={sorted(enum_variants-circuit_class)}, "
             f"actual={sorted(no_proof_variants)}"
         )
+    internal_class = set(classes["internal_consensus_only"])
+    if internal_class != {"AggregateBundle"} or not internal_class <= set(
+        model["non_plan_actions"]
+    ):
+        reject("internal consensus-only Action census drifted")
     fee_proof_join = (
         "+ usize::from(self.transaction_body.fee_funding.is_some())"
     )
@@ -9728,11 +10047,13 @@ def _validate_internal_action_acceptance_surface(
     ) != expected_handler_methods:
         reject("Action AppActionHandler method census drifted")
     expected_variants = {
+        "AggregateBundle",
         "ComplianceRegisterAsset",
         "ComplianceRegisterUser",
         "IbcRelay",
         "NoteReshape",
         "ProposalSubmit",
+        "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
         "ValidatorDefinition",
@@ -9783,6 +10104,7 @@ def _validate_internal_action_acceptance_surface(
             "Transfer",
             "NoteReshape",
             "ShieldedIcs20Withdrawal",
+            "ShieldedHostWithdrawal",
         ):
             fragment = (
                 f"Action::{variant}(action) => "
@@ -9878,11 +10200,13 @@ def _validate_internal_action_acceptance_surface(
         "capability-gated Transaction execution",
     )
     expected_execute_variants = {
+        "AggregateBundle",
         "ComplianceRegisterAsset",
         "ComplianceRegisterUser",
         "IbcRelay",
         "NoteReshape",
         "ProposalSubmit",
+        "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
         "ValidatorDefinition",
@@ -9917,6 +10241,10 @@ def _validate_internal_action_acceptance_surface(
             "note_reshape_execute_verified(",
             "Action::ShieldedIcs20Withdrawal(action)",
             "shielded_ics20_withdrawal_execute_verified(",
+            "Action::ShieldedHostWithdrawal(action)",
+            "shielded_host_withdrawal_execute_verified(",
+            "Action::AggregateBundle(_)",
+            "anyhow::bail!(",
             "if let Some(fee_funding)",
             "transfer_execute_verified(",
             "artifact.proof_for_slot(ProofSlot::FeeFunding)?",
@@ -9926,7 +10254,7 @@ def _validate_internal_action_acceptance_surface(
     _require_occurrence_count(
         profiled_execute["body"],
         "artifact.proof_for_slot(ProofSlot::BodyAction(i))?",
-        3,
+        4,
         "proof-bearing action capability consumption",
     )
     _require_occurrence_count(
@@ -9954,7 +10282,7 @@ def _validate_internal_action_acceptance_surface(
         "capability-gated Transaction mutation caller census",
     )
     if app_execute_callers != Counter(
-        {"execute_verified_tx_profiled": 1}
+        {"execute_tx_checked_historical_profiled": 1}
     ):
         reject(
             "capability-gated Transaction mutation caller census drifted: "
@@ -9974,16 +10302,15 @@ def _validate_internal_action_acceptance_surface(
 
     execute_verified = _one_rust_function(
         app_functions,
-        "execute_verified_tx_profiled",
+        "execute_tx_checked_historical_profiled",
         "verified App mutation owner",
     )
     _require_ordered_symbols(
         execute_verified,
         (
             "let tx = artifact.tx().clone()",
-            "tx.check_historical(self.state.clone())",
             "try_begin_transaction()",
-            "check_and_execute_profiled(&artifact, &mut state_tx)",
+            "check_and_execute_profiled(Arc::as_ref(&artifact), &mut state_tx)",
             ".await",
             ".context(",
             "state_tx.apply()",
@@ -9993,16 +10320,17 @@ def _validate_internal_action_acceptance_surface(
     execute_callers = _rust_call_owner_census(
         app_source,
         app_functions,
-        r"\.execute_verified_tx_profiled\s*\(",
+        r"\.execute_tx_checked_historical_profiled\s*\(",
         "verified App mutation owner caller census",
     )
     expected_execute_callers = Counter(
         {
-            "deliver_tx_bytes_impl_profiled": 2,
             "deliver_tx_with_stateless_extraction_caching_profiled": 1,
-            "execute_block_profiled": 1,
-            "execute_prepare_candidates_serial_profiled": 1,
-            "process_proposal_impl_profiled": 1,
+            "deliver_tx_profiled": 1,
+            "deliver_tx_with_verified_stateless_profiled": 1,
+            "execute_prepare_candidate_profiled": 1,
+            "execute_validated_candidate_envelope_profiled": 1,
+            "checktx_fast_path_matches_legacy_for_supported_tx": 1,
         }
     )
     if execute_callers != expected_execute_callers:
@@ -10011,15 +10339,6 @@ def _validate_internal_action_acceptance_surface(
             f"expected={dict(expected_execute_callers)}, "
             f"actual={dict(execute_callers)}"
         )
-    _require_benchmark_cfg(
-        _one_rust_function(
-            app_functions,
-            "execute_block_profiled",
-            "nonproduction block execution helper",
-        ),
-        "nonproduction block execution helper",
-    )
-
     component_paths = (
         (
             "crates/core/component/shielded-pool/src/component/"
@@ -10032,6 +10351,10 @@ def _validate_internal_action_acceptance_surface(
         (
             "crates/core/component/shielded-pool/src/component/"
             "action_handler/transfer.rs"
+        ),
+        (
+            "crates/core/component/shielded-pool/src/component/"
+            "action_handler/shielded_host_withdrawal.rs"
         ),
     )
     direct_component_callers: list[tuple[str, str]] = []
@@ -10129,12 +10452,12 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             "fixed proposal payload policy",
         ),
         (
-            "pub const MAX_BLOCK_TX_COUNT: usize = 4_096;",
-            "fixed proposal transaction-count policy",
-        ),
-        (
             "pub const MAX_TRANSACTION_SIZE_BYTES: usize = 96 * 1024;",
             "fixed transaction-size policy",
+        ),
+        (
+            "pub const MAX_BLOCK_TX_COUNT: usize = 4_096;",
+            "fixed proposal transaction-count policy",
         ),
         (
             "pub const MAX_TRANSACTION_ACTION_COUNT: usize = 512;",
@@ -10148,127 +10471,58 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             "pub const MAX_BLOCK_NULLIFIER_COUNT: usize = 32_768;",
             "fixed block nullifier-count policy",
         ),
-        (
-            "const PROOF_VERIFY_CHUNK_MIN_ITEMS: usize = 512;",
-            "fixed proof-worker chunk policy",
-        ),
-        (
-            "const PROOF_VERIFY_MAX_CHUNKS_PER_KEY: usize = 8;",
-            "fixed proof-worker concurrency policy",
-        ),
     ):
         _require_occurrence_count(app_scrubbed, symbol, 1, label)
-    for name, required, label in (
-        (
-            "truncate_prepare_candidates",
-            "txs.truncate(MAX_BLOCK_TX_COUNT);",
-            "PrepareProposal transaction-count boundary",
-        ),
-        (
-            "process_proposal_tx_count_allowed",
-            "tx_count <= MAX_BLOCK_TX_COUNT",
-            "ProcessProposal transaction-count boundary",
-        ),
-        (
-            "process_proposal_payload_size_allowed",
-            "payload_size <= MAX_BLOCK_TXS_PAYLOAD_BYTES",
-            "ProcessProposal payload boundary",
-        ),
-        (
-            "transaction_size_allowed",
-            "tx_size <= MAX_TRANSACTION_SIZE_BYTES",
-            "transaction-size boundary",
-        ),
-        (
-            "block_nullifier_count_allowed",
-            "nullifier_count <= MAX_BLOCK_NULLIFIER_COUNT",
-            "block nullifier-count boundary",
-        ),
+    validation_support = _read_acceptance_source(
+        root,
+        "crates/core/app/src/app/validation_support.rs",
+        "candidate-envelope validation bounds",
+    )
+    for symbol, label in (
+        ("pub const MAX_VALIDATION_TX_COUNT: usize = 4_096;", "candidate tx count"),
+        ("pub const MAX_VALIDATION_ACTIONS_PER_TX: usize = 512;", "candidate action count"),
+        ("pub const MAX_VALIDATION_NULLIFIERS_PER_TX: usize = 256;", "candidate per-tx nullifiers"),
+        ("pub const MAX_VALIDATION_NULLIFIERS_PER_BLOCK: usize = 32_768;", "candidate block nullifiers"),
     ):
-        function = _one_rust_function(app_functions, name, label)
-        if required not in _normalize_rust_fragment(function["body"]):
-            reject(f"{label}: {name} does not enforce {required!r}")
+        _require_occurrence_count(validation_support, symbol, 1, label)
     require_compact_order(
         _one_rust_function(
             app_functions,
-            "prepare_proposal_payload_limit",
-            "PrepareProposal payload boundary",
+            "max_transaction_size_bytes",
+            "consensus transaction-size policy",
         ),
         (
-            "u64::try_from(max_tx_bytes)",
-            "unwrap_or(0)",
-            ".min(MAX_BLOCK_TXS_PAYLOAD_BYTES as u64)",
+            '#[cfg(any(test, feature = "benchmark-helpers"))]',
+            "aggregate_diagnostics::max_transaction_size_bytes_override()",
+            '#[cfg(not(any(test, feature = "benchmark-helpers")))]',
+            "MAX_TRANSACTION_SIZE_BYTES",
         ),
-        "PrepareProposal payload boundary",
+        "consensus transaction-size policy",
+        app_source,
     )
-
-    # Aggregation is research-only: it is not an action, proposal transport,
-    # cache tier, execution input, or production dependency.
-    forbidden_aggregate_symbols = (
-        "AggregateBundle",
-        "aggregate_bundle",
-        "CandidateEnvelope",
-        "ProposalArtifactSidecar",
-        "synthetic_sidecar",
-        "aggregate_retry_cache",
-        "shieldd_sdk_proof_aggregation",
+    _require_occurrence_count(
+        app_source,
+        '#[cfg(any(test, feature = "benchmark-helpers"))]\nmod aggregate_diagnostics;',
+        1,
+        "app diagnostic cfg boundary",
     )
-    aggregate_hits: list[tuple[str, str]] = []
-    for relative_root in (
-        "crates/core/app/src",
-        "crates/core/transaction/src",
-    ):
-        source_root = canonical_repo_path(
-            root,
-            relative_root,
-            "production aggregation-absence census",
-        )
-        for path in source_root.rglob("*.rs"):
-            source = _without_source_comments(path.read_text(encoding="utf-8"))
-            aggregate_hits.extend(
-                (
-                    path.relative_to(root.resolve()).as_posix(),
-                    symbol,
-                )
-                for symbol in forbidden_aggregate_symbols
-                if symbol in source
-            )
-    if aggregate_hits:
-        reject(
-            "production proof acceptance regained aggregate state: "
-            f"{aggregate_hits}"
-        )
-    for relative in (
-        "crates/core/app/Cargo.toml",
-        "crates/core/transaction/Cargo.toml",
-        "crates/core/app-tests/Cargo.toml",
-    ):
-        manifest = canonical_repo_path(
-            root,
-            relative,
-            "production aggregation dependency census",
-        ).read_text(encoding="utf-8")
-        if "shieldd-sdk-proof-aggregation" in manifest:
-            reject(
-                "production or consensus-test crate depends on the "
-                f"research-only aggregation crate: {relative}"
-            )
 
     proto_source = canonical_repo_path(
         root,
         "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
         "transaction wire action surface",
     ).read_text(encoding="utf-8")
-    for obsolete_declaration in (
+    for aggregate_declaration in (
         "enum ProofFamilyId",
         "message FamilyAggregate",
         "message AggregateBundle",
     ):
-        if obsolete_declaration in proto_source:
-            reject(
-                "research aggregation vocabulary remains in the core "
-                f"transaction schema: {obsolete_declaration}"
-            )
+        _require_occurrence_count(
+            proto_source,
+            aggregate_declaration,
+            1,
+            "consensus aggregate wire declaration",
+        )
     for declaration, label in (
         (r"^[ \t]*message[ \t]+Action\b", "wire Action"),
         (r"^[ \t]*message[ \t]+ActionView\b", "wire ActionView"),
@@ -10276,25 +10530,24 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         block = _balanced_rust_declaration_block(
             proto_source, declaration, label
         )
-        if "reserved 7, 82;" not in block:
-            reject(f"{label} does not reserve deleted tags 7 and 82")
-        if "AggregateBundle" in block or "aggregate_bundle" in block:
-            reject(f"{label} reintroduced aggregate consensus transport")
+        if "AggregateBundle aggregate_bundle = 82;" not in block:
+            reject(f"{label} omits aggregate consensus transport tag 82")
     generated_source = canonical_repo_path(
         root,
         "crates/proto/src/gen/shieldd.core.transaction.v1.rs",
         "generated transaction action surface",
     ).read_text(encoding="utf-8")
-    for obsolete_declaration in (
+    for generated_declaration in (
         "pub enum ProofFamilyId",
         "pub struct FamilyAggregate",
         "pub struct AggregateBundle",
     ):
-        if obsolete_declaration in generated_source:
-            reject(
-                "research aggregation vocabulary remains in generated core "
-                f"transaction types: {obsolete_declaration}"
-            )
+        _require_occurrence_count(
+            generated_source,
+            generated_declaration,
+            1,
+            "generated aggregate wire declaration",
+        )
     for module_declaration, declaration, label in (
         (
             r"^[ \t]*pub[ \t]+mod[ \t]+action\b",
@@ -10315,29 +10568,25 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         block = _balanced_rust_declaration_block(
             module, declaration, label
         )
-        if (
-            "AggregateBundle" in block
-            or "aggregate_bundle" in block
-            or 'tag = "82"' in block
-        ):
-            reject(f"{label} reintroduced aggregate action tag 82")
+        if "AggregateBundle" not in block or 'tag = "82"' not in block:
+            reject(f"{label} omits aggregate action tag 82")
     aggregation_manifest = canonical_repo_path(
         root,
         "crates/crypto/proof-aggregation/Cargo.toml",
-        "research aggregation manifest",
+        "production aggregation manifest",
     ).read_text(encoding="utf-8")
     aggregation_bundle = canonical_repo_path(
         root,
         "crates/crypto/proof-aggregation/src/bundle.rs",
-        "research aggregation wire format",
+        "production aggregation wire format",
     ).read_text(encoding="utf-8")
-    if "shieldd-sdk-proto" in aggregation_manifest:
-        reject("research aggregation still depends on the core proto crate")
+    if "shieldd-sdk-proto" not in aggregation_manifest:
+        reject("production aggregation omits the consensus proto dependency")
     cargo_lock = tomllib.loads(
         canonical_repo_path(
             root,
             "Cargo.lock",
-            "research aggregation resolved dependencies",
+            "production aggregation resolved dependencies",
         ).read_text(encoding="utf-8")
     )
     aggregation_lock_entries = [
@@ -10347,45 +10596,36 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     ]
     if len(aggregation_lock_entries) != 1:
         reject(
-            "Cargo.lock must contain exactly one research aggregation "
+            "Cargo.lock must contain exactly one production aggregation "
             "package entry"
         )
     aggregation_lock_dependencies = set(
         aggregation_lock_entries[0].get("dependencies", [])
     )
-    if any(
+    if not any(
         dependency == "shieldd-sdk-proto"
         or dependency.startswith("shieldd-sdk-proto ")
         for dependency in aggregation_lock_dependencies
     ):
         reject(
-            "resolved research aggregation dependencies still include the "
-            "core proto crate"
-        )
-    if not any(
-        dependency == "prost" or dependency.startswith("prost ")
-        for dependency in aggregation_lock_dependencies
-    ):
-        reject(
-            "resolved research aggregation dependencies omit its private "
-            "prost wire codec"
+            "resolved production aggregation dependencies omit the core "
+            "consensus proto crate"
         )
     for symbol in (
-        "struct WireFamilyAggregate",
-        "struct WireAggregateBundle",
-        "pub fn encode_to_vec",
-        "pub fn decode",
+        "use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType}",
+        "impl From<FamilyAggregate> for pb::FamilyAggregate",
+        "impl TryFrom<pb::FamilyAggregate> for FamilyAggregate",
+        "impl From<AggregateBundle> for pb::AggregateBundle",
+        "impl TryFrom<pb::AggregateBundle> for AggregateBundle",
     ):
         if symbol not in aggregation_bundle:
             reject(
-                "research aggregation lacks its private wire owner: "
+                "production aggregation lacks its consensus wire bridge: "
                 f"{symbol}"
             )
-    if "shieldd_sdk_proto" in aggregation_bundle:
-        reject("research aggregation wire format still imports core proto")
     if "impl TryFrom<i32> for ProofFamilyId" in aggregation_bundle:
         reject(
-            "research aggregation regained a lossy family-only conversion "
+            "production aggregation has a lossy family-only conversion "
             "that cannot construct required subfamilies"
         )
 
@@ -10427,6 +10667,13 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             ),
             "nonproduction proof exclusion",
         )
+    aggregate_shape_fuzz = _one_rust_function(
+        app_functions,
+        "ensure_aggregate_bundle_tx_shape_for_fuzz",
+        "aggregate shape fuzz wrapper",
+    )
+    if '#[cfg(feature = "fuzzing")]' not in aggregate_shape_fuzz["attributes"]:
+        reject("aggregate shape fuzz wrapper escaped its fuzzing cfg")
 
     cache_relative = "crates/core/app/src/stateless_cache.rs"
     cache_path = canonical_repo_path(
@@ -10445,28 +10692,27 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     )
     expected_cache_function_census = Counter(
         {
-            "anchor_pairs": 1,
+            "artifact": 1,
             "clear_inconsistent_clock": 1,
             "ensure_artifact_matches_raw": 1,
             "evict_one_clock": 1,
-            "extract_canonical": 1,
-            "extract_fee_funding_proof_item": 1,
-            "extracted_for_consensus_reverification": 1,
-            "from_canonical_parts": 1,
+            "extracted": 1,
             "get": 1,
+            "has_matching_historical_validation": 2,
             "insert": 1,
             "insert_extracted": 1,
-            "insert_groth16_verified": 1,
+            "insert_fully_verified": 1,
             "insert_invalid": 1,
             "new": 2,
+            "proof_family_and_key_for_action": 1,
             "proof_for_slot": 1,
-            "proof_items": 1,
-            "proof_key_for_action": 1,
-            "proof_slots": 1,
-            "seed_extracted_for_benchmark": 1,
-            "spend_nullifiers": 1,
-            "tx": 2,
+            "proof_item_at": 1,
+            "proof_locations": 1,
+            "take_family_capabilities": 1,
+            "tx": 1,
             "validate_proof_capability_rows": 1,
+            "with_historical_validation": 1,
+            "with_historical_validation_owned": 2,
             "with_limits": 1,
         }
     )
@@ -10476,20 +10722,23 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             f"actual={dict(production_cache_function_census)}"
         )
     for symbol in (
-        "proof_items: BTreeMap<DeployedProofKey, Vec<Arc<BatchItem>>>",
+        "proof_items: BTreeMap<ProofFamilyId, Vec<BatchItem>>",
+        "pub family_id: ProofFamilyId",
+        "pub family_index: usize",
         "pub key: DeployedProofKey",
-        "pub key_index: usize",
         "verified_proofs: BTreeMap<ProofSlot, VerifiedBatchItem>",
     ):
         if symbol not in cache_scrubbed:
             reject(f"stateless artifact lacks exact proof identity: {symbol}")
 
     expected_action_variants = {
+        "AggregateBundle",
         "ComplianceRegisterAsset",
         "ComplianceRegisterUser",
         "IbcRelay",
         "NoteReshape",
         "ProposalSubmit",
+        "ShieldedHostWithdrawal",
         "ShieldedIcs20Withdrawal",
         "Transfer",
         "ValidatorDefinition",
@@ -10497,8 +10746,8 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     }
     proof_key_for_action = _one_rust_function(
         cache_functions,
-        "proof_key_for_action",
-        "deployed proof-key Action roster",
+        "proof_family_and_key_for_action",
+        "deployed proof-family/key Action roster",
     )
     if set(
         re.findall(
@@ -10506,90 +10755,68 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             proof_key_for_action["body"],
         )
     ) != expected_action_variants:
-        reject("deployed proof-key Action roster drifted")
+        reject("deployed proof-family/key Action roster drifted")
     _reject_rust_enum_catchall(
         proof_key_for_action["body"],
-        "deployed proof-key Action roster",
+        "deployed proof-family/key Action roster",
     )
     require_compact_order(
         _one_rust_function(
             cache_functions,
-            "from_canonical_parts",
+            "proof_locations",
             "proof-slot construction",
         ),
         (
-            "for (action_index, action) in tx.actions().enumerate()",
-            "proof_key_for_action(action)",
+            "for (action_index, action) in self.tx.actions().enumerate()",
+            "proof_family_and_key_for_action(action)",
             "ProofSlot::BodyAction(action_index)",
-            "ProofLocation { key, key_index }",
-            "if tx.transaction_body.fee_funding.is_some()",
-            "let key = DeployedProofKey::Transfer",
+            "ProofLocation",
+            "family_id",
+            "family_index",
+            "key",
+            "if self.tx.transaction_body.fee_funding.is_some()",
+            "let family_id = ProofFamilyId::Transfer",
             "ProofSlot::FeeFunding",
-            "total_proof_count == proof_slots.len()",
+            "locations.len() == self.total_proof_count",
             "items.len() == expected",
             "actual == expected",
         ),
         "proof-slot construction",
     )
-    extract_canonical = _one_rust_function(
-        cache_functions,
-        "extract_canonical",
-        "canonical proof extraction",
-    )
-    if set(
-        re.findall(
-            r"\bAction::([A-Za-z_][A-Za-z0-9_]*)",
-            extract_canonical["body"],
-        )
-    ) != expected_action_variants:
-        reject("canonical proof extraction Action roster drifted")
-    _reject_rust_enum_catchall(
-        extract_canonical["body"],
-        "canonical proof extraction Action roster",
-    )
-    require_compact_order(
-        _one_rust_function(
-            cache_functions,
-            "extract_fee_funding_proof_item",
-            "fee-funding proof extraction",
-        ),
-        (
-            "transfer_check_stateless_and_extract(&fee_funding.transfer, context)",
-            ".context(",
-        ),
-        "fee-funding proof extraction",
-    )
-    require_compact_order(
-        extract_canonical,
-        (
-            "validate_transaction_envelope(tx.as_ref())?",
-            "let context = tx.context()",
-            "for action in tx.actions()",
-            "transfer_check_stateless_and_extract",
-            "note_reshape_check_stateless_and_extract",
-            "shielded_ics20_withdrawal_check_stateless_and_extract",
-            "if let Some(fee_funding)",
-            "extract_fee_funding_proof_item(fee_funding, &context)?",
-            "let spend_nullifiers = tx.spent_nullifiers().collect()",
-            "Self::from_canonical_parts(",
-        ),
-        "canonical proof extraction",
-    )
     verified_new = [
         function
         for function in cache_functions
         if function["name"] == "new"
-        and "verified_proof_rows" in function["header"]
+        and "verified_rows" in function["header"]
     ]
     if len(verified_new) != 1:
         reject("verified artifact constructor census drifted")
     if verified_new[0]["visibility"] != "pub(crate)":
         reject("verified artifact constructor escaped its crate owner")
+    capability_rows = _one_rust_function(
+        cache_functions,
+        "validate_proof_capability_rows",
+        "verified artifact capability coverage and binding",
+    )
+    if capability_rows["visibility"]:
+        reject("verified artifact capability validator escaped its private owner")
+    require_compact_order(
+        capability_rows,
+        (
+            "let locations = extracted.proof_locations()?",
+            "verified_proofs.insert(slot, capability).is_none()",
+            "actual == expected",
+            "for (&slot, &location) in &locations",
+            "ensure_binds(capability, location.key, extracted.proof_item_at(location)?)",
+            "verified_proofs",
+        ),
+        "verified artifact capability coverage and binding",
+    )
     require_compact_order(
         verified_new[0],
         (
             "validate_proof_capability_rows(",
-            ".ensure_binds(key, item)",
+            "capability.ensure_binds(key, item)",
             "verified_proofs",
         ),
         "verified artifact constructor",
@@ -10597,26 +10824,17 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     require_compact_order(
         _one_rust_function(
             cache_functions,
-            "validate_proof_capability_rows",
+            "take_family_capabilities",
             "verified proof-slot coverage",
         ),
         (
-            "verified_proofs.insert(slot, capability).is_none()",
-            "actual == expected",
-            "for (&slot, location) in &extracted.proof_slots",
-            ".get(&location.key)",
-            ".get(location.key_index)",
-            "ensure_binds(capability, location.key, item.as_ref())",
+            "extracted.proof_locations()?",
+            ".get_mut(&location.family_id)",
+            ".and_then(VecDeque::pop_front)",
+            "Self::new(extracted, rows)",
         ),
         "verified proof-slot coverage",
     )
-    downgrade = _one_rust_function(
-        cache_functions,
-        "extracted_for_consensus_reverification",
-        "ProcessProposal cache downgrade",
-    )
-    if "self.extracted.clone()" not in downgrade["body"]:
-        reject("ProcessProposal cache downgrade no longer returns extraction")
     require_compact_order(
         _one_rust_function(
             cache_functions, "get", "raw-byte-bound cache lookup"
@@ -10629,11 +10847,11 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         ),
         "raw-byte-bound cache lookup",
     )
-    for name in ("insert_extracted", "insert_groth16_verified"):
+    for name in ("insert_extracted", "insert_fully_verified"):
         mutator = _one_rust_function(
             cache_functions, name, "raw-byte-bound cache promotion"
         )
-        if mutator["visibility"] != "pub(crate)":
+        if mutator["visibility"] != "pub":
             reject(f"stateless-cache mutator visibility drifted: {name}")
         require_compact_order(
             mutator,
@@ -10672,18 +10890,18 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         ),
         "stateless-cache constructor fixed limit wiring",
     )
-    cache_seed = _one_rust_function(
-        cache_functions,
-        "seed_extracted_for_benchmark",
-        "benchmark cache seed",
+    require_compact_order(
+        _one_rust_function(
+            app_functions,
+            "extract_fee_funding_proof_item",
+            "fee-funding proof extraction",
+        ),
+        (
+            "transfer_check_stateless_and_extract(&fee_funding.transfer, context)",
+            ".context(",
+        ),
+        "fee-funding proof extraction",
     )
-    if (
-        cache_seed["visibility"] != "pub"
-        or '#[cfg(feature = "benchmark-helpers")]'
-        not in cache_seed["attributes"]
-    ):
-        reject("benchmark cache seed is not confined")
-
     require_compact_order(
         _one_rust_function(
             app_functions,
@@ -10691,81 +10909,126 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             "consensus proof extraction",
         ),
         (
-            "Self::empty_shared_proof_items()",
-            "ExtractedTxArtifact::extract_canonical(tx.clone()).await?",
-            "for (key, items) in artifact.proof_items()",
-            ".get_mut(key)",
-            "unsupported deployed proof key",
-            ".extend(items.iter().cloned())",
+            "let mut proof_items = Self::empty_proof_items()",
+            "for tx in txs",
+            "Self::ensure_user_tx_has_no_internal_actions(tx)?",
+            "valid_binding_signature(tx)?",
+            "for action in tx.actions()",
+            "transfer_check_stateless_and_extract",
+            "shielded_ics20_withdrawal_check_stateless_and_extract",
+            "shielded_host_withdrawal_check_stateless_and_extract",
+            "note_reshape_check_stateless_and_extract",
+            "Action::AggregateBundle(_)",
+            "if let Some(fee_funding)",
+            "extract_fee_funding_proof_item(fee_funding, &context)",
+            "TxArtifact",
+            "proof_items: tx_proof_items",
         ),
         "consensus proof extraction",
         app_source,
     )
     independent = _one_rust_function(
         app_functions,
-        "independently_verify_proof_keys",
-        "independent deployed-key verification",
+        "independently_verify_proof_families",
+        "independent deployed-family verification",
     )
     require_compact_order(
         independent,
         (
-            "DeployedProofKey::ALL",
-            "for key in DeployedProofKey::ALL",
-            "proof_items.remove(&key)",
+            "for family_id in Self::proof_family_ids()",
+            "proof_items.remove(&family_id)",
             "tasks.spawn(async move",
-            "Self::verify_key_chunks_with_capabilities",
-            "!proof_items.is_empty()",
-            "while let Some(join_result) = tasks.join_next().await",
-            "if let Some(error) = first_error",
+            "let key = deployed_key_for_family(family_id)",
+            "batch::verify_each_with_capabilities(",
+            "Self::handle_proof_verification_result(batch_verify_stage, result)?",
+            "drain_joinset_results(",
+            "Ok(verified)",
         ),
-        "independent deployed-key verification",
+        "independent deployed-family verification",
     )
     _require_drain_before_error(
-        independent,
+        _one_rust_function(
+            app_functions,
+            "drain_joinset_results",
+            "application structured task drain",
+        ),
         join_symbol="tasks.join_next().await",
-        error_symbol="join_result",
-        label="independent deployed-key structured drain",
+        error_symbol="result",
+        label="application structured task drain",
     )
-    key_chunks = _one_rust_function(
+    if "batch::batch_verify" in independent["body"]:
+        reject("production independent verifier calls legacy batch_verify")
+    for symbol in (
+        "const MAX_CONCURRENT_AGGREGATE_SEGMENTS: usize = 2;",
+        "const MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS: usize = 4;",
+    ):
+        _require_occurrence_count(
+            app_scrubbed,
+            symbol,
+            1,
+            "bounded aggregate concurrency",
+        )
+    aggregate_build = _one_rust_function(
         app_functions,
-        "verify_key_chunks_with_capabilities",
-        "independent proof chunk verification",
+        "build_family_aggregates_for_artifacts",
+        "aggregate family structured drain",
     )
     require_compact_order(
-        key_chunks,
+        aggregate_build,
         (
-            "Self::proof_verify_chunk_size(items.len())",
-            "batch::verify_each_with_capabilities(key, items)",
-            "let mut tasks = tokio::task::JoinSet::new()",
-            "batch::verify_each_with_capabilities(key, chunk)",
-            "Self::drain_joinset_results(",
-            "chunks.sort_by_key",
-            "expected == *actual",
-            ".flat_map(|(_, capabilities)| capabilities)",
-            ".collect()",
+            "let mut first_error = None",
+            "for task in aggregate_tasks",
+            "match task.await",
+            "if let Some(error) = first_error",
+            "return Err(error)",
         ),
-        "independent proof chunk verification",
+        "aggregate family structured drain",
+        app_source,
     )
-    if (
-        "batch::batch_verify" in independent["body"]
-        or "batch::batch_verify" in key_chunks["body"]
-    ):
-        reject("production independent verifier calls legacy batch_verify")
+    aggregate_segments = _one_rust_function(
+        app_functions,
+        "build_exact_segmented_family_aggregates_for_artifacts",
+        "bounded aggregate segment workers",
+    )
+    require_compact_order(
+        aggregate_segments,
+        (
+            "segment_tasks.len() < MAX_CONCURRENT_AGGREGATE_SEGMENTS",
+            "segment_tasks.spawn(async move",
+            "segment_tasks.join_next().await",
+            "if let Some(error) = first_error",
+            "return Err(error)",
+        ),
+        "bounded aggregate segment workers",
+        app_source,
+    )
+    aggregate_verify = _one_rust_function(
+        app_functions,
+        "verify_aggregate_bundle_for_artifacts_raw_profiled",
+        "bounded aggregate verification workers",
+    )
+    require_compact_order(
+        aggregate_verify,
+        (
+            "let mut pending_calls = VecDeque::from(plan.calls)",
+            "verify_tasks.len() < MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS",
+            "verify_tasks.spawn_blocking(",
+            "verify_tasks.join_next().await",
+            "if let Some(error) = first_error",
+            "return Err(error)",
+        ),
+        "bounded aggregate verification workers",
+        app_source,
+    )
     require_compact_order(
         _one_rust_function(
             app_functions,
-            "attach_verified_proofs",
+            "attach_verified_capabilities",
             "verified capability attachment",
         ),
         (
-            "for (&slot, location) in artifact.proof_slots()",
-            ".get(&location.key)",
-            ".get(key_offset + location.key_index)",
-            ".get(location.key_index)",
-            ".ensure_binds(location.key, expected_item.as_ref())",
-            "assigned_slots.insert(slot)",
-            "VerifiedTxArtifact::new(",
-            "consumed == items.len()",
+            "VerifiedTxArtifact::take_family_capabilities(artifact, &mut capabilities)",
+            "capabilities.values().all(VecDeque::is_empty)",
         ),
         "verified capability attachment",
     )
@@ -10777,8 +11040,8 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         ),
         (
             "Self::collect_consensus_proof_items_with_artifacts(txs).await?",
-            "Self::independently_verify_proof_keys(proof_items).await?",
-            "Self::attach_verified_proofs(artifacts, capabilities)?",
+            "Self::independently_verify_proof_families(proof_items).await?",
+            "Self::attach_verified_capabilities(artifacts, capabilities)?",
         ),
         "canonical verified artifact builder",
     )
@@ -10789,10 +11052,10 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             "cached extraction verifier",
         ),
         (
-            "Self::merge_artifact_shared_proof_items(artifacts)",
-            "Self::independently_verify_proof_keys(proof_items).await",
+            "Self::merge_artifact_proof_items(artifacts)",
+            "Self::independently_verify_proof_families(proof_items).await",
             "let capabilities = result?",
-            "Self::attach_verified_proofs(artifacts.to_vec(), capabilities)?",
+            "Self::attach_verified_capabilities(artifacts.to_vec(), capabilities)?",
         ),
         "cached extraction verifier",
     )
@@ -10802,18 +11065,118 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         r"\bbatch::batch_verify\s*\(",
         "legacy batch verifier caller census",
     )
-    if legacy_callers != Counter({"batch_verify_proof_keys": 1}):
+    if legacy_callers:
         reject(
-            "legacy batch verification escaped benchmark scope: "
+            "legacy batch verification escaped test-only helpers: "
             f"{dict(legacy_callers)}"
         )
-    _require_benchmark_cfg(
+
+    for name, production_loader in (
+        ("shipping_srs", "load_active_production_srs()"),
+        ("shipping_srs_for_id", "load_production_srs_for_id(requested_id)"),
+    ):
+        srs_loader = _one_rust_function(
+            app_functions,
+            name,
+            "production aggregate SRS selection",
+        )
+        require_compact_order(
+            srs_loader,
+            (
+                '#[cfg(feature = "orbis-dev-srs")]',
+                "DevSrs::default()",
+                '#[cfg(all(not(feature = "orbis-dev-srs"), any(test, feature = "fuzzing")))]',
+                "DevSrs::default()",
+                '#[cfg(not(any(test, feature = "fuzzing", feature = "orbis-dev-srs")))]',
+                production_loader,
+            ),
+            "production aggregate SRS selection",
+            app_source,
+        )
+
+    require_compact_order(
         _one_rust_function(
             app_functions,
-            "batch_verify_proof_keys",
-            "legacy batch verifier exclusion",
+            "validate_aggregate_verify_plan_inputs",
+            "aggregate verification preflight",
         ),
-        "legacy batch verifier exclusion",
+        (
+            "app_verify_preflight_core(",
+            "AGGREGATE_PROTOCOL_VERSION",
+            "bundle.version",
+            "Self::total_artifact_proof_count(artifacts)",
+            "srs_id(srs).to_vec()",
+            "bundle.srs_id.clone()",
+            "artifacts.len()",
+            "segment_tx_counts",
+        ),
+        "aggregate verification preflight",
+    )
+    require_compact_order(
+        _one_rust_function(
+            app_functions,
+            "plan_aggregate_bundle_verification",
+            "aggregate verification plan",
+        ),
+        (
+            "app_verify_family_count_core(expected_segments.len(), bundle.families.len())",
+            "app_verify_plan_ids_core(",
+            "app_verify_plan_identity_core(",
+            "prepare_verify_inputs(&items, MAX_PADDED_PROOF_COUNT)?",
+            "app_verify_plan_padding_core(",
+            "AggregateStatement::new(",
+            "AGGREGATE_PROTOCOL_VERSION",
+            "family_id",
+            "srs_id(&srs)",
+            "proof_verification_key_for_family(family_id)",
+            "shipping_call.bundle_real_count",
+            "&prepared_inputs.padded_public_inputs",
+        ),
+        "aggregate verification plan",
+    )
+    require_compact_order(
+        _one_rust_function(
+            app_functions,
+            "execute_aggregate_verify_call",
+            "aggregate verification kernel",
+        ),
+        (
+            "verify_shipping_family_aggregate_profiled_status(",
+            "call.shipping_call",
+            "&call.statement",
+            "proof_verification_key_for_family(call.id.family_id)",
+            "&call.aggregate.aggregate_proof",
+            "&call.srs",
+        ),
+        "aggregate verification kernel",
+    )
+    aggregate_verify = _one_rust_function(
+        app_functions,
+        "verify_aggregate_bundle_for_artifacts_raw_profiled",
+        "aggregate verified-capability issuance",
+    )
+    require_compact_order(
+        aggregate_verify,
+        (
+            "shipping_srs_for_id(&bundle.srs_id)?",
+            "Self::validate_aggregate_verify_plan_inputs(",
+            "Self::expected_aggregate_verify_segments(artifacts, &segment_ranges)",
+            "Self::plan_aggregate_bundle_verification(bundle, expected_segments, srs)",
+            "let mut pending_calls = VecDeque::from(plan.calls)",
+            "verify_tasks.len() < MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS",
+            "Self::execute_aggregate_verify_call(call)",
+            "verify_tasks.join_next().await",
+            "if let Some(error) = first_error",
+            "app_verify_accepted_join_projection_core(expected_core_ids, joined_records)",
+            "Self::reduce_aggregate_verify_outcomes(&expected_call_ids, results)?",
+            "reduction.acceptance_result()?",
+            "require_no_rejected_joined_calls(rejected_calls)?",
+            ".verified_statement_capabilities(",
+            "deployed_key_for_family(family_id)",
+            "&outcome.items",
+            "Self::attach_verified_capabilities(artifacts.to_vec(), capabilities)",
+        ),
+        "aggregate verified-capability issuance",
     )
 
     prepare_impl = _one_rust_function(
@@ -10824,8 +11187,8 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     require_compact_order(
         prepare_impl,
         (
-            "Self::truncate_prepare_candidates(&mut proposal.txs)",
-            "Self::prepare_proposal_payload_limit(proposal.max_tx_bytes)",
+            "truncate_prepare_candidates(&mut proposal.txs)",
+            "prepare_proposal_payload_limit(proposal.max_tx_bytes)",
             "prepare_proposal_batched_profiled(",
         ),
         "PrepareProposal fixed boundary",
@@ -10838,16 +11201,20 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     require_compact_order(
         prepare,
         (
-            "Self::transaction_size_allowed(tx_bytes.len())",
+            "transaction_size > max_transaction_size_bytes() as u64",
             "cache.get(&hash, tx_bytes.as_ref())",
             "Transaction::decode_canonical(tx_bytes.as_ref())",
-            "ensure_transaction_resource_bounds(candidate.tx())",
-            "Self::block_nullifier_count_allowed(next_nullifier_count)",
+            "Self::ensure_user_tx_has_no_internal_actions(&tx)",
+            "block_nullifier_count_allowed(",
+            "seen_nullifiers.len().saturating_add(tx_nullifiers.len())",
             "self.precheck_compliance_anchors_dedup(&deduped_txs).await?",
             'Self::build_tx_artifacts_for_stage("prepare_proposal"',
             'Self::verify_tx_artifacts_for_stage("prepare_proposal_upgrade"',
-            "execute_prepare_candidates_serial_profiled",
-            ".map(|candidate| candidate.bytes)",
+            "execute_prepare_candidate_profiled(",
+            "build_family_aggregates_for_artifacts",
+            "build_aggregate_bundle_from_families(families).await",
+            "ProposalArtifactSidecar::build(",
+            "included_txs.push(bundle_tx_bytes)",
         ),
         "PrepareProposal exact-proof acceptance",
         app_source,
@@ -10863,9 +11230,9 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     upgrade_verify = prepare_compact.find(
         'Self::verify_tx_artifacts_for_stage("prepare_proposal_upgrade"'
     )
-    first_promotion = prepare_compact.find(".insert_groth16_verified(")
+    first_promotion = prepare_compact.find(".insert_fully_verified(")
     second_promotion = prepare_compact.find(
-        ".insert_groth16_verified(", first_promotion + 1
+        ".insert_fully_verified(", first_promotion + 1
     )
     if (
         min(cold_verify, upgrade_verify, first_promotion, second_promotion) < 0
@@ -10882,21 +11249,22 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     require_compact_order(
         process,
         (
-            "Self::process_proposal_tx_count_allowed(proposal_tx_count)",
-            "Self::transaction_size_allowed(tx_size)",
-            "Self::process_proposal_payload_size_allowed(total_txs_payload_size)",
+            "!process_proposal_tx_count_allowed(proposal_tx_count)",
+            "tx_size > max_transaction_size_bytes()",
+            "!process_proposal_payload_size_allowed(total_txs_payload_size)",
             "cache.get(&tx_hash, tx_bytes.as_ref())",
             "Transaction::decode_canonical(tx_bytes.as_ref())",
-            "ensure_transaction_resource_bounds(user_tx.tx())",
-            "Self::block_nullifier_count_allowed(block_nullifier_count)",
-            "Self::build_tx_artifacts_extracted_profiled(&raw_miss_txs).await",
+            "Self::ensure_user_tx_has_no_internal_actions(&tx)",
+            'Self::build_tx_artifacts_for_stage("process_proposal", &raw_miss_txs)',
+            "!block_nullifier_count_allowed(block_nullifier_count)",
             "Self::ensure_unique_spend_nullifiers_from_artifacts(&artifacts)",
             "precheck_compliance_anchors_dedup_from_artifacts(&artifacts)",
-            'Self::verify_tx_artifacts_for_stage("process_proposal_independent",&artifacts)',
-            "user_tx.data = UserTxData::VerifiedArtifact(artifact)",
+            "match (total_proofs, bundle_tx.as_ref())",
+            "Self::verify_aggregate_bundle_for_artifacts(",
+            "aggregate_verify_task.await",
+            ".insert_fully_verified(user_tx.raw_tx.as_ref(), artifact.clone())",
             "let stateful_replay_start = Instant::now()",
-            "self.execute_verified_tx_profiled(artifact).await",
-            ".insert_groth16_verified(user_tx.bytes.as_ref(), artifact)",
+            "deliver_tx_with_verified_stateless_profiled(artifact, Some(&historical_context))",
             "response::ProcessProposal::Accept",
         ),
         "ProcessProposal exact-proof acceptance",
@@ -10906,7 +11274,8 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         process,
         (
             "UserTxData::VerifiedArtifact(artifact)",
-            "artifact.extracted_for_consensus_reverification()",
+            "artifact.extracted()",
+            "Self::verify_aggregate_bundle_for_artifacts(",
         ),
         "ProcessProposal mandatory cache re-verification",
         app_source,
@@ -10920,8 +11289,16 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     require_compact_order(
         deliver,
         (
-            "Self::transaction_size_allowed(tx_bytes.len())",
+            "transaction_size_allowed(tx_bytes.len())",
             "cache.get(&hash, tx_bytes)",
+            "Some(CacheEntry::FullyVerified(artifact))",
+            "Some(CacheEntry::Extracted(extracted))",
+            "Self::verify_tx_artifacts_for_stage(",
+            "cache.insert_fully_verified(tx_bytes, artifact.clone())",
+            "Some(CacheEntry::Invalid)",
+            "Transaction::decode_canonical(tx_bytes)",
+            "Self::ensure_user_tx_has_no_internal_actions(&tx)",
+            "self.deliver_tx_profiled(tx).await",
         ),
         "CheckTx size and cache boundary",
     )
@@ -10930,20 +11307,20 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         "",
         app_source[deliver["body_start"] : deliver["end"]],
     )
-    upgrade = deliver_compact.find('"deliver_tx_cache_upgrade"')
+    extracted_branch = deliver_compact.find("Some(CacheEntry::Extracted(extracted))")
+    upgrade = deliver_compact.find(
+        "Self::verify_tx_artifacts_for_stage(", extracted_branch
+    )
     promotion = deliver_compact.find(
-        "cache.insert_groth16_verified(tx_bytes,verified.clone())"
+        "cache.insert_fully_verified(tx_bytes,artifact.clone())", upgrade
     )
-    first_execute = deliver_compact.find(
-        "self.execute_verified_tx_profiled(artifact.clone()).await?"
-    )
-    no_cache = deliver_compact.find('"deliver_tx_no_cache"')
-    last_execute = deliver_compact.rfind(
-        "self.execute_verified_tx_profiled(artifact).await?"
+    execute = deliver_compact.find(
+        "self.deliver_tx_with_verified_stateless_profiled(artifact,None)",
+        promotion,
     )
     if (
-        min(upgrade, promotion, first_execute, no_cache, last_execute) < 0
-        or not upgrade < promotion < first_execute < no_cache < last_execute
+        min(extracted_branch, upgrade, promotion, execute) < 0
+        or not extracted_branch < upgrade < promotion < execute
     ):
         reject("CheckTx verification/mutation ordering drifted")
     require_compact_order(
@@ -10953,12 +11330,11 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             "cold CheckTx exact-proof acceptance",
         ),
         (
-            '"checktx_extract_only"',
-            "cache.insert_extracted(tx_bytes, artifact.clone())",
-            '"deliver_tx_cold"',
-            "cache.insert_invalid(tx_bytes)?",
-            "cache.insert_groth16_verified(tx_bytes, artifact.clone())?",
-            "self.execute_verified_tx_profiled(artifact).await?",
+            "Transaction::decode_canonical(tx_bytes)",
+            "Self::ensure_user_tx_has_no_internal_actions(&tx)",
+            "Self::build_tx_artifact_for_stage(",
+            "cache.insert_fully_verified(tx_bytes, artifact.clone())",
+            "execute_tx_checked_historical_profiled(artifact)",
         ),
         "cold CheckTx exact-proof acceptance",
         app_source,
@@ -10971,30 +11347,59 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         "ABCI consensus proof acceptance",
     ).read_text(encoding="utf-8")
     consensus_functions = _rust_function_declarations(consensus_source)
-    for name, call in (
-        (
+    require_compact_order(
+        _one_rust_function(
+            consensus_functions,
             "prepare_proposal",
-            "prepare_proposal_v2_profiled("
-            "proposal, Some(self.stateless_cache.as_ref()))",
+            "ABCI prepare_proposal wiring",
         ),
         (
-            "process_proposal",
-            "process_proposal_v2_profiled("
-            "proposal, Some(self.stateless_cache.as_ref()))",
+            "App::new(self.storage.latest_snapshot())",
+            "prepare_proposal_v2_profiled(proposal, Some(self.stateless_cache.as_ref()), false)",
+            "self.prepared_proposal_digests.insert(response_digest)",
+            "Ok(response)",
         ),
-    ):
-        require_compact_order(
-            _one_rust_function(
-                consensus_functions, name, f"ABCI {name} wiring"
-            ),
-            (
-                "App::new(self.storage.latest_snapshot())",
-                call,
-                "Ok(response)",
-            ),
-            f"ABCI {name} wiring",
-            consensus_source,
-        )
+        "ABCI prepare_proposal wiring",
+        consensus_source,
+    )
+    require_compact_order(
+        _one_rust_function(
+            consensus_functions,
+            "can_reuse_prepared_proposal",
+            "ABCI prepared-proposal reuse predicate",
+        ),
+        (
+            "prepared_height == Some(proposal_height)",
+            "prepared_digests.contains(proposal_digest)",
+            "!force_profile",
+        ),
+        "ABCI prepared-proposal reuse predicate",
+        consensus_source,
+    )
+    require_compact_order(
+        _one_rust_function(
+            consensus_functions,
+            "process_proposal",
+            "ABCI process_proposal wiring",
+        ),
+        (
+            "let proposal_digest = Self::proposal_digest(&proposal.txs)",
+            "can_reuse_prepared_proposal(",
+            "self.prepared_proposal_height",
+            "&self.prepared_proposal_digests",
+            "&proposal_digest",
+            "self.force_process_proposal_profile",
+            "return Ok(response::ProcessProposal::Accept)",
+            "App::new(self.storage.latest_snapshot())",
+            "process_proposal_v2_profiled(",
+            "Some(self.stateless_cache.as_ref())",
+            "None",
+            "false",
+            "Ok(response)",
+        ),
+        "ABCI process_proposal wiring",
+        consensus_source,
+    )
 
     transaction_relative = (
         "crates/core/app/src/action_handler/transaction.rs"
@@ -11015,7 +11420,6 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         (
             "ensure_transaction_resource_bounds(tx)?",
             "valid_binding_signature(tx)?",
-            "num_clues_equal_to_num_outputs(tx)?",
             "check_memo_exists_if_outputs_absent_if_not(tx)?",
             "check_non_empty_transaction(tx)",
         ),
@@ -11070,6 +11474,8 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
             "Action::Transfer(transfer)",
             "Action::NoteReshape(note_reshape)",
             "Action::ShieldedIcs20Withdrawal(withdrawal)",
+            "Action::ShieldedHostWithdrawal(withdrawal)",
+            "Action::AggregateBundle(_)",
             "fee_funding.transfer.body.inputs.len()",
             "body_count.saturating_add(fee_count)",
         ),
@@ -11115,9 +11521,69 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     )
     if (
         "self.key != key" not in verified_item_impl
-        or "self.item.as_ref() != item" not in verified_item_impl
+        or "self.item.public_inputs != item.public_inputs" not in verified_item_impl
     ):
-        reject("verified proof capability does not bind key and exact item")
+        reject("verified proof capability does not bind key and exact statement")
+    capability_constructor = _one_rust_function(
+        _rust_function_declarations(verified_item_impl),
+        "from_verified_statement",
+        "aggregate verified-statement capability constructor",
+    )
+    if "unsafe fn" not in capability_constructor["header"]:
+        reject("aggregate verified-statement capability constructor is safe")
+    _require_ordered_symbols(
+        capability_constructor,
+        ("Self { key, item }",),
+        "aggregate verified-statement capability constructor",
+    )
+    constructor_callers: list[tuple[str, str]] = []
+    crates_root = canonical_repo_path(
+        root,
+        "crates",
+        "aggregate capability constructor caller census",
+    )
+    for path in crates_root.rglob("*.rs"):
+        relative = path.relative_to(root.resolve()).as_posix()
+        source = path.read_text(encoding="utf-8")
+        for function in _rust_function_declarations(source):
+            if "VerifiedBatchItem::from_verified_statement(" in function["body"]:
+                constructor_callers.append((relative, function["name"]))
+    if constructor_callers != [
+        (
+            "crates/crypto/proof-aggregation/src/backend.rs",
+            "verified_statement_capabilities",
+        )
+    ]:
+        reject(
+            "aggregate capability constructor caller census drifted: "
+            f"actual={constructor_callers}"
+        )
+    aggregation_backend = canonical_repo_path(
+        root,
+        "crates/crypto/proof-aggregation/src/backend.rs",
+        "aggregate capability issuer",
+    ).read_text(encoding="utf-8")
+    aggregate_capabilities = _one_rust_function(
+        _rust_function_declarations(aggregation_backend),
+        "verified_statement_capabilities",
+        "aggregate capability issuer",
+    )
+    require_compact_order(
+        aggregate_capabilities,
+        (
+            "self.shipping_result.result.accepted",
+            "self.shipping_result.input.srs_id",
+            "crate::prepare_verify_inputs(",
+            "self.shipping_result.input.call.expected_padded_count",
+            "AggregateStatement::new(",
+            "key.bundled_pvk()",
+            "statement.canonical_bytes() == self.shipping_result.input.canonical_statement_bytes",
+            "statement.statement_digest().as_slice() == self.shipping_result.input.statement_digest.as_slice()",
+            "VerifiedBatchItem::from_verified_statement(",
+        ),
+        "aggregate capability issuer",
+        aggregation_backend,
+    )
 
     for relative in (
         "crates/core/component/shielded-pool/src/component/"
@@ -11126,6 +11592,8 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
         "action_handler/transfer.rs",
         "crates/core/component/shielded-pool/src/component/"
         "action_handler/shielded_ics20_withdrawal.rs",
+        "crates/core/component/shielded-pool/src/component/"
+        "action_handler/shielded_host_withdrawal.rs",
     ):
         source = canonical_repo_path(
             root, relative, "action proof sink"
@@ -11191,20 +11659,23 @@ def validate_proof_acceptance_repository_surface(root: Path) -> None:
     if len(rows) != 1:
         reject("external proof-family enforcement map needs one exact row")
     required_symbols = {
-        "DeployedProofKey::ALL",
-        "verify_key_chunks_with_capabilities",
+        "collect_consensus_proof_items_with_artifacts",
+        "independently_verify_proof_families",
         "batch::verify_each_with_capabilities",
-        "DeployedProofKey::bundled_pvk",
-        "Groth16::verify_with_processed_vk",
         "VerifiedBatchItem::ensure_binds",
+        "validate_aggregate_verify_plan_inputs",
+        "plan_aggregate_bundle_verification",
+        "proof_verification_key_for_family",
+        "verify_shipping_family_aggregate_profiled_status",
+        "reduce_aggregate_verify_outcomes",
+        "attach_verified_capabilities",
     }
     missing = {symbol for symbol in required_symbols if symbol not in rows[0]}
     obsolete = {
         symbol
         for symbol in (
-            "proof_verification_key_for_family",
-            "independently_verify_proof_families",
-            "aggregate",
+            "DeployedProofKey::ALL",
+            "verify_key_chunks_with_capabilities",
             "batch::batch_verify",
         )
         if symbol in rows[0]

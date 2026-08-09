@@ -49,6 +49,18 @@ fn trace_events(events: &[Event]) {
     }
 }
 
+fn can_reuse_prepared_proposal(
+    prepared_height: Option<u64>,
+    prepared_digests: &HashSet<[u8; 32]>,
+    proposal_height: u64,
+    proposal_digest: &[u8; 32],
+    force_profile: bool,
+) -> bool {
+    prepared_height == Some(proposal_height)
+        && prepared_digests.contains(proposal_digest)
+        && !force_profile
+}
+
 impl Consensus {
     const QUEUE_SIZE: usize = 10;
 
@@ -72,11 +84,10 @@ impl Consensus {
     ) -> Self {
         let mut app = App::new(storage.latest_snapshot());
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
-        let force_process_proposal_profile =
-            std::env::var("SHIELDD_FORCE_PROCESS_PROPOSAL_PROFILE")
-                .ok()
-                .map(|value| matches!(value.as_str(), "1" | "true" | "TRUE" | "True"))
-                .unwrap_or(false);
+        #[cfg(any(test, feature = "benchmark-helpers"))]
+        let force_process_proposal_profile = super::diagnostics::force_process_proposal_profile();
+        #[cfg(not(any(test, feature = "benchmark-helpers")))]
+        let force_process_proposal_profile = false;
         Self {
             queue,
             storage,
@@ -296,10 +307,13 @@ impl Consensus {
         );
         Self::record_block_tx_count("processed", proposal_tx_count);
         let proposal_digest = Self::proposal_digest(&proposal.txs);
-        if self.prepared_proposal_height == Some(proposal_height)
-            && self.prepared_proposal_digests.contains(&proposal_digest)
-            && !self.force_process_proposal_profile
-        {
+        if can_reuse_prepared_proposal(
+            self.prepared_proposal_height,
+            &self.prepared_proposal_digests,
+            proposal_height,
+            &proposal_digest,
+            self.force_process_proposal_profile,
+        ) {
             let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
             tracing::info!(
                 height = proposal_height,
@@ -438,5 +452,54 @@ impl Consensus {
             data: app_hash.0.to_vec().into(),
             retain_height: 0u32.into(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use super::can_reuse_prepared_proposal;
+
+    #[test]
+    fn prepared_proposal_reuse_requires_same_height_exact_digest_and_normal_mode() {
+        let exact_digest = [7u8; 32];
+        let prepared_digests = HashSet::from([exact_digest]);
+
+        assert!(can_reuse_prepared_proposal(
+            Some(42),
+            &prepared_digests,
+            42,
+            &exact_digest,
+            false,
+        ));
+        assert!(!can_reuse_prepared_proposal(
+            Some(42),
+            &prepared_digests,
+            43,
+            &exact_digest,
+            false,
+        ));
+        assert!(!can_reuse_prepared_proposal(
+            Some(42),
+            &prepared_digests,
+            42,
+            &[8u8; 32],
+            false,
+        ));
+        assert!(!can_reuse_prepared_proposal(
+            Some(42),
+            &prepared_digests,
+            42,
+            &exact_digest,
+            true,
+        ));
+        assert!(!can_reuse_prepared_proposal(
+            None,
+            &prepared_digests,
+            42,
+            &exact_digest,
+            false,
+        ));
     }
 }

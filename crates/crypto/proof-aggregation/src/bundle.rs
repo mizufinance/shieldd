@@ -184,14 +184,6 @@ fn family_route_error_message(err: FamilyRouteError, family_id: i32) -> anyhow::
     }
 }
 
-impl TryFrom<i32> for ProofFamilyId {
-    type Error = anyhow::Error;
-
-    fn try_from(value: i32) -> Result<Self> {
-        Self::try_from_proto_fields(value, 0, 0)
-    }
-}
-
 impl DomainType for AggregateBundle {
     type Proto = pb::AggregateBundle;
 }

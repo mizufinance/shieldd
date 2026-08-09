@@ -87,6 +87,11 @@ def validate_no_existing_id_collisions(existing_ids: Iterable[str]) -> None:
 PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
     "ACTION-ANCHOR-CONSISTENCY": (
         *_specs(
+            "boundary_negative",
+            "crates/core/component/sct/src/component/tree.rs",
+            "sct_capacity_is_checked_before_block_mutation",
+        ),
+        *_specs(
             "parity",
             "crates/crypto/tct/src/commitment.rs",
             "roundtrip_json_zero",
@@ -154,6 +159,14 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
     "ANCHOR-FRESHNESS": (
         *_specs(
             "invariant",
+            "crates/core/app/src/action_handler/transaction.rs",
+            """
+            anchor_validation_cache_counts_shared_pair_once
+            claimed_anchor_validation_cache_counts_shared_anchor_once
+            """,
+        ),
+        *_specs(
+            "invariant",
             "crates/core/app/src/params/change.rs",
             "compliance_anchor_validation_window_may_change",
         ),
@@ -200,6 +213,19 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
         ),
     ),
     "DETECTION-CORRECTNESS": (
+        *_specs(
+            "invariant",
+            "crates/core/component/shielded-pool/src/discovery.rs",
+            """
+            tag_masks_every_precision_canonically
+            tag_prefixes_are_stable_across_precision_changes
+            """,
+        ),
+        *_specs(
+            "boundary_negative",
+            "crates/core/component/shielded-pool/src/discovery.rs",
+            "decoding_rejects_non_canonical_unused_bits",
+        ),
         *_specs(
             "invariant",
             "crates/core/component/compliance/src/issuer_keys.rs",
@@ -283,7 +309,7 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             """
             address_components_reject_identity_diversified_generator
             address_components_reject_identity_or_invalid_transmission_key
-            rejects_noncanonical_clue_key_field_alias
+            rejects_noncanonical_discovery_key_field_alias
             """,
         ),
         *_specs(
@@ -343,7 +369,10 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
         *_specs(
             "parity",
             "crates/core/keys/src/test_keys.rs",
-            "test_fvk_matches",
+            """
+            test_addresses_match_viewing_key
+            test_fvk_matches
+            """,
         ),
     ),
     "OUTPUT-WELL-FORMEDNESS": (
@@ -376,6 +405,16 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             "attack_reproduction",
             "crates/core/app/src/app/mod.rs",
             "artifact_extraction_cannot_bypass_action_stateless_checks",
+        ),
+        *_specs(
+            "integration",
+            "crates/core/app/src/app/host.rs",
+            "host_execution_accepts_withdrawals_for_registered_assets",
+        ),
+        *_specs(
+            "boundary_negative",
+            "crates/core/app/src/app/host.rs",
+            "standalone_execution_rejects_host_withdrawals",
         ),
         *_specs(
             "invariant",
@@ -432,6 +471,11 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
         ),
         *_specs(
             "boundary_negative",
+            "crates/core/component/shielded-pool/src/shielded_host_withdrawal/action.rs",
+            "unknown_family_id_is_rejected_at_wire_boundary",
+        ),
+        *_specs(
+            "boundary_negative",
             "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
             "serde_rejects_unknown_and_retired_family_ids",
         ),
@@ -448,6 +492,11 @@ PROPERTY_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
         ),
     ),
     "REGULATED-STATUS-SOUNDNESS": (
+        *_specs(
+            "invariant",
+            "crates/core/component/compliance/src/registry.rs",
+            "user_leaf_record_is_compact_and_authenticated",
+        ),
         *_specs(
             "invariant",
             "crates/core/component/compliance/src/action_check.rs",
@@ -843,6 +892,145 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
     "FV-REDUNDANT-AGGREGATION-INTEGRITY": (
         *_specs(
             "negative",
+            "crates/core/app/src/app/preconsensus.rs",
+            """
+            decode_artifact_do_not_panic
+            decode_batch_item_do_not_panic
+            """,
+        ),
+        *_specs(
+            "boundary_negative",
+            (
+                "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
+                "applications/groth16_aggregation.rs"
+            ),
+            """
+            aggregate_adapter_core_preserves_error_order_and_kind
+            aggregate_adapter_core_queries_last_nonce_and_fails_closed
+            arkworks_tipp_adapter_core_stops_at_first_serialization_error
+            malformed_identity_outputs_reject_before_transcript_or_folding
+            prover_randomizer_core_rebuilds_exact_message_and_fails_closed
+            shipping_nonce_exhaustion_maps_exact_public_error
+            validated_aggregate_proof_is_scalar_and_cannot_be_bypassed
+            """,
+        ),
+        *_specs(
+            "invariant",
+            (
+                "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/"
+                "applications/groth16_aggregation.rs"
+            ),
+            """
+            aggregate_adapter_core_accepts_success_at_last_nonce
+            aggregate_adapter_core_retries_and_installs_one_randomizer
+            aggregate_adapter_core_shipping_semantic_execution_retains_exact_output
+            aggregate_adapter_input_constructors_preserve_every_field
+            aggregate_prover_initial_commitment_projection_preserves_tuple_and_error_order
+            aggregate_prover_profiled_preserves_proof_bytes_and_trace
+            aggregate_randomizer_message_is_exact_commitment_order
+            arkworks_tipp_adapter_core_routes_exact_stage_messages
+            combined_input_projection_preserves_shipping_inputs
+            padding_pairing_coalescing_is_exact_on_bls12_377
+            padding_pairing_coalescing_is_exact_on_bls12_381
+            post_gipa_challenge_cores_preserve_stage_bytes_and_error_order
+            prover_and_verifier_share_randomizer_admissibility
+            prover_gipa_core_owns_round_order_and_all_terminal_folds
+            prover_gipa_semantic_execution_owns_call_and_round_effect_chronology
+            prover_round_commitment_core_exposes_exact_operands_and_error_order
+            prover_structural_cores_preserve_fold_and_round_field_order
+            scalar_identity_serialization_matches_arkworks_singleton_vector
+            shared_gt_fold_matches_sequential_bls12_377
+            shared_gt_fold_matches_sequential_bls12_381
+            shipping_aggregate_prover_projection_retains_prelude_and_wire_execution
+            shipping_verifier_observation_core_preserves_empty_phase_boundaries
+            shipping_verifier_observed_backend_result_core_correlates_before_arc
+            shipping_verifier_semantic_execution_with_traces_core_preserves_exact_states
+            tipp_mipp_challenge_prefix_exposes_exact_shipping_values
+            """,
+        ),
+        *_specs(
+            "invariant",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+            """
+            fold_output_matches_direct_expression
+            rescale_fold_matches_elementwise_expression
+            """,
+        ),
+        *_specs(
+            "invariant",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+            """
+            affine_kzg_profiled_projects_exact_quotient_msm
+            kzg_opening_core_owns_construction_order_and_projection
+            kzg_opening_msm_core_forwards_exact_vectors_and_error
+            polynomial_coefficients_match_direct_expansion
+            polynomial_evaluation_product_form_matches_coefficients
+            synthetic_division_constructs_exact_monic_linear_quotient
+            """,
+        ),
+        *_specs(
+            "boundary_negative",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+            """
+            accepted_join_projection_is_exact_and_fail_closed
+            plan_compares_concrete_family_and_count_values_in_failure_order
+            preflight_checks_every_header_before_segment_planning
+            reduction_rejects_missing_duplicate_and_unexpected_tags
+            repeat_final_rows_accepts_only_the_empty_zero_target
+            repeat_final_rows_rejects_a_smaller_target
+            shipping_input_rejects_cross_record_substitution
+            shipping_projection_accepts_exact_input_and_preserves_failure_order
+            """,
+        ),
+        *_specs(
+            "invariant",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+            """
+            ids_are_exact_and_reduction_is_permutation_invariant
+            repeat_final_rows_preserves_prefix_and_fills_suffix
+            shipping_call_constructor_preserves_every_checked_field
+            shipping_input_and_result_preserve_every_authenticated_field
+            shipping_preflight_projection_cores_preserve_exact_parts
+            shipping_protocol_version_root_is_current
+            shipping_statement_preflight_retains_exact_padding_provenance
+            shipping_wrapper_projection_preserves_exact_parts
+            """,
+        ),
+        *_specs(
+            "boundary_negative",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+            """
+            bounded_challenge_sampler_preserves_attempt_error_before_exhaustion
+            bounded_challenge_sampler_rejection_at_max_fails_closed
+            """,
+        ),
+        *_specs(
+            "invariant",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+            """
+            bounded_challenge_sampler_accepts_success_at_max_nonce
+            bounded_challenge_sampler_immediate_success_queries_nonce_zero_once
+            bounded_challenge_sampler_nonce_helpers_match_core_boundaries
+            bounded_challenge_sampler_queries_before_incrementing
+            bounded_challenge_sampler_retries_rejections_in_nonce_order
+            challenge_preimage_core_is_the_shipping_frame
+            """,
+        ),
+        *_specs(
+            "boundary_negative",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+            """
+            statement_hash_core_stops_at_every_failing_stage
+            wrapper_decode_and_binding_are_exact_and_fail_closed
+            """,
+        ),
+        *_specs(
+            "invariant",
+            "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+            "statement_hash_core_retains_exact_order_and_values",
+        ),
+        *_specs(
+            "negative",
             "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
             """
             wrapper_decode_core_returns_inner_proof_range
@@ -856,24 +1044,36 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
         *_specs(
             "parity",
             "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
-            "wrapper_round_trips_inner_proof",
+            """
+            arbitrary_external_wrapper_decode_is_retained_exactly
+            wrapper_round_trips_inner_proof
+            """,
         ),
         *_specs(
             "parity",
             "crates/crypto/proof-aggregation/src/backend.rs",
             """
-            aggregate_bytes_match_committed_baseline
             aggregation_is_deterministic_for_fixed_inputs
             arkworks_g1_g2_compressed_round_trip_and_identity
             arkworks_msm_boundary_zero_scalar_identity_and_random_parity
             arkworks_pairing_identity_and_generator_consistency
+            bls12_377_fr_from_random_bytes_documents_shipping_reduction_boundary
             decaf377_vk_digest_round_trips_after_serialization
+            fast_bls12_377_gt_validation_matches_arkworks_on_structured_inputs
+            note_reshape_shipping_and_profiled_aggregation_bytes_match
             ppe_optimized_matches_baseline_gt_value
             prover_verifier_acceptance_parity
+            shipping_and_ordinary_profiled_routes_match_all_registered_families
             snarkpack_matches_legacy_batch_across_families_and_counts
             snarkpack_matches_single_and_batch_groth16_oracles
             snarkpack_property_matches_legacy_batch_oracle
+            v1_bytes_and_transcript_match_committed_baselines
             """,
+        ),
+        *_specs(
+            "invariant",
+            "crates/crypto/proof-aggregation/src/backend.rs",
+            "shipping_backend_result_materializes_the_exact_authenticated_input",
         ),
         *_specs(
             "negative",
@@ -885,6 +1085,8 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             malformed_aggregate_proof_oversize_rejected_before_deserialization
             preflight_aggregate_verify_do_not_panic
             preflight_rejects_oversize_before_inner_deserialization
+            shipping_preflight_preserves_srs_wrapper_and_vk_failure_order
+            shipping_preflight_rejects_cross_call_substitution_after_wire_checks
             snarkpack_backend_rejects_malformed_aggregate_bytes
             snarkpack_backend_rejects_mutated_public_inputs
             snarkpack_backend_rejects_wrong_family_id
@@ -904,12 +1106,18 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
         *_specs(
             "boundary_negative",
             "crates/crypto/proof-aggregation/src/bundle.rs",
-            "aggregate_bundle_decode_rejects_invalid_family_routes",
+            """
+            aggregate_bundle_decode_rejects_unspecified_family
+            family_router_rejects_unknown_missing_and_cross_family_fields
+            """,
         ),
         *_specs(
             "parity",
             "crates/crypto/proof-aggregation/src/bundle.rs",
-            "aggregate_bundle_private_wire_round_trip",
+            """
+            aggregate_bundle_proto_round_trip
+            canonical_family_fields_round_trip_through_router
+            """,
         ),
         *_specs(
             "invariant",
@@ -918,6 +1126,7 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             empty_input_stays_empty
             pads_by_repeating_last_item
             prepare_verify_inputs_matches_full_padding
+            row_projection_preserves_caller_order_before_repeat_final_suffix
             """,
         ),
         *_specs(
@@ -930,8 +1139,20 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
             "crates/crypto/proof-aggregation/src/srs.rs",
             """
             default_srs_id_prefix_matches_declared_fields
+            development_srs_is_never_registered
+            production_registry_fails_closed_until_ceremony_entry_is_pinned
             srs_id_changes_with_parameters
             srs_id_is_stable
+            """,
+        ),
+        *_specs(
+            "boundary_negative",
+            "crates/crypto/proof-aggregation/src/srs.rs",
+            """
+            matching_digest_still_requires_strict_canonical_srs_decoding
+            production_artifact_hash_is_checked_before_decoding
+            production_artifact_read_is_bounded_by_actual_bytes
+            production_registry_rejects_noncanonical_identifier_length
             """,
         ),
         *_specs(
@@ -981,7 +1202,10 @@ ARTIFACT_OWNER_SPECS: dict[str, tuple[TestSpec, ...]] = {
         *_specs(
             "invariant",
             "crates/crypto/proof-aggregation/src/transcript.rs",
-            "transcript_family_domains_are_unique",
+            """
+            every_registered_digest_hashes_family_domain_then_challenge_frame
+            transcript_family_domains_are_exact_and_unique
+            """,
         ),
     ),
 }
@@ -1010,8 +1234,28 @@ ARTIFACT_SOURCE_CENSUS = tuple(
 # cryptographic subroutine and diagnostic tests remain ordinary CI tests; they
 # cannot satisfy a four-circuit evidence owner.
 EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
+    "crates/bin/orbis-integration/src/demo_config.rs": _symbols(
+        """
+        runtime_endpoints_are_typed_and_complete
+        runtime_endpoints_reject_missing_schemes
+        """
+    ),
     "crates/core/app-tests/tests/app_blocktimes_increment.rs": _symbols(
         "mock_tendermint_block_times_correct"
+    ),
+    "crates/core/app/src/action_handler/transaction.rs": _symbols(
+        """
+        nonzero_timestamps_still_enforce_timestamp_freshness
+        zero_timestamp_is_allowed_when_benchmark_override_is_set
+        zero_timestamp_requires_benchmark_override
+        """
+    ),
+    "crates/core/app/src/app/host.rs": _symbols(
+        """
+        accepted_host_tx_response_accepts_empty_withdrawals
+        host_execution_reports_only_the_latest_committed_state
+        host_withdrawals_resolve_registered_asset_to_base_denom
+        """
     ),
     (
         "crates/core/app-tests/tests/"
@@ -1070,9 +1314,6 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
     ),
     "crates/core/app/src/action_handler/actions/submit.rs": _symbols(
         "parameter_change_proposals_remain_enabled_statelessly"
-    ),
-    "crates/core/app/src/app/mod.rs": _symbols(
-        "clue_record_failure_rolls_back_all_transaction_effects_and_source"
     ),
     "crates/core/app/src/app_version/component.rs": _symbols(
         "ensure_app_version_is_current_in_checks"
@@ -1302,14 +1543,24 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
     "crates/core/component/shielded-pool/src/component/rpc/transfer_query.rs": _symbols(
         "transfer_query_stream_errors_propagate"
     ),
-    "crates/core/component/shielded-pool/src/fmd.rs": _symbols(
+    "crates/core/component/shielded-pool/src/host_withdrawal.rs": _symbols(
         """
-        clue_count_delta_rejects_decreasing_counts
-        fmd_state_machine_transition_table_covers_algorithms_and_states
+        validate_accepts_non_empty_recipient_and_amount
+        validate_rejects_empty_recipient
+        validate_rejects_zero_amount
         """
     ),
     "crates/core/component/shielded-pool/src/gnark/mod.rs": _symbols(
         "repo_local_demo_gnark_libraries_are_loadable"
+    ),
+    "crates/core/component/sct/src/component/tree.rs": _symbols(
+        """
+        sct_delete_range_deletes_only_materialized_rows
+        sct_nv_storage_skips_recalculable_hashes
+        """
+    ),
+    "crates/core/component/sct/src/nullifier_tree.rs": _symbols(
+        "stale_nullifier_schema_fails_closed"
     ),
     "crates/core/component/stake/src/component/stake/tests.rs": _symbols(
         "test_persistent_identity_by_ck"
@@ -1438,9 +1689,6 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
     ),
     "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs": _symbols(
         """
-        aggregate_core_acceptance_is_exact_boolean_conjunction
-        aggregate_core_propagates_challenge_and_combined_errors
-        aggregate_core_retries_invalid_decodings_and_degenerate_randomizers_in_order
         aggregate_profiled_baseline_matches_normal_acceptance
         aggregate_profiled_matches_normal_acceptance
         combined_checks_rejects_malformed_counts_before_downstream_calls
@@ -1542,6 +1790,13 @@ EXCLUSION_SYMBOLS: dict[str, tuple[str, ...]] = {
         zero_fee_validator_vote_plans_without_funding_transfer
         """
     ),
+    "crates/view/src/service.rs": _symbols(
+        """
+        only_known_not_submitted_or_non_unavailable_status_skips_reconciliation
+        unavailable_with_matching_transaction_recovers_height
+        unavailable_without_matching_transaction_remains_unavailable
+        """
+    ),
     "crates/view/src/storage/compliance.rs": _symbols(
         "compliance_store_spot_check"
     ),
@@ -1583,6 +1838,7 @@ OUT_OF_SCOPE_EXCLUSION_PATHS = frozenset(
         "crates/bin/pd/src/network/generate.rs",
         "crates/bin/pd/src/network/join.rs",
         "crates/core/app/src/action_handler/actions/submit.rs",
+        "crates/core/app/src/app/host.rs",
         "crates/core/app/src/genesis.rs",
         "crates/core/asset/src/asset/denom_metadata.rs",
         "crates/core/asset/src/asset/id.rs",
@@ -1609,7 +1865,7 @@ OUT_OF_SCOPE_EXCLUSION_PATHS = frozenset(
         "crates/core/component/shielded-pool/src/backref.rs",
         "crates/core/component/shielded-pool/src/component/rpc/bank_query.rs",
         "crates/core/component/shielded-pool/src/component/rpc/transfer_query.rs",
-        "crates/core/component/shielded-pool/src/fmd.rs",
+        "crates/core/component/shielded-pool/src/host_withdrawal.rs",
         "crates/core/component/stake/src/uptime.rs",
         "crates/core/keys/src/address/view.rs",
         "crates/core/keys/src/keys/bip44.rs",
@@ -1628,6 +1884,7 @@ OUT_OF_SCOPE_EXCLUSION_PATHS = frozenset(
         "crates/custody/src/threshold/config.rs",
         "crates/custody/src/threshold/dkg/encryption.rs",
         "crates/view/src/note_manager.rs",
+        "crates/view/src/service.rs",
         "crates/view/src/storage/compliance.rs",
         "crates/view/src/storage/sct.rs",
     }
@@ -1635,6 +1892,7 @@ OUT_OF_SCOPE_EXCLUSION_PATHS = frozenset(
 
 ALTERNATE_FIXTURE_EXCLUSION_PATHS = frozenset(
     {
+        "crates/bin/orbis-integration/src/demo_config.rs",
         "crates/core/component/shielded-pool/src/gnark/mod.rs",
         "crates/core/keys/src/address.rs",
     }
@@ -1642,12 +1900,14 @@ ALTERNATE_FIXTURE_EXCLUSION_PATHS = frozenset(
 SUPPORTING_EXCLUSION_PATHS = frozenset(
     {
         "crates/core/app-tests/tests/app_blocktimes_increment.rs",
-        "crates/core/app/src/app/mod.rs",
+        "crates/core/app/src/action_handler/transaction.rs",
         "crates/core/app/src/app_version/component.rs",
         "crates/core/asset/src/balance/imbalance.rs",
         "crates/core/asset/src/balance.rs",
         "crates/core/asset/src/value.rs",
         "crates/core/component/stake/src/component/stake/tests.rs",
+        "crates/core/component/sct/src/component/tree.rs",
+        "crates/core/component/sct/src/nullifier_tree.rs",
         "crates/core/num/src/amount.rs",
         "crates/custody/src/threshold.rs",
         "crates/crypto/proof-aggregation/src/backend.rs",

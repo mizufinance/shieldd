@@ -117,6 +117,7 @@ shieldd-sdk-compliance           = { workspace = true, features = ["test-helpers
 shieldd-sdk-mock-client         = { workspace = true }
 shieldd-sdk-mock-consensus      = { workspace = true }
 shieldd-sdk-proto               = { workspace = true, features = ["box-grpc"] }
+shieldd-sdk-shielded-pool       = { workspace = true, default-features = false, features = ["benchmark-helpers"] }
 proptest                         = { workspace = true }
 rand                             = { workspace = true }
 rand_chacha                      = { workspace = true }

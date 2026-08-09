@@ -708,7 +708,11 @@ where
                 }
                 profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
             }
-            _ => {
+            action @ (Action::ValidatorDefinition(_)
+            | Action::ValidatorVote(_)
+            | Action::ProposalSubmit(_)
+            | Action::ComplianceRegisterAsset(_)
+            | Action::ComplianceRegisterUser(_)) => {
                 if action_spans_enabled {
                     let span = action.create_span(i);
                     action
@@ -720,6 +724,9 @@ where
                 }
                 profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
             }
+            Action::AggregateBundle(_) => anyhow::bail!(
+                "aggregate bundle actions are only permitted in the dedicated aggregation pipeline"
+            ),
         }
     }
     if let Some(fee_funding) = &tx.transaction_body.fee_funding {
@@ -1107,9 +1114,8 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
 }
 
 fn check_action_timestamp_freshness(target_timestamp: u64, block_timestamp: u64) -> Result<()> {
-    if target_timestamp == 0
-        && std::env::var_os("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP").is_some()
-    {
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    if target_timestamp == 0 && crate::app::benchmark_zero_timestamp_allowed() {
         return Ok(());
     }
     check_timestamp_freshness(
@@ -1194,7 +1200,47 @@ mod tests {
 
     use crate::action_handler::AppActionHandler;
 
-    use super::{AnchorValidationCache, ClaimedAnchorValidationCache};
+    use super::{
+        drain_joinset_results, transaction_action_count_allowed,
+        transaction_nullifier_count_allowed, AnchorValidationCache, ClaimedAnchorValidationCache,
+    };
+
+    #[test]
+    fn transaction_action_count_policy_is_fixed_at_boundary() {
+        assert!(transaction_action_count_allowed(512, false));
+        assert!(!transaction_action_count_allowed(513, false));
+        assert!(transaction_action_count_allowed(511, true));
+        assert!(!transaction_action_count_allowed(512, true));
+        assert!(!transaction_action_count_allowed(usize::MAX, true));
+    }
+
+    #[test]
+    fn transaction_nullifier_count_policy_is_fixed_at_boundary() {
+        assert!(transaction_nullifier_count_allowed(256));
+        assert!(!transaction_nullifier_count_allowed(257));
+        assert!(!transaction_nullifier_count_allowed(usize::MAX));
+    }
+
+    #[tokio::test]
+    async fn structured_join_drain_waits_for_transaction_siblings_after_error() {
+        let completed = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let mut tasks = tokio::task::JoinSet::new();
+        tasks.spawn(async { anyhow::bail!("injected task failure") });
+        let completed_by_sibling = completed.clone();
+        tasks.spawn(async move {
+            tokio::task::yield_now().await;
+            completed_by_sibling.store(true, std::sync::atomic::Ordering::SeqCst);
+            Ok::<(), anyhow::Error>(())
+        });
+
+        let result = drain_joinset_results(&mut tasks, "injected transaction task panic").await;
+        assert!(result.is_err());
+        assert!(
+            completed.load(std::sync::atomic::Ordering::SeqCst),
+            "the sibling must complete before the first error is returned"
+        );
+        assert!(tasks.is_empty());
+    }
 
     #[tokio::test]
     async fn anchor_validation_cache_counts_shared_pair_once() -> Result<()> {

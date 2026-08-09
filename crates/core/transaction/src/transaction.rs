@@ -172,7 +172,13 @@ impl Transaction {
                 | Action::NoteReshape(_)
                 | Action::ShieldedIcs20Withdrawal(_)
                 | Action::ShieldedHostWithdrawal(_) => 1,
-                _ => 0,
+                Action::ValidatorDefinition(_)
+                | Action::ValidatorVote(_)
+                | Action::ProposalSubmit(_)
+                | Action::IbcRelay(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_)
+                | Action::AggregateBundle(_) => 0,
             })
             .sum::<usize>()
             + usize::from(self.transaction_body.fee_funding.is_some())
@@ -575,7 +581,13 @@ impl Transaction {
                 Action::NoteReshape(note_reshape) => note_reshape.body.inputs.len(),
                 Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.body.inputs.len(),
                 Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.body.inputs.len(),
-                _ => 0,
+                Action::ValidatorDefinition(_)
+                | Action::ValidatorVote(_)
+                | Action::ProposalSubmit(_)
+                | Action::IbcRelay(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_)
+                | Action::AggregateBundle(_) => 0,
             };
             count.saturating_add(action_count)
         });

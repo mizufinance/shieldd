@@ -79,9 +79,8 @@
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -128,16 +127,15 @@
             "symbols": [
               "deliver_tx_bytes",
               "deliver_tx_bytes_impl_profiled",
-              "execute_verified_tx_profiled"
+              "execute_tx_checked_historical_profiled"
             ]
           },
           {
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -192,9 +190,8 @@
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -241,19 +238,22 @@
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "process_proposal_v2_profiled",
-              "process_proposal_independent",
-              "extracted_for_consensus_reverification",
-              "verify_tx_artifacts_for_stage",
-              "execute_verified_tx_profiled"
+              "ensure_aggregate_bundle_tx_shape",
+              "verify_aggregate_bundle_for_artifacts",
+              "deliver_tx_with_verified_stateless_profiled"
             ]
           },
           {
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
-              "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "ensure_aggregate_bundle_tx_shape",
+              "validate_aggregate_verify_plan_inputs",
+              "plan_aggregate_bundle_verification",
+              "execute_aggregate_verify_call",
+              "app_verify_accepted_join_projection_core",
+              "reduce_aggregate_verify_outcomes",
+              "verified_statement_capabilities",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -265,10 +265,12 @@
             ]
           },
           {
-            "path": "crates/crypto/proof-params/src/batch.rs",
+            "path": "crates/crypto/proof-aggregation/src/app_verifier.rs",
             "symbols": [
-              "pub fn verify_each_with_capabilities",
-              "verify_with_processed_vk"
+              "app_verify_preflight_core",
+              "app_verify_plan_identity_core",
+              "app_verify_plan_padding_core",
+              "app_verify_accepted_join_projection_core"
             ]
           }
         ],
@@ -302,6 +304,7 @@
               "Action::Transfer(action)",
               "Action::NoteReshape(action)",
               "Action::ShieldedIcs20Withdrawal(action)",
+              "Action::ShieldedHostWithdrawal(action)",
               "action.check_stateless(context).await"
             ]
           },
@@ -324,6 +327,42 @@
         ],
         "test_ids": [
           "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF"
+        ]
+      },
+      {
+        "id": "SINK-ACTION-HOST-WITHDRAWAL-CHECK-STATELESS",
+        "profiles": [
+          "shielded_ics20_withdrawal"
+        ],
+        "entrypoint": {
+          "path": "crates/core/component/shielded-pool/src/component/action_handler/shielded_host_withdrawal.rs",
+          "symbols": [
+            "async fn check_stateless"
+          ]
+        },
+        "terminal_effects": [
+          "stateless_accept"
+        ],
+        "required_guards": [
+          {
+            "path": "crates/core/component/shielded-pool/src/component/action_handler/shielded_host_withdrawal.rs",
+            "symbols": [
+              "shielded_host_withdrawal_check_stateless_and_extract",
+              "batch::verify_each",
+              "proof_verification_key"
+            ]
+          },
+          {
+            "path": "crates/crypto/proof-params/src/batch.rs",
+            "symbols": [
+              "pub fn verify_each",
+              "verify_with_processed_vk"
+            ]
+          }
+        ],
+        "test_ids": [
+          "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+          "WITHDRAWAL-RAW-EXECUTION-REQUIRES-CAPABILITY"
         ]
       },
       {
@@ -449,7 +488,7 @@
             "deliver_tx_bytes",
             "deliver_tx_bytes_impl_profiled",
             "deliver_tx_with_stateless_extraction_caching_profiled",
-            "execute_verified_tx_profiled"
+            "execute_tx_checked_historical_profiled"
           ]
         },
         "terminal_effects": [
@@ -462,9 +501,8 @@
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -512,9 +550,8 @@
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -562,18 +599,95 @@
           {
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
-              "process_proposal_independent",
-              "extracted_for_consensus_reverification",
+              "ensure_aggregate_bundle_tx_shape",
+              "verify_aggregate_bundle_for_artifacts",
+              "deliver_tx_with_verified_stateless_profiled",
               "response::ProcessProposal::Accept"
             ]
           },
           {
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
+              "ensure_aggregate_bundle_tx_shape",
+              "validate_aggregate_verify_plan_inputs",
+              "plan_aggregate_bundle_verification",
+              "execute_aggregate_verify_call",
+              "app_verify_accepted_join_projection_core",
+              "reduce_aggregate_verify_outcomes",
+              "verified_statement_capabilities",
+              "attach_verified_capabilities"
+            ]
+          },
+          {
+            "path": "crates/core/app/src/stateless_cache.rs",
+            "symbols": [
+              "VerifiedTxArtifact",
+              "VerifiedBatchItem",
+              "ensure_binds"
+            ]
+          },
+          {
+            "path": "crates/crypto/proof-aggregation/src/app_verifier.rs",
+            "symbols": [
+              "app_verify_preflight_core",
+              "app_verify_plan_identity_core",
+              "app_verify_plan_padding_core",
+              "app_verify_accepted_join_projection_core"
+            ]
+          }
+        ],
+        "test_ids": [
+          "APP-PROCESS-REJECTS-INVALID-PROOF",
+          "FEE-FUNDING-PROCESS-REJECTS-INVALID-PROOF"
+        ]
+      },
+      {
+        "id": "SINK-FFI-HOST-CHECK-TX",
+        "profiles": [
+          "note_reshape1x8",
+          "note_reshape8x1",
+          "shielded_ics20_withdrawal",
+          "transfer"
+        ],
+        "entrypoint": {
+          "path": "crates/bin/shieldd/src/ffi.rs",
+          "symbols": [
+            "METHOD_CHECK_TX",
+            "async fn dispatch"
+          ]
+        },
+        "terminal_effects": [
+          "stateless_accept"
+        ],
+        "required_guards": [
+          {
+            "path": "crates/bin/shieldd/src/ffi.rs",
+            "symbols": [
+              "METHOD_CHECK_TX => service",
+              ".check_tx(decode(request)?)",
+              ".map_err(FfiError::service)"
+            ]
+          },
+          {
+            "path": "crates/bin/shieldd/src/service.rs",
+            "symbols": [
+              "pub async fn check_tx",
+              ".check_tx(&request.tx)"
+            ]
+          },
+          {
+            "path": "crates/core/app/src/app/host.rs",
+            "symbols": [
+              "pub async fn check_tx",
+              ".deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))"
+            ]
+          },
+          {
+            "path": "crates/core/app/src/app/mod.rs",
+            "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -593,8 +707,79 @@
           }
         ],
         "test_ids": [
-          "APP-PROCESS-REJECTS-INVALID-PROOF",
-          "FEE-FUNDING-PROCESS-REJECTS-INVALID-PROOF"
+          "HOST-DELIVERY-REJECTS-INVALID-PROOF",
+          "RUNTIME-FFI-CHECKTX-PROOF-FRONTDOOR"
+        ]
+      },
+      {
+        "id": "SINK-FFI-HOST-DELIVER-TX",
+        "profiles": [
+          "note_reshape1x8",
+          "note_reshape8x1",
+          "shielded_ics20_withdrawal",
+          "transfer"
+        ],
+        "entrypoint": {
+          "path": "crates/bin/shieldd/src/ffi.rs",
+          "symbols": [
+            "METHOD_DELIVER_TX",
+            "async fn dispatch"
+          ]
+        },
+        "terminal_effects": [
+          "state_mutation",
+          "transaction_accept"
+        ],
+        "required_guards": [
+          {
+            "path": "crates/bin/shieldd/src/ffi.rs",
+            "symbols": [
+              "METHOD_DELIVER_TX => service",
+              ".deliver_tx(decode(request)?)",
+              ".map_err(FfiError::service)"
+            ]
+          },
+          {
+            "path": "crates/bin/shieldd/src/service.rs",
+            "symbols": [
+              "pub async fn deliver_tx",
+              ".deliver_tx(&request.tx)"
+            ]
+          },
+          {
+            "path": "crates/core/app/src/app/host.rs",
+            "symbols": [
+              "pub async fn deliver_tx",
+              ".deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))"
+            ]
+          },
+          {
+            "path": "crates/core/app/src/app/mod.rs",
+            "symbols": [
+              "collect_consensus_proof_items_with_artifacts",
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
+            ]
+          },
+          {
+            "path": "crates/core/app/src/stateless_cache.rs",
+            "symbols": [
+              "VerifiedTxArtifact",
+              "VerifiedBatchItem",
+              "ensure_binds"
+            ]
+          },
+          {
+            "path": "crates/crypto/proof-params/src/batch.rs",
+            "symbols": [
+              "pub fn verify_each_with_capabilities",
+              "verify_with_processed_vk"
+            ]
+          }
+        ],
+        "test_ids": [
+          "HOST-DELIVERY-REJECTS-INVALID-PROOF",
+          "RUNTIME-FFI-DELIVERTX-PROOF-FRONTDOOR"
         ]
       },
       {
@@ -606,7 +791,7 @@
           "transfer"
         ],
         "entrypoint": {
-          "path": "crates/bin/shieldd/src/execution_client.rs",
+          "path": "crates/bin/shieldd/src/grpc.rs",
           "symbols": [
             "async fn check_tx"
           ]
@@ -616,9 +801,17 @@
         ],
         "required_guards": [
           {
-            "path": "crates/bin/shieldd/src/execution_client.rs",
+            "path": "crates/bin/shieldd/src/grpc.rs",
             "symbols": [
-              ".check_tx(&request.into_inner().tx)"
+              ".check_tx(request.into_inner())",
+              ".map_err(status)"
+            ]
+          },
+          {
+            "path": "crates/bin/shieldd/src/service.rs",
+            "symbols": [
+              "pub async fn check_tx",
+              ".check_tx(&request.tx)"
             ]
           },
           {
@@ -632,9 +825,8 @@
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -667,7 +859,7 @@
           "transfer"
         ],
         "entrypoint": {
-          "path": "crates/bin/shieldd/src/execution_client.rs",
+          "path": "crates/bin/shieldd/src/grpc.rs",
           "symbols": [
             "async fn deliver_tx"
           ]
@@ -678,9 +870,17 @@
         ],
         "required_guards": [
           {
-            "path": "crates/bin/shieldd/src/execution_client.rs",
+            "path": "crates/bin/shieldd/src/grpc.rs",
             "symbols": [
-              ".deliver_tx(&request.into_inner().tx)"
+              ".deliver_tx(request.into_inner())",
+              ".map_err(status)"
+            ]
+          },
+          {
+            "path": "crates/bin/shieldd/src/service.rs",
+            "symbols": [
+              "pub async fn deliver_tx",
+              ".deliver_tx(&request.tx)"
             ]
           },
           {
@@ -694,9 +894,8 @@
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -748,9 +947,8 @@
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -803,9 +1001,8 @@
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -862,7 +1059,8 @@
             "symbols": [
               "Action::Transfer(action)",
               "Action::NoteReshape(action)",
-              "Action::ShieldedIcs20Withdrawal(action)"
+              "Action::ShieldedIcs20Withdrawal(action)",
+              "Action::ShieldedHostWithdrawal(action)"
             ]
           },
           {
@@ -888,8 +1086,8 @@
         "entrypoint": {
           "path": "crates/core/app/src/stateless_cache.rs",
           "symbols": [
-            "CacheEntry::Groth16Verified",
-            "pub(crate) fn insert_groth16_verified"
+            "CacheEntry::FullyVerified",
+            "pub fn insert_fully_verified"
           ]
         },
         "terminal_effects": [
@@ -909,9 +1107,8 @@
             "path": "crates/core/app/src/app/mod.rs",
             "symbols": [
               "collect_consensus_proof_items_with_artifacts",
-              "independently_verify_proof_keys",
-              "verify_key_chunks_with_capabilities",
-              "attach_verified_proofs"
+              "independently_verify_proof_families",
+              "attach_verified_capabilities"
             ]
           },
           {
@@ -938,92 +1135,20 @@
     ],
     "nonproduction_exclusions": [
       {
-        "id": "EXCLUSION-BENCH-BLOCK-EXECUTION",
+        "id": "EXCLUSION-FUZZ-AGGREGATE-SHAPE",
         "source": {
           "path": "crates/core/app/src/app/mod.rs",
           "symbols": [
-            "execute_block_profiled",
-            "prepare_proposal_v2_profiled_allow_oversized_for_bench",
-            "process_proposal_v2_profiled_allow_oversized_for_bench"
+            "ensure_aggregate_bundle_tx_shape_for_fuzz"
           ]
         },
         "guard": {
           "path": "crates/core/app/src/app/mod.rs",
           "symbols": [
-            "#[cfg(any(test, feature = \"benchmark-helpers\"))]"
+            "#[cfg(feature = \"fuzzing\")]"
           ]
         },
-        "reason": "oversized proposal and direct block execution helpers are unavailable in production"
-      },
-      {
-        "id": "EXCLUSION-BENCH-EXTRACTED-ARTIFACTS",
-        "source": {
-          "path": "crates/core/app/src/app/mod.rs",
-          "symbols": [
-            "build_tx_artifacts_extracted_for_stage_public",
-            "build_tx_artifacts_extracted_profiled_public"
-          ]
-        },
-        "guard": {
-          "path": "crates/core/app/src/app/mod.rs",
-          "symbols": [
-            "#[cfg(any(test, feature = \"benchmark-helpers\"))]"
-          ]
-        },
-        "reason": "unchecked extracted artifacts are unavailable in production"
-      },
-      {
-        "id": "EXCLUSION-BENCH-LEGACY-BATCH-VERIFY",
-        "source": {
-          "path": "crates/core/app/src/app/mod.rs",
-          "symbols": [
-            "batch_verify_tx_artifacts_for_bench_stage",
-            "batch_verify_tx_artifact_for_bench",
-            "batch_verify_artifacts_for_bench",
-            "batch_verify_proof_keys"
-          ]
-        },
-        "guard": {
-          "path": "crates/core/app/src/app/mod.rs",
-          "symbols": [
-            "#[cfg(any(test, feature = \"benchmark-helpers\"))]"
-          ]
-        },
-        "reason": "deterministic legacy batch verification is benchmark/test diagnostic evidence only"
-      },
-      {
-        "id": "EXCLUSION-BENCH-STATELESS-CACHE-SEED",
-        "source": {
-          "path": "crates/core/app/src/stateless_cache.rs",
-          "symbols": [
-            "seed_extracted_for_benchmark"
-          ]
-        },
-        "guard": {
-          "path": "crates/core/app/src/stateless_cache.rs",
-          "symbols": [
-            "#[cfg(feature = \"benchmark-helpers\")]"
-          ]
-        },
-        "reason": "external extracted-artifact cache seeding is compiled only for benchmark helpers"
-      },
-      {
-        "id": "EXCLUSION-RESEARCH-SNARKPACK",
-        "source": {
-          "path": "crates/crypto/proof-aggregation/src/backend.rs",
-          "symbols": [
-            "impl AggregationBackend for SnarkpackBackend",
-            "fn aggregate_family",
-            "fn verify_family_aggregate"
-          ]
-        },
-        "guard": {
-          "path": "crates/crypto/proof-aggregation/Cargo.toml",
-          "symbols": [
-            "shieldd-sdk-proof-aggregation"
-          ]
-        },
-        "reason": "SnarkPack remains a standalone research crate with no production application dependency or consensus transport"
+        "reason": "the panic-resistance wrapper is compiled only for fuzzing; production uses the checked internal shape validator"
       },
       {
         "id": "EXCLUSION-TEST-PROOF-HELPERS",
@@ -1135,14 +1260,16 @@
       },
       {
         "id": "RUNTIME-POLICY-EXACT-PROOF-CAPABILITIES",
-        "statement": "Every proof-bearing action is independently verified under its exact deployed Groth16 key and bound to its exact action slot before execution or verified-cache promotion. ProcessProposal independently repeats verification for all proposal transactions. Production has no aggregate-proof action or detached proposal transport.",
+        "statement": "Every proof-bearing action is bound to its exact deployed Groth16 key, public inputs, and action slot before execution or verified-cache promotion. CheckTx and PrepareProposal verify individual proofs independently. ProcessProposal verifies the production aggregate bundle against reconstructed exact statements, except that the byte-exact digest of a same-height proposal produced locally by PrepareProposal may reuse that completed verification.",
         "parameters": {
-          "deployed_proof_keys": 6,
+          "aggregate_statement_binding": 1,
+          "deployed_proof_keys": 4,
           "fee_funding_slot_binding": 1,
           "fee_funding_state_persistence": 1,
-          "process_cache_reverification": 1,
-          "production_aggregate_transport": 0,
-          "proof_slot_binding": 1
+          "process_unprepared_aggregate_verification": 1,
+          "production_aggregate_transport": 1,
+          "proof_slot_binding": 1,
+          "same_height_exact_prepared_reuse": 1
         },
         "sinks": [
           "check_tx",
@@ -1151,6 +1278,15 @@
           "verified_execution"
         ],
         "test_ids": [
+          "RUNTIME-AGGREGATE-BAD-SRS-REJECTION",
+          "RUNTIME-AGGREGATE-HEADER-REJECTION",
+          "RUNTIME-AGGREGATE-INCOMPLETE-SEGMENT-COVERAGE",
+          "RUNTIME-AGGREGATE-JOIN-FAIL-CLOSED",
+          "RUNTIME-AGGREGATE-PLAN-COUNT-ORDER",
+          "RUNTIME-AGGREGATE-REDUCER-FAIL-CLOSED",
+          "RUNTIME-AGGREGATE-SEGMENT-ORDER",
+          "RUNTIME-AGGREGATE-SHIPPING-INPUT-BINDING",
+          "RUNTIME-AGGREGATE-TX-SHAPE",
           "RUNTIME-CACHE-CAPABILITY-BINDING",
           "RUNTIME-CACHE-RAW-ARTIFACT-BINDING",
           "RUNTIME-CAPABILITY-COMPACT-RETENTION",
@@ -1160,6 +1296,7 @@
           "RUNTIME-DEPLOYED-WITHDRAWAL-PROOF-KEY-MAPPING",
           "RUNTIME-FEE-FUNDING-PROOF-SLOT-PERSISTENCE",
           "RUNTIME-FEE-FUNDING-PROOF-SLOT-REJECTION",
+          "RUNTIME-PREPARED-PROPOSAL-EXACT-REUSE",
           "RUNTIME-PROCESS-INDEPENDENT-REVERIFICATION",
           "RUNTIME-RAW-NOTE-RESHAPE-CAPABILITY-GATE",
           "RUNTIME-RAW-TRANSFER-CAPABILITY-GATE",
@@ -1182,19 +1319,24 @@
       },
       {
         "id": "RUNTIME-POLICY-PROOF-ACCEPTANCE-FRONTDOORS",
-        "statement": "Host and gRPC CheckTx and DeliverTx front doors reject an invalid transaction dynamically while the closed static acceptance census covers every production sink.",
+        "statement": "FFI, gRPC, and host CheckTx and DeliverTx front doors reject an invalid transaction dynamically while the closed static acceptance census covers every production sink.",
         "parameters": {
+          "ffi_frontdoors": 2,
           "grpc_frontdoors": 2,
           "host_frontdoors": 2,
           "static_sink_census_required": 1
         },
         "sinks": [
+          "ffi_check_tx",
+          "ffi_deliver_tx",
           "grpc_check_tx",
           "grpc_deliver_tx",
           "host_check_tx",
           "host_deliver_tx"
         ],
         "test_ids": [
+          "RUNTIME-FFI-CHECKTX-PROOF-FRONTDOOR",
+          "RUNTIME-FFI-DELIVERTX-PROOF-FRONTDOOR",
           "RUNTIME-GRPC-CHECKTX-PROOF-FRONTDOOR",
           "RUNTIME-GRPC-DELIVERTX-PROOF-FRONTDOOR",
           "RUNTIME-HOST-CHECKTX-PROOF-FRONTDOOR",
@@ -1203,11 +1345,12 @@
       },
       {
         "id": "RUNTIME-POLICY-PROOF-WORKER-CONCURRENCY",
-        "statement": "Independent proof verification dispatches at most six registered key coordinators and eight blocking chunks per key. Keys with at most 512 proofs remain in one chunk.",
+        "statement": "Independent verification dispatches at most four family workers. Aggregate construction runs at most two segments with four family workers each, and aggregate verification runs at most four blocking calls at once.",
         "parameters": {
-          "max_chunks_per_key": 8,
-          "max_concurrent_keys": 6,
-          "single_chunk_threshold_items": 512
+          "max_aggregate_segment_workers": 2,
+          "max_aggregate_verify_workers": 4,
+          "max_exact_family_workers": 4,
+          "max_nested_aggregate_build_workers": 8
         },
         "sinks": [
           "check_tx",
@@ -1475,6 +1618,150 @@
           "package": "shieldd-sdk-transaction",
           "cargo_target": "lib",
           "selector": "apply_auth_data_rejects_note_reshape_family_mismatch",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-AGGREGATE-BAD-SRS-REJECTION",
+        "kind": "negative",
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_bundle_verification_rejects_bad_srs_id_before_srs_setup",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "aggregate_bundle_verification_rejects_bad_srs_id_before_srs_setup",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-AGGREGATE-HEADER-REJECTION",
+        "kind": "negative",
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_bundle_verification_rejects_bad_version_srs_and_family_count",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "aggregate_bundle_verification_rejects_bad_version_srs_and_family_count",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-AGGREGATE-INCOMPLETE-SEGMENT-COVERAGE",
+        "kind": "negative",
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_verify_plan_header_rejects_incomplete_segment_coverage",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "aggregate_verify_plan_header_rejects_incomplete_segment_coverage",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-AGGREGATE-JOIN-FAIL-CLOSED",
+        "kind": "negative",
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_verify_join_rejection_guard_is_fail_closed",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "aggregate_verify_join_rejection_guard_is_fail_closed",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-AGGREGATE-PLAN-COUNT-ORDER",
+        "kind": "invariant",
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_verify_planner_preserves_segment_order_and_checks_counts",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "aggregate_verify_planner_preserves_segment_order_and_checks_counts",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-AGGREGATE-REDUCER-FAIL-CLOSED",
+        "kind": "negative",
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_verify_reducer_is_order_independent_and_rejects_exact_calls",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "aggregate_verify_reducer_is_order_independent_and_rejects_exact_calls",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-AGGREGATE-SEGMENT-ORDER",
+        "kind": "invariant",
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_expected_segments_preserve_segment_and_family_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "aggregate_expected_segments_preserve_segment_and_family_order",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-AGGREGATE-SHIPPING-INPUT-BINDING",
+        "kind": "invariant",
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "async_verifier_outcome_retains_its_exact_shipping_input",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "async_verifier_outcome_retains_its_exact_shipping_input",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-AGGREGATE-TX-SHAPE",
+        "kind": "negative",
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "ensure_aggregate_bundle_tx_shape_rejects_memo_fee_and_extra_action",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "ensure_aggregate_bundle_tx_shape_rejects_memo_fee_and_extra_action",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -1817,15 +2104,47 @@
         }
       },
       {
+        "id": "RUNTIME-FFI-CHECKTX-PROOF-FRONTDOOR",
+        "kind": "negative",
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "ffi_execution_check_tx_rejects_invalid_transaction",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd",
+          "cargo_target": "lib",
+          "selector": "ffi_execution_check_tx_rejects_invalid_transaction",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-FFI-DELIVERTX-PROOF-FRONTDOOR",
+        "kind": "negative",
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "ffi_execution_deliver_tx_rejects_invalid_transaction",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd",
+          "cargo_target": "lib",
+          "selector": "ffi_execution_deliver_tx_rejects_invalid_transaction",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "RUNTIME-GRPC-CHECKTX-PROOF-FRONTDOOR",
         "kind": "negative",
-        "path": "crates/bin/shieldd/src/execution_client.rs",
+        "path": "crates/bin/shieldd/src/grpc.rs",
         "symbol": "grpc_execution_check_tx_rejects_invalid_transaction",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd",
-          "cargo_target": "bin:shieldd",
+          "cargo_target": "lib",
           "selector": "grpc_execution_check_tx_rejects_invalid_transaction",
           "build_profile": "default",
           "features": [],
@@ -1835,13 +2154,13 @@
       {
         "id": "RUNTIME-GRPC-DELIVERTX-PROOF-FRONTDOOR",
         "kind": "negative",
-        "path": "crates/bin/shieldd/src/execution_client.rs",
+        "path": "crates/bin/shieldd/src/grpc.rs",
         "symbol": "grpc_execution_deliver_tx_rejects_invalid_transaction",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd",
-          "cargo_target": "bin:shieldd",
+          "cargo_target": "lib",
           "selector": "grpc_execution_deliver_tx_rejects_invalid_transaction",
           "build_profile": "default",
           "features": [],
@@ -1891,6 +2210,22 @@
           "package": "shieldd-sdk-app",
           "cargo_target": "lib",
           "selector": "consensus_acceptance_source_has_no_diagnostic_io",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "RUNTIME-PREPARED-PROPOSAL-EXACT-REUSE",
+        "kind": "boundary_negative",
+        "path": "crates/core/app/src/server/consensus.rs",
+        "symbol": "prepared_proposal_reuse_requires_same_height_exact_digest_and_normal_mode",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "prepared_proposal_reuse_requires_same_height_exact_digest_and_normal_mode",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -2230,6 +2565,7 @@
           "PROPERTY-PLACE-CORRECT",
           "PROPERTY-POSITION-ADVANCES-BY-ONE",
           "PROPERTY-ROUNDTRIP-JSON-ZERO",
+          "PROPERTY-SCT-CAPACITY-IS-CHECKED-BEFORE-BLOCK-MUTATION",
           "PROPERTY-TOP-POSITION-ADVANCES-BY-ONE",
           "PROPERTY-U16-CONVERT-BLOCK-INVERSE",
           "PROPERTY-U32-CONVERT-EPOCH-INVERSE",
@@ -2242,6 +2578,8 @@
       {
         "id": "ANCHOR-FRESHNESS",
         "test_ids": [
+          "PROPERTY-ANCHOR-VALIDATION-CACHE-COUNTS-SHARED-PAIR-ONCE",
+          "PROPERTY-CLAIMED-ANCHOR-VALIDATION-CACHE-COUNTS-SHARED-ANCHOR-ONCE",
           "PROPERTY-COMPLIANCE-ANCHOR-VALIDATION-WINDOW-MAY-CHANGE",
           "PROPERTY-COMPLIANCE-ANCHOR-VALIDATION-WINDOW-MUST-BE-POSITIVE",
           "PROPERTY-FIND-MOST-RECENT-ANCHORS-USES-HISTORY-ONLY-FOR-USER-ROOT"
@@ -2269,8 +2607,11 @@
       {
         "id": "DETECTION-CORRECTNESS",
         "test_ids": [
+          "PROPERTY-DECODING-REJECTS-NON-CANONICAL-UNUSED-BITS",
           "PROPERTY-DETECTION-SENDER-WORD-IS-INJECTIVE-AND-CANONICAL",
           "PROPERTY-LEGACY-ASSET-FLAG-ALIAS-IS-REJECTED",
+          "PROPERTY-TAG-MASKS-EVERY-PRECISION-CANONICALLY",
+          "PROPERTY-TAG-PREFIXES-ARE-STABLE-ACROSS-PRECISION-CHANGES",
           "PROPERTY-TEST-DETECTION-KEY-PUBLIC-ROUNDTRIP",
           "PROPERTY-TEST-DETECTION-TIER-FLAGGED",
           "PROPERTY-TEST-DETECTION-TIER-ROUNDTRIP",
@@ -2291,13 +2632,13 @@
         "id": "FIXED-ARITY-PRIVACY",
         "test_ids": [
           "PROPERTY-APP-CAN-SWEEP-A-COLLECTION-OF-SMALL-NOTES",
-          "PROPERTY-DETECTION-DATA-INCLUDES-DUMMY-CLUES-FOR-TRANSFER-FAMILY-SHAPE",
+          "PROPERTY-DISCOVERY-PRECISION-PROPAGATES-TO-TRANSFER-FAMILY",
           "PROPERTY-EXPLICIT-MANY-TO-ONE-RETURNS-SINGLE-NOTE-RESHAPE-TRANSACTION",
           "PROPERTY-MANY-TO-ONE-USES-PADDED-CANONICAL-FAMILY",
           "PROPERTY-NOTE-RESHAPE-PUBLIC-ENCODINGS-HAVE-NO-DUMMY-FLAGS-AFTER-REDESIGN",
           "PROPERTY-ONE-TO-MANY-PADS-REQUESTED-OUTPUTS-TO-FAMILY-CAPACITY",
           "PROPERTY-REGISTRY-DECLARES-THE-TWO-PADDED-DIRECTIONS",
-          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-COUNTS-CHANGE-OUTPUT-FOR-DESTINATIONS-AND-CLUES",
+          "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-COUNTS-CHANGE-OUTPUT-FOR-DISCOVERY",
           "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-WITHOUT-EXPLICIT-CHANGE-STILL-COUNTS-HIDDEN-CHANGE-NOTE",
           "PROPERTY-WITHDRAWAL-VIEW-IGNORES-PRIVATE-PADDING-AND-HIDES-SYNTHETIC-CHANGE"
         ]
@@ -2315,9 +2656,10 @@
           "PROPERTY-FULL-VIEWING-KEY-REJECTS-IDENTITY-AUTHORIZATION-KEY",
           "PROPERTY-FULL-VIEWING-KEY-REJECTS-ZERO-REDUCED-INCOMING-VIEWING-KEY",
           "PROPERTY-INCOMING-VIEWING-KEY-VAR-ENFORCES-NONZERO-REDUCTION",
-          "PROPERTY-REJECTS-NONCANONICAL-CLUE-KEY-FIELD-ALIAS",
+          "PROPERTY-REJECTS-NONCANONICAL-DISCOVERY-KEY-FIELD-ALIAS",
           "PROPERTY-TEST-ADDRESS-ENCODING",
           "PROPERTY-TEST-ADDRESS-KEYS-ARE-DIVERSIFIED",
+          "PROPERTY-TEST-ADDRESSES-MATCH-VIEWING-KEY",
           "PROPERTY-TEST-BYTES-ROUNDTRIP",
           "PROPERTY-TEST-FVK-MATCHES",
           "PROPERTY-VIEWS-ADDRESS-FAILS-ON-OTHER-ADDRESS",
@@ -2349,6 +2691,7 @@
           "PROPERTY-EXTRACT-USER-MEMO-NO-MEMO-FIELD",
           "PROPERTY-FRAGMENTED-ICS20-WITHDRAWAL-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-ACTION",
           "PROPERTY-FRAGMENTED-TRANSFER-REQUESTS-NOTE-RESHAPE-THEN-RESUME-BUILDS-TRANSFER",
+          "PROPERTY-HOST-EXECUTION-ACCEPTS-WITHDRAWALS-FOR-REGISTERED-ASSETS",
           "PROPERTY-ICS20-WITHDRAWAL-READY-PRODUCES-WALLET-FACING-ACTION-ONLY",
           "PROPERTY-IS-COMPLIANCE-MEMO-REJECTS-PLAIN-TEXT",
           "PROPERTY-MISSING-ASSET-ID-REJECTED",
@@ -2361,7 +2704,9 @@
           "PROPERTY-ROUNDTRIP-ENCODE-DECODE",
           "PROPERTY-ROUNDTRIP-WITH-EXISTING-MEMO",
           "PROPERTY-SERDE-REJECTS-UNKNOWN-AND-RETIRED-FAMILY-IDS",
+          "PROPERTY-STANDALONE-EXECUTION-REJECTS-HOST-WITHDRAWALS",
           "PROPERTY-TRANSFER-READY-PRODUCES-WALLET-FACING-TRANSFER-ONLY",
+          "PROPERTY-UNKNOWN-FAMILY-ID-IS-REJECTED-AT-WIRE-BOUNDARY",
           "PROPERTY-WITNESS-PLAN-INCLUDES-FEE-FUNDING-TRANSFER-SPEND-PROOF",
           "PROPERTY-WITNESS-PLAN-INCLUDES-HIDDEN-ARITY-TRANSFER-SPEND-PROOF",
           "PROPERTY-WRONG-CIPHERTEXT-SIZE-REJECTED"
@@ -2454,6 +2799,7 @@
           "PROPERTY-TEST-USER-REGISTRATION-REJECTS-MISSING-WRONG-AND-EXPIRED-GRANTS",
           "PROPERTY-TEST-VERIFY-AUTH-PATH",
           "PROPERTY-TEST-ZERO-HASHES-PRECOMPUTED",
+          "PROPERTY-USER-LEAF-RECORD-IS-COMPACT-AND-AUTHENTICATED",
           "PROPERTY-USER-TREE-INSERT-AND-WITNESS",
           "PROPERTY-WELL-FORMEDNESS-REJECTS-COUNT-AND-POSITION-CORRUPTION",
           "PROPERTY-WELL-FORMEDNESS-REJECTS-DEPTH-AND-CAPACITY-CORRUPTION",
@@ -2558,6 +2904,8 @@
       "crates/core/app-tests/tests/app_can_sweep_a_collection_of_small_notes.rs",
       "crates/core/app-tests/tests/app_can_transfer_notes_and_detect_new_notes.rs",
       "crates/core/app-tests/tests/compliance_diversifier_fix.rs",
+      "crates/core/app/src/action_handler/transaction.rs",
+      "crates/core/app/src/app/host.rs",
       "crates/core/app/src/app/mod.rs",
       "crates/core/app/src/params/change.rs",
       "crates/core/asset/src/balance.rs",
@@ -2570,10 +2918,13 @@
       "crates/core/component/compliance/src/indexed_tree.rs",
       "crates/core/component/compliance/src/issuer_keys.rs",
       "crates/core/component/compliance/src/lib.rs",
+      "crates/core/component/compliance/src/registry.rs",
       "crates/core/component/compliance/src/structs.rs",
       "crates/core/component/compliance/src/tree.rs",
+      "crates/core/component/sct/src/component/tree.rs",
       "crates/core/component/shielded-pool/src/compliance_helpers.rs",
       "crates/core/component/shielded-pool/src/component/note_manager.rs",
+      "crates/core/component/shielded-pool/src/discovery.rs",
       "crates/core/component/shielded-pool/src/gnark/binary.rs",
       "crates/core/component/shielded-pool/src/gnark/note_reshape.rs",
       "crates/core/component/shielded-pool/src/gnark/shielded_ics20_withdrawal.rs",
@@ -2584,6 +2935,7 @@
       "crates/core/component/shielded-pool/src/note_reshape/action.rs",
       "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
       "crates/core/component/shielded-pool/src/public_input_hash.rs",
+      "crates/core/component/shielded-pool/src/shielded_host_withdrawal/action.rs",
       "crates/core/component/shielded-pool/src/transfer/compliance.rs",
       "crates/core/keys/src/address.rs",
       "crates/core/keys/src/address/r1cs.rs",
@@ -2705,6 +3057,22 @@
           "package": "shieldd-sdk-num",
           "cargo_target": "lib",
           "selector": "amount_is_structurally_below_2_pow_128",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-ANCHOR-VALIDATION-CACHE-COUNTS-SHARED-PAIR-ONCE",
+        "kind": "invariant",
+        "path": "crates/core/app/src/action_handler/transaction.rs",
+        "symbol": "anchor_validation_cache_counts_shared_pair_once",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "anchor_validation_cache_counts_shared_pair_once",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -2855,6 +3223,22 @@
         }
       },
       {
+        "id": "PROPERTY-CLAIMED-ANCHOR-VALIDATION-CACHE-COUNTS-SHARED-ANCHOR-ONCE",
+        "kind": "invariant",
+        "path": "crates/core/app/src/action_handler/transaction.rs",
+        "symbol": "claimed_anchor_validation_cache_counts_shared_anchor_once",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "claimed_anchor_validation_cache_counts_shared_anchor_once",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "PROPERTY-CLAIMED-HASH-PARSER-REJECTS-MODULUS-ALIAS",
         "kind": "negative",
         "path": "crates/core/component/shielded-pool/src/gnark/transfer_proof_result.rs",
@@ -2919,16 +3303,16 @@
         }
       },
       {
-        "id": "PROPERTY-DETECTION-DATA-INCLUDES-DUMMY-CLUES-FOR-TRANSFER-FAMILY-SHAPE",
-        "kind": "invariant",
-        "path": "crates/core/transaction/src/plan.rs",
-        "symbol": "detection_data_includes_dummy_clues_for_transfer_family_shape",
+        "id": "PROPERTY-DECODING-REJECTS-NON-CANONICAL-UNUSED-BITS",
+        "kind": "boundary_negative",
+        "path": "crates/core/component/shielded-pool/src/discovery.rs",
+        "symbol": "decoding_rejects_non_canonical_unused_bits",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
-          "package": "shieldd-sdk-transaction",
+          "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
-          "selector": "detection_data_includes_dummy_clues_for_transfer_family_shape",
+          "selector": "decoding_rejects_non_canonical_unused_bits",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -2961,6 +3345,22 @@
           "package": "shieldd-sdk-tct",
           "cargo_target": "lib",
           "selector": "directions_of_index_check",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-DISCOVERY-PRECISION-PROPAGATES-TO-TRANSFER-FAMILY",
+        "kind": "invariant",
+        "path": "crates/core/transaction/src/plan.rs",
+        "symbol": "discovery_precision_propagates_to_transfer_family",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-transaction",
+          "cargo_target": "lib",
+          "selector": "discovery_precision_propagates_to_transfer_family",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -3297,6 +3697,22 @@
           "package": "shieldd-sdk-tct",
           "cargo_target": "lib",
           "selector": "height_correct",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-HOST-EXECUTION-ACCEPTS-WITHDRAWALS-FOR-REGISTERED-ASSETS",
+        "kind": "integration",
+        "path": "crates/core/app/src/app/host.rs",
+        "symbol": "host_execution_accepts_withdrawals_for_registered_assets",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "host_execution_accepts_withdrawals_for_registered_assets",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -4039,16 +4455,16 @@
         }
       },
       {
-        "id": "PROPERTY-REJECTS-NONCANONICAL-CLUE-KEY-FIELD-ALIAS",
+        "id": "PROPERTY-REJECTS-NONCANONICAL-DISCOVERY-KEY-FIELD-ALIAS",
         "kind": "boundary_negative",
         "path": "crates/core/keys/src/address.rs",
-        "symbol": "rejects_noncanonical_clue_key_field_alias",
+        "symbol": "rejects_noncanonical_discovery_key_field_alias",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-keys",
           "cargo_target": "lib",
-          "selector": "rejects_noncanonical_clue_key_field_alias",
+          "selector": "rejects_noncanonical_discovery_key_field_alias",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -4119,6 +4535,22 @@
         }
       },
       {
+        "id": "PROPERTY-SCT-CAPACITY-IS-CHECKED-BEFORE-BLOCK-MUTATION",
+        "kind": "boundary_negative",
+        "path": "crates/core/component/sct/src/component/tree.rs",
+        "symbol": "sct_capacity_is_checked_before_block_mutation",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-sct",
+          "cargo_target": "lib",
+          "selector": "sct_capacity_is_checked_before_block_mutation",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "PROPERTY-SERDE-REJECTS-UNKNOWN-AND-RETIRED-FAMILY-IDS",
         "kind": "boundary_negative",
         "path": "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
@@ -4135,16 +4567,16 @@
         }
       },
       {
-        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-COUNTS-CHANGE-OUTPUT-FOR-DESTINATIONS-AND-CLUES",
+        "id": "PROPERTY-SHIELDED-ICS20-WITHDRAWAL-COUNTS-CHANGE-OUTPUT-FOR-DISCOVERY",
         "kind": "invariant",
         "path": "crates/core/transaction/src/plan.rs",
-        "symbol": "shielded_ics20_withdrawal_counts_change_output_for_destinations_and_clues",
+        "symbol": "shielded_ics20_withdrawal_counts_change_output_for_discovery",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-transaction",
           "cargo_target": "lib",
-          "selector": "shielded_ics20_withdrawal_counts_change_output_for_destinations_and_clues",
+          "selector": "shielded_ics20_withdrawal_counts_change_output_for_discovery",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -4279,6 +4711,22 @@
         }
       },
       {
+        "id": "PROPERTY-STANDALONE-EXECUTION-REJECTS-HOST-WITHDRAWALS",
+        "kind": "boundary_negative",
+        "path": "crates/core/app/src/app/host.rs",
+        "symbol": "standalone_execution_rejects_host_withdrawals",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "standalone_execution_rejects_host_withdrawals",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "PROPERTY-SUM-BALANCE-COMMITMENTS",
         "kind": "invariant",
         "path": "crates/core/asset/src/value.rs",
@@ -4289,6 +4737,38 @@
           "package": "shieldd-sdk-asset",
           "cargo_target": "lib",
           "selector": "sum_balance_commitments",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-TAG-MASKS-EVERY-PRECISION-CANONICALLY",
+        "kind": "invariant",
+        "path": "crates/core/component/shielded-pool/src/discovery.rs",
+        "symbol": "tag_masks_every_precision_canonically",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-shielded-pool",
+          "cargo_target": "lib",
+          "selector": "tag_masks_every_precision_canonically",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-TAG-PREFIXES-ARE-STABLE-ACROSS-PRECISION-CHANGES",
+        "kind": "invariant",
+        "path": "crates/core/component/shielded-pool/src/discovery.rs",
+        "symbol": "tag_prefixes_are_stable_across_precision_changes",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-shielded-pool",
+          "cargo_target": "lib",
+          "selector": "tag_prefixes_are_stable_across_precision_changes",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -4321,6 +4801,22 @@
           "package": "shieldd-sdk-keys",
           "cargo_target": "lib",
           "selector": "test_address_keys_are_diversified",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-TEST-ADDRESSES-MATCH-VIEWING-KEY",
+        "kind": "parity",
+        "path": "crates/core/keys/src/test_keys.rs",
+        "symbol": "test_addresses_match_viewing_key",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-keys",
+          "cargo_target": "lib",
+          "selector": "test_addresses_match_viewing_key",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -6471,6 +6967,22 @@
         }
       },
       {
+        "id": "PROPERTY-UNKNOWN-FAMILY-ID-IS-REJECTED-AT-WIRE-BOUNDARY",
+        "kind": "boundary_negative",
+        "path": "crates/core/component/shielded-pool/src/shielded_host_withdrawal/action.rs",
+        "symbol": "unknown_family_id_is_rejected_at_wire_boundary",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-shielded-pool",
+          "cargo_target": "lib",
+          "selector": "unknown_family_id_is_rejected_at_wire_boundary",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "PROPERTY-UNREGULATED-COMPLIANCE-IGNORES-AUTHENTICATED-PREDECESSOR-POLICY",
         "kind": "invariant",
         "path": "crates/core/component/shielded-pool/src/transfer/compliance.rs",
@@ -6497,6 +7009,22 @@
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
           "selector": "unregulated_maximum_amount_is_never_flagged",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "PROPERTY-USER-LEAF-RECORD-IS-COMPACT-AND-AUTHENTICATED",
+        "kind": "invariant",
+        "path": "crates/core/component/compliance/src/registry.rs",
+        "symbol": "user_leaf_record_is_compact_and_authenticated",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-compliance",
+          "cargo_target": "lib",
+          "selector": "user_leaf_record_is_compact_and_authenticated",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -6904,10 +7432,21 @@
       {
         "id": "FV-REDUNDANT-AGGREGATION-INTEGRITY",
         "test_ids": [
-          "ARTIFACT-AGGREGATE-BUNDLE-DECODE-REJECTS-INVALID-FAMILY-ROUTES",
-          "ARTIFACT-AGGREGATE-BUNDLE-PRIVATE-WIRE-ROUND-TRIP",
-          "ARTIFACT-AGGREGATE-BYTES-MATCH-COMMITTED-BASELINE",
+          "ARTIFACT-ACCEPTED-JOIN-PROJECTION-IS-EXACT-AND-FAIL-CLOSED",
+          "ARTIFACT-AFFINE-KZG-PROFILED-PROJECTS-EXACT-QUOTIENT-MSM",
+          "ARTIFACT-AGGREGATE-ADAPTER-CORE-ACCEPTS-SUCCESS-AT-LAST-NONCE",
+          "ARTIFACT-AGGREGATE-ADAPTER-CORE-PRESERVES-ERROR-ORDER-AND-KIND",
+          "ARTIFACT-AGGREGATE-ADAPTER-CORE-QUERIES-LAST-NONCE-AND-FAILS-CLOSED",
+          "ARTIFACT-AGGREGATE-ADAPTER-CORE-RETRIES-AND-INSTALLS-ONE-RANDOMIZER",
+          "ARTIFACT-AGGREGATE-ADAPTER-CORE-SHIPPING-SEMANTIC-EXECUTION-RETAINS-EXACT-OUTPUT",
+          "ARTIFACT-AGGREGATE-ADAPTER-INPUT-CONSTRUCTORS-PRESERVE-EVERY-FIELD",
+          "ARTIFACT-AGGREGATE-BUNDLE-DECODE-REJECTS-UNSPECIFIED-FAMILY",
+          "ARTIFACT-AGGREGATE-BUNDLE-PROTO-ROUND-TRIP",
+          "ARTIFACT-AGGREGATE-PROVER-INITIAL-COMMITMENT-PROJECTION-PRESERVES-TUPLE-AND-ERROR-ORDER",
+          "ARTIFACT-AGGREGATE-PROVER-PROFILED-PRESERVES-PROOF-BYTES-AND-TRACE",
+          "ARTIFACT-AGGREGATE-RANDOMIZER-MESSAGE-IS-EXACT-COMMITMENT-ORDER",
           "ARTIFACT-AGGREGATION-IS-DETERMINISTIC-FOR-FIXED-INPUTS",
+          "ARTIFACT-ARBITRARY-EXTERNAL-WRAPPER-DECODE-IS-RETAINED-EXACTLY",
           "ARTIFACT-ARKWORKS-ACCEPTS-BUT-STRICT-REJECTS-G1-INFINITY-ALIAS",
           "ARTIFACT-ARKWORKS-ACCEPTS-BUT-STRICT-REJECTS-G2-INFINITY-ALIAS-IN-EACH-COORDINATE",
           "ARTIFACT-ARKWORKS-G1-G2-COMPRESSED-ROUND-TRIP-AND-IDENTITY",
@@ -6915,21 +7454,90 @@
           "ARTIFACT-ARKWORKS-G1-G2-SUBGROUP-AND-TORSION-REJECTION",
           "ARTIFACT-ARKWORKS-MSM-BOUNDARY-ZERO-SCALAR-IDENTITY-AND-RANDOM-PARITY",
           "ARTIFACT-ARKWORKS-PAIRING-IDENTITY-AND-GENERATOR-CONSISTENCY",
+          "ARTIFACT-ARKWORKS-TIPP-ADAPTER-CORE-ROUTES-EXACT-STAGE-MESSAGES",
+          "ARTIFACT-ARKWORKS-TIPP-ADAPTER-CORE-STOPS-AT-FIRST-SERIALIZATION-ERROR",
+          "ARTIFACT-BLS12-377-FR-FROM-RANDOM-BYTES-DOCUMENTS-SHIPPING-REDUCTION-BOUNDARY",
+          "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-ACCEPTS-SUCCESS-AT-MAX-NONCE",
+          "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-IMMEDIATE-SUCCESS-QUERIES-NONCE-ZERO-ONCE",
+          "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-NONCE-HELPERS-MATCH-CORE-BOUNDARIES",
+          "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-PRESERVES-ATTEMPT-ERROR-BEFORE-EXHAUSTION",
+          "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-QUERIES-BEFORE-INCREMENTING",
+          "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-REJECTION-AT-MAX-FAILS-CLOSED",
+          "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-RETRIES-REJECTIONS-IN-NONCE-ORDER",
+          "ARTIFACT-CANONICAL-FAMILY-FIELDS-ROUND-TRIP-THROUGH-ROUTER",
           "ARTIFACT-CANONICAL-POINTS-AND-ZERO-COORDINATES-SUCCEED",
           "ARTIFACT-CHALLENGE-PREIMAGE-CHANGES-ON-STAGE-CONTEXT-NONCE-OR-MESSAGES",
+          "ARTIFACT-CHALLENGE-PREIMAGE-CORE-IS-THE-SHIPPING-FRAME",
           "ARTIFACT-CHALLENGE-PREIMAGE-LAYOUT-GOLDEN",
+          "ARTIFACT-COMBINED-INPUT-PROJECTION-PRESERVES-SHIPPING-INPUTS",
           "ARTIFACT-DECAF377-VK-DIGEST-ROUND-TRIPS-AFTER-SERIALIZATION",
+          "ARTIFACT-DECODE-ARTIFACT-DO-NOT-PANIC",
+          "ARTIFACT-DECODE-BATCH-ITEM-DO-NOT-PANIC",
           "ARTIFACT-DEFAULT-SRS-ID-PREFIX-MATCHES-DECLARED-FIELDS",
           "ARTIFACT-DESERIALIZE-AGGREGATE-PROOF-DO-NOT-PANIC",
+          "ARTIFACT-DEVELOPMENT-SRS-IS-NEVER-REGISTERED",
           "ARTIFACT-EMPTY-INPUT-STAYS-EMPTY",
+          "ARTIFACT-EVERY-REGISTERED-DIGEST-HASHES-FAMILY-DOMAIN-THEN-CHALLENGE-FRAME",
+          "ARTIFACT-FAMILY-ROUTER-REJECTS-UNKNOWN-MISSING-AND-CROSS-FAMILY-FIELDS",
+          "ARTIFACT-FAST-BLS12-377-GT-VALIDATION-MATCHES-ARKWORKS-ON-STRUCTURED-INPUTS",
+          "ARTIFACT-FOLD-OUTPUT-MATCHES-DIRECT-EXPRESSION",
+          "ARTIFACT-IDS-ARE-EXACT-AND-REDUCTION-IS-PERMUTATION-INVARIANT",
+          "ARTIFACT-KZG-OPENING-CORE-OWNS-CONSTRUCTION-ORDER-AND-PROJECTION",
+          "ARTIFACT-KZG-OPENING-MSM-CORE-FORWARDS-EXACT-VECTORS-AND-ERROR",
           "ARTIFACT-MALFORMED-AGGREGATE-PROOF-OVERSIZE-REJECTED-BEFORE-DESERIALIZATION",
+          "ARTIFACT-MALFORMED-IDENTITY-OUTPUTS-REJECT-BEFORE-TRANSCRIPT-OR-FOLDING",
+          "ARTIFACT-MATCHING-DIGEST-STILL-REQUIRES-STRICT-CANONICAL-SRS-DECODING",
+          "ARTIFACT-NOTE-RESHAPE-SHIPPING-AND-PROFILED-AGGREGATION-BYTES-MATCH",
+          "ARTIFACT-PADDING-PAIRING-COALESCING-IS-EXACT-ON-BLS12-377",
+          "ARTIFACT-PADDING-PAIRING-COALESCING-IS-EXACT-ON-BLS12-381",
           "ARTIFACT-PADS-BY-REPEATING-LAST-ITEM",
+          "ARTIFACT-PLAN-COMPARES-CONCRETE-FAMILY-AND-COUNT-VALUES-IN-FAILURE-ORDER",
+          "ARTIFACT-POLYNOMIAL-COEFFICIENTS-MATCH-DIRECT-EXPANSION",
+          "ARTIFACT-POLYNOMIAL-EVALUATION-PRODUCT-FORM-MATCHES-COEFFICIENTS",
+          "ARTIFACT-POST-GIPA-CHALLENGE-CORES-PRESERVE-STAGE-BYTES-AND-ERROR-ORDER",
           "ARTIFACT-PPE-OPTIMIZED-MATCHES-BASELINE-GT-VALUE",
           "ARTIFACT-PREFLIGHT-AGGREGATE-VERIFY-DO-NOT-PANIC",
+          "ARTIFACT-PREFLIGHT-CHECKS-EVERY-HEADER-BEFORE-SEGMENT-PLANNING",
           "ARTIFACT-PREFLIGHT-REJECTS-OVERSIZE-BEFORE-INNER-DESERIALIZATION",
           "ARTIFACT-PREPARE-VERIFY-INPUTS-MATCHES-FULL-PADDING",
+          "ARTIFACT-PRODUCTION-ARTIFACT-HASH-IS-CHECKED-BEFORE-DECODING",
+          "ARTIFACT-PRODUCTION-ARTIFACT-READ-IS-BOUNDED-BY-ACTUAL-BYTES",
+          "ARTIFACT-PRODUCTION-REGISTRY-FAILS-CLOSED-UNTIL-CEREMONY-ENTRY-IS-PINNED",
+          "ARTIFACT-PRODUCTION-REGISTRY-REJECTS-NONCANONICAL-IDENTIFIER-LENGTH",
+          "ARTIFACT-PROVER-AND-VERIFIER-SHARE-RANDOMIZER-ADMISSIBILITY",
+          "ARTIFACT-PROVER-GIPA-CORE-OWNS-ROUND-ORDER-AND-ALL-TERMINAL-FOLDS",
+          "ARTIFACT-PROVER-GIPA-SEMANTIC-EXECUTION-OWNS-CALL-AND-ROUND-EFFECT-CHRONOLOGY",
+          "ARTIFACT-PROVER-RANDOMIZER-CORE-REBUILDS-EXACT-MESSAGE-AND-FAILS-CLOSED",
+          "ARTIFACT-PROVER-ROUND-COMMITMENT-CORE-EXPOSES-EXACT-OPERANDS-AND-ERROR-ORDER",
+          "ARTIFACT-PROVER-STRUCTURAL-CORES-PRESERVE-FOLD-AND-ROUND-FIELD-ORDER",
           "ARTIFACT-PROVER-VERIFIER-ACCEPTANCE-PARITY",
+          "ARTIFACT-REDUCTION-REJECTS-MISSING-DUPLICATE-AND-UNEXPECTED-TAGS",
           "ARTIFACT-REJECTS-OVERSIZED-PADDING",
+          "ARTIFACT-REPEAT-FINAL-ROWS-ACCEPTS-ONLY-THE-EMPTY-ZERO-TARGET",
+          "ARTIFACT-REPEAT-FINAL-ROWS-PRESERVES-PREFIX-AND-FILLS-SUFFIX",
+          "ARTIFACT-REPEAT-FINAL-ROWS-REJECTS-A-SMALLER-TARGET",
+          "ARTIFACT-RESCALE-FOLD-MATCHES-ELEMENTWISE-EXPRESSION",
+          "ARTIFACT-ROW-PROJECTION-PRESERVES-CALLER-ORDER-BEFORE-REPEAT-FINAL-SUFFIX",
+          "ARTIFACT-SCALAR-IDENTITY-SERIALIZATION-MATCHES-ARKWORKS-SINGLETON-VECTOR",
+          "ARTIFACT-SHARED-GT-FOLD-MATCHES-SEQUENTIAL-BLS12-377",
+          "ARTIFACT-SHARED-GT-FOLD-MATCHES-SEQUENTIAL-BLS12-381",
+          "ARTIFACT-SHIPPING-AGGREGATE-PROVER-PROJECTION-RETAINS-PRELUDE-AND-WIRE-EXECUTION",
+          "ARTIFACT-SHIPPING-AND-ORDINARY-PROFILED-ROUTES-MATCH-ALL-REGISTERED-FAMILIES",
+          "ARTIFACT-SHIPPING-BACKEND-RESULT-MATERIALIZES-THE-EXACT-AUTHENTICATED-INPUT",
+          "ARTIFACT-SHIPPING-CALL-CONSTRUCTOR-PRESERVES-EVERY-CHECKED-FIELD",
+          "ARTIFACT-SHIPPING-INPUT-AND-RESULT-PRESERVE-EVERY-AUTHENTICATED-FIELD",
+          "ARTIFACT-SHIPPING-INPUT-REJECTS-CROSS-RECORD-SUBSTITUTION",
+          "ARTIFACT-SHIPPING-NONCE-EXHAUSTION-MAPS-EXACT-PUBLIC-ERROR",
+          "ARTIFACT-SHIPPING-PREFLIGHT-PRESERVES-SRS-WRAPPER-AND-VK-FAILURE-ORDER",
+          "ARTIFACT-SHIPPING-PREFLIGHT-PROJECTION-CORES-PRESERVE-EXACT-PARTS",
+          "ARTIFACT-SHIPPING-PREFLIGHT-REJECTS-CROSS-CALL-SUBSTITUTION-AFTER-WIRE-CHECKS",
+          "ARTIFACT-SHIPPING-PROJECTION-ACCEPTS-EXACT-INPUT-AND-PRESERVES-FAILURE-ORDER",
+          "ARTIFACT-SHIPPING-PROTOCOL-VERSION-ROOT-IS-CURRENT",
+          "ARTIFACT-SHIPPING-STATEMENT-PREFLIGHT-RETAINS-EXACT-PADDING-PROVENANCE",
+          "ARTIFACT-SHIPPING-VERIFIER-OBSERVATION-CORE-PRESERVES-EMPTY-PHASE-BOUNDARIES",
+          "ARTIFACT-SHIPPING-VERIFIER-OBSERVED-BACKEND-RESULT-CORE-CORRELATES-BEFORE-ARC",
+          "ARTIFACT-SHIPPING-VERIFIER-SEMANTIC-EXECUTION-WITH-TRACES-CORE-PRESERVES-EXACT-STATES",
+          "ARTIFACT-SHIPPING-WRAPPER-PROJECTION-PRESERVES-EXACT-PARTS",
           "ARTIFACT-SNARKPACK-BACKEND-ACCEPTS-VALID-AGGREGATE",
           "ARTIFACT-SNARKPACK-BACKEND-ACCEPTS-VALID-SHIELDED-ICS20-WITHDRAWAL-AGGREGATE",
           "ARTIFACT-SNARKPACK-BACKEND-REJECTS-MALFORMED-AGGREGATE-BYTES",
@@ -6951,6 +7559,8 @@
           "ARTIFACT-STATEMENT-ENCODING-LENGTH-PREFIXES-PUBLIC-INPUT-ROWS",
           "ARTIFACT-STATEMENT-ENCODING-LENGTH-PREFIXES-TOP-LEVEL-BYTE-FIELDS",
           "ARTIFACT-STATEMENT-FUZZ-CONSTRUCTOR-HELPERS-AND-ENCODER-DO-NOT-PANIC",
+          "ARTIFACT-STATEMENT-HASH-CORE-RETAINS-EXACT-ORDER-AND-VALUES",
+          "ARTIFACT-STATEMENT-HASH-CORE-STOPS-AT-EVERY-FAILING-STAGE",
           "ARTIFACT-STATEMENT-MISMATCH-REJECTS-VK-DIGEST-MUTATION-BEFORE-BACKEND",
           "ARTIFACT-STATEMENT-REJECTS-BAD-COUNTS",
           "ARTIFACT-STATEMENT-REJECTS-BAD-PADDING",
@@ -6959,8 +7569,13 @@
           "ARTIFACT-STATEMENT-REJECTS-ROW-ARITY-MISMATCH",
           "ARTIFACT-STATEMENT-VALIDATION-HELPERS-COVER-COUNT-CASES",
           "ARTIFACT-STRICT-BOUNDARY-REJECTS-NESTED-COMPONENT-ALIASES-AND-MALFORMED-BYTES",
+          "ARTIFACT-SYNTHETIC-DIVISION-CONSTRUCTS-EXACT-MONIC-LINEAR-QUOTIENT",
+          "ARTIFACT-TIPP-MIPP-CHALLENGE-PREFIX-EXPOSES-EXACT-SHIPPING-VALUES",
           "ARTIFACT-TRAILING-AND-MALFORMED-BYTES-REJECT",
-          "ARTIFACT-TRANSCRIPT-FAMILY-DOMAINS-ARE-UNIQUE",
+          "ARTIFACT-TRANSCRIPT-FAMILY-DOMAINS-ARE-EXACT-AND-UNIQUE",
+          "ARTIFACT-V1-BYTES-AND-TRANSCRIPT-MATCH-COMMITTED-BASELINES",
+          "ARTIFACT-VALIDATED-AGGREGATE-PROOF-IS-SCALAR-AND-CANNOT-BE-BYPASSED",
+          "ARTIFACT-WRAPPER-DECODE-AND-BINDING-ARE-EXACT-AND-FAIL-CLOSED",
           "ARTIFACT-WRAPPER-DECODE-CORE-RETURNS-INNER-PROOF-RANGE",
           "ARTIFACT-WRAPPER-DECODE-INNER-RANGE-DO-NOT-PANIC",
           "ARTIFACT-WRAPPER-DECODE-REJECTS-OVERSIZE-BEFORE-INNER-EXPOSURE",
@@ -6972,6 +7587,7 @@
       }
     ],
     "source_census": [
+      "crates/core/app/src/app/preconsensus.rs",
       "crates/core/component/shielded-pool/src/gnark/artifacts.rs",
       "crates/core/component/shielded-pool/src/gnark/runtime.rs",
       "crates/core/component/shielded-pool/src/gnark/transport.rs",
@@ -6989,6 +7605,12 @@
       "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
       "crates/crypto/proof-aggregation/src/backend.rs",
       "crates/crypto/proof-aggregation/src/bundle.rs",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
       "crates/crypto/proof-aggregation/src/padding.rs",
       "crates/crypto/proof-aggregation/src/srs.rs",
       "crates/crypto/proof-aggregation/src/statement.rs",
@@ -7018,6 +7640,22 @@
     ],
     "tests": [
       {
+        "id": "ARTIFACT-ACCEPTED-JOIN-PROJECTION-IS-EXACT-AND-FAIL-CLOSED",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "accepted_join_projection_is_exact_and_fail_closed",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "accepted_join_projection_is_exact_and_fail_closed",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-ACYCLIC-CHAIN-CERTIFIES-WITH-TOPO-ORDER",
         "kind": "invariant",
         "path": "crates/crypto/constraint-coverage/src/wiring.rs",
@@ -7034,48 +7672,192 @@
         }
       },
       {
-        "id": "ARTIFACT-AGGREGATE-BUNDLE-DECODE-REJECTS-INVALID-FAMILY-ROUTES",
+        "id": "ARTIFACT-AFFINE-KZG-PROFILED-PROJECTS-EXACT-QUOTIENT-MSM",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "affine_kzg_profiled_projects_exact_quotient_msm",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "affine_kzg_profiled_projects_exact_quotient_msm",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-AGGREGATE-ADAPTER-CORE-ACCEPTS-SUCCESS-AT-LAST-NONCE",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_core_accepts_success_at_last_nonce",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "aggregate_adapter_core_accepts_success_at_last_nonce",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-AGGREGATE-ADAPTER-CORE-PRESERVES-ERROR-ORDER-AND-KIND",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_core_preserves_error_order_and_kind",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "aggregate_adapter_core_preserves_error_order_and_kind",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-AGGREGATE-ADAPTER-CORE-QUERIES-LAST-NONCE-AND-FAILS-CLOSED",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_core_queries_last_nonce_and_fails_closed",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "aggregate_adapter_core_queries_last_nonce_and_fails_closed",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-AGGREGATE-ADAPTER-CORE-RETRIES-AND-INSTALLS-ONE-RANDOMIZER",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_core_retries_and_installs_one_randomizer",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "aggregate_adapter_core_retries_and_installs_one_randomizer",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-AGGREGATE-ADAPTER-CORE-SHIPPING-SEMANTIC-EXECUTION-RETAINS-EXACT-OUTPUT",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_core_shipping_semantic_execution_retains_exact_output",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "aggregate_adapter_core_shipping_semantic_execution_retains_exact_output",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-AGGREGATE-ADAPTER-INPUT-CONSTRUCTORS-PRESERVE-EVERY-FIELD",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_input_constructors_preserve_every_field",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "aggregate_adapter_input_constructors_preserve_every_field",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-AGGREGATE-BUNDLE-DECODE-REJECTS-UNSPECIFIED-FAMILY",
         "kind": "boundary_negative",
         "path": "crates/crypto/proof-aggregation/src/bundle.rs",
-        "symbol": "aggregate_bundle_decode_rejects_invalid_family_routes",
+        "symbol": "aggregate_bundle_decode_rejects_unspecified_family",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-proof-aggregation",
           "cargo_target": "lib",
-          "selector": "aggregate_bundle_decode_rejects_invalid_family_routes",
+          "selector": "aggregate_bundle_decode_rejects_unspecified_family",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "ARTIFACT-AGGREGATE-BUNDLE-PRIVATE-WIRE-ROUND-TRIP",
+        "id": "ARTIFACT-AGGREGATE-BUNDLE-PROTO-ROUND-TRIP",
         "kind": "parity",
         "path": "crates/crypto/proof-aggregation/src/bundle.rs",
-        "symbol": "aggregate_bundle_private_wire_round_trip",
+        "symbol": "aggregate_bundle_proto_round_trip",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-proof-aggregation",
           "cargo_target": "lib",
-          "selector": "aggregate_bundle_private_wire_round_trip",
+          "selector": "aggregate_bundle_proto_round_trip",
           "build_profile": "default",
           "features": [],
           "prover_required": false
         }
       },
       {
-        "id": "ARTIFACT-AGGREGATE-BYTES-MATCH-COMMITTED-BASELINE",
-        "kind": "parity",
-        "path": "crates/crypto/proof-aggregation/src/backend.rs",
-        "symbol": "aggregate_bytes_match_committed_baseline",
+        "id": "ARTIFACT-AGGREGATE-PROVER-INITIAL-COMMITMENT-PROJECTION-PRESERVES-TUPLE-AND-ERROR-ORDER",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_prover_initial_commitment_projection_preserves_tuple_and_error_order",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
-          "package": "shieldd-sdk-proof-aggregation",
+          "package": "ark-ip-proofs",
           "cargo_target": "lib",
-          "selector": "aggregate_bytes_match_committed_baseline",
+          "selector": "aggregate_prover_initial_commitment_projection_preserves_tuple_and_error_order",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-AGGREGATE-PROVER-PROFILED-PRESERVES-PROOF-BYTES-AND-TRACE",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_prover_profiled_preserves_proof_bytes_and_trace",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "aggregate_prover_profiled_preserves_proof_bytes_and_trace",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-AGGREGATE-RANDOMIZER-MESSAGE-IS-EXACT-COMMITMENT-ORDER",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_randomizer_message_is_exact_commitment_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "aggregate_randomizer_message_is_exact_commitment_order",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -7092,6 +7874,22 @@
           "package": "shieldd-sdk-proof-aggregation",
           "cargo_target": "lib",
           "selector": "aggregation_is_deterministic_for_fixed_inputs",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-ARBITRARY-EXTERNAL-WRAPPER-DECODE-IS-RETAINED-EXACTLY",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
+        "symbol": "arbitrary_external_wrapper_decode_is_retained_exactly",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "arbitrary_external_wrapper_decode_is_retained_exactly",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -7210,6 +8008,38 @@
         }
       },
       {
+        "id": "ARTIFACT-ARKWORKS-TIPP-ADAPTER-CORE-ROUTES-EXACT-STAGE-MESSAGES",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "arkworks_tipp_adapter_core_routes_exact_stage_messages",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "arkworks_tipp_adapter_core_routes_exact_stage_messages",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-ARKWORKS-TIPP-ADAPTER-CORE-STOPS-AT-FIRST-SERIALIZATION-ERROR",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "arkworks_tipp_adapter_core_stops_at_first_serialization_error",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "arkworks_tipp_adapter_core_stops_at_first_serialization_error",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-ARTIFACT-DIRECTORY-REJECTS-EXTRA-ENTRIES-AND-HARDLINK-ALIASES",
         "kind": "boundary_negative",
         "path": "crates/crypto/proof-params/src/gnark_artifact_validation.rs",
@@ -7220,6 +8050,22 @@
           "package": "shieldd-sdk-proof-params",
           "cargo_target": "lib",
           "selector": "artifact_directory_rejects_extra_entries_and_hardlink_aliases",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-BLS12-377-FR-FROM-RANDOM-BYTES-DOCUMENTS-SHIPPING-REDUCTION-BOUNDARY",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "bls12_377_fr_from_random_bytes_documents_shipping_reduction_boundary",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "bls12_377_fr_from_random_bytes_documents_shipping_reduction_boundary",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -7258,6 +8104,118 @@
         }
       },
       {
+        "id": "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-ACCEPTS-SUCCESS-AT-MAX-NONCE",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_accepts_success_at_max_nonce",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "bounded_challenge_sampler_accepts_success_at_max_nonce",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-IMMEDIATE-SUCCESS-QUERIES-NONCE-ZERO-ONCE",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_immediate_success_queries_nonce_zero_once",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "bounded_challenge_sampler_immediate_success_queries_nonce_zero_once",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-NONCE-HELPERS-MATCH-CORE-BOUNDARIES",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_nonce_helpers_match_core_boundaries",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "bounded_challenge_sampler_nonce_helpers_match_core_boundaries",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-PRESERVES-ATTEMPT-ERROR-BEFORE-EXHAUSTION",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_preserves_attempt_error_before_exhaustion",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "bounded_challenge_sampler_preserves_attempt_error_before_exhaustion",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-QUERIES-BEFORE-INCREMENTING",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_queries_before_incrementing",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "bounded_challenge_sampler_queries_before_incrementing",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-REJECTION-AT-MAX-FAILS-CLOSED",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_rejection_at_max_fails_closed",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "bounded_challenge_sampler_rejection_at_max_fails_closed",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-BOUNDED-CHALLENGE-SAMPLER-RETRIES-REJECTIONS-IN-NONCE-ORDER",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_retries_rejections_in_nonce_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "bounded_challenge_sampler_retries_rejections_in_nonce_order",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-BUILDS-IR-WITH-CLASSES-AND-WIRE-ROLES",
         "kind": "invariant",
         "path": "crates/crypto/constraint-coverage/src/ir.rs",
@@ -7268,6 +8226,22 @@
           "package": "shieldd-constraint-coverage",
           "cargo_target": "lib",
           "selector": "builds_ir_with_classes_and_wire_roles",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-CANONICAL-FAMILY-FIELDS-ROUND-TRIP-THROUGH-ROUTER",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/bundle.rs",
+        "symbol": "canonical_family_fields_round_trip_through_router",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "canonical_family_fields_round_trip_through_router",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -7300,6 +8274,22 @@
           "package": "shieldd-sdk-proof-aggregation",
           "cargo_target": "lib",
           "selector": "challenge_preimage_changes_on_stage_context_nonce_or_messages",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-CHALLENGE-PREIMAGE-CORE-IS-THE-SHIPPING-FRAME",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "challenge_preimage_core_is_the_shipping_frame",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "challenge_preimage_core_is_the_shipping_frame",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -7364,6 +8354,22 @@
           "package": "shieldd-constraint-coverage",
           "cargo_target": "lib",
           "selector": "classifies_every_bucket_by_wire_role",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-COMBINED-INPUT-PROJECTION-PRESERVES-SHIPPING-INPUTS",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "combined_input_projection_preserves_shipping_inputs",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "combined_input_projection_preserves_shipping_inputs",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -7498,6 +8504,38 @@
         }
       },
       {
+        "id": "ARTIFACT-DECODE-ARTIFACT-DO-NOT-PANIC",
+        "kind": "negative",
+        "path": "crates/core/app/src/app/preconsensus.rs",
+        "symbol": "decode_artifact_do_not_panic",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "decode_artifact_do_not_panic",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-DECODE-BATCH-ITEM-DO-NOT-PANIC",
+        "kind": "negative",
+        "path": "crates/core/app/src/app/preconsensus.rs",
+        "symbol": "decode_batch_item_do_not_panic",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-app",
+          "cargo_target": "lib",
+          "selector": "decode_batch_item_do_not_panic",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-DEFAULT-SRS-ID-PREFIX-MATCHES-DECLARED-FIELDS",
         "kind": "invariant",
         "path": "crates/crypto/proof-aggregation/src/srs.rs",
@@ -7524,6 +8562,22 @@
           "package": "shieldd-sdk-proof-aggregation",
           "cargo_target": "lib",
           "selector": "deserialize_aggregate_proof_do_not_panic",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-DEVELOPMENT-SRS-IS-NEVER-REGISTERED",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "development_srs_is_never_registered",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "development_srs_is_never_registered",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -7588,6 +8642,22 @@
           "package": "shieldd-sdk-proof-params",
           "cargo_target": "lib",
           "selector": "every_metadata_pinned_artifact_hash_is_enforced",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-EVERY-REGISTERED-DIGEST-HASHES-FAMILY-DOMAIN-THEN-CHALLENGE-FRAME",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/transcript.rs",
+        "symbol": "every_registered_digest_hashes_family_domain_then_challenge_frame",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "every_registered_digest_hashes_family_domain_then_challenge_frame",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -7674,6 +8744,22 @@
         }
       },
       {
+        "id": "ARTIFACT-FAMILY-ROUTER-REJECTS-UNKNOWN-MISSING-AND-CROSS-FAMILY-FIELDS",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/bundle.rs",
+        "symbol": "family_router_rejects_unknown_missing_and_cross_family_fields",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "family_router_rejects_unknown_missing_and_cross_family_fields",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-FAMILY-VKS-EXPOSE-SINGLE-STATEMENT-HASH-PUBLIC-INPUT",
         "kind": "invariant",
         "path": "crates/core/component/shielded-pool/src/gnark/artifacts.rs",
@@ -7684,6 +8770,38 @@
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
           "selector": "family_vks_expose_single_statement_hash_public_input",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-FAST-BLS12-377-GT-VALIDATION-MATCHES-ARKWORKS-ON-STRUCTURED-INPUTS",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "fast_bls12_377_gt_validation_matches_arkworks_on_structured_inputs",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "fast_bls12_377_gt_validation_matches_arkworks_on_structured_inputs",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-FOLD-OUTPUT-MATCHES-DIRECT-EXPRESSION",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "symbol": "fold_output_matches_direct_expression",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "fold_output_matches_direct_expression",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -7818,6 +8936,22 @@
         }
       },
       {
+        "id": "ARTIFACT-IDS-ARE-EXACT-AND-REDUCTION-IS-PERMUTATION-INVARIANT",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "ids_are_exact_and_reduction_is_permutation_invariant",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "ids_are_exact_and_reduction_is_permutation_invariant",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-INDEXED-ROW-SEARCH-HANDLES-LARGE-SAME-SHAPE-PERMUTATION",
         "kind": "invariant",
         "path": "crates/crypto/constraint-coverage/src/template_registry.rs",
@@ -7882,6 +9016,38 @@
         }
       },
       {
+        "id": "ARTIFACT-KZG-OPENING-CORE-OWNS-CONSTRUCTION-ORDER-AND-PROJECTION",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "kzg_opening_core_owns_construction_order_and_projection",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "kzg_opening_core_owns_construction_order_and_projection",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-KZG-OPENING-MSM-CORE-FORWARDS-EXACT-VECTORS-AND-ERROR",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "kzg_opening_msm_core_forwards_exact_vectors_and_error",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "kzg_opening_msm_core_forwards_exact_vectors_and_error",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-LINEARIZES-DISTINCT-COEFF-GEOMETRIC",
         "kind": "invariant",
         "path": "crates/crypto/constraint-coverage/src/leangen.rs",
@@ -7930,6 +9096,22 @@
         }
       },
       {
+        "id": "ARTIFACT-MALFORMED-IDENTITY-OUTPUTS-REJECT-BEFORE-TRANSCRIPT-OR-FOLDING",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "malformed_identity_outputs_reject_before_transcript_or_folding",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "malformed_identity_outputs_reject_before_transcript_or_folding",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-MANIFEST-IS-CONSISTENT-WITH-IR",
         "kind": "invariant",
         "path": "crates/crypto/constraint-coverage/src/obligations.rs",
@@ -7940,6 +9122,22 @@
           "package": "shieldd-constraint-coverage",
           "cargo_target": "lib",
           "selector": "manifest_is_consistent_with_ir",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-MATCHING-DIGEST-STILL-REQUIRES-STRICT-CANONICAL-SRS-DECODING",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "matching_digest_still_requires_strict_canonical_srs_decoding",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "matching_digest_still_requires_strict_canonical_srs_decoding",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -8010,6 +9208,22 @@
         }
       },
       {
+        "id": "ARTIFACT-NOTE-RESHAPE-SHIPPING-AND-PROFILED-AGGREGATION-BYTES-MATCH",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "note_reshape_shipping_and_profiled_aggregation_bytes_match",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "note_reshape_shipping_and_profiled_aggregation_bytes_match",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-OBLIGATIONS-PARTITION-ALL-INSTANCES",
         "kind": "invariant",
         "path": "crates/crypto/constraint-coverage/src/obligations.rs",
@@ -8020,6 +9234,38 @@
           "package": "shieldd-constraint-coverage",
           "cargo_target": "lib",
           "selector": "obligations_partition_all_instances",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PADDING-PAIRING-COALESCING-IS-EXACT-ON-BLS12-377",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "padding_pairing_coalescing_is_exact_on_bls12_377",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "padding_pairing_coalescing_is_exact_on_bls12_377",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PADDING-PAIRING-COALESCING-IS-EXACT-ON-BLS12-381",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "padding_pairing_coalescing_is_exact_on_bls12_381",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "padding_pairing_coalescing_is_exact_on_bls12_381",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -8090,6 +9336,70 @@
         }
       },
       {
+        "id": "ARTIFACT-PLAN-COMPARES-CONCRETE-FAMILY-AND-COUNT-VALUES-IN-FAILURE-ORDER",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "plan_compares_concrete_family_and_count_values_in_failure_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "plan_compares_concrete_family_and_count_values_in_failure_order",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-POLYNOMIAL-COEFFICIENTS-MATCH-DIRECT-EXPANSION",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "polynomial_coefficients_match_direct_expansion",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "polynomial_coefficients_match_direct_expansion",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-POLYNOMIAL-EVALUATION-PRODUCT-FORM-MATCHES-COEFFICIENTS",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "polynomial_evaluation_product_form_matches_coefficients",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "polynomial_evaluation_product_form_matches_coefficients",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-POST-GIPA-CHALLENGE-CORES-PRESERVE-STAGE-BYTES-AND-ERROR-ORDER",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "post_gipa_challenge_cores_preserve_stage_bytes_and_error_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "post_gipa_challenge_cores_preserve_stage_bytes_and_error_order",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-PPE-OPTIMIZED-MATCHES-BASELINE-GT-VALUE",
         "kind": "parity",
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
@@ -8116,6 +9426,22 @@
           "package": "shieldd-sdk-proof-aggregation",
           "cargo_target": "lib",
           "selector": "preflight_aggregate_verify_do_not_panic",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PREFLIGHT-CHECKS-EVERY-HEADER-BEFORE-SEGMENT-PLANNING",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "preflight_checks_every_header_before_segment_planning",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "preflight_checks_every_header_before_segment_planning",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -8170,6 +9496,38 @@
         }
       },
       {
+        "id": "ARTIFACT-PRODUCTION-ARTIFACT-HASH-IS-CHECKED-BEFORE-DECODING",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "production_artifact_hash_is_checked_before_decoding",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "production_artifact_hash_is_checked_before_decoding",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PRODUCTION-ARTIFACT-READ-IS-BOUNDED-BY-ACTUAL-BYTES",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "production_artifact_read_is_bounded_by_actual_bytes",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "production_artifact_read_is_bounded_by_actual_bytes",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-PRODUCTION-GATE-RECOVERS-BOTH-LADDERS",
         "kind": "parity",
         "path": "crates/crypto/constraint-coverage/src/ltchain.rs",
@@ -8180,6 +9538,38 @@
           "package": "shieldd-constraint-coverage",
           "cargo_target": "lib",
           "selector": "production_gate_recovers_both_ladders",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PRODUCTION-REGISTRY-FAILS-CLOSED-UNTIL-CEREMONY-ENTRY-IS-PINNED",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "production_registry_fails_closed_until_ceremony_entry_is_pinned",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "production_registry_fails_closed_until_ceremony_entry_is_pinned",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PRODUCTION-REGISTRY-REJECTS-NONCANONICAL-IDENTIFIER-LENGTH",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "production_registry_rejects_noncanonical_identifier_length",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "production_registry_rejects_noncanonical_identifier_length",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -8298,6 +9688,102 @@
         }
       },
       {
+        "id": "ARTIFACT-PROVER-AND-VERIFIER-SHARE-RANDOMIZER-ADMISSIBILITY",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_and_verifier_share_randomizer_admissibility",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "prover_and_verifier_share_randomizer_admissibility",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PROVER-GIPA-CORE-OWNS-ROUND-ORDER-AND-ALL-TERMINAL-FOLDS",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_gipa_core_owns_round_order_and_all_terminal_folds",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "prover_gipa_core_owns_round_order_and_all_terminal_folds",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PROVER-GIPA-SEMANTIC-EXECUTION-OWNS-CALL-AND-ROUND-EFFECT-CHRONOLOGY",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_gipa_semantic_execution_owns_call_and_round_effect_chronology",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "prover_gipa_semantic_execution_owns_call_and_round_effect_chronology",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PROVER-RANDOMIZER-CORE-REBUILDS-EXACT-MESSAGE-AND-FAILS-CLOSED",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_randomizer_core_rebuilds_exact_message_and_fails_closed",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "prover_randomizer_core_rebuilds_exact_message_and_fails_closed",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PROVER-ROUND-COMMITMENT-CORE-EXPOSES-EXACT-OPERANDS-AND-ERROR-ORDER",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_round_commitment_core_exposes_exact_operands_and_error_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "prover_round_commitment_core_exposes_exact_operands_and_error_order",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-PROVER-STRUCTURAL-CORES-PRESERVE-FOLD-AND-ROUND-FIELD-ORDER",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_structural_cores_preserve_fold_and_round_field_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "prover_structural_cores_preserve_fold_and_round_field_order",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-PROVER-VERIFIER-ACCEPTANCE-PARITY",
         "kind": "parity",
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
@@ -8372,6 +9858,22 @@
           "package": "shieldd-constraint-coverage",
           "cargo_target": "lib",
           "selector": "recovers_r_ladder_from_real_sr1cs_and_gate_holds",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-REDUCTION-REJECTS-MISSING-DUPLICATE-AND-UNEXPECTED-TAGS",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "reduction_rejects_missing_duplicate_and_unexpected_tags",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "reduction_rejects_missing_duplicate_and_unexpected_tags",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -8490,6 +9992,70 @@
         }
       },
       {
+        "id": "ARTIFACT-REPEAT-FINAL-ROWS-ACCEPTS-ONLY-THE-EMPTY-ZERO-TARGET",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "repeat_final_rows_accepts_only_the_empty_zero_target",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "repeat_final_rows_accepts_only_the_empty_zero_target",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-REPEAT-FINAL-ROWS-PRESERVES-PREFIX-AND-FILLS-SUFFIX",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "repeat_final_rows_preserves_prefix_and_fills_suffix",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "repeat_final_rows_preserves_prefix_and_fills_suffix",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-REPEAT-FINAL-ROWS-REJECTS-A-SMALLER-TARGET",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "repeat_final_rows_rejects_a_smaller_target",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "repeat_final_rows_rejects_a_smaller_target",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-RESCALE-FOLD-MATCHES-ELEMENTWISE-EXPRESSION",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "symbol": "rescale_fold_matches_elementwise_expression",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "rescale_fold_matches_elementwise_expression",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-REUSED-IR-REJECTS-MUTATED-DERIVED-CONTENT",
         "kind": "negative",
         "path": "crates/crypto/constraint-coverage/src/main.rs",
@@ -8554,6 +10120,22 @@
         }
       },
       {
+        "id": "ARTIFACT-ROW-PROJECTION-PRESERVES-CALLER-ORDER-BEFORE-REPEAT-FINAL-SUFFIX",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/padding.rs",
+        "symbol": "row_projection_preserves_caller_order_before_repeat_final_suffix",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "row_projection_preserves_caller_order_before_repeat_final_suffix",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-RUNG-CUTS-KEEP-STEP-STATE-BOUNDED",
         "kind": "invariant",
         "path": "crates/crypto/constraint-coverage/src/leangen.rs",
@@ -8580,6 +10162,22 @@
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
           "selector": "runtime_rejects_noncanonical_metadata_and_vk_json",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SCALAR-IDENTITY-SERIALIZATION-MATCHES-ARKWORKS-SINGLETON-VECTOR",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "scalar_identity_serialization_matches_arkworks_singleton_vector",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "scalar_identity_serialization_matches_arkworks_singleton_vector",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -8644,6 +10242,310 @@
           "package": "shieldd-constraint-coverage",
           "cargo_target": "lib",
           "selector": "shards_contract_definitions_only_at_top_level_boundaries",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHARED-GT-FOLD-MATCHES-SEQUENTIAL-BLS12-377",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shared_gt_fold_matches_sequential_bls12_377",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shared_gt_fold_matches_sequential_bls12_377",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHARED-GT-FOLD-MATCHES-SEQUENTIAL-BLS12-381",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shared_gt_fold_matches_sequential_bls12_381",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shared_gt_fold_matches_sequential_bls12_381",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-AGGREGATE-PROVER-PROJECTION-RETAINS-PRELUDE-AND-WIRE-EXECUTION",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shipping_aggregate_prover_projection_retains_prelude_and_wire_execution",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_aggregate_prover_projection_retains_prelude_and_wire_execution",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-AND-ORDINARY-PROFILED-ROUTES-MATCH-ALL-REGISTERED-FAMILIES",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "shipping_and_ordinary_profiled_routes_match_all_registered_families",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "shipping_and_ordinary_profiled_routes_match_all_registered_families",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-BACKEND-RESULT-MATERIALIZES-THE-EXACT-AUTHENTICATED-INPUT",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "shipping_backend_result_materializes_the_exact_authenticated_input",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "shipping_backend_result_materializes_the_exact_authenticated_input",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-CALL-CONSTRUCTOR-PRESERVES-EVERY-CHECKED-FIELD",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_call_constructor_preserves_every_checked_field",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_call_constructor_preserves_every_checked_field",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-INPUT-AND-RESULT-PRESERVE-EVERY-AUTHENTICATED-FIELD",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_input_and_result_preserve_every_authenticated_field",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_input_and_result_preserve_every_authenticated_field",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-INPUT-REJECTS-CROSS-RECORD-SUBSTITUTION",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_input_rejects_cross_record_substitution",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_input_rejects_cross_record_substitution",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-NONCE-EXHAUSTION-MAPS-EXACT-PUBLIC-ERROR",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shipping_nonce_exhaustion_maps_exact_public_error",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_nonce_exhaustion_maps_exact_public_error",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-PREFLIGHT-PRESERVES-SRS-WRAPPER-AND-VK-FAILURE-ORDER",
+        "kind": "negative",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "shipping_preflight_preserves_srs_wrapper_and_vk_failure_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "shipping_preflight_preserves_srs_wrapper_and_vk_failure_order",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-PREFLIGHT-PROJECTION-CORES-PRESERVE-EXACT-PARTS",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_preflight_projection_cores_preserve_exact_parts",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_preflight_projection_cores_preserve_exact_parts",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-PREFLIGHT-REJECTS-CROSS-CALL-SUBSTITUTION-AFTER-WIRE-CHECKS",
+        "kind": "negative",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "shipping_preflight_rejects_cross_call_substitution_after_wire_checks",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "shipping_preflight_rejects_cross_call_substitution_after_wire_checks",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-PROJECTION-ACCEPTS-EXACT-INPUT-AND-PRESERVES-FAILURE-ORDER",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_projection_accepts_exact_input_and_preserves_failure_order",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_projection_accepts_exact_input_and_preserves_failure_order",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-PROTOCOL-VERSION-ROOT-IS-CURRENT",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_protocol_version_root_is_current",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_protocol_version_root_is_current",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-STATEMENT-PREFLIGHT-RETAINS-EXACT-PADDING-PROVENANCE",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_statement_preflight_retains_exact_padding_provenance",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_statement_preflight_retains_exact_padding_provenance",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-VERIFIER-OBSERVATION-CORE-PRESERVES-EMPTY-PHASE-BOUNDARIES",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shipping_verifier_observation_core_preserves_empty_phase_boundaries",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_verifier_observation_core_preserves_empty_phase_boundaries",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-VERIFIER-OBSERVED-BACKEND-RESULT-CORE-CORRELATES-BEFORE-ARC",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shipping_verifier_observed_backend_result_core_correlates_before_arc",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_verifier_observed_backend_result_core_correlates_before_arc",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-VERIFIER-SEMANTIC-EXECUTION-WITH-TRACES-CORE-PRESERVES-EXACT-STATES",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shipping_verifier_semantic_execution_with_traces_core_preserves_exact_states",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_verifier_semantic_execution_with_traces_core_preserves_exact_states",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SHIPPING-WRAPPER-PROJECTION-PRESERVES-EXACT-PARTS",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_wrapper_projection_preserves_exact_parts",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "shipping_wrapper_projection_preserves_exact_parts",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -9002,6 +10904,38 @@
         }
       },
       {
+        "id": "ARTIFACT-STATEMENT-HASH-CORE-RETAINS-EXACT-ORDER-AND-VALUES",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+        "symbol": "statement_hash_core_retains_exact_order_and_values",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "statement_hash_core_retains_exact_order_and_values",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-STATEMENT-HASH-CORE-STOPS-AT-EVERY-FAILING-STAGE",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+        "symbol": "statement_hash_core_stops_at_every_failing_stage",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "statement_hash_core_stops_at_every_failing_stage",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-STATEMENT-HASH-LARGE-RELATIONS-KEEP-FIVE-ROW-PARTS",
         "kind": "invariant",
         "path": "crates/crypto/constraint-coverage/src/contracts.rs",
@@ -9204,6 +11138,22 @@
           "package": "shieldd-constraint-coverage",
           "cargo_target": "lib",
           "selector": "structures_transfer_shared_secret_mixed_strides",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-SYNTHETIC-DIVISION-CONSTRUCTS-EXACT-MONIC-LINEAR-QUOTIENT",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "synthetic_division_constructs_exact_monic_linear_quotient",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "synthetic_division_constructs_exact_monic_linear_quotient",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -10090,6 +12040,22 @@
         }
       },
       {
+        "id": "ARTIFACT-TIPP-MIPP-CHALLENGE-PREFIX-EXPOSES-EXACT-SHIPPING-VALUES",
+        "kind": "invariant",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "tipp_mipp_challenge_prefix_exposes_exact_shipping_values",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "tipp_mipp_challenge_prefix_exposes_exact_shipping_values",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-TRAILING-AND-MALFORMED-BYTES-REJECT",
         "kind": "negative",
         "path": "crates/crypto/proof-aggregation/src/strict_deserialize.rs",
@@ -10106,16 +12072,16 @@
         }
       },
       {
-        "id": "ARTIFACT-TRANSCRIPT-FAMILY-DOMAINS-ARE-UNIQUE",
+        "id": "ARTIFACT-TRANSCRIPT-FAMILY-DOMAINS-ARE-EXACT-AND-UNIQUE",
         "kind": "invariant",
         "path": "crates/crypto/proof-aggregation/src/transcript.rs",
-        "symbol": "transcript_family_domains_are_unique",
+        "symbol": "transcript_family_domains_are_exact_and_unique",
         "execution": {
           "runner": "cargo_test",
           "working_directory": ".",
           "package": "shieldd-sdk-proof-aggregation",
           "cargo_target": "lib",
-          "selector": "transcript_family_domains_are_unique",
+          "selector": "transcript_family_domains_are_exact_and_unique",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -10138,6 +12104,22 @@
         }
       },
       {
+        "id": "ARTIFACT-V1-BYTES-AND-TRANSCRIPT-MATCH-COMMITTED-BASELINES",
+        "kind": "parity",
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "v1_bytes_and_transcript_match_committed_baselines",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-proof-aggregation",
+          "cargo_target": "lib",
+          "selector": "v1_bytes_and_transcript_match_committed_baselines",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
         "id": "ARTIFACT-VALIDATE-PROVE-REQUEST-LEN-REJECTS-OVERSIZED-REQUEST",
         "kind": "boundary_negative",
         "path": "crates/core/component/shielded-pool/src/gnark/transport.rs",
@@ -10148,6 +12130,38 @@
           "package": "shieldd-sdk-shielded-pool",
           "cargo_target": "lib",
           "selector": "validate_prove_request_len_rejects_oversized_request",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-VALIDATED-AGGREGATE-PROOF-IS-SCALAR-AND-CANNOT-BE-BYPASSED",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "validated_aggregate_proof_is_scalar_and_cannot_be_bypassed",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "validated_aggregate_proof_is_scalar_and_cannot_be_bypassed",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      {
+        "id": "ARTIFACT-WRAPPER-DECODE-AND-BINDING-ARE-EXACT-AND-FAIL-CLOSED",
+        "kind": "boundary_negative",
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+        "symbol": "wrapper_decode_and_binding_are_exact_and_fail_closed",
+        "execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "ark-ip-proofs",
+          "cargo_target": "lib",
+          "selector": "wrapper_decode_and_binding_are_exact_and_fail_closed",
           "build_profile": "default",
           "features": [],
           "prover_required": false
@@ -10296,7 +12310,9 @@
       "crates/bin/pcli/tests/testnet.rs",
       "crates/bin/pd/src/network/generate.rs",
       "crates/bin/pd/src/network/join.rs",
-      "crates/bin/shieldd/src/execution_client.rs",
+      "crates/bin/shieldd/src/ffi.rs",
+      "crates/bin/shieldd/src/grpc.rs",
+      "crates/bin/shieldd/src/service.rs",
       "crates/core/app-tests/tests/app_blocktimes_increment.rs",
       "crates/core/app-tests/tests/app_bootstraps_post_genesis_validator_definitions.rs",
       "crates/core/app-tests/tests/app_can_sweep_a_collection_of_small_notes.rs",
@@ -10315,10 +12331,12 @@
       "crates/core/app/src/action_handler/transaction/stateless.rs",
       "crates/core/app/src/app/host.rs",
       "crates/core/app/src/app/mod.rs",
+      "crates/core/app/src/app/preconsensus.rs",
       "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
       "crates/core/app/src/app_version/component.rs",
       "crates/core/app/src/genesis.rs",
       "crates/core/app/src/params/change.rs",
+      "crates/core/app/src/server/consensus.rs",
       "crates/core/app/src/server/mempool.rs",
       "crates/core/app/src/stateless_cache.rs",
       "crates/core/asset/src/asset.rs",
@@ -10371,7 +12389,7 @@
       "crates/core/component/shielded-pool/src/component/rpc/bank_query.rs",
       "crates/core/component/shielded-pool/src/component/rpc/transfer_query.rs",
       "crates/core/component/shielded-pool/src/component/transfer.rs",
-      "crates/core/component/shielded-pool/src/fmd.rs",
+      "crates/core/component/shielded-pool/src/discovery.rs",
       "crates/core/component/shielded-pool/src/gnark/artifacts.rs",
       "crates/core/component/shielded-pool/src/gnark/binary.rs",
       "crates/core/component/shielded-pool/src/gnark/mod.rs",
@@ -10383,6 +12401,7 @@
       "crates/core/component/shielded-pool/src/gnark/transport.rs",
       "crates/core/component/shielded-pool/src/gnark/typed.rs",
       "crates/core/component/shielded-pool/src/groth16_proof.rs",
+      "crates/core/component/shielded-pool/src/host_withdrawal.rs",
       "crates/core/component/shielded-pool/src/ics20_withdrawal.rs",
       "crates/core/component/shielded-pool/src/note.rs",
       "crates/core/component/shielded-pool/src/note_reshape/action.rs",
@@ -10390,6 +12409,7 @@
       "crates/core/component/shielded-pool/src/note_reshape/plan.rs",
       "crates/core/component/shielded-pool/src/note_reshape/proof.rs",
       "crates/core/component/shielded-pool/src/public_input_hash.rs",
+      "crates/core/component/shielded-pool/src/shielded_host_withdrawal/action.rs",
       "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/action.rs",
       "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/plan.rs",
       "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/proof.rs",
@@ -10442,11 +12462,14 @@
       "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/afgho16/mod.rs",
       "crates/crypto/proof-aggregation/src/ipp/dh_commitments/src/pedersen/mod.rs",
       "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
       "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
       "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/poly_commit/mod.rs",
       "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/poly_commit/transparent.rs",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
       "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
       "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/s3_07_arkworks_fq_spike.rs",
+      "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
       "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
       "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/structured_scalar_message.rs",
       "crates/crypto/proof-aggregation/src/ipp/ip_proofs/tests/bls12_377_arkworks_fq_spike.rs",
@@ -10481,6 +12504,7 @@
       "crates/view/src/client_compliance.rs",
       "crates/view/src/compliance_tree.rs",
       "crates/view/src/note_manager.rs",
+      "crates/view/src/service.rs",
       "crates/view/src/storage/compliance.rs",
       "crates/view/src/storage/sct.rs",
       "tools/gnark/cmd/extractlean/main_test.go",
@@ -10542,11 +12566,19 @@
         "symbol": "validator_conversion_rejects_identity_authorization_key_without_panicking"
       },
       {
-        "path": "crates/bin/shieldd/src/execution_client.rs",
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "ffi_execution_check_tx_rejects_invalid_transaction"
+      },
+      {
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "ffi_execution_deliver_tx_rejects_invalid_transaction"
+      },
+      {
+        "path": "crates/bin/shieldd/src/grpc.rs",
         "symbol": "grpc_execution_check_tx_rejects_invalid_transaction"
       },
       {
-        "path": "crates/bin/shieldd/src/execution_client.rs",
+        "path": "crates/bin/shieldd/src/grpc.rs",
         "symbol": "grpc_execution_deliver_tx_rejects_invalid_transaction"
       },
       {
@@ -10564,6 +12596,14 @@
       {
         "path": "crates/core/app-tests/tests/ics23_transfer.rs",
         "symbol": "ics20_transfer_no_timeouts"
+      },
+      {
+        "path": "crates/core/app/src/action_handler/transaction.rs",
+        "symbol": "anchor_validation_cache_counts_shared_pair_once"
+      },
+      {
+        "path": "crates/core/app/src/action_handler/transaction.rs",
+        "symbol": "claimed_anchor_validation_cache_counts_shared_anchor_once"
       },
       {
         "path": "crates/core/app/src/action_handler/transaction.rs",
@@ -10591,7 +12631,43 @@
       },
       {
         "path": "crates/core/app/src/app/host.rs",
+        "symbol": "host_execution_accepts_withdrawals_for_registered_assets"
+      },
+      {
+        "path": "crates/core/app/src/app/host.rs",
         "symbol": "host_execution_check_tx_rejects_invalid_tx_without_entering_block"
+      },
+      {
+        "path": "crates/core/app/src/app/host.rs",
+        "symbol": "standalone_execution_rejects_host_withdrawals"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_bundle_verification_rejects_bad_srs_id_before_srs_setup"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_bundle_verification_rejects_bad_version_srs_and_family_count"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_expected_segments_preserve_segment_and_family_order"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_verify_join_rejection_guard_is_fail_closed"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_verify_plan_header_rejects_incomplete_segment_coverage"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_verify_planner_preserves_segment_order_and_checks_counts"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_verify_reducer_is_order_independent_and_rejects_exact_calls"
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
@@ -10599,11 +12675,23 @@
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "async_verifier_outcome_retains_its_exact_shipping_input"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
         "symbol": "consensus_acceptance_source_has_no_diagnostic_io"
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "ensure_aggregate_bundle_tx_shape_rejects_memo_fee_and_extra_action"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
         "symbol": "failed_transaction_drops_all_staged_effects"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "fee_funding_extraction_rejects_identity_randomized_key"
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
@@ -10636,6 +12724,14 @@
       {
         "path": "crates/core/app/src/app/mod.rs",
         "symbol": "structured_join_drain_waits_for_siblings_after_error"
+      },
+      {
+        "path": "crates/core/app/src/app/preconsensus.rs",
+        "symbol": "decode_artifact_do_not_panic"
+      },
+      {
+        "path": "crates/core/app/src/app/preconsensus.rs",
+        "symbol": "decode_batch_item_do_not_panic"
       },
       {
         "path": "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
@@ -10694,6 +12790,10 @@
         "symbol": "compliance_anchor_validation_window_must_be_positive"
       },
       {
+        "path": "crates/core/app/src/server/consensus.rs",
+        "symbol": "prepared_proposal_reuse_requires_same_height_exact_digest_and_normal_mode"
+      },
+      {
         "path": "crates/core/app/src/server/mempool.rs",
         "symbol": "checktx_concurrency_is_bounded_for_all_hardware_sizes"
       },
@@ -10720,10 +12820,6 @@
       {
         "path": "crates/core/app/src/stateless_cache.rs",
         "symbol": "entry_count_budget_evicts_independently_of_raw_byte_budget"
-      },
-      {
-        "path": "crates/core/app/src/stateless_cache.rs",
-        "symbol": "fee_funding_extraction_rejects_identity_randomized_key"
       },
       {
         "path": "crates/core/app/src/stateless_cache.rs",
@@ -11166,6 +13262,10 @@
         "symbol": "timestamp_freshness_signed_conversion_matches_u64_policy"
       },
       {
+        "path": "crates/core/component/compliance/src/registry.rs",
+        "symbol": "user_leaf_record_is_compact_and_authenticated"
+      },
+      {
         "path": "crates/core/component/compliance/src/structs.rs",
         "symbol": "asset_policy_rejects_identity_crypto_keys"
       },
@@ -11211,7 +13311,7 @@
       },
       {
         "path": "crates/core/component/compliance/src/structs.rs",
-        "symbol": "test_compliance_leaf_commitment_binds_clue_key"
+        "symbol": "test_compliance_leaf_commitment_binds_discovery_key"
       },
       {
         "path": "crates/core/component/compliance/src/structs.rs",
@@ -11259,7 +13359,7 @@
       },
       {
         "path": "crates/core/component/compliance/src/transfer.rs",
-        "symbol": "compliance_address_plaintext_excludes_clue_key"
+        "symbol": "compliance_address_plaintext_excludes_discovery_key"
       },
       {
         "path": "crates/core/component/compliance/src/transfer.rs",
@@ -11308,6 +13408,10 @@
       {
         "path": "crates/core/component/sct/src/component/tree.rs",
         "symbol": "claimed_anchor_liveness_matches_retention_boundary"
+      },
+      {
+        "path": "crates/core/component/sct/src/component/tree.rs",
+        "symbol": "sct_capacity_is_checked_before_block_mutation"
       },
       {
         "path": "crates/core/component/sct/src/nullifier_tree.rs",
@@ -11512,6 +13616,18 @@
       {
         "path": "crates/core/component/shielded-pool/src/component/transfer.rs",
         "symbol": "withdrawal_execute_updates_supply_and_packet_state"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/discovery.rs",
+        "symbol": "decoding_rejects_non_canonical_unused_bits"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/discovery.rs",
+        "symbol": "tag_masks_every_precision_canonically"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/discovery.rs",
+        "symbol": "tag_prefixes_are_stable_across_precision_changes"
       },
       {
         "path": "crates/core/component/shielded-pool/src/gnark/artifacts.rs",
@@ -11798,6 +13914,10 @@
         "symbol": "transfer_statement_rejects_metadata_timestamp_drift"
       },
       {
+        "path": "crates/core/component/shielded-pool/src/shielded_host_withdrawal/action.rs",
+        "symbol": "unknown_family_id_is_rejected_at_wire_boundary"
+      },
+      {
         "path": "crates/core/component/shielded-pool/src/shielded_ics20_withdrawal/action.rs",
         "symbol": "unknown_family_id_is_rejected_at_wire_boundary"
       },
@@ -11979,7 +14099,7 @@
       },
       {
         "path": "crates/core/keys/src/address.rs",
-        "symbol": "rejects_noncanonical_clue_key_field_alias"
+        "symbol": "rejects_noncanonical_discovery_key_field_alias"
       },
       {
         "path": "crates/core/keys/src/address.rs",
@@ -12039,6 +14159,10 @@
       },
       {
         "path": "crates/core/keys/src/test_keys.rs",
+        "symbol": "test_addresses_match_viewing_key"
+      },
+      {
+        "path": "crates/core/keys/src/test_keys.rs",
         "symbol": "test_fvk_matches"
       },
       {
@@ -12087,11 +14211,11 @@
       },
       {
         "path": "crates/core/transaction/src/plan.rs",
-        "symbol": "detection_data_includes_dummy_clues_for_transfer_family_shape"
+        "symbol": "discovery_precision_propagates_to_transfer_family"
       },
       {
         "path": "crates/core/transaction/src/plan.rs",
-        "symbol": "shielded_ics20_withdrawal_counts_change_output_for_destinations_and_clues"
+        "symbol": "shielded_ics20_withdrawal_counts_change_output_for_discovery"
       },
       {
         "path": "crates/core/transaction/src/plan.rs",
@@ -12411,6 +14535,10 @@
       },
       {
         "path": "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
+        "symbol": "arbitrary_external_wrapper_decode_is_retained_exactly"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/aggregate_proof_wrapper.rs",
         "symbol": "wrapper_decode_core_returns_inner_proof_range"
       },
       {
@@ -12439,10 +14567,6 @@
       },
       {
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
-        "symbol": "aggregate_bytes_match_committed_baseline"
-      },
-      {
-        "path": "crates/crypto/proof-aggregation/src/backend.rs",
         "symbol": "aggregation_is_deterministic_for_fixed_inputs"
       },
       {
@@ -12467,6 +14591,10 @@
       },
       {
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "bls12_377_fr_from_random_bytes_documents_shipping_reduction_boundary"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
         "symbol": "decaf377_vk_digest_round_trips_after_serialization"
       },
       {
@@ -12475,7 +14603,15 @@
       },
       {
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "fast_bls12_377_gt_validation_matches_arkworks_on_structured_inputs"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
         "symbol": "malformed_aggregate_proof_oversize_rejected_before_deserialization"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "note_reshape_shipping_and_profiled_aggregation_bytes_match"
       },
       {
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
@@ -12492,6 +14628,22 @@
       {
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
         "symbol": "prover_verifier_acceptance_parity"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "shipping_and_ordinary_profiled_routes_match_all_registered_families"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "shipping_backend_result_materializes_the_exact_authenticated_input"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "shipping_preflight_preserves_srs_wrapper_and_vk_failure_order"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "shipping_preflight_rejects_cross_call_substitution_after_wire_checks"
       },
       {
         "path": "crates/crypto/proof-aggregation/src/backend.rs",
@@ -12538,12 +14690,292 @@
         "symbol": "strict_boundary_rejects_nested_component_aliases_and_malformed_bytes"
       },
       {
-        "path": "crates/crypto/proof-aggregation/src/bundle.rs",
-        "symbol": "aggregate_bundle_decode_rejects_invalid_family_routes"
+        "path": "crates/crypto/proof-aggregation/src/backend.rs",
+        "symbol": "v1_bytes_and_transcript_match_committed_baselines"
       },
       {
         "path": "crates/crypto/proof-aggregation/src/bundle.rs",
-        "symbol": "aggregate_bundle_private_wire_round_trip"
+        "symbol": "aggregate_bundle_decode_rejects_unspecified_family"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/bundle.rs",
+        "symbol": "aggregate_bundle_proto_round_trip"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/bundle.rs",
+        "symbol": "canonical_family_fields_round_trip_through_router"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/bundle.rs",
+        "symbol": "family_router_rejects_unknown_missing_and_cross_family_fields"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "accepted_join_projection_is_exact_and_fail_closed"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "ids_are_exact_and_reduction_is_permutation_invariant"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "plan_compares_concrete_family_and_count_values_in_failure_order"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "preflight_checks_every_header_before_segment_planning"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "reduction_rejects_missing_duplicate_and_unexpected_tags"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "repeat_final_rows_accepts_only_the_empty_zero_target"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "repeat_final_rows_preserves_prefix_and_fills_suffix"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "repeat_final_rows_rejects_a_smaller_target"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_call_constructor_preserves_every_checked_field"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_input_and_result_preserve_every_authenticated_field"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_input_rejects_cross_record_substitution"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_preflight_projection_cores_preserve_exact_parts"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_projection_accepts_exact_input_and_preserves_failure_order"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_protocol_version_root_is_current"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_statement_preflight_retains_exact_padding_provenance"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/app_verifier.rs",
+        "symbol": "shipping_wrapper_projection_preserves_exact_parts"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_core_accepts_success_at_last_nonce"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_core_preserves_error_order_and_kind"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_core_queries_last_nonce_and_fails_closed"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_core_retries_and_installs_one_randomizer"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_core_shipping_semantic_execution_retains_exact_output"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_adapter_input_constructors_preserve_every_field"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_prover_initial_commitment_projection_preserves_tuple_and_error_order"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_prover_profiled_preserves_proof_bytes_and_trace"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "aggregate_randomizer_message_is_exact_commitment_order"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "arkworks_tipp_adapter_core_routes_exact_stage_messages"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "arkworks_tipp_adapter_core_stops_at_first_serialization_error"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "combined_input_projection_preserves_shipping_inputs"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "malformed_identity_outputs_reject_before_transcript_or_folding"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "padding_pairing_coalescing_is_exact_on_bls12_377"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "padding_pairing_coalescing_is_exact_on_bls12_381"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "post_gipa_challenge_cores_preserve_stage_bytes_and_error_order"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_and_verifier_share_randomizer_admissibility"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_gipa_core_owns_round_order_and_all_terminal_folds"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_gipa_semantic_execution_owns_call_and_round_effect_chronology"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_randomizer_core_rebuilds_exact_message_and_fails_closed"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_round_commitment_core_exposes_exact_operands_and_error_order"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "prover_structural_cores_preserve_fold_and_round_field_order"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "scalar_identity_serialization_matches_arkworks_singleton_vector"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shared_gt_fold_matches_sequential_bls12_377"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shared_gt_fold_matches_sequential_bls12_381"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shipping_aggregate_prover_projection_retains_prelude_and_wire_execution"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shipping_nonce_exhaustion_maps_exact_public_error"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shipping_verifier_observation_core_preserves_empty_phase_boundaries"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shipping_verifier_observed_backend_result_core_correlates_before_arc"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "shipping_verifier_semantic_execution_with_traces_core_preserves_exact_states"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "tipp_mipp_challenge_prefix_exposes_exact_shipping_values"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
+        "symbol": "validated_aggregate_proof_is_scalar_and_cannot_be_bypassed"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_accepts_success_at_max_nonce"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_immediate_success_queries_nonce_zero_once"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_nonce_helpers_match_core_boundaries"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_preserves_attempt_error_before_exhaustion"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_queries_before_incrementing"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_rejection_at_max_fails_closed"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "bounded_challenge_sampler_retries_rejections_in_nonce_order"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/challenge.rs",
+        "symbol": "challenge_preimage_core_is_the_shipping_frame"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "symbol": "fold_output_matches_direct_expression"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
+        "symbol": "rescale_fold_matches_elementwise_expression"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+        "symbol": "statement_hash_core_retains_exact_order_and_values"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+        "symbol": "statement_hash_core_stops_at_every_failing_stage"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/statement_binding.rs",
+        "symbol": "wrapper_decode_and_binding_are_exact_and_fail_closed"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "affine_kzg_profiled_projects_exact_quotient_msm"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "kzg_opening_core_owns_construction_order_and_projection"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "kzg_opening_msm_core_forwards_exact_vectors_and_error"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "polynomial_coefficients_match_direct_expansion"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "polynomial_evaluation_product_form_matches_coefficients"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/tipa/mod.rs",
+        "symbol": "synthetic_division_constructs_exact_monic_linear_quotient"
       },
       {
         "path": "crates/crypto/proof-aggregation/src/padding.rs",
@@ -12562,8 +14994,36 @@
         "symbol": "rejects_oversized_padding"
       },
       {
+        "path": "crates/crypto/proof-aggregation/src/padding.rs",
+        "symbol": "row_projection_preserves_caller_order_before_repeat_final_suffix"
+      },
+      {
         "path": "crates/crypto/proof-aggregation/src/srs.rs",
         "symbol": "default_srs_id_prefix_matches_declared_fields"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "development_srs_is_never_registered"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "matching_digest_still_requires_strict_canonical_srs_decoding"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "production_artifact_hash_is_checked_before_decoding"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "production_artifact_read_is_bounded_by_actual_bytes"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "production_registry_fails_closed_until_ceremony_entry_is_pinned"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/srs.rs",
+        "symbol": "production_registry_rejects_noncanonical_identifier_length"
       },
       {
         "path": "crates/crypto/proof-aggregation/src/srs.rs",
@@ -12663,7 +15123,11 @@
       },
       {
         "path": "crates/crypto/proof-aggregation/src/transcript.rs",
-        "symbol": "transcript_family_domains_are_unique"
+        "symbol": "every_registered_digest_hashes_family_domain_then_challenge_frame"
+      },
+      {
+        "path": "crates/crypto/proof-aggregation/src/transcript.rs",
+        "symbol": "transcript_family_domains_are_exact_and_unique"
       },
       {
         "path": "crates/crypto/proof-params/src/batch.rs",
@@ -13677,12 +16141,22 @@
       {
         "path": "crates/bin/orbis-integration/src/demo_config.rs",
         "symbol": "node_dial_host_can_be_env_configured",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "alternate_fixture_not_normative"
       },
       {
         "path": "crates/bin/orbis-integration/src/demo_config.rs",
         "symbol": "node_dial_host_empty_env_uses_default",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "alternate_fixture_not_normative"
+      },
+      {
+        "path": "crates/bin/orbis-integration/src/demo_config.rs",
+        "symbol": "runtime_endpoints_are_typed_and_complete",
+        "reason": "alternate_fixture_not_normative"
+      },
+      {
+        "path": "crates/bin/orbis-integration/src/demo_config.rs",
+        "symbol": "runtime_endpoints_reject_missing_schemes",
+        "reason": "alternate_fixture_not_normative"
       },
       {
         "path": "crates/bin/orbis-integration/src/demo_state.rs",
@@ -13795,13 +16269,63 @@
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
-        "path": "crates/bin/shieldd/src/execution_client.rs",
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "buffer_free_is_idempotent_for_the_same_buffer_struct",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "calls_sharing_a_handle_are_serialized",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "committed_state_is_available_through_the_ffi",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "invalid_inputs_return_c_safe_statuses",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "open_once_call_repeatedly_and_close_releases_database",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/ffi.rs",
+        "symbol": "panics_become_status_results",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/service.rs",
+        "symbol": "close_releases_storage_and_rejects_later_operations",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/service.rs",
+        "symbol": "committed_state_survives_reopening_the_service",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/service.rs",
         "symbol": "decode_host_block_converts_valid_time",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
-        "path": "crates/bin/shieldd/src/execution_client.rs",
+        "path": "crates/bin/shieldd/src/service.rs",
         "symbol": "decode_host_block_requires_time",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/service.rs",
+        "symbol": "deliver_tx_response_has_no_withdrawals_without_a_host_action",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/bin/shieldd/src/service.rs",
+        "symbol": "encode_withdrawals_maps_recipient_and_coin",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
@@ -13865,53 +16389,93 @@
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
+        "path": "crates/core/app/src/action_handler/transaction.rs",
+        "symbol": "nonzero_timestamps_still_enforce_timestamp_freshness",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/action_handler/transaction.rs",
+        "symbol": "zero_timestamp_is_allowed_when_benchmark_override_is_set",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/action_handler/transaction.rs",
+        "symbol": "zero_timestamp_requires_benchmark_override",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/host.rs",
+        "symbol": "accepted_host_tx_response_accepts_empty_withdrawals",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "deposit_id_changes_with_host_message_index",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "deposit_mints_note_and_rejects_replayed_host_source",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "host_execution_begin_block_request_uses_state_chain_id_without_validators",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "host_execution_block_lifecycle_commits_without_validators",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "host_execution_check_tx_requires_initialized_storage",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "host_execution_exports_checkpoint_genesis",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "host_execution_init_genesis_commits_content_genesis",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "host_execution_init_genesis_does_not_initialize_validator_chain_components",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/core/app/src/app/host.rs",
+        "symbol": "host_execution_reports_only_the_latest_committed_state",
+        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "host_source_requires_32_byte_tx_hash",
-        "reason": "supporting_regression_not_claim_evidence"
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/core/app/src/app/host.rs",
+        "symbol": "host_withdrawals_resolve_registered_asset_to_base_denom",
+        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/app/src/app/host.rs",
         "symbol": "source_key_uses_host_tx_identity_not_deposit_contents",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_bundle_normal_and_profiled_verification_have_result_parity",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "aggregate_bundle_size_estimate_is_monotonic",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
@@ -13931,6 +16495,11 @@
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "artifact_extraction_keeps_all_note_reshape_fixed_slot_nullifiers",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
         "symbol": "batched_nullify_matches_repeated_nullify_and_preserves_pending_order",
         "reason": "supporting_regression_not_claim_evidence"
       },
@@ -13941,12 +16510,17 @@
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "checktx_fast_path_matches_legacy_for_supported_tx",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
         "symbol": "checktx_no_index_does_not_record_tx_log_entries_on_app_fork",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
-        "symbol": "clue_record_failure_rolls_back_all_transaction_effects_and_source",
+        "symbol": "checktx_shared_context_caches_historical_context_for_snapshot",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
@@ -13971,17 +16545,67 @@
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "ensure_aggregate_bundle_tx_shape_do_not_panic",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "execute_validated_candidate_envelope_profiled_skips_proposal_validation",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "fallback_prefix_drops_tail_after_exact_bundle_miss",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
         "symbol": "latest_snapshot_supports_parallel_reads",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
-        "symbol": "nested_state_transaction_drops_staged_withdrawal_effects",
+        "symbol": "orbis_dev_srs_selects_only_the_insecure_integration_fixture",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "prepare_candidate_read_blocking_profiled_matches_async_fast_path",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "prepare_candidate_read_profiled_supports_unregulated_fixture_txs",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "prepare_proposal_does_not_reuse_stale_historical_validation_stamp",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "prepare_proposal_reuses_fully_verified_checktx_cache_entries",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "prepared_reads_are_blind_to_same_block_nullifier_conflicts",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "process_candidate_envelope_profiled_accepts_valid_fixture",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
         "path": "crates/core/app/src/app/mod.rs",
         "symbol": "proposal_batch_nullify_matches_sequential_and_preserves_sources",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/app/src/app/mod.rs",
+        "symbol": "selected_prefix_respects_reduced_target_size",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
@@ -14776,7 +17400,17 @@
       },
       {
         "path": "crates/core/component/sct/src/component/tree.rs",
+        "symbol": "sct_delete_range_deletes_only_materialized_rows",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/component/sct/src/component/tree.rs",
         "symbol": "sct_incremental_nv_persistence_roundtrips_without_full_blob",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
+        "path": "crates/core/component/sct/src/component/tree.rs",
+        "symbol": "sct_nv_storage_skips_recalculable_hashes",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
@@ -14815,6 +17449,11 @@
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
+        "path": "crates/core/component/sct/src/nullifier_tree.rs",
+        "symbol": "stale_nullifier_schema_fails_closed",
+        "reason": "supporting_regression_not_claim_evidence"
+      },
+      {
         "path": "crates/core/component/shielded-pool/src/backref.rs",
         "symbol": "encrypted_backref_round_trip",
         "reason": "out_of_scope_for_four_circuit_claim"
@@ -14845,19 +17484,24 @@
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
-        "path": "crates/core/component/shielded-pool/src/fmd.rs",
-        "symbol": "clue_count_delta_rejects_decreasing_counts",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
-        "path": "crates/core/component/shielded-pool/src/fmd.rs",
-        "symbol": "fmd_state_machine_transition_table_covers_algorithms_and_states",
-        "reason": "out_of_scope_for_four_circuit_claim"
-      },
-      {
         "path": "crates/core/component/shielded-pool/src/gnark/mod.rs",
         "symbol": "repo_local_demo_gnark_libraries_are_loadable",
         "reason": "alternate_fixture_not_normative"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/host_withdrawal.rs",
+        "symbol": "validate_accepts_non_empty_recipient_and_amount",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/host_withdrawal.rs",
+        "symbol": "validate_rejects_empty_recipient",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/core/component/shielded-pool/src/host_withdrawal.rs",
+        "symbol": "validate_rejects_zero_amount",
+        "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
         "path": "crates/core/component/shielded-pool/src/note_reshape/plan.rs",
@@ -15202,21 +17846,6 @@
       {
         "path": "crates/crypto/proof-aggregation/src/ipp/inner_products/src/lib.rs",
         "symbol": "pairing_profile_survives_cross_thread_collection",
-        "reason": "supporting_regression_not_claim_evidence"
-      },
-      {
-        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-        "symbol": "aggregate_core_acceptance_is_exact_boolean_conjunction",
-        "reason": "supporting_regression_not_claim_evidence"
-      },
-      {
-        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-        "symbol": "aggregate_core_propagates_challenge_and_combined_errors",
-        "reason": "supporting_regression_not_claim_evidence"
-      },
-      {
-        "path": "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/applications/groth16_aggregation.rs",
-        "symbol": "aggregate_core_retries_invalid_decodings_and_degenerate_randomizers_in_order",
         "reason": "supporting_regression_not_claim_evidence"
       },
       {
@@ -15627,6 +18256,21 @@
       {
         "path": "crates/view/src/note_manager.rs",
         "symbol": "zero_fee_validator_vote_plans_without_funding_transfer",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/view/src/service.rs",
+        "symbol": "only_known_not_submitted_or_non_unavailable_status_skips_reconciliation",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/view/src/service.rs",
+        "symbol": "unavailable_with_matching_transaction_recovers_height",
+        "reason": "out_of_scope_for_four_circuit_claim"
+      },
+      {
+        "path": "crates/view/src/service.rs",
+        "symbol": "unavailable_without_matching_transaction_remains_unavailable",
         "reason": "out_of_scope_for_four_circuit_claim"
       },
       {
@@ -20745,7 +23389,7 @@
     {
       "id": "FEE-FUNDING-IDENTITY-RK-REJECT",
       "kind": "attack_reproduction",
-      "path": "crates/core/app/src/stateless_cache.rs",
+      "path": "crates/core/app/src/app/mod.rs",
       "symbol": "fee_funding_extraction_rejects_identity_randomized_key",
       "predicate_ids": [
         "DEC-RANDOMIZED-VERIFICATION-KEY-NONIDENTITY",
@@ -21485,7 +24129,7 @@
       "id": "TRANSFER-ADDRESS-PLAINTEXT-FIELDS",
       "kind": "boundary_negative",
       "path": "crates/core/component/compliance/src/transfer.rs",
-      "symbol": "compliance_address_plaintext_excludes_clue_key",
+      "symbol": "compliance_address_plaintext_excludes_discovery_key",
       "predicate_ids": [
         "ADDRESS-CANONICAL-PACKING"
       ],
@@ -21497,7 +24141,7 @@
         "working_directory": ".",
         "package": "shieldd-sdk-compliance",
         "cargo_target": "lib",
-        "selector": "compliance_address_plaintext_excludes_clue_key",
+        "selector": "compliance_address_plaintext_excludes_discovery_key",
         "build_profile": "default",
         "features": [],
         "prover_required": false
@@ -22197,10 +24841,10 @@
       }
     },
     {
-      "id": "COMPLIANCE-LEAF-CLUE-KEY-COMMITMENT",
+      "id": "COMPLIANCE-LEAF-DISCOVERY-KEY-COMMITMENT",
       "kind": "negative",
       "path": "crates/core/component/compliance/src/structs.rs",
-      "symbol": "test_compliance_leaf_commitment_binds_clue_key",
+      "symbol": "test_compliance_leaf_commitment_binds_discovery_key",
       "predicate_ids": [
         "USER-COMPLIANCE-LEAF-HASH"
       ],
@@ -22213,7 +24857,7 @@
         "working_directory": ".",
         "package": "shieldd-sdk-compliance",
         "cargo_target": "lib",
-        "selector": "test_compliance_leaf_commitment_binds_clue_key",
+        "selector": "test_compliance_leaf_commitment_binds_discovery_key",
         "build_profile": "default",
         "features": [],
         "prover_required": false
@@ -30487,7 +33131,7 @@
         "CIRCUIT-FAMILY-MUTATED-NULLIFIER",
         "CIRCUIT-FAMILY-NEGATIVE",
         "CIRCUIT-FAMILY-VALID",
-        "COMPLIANCE-LEAF-CLUE-KEY-COMMITMENT",
+        "COMPLIANCE-LEAF-DISCOVERY-KEY-COMMITMENT",
         "COMPLIANCE-QUAD-PATH-CIRCUIT-COMPILES",
         "COMPLIANCE-QUAD-PATH-CIRCUIT-NATIVE-PARITY",
         "DECAF-COMPANION-CURVE-PARAMETER-PARITY",
@@ -31253,7 +33897,7 @@
         "CIRCUIT-FAMILY-MUTATED-NULLIFIER",
         "CIRCUIT-FAMILY-NEGATIVE",
         "CIRCUIT-FAMILY-VALID",
-        "COMPLIANCE-LEAF-CLUE-KEY-COMMITMENT",
+        "COMPLIANCE-LEAF-DISCOVERY-KEY-COMMITMENT",
         "COMPLIANCE-QUAD-PATH-CIRCUIT-COMPILES",
         "COMPLIANCE-QUAD-PATH-CIRCUIT-NATIVE-PARITY",
         "CONSERVATION-THEOREM-MAPPINGS-ARITY-DISTINCT",
@@ -51639,7 +54283,7 @@
             "WITHDRAWAL-CIRCUIT"
           ],
           "test_ids": [
-            "COMPLIANCE-LEAF-CLUE-KEY-COMMITMENT",
+            "COMPLIANCE-LEAF-DISCOVERY-KEY-COMMITMENT",
             "WITHDRAWAL-COMPACT-LEAF-SENTINEL-CLUE-WIRING",
             "WITHDRAWAL-FAMILY-VALID"
           ],
@@ -51704,7 +54348,7 @@
             "TRANSFER-CIRCUIT"
           ],
           "test_ids": [
-            "COMPLIANCE-LEAF-CLUE-KEY-COMMITMENT",
+            "COMPLIANCE-LEAF-DISCOVERY-KEY-COMMITMENT",
             "TRANSFER-FAMILY-VALID",
             "TRANSFER-MANIFEST-EXACT-GADGET-SHAPES"
           ],

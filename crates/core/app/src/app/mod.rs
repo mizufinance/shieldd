@@ -1,3 +1,5 @@
+#[cfg(any(test, feature = "benchmark-helpers"))]
+mod aggregate_diagnostics;
 mod host;
 mod preconsensus;
 mod validation_support;
@@ -20,16 +22,11 @@ pub use self::validation_support::{
 };
 
 use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
-use std::fs::{self, OpenOptions};
-use std::io::Write;
-use std::path::{Path, PathBuf};
 use std::process;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
-use ark_ff::{BigInteger, PrimeField};
 use ark_groth16::PreparedVerifyingKey;
 use async_trait::async_trait;
 use cnidarium::{ArcStateDeltaExt, Snapshot, StateDelta, StateRead, StateWrite, Storage};
@@ -84,7 +81,10 @@ use shieldd_sdk_shielded_pool::component::{
     NoteManager as _, ShieldedPool, StateReadExt as _, StateWriteExt as _,
 };
 use shieldd_sdk_transaction::gas::GasCost as _;
-use shieldd_sdk_transaction::{Action, Transaction, TransactionBody, TransactionParameters};
+use shieldd_sdk_transaction::{
+    Action, FeeFunding, Transaction, TransactionBody, TransactionParameters,
+};
+use shieldd_sdk_txhash::TransactionContext;
 use shieldd_sdk_validator::component::{
     stake::ConsensusUpdateRead, Staking, StateReadExt as _, StateWriteExt as _,
 };
@@ -114,7 +114,6 @@ use crate::{metrics, ShielddHost};
 use sha2::Digest as _;
 #[cfg(feature = "benchmark-helpers")]
 use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
-use std::sync::OnceLock;
 
 pub mod state_key;
 
@@ -127,19 +126,30 @@ pub const MAX_BLOCK_TXS_PAYLOAD_BYTES: usize = 1024 * 1024;
 /// The maximum size of a single individual transaction (96KB).
 pub const MAX_TRANSACTION_SIZE_BYTES: usize = 96 * 1024;
 
+/// The maximum number of transactions in one proposal candidate set.
+pub const MAX_BLOCK_TX_COUNT: usize = 4_096;
+
 /// Maximum number of body actions plus an optional fee-funding action.
 pub const MAX_TRANSACTION_ACTION_COUNT: usize = 512;
 
 /// Maximum number of proof-bound nullifiers in one transaction.
 pub const MAX_TRANSACTION_NULLIFIER_COUNT: usize = 256;
 
+/// The maximum number of proof-bound nullifiers in one block.
+pub const MAX_BLOCK_NULLIFIER_COUNT: usize = 32_768;
+
 /// The maximum size of the evidence portion of a block (30KB).
 pub const MAX_EVIDENCE_SIZE_BYTES: usize = 30 * 1024;
 
-const MAX_PADDED_PROOF_COUNT: usize = 32_768;
-const AGGREGATE_DEBUG_DIR_ENV: &str = "SHIELDD_AGGREGATE_DEBUG_DIR";
-static AGGREGATE_DEBUG_SEQ: AtomicU64 = AtomicU64::new(0);
+fn extract_fee_funding_proof_item(
+    fee_funding: &FeeFunding,
+    context: &TransactionContext,
+) -> Result<BatchItem> {
+    transfer_check_stateless_and_extract(&fee_funding.transfer, context)
+        .context("fee funding transfer stateless extraction failed")
+}
 
+const MAX_PADDED_PROOF_COUNT: usize = 32_768;
 fn shipping_srs() -> Result<DevSrs> {
     // Insecure Orbis integration only; never enable in production.
     #[cfg(feature = "orbis-dev-srs")]
@@ -181,6 +191,7 @@ fn shipping_srs_for_id(requested_id: &[u8]) -> Result<DevSrs> {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(not(any(test, feature = "benchmark-helpers")), allow(dead_code))]
 struct AggregateDebugRow {
     tx_id: String,
     action_index: Option<usize>,
@@ -193,10 +204,6 @@ struct AggregateDebugSegmentFamily {
     family_index: usize,
     family_id: ProofFamilyId,
     rows: Vec<AggregateDebugRow>,
-}
-
-fn aggregate_debug_root() -> Option<PathBuf> {
-    std::env::var_os(AGGREGATE_DEBUG_DIR_ENV).map(PathBuf::from)
 }
 
 fn action_family_id(action: &Action) -> Option<ProofFamilyId> {
@@ -249,118 +256,88 @@ fn proof_family_batch_verify_stage(family_id: ProofFamilyId) -> &'static str {
     }
 }
 
-fn fq_hex(value: &Fq) -> String {
-    hex::encode(value.into_bigint().to_bytes_le())
-}
+#[cfg(any(test, feature = "benchmark-helpers"))]
+use aggregate_diagnostics::maybe_write_aggregate_debug_dump;
 
+#[cfg(not(any(test, feature = "benchmark-helpers")))]
 fn maybe_write_aggregate_debug_dump(
-    phase: &str,
-    segment_index: usize,
-    family_index: usize,
-    family_id: ProofFamilyId,
-    rows: &[AggregateDebugRow],
-    padded_public_inputs: &[Vec<Fq>],
-    aggregate: Option<&FamilyAggregate>,
+    _phase: &str,
+    _segment_index: usize,
+    _family_index: usize,
+    _family_id: ProofFamilyId,
+    _rows: &[AggregateDebugRow],
+    _padded_public_inputs: &[Vec<Fq>],
+    _aggregate: Option<&FamilyAggregate>,
 ) {
-    let Some(root) = aggregate_debug_root() else {
-        return;
-    };
-    if let Err(error) = write_aggregate_debug_dump(
-        &root,
-        phase,
-        segment_index,
-        family_index,
-        family_id,
-        rows,
-        padded_public_inputs,
-        aggregate,
-    ) {
-        tracing::warn!(
-            ?error,
-            phase,
-            ?family_id,
-            "failed to write aggregate debug dump"
-        );
-    }
-}
-
-fn write_aggregate_debug_dump(
-    root: &Path,
-    phase: &str,
-    segment_index: usize,
-    family_index: usize,
-    family_id: ProofFamilyId,
-    rows: &[AggregateDebugRow],
-    padded_public_inputs: &[Vec<Fq>],
-    aggregate: Option<&FamilyAggregate>,
-) -> Result<()> {
-    fs::create_dir_all(root)
-        .with_context(|| format!("creating aggregate debug directory {}", root.display()))?;
-    let seq = AGGREGATE_DEBUG_SEQ.fetch_add(1, Ordering::Relaxed);
-    let file_path = root.join(format!(
-        "{seq:06}-{phase}-segment{segment_index:03}-family{family_index:02}-{family_id:?}.txt"
-    ));
-    let mut file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(&file_path)
-        .with_context(|| format!("opening aggregate debug dump {}", file_path.display()))?;
-
-    writeln!(file, "phase={phase}")?;
-    writeln!(file, "segment_index={segment_index}")?;
-    writeln!(file, "family_index={family_index}")?;
-    writeln!(file, "family_id={family_id:?}")?;
-    writeln!(file, "real_count={}", rows.len())?;
-    writeln!(file, "padded_count={}", padded_public_inputs.len())?;
-
-    if let Some(aggregate) = aggregate {
-        writeln!(file, "bundle_real_count={}", aggregate.real_count)?;
-        writeln!(file, "bundle_padded_count={}", aggregate.padded_count)?;
-        writeln!(
-            file,
-            "aggregate_proof_sha256={}",
-            hex::encode(sha2::Sha256::digest(&aggregate.aggregate_proof))
-        )?;
-    }
-
-    for (row_index, row) in rows.iter().enumerate() {
-        let action_index = row
-            .action_index
-            .map(|index| index.to_string())
-            .unwrap_or_else(|| "unknown".to_string());
-        let public_inputs = row
-            .public_inputs
-            .iter()
-            .map(fq_hex)
-            .collect::<Vec<_>>()
-            .join(",");
-        writeln!(
-            file,
-            "row[{row_index}].tx_id={} action_index={} family_local_index={} public_inputs=[{}]",
-            row.tx_id, action_index, row.family_local_index, public_inputs
-        )?;
-    }
-
-    for (pad_index, inputs) in padded_public_inputs.iter().enumerate() {
-        let rendered = inputs.iter().map(fq_hex).collect::<Vec<_>>().join(",");
-        writeln!(file, "padded_public_inputs[{pad_index}]=[{rendered}]")?;
-    }
-
-    Ok(())
 }
 const AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES: u64 = 8 * 1024;
 const AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER: usize = 24 * 1024;
+#[cfg(any(test, feature = "benchmark-helpers"))]
+const MAX_CONCURRENT_AGGREGATE_SEGMENTS: usize = 2;
+const MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS: usize = 4;
+
+async fn drain_joinset_results<T: Send + 'static>(
+    tasks: &mut tokio::task::JoinSet<Result<T>>,
+    panic_context: &str,
+) -> Result<Vec<T>> {
+    let mut values = Vec::new();
+    let mut first_error = None;
+    while let Some(result) = tasks.join_next().await {
+        match result
+            .with_context(|| panic_context.to_owned())
+            .and_then(|result| result)
+        {
+            Ok(value) => values.push(value),
+            Err(error) if first_error.is_none() => first_error = Some(error),
+            Err(_) => {}
+        }
+    }
+    if let Some(error) = first_error {
+        return Err(error);
+    }
+    Ok(values)
+}
 
 fn max_transaction_size_bytes() -> usize {
-    static OVERRIDE: OnceLock<usize> = OnceLock::new();
-    *OVERRIDE.get_or_init(|| {
-        std::env::var("SHIELDD_MAX_TRANSACTION_SIZE_BYTES")
-            .ok()
-            .and_then(|value| value.parse::<usize>().ok())
-            .filter(|value| *value > 0)
-            .unwrap_or(MAX_TRANSACTION_SIZE_BYTES)
-    })
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    {
+        return aggregate_diagnostics::max_transaction_size_bytes_override();
+    }
+    #[cfg(not(any(test, feature = "benchmark-helpers")))]
+    {
+        MAX_TRANSACTION_SIZE_BYTES
+    }
+}
+
+fn truncate_prepare_candidates<T>(candidates: &mut Vec<T>) {
+    candidates.truncate(MAX_BLOCK_TX_COUNT);
+}
+
+fn process_proposal_tx_count_allowed(tx_count: usize) -> bool {
+    tx_count <= MAX_BLOCK_TX_COUNT
+}
+
+fn prepare_proposal_payload_limit(max_tx_bytes: i64) -> u64 {
+    u64::try_from(max_tx_bytes)
+        .unwrap_or(0)
+        .min(MAX_BLOCK_TXS_PAYLOAD_BYTES as u64)
+}
+
+fn process_proposal_payload_size_allowed(payload_size: usize) -> bool {
+    payload_size <= MAX_BLOCK_TXS_PAYLOAD_BYTES
+}
+
+fn block_nullifier_count_allowed(nullifier_count: usize) -> bool {
+    nullifier_count <= MAX_BLOCK_NULLIFIER_COUNT
+}
+
+fn transaction_size_allowed(transaction_size: usize) -> bool {
+    transaction_size <= max_transaction_size_bytes()
+}
+
+#[cfg(any(test, feature = "benchmark-helpers"))]
+pub(crate) fn benchmark_zero_timestamp_allowed() -> bool {
+    aggregate_diagnostics::zero_timestamp_allowed()
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -430,6 +407,7 @@ struct PrepareBlockLocalState {
 }
 
 #[derive(Clone, Debug)]
+#[cfg(any(test, feature = "benchmark-helpers"))]
 struct BenchBlockContext {
     height: block::Height,
     time: Time,
@@ -530,6 +508,7 @@ pub struct AggregateBuildProfile {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[cfg(any(test, feature = "benchmark-helpers"))]
 pub struct ExecutionBlockProfile {
     pub block_tx_count: usize,
     pub begin_block_ms: f64,
@@ -1022,6 +1001,7 @@ pub struct App {
 }
 
 impl App {
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     async fn benchmark_block_context(&self) -> Result<BenchBlockContext> {
         let next_height = self.state.get_block_height().await?.saturating_add(1);
         let height = block::Height::try_from(next_height)
@@ -1046,6 +1026,7 @@ impl App {
         })
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     fn begin_block_request_from_context(context: &BenchBlockContext) -> request::BeginBlock {
         request::BeginBlock {
             hash: Hash::None,
@@ -1073,6 +1054,7 @@ impl App {
         }
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     fn process_proposal_request_from_envelope(
         context: &BenchBlockContext,
         envelope: &CandidateEnvelope,
@@ -1241,11 +1223,14 @@ impl App {
             .unwrap_or(1)
             .max(1);
 
-        std::env::var("SHIELDD_PREPARE_PROPOSAL_FILTER_CONCURRENCY")
-            .ok()
-            .and_then(|value| value.parse::<usize>().ok())
-            .map(|value| value.max(1))
-            .unwrap_or(default)
+        #[cfg(any(test, feature = "benchmark-helpers"))]
+        {
+            return aggregate_diagnostics::prepare_proposal_filter_concurrency_override(default);
+        }
+        #[cfg(not(any(test, feature = "benchmark-helpers")))]
+        {
+            default
+        }
     }
 
     fn accumulate_prepare_candidate_profile(
@@ -1510,9 +1495,9 @@ impl App {
         .record(elapsed);
     }
 
-    fn handle_proof_verification_result(context: &'static str, result: Result<()>) -> Result<()> {
+    fn handle_proof_verification_result<T>(context: &'static str, result: Result<T>) -> Result<T> {
         match result {
-            Ok(()) => Ok(()),
+            Ok(value) => Ok(value),
             Err(error) => {
                 tracing::debug!(?error, context, "proof verification failed");
                 Err(error)
@@ -1647,8 +1632,7 @@ impl App {
             if let Some(fee_funding) = &tx.transaction_body.fee_funding {
                 let transfer = &fee_funding.transfer;
                 let t1 = Instant::now();
-                let item = transfer_check_stateless_and_extract(transfer, &context)
-                    .context("fee funding transfer stateless extraction failed")?;
+                let item = extract_fee_funding_proof_item(fee_funding, &context)?;
                 profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
                 let family_id = action_family_id(&Action::Transfer(transfer.clone()))
                     .expect("fee funding transfer has a proof family");
@@ -1742,6 +1726,7 @@ impl App {
         Ok((artifacts, profile))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     async fn build_tx_artifacts_extracted_profiled(
         txs: &[Arc<Transaction>],
     ) -> Result<(Vec<Arc<TxArtifact>>, ArtifactBuildBreakdown)> {
@@ -1776,6 +1761,7 @@ impl App {
             .map(|artifact| (artifact, profile))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_tx_artifacts_extracted_for_stage_public(
         stage: &'static str,
         txs: &[Arc<Transaction>],
@@ -1787,6 +1773,7 @@ impl App {
         Ok(artifacts)
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_tx_artifacts_extracted_profiled_public(
         stage: &'static str,
         txs: &[Arc<Transaction>],
@@ -1818,6 +1805,7 @@ impl App {
 
     /// Runs Groth16 batch verification on a single pre-extracted artifact.
     /// Used by `mempool_v1_lab` strict mode to measure per-tx proof verify cost.
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn batch_verify_tx_artifact_for_bench(artifact: &Arc<TxArtifact>) -> Result<f64> {
         let (_, breakdown) = Self::verify_tx_artifacts_for_stage(
             "checktx_strict_bench",
@@ -1829,6 +1817,7 @@ impl App {
 
     /// Runs Groth16 batch verification across multiple pre-extracted artifacts in one call.
     /// Amortizes the MSM cost across all proofs in the slice.
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn batch_verify_artifacts_for_bench(artifacts: &[Arc<TxArtifact>]) -> Result<f64> {
         let (_, breakdown) =
             Self::verify_tx_artifacts_for_stage("checktx_strict_bench_batched", artifacts).await?;
@@ -1864,25 +1853,17 @@ impl App {
                 })
                 .await
                 .with_context(|| format!("{family_label} proof verification task panicked"))?;
-                Ok::<_, anyhow::Error>((family_id, batch_verify_stage, result))
+                let capabilities =
+                    Self::handle_proof_verification_result(batch_verify_stage, result)?;
+                Ok::<_, anyhow::Error>((family_id, VecDeque::from(capabilities)))
             });
         }
 
-        let mut verified = BTreeMap::new();
-        while let Some(join_result) = tasks.join_next().await {
-            let (family_id, batch_stage, result) =
-                join_result.context("independent proof verification task panicked")??;
-            match result {
-                Ok(capabilities) => {
-                    verified.insert(family_id, VecDeque::from(capabilities));
-                }
-                Err(error) => {
-                    Self::handle_proof_verification_result(batch_stage, Err(error))?;
-                    unreachable!("failed proof verification must return above");
-                }
-            }
-        }
-
+        let verified =
+            drain_joinset_results(&mut tasks, "independent proof verification task panicked")
+                .await?
+                .into_iter()
+                .collect();
         Ok(verified)
     }
 
@@ -2119,12 +2100,29 @@ impl App {
         }
 
         let mut families = Vec::new();
+        let mut first_error = None;
         for task in aggregate_tasks {
-            let (family, family_profile, family_elapsed_ms) =
-                task.await.context("aggregate family task panicked")??;
-            profile.add_family_time(family.family_id, family_elapsed_ms);
-            profile.merge(&family_profile);
-            families.push(family);
+            match task.await {
+                Ok(Ok((family, family_profile, family_elapsed_ms))) => {
+                    profile.add_family_time(family.family_id, family_elapsed_ms);
+                    profile.merge(&family_profile);
+                    families.push(family);
+                }
+                Ok(Err(error)) => {
+                    if first_error.is_none() {
+                        first_error = Some(error);
+                    }
+                }
+                Err(error) => {
+                    if first_error.is_none() {
+                        first_error =
+                            Some(anyhow::anyhow!("aggregate family task panicked: {error}"));
+                    }
+                }
+            }
+        }
+        if let Some(error) = first_error {
+            return Err(error);
         }
 
         Ok((families, profile))
@@ -2156,6 +2154,7 @@ impl App {
         Ok((families, segment_tx_counts, profile))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     async fn build_exact_segmented_family_aggregates_for_artifacts(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_counts: &[usize],
@@ -2181,27 +2180,57 @@ impl App {
 
         let mut families = Vec::new();
         let mut profile = AggregateBuildProfile::default();
-        let mut start = 0usize;
+        let mut next_start = 0usize;
+        let mut next_segment = 0usize;
         let mut segment_tasks = tokio::task::JoinSet::new();
         let mut ordered_segment_results = vec![None; segment_tx_counts.len()];
+        let mut first_error = None;
 
-        for (segment_index, &segment_tx_count) in segment_tx_counts.iter().enumerate() {
-            anyhow::ensure!(segment_tx_count > 0, "segment_tx_counts must be positive");
-            let end = start + segment_tx_count;
-            let artifact_segment = artifacts[start..end].to_vec();
-            segment_tasks.spawn(async move {
-                let (segment_families, segment_profile) =
-                    Self::build_family_aggregates_for_artifacts(&artifact_segment, segment_index)
+        while next_segment < segment_tx_counts.len() || !segment_tasks.is_empty() {
+            while next_segment < segment_tx_counts.len()
+                && segment_tasks.len() < MAX_CONCURRENT_AGGREGATE_SEGMENTS
+            {
+                let segment_tx_count = segment_tx_counts[next_segment];
+                anyhow::ensure!(segment_tx_count > 0, "segment_tx_counts must be positive");
+                let end = next_start + segment_tx_count;
+                let artifact_segment = artifacts[next_start..end].to_vec();
+                let segment_index = next_segment;
+                segment_tasks.spawn(async move {
+                    let (segment_families, segment_profile) =
+                        Self::build_family_aggregates_for_artifacts(
+                            &artifact_segment,
+                            segment_index,
+                        )
                         .await?;
-                Ok::<_, anyhow::Error>((segment_index, segment_families, segment_profile))
-            });
-            start = end;
-        }
+                    Ok::<_, anyhow::Error>((segment_index, segment_families, segment_profile))
+                });
+                next_start = end;
+                next_segment += 1;
+            }
 
-        while let Some(result) = segment_tasks.join_next().await {
-            let (segment_index, segment_families, segment_profile) =
-                result.context("aggregate segment task panicked")??;
-            ordered_segment_results[segment_index] = Some((segment_families, segment_profile));
+            let Some(result) = segment_tasks.join_next().await else {
+                continue;
+            };
+            match result {
+                Ok(Ok((segment_index, segment_families, segment_profile))) => {
+                    ordered_segment_results[segment_index] =
+                        Some((segment_families, segment_profile));
+                }
+                Ok(Err(error)) => {
+                    if first_error.is_none() {
+                        first_error = Some(error);
+                    }
+                }
+                Err(error) => {
+                    if first_error.is_none() {
+                        first_error =
+                            Some(anyhow::anyhow!("aggregate segment task panicked: {error}"));
+                    }
+                }
+            }
+        }
+        if let Some(error) = first_error {
+            return Err(error);
         }
 
         for segment_result in ordered_segment_results {
@@ -2657,28 +2686,47 @@ impl App {
             let plan = plan_result?;
 
             let expected_call_ids = plan.calls.iter().map(|call| call.id).collect::<Vec<_>>();
-            let mut verify_tasks = Vec::with_capacity(plan.calls.len());
-            for call in plan.calls {
-                maybe_write_aggregate_debug_dump(
-                    "verify",
-                    call.id.segment_index,
-                    call.id.family_index,
-                    call.id.family_id,
-                    &call.debug_rows,
-                    &call.padded_public_inputs,
-                    Some(&call.aggregate),
-                );
-                verify_tasks.push(tokio::task::spawn_blocking(move || {
-                    Self::execute_aggregate_verify_call(call)
-                }));
+            let mut pending_calls = VecDeque::from(plan.calls);
+            let mut verify_tasks = tokio::task::JoinSet::new();
+            let mut outcomes = Vec::with_capacity(pending_calls.len());
+            let mut first_error = None;
+            while !pending_calls.is_empty() || !verify_tasks.is_empty() {
+                while verify_tasks.len() < MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS {
+                    let Some(call) = pending_calls.pop_front() else {
+                        break;
+                    };
+                    maybe_write_aggregate_debug_dump(
+                        "verify",
+                        call.id.segment_index,
+                        call.id.family_index,
+                        call.id.family_id,
+                        &call.debug_rows,
+                        &call.padded_public_inputs,
+                        Some(&call.aggregate),
+                    );
+                    verify_tasks.spawn_blocking(move || Self::execute_aggregate_verify_call(call));
+                }
+                let Some(task) = verify_tasks.join_next().await else {
+                    continue;
+                };
+                match task {
+                    Ok(Ok(outcome)) => outcomes.push(outcome),
+                    Ok(Err(error)) => {
+                        if first_error.is_none() {
+                            first_error = Some(error);
+                        }
+                    }
+                    Err(error) => {
+                        if first_error.is_none() {
+                            first_error = Some(anyhow::anyhow!(
+                                "aggregate verification task panicked: {error}"
+                            ));
+                        }
+                    }
+                }
             }
-
-            let mut outcomes = Vec::with_capacity(verify_tasks.len());
-            for task in verify_tasks {
-                let outcome = task
-                    .await
-                    .context("aggregate verification task panicked")??;
-                outcomes.push(outcome);
+            if let Some(error) = first_error {
+                return Err(error);
             }
 
             let expected_core_ids = expected_call_ids
@@ -2769,6 +2817,7 @@ impl App {
         (profile, result)
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn verify_aggregate_bundle_for_artifacts_public(
         artifacts: &[Arc<TxArtifact>],
         bundle: &AggregateBundle,
@@ -2779,6 +2828,7 @@ impl App {
             .map(|_| ())
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn verify_aggregate_bundle_for_artifacts_raw_public(
         artifacts: &[Arc<TxArtifact>],
         bundle: &AggregateBundle,
@@ -2789,6 +2839,7 @@ impl App {
             .map(|_| ())
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_aggregate_bundle_tx_for_snapshot_public(
         snapshot: Snapshot,
         bundle: AggregateBundle,
@@ -2796,6 +2847,7 @@ impl App {
         Self::new(snapshot).build_aggregate_bundle_tx(bundle).await
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn validate_candidate_envelope_profiled(
         &self,
         envelope: &CandidateEnvelope,
@@ -2803,7 +2855,6 @@ impl App {
     ) -> Result<(ValidationVerdict, ValidationProfile)> {
         use shieldd_sdk_proto::core::transaction::v1::action::Action as ProtoAction;
         use shieldd_sdk_proto::core::transaction::v1::Transaction as ProtoTransaction;
-        use shieldd_sdk_proto::DomainType as _;
         use shieldd_sdk_transaction::Transaction;
 
         let mut verdict = ValidationVerdict::default();
@@ -3092,7 +3143,7 @@ impl App {
                 artifact_cache_lookup_start.elapsed().as_secs_f64() * 1000.0;
 
             let tx_decode_start = Instant::now();
-            let tx = match Transaction::decode(tx_bytes.as_slice()) {
+            let tx = match Transaction::decode_canonical(tx_bytes.as_slice()) {
                 Ok(tx) => Arc::new(tx),
                 Err(_) => {
                     reject_aggregate(&mut verdict, ValidationRejectReason::TxDecodeFailed);
@@ -3169,6 +3220,7 @@ impl App {
         }
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn process_candidate_envelope_profiled(
         &mut self,
         envelope: &CandidateEnvelope,
@@ -3183,6 +3235,7 @@ impl App {
             .await)
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn execute_validated_candidate_envelope_profiled(
         &mut self,
         envelope: &CandidateEnvelope,
@@ -3204,7 +3257,7 @@ impl App {
             .iter()
             .enumerate()
             .map(|(index, tx_bytes)| {
-                Transaction::decode(tx_bytes.as_slice())
+                Transaction::decode_canonical(tx_bytes.as_slice())
                     .map(Arc::new)
                     .with_context(|| format!("decoding execution benchmark tx ordinal {index}"))
             })
@@ -3220,7 +3273,7 @@ impl App {
                 .aggregate_bundle_tx_bytes
                 .as_deref()
                 .context("validated candidate with proofs is missing aggregate bundle tx")?;
-            let bundle_tx = Transaction::decode(bundle_bytes)
+            let bundle_tx = Transaction::decode_canonical(bundle_bytes)
                 .context("decoding validated candidate aggregate bundle tx")?;
             let bundle = Self::ensure_aggregate_bundle_tx_shape(&bundle_tx)?;
             Self::verify_aggregate_bundle_for_artifacts(
@@ -3295,6 +3348,7 @@ impl App {
         Ok(profile)
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     fn extract_spend_nullifiers_from_proto(
         proto_tx: &shieldd_sdk_proto::core::transaction::v1::Transaction,
     ) -> Result<Vec<Nullifier>> {
@@ -3368,6 +3422,7 @@ impl App {
         Ok(spend_nullifiers)
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_segmented_aggregate_bundle_for_artifacts_public(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_count: usize,
@@ -3386,6 +3441,7 @@ impl App {
         ))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_segmented_aggregate_bundle_for_artifacts_profiled_public(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_count: usize,
@@ -3405,6 +3461,7 @@ impl App {
         ))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_exact_segmented_aggregate_bundle_for_artifacts_profiled_public(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_counts: &[usize],
@@ -3427,6 +3484,7 @@ impl App {
         ))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_candidate_envelope_for_bench_profiled_public(
         snapshot: Snapshot,
         txs: &[Vec<u8>],
@@ -3446,7 +3504,7 @@ impl App {
             .iter()
             .enumerate()
             .map(|(index, tx_bytes)| {
-                Transaction::decode(tx_bytes.as_slice())
+                Transaction::decode_canonical(tx_bytes.as_slice())
                     .map(Arc::new)
                     .with_context(|| format!("decoding bench tx ordinal {index}"))
             })
@@ -3499,6 +3557,7 @@ impl App {
         ))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub fn candidate_envelope_from_prepared_proposal_public(
         prepared: &response::PrepareProposal,
         sidecar: &ProposalArtifactSidecar,
@@ -3522,7 +3581,7 @@ impl App {
             .collect::<Vec<_>>();
         let aggregate_bundle_tx_bytes = if prepared.txs.len() == user_tx_count + 1 {
             let bytes = prepared.txs[user_tx_count].to_vec();
-            let bundle_tx = Transaction::decode(bytes.as_slice())
+            let bundle_tx = Transaction::decode_canonical(bytes.as_slice())
                 .context("decoding prepared aggregate bundle transaction")?;
             Self::ensure_aggregate_bundle_tx_shape(&bundle_tx)
                 .context("validating prepared aggregate bundle transaction")?;
@@ -3671,7 +3730,7 @@ impl App {
                 }
             }
 
-            let tx = match Transaction::decode(tx_bytes.as_ref()) {
+            let tx = match Transaction::decode_canonical(tx_bytes.as_ref()) {
                 Ok(tx) => Arc::new(tx),
                 Err(_) => continue,
             };
@@ -3709,6 +3768,11 @@ impl App {
 
             if duplicate {
                 continue;
+            }
+            if !block_nullifier_count_allowed(
+                seen_nullifiers.len().saturating_add(tx_nullifiers.len()),
+            ) {
+                break;
             }
 
             seen_nullifiers.extend(tx_nullifiers);
@@ -4285,7 +4349,7 @@ impl App {
 
     async fn prepare_proposal_impl_profiled(
         &mut self,
-        proposal: request::PrepareProposal,
+        mut proposal: request::PrepareProposal,
         stateless_cache: Option<&StatelessCache>,
         allow_oversized_proposal: bool,
     ) -> (
@@ -4301,6 +4365,7 @@ impl App {
         }
 
         let num_candidate_txs = proposal.txs.len();
+        truncate_prepare_candidates(&mut proposal.txs);
         tracing::debug!(
             "processing PrepareProposal, found {} candidate transactions",
             num_candidate_txs
@@ -4310,7 +4375,7 @@ impl App {
         // mempool's `max_tx_bytes`. Comet will send us raw proposals that exceed this
         // limit, presuming that a subset of those transactions will be shed.
         // More context in https://github.com/cometbft/cometbft/blob/v0.37.5/spec/abci/abci%2B%2B_app_requirements.md
-        let max_proposal_size_bytes = proposal.max_tx_bytes as u64;
+        let max_proposal_size_bytes = prepare_proposal_payload_limit(proposal.max_tx_bytes);
         let (included_txs, profile, sidecar) = match self
             .prepare_proposal_batched_profiled(
                 proposal.height.value() as u64,
@@ -4573,6 +4638,9 @@ impl App {
         }
 
         let proposal_tx_count = proposal.txs.len();
+        if !process_proposal_tx_count_allowed(proposal_tx_count) {
+            reject_process_proposal!("tx_count_exceeded", proposal_tx_count);
+        }
         let mut total_txs_payload_size = 0usize;
         let mut user_txs = Vec::with_capacity(proposal_tx_count);
         let mut bundle_tx: Option<Arc<Transaction>> = None;
@@ -4586,7 +4654,9 @@ impl App {
             }
 
             total_txs_payload_size = total_txs_payload_size.saturating_add(tx_size);
-            if !allow_oversized_proposal && total_txs_payload_size >= MAX_BLOCK_TXS_PAYLOAD_BYTES {
+            if !allow_oversized_proposal
+                && !process_proposal_payload_size_allowed(total_txs_payload_size)
+            {
                 reject_process_proposal!(
                     "total_txs_payload_exceeded",
                     index,
@@ -4631,7 +4701,7 @@ impl App {
             }
 
             let decode_start = Instant::now();
-            let tx = match Transaction::decode(tx_bytes.as_ref()) {
+            let tx = match Transaction::decode_canonical(tx_bytes.as_ref()) {
                 Ok(tx) => Arc::new(tx),
                 Err(_) => reject_process_proposal!("tx_decode_failed", index),
             };
@@ -4745,6 +4815,13 @@ impl App {
                     .expect("proposal user tx should have artifact after miss fill")
             })
             .collect::<Vec<_>>();
+        let block_nullifier_count = artifacts
+            .iter()
+            .map(|artifact| artifact.spend_nullifiers.len())
+            .sum::<usize>();
+        if !block_nullifier_count_allowed(block_nullifier_count) {
+            reject_process_proposal!("block_nullifier_count_exceeded", block_nullifier_count);
+        }
         let nullifier_dedup_start = Instant::now();
         if Self::ensure_unique_spend_nullifiers_from_artifacts(&artifacts).is_err() {
             reject_process_proposal!("duplicate_spend_nullifiers");
@@ -5035,6 +5112,12 @@ impl App {
     ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
         let total_start = Instant::now();
         let mut profile = CheckTxProfile::default();
+        anyhow::ensure!(
+            transaction_size_allowed(tx_bytes.len()),
+            "transaction size {} exceeds maximum {}",
+            tx_bytes.len(),
+            MAX_TRANSACTION_SIZE_BYTES
+        );
         if let Some(cache) = stateless_cache {
             let cache_lookup_start = Instant::now();
             let hash: [u8; 32] = sha2::Sha256::digest(tx_bytes).into();
@@ -5118,7 +5201,7 @@ impl App {
         }
 
         let decode_start = Instant::now();
-        let tx = Arc::new(Transaction::decode(tx_bytes).context("decoding transaction")?);
+        let tx = Arc::new(Transaction::decode_canonical(tx_bytes).context("decoding transaction")?);
         profile.decode_tx_ms = decode_start.elapsed().as_secs_f64() * 1000.0;
         Self::ensure_user_tx_has_no_internal_actions(&tx)?;
         let execute_fast_start = Instant::now();
@@ -5164,6 +5247,7 @@ impl App {
     /// Benchmark-only admission path that reuses extracted stateless artifacts
     /// but intentionally skips per-transaction batch proof verification on
     /// cache misses.
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn deliver_tx_bytes_v2_extracted_profiled_for_bench(
         &mut self,
         tx_bytes: &[u8],
@@ -5171,6 +5255,12 @@ impl App {
     ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
         let total_start = Instant::now();
         let mut profile = CheckTxProfile::default();
+        anyhow::ensure!(
+            transaction_size_allowed(tx_bytes.len()),
+            "transaction size {} exceeds maximum {}",
+            tx_bytes.len(),
+            MAX_TRANSACTION_SIZE_BYTES
+        );
         let cache_lookup_start = Instant::now();
         let hash: [u8; 32] = sha2::Sha256::digest(tx_bytes).into();
         let cache_entry = stateless_cache.get(&hash, tx_bytes);
@@ -5318,7 +5408,7 @@ impl App {
     ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
         let mut profile = CheckTxProfile::default();
         let decode_start = Instant::now();
-        let tx = Arc::new(Transaction::decode(tx_bytes).context("decoding transaction")?);
+        let tx = Arc::new(Transaction::decode_canonical(tx_bytes).context("decoding transaction")?);
         profile.decode_tx_ms = decode_start.elapsed().as_secs_f64() * 1000.0;
         Self::ensure_user_tx_has_no_internal_actions(&tx)?;
         let supports_fast_path =
@@ -6927,11 +7017,12 @@ mod tests {
     use anyhow::{anyhow, Context, Result};
     use ark_ff::Zero;
     use ark_serialize::CanonicalSerialize;
-    use cnidarium::{StateDelta, StateRead, StateWrite, TempStorage};
+    use cnidarium::{ArcStateDeltaExt as _, StateDelta, StateRead, StateWrite, TempStorage};
     use decaf377::{Fq, Fr};
     use decaf377_rdsa as rdsa;
     use futures::StreamExt as _;
     use proptest::prelude::*;
+    use prost::bytes::Bytes;
     use rand_core::OsRng;
     use sha2::Digest as _;
     use shieldd_sdk_asset::{asset, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
@@ -6959,6 +7050,7 @@ mod tests {
     use shieldd_sdk_sct::params::SctParameters;
     use shieldd_sdk_sct::{CommitmentSource, Nullifier};
     use shieldd_sdk_shielded_pool::component::NoteManager as _;
+    use shieldd_sdk_shielded_pool::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public_without_proof;
     use shieldd_sdk_shielded_pool::{
         genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
@@ -7017,6 +7109,309 @@ mod tests {
             source: CommitmentSource::transaction(),
             commitment: tct::StateCommitment(Fq::from(value)),
         }
+    }
+
+    #[tokio::test]
+    async fn failed_transaction_drops_all_staged_effects() -> Result<()> {
+        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+        let mut base_state = StateDelta::new(storage.latest_snapshot());
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut base_state).await?;
+        let mut state = Arc::new(base_state);
+        let nullifier = Nullifier(Fq::from(71u64));
+        let source = CommitmentSource::Transaction {
+            id: Some([7u8; 32]),
+        };
+        let payload = shieldd_sdk_shielded_pool::NotePayload {
+            note_commitment: tct::StateCommitment(Fq::from(72u64)),
+            ..shieldd_sdk_shielded_pool::NotePayload::dummy()
+        };
+        let unrelated_effect_key = "fv/transaction/staged-effect".to_string();
+
+        let execution_result: Result<()> = async {
+            let mut state_tx = state
+                .try_begin_transaction()
+                .expect("test state must have unique ownership");
+            state_tx.put_block_height(42);
+            state_tx
+                .nullify_all(std::slice::from_ref(&nullifier), source.clone())
+                .await?;
+            state_tx.add_note_payload(payload, source).await;
+            state_tx.put_raw(unrelated_effect_key.clone(), vec![1u8]);
+
+            assert_eq!(
+                state_tx
+                    .pending_nullifiers()
+                    .iter()
+                    .copied()
+                    .collect::<Vec<_>>(),
+                vec![nullifier]
+            );
+            assert_eq!(state_tx.pending_note_payloads().len(), 1);
+            assert_eq!(
+                state_tx.get_raw(unrelated_effect_key.as_str()).await?,
+                Some(vec![1u8])
+            );
+
+            Err(anyhow!("later action failed"))
+        }
+        .await;
+
+        assert!(execution_result.is_err());
+        assert!(state.pending_nullifiers().is_empty());
+        assert!(state.pending_note_payloads().is_empty());
+        assert!(!shieldd_sdk_sct::nullifier_tree::is_spent(Arc::as_ref(&state), nullifier).await?);
+        assert_eq!(state.get_raw(unrelated_effect_key.as_str()).await?, None);
+
+        Ok(())
+    }
+
+    #[test]
+    fn proposal_tx_count_policy_is_fixed_at_boundary() {
+        let mut candidates = vec![Bytes::new(); super::MAX_BLOCK_TX_COUNT + 1];
+        super::truncate_prepare_candidates(&mut candidates);
+        assert_eq!(candidates.len(), super::MAX_BLOCK_TX_COUNT);
+        assert!(super::process_proposal_tx_count_allowed(
+            super::MAX_BLOCK_TX_COUNT
+        ));
+        assert!(!super::process_proposal_tx_count_allowed(
+            super::MAX_BLOCK_TX_COUNT + 1
+        ));
+    }
+
+    #[test]
+    fn proposal_payload_size_policy_is_fixed_at_boundary() {
+        assert_eq!(super::prepare_proposal_payload_limit(-1), 0);
+        assert_eq!(super::prepare_proposal_payload_limit(0), 0);
+        assert_eq!(
+            super::prepare_proposal_payload_limit(super::MAX_BLOCK_TXS_PAYLOAD_BYTES as i64),
+            super::MAX_BLOCK_TXS_PAYLOAD_BYTES as u64
+        );
+        assert_eq!(
+            super::prepare_proposal_payload_limit(super::MAX_BLOCK_TXS_PAYLOAD_BYTES as i64 + 1),
+            super::MAX_BLOCK_TXS_PAYLOAD_BYTES as u64
+        );
+        assert!(super::process_proposal_payload_size_allowed(
+            super::MAX_BLOCK_TXS_PAYLOAD_BYTES
+        ));
+        assert!(!super::process_proposal_payload_size_allowed(
+            super::MAX_BLOCK_TXS_PAYLOAD_BYTES + 1
+        ));
+    }
+
+    #[test]
+    fn proposal_nullifier_count_policy_is_fixed_at_boundary() {
+        assert!(super::block_nullifier_count_allowed(
+            super::MAX_BLOCK_NULLIFIER_COUNT
+        ));
+        assert!(!super::block_nullifier_count_allowed(
+            super::MAX_BLOCK_NULLIFIER_COUNT + 1
+        ));
+        assert!(!super::block_nullifier_count_allowed(usize::MAX));
+    }
+
+    #[test]
+    fn proposal_transaction_size_policy_is_fixed_at_boundary() {
+        assert!(super::transaction_size_allowed(
+            super::MAX_TRANSACTION_SIZE_BYTES
+        ));
+        assert!(!super::transaction_size_allowed(
+            super::MAX_TRANSACTION_SIZE_BYTES + 1
+        ));
+    }
+
+    #[test]
+    fn proof_worker_concurrency_is_bounded_for_all_hardware_sizes() {
+        assert_eq!(App::proof_family_ids().len(), 4);
+        assert_eq!(super::MAX_CONCURRENT_AGGREGATE_SEGMENTS, 2);
+        assert_eq!(super::MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS, 4);
+        assert!(super::MAX_CONCURRENT_AGGREGATE_SEGMENTS * App::proof_family_ids().len() <= 8);
+    }
+
+    #[tokio::test]
+    async fn structured_join_drain_waits_for_siblings_after_error() {
+        let sibling_finished = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let sibling_finished_for_task = sibling_finished.clone();
+        let mut tasks = tokio::task::JoinSet::new();
+        tasks.spawn(async { Err::<(), anyhow::Error>(anyhow!("injected early failure")) });
+        tasks.spawn_blocking(move || {
+            std::thread::sleep(std::time::Duration::from_millis(25));
+            sibling_finished_for_task.store(true, std::sync::atomic::Ordering::SeqCst);
+            Ok::<(), anyhow::Error>(())
+        });
+
+        let result = super::drain_joinset_results(&mut tasks, "injected task panic").await;
+        assert!(result.is_err());
+        assert!(
+            sibling_finished.load(std::sync::atomic::Ordering::SeqCst),
+            "drain must await sibling work before returning the first error"
+        );
+        assert!(tasks.is_empty());
+    }
+
+    #[tokio::test]
+    async fn oversized_checktx_bytes_reject_before_decode_or_cache() -> Result<()> {
+        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+        let mut app = App::new(storage.latest_snapshot());
+        let cache = StatelessCache::new();
+        let maximum_transaction_size = super::MAX_TRANSACTION_SIZE_BYTES;
+        let oversized = vec![
+            0xff;
+            maximum_transaction_size
+                .checked_add(1)
+                .context("maximum transaction size must fit in usize")?
+        ];
+
+        let error = app
+            .deliver_tx_bytes(&oversized, Some(&cache))
+            .await
+            .expect_err("oversized CheckTx bytes must reject before decoding or cache admission");
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "transaction size {} exceeds maximum {maximum_transaction_size}",
+                oversized.len()
+            ),
+            "oversized CheckTx rejection must come from the pre-decode size guard"
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<()> {
+        let action_anchor = tct::Tree::default().root();
+        let balance_commitment = shieldd_sdk_asset::Balance::default().commit(Fr::from(1u64));
+        let inputs = (0..8)
+            .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
+                nullifier: Nullifier(Fq::from(10u64 + index)),
+                rk: rdsa::VerificationKey::from(rdsa::SigningKey::<rdsa::SpendAuth>::from(
+                    Fr::from(20u64 + index),
+                )),
+                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                    [u8::try_from(index + 1).expect("small index"); 48],
+                )
+                .expect("fixed-size encrypted backref"),
+            })
+            .collect();
+        let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
+            body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
+                anchor: action_anchor,
+                balance_commitment,
+                inputs,
+                outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
+                    note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                        note_commitment: tct::StateCommitment(Fq::from(30u64)),
+                        ..shieldd_sdk_shielded_pool::NotePayload::dummy()
+                    },
+                    wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([31u8; 48]),
+                    ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([32u8; 48]),
+                }],
+            },
+            auth_sigs: vec![[0u8; 64].into(); 8],
+            proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
+        };
+        let mut invalid_auth = Transaction {
+            transaction_body: shieldd_sdk_transaction::TransactionBody {
+                actions: vec![Action::NoteReshape(note_reshape)],
+                memo: Some(MemoCiphertext([0u8; MEMO_CIPHERTEXT_LEN_BYTES])),
+                ..Default::default()
+            },
+            anchor: action_anchor,
+            ..Default::default()
+        };
+        let binding_signing_key = rdsa::SigningKey::<rdsa::Binding>::from(Fr::from(1u64));
+        invalid_auth.binding_sig =
+            binding_signing_key.sign_deterministic(invalid_auth.auth_hash().as_bytes());
+
+        let mut mismatched_anchor = invalid_auth.clone();
+        mismatched_anchor.anchor = tct::Root(tct::structure::Hash::new(Fq::from(987_654u64)));
+        let error = match App::build_tx_artifacts_extracted_for_stage_public(
+            "artifact_stateless_regression_anchor",
+            &[Arc::new(mismatched_anchor)],
+        )
+        .await
+        {
+            Ok(_) => panic!("artifact extraction must enforce action/context anchor equality"),
+            Err(error) => error,
+        };
+        assert!(
+            format!("{error:#}").contains("body anchor does not match transaction anchor"),
+            "unexpected anchor rejection: {error:#}"
+        );
+
+        let error = match App::build_tx_artifacts_extracted_for_stage_public(
+            "artifact_stateless_regression_auth",
+            &[Arc::new(invalid_auth)],
+        )
+        .await
+        {
+            Ok(_) => panic!("artifact extraction must verify spend authorization signatures"),
+            Err(error) => error,
+        };
+        assert!(
+            format!("{error:#}").contains("auth signature 0 failed to verify"),
+            "unexpected authorization rejection: {error:#}"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn fee_funding_extraction_rejects_identity_randomized_key() {
+        let (mut transfer, _, context) = build_transfer_action_and_public_without_proof(true);
+        let identity_sk = rdsa::SigningKey::<rdsa::SpendAuth>::from(Fr::from(0u64));
+        transfer.body.inputs[0].rk = rdsa::VerificationKey::from(identity_sk.clone());
+        let different_message = b"different fee funding authorization hash";
+        assert_ne!(&different_message[..], context.effect_hash.as_ref());
+        transfer.auth_sigs[0] = identity_sk.sign_deterministic(different_message);
+        transfer.body.inputs[0]
+            .rk
+            .verify(context.effect_hash.as_ref(), &transfer.auth_sigs[0])
+            .expect("the pinned RDSA primitive admits identity keys across messages");
+        let fee_funding = shieldd_sdk_transaction::FeeFunding { transfer };
+
+        let error = match super::extract_fee_funding_proof_item(&fee_funding, &context) {
+            Ok(_) => panic!("fee funding must use the shared identity-RK rejection"),
+            Err(error) => error,
+        };
+        assert!(
+            format!("{error:#}").contains("randomized spend key 0 must not be identity"),
+            "unexpected rejection reason: {error:#}"
+        );
+    }
+
+    #[test]
+    fn consensus_acceptance_source_has_no_diagnostic_io() {
+        let sources = [
+            include_str!("mod.rs"),
+            include_str!("../server/consensus.rs"),
+            include_str!("../server/mempool.rs"),
+        ];
+        let forbidden = [
+            ["std", "::env"].concat(),
+            ["tokio", "::env"].concat(),
+            ["std", "::fs"].concat(),
+            ["tokio", "::fs"].concat(),
+            ["Open", "Options"].concat(),
+            ["File", "::create"].concat(),
+            ["create_dir", "_all"].concat(),
+            ["write", "_all"].concat(),
+        ];
+
+        for source in sources {
+            for token in &forbidden {
+                assert!(
+                    !source.contains(token),
+                    "consensus acceptance source contains forbidden diagnostic I/O token {token}"
+                );
+            }
+        }
+        assert!(include_str!("mod.rs").contains(
+            "#[cfg(any(test, feature = \"benchmark-helpers\"))]\nmod aggregate_diagnostics;"
+        ));
+        assert!(include_str!("../server.rs")
+            .contains("#[cfg(any(test, feature = \"benchmark-helpers\"))]\nmod diagnostics;"));
     }
 
     #[test]
@@ -8736,6 +9131,58 @@ mod tests {
         );
 
         match cache.get(&tx_hash, &tx_bytes) {
+            Some(CacheEntry::FullyVerified(_)) => {}
+            _ => anyhow::bail!("expected fully verified cache entry after PrepareProposal"),
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn prepare_proposal_verifies_and_upgrades_extracted_cache_entry() -> Result<()> {
+        let (storage, _node, txs) = setup_test_txs(1).await?;
+        let tx_bytes = txs
+            .into_iter()
+            .next()
+            .expect("fixture should return one tx");
+        let tx_hash: [u8; 32] = sha2::Sha256::digest(tx_bytes.as_slice()).into();
+        let cache = StatelessCache::new();
+
+        let tx = Arc::new(Transaction::decode_canonical(tx_bytes.as_slice())?);
+        let mut extracted = App::build_tx_artifacts_extracted_for_stage_public(
+            "test_extracted_seed",
+            std::slice::from_ref(&tx),
+        )
+        .await?;
+        let extracted = extracted
+            .pop()
+            .context("single extracted transaction artifact missing")?;
+        cache.insert_extracted(tx_bytes.as_slice(), extracted.clone())?;
+        assert!(!extracted.proof_items.is_empty());
+
+        let mut proposer = App::new(storage.latest_snapshot());
+        proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
+        let proposal = request::PrepareProposal {
+            txs: vec![tx_bytes.clone().into()],
+            max_tx_bytes: 1024 * 1024,
+            local_last_commit: None,
+            misbehavior: Vec::new(),
+            height: block::Height::from(1u32),
+            time: Time::unix_epoch(),
+            next_validators_hash: Hash::None,
+            proposer_address: account::Id::new([0u8; 20]),
+        };
+
+        let (prepared, _profile, _) = proposer
+            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
+            .await;
+        assert_eq!(
+            prepared.txs.len(),
+            2,
+            "proposal should include the user transaction and aggregate bundle"
+        );
+
+        match cache.get(&tx_hash, tx_bytes.as_slice()) {
             Some(CacheEntry::FullyVerified(_)) => {}
             _ => anyhow::bail!("expected fully verified cache entry after PrepareProposal"),
         }

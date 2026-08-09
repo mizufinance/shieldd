@@ -179,7 +179,13 @@ fn proof_family_and_key_for_action(
             ProofFamilyId::ShieldedIcs20Withdrawal(action.body.family_id),
             action.body.family_id.deployed_proof_key(),
         )),
-        _ => None,
+        Action::ValidatorDefinition(_)
+        | Action::ValidatorVote(_)
+        | Action::ProposalSubmit(_)
+        | Action::IbcRelay(_)
+        | Action::ComplianceRegisterAsset(_)
+        | Action::ComplianceRegisterUser(_)
+        | Action::AggregateBundle(_) => None,
     }
 }
 
@@ -190,33 +196,45 @@ pub struct VerifiedTxArtifact {
     verified_proofs: BTreeMap<ProofSlot, VerifiedBatchItem>,
 }
 
+fn validate_proof_capability_rows<T>(
+    extracted: &TxArtifact,
+    verified_rows: Vec<(ProofSlot, T)>,
+    ensure_binds: impl Fn(&T, DeployedProofKey, &BatchItem) -> Result<()>,
+) -> Result<BTreeMap<ProofSlot, T>> {
+    let locations = extracted.proof_locations()?;
+    let mut verified_proofs = BTreeMap::new();
+    for (slot, capability) in verified_rows {
+        ensure!(
+            verified_proofs.insert(slot, capability).is_none(),
+            "duplicate verified proof capability for {slot:?}"
+        );
+    }
+    let expected = locations.keys().copied().collect::<Vec<_>>();
+    let actual = verified_proofs.keys().copied().collect::<Vec<_>>();
+    ensure!(
+        actual == expected,
+        "verified proof-slot coverage mismatch: expected {expected:?}, got {actual:?}"
+    );
+    for (&slot, &location) in &locations {
+        let capability = verified_proofs
+            .get(&slot)
+            .ok_or_else(|| anyhow::anyhow!("verified proof capability missing for {slot:?}"))?;
+        ensure_binds(capability, location.key, extracted.proof_item_at(location)?)
+            .with_context(|| format!("{slot:?} capability binding failed"))?;
+    }
+    Ok(verified_proofs)
+}
+
 impl VerifiedTxArtifact {
     pub(crate) fn new(
         extracted: Arc<TxArtifact>,
         verified_rows: Vec<(ProofSlot, VerifiedBatchItem)>,
     ) -> Result<Self> {
-        let locations = extracted.proof_locations()?;
-        let mut verified_proofs = BTreeMap::new();
-        for (slot, capability) in verified_rows {
-            ensure!(
-                verified_proofs.insert(slot, capability).is_none(),
-                "duplicate verified proof capability for {slot:?}"
-            );
-        }
-        let expected = locations.keys().copied().collect::<Vec<_>>();
-        let actual = verified_proofs.keys().copied().collect::<Vec<_>>();
-        ensure!(
-            actual == expected,
-            "verified proof-slot coverage mismatch: expected {expected:?}, got {actual:?}"
-        );
-        for (&slot, &location) in &locations {
-            let capability = verified_proofs
-                .get(&slot)
-                .ok_or_else(|| anyhow::anyhow!("verified proof capability missing for {slot:?}"))?;
-            capability
-                .ensure_binds(location.key, extracted.proof_item_at(location)?)
-                .map_err(|error| anyhow::anyhow!("{slot:?} capability binding failed: {error}"))?;
-        }
+        let verified_proofs = validate_proof_capability_rows(
+            extracted.as_ref(),
+            verified_rows,
+            |capability, key, item| capability.ensure_binds(key, item).map_err(Into::into),
+        )?;
         Ok(Self {
             extracted,
             verified_proofs,
@@ -509,10 +527,115 @@ fn evict_one_clock(inner: &mut CacheInner, protected: Option<&[u8; 32]>) -> bool
 
 #[cfg(test)]
 mod tests {
+    use ark_groth16::Proof;
+    use decaf377::{Bls12_377, Fq};
+    use shieldd_sdk_shielded_pool::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public_without_proof;
+    use shieldd_sdk_transaction::Action;
+
     use super::*;
 
     fn digest(raw: &[u8]) -> [u8; 32] {
         sha2::Sha256::digest(raw).into()
+    }
+
+    fn proof_item(value: u64) -> BatchItem {
+        BatchItem {
+            proof: Proof::<Bls12_377>::default(),
+            public_inputs: vec![Fq::from(value)],
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    struct TestCapability {
+        key: DeployedProofKey,
+        public_inputs: Vec<Fq>,
+    }
+
+    fn capability(key: DeployedProofKey, item: &BatchItem) -> TestCapability {
+        TestCapability {
+            key,
+            public_inputs: item.public_inputs.clone(),
+        }
+    }
+
+    fn two_slot_artifact() -> (Arc<TxArtifact>, BatchItem, BatchItem) {
+        let (transfer, _, _) = build_transfer_action_and_public_without_proof(false);
+        let mut tx = Transaction::default();
+        tx.transaction_body.actions = vec![
+            Action::Transfer(transfer.clone()),
+            Action::Transfer(transfer),
+        ];
+        let first = proof_item(1);
+        let second = proof_item(2);
+        let artifact = Arc::new(TxArtifact {
+            tx: Arc::new(tx),
+            proof_items: BTreeMap::from([(
+                ProofFamilyId::Transfer,
+                vec![first.clone(), second.clone()],
+            )]),
+            spend_nullifiers: Vec::new(),
+            anchor_pairs: Vec::new(),
+            total_proof_count: 2,
+            historical_validation: None,
+        });
+        (artifact, first, second)
+    }
+
+    #[test]
+    fn verified_artifact_capability_rows_reject_every_coverage_and_binding_mismatch() {
+        let (artifact, first, second) = two_slot_artifact();
+        let first_capability = capability(DeployedProofKey::Transfer, &first);
+        let second_capability = capability(DeployedProofKey::Transfer, &second);
+        let validate = |rows| {
+            validate_proof_capability_rows(
+                artifact.as_ref(),
+                rows,
+                |capability: &TestCapability, key, item| {
+                    ensure!(capability.key == key, "wrong deployed proof key");
+                    ensure!(
+                        capability.public_inputs == item.public_inputs,
+                        "wrong public inputs"
+                    );
+                    Ok(())
+                },
+            )
+        };
+        let valid = vec![
+            (ProofSlot::BodyAction(0), first_capability.clone()),
+            (ProofSlot::BodyAction(1), second_capability.clone()),
+        ];
+        validate(valid.clone()).expect("exact slot, key, and public-input coverage must pass");
+
+        validate(valid[..1].to_vec()).expect_err("missing capability must fail");
+
+        let mut extra = valid.clone();
+        extra.push((ProofSlot::BodyAction(2), first_capability.clone()));
+        validate(extra).expect_err("extra capability must fail");
+
+        let mut duplicate = valid.clone();
+        duplicate.push((ProofSlot::BodyAction(0), first_capability.clone()));
+        validate(duplicate).expect_err("duplicate slot capability must fail");
+
+        let wrong_slot = vec![
+            (ProofSlot::BodyAction(0), first_capability.clone()),
+            (ProofSlot::FeeFunding, second_capability.clone()),
+        ];
+        validate(wrong_slot).expect_err("capability in the wrong slot must fail");
+
+        let swapped = vec![
+            (ProofSlot::BodyAction(0), second_capability.clone()),
+            (ProofSlot::BodyAction(1), first_capability.clone()),
+        ];
+        validate(swapped).expect_err("swapped public inputs must fail");
+
+        let wrong_key = vec![
+            (
+                ProofSlot::BodyAction(0),
+                capability(DeployedProofKey::NoteReshapeOneByEight, &first),
+            ),
+            (ProofSlot::BodyAction(1), second_capability),
+        ];
+        validate(wrong_key).expect_err("wrong deployed key must fail");
     }
 
     #[test]
@@ -532,7 +655,7 @@ mod tests {
     }
 
     #[test]
-    fn valid_entries_reject_raw_transaction_artifact_mismatch() {
+    fn valid_cache_entries_reject_raw_transaction_artifact_mismatch() {
         let cache = StatelessCache::new();
         let raw_tx = Transaction::default();
         let raw_bytes = raw_tx.encode_to_vec();
@@ -552,13 +675,136 @@ mod tests {
         });
 
         cache
-            .insert_extracted(&raw_bytes, other_artifact)
-            .expect_err("raw transaction A must not accept artifact B");
+            .insert_extracted(&raw_bytes, other_artifact.clone())
+            .expect_err("raw transaction A must not accept extracted artifact B");
+
+        let verified = Arc::new(
+            VerifiedTxArtifact::new(other_artifact, Vec::new())
+                .expect("zero-proof test artifact has complete empty coverage"),
+        );
+        cache
+            .insert_fully_verified(&raw_bytes, verified)
+            .expect_err("raw transaction A must not accept verified artifact B");
         assert_eq!(cache.retained(), (0, 0));
     }
 
     #[test]
-    fn raw_byte_budget_bounds_sustained_churn() {
+    fn distinct_raw_transactions_derive_distinct_cache_entries() {
+        let cache = StatelessCache::new();
+        let first_digest = digest(b"first transaction");
+        let replacement_digest = digest(b"replacement transaction");
+
+        cache
+            .insert_invalid(b"first transaction")
+            .expect("cache insertion succeeds");
+        cache
+            .insert_invalid(b"replacement transaction")
+            .expect("cache insertion succeeds");
+
+        assert!(matches!(
+            cache.get(&first_digest, b"first transaction"),
+            Some(CacheEntry::Invalid)
+        ));
+        assert!(matches!(
+            cache.get(&replacement_digest, b"replacement transaction"),
+            Some(CacheEntry::Invalid)
+        ));
+    }
+
+    #[test]
+    fn oversized_transactions_are_never_retained() {
+        let cache = StatelessCache::with_limits(4, 16, 4);
+        let digest = digest(b"12345");
+
+        cache
+            .insert_invalid(b"12345")
+            .expect("oversized insertion is a no-op");
+
+        assert_eq!(cache.retained(), (0, 0));
+        assert!(cache.get(&digest, b"12345").is_none());
+    }
+
+    #[test]
+    fn aggregate_raw_byte_budget_evicts_entries() {
+        let cache = StatelessCache::with_limits(8, 6, 4);
+
+        cache
+            .insert_invalid(b"one")
+            .expect("cache insertion succeeds");
+        cache
+            .insert_invalid(b"two")
+            .expect("cache insertion succeeds");
+        cache
+            .insert_invalid(b"tri")
+            .expect("cache insertion succeeds");
+
+        assert_eq!(cache.retained(), (2, 6));
+        assert!(cache.get(&digest(b"one"), b"one").is_none());
+        assert!(matches!(
+            cache.get(&digest(b"two"), b"two"),
+            Some(CacheEntry::Invalid)
+        ));
+        assert!(matches!(
+            cache.get(&digest(b"tri"), b"tri"),
+            Some(CacheEntry::Invalid)
+        ));
+    }
+
+    #[test]
+    fn entry_count_budget_evicts_independently_of_raw_byte_budget() {
+        let cache = StatelessCache::with_limits(2, 1_024, 4);
+
+        cache
+            .insert_invalid(b"one")
+            .expect("cache insertion succeeds");
+        cache
+            .insert_invalid(b"two")
+            .expect("cache insertion succeeds");
+        cache
+            .insert_invalid(b"tri")
+            .expect("cache insertion succeeds");
+
+        assert_eq!(cache.retained(), (2, 6));
+        assert!(cache.get(&digest(b"one"), b"one").is_none());
+        assert!(matches!(
+            cache.get(&digest(b"two"), b"two"),
+            Some(CacheEntry::Invalid)
+        ));
+        assert!(matches!(
+            cache.get(&digest(b"tri"), b"tri"),
+            Some(CacheEntry::Invalid)
+        ));
+    }
+
+    #[test]
+    fn reinsertion_of_same_bytes_preserves_raw_byte_accounting() {
+        let cache = StatelessCache::with_limits(4, 8, 8);
+        let repeated = digest(b"aa");
+        let other = digest(b"bbbb");
+
+        cache
+            .insert_invalid(b"aa")
+            .expect("cache insertion succeeds");
+        cache
+            .insert_invalid(b"bbbb")
+            .expect("cache insertion succeeds");
+        cache
+            .insert_invalid(b"aa")
+            .expect("cache reinsertion succeeds");
+
+        assert_eq!(cache.retained(), (2, 6));
+        assert!(matches!(
+            cache.get(&other, b"bbbb"),
+            Some(CacheEntry::Invalid)
+        ));
+        assert!(matches!(
+            cache.get(&repeated, b"aa"),
+            Some(CacheEntry::Invalid)
+        ));
+    }
+
+    #[test]
+    fn sustained_post_cap_churn_stays_within_both_limits() {
         let cache = StatelessCache::with_limits(3, 12, 4);
 
         for index in 0u8..100 {
@@ -575,5 +821,39 @@ mod tests {
             cache.get(&digest(&[99; 4]), &[99; 4]),
             Some(CacheEntry::Invalid)
         ));
+    }
+
+    #[test]
+    fn clock_invariant_drift_clears_cache_instead_of_exceeding_limits() {
+        let cache = StatelessCache::with_limits(1, 4, 4);
+        cache
+            .insert_invalid(b"one")
+            .expect("cache insertion succeeds");
+        cache.inner.write().clock.clear();
+
+        cache
+            .insert_invalid(b"two")
+            .expect("cache insertion succeeds");
+
+        assert_eq!(cache.retained(), (0, 0));
+        assert!(cache.get(&digest(b"one"), b"one").is_none());
+        assert!(cache.get(&digest(b"two"), b"two").is_none());
+    }
+
+    #[test]
+    fn protected_only_clock_drift_is_bounded_and_clears_cache() {
+        let cache = StatelessCache::with_limits(1, 4, 4);
+        let digest = digest(b"one");
+        cache
+            .insert_invalid(b"one")
+            .expect("cache insertion succeeds");
+        cache.inner.write().retained_raw_tx_bytes = 5;
+
+        cache
+            .insert_invalid(b"one")
+            .expect("cache insertion succeeds");
+
+        assert_eq!(cache.retained(), (0, 0));
+        assert!(cache.get(&digest, b"one").is_none());
     }
 }

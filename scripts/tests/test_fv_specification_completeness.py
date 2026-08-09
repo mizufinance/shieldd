@@ -97,7 +97,9 @@ REPOSITORY_SURFACE_RELATIVES = (
     "crates/bin/pd/Cargo.toml",
     "crates/bin/pd/src/main.rs",
     "crates/bin/shieldd/Cargo.toml",
-    "crates/bin/shieldd/src/execution_client.rs",
+    "crates/bin/shieldd/src/ffi.rs",
+    "crates/bin/shieldd/src/grpc.rs",
+    "crates/bin/shieldd/src/service.rs",
     "crates/bin/shieldd/src/main.rs",
     "crates/proto/src/gen/shieldd.execution_client.v1.rs",
     "crates/core/app/src/action_handler.rs",
@@ -106,6 +108,7 @@ REPOSITORY_SURFACE_RELATIVES = (
     "crates/core/app/src/action_handler/actions/submit.rs",
     "crates/core/app/src/app/mod.rs",
     "crates/core/app/src/app/host.rs",
+    "crates/core/app/src/app/validation_support.rs",
     "crates/core/app/src/app/tests/proof_acceptance_tests.rs",
     "crates/core/app/src/action_handler/transaction.rs",
     "crates/core/app/src/action_handler/transaction/stateless.rs",
@@ -161,6 +164,10 @@ REPOSITORY_SURFACE_RELATIVES = (
     (
         "crates/core/component/shielded-pool/src/component/"
         "action_handler/shielded_ics20_withdrawal.rs"
+    ),
+    (
+        "crates/core/component/shielded-pool/src/component/"
+        "action_handler/shielded_host_withdrawal.rs"
     ),
     "crates/core/component/shielded-pool/src/test_proof_helpers.rs",
     (
@@ -308,14 +315,14 @@ class SpecificationCompletenessTests(unittest.TestCase):
     def test_shieldd_binary_unit_evidence_uses_exact_package(self) -> None:
         row = {
             "id": "RUNTIME-GRPC-CHECKTX-PROOF-FRONTDOOR",
-            "path": "crates/bin/shieldd/src/execution_client.rs",
+            "path": "crates/bin/shieldd/src/grpc.rs",
             "symbol": "grpc_execution_check_tx_rejects_invalid_transaction",
         }
         expected = {
             "runner": "cargo_test",
             "working_directory": ".",
             "package": "shieldd",
-            "cargo_target": "bin:shieldd",
+            "cargo_target": "lib",
             "selector": row["symbol"],
             "build_profile": "default",
             "features": [],
@@ -817,10 +824,10 @@ structure ClaimedFacts where
             )
         self.assertEqual(len(validated["trace_instances"]), 301)
         self.assertEqual(len(validated["tests"]), 289)
-        self.assertEqual(len(validated["runtime_policy_tests"]), 58)
-        self.assertEqual(len(validated["property_contract_tests"]), 258)
-        self.assertEqual(len(validated["artifact_contract_tests"]), 204)
-        self.assertEqual(len(CHECK.execution_tests(matrix())), 809)
+        self.assertEqual(len(validated["runtime_policy_tests"]), 70)
+        self.assertEqual(len(validated["property_contract_tests"]), 269)
+        self.assertEqual(len(validated["artifact_contract_tests"]), 291)
+        self.assertEqual(len(CHECK.execution_tests(matrix())), 919)
         self.assertEqual(len(validated["property_contract"]), 25)
         self.assertEqual(
             len(
@@ -828,7 +835,7 @@ structure ClaimedFacts where
                     "production_sinks"
                 ]
             ),
-            17,
+            20,
         )
         self.assertEqual(
             len(
@@ -836,7 +843,7 @@ structure ClaimedFacts where
                     "nonproduction_exclusions"
                 ]
             ),
-            7,
+            3,
         )
         self.assertEqual(len(validated["applicable"]), 278)
         self.assertEqual(len(CHECK.expected_formal_fact_ids(ROOT)), 103)
@@ -1324,12 +1331,12 @@ structure ClaimedFacts where
 
             action_path = root / str(model["action_enum_path"])
             source = action_path.read_text(encoding="utf-8")
-            old = "    ComplianceRegisterUser(MsgRegisterUser),\n}"
+            old = "    AggregateBundle(AggregateBundle),\n}"
             self.assertIn(old, source)
             action_path.write_text(
                 source.replace(
                     old,
-                    "    ComplianceRegisterUser(MsgRegisterUser),\n"
+                    "    AggregateBundle(AggregateBundle),\n"
                     "    FutureAuthority(future::AuthorityAction),\n"
                     "}",
                     1,
@@ -1580,13 +1587,15 @@ structure ClaimedFacts where
                 encoding="utf-8"
             )
             old = (
-                "| Action::ShieldedIcs20Withdrawal(_) => 1,"
+                "| Action::ShieldedIcs20Withdrawal(_)\n"
+                "                | Action::ShieldedHostWithdrawal(_) => 1,"
             )
             self.assertIn(old, original_proof_count)
             proof_count_path.write_text(
                 original_proof_count.replace(
                     old,
-                    "| Action::ShieldedIcs20Withdrawal(_) => 0,",
+                    "| Action::ShieldedIcs20Withdrawal(_) => 0,\n"
+                    "                | Action::ShieldedHostWithdrawal(_) => 1,",
                     1,
                 ),
                 encoding="utf-8",
@@ -1734,7 +1743,14 @@ structure ClaimedFacts where
     ) -> None:
         value = matrix()
         tests = {
-            row["id"]: row for row in CHECK.execution_tests(value)
+            row["id"]: row
+            for rows in (
+                value["tests"],
+                value["runtime_policy_contract"]["tests"],
+                value["property_test_contract"]["tests"],
+                value["artifact_test_contract"]["tests"],
+            )
+            for row in rows
         }
         requirements = json.loads(
             CHECK.REQUIREMENT_SOURCE.read_text(encoding="utf-8")
@@ -2402,18 +2418,23 @@ structure ClaimedFacts where
     ) -> None:
         cases = (
             (
-                "aggregate production symbol",
-                "crates/core/app/src/app/mod.rs",
-                "impl App {",
-                "struct AggregateBundleReintroduced;\n\nimpl App {",
-                "regained aggregate state",
+                "aggregate consensus wire bridge",
+                "crates/crypto/proof-aggregation/src/bundle.rs",
+                "impl From<AggregateBundle> for pb::AggregateBundle",
+                "impl From<AggregateBundle> for pb::Action",
+                "lacks its consensus wire bridge",
             ),
             (
                 "production verifier downgrade",
                 "crates/core/app/src/app/mod.rs",
-                "batch::verify_each_with_capabilities(key, items)",
+                (
+                    "batch::verify_each_with_capabilities(\n"
+                    "                        key,\n"
+                    "                        items.into_iter().map(Arc::new).collect(),\n"
+                    "                    )"
+                ),
                 "batch::batch_verify(key.bundled_pvk(), &[])",
-                "independent proof chunk verification|legacy batch_verify",
+                "independent deployed-family verification|legacy batch_verify",
             ),
             (
                 "benchmark cfg escape",
@@ -2434,7 +2455,7 @@ structure ClaimedFacts where
                 "crates/core/app/src/app/mod.rs",
                 (
                     "anyhow::ensure!(\n"
-                    "            Self::transaction_size_allowed("
+                    "            transaction_size_allowed("
                     "tx_bytes.len()),"
                 ),
                 "anyhow::ensure!(\n            true,",
@@ -2448,70 +2469,51 @@ structure ClaimedFacts where
                 "bounded stateless cache",
             ),
             (
-                "benchmark cache seed escape",
-                "crates/core/app/src/stateless_cache.rs",
-                (
-                    '#[cfg(feature = "benchmark-helpers")]\n'
-                    "    pub fn seed_extracted_for_benchmark"
-                ),
-                "    pub fn seed_extracted_for_benchmark",
-                "benchmark cache seed is not confined",
-            ),
-            (
                 "wire aggregate action",
                 (
                     "proto/shieldd/shieldd/core/transaction/v1/"
                     "transaction.proto"
                 ),
-                "reserved 7, 82;\n  oneof action {",
-                (
-                    "reserved 7, 82;\n"
-                    "  AggregateBundle aggregate_bundle = 82;\n"
-                    "  oneof action {"
-                ),
-                "reintroduced aggregate consensus transport",
+                "    AggregateBundle aggregate_bundle = 82;",
+                "    reserved 82;",
+                "omits aggregate consensus transport tag 82",
             ),
             (
-                "research aggregation proto dependency",
+                "production aggregation proto dependency",
                 "crates/crypto/proof-aggregation/Cargo.toml",
-                "prost = { workspace = true }",
                 (
-                    "prost = { workspace = true }\n"
-                    "shieldd-sdk-proto = { workspace = true }"
+                    "shieldd-sdk-proto = { workspace = true, "
+                    "default-features = true }"
                 ),
-                "still depends on the core proto crate",
+                "",
+                "omits the consensus proto dependency",
             ),
             (
-                "research aggregation resolved proto dependency",
+                "production aggregation resolved package census",
                 "Cargo.lock",
                 (
                     'name = "shieldd-sdk-proof-aggregation"\n'
-                    'version = "2.1.0"\n'
-                    "dependencies = [\n"
-                    ' "anyhow",'
+                    'version = "2.1.0"'
                 ),
                 (
-                    'name = "shieldd-sdk-proof-aggregation"\n'
-                    'version = "2.1.0"\n'
-                    "dependencies = [\n"
-                    ' "shieldd-sdk-proto",\n'
-                    ' "anyhow",'
+                    'name = "shieldd-sdk-proof-aggregation-without-proto"\n'
+                    'version = "2.1.0"'
                 ),
-                "resolved research aggregation dependencies still include",
+                "exactly one production aggregation package entry",
             ),
             (
                 "lossy family-only conversion",
                 "crates/crypto/proof-aggregation/src/bundle.rs",
-                "impl AggregateBundle {",
+                "impl DomainType for AggregateBundle {",
                 (
                     "impl TryFrom<i32> for ProofFamilyId {\n"
                     "    type Error = anyhow::Error;\n"
                     "    fn try_from(_: i32) -> Result<Self> { "
                     "Ok(Self::Transfer) }\n"
                     "}\n\n"
-                    "impl AggregateBundle {"
+                    "impl DomainType for AggregateBundle {"
                 ),
-                "regained a lossy family-only conversion",
+                "has a lossy family-only conversion",
             ),
             (
                 "external enforcement map downgrade",
@@ -2561,10 +2563,10 @@ structure ClaimedFacts where
             ),
             (
                 "gRPC transaction redirect",
-                "crates/bin/shieldd/src/execution_client.rs",
-                ".check_tx(&request.into_inner().tx)",
-                ".deliver_tx(&request.into_inner().tx)",
-                "gRPC check_tx HostExecution delegation",
+                "crates/bin/shieldd/src/grpc.rs",
+                ".check_tx(request.into_inner())",
+                ".deliver_tx(request.into_inner())",
+                "gRPC check_tx ExecutionService delegation",
             ),
             (
                 "split ABCI cache",
@@ -2625,41 +2627,41 @@ structure ClaimedFacts where
                 "independent verifier stops before drain",
                 "crates/core/app/src/app/mod.rs",
                 (
-                    "let mut first_error = (!proof_items.is_empty()).then(|| {\n"
-                    "            anyhow::anyhow!(\"proof verification "
-                    "encountered an unregistered proof family\")\n"
-                    "        });\n"
-                    "        while let Some(join_result) = "
-                    "tasks.join_next().await {"
+                    "drain_joinset_results("
+                    "&mut tasks, \"independent proof verification task panicked\")"
                 ),
-                (
-                    "let mut first_error = (!proof_items.is_empty()).then(|| {\n"
-                    "            anyhow::anyhow!(\"proof verification "
-                    "encountered an unregistered proof family\")\n"
-                    "        });\n"
-                    "        if let Some(join_result) = "
-                    "tasks.join_next().await {"
-                ),
-                "independent deployed-key verification|structured drain",
+                "return Err(anyhow::anyhow!(\"stop before draining tasks\"))",
+                "independent deployed-family verification|structured drain",
             ),
             (
                 "production independent verifier downgraded",
                 "crates/core/app/src/app/mod.rs",
-                "batch::verify_each_with_capabilities(key, items)",
+                (
+                    "batch::verify_each_with_capabilities(\n"
+                    "                        key,\n"
+                    "                        items.into_iter().map(Arc::new).collect(),\n"
+                    "                    )"
+                ),
                 "batch::batch_verify(key.bundled_pvk(), &[])?; Ok(Vec::new())",
-                "independent proof chunk verification|legacy batch_verify",
+                "independent deployed-family verification|legacy batch_verify",
             ),
             (
                 "capability attachment binding removed",
                 "crates/core/app/src/app/mod.rs",
-                ".ensure_binds(location.key, expected_item.as_ref())",
-                ".clone()",
+                (
+                    "VerifiedTxArtifact::take_family_capabilities("
+                    "artifact, &mut capabilities)"
+                ),
+                "VerifiedTxArtifact::new(artifact, Vec::new())",
                 "verified capability attachment",
             ),
             (
                 "ProcessProposal cache downgrade removed",
                 "crates/core/app/src/app/mod.rs",
-                "artifact.extracted_for_consensus_reverification()",
+                (
+                    "UserTxData::VerifiedArtifact(artifact) => "
+                    "Some(artifact.extracted()),"
+                ),
                 "panic!(\"skip independent verification\")",
                 "mandatory cache re-verification",
             ),
@@ -2667,10 +2669,14 @@ structure ClaimedFacts where
                 "ProcessProposal verification removed",
                 "crates/core/app/src/app/mod.rs",
                 (
-                    "Self::verify_tx_artifacts_for_stage("
-                    "\"process_proposal_independent\", &artifacts)"
+                    "aggregate_verify_task = Some(tokio::task::spawn(async move {\n"
+                    "                    Self::verify_aggregate_bundle_for_artifacts("
                 ),
-                "Ok((Vec::new(), Default::default()))",
+                (
+                    "aggregate_verify_task = Some(tokio::task::spawn(async move {\n"
+                    "                    Ok(Vec::new()) /* verification removed */;\n"
+                    "                    Self::verify_aggregate_bundle_for_artifacts_removed("
+                ),
                 "ProcessProposal exact-proof acceptance",
             ),
             (
@@ -2680,7 +2686,7 @@ structure ClaimedFacts where
                 (
                     "let artifact_fill_start = Instant::now();\n"
                     "            if let Some(cache) = stateless_cache {\n"
-                    "                cache.insert_groth16_verified(\n"
+                    "                cache.insert_fully_verified(\n"
                     "                    deduped[0].bytes.as_ref(),\n"
                     "                    panic!(\"unverified\"),\n"
                     "                )?;\n"
@@ -2698,9 +2704,12 @@ structure ClaimedFacts where
             (
                 "artifact capability binding neutralized",
                 "crates/core/app/src/stateless_cache.rs",
-                "ensure_binds(capability, location.key, item.as_ref())",
-                "let _ = (capability, location.key, item.as_ref())",
-                "verified proof-slot coverage",
+                (
+                    "ensure_binds(capability, location.key, "
+                    "extracted.proof_item_at(location)?)"
+                ),
+                "let _ = (capability, location.key, extracted.proof_item_at(location)?)",
+                "verified artifact capability",
             ),
             (
                 "Groth16 primitive bypassed",
@@ -2796,11 +2805,11 @@ structure ClaimedFacts where
                 "verified constructor visibility",
                 (
                     "    pub(crate) fn new(\n"
-                    "        extracted: Arc<ExtractedTxArtifact>,"
+                    "        extracted: Arc<TxArtifact>,"
                 ),
                 (
                     "    pub fn new(\n"
-                    "        extracted: Arc<ExtractedTxArtifact>,"
+                    "        extracted: Arc<TxArtifact>,"
                 ),
                 "verified artifact constructor escaped",
             ),
@@ -3071,7 +3080,14 @@ structure ClaimedFacts where
     ) -> None:
         value = matrix()
         tests = {
-            row["id"]: row for row in CHECK.execution_tests(value)
+            row["id"]: row
+            for rows in (
+                value["tests"],
+                value["runtime_policy_contract"]["tests"],
+                value["property_test_contract"]["tests"],
+                value["artifact_test_contract"]["tests"],
+            )
+            for row in rows
         }
         exclusions = {
             (row["path"], row["symbol"])
@@ -3605,7 +3621,7 @@ structure ClaimedFacts where
             )
         }
         self.assertEqual(execution_ids, expected)
-        self.assertEqual(len(execution_ids), 809)
+        self.assertEqual(len(execution_ids), 919)
 
     def test_application_test_selection_is_the_exact_evidence_union(self) -> None:
         value = matrix()
@@ -4116,7 +4132,6 @@ structure ClaimedFacts where
             "crates/core/component/ibc/src/component/state_key.rs",
             "crates/core/transaction/src/transaction.rs",
             "crates/crypto/constraint-coverage/src/lib.rs",
-            "crates/crypto/decaf377-fmd/src/lib.rs",
             "crates/crypto/decaf377-ka/src/lib.rs",
             "crates/crypto/tct/src/lib.rs",
             "crates/proto/src/lib.rs",
@@ -5238,11 +5253,30 @@ structure ClaimedFacts where
                         r"\1.expect_err(",
                         body,
                     )
+                    expected_error = (
+                        "must directly invoke the named enforcement function "
+                        "and require successful synthesis"
+                    )
+                    if count == 0:
+                        pattern = re.compile(
+                            rf"(\b{re.escape(evidence['native_type'])}"
+                            r"\s*::\s*new_witness\s*\([^;]*\)\s*)"
+                            r"\.expect\s*\("
+                        )
+                        mutated_body, count = pattern.subn(
+                            r"\1.expect_err(",
+                            body,
+                        )
+                        expected_error = (
+                            "must invoke the named enforcement function "
+                            "directly or allocate the enforced native type "
+                            "and require successful synthesis"
+                        )
                     self.assertGreaterEqual(
                         count,
                         1,
-                        "the canonical R1CS test must directly require "
-                        "successful predicate synthesis",
+                        "the canonical R1CS test must require successful "
+                        "predicate synthesis through its reviewed path",
                     )
                     test_path.write_text(
                         source[: function["body_start"]]
@@ -5252,8 +5286,7 @@ structure ClaimedFacts where
                     )
                     with self.assertRaisesRegex(
                         CHECK.SpecificationCompletenessError,
-                        "must directly invoke the named enforcement function "
-                        "and require successful synthesis",
+                        expected_error,
                     ):
                         CHECK.validate_native_census(
                             fixture_root,

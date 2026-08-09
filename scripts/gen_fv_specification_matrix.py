@@ -131,10 +131,14 @@ _APP_PROOF_TESTS = (
 _ACTIONS = "crates/core/app/src/action_handler/actions.rs"
 _BATCH = "crates/crypto/proof-params/src/batch.rs"
 _CACHE = "crates/core/app/src/stateless_cache.rs"
-_EXECUTION_CLIENT = "crates/bin/shieldd/src/execution_client.rs"
+_CONSENSUS = "crates/core/app/src/server/consensus.rs"
+_FFI = "crates/bin/shieldd/src/ffi.rs"
+_GRPC = "crates/bin/shieldd/src/grpc.rs"
 _HOST = "crates/core/app/src/app/host.rs"
 _MEMPOOL = "crates/core/app/src/server/mempool.rs"
+_SERVICE = "crates/bin/shieldd/src/service.rs"
 _TRANSACTION = "crates/core/app/src/action_handler/transaction.rs"
+
 
 def exact_app_guards() -> list[dict[str, object]]:
     return [
@@ -142,9 +146,8 @@ def exact_app_guards() -> list[dict[str, object]]:
             "path": _APP,
             "symbols": [
                 "collect_consensus_proof_items_with_artifacts",
-                "independently_verify_proof_keys",
-                "verify_key_chunks_with_capabilities",
-                "attach_verified_proofs",
+                "independently_verify_proof_families",
+                "attach_verified_capabilities",
             ],
         },
         {
@@ -160,6 +163,41 @@ def exact_app_guards() -> list[dict[str, object]]:
             "symbols": [
                 "pub fn verify_each_with_capabilities",
                 "verify_with_processed_vk",
+            ],
+        },
+    ]
+
+
+def aggregate_app_guards() -> list[dict[str, object]]:
+    return [
+        {
+            "path": _APP,
+            "symbols": [
+                "ensure_aggregate_bundle_tx_shape",
+                "validate_aggregate_verify_plan_inputs",
+                "plan_aggregate_bundle_verification",
+                "execute_aggregate_verify_call",
+                "app_verify_accepted_join_projection_core",
+                "reduce_aggregate_verify_outcomes",
+                "verified_statement_capabilities",
+                "attach_verified_capabilities",
+            ],
+        },
+        {
+            "path": _CACHE,
+            "symbols": [
+                "VerifiedTxArtifact",
+                "VerifiedBatchItem",
+                "ensure_binds",
+            ],
+        },
+        {
+            "path": "crates/crypto/proof-aggregation/src/app_verifier.rs",
+            "symbols": [
+                "app_verify_preflight_core",
+                "app_verify_plan_identity_core",
+                "app_verify_plan_padding_core",
+                "app_verify_accepted_join_projection_core",
             ],
         },
     ]
@@ -201,7 +239,7 @@ PROOF_ACCEPTANCE_SURFACE = {
                     "symbols": [
                         "deliver_tx_bytes",
                         "deliver_tx_bytes_impl_profiled",
-                        "execute_verified_tx_profiled",
+                        "execute_tx_checked_historical_profiled",
                     ],
                 },
                 *exact_app_guards(),
@@ -245,13 +283,12 @@ PROOF_ACCEPTANCE_SURFACE = {
                     "path": _APP,
                     "symbols": [
                         "process_proposal_v2_profiled",
-                        "process_proposal_independent",
-                        "extracted_for_consensus_reverification",
-                        "verify_tx_artifacts_for_stage",
-                        "execute_verified_tx_profiled",
+                        "ensure_aggregate_bundle_tx_shape",
+                        "verify_aggregate_bundle_for_artifacts",
+                        "deliver_tx_with_verified_stateless_profiled",
                     ],
                 },
-                *exact_app_guards(),
+                *aggregate_app_guards(),
             ],
         },
         {
@@ -272,6 +309,7 @@ PROOF_ACCEPTANCE_SURFACE = {
                         "Action::Transfer(action)",
                         "Action::NoteReshape(action)",
                         "Action::ShieldedIcs20Withdrawal(action)",
+                        "Action::ShieldedHostWithdrawal(action)",
                         "action.check_stateless(context).await",
                     ],
                 },
@@ -282,6 +320,35 @@ PROOF_ACCEPTANCE_SURFACE = {
                         "action.check_stateless(context2).await",
                         "drain_joinset_results",
                         "Action::Transfer(fee_funding.transfer.clone())",
+                    ],
+                },
+                {
+                    "path": _BATCH,
+                    "symbols": ["pub fn verify_each", "verify_with_processed_vk"],
+                },
+            ],
+        },
+        {
+            "id": "SINK-ACTION-HOST-WITHDRAWAL-CHECK-STATELESS",
+            "profiles": sorted(WITHDRAWAL),
+            "entrypoint": {
+                "path": (
+                    "crates/core/component/shielded-pool/src/component/"
+                    "action_handler/shielded_host_withdrawal.rs"
+                ),
+                "symbols": ["async fn check_stateless"],
+            },
+            "terminal_effects": ["stateless_accept"],
+            "required_guards": [
+                {
+                    "path": (
+                        "crates/core/component/shielded-pool/src/component/"
+                        "action_handler/shielded_host_withdrawal.rs"
+                    ),
+                    "symbols": [
+                        "shielded_host_withdrawal_check_stateless_and_extract",
+                        "batch::verify_each",
+                        "proof_verification_key",
                     ],
                 },
                 {
@@ -386,7 +453,7 @@ PROOF_ACCEPTANCE_SURFACE = {
                     "deliver_tx_bytes",
                     "deliver_tx_bytes_impl_profiled",
                     "deliver_tx_with_stateless_extraction_caching_profiled",
-                    "execute_verified_tx_profiled",
+                    "execute_tx_checked_historical_profiled",
                 ],
             },
             "terminal_effects": [
@@ -429,9 +496,78 @@ PROOF_ACCEPTANCE_SURFACE = {
                 {
                     "path": _APP,
                     "symbols": [
-                        "process_proposal_independent",
-                        "extracted_for_consensus_reverification",
+                        "ensure_aggregate_bundle_tx_shape",
+                        "verify_aggregate_bundle_for_artifacts",
+                        "deliver_tx_with_verified_stateless_profiled",
                         "response::ProcessProposal::Accept",
+                    ],
+                },
+                *aggregate_app_guards(),
+            ],
+        },
+        {
+            "id": "SINK-FFI-HOST-CHECK-TX",
+            "profiles": sorted(ALL),
+            "entrypoint": {
+                "path": _FFI,
+                "symbols": ["METHOD_CHECK_TX", "async fn dispatch"],
+            },
+            "terminal_effects": ["stateless_accept"],
+            "required_guards": [
+                {
+                    "path": _FFI,
+                    "symbols": [
+                        "METHOD_CHECK_TX => service",
+                        ".check_tx(decode(request)?)",
+                        ".map_err(FfiError::service)",
+                    ],
+                },
+                {
+                    "path": _SERVICE,
+                    "symbols": [
+                        "pub async fn check_tx",
+                        ".check_tx(&request.tx)",
+                    ],
+                },
+                {
+                    "path": _HOST,
+                    "symbols": [
+                        "pub async fn check_tx",
+                        ".deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))",
+                    ],
+                },
+                *exact_app_guards(),
+            ],
+        },
+        {
+            "id": "SINK-FFI-HOST-DELIVER-TX",
+            "profiles": sorted(ALL),
+            "entrypoint": {
+                "path": _FFI,
+                "symbols": ["METHOD_DELIVER_TX", "async fn dispatch"],
+            },
+            "terminal_effects": ["state_mutation", "transaction_accept"],
+            "required_guards": [
+                {
+                    "path": _FFI,
+                    "symbols": [
+                        "METHOD_DELIVER_TX => service",
+                        ".deliver_tx(decode(request)?)",
+                        ".map_err(FfiError::service)",
+                    ],
+                },
+                {
+                    "path": _SERVICE,
+                    "symbols": [
+                        "pub async fn deliver_tx",
+                        ".deliver_tx(&request.tx)",
+                    ],
+                },
+                {
+                    "path": _HOST,
+                    "symbols": [
+                        "pub async fn deliver_tx",
+                        ".deliver_tx_bytes(tx_bytes, Some(self.stateless_cache.as_ref()))",
                     ],
                 },
                 *exact_app_guards(),
@@ -441,14 +577,24 @@ PROOF_ACCEPTANCE_SURFACE = {
             "id": "SINK-GRPC-HOST-CHECK-TX",
             "profiles": sorted(ALL),
             "entrypoint": {
-                "path": _EXECUTION_CLIENT,
+                "path": _GRPC,
                 "symbols": ["async fn check_tx"],
             },
             "terminal_effects": ["stateless_accept"],
             "required_guards": [
                 {
-                    "path": _EXECUTION_CLIENT,
-                    "symbols": [".check_tx(&request.into_inner().tx)"],
+                    "path": _GRPC,
+                    "symbols": [
+                        ".check_tx(request.into_inner())",
+                        ".map_err(status)",
+                    ],
+                },
+                {
+                    "path": _SERVICE,
+                    "symbols": [
+                        "pub async fn check_tx",
+                        ".check_tx(&request.tx)",
+                    ],
                 },
                 {
                     "path": _HOST,
@@ -464,14 +610,24 @@ PROOF_ACCEPTANCE_SURFACE = {
             "id": "SINK-GRPC-HOST-DELIVER-TX",
             "profiles": sorted(ALL),
             "entrypoint": {
-                "path": _EXECUTION_CLIENT,
+                "path": _GRPC,
                 "symbols": ["async fn deliver_tx"],
             },
             "terminal_effects": ["state_mutation", "transaction_accept"],
             "required_guards": [
                 {
-                    "path": _EXECUTION_CLIENT,
-                    "symbols": [".deliver_tx(&request.into_inner().tx)"],
+                    "path": _GRPC,
+                    "symbols": [
+                        ".deliver_tx(request.into_inner())",
+                        ".map_err(status)",
+                    ],
+                },
+                {
+                    "path": _SERVICE,
+                    "symbols": [
+                        "pub async fn deliver_tx",
+                        ".deliver_tx(&request.tx)",
+                    ],
                 },
                 {
                     "path": _HOST,
@@ -546,6 +702,7 @@ PROOF_ACCEPTANCE_SURFACE = {
                         "Action::Transfer(action)",
                         "Action::NoteReshape(action)",
                         "Action::ShieldedIcs20Withdrawal(action)",
+                        "Action::ShieldedHostWithdrawal(action)",
                     ],
                 },
                 {
@@ -560,8 +717,8 @@ PROOF_ACCEPTANCE_SURFACE = {
             "entrypoint": {
                 "path": _CACHE,
                 "symbols": [
-                    "CacheEntry::Groth16Verified",
-                    "pub(crate) fn insert_groth16_verified",
+                    "CacheEntry::FullyVerified",
+                    "pub fn insert_fully_verified",
                 ],
             },
             "terminal_effects": ["cache_promotion"],
@@ -581,99 +738,18 @@ PROOF_ACCEPTANCE_SURFACE = {
     ],
     "nonproduction_exclusions": [
         {
-            "id": "EXCLUSION-BENCH-BLOCK-EXECUTION",
+            "id": "EXCLUSION-FUZZ-AGGREGATE-SHAPE",
             "source": {
                 "path": _APP,
-                "symbols": [
-                    "execute_block_profiled",
-                    "prepare_proposal_v2_profiled_allow_oversized_for_bench",
-                    "process_proposal_v2_profiled_allow_oversized_for_bench",
-                ],
+                "symbols": ["ensure_aggregate_bundle_tx_shape_for_fuzz"],
             },
             "guard": {
                 "path": _APP,
-                "symbols": [
-                    '#[cfg(any(test, feature = "benchmark-helpers"))]'
-                ],
+                "symbols": ['#[cfg(feature = "fuzzing")]'],
             },
             "reason": (
-                "oversized proposal and direct block execution helpers are "
-                "unavailable in production"
-            ),
-        },
-        {
-            "id": "EXCLUSION-BENCH-EXTRACTED-ARTIFACTS",
-            "source": {
-                "path": _APP,
-                "symbols": [
-                    "build_tx_artifacts_extracted_for_stage_public",
-                    "build_tx_artifacts_extracted_profiled_public",
-                ],
-            },
-            "guard": {
-                "path": _APP,
-                "symbols": [
-                    '#[cfg(any(test, feature = "benchmark-helpers"))]'
-                ],
-            },
-            "reason": (
-                "unchecked extracted artifacts are unavailable in production"
-            ),
-        },
-        {
-            "id": "EXCLUSION-BENCH-LEGACY-BATCH-VERIFY",
-            "source": {
-                "path": _APP,
-                "symbols": [
-                    "batch_verify_tx_artifacts_for_bench_stage",
-                    "batch_verify_tx_artifact_for_bench",
-                    "batch_verify_artifacts_for_bench",
-                    "batch_verify_proof_keys",
-                ],
-            },
-            "guard": {
-                "path": _APP,
-                "symbols": [
-                    '#[cfg(any(test, feature = "benchmark-helpers"))]'
-                ],
-            },
-            "reason": (
-                "deterministic legacy batch verification is benchmark/test "
-                "diagnostic evidence only"
-            ),
-        },
-        {
-            "id": "EXCLUSION-BENCH-STATELESS-CACHE-SEED",
-            "source": {
-                "path": _CACHE,
-                "symbols": ["seed_extracted_for_benchmark"],
-            },
-            "guard": {
-                "path": _CACHE,
-                "symbols": ['#[cfg(feature = "benchmark-helpers")]'],
-            },
-            "reason": (
-                "external extracted-artifact cache seeding is compiled only "
-                "for benchmark helpers"
-            ),
-        },
-        {
-            "id": "EXCLUSION-RESEARCH-SNARKPACK",
-            "source": {
-                "path": "crates/crypto/proof-aggregation/src/backend.rs",
-                "symbols": [
-                    "impl AggregationBackend for SnarkpackBackend",
-                    "fn aggregate_family",
-                    "fn verify_family_aggregate",
-                ],
-            },
-            "guard": {
-                "path": "crates/crypto/proof-aggregation/Cargo.toml",
-                "symbols": ["shieldd-sdk-proof-aggregation"],
-            },
-            "reason": (
-                "SnarkPack remains a standalone research crate with no "
-                "production application dependency or consensus transport"
+                "the panic-resistance wrapper is compiled only for fuzzing; "
+                "production uses the checked internal shape validator"
             ),
         },
         {
@@ -730,6 +806,10 @@ PROOF_ACCEPTANCE_SINK_TEST_IDS = {
     "SINK-ACTION-ENUM-CHECK-STATELESS": (
         "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
     ),
+    "SINK-ACTION-HOST-WITHDRAWAL-CHECK-STATELESS": (
+        "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
+        "WITHDRAWAL-RAW-EXECUTION-REQUIRES-CAPABILITY",
+    ),
     "SINK-ACTION-NOTE-RESHAPE-CHECK-STATELESS": (
         "ACTION-TRANSACTION-STATELESS-REJECTS-INVALID-PROOF",
         "NOTE-RESHAPE-PROJECTION-AND-CAPABILITY-GATE",
@@ -752,6 +832,14 @@ PROOF_ACCEPTANCE_SINK_TEST_IDS = {
     "SINK-APP-PROCESS-PROPOSAL": (
         "APP-PROCESS-REJECTS-INVALID-PROOF",
         "FEE-FUNDING-PROCESS-REJECTS-INVALID-PROOF",
+    ),
+    "SINK-FFI-HOST-CHECK-TX": (
+        "HOST-DELIVERY-REJECTS-INVALID-PROOF",
+        "RUNTIME-FFI-CHECKTX-PROOF-FRONTDOOR",
+    ),
+    "SINK-FFI-HOST-DELIVER-TX": (
+        "HOST-DELIVERY-REJECTS-INVALID-PROOF",
+        "RUNTIME-FFI-DELIVERTX-PROOF-FRONTDOOR",
     ),
     "SINK-GRPC-HOST-CHECK-TX": (
         "HOST-DELIVERY-REJECTS-INVALID-PROOF",
@@ -2143,6 +2231,8 @@ RUST_TEST_PACKAGES = (
     ("crates/test/mock-client/", "shieldd-sdk-mock-client", "lib"),
     ("crates/view/", "shieldd-sdk-view", "lib"),
     ("crates/core/app/", "shieldd-sdk-app", "lib"),
+    ("crates/bin/shieldd/src/main.rs", "shieldd", "bin:shieldd"),
+    ("crates/bin/shieldd/src/", "shieldd", "lib"),
     ("crates/bin/shieldd/", "shieldd", "bin:shieldd"),
     (
         "crates/crypto/constraint-coverage/src/main.rs",
@@ -2922,7 +3012,7 @@ def tests() -> list[dict]:
         {
             "id": "FEE-FUNDING-IDENTITY-RK-REJECT",
             "kind": "attack_reproduction",
-            "path": "crates/core/app/src/stateless_cache.rs",
+            "path": _APP,
             "symbol": (
                 "fee_funding_extraction_rejects_identity_randomized_key"
             ),
@@ -3310,7 +3400,7 @@ def tests() -> list[dict]:
             "id": "TRANSFER-ADDRESS-PLAINTEXT-FIELDS",
             "kind": "boundary_negative",
             "path": "crates/core/component/compliance/src/transfer.rs",
-            "symbol": "compliance_address_plaintext_excludes_clue_key",
+            "symbol": "compliance_address_plaintext_excludes_discovery_key",
             "predicate_ids": ["ADDRESS-CANONICAL-PACKING"],
             "profiles": ["transfer"],
         },
@@ -3673,10 +3763,10 @@ def tests() -> list[dict]:
             "profiles": sorted(TX),
         },
         {
-            "id": "COMPLIANCE-LEAF-CLUE-KEY-COMMITMENT",
+            "id": "COMPLIANCE-LEAF-DISCOVERY-KEY-COMMITMENT",
             "kind": "negative",
             "path": "crates/core/component/compliance/src/structs.rs",
-            "symbol": "test_compliance_leaf_commitment_binds_clue_key",
+            "symbol": "test_compliance_leaf_commitment_binds_discovery_key",
             "predicate_ids": ["USER-COMPLIANCE-LEAF-HASH"],
             "profiles": sorted(TX),
         },
@@ -5708,6 +5798,87 @@ def runtime_policy_contract() -> dict:
             ),
         },
         {
+            "id": "RUNTIME-AGGREGATE-BAD-SRS-REJECTION",
+            "kind": "negative",
+            "path": _APP,
+            "symbol": (
+                "aggregate_bundle_verification_rejects_bad_srs_id_before_"
+                "srs_setup"
+            ),
+        },
+        {
+            "id": "RUNTIME-AGGREGATE-HEADER-REJECTION",
+            "kind": "negative",
+            "path": _APP,
+            "symbol": (
+                "aggregate_bundle_verification_rejects_bad_version_srs_and_"
+                "family_count"
+            ),
+        },
+        {
+            "id": "RUNTIME-AGGREGATE-INCOMPLETE-SEGMENT-COVERAGE",
+            "kind": "negative",
+            "path": _APP,
+            "symbol": (
+                "aggregate_verify_plan_header_rejects_incomplete_segment_"
+                "coverage"
+            ),
+        },
+        {
+            "id": "RUNTIME-AGGREGATE-JOIN-FAIL-CLOSED",
+            "kind": "negative",
+            "path": _APP,
+            "symbol": "aggregate_verify_join_rejection_guard_is_fail_closed",
+        },
+        {
+            "id": "RUNTIME-AGGREGATE-PLAN-COUNT-ORDER",
+            "kind": "invariant",
+            "path": _APP,
+            "symbol": (
+                "aggregate_verify_planner_preserves_segment_order_and_checks_"
+                "counts"
+            ),
+        },
+        {
+            "id": "RUNTIME-AGGREGATE-REDUCER-FAIL-CLOSED",
+            "kind": "negative",
+            "path": _APP,
+            "symbol": (
+                "aggregate_verify_reducer_is_order_independent_and_rejects_"
+                "exact_calls"
+            ),
+        },
+        {
+            "id": "RUNTIME-AGGREGATE-SEGMENT-ORDER",
+            "kind": "invariant",
+            "path": _APP,
+            "symbol": "aggregate_expected_segments_preserve_segment_and_family_order",
+        },
+        {
+            "id": "RUNTIME-AGGREGATE-SHIPPING-INPUT-BINDING",
+            "kind": "invariant",
+            "path": _APP,
+            "symbol": "async_verifier_outcome_retains_its_exact_shipping_input",
+        },
+        {
+            "id": "RUNTIME-AGGREGATE-TX-SHAPE",
+            "kind": "negative",
+            "path": _APP,
+            "symbol": (
+                "ensure_aggregate_bundle_tx_shape_rejects_memo_fee_and_extra_"
+                "action"
+            ),
+        },
+        {
+            "id": "RUNTIME-PREPARED-PROPOSAL-EXACT-REUSE",
+            "kind": "boundary_negative",
+            "path": _CONSENSUS,
+            "symbol": (
+                "prepared_proposal_reuse_requires_same_height_exact_digest_"
+                "and_normal_mode"
+            ),
+        },
+        {
             "id": "RUNTIME-CAPABILITY-COMPACT-RETENTION",
             "kind": "invariant",
             "path": _BATCH,
@@ -5852,15 +6023,27 @@ def runtime_policy_contract() -> dict:
             ),
         },
         {
+            "id": "RUNTIME-FFI-CHECKTX-PROOF-FRONTDOOR",
+            "kind": "negative",
+            "path": _FFI,
+            "symbol": "ffi_execution_check_tx_rejects_invalid_transaction",
+        },
+        {
+            "id": "RUNTIME-FFI-DELIVERTX-PROOF-FRONTDOOR",
+            "kind": "negative",
+            "path": _FFI,
+            "symbol": "ffi_execution_deliver_tx_rejects_invalid_transaction",
+        },
+        {
             "id": "RUNTIME-GRPC-CHECKTX-PROOF-FRONTDOOR",
             "kind": "negative",
-            "path": _EXECUTION_CLIENT,
+            "path": _GRPC,
             "symbol": "grpc_execution_check_tx_rejects_invalid_transaction",
         },
         {
             "id": "RUNTIME-GRPC-DELIVERTX-PROOF-FRONTDOOR",
             "kind": "negative",
-            "path": _EXECUTION_CLIENT,
+            "path": _GRPC,
             "symbol": "grpc_execution_deliver_tx_rejects_invalid_transaction",
         },
         {
@@ -6129,20 +6312,24 @@ def runtime_policy_contract() -> dict:
         {
             "id": "RUNTIME-POLICY-EXACT-PROOF-CAPABILITIES",
             "statement": (
-                "Every proof-bearing action is independently verified under "
-                "its exact deployed Groth16 key and bound to its exact action "
-                "slot before execution or verified-cache promotion. "
-                "ProcessProposal independently repeats verification for all "
-                "proposal transactions. Production has no aggregate-proof "
-                "action or detached proposal transport."
+                "Every proof-bearing action is bound to its exact deployed "
+                "Groth16 key, public inputs, and action slot before execution "
+                "or verified-cache promotion. CheckTx and PrepareProposal "
+                "verify individual proofs independently. ProcessProposal "
+                "verifies the production aggregate bundle against reconstructed "
+                "exact statements, except that the byte-exact digest of a "
+                "same-height proposal produced locally by PrepareProposal may "
+                "reuse that completed verification."
             ),
             "parameters": {
-                "deployed_proof_keys": 6,
+                "aggregate_statement_binding": 1,
+                "deployed_proof_keys": 4,
                 "fee_funding_slot_binding": 1,
                 "fee_funding_state_persistence": 1,
-                "process_cache_reverification": 1,
-                "production_aggregate_transport": 0,
+                "process_unprepared_aggregate_verification": 1,
+                "production_aggregate_transport": 1,
                 "proof_slot_binding": 1,
+                "same_height_exact_prepared_reuse": 1,
             },
             "sinks": [
                 "check_tx",
@@ -6151,6 +6338,15 @@ def runtime_policy_contract() -> dict:
                 "verified_execution",
             ],
             "test_ids": [
+                "RUNTIME-AGGREGATE-BAD-SRS-REJECTION",
+                "RUNTIME-AGGREGATE-HEADER-REJECTION",
+                "RUNTIME-AGGREGATE-INCOMPLETE-SEGMENT-COVERAGE",
+                "RUNTIME-AGGREGATE-JOIN-FAIL-CLOSED",
+                "RUNTIME-AGGREGATE-PLAN-COUNT-ORDER",
+                "RUNTIME-AGGREGATE-REDUCER-FAIL-CLOSED",
+                "RUNTIME-AGGREGATE-SEGMENT-ORDER",
+                "RUNTIME-AGGREGATE-SHIPPING-INPUT-BINDING",
+                "RUNTIME-AGGREGATE-TX-SHAPE",
                 "RUNTIME-CACHE-CAPABILITY-BINDING",
                 "RUNTIME-CACHE-RAW-ARTIFACT-BINDING",
                 "RUNTIME-CAPABILITY-COMPACT-RETENTION",
@@ -6160,6 +6356,7 @@ def runtime_policy_contract() -> dict:
                 "RUNTIME-DEPLOYED-WITHDRAWAL-PROOF-KEY-MAPPING",
                 "RUNTIME-FEE-FUNDING-PROOF-SLOT-PERSISTENCE",
                 "RUNTIME-FEE-FUNDING-PROOF-SLOT-REJECTION",
+                "RUNTIME-PREPARED-PROPOSAL-EXACT-REUSE",
                 "RUNTIME-PROCESS-INDEPENDENT-REVERIFICATION",
                 "RUNTIME-RAW-NOTE-RESHAPE-CAPABILITY-GATE",
                 "RUNTIME-RAW-TRANSFER-CAPABILITY-GATE",
@@ -6179,22 +6376,27 @@ def runtime_policy_contract() -> dict:
         {
             "id": "RUNTIME-POLICY-PROOF-ACCEPTANCE-FRONTDOORS",
             "statement": (
-                "Host and gRPC CheckTx and DeliverTx front doors reject an "
-                "invalid transaction dynamically while the closed static "
+                "FFI, gRPC, and host CheckTx and DeliverTx front doors reject "
+                "an invalid transaction dynamically while the closed static "
                 "acceptance census covers every production sink."
             ),
             "parameters": {
+                "ffi_frontdoors": 2,
                 "grpc_frontdoors": 2,
                 "host_frontdoors": 2,
                 "static_sink_census_required": 1,
             },
             "sinks": [
+                "ffi_check_tx",
+                "ffi_deliver_tx",
                 "grpc_check_tx",
                 "grpc_deliver_tx",
                 "host_check_tx",
                 "host_deliver_tx",
             ],
             "test_ids": [
+                "RUNTIME-FFI-CHECKTX-PROOF-FRONTDOOR",
+                "RUNTIME-FFI-DELIVERTX-PROOF-FRONTDOOR",
                 "RUNTIME-GRPC-CHECKTX-PROOF-FRONTDOOR",
                 "RUNTIME-GRPC-DELIVERTX-PROOF-FRONTDOOR",
                 "RUNTIME-HOST-CHECKTX-PROOF-FRONTDOOR",
@@ -6204,14 +6406,16 @@ def runtime_policy_contract() -> dict:
         {
             "id": "RUNTIME-POLICY-PROOF-WORKER-CONCURRENCY",
             "statement": (
-                "Independent proof verification dispatches at most six "
-                "registered key coordinators and eight blocking chunks per "
-                "key. Keys with at most 512 proofs remain in one chunk."
+                "Independent verification dispatches at most four family "
+                "workers. Aggregate construction runs at most two segments "
+                "with four family workers each, and aggregate verification "
+                "runs at most four blocking calls at once."
             ),
             "parameters": {
-                "max_chunks_per_key": 8,
-                "max_concurrent_keys": 6,
-                "single_chunk_threshold_items": 512,
+                "max_aggregate_segment_workers": 2,
+                "max_aggregate_verify_workers": 4,
+                "max_exact_family_workers": 4,
+                "max_nested_aggregate_build_workers": 8,
             },
             "sinks": [
                 "check_tx",
@@ -6427,12 +6631,12 @@ def property_test_contract() -> dict:
                 (
                     "invariant",
                     _TRANSACTION_PLAN_TESTS,
-                    "detection_data_includes_dummy_clues_for_transfer_family_shape",
+                    "discovery_precision_propagates_to_transfer_family",
                 ),
                 (
                     "invariant",
                     _TRANSACTION_PLAN_TESTS,
-                    "shielded_ics20_withdrawal_counts_change_output_for_destinations_and_clues",
+                    "shielded_ics20_withdrawal_counts_change_output_for_discovery",
                 ),
                 (
                     "invariant",
@@ -7399,28 +7603,55 @@ _REVIEWED_TEST_EXCLUSION_SYMBOLS = {
     "crates/bin/pcli/tests/testnet.rs": (
         "sync_wallet_on_public_testnet",
     ),
-    "crates/bin/shieldd/src/execution_client.rs": (
+    "crates/bin/shieldd/src/ffi.rs": (
+        "buffer_free_is_idempotent_for_the_same_buffer_struct",
+        "calls_sharing_a_handle_are_serialized",
+        "committed_state_is_available_through_the_ffi",
+        "invalid_inputs_return_c_safe_statuses",
+        "open_once_call_repeatedly_and_close_releases_database",
+        "panics_become_status_results",
+    ),
+    "crates/bin/shieldd/src/service.rs": (
+        "close_releases_storage_and_rejects_later_operations",
+        "committed_state_survives_reopening_the_service",
         "decode_host_block_converts_valid_time",
         "decode_host_block_requires_time",
+        "deliver_tx_response_has_no_withdrawals_without_a_host_action",
+        "encode_withdrawals_maps_recipient_and_coin",
     ),
     "crates/core/app/src/action_handler/transaction.rs": (
         "check_stateless_fails_on_auth_path_with_wrong_root",
         "check_stateless_succeeds_on_valid_spend",
     ),
     "crates/core/app/src/app/mod.rs": (
+        "aggregate_bundle_normal_and_profiled_verification_have_result_parity",
+        "aggregate_bundle_size_estimate_is_monotonic",
         "app_readiness_fails_on_corrupted_compliance_nv",
         "app_readiness_fails_on_corrupted_nullifier_tree_nv",
         "app_readiness_fails_on_corrupted_sct_nv",
         "batched_nullify_matches_repeated_nullify_and_preserves_pending_order",
+        "artifact_extraction_keeps_all_note_reshape_fixed_slot_nullifiers",
+        "checktx_fast_path_matches_legacy_for_supported_tx",
+        "checktx_shared_context_caches_historical_context_for_snapshot",
         "checktx_cache_hit_and_miss_match_for_supported_tx",
         "checktx_no_index_does_not_record_tx_log_entries_on_app_fork",
         "deferred_batch_persists_full_tx_log_by_block_end",
         "deferred_sct_log_materializes_into_tree_and_pending_payloads",
         "deferred_sct_log_reserves_contiguous_positions",
         "deferred_sct_log_returns_error_on_position_drift",
+        "ensure_aggregate_bundle_tx_shape_do_not_panic",
+        "execute_validated_candidate_envelope_profiled_skips_proposal_validation",
+        "fallback_prefix_drops_tail_after_exact_bundle_miss",
         "latest_snapshot_supports_parallel_reads",
-        "nested_state_transaction_drops_staged_withdrawal_effects",
+        "orbis_dev_srs_selects_only_the_insecure_integration_fixture",
+        "prepare_candidate_read_blocking_profiled_matches_async_fast_path",
+        "prepare_candidate_read_profiled_supports_unregulated_fixture_txs",
+        "prepare_proposal_does_not_reuse_stale_historical_validation_stamp",
+        "prepare_proposal_reuses_fully_verified_checktx_cache_entries",
+        "prepared_reads_are_blind_to_same_block_nullifier_conflicts",
+        "process_candidate_envelope_profiled_accepts_valid_fixture",
         "proposal_batch_nullify_matches_sequential_and_preserves_sources",
+        "selected_prefix_respects_reduced_target_size",
     ),
     "crates/core/app/src/app/host.rs": (
         "deposit_id_changes_with_host_message_index",
