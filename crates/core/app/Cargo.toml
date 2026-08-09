@@ -36,7 +36,7 @@ benchmark-helpers = [
 ]
 default = ["std", "component"]
 fuzzing = []
-# Insecure Orbis integration only; never enable in production.
+# Insecure isolated integration only; never enable in production.
 orbis-dev-srs = []
 std     = ["ark-ff/std", "ibc-types/std"]
 

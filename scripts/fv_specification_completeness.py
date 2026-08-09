@@ -212,7 +212,7 @@ SEMANTIC_IMPLEMENTATION_ROOTS = (
     ("tools/gnark", (".go", ".py", ".sh")),
 )
 SEMANTIC_EXCLUDED_DIRECTORY_NAMES = frozenset(
-    {".git", ".lake", "__pycache__", "target"}
+    {".git", ".lake", "__pycache__", "node_modules", "target"}
 )
 PROOF_ACCEPTANCE_TEST_PATH = (
     "crates/core/app/src/app/tests/proof_acceptance_tests.rs"

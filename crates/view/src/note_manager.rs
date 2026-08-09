@@ -1647,15 +1647,15 @@ mod tests {
             next_value: vec![0u8; 32],
             dk_pub: vec![0u8; 32],
             threshold: u128::MAX.to_le_bytes().to_vec(),
-            route_policy_hash: vec![],
+            route_policy_hash: vec![0u8; 32],
             slot_count: shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT
                 .to_le_bytes()
                 .to_vec(),
             ring_pk: vec![0u8; 32],
-            ring_id_hash: vec![],
-            policy_id_hash: vec![],
-            permission_hash: vec![],
-            resource_hash: vec![],
+            ring_id_hash: vec![0u8; 32],
+            policy_id_hash: vec![0u8; 32],
+            permission_hash: vec![0u8; 32],
+            resource_hash: vec![0u8; 32],
         }
     }
 

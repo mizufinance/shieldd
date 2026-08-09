@@ -193,6 +193,15 @@ class FormalWorkflowWiringTests(unittest.TestCase):
             self.workflow,
         )
 
+    def test_fstar_checkout_hydrates_lfs_verifier_artifacts(self) -> None:
+        fstar_job = self.workflow.split(
+            "  snarkpack-fstar:", maxsplit=1
+        )[1].split("\n  snarkpack-parity:", maxsplit=1)[0]
+        checkout = fstar_job.split(
+            "- uses: actions/checkout@", maxsplit=1
+        )[1].split("- uses: ./.github/actions/setup-nix-rust", maxsplit=1)[0]
+        self.assertIn("lfs: true", checkout)
+
     def test_extraction_has_no_ci_recovery_fanout(self) -> None:
         self.assertNotIn("matrix.graph", self.workflow)
         self.assertNotIn("snarkpack-extraction-recovery:", self.workflow)

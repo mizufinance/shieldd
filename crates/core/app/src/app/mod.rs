@@ -151,7 +151,7 @@ fn extract_fee_funding_proof_item(
 
 const MAX_PADDED_PROOF_COUNT: usize = 32_768;
 fn shipping_srs() -> Result<DevSrs> {
-    // Insecure Orbis integration only; never enable in production.
+    // Insecure isolated integration only; never enable in production.
     #[cfg(feature = "orbis-dev-srs")]
     {
         return Ok(DevSrs::default());
@@ -167,7 +167,7 @@ fn shipping_srs() -> Result<DevSrs> {
 }
 
 fn shipping_srs_for_id(requested_id: &[u8]) -> Result<DevSrs> {
-    // Insecure Orbis integration only; never enable in production.
+    // Insecure isolated integration only; never enable in production.
     #[cfg(feature = "orbis-dev-srs")]
     {
         anyhow::ensure!(

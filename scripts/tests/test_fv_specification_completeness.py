@@ -3857,6 +3857,42 @@ structure ClaimedFacts where
                 ):
                     CHECK.semantic_bundle_paths(root)
 
+    def test_semantic_bundle_excludes_generated_dependency_trees(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            crates = root / "crates"
+            crates.mkdir()
+            (crates / "owned.json").write_text("{}\n", encoding="utf-8")
+            generated = crates / "node_modules" / "dependency"
+            generated.mkdir(parents=True)
+            (generated / "package.json").write_text(
+                '{"generated": true}\n', encoding="utf-8"
+            )
+            (root / "tools/gnark/lean").mkdir(parents=True)
+            with (
+                patch.object(CHECK, "SEMANTIC_BASE_FILES", ()),
+                patch.object(CHECK, "SEMANTIC_DISCOVERY_ROOTS", ()),
+                patch.object(CHECK, "SEMANTIC_EXACT_INPUT_ROSTERS", {}),
+                patch.object(
+                    CHECK,
+                    "SEMANTIC_IMPLEMENTATION_ROOTS",
+                    (("crates", (".json",)),),
+                ),
+                patch.object(
+                    CHECK, "semantic_relation_blob_paths", return_value=()
+                ),
+                patch.object(CHECK, "EXPECTED_CONSEQUENCE_ROSTER_PATHS", {}),
+                patch.object(CHECK, "DEPLOYED_ACCEPTANCE_CONSEQUENCES", {}),
+                patch.object(
+                    CHECK, "GENERATED_TRANSACTION_REFINEMENT_ROOTS", {}
+                ),
+            ):
+                paths = {
+                    relative
+                    for relative, _ in CHECK.semantic_bundle_paths(root)
+                }
+        self.assertEqual(paths, {"crates/owned.json"})
+
     def test_semantic_exact_input_roster_rejects_new_generator_data(
         self,
     ) -> None:

@@ -462,6 +462,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
+          lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: snarkpack-formal
