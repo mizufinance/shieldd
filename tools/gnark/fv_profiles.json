@@ -1,44 +1,23 @@
 {
-  "schema": "shieldd.gnark.fv_profiles.v1",
+  "schema": "shieldd.gnark.fv_profiles.v2",
   "profiles": [
-    {
-      "label": "note_reshape2x1",
-      "kind": "note_reshape",
-      "n_in": 2,
-      "n_out": 1,
-      "witness_format_version": 3,
-      "witness": "internal/testfixtures/vectors/note_reshape2x1_witness_v3.bin",
-      "artifact_dir": "artifacts/note_reshape2x1",
-      "manifest": "artifacts/note_reshape2x1/note_reshape2x1-manifest.json",
-      "status": "certified",
-      "theorem_root": "ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement",
-      "coverage_report": "../../crates/core/component/shielded-pool/formal/note_reshape2x1-constraint-coverage-report.json"
-    },
-    {
-      "label": "note_reshape4x1",
-      "kind": "note_reshape",
-      "n_in": 4,
-      "n_out": 1,
-      "witness_format_version": 3,
-      "witness": "internal/testfixtures/vectors/note_reshape4x1_witness_v3.bin",
-      "artifact_dir": "artifacts/note_reshape4x1",
-      "manifest": "artifacts/note_reshape4x1/note_reshape4x1-manifest.json",
-      "status": "certified",
-      "theorem_root": "ShielddGnarkFormal.Deployed.NoteReshape4x1Soundness",
-      "coverage_report": "../../crates/core/component/shielded-pool/formal/note_reshape4x1-constraint-coverage-report.json"
-    },
     {
       "label": "note_reshape8x1",
       "kind": "note_reshape",
       "n_in": 8,
       "n_out": 1,
       "witness_format_version": 3,
-      "witness": "internal/testfixtures/vectors/note_reshape8x1_witness_v3.bin",
+      "proof_witnesses": [
+        {
+          "case": "note_reshape8x1",
+          "path": "internal/testfixtures/vectors/note_reshape8x1_witness_v3.bin"
+        }
+      ],
       "artifact_dir": "artifacts/note_reshape8x1",
       "manifest": "artifacts/note_reshape8x1/note_reshape8x1-manifest.json",
       "status": "certified",
       "theorem_root": "ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness",
-      "coverage_report": "../../crates/core/component/shielded-pool/formal/note_reshape8x1-constraint-coverage-report.json"
+      "coverage_report": "crates/core/component/shielded-pool/formal/note_reshape8x1-constraint-coverage-report.json"
     },
     {
       "label": "note_reshape1x8",
@@ -46,38 +25,65 @@
       "n_in": 1,
       "n_out": 8,
       "witness_format_version": 3,
-      "witness": "internal/testfixtures/vectors/note_reshape1x8_witness_v3.bin",
+      "proof_witnesses": [
+        {
+          "case": "note_reshape1x8",
+          "path": "internal/testfixtures/vectors/note_reshape1x8_witness_v3.bin"
+        }
+      ],
       "artifact_dir": "artifacts/note_reshape1x8",
       "manifest": "artifacts/note_reshape1x8/note_reshape1x8-manifest.json",
       "status": "certified",
       "theorem_root": "ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness",
-      "coverage_report": "../../crates/core/component/shielded-pool/formal/note_reshape1x8-constraint-coverage-report.json"
+      "coverage_report": "crates/core/component/shielded-pool/formal/note_reshape1x8-constraint-coverage-report.json"
     },
     {
       "label": "transfer",
       "kind": "transfer",
       "n_in": 2,
       "n_out": 2,
-      "witness_format_version": 11,
-      "witness": "internal/testfixtures/vectors/transfer_witness_v11.bin",
+      "witness_format_version": 16,
+      "proof_witnesses": [
+        {
+          "case": "regulated_unflagged",
+          "path": "internal/testfixtures/vectors/transfer_witness_v16.bin"
+        },
+        {
+          "case": "regulated_flagged_hidden",
+          "path": "internal/testfixtures/vectors/transfer_flagged_witness_v16.bin"
+        },
+        {
+          "case": "unregulated_hidden",
+          "path": "internal/testfixtures/vectors/transfer_unregulated_witness_v16.bin"
+        }
+      ],
       "artifact_dir": "artifacts/transfer",
       "manifest": "artifacts/transfer/transfer-manifest.json",
-      "status": "candidate",
-      "theorem_root": null,
-      "coverage_report": null
+      "status": "certified",
+      "theorem_root": "ShielddGnarkFormal.Deployed.TransferRefinement",
+      "coverage_report": "crates/core/component/shielded-pool/formal/transfer-constraint-coverage-report.json"
     },
     {
       "label": "shielded_ics20_withdrawal",
       "kind": "shielded_ics20_withdrawal",
       "n_in": 2,
       "n_out": 1,
-      "witness_format_version": 6,
-      "witness": "internal/testfixtures/vectors/shielded_ics20_withdrawal_witness_v6.bin",
+      "witness_format_version": 8,
+      "proof_witnesses": [
+        {
+          "case": "regulated_optional_real",
+          "path": "internal/testfixtures/vectors/shielded_ics20_withdrawal_witness_v8.bin"
+        },
+        {
+          "case": "unregulated_optional_dummy",
+          "path": "internal/testfixtures/vectors/shielded_ics20_withdrawal_unregulated_witness_v8.bin"
+        }
+      ],
       "artifact_dir": "artifacts/shielded_ics20_withdrawal",
       "manifest": "artifacts/shielded_ics20_withdrawal/shielded_ics20_withdrawal-manifest.json",
-      "status": "candidate",
-      "theorem_root": null,
-      "coverage_report": null
+      "status": "certified",
+      "theorem_root": "ShielddGnarkFormal.Deployed.ShieldedIcs20WithdrawalRefinement",
+      "coverage_report": "crates/core/component/shielded-pool/formal/shielded_ics20_withdrawal-constraint-coverage-report.json"
     }
   ]
 }

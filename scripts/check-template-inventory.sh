@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GNARK="$ROOT/tools/gnark"
 GEN="$ROOT/tools/gnark/lean/gen/gen_template_inventory.py"
-EXPECTED="$GNARK/artifacts/note-reshape-template-inventory.json"
+EXPECTED="$GNARK/artifacts/certified-template-inventory.json"
 REGISTRY="$GNARK/artifacts/proof-template-registry.json"
 
 fail() {
@@ -16,12 +16,18 @@ python3 "$GNARK/check_gnark_family_registries.py" >/dev/null
 tmp_dir="$(mktemp -d)"
 trap 'rm -rf "$tmp_dir"' EXIT
 
-circuits=(note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8)
+circuits=()
+while IFS=$'\t' read -r circuit _; do
+  [[ -z "$circuit" ]] || circuits+=("$circuit")
+done < <(
+  python3 "$ROOT/scripts/check-fv-profiles.py" --emit-tsv --status certified
+)
+[[ "${#circuits[@]}" -gt 0 ]] || fail "FV catalog has no certified profiles"
 irs=()
 for circuit in "${circuits[@]}"; do
   manifest="$GNARK/artifacts/$circuit/$circuit-manifest.json"
   sr1cs="$GNARK/artifacts/$circuit/$circuit.sr1cs"
-  ir="$tmp_dir/$circuit.json"
+  ir="$tmp_dir/$circuit-deployed-slice-ir.json"
   (
     cd "$ROOT"
     cargo run --release -q -p shieldd-constraint-coverage -- \
@@ -33,8 +39,8 @@ for circuit in "${circuits[@]}"; do
   irs+=("$ir")
 done
 
-fresh="$tmp_dir/note-reshape-template-inventory.json"
-python3 "$GEN" --ir "${irs[@]}" --out "$fresh" --require-note-reshape
+fresh="$tmp_dir/certified-template-inventory.json"
+python3 "$GEN" --ir "${irs[@]}" --out "$fresh"
 [[ -f "$EXPECTED" ]] || fail "missing committed inventory $EXPECTED"
 if ! cmp -s "$EXPECTED" "$fresh"; then
   diff -u "$EXPECTED" "$fresh" >&2 || true

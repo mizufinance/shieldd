@@ -280,17 +280,11 @@ impl SnarkpackBackend {
         challenge_context: &ChallengeContext,
     ) -> Result<(Vec<u8>, AggregateBuildBackendProfile)> {
         match family_id {
-            NoteReshapeFamilyId::TwoByOne => aggregate_with_digest_profiled::<
-                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
-            >(items, srs, challenge_context),
             NoteReshapeFamilyId::OneByEight => aggregate_with_digest_profiled::<
                 NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
             >(items, srs, challenge_context),
             NoteReshapeFamilyId::EightByOne => aggregate_with_digest_profiled::<
                 NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
-            >(items, srs, challenge_context),
-            NoteReshapeFamilyId::FourByOne => aggregate_with_digest_profiled::<
-                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
             >(items, srs, challenge_context),
             other => Err(anyhow::anyhow!(
                 "unknown note reshape aggregate family {}",
@@ -308,15 +302,6 @@ impl SnarkpackBackend {
         srs: &DevSrs,
     ) -> Result<AggregateVerificationProfile, AggregateVerifyError> {
         match family_id {
-            NoteReshapeFamilyId::TwoByOne => verify_with_digest_profiled::<
-                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
-            >(
-                challenge_context,
-                pvk,
-                aggregate_proof_bytes,
-                padded_public_inputs,
-                srs,
-            ),
             NoteReshapeFamilyId::OneByEight => verify_with_digest_profiled::<
                 NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
             >(
@@ -328,15 +313,6 @@ impl SnarkpackBackend {
             ),
             NoteReshapeFamilyId::EightByOne => verify_with_digest_profiled::<
                 NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
-            >(
-                challenge_context,
-                pvk,
-                aggregate_proof_bytes,
-                padded_public_inputs,
-                srs,
-            ),
-            NoteReshapeFamilyId::FourByOne => verify_with_digest_profiled::<
-                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
             >(
                 challenge_context,
                 pvk,

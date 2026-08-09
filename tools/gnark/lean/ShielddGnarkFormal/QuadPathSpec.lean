@@ -1,5 +1,6 @@
 import ShielddGnarkFormal.Extracted.QuadPath2
 import ShielddGnarkFormal.Extracted.QuadPath16
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ProvenZk.Gates
 import ProvenZk.Ext.Vector
 
@@ -21,6 +22,9 @@ independently of the Poseidon bridge (M4), which supplies the concrete `H4`. -/
 namespace Shieldd.GnarkFormal.QuadPath
 
 open Shieldd.GnarkFormal.Extracted.QuadPath2 (F Order quadPathRound circuit)
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
+attribute [-instance] ZMod.instField
 
 variable [Fact (Nat.Prime Order)]
 

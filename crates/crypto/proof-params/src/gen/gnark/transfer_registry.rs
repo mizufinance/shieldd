@@ -13,11 +13,6 @@ static TRANSFER_PROOF_VERIFYING_KEY_JSON_BYTES: &[u8] = include_bytes!(concat!(
 ));
 
 static TRANSFER_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
-    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR") {
-        return load_verifying_key_json_artifact(Path::new(&dir), "transfer")
-            .expect("can deserialize transfer VerifyingKey")
-            .into();
-    }
     load_verifying_key_json_bytes(TRANSFER_PROOF_VERIFYING_KEY_JSON_BYTES)
     .expect("bundled transfer VerifyingKey is valid")
     .into()

@@ -14,12 +14,16 @@
 //! drift the IR from the deployed rows). Lean is generated *from* this IR; we
 //! never parse Lean back to R1CS.
 
-use crate::template_registry::{match_registry, TemplateEquivalenceWitness, TemplateRegistry};
+use crate::template_registry::{
+    match_registry_with_digest, verify_witness, TemplateEquivalenceWitness, TemplateRegistry,
+    TEMPLATE_REGISTRY_SCHEMA,
+};
 use crate::{ConstraintManifest, CoverageError, Sr1cs};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
+use std::time::Instant;
 
 /// One `(coeff wire)` term of a linear combination.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -343,13 +347,13 @@ fn sha256_hex(data: &[u8]) -> String {
     hex::encode(hasher.finalize())
 }
 
-fn normalized_relation_text(rows: &[Constraint]) -> String {
-    let mut text = String::new();
+fn rendered_rows_sha256(rows: &[Constraint]) -> String {
+    let mut hasher = Sha256::new();
     for row in rows {
-        text.push_str(&row.render());
-        text.push('\n');
+        hasher.update(row.render().as_bytes());
+        hasher.update(b"\n");
     }
-    text
+    hex::encode(hasher.finalize())
 }
 
 /// Normalize one segment without losing any relation information.
@@ -392,7 +396,7 @@ pub fn normalize_relation(rows: &[Constraint]) -> NormalizedRelation {
         });
     }
 
-    let sha256_hex = sha256_hex(normalized_relation_text(&normalized_rows).as_bytes());
+    let sha256_hex = rendered_rows_sha256(&normalized_rows);
     NormalizedRelation {
         rows: normalized_rows,
         wire_seating,
@@ -504,6 +508,57 @@ pub fn build_ir(
     registry: &TemplateRegistry,
     registry_root: &Path,
 ) -> Result<CircuitIr, CoverageError> {
+    build_ir_with_witness_hints(manifest, sr1cs, registry, registry_root, None)
+}
+
+/// Rebuild canonical IR while using only authenticated equivalence witnesses
+/// from a previously emitted IR. Every derived field is still recomputed from
+/// the fresh manifest and SR1CS; hints avoid rediscovering graph isomorphisms.
+pub fn build_ir_with_witness_hints(
+    manifest: &ConstraintManifest,
+    sr1cs: &Sr1cs,
+    registry: &TemplateRegistry,
+    registry_root: &Path,
+    witness_hints: Option<&CircuitIr>,
+) -> Result<CircuitIr, CoverageError> {
+    if registry.schema != TEMPLATE_REGISTRY_SCHEMA {
+        return Err(CoverageError::TemplateRegistry(format!(
+            "unsupported schema {:?}",
+            registry.schema
+        )));
+    }
+    if let Some(hints) = witness_hints {
+        if hints.segments.len() != manifest.segments.len() {
+            return Err(CoverageError::TemplateRegistry(format!(
+                "cached witness segment count {} != manifest segment count {}",
+                hints.segments.len(),
+                manifest.segments.len()
+            )));
+        }
+        for (hint, segment) in hints.segments.iter().zip(&manifest.segments) {
+            if hint.index != segment.index
+                || hint.op != segment.op
+                || hint.start != segment.start
+                || hint.end != segment.end
+                || hint.constraint_count != segment.constraint_count
+            {
+                return Err(CoverageError::TemplateRegistry(format!(
+                    "cached witness projection differs at segment {} ({})",
+                    segment.index, segment.op
+                )));
+            }
+            if segment.constraint_count == 0
+                && (!hint.proof_template_id.is_empty()
+                    || hint.template_equivalence_witness.is_some())
+            {
+                return Err(CoverageError::TemplateRegistry(format!(
+                    "zero-row segment {} ({}) carries a cached proof-template witness",
+                    segment.index, segment.op
+                )));
+            }
+        }
+    }
+
     // 1. Scan every row + round-trip check (independence: IR == deployed rows).
     // Do not retain parsed rows: transfer has 252k rows / a 267 MiB source
     // file, and retaining the source strings, parsed coefficient strings, and
@@ -577,19 +632,108 @@ pub fn build_ir(
             let normalized = normalize_relation(&parsed_rows);
             check_reconstruction(seg.index, &seg.op, &parsed_rows, &normalized)?;
             normalized_relation_hash = normalized.sha256_hex.clone();
-            let equivalence = match_registry(
-                registry,
-                registry_root,
-                &seg.op,
-                &normalized.rows,
-                &normalized.wire_seating,
-            )?;
+            let telemetry = std::env::var_os("SHIELDD_FV_MATCH_TELEMETRY").is_some();
+            let started = Instant::now();
+            if telemetry {
+                eprintln!(
+                    "proof-template segment={} op={} rows={} wires={} relation_sha256={} mode={}",
+                    seg.index,
+                    seg.op,
+                    normalized.rows.len(),
+                    normalized.wire_seating.len(),
+                    normalized.sha256_hex,
+                    if witness_hints.is_some() {
+                        "cached-witness"
+                    } else {
+                        "search"
+                    }
+                );
+            }
+            let equivalence = if let Some(hints) = witness_hints {
+                let hint = &hints.segments[segments.len()];
+                let witness = hint.template_equivalence_witness.as_ref().ok_or_else(|| {
+                    CoverageError::TemplateRegistry(format!(
+                        "segment {} ({}) is missing its cached proof-template witness",
+                        seg.index, seg.op
+                    ))
+                })?;
+                if hint.proof_template_id.is_empty()
+                    || hint.proof_template_id != witness.proof_template_id
+                {
+                    return Err(CoverageError::TemplateRegistry(format!(
+                        "segment {} ({}) has inconsistent cached proof-template identities",
+                        seg.index, seg.op
+                    )));
+                }
+                let candidates = registry
+                    .templates
+                    .iter()
+                    .filter(|template| {
+                        template.proof_template_id == hint.proof_template_id
+                            && template.op == seg.op
+                            && template.row_count == normalized.rows.len()
+                            && template.local_wire_count == normalized.wire_seating.len()
+                    })
+                    .collect::<Vec<_>>();
+                if candidates.len() != 1 {
+                    return Err(CoverageError::TemplateRegistry(format!(
+                        "segment {} ({}) cached proof-template {:?} resolves to {} exact registry entries",
+                        seg.index,
+                        seg.op,
+                        hint.proof_template_id,
+                        candidates.len()
+                    )));
+                }
+                if !verify_witness(
+                    candidates[0],
+                    registry_root,
+                    &normalized.rows,
+                    &normalized.wire_seating,
+                    witness,
+                ) {
+                    return Err(CoverageError::TemplateRegistry(format!(
+                        "segment {} ({}) has an invalid cached proof-template witness for {:?}",
+                        seg.index, seg.op, hint.proof_template_id
+                    )));
+                }
+                witness.clone()
+            } else {
+                match match_registry_with_digest(
+                    registry,
+                    registry_root,
+                    &seg.op,
+                    &normalized.rows,
+                    &normalized.wire_seating,
+                    &normalized.sha256_hex,
+                ) {
+                    Err(CoverageError::TemplateSearchBudgetExceeded {
+                        proof_template_id,
+                        budget,
+                        ..
+                    }) => {
+                        return Err(CoverageError::TemplateRegistry(format!(
+                            "segment {} ({}) exhausted proof-template search budget {} while checking {:?}",
+                            seg.index, seg.op, budget, proof_template_id
+                        )));
+                    }
+                    result => result?,
+                }
+            };
+            if telemetry {
+                eprintln!(
+                    "proof-template segment={} op={} template={} elapsed_ms={}",
+                    seg.index,
+                    seg.op,
+                    equivalence.proof_template_id,
+                    started.elapsed().as_millis()
+                );
+            }
             proof_template_id = equivalence.proof_template_id.clone();
             template_equivalence_witness = Some(equivalence);
             // shape + constant vector over the slice
-            let mut shape = String::new();
-            let mut consts = String::new();
-            let mut relation = String::new();
+            let mut shape_hasher = Sha256::new();
+            let mut const_hasher = Sha256::new();
+            let mut relation_hasher = Sha256::new();
             let mut seen = BTreeSet::new();
             for c in &parsed_rows {
                 for side in c.sides() {
@@ -599,17 +743,17 @@ pub fn build_ir(
                         }
                     }
                 }
-                shape.push_str(&row_shape(&c, &mut ranks));
-                shape.push('|');
+                shape_hasher.update(row_shape(c, &mut ranks).as_bytes());
+                shape_hasher.update(b"|");
                 for side in c.sides() {
                     for t in side {
-                        consts.push_str(&t.coeff);
-                        consts.push(',');
+                        const_hasher.update(t.coeff.as_bytes());
+                        const_hasher.update(b",");
                     }
-                    consts.push(';');
+                    const_hasher.update(b";");
                 }
-                relation.push_str(&c.render());
-                relation.push('\n');
+                relation_hasher.update(c.render().as_bytes());
+                relation_hasher.update(b"\n");
             }
             roles = wire_roles_for_seen(
                 &seen,
@@ -619,12 +763,12 @@ pub fn build_ir(
                 seg.start,
                 seg.end,
             );
-            let shape_hash = sha256_hex(shape.as_bytes());
+            let shape_hash = hex::encode(shape_hasher.finalize());
             class_key = format!("{}@{}", seg.op, &shape_hash[..16]);
-            const_hash = sha256_hex(consts.as_bytes());
+            const_hash = hex::encode(const_hasher.finalize());
             // Full per-instance relation fingerprint: the exact canonical rows,
             // absolute wires included, as the X-checked `render()` emits them.
-            relation_hash = sha256_hex(relation.as_bytes());
+            relation_hash = hex::encode(relation_hasher.finalize());
             wire_role_hash = sha256_hex(wire_role_digest(&roles).as_bytes());
             class_instances
                 .entry(class_key.clone())

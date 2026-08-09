@@ -8,8 +8,8 @@ use shieldd_sdk_keys::{keys::AddressIndex, Address};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::view::v1::NotesRequest;
 use shieldd_sdk_shielded_pool::{
-    note, Ics20Withdrawal, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalFamilyId,
-    ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+    note, Ics20Withdrawal, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalPlan,
+    ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
 };
 use shieldd_sdk_transaction::{
     check_transaction_plan_enabled,
@@ -921,12 +921,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         };
 
         let mut notes = available_notes;
-        if notes.len() < family_id.input_count() {
+        let real_input_count = notes.len().min(family_id.max_real_inputs());
+        if real_input_count < family_id.min_real_inputs() {
             return Ok(None);
         }
-        let selected: Vec<_> = (0..family_id.input_count())
-            .filter_map(|_| notes.pop())
-            .collect();
+        let selected: Vec<_> = (0..real_input_count).filter_map(|_| notes.pop()).collect();
         self.build_note_reshape_transaction(view, source, asset_id, family_id, selected)
             .await
     }
@@ -1259,13 +1258,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             None => align_shielded_planning_metadata(&mut spends, &mut []),
         }
 
-        ShieldedIcs20WithdrawalPlan::new(
-            ShieldedIcs20WithdrawalFamilyId::Canonical,
-            spends,
-            change_output,
-            withdrawal,
-            Fr::rand(&mut self.rng),
-        )
+        ShieldedIcs20WithdrawalPlan::new(spends, change_output, withdrawal, Fr::rand(&mut self.rng))
     }
 
     async fn load_notes_for_asset<V: ViewClient + Send + ?Sized>(
@@ -1393,21 +1386,13 @@ fn fee_funding_excluded_note_commitments(
 ) -> BTreeSet<note::StateCommitment> {
     let mut commitments = BTreeSet::new();
     for action in actions {
-        let spends = match action {
-            ActionPlan::Transfer(plan) => Some(&plan.spends),
-            ActionPlan::NoteReshape(plan) => Some(&plan.spends),
-            ActionPlan::ShieldedIcs20Withdrawal(plan) => Some(&plan.spends),
-            _ => None,
-        };
-
-        if let Some(spends) = spends {
-            commitments.extend(
-                spends
-                    .iter()
-                    .filter(|spend| spend.note.asset_id() == *BASE_ASSET_ID)
-                    .map(|spend| spend.note.commit()),
-            );
-        }
+        commitments.extend(
+            action
+                .spends()
+                .iter()
+                .filter(|spend| spend.note.asset_id() == *BASE_ASSET_ID)
+                .map(|spend| spend.note.commit()),
+        );
     }
     commitments
 }
@@ -1416,35 +1401,8 @@ fn select_auto_note_reshape_family(
     selected_note_count: usize,
     available_note_count: usize,
 ) -> Option<NoteReshapeFamilyId> {
-    // Preserve wallet intent: select the smallest useful many-to-one family
-    // when the selected set is close to its capacity; otherwise choose the
-    // largest available family to avoid revealing the selected input count.
-    let direct_match = [
-        NoteReshapeFamilyId::TwoByOne,
-        NoteReshapeFamilyId::FourByOne,
-        NoteReshapeFamilyId::EightByOne,
-    ]
-    .into_iter()
-    .find(|family| {
-        let input_count = family.input_count();
-        available_note_count >= input_count
-            && selected_note_count
-                .saturating_sub(input_count)
-                .saturating_add(1)
-                <= 2
-    });
-
-    if direct_match.is_some() {
-        return direct_match;
-    }
-
-    [
-        NoteReshapeFamilyId::EightByOne,
-        NoteReshapeFamilyId::FourByOne,
-        NoteReshapeFamilyId::TwoByOne,
-    ]
-    .into_iter()
-    .find(|family| available_note_count >= family.input_count())
+    let family = NoteReshapeFamilyId::EightByOne;
+    (selected_note_count > 2 && available_note_count >= family.min_real_inputs()).then_some(family)
 }
 
 fn prioritize_and_filter_spendable_notes(
@@ -1530,6 +1488,7 @@ mod tests {
     fn test_spend_key(index: u32) -> SpendKey {
         let seed = SeedPhrase::from_randomness(&[index as u8; 32]);
         SpendKey::from_seed_phrase_bip44(seed, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements")
     }
 
     fn spendable_note_record(
@@ -1593,7 +1552,6 @@ mod tests {
             },
             timeout_time: 60_000_000_000,
             source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
-            use_compat_address: false,
             ics20_memo: String::new(),
             use_transparent_address: false,
         }
@@ -1613,8 +1571,10 @@ mod tests {
         let consensus_vk = consensus_sk.verification_key();
 
         let validator = validator::Validator {
-            identity_key: IdentityKey(spend_auth_vk.clone().into()),
-            governance_key: GovernanceKey(spend_auth_vk.clone().into()),
+            identity_key: IdentityKey::try_from(spend_auth_vk.clone())
+                .expect("test spend verification key is nonidentity"),
+            governance_key: GovernanceKey::try_from(spend_auth_vk.clone())
+                .expect("test spend verification key is nonidentity"),
             consensus_key: tendermint::PublicKey::from_raw_ed25519(&consensus_vk.to_bytes())
                 .expect("valid test consensus key"),
             name: "reduced-surface-validator".to_owned(),
@@ -1639,8 +1599,10 @@ mod tests {
         let body = ValidatorVoteBody {
             proposal: 7,
             vote: Vote::Yes,
-            identity_key: IdentityKey(vk.clone().into()),
-            governance_key: GovernanceKey(vk.clone().into()),
+            identity_key: IdentityKey::try_from(vk.clone())
+                .expect("test spend verification key is nonidentity"),
+            governance_key: GovernanceKey::try_from(vk.clone())
+                .expect("test spend verification key is nonidentity"),
             reason: ValidatorVoteReason("validator vote".to_owned()),
         };
         let auth_sig = spend_key
@@ -1660,8 +1622,10 @@ mod tests {
                 description: "funded by a self-transfer".to_owned(),
                 payload: ProposalPayload::Signaling { commit: None },
             },
-            proposer: IdentityKey(vk.clone().into()),
-            governance_key: GovernanceKey(vk.clone().into()),
+            proposer: IdentityKey::try_from(vk.clone())
+                .expect("test spend verification key is nonidentity"),
+            governance_key: GovernanceKey::try_from(vk.clone())
+                .expect("test spend verification key is nonidentity"),
         };
         let auth_sig = spend_key
             .spend_auth_key()
@@ -2088,7 +2052,7 @@ mod tests {
         assert!(matches!(
             maintenance_plan.actions.first(),
             Some(ActionPlan::NoteReshape(note_reshape))
-                if note_reshape.family_id() == NoteReshapeFamilyId::FourByOne
+                if note_reshape.family_id() == NoteReshapeFamilyId::EightByOne
         ));
 
         view.replace_notes(vec![spendable_note_record(
@@ -2176,7 +2140,7 @@ mod tests {
         assert!(matches!(
             maintenance_plan.actions.first(),
             Some(ActionPlan::NoteReshape(note_reshape))
-                if note_reshape.family_id() == NoteReshapeFamilyId::FourByOne
+                if note_reshape.family_id() == NoteReshapeFamilyId::EightByOne
         ));
 
         view.replace_notes(vec![spendable_note_record(
@@ -2407,7 +2371,7 @@ mod tests {
                 &mut view,
                 source,
                 *BASE_ASSET_ID,
-                Some(NoteReshapeFamilyId::TwoByOne),
+                Some(NoteReshapeFamilyId::EightByOne),
             )
             .await
             .expect("note reshape planning succeeds");
@@ -2418,7 +2382,7 @@ mod tests {
         assert!(matches!(
             transaction_plan.actions.first(),
             Some(ActionPlan::NoteReshape(note_reshape))
-                if note_reshape.family_id() == NoteReshapeFamilyId::TwoByOne
+                if note_reshape.family_id() == NoteReshapeFamilyId::EightByOne
         ));
     }
 
@@ -2448,9 +2412,9 @@ mod tests {
         let Some(ActionPlan::NoteReshape(note_reshape)) = transaction_plan.actions.first() else {
             panic!("expected note reshape action");
         };
-        assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::FourByOne);
+        assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::EightByOne);
         assert_eq!(note_reshape.spends.len(), 3);
-        assert_eq!(note_reshape.body.inputs.len(), 4);
+        assert_eq!(note_reshape.family_id().input_count(), 8);
         let spend_key = test_spend_key(6);
         let fvk = spend_key.full_viewing_key();
         let body = note_reshape
@@ -2499,7 +2463,7 @@ mod tests {
         };
         assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::OneByEight);
         assert_eq!(note_reshape.outputs.len(), 3);
-        assert_eq!(note_reshape.body.outputs.len(), 8);
+        assert_eq!(note_reshape.family_id().output_count(), 8);
         let spend_key = test_spend_key(5);
         let fvk = spend_key.full_viewing_key();
         let body = note_reshape

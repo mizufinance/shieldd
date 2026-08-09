@@ -1,5 +1,5 @@
 use decaf377::Fr;
-use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey, VerificationKeyBytes};
+use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
 use ed25519_consensus::SigningKey as Ed25519SigningKey;
 use ibc_proto::ics23::CommitmentProof;
 use ibc_types::core::{
@@ -26,8 +26,8 @@ use shieldd_sdk_keys::{Address, FullViewingKey};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_shielded_pool::{
-    Ics20Withdrawal, Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalFamilyId,
-    ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+    Ics20Withdrawal, Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalPlan,
+    ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
 };
 use shieldd_sdk_transaction::{
     check_transaction_plan_enabled, ActionPlan, TransactionParameters, TransactionPlan,
@@ -90,7 +90,8 @@ fn address_strategy() -> impl Strategy<Value = Address> {
     // for some reason (invalid key errors on computing effecthash.)
     prop::strategy::LazyJust::new(|| {
         let seed_phrase = with_vector_rng(|rng| SeedPhrase::generate(rng));
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test-vector spend key should satisfy key refinements");
         let addr = sk.full_viewing_key().payment_address(0u32.into()).0;
 
         addr
@@ -111,9 +112,10 @@ fn spend_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ShieldedIn
 }
 
 fn identity_key_strategy() -> impl Strategy<Value = IdentityKey> {
-    let rand_bytes = prop::array::uniform32(any::<u8>());
-
-    rand_bytes.prop_map(|vk_bytes| IdentityKey(VerificationKeyBytes::<SpendAuth>::from(vk_bytes)))
+    signing_key_strategy().prop_map(|signing_key| {
+        IdentityKey::try_from(VerificationKey::from(&signing_key))
+            .expect("generated validator identity key is nonidentity")
+    })
 }
 
 fn signing_key_strategy() -> impl Strategy<Value = SigningKey<SpendAuth>> {
@@ -127,7 +129,9 @@ fn consensus_secret_key_strategy() -> impl Strategy<Value = Ed25519SigningKey> {
 fn validator_strategy() -> impl Strategy<Value = (validator::Validator, SigningKey<SpendAuth>)> {
     (signing_key_strategy(), consensus_secret_key_strategy()).prop_map(
         move |(new_validator_id_sk, new_validator_consensus_sk)| {
-            let new_validator_id = IdentityKey(VerificationKey::from(&new_validator_id_sk).into());
+            let new_validator_id =
+                IdentityKey::try_from(VerificationKey::from(&new_validator_id_sk))
+                    .expect("generated validator identity key is nonidentity");
             let new_validator_consensus = new_validator_consensus_sk.verification_key();
             (
                 validator::Validator {
@@ -136,7 +140,10 @@ fn validator_strategy() -> impl Strategy<Value = (validator::Validator, SigningK
                         &new_validator_consensus.to_bytes(),
                     )
                     .expect("consensus key is valid"),
-                    governance_key: GovernanceKey(new_validator_id_sk.into()),
+                    governance_key: GovernanceKey::try_from(VerificationKey::from(
+                        &new_validator_id_sk,
+                    ))
+                    .expect("generated validator governance key is nonidentity"),
                     enabled: true,
                     sequence_number: 0,
                     name: "test validator".to_string(),
@@ -226,7 +233,8 @@ fn proposal_submit_strategy() -> impl Strategy<Value = ProposalSubmit> {
         signing_key_strategy(),
     )
         .prop_map(|(proposal, proposer, signing_key)| {
-            let governance_key = GovernanceKey(signing_key.into());
+            let governance_key = GovernanceKey::try_from(VerificationKey::from(&signing_key))
+                .expect("generated validator governance key is nonidentity");
             let body = ProposalSubmitBody {
                 proposal,
                 proposer,
@@ -250,7 +258,8 @@ fn validator_vote_strategy() -> impl Strategy<Value = ValidatorVote> {
         prop::string::string_regex(r"[a-zA-Z0-9]+").unwrap(),
     )
         .prop_map(|(proposal, vote, identity_key, signing_key, reason)| {
-            let governance_key = GovernanceKey(signing_key.into());
+            let governance_key = GovernanceKey::try_from(VerificationKey::from(&signing_key))
+                .expect("generated validator governance key is nonidentity");
             let body = ValidatorVoteBody {
                 proposal,
                 vote,
@@ -297,12 +306,10 @@ fn shielded_ics20_withdrawal_plan_strategy(
                         .expect("test value"),
                     timeout_time: timeout_minutes * 60_000_000_000,
                     source_channel: ChannelId::default(),
-                    use_compat_address: false,
                     use_transparent_address: false,
                     ics20_memo: String::default(),
                 };
                 ShieldedIcs20WithdrawalPlan::new(
-                    ShieldedIcs20WithdrawalFamilyId::Canonical,
                     vec![ShieldedInputPlan::new(&mut OsRng, note, position)],
                     None,
                     withdrawal,
@@ -366,7 +373,7 @@ fn note_reshape_two_to_one_plan_strategy(
                 addr.clone(),
             );
             NoteReshapePlan::new(
-                NoteReshapeFamilyId::TwoByOne,
+                NoteReshapeFamilyId::EightByOne,
                 vec![
                     ShieldedInputPlan::new(&mut OsRng, note_1, pos_1).into(),
                     ShieldedInputPlan::new(&mut OsRng, note_2, pos_2).into(),
@@ -473,7 +480,8 @@ fn generate_transaction_signing_test_vectors() {
     let mut i = 0;
     while i < 100 {
         let seed_phrase = SeedPhrase::from_str(SEED_PHRASE).expect("test seed phrase is valid");
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test-vector spend key should satisfy key refinements");
         let fvk = sk.full_viewing_key();
         let value_tree = transaction_plan_strategy(fvk)
             .new_tree(&mut runner)
@@ -525,7 +533,8 @@ fn effect_hash_test_vectors() {
     // matches the expected effect hash.
     let test_vectors_dir = "tests/signing_test_vectors";
     let seed_phrase = SeedPhrase::from_str(SEED_PHRASE).expect("test seed phrase is valid");
-    let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+    let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+        .expect("test-vector spend key should satisfy key refinements");
     let fvk = sk.full_viewing_key();
 
     for i in 0..100 {

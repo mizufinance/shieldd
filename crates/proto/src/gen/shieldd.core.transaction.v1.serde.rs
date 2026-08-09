@@ -36,9 +36,6 @@ impl serde::Serialize for Action {
                 action::Action::ComplianceRegisterUser(v) => {
                     struct_ser.serialize_field("complianceRegisterUser", v)?;
                 }
-                action::Action::AggregateBundle(v) => {
-                    struct_ser.serialize_field("aggregateBundle", v)?;
-                }
                 action::Action::ShieldedIcs20Withdrawal(v) => {
                     struct_ser.serialize_field("shieldedIcs20Withdrawal", v)?;
                 }
@@ -69,8 +66,6 @@ impl<'de> serde::Deserialize<'de> for Action {
             "complianceRegisterAsset",
             "compliance_register_user",
             "complianceRegisterUser",
-            "aggregate_bundle",
-            "aggregateBundle",
             "shielded_ics20_withdrawal",
             "shieldedIcs20Withdrawal",
         ];
@@ -85,7 +80,6 @@ impl<'de> serde::Deserialize<'de> for Action {
             ValidatorVote,
             ComplianceRegisterAsset,
             ComplianceRegisterUser,
-            AggregateBundle,
             ShieldedIcs20Withdrawal,
             __SkipField__,
         }
@@ -117,7 +111,6 @@ impl<'de> serde::Deserialize<'de> for Action {
                             "validatorVote" | "validator_vote" => Ok(GeneratedField::ValidatorVote),
                             "complianceRegisterAsset" | "compliance_register_asset" => Ok(GeneratedField::ComplianceRegisterAsset),
                             "complianceRegisterUser" | "compliance_register_user" => Ok(GeneratedField::ComplianceRegisterUser),
-                            "aggregateBundle" | "aggregate_bundle" => Ok(GeneratedField::AggregateBundle),
                             "shieldedIcs20Withdrawal" | "shielded_ics20_withdrawal" => Ok(GeneratedField::ShieldedIcs20Withdrawal),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -195,13 +188,6 @@ impl<'de> serde::Deserialize<'de> for Action {
                                 return Err(serde::de::Error::duplicate_field("complianceRegisterUser"));
                             }
                             action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::ComplianceRegisterUser)
-;
-                        }
-                        GeneratedField::AggregateBundle => {
-                            if action__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("aggregateBundle"));
-                            }
-                            action__ = map_.next_value::<::std::option::Option<_>>()?.map(action::Action::AggregateBundle)
 ;
                         }
                         GeneratedField::ShieldedIcs20Withdrawal => {
@@ -474,9 +460,6 @@ impl serde::Serialize for ActionView {
                 action_view::ActionView::ComplianceRegisterUser(v) => {
                     struct_ser.serialize_field("complianceRegisterUser", v)?;
                 }
-                action_view::ActionView::AggregateBundle(v) => {
-                    struct_ser.serialize_field("aggregateBundle", v)?;
-                }
                 action_view::ActionView::ShieldedIcs20Withdrawal(v) => {
                     struct_ser.serialize_field("shieldedIcs20Withdrawal", v)?;
                 }
@@ -507,8 +490,6 @@ impl<'de> serde::Deserialize<'de> for ActionView {
             "complianceRegisterAsset",
             "compliance_register_user",
             "complianceRegisterUser",
-            "aggregate_bundle",
-            "aggregateBundle",
             "shielded_ics20_withdrawal",
             "shieldedIcs20Withdrawal",
         ];
@@ -523,7 +504,6 @@ impl<'de> serde::Deserialize<'de> for ActionView {
             ValidatorVote,
             ComplianceRegisterAsset,
             ComplianceRegisterUser,
-            AggregateBundle,
             ShieldedIcs20Withdrawal,
             __SkipField__,
         }
@@ -555,7 +535,6 @@ impl<'de> serde::Deserialize<'de> for ActionView {
                             "validatorVote" | "validator_vote" => Ok(GeneratedField::ValidatorVote),
                             "complianceRegisterAsset" | "compliance_register_asset" => Ok(GeneratedField::ComplianceRegisterAsset),
                             "complianceRegisterUser" | "compliance_register_user" => Ok(GeneratedField::ComplianceRegisterUser),
-                            "aggregateBundle" | "aggregate_bundle" => Ok(GeneratedField::AggregateBundle),
                             "shieldedIcs20Withdrawal" | "shielded_ics20_withdrawal" => Ok(GeneratedField::ShieldedIcs20Withdrawal),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
@@ -635,13 +614,6 @@ impl<'de> serde::Deserialize<'de> for ActionView {
                             action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::ComplianceRegisterUser)
 ;
                         }
-                        GeneratedField::AggregateBundle => {
-                            if action_view__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("aggregateBundle"));
-                            }
-                            action_view__ = map_.next_value::<::std::option::Option<_>>()?.map(action_view::ActionView::AggregateBundle)
-;
-                        }
                         GeneratedField::ShieldedIcs20Withdrawal => {
                             if action_view__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("shieldedIcs20Withdrawal"));
@@ -660,142 +632,6 @@ impl<'de> serde::Deserialize<'de> for ActionView {
             }
         }
         deserializer.deserialize_struct("shieldd.core.transaction.v1.ActionView", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for AggregateBundle {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.version != 0 {
-            len += 1;
-        }
-        if !self.srs_id.is_empty() {
-            len += 1;
-        }
-        if !self.families.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.AggregateBundle", len)?;
-        if self.version != 0 {
-            struct_ser.serialize_field("version", &self.version)?;
-        }
-        if !self.srs_id.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("srsId", pbjson::private::base64::encode(&self.srs_id).as_str())?;
-        }
-        if !self.families.is_empty() {
-            struct_ser.serialize_field("families", &self.families)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for AggregateBundle {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "version",
-            "srs_id",
-            "srsId",
-            "families",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Version,
-            SrsId,
-            Families,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "version" => Ok(GeneratedField::Version),
-                            "srsId" | "srs_id" => Ok(GeneratedField::SrsId),
-                            "families" => Ok(GeneratedField::Families),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = AggregateBundle;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.transaction.v1.AggregateBundle")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<AggregateBundle, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut version__ = None;
-                let mut srs_id__ = None;
-                let mut families__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Version => {
-                            if version__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("version"));
-                            }
-                            version__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::SrsId => {
-                            if srs_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("srsId"));
-                            }
-                            srs_id__ = 
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::Families => {
-                            if families__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("families"));
-                            }
-                            families__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(AggregateBundle {
-                    version: version__.unwrap_or_default(),
-                    srs_id: srs_id__.unwrap_or_default(),
-                    families: families__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.transaction.v1.AggregateBundle", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for AuthorizationData {
@@ -1240,206 +1076,6 @@ impl<'de> serde::Deserialize<'de> for DetectionDataPlan {
             }
         }
         deserializer.deserialize_struct("shieldd.core.transaction.v1.DetectionDataPlan", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for FamilyAggregate {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.family_id != 0 {
-            len += 1;
-        }
-        if self.real_count != 0 {
-            len += 1;
-        }
-        if self.padded_count != 0 {
-            len += 1;
-        }
-        if !self.aggregate_proof.is_empty() {
-            len += 1;
-        }
-        if self.note_reshape_family_id != 0 {
-            len += 1;
-        }
-        if self.shielded_ics20_withdrawal_family_id != 0 {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.transaction.v1.FamilyAggregate", len)?;
-        if self.family_id != 0 {
-            let v = ProofFamilyId::try_from(self.family_id)
-                .map_err(|_| serde::ser::Error::custom(format!("Invalid variant {}", self.family_id)))?;
-            struct_ser.serialize_field("familyId", &v)?;
-        }
-        if self.real_count != 0 {
-            struct_ser.serialize_field("realCount", &self.real_count)?;
-        }
-        if self.padded_count != 0 {
-            struct_ser.serialize_field("paddedCount", &self.padded_count)?;
-        }
-        if !self.aggregate_proof.is_empty() {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("aggregateProof", pbjson::private::base64::encode(&self.aggregate_proof).as_str())?;
-        }
-        if self.note_reshape_family_id != 0 {
-            struct_ser.serialize_field("noteReshapeFamilyId", &self.note_reshape_family_id)?;
-        }
-        if self.shielded_ics20_withdrawal_family_id != 0 {
-            struct_ser.serialize_field("shieldedIcs20WithdrawalFamilyId", &self.shielded_ics20_withdrawal_family_id)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for FamilyAggregate {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "family_id",
-            "familyId",
-            "real_count",
-            "realCount",
-            "padded_count",
-            "paddedCount",
-            "aggregate_proof",
-            "aggregateProof",
-            "note_reshape_family_id",
-            "noteReshapeFamilyId",
-            "shielded_ics20_withdrawal_family_id",
-            "shieldedIcs20WithdrawalFamilyId",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            FamilyId,
-            RealCount,
-            PaddedCount,
-            AggregateProof,
-            NoteReshapeFamilyId,
-            ShieldedIcs20WithdrawalFamilyId,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "familyId" | "family_id" => Ok(GeneratedField::FamilyId),
-                            "realCount" | "real_count" => Ok(GeneratedField::RealCount),
-                            "paddedCount" | "padded_count" => Ok(GeneratedField::PaddedCount),
-                            "aggregateProof" | "aggregate_proof" => Ok(GeneratedField::AggregateProof),
-                            "noteReshapeFamilyId" | "note_reshape_family_id" => Ok(GeneratedField::NoteReshapeFamilyId),
-                            "shieldedIcs20WithdrawalFamilyId" | "shielded_ics20_withdrawal_family_id" => Ok(GeneratedField::ShieldedIcs20WithdrawalFamilyId),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = FamilyAggregate;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.transaction.v1.FamilyAggregate")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<FamilyAggregate, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut family_id__ = None;
-                let mut real_count__ = None;
-                let mut padded_count__ = None;
-                let mut aggregate_proof__ = None;
-                let mut note_reshape_family_id__ = None;
-                let mut shielded_ics20_withdrawal_family_id__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::FamilyId => {
-                            if family_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("familyId"));
-                            }
-                            family_id__ = Some(map_.next_value::<ProofFamilyId>()? as i32);
-                        }
-                        GeneratedField::RealCount => {
-                            if real_count__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("realCount"));
-                            }
-                            real_count__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::PaddedCount => {
-                            if padded_count__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("paddedCount"));
-                            }
-                            padded_count__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::AggregateProof => {
-                            if aggregate_proof__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("aggregateProof"));
-                            }
-                            aggregate_proof__ = 
-                                Some(map_.next_value::<::pbjson::private::BytesDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::NoteReshapeFamilyId => {
-                            if note_reshape_family_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("noteReshapeFamilyId"));
-                            }
-                            note_reshape_family_id__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::ShieldedIcs20WithdrawalFamilyId => {
-                            if shielded_ics20_withdrawal_family_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("shieldedIcs20WithdrawalFamilyId"));
-                            }
-                            shielded_ics20_withdrawal_family_id__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(FamilyAggregate {
-                    family_id: family_id__.unwrap_or_default(),
-                    real_count: real_count__.unwrap_or_default(),
-                    padded_count: padded_count__.unwrap_or_default(),
-                    aggregate_proof: aggregate_proof__.unwrap_or_default(),
-                    note_reshape_family_id: note_reshape_family_id__.unwrap_or_default(),
-                    shielded_ics20_withdrawal_family_id: shielded_ics20_withdrawal_family_id__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.transaction.v1.FamilyAggregate", FIELDS, GeneratedVisitor)
     }
 }
 impl serde::Serialize for FeeFunding {
@@ -2616,83 +2252,6 @@ impl<'de> serde::Deserialize<'de> for PayloadKeyWithCommitment {
             }
         }
         deserializer.deserialize_struct("shieldd.core.transaction.v1.PayloadKeyWithCommitment", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for ProofFamilyId {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let variant = match self {
-            Self::Unspecified => "PROOF_FAMILY_ID_UNSPECIFIED",
-            Self::Transfer => "PROOF_FAMILY_ID_TRANSFER",
-            Self::NoteReshape => "PROOF_FAMILY_ID_NOTE_RESHAPE",
-            Self::ShieldedIcs20Withdrawal => "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL",
-        };
-        serializer.serialize_str(variant)
-    }
-}
-impl<'de> serde::Deserialize<'de> for ProofFamilyId {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "PROOF_FAMILY_ID_UNSPECIFIED",
-            "PROOF_FAMILY_ID_TRANSFER",
-            "PROOF_FAMILY_ID_NOTE_RESHAPE",
-            "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL",
-        ];
-
-        struct GeneratedVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = ProofFamilyId;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(formatter, "expected one of: {:?}", &FIELDS)
-            }
-
-            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                i32::try_from(v)
-                    .ok()
-                    .and_then(|x| x.try_into().ok())
-                    .ok_or_else(|| {
-                        serde::de::Error::invalid_value(serde::de::Unexpected::Signed(v), &self)
-                    })
-            }
-
-            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                i32::try_from(v)
-                    .ok()
-                    .and_then(|x| x.try_into().ok())
-                    .ok_or_else(|| {
-                        serde::de::Error::invalid_value(serde::de::Unexpected::Unsigned(v), &self)
-                    })
-            }
-
-            fn visit_str<E>(self, value: &str) -> std::result::Result<Self::Value, E>
-            where
-                E: serde::de::Error,
-            {
-                match value {
-                    "PROOF_FAMILY_ID_UNSPECIFIED" => Ok(ProofFamilyId::Unspecified),
-                    "PROOF_FAMILY_ID_TRANSFER" => Ok(ProofFamilyId::Transfer),
-                    "PROOF_FAMILY_ID_NOTE_RESHAPE" => Ok(ProofFamilyId::NoteReshape),
-                    "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL" => Ok(ProofFamilyId::ShieldedIcs20Withdrawal),
-                    _ => Err(serde::de::Error::unknown_variant(value, FIELDS)),
-                }
-            }
-        }
-        deserializer.deserialize_any(GeneratedVisitor)
     }
 }
 impl serde::Serialize for Transaction {

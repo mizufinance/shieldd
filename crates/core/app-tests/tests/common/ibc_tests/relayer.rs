@@ -55,8 +55,7 @@ use {
     shieldd_sdk_num::Amount,
     shieldd_sdk_proto::{util::tendermint_proxy::v1::GetBlockByHeightRequest, DomainType},
     shieldd_sdk_shielded_pool::{
-        Ics20Withdrawal, ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalPlan,
-        ShieldedInputPlan, ShieldedOutputPlan,
+        Ics20Withdrawal, ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan,
     },
     shieldd_sdk_transaction::{TransactionParameters, TransactionPlan},
     std::{
@@ -220,7 +219,6 @@ impl MockRelayer {
                     timeout_time,
                     return_address,
                     source_channel,
-                    use_compat_address: false,
                     use_transparent_address: false,
                     ics20_memo: "".to_string(),
                 };
@@ -241,7 +239,6 @@ impl MockRelayer {
                 );
                 let mut plan = {
                     let ics20_msg = ShieldedIcs20WithdrawalPlan::new(
-                        ShieldedIcs20WithdrawalFamilyId::Canonical,
                         vec![spend_plan],
                         Some(change_output),
                         withdrawal,
@@ -1807,7 +1804,6 @@ impl MockRelayer {
             // to the mock relayer and be based on the handshake
             source_channel: ChannelId::from_str("channel-0")?,
             // Shieldd <-> Shieldd so false
-            use_compat_address: false,
             use_transparent_address: false,
             ics20_memo: "".to_string(),
         };
@@ -1829,7 +1825,6 @@ impl MockRelayer {
 
         let mut plan = {
             let ics20_msg = ShieldedIcs20WithdrawalPlan::new(
-                ShieldedIcs20WithdrawalFamilyId::Canonical,
                 vec![spend_plan],
                 Some(change_output),
                 withdrawal,

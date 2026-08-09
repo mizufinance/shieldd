@@ -17,13 +17,13 @@ theorem hash
     (rho : Nat → DeployedF) :
     statementHash rho =
       (Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Trace.rawState1_38
-        (Seg57.localRho rho))[1] := by
+        (Seg60.localRho rho))[1] := by
   simp [
     statementHash, statementHashLC,
     Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Trace.rawState1_38,
     Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Trace.flatState1_38Lane1,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg57.localRho, Deployed.Templates.seated,
+    Seg60.localRho, Deployed.Templates.seated,
     hw965, hw970, hw975, hw980, hw985, hw990, hw995, hw1000
   ]
   ring

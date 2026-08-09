@@ -12,7 +12,7 @@ set -euo pipefail
 #
 # Usage:
 #   scripts/check-manifest-pin.sh                 # all FV profiles
-#   scripts/check-manifest-pin.sh note_reshape2x1  # one profile
+#   scripts/check-manifest-pin.sh note_reshape8x1  # one profile
 #   scripts/check-manifest-pin.sh --status candidate
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,7 +25,7 @@ fail() {
 
 json_field() {
   # json_field <file> <top-level-string-key>
-  python3 -c "import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])" "$1" "$2"
+  python3 "$ROOT/scripts/fv-json-field.py" "$1" "$2"
 }
 
 command -v go >/dev/null 2>&1 || fail "go toolchain not found"

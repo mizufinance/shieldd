@@ -19,34 +19,29 @@ use shieldd_sdk_tct::StateCommitment;
 /// This prevents resource exhaustion from excessively large batch requests.
 const MAX_BATCH_SIZE: usize = 100;
 
-/// Find the most recent recorded compliance anchors by searching backwards from current height.
+/// Pair the latest recorded user root with the current mutable asset root.
 ///
-/// This handles the case where the RPC is called mid-block before anchors are recorded.
+/// User registration is append-only, so its recent history remains admissible.
+/// Asset policy is mutable and must never be served from historical storage.
 async fn find_most_recent_anchors<S: cnidarium::StateRead + ComplianceRegistryRead>(
     state: &S,
     current_height: u64,
 ) -> Result<(StateCommitment, StateCommitment), Status> {
-    // Search backwards from current height to find recorded anchors
     let search_start = current_height;
     let search_end = current_height.saturating_sub(MAX_ANCHOR_SEARCH_DEPTH_BLOCKS);
+    let asset_anchor = state
+        .get_asset_imt_root()
+        .await
+        .map_err(|e| Status::internal(format!("failed to get current asset root: {e}")))?;
 
     for height in (search_end..=search_start).rev() {
         let user_anchor = state.get_user_anchor_by_height(height).await.map_err(|e| {
             Status::internal(format!("failed to get user anchor at height {height}: {e}"))
         })?;
 
-        let asset_anchor = state
-            .get_asset_anchor_by_height(height)
-            .await
-            .map_err(|e| {
-                Status::internal(format!(
-                    "failed to get asset anchor at height {height}: {e}"
-                ))
-            })?;
-
-        if let (Some(user), Some(asset)) = (user_anchor, asset_anchor) {
-            tracing::debug!(height, "found recorded anchors");
-            return Ok((user, asset));
+        if let Some(user) = user_anchor {
+            tracing::debug!(height, "found recent recorded user root");
+            return Ok((user, asset_anchor));
         }
     }
 
@@ -127,16 +122,14 @@ impl QueryService for Server {
     ) -> Result<tonic::Response<ComplianceAnchorsResponse>, Status> {
         let state = self.storage.latest_snapshot();
 
-        // Get the current block height to look up recorded anchors
+        // Get the current block height to find recent user-root history.
         let current_height = state
             .get_block_height()
             .await
             .map_err(|e| Status::internal(format!("failed to get block height: {e}")))?;
 
-        // Return the RECORDED anchors (not current tree roots) to ensure
-        // they will be accepted by validate_compliance_anchors().
-        // Search backwards from current height to find the most recent recorded anchor,
-        // since the current height may not have been finalized yet.
+        // User registration is append-only, so a recent recorded root remains
+        // valid. Asset policy is mutable, so always return its current root.
         let (user_tree_root, asset_imt_root) =
             find_most_recent_anchors(&state, current_height).await?;
 
@@ -144,7 +137,7 @@ impl QueryService for Server {
             current_height,
             ?user_tree_root,
             ?asset_imt_root,
-            "returning recorded compliance anchors"
+            "returning recent user root and current asset root"
         );
 
         let response = ComplianceAnchorsResponse {
@@ -177,8 +170,7 @@ impl QueryService for Server {
             .try_into()
             .map_err(|e| Status::invalid_argument(format!("could not parse asset_id: {e}")))?;
 
-        // Get recorded anchors (not current tree roots) for validation compatibility.
-        // Search backwards from current height to find the most recent recorded anchor.
+        // Pair recent append-only user history with current mutable asset policy.
         let current_height = state
             .get_block_height()
             .await
@@ -347,8 +339,7 @@ impl QueryService for Server {
             )));
         }
 
-        // Get recorded anchors (not current tree roots) for validation compatibility.
-        // Search backwards from current height to find the most recent recorded anchor.
+        // Pair recent append-only user history with current mutable asset policy.
         let current_height = state
             .get_block_height()
             .await
@@ -468,25 +459,40 @@ impl QueryService for Server {
 mod tests {
     use super::*;
     use crate::params::{ComplianceParameters, StateWriteExt as _};
-    use crate::registry::ComplianceRegistryWrite as _;
+    use crate::registry::{ComplianceRegistryComponentWrite as _, ComplianceRegistryWrite as _};
+    use crate::structs::AssetPolicy;
     use cnidarium::TempStorage;
+    use decaf377::Fq;
+    use shieldd_sdk_asset::asset;
     use shieldd_sdk_sct::component::clock::EpochManager as _;
 
     #[tokio::test]
-    async fn find_most_recent_anchors_searches_within_recent_window() {
+    async fn find_most_recent_anchors_uses_history_only_for_user_root() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
         state.put_compliance_params(ComplianceParameters::default());
 
         state.put_block_height(5);
-        state.record_compliance_anchors(5).await.unwrap();
-        let expected = (
-            state.get_user_tree_root().await.unwrap(),
-            state.get_asset_imt_root().await.unwrap(),
-        );
+        state.finish_block_compliance_anchors(5).await.unwrap();
+        let recorded_user_root = state.get_user_tree_root().await.unwrap();
+        let stale_asset_root = state.get_asset_imt_root().await.unwrap();
+        state
+            .test_only_register_asset(
+                asset::Id(Fq::from(55u64)),
+                AssetPolicy::simple(
+                    decaf377::Element::GENERATOR,
+                    u128::MAX,
+                    decaf377::Element::GENERATOR,
+                ),
+                true,
+            )
+            .await
+            .unwrap();
+        let current_asset_root = state.get_asset_imt_root().await.unwrap();
+        assert_ne!(stale_asset_root, current_asset_root);
 
         let found = find_most_recent_anchors(&state, 8).await.unwrap();
-        assert_eq!(found, expected);
+        assert_eq!(found, (recorded_user_root, current_asset_root));
     }
 }

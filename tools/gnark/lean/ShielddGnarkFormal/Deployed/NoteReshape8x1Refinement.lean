@@ -40,28 +40,28 @@ open Contracts.NoteReshape8x1.Witness (
 )
 
 def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg21.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg24.localRho rho)
 
 def path1 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg35.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg38.localRho rho)
 
 def path2 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg49.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg52.localRho rho)
 
 def path3 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg63.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg66.localRho rho)
 
 def path4 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg77.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg80.localRho rho)
 
 def path5 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg91.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg94.localRho rho)
 
 def path6 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg105.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg108.localRho rho)
 
 def path7 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg119.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg122.localRho rho)
 
 def realInput0 (rho : Nat → DeployedF) :
     RealInput DeployedF NoteReshapeCanonical.Path24 :=
@@ -432,14 +432,9 @@ theorem nextSelectorOne
 theorem selectorsOfControlSpecs
     (a b c d e f g h : DeployedF)
     (h10 : (1 : DeployedF) ≠ 0)
-    (h24 :
-      (((4 : DeployedF) - 0) * (4 - 1) * (4 - 2) * (4 - 3)) ≠ 0)
-    (h120 :
-      (((5 : DeployedF) - 0) * (5 - 1) * (5 - 2) * (5 - 3)) ≠ 0)
-    (h360 :
-      (((6 : DeployedF) - 0) * (6 - 1) * (6 - 2) * (6 - 3)) ≠ 0)
-    (h840 :
-      (((7 : DeployedF) - 0) * (7 - 1) * (7 - 2) * (7 - 3)) ≠ 0)
+    (h5040 :
+      (((7 : DeployedF) - 0) * (7 - 1) * (7 - 2) * (7 - 3) *
+        (7 - 4) * (7 - 5) * (7 - 6)) ≠ 0)
     (hb : b = 0 ∨ b = 1)
     (hc : c = 0 ∨ c = 1)
     (hd : d = 0 ∨ d = 1)
@@ -455,11 +450,17 @@ theorem selectorsOfControlSpecs
       ((a + b + c + d + e + f + g + h) - 0) *
         ((a + b + c + d + e + f + g + h) - 1) *
         ((a + b + c + d + e + f + g + h) - 2) *
-        ((a + b + c + d + e + f + g + h) - 3) = 0) :
+        ((a + b + c + d + e + f + g + h) - 3) *
+        ((a + b + c + d + e + f + g + h) - 4) *
+        ((a + b + c + d + e + f + g + h) - 5) *
+        ((a + b + c + d + e + f + g + h) - 6) = 0) :
     (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 0 ∧ e = 0 ∧ f = 0 ∧ g = 0 ∧ h = 0) ∨
     (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 0 ∧ e = 0 ∧ f = 0 ∧ g = 0 ∧ h = 1) ∨
     (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 0 ∧ e = 0 ∧ f = 0 ∧ g = 1 ∧ h = 1) ∨
-    (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 0 ∧ e = 0 ∧ f = 1 ∧ g = 1 ∧ h = 1) := by
+    (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 0 ∧ e = 0 ∧ f = 1 ∧ g = 1 ∧ h = 1) ∨
+    (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 0 ∧ e = 1 ∧ f = 1 ∧ g = 1 ∧ h = 1) ∨
+    (a = 0 ∧ b = 0 ∧ c = 0 ∧ d = 1 ∧ e = 1 ∧ f = 1 ∧ g = 1 ∧ h = 1) ∨
+    (a = 0 ∧ b = 0 ∧ c = 1 ∧ d = 1 ∧ e = 1 ∧ f = 1 ∧ g = 1 ∧ h = 1) := by
   rcases hb with hb | hb
   · rcases hc with hc | hc
     · rcases hd with hd | hd
@@ -474,29 +475,26 @@ theorem selectorsOfControlSpecs
                 ⟨suffix.1, hb, hc, hd, he, hf, hg, hh⟩
           · have hg := nextSelectorOne f g h10 hf hg suffix.2.2.2.2.2.2.1
             have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
-            exact Or.inr <| Or.inr <| Or.inr
+            exact Or.inr <| Or.inr <| Or.inr <| Or.inl
               ⟨suffix.1, hb, hc, hd, he, hf, hg, hh⟩
         · have hf := nextSelectorOne e f h10 he hf suffix.2.2.2.2.2.1
           have hg := nextSelectorOne f g h10 hf hg suffix.2.2.2.2.2.2.1
           have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
-          have hbad := active
-          rw [suffix.1, hb, hc, hd, he, hf, hg, hh] at hbad
-          exact (h24 (by simpa only using hbad)).elim
+          exact Or.inr <| Or.inr <| Or.inr <| Or.inr <| Or.inl
+            ⟨suffix.1, hb, hc, hd, he, hf, hg, hh⟩
       · have he := nextSelectorOne d e h10 hd he suffix.2.2.2.2.1
         have hf := nextSelectorOne e f h10 he hf suffix.2.2.2.2.2.1
         have hg := nextSelectorOne f g h10 hf hg suffix.2.2.2.2.2.2.1
         have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
-        have hbad := active
-        rw [suffix.1, hb, hc, hd, he, hf, hg, hh] at hbad
-        exact (h120 (by simpa only using hbad)).elim
+        exact Or.inr <| Or.inr <| Or.inr <| Or.inr <| Or.inr <| Or.inl
+          ⟨suffix.1, hb, hc, hd, he, hf, hg, hh⟩
     · have hd := nextSelectorOne c d h10 hc hd suffix.2.2.2.1
       have he := nextSelectorOne d e h10 hd he suffix.2.2.2.2.1
       have hf := nextSelectorOne e f h10 he hf suffix.2.2.2.2.2.1
       have hg := nextSelectorOne f g h10 hf hg suffix.2.2.2.2.2.2.1
       have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
-      have hbad := active
-      rw [suffix.1, hb, hc, hd, he, hf, hg, hh] at hbad
-      exact (h360 (by simpa only using hbad)).elim
+      exact Or.inr <| Or.inr <| Or.inr <| Or.inr <| Or.inr <| Or.inr
+        ⟨suffix.1, hb, hc, hd, he, hf, hg, hh⟩
   · have hc := nextSelectorOne b c h10 hb hc suffix.2.2.1
     have hd := nextSelectorOne c d h10 hc hd suffix.2.2.2.1
     have he := nextSelectorOne d e h10 hd he suffix.2.2.2.2.1
@@ -505,7 +503,7 @@ theorem selectorsOfControlSpecs
     have hh := nextSelectorOne g h h10 hg hh suffix.2.2.2.2.2.2.2
     have hbad := active
     rw [suffix.1, hb, hc, hd, he, hf, hg, hh] at hbad
-    exact (h840 (by simpa only using hbad)).elim
+    exact (h5040 (by simpa only using hbad)).elim
 
 theorem selectorFacts
     (rho : Nat → DeployedF)
@@ -541,6 +539,30 @@ theorem selectorFacts
       syntheticSpends4IsDummy rho = 0 ∧
       syntheticSpends5IsDummy rho = 1 ∧
       syntheticSpends6IsDummy rho = 1 ∧
+      syntheticSpends7IsDummy rho = 1) ∨
+    (syntheticSpends0IsDummy rho = 0 ∧
+      syntheticSpends1IsDummy rho = 0 ∧
+      syntheticSpends2IsDummy rho = 0 ∧
+      syntheticSpends3IsDummy rho = 0 ∧
+      syntheticSpends4IsDummy rho = 1 ∧
+      syntheticSpends5IsDummy rho = 1 ∧
+      syntheticSpends6IsDummy rho = 1 ∧
+      syntheticSpends7IsDummy rho = 1) ∨
+    (syntheticSpends0IsDummy rho = 0 ∧
+      syntheticSpends1IsDummy rho = 0 ∧
+      syntheticSpends2IsDummy rho = 0 ∧
+      syntheticSpends3IsDummy rho = 1 ∧
+      syntheticSpends4IsDummy rho = 1 ∧
+      syntheticSpends5IsDummy rho = 1 ∧
+      syntheticSpends6IsDummy rho = 1 ∧
+      syntheticSpends7IsDummy rho = 1) ∨
+    (syntheticSpends0IsDummy rho = 0 ∧
+      syntheticSpends1IsDummy rho = 0 ∧
+      syntheticSpends2IsDummy rho = 1 ∧
+      syntheticSpends3IsDummy rho = 1 ∧
+      syntheticSpends4IsDummy rho = 1 ∧
+      syntheticSpends5IsDummy rho = 1 ∧
+      syntheticSpends6IsDummy rho = 1 ∧
       syntheticSpends7IsDummy rho = 1) := by
   have h1 := facts.control.AssertBooleanSeg2
   have h2 := facts.control.AssertBooleanSeg3
@@ -567,12 +589,12 @@ theorem selectorFacts
     (Seg8.localRho rho) at h7
   change Deployed.Templates.Semantics.TAssertDummySuffix_a20cdb8e3309f92a6c215c2319440fcb8fbd56784d74625c842989c9342831c9.spec
     (Seg9.localRho rho) at hs
-  change Deployed.Templates.Semantics.TAssertActiveRange_486bb61d926bd1688072104ae23c98ba7bcac3614cb3a0c6b005c31b6b4b4861.spec
+  change Deployed.Templates.Semantics.TAssertActiveRange_20f60cd1d2731f356241de975318b0d5af7d0d8f6c6c620b7e11711c4f10405b.spec
     (Seg10.localRho rho) at ha
   simp only [
     Deployed.Templates.Semantics.TAssertBoolean_469df3cb92f6ee26f90120fa5a2d5ab48448c3e42be090ebb81d77d5431164fc.spec,
     Deployed.Templates.Semantics.TAssertDummySuffix_a20cdb8e3309f92a6c215c2319440fcb8fbd56784d74625c842989c9342831c9.spec,
-    Deployed.Templates.Semantics.TAssertActiveRange_486bb61d926bd1688072104ae23c98ba7bcac3614cb3a0c6b005c31b6b4b4861.spec,
+    Deployed.Templates.Semantics.TAssertActiveRange_20f60cd1d2731f356241de975318b0d5af7d0d8f6c6c620b7e11711c4f10405b.spec,
     Seg2.localRho, Seg3.localRho, Seg4.localRho, Seg5.localRho,
     Seg6.localRho, Seg7.localRho, Seg8.localRho, Seg9.localRho, Seg10.localRho,
     Deployed.Templates.seated,
@@ -585,22 +607,11 @@ theorem selectorFacts
   ] at h1 h2 h3 h4 h5 h6 h7 hs ha
   have h10 : (1 : DeployedF) ≠ 0 :=
     EdwardsBridge.natLit_ne_zero 1 (by decide +kernel) (by decide +kernel)
-  have h24 :
-      (((4 : DeployedF) - 0) * (4 - 1) * (4 - 2) * (4 - 3)) ≠ 0 := by
-    change (24 : DeployedF) ≠ 0
-    exact EdwardsBridge.natLit_ne_zero 24 (by decide +kernel) (by decide +kernel)
-  have h120 :
-      (((5 : DeployedF) - 0) * (5 - 1) * (5 - 2) * (5 - 3)) ≠ 0 := by
-    change (120 : DeployedF) ≠ 0
-    exact EdwardsBridge.natLit_ne_zero 120 (by decide +kernel) (by decide +kernel)
-  have h360 :
-      (((6 : DeployedF) - 0) * (6 - 1) * (6 - 2) * (6 - 3)) ≠ 0 := by
-    change (360 : DeployedF) ≠ 0
-    exact EdwardsBridge.natLit_ne_zero 360 (by decide +kernel) (by decide +kernel)
-  have h840 :
-      (((7 : DeployedF) - 0) * (7 - 1) * (7 - 2) * (7 - 3)) ≠ 0 := by
-    change (840 : DeployedF) ≠ 0
-    exact EdwardsBridge.natLit_ne_zero 840 (by decide +kernel) (by decide +kernel)
+  have h5040 :
+      (((7 : DeployedF) - 0) * (7 - 1) * (7 - 2) * (7 - 3) *
+        (7 - 4) * (7 - 5) * (7 - 6)) ≠ 0 := by
+    change (5040 : DeployedF) ≠ 0
+    exact EdwardsBridge.natLit_ne_zero 5040 (by decide +kernel) (by decide +kernel)
   exact selectorsOfControlSpecs
     (syntheticSpends0IsDummy rho)
     (syntheticSpends1IsDummy rho)
@@ -610,14 +621,14 @@ theorem selectorFacts
     (syntheticSpends5IsDummy rho)
     (syntheticSpends6IsDummy rho)
     (syntheticSpends7IsDummy rho)
-    h10 h24 h120 h360 h840 h1 h2 h3 h4 h5 h6 h7 hs ha
+    h10 h5040 h1 h2 h3 h4 h5 h6 h7 hs ha
 
 theorem actionShape
     (rho : Nat → DeployedF)
     (facts : NoteReshape8x1CircuitFacts rho) :
     canonicalShape (action rho) := by
   have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
-  rcases selectorFacts rho facts with s | s | s | s
+  rcases selectorFacts rho facts with s | s | s | s | s | s | s
   all_goals
     rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
     simp [canonicalShape, realCount, action,
@@ -631,7 +642,7 @@ theorem actionPadding
     (facts : NoteReshape8x1CircuitFacts rho) :
     realPrefix (action rho) := by
   have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
-  rcases selectorFacts rho facts with s | s | s | s
+  rcases selectorFacts rho facts with s | s | s | s | s | s | s
   · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
     refine ⟨[input0 rho, input1 rho, input2 rho, input3 rho,
       input4 rho, input5 rho, input6 rho, input7 rho], [], ?_, ?_, ?_⟩
@@ -660,6 +671,30 @@ theorem actionPadding
     · simp [input0, input1, input2, input3, input4,
         Input.isReal, h0, h1, h2, h3, h4]
     · simp [input5, input6, input7, Input.isReal, h5, h6, h7, h10]
+  · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
+    refine ⟨[input0 rho, input1 rho, input2 rho, input3 rho],
+      [input4 rho, input5 rho, input6 rho, input7 rho], ?_, ?_, ?_⟩
+    · simp [action]
+    · simp [input0, input1, input2, input3,
+        Input.isReal, h0, h1, h2, h3]
+    · simp [input4, input5, input6, input7,
+        Input.isReal, h4, h5, h6, h7, h10]
+  · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
+    refine ⟨[input0 rho, input1 rho, input2 rho],
+      [input3 rho, input4 rho, input5 rho, input6 rho, input7 rho],
+      ?_, ?_, ?_⟩
+    · simp [action]
+    · simp [input0, input1, input2, Input.isReal, h0, h1, h2]
+    · simp [input3, input4, input5, input6, input7,
+        Input.isReal, h3, h4, h5, h6, h7, h10]
+  · rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
+    refine ⟨[input0 rho, input1 rho],
+      [input2 rho, input3 rho, input4 rho, input5 rho, input6 rho, input7 rho],
+      ?_, ?_, ?_⟩
+    · simp [action]
+    · simp [input0, input1, Input.isReal, h0, h1]
+    · simp [input2, input3, input4, input5, input6, input7,
+        Input.isReal, h2, h3, h4, h5, h6, h7, h10]
 
 theorem actionCanonicalAddress
     (rho : Nat → DeployedF)
@@ -674,7 +709,7 @@ theorem sharedAuthorizationKeyOnCurve
     (facts : NoteReshape8x1CircuitFacts rho) :
     EdwardsBridge.onCurve ⟨authAk0 rho, authAk1 rho⟩ := by
   rcases NoteReshapeCanonicalAddress8x1.canonicalTransmissionFacts_of_exact
-      rho facts with ⟨_, hdtk, _⟩
+      rho facts with ⟨_, _, _, hdtk, _⟩
   rcases hdtk.1 with ⟨akFq, hak, _⟩
   exact Decaf377Assumptions.onCurve_of_compress
     ⟨authAk0 rho, authAk1 rho⟩ akFq hak
@@ -686,7 +721,7 @@ theorem actionInputCommitments
       NoteReshapeCanonical.circuitPrimitives
       (action rho) := by
   have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
-  rcases selectorFacts rho facts with s | s | s | s
+  rcases selectorFacts rho facts with s | s | s | s | s | s | s
   all_goals
     rcases s with ⟨h0, h1, h2, h3, h4, h5, h6, h7⟩
     simp [

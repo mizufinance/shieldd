@@ -15,8 +15,17 @@ use crate::{public_input_hash::shielded_ics20_withdrawal_statement_hash_from_pub
 use super::ShieldedIcs20WithdrawalFamilyId;
 
 impl ShieldedIcs20WithdrawalFamilyId {
+    pub fn deployed_proof_key(self) -> shieldd_sdk_proof_params::DeployedProofKey {
+        match self.get() {
+            1 => shieldd_sdk_proof_params::DeployedProofKey::ShieldedIcs20WithdrawalCanonical,
+            unknown => {
+                panic!("validated shielded ICS-20 withdrawal family has unknown id {unknown}")
+            }
+        }
+    }
+
     pub fn proof_verification_key(self) -> &'static PreparedVerifyingKey<Bls12_377> {
-        shieldd_sdk_proof_params::shielded_ics20_withdrawal_proof_verification_key(self.get())
+        self.deployed_proof_key().bundled_pvk()
     }
 
     pub fn proving_key_bytes(self) -> &'static [u8] {
@@ -246,6 +255,18 @@ mod tests {
         ShieldedIcs20WithdrawalFamilyId,
     };
     use decaf377::Fq;
+
+    #[test]
+    fn withdrawal_deployed_key_mapping_matches_generated_registry_for_every_family() {
+        for family in ShieldedIcs20WithdrawalFamilyId::ALL {
+            assert!(std::ptr::eq(
+                family.deployed_proof_key().bundled_pvk(),
+                shieldd_sdk_proof_params::shielded_ics20_withdrawal_proof_verification_key(
+                    family.get(),
+                ),
+            ));
+        }
+    }
 
     #[test]
     fn shielded_ics20_withdrawal_rejects_wrong_public_shape() {

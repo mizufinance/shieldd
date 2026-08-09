@@ -5,7 +5,6 @@ use ark_ip_proofs::challenge::ChallengeContext;
 use ark_serialize::CanonicalSerialize;
 use decaf377::{Bls12_377, Fq};
 use sha2::{Digest as _, Sha256};
-use shieldd_sdk_proto::core::transaction::v1 as pb;
 
 use crate::{padding::PADDING_RULE_DOMAIN, ProofFamilyId, DEV_SRS_BACKEND_ID, DEV_SRS_CURVE_ID};
 
@@ -587,7 +586,7 @@ struct FamilyEncoding {
 
 fn family_encoding(family_id: ProofFamilyId) -> FamilyEncoding {
     FamilyEncoding {
-        proof_family_id: pb::ProofFamilyId::from(family_id) as u32,
+        proof_family_id: family_id.wire_id(),
         note_reshape_family_id: family_id.note_reshape_family_id(),
         shielded_ics20_withdrawal_family_id: family_id.shielded_ics20_withdrawal_family_id(),
     }

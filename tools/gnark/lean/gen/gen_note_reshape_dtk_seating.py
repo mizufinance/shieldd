@@ -1,289 +1,255 @@
 #!/usr/bin/env python3
-"""Generate split exact DTK/compression seating certificates."""
+"""Generate exact Window2 DTK/compressor seating certificates."""
 
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
 import gen_note_reshape_family as family
+from note_reshape_adapter_model import Deployment
 from write_if_changed import write_if_changed
 
 
 ROOT = Path(__file__).resolve().parents[4]
 LEAN = ROOT / "tools/gnark/lean/ShielddGnarkFormal/Deployed"
-SUPPORTED = ("note_reshape2x1", "note_reshape1x8", "note_reshape4x1", "note_reshape8x1")
+SUPPORTED = ("note_reshape1x8", "note_reshape8x1")
+SHAPES = {
+    "note_reshape1x8": (1, 8),
+    "note_reshape8x1": (8, 1),
+}
+SHARED_TEMPLATES = (
+    "decaf.compress_to_field@"
+    "231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
+    "assert.ne@"
+    "50cbccf8f817daa8e44c093750c80e184e1fe6d1fc8286031e7838dfb6b344fd",
+    "decaf.diversified_transmission_key@"
+    "a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c",
+    "assert.decaf_non_identity@"
+    "6e9fd3a3eee2e21b49a710f750999a0e29d1babc1615c644cebbf294d8fb9e61",
+    "decaf.compress_to_field@"
+    "cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46",
+)
+DTK_OUTPUT_LOCALS = ((4961, 4969), (4962, 4970))
+COMPRESS_INPUT_LOCALS = ((1, 2), (4, 5))
+NON_IDENTITY_X_LOCALS = (2, 3)
+
+
+def _seating(segment: dict) -> tuple[int, ...]:
+    return tuple(
+        segment["template_equivalence_witness"]
+        ["canonical_local_to_deployed_wire_seating"]
+    )
+
+
+def validate_window2_join(
+    model: Deployment,
+    dtk: dict,
+    compress: dict,
+    non_identity: dict,
+    binding_name: str = "shared.transmission.computed",
+) -> tuple[tuple[int, int], tuple[int, int]]:
+    """Authenticate the two-term DTK output at both following consumers."""
+
+    binding = model.binding(binding_name, 2)
+    dtk_seating = _seating(dtk)
+    compress_seating = _seating(compress)
+    non_identity_seating = _seating(non_identity)
+    coordinates: list[tuple[int, int]] = []
+    for coordinate, expression in enumerate(binding["expressions"]):
+        runs, residual = family.compact_semantic_expression(expression)
+        if (
+            expression["constant"] != "0"
+            or runs
+            or len(residual) != 2
+            or any(term["coefficient"] != "1" for term in residual)
+        ):
+            raise ValueError(
+                f"{model.circuit}: transmission coordinate {coordinate} "
+                "is not the exact Window2 two-term output"
+            )
+        actual = tuple(term["wire_id"] for term in residual)
+        expected = tuple(
+            dtk_seating[local] for local in DTK_OUTPUT_LOCALS[coordinate]
+        )
+        compressed = tuple(
+            compress_seating[local]
+            for local in COMPRESS_INPUT_LOCALS[coordinate]
+        )
+        if actual != expected or compressed != expected:
+            raise ValueError(
+                f"{model.circuit}: transmission coordinate {coordinate} "
+                "Window2 seating drifted"
+            )
+        coordinates.append(actual)
+    if tuple(
+        non_identity_seating[local] for local in NON_IDENTITY_X_LOCALS
+    ) != coordinates[0]:
+        raise ValueError(
+            f"{model.circuit}: transmission nonidentity seating drifted"
+        )
+    model.require_inverse_guard(
+        non_identity, binding_name, expression_index=0, arity=2
+    )
+    return coordinates[0], coordinates[1]
+
+
+def config_from_model(model: Deployment) -> dict[str, int | str]:
+    divgen = model.segment(
+        "decaf.compress_to_field",
+        ("in=shared.div_gen", "out=shared.div_gen_fq"),
+    )
+    ivk = model.segment(
+        "assert.ne", ("lhs=auth.ivk_reduced", "rhs=0")
+    )
+    dtk = model.segment(
+        "decaf.diversified_transmission_key",
+        (
+            "nk=auth.nk",
+            "ak=shared.ak",
+            "div_gen=shared.div_gen",
+            "ivk_reduced=auth.ivk_reduced",
+            "ivk_quotient_a=auth.ivk_quotient_a",
+            "out=shared.transmission.computed",
+        ),
+    )
+    non_identity = model.segment(
+        "assert.decaf_non_identity",
+        ("point=shared.transmission.computed", "coordinate=x"),
+    )
+    compress = model.segment(
+        "decaf.compress_to_field",
+        ("in=shared.transmission.computed", "out=shared.transmission.fq"),
+    )
+    chain = (divgen, ivk, dtk, non_identity, compress)
+    model.consecutive(chain)
+    if tuple(segment["proof_template_id"] for segment in chain) != SHARED_TEMPLATES:
+        raise ValueError(f"{model.circuit}: shared DTK provider sequence drifted")
+    model.require_binding_role(divgen, "shared.div_gen", "input", arity=2)
+    model.require_inverse_guard(ivk, "auth.ivk_reduced", arity=1)
+    for binding, role, arity in (
+        ("auth.nk", "input", 1),
+        ("auth.ak", "input", 2),
+        ("shared.div_gen", "input", 2),
+        ("auth.ivk_reduced", "internal", 1),
+        ("auth.ivk_quotient_a", "internal", 1),
+    ):
+        model.require_binding_role(dtk, binding, role, arity=arity)
+    x, y = validate_window2_join(model, dtk, compress, non_identity)
+    return {
+        "circuit": model.circuit,
+        "module": model.module,
+        "dtk": dtk["index"],
+        "compress": compress["index"],
+        "non_identity": non_identity["index"],
+        "x0": x[0],
+        "x1": x[1],
+        "y0": y[0],
+        "y1": y[1],
+    }
 
 
 def load_config(circuit: str) -> dict[str, int | str]:
-    ir = json.loads(
-        (
-            ROOT
-            / "crates/core/component/shielded-pool/formal"
-            / f"{circuit}-deployed-slice-ir.json"
-        ).read_text()
+    if circuit not in SHAPES:
+        raise ValueError(f"unsupported NoteReshape circuit: {circuit}")
+    return config_from_model(
+        Deployment.load(circuit, family.camel(circuit), SHAPES[circuit])
     )
-    manifest = json.loads(
-        (
-            ROOT
-            / "tools/gnark/artifacts"
-            / circuit
-            / f"{circuit}-manifest.json"
-        ).read_text()
-    )
-    _, _, dtk, compress = family.shared_crypto_segments(ir)
-    binding = next(
-        item
-        for item in family.semantic_bindings(manifest, ir)
-        if item["name"] == "shared.transmission.computed"
-    )
-    runs = [
-        family.compact_semantic_expression(expression)[0]
-        for expression in binding["expressions"]
-    ]
-    if any(
-        len(coordinate) != 2
-        or [(run["stride"], run["count"]) for run in coordinate]
-        != [(13, 150), (14, 101)]
-        for coordinate in runs
-    ):
-        raise ValueError(f"{circuit}: unexpected DTK output runs")
-    return {
-        "circuit": circuit,
-        "module": family.camel(circuit),
-        "dtk": dtk["index"],
-        "compress": compress["index"],
-        "x0": runs[0][0]["start"],
-        "x1": runs[0][1]["start"],
-        "y0": runs[1][0]["start"],
-        "y1": runs[1][1]["start"],
-    }
 
 
-def leaf(
-    config: dict[str, int | str],
-    suffix: str,
-    segment: int,
-    local_start: str,
-    count: int,
-    global_start: int,
-    stride: int,
-) -> str:
-    module = config["module"]
-    return f"""import ShielddGnarkFormal.Deployed.Contracts.{module}.Seg{segment}
-
-set_option maxRecDepth 1000000
-set_option maxHeartbeats 2000000
-
-/-! Exact compiler-seating run. GENERATED by gen_note_reshape_dtk_seating.py. -/
-
-namespace Shieldd.GnarkFormal.Deployed.{module}Dtk{suffix}
-
-open Contracts.{module}
-
-theorem wires :
-    (List.range {count}).map
-        (fun offset => Seg{segment}.wireSeating ({local_start})) =
-      (List.range {count}).map
-        (fun offset => {global_start} + offset * {stride}) := by
-  decide +kernel
-
-end Shieldd.GnarkFormal.Deployed.{module}Dtk{suffix}
-"""
-
-
-def aggregate(config: dict[str, int | str]) -> str:
-    module = config["module"]
+def render(config: dict[str, int | str]) -> str:
+    module = str(config["module"])
+    namespace = f"Shieldd.GnarkFormal.Deployed.{module}DtkSeating"
     dtk = config["dtk"]
     compress = config["compress"]
-    x0 = config["x0"]
-    x1 = config["x1"]
-    y0 = config["y0"]
-    y1 = config["y1"]
-    return f"""import ShielddGnarkFormal.Deployed.{module}DtkSeatingX0
-import ShielddGnarkFormal.Deployed.{module}DtkSeatingX1
-import ShielddGnarkFormal.Deployed.{module}DtkSeatingY0
-import ShielddGnarkFormal.Deployed.{module}DtkSeatingY1
-import ShielddGnarkFormal.Deployed.{module}DtkCompressSeatingX0
-import ShielddGnarkFormal.Deployed.{module}DtkCompressSeatingX1
-import ShielddGnarkFormal.Deployed.{module}DtkCompressSeatingY0
-import ShielddGnarkFormal.Deployed.{module}DtkCompressSeatingY1
+    non_identity = config["non_identity"]
+    x0, x1 = config["x0"], config["x1"]
+    y0, y1 = config["y0"], config["y1"]
+    return f"""import ShielddGnarkFormal.Deployed.Contracts.{module}.Seg{dtk}
+import ShielddGnarkFormal.Deployed.Contracts.{module}.Seg{compress}
+import ShielddGnarkFormal.Deployed.Contracts.{module}.Seg{non_identity}
 
 set_option maxRecDepth 1000000
 set_option maxHeartbeats 2000000
 
-/-! Exact aggregate shared-DTK seating certificate. GENERATED by
-gen_note_reshape_dtk_seating.py. -/
+/-! Exact active Window2 DTK/compressor/nonidentity seating.
+GENERATED by gen_note_reshape_dtk_seating.py — do not edit by hand. -/
 
-namespace Shieldd.GnarkFormal.Deployed.{module}DtkSeating
+namespace {namespace}
 
 open Contracts.{module}
 
-theorem dtkXPerm :
-    ((List.range 149).map
-        (fun offset => Seg{dtk}.wireSeating (2226 + offset * 13)) ++
-      (List.range 101).map
-        (fun offset => Seg{dtk}.wireSeating (4164 + offset * 14)) ++
-      [Seg{dtk}.wireSeating 2212]).Perm
-      ((List.range 150).map (fun offset => {x0} + offset * 13) ++
-        (List.range 101).map (fun offset => {x1} + offset * 14)) := by
-  rw [{module}DtkSeatingX0.wires, {module}DtkSeatingX1.wires]
-  have hhead : Seg{dtk}.wireSeating 2212 = {x0} := by decide +kernel
-  rw [hhead]
-  have hrun :
-      (List.range 150).map (fun offset => {x0} + offset * 13) =
-        {x0} ::
-          (List.range 149).map (fun offset => {x0 + 13} + offset * 13) := by
-    decide +kernel
-  rw [hrun]
-  exact List.perm_append_singleton {x0} _
+theorem dtkXWires :
+    (Seg{dtk}.wireSeating 4961, Seg{dtk}.wireSeating 4969) =
+      ({x0}, {x1}) := by
+  decide +kernel
 
-theorem dtkYPerm :
-    ((List.range 150).map
-        (fun offset => Seg{dtk}.wireSeating (2214 + offset * 13)) ++
-      (List.range 101).map
-        (fun offset => Seg{dtk}.wireSeating (4165 + offset * 14))).Perm
-      ((List.range 150).map (fun offset => {y0} + offset * 13) ++
-        (List.range 101).map (fun offset => {y1} + offset * 14)) := by
-  rw [{module}DtkSeatingY0.wires, {module}DtkSeatingY1.wires]
+theorem dtkYWires :
+    (Seg{dtk}.wireSeating 4962, Seg{dtk}.wireSeating 4970) =
+      ({y0}, {y1}) := by
+  decide +kernel
 
 theorem compressXWires :
-    (List.range 251).map
-        (fun offset => Seg{compress}.wireSeating (1 + offset)) =
-      (List.range 150).map (fun offset => {x0} + offset * 13) ++
-        (List.range 101).map (fun offset => {x1} + offset * 14) := by
-  have hrange :
-      List.range 251 =
-        List.range 150 ++ (List.range 101).map (fun offset => 150 + offset) := by
-    decide +kernel
-  rw [hrange, List.map_append, List.map_map]
-  rw [{module}DtkCompressSeatingX0.wires]
-  have htail :
-      (List.range 101).map
-          ((fun offset => Seg{compress}.wireSeating (1 + offset)) ∘
-            fun offset => 150 + offset) =
-        (List.range 101).map (fun offset => {x1} + offset * 14) := by
-    simpa only [Function.comp_def] using
-      {module}DtkCompressSeatingX1.wires
-  rw [htail]
+    (Seg{compress}.wireSeating 1, Seg{compress}.wireSeating 2) =
+      ({x0}, {x1}) := by
+  decide +kernel
 
 theorem compressYWires :
-    (List.range 251).map
-        (fun offset => Seg{compress}.wireSeating (253 + offset)) =
-      (List.range 150).map (fun offset => {y0} + offset * 13) ++
-        (List.range 101).map (fun offset => {y1} + offset * 14) := by
-  have hrange :
-      List.range 251 =
-        List.range 150 ++ (List.range 101).map (fun offset => 150 + offset) := by
-    decide +kernel
-  rw [hrange, List.map_append, List.map_map]
-  rw [{module}DtkCompressSeatingY0.wires]
-  have htail :
-      (List.range 101).map
-          ((fun offset => Seg{compress}.wireSeating (253 + offset)) ∘
-            fun offset => 150 + offset) =
-        (List.range 101).map (fun offset => {y1} + offset * 14) := by
-    simpa only [Function.comp_def] using
-      {module}DtkCompressSeatingY1.wires
-  rw [htail]
+    (Seg{compress}.wireSeating 4, Seg{compress}.wireSeating 5) =
+      ({y0}, {y1}) := by
+  decide +kernel
 
-theorem compressXPerm :
-    ((List.range 149).map
-        (fun offset => Seg{dtk}.wireSeating (2226 + offset * 13)) ++
-      (List.range 101).map
-        (fun offset => Seg{dtk}.wireSeating (4164 + offset * 14)) ++
-      [Seg{dtk}.wireSeating 2212]).Perm
-      ((List.range 251).map
-        (fun offset => Seg{compress}.wireSeating (1 + offset))) := by
-  rw [
-    {module}DtkSeatingX0.wires,
-    {module}DtkSeatingX1.wires,
-    compressXWires
-  ]
-  have hhead : Seg{dtk}.wireSeating 2212 = {x0} := by decide +kernel
-  rw [hhead]
-  have hrun :
-      (List.range 150).map (fun offset => {x0} + offset * 13) =
-        {x0} ::
-          (List.range 149).map (fun offset => {x0 + 13} + offset * 13) := by
-    decide +kernel
-  rw [hrun]
-  exact List.perm_append_singleton {x0} _
+theorem nonIdentityXWires :
+    (Seg{non_identity}.wireSeating 2,
+      Seg{non_identity}.wireSeating 3) = ({x0}, {x1}) := by
+  decide +kernel
 
-theorem compressYPerm :
-    ((List.range 150).map
-        (fun offset => Seg{dtk}.wireSeating (2214 + offset * 13)) ++
-      (List.range 101).map
-        (fun offset => Seg{dtk}.wireSeating (4165 + offset * 14))).Perm
-      ((List.range 251).map
-        (fun offset => Seg{compress}.wireSeating (253 + offset))) := by
-  rw [
-    {module}DtkSeatingY0.wires,
-    {module}DtkSeatingY1.wires,
-    compressYWires
-  ]
-
-end Shieldd.GnarkFormal.Deployed.{module}DtkSeating
+end {namespace}
 """
 
 
-def render(config: dict[str, int | str]) -> dict[Path, str]:
-    module = str(config["module"])
-    dtk = int(config["dtk"])
-    compress = int(config["compress"])
-    x0 = int(config["x0"])
-    x1 = int(config["x1"])
-    y0 = int(config["y0"])
-    y1 = int(config["y1"])
-    leaves = {
-        "SeatingX0": (dtk, "2226 + offset * 13", 149, x0 + 13, 13),
-        "SeatingX1": (dtk, "4164 + offset * 14", 101, x1, 14),
-        "SeatingY0": (dtk, "2214 + offset * 13", 150, y0, 13),
-        "SeatingY1": (dtk, "4165 + offset * 14", 101, y1, 14),
-        "CompressSeatingX0": (compress, "1 + offset", 150, x0, 13),
-        "CompressSeatingX1": (
-            compress,
-            "1 + (150 + offset)",
-            101,
-            x1,
-            14,
-        ),
-        "CompressSeatingY0": (compress, "253 + offset", 150, y0, 13),
-        "CompressSeatingY1": (
-            compress,
-            "253 + (150 + offset)",
-            101,
-            y1,
-            14,
-        ),
+def generated_files() -> dict[Path, str]:
+    return {
+        LEAN / f"{family.camel(circuit)}DtkSeating.lean":
+            render(load_config(circuit))
+        for circuit in SUPPORTED
     }
-    files = {
-        LEAN / f"{module}Dtk{suffix}.lean":
-            leaf(config, suffix, *arguments)
-        for suffix, arguments in leaves.items()
-    }
-    files[LEAN / f"{module}DtkSeating.lean"] = aggregate(config)
-    return files
 
 
-def main() -> int:
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("circuits", nargs="*", choices=SUPPORTED)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    circuits = args.circuits or list(SUPPORTED)
-    files: dict[Path, str] = {}
-    for circuit in circuits:
-        files.update(render(load_config(circuit)))
-    for path, source in files.items():
-        if args.check:
-            if not path.is_file() or path.read_text() != source:
-                raise SystemExit(f"generated file is stale: {path}")
-        else:
-            write_if_changed(path, source)
-    return 0
+    selected = set(args.circuits or SUPPORTED)
+    outputs = {
+        path: text
+        for path, text in generated_files().items()
+        if path.stem.removesuffix("DtkSeating")
+        .replace("NoteReshape", "note_reshape") in selected
+    }
+    managed = {
+        path
+        for circuit in selected
+        for path in LEAN.glob(f"{family.camel(circuit)}Dtk*Seating*.lean")
+    }
+    unexpected = sorted(managed - set(outputs))
+    if args.check:
+        stale = [path for path, text in outputs.items()
+                 if not path.is_file() or path.read_text() != text]
+        if stale or unexpected:
+            raise SystemExit(
+                "stale Window2 seating outputs: "
+                f"{[str(path) for path in stale + unexpected]}"
+            )
+        return
+    for path in unexpected:
+        path.unlink()
+        print(f"removed {path}")
+    for path, text in outputs.items():
+        if write_if_changed(path, text):
+            print(f"wrote {path}")
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()

@@ -11,14 +11,12 @@ import (
 
 // Regression guard for the note-amount range bound (assumption-ledger
 // ZK-ASSUME-AMOUNT-RANGE). Every amount enters the value commitment through
-// ScalarMulLE(..., amount, 128), whose api.ToBinary(amount, 128) makes any
-// amount >= 2^128 unsatisfiable. That bound is load-bearing for balance
-// soundness (it prevents field-overflow value inflation) but is enforced only
-// as a side effect of the 128-bit scalar-mul ladder, not an explicit
-// AssertIsLessOrEqual. This test pins the bound across the shared amount
-// surfaces so a future refactor of the ladder (e.g. a windowed scalar-mul or a
-// wider decomposition) that silently drops it fails CI rather than opening an
-// inflation vector.
+// api.ToBinary(amount, 128), which makes any amount >= 2^128 unsatisfiable.
+// Transfer retains this decomposition for each amount before aggregating each
+// pair into a 129-bit sum ladder. The bound is load-bearing for balance
+// soundness because it prevents field-overflow value inflation. This test pins
+// the bound across the shared amount surfaces so a future scalar-mul refactor
+// that silently drops it fails CI rather than opening an inflation vector.
 
 type probeBalanceCommitmentAmount struct {
 	Amount frontend.Variable
@@ -38,8 +36,8 @@ type probeNetBalanceAmount struct {
 func (c *probeNetBalanceAmount) Define(api frontend.API) error {
 	_, err := computeTransferNetBalanceCommitment(
 		api,
-		[]frontend.Variable{c.Amount},
-		nil,
+		[]frontend.Variable{c.Amount, 0},
+		[]frontend.Variable{0, 0},
 		7,
 		0,
 	)

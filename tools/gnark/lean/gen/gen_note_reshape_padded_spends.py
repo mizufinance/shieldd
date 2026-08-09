@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Generate exact padded-spend refinement leaves for NoteReshape 4x1/8x1."""
+"""Generate exact padded-spend refinement leaves for NoteReshape 8x1."""
 
 from __future__ import annotations
 
 import argparse
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import gen_note_reshape_family as family
+from note_reshape_adapter_model import Deployment
 from write_if_changed import write_if_changed
 
 
@@ -20,76 +21,346 @@ class Config:
     circuit: str
     module: str
     slots: int
-    first_note_segment: int
 
 
 CONFIGS = (
-    Config("note_reshape4x1", "NoteReshape4x1", 4, 14),
-    Config("note_reshape8x1", "NoteReshape8x1", 8, 18),
+    Config("note_reshape8x1", "NoteReshape8x1", 8),
 )
 
 
-def segment_path(config: Config, segment: int) -> Path:
-    return DEPLOYED / "Contracts" / config.module / f"Seg{segment}.lean"
+EXPECTED_TEMPLATES = {
+    "gadget.nullifier": (
+        "gadget.nullifier@"
+        "e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72"
+    ),
+    "gadget.state_commitment_path": (
+        "gadget.state_commitment_path@"
+        "f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb"
+    ),
+    "assert.eq_if.anchor": (
+        "assert.eq_if@"
+        "36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03"
+    ),
+    "dummy.mux": (
+        "dummy.mux@"
+        "6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce"
+    ),
+    "assert.eq.nullifier": (
+        "assert.eq@"
+        "460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3"
+    ),
+    "decaf.randomized_verification_key": (
+        "decaf.randomized_verification_key@"
+        "1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f"
+    ),
+    "decaf.assert_equivalent_if": (
+        "decaf.assert_equivalent_if@"
+        "5153b90a6cbb5f5ba2ec514e6df8b586236dbc591f653a4b7fdd7890eb4be84f"
+    ),
+    "assert.eq_if.amount": (
+        "assert.eq_if@"
+        "ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d"
+    ),
+    "decaf.compress_to_field": (
+        "decaf.compress_to_field@"
+        "231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb"
+    ),
+}
+DUMMY_NULLIFIER_TEMPLATES = {
+    "gadget.synthetic_dummy_nullifier@" + digest
+    for digest in (
+        "5cd0e472453822bbff47f6ae87a0159b05bde5f090330ae8a3cf1c866140651b",
+        "3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6",
+        "58423f06a7f0cb831a6dadec90f949fb98ce7e0ce7482eb07d0f43f54791ef32",
+        "ac7ad308d1eedcc895ef7cfce1c01cd077579dee1a4f143d5dcb664af3af5907",
+        "46634cb71def9ddee7f509167e3e285ee57f9d7b8279ae43d754e872405182a0",
+        "100a96548743160160928cfe001821ba838bef079e180fd7d6cf0df70b5b37c8",
+        "b279304617fa393c48531d8db69795487f05219663ce38c6233e57eb19d14144",
+        "64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa",
+    )
+}
 
 
-def wires(config: Config, segment: int) -> list[int]:
-    source = segment_path(config, segment).read_text()
-    marker = "def wireSeatingTable : List Nat := ["
-    body = source.split(marker, 1)[1].split("]", 1)[0]
-    return [int(value) for value in body.split(", ")]
+@dataclass(frozen=True)
+class Spend:
+    nullifier: dict
+    state: dict
+    anchor_assert: dict
+    dummy: dict
+    mux: dict
+    nullifier_assert: dict
+    rvk: dict
+    equivalent: dict
+    amount_assert: dict
+    compress: dict
+    witness: int
+    position: int
+    randomizer: int
+    flag: int
+    seed: int
 
 
-def wire(config: Config, segment: int, local: int) -> int:
-    return wires(config, segment)[local]
+def load(config: Config) -> Deployment:
+    return Deployment.load(
+        config.circuit,
+        config.module,
+        (config.slots, 1),
+    )
 
 
-def template(config: Config, segment: int) -> str:
-    source = segment_path(config, segment).read_text()
-    match = re.search(r"Templates\.Generated\.(T[A-Za-z0-9]+_[0-9a-f]+)", source)
-    if match is None:
-        raise ValueError(f"no template in {segment_path(config, segment)}")
-    return match.group(1)
+def wire(model: Deployment, segment: dict, local: int) -> int:
+    return model.seating(segment)[local]
 
 
-def seating(config: Config, segment: int, locals_: list[int]) -> str:
+def template(segment: dict) -> str:
+    return family.template_name(segment["proof_template_id"])
+
+
+def seating(
+    model: Deployment,
+    segment: dict,
+    locals_: list[int],
+) -> str:
+    index = segment["index"]
     return "\n".join(
-        f"  have hw{local} : Seg{segment}.wireSeating {local} = "
-        f"{wire(config, segment, local)} := by decide +kernel"
+        f"  have hw{local} : Seg{index}.wireSeating {local} = "
+        f"{wire(model, segment, local)} := by decide +kernel"
         for local in locals_
     )
 
 
-def render_slot(config: Config, slot: int) -> str:
+def _expect_template(
+    model: Deployment,
+    segment: dict,
+    role: str,
+) -> None:
+    expected = (
+        DUMMY_NULLIFIER_TEMPLATES
+        if role == "gadget.synthetic_dummy_nullifier"
+        else {EXPECTED_TEMPLATES[role]}
+    )
+    if segment["proof_template_id"] not in expected:
+        raise ValueError(
+            f"{model.circuit}: {role} template drifted at "
+            f"segment {segment['index']}"
+        )
+
+
+def spend(model: Deployment, slot: int) -> Spend:
     prefix = f"spend{slot}"
-    owner = f"spend{slot}"
-    base = config.first_note_segment + 14 * slot
-    nullifier = base + 2
-    state = base + 3
-    anchor_assert = base + 4
-    dummy = base + 5
-    mux = base + 6
-    nullifier_assert = base + 7
-    rvk = base + 8
-    equivalent = base + 9
-    amount_assert = base + 10
-    compress = base + 11
-    witness = 15 + 82 * slot
-    rk_x = 16 + 82 * slot
-    rk_y = 17 + 82 * slot
-    amount = 19 + 82 * slot
-    commitment = 20 + 82 * slot
-    position = 21 + 82 * slot
-    randomizer = 94 + 82 * slot
-    flag = 95 + 82 * slot
-    seed = 96 + 82 * slot
-    dummy_template = template(config, dummy)
-    anchor_template = template(config, anchor_assert)
-    mux_template = template(config, mux)
-    assert_template = template(config, nullifier_assert)
-    equivalent_template = template(config, equivalent)
-    amount_template = template(config, amount_assert)
-    compress_template = template(config, compress)
+    nullifier = model.segment(
+        "gadget.nullifier",
+        (
+            "nk=auth.nk",
+            f"commitment={prefix}.state_proof.commitment",
+            f"position={prefix}.state_proof.position",
+            f"out={prefix}.nullifier.real",
+        ),
+    )
+    state = model.segment(
+        "gadget.state_commitment_path",
+        (
+            f"commitment={prefix}.state_proof.commitment",
+            f"position={prefix}.state_proof.position",
+            f"path={prefix}.state_proof.path",
+            f"out={prefix}.anchor.computed",
+        ),
+    )
+    anchor_assert = model.segment(
+        "assert.eq_if",
+        (
+            f"lhs={prefix}.anchor.computed",
+            "rhs=anchor",
+            f"enabled={prefix}.is_real",
+        ),
+    )
+    dummy = model.segment(
+        "gadget.synthetic_dummy_nullifier",
+        (
+            f"seed={prefix}.dummy_nullifier_seed",
+            f"randomizer={prefix}.auth_randomizer",
+            f"slot={slot}",
+            f"out={prefix}.nullifier.dummy",
+        ),
+    )
+    mux = model.segment(
+        "dummy.mux",
+        (
+            f"flag={prefix}.is_dummy",
+            f"real={prefix}.nullifier.real",
+            f"dummy={prefix}.nullifier.dummy",
+            f"out={prefix}.nullifier.selected",
+        ),
+    )
+    nullifier_assert = model.segment(
+        "assert.eq",
+        (
+            f"lhs={prefix}.nullifier",
+            f"rhs={prefix}.nullifier.selected",
+        ),
+    )
+    rvk = model.segment(
+        "decaf.randomized_verification_key",
+        (
+            "ak=shared.ak",
+            f"randomizer={prefix}.auth_randomizer",
+            f"out={prefix}.rk.real",
+        ),
+    )
+    equivalent = model.segment(
+        "decaf.assert_equivalent_if",
+        (
+            f"lhs={prefix}.rk.real",
+            f"rhs={prefix}.rk.claimed",
+            f"enabled={prefix}.is_real",
+        ),
+    )
+    amount_assert = model.segment(
+        "assert.eq_if",
+        (
+            f"lhs={prefix}.note.amount",
+            "rhs=0",
+            f"enabled={prefix}.is_dummy",
+        ),
+    )
+    compress = model.segment(
+        "decaf.compress_to_field",
+        (
+            f"in={prefix}.rk.claimed",
+            f"out={prefix}.rk.compressed",
+        ),
+    )
+    segments = (
+        nullifier,
+        state,
+        anchor_assert,
+        dummy,
+        mux,
+        nullifier_assert,
+        rvk,
+        equivalent,
+        amount_assert,
+        compress,
+    )
+    model.consecutive(segments)
+    for segment, role in zip(
+        segments,
+        (
+            "gadget.nullifier",
+            "gadget.state_commitment_path",
+            "assert.eq_if.anchor",
+            "gadget.synthetic_dummy_nullifier",
+            "dummy.mux",
+            "assert.eq.nullifier",
+            "decaf.randomized_verification_key",
+            "decaf.assert_equivalent_if",
+            "assert.eq_if.amount",
+            "decaf.compress_to_field",
+        ),
+        strict=True,
+    ):
+        _expect_template(model, segment, role)
+
+    witness = model.witness_wire(f"SyntheticSpends_{slot}_Nullifier")
+    position = model.witness_wire(
+        f"SyntheticSpends_{slot}_StateProof_Position"
+    )
+    randomizer = model.witness_wire(
+        f"SyntheticSpends_{slot}_AuthRandomizer"
+    )
+    flag = model.witness_wire(f"SyntheticSpends_{slot}_IsDummy")
+    seed = model.witness_wire(
+        f"SyntheticSpends_{slot}_DummyNullifierSeed"
+    )
+    amount = model.witness_wire(f"SyntheticSpends_{slot}_Note_Amount")
+    commitment = model.witness_wire(
+        f"SyntheticSpends_{slot}_StateProof_Commitment"
+    )
+    rk_x = model.witness_wire(f"SyntheticSpends_{slot}_RK_X")
+    rk_y = model.witness_wire(f"SyntheticSpends_{slot}_RK_Y")
+
+    for segment, wire_id in (
+        (nullifier, position),
+        (anchor_assert, flag),
+        (dummy, seed),
+        (dummy, randomizer),
+        (mux, flag),
+        (equivalent, flag),
+        (amount_assert, amount),
+        (amount_assert, flag),
+        (compress, rk_x),
+        (compress, rk_y),
+    ):
+        model.require_wire_role(segment, wire_id, "input")
+    model.require_wire_role(state, position, "internal")
+    model.require_wire_role(rvk, randomizer, "internal")
+    for segment, name, role, exact, arity in (
+        (nullifier, f"{prefix}.nullifier.real", "output", True, 1),
+        (state, f"{prefix}.anchor.computed", "output", True, 1),
+        (anchor_assert, f"{prefix}.anchor.computed", "input", False, 1),
+        (dummy, f"{prefix}.nullifier.dummy", "output", True, 1),
+        (mux, f"{prefix}.nullifier.real", "input", False, 1),
+        (mux, f"{prefix}.nullifier.dummy", "input", False, 1),
+        (mux, f"{prefix}.nullifier.selected", "output", True, 1),
+        (nullifier_assert, f"{prefix}.nullifier.claimed", "input", False, 1),
+        (nullifier_assert, f"{prefix}.nullifier.selected", "input", False, 1),
+        (rvk, f"{prefix}.rk.real", "input", False, 2),
+        (equivalent, f"{prefix}.rk.real", "input", False, 2),
+        (equivalent, f"{prefix}.rk.claimed", "input", False, 2),
+        (compress, f"{prefix}.rk.claimed", "input", False, 2),
+        (compress, f"{prefix}.rk.compressed", "output", True, 1),
+    ):
+        model.require_binding_role(
+            segment, name, role, exact=exact, arity=arity
+        )
+    model.require_wire_role(nullifier_assert, witness, "input")
+    model.require_wire_role(state, commitment, "input")
+    return Spend(
+        nullifier=nullifier,
+        state=state,
+        anchor_assert=anchor_assert,
+        dummy=dummy,
+        mux=mux,
+        nullifier_assert=nullifier_assert,
+        rvk=rvk,
+        equivalent=equivalent,
+        amount_assert=amount_assert,
+        compress=compress,
+        witness=witness,
+        position=position,
+        randomizer=randomizer,
+        flag=flag,
+        seed=seed,
+    )
+
+
+def render_slot(config: Config, slot: int) -> str:
+    model = load(config)
+    discovered = spend(model, slot)
+    prefix = f"spend{slot}"
+    owner = prefix
+    nullifier = discovered.nullifier["index"]
+    state = discovered.state["index"]
+    anchor_assert = discovered.anchor_assert["index"]
+    dummy = discovered.dummy["index"]
+    mux = discovered.mux["index"]
+    nullifier_assert = discovered.nullifier_assert["index"]
+    rvk = discovered.rvk["index"]
+    equivalent = discovered.equivalent["index"]
+    amount_assert = discovered.amount_assert["index"]
+    compress = discovered.compress["index"]
+    witness = discovered.witness
+    position = discovered.position
+    randomizer = discovered.randomizer
+    flag = discovered.flag
+    seed = discovered.seed
+    dummy_template = template(discovered.dummy)
+    anchor_template = template(discovered.anchor_assert)
+    mux_template = template(discovered.mux)
+    assert_template = template(discovered.nullifier_assert)
+    equivalent_template = template(discovered.equivalent)
+    amount_template = template(discovered.amount_assert)
+    compress_template = template(discovered.compress)
     family = config.module.removeprefix("NoteReshape")
     position_role = f"syntheticSpends{slot}StateProofPosition"
     randomizer_role = f"syntheticSpends{slot}AuthRandomizer"
@@ -126,7 +397,7 @@ theorem realNullifierHash
   change
     Deployed.Templates.Semantics.TGadgetNullifier_e058e302574710457998f9c85ec82e29fc7fa0a720bf8e89d316559ea7e0da72.spec
       (Seg{nullifier}.localRho rho) at h
-{seating(config, nullifier, [1, 7, 13, 298, 303, 308, 313])}
+{seating(model, discovered.nullifier, [1, 7, 13, 298, 303, 308, 313])}
   apply NoteReshapeMembershipBridge.nullifierHash_of_spec
     (Seg{nullifier}.localRho rho) h
   · simp [
@@ -154,17 +425,20 @@ theorem anchorAsserted
   have h := facts.control.AssertEqIfSeg{anchor_assert}
   change Deployed.Templates.Semantics.{anchor_template}.spec
     (Seg{anchor_assert}.localRho rho) at h
-{seating(config, anchor_assert, list(range(1, 9)))}
+{seating(model, discovered.anchor_assert, list(range(1, 9)))}
   simp only [
     Deployed.Templates.Semantics.{anchor_template}.spec,
+    Deployed.Templates.Semantics.{anchor_template}.guard,
     Deployed.Templates.Semantics.{anchor_template}.residual,
     Seg{anchor_assert}.localRho, Deployed.Templates.seated,
     hw1, hw2, hw3, hw4, hw5, hw6, hw7, hw8
   ] at h
   rcases h with disabled | equal
   · rw [real] at disabled
+    have hOneZero : (1 : DeployedF) = 0 := by
+      simpa using disabled
     have hzeroOne : (0 : DeployedF) ≠ 1 := by decide +kernel
-    exact (hzeroOne disabled).elim
+    exact (hzeroOne hOneZero.symm).elim
   · simp only [
       anchor, anchorLC, {prefix}AnchorComputed, {prefix}AnchorComputedLC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
@@ -181,7 +455,7 @@ theorem member
   change
     Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.spec
       (Seg{state}.localRho rho) at h
-{seating(config, state, [1, 280, 8972, 8977, 8982, 8987, 8992])}
+{seating(model, discovered.state, [1, 280, 8972, 8977, 8982, 8987, 8992])}
   apply NoteReshapeMembershipBridge.member_of_state_spec
     (Seg{state}.localRho rho) (realInput{slot} rho) (anchor rho) h
   · simp [realInput{slot}, {prefix}StateProofCommitment,
@@ -212,7 +486,7 @@ theorem dummyNullifierHash
   have h := facts.{owner}.GadgetSyntheticDummyNullifierSeg{dummy}
   change Deployed.Templates.Semantics.{dummy_template}.spec
     (Seg{dummy}.localRho rho) at h
-{seating(config, dummy, [1, 7, 292, 297, 302, 307])}
+{seating(model, discovered.dummy, [1, 7, 292, 297, 302, 307])}
   calc
     {prefix}NullifierDummy rho =
         Deployed.Nullifier.s38_1
@@ -245,7 +519,7 @@ theorem claimedNullifierReal
   have hm := facts.control.DummyMuxSeg{mux}
   change Deployed.Templates.Semantics.{mux_template}.spec
     (Seg{mux}.localRho rho) at hm
-{seating(config, mux, list(range(1, 12)))}
+{seating(model, discovered.mux, list(range(1, 12)))}
   simp only [
     Deployed.Templates.Semantics.{mux_template}.spec,
     Seg{mux}.localRho, Deployed.Templates.seated,
@@ -254,7 +528,7 @@ theorem claimedNullifierReal
   have he := facts.{owner}.AssertEqSeg{nullifier_assert}
   change Deployed.Templates.Semantics.{assert_template}.spec
     (Seg{nullifier_assert}.localRho rho) at he
-{seating(config, nullifier_assert, [1, 2, 3])}
+{seating(model, discovered.nullifier_assert, [1, 2, 3])}
   simp only [
     Deployed.Templates.Semantics.{assert_template}.spec,
     Seg{nullifier_assert}.localRho, Deployed.Templates.seated,
@@ -267,7 +541,7 @@ theorem claimedNullifierReal
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     zero_add, one_mul, add_zero
   ]
-  linear_combination he + hm.1 + hm.2
+  linear_combination -he + hm.1 + hm.2
 
 theorem claimedNullifierSelected
     (rho : Nat → DeployedF)
@@ -276,7 +550,7 @@ theorem claimedNullifierSelected
   have h := facts.{owner}.AssertEqSeg{nullifier_assert}
   change Deployed.Templates.Semantics.{assert_template}.spec
     (Seg{nullifier_assert}.localRho rho) at h
-{seating(config, nullifier_assert, [1, 2, 3])}
+{seating(model, discovered.nullifier_assert, [1, 2, 3])}
   simp only [
     Deployed.Templates.Semantics.{assert_template}.spec,
     Seg{nullifier_assert}.localRho, Deployed.Templates.seated,
@@ -286,7 +560,7 @@ theorem claimedNullifierSelected
     {prefix}NullifierClaimed, {prefix}NullifierClaimedLC,
     {prefix}NullifierSelected, {prefix}NullifierSelectedLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual
-  ] using h
+  ] using h.symm
 
 theorem claimedNullifierDummy
     (rho : Nat → DeployedF)
@@ -296,7 +570,7 @@ theorem claimedNullifierDummy
   have hm := facts.control.DummyMuxSeg{mux}
   change Deployed.Templates.Semantics.{mux_template}.spec
     (Seg{mux}.localRho rho) at hm
-{seating(config, mux, list(range(1, 12)))}
+{seating(model, discovered.mux, list(range(1, 12)))}
   simp only [
     Deployed.Templates.Semantics.{mux_template}.spec,
     Seg{mux}.localRho, Deployed.Templates.seated,
@@ -305,7 +579,7 @@ theorem claimedNullifierDummy
   have he := facts.{owner}.AssertEqSeg{nullifier_assert}
   change Deployed.Templates.Semantics.{assert_template}.spec
     (Seg{nullifier_assert}.localRho rho) at he
-{seating(config, nullifier_assert, [1, 2, 3])}
+{seating(model, discovered.nullifier_assert, [1, 2, 3])}
   simp only [
     Deployed.Templates.Semantics.{assert_template}.spec,
     Seg{nullifier_assert}.localRho, Deployed.Templates.seated,
@@ -318,7 +592,7 @@ theorem claimedNullifierDummy
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
     zero_add, one_mul, add_zero
   ]
-  linear_combination he + hm.1 + hm.2
+  linear_combination -he + hm.1 + hm.2
 
 theorem realNullifier
     (rho : Nat → DeployedF)
@@ -341,9 +615,11 @@ theorem dummyAmountZero
   have h := facts.control.AssertEqIfSeg{amount_assert}
   change Deployed.Templates.Semantics.{amount_template}.spec
     (Seg{amount_assert}.localRho rho) at h
-{seating(config, amount_assert, [1, 2])}
+{seating(model, discovered.amount_assert, [1, 2])}
   simp only [
     Deployed.Templates.Semantics.{amount_template}.spec,
+    Deployed.Templates.Semantics.{amount_template}.guard,
+    Deployed.Templates.Semantics.{amount_template}.residual,
     Seg{amount_assert}.localRho, Deployed.Templates.seated, hw1, hw2
   ] at h
   rcases h with amountZero | flagZero
@@ -370,6 +646,20 @@ theorem dummyNullifier
 def computedRk (rho : Nat → DeployedF) : Decaf377Assumptions.Point :=
   ⟨{prefix}RkReal0 rho, {prefix}RkReal1 rho⟩
 
+theorem randomizerCanonical
+    (rho : Nat → DeployedF)
+    (facts : {config.module}CircuitFacts rho) :
+    ({randomizer_role} rho).val < 2 ^ 251 := by
+  have h := facts.{owner}.DecafRandomizedVerificationKeySeg{rvk}
+  change
+    Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.spec
+      (Seg{rvk}.localRho rho) at h
+{seating(model, discovered.rvk, [252])}
+  simpa [
+    {randomizer_role},
+    Seg{rvk}.localRho, Deployed.Templates.seated, hw252
+  ] using h.1
+
 theorem rvk
     (rho : Nat → DeployedF)
     (facts : {config.module}CircuitFacts rho) :
@@ -381,8 +671,8 @@ theorem rvk
   change
     Deployed.Templates.Semantics.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.spec
       (Seg{rvk}.localRho rho) at h
-{seating(config, rvk, [252, 1807, 1808, 1813, 1814])}
-  have hr := h (by
+{seating(model, discovered.rvk, [252, 1807, 1808, 1813, 1814])}
+  have hr := h.2 (by
     simpa [
       authAk0, authAk0LC, authAk1, authAk1LC,
       StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
@@ -408,7 +698,7 @@ theorem claimedRkCompressed
   have h := facts.{owner}.DecafCompressToFieldSeg{compress}
   change Deployed.Templates.Semantics.{compress_template}.spec
     (Seg{compress}.localRho rho) at h
-{seating(config, compress, [1, 3, 365, 705])}
+{seating(model, discovered.compress, [1, 3, 365, 705])}
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
@@ -436,13 +726,16 @@ theorem crossRatio
   have h := facts.{owner}.DecafAssertEquivalentIfSeg{equivalent}
   change Deployed.Templates.Semantics.{equivalent_template}.spec
     (Seg{equivalent}.localRho rho) at h
-{seating(config, equivalent, [1, 2, 3, 5, 6])}
+{seating(model, discovered.equivalent, [1, 2, 3, 5, 6])}
   simp only [
     Deployed.Templates.Semantics.{equivalent_template}.spec,
+    Deployed.Templates.Semantics.{equivalent_template}.guard,
+    Deployed.Templates.Semantics.{equivalent_template}.leftCrossProduct,
+    Deployed.Templates.Semantics.{equivalent_template}.rightCrossProduct,
     Seg{equivalent}.localRho, Deployed.Templates.seated,
     hw1, hw2, hw3, hw5, hw6
   ] at h
-  rcases h with disabled | equal
+  rcases h.2 with disabled | equal
   · rw [real] at disabled
     have h10 : (1 : DeployedF) ≠ 0 := by decide +kernel
     exact (h10 (by linear_combination disabled)).elim

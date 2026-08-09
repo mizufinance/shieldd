@@ -26,16 +26,17 @@ def toProtocolPoint (point : Decaf377Assumptions.Point) : Point F :=
 def toDecafPoint (point : Point F) : Decaf377Assumptions.Point :=
   ⟨point.x, point.y⟩
 
-def noteCommitmentDomain : F := Concrete.noteCommitmentDomain
+def noteCommitmentDomain : F := Protocol.Common.noteCommitmentDomain
 def syntheticDummyNullifierDomain : F := Concrete.syntheticDummyNullifierDomain
-def stateCommitmentDomain : F := Concrete.stateCommitmentDomain
+def stateCommitmentDomain : F := Protocol.Common.stateCommitmentDomain
 
-def pathSibling := Concrete.pathSibling
-def stateChildren := Concrete.stateChildren
-def stateCommitmentStep := Concrete.stateCommitmentStep
-def stateCommitmentRecover := Concrete.stateCommitmentRecover
-def stateCommitmentRoot := Concrete.stateCommitmentRoot
-def statePositionFromBits := Concrete.statePositionFromBits
+def pathSibling (path : Path24) (level sibling : Nat) : F :=
+  Protocol.Common.pathSibling path level sibling
+def stateChildren := Protocol.Common.stateChildren
+def stateCommitmentStep := Protocol.Common.stateCommitmentStep
+def stateCommitmentRecover := Protocol.Common.stateCommitmentRecover
+def stateCommitmentRoot := Protocol.Common.stateCommitmentRoot
+def statePositionFromBits := Protocol.Common.statePositionFromBits
 def member := Concrete.member
 def noteCommitment := Concrete.noteCommitment
 
@@ -52,24 +53,33 @@ theorem noteCommitment_of_hash
   simpa [
     noteCommitmentDomain,
     Concrete.noteCommitment,
+    Protocol.Common.noteCommitmentHash,
     Poseidon6Bridge.permSpec6
   ] using hcommitment
 
 def canonicalTransmission
     (authorization : AuthorizationContext F)
     (shared : SharedContext F) : Prop :=
-  Decaf377Assumptions.CompressToFieldSpec
-      (toDecafPoint shared.diversifiedGenerator)
-      shared.diversifiedGeneratorEncoding ∧
-    Decaf377Assumptions.DiversifiedTransmissionKeySpec
-      authorization.nullifierKey
-      (toDecafPoint authorization.authorizationKey)
-      (toDecafPoint shared.diversifiedGenerator)
-      authorization.ivkReduced
-      authorization.ivkQuotientA
-      (toDecafPoint shared.transmission) ∧
-    Decaf377Assumptions.CompressToFieldSpec
-      (toDecafPoint shared.transmission) shared.transmissionEncoding
+  (Protocol.Common.Decaf.nonIdentity authorization.authorizationKey ∧
+      Protocol.Common.Decaf.nonIdentity shared.diversifiedGenerator ∧
+      Decaf377Assumptions.CompressToFieldSpec
+        (toDecafPoint shared.diversifiedGenerator)
+        shared.diversifiedGeneratorEncoding ∧
+      Decaf377Assumptions.DiversifiedTransmissionKeySpec
+        authorization.nullifierKey
+        (toDecafPoint authorization.authorizationKey)
+        (toDecafPoint shared.diversifiedGenerator)
+        authorization.ivkReduced
+        authorization.ivkQuotientA
+        (toDecafPoint shared.transmission) ∧
+      Decaf377Assumptions.CompressToFieldSpec
+        (toDecafPoint shared.transmission) shared.transmissionEncoding) ∧
+    Protocol.Common.Decaf.incomingViewingKeyNonzero
+      authorization.ivkReduced ∧
+    Protocol.Common.Decaf.transmissionKeyNonIdentity shared.transmission
+
+def randomizerCanonical := Concrete.randomizerCanonical
+def dummySlotIndexCanonical := Concrete.dummySlotIndexCanonical
 
 def realCommitment := Concrete.realCommitment
 def outputCommitment := Concrete.outputCommitment
@@ -88,6 +98,7 @@ def randomizedKeyReal
 def conservation (action : Action F Path24) : Prop :=
   (∀ input ∈ action.inputs, input.amount.val < 2 ^ 128) ∧
   (∀ output ∈ action.outputs, output.amount.val < 2 ^ 128) ∧
+  action.balanceBlinding.val < 2 ^ 251 ∧
   (action.inputs.map Input.amount).sum =
     (action.outputs.map Output.amount).sum ∧
   Decaf377Assumptions.DecafEquivalent
@@ -119,6 +130,8 @@ def statementBinding (action : Action F Path24) : Prop :=
 def circuitPrimitives : CircuitPrimitives F Path24 :=
   {
     canonicalTransmission
+    randomizerCanonical
+    dummySlotIndexCanonical
     realCommitment
     outputCommitment
     member

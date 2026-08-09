@@ -6,14 +6,14 @@ use cnidarium::{StateRead, StateWrite};
 use cnidarium_component::ActionHandler;
 use shieldd_sdk_compliance::registry::ComplianceRegistryRead;
 use shieldd_sdk_ibc::StateReadExt as _;
-use shieldd_sdk_proof_params::batch::{self, BatchItem};
+use shieldd_sdk_proof_params::batch::{self, BatchItem, VerifiedBatchItem};
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_txhash::{EffectingData, TransactionContext};
 
 use crate::{
     component::{
         action_handler::note_reshape,
-        transfer::{Ics20TransferExecutionExt as _, Ics20TransferWriteExt as _},
+        transfer::{withdrawal_check, withdrawal_execute},
     },
     ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalChangePublic,
     ShieldedIcs20WithdrawalInputPublic, ShieldedIcs20WithdrawalProofPublic,
@@ -40,6 +40,17 @@ fn shielded_ics20_withdrawal_check_lengths(action: &ShieldedIcs20Withdrawal) -> 
             index + 1
         );
     }
+    Ok(())
+}
+
+async fn ensure_withdrawals_enabled<S: StateRead + ?Sized>(state: &S) -> Result<()> {
+    anyhow::ensure!(
+        state
+            .get_ibc_params()
+            .await?
+            .outbound_ics20_transfers_enabled,
+        "transaction has a shielded ICS20 withdrawal, but outbound ICS20 withdrawals are not enabled"
+    );
     Ok(())
 }
 
@@ -99,13 +110,51 @@ pub fn shielded_ics20_withdrawal_check_stateless_and_extract(
     shielded_ics20_withdrawal_to_batch_item(action, public)
 }
 
+/// Execute a Withdrawal whose exact proof item has already verified.
+pub async fn shielded_ics20_withdrawal_execute_verified<S: StateWrite>(
+    action: &ShieldedIcs20Withdrawal,
+    context: &TransactionContext,
+    verified_proof: &VerifiedBatchItem,
+    mut state: S,
+) -> Result<()> {
+    let item = shielded_ics20_withdrawal_check_stateless_and_extract(action, context)?;
+    verified_proof
+        .ensure_binds(action.body.family_id.deployed_proof_key(), &item)
+        .context("shielded ICS-20 withdrawal verified proof capability mismatch")?;
+
+    ensure_withdrawals_enabled(&state).await?;
+
+    state
+        .validate_compliance_anchors(&action.body.compliance_anchor, &action.body.asset_anchor)
+        .await
+        .context("invalid compliance anchors")?;
+
+    let block_time = state.get_current_block_timestamp().await?;
+    shieldd_sdk_compliance::registry::check_timestamp_freshness(
+        action.body.target_timestamp,
+        block_time.unix_timestamp(),
+    )?;
+
+    let current_block_time = block_time;
+    let checked = withdrawal_check(&mut state, &action.body.withdrawal, current_block_time).await?;
+    note_reshape::execute_proof_bound_effects(
+        &mut state,
+        &action.body.inputs,
+        std::slice::from_ref(&action.body.change_output),
+        |input| input.nullifier,
+        |output| &output.note_payload,
+    )
+    .await?;
+    withdrawal_execute(&mut state, checked).await
+}
+
 #[async_trait]
 impl ActionHandler for ShieldedIcs20Withdrawal {
     type CheckStatelessContext = TransactionContext;
 
     async fn check_stateless(&self, context: TransactionContext) -> Result<()> {
         let item = shielded_ics20_withdrawal_check_stateless_and_extract(self, &context)?;
-        batch::batch_verify(
+        batch::verify_each(
             self.body.family_id.proof_verification_key(),
             std::slice::from_ref(&item),
         )
@@ -114,44 +163,13 @@ impl ActionHandler for ShieldedIcs20Withdrawal {
     }
 
     async fn check_historical<S: StateRead + 'static>(&self, state: Arc<S>) -> Result<()> {
-        anyhow::ensure!(
-            state
-                .get_ibc_params()
-                .await?
-                .outbound_ics20_transfers_enabled,
-            "transaction has a shielded ICS20 withdrawal, but outbound ICS20 withdrawals are not enabled"
-        );
-        Ok(())
+        ensure_withdrawals_enabled(state.as_ref()).await
     }
 
-    async fn check_and_execute<S: StateWrite>(&self, mut state: S) -> Result<()> {
-        state
-            .validate_compliance_anchors(&self.body.compliance_anchor, &self.body.asset_anchor)
-            .await
-            .context("invalid compliance anchors")?;
-
-        let block_time = state.get_current_block_timestamp().await?;
-        let block_unix = block_time.unix_timestamp();
-        anyhow::ensure!(block_unix >= 0, "block timestamp is negative");
-        let block_timestamp = block_unix as u64;
-        shieldd_sdk_compliance::registry::check_timestamp_freshness(
-            self.body.target_timestamp,
-            block_timestamp,
-        )?;
-
-        let current_block_time = block_time;
-        state
-            .withdrawal_check_cached(&self.body.withdrawal, current_block_time)
-            .await?;
-        note_reshape::execute_proof_bound_effects(
-            &mut state,
-            &self.body.inputs,
-            std::slice::from_ref(&self.body.change_output),
-            |input| input.nullifier,
-            |output| &output.note_payload,
+    async fn check_and_execute<S: StateWrite>(&self, _state: S) -> Result<()> {
+        anyhow::bail!(
+            "shielded ICS-20 withdrawal execution requires an exact verified proof capability"
         )
-        .await?;
-        state.withdrawal_execute(&self.body.withdrawal).await
     }
 }
 
@@ -160,16 +178,54 @@ mod tests {
     use std::{ops::Deref, str::FromStr};
 
     use decaf377::Fr;
+    use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
     use ibc_types::core::{channel::ChannelId, client::Height as IbcHeight};
     use rand_core::OsRng;
     use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM};
+    use shieldd_sdk_ibc::{params::IBCParameters, StateWriteExt as _};
     use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_sct::component::tree::SctRead as _;
 
     use super::*;
     use crate::{
-        note_reshape_padding::dummy_spend_auth_sig, Ics20Withdrawal, Note,
-        ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalPlan, ShieldedInputPlan,
+        component::NoteManager as _,
+        note_reshape_padding::{dummy_spend_auth_sig, dummy_state_commitment_proof},
+        Ics20Withdrawal, Note, ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalPlan,
+        ShieldedInputPlan,
     };
+
+    fn test_action() -> ShieldedIcs20Withdrawal {
+        let value = Value {
+            amount: 40u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
+        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+        let withdrawal = Ics20Withdrawal {
+            amount: 40u64.into(),
+            denom: BASE_ASSET_DENOM.clone(),
+            destination_chain_address: "cosmos1destination".to_string(),
+            return_address: test_keys::ADDRESS_0.deref().clone(),
+            timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),
+            timeout_time: 60_000_000_000,
+            source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
+            ics20_memo: String::new(),
+            use_transparent_address: false,
+        };
+        let plan = ShieldedIcs20WithdrawalPlan::new(vec![spend], None, withdrawal, Fr::from(7u64))
+            .expect("one-spend withdrawal plan should be valid");
+        let anchor = shieldd_sdk_tct::Tree::default().root();
+        ShieldedIcs20Withdrawal {
+            body: plan
+                .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
+                .expect("derive action body"),
+            auth_sigs: vec![
+                dummy_spend_auth_sig();
+                ShieldedIcs20WithdrawalFamilyId::Canonical.auth_sig_count()
+            ],
+            proof: Default::default(),
+        }
+    }
 
     #[test]
     fn stateless_rejects_nonempty_input_compliance_ciphertext() {
@@ -187,18 +243,11 @@ mod tests {
             timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),
             timeout_time: 60_000_000_000,
             source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
-            use_compat_address: false,
             ics20_memo: String::new(),
             use_transparent_address: false,
         };
-        let plan = ShieldedIcs20WithdrawalPlan::new(
-            ShieldedIcs20WithdrawalFamilyId::Canonical,
-            vec![spend],
-            None,
-            withdrawal,
-            Fr::from(7u64),
-        )
-        .expect("withdrawal plan should be valid");
+        let plan = ShieldedIcs20WithdrawalPlan::new(vec![spend], None, withdrawal, Fr::from(7u64))
+            .expect("withdrawal plan should be valid");
         let anchor = shieldd_sdk_tct::Tree::default().root();
         let mut body = plan
             .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
@@ -221,5 +270,207 @@ mod tests {
         assert!(err
             .to_string()
             .contains("withdrawal input 1 compliance ciphertext must be empty"));
+    }
+
+    #[test]
+    fn auth_verification_rejects_invalid_optional_dummy_signature() {
+        let value = Value {
+            amount: 40u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
+        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+        let withdrawal = Ics20Withdrawal {
+            amount: 40u64.into(),
+            denom: BASE_ASSET_DENOM.clone(),
+            destination_chain_address: "cosmos1destination".to_string(),
+            return_address: test_keys::ADDRESS_0.deref().clone(),
+            timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),
+            timeout_time: 60_000_000_000,
+            source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
+            ics20_memo: String::new(),
+            use_transparent_address: false,
+        };
+        let plan = ShieldedIcs20WithdrawalPlan::new(vec![spend], None, withdrawal, Fr::from(7u64))
+            .expect("one-spend withdrawal plan should be valid");
+        let anchor = shieldd_sdk_tct::Tree::default().root();
+        let body = plan
+            .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
+            .expect("withdrawal body should build");
+        let context = TransactionContext {
+            anchor,
+            effect_hash: Default::default(),
+        };
+        let real_rsk = test_keys::SPEND_KEY
+            .spend_auth_key()
+            .randomize(&plan.spends[0].randomizer);
+        let real_sig = real_rsk.sign(&mut OsRng, context.effect_hash.as_ref());
+        let dummy_sig = plan.synthetic_dummy_auth_sig(1, context.effect_hash.as_ref());
+        let mut action = ShieldedIcs20Withdrawal {
+            body,
+            auth_sigs: vec![real_sig, dummy_sig],
+            proof: Default::default(),
+        };
+        shielded_ics20_withdrawal_verify_auth_sigs(&action, &context)
+            .expect("real and synthetic dummy signatures should verify");
+
+        let wrong_dummy = SigningKey::<SpendAuth>::from(Fr::from(999u64));
+        action.auth_sigs[1] = wrong_dummy.sign(&mut OsRng, context.effect_hash.as_ref());
+        let error = shielded_ics20_withdrawal_verify_auth_sigs(&action, &context)
+            .expect_err("the serialized optional dummy RK must authenticate its signature");
+        assert!(
+            error.to_string().contains("auth signature 1 failed"),
+            "unexpected rejection reason: {error:#}"
+        );
+    }
+
+    #[test]
+    fn withdrawal_auth_verification_rejects_identity_randomized_key() {
+        let mut action = test_action();
+        let context = TransactionContext {
+            anchor: action.body.anchor,
+            effect_hash: Default::default(),
+        };
+        let identity_sk = SigningKey::<SpendAuth>::from(Fr::from(0u64));
+        action.body.inputs[0].rk = VerificationKey::from(identity_sk.clone());
+        let different_message = b"different withdrawal authorization hash";
+        assert_ne!(&different_message[..], context.effect_hash.as_ref());
+        action.auth_sigs[0] = identity_sk.sign_deterministic(different_message);
+
+        action.body.inputs[0]
+            .rk
+            .verify(context.effect_hash.as_ref(), &action.auth_sigs[0])
+            .expect("the pinned RDSA primitive admits identity keys across messages");
+        let error = shielded_ics20_withdrawal_verify_auth_sigs(&action, &context)
+            .expect_err("Withdrawal must reject an identity randomized spend key");
+        assert!(
+            error
+                .to_string()
+                .contains("randomized spend key 0 must not be identity"),
+            "unexpected rejection reason: {error:#}"
+        );
+    }
+
+    #[test]
+    fn withdrawal_action_public_matches_proving_public() {
+        let value = Value {
+            amount: 40u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
+        let note_commitment = note.commit();
+        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+        let withdrawal = Ics20Withdrawal {
+            amount: 40u64.into(),
+            denom: BASE_ASSET_DENOM.clone(),
+            destination_chain_address: "cosmos1destination".to_string(),
+            return_address: test_keys::ADDRESS_0.deref().clone(),
+            timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),
+            timeout_time: 60_000_000_000,
+            source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
+            ics20_memo: String::new(),
+            use_transparent_address: false,
+        };
+        let plan = ShieldedIcs20WithdrawalPlan::new(vec![spend], None, withdrawal, Fr::from(7u64))
+            .expect("one-spend withdrawal plan should be valid");
+        let anchor = shieldd_sdk_tct::Tree::default().root();
+        let proofs = vec![dummy_state_commitment_proof(note_commitment)];
+        let (proving_public, _) = plan
+            .shielded_ics20_withdrawal_public_private(&test_keys::FULL_VIEWING_KEY, &proofs, anchor)
+            .expect("derive proving public");
+        let action = ShieldedIcs20Withdrawal {
+            body: plan
+                .action_body(&test_keys::FULL_VIEWING_KEY, &[7u8; 32].into(), anchor)
+                .expect("derive action body"),
+            auth_sigs: vec![
+                dummy_spend_auth_sig();
+                ShieldedIcs20WithdrawalFamilyId::Canonical.auth_sig_count()
+            ],
+            proof: Default::default(),
+        };
+        let context = TransactionContext {
+            anchor,
+            effect_hash: Default::default(),
+        };
+        let extracted = shielded_ics20_withdrawal_extract_public(&action, &context)
+            .expect("extract verifier public");
+
+        assert_eq!(
+            proving_public
+                .statement_hash()
+                .expect("proving statement hash"),
+            extracted
+                .statement_hash()
+                .expect("extracted statement hash"),
+            "withdrawal action projection must equal the proving statement"
+        );
+    }
+
+    #[tokio::test]
+    async fn historical_check_accepts_enabled_withdrawals() {
+        let action = test_action();
+        let storage = cnidarium::TempStorage::new()
+            .await
+            .expect("temporary storage");
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        state.put_ibc_params(IBCParameters {
+            outbound_ics20_transfers_enabled: true,
+            ..Default::default()
+        });
+
+        action
+            .check_historical(Arc::new(state))
+            .await
+            .expect("enabled outbound withdrawals must be accepted");
+    }
+
+    #[tokio::test]
+    async fn historical_check_rejects_disabled_withdrawals() {
+        let action = test_action();
+        let storage = cnidarium::TempStorage::new()
+            .await
+            .expect("temporary storage");
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        state.put_ibc_params(IBCParameters {
+            outbound_ics20_transfers_enabled: false,
+            ..Default::default()
+        });
+
+        let error = action
+            .check_historical(Arc::new(state))
+            .await
+            .expect_err("disabled outbound withdrawals must be rejected");
+        assert!(
+            error
+                .to_string()
+                .contains("outbound ICS20 withdrawals are not enabled"),
+            "unexpected rejection reason: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn raw_withdrawal_execution_fails_closed_without_verified_capability() {
+        let action = test_action();
+        let storage = cnidarium::TempStorage::new()
+            .await
+            .expect("temporary storage");
+        let mut state = cnidarium::StateDelta::new(storage.latest_snapshot());
+        state.put_ibc_params(IBCParameters {
+            outbound_ics20_transfers_enabled: false,
+            ..Default::default()
+        });
+
+        let error = action
+            .check_and_execute(&mut state)
+            .await
+            .expect_err("raw withdrawal execution must not mutate state");
+        assert!(
+            error
+                .to_string()
+                .contains("requires an exact verified proof capability"),
+            "unexpected rejection reason: {error:#}"
+        );
+        assert!(state.pending_nullifiers().is_empty());
+        assert!(state.pending_note_payloads().is_empty());
     }
 }

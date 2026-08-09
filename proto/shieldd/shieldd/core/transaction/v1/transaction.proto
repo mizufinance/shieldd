@@ -71,32 +71,9 @@ message DetectionData {
   repeated crypto.decaf377_fmd.v1.Clue fmd_clues = 4;
 }
 
-enum ProofFamilyId {
-  PROOF_FAMILY_ID_UNSPECIFIED = 0;
-  PROOF_FAMILY_ID_TRANSFER = 7;
-  PROOF_FAMILY_ID_NOTE_RESHAPE = 8;
-  PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL = 10;
-}
-
-message FamilyAggregate {
-  ProofFamilyId family_id = 1;
-  uint32 real_count = 3;
-  uint32 padded_count = 4;
-  bytes aggregate_proof = 5;
-  uint32 note_reshape_family_id = 6;
-  reserved 7;
-  uint32 shielded_ics20_withdrawal_family_id = 8;
-}
-
-message AggregateBundle {
-  uint32 version = 1;
-  bytes srs_id = 2;
-  repeated FamilyAggregate families = 3;
-}
-
 // A state change performed by a transaction.
 message Action {
-  reserved 7;
+  reserved 7, 82;
   oneof action {
     component.shielded_pool.v1.Transfer transfer = 5;
     component.shielded_pool.v1.NoteReshape note_reshape = 6;
@@ -113,8 +90,6 @@ message Action {
     // Compliance
     component.compliance.v1.MsgRegisterAsset compliance_register_asset = 80;
     component.compliance.v1.MsgRegisterUser compliance_register_user = 81;
-    AggregateBundle aggregate_bundle = 82;
-
     component.shielded_pool.v1.ShieldedIcs20Withdrawal shielded_ics20_withdrawal = 200;
   }
 }
@@ -205,7 +180,7 @@ message TransactionBodyView {
 
 // A view of a specific state change action performed by a transaction.
 message ActionView {
-  reserved 7;
+  reserved 7, 82;
   oneof action_view {
     component.shielded_pool.v1.TransferView transfer = 5;
     component.shielded_pool.v1.NoteReshapeView note_reshape = 6;
@@ -221,8 +196,6 @@ message ActionView {
     // Compliance
     component.compliance.v1.MsgRegisterAsset compliance_register_asset = 80;
     component.compliance.v1.MsgRegisterUser compliance_register_user = 81;
-    AggregateBundle aggregate_bundle = 82;
-
     component.shielded_pool.v1.ShieldedIcs20WithdrawalView shielded_ics20_withdrawal = 200;
   }
 }

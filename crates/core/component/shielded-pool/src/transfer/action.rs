@@ -29,7 +29,7 @@ pub struct TransferOutputBody {
     pub wrapped_memo_key: WrappedMemoKey,
     pub ovk_wrapped_key: OvkWrappedKey,
     pub compliance_ciphertext: Vec<u8>,
-    pub orbis_upload_bundle: Vec<u8>,
+    pub compliance_metadata: Vec<u8>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -78,17 +78,9 @@ impl EffectingData for TransferBody {
         // transaction action hash the same effecting data even when the real anchor
         // is filled in later during build/proving.
         effecting.anchor = shieldd_sdk_tct::Tree::default().root();
-        // Transfer compliance bytes are constructed during body assembly and are not
-        // part of the user-selected economic effect of the transfer action. Clearing
-        // them keeps the effect hash stable across repeated body construction while
-        // the full transaction auth hash still commits to the serialized body.
-        for input in &mut effecting.inputs {
-            input.compliance_ciphertext.clear();
-        }
-        for output in &mut effecting.outputs {
-            output.compliance_ciphertext.clear();
-            output.orbis_upload_bundle.clear();
-        }
+        // Compliance records are proof-bound effects. Committing to their exact
+        // deterministic bytes prevents an untrusted builder from replacing the
+        // encryption randomness or metadata after obtaining spend authorization.
         EffectHash::from_proto_effecting_data(&effecting.to_proto())
     }
 }
@@ -203,7 +195,7 @@ impl From<TransferOutputBody> for pb::TransferOutputBody {
             wrapped_memo_key: msg.wrapped_memo_key.0.to_vec(),
             ovk_wrapped_key: msg.ovk_wrapped_key.0.to_vec(),
             compliance_ciphertext: msg.compliance_ciphertext,
-            orbis_upload_bundle: msg.orbis_upload_bundle,
+            compliance_metadata: msg.compliance_metadata,
         }
     }
 }
@@ -225,7 +217,7 @@ impl TryFrom<pb::TransferOutputBody> for TransferOutputBody {
                 .try_into()
                 .context("malformed ovk wrapped key")?,
             compliance_ciphertext: proto.compliance_ciphertext,
-            orbis_upload_bundle: proto.orbis_upload_bundle,
+            compliance_metadata: proto.compliance_metadata,
         })
     }
 }
@@ -287,5 +279,30 @@ impl TryFrom<pb::TransferBody> for TransferBody {
         };
         body.validate_shape()?;
         Ok(body)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use prost::Message;
+
+    use super::pb;
+    use shieldd_sdk_compliance::TRANSFER_COMPLIANCE_METADATA_BYTES;
+
+    #[test]
+    fn transfer_output_public_metadata_is_one_bounded_protobuf_field() {
+        let metadata = vec![0xa5; TRANSFER_COMPLIANCE_METADATA_BYTES];
+        let output = pb::TransferOutputBody {
+            note_payload: None,
+            wrapped_memo_key: Vec::new(),
+            ovk_wrapped_key: Vec::new(),
+            compliance_ciphertext: Vec::new(),
+            compliance_metadata: metadata.clone(),
+        };
+
+        let encoded = output.encode_to_vec();
+        // Field 5, length-delimited, followed by the canonical 328-byte record.
+        assert_eq!(&encoded[..3], &[0x2a, 0xc8, 0x02]);
+        assert_eq!(&encoded[3..], metadata.as_slice());
     }
 }

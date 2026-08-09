@@ -115,7 +115,8 @@ func AssertEqualIf(api frontend.API, left, right, cond frontend.Variable) {
 	api.AssertIsEqual(api.Mul(api.Sub(left, right), cond), 0)
 }
 
-// VerifyDLEQ mirrors Shieldd's verify_dleq_r1cs gadget for a single tier.
+// VerifyDLEQ retains the standalone legacy DLEQ relation for research tests.
+// Transfer V16 neither calls this relation nor carries its witness/public fields.
 func VerifyDLEQ(
 	api frontend.API,
 	ack gnarkte.Point,

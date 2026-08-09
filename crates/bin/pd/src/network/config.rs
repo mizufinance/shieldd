@@ -176,10 +176,10 @@ pub struct ValidatorKeys {
 
 impl ValidatorKeys {
     /// Use a hard-coded seed to generate a new set of validator keys.
-    pub fn from_seed(seed: [u8; 32]) -> Self {
+    pub fn from_seed(seed: [u8; 32]) -> anyhow::Result<Self> {
         // Create the spend key for this node.
         let seed = SpendKeyBytes(seed);
-        let spend_key = SpendKey::from(seed.clone());
+        let spend_key = SpendKey::try_from(seed.clone())?;
 
         // Create signing key and verification key for this node.
         let validator_id_sk = spend_key.spend_auth_key();
@@ -206,7 +206,7 @@ impl ValidatorKeys {
             tendermint::PrivateKey::Ed25519(signing_key_bytes.try_into().expect("32 bytes"));
         let node_key_pk = node_key_sk.public_key();
 
-        ValidatorKeys {
+        Ok(ValidatorKeys {
             validator_id_sk: validator_id_sk.clone(),
             validator_id_vk,
             validator_cons_sk,
@@ -214,14 +214,14 @@ impl ValidatorKeys {
             node_key_sk,
             node_key_pk,
             validator_spend_key: seed,
-        }
+        })
     }
 
-    pub fn generate() -> Self {
+    pub fn generate() -> anyhow::Result<Self> {
         // Create the spend key for this node.
         // TODO: change to use seed phrase
         let seed = SpendKeyBytes(OsRng.gen());
-        let spend_key = SpendKey::from(seed.clone());
+        let spend_key = SpendKey::try_from(seed.clone())?;
 
         // Create signing key and verification key for this node.
         let validator_id_sk = spend_key.spend_auth_key();
@@ -248,7 +248,7 @@ impl ValidatorKeys {
             tendermint::PrivateKey::Ed25519(signing_key_bytes.try_into().expect("32 bytes"));
         let node_key_pk = node_key_sk.public_key();
 
-        ValidatorKeys {
+        Ok(ValidatorKeys {
             validator_id_sk: validator_id_sk.clone(),
             validator_id_vk,
             validator_cons_sk,
@@ -256,7 +256,7 @@ impl ValidatorKeys {
             node_key_sk,
             node_key_pk,
             validator_spend_key: seed,
-        }
+        })
     }
     /// Format the p2p consensus keypair into a struct suitable for serialization
     /// directly as `priv_validator_key.json` for Tendermint config.
@@ -276,12 +276,6 @@ impl ValidatorKeys {
             priv_key,
         };
         Ok(priv_validator_key)
-    }
-}
-
-impl Default for ValidatorKeys {
-    fn default() -> Self {
-        Self::generate()
     }
 }
 

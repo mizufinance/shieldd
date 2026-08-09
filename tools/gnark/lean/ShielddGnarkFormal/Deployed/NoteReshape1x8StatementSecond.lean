@@ -33,7 +33,7 @@ theorem canonicalHashTwelve
 theorem hash
     (rho : Nat → DeployedF) :
     Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Trace.hash1
-        (Seg57.localRho rho) =
+        (Seg60.localRho rho) =
       NoteReshapeCanonical.statementHash .reshape1x8
         [anchor rho,
          output0NoteCommitmentComputed rho,
@@ -54,7 +54,7 @@ theorem hash
   ]
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
-        DeployedF) = -1 := by decide
+        DeployedF) = -1 := by decide +kernel
   simp [
     output6NoteCommitmentComputed, output6NoteCommitmentComputedLC,
     output7NoteCommitmentComputed, output7NoteCommitmentComputedLC,
@@ -62,7 +62,7 @@ theorem hash
     spend0NullifierComputed, spend0NullifierComputedLC,
     spend0RkCompressed, spend0RkCompressedLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg57.localRho, Deployed.Templates.seated,
+    Seg60.localRho, Deployed.Templates.seated,
     hw519, hw520, hw521, hw522, hw523, hw524, hw525,
     hw531, hw532, hw533, hw534, hw535, hw536, hw537,
     hw543, hw544, hw550, hw551, hw552, hw553, hw559, hw560

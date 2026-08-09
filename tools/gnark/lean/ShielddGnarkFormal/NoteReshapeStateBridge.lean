@@ -23,7 +23,7 @@ def stateCommitmentDomain : F :=
 
 theorem stateStep_eq_deployed
     (domain cur s0 s1 s2 b0 b1 : F) :
-    Protocol.NoteReshape.Concrete.stateCommitmentStep
+    Protocol.Common.stateCommitmentStep
         domain cur s0 s1 s2 b0 b1 =
       Deployed.StateCommitmentPathChoiceFree.recoverStep
         Poseidon4Bridge.permSpec4 domain cur s0 s1 s2 b0 b1 := by
@@ -35,21 +35,21 @@ theorem stateRecover_eq_deployed
     (b0 b1 : Nat → F)
     (level : Nat)
     (hlevel : level < 24) :
-    Protocol.NoteReshape.Concrete.stateCommitmentRecover
+    Protocol.Common.stateCommitmentRecover
         commitment membershipPath b0 b1 level =
       Deployed.StateCommitmentPathChoiceFree.recoverPrefix
         Poseidon4Bridge.permSpec4
         (fun k => stateCommitmentDomain + (k : F) + 1)
         (Poseidon1Bridge.permSpec1
           stateCommitmentDomain commitment)
-        (fun k => Protocol.NoteReshape.Concrete.pathSibling membershipPath k 0)
-        (fun k => Protocol.NoteReshape.Concrete.pathSibling membershipPath k 1)
-        (fun k => Protocol.NoteReshape.Concrete.pathSibling membershipPath k 2)
+        (fun k => Protocol.Common.pathSibling membershipPath k 0)
+        (fun k => Protocol.Common.pathSibling membershipPath k 1)
+        (fun k => Protocol.Common.pathSibling membershipPath k 2)
         b0 b1 level := by
   induction level with
   | zero =>
       simp only [
-        Protocol.NoteReshape.Concrete.stateCommitmentRecover,
+        Protocol.Common.stateCommitmentRecover,
         Deployed.StateCommitmentPathChoiceFree.recoverPrefix
       ]
       rw [stateStep_eq_deployed]
@@ -57,13 +57,13 @@ theorem stateRecover_eq_deployed
   | succ level ih =>
       have hprevious : level < 24 := Nat.lt_trans (Nat.lt_succ_self level) hlevel
       simp only [
-        Protocol.NoteReshape.Concrete.stateCommitmentRecover,
+        Protocol.Common.stateCommitmentRecover,
         Deployed.StateCommitmentPathChoiceFree.recoverPrefix
       ]
       rw [ih hprevious, stateStep_eq_deployed]
       congr 1
       simp [
-        Protocol.NoteReshape.Concrete.stateCommitmentDomain,
+        Protocol.Common.stateCommitmentDomain,
         stateCommitmentDomain
       ]
       ring

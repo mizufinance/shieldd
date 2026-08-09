@@ -87,7 +87,7 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
 
     let mut build_state = StateDelta::new(storage.latest_snapshot());
     build_state
-        .register_asset_in_imt(
+        .test_only_register_asset(
             asset_id,
             AssetPolicy::simple(dk.public_key(), 1u128, ring_pk),
             true,

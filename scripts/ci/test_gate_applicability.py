@@ -65,7 +65,7 @@ class GateApplicabilityTests(unittest.TestCase):
             label="fixture manifest",
         )
 
-    def test_orbis_closure_contains_at_least_40_local_packages(self) -> None:
+    def test_orbis_closure_tracks_the_production_package_graph(self) -> None:
         source = next(
             item
             for item in self.orbis.derived_inputs
@@ -74,8 +74,11 @@ class GateApplicabilityTests(unittest.TestCase):
         relevant, outside = GATE.cargo_closure_rules(
             self.root, source, "pull_request"
         )
-        self.assertGreaterEqual(len(relevant.patterns) // 2, 40)
+        # Proof aggregation is research/benchmark-only and must not inflate the
+        # production Orbis closure.
+        self.assertGreaterEqual(len(relevant.patterns) // 2, 35)
         self.assertIn("crates/core/app/**", relevant.patterns)
+        self.assertNotIn("crates/crypto/proof-aggregation/**", relevant.patterns)
         self.assertEqual(relevant.tier, "full")
         self.assertEqual(outside.tier, "skip")
         self.assertIn("outside the declared closure", outside.reason)
@@ -135,17 +138,27 @@ class GateApplicabilityTests(unittest.TestCase):
                 )
                 self.assertEqual(decision.tier, "stamps")
 
-    def test_note_reshape_refinement_inputs_select_typed_pr_gate(self) -> None:
+    def test_circuit_refinement_inputs_select_typed_pr_gate(self) -> None:
         paths = (
+            "tools/gnark/fv_certification_backends.json",
+            "tools/gnark/fv_profiles.json",
+            "tools/gnark/lean/ShielddGnarkFormal/Protocol/Common.lean",
             "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/Semantics.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Protocol/Transfer/Semantics.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Protocol/ShieldedIcs20Withdrawal/Semantics.lean",
             "tools/gnark/lean/ShielddGnarkFormal/Poseidon6Spec.lean",
             "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Fixed6.lean",
             "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/Vectors.lean",
-            "tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape4x1Refinement.lean",
-            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Generated/NoteReshape4x1Spend1.lean",
-            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape4x1/CircuitFacts.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/DleqBridge.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Poseidon5Bridge.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape8x1Refinement.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Generated/NoteReshape8x1Spend1.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape8x1/CircuitFacts.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Transfer/CircuitFacts.lean",
+            "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/CircuitFacts.lean",
             "tools/gnark/lean/gen/gen_note_reshape_padded_spends.py",
-            "crates/core/component/shielded-pool/formal/note-reshape-obligation-ledger.md",
+            "tools/gnark/lean/gen/gen_deployed_family.py",
+            "crates/core/component/shielded-pool/formal/certified-circuit-obligation-ledger.md",
         )
         for path in paths:
             with self.subTest(path=path):
@@ -162,6 +175,9 @@ class GateApplicabilityTests(unittest.TestCase):
         )
         rules = GATE.cargo_closure_rules(self.root, source, "pull_request")
         for path in (
+            "crates/bin/pd/src/main.rs",
+            "crates/bin/shieldd/src/execution_client.rs",
+            "crates/bin/shieldd/src/main.rs",
             "crates/core/transaction/src/plan/build.rs",
             "crates/core/app/src/action_handler/actions.rs",
             "crates/core/app/src/action_handler/transaction.rs",
@@ -196,8 +212,8 @@ class GateApplicabilityTests(unittest.TestCase):
             with self.subTest(tier=tier):
                 self.assertIn(f"{tier})", run_case)
 
-        vk_job = workflow[
-            workflow.index("  soundness-vk-derivation:") : workflow.index(
+        key_coherence_job = workflow[
+            workflow.index("  soundness-key-coherence:") : workflow.index(
                 "  soundness-alloy:"
             )
         ]
@@ -206,13 +222,13 @@ class GateApplicabilityTests(unittest.TestCase):
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.soundness_run == 'true' &&
       needs.applicability.outputs.soundness_tier != 'full'""",
-            vk_job,
+            key_coherence_job,
         )
 
         summary = workflow[workflow.index("  summary:") :]
         self.assertIn(
             """if [[ "$SOUNDNESS_TIER" != full ]]; then
-              required+=("soundness-vk-derivation=$VK")
+              required+=("soundness-key-coherence=$KEY_COHERENCE")
             fi""",
             summary,
         )
@@ -288,6 +304,43 @@ class GateApplicabilityTests(unittest.TestCase):
             path.write_text("{", encoding="utf-8")
             with self.assertRaises(GATE.ClassificationError):
                 GATE.load_declaration(path)
+
+    def test_duplicate_declaration_key_blocks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "duplicate.json"
+            path.write_text(
+                '{"schema_version": 1, "schema_version": 1}',
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                GATE.ClassificationError, "duplicate JSON key 'schema_version'"
+            ):
+                GATE.load_declaration(path)
+
+    def test_explicit_input_cannot_suppress_conservative_gate(self) -> None:
+        raw = json.loads(
+            (self.root / "ci/gates/soundness-formal.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        raw["explicit_inputs"][0]["tiers"]["pull_request"] = "skip"
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "skip.json"
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            with self.assertRaisesRegex(
+                GATE.ClassificationError, "only non-skip tiers"
+            ):
+                GATE.load_declaration(path)
+
+    def test_certified_artifact_generator_selects_soundness_gate(self) -> None:
+        decision = GATE.classify(
+            self.soundness,
+            "pull_request",
+            ["scripts/gen-certified-circuit-artifacts.py"],
+            [],
+        )
+        self.assertEqual((decision.status, decision.tier), ("run", "stamps"))
+        self.assertFalse(decision.unknown_files)
 
     def test_unknown_path_promotes_pr_and_merge_group(self) -> None:
         pr = GATE.classify(

@@ -43,6 +43,21 @@ def dtkLadderK {n : ℕ} (bits : List.Vector F n) (k : List.Vector F 4 → Prop)
           dtkLadderK bits k fuel (bitIndex + 1)
             ⟨state[0], state[1]⟩ ⟨state[2], state[3]⟩)
 
+/-- Continuation-carrying IVK guard used by deployed constant-ladder traces. -/
+def ivkGuardK (IvkQuotient : F) (k : Prop) (il : F) : Prop :=
+    ∃gate_570, gate_570 = Extracted.IvkModR.Gates.sub IvkQuotient (4:F) ∧
+    ∃gate_571, Extracted.IvkModR.Gates.is_zero gate_570 gate_571 ∧
+    ∃gate_572, gate_572 = Extracted.IvkModR.Gates.sub (1:F) il ∧
+    ∃gate_573, gate_573 = Extracted.IvkModR.Gates.mul gate_571 gate_572 ∧
+    Extracted.IvkModR.Gates.eq gate_573 (0:F) ∧
+    k
+
+/-- Continuation joining the deployed `< r` and `< q4` ladders. -/
+def rContK (bits : List.Vector F 253) (IvkQuotient : F) (k : Prop) (il1 : F) : Prop :=
+    Extracted.IvkModR.Gates.eq il1 (1:F) ∧
+    Extracted.IvkModR.ltcRec bits Extracted.IvkModR.q4Bit (ivkGuardK IvkQuotient k)
+      253 (1:F) (0:F)
+
 theorem dtk_circuit_eq
     (Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio IvkReduced IvkQuotient OutX OutY : F) :
     Extracted.DecafDtk.circuit Nk AkX AkY DivGenX DivGenY WasSquare SqrtRatio

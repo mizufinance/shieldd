@@ -1,4 +1,4 @@
-import ShielddGnarkFormal.Deployed.NoteReshape8x1Statement
+import ShielddGnarkFormal.Deployed.NoteReshape8x1TranscriptSeams
 import ShielddGnarkFormal.Deployed.NoteReshape8x1Spend
 
 set_option maxRecDepth 1000000
@@ -47,7 +47,7 @@ theorem actionClaimedStatementHash
            spend6RkCompressed rho,
            spend7NullifierSelected rho,
            spend7RkCompressed rho] := by
-      exact NoteReshape8x1Statement.claimedHash rho facts
+      exact NoteReshape8x1TranscriptSeams.claimedHash rho facts
     _ = NoteReshapeCanonical.statementHash (action rho).policy
         (NoteReshapeCanonical.statementFields
           (action rho)

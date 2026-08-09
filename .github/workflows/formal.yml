@@ -346,8 +346,8 @@ jobs:
       - name: Manifest pin
         run: bash scripts/check-manifest-pin.sh
 
-  soundness-vk-derivation:
-    name: 'soundness: vk-derivation'
+  soundness-key-coherence:
+    name: 'soundness: key coherence'
     needs: applicability
     # The full whole-circuit lane emits and validates the same deployed-key
     # proof receipts for all certified and candidate profiles. Keep this
@@ -370,18 +370,9 @@ jobs:
           cache-dependency-path: tools/gnark/go.sum
       # Run serially so each deployed key is exercised against the exact
       # source-compiled circuit without multiplying peak memory.
-      - name: VK derivation and prove/verify pinning
+      - name: Exact SR1CS and multi-branch key coherence
         shell: bash
-        run: |
-          set -euo pipefail
-          profiles_tsv="$RUNNER_TEMP/fv-profiles.tsv"
-          python3 scripts/check-fv-profiles.py --emit-tsv all > "$profiles_tsv"
-          while IFS=$'\t' read -r circuit _; do
-            [[ -n "$circuit" ]] || continue
-            echo "::group::vk-derivation $circuit"
-            bash scripts/check-vk-derivation.sh "$circuit" --prove
-            echo "::endgroup::"
-          done < "$profiles_tsv"
+        run: bash scripts/check-circuit-fv.sh receipt all
 
   soundness-alloy:
     name: 'soundness: alloy'
@@ -483,7 +474,7 @@ jobs:
       - snarkpack-dos
       - soundness-gate
       - soundness-seam-and-pin
-      - soundness-vk-derivation
+      - soundness-key-coherence
       - soundness-alloy
       - soundness-lean-circuit-fv
     runs-on: ubuntu-24.04
@@ -511,7 +502,7 @@ jobs:
           DOS: ${{ needs.snarkpack-dos.result }}
           GATE: ${{ needs.soundness-gate.result }}
           SEAM: ${{ needs.soundness-seam-and-pin.result }}
-          VK: ${{ needs.soundness-vk-derivation.result }}
+          KEY_COHERENCE: ${{ needs.soundness-key-coherence.result }}
           ALLOY: ${{ needs.soundness-alloy.result }}
           LEAN: ${{ needs.soundness-lean-circuit-fv.result }}
         run: |
@@ -560,11 +551,11 @@ jobs:
               "soundness-lean-circuit-fv=$LEAN"
             )
             # stamps/typed need the standalone deployed-key round trip. Full
-            # obtains equivalent schema-v3 proof receipts for all six profiles
-            # inside the terminal whole-circuit lane, so rerunning it here only
-            # doubles proving cost.
+            # obtains equivalent schema-v4, branch-labelled proof receipts for
+            # every canonical proof case inside the terminal whole-circuit
+            # lane, so rerunning it here only doubles proving cost.
             if [[ "$SOUNDNESS_TIER" != full ]]; then
-              required+=("soundness-vk-derivation=$VK")
+              required+=("soundness-key-coherence=$KEY_COHERENCE")
             fi
             # alloy runs only on candidate events; the scheduled path covers the
             # same gate inside soundness-provers' tamarin-alloy lane.

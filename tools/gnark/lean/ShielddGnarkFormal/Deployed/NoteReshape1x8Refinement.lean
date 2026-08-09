@@ -29,7 +29,7 @@ open Contracts.NoteReshape1x8.Witness (
 )
 
 def path0 (rho : Nat → DeployedF) : NoteReshapeCanonical.Path24 :=
-  NoteReshapeMembershipBridge.segmentPath (Seg12.localRho rho)
+  NoteReshapeMembershipBridge.segmentPath (Seg15.localRho rho)
 
 def input0 (rho : Nat → DeployedF) :
     RealInput DeployedF NoteReshapeCanonical.Path24 :=

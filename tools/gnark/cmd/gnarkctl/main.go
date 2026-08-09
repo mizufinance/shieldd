@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/consensys/gnark-crypto/ecc"
@@ -85,11 +86,13 @@ func usage() {
 type fvProofReceipt struct {
 	SchemaVersion               uint32 `json:"schema_version"`
 	Circuit                     string `json:"circuit"`
+	ProofCase                   string `json:"proof_case"`
 	WitnessFormatVersion        uint32 `json:"witness_format_version"`
 	WitnessSHA256Hex            string `json:"witness_sha256_hex"`
 	SR1CSSHA256Hex              string `json:"sr1cs_sha256_hex"`
 	ConstraintManifestSHA256Hex string `json:"constraint_manifest_sha256_hex"`
 	CircuitMetadataSHA256Hex    string `json:"circuit_metadata_sha256_hex"`
+	SetupProvenanceSHA256Hex    string `json:"setup_provenance_sha256_hex"`
 	ProvingKeySHA256Hex         string `json:"proving_key_sha256_hex"`
 	VerifyingKeyBinarySHA256Hex string `json:"verifying_key_binary_sha256_hex"`
 	VerifyingKeyJSONSHA256Hex   string `json:"verifying_key_json_sha256_hex"`
@@ -99,20 +102,70 @@ type fvProofReceipt struct {
 	ProvedAndVerifiedInProcess  bool   `json:"proved_and_verified_in_process"`
 }
 
+const setupProvenanceSchema = "shieldd.gnark.setup_provenance.v2"
+
+type setupGenerationSelfTest struct {
+	ProofCase                  string `json:"proof_case"`
+	WitnessFormatVersion       uint32 `json:"witness_format_version"`
+	WitnessSHA256Hex           string `json:"witness_sha256_hex"`
+	ProvedAndVerifiedInProcess bool   `json:"proved_and_verified_in_process"`
+}
+
+type setupProvenance struct {
+	Schema                      string                    `json:"schema"`
+	Curve                       string                    `json:"curve"`
+	Circuit                     string                    `json:"circuit"`
+	Mode                        string                    `json:"mode"`
+	SR1CSSHA256Hex              string                    `json:"sr1cs_sha256_hex"`
+	ProvingKeySHA256Hex         string                    `json:"proving_key_sha256_hex"`
+	VerifyingKeyBinarySHA256Hex string                    `json:"verifying_key_binary_sha256_hex"`
+	VerifyingKeyJSONSHA256Hex   string                    `json:"verifying_key_json_sha256_hex"`
+	GenerationSelfTests         []setupGenerationSelfTest `json:"generation_self_tests"`
+	SetupTranscript             string                    `json:"setup_transcript"`
+	ToxicWasteErasure           string                    `json:"toxic_waste_erasure"`
+}
+
+type repeatedStringFlag []string
+
+func (values *repeatedStringFlag) String() string {
+	return strings.Join(*values, ",")
+}
+
+func (values *repeatedStringFlag) Set(value string) error {
+	if value == "" {
+		return fmt.Errorf("value must be nonempty")
+	}
+	*values = append(*values, value)
+	return nil
+}
+
 func runExportFV(args []string) error {
 	fs := flag.NewFlagSet("export-fv", flag.ContinueOnError)
 	circuit := fs.String("circuit", "", "registered circuit family label")
 	sr1csPath := fs.String("sr1cs-out", "", "output .sr1cs path")
 	manifestPath := fs.String("manifest-out", "", "output semantic manifest path")
 	prove := fs.Bool("prove", false, "prove and verify with deployed keys in the same compiled process")
-	witnessPath := fs.String("witness", "", "witness binary path for --prove")
 	artifactDir := fs.String("artifact-dir", "", "deployed key artifact directory for --prove")
-	proofReceiptPath := fs.String("proof-receipt-out", "", "proof receipt path required with --prove")
+	var proofCases repeatedStringFlag
+	var witnessPaths repeatedStringFlag
+	var proofReceiptPaths repeatedStringFlag
+	fs.Var(&proofCases, "proof-case", "canonical proof case; repeat once per --witness")
+	fs.Var(&witnessPaths, "witness", "witness binary path for --prove; repeatable")
+	fs.Var(&proofReceiptPaths, "proof-receipt-out", "proof receipt path for --prove; repeat once per --witness")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if *circuit == "" || *sr1csPath == "" || *manifestPath == "" {
 		return fmt.Errorf("--circuit, --sr1cs-out, and --manifest-out are required")
+	}
+	if err := validateFVProofJobFlags(
+		*prove,
+		*artifactDir,
+		proofCases,
+		witnessPaths,
+		proofReceiptPaths,
+	); err != nil {
+		return err
 	}
 	ccs, manifest, err := compileCircuitForFV(*circuit)
 	if err != nil {
@@ -137,28 +190,6 @@ func runExportFV(args []string) error {
 		return err
 	}
 	if *prove {
-		if *witnessPath == "" || *artifactDir == "" || *proofReceiptPath == "" {
-			return fmt.Errorf("--witness, --artifact-dir, and --proof-receipt-out are required with --prove")
-		}
-		payload, err := os.ReadFile(*witnessPath)
-		if err != nil {
-			return fmt.Errorf("read witness: %w", err)
-		}
-		assignment, _, err := witnessAssignment(*circuit, payload)
-		if err != nil {
-			return err
-		}
-		witnessVersion, err := witnessFormatVersion(payload)
-		if err != nil {
-			return err
-		}
-		fullWitness, err := frontend.NewWitness(assignment, primitives.ScalarField())
-		if err != nil {
-			return fmt.Errorf("full witness: %w", err)
-		}
-		if err := ccs.IsSolved(fullWitness); err != nil {
-			return fmt.Errorf("solve failed: %w", err)
-		}
 		pk, _, err := loadPK(filepath.Join(*artifactDir, "proving_key.bin"))
 		if err != nil {
 			return err
@@ -166,17 +197,6 @@ func runExportFV(args []string) error {
 		vk, _, err := loadVK(filepath.Join(*artifactDir, "verifying_key.bin"))
 		if err != nil {
 			return err
-		}
-		publicWitness, err := fullWitness.Public()
-		if err != nil {
-			return fmt.Errorf("public witness: %w", err)
-		}
-		proof, err := groth16.Prove(ccs, pk, fullWitness)
-		if err != nil {
-			return fmt.Errorf("prove: %w", err)
-		}
-		if err := groth16.Verify(proof, vk, publicWitness); err != nil {
-			return fmt.Errorf("verify: %w", err)
 		}
 		pkHash, err := sha256FileHex(filepath.Join(*artifactDir, "proving_key.bin"))
 		if err != nil {
@@ -190,7 +210,6 @@ func runExportFV(args []string) error {
 		if err != nil {
 			return err
 		}
-		witnessHash := sha256.Sum256(payload)
 		manifestHash, err := sha256FileHex(*manifestPath)
 		if err != nil {
 			return err
@@ -207,6 +226,15 @@ func runExportFV(args []string) error {
 		if err != nil {
 			return err
 		}
+		setupProvenanceHash, err := sha256FileHex(
+			filepath.Join(*artifactDir, "setup_provenance.json"),
+		)
+		if err != nil {
+			return err
+		}
+		if metadata.SetupProvenanceSHA256Hex != setupProvenanceHash {
+			return fmt.Errorf("circuit metadata does not bind setup_provenance.json")
+		}
 		if metadata.ProvingKeySHA256Hex != pkHash {
 			return fmt.Errorf("circuit metadata does not bind proving_key.bin")
 		}
@@ -216,31 +244,127 @@ func runExportFV(args []string) error {
 		if metadata.VerifyingKeyJSONSHA256Hex != vkJSONHash {
 			return fmt.Errorf("circuit metadata does not bind verifying_key.json")
 		}
-		receipt := fvProofReceipt{
-			SchemaVersion:               3,
-			Circuit:                     *circuit,
-			WitnessFormatVersion:        witnessVersion,
-			WitnessSHA256Hex:            fmt.Sprintf("%x", witnessHash[:]),
-			SR1CSSHA256Hex:              fmt.Sprintf("%x", sum[:]),
-			ConstraintManifestSHA256Hex: manifestHash,
-			CircuitMetadataSHA256Hex:    metadataHash,
-			ProvingKeySHA256Hex:         pkHash,
-			VerifyingKeyBinarySHA256Hex: vkBinaryHash,
-			VerifyingKeyJSONSHA256Hex:   vkJSONHash,
-			NbConstraints:               manifest.NbConstraints,
-			NbPublicVariables:           manifest.NbPublic,
-			NbSecretVariables:           manifest.NbSecret,
-			ProvedAndVerifiedInProcess:  true,
+
+		receipts := make([]fvProofReceipt, 0, len(witnessPaths))
+		for index, witnessPath := range witnessPaths {
+			proofCase := proofCases[index]
+			payload, err := os.ReadFile(witnessPath)
+			if err != nil {
+				return fmt.Errorf("%s: read witness: %w", proofCase, err)
+			}
+			assignment, _, err := witnessAssignment(*circuit, payload)
+			if err != nil {
+				return fmt.Errorf("%s: %w", proofCase, err)
+			}
+			witnessVersion, err := witnessFormatVersion(payload)
+			if err != nil {
+				return fmt.Errorf("%s: %w", proofCase, err)
+			}
+			fullWitness, err := frontend.NewWitness(assignment, primitives.ScalarField())
+			if err != nil {
+				return fmt.Errorf("%s: full witness: %w", proofCase, err)
+			}
+			if err := ccs.IsSolved(fullWitness); err != nil {
+				return fmt.Errorf("%s: solve failed: %w", proofCase, err)
+			}
+			publicWitness, err := fullWitness.Public()
+			if err != nil {
+				return fmt.Errorf("%s: public witness: %w", proofCase, err)
+			}
+			proof, err := groth16.Prove(ccs, pk, fullWitness)
+			if err != nil {
+				return fmt.Errorf("%s: prove: %w", proofCase, err)
+			}
+			if err := groth16.Verify(proof, vk, publicWitness); err != nil {
+				return fmt.Errorf("%s: verify: %w", proofCase, err)
+			}
+			witnessHash := sha256.Sum256(payload)
+			receipts = append(receipts, fvProofReceipt{
+				SchemaVersion:               4,
+				Circuit:                     *circuit,
+				ProofCase:                   proofCase,
+				WitnessFormatVersion:        witnessVersion,
+				WitnessSHA256Hex:            fmt.Sprintf("%x", witnessHash[:]),
+				SR1CSSHA256Hex:              fmt.Sprintf("%x", sum[:]),
+				ConstraintManifestSHA256Hex: manifestHash,
+				CircuitMetadataSHA256Hex:    metadataHash,
+				SetupProvenanceSHA256Hex:    setupProvenanceHash,
+				ProvingKeySHA256Hex:         pkHash,
+				VerifyingKeyBinarySHA256Hex: vkBinaryHash,
+				VerifyingKeyJSONSHA256Hex:   vkJSONHash,
+				NbConstraints:               manifest.NbConstraints,
+				NbPublicVariables:           manifest.NbPublic,
+				NbSecretVariables:           manifest.NbSecret,
+				ProvedAndVerifiedInProcess:  true,
+			})
 		}
-		if err := writeJSONFile(*proofReceiptPath, receipt); err != nil {
-			return fmt.Errorf("write proof receipt: %w", err)
+		for index, receipt := range receipts {
+			if err := writeJSONFile(proofReceiptPaths[index], receipt); err != nil {
+				return fmt.Errorf("%s: write proof receipt: %w", receipt.ProofCase, err)
+			}
+			fmt.Fprintf(os.Stderr, "deployed keys prove-verify ok for %s/%s\n", *circuit, receipt.ProofCase)
 		}
-		fmt.Fprintf(os.Stderr, "deployed keys prove-verify ok for %s\n", *circuit)
-	} else if *proofReceiptPath != "" {
-		return fmt.Errorf("--proof-receipt-out requires --prove")
 	}
 	fmt.Fprintf(os.Stderr, "wrote FV artifacts for %s (constraints %d)\n", *circuit, manifest.NbConstraints)
 	return nil
+}
+
+func validateFVProofJobFlags(
+	prove bool,
+	artifactDir string,
+	proofCases []string,
+	witnessPaths []string,
+	proofReceiptPaths []string,
+) error {
+	if !prove {
+		if artifactDir != "" || len(proofCases) != 0 || len(witnessPaths) != 0 || len(proofReceiptPaths) != 0 {
+			return fmt.Errorf("--artifact-dir and proof-job flags require --prove")
+		}
+		return nil
+	}
+	if artifactDir == "" || len(witnessPaths) == 0 {
+		return fmt.Errorf("--artifact-dir and at least one proof job are required with --prove")
+	}
+	if len(proofCases) != len(witnessPaths) || len(proofReceiptPaths) != len(witnessPaths) {
+		return fmt.Errorf(
+			"--proof-case, --witness, and --proof-receipt-out must have equal nonzero counts",
+		)
+	}
+	seenCases := make(map[string]struct{}, len(proofCases))
+	seenWitnesses := make(map[string]struct{}, len(witnessPaths))
+	seenReceipts := make(map[string]struct{}, len(proofReceiptPaths))
+	for index := range witnessPaths {
+		if !isLowerSnakeIdentifier(proofCases[index]) {
+			return fmt.Errorf("invalid proof case %q", proofCases[index])
+		}
+		if _, exists := seenCases[proofCases[index]]; exists {
+			return fmt.Errorf("duplicate proof case %q", proofCases[index])
+		}
+		if _, exists := seenWitnesses[witnessPaths[index]]; exists {
+			return fmt.Errorf("duplicate witness path %q", witnessPaths[index])
+		}
+		if _, exists := seenReceipts[proofReceiptPaths[index]]; exists {
+			return fmt.Errorf("duplicate proof receipt path %q", proofReceiptPaths[index])
+		}
+		seenCases[proofCases[index]] = struct{}{}
+		seenWitnesses[witnessPaths[index]] = struct{}{}
+		seenReceipts[proofReceiptPaths[index]] = struct{}{}
+	}
+	return nil
+}
+
+func isLowerSnakeIdentifier(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, character := range value {
+		if (character < 'a' || character > 'z') &&
+			(character < '0' || character > '9') &&
+			character != '_' {
+			return false
+		}
+	}
+	return true
 }
 
 func compileCircuitForFV(circuit string) (constraint.ConstraintSystem, *circuits.ConstraintManifest, error) {
@@ -344,6 +468,8 @@ func runExportManifest(args []string) error {
 		manifest, err = circuits.ExportNoteReshapeConstraintManifest(family.Label, family.NIn, family.NOut, *sr1csPath)
 	} else if *circuit == "transfer" {
 		manifest, err = circuits.ExportTransferConstraintManifest(*sr1csPath)
+	} else if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); ok {
+		manifest, err = circuits.ExportShieldedIcs20WithdrawalConstraintManifest(*sr1csPath)
 	} else {
 		return fmt.Errorf("unsupported constraint manifest circuit %q", *circuit)
 	}
@@ -580,50 +706,115 @@ func runSetup(args []string) error {
 	fs := flag.NewFlagSet("setup", flag.ContinueOnError)
 	circuit := fs.String("circuit", "", "transferNxM, note reshape, or shielded-ics20-withdrawal family label")
 	outDir := fs.String("out-dir", "", "output directory")
+	reuseExistingKeys := fs.Bool(
+		"reuse-existing-keys",
+		false,
+		"refresh metadata for a byte-identical SR1CS after proving with existing keys",
+	)
+	var proofCases repeatedStringFlag
+	var witnessPaths repeatedStringFlag
+	fs.Var(&proofCases, "proof-case", "canonical generation self-test case; repeat once per --witness")
+	fs.Var(&witnessPaths, "witness", "canonical generation self-test witness; repeat once per --proof-case")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if *circuit == "" || *outDir == "" {
 		return fmt.Errorf("--circuit and --out-dir are required")
 	}
+	if err := validateSetupSelfTestFlags(proofCases, witnessPaths); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(*outDir, 0o755); err != nil {
 		return fmt.Errorf("create output dir: %w", err)
 	}
+	stageDir, err := os.MkdirTemp(*outDir, ".setup-")
+	if err != nil {
+		return fmt.Errorf("create setup staging dir: %w", err)
+	}
+	defer os.RemoveAll(stageDir)
 
 	ccs, compileMS, err := compileCircuit(*circuit)
 	if err != nil {
 		return err
 	}
 
-	setupStart := time.Now()
-	pkIface, vkIface, err := groth16.Setup(ccs)
-	if err != nil {
-		return fmt.Errorf("setup: %w", err)
-	}
-	setupMS := time.Since(setupStart).Seconds() * 1000
-
-	pk := pkIface.(*groth16bls.ProvingKey)
-	vk := vkIface.(*groth16bls.VerifyingKey)
-
-	pkPath := filepath.Join(*outDir, "proving_key.bin")
-	if err := writePK(pkPath, pk); err != nil {
-		return err
-	}
-	vkPath := filepath.Join(*outDir, "verifying_key.bin")
-	if err := writeVK(vkPath, vk); err != nil {
-		return err
-	}
-	vkJSONPath := filepath.Join(*outDir, "verifying_key.json")
-	if err := artifacts.WriteJSON(vkJSONPath, artifacts.EncodeVerifyingKeyJSON(vk)); err != nil {
-		return fmt.Errorf("write verifying key json: %w", err)
-	}
+	sr1csPath := filepath.Join(stageDir, *circuit+".sr1cs")
 	if instance, ok := gadgetCircuit(*circuit); ok {
-		err = artifacts.WriteConstraintSystem(filepath.Join(*outDir, *circuit+".sr1cs"), ccs, instance)
+		err = artifacts.WriteConstraintSystem(sr1csPath, ccs, instance)
 	} else {
-		err = artifacts.WriteConstraintSystem(filepath.Join(*outDir, *circuit+".sr1cs"), ccs)
+		err = artifacts.WriteConstraintSystem(sr1csPath, ccs)
 	}
 	if err != nil {
 		return fmt.Errorf("write constraint system: %w", err)
+	}
+
+	var pk *groth16bls.ProvingKey
+	var vk *groth16bls.VerifyingKey
+	setupMS := 0.0
+	mode := "fresh_setup"
+	pkPath := filepath.Join(stageDir, "proving_key.bin")
+	vkPath := filepath.Join(stageDir, "verifying_key.bin")
+	vkJSONPath := filepath.Join(stageDir, "verifying_key.json")
+	if *reuseExistingKeys {
+		mode = "reused_existing_keys"
+		deployedSR1CSPath := filepath.Join(*outDir, *circuit+".sr1cs")
+		equal, err := filesEqual(sr1csPath, deployedSR1CSPath)
+		if err != nil {
+			return fmt.Errorf("compare compiled and deployed SR1CS: %w", err)
+		}
+		if !equal {
+			return fmt.Errorf(
+				"--reuse-existing-keys requires compiled SR1CS bytes to equal %s",
+				deployedSR1CSPath,
+			)
+		}
+		pkPath = filepath.Join(*outDir, "proving_key.bin")
+		vkPath = filepath.Join(*outDir, "verifying_key.bin")
+		vkJSONPath = filepath.Join(*outDir, "verifying_key.json")
+		pk, _, err = loadPK(pkPath)
+		if err != nil {
+			return fmt.Errorf("load existing proving key: %w", err)
+		}
+		vk, _, err = loadVK(vkPath)
+		if err != nil {
+			return fmt.Errorf("load existing verifying key: %w", err)
+		}
+		if err := validateVerifyingKeyJSON(vkJSONPath, vk); err != nil {
+			return fmt.Errorf("validate existing verifying key JSON: %w", err)
+		}
+	} else {
+		setupStart := time.Now()
+		pkIface, vkIface, err := groth16.Setup(ccs)
+		if err != nil {
+			return fmt.Errorf("setup: %w", err)
+		}
+		setupMS = time.Since(setupStart).Seconds() * 1000
+		pk = pkIface.(*groth16bls.ProvingKey)
+		vk = vkIface.(*groth16bls.VerifyingKey)
+		if err := writePK(pkPath, pk); err != nil {
+			return err
+		}
+		if err := writeVK(vkPath, vk); err != nil {
+			return err
+		}
+		if err := artifacts.WriteJSON(
+			vkJSONPath,
+			artifacts.EncodeVerifyingKeyJSON(vk),
+		); err != nil {
+			return fmt.Errorf("write verifying key json: %w", err)
+		}
+	}
+
+	generationSelfTests, err := runSetupSelfTests(
+		ccs,
+		pk,
+		vk,
+		*circuit,
+		proofCases,
+		witnessPaths,
+	)
+	if err != nil {
+		return err
 	}
 
 	pkSize, err := artifacts.FileSize(pkPath)
@@ -635,41 +826,215 @@ func runSetup(args []string) error {
 		return fmt.Errorf("stat verifying key: %w", err)
 	}
 
-	metadata := artifacts.CircuitMetadataJSON{
-		Schema:           artifacts.CircuitMetadataSchema,
-		Curve:            "bls12-377",
-		Circuit:          *circuit,
-		ProvingKeySize:   pkSize,
-		VerifyingKeySize: vkSize,
+	sr1csHash, err := artifacts.SHA256HexFile(sr1csPath)
+	if err != nil {
+		return fmt.Errorf("hash constraint system: %w", err)
 	}
-	artifacts.FillCircuitMetadataShape(&metadata, ccs)
-	metadata.ProvingKeySHA256Hex, err = artifacts.SHA256HexFile(pkPath)
+	pkHash, err := artifacts.SHA256HexFile(pkPath)
 	if err != nil {
 		return fmt.Errorf("hash proving key: %w", err)
 	}
-	metadata.VerifyingKeyBinarySHA256Hex, err = artifacts.SHA256HexFile(vkPath)
+	vkBinaryHash, err := artifacts.SHA256HexFile(vkPath)
 	if err != nil {
 		return fmt.Errorf("hash verifying key binary: %w", err)
 	}
-	metadata.VerifyingKeyJSONSHA256Hex, err = artifacts.SHA256HexFile(vkJSONPath)
+	vkJSONHash, err := artifacts.SHA256HexFile(vkJSONPath)
 	if err != nil {
 		return fmt.Errorf("hash verifying key json: %w", err)
 	}
-	if err := artifacts.WriteJSON(filepath.Join(*outDir, "circuit_metadata.json"), metadata); err != nil {
+
+	provenance := setupProvenance{
+		Schema:                      setupProvenanceSchema,
+		Curve:                       "bls12-377",
+		Circuit:                     *circuit,
+		Mode:                        mode,
+		SR1CSSHA256Hex:              sr1csHash,
+		ProvingKeySHA256Hex:         pkHash,
+		VerifyingKeyBinarySHA256Hex: vkBinaryHash,
+		VerifyingKeyJSONSHA256Hex:   vkJSONHash,
+		GenerationSelfTests:         generationSelfTests,
+		SetupTranscript:             "not_recorded",
+		ToxicWasteErasure:           "not_mechanically_verified",
+	}
+	provenancePath := filepath.Join(stageDir, "setup_provenance.json")
+	if err := artifacts.WriteJSON(provenancePath, provenance); err != nil {
+		return fmt.Errorf("write setup provenance: %w", err)
+	}
+	provenanceHash, err := artifacts.SHA256HexFile(provenancePath)
+	if err != nil {
+		return fmt.Errorf("hash setup provenance: %w", err)
+	}
+
+	metadata := artifacts.CircuitMetadataJSON{
+		Schema:                      artifacts.CircuitMetadataSchema,
+		Curve:                       "bls12-377",
+		Circuit:                     *circuit,
+		ProvingKeySize:              pkSize,
+		VerifyingKeySize:            vkSize,
+		SR1CSSHA256Hex:              sr1csHash,
+		SetupProvenanceSHA256Hex:    provenanceHash,
+		ProvingKeySHA256Hex:         pkHash,
+		VerifyingKeyBinarySHA256Hex: vkBinaryHash,
+		VerifyingKeyJSONSHA256Hex:   vkJSONHash,
+	}
+	artifacts.FillCircuitMetadataShape(&metadata, ccs)
+	metadataPath := filepath.Join(stageDir, "circuit_metadata.json")
+	if err := artifacts.WriteJSON(metadataPath, metadata); err != nil {
 		return fmt.Errorf("write circuit metadata: %w", err)
+	}
+
+	// Metadata is the publication marker and is replaced last. Reuse mode
+	// leaves the exact deployed SR1CS and key bytes untouched.
+	publishNames := []string{"setup_provenance.json", "circuit_metadata.json"}
+	if !*reuseExistingKeys {
+		publishNames = []string{
+			*circuit + ".sr1cs",
+			"proving_key.bin",
+			"verifying_key.bin",
+			"verifying_key.json",
+			"setup_provenance.json",
+			"circuit_metadata.json",
+		}
+	}
+	for _, name := range publishNames {
+		if err := publishSetupArtifact(
+			filepath.Join(stageDir, name),
+			filepath.Join(*outDir, name),
+		); err != nil {
+			return fmt.Errorf("publish setup artifact %s: %w", name, err)
+		}
 	}
 
 	fmt.Fprintf(
 		os.Stderr,
-		"wrote %s/%s (compile %.2fms, setup %.2fms, pk %d bytes, vk %d bytes)\n",
+		"wrote %s/%s (mode %s, compile %.2fms, setup %.2fms, generation self-tests %d, pk %d bytes, vk %d bytes)\n",
 		*outDir,
 		*circuit,
+		mode,
 		compileMS,
 		setupMS,
+		len(generationSelfTests),
 		pkSize,
 		vkSize,
 	)
 	return nil
+}
+
+func validateSetupSelfTestFlags(proofCases, witnessPaths []string) error {
+	if len(proofCases) == 0 || len(proofCases) != len(witnessPaths) {
+		return fmt.Errorf(
+			"--proof-case and --witness must have equal nonzero counts",
+		)
+	}
+	seenCases := make(map[string]struct{}, len(proofCases))
+	seenWitnesses := make(map[string]struct{}, len(witnessPaths))
+	for index := range proofCases {
+		if !isLowerSnakeIdentifier(proofCases[index]) {
+			return fmt.Errorf("invalid proof case %q", proofCases[index])
+		}
+		if _, exists := seenCases[proofCases[index]]; exists {
+			return fmt.Errorf("duplicate proof case %q", proofCases[index])
+		}
+		if _, exists := seenWitnesses[witnessPaths[index]]; exists {
+			return fmt.Errorf("duplicate witness path %q", witnessPaths[index])
+		}
+		seenCases[proofCases[index]] = struct{}{}
+		seenWitnesses[witnessPaths[index]] = struct{}{}
+	}
+	return nil
+}
+
+func runSetupSelfTests(
+	ccs constraint.ConstraintSystem,
+	pk *groth16bls.ProvingKey,
+	vk *groth16bls.VerifyingKey,
+	circuit string,
+	proofCases, witnessPaths []string,
+) ([]setupGenerationSelfTest, error) {
+	tests := make([]setupGenerationSelfTest, 0, len(proofCases))
+	for index, proofCase := range proofCases {
+		payload, err := os.ReadFile(witnessPaths[index])
+		if err != nil {
+			return nil, fmt.Errorf("%s: read setup witness: %w", proofCase, err)
+		}
+		assignment, _, err := witnessAssignment(circuit, payload)
+		if err != nil {
+			return nil, fmt.Errorf("%s: decode setup witness: %w", proofCase, err)
+		}
+		witnessVersion, err := witnessFormatVersion(payload)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", proofCase, err)
+		}
+		fullWitness, err := frontend.NewWitness(assignment, primitives.ScalarField())
+		if err != nil {
+			return nil, fmt.Errorf("%s: construct setup witness: %w", proofCase, err)
+		}
+		if err := ccs.IsSolved(fullWitness); err != nil {
+			return nil, fmt.Errorf("%s: setup witness is unsatisfied: %w", proofCase, err)
+		}
+		publicWitness, err := fullWitness.Public()
+		if err != nil {
+			return nil, fmt.Errorf("%s: public setup witness: %w", proofCase, err)
+		}
+		proof, err := groth16.Prove(ccs, pk, fullWitness)
+		if err != nil {
+			return nil, fmt.Errorf("%s: setup self-test prove: %w", proofCase, err)
+		}
+		if err := groth16.Verify(proof, vk, publicWitness); err != nil {
+			return nil, fmt.Errorf("%s: setup self-test verify: %w", proofCase, err)
+		}
+		witnessHash := sha256.Sum256(payload)
+		tests = append(tests, setupGenerationSelfTest{
+			ProofCase:                  proofCase,
+			WitnessFormatVersion:       witnessVersion,
+			WitnessSHA256Hex:           fmt.Sprintf("%x", witnessHash[:]),
+			ProvedAndVerifiedInProcess: true,
+		})
+	}
+	return tests, nil
+}
+
+func filesEqual(first, second string) (bool, error) {
+	firstBytes, err := os.ReadFile(first)
+	if err != nil {
+		return false, err
+	}
+	secondBytes, err := os.ReadFile(second)
+	if err != nil {
+		return false, err
+	}
+	return bytes.Equal(firstBytes, secondBytes), nil
+}
+
+func validateVerifyingKeyJSON(path string, vk *groth16bls.VerifyingKey) error {
+	want, err := artifacts.EncodeCanonicalJSON(
+		artifacts.EncodeVerifyingKeyJSON(vk),
+	)
+	if err != nil {
+		return err
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	parsed, err := artifacts.DecodeCanonicalVerifyingKeyJSON(raw)
+	if err != nil {
+		return err
+	}
+	got, err := artifacts.EncodeCanonicalJSON(parsed)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(want, got) {
+		return fmt.Errorf(
+			"verifying_key.json does not encode the same key as verifying_key.bin",
+		)
+	}
+	return nil
+}
+
+func publishSetupArtifact(source, target string) error {
+	return os.Rename(source, target)
 }
 
 func runProve(args []string) error {
@@ -852,7 +1217,7 @@ func runReplay(args []string) error {
 	switch *circuit {
 	default:
 		if _, ok := generated.TransferFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewTransferCircuitAssignmentFromWitnessV11(payload)
+			assignment, _, err = abi.NewTransferCircuitAssignmentFromWitnessV16(payload)
 			if err != nil {
 				return err
 			}
@@ -868,7 +1233,7 @@ func runReplay(args []string) error {
 			break
 		}
 		if family, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(*circuit); ok {
-			assignment, _, err = abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV6(payload)
+			assignment, _, err = abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV8(payload)
 			if err != nil {
 				return err
 			}
@@ -1148,15 +1513,15 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 	switch circuit {
 	default:
 		if _, ok := generated.TransferFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeTransferWitnessV11(witnessPayload)
+			decoded, _, err := abi.DecodeTransferWitnessV16(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			statementFields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV11(decoded)
+			statementFields, err := abi.ReconstructedTransferStatementFieldsFromWitnessV16(decoded)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV11(witnessPayload)
+			assignment, _, err := abi.NewTransferCircuitAssignmentFromWitnessV16(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(statementFields),
@@ -1178,15 +1543,15 @@ func witnessAssignment(circuit string, witnessPayload []byte) (frontend.Circuit,
 			}, err
 		}
 		if _, ok := generated.ShieldedIcs20WithdrawalFamilyByLabel(circuit); ok {
-			decoded, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV6(witnessPayload)
+			decoded, _, err := abi.DecodeShieldedIcs20WithdrawalWitnessV8(witnessPayload)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			statementFields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV6(decoded)
+			statementFields, err := abi.ReconstructedShieldedIcs20WithdrawalStatementFieldsFromWitnessV8(decoded)
 			if err != nil {
 				return nil, witnessSummary{}, err
 			}
-			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV6(witnessPayload)
+			assignment, _, err := abi.NewShieldedIcs20WithdrawalCircuitAssignmentFromWitnessV8(witnessPayload)
 			return assignment, witnessSummary{
 				ClaimedStatementHash: primitives.LittleEndianBytesToBigInt(decoded.ClaimedStatementHash[:]).String(),
 				StatementFields:      vec32Strings(statementFields),

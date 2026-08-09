@@ -17,8 +17,16 @@ use crate::{
 use super::NoteReshapeFamilyId;
 
 impl NoteReshapeFamilyId {
+    pub fn deployed_proof_key(self) -> shieldd_sdk_proof_params::DeployedProofKey {
+        match self.get() {
+            2 => shieldd_sdk_proof_params::DeployedProofKey::NoteReshapeOneByEight,
+            3 => shieldd_sdk_proof_params::DeployedProofKey::NoteReshapeEightByOne,
+            unknown => panic!("validated note reshape family has unknown id {unknown}"),
+        }
+    }
+
     pub fn proof_verification_key(self) -> &'static PreparedVerifyingKey<Bls12_377> {
-        shieldd_sdk_proof_params::note_reshape_proof_verification_key(self.get())
+        self.deployed_proof_key().bundled_pvk()
     }
 
     pub fn proving_key_bytes(self) -> &'static [u8] {
@@ -270,6 +278,16 @@ mod tests {
     use crate::{note_reshape::NoteReshapeFamilyId, test_proof_helpers::proof_test_helpers};
 
     #[test]
+    fn note_reshape_deployed_key_mapping_matches_generated_registry_for_every_family() {
+        for family in NoteReshapeFamilyId::ALL {
+            assert!(std::ptr::eq(
+                family.deployed_proof_key().bundled_pvk(),
+                shieldd_sdk_proof_params::note_reshape_proof_verification_key(family.get()),
+            ));
+        }
+    }
+
+    #[test]
     fn note_reshape_proof_public_shape_rejects_wrong_input_and_output_shapes() {
         for family_id in NoteReshapeFamilyId::ALL {
             let (mut public, _) =
@@ -294,7 +312,12 @@ mod tests {
 
     #[cfg(any(unix, windows))]
     fn should_skip_note_reshape_proof_roundtrip() -> bool {
+        let evidence_required = std::env::var_os("SHIELDD_FV_EVIDENCE_REQUIRED").is_some();
         if cfg!(debug_assertions) {
+            assert!(
+                !evidence_required,
+                "FV proof evidence requires a release build"
+            );
             eprintln!(
                 "skipping note_reshape GNARK proof roundtrip in debug builds; use `cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys note_reshape_fresh_fixture_proof_roundtrip --lib` for real proving"
             );
@@ -309,6 +332,10 @@ mod tests {
             .into_iter()
             .all(|family_id| !family_id.proving_key_bytes().is_empty());
         if !has_library || !has_proving_keys {
+            assert!(
+                !evidence_required,
+                "FV proof evidence requires the bundled prover transport and every proving key"
+            );
             eprintln!(
                 "skipping note_reshape GNARK proof roundtrip: no bundled or external prover transport is available"
             );

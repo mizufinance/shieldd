@@ -27,25 +27,25 @@ def segmentPath (sigma : Nat → F) : NoteReshapeCanonical.Path24 :=
 
 theorem pathSibling_segmentPath0
     (sigma : Nat → F) (level : Nat) (hlevel : level < 24) :
-    Protocol.NoteReshape.Concrete.pathSibling (segmentPath sigma) level 0 =
+    Protocol.Common.pathSibling (segmentPath sigma) level 0 =
       sigma (285 + 363 * level) := by
-  unfold Protocol.NoteReshape.Concrete.pathSibling
+  unfold Protocol.Common.pathSibling
   rw [dif_pos hlevel, dif_pos (by decide : 0 < 3)]
   rfl
 
 theorem pathSibling_segmentPath1
     (sigma : Nat → F) (level : Nat) (hlevel : level < 24) :
-    Protocol.NoteReshape.Concrete.pathSibling (segmentPath sigma) level 1 =
+    Protocol.Common.pathSibling (segmentPath sigma) level 1 =
       sigma (287 + 363 * level) := by
-  unfold Protocol.NoteReshape.Concrete.pathSibling
+  unfold Protocol.Common.pathSibling
   rw [dif_pos hlevel, dif_pos (by decide : 1 < 3)]
   rfl
 
 theorem pathSibling_segmentPath2
     (sigma : Nat → F) (level : Nat) (hlevel : level < 24) :
-    Protocol.NoteReshape.Concrete.pathSibling (segmentPath sigma) level 2 =
+    Protocol.Common.pathSibling (segmentPath sigma) level 2 =
       sigma (290 + 363 * level) := by
-  unfold Protocol.NoteReshape.Concrete.pathSibling
+  unfold Protocol.Common.pathSibling
   rw [dif_pos hlevel, dif_pos (by decide : 2 < 3)]
   rfl
 
@@ -66,11 +66,11 @@ theorem recoverPrefix_segmentPath
     Deployed.StateCommitmentPathChoiceFree.recoverPrefix
         Poseidon4Bridge.permSpec4 domain leaf
         (fun k =>
-          Protocol.NoteReshape.Concrete.pathSibling (segmentPath sigma) k 0)
+          Protocol.Common.pathSibling (segmentPath sigma) k 0)
         (fun k =>
-          Protocol.NoteReshape.Concrete.pathSibling (segmentPath sigma) k 1)
+          Protocol.Common.pathSibling (segmentPath sigma) k 1)
         (fun k =>
-          Protocol.NoteReshape.Concrete.pathSibling (segmentPath sigma) k 2)
+          Protocol.Common.pathSibling (segmentPath sigma) k 2)
         b0 b1 level =
       Deployed.StateCommitmentPathChoiceFree.recoverPrefix
         Poseidon4Bridge.permSpec4 domain leaf
@@ -102,7 +102,7 @@ theorem stateRecover_segmentPath_eq_deployed
     (b0 b1 : Nat → F)
     (level : Nat)
     (hlevel : level < 24) :
-    Protocol.NoteReshape.Concrete.stateCommitmentRecover
+    Protocol.Common.stateCommitmentRecover
         commitment (segmentPath sigma) b0 b1 level =
       Deployed.StateCommitmentPathChoiceFree.recoverPrefix
         Poseidon4Bridge.permSpec4
@@ -169,11 +169,11 @@ theorem member_of_state_spec
     simp only [
       b0,
       b1,
-      Protocol.NoteReshape.Concrete.statePositionFromBits
+      Protocol.Common.statePositionFromBits
     ]
     ring
   · rw [hanchor, hcommitment, hpath]
-    unfold Protocol.NoteReshape.Concrete.stateCommitmentRoot
+    unfold Protocol.Common.stateCommitmentRoot
     rw [
       stateRecover_segmentPath_eq_deployed
         sigma (sigma 1) b0 b1 23 (by decide)

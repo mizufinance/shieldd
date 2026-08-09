@@ -1,6 +1,7 @@
-import json, pathlib, re
+import pathlib, re
 from textwrap import indent
 
+from formal_json import read_json_object
 from lean_zmod_instances import INSTANCE_BLOCK, normalize_choice_free_zmod_file
 
 HERE = pathlib.Path(__file__).resolve().parent           # tools/gnark/lean/gen
@@ -10,7 +11,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 DEPLOYED_BRIDGE = ROOT/'tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteCommitmentDeployedBridge.lean'
 normalize_choice_free_zmod_file(DEPLOYED_BRIDGE)
 
-data = json.load(open(HERE/'gendata.json'))
+data = read_json_object(HERE / "gendata.json", canonical="compact")
 Order = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 MOD = "Shieldd.GnarkFormal.Extracted.Deployed.GadgetNoteCommitmentWithOutput431_7f228e.Order"
 Dlit = 1434889507249773667048406511864487084155637425201771740895788105903307238157

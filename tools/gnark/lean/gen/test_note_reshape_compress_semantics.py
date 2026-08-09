@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import copy
 import sys
 import unittest
 from dataclasses import replace
 from pathlib import Path
+from unittest import mock
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -52,7 +54,7 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
             self.assertIn(f"def inputY (rho : Nat → F) : F :=\n  {gen._coordinate_operand(family, rows[1])}", base)
             self.assertIn("| 0 => commonOne.one", base)
             self.assertNotRegex(base, r"theorem .*flat|theorem .*structured")
-        simple = gen.FAMILIES[0]
+        simple = gen.FAMILIES[2]
         simple_rows = gen._rows(gen._relation_source(simple))
         self.assertEqual(
             gen._coordinate_operand(simple, simple_rows[0]),
@@ -109,20 +111,119 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
             )
             self.assertIn("\nend ChoiceFreeProof\n", rows0)
 
-    def test_large_coordinates_use_exact_normalized_operands_without_a_bridge(self) -> None:
+    def test_cb894_coordinates_and_head_mapping_are_exact(self) -> None:
         family = gen.FAMILIES[1]
         source = gen._relation_source(family)
         rows = gen._rows(source)
         x, y = gen._first_operand(rows[0]), gen._first_operand(rows[1])
-        self.assertEqual(x, "(1 : F) * rho 1")
-        self.assertEqual(y, "(1 : F) * rho 3")
-        self.assertIn("((1 : F) * rho 1) * ((1 : F) * rho 1)", rows[0])
-        self.assertIn("((1 : F) * rho 3) * ((1 : F) * rho 3)", rows[1])
+        self.assertEqual(
+            x, "(1 : F) * rho 1 + (1 : F) * rho 2"
+        )
+        self.assertEqual(
+            y, "(1 : F) * rho 4 + (1 : F) * rho 5"
+        )
+        self.assertIn(f"({x}) * ({x})", rows[0])
+        self.assertIn(f"({y}) * ({y})", rows[1])
         self.assertEqual(source.count("def relationLc"), 18)
+        self.assertEqual(
+            family.head_mapping,
+            (
+                3, 6, 7, 8, 9, 10, 11, 12, 17, 14, 13,
+                15, 16, 18, 19, 20, 21, 22, 23, 24, 25,
+            ),
+        )
+        mapping = gen._wire_mapping(family)
+        self.assertEqual((mapping[231], mapping[912]), (26, 707))
         base = self.outputs[gen.OUT / f"{family.name}Base.lean"]
         self.assertNotIn("flatX", base)
         self.assertNotIn("flatY", base)
         self.assertNotIn("unfold " + family.relation_namespace + ".relationLc", base)
+
+    def test_active_key_and_instance_rosters_fail_closed(self) -> None:
+        self.assertEqual(
+            {family.key for family in gen.FAMILIES},
+            {
+                "decaf.compress_to_field@231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb",
+                "decaf.compress_to_field@cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46",
+                "decaf.compress_to_field@f3cbec6d6a96bb84fc29e09f85870099785fe782098cecfd46860cf9527d762e",
+            },
+        )
+        self.assertNotIn(
+            "134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2",
+            "\n".join(family.key for family in gen.FAMILIES),
+        )
+        inventory = gen.read_json_object(
+            gen.INVENTORY, canonical="pretty"
+        )
+        gen._validate_inventory_payload(inventory)
+
+        missing = copy.deepcopy(inventory)
+        missing["templates"] = [
+            entry
+            for entry in missing["templates"]
+            if entry.get("template_key") != gen.FAMILIES[1].key
+        ]
+        with self.assertRaisesRegex(ValueError, "key roster drifted"):
+            gen._validate_inventory_payload(missing)
+
+        wrong_instance = copy.deepcopy(inventory)
+        entry = next(
+            item
+            for item in wrong_instance["templates"]
+            if item.get("template_key") == gen.FAMILIES[1].key
+        )
+        entry["instances"][2]["segment_index"] += 1
+        with self.assertRaisesRegex(ValueError, "instances drifted"):
+            gen._validate_inventory_payload(wrong_instance)
+
+    def test_full_canonical_row_parity_fails_closed(self) -> None:
+        gen._validate_normalized_layouts()
+        original_rows = gen.canonical.rows
+        cb_digest = gen.FAMILIES[1].key.split("@", 1)[1]
+
+        def mutated_rows(digest: str):
+            rows = original_rows(digest)
+            if digest == cb_digest:
+                rows = copy.deepcopy(rows)
+                rows[1045][2][707] = 2
+            return rows
+
+        with mock.patch.object(
+            gen.canonical, "rows", side_effect=mutated_rows
+        ):
+            with self.assertRaisesRegex(
+                ValueError, "1,046-row layout drifted at row 1045"
+            ):
+                gen._validate_normalized_layouts()
+
+    def test_active_ir_segment_roster_and_seating_fail_closed(self) -> None:
+        family = gen.FAMILIES[1]
+        representative = gen._segment(family)
+        self.assertEqual(representative["index"], 9)
+        seating = gen.SegmentTemplate.parse(
+            representative
+        ).canonical_wire_seating
+        self.assertEqual(len(seating), family.local_wire_count)
+
+        original_ir = gen._circuit_ir
+        mutated = copy.deepcopy(original_ir("note_reshape1x8"))
+        target = next(
+            segment
+            for segment in mutated["segments"]
+            if segment.get("proof_template_id") == family.key
+        )
+        target["index"] += 1
+
+        def circuit_ir(circuit: str):
+            if circuit == "note_reshape1x8":
+                return mutated
+            return original_ir(circuit)
+
+        with mock.patch.object(gen, "_circuit_ir", side_effect=circuit_ir):
+            with self.assertRaisesRegex(
+                ValueError, "active segment roster drifted"
+            ):
+                gen._segment(family)
 
     def test_binary_recomposition_is_family_neutral(self) -> None:
         path = gen.OUT / "BinaryRecomposition.lean"
@@ -148,6 +249,29 @@ class NoteReshapeCompressSemanticsTests(unittest.TestCase):
         broken = replace(family, head_mapping=(2,) * 21)
         with self.assertRaisesRegex(ValueError, "not injective"):
             gen._wire_mapping(broken)
+
+    def test_embedded_family_can_separate_semantic_and_relation_modules(self) -> None:
+        family = replace(
+            gen.FAMILIES[0],
+            semantic_name="TCompositeCompressSupport",
+            relation_name="TComposite",
+        )
+        self.assertEqual(family.semantic_stem, "TCompositeCompressSupport")
+        self.assertEqual(family.relation_stem, "TComposite")
+        self.assertTrue(family.namespace.endswith(".TCompositeCompressSupport"))
+        self.assertTrue(family.module.endswith(".TCompositeCompressSupport"))
+        self.assertTrue(family.relation_namespace.endswith(".TComposite"))
+        self.assertTrue(family.relation_module.endswith(".TComposite"))
+
+    def test_relation_rows_selects_a_fail_closed_contiguous_window(self) -> None:
+        source = "\n".join(
+            f"def relationRow{index} (rho : Nat -> F) : Prop :=\n"
+            f"((1 : F) * rho {index}) = ((1 : F) * rho {index})\n"
+            for index in range(4)
+        )
+        self.assertEqual(set(gen.relation_rows(source, 1, 2)), {1, 2})
+        with self.assertRaisesRegex(ValueError, "row window is incomplete"):
+            gen.relation_rows(source, 3, 2)
 
     def test_generated_bytes_are_deterministic(self) -> None:
         self.assertEqual(self.outputs, gen.generated_files())

@@ -1,16 +1,16 @@
 /*
  * transfer-statement-sufficiency.als — H2 statement-sufficiency model for the
- * transfer circuit's 83-field public statement.
+ * Transfer V16 circuit's 41-field public statement.
  *
- * This is the transfer twin of note_reshape2x1-statement-sufficiency.als. The
+ * This is the transfer twin of note_reshape-statement-sufficiency.als. The
  * value surface (groups A–D: anchor, output commitments, balance, nullifiers+rk)
  * mirrors NoteReshape structurally, but this hand-written model is not an exact
  * refinement proof for Transfer's R1CS. Transfer adds:
  *   - two outputs, one required input, and one optional dummy-capable input,
- *   - a regulated/compliance surface (groups E–I) gated on a private witness
+ *   - a regulated/compliance surface gated on a private witness
  *     `is_regulated`, which the asset-registry indexed-tree proof binds.
  *
- * The question: is the 83-field statement
+ * The question: is the 41-field statement
  * ENOUGH for the ledger to be safe against an adversary who can produce a valid
  * proof for ANY statement whose circuit relation is satisfiable? Same adversary
  * model as NoteReshape: Alloy's unconstrained instances mint arbitrary Accepted
@@ -19,12 +19,12 @@
  * KEY HONEST SCOPING: the
  * ledger-SAFETY assertions (NoDoubleSpend, NoInflation, SpendAuthBound,
  * RegulatedEnforced, DummyNonSpending) do NOT establish the soundness of the
- * compliance encryption, shared-secret, acknowledgement, DLEQ, or threshold
- * gadgets. Those gadgets
- * govern *regulator utility* — whether the emitted ciphertexts/DLEQ actually
- * decrypt/verify — which is a separate property tier. Transfer remains an FV
- * candidate with no exact coverage report or theorem root, so this model does
- * not certify either tier against the compiled constraint system.
+ * compliance encryption, shared-secret, acknowledgement, metadata, or
+ * threshold gadgets. Those gadgets govern *regulator utility* — whether the
+ * emitted ciphertexts decrypt consistently under the selected keys — which is
+ * a separate property tier. Transfer V16 has an exact Lean refinement for that
+ * compiled relation. This Alloy model remains a hand-written bounded analysis
+ * of ledger-safety composition and is not the source of that certification.
  *
  * Sources of truth (statement + circuit bindings):
  *   tools/gnark/internal/circuits/transfer_circuit.go
@@ -33,7 +33,7 @@
  *   tools/gnark/internal/compliance/canonical_fq_bits.go::AssetRegistryGap
  * Sources of truth (chain acceptance, Rust): shielded-pool transfer action
  *   handler + sct/nullifier_tree.rs::insert_batch (fail-closed), same as
- *   note_reshape2x1.als F2.
+ *   note_reshape-statement-sufficiency.als F2.
  *
  * Assumption-ledger rows this model rests on:
  *   ZK-ASSUME-IMT-LEAF-COMMIT       Poseidon leaf commit injective (nf/cm + asset registry)
@@ -59,15 +59,17 @@
  *   RegulatedEnforced— a regulated asset (in the registry) cannot be spent
  *                      without is_regulated set, so its compliance-tree
  *                      membership binds ComplianceAnchor (§5.1 gap closed).
- *   DummyNonSpending — a dummy input consumes no real note and its synthetic
- *                      nullifier cannot collide a real one (modeled below).
+ *   DummyNonSpending — a dummy input consumes no real note and, under the
+ *                      explicit cross-domain Poseidon collision-resistance
+ *                      idealization, its synthetic nullifier does not collide
+ *                      with a real one (modeled below).
  *
  * MODEL FIDELITY: the facts below are a HAND-WRITTEN
  * transcription of the circuit statement + Rust handler conjuncts — there is no
  * mechanical .als↔R1CS binding. Tracked as ledger row MODEL-ASSUME-ALLOY-FIDELITY
  * (assumption-ledger.md); mitigated by the file:symbol comments here, the
- * candidate profile's explicit null theorem/coverage roots and the Rust↔Go seam
- * test TestRustGoStatementFieldDifferential. It is useful bounded analysis, not
+ * exact V16 Lean theorem/coverage roots and the Rust↔Go seam test
+ * TestRustGoStatementFieldDifferential. It is useful bounded analysis, not
  * deployed-circuit certification.
  */
 
@@ -107,11 +109,11 @@ sig Registry {
   regulated: set Fq    // asset IDs present as exact-match leaves
 }
 
-// The 83 fields, grouped per buildTransferStatementFields. Only the fields the
-// ledger-safety assertions read are reified; the compliance-transcript fields
-// (F/G/H/I ciphertexts, DLEQ, tiers) are collapsed into `complianceAnchor` +
-// `assetAnchor` + `isRegulated`, since their gadget soundness is out of scope
-// for these assertions (see header).
+// The 41 V16 fields, grouped per buildTransferStatementFields. Only the fields
+// the ledger-safety assertions read are reified; detection/tier ciphertexts and
+// factored metadata are collapsed into `complianceAnchor` + `assetAnchor` +
+// `isRegulated`, since their exact gadget soundness is proved in Lean and is
+// out of scope for these Alloy assertions (see header).
 sig TransferStmt {
   anchor:           one Fq,     // A
   outCm1:           one Fq,     // B (nOut = 2)
@@ -149,12 +151,11 @@ fact DerivationInjective {
   all disj a, b: Note | Deriv.nf[a] != Deriv.nf[b]
   all disj a, b: Note | a.cm != b.cm
   all disj a, b: Note | a.ak != b.ak implies Deriv.rk[a.ak] != Deriv.rk[b.ak]
-  // Synthetic dummy nullifiers are DOMAIN-SEPARATED from real nullifiers: the
-  // syntheticDummyNullifier gadget (transfer_circuit.go:443) uses a distinct
-  // seed/domain, so its range is disjoint from the real nullifier map. This is
-  // exactly what makes a dummy input non-spending — its emitted nullifier field
-  // is never any real note's nf. Charged to
-  // ZK-ASSUME-TRANSFER-SYNTHETIC-NULLIFIER-DOMAIN.
+  // This fact IDEALIZES cross-domain collision resistance; domain separation
+  // alone does not make two finite hash ranges mathematically disjoint. The
+  // deployed syntheticDummyNullifier gadget uses a distinct domain, so finding
+  // an equality here is assumed computationally infeasible. Charged to
+  // ZK-ASSUME-SYNTHETIC-NULLIFIER-CROSS-DOMAIN-CR.
   all a, b: Note | Deriv.nf[a] != Deriv.snf[b]
 }
 
@@ -231,7 +232,8 @@ fact F1c_ComplianceEnforced {
 // ---------------------------------------------------------------------------
 // F2 — ChainAcceptance. Anchor validity + a fail-closed nullifier set over the
 // required and optional statement slots. A dummy optional slot inserts a
-// synthetic nullifier, whose range is distinct by construction.
+// synthetic nullifier; its separation from real nullifiers is the explicit
+// computational idealization in DerivationInjective.
 // ---------------------------------------------------------------------------
 fact F2_ChainAcceptance {
   all a: Accepted | some t: Chain.history | t.anchor = a.stmt.anchor
@@ -309,8 +311,9 @@ assert RegulatedEnforced {
       implies (one c: ComplianceBinding | c.subject = w.act)
 }
 
-// A dummy optional input is non-spending: its nullifier is never a real note's
-// nullifier, even if its synthetic note record aliases a real leaf.
+// A dummy optional input is non-spending under the modeled cross-domain
+// collision-resistance idealization, even if its synthetic note record aliases
+// a real leaf.
 assert DummyNonSpending {
   all w: Witness, n: Note |
     not isReal[w.in2] implies w.act.stmt.null2 != Deriv.nf[n]

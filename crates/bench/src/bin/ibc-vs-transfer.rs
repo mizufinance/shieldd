@@ -5,10 +5,8 @@ use anyhow::{Context, Result};
 use bytes::Bytes;
 use clap::Parser;
 use serde::Serialize;
-use sha2::Digest as _;
 use shieldd_sdk_app::app::{
-    candidate_digest_from_hashes, App, CandidateEnvelope, ExecutionBlockProfile,
-    PrepareProposalProfile, ProcessProposalProfile, ProposalArtifactSidecar,
+    App, ExecutionBlockProfile, PrepareProposalProfile, ProcessProposalProfile,
 };
 use shieldd_sdk_app::block_tx_indexing::BlockTxIndexingMode;
 use shieldd_sdk_bench_support::proof_txs::{
@@ -38,9 +36,6 @@ struct Args {
 
     #[clap(long)]
     rebuild_corpus: bool,
-
-    #[clap(long)]
-    segment_tx_count: Option<usize>,
 
     #[clap(
         long,
@@ -114,9 +109,6 @@ async fn main() -> Result<()> {
     let args = Args::parse();
     anyhow::ensure!(args.tx_count > 0, "--tx-count must be positive");
     anyhow::ensure!(args.runs > 0, "--runs must be positive");
-    if let Some(segment_tx_count) = args.segment_tx_count {
-        anyhow::ensure!(segment_tx_count > 0, "--segment-tx-count must be positive");
-    }
 
     let pool_dir = args
         .corpus_dir
@@ -235,21 +227,19 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
 
         let mut proposer = App::new(storage.latest_snapshot());
         proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
-        proposer.set_proposal_segment_tx_count(args.segment_tx_count);
         let prepare_request = prepare_request(txs);
         let prepare_start = Instant::now();
-        let (prepared, prepare_profile, sidecar) = proposer
-            .prepare_proposal_v2_profiled(prepare_request, None, true)
+        let (prepared, prepare_profile) = proposer
+            .prepare_proposal_v2_profiled_allow_oversized_for_bench(prepare_request, None)
             .await;
         let prepare_wall_ms = elapsed_ms(prepare_start);
-        let sidecar = sidecar.context("prepare proposal did not return an artifact sidecar")?;
-        let envelope = envelope_from_prepare_response(txs, &prepared, &sidecar)?;
+        ensure_prepare_preserved_user_txs(txs, &prepared)?;
 
-        let process_request = process_request_from_envelope(&envelope);
+        let process_request = process_request_from_prepare_response(&prepared);
         let mut validator = App::new(storage.latest_snapshot());
         let process_start = Instant::now();
         let (process_verdict, process_profile) = validator
-            .process_proposal_v2_profiled(process_request, None, Some(&sidecar), true)
+            .process_proposal_v2_profiled_allow_oversized_for_bench(process_request, None)
             .await;
         let process_wall_ms = elapsed_ms(process_start);
         anyhow::ensure!(
@@ -257,15 +247,16 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
             "process proposal rejected run {run_index}: {process_verdict:?}"
         );
 
-        let execution_envelope = execution_only_envelope(&envelope);
+        let execution_txs = prepared
+            .txs
+            .iter()
+            .map(|tx| tx.to_vec())
+            .collect::<Vec<_>>();
         let mut executor = App::new(storage.latest_snapshot());
         executor.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         let execute_start = Instant::now();
         let execution_profile = executor
-            .execute_validated_candidate_envelope_profiled(
-                &execution_envelope,
-                storage.as_ref().clone(),
-            )
+            .execute_block_profiled(&execution_txs, storage.as_ref().clone())
             .await
             .with_context(|| format!("executing run {run_index}"))?;
         let execute_wall_ms = elapsed_ms(execute_start);
@@ -274,8 +265,8 @@ async fn run_inner_transfer(args: &Args, txs: &[Vec<u8>]) -> Result<ScenarioRepo
         let tx_count = args.tx_count as f64;
         let tps = tx_count / (total_wall_ms / 1000.0);
         let ms_per_tx = total_wall_ms / tx_count;
-        let proof_verification_ms =
-            prepare_profile.artifact_fill_batch_verify_ms + process_profile.aggregate_verify_ms;
+        let proof_verification_ms = prepare_profile.artifact_fill_proof_verify_ms
+            + process_profile.independent_proof_verify_ms;
         let execution_and_commit_ms = execution_profile.deliver_txs_wall_ms
             + execution_profile.end_block_ms
             + execution_profile.commit_ms;
@@ -319,19 +310,11 @@ fn prepare_request(txs: &[Vec<u8>]) -> request::PrepareProposal {
     }
 }
 
-fn process_request_from_envelope(envelope: &CandidateEnvelope) -> request::ProcessProposal {
-    let mut txs = envelope
-        .txs
-        .iter()
-        .cloned()
-        .map(Bytes::from)
-        .collect::<Vec<_>>();
-    if let Some(bundle_tx_bytes) = &envelope.aggregate_bundle_tx_bytes {
-        txs.push(Bytes::from(bundle_tx_bytes.clone()));
-    }
-
+fn process_request_from_prepare_response(
+    prepared: &response::PrepareProposal,
+) -> request::ProcessProposal {
     request::ProcessProposal {
-        txs,
+        txs: prepared.txs.clone(),
         proposed_last_commit: None,
         misbehavior: Vec::new(),
         hash: Hash::None,
@@ -342,14 +325,13 @@ fn process_request_from_envelope(envelope: &CandidateEnvelope) -> request::Proce
     }
 }
 
-fn envelope_from_prepare_response(
+fn ensure_prepare_preserved_user_txs(
     input_txs: &[Vec<u8>],
     prepared: &response::PrepareProposal,
-    sidecar: &ProposalArtifactSidecar,
-) -> Result<CandidateEnvelope> {
+) -> Result<()> {
     anyhow::ensure!(
-        prepared.txs.len() == input_txs.len() + 1,
-        "prepared proposal must contain {} user txs plus one aggregate bundle tx, got {} txs",
+        prepared.txs.len() == input_txs.len(),
+        "prepared proposal must contain exactly {} user transactions, got {}",
         input_txs.len(),
         prepared.txs.len()
     );
@@ -359,37 +341,7 @@ fn envelope_from_prepare_response(
             "prepare proposal changed or skipped user tx ordinal {index}"
         );
     }
-
-    let aggregate_bundle_tx_bytes = prepared
-        .txs
-        .last()
-        .map(|tx| tx.to_vec())
-        .context("missing aggregate bundle tx")?;
-    let tx_hashes = input_txs
-        .iter()
-        .map(|tx_bytes| sha2::Sha256::digest(tx_bytes).into())
-        .collect::<Vec<[u8; 32]>>();
-
-    Ok(CandidateEnvelope {
-        txs: input_txs.to_vec(),
-        tx_hashes: tx_hashes.clone(),
-        aggregate_bundle_tx_bytes: Some(aggregate_bundle_tx_bytes),
-        sidecar: sidecar.to_record(),
-        segment_tx_counts: sidecar.segment_tx_counts.clone(),
-        block_tx_count: input_txs.len(),
-        total_payload_bytes: input_txs.iter().map(Vec::len).sum(),
-        candidate_digest: candidate_digest_from_hashes(&tx_hashes),
-        source_builder_label: "ibc_vs_transfer_prepare".to_string(),
-    })
-}
-
-fn execution_only_envelope(envelope: &CandidateEnvelope) -> CandidateEnvelope {
-    let mut execution_only = envelope.clone();
-    execution_only.aggregate_bundle_tx_bytes = None;
-    execution_only.segment_tx_counts.clear();
-    execution_only.sidecar =
-        ProposalArtifactSidecar::from_record(envelope.sidecar.clone()).to_record();
-    execution_only
+    Ok(())
 }
 
 fn summarize(runs: &[RunReport]) -> ScenarioSummary {

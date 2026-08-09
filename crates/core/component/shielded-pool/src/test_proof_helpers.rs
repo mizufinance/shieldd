@@ -21,6 +21,7 @@ pub mod proof_test_helpers {
     use shieldd_sdk_txhash::TransactionContext;
 
     use crate::{
+        note_reshape_padding::{dummy_state_commitment_proof, HiddenArityPadder},
         Note, Rseed, ShieldedIcs20WithdrawalChangePrivate, ShieldedIcs20WithdrawalChangePublic,
         ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalInputPublic,
         ShieldedIcs20WithdrawalOptionalInputPrivate, ShieldedIcs20WithdrawalProofPrivate,
@@ -56,10 +57,19 @@ pub mod proof_test_helpers {
         ring_pk: decaf377::Element,
         dk_pub: decaf377::Element,
     ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
+        create_imt_membership_proof_with_threshold(asset_id, ring_pk, dk_pub, u128::MAX)
+    }
+
+    pub fn create_imt_membership_proof_with_threshold(
+        asset_id: Fq,
+        ring_pk: decaf377::Element,
+        dk_pub: decaf377::Element,
+        threshold: u128,
+    ) -> (tct::StateCommitment, IndexedLeaf, MerklePath, u64) {
         let mut tree = IndexedMerkleTree::new();
         let policy = shieldd_sdk_compliance::AssetPolicy::new(
             dk_pub,
-            u128::MAX,
+            threshold,
             shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
             vec![],
             None,
@@ -166,14 +176,16 @@ pub mod proof_test_helpers {
 
         // Receiver identity
         let seed_phrase = SeedPhrase::generate(&mut *rng);
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let (address, _dtk_d) = ivk.payment_address(0u32.into());
 
         // Distinct sender identity for transfer-side compliance fixtures.
         let sender_seed = SeedPhrase::generate(&mut *rng);
-        let sender_sk = SpendKey::from_seed_phrase_bip44(sender_seed, &Bip44Path::new(0));
+        let sender_sk = SpendKey::from_seed_phrase_bip44(sender_seed, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements");
         let sender_ivk = sender_sk.full_viewing_key().incoming();
         let (sender_address, _) = sender_ivk.payment_address(0u32.into());
 
@@ -355,7 +367,7 @@ pub mod proof_test_helpers {
             spend.tx_blinding_nonce = tx_blinding_nonce;
             spend.asset_policy = Some(base.asset_policy.clone());
             spend
-                .set_compliance_details(rng)
+                .set_compliance_details()
                 .expect("set transfer spend compliance details");
             spends.push(spend);
         }
@@ -386,7 +398,7 @@ pub mod proof_test_helpers {
             output.tx_blinding_nonce = tx_blinding_nonce;
             output.asset_policy = Some(base.asset_policy.clone());
             output
-                .set_compliance_details(rng, &sender_leaf, sender_leaf.clone(), tx_blinding_nonce)
+                .set_compliance_details(&sender_leaf, tx_blinding_nonce)
                 .expect("set transfer output compliance details");
             outputs.push(output);
         }
@@ -436,6 +448,38 @@ pub mod proof_test_helpers {
         build_transfer_hidden_arity_from_base(rng, base, asset_id, is_regulated, send_to_self)
     }
 
+    pub(crate) fn build_transfer_flagged_hidden_arity_roundtrip_inputs_with_rng(
+        rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
+    ) -> (crate::TransferProofPublic, crate::TransferProofPrivate) {
+        let asset_id = shieldd_sdk_asset::asset::Id(Fq::from(1u64));
+        let mut base = generate_base_test_data_for_asset(rng, asset_id, 100, true);
+        let threshold = 1u128;
+        let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
+            create_imt_membership_proof_with_threshold(
+                asset_id.0,
+                base.ring_pk,
+                base.dk_pub,
+                threshold,
+            );
+        base.asset_anchor = asset_anchor;
+        base.asset_indexed_leaf = asset_indexed_leaf;
+        base.asset_path = asset_path;
+        base.asset_position = asset_position;
+        base.asset_policy = shieldd_sdk_compliance::AssetPolicy::new(
+            base.dk_pub,
+            threshold,
+            shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
+            vec![],
+            None,
+            "test-ring-id".to_string(),
+            base.ring_pk,
+            "test-policy-id".to_string(),
+            "read".to_string(),
+            "document".to_string(),
+        );
+        build_transfer_hidden_arity_from_base(rng, base, asset_id, true, false)
+    }
+
     /// Reproduces the orbis live unregulated non-base transfer: identical to
     /// [`build_transfer_hidden_arity_roundtrip_inputs_for_asset_with_rng`] for an
     /// unregulated asset, except the IMT non-membership predecessor is a real
@@ -483,7 +527,8 @@ pub mod proof_test_helpers {
             base.address.clone()
         } else {
             let recipient_seed = SeedPhrase::generate(&mut *rng);
-            let recipient_sk = SpendKey::from_seed_phrase_bip44(recipient_seed, &Bip44Path::new(1));
+            let recipient_sk = SpendKey::from_seed_phrase_bip44(recipient_seed, &Bip44Path::new(1))
+                .expect("test spend key should satisfy key refinements");
             recipient_sk
                 .full_viewing_key()
                 .incoming()
@@ -521,13 +566,8 @@ pub mod proof_test_helpers {
         spend.tx_blinding_nonce = tx_blinding_nonce;
         spend.asset_policy = Some(base.asset_policy.clone());
         spend
-            .set_compliance_details(rng)
+            .set_compliance_details()
             .expect("set hidden-arity transfer spend compliance details");
-
-        let sender_leaf = spend
-            .compliance_leaf
-            .clone()
-            .expect("hidden-arity transfer spend must have sender leaf");
 
         let recipient_b_d_fq = recipient_address
             .diversified_generator()
@@ -601,7 +641,7 @@ pub mod proof_test_helpers {
         output.tx_blinding_nonce = tx_blinding_nonce;
         output.asset_policy = Some(base.asset_policy.clone());
         output
-            .set_compliance_details(rng, &recipient_leaf, sender_leaf, tx_blinding_nonce)
+            .set_compliance_details(&recipient_leaf, tx_blinding_nonce)
             .expect("set hidden-arity transfer output compliance details");
 
         let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(rng))
@@ -614,6 +654,27 @@ pub mod proof_test_helpers {
 
     pub(crate) fn build_transfer_action_and_public(
         is_regulated: bool,
+    ) -> (
+        crate::Transfer,
+        crate::TransferProofPublic,
+        TransactionContext,
+    ) {
+        build_transfer_action_and_public_inner(is_regulated, true)
+    }
+
+    pub fn build_transfer_action_and_public_without_proof(
+        is_regulated: bool,
+    ) -> (
+        crate::Transfer,
+        crate::TransferProofPublic,
+        TransactionContext,
+    ) {
+        build_transfer_action_and_public_inner(is_regulated, false)
+    }
+
+    fn build_transfer_action_and_public_inner(
+        is_regulated: bool,
+        generate_proof: bool,
     ) -> (
         crate::Transfer,
         crate::TransferProofPublic,
@@ -689,7 +750,7 @@ pub mod proof_test_helpers {
             spend.tx_blinding_nonce = tx_blinding_nonce;
             spend.asset_policy = Some(base.asset_policy.clone());
             spend
-                .set_compliance_details(&mut rng)
+                .set_compliance_details()
                 .expect("set transfer spend compliance details");
             spends.push(spend);
         }
@@ -720,12 +781,7 @@ pub mod proof_test_helpers {
             output.tx_blinding_nonce = tx_blinding_nonce;
             output.asset_policy = Some(base.asset_policy.clone());
             output
-                .set_compliance_details(
-                    &mut rng,
-                    &sender_leaf,
-                    sender_leaf.clone(),
-                    tx_blinding_nonce,
-                )
+                .set_compliance_details(&sender_leaf, tx_blinding_nonce)
                 .expect("set transfer output compliance details");
             outputs.push(output);
         }
@@ -741,25 +797,43 @@ pub mod proof_test_helpers {
         let (public, _) = transfer_plan
             .transfer_public_private(&base.fvk, &state_commitment_proofs, anchor)
             .expect("derive transfer public/private inputs");
-        let transfer = transfer_plan
-            .build_unauth_transfer(
-                &base.fvk,
-                vec![
-                    crate::note_reshape_padding::dummy_spend_auth_sig();
-                    crate::transfer_input_count()
-                ],
-                state_commitment_proofs,
-                anchor,
-                &PayloadKey::random_key(&mut rng),
-            )
-            .expect("build transfer action");
+        let effect_hash = shieldd_sdk_txhash::EffectHash::default();
+        let auth_sigs = transfer_plan
+            .spend_randomizers()
+            .map(|randomizer| {
+                let rsk = base.sk.spend_auth_key().randomize(&randomizer);
+                rsk.sign(&mut rng, effect_hash.as_ref())
+            })
+            .collect();
+        let memo_key = PayloadKey::random_key(&mut rng);
+        let transfer = if generate_proof {
+            transfer_plan
+                .build_unauth_transfer(
+                    &base.fvk,
+                    auth_sigs,
+                    state_commitment_proofs,
+                    anchor,
+                    &memo_key,
+                )
+                .expect("build transfer action")
+        } else {
+            transfer_plan
+                .build_unauth_transfer_with_proof(
+                    &base.fvk,
+                    auth_sigs,
+                    anchor,
+                    &memo_key,
+                    crate::TransferProof::default(),
+                )
+                .expect("build transfer action without proof")
+        };
 
         (
             transfer,
             public,
             TransactionContext {
                 anchor,
-                effect_hash: Default::default(),
+                effect_hash,
             },
         )
     }
@@ -867,14 +941,19 @@ pub mod proof_test_helpers {
         build_note_reshape_roundtrip_inputs_with_rng(&mut rng, family_id)
     }
 
-    pub(crate) fn build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng(
+    pub(crate) fn build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng_and_real_spends(
         rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
         family_id: ShieldedIcs20WithdrawalFamilyId,
         is_regulated: bool,
+        real_spends: usize,
     ) -> (
         crate::ShieldedIcs20WithdrawalProofPublic,
         crate::ShieldedIcs20WithdrawalProofPrivate,
     ) {
+        assert!(
+            (1..=2).contains(&real_spends),
+            "withdrawal test helper supports one or two real spends"
+        );
         let base = generate_base_test_data(
             rng,
             if is_regulated {
@@ -907,9 +986,9 @@ pub mod proof_test_helpers {
 
         let mut spend_a = ShieldedInputPlan::new(rng, note_a.clone(), 0u64.into());
         let mut spend_b = ShieldedInputPlan::new(rng, note_b.clone(), 1u64.into());
-        for spend in [&mut spend_a, &mut spend_b] {
+        for (index, spend) in [&mut spend_a, &mut spend_b].into_iter().enumerate() {
             spend.is_regulated = is_regulated;
-            spend.tx_blinding_nonce = Fr::from(11u64);
+            spend.tx_blinding_nonce = Fr::from(11u64 + index as u64);
             spend.target_timestamp = base.target_timestamp;
             spend.compliance_anchor = base.compliance_anchor;
             spend.compliance_path = base.compliance_path.clone();
@@ -919,19 +998,17 @@ pub mod proof_test_helpers {
             spend.asset_position = base.asset_position;
             spend.asset_indexed_leaf = base.asset_indexed_leaf.clone();
             spend.compliance_leaf = Some(base.user_leaf.clone());
-            spend.dk_pub = base.dk_pub;
-            spend.ring_pk = base.ring_pk;
-            spend.threshold = base.asset_indexed_leaf.params.threshold;
         }
 
         let mut sct = tct::Tree::new();
         sct.insert(tct::Witness::Keep, note_a.commit()).unwrap();
-        sct.insert(tct::Witness::Keep, note_b.commit()).unwrap();
+        if real_spends == 2 {
+            sct.insert(tct::Witness::Keep, note_b.commit()).unwrap();
+        }
         let anchor = sct.root();
-        let state_commitment_proofs = vec![
-            sct.witness(note_a.commit()).expect("witness note a"),
-            sct.witness(note_b.commit()).expect("witness note b"),
-        ];
+        let required_proof = sct.witness(note_a.commit()).expect("witness note a");
+        let optional_proof =
+            (real_spends == 2).then(|| sct.witness(note_b.commit()).expect("witness note b"));
         let change_note = crate::Note::from_parts(
             base.address.clone(),
             Value {
@@ -942,29 +1019,63 @@ pub mod proof_test_helpers {
         )
         .expect("create shielded ICS-20 withdrawal change note");
 
-        let input_publics = vec![
-            ShieldedIcs20WithdrawalInputPublic {
-                nullifier: spend_a.nullifier(&base.fvk),
-                rk: spend_a.rk(&base.fvk),
-            },
+        let padder = HiddenArityPadder {
+            value_blinding: Fr::from(13u64),
+            first_spend_randomizer: spend_a.randomizer,
+            sender_address: base.address.clone(),
+            asset_id: base.value.asset_id,
+            nullifier_domain_sep_label:
+                b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier",
+            nullifier_seed_label:
+                b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier_seed",
+            spend_auth_key_label:
+                b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.spend_auth_key",
+            spend_auth_randomizer_label:
+                b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.spend_auth_randomizer",
+            input_note_label: b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.input_note",
+            output_note_label: b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.output_note",
+        };
+        let mut input_publics = vec![ShieldedIcs20WithdrawalInputPublic {
+            nullifier: spend_a.nullifier(&base.fvk),
+            rk: spend_a.rk(&base.fvk),
+        }];
+        input_publics.push(if real_spends == 2 {
             ShieldedIcs20WithdrawalInputPublic {
                 nullifier: spend_b.nullifier(&base.fvk),
                 rk: spend_b.rk(&base.fvk),
-            },
-        ];
+            }
+        } else {
+            ShieldedIcs20WithdrawalInputPublic {
+                nullifier: padder.synthetic_dummy_nullifier(1),
+                rk: padder.synthetic_dummy_verification_key(1),
+            }
+        });
         let required_input = ShieldedIcs20WithdrawalRequiredInputPrivate {
-            state_commitment_proof: state_commitment_proofs[0].clone(),
+            state_commitment_proof: required_proof,
             spent_note: note_a,
             spend_auth_randomizer: spend_a.randomizer,
         };
-        let optional_input = ShieldedIcs20WithdrawalOptionalInputPrivate {
-            spend: ShieldedIcs20WithdrawalRequiredInputPrivate {
-                state_commitment_proof: state_commitment_proofs[1].clone(),
-                spent_note: note_b,
-                spend_auth_randomizer: spend_b.randomizer,
-            },
-            is_dummy: false,
-            dummy_nullifier_seed: Fq::from(0u64),
+        let optional_input = if let Some(state_commitment_proof) = optional_proof {
+            ShieldedIcs20WithdrawalOptionalInputPrivate {
+                spend: ShieldedIcs20WithdrawalRequiredInputPrivate {
+                    state_commitment_proof,
+                    spent_note: note_b,
+                    spend_auth_randomizer: spend_b.randomizer,
+                },
+                is_dummy: false,
+                dummy_nullifier_seed: Fq::from(0u64),
+            }
+        } else {
+            let dummy_note = padder.synthetic_dummy_input_note(1);
+            ShieldedIcs20WithdrawalOptionalInputPrivate {
+                spend: ShieldedIcs20WithdrawalRequiredInputPrivate {
+                    state_commitment_proof: dummy_state_commitment_proof(dummy_note.commit()),
+                    spent_note: dummy_note,
+                    spend_auth_randomizer: padder.synthetic_dummy_spend_auth_randomizer(1),
+                },
+                is_dummy: true,
+                dummy_nullifier_seed: padder.synthetic_dummy_nullifier_seed(1),
+            }
         };
 
         (
@@ -980,7 +1091,7 @@ pub mod proof_test_helpers {
                     note_commitment: change_note.commit(),
                 },
                 outbound_asset_id: base.value.asset_id.0,
-                outbound_amount: Fq::from(100u64),
+                outbound_amount: Fq::from(if real_spends == 2 { 100u64 } else { 50u64 }),
                 withdrawal_effect_hash_limbs: [
                     Fq::from(21u64),
                     Fq::from(22u64),
@@ -1006,6 +1117,22 @@ pub mod proof_test_helpers {
                     created_note: change_note,
                 },
             },
+        )
+    }
+
+    pub(crate) fn build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng(
+        rng: &mut (impl rand::RngCore + rand_core::CryptoRng),
+        family_id: ShieldedIcs20WithdrawalFamilyId,
+        is_regulated: bool,
+    ) -> (
+        crate::ShieldedIcs20WithdrawalProofPublic,
+        crate::ShieldedIcs20WithdrawalProofPrivate,
+    ) {
+        build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng_and_real_spends(
+            rng,
+            family_id,
+            is_regulated,
+            2,
         )
     }
 

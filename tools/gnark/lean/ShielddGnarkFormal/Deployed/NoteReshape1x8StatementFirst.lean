@@ -32,7 +32,7 @@ theorem canonicalFirstBlockTwelve
 theorem hash
     (rho : Nat → DeployedF) :
     Deployed.Templates.Semantics.TStatementHash_253f0669df9a88c5d0d1fd54142634236d1f927edf40a3baefb3981c2bc88c5e.Trace.hash0
-        (Seg57.localRho rho) =
+        (Seg60.localRho rho) =
       NoteReshapeCanonical.statementFirstBlock .reshape1x8
         [anchor rho,
          output0NoteCommitmentComputed rho,
@@ -58,7 +58,7 @@ theorem hash
     output4NoteCommitmentComputed, output4NoteCommitmentComputedLC,
     output5NoteCommitmentComputed, output5NoteCommitmentComputedLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg57.localRho, Deployed.Templates.seated,
+    Seg60.localRho, Deployed.Templates.seated,
     hw1,
     hw7, hw8, hw9, hw10, hw11, hw12, hw13,
     hw19, hw20, hw21, hw22, hw23, hw24, hw25,

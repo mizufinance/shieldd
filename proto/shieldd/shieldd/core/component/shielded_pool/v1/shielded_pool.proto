@@ -140,8 +140,9 @@ message TransferOutputBody {
   bytes ovk_wrapped_key = 3;
   // Compliance ciphertext encrypting created note details for the asset issuer.
   bytes compliance_ciphertext = 4;
-  // Orbis-compatible encrypted-seed upload bundle for the receiver output only.
-  bytes orbis_upload_bundle = 5;
+  // Canonical 328-byte factored circuit metadata for the receiver output only.
+  // This field must never contain DH shared points or seed-opening material.
+  bytes compliance_metadata = 5;
 }
 
 // Transfers shielded notes into new shielded notes as a single action.
@@ -191,12 +192,10 @@ message TransferView {
 }
 
 message TransferPlan {
-  // The public body this plan will produce.
-  TransferBody body = 1;
+  reserved 1, 3;
+
   // The blinding factor to use for the net balance commitment.
   bytes value_blinding = 2;
-  // The net action balance committed by the action body.
-  asset.v1.Balance balance = 3;
   // The shielded input plans fused into this transfer.
   repeated ShieldedInputPlan spends = 4;
   // The shielded output plans fused into this transfer.
@@ -262,12 +261,10 @@ message ShieldedIcs20WithdrawalView {
 }
 
 message ShieldedIcs20WithdrawalPlan {
-  // The public body this plan will produce.
-  ShieldedIcs20WithdrawalBody body = 1;
+  reserved 1, 3;
+
   // The blinding factor to use for the net balance commitment.
   bytes value_blinding = 2;
-  // The net action balance committed by the action body.
-  asset.v1.Balance balance = 3;
   // The shielded input plans fused into this withdrawal.
   repeated ShieldedInputPlan spends = 4;
   // The sender-owned change output, if any.
@@ -336,16 +333,16 @@ message NoteReshapeView {
 }
 
 message NoteReshapePlan {
-  // The public body this plan will produce.
-  NoteReshapeBody body = 1;
+  reserved 1, 3;
+
   // The blinding factor to use for the net balance commitment.
   bytes value_blinding = 2;
-  // The net action balance committed by the action body.
-  asset.v1.Balance balance = 3;
   // The shielded input plans fused into this reshape.
   repeated ShieldedInputPlan spends = 4;
   // The shielded output plans fused into this reshape.
   repeated ShieldedOutputPlan outputs = 5;
+  // The deployed proving family selected for this reshape.
+  uint32 family_id = 6;
 }
 
 // ABCI Event recording a spent nullifier.
@@ -365,6 +362,8 @@ message EventBroadcastClue {
 }
 
 message ShieldedInputPlan {
+  reserved 5, 6, 8, 11, 12, 13, 22 to 29;
+
   // The plaintext note we plan to spend.
   Note note = 1;
   // The position of the note we plan to spend.
@@ -373,21 +372,12 @@ message ShieldedInputPlan {
   bytes randomizer = 3;
   // The blinding factor to use for the value commitment.
   bytes value_blinding = 4;
-  // The first blinding factor to use for the ZK spend proof.
-  bytes proof_blinding_r = 5;
-  // The second blinding factor to use for the ZK spend proof.
-  bytes proof_blinding_s = 6;
   // Target timestamp for compliance verification (Unix UTC seconds).
   uint64 target_timestamp = 7;
-  // Precomputed compliance ciphertext (352 bytes: 32 EPK + 32 EPK_G + 32 C2_core + 32 C2_ext + 224 payload).
-  // Empty when not yet generated. C2 fields are encrypted seeds for Orbis PRE.
-  bytes compliance_ciphertext = 8;
   // Whether the asset is regulated (requires compliance).
   bool is_regulated = 9;
   // Compliance leaf for ZK proof (sender's registry entry).
   compliance.v1.ComplianceLeaf compliance_leaf = 10;
-  // Ephemeral secret used in compliance ciphertext encryption (needed by circuit).
-  bytes compliance_ephemeral_secret = 12;
   // Shared transaction blinding nonce (same for spend and output in one transaction).
   bytes tx_blinding_nonce = 14;
   // The compliance anchor (user tree root) for proof generation.
@@ -404,28 +394,13 @@ message ShieldedInputPlan {
   uint64 asset_position = 20;
   // Indexed leaf data for IMT proof verification (value, next_index, next_value).
   compliance.v1.IndexedLeafData asset_indexed_leaf = 21;
-  // Whether this spend is flagged (amount >= threshold).
-  // Computed from threshold comparison and passed to circuit as witness.
-  bool is_flagged = 22;
-  // DLEQ proof salt (random Fq used in metadata hash).
-  bytes salt = 23;
-  // DLEQ proof blinding factor (random Fr).
-  bytes dleq_k = 24;
-  // DLEQ proof challenge (Fq).
-  bytes dleq_c = 25;
-  // DLEQ proof response (Fq).
-  bytes dleq_s = 26;
-  // Ring public key used for compliance encryption.
-  bytes ring_pk = 27;
-  // Issuer detection key public component.
-  bytes dk_pub = 28;
-  // Threshold for flagging (in base units).
-  bytes threshold = 29;
   // Full compliance asset policy for regulated assets.
   compliance.v1.AssetPolicy asset_policy = 30;
 }
 
 message ShieldedOutputPlan {
+  reserved 5, 6, 8, 11 to 13, 22 to 38;
+
   // The value to send to this output.
   asset.v1.Value value = 1;
   // The destination address to send it to.
@@ -434,25 +409,12 @@ message ShieldedOutputPlan {
   bytes rseed = 3;
   // The blinding factor to use for the value commitment.
   bytes value_blinding = 4;
-  // The first blinding factor to use for the ZK output proof.
-  bytes proof_blinding_r = 5;
-  // The second blinding factor to use for the ZK output proof.
-  bytes proof_blinding_s = 6;
   // Target timestamp for compliance verification (Unix UTC seconds).
   uint64 target_timestamp = 7;
-  // Precomputed compliance ciphertext (352 bytes: 32 EPK + 32 EPK_G + 32 C2_core + 32 C2_ext + 224 payload).
-  // Empty when not yet generated. C2 fields are encrypted seeds for Orbis PRE.
-  bytes compliance_ciphertext = 8;
   // Whether the asset is regulated (requires compliance).
   bool is_regulated = 9;
   // Compliance leaf for ZK proof (recipient's registry entry).
   compliance.v1.ComplianceLeaf compliance_leaf = 10;
-  // Counterparty compliance leaf (sender's registry entry).
-  compliance.v1.ComplianceLeaf counterparty_leaf = 11;
-  // Ephemeral secret used in compliance ciphertext encryption (needed by circuit).
-  bytes compliance_ephemeral_secret = 12;
-  // Counterparty address (the sender of this output).
-  keys.v1.Address counterparty_address = 13;
   // Shared transaction blinding nonce (same for spend and output in one transaction).
   bytes tx_blinding_nonce = 14;
   // The compliance anchor (user tree root) for proof generation.
@@ -469,34 +431,6 @@ message ShieldedOutputPlan {
   uint64 asset_position = 20;
   // Indexed leaf data for IMT proof verification (value, next_index, next_value).
   compliance.v1.IndexedLeafData asset_indexed_leaf = 21;
-  // Sender-encrypted ciphertext (96 bytes = 3 × 32, 3 Fq elements).
-  // Encrypts (recipient_gd, recipient_pk, amount) to sender's compliance ACK.
-  bytes sender_ciphertext = 22;
-  // DLEQ proof salt (random Fq used in metadata hash).
-  bytes salt = 23;
-  // DLEQ proof blinding factors (random Fr, one per EPK tier).
-  bytes dleq_k_1 = 24;
-  bytes dleq_k_2 = 25;
-  bytes dleq_k_3 = 26;
-  // DLEQ proof challenges and responses (Fq pairs, one per tier).
-  bytes dleq_c_1 = 27;
-  bytes dleq_s_1 = 28;
-  bytes dleq_c_2 = 29;
-  bytes dleq_s_2 = 30;
-  bytes dleq_c_3 = 31;
-  bytes dleq_s_3 = 32;
-  // Ring public key used for compliance encryption.
-  bytes ring_pk = 33;
-  // Issuer detection key public component.
-  bytes dk_pub = 34;
-  // Threshold for flagging (in base units).
-  bytes threshold_bytes = 35;
-  // Whether this output is flagged (amount >= threshold).
-  bool is_flagged = 36;
-  // Ephemeral secret for extension tier (r_2, needed by circuit).
-  bytes r_2 = 37;
-  // Ephemeral secret for spend extension tier (r_3, needed by circuit).
-  bytes r_3 = 38;
   // Full compliance asset policy for regulated assets.
   compliance.v1.AssetPolicy asset_policy = 39;
 }

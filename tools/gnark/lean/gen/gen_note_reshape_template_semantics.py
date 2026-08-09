@@ -13,12 +13,13 @@ import sys
 import tempfile
 from pathlib import Path
 
+import formal_json
 from poseidon_constants import rounds as poseidon_round_constants
 from write_if_changed import write_if_changed
 
 ROOT = Path(__file__).resolve().parents[4]
 LEAN = ROOT / "tools/gnark/lean"
-INVENTORY = ROOT / "tools/gnark/artifacts/note-reshape-template-inventory.json"
+INVENTORY = ROOT / "tools/gnark/artifacts/certified-template-inventory.json"
 OUT = LEAN / "ShielddGnarkFormal/Deployed/Templates/Semantics"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 
@@ -71,16 +72,80 @@ EQUIVALENT_IF = {
 
 DUMMY_MUX = "dummy.mux@6b4f764130614aef38a5954daa8a7654deca54de7a24217406a68696772579ce"
 
+NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL = (
+    b"shieldd.note_reshape.synthetic_dummy.nullifier"
+)
+TRANSFER_SYNTHETIC_DUMMY_NULLIFIER_LABEL = (
+    b"shieldd.transfer.synthetic_dummy.nullifier"
+)
+WITHDRAWAL_SYNTHETIC_DUMMY_NULLIFIER_LABEL = (
+    b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier"
+)
+
+SYNTHETIC_DUMMY_NULLIFIER_ROSTER = (
+    (
+        "gadget.synthetic_dummy_nullifier@5cd0e472453822bbff47f6ae87a0159b05bde5f090330ae8a3cf1c866140651b",
+        NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        0,
+    ),
+    (
+        "gadget.synthetic_dummy_nullifier@ac7ad308d1eedcc895ef7cfce1c01cd077579dee1a4f143d5dcb664af3af5907",
+        NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        1,
+    ),
+    (
+        "gadget.synthetic_dummy_nullifier@58423f06a7f0cb831a6dadec90f949fb98ce7e0ce7482eb07d0f43f54791ef32",
+        NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        2,
+    ),
+    (
+        "gadget.synthetic_dummy_nullifier@3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6",
+        NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        3,
+    ),
+    (
+        "gadget.synthetic_dummy_nullifier@b279304617fa393c48531d8db69795487f05219663ce38c6233e57eb19d14144",
+        NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        4,
+    ),
+    (
+        "gadget.synthetic_dummy_nullifier@64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa",
+        NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        5,
+    ),
+    (
+        "gadget.synthetic_dummy_nullifier@46634cb71def9ddee7f509167e3e285ee57f9d7b8279ae43d754e872405182a0",
+        NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        6,
+    ),
+    (
+        "gadget.synthetic_dummy_nullifier@100a96548743160160928cfe001821ba838bef079e180fd7d6cf0df70b5b37c8",
+        NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        7,
+    ),
+    (
+        "gadget.synthetic_dummy_nullifier@baf815f441dc1f36dd4b49d76d50f37ec9e315a12ec74f4c16391bdd9d7017fd",
+        TRANSFER_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        1,
+    ),
+    (
+        "gadget.synthetic_dummy_nullifier@a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb",
+        WITHDRAWAL_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        1,
+    ),
+)
 SYNTHETIC_DUMMY_NULLIFIER = {
-    "gadget.synthetic_dummy_nullifier@5cd0e472453822bbff47f6ae87a0159b05bde5f090330ae8a3cf1c866140651b": 0,
-    "gadget.synthetic_dummy_nullifier@ac7ad308d1eedcc895ef7cfce1c01cd077579dee1a4f143d5dcb664af3af5907": 1,
-    "gadget.synthetic_dummy_nullifier@58423f06a7f0cb831a6dadec90f949fb98ce7e0ce7482eb07d0f43f54791ef32": 2,
-    "gadget.synthetic_dummy_nullifier@3edcab52633f974735eeca941a2949c3c8157898b6f240983c6b42a1c5e59dd6": 3,
-    "gadget.synthetic_dummy_nullifier@b279304617fa393c48531d8db69795487f05219663ce38c6233e57eb19d14144": 4,
-    "gadget.synthetic_dummy_nullifier@64839ee66e275b88a07503fe67a1844f1fc184ce0fc2a0b6122562914cae6cfa": 5,
-    "gadget.synthetic_dummy_nullifier@46634cb71def9ddee7f509167e3e285ee57f9d7b8279ae43d754e872405182a0": 6,
-    "gadget.synthetic_dummy_nullifier@100a96548743160160928cfe001821ba838bef079e180fd7d6cf0df70b5b37c8": 7,
+    key: (label, slot)
+    for key, label, slot in SYNTHETIC_DUMMY_NULLIFIER_ROSTER
 }
+SYNTHETIC_DUMMY_NULLIFIER_TEMPLATE_COUNT = len(
+    SYNTHETIC_DUMMY_NULLIFIER_ROSTER
+)
+if (
+    len(SYNTHETIC_DUMMY_NULLIFIER)
+    != SYNTHETIC_DUMMY_NULLIFIER_TEMPLATE_COUNT
+):
+    raise SystemExit("duplicate synthetic-dummy nullifier template key")
 
 NULLIFIER_FIXED_INPUT_CONSTANT = (
     417784945642189241683731513330527942532284498692605186769747085266175822763
@@ -113,19 +178,85 @@ POSEIDON3_MDS = [
     ],
 ]
 
-SYNTHETIC_DUMMY_NULLIFIER_LABEL = b"shieldd.note_reshape.synthetic_dummy.nullifier"
 SYNTHETIC_DUMMY_NULLIFIER_DOMAIN = 4505177391167371668782402606211279728823173764000320688501210965528183505890
-TRANSFER_SYNTHETIC_DUMMY_NULLIFIER_LABEL = b"shieldd.transfer.synthetic_dummy.nullifier"
 
 
 def reduced_blake2b_domain(label: bytes) -> int:
     return int.from_bytes(hashlib.blake2b(label, digest_size=64).digest(), "little") % ORDER
 
 
-if reduced_blake2b_domain(SYNTHETIC_DUMMY_NULLIFIER_LABEL) != SYNTHETIC_DUMMY_NULLIFIER_DOMAIN:
+if (
+    reduced_blake2b_domain(NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL)
+    != SYNTHETIC_DUMMY_NULLIFIER_DOMAIN
+):
     raise SystemExit("NoteReshape synthetic-dummy nullifier domain pin drifted")
-if reduced_blake2b_domain(TRANSFER_SYNTHETIC_DUMMY_NULLIFIER_LABEL) == SYNTHETIC_DUMMY_NULLIFIER_DOMAIN:
-    raise SystemExit("NoteReshape and transfer synthetic-dummy domains must remain distinct")
+if len(
+    {
+        reduced_blake2b_domain(label)
+        for label in (
+            NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+            TRANSFER_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+            WITHDRAWAL_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+        )
+    }
+) != 3:
+    raise SystemExit("synthetic-dummy circuit domains must remain distinct")
+
+
+def validate_synthetic_dummy_nullifier_roster(
+    roster: dict[str, tuple[bytes, int]],
+    inventory: dict,
+) -> None:
+    expected = {
+        key: (label, slot)
+        for key, label, slot in SYNTHETIC_DUMMY_NULLIFIER_ROSTER
+    }
+    if roster != expected:
+        raise SystemExit(
+            "code-owned synthetic-dummy nullifier roster drifted"
+        )
+    templates = inventory.get("templates")
+    if not isinstance(templates, list):
+        raise SystemExit("certified template inventory has no template roster")
+    inventory_keys = {
+        template.get("template_key")
+        for template in templates
+        if isinstance(template, dict)
+        and template.get("op") == "gadget.synthetic_dummy_nullifier"
+    }
+    if any(not isinstance(key, str) for key in inventory_keys):
+        raise SystemExit(
+            "certified synthetic-dummy nullifier template key is invalid"
+        )
+    if inventory_keys != set(expected):
+        raise SystemExit(
+            "certified synthetic-dummy nullifier template roster drifted: "
+            f"missing={sorted(set(expected) - inventory_keys)} "
+            f"extra={sorted(inventory_keys - set(expected))}"
+        )
+    note_reshape_slots = sorted(
+        slot
+        for label, slot in roster.values()
+        if label == NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL
+    )
+    if note_reshape_slots != list(range(8)):
+        raise SystemExit(
+            "NoteReshape synthetic-dummy nullifier slots drifted"
+        )
+    circuit_roles = [
+        role
+        for role in roster.values()
+        if role[0] != NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL
+    ]
+    if sorted(circuit_roles) != sorted(
+        (
+            (TRANSFER_SYNTHETIC_DUMMY_NULLIFIER_LABEL, 1),
+            (WITHDRAWAL_SYNTHETIC_DUMMY_NULLIFIER_LABEL, 1),
+        )
+    ):
+        raise SystemExit(
+            "cross-circuit synthetic-dummy nullifier roles drifted"
+        )
 
 
 def camel(text: str) -> str:
@@ -178,6 +309,200 @@ def isolated_generated_files(module: str, function: str) -> dict[Path, str]:
     ):
         raise SystemExit(f"{module}.{function}: invalid isolated generator result")
     return outputs
+
+
+OPERATION_GENERATORS = (
+    ("normalized DTK", "gen_note_reshape_dtk_semantics", "generated_files"),
+    ("normalized RVK", "gen_note_reshape_rvk_semantics", "generated_files"),
+    (
+        "normalized NB",
+        "gen_note_reshape_nb_semantics",
+        "generated_nb_semantic_files",
+    ),
+    (
+        "Transfer net-balance semantics",
+        "gen_transfer_net_balance_semantics",
+        "generated_files",
+    ),
+    (
+        "direct representatives",
+        "gen_note_reshape_direct_representatives",
+        "generated_files",
+    ),
+    (
+        "certified conditionals",
+        "gen_certified_conditional_semantics",
+        "generated_files",
+    ),
+    ("Transfer-local semantics", "gen_transfer_semantics", "generated_files"),
+    (
+        "Transfer threshold semantics",
+        "gen_transfer_threshold_semantics",
+        "generated_files",
+    ),
+    (
+        "Transfer ACK semantics",
+        "gen_transfer_ack_semantics",
+        "generated_files",
+    ),
+    (
+        "active Window2 semantics",
+        "gen_window2_semantic_providers",
+        "generated_files",
+    ),
+    (
+        "Transfer shared-secret semantics",
+        "gen_transfer_shared_secret_semantics",
+        "generated_files",
+    ),
+    (
+        "Withdrawal registry semantics",
+        "gen_withdrawal_registry_semantics",
+        "generated_files",
+    ),
+    (
+        "certified registry-gap semantics",
+        "gen_certified_imt_gap_semantics",
+        "generated_files",
+    ),
+    (
+        "certified registry/compliance paths",
+        "gen_certified_quad_path_semantics",
+        "generated_files",
+    ),
+    (
+        "Poseidon representatives",
+        "gen_note_reshape_poseidon_representatives",
+        "generated_files",
+    ),
+    (
+        "normalized SCP",
+        "gen_note_reshape_scp_semantics",
+        "generated_files",
+    ),
+    (
+        "normalized compress",
+        "gen_note_reshape_compress_semantics",
+        "generated_files",
+    ),
+    (
+        "certified composites",
+        "gen_certified_composite_semantics",
+        "generated_files",
+    ),
+    (
+        "statement hashes",
+        "gen_certified_statement_hash_semantics",
+        "generated_files",
+    ),
+)
+
+REQUIRED_OPERATION_GENERATORS = frozenset(
+    {
+        ("gen_note_reshape_dtk_semantics", "generated_files"),
+        ("gen_note_reshape_rvk_semantics", "generated_files"),
+        ("gen_note_reshape_nb_semantics", "generated_nb_semantic_files"),
+        ("gen_transfer_net_balance_semantics", "generated_files"),
+        ("gen_note_reshape_direct_representatives", "generated_files"),
+        ("gen_certified_conditional_semantics", "generated_files"),
+        ("gen_transfer_semantics", "generated_files"),
+        ("gen_transfer_threshold_semantics", "generated_files"),
+        ("gen_transfer_ack_semantics", "generated_files"),
+        ("gen_window2_semantic_providers", "generated_files"),
+        ("gen_transfer_shared_secret_semantics", "generated_files"),
+        ("gen_withdrawal_registry_semantics", "generated_files"),
+        ("gen_certified_imt_gap_semantics", "generated_files"),
+        ("gen_certified_quad_path_semantics", "generated_files"),
+        ("gen_note_reshape_poseidon_representatives", "generated_files"),
+        ("gen_note_reshape_scp_semantics", "generated_files"),
+        ("gen_note_reshape_compress_semantics", "generated_files"),
+        ("gen_certified_composite_semantics", "generated_files"),
+        ("gen_certified_statement_hash_semantics", "generated_files"),
+    }
+)
+
+
+def validate_operation_generator_roster(
+    roster: tuple[tuple[str, str, str], ...],
+) -> None:
+    """Fail closed if one semantic generator is omitted or listed twice."""
+    actual = [(module, function) for _, module, function in roster]
+    if len(actual) != len(set(actual)):
+        raise SystemExit("duplicate exact semantic generator in unified roster")
+    actual_set = frozenset(actual)
+    if actual_set != REQUIRED_OPERATION_GENERATORS:
+        raise SystemExit(
+            "unified exact semantic generator roster drifted: "
+            f"missing={sorted(REQUIRED_OPERATION_GENERATORS - actual_set)} "
+            f"extra={sorted(actual_set - REQUIRED_OPERATION_GENERATORS)}"
+        )
+
+
+def validate_direct_provider_main(
+    key: str,
+    path: Path,
+    source: str,
+    spec_sources: tuple[str, ...] | None = None,
+) -> None:
+    """Require one explicit theorem from the exact relation to its spec."""
+    sources = (source,) if spec_sources is None else spec_sources
+    spec_declarations = [
+        (candidate, match)
+        for candidate in sources
+        for match in re.finditer(
+            r"(?m)^[ \t]*def[ \t]+spec\b", candidate
+        )
+    ]
+    if len(spec_declarations) != 1:
+        raise SystemExit(
+            f"{key}: direct provider family for {path} must declare exactly "
+            f"one root `def spec`, found {len(spec_declarations)}"
+        )
+    spec_source, spec_match = spec_declarations[0]
+    spec_start = spec_match.start()
+    next_declaration = re.search(
+        r"(?m)^[ \t]*(?:abbrev|def|lemma|theorem|axiom|instance|structure|"
+        r"inductive|namespace|section|end)\b",
+        spec_source[spec_match.end() :],
+    )
+    spec_end = (
+        spec_match.end() + next_declaration.start()
+        if next_declaration
+        else len(spec_source)
+    )
+    spec_declaration = spec_source[spec_start:spec_end]
+    if ":=" not in spec_declaration:
+        raise SystemExit(
+            f"{key}: direct provider main {path} has a malformed `def spec`"
+        )
+    spec_body = spec_declaration.split(":=", 1)[1]
+    if re.fullmatch(
+        r"\s*(?:[A-Za-z0-9_.]+\.)?relation\s+rho\s*",
+        spec_body,
+    ):
+        raise SystemExit(
+            f"{key}: direct provider main {path} aliases spec to relation"
+        )
+
+    sound_declarations = list(
+        re.finditer(r"\btheorem[ \t]+sound\b\s*\(", source)
+    )
+    sound_count = len(sound_declarations)
+    if sound_count != 1:
+        raise SystemExit(
+            f"{key}: direct provider main {path} must declare exactly one "
+            f"`theorem sound`, found {sound_count}"
+        )
+    sound_source = source[sound_declarations[0].start() :]
+    if not re.search(r":\s*spec\s+rho\s*:=\s*by\b", sound_source):
+        raise SystemExit(
+            f"{key}: direct provider main {path} does not prove `spec rho`"
+        )
+    for marker in ("axiom ", "sorry", "admit"):
+        if re.search(rf"\b{re.escape(marker.strip())}\b", source):
+            raise SystemExit(
+                f"{key}: direct provider main {path} contains {marker!r}"
+            )
 
 
 def conjunction(parts: list[str]) -> str:
@@ -450,7 +775,12 @@ def qualify_relation_atoms(expression: str, relation_ns: str) -> str:
 
 def render_synthetic_dummy_nullifier_lane_shards(key: str) -> dict[Path, str]:
     """Render one-scalar-per-leaf Poseidon proofs for a synthetic nullifier."""
-    slot = SYNTHETIC_DUMMY_NULLIFIER[key]
+    domain_label, slot = SYNTHETIC_DUMMY_NULLIFIER[key]
+    domain = reduced_blake2b_domain(domain_label)
+    domain_label_text = domain_label.decode("ascii")
+    is_note_reshape_domain = (
+        domain_label == NOTE_RESHAPE_SYNTHETIC_DUMMY_NULLIFIER_LABEL
+    )
     name = template_name(key)
     namespace = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{name}"
     relation_ns = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{name}"
@@ -461,6 +791,25 @@ def render_synthetic_dummy_nullifier_lane_shards(key: str) -> dict[Path, str]:
     )
     nullifier_ns = "Shieldd.GnarkFormal.Deployed.Nullifier"
     link_ns = "Shieldd.GnarkFormal.Deployed.Poseidon3Link"
+    fixed_namespace = f"{namespace}.Fixed"
+    domain_ref = (
+        f"{trace_ns}.syntheticDummyNullifierDomainLit"
+        if is_note_reshape_domain
+        else f"{fixed_namespace}.syntheticDummyNullifierDomainLit"
+    )
+    fixed_domain_ref = (
+        f"{trace_ns}.syntheticDummyNullifierDomainLit"
+        if is_note_reshape_domain
+        else "syntheticDummyNullifierDomainLit"
+    )
+    domain_declaration = (
+        ""
+        if is_note_reshape_domain
+        else (
+            f"/-- Reduced little-endian BLAKE2b-512 of `{domain_label_text}`. -/\n"
+            f"abbrev syntheticDummyNullifierDomainLit : F := ({domain} : F)\n\n"
+        )
+    )
     rows = normalized_relation_rows(name)
     extracted = extracted_segments("GadgetNullifier310_6eee7c")
     rounds = poseidon3_rounds()
@@ -558,7 +907,7 @@ def render_synthetic_dummy_nullifier_lane_shards(key: str) -> dict[Path, str]:
 
     def state(gate: int) -> str:
         return (
-            f"{trace_ns}.state{gate} {trace_ns}.syntheticDummyNullifierDomainLit "
+            f"{trace_ns}.state{gate} {domain_ref} "
             f"(rho 1) (rho 7) ({slot} : F)"
         )
 
@@ -604,7 +953,7 @@ def render_synthetic_dummy_nullifier_lane_shards(key: str) -> dict[Path, str]:
     def scalar_state(gate: int, lane: int) -> str:
         return (
             f"{scalar_round_ns(gate)}.state{gate}Lane{lane} "
-            f"{trace_ns}.syntheticDummyNullifierDomainLit "
+            f"{domain_ref} "
             f"(rho 1) (rho 7) ({slot} : F)"
         )
 
@@ -661,7 +1010,7 @@ def render_synthetic_dummy_nullifier_lane_shards(key: str) -> dict[Path, str]:
         )
 
     c0 = rounds[0][1]
-    domain_base = SYNTHETIC_DUMMY_NULLIFIER_DOMAIN + c0[0]
+    domain_base = domain + c0[0]
     slot_base = slot + c0[3]
     domain_powers = powers17(domain_base)
     slot_powers = powers17(slot_base)
@@ -671,7 +1020,7 @@ def render_synthetic_dummy_nullifier_lane_shards(key: str) -> dict[Path, str]:
         kernel_cert(
             domain_base * domain_base,
             domain_powers[0],
-            f"{trace_ns}.syntheticDummyNullifierDomainLit, {trace_ns}.roundConstants0",
+            f"{fixed_domain_ref}, {trace_ns}.roundConstants0",
         ),
         kernel_cert(domain_powers[0] * domain_powers[0], domain_powers[1]),
         kernel_cert(domain_powers[1] * domain_powers[1], domain_powers[2]),
@@ -679,7 +1028,7 @@ def render_synthetic_dummy_nullifier_lane_shards(key: str) -> dict[Path, str]:
         kernel_cert(
             domain_powers[3] * domain_base,
             domain_powers[4],
-            f"{trace_ns}.syntheticDummyNullifierDomainLit, {trace_ns}.roundConstants0",
+            f"{fixed_domain_ref}, {trace_ns}.roundConstants0",
         ),
     ]
     slot_certs = [
@@ -728,10 +1077,9 @@ def render_synthetic_dummy_nullifier_lane_shards(key: str) -> dict[Path, str]:
     s0_lemmas_section = "\n" + chr(10).join(s0_lemmas) + "\n"
     ring_import = "\nimport Mathlib.Tactic.Ring"
     domain_p17_input = (
-        f"{trace_ns}.syntheticDummyNullifierDomainLit + ({c0[0]} : F)"
+        f"{fixed_domain_ref} + ({c0[0]} : F)"
     )
     slot_p17_input = f"({slot} : F) + ({c0[3]} : F)"
-    fixed_namespace = f"{namespace}.Fixed"
     fixed = f"""import ShielddGnarkFormal.Deployed.Templates.Semantics.Poseidon3Trace
 import ShielddGnarkFormal.Deployed.Poseidon3Link
 import ShielddGnarkFormal.Deployed.NullifierDeployedBridge
@@ -755,6 +1103,7 @@ abbrev F :=
 local instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Deployed.GadgetNullifier310_6eee7c.Order) :=
   ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
 
+{domain_declaration}\
 def domainLane : F := ({domain_lane} : F)
 def slotLane : F := ({slot_lane} : F)
 {s0_definitions_section}
@@ -832,10 +1181,11 @@ end {part_namespace}
         ]
         if gate >= 1:
             imports.append(f"import {nullifier_round_module(gate)}")
-        if gate <= 1:
+        if gate <= 1 or not is_note_reshape_domain:
             imports.append(
                 f"import ShielddGnarkFormal.Deployed.Templates.Semantics.{name}Fixed"
             )
+        if gate <= 1:
             imports.append("import Mathlib.Tactic.Ring")
         import_text = "\n".join(imports)
         for lane in range(4):
@@ -1060,7 +1410,7 @@ def relation (rho : Nat → F) : Prop := {relation_ns}.relation rho
 def spec (rho : Nat → F) : Prop :=
   {nullifier_ns}.s38_1 (rho 292) (rho 297) (rho 302) (rho 307) =
     Shieldd.GnarkFormal.Poseidon3Bridge.permSpec3
-      {trace_ns}.syntheticDummyNullifierDomainLit (rho 1) (rho 7) ({slot} : F)
+      {domain_ref} (rho 1) (rho 7) ({slot} : F)
 
 theorem sound (rho : Nat → F) (h : relation rho) : spec rho := by
   unfold relation {relation_ns}.relation at h
@@ -1279,7 +1629,10 @@ theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
 
 
 def generated_files() -> dict[Path, str]:
-    inventory = json.loads(INVENTORY.read_text())
+    inventory = formal_json.read_template_inventory(INVENTORY)
+    validate_synthetic_dummy_nullifier_roster(
+        SYNTHETIC_DUMMY_NULLIFIER, inventory
+    )
     outputs = {
         OUT / "Poseidon3Trace.lean": render_poseidon3_trace(),
         OUT / "Poseidon3ScalarBase.lean": render_poseidon3_scalar_base(),
@@ -1299,35 +1652,12 @@ def generated_files() -> dict[Path, str]:
                 raise SystemExit(f"{label}: conflicting generated output {path}")
             outputs[path] = source
 
-    # Recover the two SR1CS-backed ladder families first, before retaining the
-    # much larger statement/provider source map.
-    merge("normalized DTK", isolated_generated_files(
-        "gen_note_reshape_dtk_semantics", "generated_files"
-    ))
-    merge("normalized RVK", isolated_generated_files(
-        "gen_note_reshape_rvk_semantics", "generated_files"
-    ))
-    merge("normalized NB", isolated_generated_files(
-        "gen_note_reshape_nb_semantics", "generated_nb_semantic_files"
-    ))
-    merge("direct representatives", isolated_generated_files(
-        "gen_note_reshape_direct_representatives", "generated_files"
-    ))
-    merge("Poseidon representatives", isolated_generated_files(
-        "gen_note_reshape_poseidon_representatives", "generated_files"
-    ))
-    merge("normalized SCP", isolated_generated_files(
-        "gen_note_reshape_scp_semantics", "generated_files"
-    ))
-    # Render DTK before the NB recovery's large Python coefficient cache.  The
-    # returned sources are small, but constructing DTK after NB needlessly
-    # combines both generators' transient peaks on memory-constrained builders.
-    merge("normalized compress", isolated_generated_files(
-        "gen_note_reshape_compress_semantics", "generated_files"
-    ))
-    merge("statement hashes", isolated_generated_files(
-        "gen_note_reshape_statement_hash_semantics", "generated_files"
-    ))
+    # Each operation generator runs in its own bounded process. The explicit
+    # roster is a certification boundary: omission of any family is fatal
+    # before committed-provider comparison begins.
+    validate_operation_generator_roster(OPERATION_GENERATORS)
+    for label, module, function in OPERATION_GENERATORS:
+        merge(label, isolated_generated_files(module, function))
 
     missing = []
     for template in inventory["templates"]:
@@ -1357,8 +1687,35 @@ def generated_files() -> dict[Path, str]:
         )
     if missing:
         raise SystemExit(f"missing direct normalized providers: {missing}")
+    for template in inventory["templates"]:
+        key = template["template_key"]
+        provider = OUT / f"{template_name(key)}.lean"
+        semantic_namespace = (
+            "Shieldd.GnarkFormal.Deployed.Templates.Semantics."
+            f"{provider.stem}"
+        )
+        family_spec_sources = tuple(
+            candidate
+            for candidate_path, candidate in outputs.items()
+            if candidate_path.parent == OUT
+            and candidate_path.stem.startswith(provider.stem)
+            and re.search(
+                rf"(?m)^namespace[ \t]+"
+                rf"{re.escape(semantic_namespace)}[ \t]*$",
+                candidate,
+            )
+        )
+        validate_direct_provider_main(
+            key, provider, outputs[provider], family_spec_sources
+        )
     for path, source in outputs.items():
-        for marker in ("representativeRho", "representativeSeating"):
+        for marker in (
+            "representativeRho",
+            "representativeSeating",
+            "axiom ",
+            "sorry",
+            "admit",
+        ):
             if marker in source:
                 raise SystemExit(
                     f"generated provider transport marker leaked in {path}: {marker}"

@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
 use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
-use shieldd_sdk_proof_aggregation::AggregateBundle;
 use shieldd_sdk_proto::{core::transaction::v1 as pbt, DomainType};
 use shieldd_sdk_shielded_pool::ShieldedIcs20WithdrawalView;
 
@@ -24,7 +23,6 @@ pub enum ActionView {
     ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalView),
     ComplianceRegisterAsset(MsgRegisterAsset),
     ComplianceRegisterUser(MsgRegisterUser),
-    AggregateBundle(AggregateBundle),
 }
 
 impl DomainType for ActionView {
@@ -54,7 +52,6 @@ impl TryFrom<pbt::ActionView> for ActionView {
                     ActionView::ComplianceRegisterAsset(x.try_into()?)
                 }
                 AV::ComplianceRegisterUser(x) => ActionView::ComplianceRegisterUser(x.try_into()?),
-                AV::AggregateBundle(x) => ActionView::AggregateBundle(x.try_into()?),
             },
         )
     }
@@ -74,7 +71,6 @@ impl From<ActionView> for pbt::ActionView {
                 ActionView::ShieldedIcs20Withdrawal(x) => AV::ShieldedIcs20Withdrawal(x.into()),
                 ActionView::ComplianceRegisterAsset(x) => AV::ComplianceRegisterAsset(x.into()),
                 ActionView::ComplianceRegisterUser(x) => AV::ComplianceRegisterUser(x.into()),
-                ActionView::AggregateBundle(x) => AV::AggregateBundle(x.into()),
             }),
         }
     }
@@ -99,7 +95,6 @@ impl From<ActionView> for Action {
             },
             ActionView::ComplianceRegisterAsset(x) => Action::ComplianceRegisterAsset(x),
             ActionView::ComplianceRegisterUser(x) => Action::ComplianceRegisterUser(x),
-            ActionView::AggregateBundle(x) => Action::AggregateBundle(x),
         }
     }
 }

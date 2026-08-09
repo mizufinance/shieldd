@@ -378,15 +378,13 @@ mod tests {
 
     #[test]
     fn real_rvk_slice_is_exhaustive_and_bit_exact() {
-        let artifact_dir = "../../../tools/gnark/artifacts/note_reshape2x1";
-        let data = std::fs::read(format!("{artifact_dir}/note_reshape2x1.sr1cs"));
-        let Ok(data) = data else {
-            return; // artifact not present in this checkout
-        };
+        let artifact_dir = "../../../tools/gnark/artifacts/note_reshape1x8";
+        let data = std::fs::read(format!("{artifact_dir}/note_reshape1x8.sr1cs"))
+            .expect("deployed NoteReshape1x8 SR1CS artifact must be present");
         let sr1cs = parse_sr1cs(&data).unwrap();
         let rows = crate::ir::parse_rows(&sr1cs).unwrap();
         let (manifest, _) =
-            crate::load_manifest(format!("{artifact_dir}/note_reshape2x1-manifest.json")).unwrap();
+            crate::load_manifest(format!("{artifact_dir}/note_reshape1x8-manifest.json")).unwrap();
         let segment = manifest
             .segments
             .iter()

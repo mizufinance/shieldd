@@ -39,28 +39,42 @@ if [[ "${#profile_args[@]}" -eq 0 ]]; then
   profile_args=(all)
 fi
 profiles=()
+allow_empty=0
+for ((index = 0; index + 1 < ${#profile_args[@]}; index++)); do
+  if [[ "${profile_args[$index]}" == "--status" \
+    && "${profile_args[$((index + 1))]}" == "candidate" ]]; then
+    allow_empty=1
+  fi
+done
+profile_rows="$(
+  python3 "$ROOT/scripts/check-fv-profiles.py" \
+    --emit-tsv --allow-empty "${profile_args[@]}"
+)"
+proof_witness_rows="$(
+  python3 "$ROOT/scripts/check-fv-profiles.py" \
+    --emit-proof-witness-tsv --allow-empty "${profile_args[@]}"
+)"
 while IFS= read -r row; do
   [[ -n "$row" ]] && profiles+=("$row")
-done < <(
-  python3 "$ROOT/scripts/check-fv-profiles.py" --emit-tsv "${profile_args[@]}"
-)
-[[ "${#profiles[@]}" -gt 0 ]] || fail "no profiles selected"
+done <<< "$profile_rows"
+if [[ "${#profiles[@]}" -eq 0 ]]; then
+  [[ "$allow_empty" -eq 1 ]] || fail "no profiles selected"
+  echo "FV $MODE ok: no candidate profiles"
+  exit 0
+fi
 
 for row in "${profiles[@]}"; do
   IFS=$'\t' read -r \
     circuit status kind n_in n_out \
-    witness_rel artifact_rel manifest_rel witness_version <<< "$row"
+    _first_witness_rel artifact_rel manifest_rel witness_version <<< "$row"
   artifact_dir="$GNARK_DIR/$artifact_rel"
   committed_manifest="$GNARK_DIR/$manifest_rel"
   committed_sr1cs="$artifact_dir/$circuit.sr1cs"
-  witness="$GNARK_DIR/$witness_rel"
   fresh_sr1cs="$tmp_dir/$circuit.sr1cs"
   fresh_manifest="$tmp_dir/$circuit-manifest.json"
-  receipt="$tmp_dir/$circuit-proof-receipt.json"
 
   [[ -f "$committed_sr1cs" ]] || fail "$circuit: missing $committed_sr1cs"
   [[ -f "$committed_manifest" ]] || fail "$circuit: missing $committed_manifest"
-  [[ -f "$witness" ]] || fail "$circuit: missing $witness"
 
   export_args=(
     --circuit "$circuit"
@@ -70,10 +84,33 @@ for row in "${profiles[@]}"; do
   if [[ "$MODE" == "receipt" ]]; then
     export_args+=(
       --prove
-      --witness "$witness"
       --artifact-dir "$artifact_dir"
-      --proof-receipt-out "$receipt"
     )
+    proof_cases=()
+    proof_witnesses=()
+    proof_receipts=()
+    while IFS=$'\t' read -r \
+      proof_circuit _proof_status _proof_kind _proof_n_in _proof_n_out \
+      proof_case proof_witness_rel _proof_artifact _proof_manifest \
+      proof_witness_version; do
+      [[ "$proof_circuit" == "$circuit" ]] || continue
+      [[ "$proof_witness_version" == "$witness_version" ]] \
+        || fail "$circuit/$proof_case: inconsistent witness format version"
+      proof_witness="$GNARK_DIR/$proof_witness_rel"
+      proof_receipt="$tmp_dir/$circuit-$proof_case-proof-receipt.json"
+      [[ -f "$proof_witness" ]] \
+        || fail "$circuit/$proof_case: missing $proof_witness"
+      proof_cases+=("$proof_case")
+      proof_witnesses+=("$proof_witness")
+      proof_receipts+=("$proof_receipt")
+      export_args+=(
+        --proof-case "$proof_case"
+        --witness "$proof_witness"
+        --proof-receipt-out "$proof_receipt"
+      )
+    done <<< "$proof_witness_rows"
+    [[ "${#proof_cases[@]}" -gt 0 ]] \
+      || fail "$circuit: no canonical proof witnesses"
   fi
 
   (
@@ -88,12 +125,23 @@ for row in "${profiles[@]}"; do
     fail "$circuit: committed semantic manifest drifted"
   fi
 
-  python3 - \
-    "$fresh_manifest" "$circuit" "$kind" "$n_in" "$n_out" "$status" <<'PY'
-import json
-import sys
+  python3 "$ROOT/scripts/check-fv-specification-completeness.py" \
+    --profile "$circuit" \
+    --manifest "$circuit=$fresh_manifest" \
+    --require-relation-evidence \
+    || fail "$circuit: fresh relation does not implement the predicate matrix"
 
-manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+  PYTHONPATH="$ROOT/scripts${PYTHONPATH:+:$PYTHONPATH}" python3 - \
+    "$fresh_manifest" "$circuit" "$kind" "$n_in" "$n_out" "$status" <<'PY'
+import sys
+from pathlib import Path
+
+from fv_strict_json import StrictJsonError, load as load_strict_json
+
+try:
+    manifest = load_strict_json(Path(sys.argv[1]), "fresh semantic manifest")
+except StrictJsonError as error:
+    raise SystemExit(str(error)) from error
 circuit, kind, n_in, n_out, status = sys.argv[2:]
 if manifest["circuit"] != circuit:
     raise SystemExit("semantic manifest circuit mismatch")
@@ -106,19 +154,33 @@ if not manifest["semantic_bindings"] and status == "certified":
 PY
 
   if [[ "$MODE" == "receipt" ]]; then
-    python3 - "$receipt" "$circuit" "$witness_version" <<'PY'
-import json
+    for ((proof_index = 0; proof_index < ${#proof_cases[@]}; proof_index++)); do
+      proof_case="${proof_cases[$proof_index]}"
+      proof_receipt="${proof_receipts[$proof_index]}"
+      PYTHONPATH="$ROOT/scripts${PYTHONPATH:+:$PYTHONPATH}" python3 - \
+        "$proof_receipt" "$circuit" "$proof_case" "$witness_version" <<'PY'
 import sys
+from pathlib import Path
 
-receipt = json.load(open(sys.argv[1], encoding="utf-8"))
+from fv_strict_json import StrictJsonError, load as load_strict_json
+
+def strict_json(path):
+    try:
+        return load_strict_json(Path(path), f"proof receipt {path}")
+    except StrictJsonError as error:
+        raise SystemExit(str(error)) from error
+
+receipt = strict_json(sys.argv[1])
 expected = {
     "schema_version",
     "circuit",
+    "proof_case",
     "witness_format_version",
     "witness_sha256_hex",
     "sr1cs_sha256_hex",
     "constraint_manifest_sha256_hex",
     "circuit_metadata_sha256_hex",
+    "setup_provenance_sha256_hex",
     "proving_key_sha256_hex",
     "verifying_key_binary_sha256_hex",
     "verifying_key_json_sha256_hex",
@@ -129,23 +191,31 @@ expected = {
 }
 if set(receipt) != expected:
     raise SystemExit("unexpected proof receipt fields")
-if receipt["schema_version"] != 3:
+if receipt["schema_version"] != 4:
     raise SystemExit("unexpected proof receipt schema")
 if receipt["circuit"] != sys.argv[2]:
     raise SystemExit("proof receipt circuit mismatch")
-if receipt["witness_format_version"] != int(sys.argv[3]):
+if receipt["proof_case"] != sys.argv[3]:
+    raise SystemExit("proof receipt case mismatch")
+if receipt["witness_format_version"] != int(sys.argv[4]):
     raise SystemExit("proof receipt witness format mismatch")
 if receipt["proved_and_verified_in_process"] is not True:
     raise SystemExit("proof receipt does not attest in-process prove/verify")
 PY
-    bash "$ROOT/scripts/check-vk-derivation.sh" "$circuit" \
-      --sr1cs "$fresh_sr1cs" \
-      --proof-receipt "$receipt"
+      bash "$ROOT/scripts/check-key-coherence.sh" "$circuit" \
+        --sr1cs "$fresh_sr1cs" \
+        --proof-case "$proof_case" \
+        --proof-receipt "$proof_receipt"
+    done
   else
-    bash "$ROOT/scripts/check-vk-derivation.sh" "$circuit" \
+    bash "$ROOT/scripts/check-key-coherence.sh" "$circuit" \
       --sr1cs "$fresh_sr1cs" \
       --drift-only
   fi
 
-  echo "FV $MODE ok: $circuit ($status)"
+  if [[ "$MODE" == "receipt" ]]; then
+    echo "FV $MODE ok: $circuit ($status; ${#proof_cases[@]} proof cases)"
+  else
+    echo "FV $MODE ok: $circuit ($status)"
+  fi
 done

@@ -44,7 +44,7 @@ pub struct VerifyingKeyJson {
     pub gamma_abc_g1: Vec<G1PointJson>,
 }
 
-const CIRCUIT_METADATA_SCHEMA: &str = "shieldd.gnark.circuit_metadata.v1";
+const CIRCUIT_METADATA_SCHEMA: &str = "shieldd.gnark.circuit_metadata.v2";
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -57,6 +57,8 @@ pub struct GnarkArtifactMetadata {
     pub nb_constraints: i32,
     pub nb_public_variables: i32,
     pub nb_secret_variables: i32,
+    pub sr1cs_sha256_hex: String,
+    pub setup_provenance_sha256_hex: String,
     pub proving_key_sha256_hex: String,
     pub verifying_key_binary_sha256_hex: String,
     pub verifying_key_json_sha256_hex: String,
@@ -104,6 +106,8 @@ pub(crate) fn validate_artifact_metadata(
         bail!("gnark {family} circuit metadata is missing key sizes");
     }
     for (label, value) in [
+        ("SR1CS", &metadata.sr1cs_sha256_hex),
+        ("setup provenance", &metadata.setup_provenance_sha256_hex),
         ("proving key", &metadata.proving_key_sha256_hex),
         (
             "binary verifying key",
@@ -126,6 +130,13 @@ pub(crate) fn validate_artifact_hashes(
     metadata: &GnarkArtifactMetadata,
     family: &str,
 ) -> Result<()> {
+    let actual = sha256_hex(&fs::read(artifact_dir.join("setup_provenance.json"))?);
+    if actual != metadata.setup_provenance_sha256_hex {
+        bail!(
+            "gnark {family} setup provenance hash mismatch: expected {}, got {actual}",
+            metadata.setup_provenance_sha256_hex
+        );
+    }
     let proving_key = fs::read(artifact_dir.join("proving_key.bin"))?;
     if i64::try_from(proving_key.len()).ok() != Some(metadata.proving_key_size_bytes) {
         bail!(
@@ -260,11 +271,9 @@ mod statement_parity_tests {
 
     /// All committed gnark families (one artifact dir each under tools/gnark/artifacts).
     const FAMILIES: &[&str] = &[
-        "note_reshape2x1",
-        "note_reshape4x1",
+        "note_reshape1x8",
         "note_reshape8x1",
         "shielded_ics20_withdrawal",
-        "note_reshape1x8",
         "transfer",
     ];
 

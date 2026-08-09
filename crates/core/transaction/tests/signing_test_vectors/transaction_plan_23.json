@@ -1,44 +1,50 @@
 {
   "actions": [
     {
-      "validatorDefinition": {
-        "validator": {
-          "identityKey": {
-            "ik": "gtrqsapXYPP50JOuZiWvNWafFJa1u7+VIZpTQCwRUAY="
+      "validatorVote": {
+        "body": {
+          "proposal": "570267820",
+          "vote": {
+            "vote": "VOTE_ABSTAIN"
           },
-          "consensusKey": "st7wCnAWA2uj2SqdOf8oPoxsKj/Zcakq2Z8Al7l7Wso=",
-          "name": "test validator",
-          "enabled": true,
+          "identityKey": {
+            "ik": "btSsV+OvxMmhY6BibPYImUml+Z//MtKCwU/VVc4Gggc="
+          },
           "governanceKey": {
-            "gk": "gtrqsapXYPP50JOuZiWvNWafFJa1u7+VIZpTQCwRUAY="
+            "gk": "aC5bOW24/0WJQe1RsDBH/owTCJA7PECtGiJw8tbnsBA="
+          },
+          "reason": {
+            "reason": "MM3999w4Gx3p37Pm8JE5ew39"
           }
         },
-        "authSig": "/rjcjKmEtoJnFkii1GUEYJ8prJZE8KBHZyds4IY91AXnpU2gQpTBzWxIz/3536ZkSUrt7eLFlzIYKLh/ArBPAg=="
+        "authSig": {
+          "inner": "ejKpit3roY20lSkl1subZFi4dLucUTuv0C3UTTqEiwcV9wbZuV7AwielCfjye8gn9dI4WjpEhO3PyFp3BrsMAw=="
+        }
       }
     },
     {
       "validatorDefinition": {
         "validator": {
           "identityKey": {
-            "ik": "DFSWqyN5CM8sIxzfa4Bbhmy1kKM+vWzj+1ZtWSB/MAk="
+            "ik": "LkZ0/LkwdyhuFm/hPByOP/WG8/iV4mvdPBNnzk4QnAo="
           },
-          "consensusKey": "uhJsmyStGbJFL3iMy518aj5DND1Av/nVSMAeHDheL/k=",
+          "consensusKey": "BgPYkBO9+ixe8CflKanUL/T8EoBM+5EHu6io5WJ6fcI=",
           "name": "test validator",
           "enabled": true,
           "governanceKey": {
-            "gk": "DFSWqyN5CM8sIxzfa4Bbhmy1kKM+vWzj+1ZtWSB/MAk="
+            "gk": "LkZ0/LkwdyhuFm/hPByOP/WG8/iV4mvdPBNnzk4QnAo="
           }
         },
-        "authSig": "eFXsLIio5BDi7NK+yMzb7Lu1L/gfdW5+LXvTe3g7hgdWtwFg8VZYB0duEdehAOZdDMO08Ka5XjW8CVDIy58RAA=="
+        "authSig": "Ci1jDC5sXMAXOObGH8j9/aXZk16lSWOuGaFGy7sHSwCYuzaOwSj2Uo5kfE4M7nvOelCQK+R4AKFbJNpDha/HAA=="
       }
     }
   ],
   "transactionParameters": {
-    "expiryHeight": "2631516212",
-    "chainId": "l-1866230393679690730836283094",
+    "expiryHeight": "1012116574",
+    "chainId": "hhrddonseaulgdpolkajnzkkt-74190339359843",
     "fee": {
       "amount": {
-        "lo": "798924117837271110"
+        "lo": "427144650724690601"
       }
     }
   }

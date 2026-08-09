@@ -28,7 +28,6 @@ pub use shielded_note_plan::{ShieldedInputPlan, ShieldedOutputPlan};
 
 pub mod note_reshape;
 pub mod public_input_hash;
-pub mod r1cs;
 pub mod shielded_ics20_withdrawal;
 pub mod transfer;
 

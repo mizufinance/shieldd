@@ -29,8 +29,11 @@ impl CluePlan {
 
     /// Create a [`Clue`] from the [`CluePlan`].
     pub fn clue(&self) -> Clue {
-        let clue_key = self.address.clue_key();
-        let expanded_clue_key = clue_key.expand_infallible();
+        let expanded_clue_key = self
+            .address
+            .clue_key()
+            .expand()
+            .expect("address clue keys are validated");
         expanded_clue_key
             .create_clue_deterministic(self.precision, self.rseed)
             .expect("can construct clue key")

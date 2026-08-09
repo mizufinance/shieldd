@@ -4,7 +4,11 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 from pathlib import Path
+
+from note_reshape_adapter_model import Deployment
+from write_if_changed import write_if_changed
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -14,25 +18,120 @@ OUTPUT = (
     / "Generated/NoteReshape1x8Commitments.lean"
 )
 
-NOTES = [
-    ("spend0", 8, "spend0", 9, "spend0StateProofCommitment"),
-    ("output0", 19, "output0", 20, "output0NoteCommitmentClaimed"),
-    ("output1", 23, "output1", 24, "output1NoteCommitmentClaimed"),
-    ("output2", 27, "output2", 28, "output2NoteCommitmentClaimed"),
-    ("output3", 31, "output3", 32, "output3NoteCommitmentClaimed"),
-    ("output4", 35, "output4", 36, "output4NoteCommitmentClaimed"),
-    ("output5", 39, "output5", 40, "output5NoteCommitmentClaimed"),
-    ("output6", 43, "output6", 44, "output6NoteCommitmentClaimed"),
-    ("output7", 47, "output7", 48, "output7NoteCommitmentClaimed"),
-]
+NOTE_COMMITMENT_TEMPLATE = (
+    "gadget.note_commitment@"
+    "9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5"
+)
+ASSERT_EQ_TEMPLATE = (
+    "assert.eq@"
+    "2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55"
+)
+
+
+@dataclass(frozen=True)
+class Note:
+    prefix: str
+    owner: str
+    hash_segment: dict
+    assert_segment: dict
+    claimed: str
+
+
+def deployment() -> Deployment:
+    return Deployment.load("note_reshape1x8", "NoteReshape1x8", (1, 8))
+
+
+def note_segments(model: Deployment) -> list[Note]:
+    notes = []
+    for prefix in ("spend0", *(f"output{slot}" for slot in range(8))):
+        computed_role = f"{prefix}.note.commitment.computed"
+        hash_segment = model.segment(
+            "gadget.note_commitment",
+            (
+                f"blinding={prefix}.note.blinding",
+                f"amount={prefix}.note.amount",
+                "asset_id=shared.asset_id",
+                "div_gen_fq=shared.div_gen_fq",
+                "transmission_key_s=shared.transmission.fq",
+                "clue_key=shared.clue_key",
+                f"out={computed_role}",
+            ),
+        )
+        if hash_segment["proof_template_id"] != NOTE_COMMITMENT_TEMPLATE:
+            raise ValueError(
+                f"{model.circuit}: {prefix} note-commitment template drifted"
+            )
+        claimed_role = (
+            "spend0.state_proof.commitment"
+            if prefix == "spend0"
+            else f"{prefix}.note.commitment.claimed"
+        )
+        trace_claimed = (
+            claimed_role
+            if prefix == "spend0"
+            else f"{prefix}.note_commitment"
+        )
+        assert_segment = model.segment(
+            "assert.eq",
+            (f"lhs={computed_role}", f"rhs={trace_claimed}"),
+        )
+        if assert_segment["proof_template_id"] != ASSERT_EQ_TEMPLATE:
+            raise ValueError(
+                f"{model.circuit}: {prefix} commitment assertion template drifted"
+            )
+        model.consecutive((hash_segment, assert_segment))
+        model.require_binding_role(
+            hash_segment,
+            f"{prefix}.note_commitment.inputs",
+            "input",
+            exact=True,
+            arity=6,
+        )
+        model.require_binding_role(
+            hash_segment,
+            computed_role,
+            "output",
+            exact=True,
+            arity=1,
+        )
+        model.require_binding_role(
+            assert_segment,
+            computed_role,
+            "input",
+            exact=True,
+            arity=1,
+        )
+        claimed_wire_role = "output" if prefix == "spend0" else "internal"
+        model.require_binding_role(
+            assert_segment,
+            claimed_role,
+            claimed_wire_role,
+            exact=True,
+            arity=1,
+        )
+        notes.append(
+            Note(
+                prefix=prefix,
+                owner=prefix,
+                hash_segment=hash_segment,
+                assert_segment=assert_segment,
+                claimed=(
+                    "spend0StateProofCommitment"
+                    if prefix == "spend0"
+                    else f"{prefix}NoteCommitmentClaimed"
+                ),
+            )
+        )
+    return notes
 
 
 def fact_owner(prefix: str) -> str:
     return "spend0" if prefix == "spend0" else prefix
 
 
-def render_hash(prefix: str, segment: int) -> str:
+def render_hash(model: Deployment, prefix: str, segment_data: dict) -> str:
     owner = fact_owner(prefix)
+    segment = segment_data["index"]
     return f"""
 theorem {prefix}NoteCommitmentHash
     (rho : Nat → DeployedF)
@@ -49,24 +148,24 @@ theorem {prefix}NoteCommitmentHash
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5.spec
       (Seg{segment}.localRho rho) at h
-  have hw1 : Seg{segment}.wireSeating 1 = {wire(segment, 1)} := by decide
-  have hw7 : Seg{segment}.wireSeating 7 = {wire(segment, 7)} := by decide
-  have hw13 : Seg{segment}.wireSeating 13 = {wire(segment, 13)} := by decide
-  have hw19 : Seg{segment}.wireSeating 19 = {wire(segment, 19)} := by decide
-  have hw20 : Seg{segment}.wireSeating 20 = {wire(segment, 20)} := by decide
-  have hw26 : Seg{segment}.wireSeating 26 = {wire(segment, 26)} := by decide
-  have hw27 : Seg{segment}.wireSeating 27 = {wire(segment, 27)} := by decide
-  have hw33 : Seg{segment}.wireSeating 33 = {wire(segment, 33)} := by decide
-  have hw408 : Seg{segment}.wireSeating 408 = {wire(segment, 408)} := by decide
-  have hw413 : Seg{segment}.wireSeating 413 = {wire(segment, 413)} := by decide
-  have hw418 : Seg{segment}.wireSeating 418 = {wire(segment, 418)} := by decide
-  have hw423 : Seg{segment}.wireSeating 423 = {wire(segment, 423)} := by decide
-  have hw428 : Seg{segment}.wireSeating 428 = {wire(segment, 428)} := by decide
-  have hw433 : Seg{segment}.wireSeating 433 = {wire(segment, 433)} := by decide
-  have hw438 : Seg{segment}.wireSeating 438 = {wire(segment, 438)} := by decide
+  have hw1 : Seg{segment}.wireSeating 1 = {wire(model, segment_data, 1)} := by decide +kernel
+  have hw7 : Seg{segment}.wireSeating 7 = {wire(model, segment_data, 7)} := by decide +kernel
+  have hw13 : Seg{segment}.wireSeating 13 = {wire(model, segment_data, 13)} := by decide +kernel
+  have hw19 : Seg{segment}.wireSeating 19 = {wire(model, segment_data, 19)} := by decide +kernel
+  have hw20 : Seg{segment}.wireSeating 20 = {wire(model, segment_data, 20)} := by decide +kernel
+  have hw26 : Seg{segment}.wireSeating 26 = {wire(model, segment_data, 26)} := by decide +kernel
+  have hw27 : Seg{segment}.wireSeating 27 = {wire(model, segment_data, 27)} := by decide +kernel
+  have hw33 : Seg{segment}.wireSeating 33 = {wire(model, segment_data, 33)} := by decide +kernel
+  have hw408 : Seg{segment}.wireSeating 408 = {wire(model, segment_data, 408)} := by decide +kernel
+  have hw413 : Seg{segment}.wireSeating 413 = {wire(model, segment_data, 413)} := by decide +kernel
+  have hw418 : Seg{segment}.wireSeating 418 = {wire(model, segment_data, 418)} := by decide +kernel
+  have hw423 : Seg{segment}.wireSeating 423 = {wire(model, segment_data, 423)} := by decide +kernel
+  have hw428 : Seg{segment}.wireSeating 428 = {wire(model, segment_data, 428)} := by decide +kernel
+  have hw433 : Seg{segment}.wireSeating 433 = {wire(model, segment_data, 433)} := by decide +kernel
+  have hw438 : Seg{segment}.wireSeating 438 = {wire(model, segment_data, 438)} := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
-        DeployedF) = -1 := by decide
+        DeployedF) = -1 := by decide +kernel
   apply NoteReshapeCommitmentBridge.noteCommitmentHash_of_spec
     (Seg{segment}.localRho rho) h
   · simp only [
@@ -101,11 +200,16 @@ theorem {prefix}NoteCommitmentHash
 
 
 def render_asserted(
-    prefix: str, owner: str, segment: int, claimed: str
+    model: Deployment,
+    prefix: str,
+    owner: str,
+    segment_data: dict,
+    claimed: str,
 ) -> str:
+    segment = segment_data["index"]
     seating_facts = "\n".join(
         f"  have hw{index} : Seg{segment}.wireSeating {index} = "
-        f"{wire(segment, index)} := by decide"
+        f"{wire(model, segment_data, index)} := by decide +kernel"
         for index in range(1, 9)
     )
     return f"""
@@ -178,19 +282,12 @@ theorem {prefix}Commitment
 """
 
 
-def wire(segment: int, index: int) -> int:
-    source = (
-        ROOT
-        / "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts"
-        / f"NoteReshape1x8/Seg{segment}.lean"
-    ).read_text()
-    marker = "def wireSeatingTable : List Nat := ["
-    body = source.split(marker, 1)[1].split("]", 1)[0]
-    values = [int(value) for value in body.split(", ")]
-    return values[index]
+def wire(model: Deployment, segment: dict, index: int) -> int:
+    return model.seating(segment)[index]
 
 
 def render() -> str:
+    model = deployment()
     parts = [
         """/-
 GENERATED by gen/gen_note_reshape_1x8_commitments.py — do not edit by hand.
@@ -207,10 +304,18 @@ open Shieldd.GnarkFormal
 open Contracts.NoteReshape1x8
 """
     ]
-    for prefix, hash_segment, owner, assert_segment, claimed in NOTES:
-        parts.append(render_hash(prefix, hash_segment))
-        parts.append(render_asserted(prefix, owner, assert_segment, claimed))
-        parts.append(render_bound(prefix, claimed))
+    for note in note_segments(model):
+        parts.append(render_hash(model, note.prefix, note.hash_segment))
+        parts.append(
+            render_asserted(
+                model,
+                note.prefix,
+                note.owner,
+                note.assert_segment,
+                note.claimed,
+            )
+        )
+        parts.append(render_bound(note.prefix, note.claimed))
     parts.append(
         "\nend Shieldd.GnarkFormal.Deployed.Generated.NoteReshape1x8Commitments\n"
     )
@@ -223,11 +328,11 @@ def main() -> int:
     args = parser.parse_args()
     expected = render()
     if args.check:
-        if not OUTPUT.is_file() or OUTPUT.read_text() != expected:
+        if not OUTPUT.is_file() or OUTPUT.read_text(encoding="utf-8") != expected:
             raise SystemExit(f"generated file is stale: {OUTPUT}")
         return 0
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(expected)
+    write_if_changed(OUTPUT, expected)
     return 0
 
 

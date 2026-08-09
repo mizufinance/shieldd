@@ -24,6 +24,8 @@ theorem semanticCircuitFacts
   exact {
     shape := actionShape rho facts
     padding := actionPadding rho facts
+    randomizersCanonical := actionRandomizersCanonical rho facts
+    dummySlotIndicesCanonical := actionDummySlotIndicesCanonical rho
     canonicalAddress := actionCanonicalAddress rho facts
     inputsBound := actionInputCommitments rho facts
     membership := actionMembershipAndNullifiers rho facts
@@ -42,28 +44,92 @@ theorem deployedRelation_to_circuitFacts
   semanticCircuitFacts rho
     (note_reshape8x1_circuitFacts rho h)
 
-theorem valid_of_deployedRelation
+theorem consensusAccepted_of_deployedRelation
     (authorizationChecks :
       ExternalAuthorization DeployedF Concrete.Path24)
     (stateChecks : StateChecks DeployedF Concrete.Path24)
+    (before : ConsensusState DeployedF)
+    (delta : ActionDelta DeployedF)
+    (after : ConsensusState DeployedF)
     (rho : Nat → DeployedF)
     (h : relationAll rho)
     (signatures :
-      ExternalSignatureFacts authorizationChecks (action rho))
+      ConsensusSignatureFacts authorizationChecks (action rho))
     (state :
-      StatePreconditions stateChecks (action rho)) :
-    Valid
+      ConsensusStateFacts stateChecks (action rho) before delta after) :
+    ConsensusAccepted
       Concrete.circuitPrimitives
       authorizationChecks
       stateChecks
+      before
+      delta
+      after
       (action rho) :=
-  Protocol.NoteReshape.valid_of_circuitFacts
+  Protocol.NoteReshape.consensusAccepted_of_circuitFacts
     Concrete.circuitPrimitives
     authorizationChecks
     stateChecks
+    before
+    delta
+    after
     (action rho)
     (NoteReshapeRefinement.circuitFacts_refine
       (action rho) (deployedRelation_to_circuitFacts rho h))
     signatures state
+
+theorem transactionAccepted_of_deployedRelation
+    (authorizationChecks :
+      ExternalAuthorization DeployedF Concrete.Path24)
+    (stateChecks : StateChecks DeployedF Concrete.Path24)
+    (otherStep : ConsensusState DeployedF → ConsensusState DeployedF → Prop)
+    (transactionBefore actionBefore : ConsensusState DeployedF)
+    (delta : ActionDelta DeployedF)
+    (actionAfter transactionAfter : ConsensusState DeployedF)
+    (rho : Nat → DeployedF)
+    (h : relationAll rho)
+    (signatures :
+      ConsensusSignatureFacts authorizationChecks (action rho))
+    (state :
+      ConsensusStateFacts stateChecks (action rho)
+        actionBefore delta actionAfter)
+    (committed :
+      Protocol.Common.CommittedTargetTransaction
+        (fun state => state.spentNullifiers)
+        (fun state => state.proofBoundOutputCommitments)
+        (actionNullifiers (action rho))
+        (Protocol.NoteReshape.actionOutputCommitments (action rho))
+        otherStep
+        (TargetStep (action rho) delta)
+        transactionBefore
+        actionBefore
+        actionAfter
+        transactionAfter) :
+    TransactionAccepted
+      Concrete.circuitPrimitives
+      authorizationChecks
+      stateChecks
+      otherStep
+      transactionBefore
+      actionBefore
+      delta
+      actionAfter
+      transactionAfter
+      (action rho) :=
+  Protocol.NoteReshape.transactionAccepted_of_circuitFacts
+    Concrete.circuitPrimitives
+    authorizationChecks
+    stateChecks
+    otherStep
+    transactionBefore
+    actionBefore
+    delta
+    actionAfter
+    transactionAfter
+    (action rho)
+    (NoteReshapeRefinement.circuitFacts_refine
+      (action rho) (deployedRelation_to_circuitFacts rho h))
+    signatures
+    state
+    committed
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape8x1Refinement.C

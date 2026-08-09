@@ -21,15 +21,15 @@ pub use note_reshape::{
 };
 pub use note_reshape_witness::NoteReshapeWitnessV3;
 pub use shielded_ics20_withdrawal::{
-    decode_shielded_ics20_withdrawal_witness_v6, encode_shielded_ics20_withdrawal_witness_v6,
+    decode_shielded_ics20_withdrawal_witness_v8, encode_shielded_ics20_withdrawal_witness_v8,
     translate_shielded_ics20_withdrawal_proof_result, GnarkShieldedIcs20WithdrawalClient,
 };
-pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV6;
+pub use shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV8;
 pub use transfer::{
-    decode_transfer_witness_v11, encode_transfer_witness_v11, translate_transfer_proof_result,
+    decode_transfer_witness_v16, encode_transfer_witness_v16, translate_transfer_proof_result,
     GnarkTransferClient,
 };
-pub use transfer_witness::TransferWitnessV11;
+pub use transfer_witness::TransferWitnessV16;
 #[cfg(test)]
 pub(crate) use typed::point_affine_compress_to_field_bytes;
 pub use typed::{ComplianceLeafBinary, IndexedLeafBinary, MerklePathBinary, PointAffineBytes};
@@ -68,20 +68,14 @@ mod repo_local_demo_library_tests {
                 b"shieldd_gnark_transfer_init" as &[u8],
             ),
             (
-                "note_reshape2x1",
-                "artifacts/note_reshape2x1",
-                "note_reshape",
-                b"shieldd_gnark_note_reshape_init" as &[u8],
-            ),
-            (
                 "note_reshape1x8",
                 "artifacts/note_reshape1x8",
                 "note_reshape",
                 b"shieldd_gnark_note_reshape_init" as &[u8],
             ),
             (
-                "note_reshape4x1",
-                "artifacts/note_reshape4x1",
+                "note_reshape8x1",
+                "artifacts/note_reshape8x1",
                 "note_reshape",
                 b"shieldd_gnark_note_reshape_init" as &[u8],
             ),
@@ -154,8 +148,8 @@ mod soundness_fixture_tests {
 
     use crate::{
         gnark::{
-            encode_note_reshape_witness_v3, encode_shielded_ics20_withdrawal_witness_v6,
-            encode_transfer_witness_v11,
+            encode_note_reshape_witness_v3, encode_shielded_ics20_withdrawal_witness_v8,
+            encode_transfer_witness_v16,
         },
         test_proof_helpers::proof_test_helpers,
         NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId,
@@ -181,8 +175,42 @@ mod soundness_fixture_tests {
         let (public, private) =
             proof_test_helpers::build_transfer_roundtrip_inputs_with_rng(&mut rng, true);
         write_fixture(
-            "transfer_witness_v11.bin",
-            encode_transfer_witness_v11(&public, &private).expect("encode transfer witness"),
+            "transfer_witness_v16.bin",
+            encode_transfer_witness_v16(&public, &private).expect("encode transfer witness"),
+        );
+    }
+
+    fn write_unregulated_transfer_fixture() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0x554e_5245_4758_4631);
+        let asset_id = shieldd_sdk_asset::asset::REGISTRY
+            .parse_unit("test_usd")
+            .id();
+        let predecessor_asset_id = asset_id.0 - decaf377::Fq::from(1u64);
+        let (public, private) =
+            proof_test_helpers::build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
+                &mut rng,
+                asset_id,
+                predecessor_asset_id,
+                1,
+                false,
+            );
+        write_fixture(
+            "transfer_unregulated_witness_v16.bin",
+            encode_transfer_witness_v16(&public, &private)
+                .expect("encode unregulated transfer witness"),
+        );
+    }
+
+    fn write_flagged_transfer_fixture() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0x464c_4147_5631_3601);
+        let (public, private) =
+            proof_test_helpers::build_transfer_flagged_hidden_arity_roundtrip_inputs_with_rng(
+                &mut rng,
+            );
+        write_fixture(
+            "transfer_flagged_witness_v16.bin",
+            encode_transfer_witness_v16(&public, &private)
+                .expect("encode flagged transfer witness"),
         );
     }
 
@@ -195,9 +223,25 @@ mod soundness_fixture_tests {
                 true,
             );
         write_fixture(
-            "shielded_ics20_withdrawal_witness_v6.bin",
-            encode_shielded_ics20_withdrawal_witness_v6(&public, &private)
+            "shielded_ics20_withdrawal_witness_v8.bin",
+            encode_shielded_ics20_withdrawal_witness_v8(&public, &private)
                 .expect("encode shielded ICS-20 withdrawal witness"),
+        );
+    }
+
+    fn write_unregulated_shielded_ics20_withdrawal_fixture() {
+        let mut rng = rand::rngs::StdRng::seed_from_u64(0x554e_5245_4757_4438);
+        let (public, private) =
+            proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs_with_rng_and_real_spends(
+                &mut rng,
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                false,
+                1,
+            );
+        write_fixture(
+            "shielded_ics20_withdrawal_unregulated_witness_v8.bin",
+            encode_shielded_ics20_withdrawal_witness_v8(&public, &private)
+                .expect("encode unregulated optional-dummy withdrawal witness"),
         );
     }
 
@@ -205,6 +249,7 @@ mod soundness_fixture_tests {
     #[ignore = "debug: refresh Rust-emitted withdrawal gnark soundness fixture"]
     fn bless_shielded_ics20_withdrawal_witness_fixture() {
         write_shielded_ics20_withdrawal_fixture();
+        write_unregulated_shielded_ics20_withdrawal_fixture();
     }
 
     #[test]
@@ -214,21 +259,22 @@ mod soundness_fixture_tests {
     }
 
     #[test]
+    #[ignore = "debug: refresh Rust-emitted unregulated transfer gnark soundness fixture"]
+    fn bless_unregulated_transfer_witness_fixture() {
+        write_unregulated_transfer_fixture();
+    }
+
+    #[test]
+    #[ignore = "debug: refresh Rust-emitted flagged transfer gnark soundness fixture"]
+    fn bless_flagged_transfer_witness_fixture() {
+        write_flagged_transfer_fixture();
+    }
+
+    #[test]
     #[ignore = "debug: refresh Rust-emitted gnark soundness fixtures"]
     fn bless_soundness_gnark_witness_fixtures() {
         write_transfer_fixture();
-
-        let mut note_reshape_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0043_3258_3101);
-        let (note_reshape_public, note_reshape_private) =
-            proof_test_helpers::build_note_reshape_roundtrip_inputs_with_rng(
-                &mut note_reshape_rng,
-                NoteReshapeFamilyId::TwoByOne,
-            );
-        write_fixture(
-            "note_reshape2x1_witness_v3.bin",
-            encode_note_reshape_witness_v3(&note_reshape_public, &note_reshape_private)
-                .expect("encode note reshape witness"),
-        );
+        write_flagged_transfer_fixture();
 
         let mut one_to_many_rng = rand::rngs::StdRng::seed_from_u64(0x0000_0053_3158_3401);
         let (one_to_many_public, one_to_many_private) =
@@ -242,18 +288,11 @@ mod soundness_fixture_tests {
                 .expect("encode note reshape witness"),
         );
 
-        for (family_id, seed, filename) in [
-            (
-                NoteReshapeFamilyId::FourByOne,
-                0x0000_0043_3458_3101,
-                "note_reshape4x1_witness_v3.bin",
-            ),
-            (
-                NoteReshapeFamilyId::EightByOne,
-                0x0000_0043_3858_3101,
-                "note_reshape8x1_witness_v3.bin",
-            ),
-        ] {
+        for (family_id, seed, filename) in [(
+            NoteReshapeFamilyId::EightByOne,
+            0x0000_0043_3858_3101,
+            "note_reshape8x1_witness_v3.bin",
+        )] {
             let mut rng = rand::rngs::StdRng::seed_from_u64(seed);
             let (public, private) =
                 proof_test_helpers::build_note_reshape_roundtrip_inputs_with_rng(

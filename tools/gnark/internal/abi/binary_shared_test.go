@@ -62,24 +62,17 @@ func TestReadFr32RejectsScalarModulusAliases(t *testing.T) {
 	}
 }
 
-func TestTransferComplianceTierRejectsScalarModulusChallenge(t *testing.T) {
+func TestTransferComplianceMetadataRejectsFqModulusSalt(t *testing.T) {
 	var encoded bytes.Buffer
-	encoded.Write(make([]byte, 32))
-	encoded.Write(encodedU32(0))
-	for index := 0; index < 5; index++ {
+	for index := 0; index < 7; index++ {
 		encoded.Write(make([]byte, 32))
 	}
-	if err := binary.Write(&encoded, binary.LittleEndian, uint64(1)); err != nil {
-		t.Fatal(err)
-	}
-	encoded.Write(make([]byte, 32))
-	encoded.Write(make([]byte, 32))
-	modulus := littleEndian32(decaf377.ScalarOrder())
+	modulus := littleEndian32(primitives.ScalarField())
 	encoded.Write(modulus[:])
 
-	_, err := readTransferComplianceTierV11(bytes.NewReader(encoded.Bytes()))
-	if err == nil || !strings.Contains(err.Error(), "non-canonical Fr") {
-		t.Fatalf("read transfer challenge at Fr modulus: expected canonicality error, got %v", err)
+	_, err := readTransferComplianceMetadataV16(bytes.NewReader(encoded.Bytes()))
+	if err == nil || !strings.Contains(err.Error(), "non-canonical Fq") {
+		t.Fatalf("read transfer metadata salt at Fq modulus: expected canonicality error, got %v", err)
 	}
 }
 

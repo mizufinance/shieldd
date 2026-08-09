@@ -2,7 +2,6 @@ use shieldd_sdk_asset::balance;
 use shieldd_sdk_compliance::structs::{MsgRegisterAsset, MsgRegisterUser};
 use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
-use shieldd_sdk_proof_aggregation::AggregateBundle;
 use shieldd_sdk_shielded_pool::{
     Note, NoteReshape, NoteReshapeView, ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalView,
     Transfer, TransferView,
@@ -299,16 +298,6 @@ impl IsAction for MsgRegisterUser {
     }
 }
 
-impl IsAction for AggregateBundle {
-    fn balance_commitment(&self) -> balance::Commitment {
-        Default::default()
-    }
-
-    fn view_from_perspective(&self, _txp: &TransactionPerspective) -> ActionView {
-        ActionView::AggregateBundle(self.clone())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::{ops::Deref, str::FromStr};
@@ -319,9 +308,8 @@ mod tests {
     use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM};
     use shieldd_sdk_keys::{test_keys, PayloadKey};
     use shieldd_sdk_shielded_pool::{
-        Ics20Withdrawal, Note, ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalFamilyId,
-        ShieldedIcs20WithdrawalPlan, ShieldedIcs20WithdrawalProof, ShieldedIcs20WithdrawalView,
-        ShieldedInputPlan,
+        Ics20Withdrawal, Note, ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalPlan,
+        ShieldedIcs20WithdrawalProof, ShieldedIcs20WithdrawalView, ShieldedInputPlan,
     };
     use shieldd_sdk_tct::Tree;
 
@@ -340,7 +328,6 @@ mod tests {
         );
         let spend = ShieldedInputPlan::new(&mut OsRng, spent_note.clone(), 0u64.into());
         let plan = ShieldedIcs20WithdrawalPlan::new(
-            ShieldedIcs20WithdrawalFamilyId::Canonical,
             vec![spend],
             None,
             Ics20Withdrawal {
@@ -351,7 +338,6 @@ mod tests {
                 timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),
                 timeout_time: 60_000_000_000,
                 source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
-                use_compat_address: false,
                 ics20_memo: String::new(),
                 use_transparent_address: false,
             },

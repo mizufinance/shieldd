@@ -120,7 +120,7 @@ fn prompt_for_password(msg: &str) -> Result<String> {
 
 impl SoftKmsInitCmd {
     fn spend_key(&self, init_type: InitType) -> Result<SpendKey> {
-        Ok(match self {
+        match self {
             SoftKmsInitCmd::Generate { stdout } => {
                 let seed_phrase = SeedPhrase::generate(OsRng);
                 let seed_msg = format!(
@@ -145,6 +145,7 @@ impl SoftKmsInitCmd {
 
                 let path = Bip44Path::new(0);
                 SpendKey::from_seed_phrase_bip44(seed_phrase, &path)
+                    .context("generated seed phrase produced an invalid spend key")
             }
             SoftKmsInitCmd::ImportPhrase {
                 legacy_raw_bip39_derivation,
@@ -155,12 +156,14 @@ impl SoftKmsInitCmd {
 
                 if *legacy_raw_bip39_derivation {
                     SpendKey::from_seed_phrase_bip39(seed_phrase, 0)
+                        .context("imported seed phrase produced an invalid legacy spend key")
                 } else {
                     let path = Bip44Path::new(0);
                     SpendKey::from_seed_phrase_bip44(seed_phrase, &path)
+                        .context("imported seed phrase produced an invalid spend key")
                 }
             }
-        })
+        }
     }
 }
 

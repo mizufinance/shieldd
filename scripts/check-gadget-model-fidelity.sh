@@ -20,9 +20,13 @@ axe_tests=(
 
 case "$MODE" in
   all)
-    pattern='^(TestNoteReshape2x1WiringTranscript.*|TestAmountRangeBoundIs128Bits|TestBoolSelectAcl2ModelParity|TestAxeExportFidelity.*)$'
+    pattern='^(TestNoteReshape8x1WiringTranscript.*|TestTransferWiringJoinsDerivedSharedSecretsToEncryption|TestTransferManifestUsesExactConstraintBoundaries|TestTransferManifestExportsSemanticBindings|TestShieldedIcs20WithdrawalManifestIsExactAndFullyBound|TestAmountRangeBoundIs128Bits|TestBoolSelectAcl2ModelParity|TestAxeExportFidelity.*)$'
     required=(
-      TestNoteReshape2x1WiringTranscriptExact
+      TestNoteReshape8x1WiringTranscriptExact
+      TestTransferWiringJoinsDerivedSharedSecretsToEncryption
+      TestTransferManifestUsesExactConstraintBoundaries
+      TestTransferManifestExportsSemanticBindings
+      TestShieldedIcs20WithdrawalManifestIsExactAndFullyBound
       TestAmountRangeBoundIs128Bits
       TestBoolSelectAcl2ModelParity
       "${axe_tests[@]}"

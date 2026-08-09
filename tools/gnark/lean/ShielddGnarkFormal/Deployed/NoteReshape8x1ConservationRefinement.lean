@@ -18,7 +18,8 @@ theorem actionConservation
     (facts : NoteReshape8x1CircuitFacts rho) :
     NoteReshapeCanonical.conservation (action rho) := by
   rcases NoteReshape8x1Conservation.facts rho facts with
-    ⟨hin0, hin1, hin2, hin3, hin4, hin5, hin6, hin7, hout0, hsum, hbalance⟩
+    ⟨hin0, hin1, hin2, hin3, hin4, hin5, hin6, hin7, hout0,
+     hblind, hsum, hbalance⟩
   have hsum' :
       spend0NoteCommitmentInputs1 rho +
         (spend1NoteCommitmentInputs1 rho +
@@ -32,7 +33,7 @@ theorem actionConservation
     rw [← hsum]
     ring
   unfold NoteReshapeCanonical.conservation
-  refine ⟨?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, hblind, ?_, ?_⟩
   · intro input hmem
     change input ∈
       [input0 rho, input1 rho, input2 rho, input3 rho,
@@ -85,9 +86,9 @@ theorem claimedBalanceCompressed
       ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩
       (balanceCommitmentFq rho) := by
   rcases NoteReshape8x1Conservation.facts rho facts with
-    ⟨_, _, _, _, _, _, _, _, _, _, hbalance⟩
+    ⟨_, _, _, _, _, _, _, _, _, _, _, hbalance⟩
   rcases NoteReshape8x1Balance.gadgetSpec rho facts with
-    ⟨_, _, _, _, _, _, _, _, _, _, hcomputed⟩
+    ⟨_, _, _, _, _, _, _, _, _, _, _, hcomputed⟩
   apply Decaf377Assumptions.compress_respects_decafEquivalent
     ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩
     (NoteReshape8x1Balance.Nb.computed rho)

@@ -26,7 +26,6 @@ NULLIFIER_SMOKE_PROOF=nullifier-lift-smoke
 POSEIDON2_PROOF=poseidon2-proof
 HASH4_PROOF=hash4-proof
 NULLIFIER_PROOF=nullifier-proof
-ASSET_REGISTRY_GAP_OUTPUT_PROOF=asset-registry-gap-output
 BOOL_SELECT_LEAN=tools/gnark/lean/ShielddGnarkFormal/Extracted/BoolSelect.lean
 ISZERO_LEAN=tools/gnark/lean/ShielddGnarkFormal/Extracted/IsZero.lean
 NULLIFIER_LEAN=tools/gnark/lean/ShielddGnarkFormal/Extracted/Nullifier.lean
@@ -285,27 +284,6 @@ certify_with_cert_pl "$HASH4_PROOF"
 certify_with_cert_pl generated/gadget-nullifier-r1cs
 certify_with_cert_pl "$NULLIFIER_SMOKE_PROOF"
 certify_with_cert_pl "$NULLIFIER_PROOF"
-certify_with_cert_pl generated/gadget-imt-gap-r1cs
-certify_with_cert_pl imt-gap-compose-smoke
-# Proof-friendly AssetRegistryGap (Step 5, Option B): Kestrel-shaped canonical
-# decomposition + decompose-once fused comparator. The full chain certified here:
-# keystone (canonical-fq-bits-proof: packbv <= p-1 via
-# make-range-check-constraints-correct) -> bridge to the real gnark slice
-# (canonical-fq-bits-bridge) -> rename transfer to each operand block
-# (asset-registry-operands-reduced) -> whole-gadget operand canonicity over the
-# real 5568-constraint gadget (asset-registry-gap-soundness) -> output predicate
-# over the embedded exact-match/select/lexLess tail (asset-registry-gap-output).
-certify_with_cert_pl generated/gadget-canonical-fq-bits-r1cs
-certify_with_cert_pl generated/gadget-canonical-fq-bits-bit-inputs
-certify_with_cert_pl canonical-fq-bits-lift
-certify_with_cert_pl canonical-fq-bits-proof
-certify_with_cert_pl canonical-fq-bits-bridge
-certify_with_cert_pl canonical-fq-bits-rename
-certify_with_cert_pl lex-less-proof
-certify_with_cert_pl asset-registry-gap-proof
-certify_with_cert_pl asset-registry-operands-reduced
-certify_with_cert_pl asset-registry-gap-soundness
-certify_with_cert_pl "$ASSET_REGISTRY_GAP_OUTPUT_PROOF"
 
 # 3. The checked-in stamped artifacts must match the certified proof sources.
 check_artifact_stamp "$BOOL_SELECT_PROOF"
@@ -314,7 +292,6 @@ check_artifact_stamp "$POSEIDON2_SMOKE_PROOF"
 check_artifact_stamp "$POSEIDON2_PROOF"
 check_artifact_stamp "$HASH4_PROOF"
 check_artifact_stamp "$NULLIFIER_PROOF"
-check_artifact_stamp "$ASSET_REGISTRY_GAP_OUTPUT_PROOF"
 
 # Lean second-engine (M6) closure. Like the STP preflight above, a missing
 # toolchain degrades to an advisory skip rather than a hard failure: `lake` is the
@@ -335,4 +312,4 @@ else
   LEAN_STATUS="Lean closure skipped (tools/gnark/lean absent)"
 fi
 
-echo "circuit gadget proof check ok: bool-select, iszero, poseidon2, nullifier, and AssetRegistryGap output semantic proofs certified; Poseidon377 ACL2 spec vectors certified; $LEAN_STATUS"
+echo "circuit gadget proof check ok: bool-select, iszero, poseidon2, hash4, and nullifier semantic proofs certified; Poseidon377 ACL2 spec vectors certified; $LEAN_STATUS"

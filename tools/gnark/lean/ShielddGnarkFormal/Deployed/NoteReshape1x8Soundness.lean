@@ -1,6 +1,6 @@
 import ShielddGnarkFormal.Deployed.NoteReshape1x8Spend
 import ShielddGnarkFormal.Deployed.NoteReshape1x8Conservation
-import ShielddGnarkFormal.Deployed.NoteReshape1x8Statement
+import ShielddGnarkFormal.Deployed.NoteReshape1x8TranscriptSeams
 import ShielddGnarkFormal.Deployed.NoteReshapeRefinement
 
 set_option maxRecDepth 1000000
@@ -23,7 +23,7 @@ theorem actionConservation
     NoteReshapeCanonical.conservation (action rho) := by
   rcases NoteReshape1x8Conservation.facts rho facts with
     ⟨hin, hout0, hout1, hout2, hout3, hout4, hout5, hout6, hout7,
-     hsum, hbalance⟩
+     hblind, hsum, hbalance⟩
   have hsum' :
       spend0NoteCommitmentInputs1 rho =
         output0NoteCommitmentInputs1 rho +
@@ -49,7 +49,7 @@ theorem actionConservation
               (And.intro hout3
                 (And.intro hout4
                   (And.intro hout5 (And.intro hout6 hout7)))))))
-        (And.intro hsum' hbalance))
+        (And.intro hblind (And.intro hsum' hbalance)))
 
 theorem claimedBalanceCompressed
     (rho : Nat → DeployedF)
@@ -58,9 +58,9 @@ theorem claimedBalanceCompressed
       ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩
       (balanceCommitmentFq rho) := by
   rcases NoteReshape1x8Conservation.facts rho facts with
-    ⟨_, _, _, _, _, _, _, _, _, _, hbalance⟩
+    ⟨_, _, _, _, _, _, _, _, _, _, _, hbalance⟩
   rcases NoteReshape1x8Balance.gadgetSpec rho facts with
-    ⟨_, _, _, _, _, _, _, _, _, _, hcomputed⟩
+    ⟨_, _, _, _, _, _, _, _, _, _, _, hcomputed⟩
   apply Decaf377Assumptions.compress_respects_decafEquivalent
     ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩
     (NoteReshape1x8Balance.Nb.computed rho)
@@ -98,7 +98,7 @@ theorem actionStatementBinding
       Generated.NoteReshape1x8Commitments.output6NoteCommitmentAsserted rho facts,
       Generated.NoteReshape1x8Commitments.output7NoteCommitmentAsserted rho facts,
       spend0NullifierAsserted rho facts
-    ] using NoteReshape1x8Statement.claimedHash rho facts
+    ] using NoteReshape1x8TranscriptSeams.claimedHash rho facts
 
 theorem semanticCircuitFacts
     (rho : Nat → DeployedF)
@@ -109,6 +109,8 @@ theorem semanticCircuitFacts
   exact {
     shape := actionShape rho
     padding := actionPadding rho
+    randomizersCanonical := actionRandomizersCanonical rho facts
+    dummySlotIndicesCanonical := actionDummySlotIndicesCanonical rho
     canonicalAddress := actionCanonicalAddress rho facts
     inputsBound := actionInputCommitments rho facts
     membership := actionMembershipAndNullifiers rho facts
@@ -127,28 +129,92 @@ theorem deployedRelation_to_circuitFacts
   semanticCircuitFacts rho
     (note_reshape1x8_circuitFacts rho h)
 
-theorem valid_of_deployedRelation
+theorem consensusAccepted_of_deployedRelation
     (authorizationChecks :
       ExternalAuthorization DeployedF Concrete.Path24)
     (stateChecks : StateChecks DeployedF Concrete.Path24)
+    (before : ConsensusState DeployedF)
+    (delta : ActionDelta DeployedF)
+    (after : ConsensusState DeployedF)
     (rho : Nat → DeployedF)
     (h : relationAll rho)
     (signatures :
-      ExternalSignatureFacts authorizationChecks (action rho))
+      ConsensusSignatureFacts authorizationChecks (action rho))
     (state :
-      StatePreconditions stateChecks (action rho)) :
-    Valid
+      ConsensusStateFacts stateChecks (action rho) before delta after) :
+    ConsensusAccepted
       Concrete.circuitPrimitives
       authorizationChecks
       stateChecks
+      before
+      delta
+      after
       (action rho) :=
-  Protocol.NoteReshape.valid_of_circuitFacts
+  Protocol.NoteReshape.consensusAccepted_of_circuitFacts
     Concrete.circuitPrimitives
     authorizationChecks
     stateChecks
+    before
+    delta
+    after
     (action rho)
     (NoteReshapeRefinement.circuitFacts_refine
       (action rho) (deployedRelation_to_circuitFacts rho h))
     signatures state
+
+theorem transactionAccepted_of_deployedRelation
+    (authorizationChecks :
+      ExternalAuthorization DeployedF Concrete.Path24)
+    (stateChecks : StateChecks DeployedF Concrete.Path24)
+    (otherStep : ConsensusState DeployedF → ConsensusState DeployedF → Prop)
+    (transactionBefore actionBefore : ConsensusState DeployedF)
+    (delta : ActionDelta DeployedF)
+    (actionAfter transactionAfter : ConsensusState DeployedF)
+    (rho : Nat → DeployedF)
+    (h : relationAll rho)
+    (signatures :
+      ConsensusSignatureFacts authorizationChecks (action rho))
+    (state :
+      ConsensusStateFacts stateChecks (action rho)
+        actionBefore delta actionAfter)
+    (committed :
+      Protocol.Common.CommittedTargetTransaction
+        (fun state => state.spentNullifiers)
+        (fun state => state.proofBoundOutputCommitments)
+        (actionNullifiers (action rho))
+        (Protocol.NoteReshape.actionOutputCommitments (action rho))
+        otherStep
+        (TargetStep (action rho) delta)
+        transactionBefore
+        actionBefore
+        actionAfter
+        transactionAfter) :
+    TransactionAccepted
+      Concrete.circuitPrimitives
+      authorizationChecks
+      stateChecks
+      otherStep
+      transactionBefore
+      actionBefore
+      delta
+      actionAfter
+      transactionAfter
+      (action rho) :=
+  Protocol.NoteReshape.transactionAccepted_of_circuitFacts
+    Concrete.circuitPrimitives
+    authorizationChecks
+    stateChecks
+    otherStep
+    transactionBefore
+    actionBefore
+    delta
+    actionAfter
+    transactionAfter
+    (action rho)
+    (NoteReshapeRefinement.circuitFacts_refine
+      (action rho) (deployedRelation_to_circuitFacts rho h))
+    signatures
+    state
+    committed
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape1x8Refinement.C

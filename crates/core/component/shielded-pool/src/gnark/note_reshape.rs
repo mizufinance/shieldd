@@ -33,7 +33,7 @@ const NOTE_RESHAPE_FREE_SYMBOL: &[u8] = b"shieldd_gnark_note_reshape_free";
 const NOTE_RESHAPE_SHUTDOWN_SYMBOL: &[u8] = b"shieldd_gnark_note_reshape_shutdown";
 
 static NOTE_RESHAPE_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "note_reshape2x1",
+    family: "note_reshape8x1",
     env_artifact_dir: NOTE_RESHAPE_ENV_ARTIFACT_DIR,
     env_lib: NOTE_RESHAPE_ENV_LIB,
     env_daemon: NOTE_RESHAPE_ENV_DAEMON,
@@ -44,18 +44,8 @@ static NOTE_RESHAPE_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
     shutdown_symbol: NOTE_RESHAPE_SHUTDOWN_SYMBOL,
 };
 
-static NOTE_RESHAPE_FAMILY_CONFIG_2X1: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "note_reshape2x1",
-    ..NOTE_RESHAPE_FAMILY_CONFIG
-};
-
 static NOTE_RESHAPE_FAMILY_CONFIG_8X1: GnarkFamilyConfig = GnarkFamilyConfig {
     family: "note_reshape8x1",
-    ..NOTE_RESHAPE_FAMILY_CONFIG
-};
-
-static NOTE_RESHAPE_FAMILY_CONFIG_4X1: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "note_reshape4x1",
     ..NOTE_RESHAPE_FAMILY_CONFIG
 };
 
@@ -66,10 +56,8 @@ static NOTE_RESHAPE_FAMILY_CONFIG_1X8: GnarkFamilyConfig = GnarkFamilyConfig {
 
 fn note_reshape_family_config(family_id: NoteReshapeFamilyId) -> &'static GnarkFamilyConfig {
     match family_id {
-        NoteReshapeFamilyId::TwoByOne => &NOTE_RESHAPE_FAMILY_CONFIG_2X1,
         NoteReshapeFamilyId::OneByEight => &NOTE_RESHAPE_FAMILY_CONFIG_1X8,
         NoteReshapeFamilyId::EightByOne => &NOTE_RESHAPE_FAMILY_CONFIG_8X1,
-        NoteReshapeFamilyId::FourByOne => &NOTE_RESHAPE_FAMILY_CONFIG_4X1,
         _ => panic!("unknown note_reshape family id {}", family_id.get()),
     }
 }
@@ -305,8 +293,9 @@ mod tests {
     }
 
     fn corrupt() -> Vec<u8> {
-        let (public, private) =
-            proof_test_helpers::build_note_reshape_roundtrip_inputs(NoteReshapeFamilyId::TwoByOne);
+        let (public, private) = proof_test_helpers::build_note_reshape_roundtrip_inputs(
+            NoteReshapeFamilyId::EightByOne,
+        );
         encode_note_reshape_witness_v3(&public, &private).expect("encode note_reshape witness")
     }
 

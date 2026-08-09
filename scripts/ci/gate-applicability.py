@@ -12,6 +12,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+SCRIPT_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(SCRIPT_DIR))
+from fv_strict_json import (  # noqa: E402
+    StrictJsonError,
+    load as load_strict_json,
+    loads as loads_strict_json,
+)
+
 
 SCHEMA_VERSION = 1
 CANDIDATE_EVENTS = {"pull_request", "merge_group"}
@@ -174,10 +182,8 @@ def _input_rule(
 
 def load_declaration(path: Path, expected_gate: str | None = None) -> Declaration:
     try:
-        raw_value = json.loads(path.read_text(encoding="utf-8"))
-    except OSError as error:
-        raise ClassificationError(f"cannot read declaration {path}: {error}") from error
-    except json.JSONDecodeError as error:
+        raw_value = load_strict_json(path, f"declaration {path}")
+    except StrictJsonError as error:
         raise ClassificationError(f"malformed declaration {path}: {error}") from error
 
     raw = _object(raw_value, str(path))
@@ -288,6 +294,12 @@ def load_declaration(path: Path, expected_gate: str | None = None) -> Declaratio
         _input_rule(value, f"{path}.explicit_inputs[{index}]", tiers, tiered=True)
         for index, value in enumerate(raw["explicit_inputs"])
     )
+    for index, item in enumerate(explicit):
+        if "skip" in item["tiers"].values():
+            raise ClassificationError(
+                f"{path}.explicit_inputs[{index}].tiers must name "
+                "only non-skip tiers"
+            )
     if not isinstance(raw["irrelevant_inputs"], list):
         raise ClassificationError(f"{path}.irrelevant_inputs must be an array")
     irrelevant = tuple(
@@ -391,8 +403,11 @@ def cargo_closure_rules(
             + (result.stderr.strip() or str(result.returncode))
         )
     try:
-        metadata = _object(json.loads(result.stdout), "cargo metadata")
-    except json.JSONDecodeError as error:
+        metadata = _object(
+            loads_strict_json(result.stdout, "cargo metadata"),
+            "cargo metadata",
+        )
+    except StrictJsonError as error:
         raise ClassificationError(
             f"cargo metadata returned malformed JSON: {error}"
         ) from error
@@ -597,8 +612,10 @@ def _git_json_file(root: Path, revision: str, path: str) -> Any | None:
     if result.returncode:
         raise ClassificationError(f"cannot read {path} at base {revision}")
     try:
-        return json.loads(result.stdout)
-    except json.JSONDecodeError as error:
+        return loads_strict_json(
+            result.stdout, f"base manifest {revision}:{path}"
+        )
+    except StrictJsonError as error:
         raise ClassificationError(
             f"malformed base manifest {revision}:{path}: {error}"
         ) from error
@@ -621,12 +638,11 @@ def derived_rules(
             continue
         manifest_path = root / source["path"]
         try:
-            current = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except OSError as error:
-            raise ClassificationError(
-                f"cannot read required extraction manifest {source['path']}: {error}"
-            ) from error
-        except json.JSONDecodeError as error:
+            current = load_strict_json(
+                manifest_path,
+                f"extraction manifest {source['path']}",
+            )
+        except StrictJsonError as error:
             raise ClassificationError(
                 f"malformed extraction manifest {source['path']}: {error}"
             ) from error

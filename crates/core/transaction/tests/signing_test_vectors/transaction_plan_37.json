@@ -3,70 +3,58 @@
     {
       "validatorVote": {
         "body": {
-          "proposal": "847449181",
+          "proposal": "17455975",
           "vote": {
-            "vote": "VOTE_YES"
+            "vote": "VOTE_ABSTAIN"
           },
           "identityKey": {
-            "ik": "pUqSXpxJF26s/lFJSDMbK2vzZ4bdHgi6toFchBq0nlM="
+            "ik": "aC1ZCAli7XszCrAbqqu+JbOa0tyxy7icufoMHmJQyRA="
           },
           "governanceKey": {
-            "gk": "SH26t1k5T1Kw4gKrf2/pE275wvtx8fXRb7XBJBWBXAs="
+            "gk": "EIgciLSMIPVzoF3J3j6maGtWX9HIz81N69Ta5KIu9Q8="
           },
           "reason": {
-            "reason": "qQtaH5j0xjOvp8sFx5abKk"
+            "reason": "KddxyS541dY2oWEelwyG323He"
           }
         },
         "authSig": {
-          "inner": "KEAfc9rxKlqkWkg8jR72PDi7f/auXof6vuzolw1JHw0kcz74Q0RbjdltstJztB93L/i9oXW9/IUN4eAtozHhAA=="
+          "inner": "ZpKAs3PJ0cPPQtEpCzDQ9j08KQ8hWwoN5rSSnv9Z7wV0aG1TaDVPooZtRfXfhSqgpE6mZwKDOm9khNDHwQjpAw=="
         }
       }
     },
     {
-      "validatorDefinition": {
-        "validator": {
-          "identityKey": {
-            "ik": "NB38AI5WW2Z9CQKmTiSDi7W958QzmNE85FzoN8ZtCRI="
-          },
-          "consensusKey": "sQ0sZxR+6f2O+991cSiG9sAoaBC2GSYSbacNO0TVB1U=",
-          "name": "test validator",
-          "enabled": true,
-          "governanceKey": {
-            "gk": "NB38AI5WW2Z9CQKmTiSDi7W958QzmNE85FzoN8ZtCRI="
-          }
+      "proposalSubmit": {
+        "proposal": {
+          "title": "umlefqdamlauyeadykkc-9",
+          "description": "tphmj-589065368353950768213779623",
+          "signaling": {}
         },
-        "authSig": "9mN8W+PeGBFpmHCOcUtUkcYWA5t1PJPyFpSXHU6LlwVNTMEhk6CiltKp4/sJoyisJMdbDPaA41T+8bWa1Mj2AQ=="
+        "proposer": {
+          "ik": "hs/7+baVpURNJN9dIn60/m/sbDeUDtukPxNbA00NcQ8="
+        },
+        "governanceKey": {
+          "gk": "er/8NPrcmGXx09Z6Q924NbgYiTiJklXLhk2rJFh8kQI="
+        },
+        "authSig": {
+          "inner": "LsN4cataFiYpYFXB2OkOFc2KeVO/kkvR8yP3AtPHkghvN9atct4fBFLNWZtfmihNHETS1Saot0ZRtkPQkyfZAQ=="
+        }
       }
     },
     {
-      "validatorVote": {
-        "body": {
-          "proposal": "511067493",
-          "vote": {
-            "vote": "VOTE_NO"
-          },
-          "identityKey": {
-            "ik": "Ry/M1NLc7R9b+dyqrzYqGqkysPZaUG8aOw+6+z+9hmI="
-          },
-          "governanceKey": {
-            "gk": "VATZFK2+HbhAmuVyW2WdJjeiE2Morkd9tcxpapbTUAY="
-          },
-          "reason": {
-            "reason": "7LEwuQ3Q8RKrsaJ"
-          }
-        },
-        "authSig": {
-          "inner": "ZEELcZCIk1Mw/ih6ucXQHgP3hsahLeN5/z2pHNLz0BECZuUWut1E4UrMOyD2wKKox3msqZ1EWicrbIMxPT5ZAw=="
+      "ibcRelayAction": {
+        "rawAction": {
+          "typeUrl": "/ibc.core.channel.v1.MsgRecvPacket",
+          "value": "CrQBCMu+1dwGEgtkZWZhdWx0UG9ydBoJY2hhbm5lbC0wIgtkZWZhdWx0UG9ydCoJY2hhbm5lbC0wMmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOgwIntWF0QIQr6Sb9AJA2cmjxPeMz5YEEgIKABoMCJ7VhdECEK+km/QCIo4Bc2hpZWxkZDF1MDNrejV5bjNmeGM3ZGdqdjd3bGRjcGZmMmU2ZWE5dGtmOXZxbXNqcXIzYXFxM3lqcTB0ZWRrcGNyNmZxdXk5bHZhdmhyOWZtcnp4aDVxemNsM3FlbTcyZ2c0ZTJmNGdzNmFhYTRxOWxsZXpnZTk5aDJhanNkeHI3ZXB3eno1OG51d3d3ZQ=="
         }
       }
     }
   ],
   "transactionParameters": {
-    "expiryHeight": "6751218563",
-    "chainId": "aomhtcvmlwglyjwkgyttifhvgzvtte-26710351879065045262943452",
+    "expiryHeight": "6599164437",
+    "chainId": "tbltegpswuirfldk-125644803627862",
     "fee": {
       "amount": {
-        "lo": "185412220408947211"
+        "lo": "979541082012597791"
       }
     }
   }

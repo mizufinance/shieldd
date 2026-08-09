@@ -1,7 +1,8 @@
 # SnarkPack Verification
 
-How we check that the design in [design.md](design.md) is faithfully and securely
-implemented.
+How we check that the research design in [design.md](design.md) is faithfully
+and securely implemented. SnarkPack has no production transaction, proposal,
+protobuf, cache, or execution surface.
 
 ## How to read this
 
@@ -21,8 +22,11 @@ verify it**.
 Each check keeps a stable ID (`ALG-M*` / `TXN-M*` for the "what must hold"
 references, `ALG-I*` / `TXN-I*` for the tools, `X*` for cross-cutting).
 
-**Standing assumption:** SnarkPack/RIPP/Groth16 algebraic soundness is assumed
-from the paper + Filecoin; end-to-end formal verification is out of scope. See
+**Deployment boundary:** the formal SnarkPack result is conditional on its
+standing algebraic and structured-key assumptions. The deterministic deployed
+`DevSrs` has a public trapdoor and does not discharge KZG binding. Consensus
+therefore independently verifies every constituent Groth16 proof; aggregate
+verification is redundant and cannot authorize execution by itself. See
 [Standing assumptions](#standing-assumptions).
 
 ---
@@ -52,6 +56,17 @@ falsify that class.
   rejecting valid proofs (completeness) at the integration seam.
 - **State:** implemented. *Limit:* both sides share the arkworks lineage — a
   shared algebraic bug passes both (that gap is ALG-I4's job).
+
+#### ALG-I1A — Authoritative constituent verification
+- **What:** every production transaction-acceptance sink routes each exact proof
+  family to its bundled verifying key and calls independent Groth16
+  verification. Extracted caches and synthetic artifacts cannot authorize
+  execution without that check.
+- **Why:** this is the deployed soundness boundary while `DevSrs` remains
+  deterministic. It also makes an aggregate forgery insufficient for
+  transaction acceptance.
+- **State:** implemented and covered across all four deployed circuit families by
+  the application proof-acceptance regression suite and the closed sink census.
 
 #### ALG-I2 — Independent reference path
 - **What:** a dev-only, non-published crate `proof-aggregation-reference`
@@ -138,12 +153,14 @@ Therefore:
   "verify one proof." This is why Shieldd safely permits it where Filecoin's
   `< 2` rejection is a production *policy*, not a missing security fix.
 
-**Verifying-key allowlisting.** The verifier never trusts a VK carried in the
-bundle. The consensus boundary maps a closed `ProofFamilyId` enum to a compiled-in
-`&'static PreparedVerifyingKey`
-([`app/mod.rs:156-164`](../../crates/core/app/src/app/mod.rs)), and preflight
-checks `statement.vk_digest() == digest(canonical_pvk)` before any backend work
+**Verifying-key allowlisting.** The research verifier never trusts a VK carried
+in its private bundle encoding. Its closed `ProofFamilyId` enum maps to a
+compiled-in `&'static PreparedVerifyingKey`, and preflight checks
+`statement.vk_digest() == digest(canonical_pvk)` before any backend work
 ([`preflight.rs:160-161`](../../crates/crypto/proof-aggregation/src/preflight.rs)).
+Production consensus does not decode this bundle or family enum; it maps each
+transaction action directly to a `DeployedProofKey` and independently verifies
+the constituent Groth16 proof.
 The inner numeric `family_id` carried in `NoteReshape`/`ShieldedIcs20Withdrawal`
 bodies is attacker-controlled, and the registry lookups it feeds (`spec()`,
 `proof_verification_key()`) **panic** on an unknown id. That panic is unreachable
@@ -221,18 +238,15 @@ only checks that mechanically *prove* (not test) over the shipping bytes.
 
 #### TXN-I5 — Fuzzing
 - **What:** stable proptests (in-gate smoke) plus cargo-fuzz/libFuzzer targets in
-  the non-published `proof-aggregation-fuzz` crate over every byte boundary —
-  wrapper decode, preflight, aggregate-proof deserialize, sidecar decode, bundle
-  shape, proposal validation. Invariant: valid-accept or bounded-error; never
-  panic, never unbounded allocation, never expensive work before cheap shape
-  checks.
-- **Why:** the proposer is adversarial and submits arbitrary bytes.
+  the non-published `proof-aggregation-fuzz` crate over the research artifact
+  boundaries: wrapper decode, preflight, and aggregate-proof deserialization.
+  Invariant: valid-accept or bounded-error; never panic or allocate without a
+  fixed bound.
+- **Why:** research and benchmark inputs remain adversarial even though they are
+  not consensus inputs.
 - **State:** minimized corpora committed for all targets; smoke seeds from a
   temporary copy. Baseline + triage in the crate's
   [fuzz-corpus-baseline.md](../../crates/crypto/proof-aggregation-fuzz/fuzz-corpus-baseline.md).
-  Proposal validation rejects bad SRS ids before building default SRS material;
-  `aggregate_bundle_verification_rejects_bad_srs_id_before_srs_setup` + checked-in
-  `DEFAULT_DEV_SRS_ID` keep those rejects cheap.
 
 ---
 

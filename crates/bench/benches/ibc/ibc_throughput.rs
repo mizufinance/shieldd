@@ -95,7 +95,6 @@ fn plain_withdrawal() -> Ics20Withdrawal {
         timeout_height: Height::new(0, 1_000_000).expect("valid timeout height"),
         timeout_time: 60_000_000_000,
         source_channel: channel(0),
-        use_compat_address: false,
         ics20_memo: String::new(),
         use_transparent_address: false,
     }

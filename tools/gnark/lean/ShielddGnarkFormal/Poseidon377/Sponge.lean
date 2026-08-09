@@ -2,6 +2,7 @@ import ShielddGnarkFormal.Poseidon377.Fixed1
 import ShielddGnarkFormal.Poseidon377.Fixed2
 import ShielddGnarkFormal.Poseidon377.Fixed3
 import ShielddGnarkFormal.Poseidon377.Fixed4
+import ShielddGnarkFormal.Poseidon377.Fixed5
 import ShielddGnarkFormal.Poseidon377.Fixed6
 import ShielddGnarkFormal.Poseidon377.Fixed7
 
@@ -17,6 +18,9 @@ def hash3 (domain in0 in1 in2 : F) : F :=
 
 def hash4 (domain in0 in1 in2 in3 : F) : F :=
   Fixed4.hash domain in0 in1 in2 in3
+
+def hash5 (domain in0 in1 in2 in3 in4 : F) : F :=
+  Fixed5.hash domain in0 in1 in2 in3 in4
 
 def hash1 (domain in0 : F) : F :=
   Fixed1.hash domain in0

@@ -7,7 +7,7 @@ pub mod issuer_keys;
 pub use event::{EventAssetRegistered, EventComplianceAnchor, EventUserRegistered};
 pub use issuer_keys::{
     DetectionKey, DetectionKeyPublic, MasterComplianceKey, MasterComplianceKeyPublic,
-    DETECTION_TIER_BYTES, FLAG_SENTINEL,
+    DETECTION_TIER_BYTES,
 };
 
 pub mod structs;
@@ -15,7 +15,6 @@ pub use structs::{
     AssetParams,
     AssetPolicy,
     ComplianceLeaf,
-    DleqProof,
     IbcAssetOrigin,
     IbcRoute,
     MerklePath,
@@ -39,10 +38,10 @@ pub use structs::{
 
 pub mod transfer;
 pub use transfer::{
-    compute_transfer_dleqs, derive_transfer_salt, encrypt_transfer, TransferComplianceCiphertext,
-    TransferComplianceDleqProofs, TransferCompliancePublicInputs, TransferEncryptionResult,
-    TRANSFER_CIPHERTEXT_FQS, TRANSFER_CORE_CIPHERTEXT_FQS, TRANSFER_DETECTION_FQS,
-    TRANSFER_DLEQ_BYTES, TRANSFER_EXT_CIPHERTEXT_FQS, TRANSFER_WIRE_BYTES,
+    derive_transfer_salt, encrypt_transfer, TransferComplianceCiphertext,
+    TransferCompliancePublicInputs, TransferEncryptionResult, TRANSFER_CIPHERTEXT_FQS,
+    TRANSFER_CORE_CIPHERTEXT_FQS, TRANSFER_DETECTION_FQS, TRANSFER_EXT_CIPHERTEXT_FQS,
+    TRANSFER_WIRE_BYTES,
 };
 
 pub mod tree;
@@ -62,7 +61,10 @@ pub use params::ComplianceParameters;
 #[cfg(feature = "component")]
 pub mod registry;
 #[cfg(feature = "component")]
-pub use registry::{ComplianceRegistryRead, ComplianceRegistryWrite};
+pub use registry::{
+    AssetGrantAdmission, ComplianceRegistryRead, ComplianceRegistryWrite,
+    EnactedGovernanceAssetPolicyAdmission, GenesisAssetAdmission, UserGrantAdmission,
+};
 
 #[cfg(feature = "component")]
 pub mod action_check;
@@ -77,19 +79,11 @@ pub use component::{Compliance, RpcServer};
 pub mod genesis;
 pub use genesis::Content as GenesisContent;
 
-pub mod r1cs;
-pub use r1cs::{
-    compute_metadata_hash_r1cs, verify_compliance_integrity, verify_dleq_r1cs, verify_quad_path,
-    verify_threshold_flag_simple, ComplianceWitness,
-};
-
 pub mod crypto;
 pub use crypto::{
-    compute_dleq_native, compute_metadata_hash, decrypt, decrypt_detection_tier,
-    decrypt_tier_bytes, derive_compliance_scalar, encrypt_tier_bytes, fq_to_challenge_scalar,
-    verify_dleq_native, DecryptedComplianceData, COMPLIANCE_STREAM_CIPHER_DOMAIN,
-    DLEQ_CHALLENGE_DOMAIN, DLEQ_METADATA_DOMAIN, ENCRYPT_PROOF_DOMAIN, ISSUER_DETECTION_DOMAIN,
-    UNREGULATED_SINK_DK_PUB, UNREGULATED_SINK_RING_PK,
+    decrypt_detection_tier, decrypt_tier_bytes, derive_compliance_scalar, encrypt_tier_bytes,
+    COMPLIANCE_STREAM_CIPHER_DOMAIN, ISSUER_DETECTION_DOMAIN, UNREGULATED_SINK_DK_PUB,
+    UNREGULATED_SINK_RING_PK,
 };
 
 pub mod scanning;
@@ -139,29 +133,8 @@ pub use scanner::{
 pub mod ibc;
 pub use ibc::IbcComplianceMetadata;
 
-pub mod leaf_binding;
-pub use leaf_binding::{
-    blind_counterparty_leaf, blind_sender_leaf, DOMAIN_SEP_COUNTERPARTY, DOMAIN_SEP_SENDER,
-};
-
 pub mod decode_object;
-pub use decode_object::{
-    PublicTransferTierDecodeObject, TransferTierKind, TransferTierMetadataStatement,
-};
-
-pub mod upload_package;
-pub use upload_package::{
-    build_orbis_encrypted_seed_upload_package,
-    build_orbis_encrypted_seed_upload_package_with_randomness, decrypt_orbis_reencrypted_seed,
-    encode_orbis_policy_metadata, OrbisEncryptedSeedUploadPackage, OrbisSecretEnvelope,
-    TransferOrbisUploadBundle,
-};
-
-pub mod orbis_interop;
-pub use orbis_interop::{
-    compute_reencrypt_commitment, compute_ring_pk, recover_seed,
-    verify_and_compute_reencrypt_commitment, verify_reencrypt_proof,
-};
+pub use decode_object::{TransferComplianceMetadata, TRANSFER_COMPLIANCE_METADATA_BYTES};
 
 /// Create valid IMT non-membership proof for an unregulated asset.
 ///
@@ -207,7 +180,7 @@ pub fn default_user_proof(
 #[cfg(any(test, feature = "test-helpers"))]
 pub mod test_helpers {
     use decaf377::{Fq, Fr};
-    use rand_core::{OsRng, RngCore};
+    use rand_core::OsRng;
     use shieldd_sdk_keys::keys::Diversifier;
     use shieldd_sdk_keys::Address;
 
@@ -220,9 +193,7 @@ pub mod test_helpers {
         let scalar = Fr::rand(&mut rng);
         let point = decaf377::Element::GENERATOR * scalar;
         let pk_d = decaf377_ka::Public(point.vartime_compress().0);
-        let mut ck_bytes = [0u8; 32];
-        rng.fill_bytes(&mut ck_bytes);
-        let ck = decaf377_fmd::ClueKey(ck_bytes);
+        let ck = decaf377_fmd::DetectionKey::new(&mut rng).clue_key();
         Address::from_components(diversifier, pk_d, ck).unwrap()
     }
 
@@ -255,7 +226,10 @@ mod tests {
         );
 
         let user1_commit = leaf.commit();
-        state.add_compliance_leaf(leaf.clone()).await.unwrap();
+        state
+            .test_only_add_compliance_leaf(leaf.clone())
+            .await
+            .unwrap();
 
         let tree = state.get_user_tree().await.unwrap();
         let path = tree.auth_path(0).unwrap();
@@ -310,11 +284,11 @@ mod tests {
         for i in 0..4u64 {
             let leaf = ComplianceLeaf::new(
                 Address::dummy(&mut rng),
-                asset::Id(Fq::from(i)),
+                asset::Id(Fq::from(i + 1)),
                 Fq::from(0u64),
             );
             commitments.push(leaf.commit());
-            state.add_compliance_leaf(leaf).await.unwrap();
+            state.test_only_add_compliance_leaf(leaf).await.unwrap();
         }
 
         let tree = state.get_user_tree().await.unwrap();
@@ -345,18 +319,24 @@ mod tests {
             while state.get_user_count().await.unwrap() < pos {
                 let dummy_leaf = ComplianceLeaf::new(
                     Address::dummy(&mut rng),
-                    asset::Id(Fq::from(0u64)),
+                    asset::Id(Fq::from(1u64)),
                     Fq::from(0u64),
                 );
-                state.add_compliance_leaf(dummy_leaf).await.unwrap();
+                state
+                    .test_only_add_compliance_leaf(dummy_leaf)
+                    .await
+                    .unwrap();
             }
 
             let leaf = ComplianceLeaf::new(
                 Address::dummy(&mut rng),
-                asset::Id(Fq::from(pos)),
+                asset::Id(Fq::from(pos + 1)),
                 Fq::from(0u64),
             );
-            state.add_compliance_leaf(leaf.clone()).await.unwrap();
+            state
+                .test_only_add_compliance_leaf(leaf.clone())
+                .await
+                .unwrap();
             leaves.push((pos, leaf.commit()));
         }
 
@@ -392,7 +372,7 @@ mod tests {
         let ring_pk = decaf377::Element::GENERATOR * decaf377::Fr::from(999u64);
 
         state
-            .register_asset_in_imt(
+            .test_only_register_asset(
                 asset_id,
                 AssetPolicy::simple(issuer_dk_pub, 1_000_000, ring_pk),
                 true,
@@ -414,11 +394,11 @@ mod tests {
             ComplianceLeaf::new(receiver_address.clone(), asset_id, receiver_slot_derivation);
 
         state
-            .add_compliance_leaf(sender_leaf.clone())
+            .test_only_add_compliance_leaf(sender_leaf.clone())
             .await
             .unwrap();
         state
-            .add_compliance_leaf(receiver_leaf.clone())
+            .test_only_add_compliance_leaf(receiver_leaf.clone())
             .await
             .unwrap();
 

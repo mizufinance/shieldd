@@ -1,6 +1,6 @@
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg4
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg5
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg6
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg7
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg9
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.SemanticBindings
 import ShielddGnarkFormal.Deployed.NoteReshape1x8DtkSeating
 
@@ -15,34 +15,27 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8
 open Shieldd.GnarkFormal
 
 /--
-The DTK x output and the following compression input contain exactly the same
-global wires, even though the extractor groups them into different AP runs.
+The DTK Window2 x output and the following compression input are the same
+exact two global wires.
 -/
 theorem dtkOutX_eq_transmissionCompressInputX
     (rho : Nat → SemanticF) :
-    Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.dtkOutX (Seg5.localRho rho) =
-      Deployed.Templates.Semantics.TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.inputX (Seg6.localRho rho) := by
-  have hperm :
-      ((List.range 149).map (fun offset =>
-          Seg5.wireSeating (2226 + offset * 13)) ++
-        (List.range 101).map (fun offset =>
-          Seg5.wireSeating (4164 + offset * 14)) ++
-        [Seg5.wireSeating 2212]).Perm
-        ((List.range 251).map (fun offset =>
-          Seg6.wireSeating (1 + offset))) := by
-    exact Shieldd.GnarkFormal.Deployed.NoteReshape1x8DtkSeating.compressXPerm
+    (Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkWindowSupport.output (Seg7.localRho rho)).x =
+      Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46.inputX (Seg9.localRho rho) := by
+  have hdtk1 : Seg7.wireSeating 4961 = 5781 := by
+    decide +kernel
+  have hdtk2 : Seg7.wireSeating 4969 = 5789 := by
+    decide +kernel
+  have hcompress1 : Seg9.wireSeating 1 = 5781 := by
+    decide +kernel
+  have hcompress2 : Seg9.wireSeating 2 = 5789 := by
+    decide +kernel
   simpa only [
-    Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.dtkOutX,
-    Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.dtkAccX251,
-    Deployed.Templates.Semantics.TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.inputX,
-    Deployed.Templates.Relations.TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.relationLc0,
-    StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg5.localRho,
-    Seg6.localRho, Deployed.Templates.seated,
-    zero_add, one_mul, add_zero] using
-      sumAux_pair_residual_eq_of_perm rho
-        Seg5.wireSeating Seg6.wireSeating
-        2226 13 149 4164 14 101 2212 1 1 251 hperm
+    Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkWindowSupport.output,
+    Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46.inputX,
+    Seg7.localRho,
+    Seg9.localRho, Deployed.Templates.seated,
+    hdtk1, hdtk2, hcompress1, hcompress2, one_mul]
 
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8

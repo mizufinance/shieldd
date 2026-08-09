@@ -142,7 +142,9 @@ impl NoteReshapeWitnessV3 {
             .ok_or_else(|| anyhow!("note reshape witness requires a real first input"))?;
         let shared = NoteReshapeSharedNoteContextWitnessV3 {
             asset_id: first_input.spent_note.asset_id().0.to_bytes(),
-            clue_key: Fq::from_le_bytes_mod_order(&first_input.spent_note.clue_key().0).to_bytes(),
+            clue_key: Fq::from_bytes_checked(&first_input.spent_note.clue_key().0)
+                .expect("note addresses validate clue-key encodings")
+                .to_bytes(),
             diversified_generator_affine: point_affine_bytes(
                 first_input.spent_note.diversified_generator(),
             )?,

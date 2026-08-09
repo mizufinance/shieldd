@@ -15,7 +15,6 @@ pub mod leangen;
 pub mod ltchain;
 pub mod obligations;
 pub mod rowmap;
-pub mod rvkfixed;
 pub mod template_registry;
 pub mod wiring;
 
@@ -107,7 +106,7 @@ pub enum CoverageError {
         bound: usize,
         wires: Vec<usize>,
     },
-    #[error("note_reshape2x1 lt-ladder recovery/parity gate failed: {0}")]
+    #[error("normalized DTK lt-ladder recovery/parity gate failed: {0}")]
     LtLadderParity(String),
     #[error("normalized seating is invalid: {message}")]
     NormalizedSeating { message: String },
@@ -137,6 +136,14 @@ pub enum CoverageError {
     UnreviewedTemplate { op: String },
     #[error("ambiguous proof template for operation {op:?}: {count} registry matches")]
     AmbiguousTemplate { op: String, count: usize },
+    #[error(
+        "proof-template search budget {budget} exhausted for operation {op:?} while checking {proof_template_id:?}"
+    )]
+    TemplateSearchBudgetExceeded {
+        op: String,
+        proof_template_id: String,
+        budget: usize,
+    },
 }
 
 #[derive(Debug, Deserialize)]

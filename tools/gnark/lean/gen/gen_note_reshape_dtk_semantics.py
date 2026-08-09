@@ -4,46 +4,203 @@
 from __future__ import annotations
 
 import argparse
-import json
+import copy
+import gzip
 import re
 from pathlib import Path
 
 import dtk_recovery as dtk
+from formal_json import read_json_object
 from template_ir import SegmentTemplate
 from write_if_changed import write_if_changed
 
 
 ROOT = Path(__file__).resolve().parents[4]
 LEAN = ROOT / "tools/gnark/lean"
-IR = ROOT / "crates/core/component/shielded-pool/formal/note_reshape2x1-deployed-slice-ir.json"
+IR = ROOT / "crates/core/component/shielded-pool/formal/note_reshape1x8-deployed-slice-ir.json"
 RELATIONS = LEAN / "ShielddGnarkFormal/Deployed/Templates/Relations"
 OUT = LEAN / "ShielddGnarkFormal/Deployed/Templates/Semantics"
 BENCH = LEAN / "bench"
+CANONICAL = ROOT / "tools/gnark/artifacts/proof-template-relations"
 
-KEY = "decaf.diversified_transmission_key@7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b"
-NAME = "TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b"
+KEY = "decaf.diversified_transmission_key@a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c"
+NAME = "TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c"
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
-ROW_COUNT = 6077
+ROW_COUNT = 5477
 LTR_DEFS_DECLARATIONS_PER_SHARD = 220
 RELATION = f"Shieldd.GnarkFormal.Deployed.Templates.Relations.{NAME}"
 RELATION_MODULE = RELATION.replace("Shieldd.GnarkFormal", "ShielddGnarkFormal")
 NAMESPACE = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{NAME}.DtkSupport"
 MODULE_PREFIX = f"ShielddGnarkFormal.Deployed.Templates.Semantics.{NAME}Dtk"
+WINDOW_NAMESPACE = (
+    f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{NAME}.DtkWindowSupport"
+)
+WINDOW_MODULE_PREFIX = (
+    f"ShielddGnarkFormal.Deployed.Templates.Semantics.{NAME}DtkWindow2"
+)
+ACTIVE_SUPPORT_MODULE = "ShielddGnarkFormal.DtkBridge.ActiveSupport"
+BITS_MODULE = MODULE_PREFIX + "Bits"
+DECAF_ASSUMPTIONS_MODULE = "ShielddGnarkFormal.Decaf377Assumptions"
+ACTIVE_DTK_BRIDGE_SURFACE = frozenset(
+    {
+        "dtkSeg0",
+        "dtkSeg0_provenance",
+        "dtkSeg1_build",
+        "dtkTailK",
+        "dtkTailK_laddersTail",
+        "ivkGuardK",
+        "perm2_intro",
+        "rContK",
+    }
+)
+_MAIN_RELATION_SYMBOLS = frozenset(
+    {
+        f"{RELATION}.relation",
+        *(f"{RELATION}.relationPart{part}" for part in (0, 6, 13, 16)),
+        *(
+            f"{RELATION}.relationRow{row}"
+            for row in (
+                *range(28),
+                *range(534, 538),
+                1044,
+                1045,
+                *range(1317, 1322),
+            )
+        ),
+    }
+)
+# Every non-local theorem, definition, or namespace used by the final exact
+# provider is assigned to the direct reviewed import that supplies it.  Some
+# shared names are exported transitively by that root; keeping the root here
+# makes those dependencies explicit without reopening the retired umbrella.
+ACTIVE_MAIN_SUPPORT_MANIFEST = {
+    **{symbol: BITS_MODULE for symbol in _MAIN_RELATION_SYMBOLS},
+    **{
+        symbol: BITS_MODULE
+        for symbol in {
+            "F",
+            "GatesGnark8",
+            "GatesGnark9",
+            "dtkIvkBits",
+            "dtkIvk_toBinary",
+            "onCurveAt",
+            "spec",
+            "Shieldd.GnarkFormal.Extracted.DecafDtk.Gates",
+        }
+    },
+    **{
+        symbol: MODULE_PREFIX + "Canon"
+        for symbol in {
+            "dtkCanon1Bits",
+            "dtkCanon1Bits_get",
+            "dtkCanon1_canonical",
+            "dtkCanon2Bits",
+            "dtkCanon2Bits_get",
+            "dtkCanon2_canonical",
+        }
+    },
+    **{
+        symbol: MODULE_PREFIX + "Lt"
+        for symbol in {"dtk_q4_ladder", "dtk_r_ladder"}
+    },
+    "dtk_poseidon_eq": MODULE_PREFIX + "Poseidon",
+    **{
+        symbol: WINDOW_MODULE_PREFIX + "Body"
+        for symbol in {
+            f"{WINDOW_NAMESPACE}.body_relation",
+            f"{WINDOW_NAMESPACE}.output",
+            f"{WINDOW_NAMESPACE}.scalarBits",
+            "ChoiceFreeBinary.exists_bool_vector_of_to_binary",
+            "EdwardsBridge.d",
+            "EdwardsBridge.onCurve",
+            "ScalarMulBridge.pow251_lt_order",
+        }
+    },
+    "AckBridge.ack_window2_body_sound": "ShielddGnarkFormal.AckBridge",
+    **{
+        symbol: ACTIVE_SUPPORT_MODULE
+        for symbol in {
+            *(
+                f"Shieldd.GnarkFormal.DtkBridge.{name}"
+                for name in (
+                    "dtkSeg0",
+                    "dtkSeg0_provenance",
+                    "dtkSeg1_build",
+                    "dtkTailK",
+                    "dtkTailK_laddersTail",
+                    "perm2_intro",
+                )
+            ),
+            "GatesDef.add",
+            "GatesDef.and",
+            "GatesDef.eq",
+            "GatesDef.inv",
+            "GatesDef.is_bool",
+            "GatesDef.is_zero",
+            "GatesDef.mul",
+            "GatesDef.neg",
+            "GatesDef.select",
+            "GatesDef.sub",
+            "GatesDef.to_binary",
+        }
+    },
+    **{
+        symbol: "ShielddGnarkFormal.CompressDeployedGadgets"
+        for symbol in {
+            "Shieldd.GnarkFormal.DeployedGadgets",
+            "and_of_row",
+            "inv_of_mul",
+            "is_bool_of_row",
+            "is_zero_of_hint",
+            "select_of_row",
+        }
+    },
+    **{
+        symbol: DECAF_ASSUMPTIONS_MODULE
+        for symbol in {
+            "Protocol.Common.Decaf.curveD",
+            "Protocol.Common.Decaf.diversifiedTransmissionKey",
+            "Protocol.Common.Decaf.dtk",
+            "Protocol.Common.Decaf.dtkIvkModQ",
+            "Protocol.Common.Decaf.onCurve",
+            "Protocol.Common.Decaf.scalarOrder",
+            "Shieldd.GnarkFormal.Decaf377Assumptions.DiversifiedTransmissionKeyIvkProvenance",
+            "Shieldd.GnarkFormal.Decaf377Assumptions.dtkIvkModQ",
+            "Shieldd.GnarkFormal.Extracted.IvkModR.rNat",
+            "Shieldd.GnarkFormal.Poseidon2Bridge.permSpec2",
+        }
+    },
+    **{
+        symbol: "ShielddGnarkFormal.Deployed.NoteReshapeRefinement"
+        for symbol in {
+            "Shieldd.GnarkFormal.Deployed.NoteReshapeRefinement.compressesTo_of_circuitSpec",
+            "Shieldd.GnarkFormal.NoteReshapeCanonical.toDecafPoint",
+        }
+    },
+    "Shieldd.GnarkFormal.Extracted.IvkModR.Truncation.laddersTail_to_binary_251":
+        "ShielddGnarkFormal.IvkModRTruncation",
+    "Shieldd.GnarkFormal.ChoiceFreeZMod":
+        "ShielddGnarkFormal.ChoiceFreeZMod",
+}
+REVIEWED_QUALIFIED_MAIN_SYMBOLS = frozenset(
+    symbol for symbol in ACTIVE_MAIN_SUPPORT_MANIFEST if "." in symbol
+)
 BENCH_CANDIDATES = (
     "Canon1TrueChunk0",
     "LtQ4Chunk126",
     "LtRChunk252",
-    "ScalarR0",
-    "ScalarR10",
-    "ScalarR20",
     "Lt",
     "",
 )
 
 
 def _segment() -> dict:
-    ir = json.loads(IR.read_text())
-    matches = [segment for segment in ir["segments"] if segment.get("proof_template_id") == KEY]
+    ir = read_json_object(IR, canonical="pretty")
+    matches = [
+        segment
+        for segment in ir["segments"]
+        if segment.get("proof_template_id") == KEY
+    ]
     if len(matches) != 1:
         raise ValueError("expected exactly one normalized DTK representative")
     segment = matches[0]
@@ -55,7 +212,7 @@ def _segment() -> dict:
         if segment.get(field) != value:
             raise ValueError(f"DTK normalized source {field} drifted")
     seating = SegmentTemplate.parse(segment).canonical_wire_seating
-    if len(seating) != 5571 or len(set(seating)) != 5571 or seating[0] != 0:
+    if len(seating) != 4971 or len(set(seating)) != 4971 or seating[0] != 0:
         raise ValueError("DTK normalized seating pin drifted")
     return segment
 
@@ -78,8 +235,8 @@ def _relation_source() -> str:
     return source
 
 
-def _reviewed_wire_seating() -> tuple[int, ...]:
-    """Canonical-local to reviewed proof coordinates; deployment-independent."""
+def _legacy_reviewed_wire_seating() -> tuple[int, ...]:
+    """Legacy binary-template seating used only for prefix certificates."""
     seating: list[int | None] = [None] * 5571
     residual = {
         0: 0, 1: 6, 2: 907, 3: 7, 11: 917, 12: 916, 13: 918,
@@ -96,6 +253,23 @@ def _reviewed_wire_seating() -> tuple[int, ...]:
     if any(value is None for value in seating):
         raise ValueError("DTK reviewed wire context is incomplete")
     return tuple(int(value) for value in seating)
+
+
+def _reviewed_wire_seating() -> tuple[int, ...]:
+    """Active canonical-local to stable reviewed prefix coordinates."""
+    legacy = _legacy_reviewed_wire_seating()
+    seating = list(legacy[:2212])
+    seating.append(18)
+    seating.extend(range(3112, 3112 + (4971 - len(seating))))
+    if (
+        len(seating) != 4971
+        or len(set(seating)) != 4971
+        or seating[0] != 0
+        or seating[2211] != 17
+        or seating[2212] != 18
+    ):
+        raise ValueError("active DTK reviewed wire context is incomplete")
+    return tuple(seating)
 
 
 def _deployed_shadow(source: str, seating: tuple[int, ...]) -> str:
@@ -214,15 +388,14 @@ def _scalar_rows(
 
 
 def _poseidon_rows(
-    segment: dict, reviewed_seating: tuple[int, ...]
+    _segment: dict, reviewed_seating: tuple[int, ...]
 ) -> list[tuple[list[tuple[str, int]], ...]]:
-    """Read the DTK Poseidon rows with wires transported to proof coordinates."""
-    deployed_seating = SegmentTemplate.parse(segment).canonical_wire_seating
-    deployed_to_local = {wire: local for local, wire in enumerate(deployed_seating)}
-    start = segment["start"] + 1046
+    """Read active canonical Poseidon rows in stable reviewed coordinates."""
+    start = 1046
     rows: list[tuple[list[tuple[str, int]], ...]] = []
     constraint_index = 0
-    with dtk.SR1CS.open() as source_file:
+    digest = KEY.rsplit("@", 1)[1]
+    with gzip.open(CANONICAL / f"{digest}.sr1cs.gz", "rt") as source_file:
         for line in source_file:
             if not line.strip().startswith("(constraint "):
                 continue
@@ -234,17 +407,16 @@ def _poseidon_rows(
                 for side in parsed:
                     terms = []
                     for coefficient, deployed_wire in side:
-                        if deployed_wire == 0:
+                        local_wire = deployed_wire
+                        if local_wire == 0:
                             reviewed_wire = 0
                         else:
                             try:
-                                reviewed_wire = reviewed_seating[
-                                    deployed_to_local[deployed_wire]
-                                ]
-                            except KeyError as error:
+                                reviewed_wire = reviewed_seating[local_wire]
+                            except IndexError as error:
                                 raise ValueError(
-                                    "DTK Poseidon row references unseated deployed "
-                                    f"wire {deployed_wire}"
+                                    "DTK Poseidon row references unseated canonical "
+                                    f"wire {local_wire}"
                                 ) from error
                         terms.append((coefficient, reviewed_wire))
                     transported.append(terms)
@@ -270,7 +442,7 @@ def _reviewed_lt_seating(
         except KeyError as error:
             raise ValueError(f"LT seating references unseated wire {value}") from error
 
-    result = json.loads(json.dumps(deployed))
+    result = copy.deepcopy(deployed)
     for ladder in result["ladders"]:
         ladder["bit_base"] = wire(ladder["bit_base"])
         for rung in ladder["rungs"]:
@@ -313,6 +485,17 @@ def _rewrite(source: str) -> str:
         )
     source = source.replace(
         "Shieldd.GnarkFormal.Deployed.Dtk.Outputs", NAMESPACE + ".Outputs"
+    )
+    # The active template's scalar multiplication is the independently
+    # recovered Window2 provider.  The legacy binary ladder's wide output
+    # accumulators are neither generated nor consumed; retain their
+    # StructuredLC definitions as opaque relation atoms by removing the dead
+    # import/open surface instead of recreating the retired accumulator stack.
+    source = source.replace(f"import {MODULE_PREFIX}Outputs\n", "")
+    source = source.replace(f"open {NAMESPACE}.Outputs\n", "")
+    source = source.replace(
+        "import ShielddGnarkFormal.DtkBridge\n",
+        "import ShielddGnarkFormal.DtkBridge.Core\n",
     )
     source = source.replace("Seg6.F", "F")
     source = source.replace("Seg6.", RELATION + ".")
@@ -375,13 +558,16 @@ end ChoiceFreeOnCurve
 
 def spec (rho : Nat → F) : Prop :=
   onCurveAt (rho {cfg.div_x}) (rho {cfg.div_y}) →
-    Shieldd.GnarkFormal.Decaf377Assumptions.DiversifiedTransmissionKeySpec
+    Protocol.Common.Decaf.diversifiedTransmissionKey
       (rho {dtk.seat_wire(cfg, 8)})
       ⟨rho {dtk.seat_wire(cfg, 6)}, rho {dtk.seat_wire(cfg, 7)}⟩
       ⟨rho {cfg.div_x}, rho {cfg.div_y}⟩
       (rho {dtk.seat_wire(cfg, 9)}) (rho {dtk.seat_wire(cfg, 10)})
-      ⟨Outputs.dtkOutX rho, Outputs.dtkOutY rho⟩ ∧
-    onCurveAt (Outputs.dtkOutX rho) (Outputs.dtkOutY rho)
+      ⟨({WINDOW_NAMESPACE}.output rho).x,
+        ({WINDOW_NAMESPACE}.output rho).y⟩ ∧
+    Protocol.Common.Decaf.onCurve
+      ⟨({WINDOW_NAMESPACE}.output rho).x,
+        ({WINDOW_NAMESPACE}.output rho).y⟩
 """
     prime = "  ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩\n"
     if base.count(prime) != 1:
@@ -393,8 +579,11 @@ def spec (rho : Nat → F) : Prop :=
     base = base.replace(namespace_anchor, namespace_anchor + definitions, 1)
     base = base.replace(
         f"import {RELATION_MODULE}\n",
-        f"import {RELATION_MODULE}\nimport ShielddGnarkFormal.Decaf377Assumptions\n"
-        "import ShielddGnarkFormal.EdwardsBridge\n",
+        f"import {RELATION_MODULE}\n"
+        f"import {WINDOW_MODULE_PREFIX}Defs\n"
+        "import ShielddGnarkFormal.Decaf377Assumptions\n"
+        "import ShielddGnarkFormal.EdwardsBridge\n"
+        "import ShielddGnarkFormal.Protocol.Common\n",
         1,
     )
     return base.replace(prime, prime + insertion, 1)
@@ -463,6 +652,173 @@ def _inject_rvk_binary_boundary(source: str) -> str:
     return source.replace(old_call, new_call, 1)
 
 
+def _adapt_window2_main(source: str, cfg: dtk.Instance) -> str:
+    """Replace only the retired binary ladder with the active Window2 body."""
+    legacy_compose_import = "import ShielddGnarkFormal.Deployed.Dtk.Compose\n"
+    if source.count(legacy_compose_import) != 1:
+        raise ValueError("DTK legacy composition import anchor drifted")
+    source = source.replace(
+        legacy_compose_import,
+        f"import {BITS_MODULE}\n"
+        f"import {DECAF_ASSUMPTIONS_MODULE}\n"
+        f"import {ACTIVE_SUPPORT_MODULE}\n",
+        1,
+    )
+    scalar_import = f"import {MODULE_PREFIX}Scalar\n"
+    if source.count(scalar_import) != 1:
+        raise ValueError("DTK binary scalar import anchor drifted")
+    source = source.replace(
+        scalar_import,
+        f"import {WINDOW_MODULE_PREFIX}Body\n"
+        "import ShielddGnarkFormal.AckBridge\n"
+        "import ShielddGnarkFormal.Deployed.NoteReshapeRefinement\n",
+        1,
+    )
+
+    theorem_start = source.index("theorem dtk_dtkSeg0")
+    sound_start = source.index("theorem dtk_sound", theorem_start)
+    old_theorem = source[theorem_start:sound_start]
+    proof_start = old_theorem.index(" := by\n") + len(" := by\n")
+    proof = old_theorem[proof_start:]
+
+    ivk_binary = proof.index("  have hIvkBinary")
+    q4_true = proof.index("  have hq4T", ivk_binary)
+    ladders = proof.index("  have hladders", q4_true)
+    scalar_bool = proof.index("  obtain ⟨scalarBool", ladders)
+    poseidon = proof.index("  have hposeidon", scalar_bool)
+
+    scalar_proof = proof[ivk_binary:scalar_bool].replace(
+        "dtkScalarBits", f"{WINDOW_NAMESPACE}.scalarBits"
+    )
+    curve_normalization_theorem = """theorem onCurveAt_sub_eq
+    (x y : F) (h : onCurveAt x y) :
+    y * y - x * x = 1 + 3021 * (x * x) * (y * y) := by
+  calc
+    y * y - x * x = -(x * x) + y * y := by ring
+    _ = 1 + 3021 * (x * x) * (y * y) := h
+
+"""
+    scalar_theorem = f"""theorem scalar_toBinary
+    (rho : Nat → F) (h : {RELATION}.relation rho) :
+    GatesDef.to_binary (rho {dtk.seat_wire(cfg, 9)}) 251
+      ({WINDOW_NAMESPACE}.scalarBits rho) := by
+{scalar_proof}  exact hScalarBinary
+
+"""
+
+    prefix_proof = (
+        proof[:ivk_binary]
+        + "  have hIvkBinary := dtkIvk_toBinary rho h\n"
+        + proof[q4_true:ladders]
+        + proof[poseidon:]
+    )
+    final = "  simpa [scalarTail] using htail\n\n"
+    if prefix_proof.count(final) != 1:
+        raise ValueError("DTK binary scalar tail anchor drifted")
+    prefix_proof = prefix_proof.replace(
+        final, "  simpa using htailT\n\n", 1
+    )
+    curve_normalization = (
+        "(by have h' := hdiv; simp only [onCurveAt] at h'; "
+        "linear_combination h')"
+    )
+    if prefix_proof.count(curve_normalization) != 1:
+        raise ValueError("DTK diversified-point curve normalization anchor drifted")
+    prefix_proof = prefix_proof.replace(
+        curve_normalization,
+        "onCurveAt_sub_eq _ _ hdiv",
+        1,
+    )
+    prefix_theorem = f"""theorem dtk_prefix_seg0
+    (rho : Nat → F) (h : {RELATION}.relation rho)
+    (hdiv : onCurveAt (rho {cfg.div_x}) (rho {cfg.div_y})) :
+    Shieldd.GnarkFormal.DtkBridge.dtkSeg0
+      (rho {dtk.seat_wire(cfg, 8)})
+      (rho {dtk.seat_wire(cfg, 6)}) (rho {dtk.seat_wire(cfg, 7)})
+      (rho {cfg.div_x}) (rho {cfg.div_y})
+      (rho 10) (rho 15)
+      (rho {dtk.seat_wire(cfg, 9)}) (rho {dtk.seat_wire(cfg, 10)})
+      (fun ivkBits => Shieldd.GnarkFormal.DtkBridge.dtkTailK
+        ivkBits (rho {dtk.seat_wire(cfg, 10)}) True) := by
+{prefix_proof}"""
+
+    nk = dtk.seat_wire(cfg, 8)
+    ak_x = dtk.seat_wire(cfg, 6)
+    ak_y = dtk.seat_wire(cfg, 7)
+    ivk = dtk.seat_wire(cfg, 9)
+    quotient = dtk.seat_wire(cfg, 10)
+    out_x = f"({WINDOW_NAMESPACE}.output rho).x"
+    out_y = f"({WINDOW_NAMESPACE}.output rho).y"
+    sound = f"""theorem ivk_provenance
+    (rho : Nat → F) (h : {RELATION}.relation rho)
+    (hdiv : onCurveAt (rho {cfg.div_x}) (rho {cfg.div_y})) :
+    Shieldd.GnarkFormal.Decaf377Assumptions.DiversifiedTransmissionKeyIvkProvenance
+        (rho {nk}) ⟨rho {ak_x}, rho {ak_y}⟩
+        (rho {ivk}) (rho {quotient}) := by
+  have hseg := dtk_prefix_seg0 rho h hdiv
+  exact (Shieldd.GnarkFormal.DtkBridge.dtkSeg0_provenance
+    (rho {nk}) (rho {ak_x}) (rho {ak_y})
+    (rho {cfg.div_x}) (rho {cfg.div_y})
+    (rho 10) (rho 15) (rho {ivk}) (rho {quotient}) True hseg).2.1
+
+theorem dtk_sound
+    (rho : Nat → F) (h : {RELATION}.relation rho) : spec rho := by
+  unfold spec
+  intro hdiv
+  have hdivEdwards : EdwardsBridge.onCurve
+      ⟨rho {cfg.div_x}, rho {cfg.div_y}⟩ := by
+    simpa only [onCurveAt, EdwardsBridge.onCurve, EdwardsBridge.d] using hdiv
+  have hdivProtocol : Protocol.Common.Decaf.onCurve
+      ⟨rho {cfg.div_x}, rho {cfg.div_y}⟩ := by
+    simpa only [Protocol.Common.Decaf.onCurve,
+      Protocol.Common.Decaf.curveD] using onCurveAt_sub_eq _ _ hdiv
+  have hbinary := scalar_toBinary rho h
+  rcases ChoiceFreeBinary.exists_bool_vector_of_to_binary
+      ScalarMulBridge.pow251_lt_order hbinary with ⟨bits, hbits, -⟩
+  have hbody := {WINDOW_NAMESPACE}.body_relation
+    rho h bits hbits hdivEdwards
+  have hwindow := AckBridge.ack_window2_body_sound
+    ⟨rho {cfg.div_x}, rho {cfg.div_y}⟩ (rho {ivk})
+    ⟨{out_x}, {out_y}⟩
+    ⟨{WINDOW_NAMESPACE}.scalarBits rho, hbinary, hbody⟩ hdivProtocol
+  rcases hwindow with ⟨-, -, houtputOn, houtput⟩
+  refine ⟨?_, houtputOn⟩
+  unfold Protocol.Common.Decaf.diversifiedTransmissionKey
+  refine ⟨?_, ?_⟩
+  · rcases ivk_provenance rho h hdiv with
+      ⟨authorizationKeyEncoding, hcompress, hreduced, hquotient⟩
+    refine ⟨authorizationKeyEncoding, ?_, ?_, ?_⟩
+    · apply Shieldd.GnarkFormal.Deployed.NoteReshapeRefinement.compressesTo_of_circuitSpec
+      simpa [Shieldd.GnarkFormal.NoteReshapeCanonical.toDecafPoint] using
+        hcompress
+    · simpa [
+        Shieldd.GnarkFormal.Decaf377Assumptions.dtkIvkModQ,
+        Protocol.Common.Decaf.dtkIvkModQ,
+        Shieldd.GnarkFormal.Poseidon2Bridge.permSpec2,
+        Shieldd.GnarkFormal.Extracted.IvkModR.rNat,
+        Protocol.Common.Decaf.scalarOrder
+      ] using hreduced
+    · simpa [
+        Shieldd.GnarkFormal.Decaf377Assumptions.dtkIvkModQ,
+        Protocol.Common.Decaf.dtkIvkModQ,
+        Shieldd.GnarkFormal.Poseidon2Bridge.permSpec2,
+        Shieldd.GnarkFormal.Extracted.IvkModR.rNat,
+        Protocol.Common.Decaf.scalarOrder
+      ] using hquotient
+  · simpa only [Protocol.Common.Decaf.dtk] using houtput
+
+"""
+    end_start = source.index(f"end {NAMESPACE}", sound_start)
+    return (
+        source[:theorem_start]
+        + curve_normalization_theorem
+        + scalar_theorem
+        + prefix_theorem
+        + sound
+        + source[end_start:]
+    )
+
+
 def _facade() -> str:
     semantic = f"Shieldd.GnarkFormal.Deployed.Templates.Semantics.{NAME}"
     return f"""import {MODULE_PREFIX}
@@ -481,10 +837,160 @@ end {semantic}
 """
 
 
+def _validate_exact_import_closure(outputs: dict[Path, str]) -> None:
+    """Reject imports of unmanaged exact-template semantic modules."""
+    semantic_root = "ShielddGnarkFormal.Deployed.Templates.Semantics."
+    exact_root = semantic_root + NAME
+    generated_modules = {
+        semantic_root + path.stem
+        for path in outputs
+        if path.suffix == ".lean"
+    }
+    missing: list[tuple[Path, str]] = []
+    for path, source in outputs.items():
+        for module in re.findall(r"(?m)^import (\S+)$", source):
+            if not module.startswith(exact_root):
+                continue
+            if module in generated_modules:
+                continue
+            if module.startswith(WINDOW_MODULE_PREFIX):
+                window_source = LEAN / (module.replace(".", "/") + ".lean")
+                if window_source.is_file():
+                    continue
+            missing.append((path, module))
+    if missing:
+        detail = "\n".join(f"{path}: {module}" for path, module in missing)
+        raise ValueError("DTK exact import closure is incomplete:\n" + detail)
+
+
+def _main_support_references(source: str) -> frozenset[str]:
+    """Return the reviewed external support surface of the final provider."""
+    scan = re.sub(
+        rf"(?m)^(?:namespace|end) {re.escape(NAMESPACE)}\s*$",
+        "",
+        source,
+    )
+    identifier = r"[A-Za-z_][A-Za-z0-9_]*"
+    references = set(
+        re.findall(
+            rf"Shieldd\.GnarkFormal\.{identifier}(?:\.{identifier})*",
+            scan,
+        )
+    )
+    references.update(
+        re.findall(
+            rf"(?<![A-Za-z0-9_.])"
+            rf"(?:GatesDef|ChoiceFreeBinary|ScalarMulBridge|EdwardsBridge|"
+            rf"AckBridge|Protocol\.Common\.Decaf)"
+            rf"\.{identifier}(?:\.{identifier})*",
+            scan,
+        )
+    )
+    references.update(
+        re.findall(
+            r"(?<![A-Za-z0-9_.])(?:dtk[A-Za-z0-9_]*|"
+            r"is_bool_of_row|is_zero_of_hint|select_of_row|inv_of_mul|"
+            r"and_of_row|GatesGnark8|GatesGnark9|F|onCurveAt|"
+            r"onCurveAt_sub_eq|spec)\b",
+            scan,
+        )
+    )
+    references.difference_update(
+        {"dtk_prefix_seg0", "dtk_sound", "onCurveAt_sub_eq"}
+    )
+    return frozenset(references)
+
+
+def _validate_main_support_manifest(outputs: dict[Path, str]) -> None:
+    """Pin every external identifier and direct support root of final DTK."""
+    main_path = OUT / f"{NAME}Dtk.lean"
+    try:
+        source = outputs[main_path]
+    except KeyError as error:
+        raise ValueError("active DTK main provider is missing") from error
+    if re.search(r"\.[ \t]*\r?\n[ \t]*(?=[A-Za-z_])", source):
+        raise ValueError("active DTK main qualified identifier is split")
+    missing_qualified = sorted(
+        symbol
+        for symbol in REVIEWED_QUALIFIED_MAIN_SYMBOLS
+        if re.search(
+            rf"(?<![A-Za-z0-9_.]){re.escape(symbol)}(?![A-Za-z0-9_])",
+            source,
+        )
+        is None
+    )
+    if missing_qualified:
+        raise ValueError(
+            "active DTK main qualified symbol is not contiguous: "
+            + ", ".join(missing_qualified)
+        )
+    references = _main_support_references(source)
+    expected = frozenset(ACTIVE_MAIN_SUPPORT_MANIFEST)
+    if references != expected:
+        missing = sorted(expected - references)
+        extra = sorted(references - expected)
+        raise ValueError(
+            "active DTK main support surface drifted: "
+            f"missing={missing}, extra={extra}"
+        )
+    for module in sorted(set(ACTIVE_MAIN_SUPPORT_MANIFEST.values())):
+        if source.count(f"import {module}\n") != 1:
+            raise ValueError(
+                "active DTK main support import drifted: " + module
+            )
+
+
+def _validate_active_bridge_surface(outputs: dict[Path, str]) -> None:
+    """Pin every shared bridge dependency of the active exact provider."""
+    sources = {
+        path: source
+        for path, source in outputs.items()
+        if path.suffix == ".lean" and path.stem.startswith(NAME + "Dtk")
+    }
+    combined = "\n".join(sources.values())
+    references = frozenset(
+        re.findall(
+            r"Shieldd\.GnarkFormal\.DtkBridge\.([A-Za-z0-9_]+)",
+            combined,
+        )
+    )
+    if references != ACTIVE_DTK_BRIDGE_SURFACE:
+        missing = sorted(ACTIVE_DTK_BRIDGE_SURFACE - references)
+        extra = sorted(references - ACTIVE_DTK_BRIDGE_SURFACE)
+        raise ValueError(
+            "active DTK bridge surface drifted: "
+            f"missing={missing}, extra={extra}"
+        )
+
+    main_path = next(
+        (path for path in sources if path.stem == NAME + "Dtk"),
+        None,
+    )
+    if main_path is None:
+        raise ValueError("active DTK main provider is missing")
+    active_import = f"import {ACTIVE_SUPPORT_MODULE}\n"
+    if sources[main_path].count(active_import) != 1:
+        raise ValueError("active DTK support import drifted")
+
+    allowed_bridge_imports = {
+        "ShielddGnarkFormal.DtkBridge.ActiveSupport",
+        "ShielddGnarkFormal.DtkBridge.Core",
+    }
+    bridge_imports = set(
+        re.findall(r"(?m)^import (ShielddGnarkFormal\.DtkBridge\S*)$", combined)
+    )
+    unexpected_imports = sorted(bridge_imports - allowed_bridge_imports)
+    if unexpected_imports:
+        raise ValueError(
+            "active DTK provider imports forbidden bridge modules: "
+            + ", ".join(unexpected_imports)
+        )
+    if "import ShielddGnarkFormal.Deployed.Dtk.Compose\n" in combined:
+        raise ValueError("active DTK provider imports retired composition")
+
+
 def _render_reviewed(
     cfg: dtk.Instance,
-    scalar_rungs: tuple[dtk.ScalarRung, ...],
-    scalar_rows: list[tuple[dtk.Lc, dtk.Lc, dtk.Lc]],
     poseidon_rows: list[tuple[list[tuple[str, int]], ...]],
 ) -> dict[str, str]:
     poseidon_module, poseidon_sboxes = dtk.generate_poseidon_shape(
@@ -523,14 +1029,6 @@ def _render_reviewed(
     outputs["DtkAdapterSeg6Poseidon.lean"] = dtk.emit_poseidon_adapter(
         cfg, poseidon_module, poseidon_sboxes
     )
-    # Render scalar chunks before expanding the large LT atom cache.  Output
-    # dependency order is expressed by imports, not dictionary insertion.
-    outputs["DtkAdapterSeg6ScalarDefs.lean"] = dtk.emit_scalar_defs_module(cfg, scalar_rungs)
-    for chunk_index, subset in enumerate(dtk.scalar_chunks(scalar_rungs)):
-        outputs[f"DtkAdapterSeg6ScalarR{chunk_index}.lean"] = dtk.emit_scalar_chunk(
-            cfg, chunk_index, subset, scalar_rows
-        )
-    outputs["DtkAdapterSeg6Scalar.lean"] = dtk.emit_scalar(cfg, scalar_rungs)
     ltc_traces = dtk.dtk_ltc_traces()
     r_trace, q4_trace = ltc_traces
     q4_defs = "DtkAdapterSeg6LtQ4Defs"
@@ -607,38 +1105,30 @@ def _generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
     shadow = _deployed_shadow(exact_source, cfg.wire_seating or ())
     old_source = dtk.source
     old_instances = dtk.INSTANCES
-    old_output_wires = dtk.output_wires
     old_lt_seating = dtk._lt_seating
     old_source_cache = dict(dtk._SOURCE_CACHE)
     old_parts_cache = dict(dtk._RELATION_PARTS_CACHE)
     old_layouts = dict(dtk.LTC_ATOM_LAYOUTS)
-    scalar_rows = _scalar_rows(segment, cfg.wire_seating or ())
-    rungs = dtk.dtk_scalar_rungs(scalar_rows, _scalar_outputs())
     reviewed_lt = _reviewed_lt_seating(
-        segment, cfg.wire_seating or (), old_lt_seating()
+        segment, _legacy_reviewed_wire_seating(), old_lt_seating()
     )
     try:
         old_offset = dtk.DTK_GLOBAL_OFFSET
         dtk.DTK_GLOBAL_OFFSET = segment["start"]
         dtk.source = lambda seg: shadow if seg == cfg.seg else old_source(seg)
         dtk.INSTANCES = (cfg,)
-        dtk.output_wires = lambda _cfg: (
-            [dtk.seat_wire(cfg, rung.delta_x) for rung in rungs],
-            [dtk.seat_wire(cfg, rung.delta_y) for rung in rungs],
-        )
         dtk._lt_seating = lambda: reviewed_lt
         dtk._SOURCE_CACHE.clear()
         dtk._RELATION_PARTS_CACHE.clear()
         dtk.LTC_ATOM_LAYOUTS.clear()
         reviewed = _render_reviewed(
-            cfg, rungs, scalar_rows, _poseidon_rows(segment, cfg.wire_seating or ())
+            cfg,
+            _poseidon_rows(segment, cfg.wire_seating or ()),
         )
-        reviewed["DtkAdapterSeg6Outputs.lean"] = dtk.emit_outputs()
     finally:
         dtk.DTK_GLOBAL_OFFSET = old_offset
         dtk.source = old_source
         dtk.INSTANCES = old_instances
-        dtk.output_wires = old_output_wires
         dtk._lt_seating = old_lt_seating
         dtk._SOURCE_CACHE.clear()
         dtk._SOURCE_CACHE.update(old_source_cache)
@@ -654,12 +1144,11 @@ def _generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
         rendered = _rewrite(source)
         if suffix == "Base":
             rendered = _inject_spec(rendered, cfg)
-        if suffix == "Scalar":
-            rendered = _inject_output_curve_boundary(rendered)
         if suffix == "Bits":
             rendered = _inject_rvk_binary_boundary(rendered)
         if suffix == "":
             rendered = _inject_ivk_truncation_boundary(rendered)
+            rendered = _adapt_window2_main(rendered, cfg)
         outputs[target] = rendered
     outputs[out / f"{NAME}.lean"] = _facade()
     for suffix in BENCH_CANDIDATES:
@@ -670,8 +1159,10 @@ def _generated_files(out: Path = OUT, bench: Path = BENCH) -> dict[Path, str]:
         outputs[bench / f"NoteReshapeTemplateDtk{label}Import.lean"] = (
             f"import {module}\n"
         )
-    fixed_semantic_modules = 604
-    expected_semantic_modules = fixed_semantic_modules + len(dtk.scalar_chunks(rungs))
+    _validate_exact_import_closure(outputs)
+    _validate_main_support_manifest(outputs)
+    _validate_active_bridge_surface(outputs)
+    expected_semantic_modules = 601
     expected_outputs = expected_semantic_modules + len(BENCH_CANDIDATES)
     if len(outputs) != expected_outputs:
         raise ValueError(

@@ -11,6 +11,8 @@ structure CircuitFacts [Zero F]
     (primitives : CircuitPrimitives F Path) (action : Action F Path) : Prop where
   shape : canonicalShape action
   padding : realPrefix action
+  randomizersCanonical : randomizersCanonical primitives action
+  dummySlotIndicesCanonical : dummySlotIndicesCanonical primitives action
   canonicalAddress :
     primitives.canonicalTransmission action.authorization action.shared
   inputsBound : inputCommitments primitives action

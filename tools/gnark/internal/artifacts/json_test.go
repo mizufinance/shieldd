@@ -126,7 +126,7 @@ func TestDecodeCanonicalCircuitMetadataJSONRejectsOldOrAlternateEncodings(t *tes
 		1,
 	)
 	if _, err := DecodeCanonicalCircuitMetadataJSON(optionalID); err == nil {
-		t.Fatal("metadata fields outside the exact v1 schema must fail")
+		t.Fatal("metadata fields outside the exact v2 schema must fail")
 	}
 
 	missingPin := bytes.Replace(
@@ -137,6 +137,16 @@ func TestDecodeCanonicalCircuitMetadataJSONRejectsOldOrAlternateEncodings(t *tes
 	)
 	if _, err := DecodeCanonicalCircuitMetadataJSON(missingPin); err == nil {
 		t.Fatal("missing proving-key pin must fail")
+	}
+
+	missingProvenancePin := bytes.Replace(
+		canonical,
+		[]byte(`  "setup_provenance_sha256_hex": "`+value.SetupProvenanceSHA256Hex+"\",\n"),
+		nil,
+		1,
+	)
+	if _, err := DecodeCanonicalCircuitMetadataJSON(missingProvenancePin); err == nil {
+		t.Fatal("missing setup-provenance pin must fail")
 	}
 
 	compact, err := json.Marshal(value)

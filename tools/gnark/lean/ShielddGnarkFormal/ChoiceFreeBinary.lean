@@ -26,6 +26,50 @@ theorem ofBitsBE_snoc_val {d : ℕ} (b : Bool) (v : List.Vector Bool d) :
       simp only [List.Vector.head_snoc, List.Vector.tail_snoc, ih, Nat.pow_succ]
       ring
 
+/-- Little-endian Boolean vectors have the expected low-bit projection. -/
+theorem ofBitsLE_cons_val {d : ℕ} (head : Bool)
+    (tail : List.Vector Bool d) :
+    (Fin.ofBitsLE (head ::ᵥ tail)).val =
+      Nat.bit head (Fin.ofBitsLE tail).val := by
+  simp [Fin.ofBitsLE, List.Vector.reverse_cons, ofBitsBE_snoc_val]
+  cases head
+  · simp [Nat.bit]
+  · simp [Nat.bit, Nat.add_comm]
+
+private theorem vector_get_succ_nat {α : Type} {d i : ℕ} (head : α)
+    (tail : List.Vector α d) (h : i.succ < d.succ) :
+    (head ::ᵥ tail)[i.succ]'h =
+      tail[i]'(Nat.lt_of_succ_lt_succ h) := by
+  rfl
+
+/-- `Fin.ofBitsLE` exposes exactly the supplied bit below vector width. -/
+theorem ofBitsLE_testBit {d : ℕ} (bits : List.Vector Bool d) :
+    ∀ i, i < d →
+      (Fin.ofBitsLE bits).val.testBit i = bits[i]! := by
+  induction d with
+  | zero =>
+      intro i hi
+      exact (Nat.not_lt_zero i hi).elim
+  | succ d ih =>
+      intro i hi
+      cases bits using List.Vector.casesOn with
+      | cons head tail =>
+          cases i with
+          | zero =>
+              rw [ofBitsLE_cons_val]
+              rw [Nat.testBit_bit_zero]
+              rw [getElem!_pos (head ::ᵥ tail) 0
+                (Nat.zero_lt_succ d)]
+              simp
+          | succ i =>
+              have hi' : i < d := Nat.lt_of_succ_lt_succ hi
+              rw [ofBitsLE_cons_val]
+              rw [Nat.testBit_bit_succ]
+              rw [getElem!_pos (head ::ᵥ tail) (i + 1) hi]
+              rw [vector_get_succ_nat]
+              rw [← getElem!_pos tail i hi']
+              exact ih tail i hi'
+
 /-- Boolean little-endian recovery equals `Fin.ofBitsLE`, with a proof closure
 containing only ring arithmetic and the quotient soundness of `ZMod`. -/
 theorem recover_binary_map_toZMod_eq_ofBitsLE {N d : ℕ}
@@ -74,5 +118,34 @@ theorem range_of_to_binary {N d : ℕ}
   obtain ⟨bits, _, hval⟩ := exists_bool_vector_of_to_binary hpow h
   rw [hval]
   exact (Fin.ofBitsLE bits).isLt
+
+/-- Pointwise zero/one facts are the exact binary-vector predicate. -/
+theorem is_vector_binary_of_get {N d : ℕ}
+    (v : List.Vector (ZMod N) d)
+    (h : ∀ (i : Nat) (hi : i < d),
+      v[i]'hi = 0 ∨ v[i]'hi = 1) :
+    is_vector_binary v := by
+  induction d with
+  | zero =>
+      cases v using List.Vector.casesOn
+      simp [is_vector_binary]
+  | succ d ih =>
+      cases v using List.Vector.casesOn with
+      | cons head tail =>
+          rw [is_vector_binary_cons]
+          constructor
+          · simpa using h 0 (Nat.zero_lt_succ d)
+          · apply ih tail
+            intro i hi
+            simpa using h (i + 1) (Nat.succ_lt_succ hi)
+
+/-- Build the exact `to_binary` predicate from recovery and pointwise rows. -/
+theorem to_binary_of_get {N d : ℕ}
+    (a : ZMod N) (v : List.Vector (ZMod N) d)
+    (hRecover : recover_binary_zmod' v = a)
+    (hBits : ∀ (i : Nat) (hi : i < d),
+      v[i]'hi = 0 ∨ v[i]'hi = 1) :
+    GatesDef.to_binary a d v :=
+  ⟨hRecover, is_vector_binary_of_get v hBits⟩
 
 end Shieldd.GnarkFormal.ChoiceFreeBinary

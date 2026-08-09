@@ -127,7 +127,7 @@ pub async fn setup_proof_storage(
     ] {
         let b_d_fq = address.diversified_generator().vartime_compress_to_field();
         state
-            .add_compliance_leaf(ComplianceLeaf::new(address, *BASE_ASSET_ID, b_d_fq))
+            .test_only_add_compliance_leaf(ComplianceLeaf::new(address, *BASE_ASSET_ID, b_d_fq))
             .await?;
     }
     storage.commit(state).await?;

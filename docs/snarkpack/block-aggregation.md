@@ -1,10 +1,10 @@
 # Block Aggregation: How Shieldd Uses SnarkPack
 
-Status: **exploratory ideas, not implemented.** Block building is not settled;
-this records the design space so we can return to it. It is about *how we use*
-the aggregation primitive at the block level — not how the primitive works
-(that is [design.md](design.md)) and not how we verify it
-([verification.md](verification.md)).
+Status: the per-family proposal bundle pipeline is implemented, but it currently
+uses a deterministic development SRS and is not an acceptance soundness
+boundary. Validators independently verify every constituent Groth16 proof.
+The remaining alternatives below record the performance design space; they do
+not supersede that authoritative verification rule.
 
 ## The constraints we're designing around
 
@@ -56,9 +56,9 @@ Filecoin informing only the leaf.
    bounds waste while avoiding the singleton regime that makes small decomposition
    lose. The `_BY_FOUR`/`_BY_EIGHT` subfamily ids already hint at fixed bucket
    sizes.
-3. **Min-bucket fall-through to native batch verify.** Below a worthwhile
-   aggregate size, don't aggregate — verify natively with the existing batch path
-   (the `ALG-I1` oracle). Only the small remainder of a tiling ever pads.
+3. **Min-bucket fall-through to independent Groth16 verification.** Below a
+   worthwhile aggregate size, do not aggregate. The legacy deterministic batch
+   verifier is benchmark-only; authoritative acceptance uses independent checks.
 4. **A small fixed set of allowed bucket shapes.** e.g. 8 / 64 / 512 / 4096. Fewer
    shapes = simpler SRS and verifier surface; more shapes = tighter tiling. A knob
    to tune, not a fixed answer.

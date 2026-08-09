@@ -17,12 +17,15 @@ use ibc_types::{
             MsgChannelOpenConfirm, MsgChannelOpenInit, MsgChannelOpenTry, MsgRecvPacket,
             MsgTimeout,
         },
-        ChannelId, PortId, Version,
+        ChannelEnd, ChannelId, PortId, Version,
     },
+    core::connection::ConnectionEnd,
     transfer::acknowledgement::TokenTransferAcknowledgement,
 };
 use shieldd_sdk_asset::{asset, asset::Metadata, Value};
-use shieldd_sdk_compliance::{ComplianceRegistryRead as _, IbcComplianceMetadata, IbcRoute};
+use shieldd_sdk_compliance::{
+    AssetPolicy, ComplianceRegistryRead as _, IbcComplianceMetadata, IbcRoute,
+};
 use shieldd_sdk_ibc::component::{ChannelStateReadExt, ConnectionStateReadExt};
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_num::Amount;
@@ -37,7 +40,8 @@ use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
 use shieldd_sdk_ibc::component::{
     app_handler::{AppHandler, AppHandlerCheck, AppHandlerExecute},
     packet::{
-        IBCPacket, SendPacketRead as _, SendPacketWrite as _, Unchecked, WriteAcknowledgement as _,
+        Checked, IBCPacket, SendPacketRead as _, SendPacketWrite as _, Unchecked,
+        WriteAcknowledgement as _,
     },
     state_key,
 };
@@ -70,20 +74,40 @@ fn is_source(
     }
 }
 
+struct ResolvedIbcRoute {
+    route: IbcRoute,
+    channel: ChannelEnd,
+    connection: ConnectionEnd,
+}
+
 async fn resolve_ibc_route<S: StateRead + ?Sized>(
     state: &S,
     local_port: &PortId,
     local_channel: &ChannelId,
-) -> Result<IbcRoute> {
+) -> Result<ResolvedIbcRoute> {
     let channel = state
         .get_channel(local_channel, local_port)
         .await?
         .ok_or_else(|| anyhow::anyhow!("IBC route channel not found"))?;
+    anyhow::ensure!(
+        channel.ordering == ChannelOrder::Unordered,
+        "IBC transfer route channel must be unordered"
+    );
+    anyhow::ensure!(
+        channel.version == Version::new("ics20-1".to_string()),
+        "IBC transfer route channel must use version ics20-1, found {}",
+        channel.version
+    );
+    anyhow::ensure!(
+        channel.connection_hops.len() == 1,
+        "IBC route channel must have exactly one connection hop, found {}",
+        channel.connection_hops.len()
+    );
     let connection_id = channel
         .connection_hops
         .first()
         .ok_or_else(|| anyhow::anyhow!("IBC route channel has no connection hop"))?;
-    state
+    let connection = state
         .get_connection(connection_id)
         .await?
         .ok_or_else(|| anyhow::anyhow!("IBC route connection not found"))?;
@@ -91,12 +115,16 @@ async fn resolve_ibc_route<S: StateRead + ?Sized>(
         .counterparty()
         .channel_id()
         .ok_or_else(|| anyhow::anyhow!("IBC route missing counterparty channel"))?;
-    Ok(IbcRoute {
-        local_port: local_port.to_string(),
-        local_channel: local_channel.to_string(),
-        connection_id: connection_id.to_string(),
-        counterparty_port: channel.counterparty().port_id.to_string(),
-        counterparty_channel: counterparty_channel.to_string(),
+    Ok(ResolvedIbcRoute {
+        route: IbcRoute {
+            local_port: local_port.to_string(),
+            local_channel: local_channel.to_string(),
+            connection_id: connection_id.to_string(),
+            counterparty_port: channel.counterparty().port_id.to_string(),
+            counterparty_channel: counterparty_channel.to_string(),
+        },
+        channel,
+        connection,
     })
 }
 
@@ -260,175 +288,207 @@ async fn check_regulated_inbound_ics20<S: StateRead>(
 #[derive(Clone)]
 pub struct Ics20Transfer {}
 
-#[async_trait]
-pub trait Ics20TransferExecutionExt: StateWrite {
-    async fn withdrawal_check_cached(
-        &mut self,
-        withdrawal: &Ics20Withdrawal,
-        current_block_time: Time,
-    ) -> Result<()> {
-        let packet: IBCPacket<Unchecked> = withdrawal.clone().into();
-        let send_check_start = Instant::now();
-        self.send_packet_check(packet, current_block_time).await?;
-        tracing::debug!(
-            elapsed_us = send_check_start.elapsed().as_micros(),
-            channel = %withdrawal.source_channel,
-            "ibc_outbound_send_packet_check"
-        );
+/// Non-forgeable evidence that the exact withdrawal packet, IBC state, and
+/// compliance route policy were checked together.
+pub(super) struct CheckedWithdrawal {
+    withdrawal: Ics20Withdrawal,
+    packet: IBCPacket<Checked>,
+    route: IbcRoute,
+    channel: ChannelEnd,
+    connection: ConnectionEnd,
+    send_sequence: u64,
+    policy: Option<AssetPolicy>,
+    current_block_time: Time,
+}
 
-        let route_policy_start = Instant::now();
-        if let Some(policy) = self.get_asset_policy(withdrawal.denom.id()).await? {
-            IbcComplianceMetadata::validate_regulated_memo(&withdrawal.ics20_memo)?;
-            let route =
-                resolve_ibc_route(self, &PortId::transfer(), &withdrawal.source_channel).await?;
+async fn validated_withdrawal_route<S: StateRead + ?Sized>(
+    state: &S,
+    withdrawal: &Ics20Withdrawal,
+) -> Result<(IbcRoute, ChannelEnd, ConnectionEnd, Option<AssetPolicy>)> {
+    let policy = state.get_asset_policy(withdrawal.denom.id()).await?;
+    if policy.is_some() {
+        IbcComplianceMetadata::validate_regulated_memo(&withdrawal.ics20_memo)?;
+        if let Some(metadata) = IbcComplianceMetadata::from_memo(&withdrawal.ics20_memo)? {
             anyhow::ensure!(
-                policy.permits_ibc_route(&route),
-                "regulated asset is not allowed on IBC route {}:{} via {} to {}:{}",
-                route.local_port,
-                route.local_channel,
-                route.connection_id,
-                route.counterparty_port,
-                route.counterparty_channel
+                metadata.asset_id == withdrawal.denom.id(),
+                "outbound IBC compliance metadata asset_id does not match withdrawal asset"
             );
         }
-        tracing::debug!(
-            elapsed_us = route_policy_start.elapsed().as_micros(),
-            asset_id = %withdrawal.denom.id(),
-            channel = %withdrawal.source_channel,
-            "ibc_outbound_route_policy_check"
-        );
-
-        Ok(())
     }
+    let resolved =
+        resolve_ibc_route(state, &PortId::transfer(), &withdrawal.source_channel).await?;
+    let ResolvedIbcRoute {
+        route,
+        channel,
+        connection,
+    } = resolved;
+    if let Some(policy) = &policy {
+        anyhow::ensure!(
+            policy.permits_ibc_route(&route),
+            "regulated asset is not allowed on IBC route {}:{} via {} to {}:{}",
+            route.local_port,
+            route.local_channel,
+            route.connection_id,
+            route.counterparty_port,
+            route.counterparty_channel
+        );
+    }
+    Ok((route, channel, connection, policy))
 }
 
-impl<T: StateWrite + ?Sized> Ics20TransferExecutionExt for T {}
+pub(super) async fn withdrawal_check<S: StateWrite + ?Sized>(
+    state: &mut S,
+    withdrawal: &Ics20Withdrawal,
+    current_block_time: Time,
+) -> Result<CheckedWithdrawal> {
+    let packet: IBCPacket<Unchecked> = withdrawal.clone().try_into()?;
+    let send_check_start = Instant::now();
+    let packet = state.send_packet_check(packet, current_block_time).await?;
+    tracing::debug!(
+        elapsed_us = send_check_start.elapsed().as_micros(),
+        channel = %withdrawal.source_channel,
+        "ibc_outbound_send_packet_check"
+    );
+    let send_sequence = state
+        .get_send_sequence(&withdrawal.source_channel, packet.source_port())
+        .await?;
 
-#[async_trait]
-pub trait Ics20TransferWriteExt: StateWrite {
-    async fn withdrawal_execute(&mut self, withdrawal: &Ics20Withdrawal) -> Result<()> {
-        // create packet, assume it's already checked since the component caller contract calls `check` before `execute`
-        let checked_packet = IBCPacket::<Unchecked>::from(withdrawal.clone()).assume_checked();
+    let route_policy_start = Instant::now();
+    let (route, channel, connection, policy) =
+        validated_withdrawal_route(state, withdrawal).await?;
+    tracing::debug!(
+        elapsed_us = route_policy_start.elapsed().as_micros(),
+        asset_id = %withdrawal.denom.id(),
+        channel = %withdrawal.source_channel,
+        "ibc_outbound_route_policy_check"
+    );
 
-        let accounting_start = Instant::now();
-        let prefix = format!("transfer/{}/", &withdrawal.source_channel);
-        if !withdrawal.denom.starts_with(&prefix) {
-            // we are the source. add the value balance to the escrow channel.
-            let existing_value_balance: Amount = self
-                .get(&state_key::ics20_value_balance::by_asset_id(
-                    &withdrawal.source_channel,
-                    &withdrawal.denom.id(),
-                ))
-                .await
-                .expect("able to retrieve value balance in ics20 withdrawal! (execute)")
-                .unwrap_or_else(Amount::zero);
-
-            let new_value_balance = existing_value_balance
-                .checked_add(&withdrawal.amount)
-                .ok_or_else(|| {
-                    anyhow::anyhow!("overflow adding value balance in ics20 withdrawal")
-                })?;
-            self.put(
-                state_key::ics20_value_balance::by_asset_id(
-                    &withdrawal.source_channel,
-                    &withdrawal.denom.id(),
-                ),
-                new_value_balance,
-            );
-            self.record_proto(
-                event::EventOutboundFungibleTokenTransfer {
-                    value: Value {
-                        amount: withdrawal.amount,
-                        asset_id: withdrawal.denom.id(),
-                    },
-                    sender: withdrawal.return_address.clone(),
-                    receiver: withdrawal.destination_chain_address.clone(),
-                    meta: FungibleTokenTransferPacketMetadata {
-                        channel: withdrawal.source_channel.0.clone(),
-                        sequence: self
-                            .get_send_sequence(
-                                &withdrawal.source_channel,
-                                &checked_packet.source_port(),
-                            )
-                            .await?,
-                    },
-                }
-                .to_proto(),
-            );
-        } else {
-            // receiver is the source, burn utxos
-
-            // double check the value balance here.
-            //
-            // for assets not originating from Shieldd, never transfer out more tokens than were
-            // transferred in. (Our counterparties should be checking this anyways, since if we
-            // were Byzantine we could lie to them).
-            let value_balance: Amount = self
-                .get(&state_key::ics20_value_balance::by_asset_id(
-                    &withdrawal.source_channel,
-                    &withdrawal.denom.id(),
-                ))
-                .await?
-                .unwrap_or_else(Amount::zero);
-
-            if value_balance < withdrawal.amount {
-                anyhow::bail!("insufficient balance to withdraw tokens");
-            }
-
-            let new_value_balance =
-                value_balance
-                    .checked_sub(&withdrawal.amount)
-                    .ok_or_else(|| {
-                        anyhow::anyhow!("underflow subtracting value balance in ics20 withdrawal")
-                    })?;
-            self.put(
-                state_key::ics20_value_balance::by_asset_id(
-                    &withdrawal.source_channel,
-                    &withdrawal.denom.id(),
-                ),
-                new_value_balance,
-            );
-            self.record_proto(
-                event::EventOutboundFungibleTokenTransfer {
-                    value: Value {
-                        amount: withdrawal.amount,
-                        asset_id: withdrawal.denom.id(),
-                    },
-                    sender: withdrawal.return_address.clone(),
-                    receiver: withdrawal.destination_chain_address.clone(),
-                    meta: FungibleTokenTransferPacketMetadata {
-                        channel: withdrawal.source_channel.0.clone(),
-                        sequence: self
-                            .get_send_sequence(
-                                &withdrawal.source_channel,
-                                &checked_packet.source_port(),
-                            )
-                            .await?,
-                    },
-                }
-                .to_proto(),
-            );
-        }
-        tracing::debug!(
-            elapsed_us = accounting_start.elapsed().as_micros(),
-            asset_id = %withdrawal.denom.id(),
-            channel = %withdrawal.source_channel,
-            "ibc_outbound_nullifier_note_accounting"
-        );
-
-        let send_execute_start = Instant::now();
-        self.send_packet_execute(checked_packet).await;
-        tracing::debug!(
-            elapsed_us = send_execute_start.elapsed().as_micros(),
-            channel = %withdrawal.source_channel,
-            "ibc_outbound_send_packet_execute"
-        );
-
-        Ok(())
-    }
+    Ok(CheckedWithdrawal {
+        withdrawal: withdrawal.clone(),
+        packet,
+        route,
+        channel,
+        connection,
+        send_sequence,
+        policy,
+        current_block_time,
+    })
 }
 
-impl<T: StateWrite + ?Sized> Ics20TransferWriteExt for T {}
+fn same_packet(left: &IBCPacket<Checked>, right: &IBCPacket<Checked>) -> bool {
+    left.source_port() == right.source_port()
+        && left.source_channel() == right.source_channel()
+        && left.timeout_height() == right.timeout_height()
+        && left.timeout_timestamp() == right.timeout_timestamp()
+        && left.data() == right.data()
+}
+
+pub(super) async fn withdrawal_execute<S: StateWrite + ?Sized>(
+    state: &mut S,
+    checked: CheckedWithdrawal,
+) -> Result<()> {
+    let CheckedWithdrawal {
+        withdrawal,
+        packet,
+        route,
+        channel,
+        connection,
+        send_sequence,
+        policy,
+        current_block_time,
+    } = checked;
+
+    // Re-read every state-dependent fact immediately before mutation. This
+    // rejects a token if its channel, client, route, or policy snapshot became
+    // stale between action-local proof effects and packet execution.
+    let (current_route, current_channel, current_connection, current_policy) =
+        validated_withdrawal_route(state, &withdrawal).await?;
+    anyhow::ensure!(
+        current_route == route
+            && current_channel == channel
+            && current_connection == connection
+            && current_policy == policy,
+        "withdrawal route, channel, connection, client, or compliance policy changed after validation"
+    );
+    let refreshed_packet = state
+        .send_packet_check(
+            IBCPacket::<Unchecked>::try_from(withdrawal.clone())?,
+            current_block_time,
+        )
+        .await?;
+    let current_send_sequence = state
+        .get_send_sequence(&withdrawal.source_channel, refreshed_packet.source_port())
+        .await?;
+    anyhow::ensure!(
+        current_send_sequence == send_sequence,
+        "withdrawal send sequence changed after validation: expected {}, found {}",
+        send_sequence,
+        current_send_sequence
+    );
+    anyhow::ensure!(
+        same_packet(&packet, &refreshed_packet),
+        "withdrawal packet changed after validation"
+    );
+
+    // Resolve every fallible accounting read and arithmetic check before the
+    // first write. Once packet execution succeeds, the remaining balance and
+    // event writes are infallible StateWrite operations.
+    let accounting_start = Instant::now();
+    let balance_key = state_key::ics20_value_balance::by_asset_id(
+        &withdrawal.source_channel,
+        &withdrawal.denom.id(),
+    );
+    let existing_value_balance: Amount =
+        state.get(&balance_key).await?.unwrap_or_else(Amount::zero);
+    let prefix = format!("transfer/{}/", &withdrawal.source_channel);
+    let new_value_balance = if !withdrawal.denom.starts_with(&prefix) {
+        existing_value_balance
+            .checked_add(&withdrawal.amount)
+            .ok_or_else(|| anyhow::anyhow!("overflow adding value balance in ics20 withdrawal"))?
+    } else {
+        anyhow::ensure!(
+            existing_value_balance >= withdrawal.amount,
+            "insufficient balance to withdraw tokens"
+        );
+        existing_value_balance
+            .checked_sub(&withdrawal.amount)
+            .ok_or_else(|| {
+                anyhow::anyhow!("underflow subtracting value balance in ics20 withdrawal")
+            })?
+    };
+    let outbound_event = event::EventOutboundFungibleTokenTransfer {
+        value: Value {
+            amount: withdrawal.amount,
+            asset_id: withdrawal.denom.id(),
+        },
+        sender: withdrawal.return_address.clone(),
+        receiver: withdrawal.destination_chain_address.clone(),
+        meta: FungibleTokenTransferPacketMetadata {
+            channel: withdrawal.source_channel.0.clone(),
+            sequence: send_sequence,
+        },
+    }
+    .to_proto();
+
+    let send_execute_start = Instant::now();
+    state.send_packet_execute(refreshed_packet).await?;
+    tracing::debug!(
+        elapsed_us = send_execute_start.elapsed().as_micros(),
+        channel = %withdrawal.source_channel,
+        "ibc_outbound_send_packet_execute"
+    );
+
+    state.put(balance_key, new_value_balance);
+    state.record_proto(outbound_event);
+    tracing::debug!(
+        elapsed_us = accounting_start.elapsed().as_micros(),
+        asset_id = %withdrawal.denom.id(),
+        channel = %withdrawal.source_channel,
+        "ibc_outbound_nullifier_note_accounting"
+    );
+
+    Ok(())
+}
 
 // see: https://github.com/cosmos/ibc/tree/master/spec/app/ics-020-fungible-token-transfer
 #[async_trait]
@@ -552,7 +612,9 @@ async fn recv_transfer_packet_inner<S: StateWrite>(
     );
 
     let route_start = Instant::now();
-    let route = resolve_ibc_route(&state, &msg.packet.port_on_b, &msg.packet.chan_on_b).await?;
+    let route = resolve_ibc_route(&state, &msg.packet.port_on_b, &msg.packet.chan_on_b)
+        .await?
+        .route;
     let route_elapsed = route_start.elapsed();
     #[cfg(feature = "benchmark-helpers")]
     record_inbound_stage(InboundStage::RouteResolve, route_elapsed);
@@ -974,15 +1036,106 @@ impl AppHandler for Ics20Transfer {}
 
 #[cfg(test)]
 mod tests {
+    use std::ops::Deref;
+
     use super::*;
+    use cnidarium::{StateDelta, TempStorage};
     use ibc_types::{
         core::{
-            channel::{packet::Sequence, TimeoutHeight},
-            client::Height,
-            commitment::MerkleProof,
+            channel::{
+                channel::{Order, State as ChannelState},
+                packet::Sequence,
+                ChannelEnd, Counterparty, TimeoutHeight,
+            },
+            client::{ClientId, Height},
+            commitment::{MerkleProof, MerkleRoot},
+            connection::{
+                ChainId, ConnectionEnd, ConnectionId, Counterparty as ConnectionCounterparty,
+                State as ConnectionState,
+            },
         },
+        lightclients::tendermint::{
+            client_state::{AllowUpdate, ClientState},
+            consensus_state::ConsensusState,
+            TrustThreshold,
+        },
+        path::ClientConsensusStatePath,
         timestamp::Timestamp,
     };
+    use shieldd_sdk_asset::BASE_ASSET_DENOM;
+    use shieldd_sdk_compliance::ComplianceRegistryWrite as _;
+    use shieldd_sdk_ibc::component::{
+        commit_packet, ChannelStateWriteExt as _, ClientStateReadExt as _,
+        ClientStateWriteExt as _, ConnectionStateWriteExt as _, ConsensusStateWriteExt,
+        HostInterface,
+    };
+    use shieldd_sdk_ibc::{MerklePrefixExt as _, IBC_COMMITMENT_PREFIX, IBC_PROOF_SPECS};
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_proto::event::EventDomainType as _;
+
+    struct TestHost;
+
+    #[async_trait]
+    impl HostInterface for TestHost {
+        async fn get_chain_id<S: StateRead>(_state: S) -> Result<String> {
+            Ok("shieldd-test-1".to_string())
+        }
+
+        async fn get_revision_number<S: StateRead>(_state: S) -> Result<u64> {
+            Ok(1)
+        }
+
+        async fn get_block_height<S: StateRead>(_state: S) -> Result<u64> {
+            Ok(10)
+        }
+
+        async fn get_block_timestamp<S: StateRead>(_state: S) -> Result<Time> {
+            Time::from_unix_timestamp(2, 0).context("valid test block time")
+        }
+    }
+
+    fn test_withdrawal() -> Ics20Withdrawal {
+        Ics20Withdrawal {
+            amount: Amount::from(123u64),
+            denom: BASE_ASSET_DENOM.clone(),
+            destination_chain_address: "cosmos1destination".to_string(),
+            return_address: test_keys::ADDRESS_0.deref().clone(),
+            timeout_height: Height::new(1, 100).expect("valid timeout height"),
+            timeout_time: 60_000_000_000,
+            source_channel: ChannelId::from_str("channel-0").expect("valid channel"),
+            ics20_memo: String::new(),
+            use_transparent_address: false,
+        }
+    }
+
+    fn policy_authorizing(routes: Vec<IbcRoute>) -> AssetPolicy {
+        let mut policy = AssetPolicy::simple(
+            decaf377::Element::GENERATOR,
+            u128::MAX,
+            decaf377::Element::GENERATOR,
+        );
+        policy.replace_allowed_ibc_routes(routes);
+        policy
+    }
+
+    fn event_attribute<'a>(event: &'a tendermint::abci::Event, key: &str) -> &'a str {
+        event
+            .attributes
+            .iter()
+            .find_map(|attribute| {
+                if attribute.key_str().ok()? == key {
+                    attribute.value_str().ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| panic!("event {} missing attribute {key}", event.kind))
+    }
+
+    fn consensus_state_key(client_id: &ClientId, height: &Height) -> String {
+        IBC_COMMITMENT_PREFIX
+            .apply_string(ClientConsensusStatePath::new(client_id, height).to_string())
+    }
 
     fn test_recv_packet(denom: &str) -> MsgRecvPacket {
         let mut rng = rand::thread_rng();
@@ -1013,6 +1166,74 @@ mod tests {
         }
     }
 
+    async fn put_open_outbound_route<S: StateWrite>(
+        state: &mut S,
+        withdrawal: &Ics20Withdrawal,
+        counterparty_channel: ChannelId,
+    ) -> Result<()> {
+        let client_id = ClientId::from_str("07-tendermint-0")?;
+        let latest_height = Height::new(1, 10)?;
+        let client_state = ClientState::new(
+            ChainId::new("counterparty".to_string(), 1),
+            TrustThreshold::ONE_THIRD,
+            std::time::Duration::from_secs(86_400),
+            std::time::Duration::from_secs(172_800),
+            std::time::Duration::from_secs(5),
+            latest_height,
+            IBC_PROOF_SPECS.to_vec(),
+            vec![],
+            AllowUpdate {
+                after_expiry: false,
+                after_misbehaviour: false,
+            },
+            None,
+        )?;
+        state.put_client(&client_id, client_state);
+        state
+            .put_verified_consensus_state::<TestHost>(
+                latest_height,
+                client_id.clone(),
+                ConsensusState::new(
+                    MerkleRoot {
+                        hash: vec![1u8; 32],
+                    },
+                    Time::from_unix_timestamp(1, 0)?,
+                    tendermint::Hash::Sha256([2u8; 32]),
+                ),
+            )
+            .await?;
+
+        let connection_id = ConnectionId::new(0);
+        state
+            .put_new_connection(
+                &connection_id,
+                ConnectionEnd {
+                    state: ConnectionState::Open,
+                    client_id,
+                    counterparty: ConnectionCounterparty::default(),
+                    versions: vec![],
+                    delay_period: std::time::Duration::ZERO,
+                },
+            )
+            .await?;
+
+        let port = PortId::transfer();
+        state.put_channel(
+            &withdrawal.source_channel,
+            &port,
+            ChannelEnd {
+                state: ChannelState::Open,
+                ordering: Order::Unordered,
+                remote: Counterparty::new(port.clone(), Some(counterparty_channel)),
+                connection_hops: vec![connection_id],
+                version: Version::new("ics20-1".to_string()),
+                ..ChannelEnd::default()
+            },
+        );
+        state.put_send_sequence(&withdrawal.source_channel, &port, 1);
+        Ok(())
+    }
+
     #[test]
     fn receive_context_derives_sink_zone_voucher_denom() {
         let msg = test_recv_packet("ushieldd");
@@ -1032,5 +1253,1552 @@ mod tests {
 
         assert!(context.returned_to_source);
         assert_eq!(context.received_denom.to_string(), "ushieldd");
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_missing_route_state() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let current_time = Time::from_unix_timestamp(1, 0).expect("valid current block time");
+
+        let error = match withdrawal_check(&mut state, &test_withdrawal(), current_time).await {
+            Ok(_) => panic!("a withdrawal must not use an absent channel"),
+            Err(error) => error,
+        };
+
+        assert!(
+            error.to_string().contains("channel channel-0")
+                && error.to_string().contains("does not exist"),
+            "unexpected missing-route error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_missing_counterparty_channel() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let mut channel = state
+            .get_channel(&withdrawal.source_channel, &port)
+            .await
+            .expect("channel read must succeed")
+            .expect("test channel must exist");
+        channel.remote = Counterparty::new(port, None);
+        state.put_channel(&withdrawal.source_channel, &PortId::transfer(), channel);
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a channel without a counterparty channel must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error.to_string().contains("has no counterparty channel"),
+            "unexpected missing-counterparty error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_zero_connection_hops() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let mut channel = state
+            .get_channel(&withdrawal.source_channel, &port)
+            .await
+            .expect("channel read must succeed")
+            .expect("test channel must exist");
+        channel.connection_hops.clear();
+        state.put_channel(&withdrawal.source_channel, &port, channel);
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a channel without a connection hop must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("must have exactly one connection hop"),
+            "unexpected zero-hop error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_missing_connection() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let mut channel = state
+            .get_channel(&withdrawal.source_channel, &port)
+            .await
+            .expect("channel read must succeed")
+            .expect("test channel must exist");
+        channel.connection_hops = vec![ConnectionId::new(9)];
+        state.put_channel(&withdrawal.source_channel, &port, channel);
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a missing referenced connection must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("connection connection-9 does not exist"),
+            "unexpected missing-connection error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_ordered_channel() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let mut channel = state
+            .get_channel(&withdrawal.source_channel, &port)
+            .await
+            .expect("channel read must succeed")
+            .expect("test channel must exist");
+        channel.ordering = Order::Ordered;
+        state.put_channel(&withdrawal.source_channel, &port, channel);
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("an ordered channel must reject ICS-20 withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error.to_string().contains("must be unordered"),
+            "unexpected ordered-channel error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_non_ics20_channel_version() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let mut channel = state
+            .get_channel(&withdrawal.source_channel, &port)
+            .await
+            .expect("channel read must succeed")
+            .expect("test channel must exist");
+        channel.version = Version::new("ics20-2".to_string());
+        state.put_channel(&withdrawal.source_channel, &port, channel);
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a non-ics20-1 channel must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error.to_string().contains("must use version ics20-1"),
+            "unexpected channel-version error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_unauthorized_regulated_route() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        state
+            .test_only_register_asset(
+                withdrawal.denom.id(),
+                AssetPolicy::simple(
+                    decaf377::Element::GENERATOR,
+                    u128::MAX,
+                    decaf377::Element::GENERATOR,
+                ),
+                true,
+            )
+            .await
+            .expect("regulated asset policy must initialize");
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a regulated withdrawal must use an authorized exact route"),
+            Err(error) => error,
+        };
+
+        assert!(
+            error
+                .to_string()
+                .contains("regulated asset is not allowed on IBC route"),
+            "unexpected route-policy error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_enforces_regulated_memo_shape_and_asset_binding() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let mut withdrawal = test_withdrawal();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let route = IbcRoute::transfer("channel-0", "connection-0", "channel-7");
+        state
+            .test_only_register_asset(withdrawal.denom.id(), policy_authorizing(vec![route]), true)
+            .await
+            .expect("regulated asset policy must initialize");
+        let valid_metadata = IbcComplianceMetadata {
+            compliance_ciphertext: vec![
+                7u8;
+                shieldd_sdk_compliance::structs::TRANSFER_INPUT_WIRE_BYTES
+            ],
+            asset_id: withdrawal.denom.id(),
+        };
+        let wrong_asset_metadata = IbcComplianceMetadata {
+            compliance_ciphertext: valid_metadata.compliance_ciphertext.clone(),
+            asset_id: asset::Id(decaf377::Fq::from(999u64)),
+        };
+        let malformed_memo = "not-json".to_string();
+        let forwarding_memo = valid_metadata
+            .encode_to_memo("forward-to-next-chain")
+            .expect("memo encoding must succeed");
+        let wrong_asset_memo = wrong_asset_metadata
+            .encode_to_memo("")
+            .expect("memo encoding must succeed");
+
+        for (case, memo, expected_error) in [
+            (
+                "malformed",
+                malformed_memo,
+                "regulated IBC memo must be valid JSON",
+            ),
+            (
+                "forwarding",
+                forwarding_memo,
+                "may only contain Shieldd compliance metadata",
+            ),
+            (
+                "wrong asset",
+                wrong_asset_memo,
+                "asset_id does not match withdrawal asset",
+            ),
+        ] {
+            withdrawal.ics20_memo = memo;
+            let error = match withdrawal_check(
+                &mut state,
+                &withdrawal,
+                Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+            )
+            .await
+            {
+                Ok(_) => panic!("{case} regulated memo must be rejected"),
+                Err(error) => error,
+            };
+            assert!(
+                error.to_string().contains(expected_error),
+                "{case} memo failed for the wrong reason: {error:#}"
+            );
+        }
+
+        withdrawal.ics20_memo = valid_metadata
+            .encode_to_memo("")
+            .expect("memo encoding must succeed");
+        withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("an exact compliance wrapper bound to the withdrawal asset must be accepted");
+    }
+
+    #[tokio::test]
+    async fn withdrawal_execute_updates_supply_and_packet_state() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        let counterparty_channel =
+            ChannelId::from_str("channel-7").expect("valid counterparty channel");
+        put_open_outbound_route(&mut state, &withdrawal, counterparty_channel.clone())
+            .await
+            .expect("valid outbound route");
+        let expected_packet = Packet {
+            sequence: Sequence::from(1),
+            port_on_a: port.clone(),
+            chan_on_a: withdrawal.source_channel.clone(),
+            port_on_b: port.clone(),
+            chan_on_b: counterparty_channel,
+            data: withdrawal
+                .packet_data()
+                .expect("valid withdrawal packet data"),
+            timeout_height_on_b: withdrawal.timeout_height.clone().into(),
+            timeout_timestamp_on_b: Timestamp::from_nanoseconds(withdrawal.timeout_time)
+                .expect("valid withdrawal timeout timestamp"),
+        };
+        let checked = withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("valid withdrawal must check");
+        withdrawal_execute(&mut state, checked)
+            .await
+            .expect("validated withdrawal must execute");
+
+        let escrowed: Amount = state
+            .get(&state_key::ics20_value_balance::by_asset_id(
+                &withdrawal.source_channel,
+                &withdrawal.denom.id(),
+            ))
+            .await
+            .expect("escrow read must succeed")
+            .expect("escrow balance must be written");
+        assert_eq!(escrowed, withdrawal.amount);
+        assert_eq!(
+            state
+                .get_send_sequence(&withdrawal.source_channel, &port)
+                .await
+                .expect("send sequence read must succeed"),
+            2
+        );
+        let stored_packet_commitment = state
+            .get_packet_commitment_by_id(&withdrawal.source_channel, &port, 1)
+            .await
+            .expect("packet commitment read must succeed")
+            .expect("withdrawal packet commitment must exist");
+        assert_eq!(
+            stored_packet_commitment,
+            commit_packet(&expected_packet),
+            "the exact withdrawal packet must be committed at the allocated sequence"
+        );
+
+        let (_, mut changes) = state.flatten();
+        let events = changes.take_events();
+        let outbound_events = events
+            .iter()
+            .filter_map(|event| {
+                event::EventOutboundFungibleTokenTransfer::try_from_event(event).ok()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            outbound_events.len(),
+            1,
+            "withdrawal execution must emit exactly one outbound transfer event"
+        );
+        let outbound = &outbound_events[0];
+        assert_eq!(outbound.value.amount, withdrawal.amount);
+        assert_eq!(outbound.value.asset_id, withdrawal.denom.id());
+        assert_eq!(outbound.sender, withdrawal.return_address);
+        assert_eq!(outbound.receiver, withdrawal.destination_chain_address);
+        assert_eq!(outbound.meta.channel, withdrawal.source_channel.0);
+        assert_eq!(outbound.meta.sequence, 1);
+
+        let send_events = events
+            .iter()
+            .filter(|event| event.kind == "send_packet")
+            .collect::<Vec<_>>();
+        assert_eq!(
+            send_events.len(),
+            1,
+            "withdrawal execution must emit exactly one IBC send_packet event"
+        );
+        let send = send_events[0];
+        assert_eq!(
+            send.attributes.len(),
+            11,
+            "the send_packet event must contain the complete canonical attribute set"
+        );
+        assert_eq!(
+            event_attribute(send, "packet_data_hex"),
+            hex::encode(&expected_packet.data)
+        );
+        assert_eq!(
+            event_attribute(send, "packet_data"),
+            std::str::from_utf8(&expected_packet.data).expect("packet JSON must be UTF-8")
+        );
+        assert_eq!(
+            event_attribute(send, "packet_timeout_height"),
+            expected_packet.timeout_height_on_b.to_string()
+        );
+        assert_eq!(
+            event_attribute(send, "packet_timeout_timestamp"),
+            expected_packet
+                .timeout_timestamp_on_b
+                .nanoseconds()
+                .to_string()
+        );
+        assert_eq!(
+            event_attribute(send, "packet_sequence"),
+            expected_packet.sequence.to_string()
+        );
+        assert_eq!(
+            event_attribute(send, "packet_src_port"),
+            expected_packet.port_on_a.to_string()
+        );
+        assert_eq!(
+            event_attribute(send, "packet_src_channel"),
+            expected_packet.chan_on_a.to_string()
+        );
+        assert_eq!(
+            event_attribute(send, "packet_dst_port"),
+            expected_packet.port_on_b.to_string()
+        );
+        assert_eq!(
+            event_attribute(send, "packet_dst_channel"),
+            expected_packet.chan_on_b.to_string()
+        );
+        assert_eq!(
+            event_attribute(send, "packet_channel_ordering"),
+            Order::Unordered.as_str()
+        );
+        assert_eq!(
+            event_attribute(send, "packet_connection"),
+            ConnectionId::new(0).to_string()
+        );
+    }
+
+    #[tokio::test]
+    async fn voucher_withdrawal_subtracts_channel_asset_balance_and_commits_packet() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let mut withdrawal = test_withdrawal();
+        withdrawal.denom = format!("transfer/{}/uatom", withdrawal.source_channel)
+            .as_str()
+            .try_into()
+            .expect("valid voucher denomination");
+        let port = PortId::transfer();
+        let counterparty_channel =
+            ChannelId::from_str("channel-7").expect("valid counterparty channel");
+        put_open_outbound_route(&mut state, &withdrawal, counterparty_channel.clone())
+            .await
+            .expect("valid outbound route");
+        let balance_key = state_key::ics20_value_balance::by_asset_id(
+            &withdrawal.source_channel,
+            &withdrawal.denom.id(),
+        );
+        state.put(balance_key.clone(), Amount::from(500u64));
+        let expected_packet = Packet {
+            sequence: Sequence::from(1),
+            port_on_a: port.clone(),
+            chan_on_a: withdrawal.source_channel.clone(),
+            port_on_b: port.clone(),
+            chan_on_b: counterparty_channel,
+            data: withdrawal
+                .packet_data()
+                .expect("valid withdrawal packet data"),
+            timeout_height_on_b: withdrawal.timeout_height.clone().into(),
+            timeout_timestamp_on_b: Timestamp::from_nanoseconds(withdrawal.timeout_time)
+                .expect("valid withdrawal timeout timestamp"),
+        };
+
+        let checked = withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("voucher withdrawal must check");
+        withdrawal_execute(&mut state, checked)
+            .await
+            .expect("voucher withdrawal must execute");
+
+        assert_eq!(
+            state
+                .get::<Amount>(&balance_key)
+                .await
+                .expect("balance read must succeed"),
+            Some(Amount::from(377u64)),
+            "returning a voucher to its source must subtract the exact packet amount"
+        );
+        assert_eq!(
+            state
+                .get_send_sequence(&withdrawal.source_channel, &port)
+                .await
+                .expect("send sequence read must succeed"),
+            2
+        );
+        assert_eq!(
+            state
+                .get_packet_commitment_by_id(&withdrawal.source_channel, &port, 1)
+                .await
+                .expect("packet commitment read must succeed"),
+            Some(commit_packet(&expected_packet))
+        );
+
+        let (_, mut changes) = state.flatten();
+        let events = changes.take_events();
+        let outbound = events
+            .iter()
+            .filter_map(|event| {
+                event::EventOutboundFungibleTokenTransfer::try_from_event(event).ok()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(outbound.len(), 1);
+        assert_eq!(outbound[0].value, withdrawal.value());
+        assert_eq!(
+            events
+                .iter()
+                .filter(|event| event.kind == "send_packet")
+                .count(),
+            1
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_execute_rejects_stale_route_token_before_mutation() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let checked = withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("valid withdrawal must check");
+
+        state.put_channel(
+            &withdrawal.source_channel,
+            &port,
+            ChannelEnd {
+                state: ChannelState::Open,
+                ordering: Order::Unordered,
+                remote: Counterparty::new(
+                    port.clone(),
+                    Some(
+                        ChannelId::from_str("channel-8")
+                            .expect("valid replacement counterparty channel"),
+                    ),
+                ),
+                connection_hops: vec![ConnectionId::new(0)],
+                version: Version::new("ics20-1".to_string()),
+                ..ChannelEnd::default()
+            },
+        );
+
+        let error = withdrawal_execute(&mut state, checked)
+            .await
+            .expect_err("a checked withdrawal must reject a substituted route");
+        assert!(
+            error.to_string().contains("changed after validation"),
+            "unexpected stale-route error: {error:#}"
+        );
+        assert_eq!(
+            state
+                .get_send_sequence(&withdrawal.source_channel, &port)
+                .await
+                .expect("send sequence read must succeed"),
+            1,
+            "stale validation must not allocate a packet sequence"
+        );
+        let escrowed: Option<Amount> = state
+            .get(&state_key::ics20_value_balance::by_asset_id(
+                &withdrawal.source_channel,
+                &withdrawal.denom.id(),
+            ))
+            .await
+            .expect("escrow read must succeed");
+        assert!(
+            escrowed.is_none(),
+            "stale validation must not mutate escrow accounting"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_execute_rejects_stale_policy_token_before_mutation() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let route = IbcRoute::transfer("channel-0", "connection-0", "channel-7");
+        let extra_route = IbcRoute::transfer("channel-9", "connection-9", "channel-10");
+        let policy = policy_authorizing(vec![route.clone(), extra_route]);
+        let expected_route_policy_hash =
+            shieldd_sdk_compliance::indexed_tree::route_policy_to_fq(&policy.params).to_bytes();
+        state
+            .test_only_register_asset(withdrawal.denom.id(), policy, true)
+            .await
+            .expect("regulated asset policy must initialize");
+        let checked = withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("the original policy must authorize the live route");
+
+        state
+            .apply_enacted_governance_asset_policy(
+                shieldd_sdk_compliance::EnactedGovernanceAssetPolicyAdmission::from_passed_proposal(
+                    1,
+                    shieldd_sdk_compliance::UpdateAssetIbcPolicy {
+                        asset_id: withdrawal.denom.id(),
+                        expected_route_policy_hash,
+                        allowed_ibc_routes: vec![route],
+                    },
+                ),
+            )
+            .await
+            .expect("replacement policy must remain route-authorizing");
+
+        let error = withdrawal_execute(&mut state, checked)
+            .await
+            .expect_err("execution must reject a changed policy snapshot");
+        assert!(
+            error.to_string().contains("changed after validation"),
+            "unexpected stale-policy error: {error:#}"
+        );
+        assert_eq!(
+            state
+                .get_send_sequence(&withdrawal.source_channel, &port)
+                .await
+                .expect("send sequence read must succeed"),
+            1,
+            "stale policy validation must not allocate a packet sequence"
+        );
+        assert!(
+            state
+                .get_packet_commitment_by_id(&withdrawal.source_channel, &port, 1)
+                .await
+                .expect("packet commitment read must succeed")
+                .is_none(),
+            "stale policy validation must not commit a packet"
+        );
+        assert!(
+            state
+                .get::<Amount>(&state_key::ics20_value_balance::by_asset_id(
+                    &withdrawal.source_channel,
+                    &withdrawal.denom.id(),
+                ))
+                .await
+                .expect("escrow read must succeed")
+                .is_none(),
+            "stale policy validation must not mutate escrow accounting"
+        );
+        let (_, mut changes) = state.flatten();
+        let events = changes.take_events();
+        assert!(
+            events.iter().all(|event| event.kind != "send_packet"),
+            "stale policy validation must not emit a send_packet event"
+        );
+        assert!(
+            events.iter().all(|event| {
+                event::EventOutboundFungibleTokenTransfer::try_from_event(event).is_err()
+            }),
+            "stale policy validation must not emit an outbound transfer event"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_execute_rejects_stale_sequence_token_before_mutation() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let checked = withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("valid withdrawal must check");
+        state.put_send_sequence(&withdrawal.source_channel, &port, 2);
+
+        let error = withdrawal_execute(&mut state, checked)
+            .await
+            .expect_err("a checked withdrawal must reject a substituted sequence");
+        assert!(
+            error.to_string().contains("send sequence changed"),
+            "unexpected stale-sequence error: {error:#}"
+        );
+        assert_eq!(
+            state
+                .get_send_sequence(&withdrawal.source_channel, &port)
+                .await
+                .expect("send sequence read must succeed"),
+            2,
+            "stale validation must not allocate another packet sequence"
+        );
+        let escrowed: Option<Amount> = state
+            .get(&state_key::ics20_value_balance::by_asset_id(
+                &withdrawal.source_channel,
+                &withdrawal.denom.id(),
+            ))
+            .await
+            .expect("escrow read must succeed");
+        assert!(
+            escrowed.is_none(),
+            "stale validation must not mutate escrow accounting"
+        );
+        assert!(
+            state
+                .get_packet_commitment_by_id(&withdrawal.source_channel, &port, 2)
+                .await
+                .expect("packet commitment read must succeed")
+                .is_none(),
+            "stale validation must not commit a packet at the substituted sequence"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_execute_rejects_stale_client_token_before_mutation() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let checked = withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("valid withdrawal must check");
+        state.update_connection(
+            &ConnectionId::new(0),
+            ConnectionEnd {
+                state: ConnectionState::Open,
+                client_id: ClientId::from_str("07-tendermint-1").expect("valid replacement client"),
+                counterparty: ConnectionCounterparty::default(),
+                versions: vec![],
+                delay_period: std::time::Duration::ZERO,
+            },
+        );
+
+        let error = withdrawal_execute(&mut state, checked)
+            .await
+            .expect_err("a checked withdrawal must reject a substituted client");
+        assert!(
+            error
+                .to_string()
+                .contains("route, channel, connection, client, or compliance policy changed"),
+            "unexpected stale-client error: {error:#}"
+        );
+        assert_eq!(
+            state
+                .get_send_sequence(&withdrawal.source_channel, &port)
+                .await
+                .expect("send sequence read must succeed"),
+            1,
+            "stale validation must not allocate a packet sequence"
+        );
+        let escrowed: Option<Amount> = state
+            .get(&state_key::ics20_value_balance::by_asset_id(
+                &withdrawal.source_channel,
+                &withdrawal.denom.id(),
+            ))
+            .await
+            .expect("escrow read must succeed");
+        assert!(
+            escrowed.is_none(),
+            "stale validation must not mutate escrow accounting"
+        );
+
+        // A stable connection/client identifier is not enough: execution must
+        // also revalidate the current state of that same client.
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let checked = withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("valid withdrawal must check");
+        let client_id = ClientId::from_str("07-tendermint-0").expect("valid client ID");
+        let client = state
+            .get_client_state(&client_id)
+            .await
+            .expect("stored client state");
+        state.put_client(
+            &client_id,
+            client.with_frozen_height(Height::new(1, 1).expect("valid nonzero frozen height")),
+        );
+
+        let error = withdrawal_execute(&mut state, checked)
+            .await
+            .expect_err("a checked withdrawal must reject a newly frozen client");
+        assert!(
+            error.to_string().contains("is frozen"),
+            "unexpected frozen-client revalidation error: {error:#}"
+        );
+        assert_eq!(
+            state
+                .get_send_sequence(&withdrawal.source_channel, &port)
+                .await
+                .expect("send sequence read must succeed"),
+            1,
+            "client revalidation failure must not allocate a packet sequence"
+        );
+        let escrowed: Option<Amount> = state
+            .get(&state_key::ics20_value_balance::by_asset_id(
+                &withdrawal.source_channel,
+                &withdrawal.denom.id(),
+            ))
+            .await
+            .expect("escrow read must succeed");
+        assert!(
+            escrowed.is_none(),
+            "client revalidation failure must not mutate escrow accounting"
+        );
+        assert!(
+            state
+                .get_packet_commitment_by_id(&withdrawal.source_channel, &port, 1)
+                .await
+                .expect("packet commitment read must succeed")
+                .is_none(),
+            "client revalidation failure must not commit a packet"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_closed_channel() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        state.put_channel(
+            &withdrawal.source_channel,
+            &port,
+            ChannelEnd {
+                state: ChannelState::Closed,
+                ordering: Order::Unordered,
+                remote: Counterparty::new(
+                    port.clone(),
+                    Some(ChannelId::from_str("channel-7").expect("valid counterparty channel")),
+                ),
+                connection_hops: vec![ConnectionId::new(0)],
+                version: Version::new("ics20-1".to_string()),
+                ..ChannelEnd::default()
+            },
+        );
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a closed channel must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error.to_string().contains("is not open"),
+            "unexpected closed-channel error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_preopen_channel() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        state.put_channel(
+            &withdrawal.source_channel,
+            &port,
+            ChannelEnd {
+                state: ChannelState::Init,
+                ordering: Order::Unordered,
+                remote: Counterparty::new(
+                    port.clone(),
+                    Some(ChannelId::from_str("channel-7").expect("valid counterparty channel")),
+                ),
+                connection_hops: vec![ConnectionId::new(0)],
+                version: Version::new("ics20-1".to_string()),
+                ..ChannelEnd::default()
+            },
+        );
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a pre-open channel must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error.to_string().contains("is not open"),
+            "unexpected pre-open-channel error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_ambiguous_connection_hops() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        state.put_channel(
+            &withdrawal.source_channel,
+            &port,
+            ChannelEnd {
+                state: ChannelState::Open,
+                ordering: Order::Unordered,
+                remote: Counterparty::new(
+                    port.clone(),
+                    Some(ChannelId::from_str("channel-7").expect("valid counterparty channel")),
+                ),
+                connection_hops: vec![ConnectionId::new(0), ConnectionId::new(1)],
+                version: Version::new("ics20-1".to_string()),
+                ..ChannelEnd::default()
+            },
+        );
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a channel with ambiguous connection hops must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("must have exactly one connection hop"),
+            "unexpected connection-hop error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_non_open_connection() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        state.update_connection(
+            &ConnectionId::new(0),
+            ConnectionEnd {
+                state: ConnectionState::Init,
+                client_id: ClientId::from_str("07-tendermint-0").expect("valid client ID"),
+                counterparty: ConnectionCounterparty::default(),
+                versions: vec![],
+                delay_period: std::time::Duration::ZERO,
+            },
+        );
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a non-open connection must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("connection connection-0 is not open"),
+            "unexpected non-open-connection error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_missing_client() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let connection_id = ConnectionId::new(0);
+        let mut connection = state
+            .get_connection(&connection_id)
+            .await
+            .expect("connection read must succeed")
+            .expect("test connection must exist");
+        connection.client_id =
+            ClientId::from_str("07-tendermint-9").expect("valid missing client ID");
+        state.update_connection(&connection_id, connection);
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a missing connection client must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("could not find client state for 07-tendermint-9"),
+            "unexpected missing-client error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_missing_latest_consensus_state() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let client_id = ClientId::from_str("07-tendermint-0").expect("valid client ID");
+        let latest_height = Height::new(1, 10).expect("valid latest height");
+        state.delete(consensus_state_key(&client_id, &latest_height));
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a client without its latest consensus state must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("counterparty consensus state not found"),
+            "unexpected missing-consensus-state error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_future_latest_consensus_timestamp() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let client_id = ClientId::from_str("07-tendermint-0").expect("valid client ID");
+        let latest_height = Height::new(1, 10).expect("valid latest height");
+        state.put(
+            consensus_state_key(&client_id, &latest_height),
+            ConsensusState::new(
+                MerkleRoot {
+                    hash: vec![3u8; 32],
+                },
+                Time::from_unix_timestamp(3, 0).expect("valid future consensus timestamp"),
+                tendermint::Hash::Sha256([4u8; 32]),
+            ),
+        );
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a future latest consensus timestamp must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error.to_string().contains("duration value out of range"),
+            "unexpected future-consensus-time error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_exhausted_send_sequence() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        state.put_send_sequence(&withdrawal.source_channel, &port, u64::MAX);
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("an exhausted send sequence must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error.to_string().contains("send sequence is exhausted"),
+            "unexpected exhausted-sequence error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_execute_rejects_occupied_packet_slot_before_mutation() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        let port = PortId::transfer();
+        let counterparty_channel =
+            ChannelId::from_str("channel-7").expect("valid counterparty channel");
+        put_open_outbound_route(&mut state, &withdrawal, counterparty_channel.clone())
+            .await
+            .expect("valid outbound route");
+        let checked = withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("valid withdrawal must check");
+        state.put_packet_commitment(&Packet {
+            sequence: Sequence::from(1),
+            port_on_a: port.clone(),
+            chan_on_a: withdrawal.source_channel.clone(),
+            port_on_b: port.clone(),
+            chan_on_b: counterparty_channel,
+            data: b"occupied".to_vec(),
+            timeout_height_on_b: TimeoutHeight::At(
+                Height::new(1, 100).expect("valid timeout height"),
+            ),
+            timeout_timestamp_on_b: Timestamp::from_nanoseconds(60_000_000_000)
+                .expect("valid timeout timestamp"),
+        });
+
+        let error = withdrawal_execute(&mut state, checked)
+            .await
+            .expect_err("an occupied packet slot must reject withdrawal");
+        assert!(
+            error
+                .to_string()
+                .contains("packet commitment already exists"),
+            "unexpected occupied-slot error: {error:#}"
+        );
+        let escrowed: Option<Amount> = state
+            .get(&state_key::ics20_value_balance::by_asset_id(
+                &withdrawal.source_channel,
+                &withdrawal.denom.id(),
+            ))
+            .await
+            .expect("escrow read must succeed");
+        assert!(
+            escrowed.is_none(),
+            "occupied packet slot must not mutate escrow accounting"
+        );
+        assert_eq!(
+            state
+                .get_send_sequence(&withdrawal.source_channel, &port)
+                .await
+                .expect("send sequence read must succeed"),
+            1,
+            "occupied packet slot must not allocate a sequence"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_elapsed_height_and_timestamp_timeouts() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let mut withdrawal = test_withdrawal();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let current_time = Time::from_unix_timestamp(2, 0).expect("valid current block time");
+
+        withdrawal.timeout_height = Height::new(1, 10).expect("valid timeout height");
+        let height_error = match withdrawal_check(&mut state, &withdrawal, current_time).await {
+            Ok(_) => panic!("elapsed timeout height must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            height_error.to_string().contains("timeout height"),
+            "unexpected height-timeout error: {height_error:#}"
+        );
+
+        withdrawal.timeout_height = Height::new(1, 100).expect("valid timeout height");
+        withdrawal.timeout_time = 1_000_000_000;
+        let time_error = match withdrawal_check(&mut state, &withdrawal, current_time).await {
+            Ok(_) => panic!("elapsed timeout timestamp must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            time_error.to_string().contains("timeout timestamp"),
+            "unexpected timestamp-timeout error: {time_error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_frozen_light_client() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let client_id = ClientId::from_str("07-tendermint-0").expect("valid client ID");
+        let client = state
+            .get_client_state(&client_id)
+            .await
+            .expect("stored client state");
+        state.put_client(
+            &client_id,
+            client.with_frozen_height(Height::new(1, 1).expect("valid nonzero frozen height")),
+        );
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        {
+            Ok(_) => panic!("a frozen light client must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error.to_string().contains("is frozen"),
+            "unexpected frozen-client error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn withdrawal_check_rejects_expired_light_client() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let withdrawal = test_withdrawal();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+
+        let error = match withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(86_402, 0).expect("time beyond the client's trusting period"),
+        )
+        .await
+        {
+            Ok(_) => panic!("an expired light client must reject withdrawal"),
+            Err(error) => error,
+        };
+        assert!(
+            error.to_string().contains("is expired"),
+            "unexpected expired-client error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
+    async fn voucher_withdrawal_rejects_insufficient_channel_asset_balance() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let mut withdrawal = test_withdrawal();
+        let voucher_denom = format!("transfer/{}/uatom", withdrawal.source_channel);
+        withdrawal.denom = voucher_denom
+            .as_str()
+            .try_into()
+            .expect("valid voucher denomination");
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        let checked = withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("voucher packet and route must check");
+
+        let error = withdrawal_execute(&mut state, checked)
+            .await
+            .expect_err("voucher withdrawal must not exceed channel-asset balance");
+        assert!(
+            error.to_string().contains("insufficient balance"),
+            "unexpected voucher-balance error: {error:#}"
+        );
+        assert_eq!(
+            state
+                .get_send_sequence(&withdrawal.source_channel, &port)
+                .await
+                .expect("send sequence read must succeed"),
+            1,
+            "failed voucher accounting must not allocate a packet"
+        );
+    }
+
+    #[tokio::test]
+    async fn local_withdrawal_rejects_escrow_overflow_before_packet_allocation() {
+        let storage = TempStorage::new()
+            .await
+            .expect("temporary state must initialize");
+        let mut state = StateDelta::new(storage.latest_snapshot());
+        let mut withdrawal = test_withdrawal();
+        withdrawal.amount = Amount::from(1u64);
+        let port = PortId::transfer();
+        put_open_outbound_route(
+            &mut state,
+            &withdrawal,
+            ChannelId::from_str("channel-7").expect("valid counterparty channel"),
+        )
+        .await
+        .expect("valid outbound route");
+        state.put(
+            state_key::ics20_value_balance::by_asset_id(
+                &withdrawal.source_channel,
+                &withdrawal.denom.id(),
+            ),
+            Amount::from(u128::MAX),
+        );
+        let checked = withdrawal_check(
+            &mut state,
+            &withdrawal,
+            Time::from_unix_timestamp(2, 0).expect("valid current block time"),
+        )
+        .await
+        .expect("local packet and route must check");
+
+        let error = withdrawal_execute(&mut state, checked)
+            .await
+            .expect_err("local escrow addition must reject overflow");
+        assert!(
+            error.to_string().contains("overflow adding value balance"),
+            "unexpected escrow-overflow error: {error:#}"
+        );
+        assert_eq!(
+            state
+                .get_send_sequence(&withdrawal.source_channel, &port)
+                .await
+                .expect("send sequence read must succeed"),
+            1,
+            "failed source accounting must not allocate a packet"
+        );
     }
 }

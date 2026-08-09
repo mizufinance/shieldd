@@ -32,7 +32,7 @@ theorem canonicalHashNineteen
 theorem hash
     (rho : Nat → DeployedF) :
     Deployed.Templates.Semantics.TStatementHash_ebf331d76bfb4fc16f6904f05f7a363037842a713a0f5be16fe61ce6b10043f1.Trace.hash2
-        (Seg140.localRho rho) =
+        (Seg143.localRho rho) =
       NoteReshapeCanonical.statementHash .reshape8x1
         [anchor rho,
          output0NoteCommitmentComputed rho,
@@ -53,18 +53,18 @@ theorem hash
          spend6RkCompressed rho,
          spend7NullifierSelected rho,
          spend7RkCompressed rho] := by
-  have hw976 : Seg140.wireSeating 976 = 80054 := by decide +kernel
-  have hw977 : Seg140.wireSeating 977 = 80055 := by decide +kernel
-  have hw983 : Seg140.wireSeating 983 = 82234 := by decide +kernel
-  have hw984 : Seg140.wireSeating 984 = 82574 := by decide +kernel
-  have hw990 : Seg140.wireSeating 990 = 92540 := by decide +kernel
-  have hw991 : Seg140.wireSeating 991 = 92541 := by decide +kernel
-  have hw997 : Seg140.wireSeating 997 = 94720 := by decide +kernel
-  have hw998 : Seg140.wireSeating 998 = 95060 := by decide +kernel
-  have hw1004 : Seg140.wireSeating 1004 = 105026 := by decide +kernel
-  have hw1005 : Seg140.wireSeating 1005 = 105027 := by decide +kernel
-  have hw1011 : Seg140.wireSeating 1011 = 107206 := by decide +kernel
-  have hw1012 : Seg140.wireSeating 1012 = 107546 := by decide +kernel
+  have hw976 : Seg143.wireSeating 976 = 79458 := by decide +kernel
+  have hw977 : Seg143.wireSeating 977 = 79459 := by decide +kernel
+  have hw983 : Seg143.wireSeating 983 = 81638 := by decide +kernel
+  have hw984 : Seg143.wireSeating 984 = 81978 := by decide +kernel
+  have hw990 : Seg143.wireSeating 990 = 91944 := by decide +kernel
+  have hw991 : Seg143.wireSeating 991 = 91945 := by decide +kernel
+  have hw997 : Seg143.wireSeating 997 = 94124 := by decide +kernel
+  have hw998 : Seg143.wireSeating 998 = 94464 := by decide +kernel
+  have hw1004 : Seg143.wireSeating 1004 = 104430 := by decide +kernel
+  have hw1005 : Seg143.wireSeating 1005 = 104431 := by decide +kernel
+  have hw1011 : Seg143.wireSeating 1011 = 106610 := by decide +kernel
+  have hw1012 : Seg143.wireSeating 1012 = 106950 := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
@@ -81,7 +81,7 @@ theorem hash
     spend7NullifierSelected, spend7NullifierSelectedLC,
     spend7RkCompressed, spend7RkCompressedLC,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    Seg140.localRho, Deployed.Templates.seated,
+    Seg143.localRho, Deployed.Templates.seated,
     hw976, hw977, hw983, hw984, hw990, hw991,
     hw997, hw998, hw1004, hw1005, hw1011, hw1012,
     hneg

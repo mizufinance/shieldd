@@ -17,7 +17,7 @@ use crate::{
 pub const NOTE_RESHAPE_STATEMENT_BASE_FIELDS: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const NOTE_RESHAPE_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
-pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 77;
+pub const TRANSFER_STATEMENT_BASE_FIELDS: usize = 35;
 pub const TRANSFER_STATEMENT_FIELDS_PER_INPUT: usize = 2;
 pub const TRANSFER_STATEMENT_FIELDS_PER_OUTPUT: usize = 1;
 pub const SHIELDED_ICS20_WITHDRAWAL_STATEMENT_BASE_FIELDS: usize = 12;
@@ -355,98 +355,38 @@ pub fn transfer_statement_fields(
             .to_field_elements()
             .ok_or_else(|| transfer_field_encoding_error("target_timestamp"))?,
     );
-    for (label, proof) in [
-        ("transfer_sender_core_proof", &compliance.sender_core.proof),
-        ("transfer_sender_ext_proof", &compliance.sender_ext.proof),
-        ("transfer_output_core_proof", &compliance.output_core.proof),
-        ("transfer_output_ext_proof", &compliance.output_ext.proof),
+    let metadata = &compliance.metadata;
+    metadata
+        .validate()
+        .map_err(|e| transfer_field_encoding_error(&format!("transfer_metadata: {e}")))?;
+    if public.target_timestamp != Fq::from(metadata.target_timestamp) {
+        return Err(transfer_field_encoding_error(
+            "transfer_metadata_target_timestamp",
+        ));
+    }
+    for (label, value) in [
+        (
+            "transfer_sender_subject_derivation",
+            metadata.sender_subject_derivation(),
+        ),
+        (
+            "transfer_output_subject_derivation",
+            metadata.output_subject_derivation(),
+        ),
+        ("transfer_ring_id_hash", metadata.ring_id_hash()),
+        ("transfer_policy_id_hash", metadata.policy_id_hash()),
+        ("transfer_resource_hash", metadata.resource_hash()),
+        ("transfer_permission_hash", metadata.permission_hash()),
+        ("transfer_sender_core_salt", metadata.sender_core_salt()),
+        ("transfer_sender_ext_salt", metadata.sender_ext_salt()),
+        ("transfer_output_core_salt", metadata.output_core_salt()),
+        ("transfer_output_ext_salt", metadata.output_ext_salt()),
     ] {
-        let statement = &proof.statement;
-        let subject_derivation = statement.subject_derivation().map_err(|e| {
-            transfer_field_encoding_error(&format!("{label}_subject_derivation: {e}"))
-        })?;
-        let ring_id_hash = statement
-            .ring_id_hash()
-            .map_err(|e| transfer_field_encoding_error(&format!("{label}_ring_id_hash: {e}")))?;
-        let policy_id_hash = statement
-            .policy_id_hash()
-            .map_err(|e| transfer_field_encoding_error(&format!("{label}_policy_id_hash: {e}")))?;
-        let resource_hash = statement
-            .resource_hash()
-            .map_err(|e| transfer_field_encoding_error(&format!("{label}_resource_hash: {e}")))?;
-        let permission_hash = statement
-            .permission_hash()
-            .map_err(|e| transfer_field_encoding_error(&format!("{label}_permission_hash: {e}")))?;
-        let salt = statement
-            .salt()
-            .map_err(|e| transfer_field_encoding_error(&format!("{label}_salt: {e}")))?;
-        fields.extend(subject_derivation.to_field_elements().ok_or_else(|| {
-            transfer_field_encoding_error(&format!("{label}_subject_derivation"))
-        })?);
+        let value = value.map_err(|e| transfer_field_encoding_error(&format!("{label}: {e}")))?;
         fields.extend(
-            ring_id_hash
+            value
                 .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_ring_id_hash")))?,
-        );
-        fields.extend(
-            policy_id_hash
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_policy_id_hash")))?,
-        );
-        fields.extend(
-            resource_hash
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_resource_hash")))?,
-        );
-        fields.extend(
-            permission_hash.to_field_elements().ok_or_else(|| {
-                transfer_field_encoding_error(&format!("{label}_permission_hash"))
-            })?,
-        );
-        fields.extend(
-            Fq::from(statement.tier.as_u64())
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_tier")))?,
-        );
-        fields.extend(
-            Fq::from(statement.target_timestamp)
-                .to_field_elements()
-                .ok_or_else(|| {
-                    transfer_field_encoding_error(&format!("{label}_target_timestamp"))
-                })?,
-        );
-        fields.extend(
-            salt.to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_salt")))?,
-        );
-        fields.extend(
-            proof
-                .derived_pk
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_derived_pk")))?,
-        );
-        fields.extend(
-            proof
-                .enc_cmt
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_enc_cmt")))?,
-        );
-        fields.extend(
-            proof
-                .shared_point
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_shared_point")))?,
-        );
-        fields.extend(
-            proof
-                .challenge
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_challenge")))?,
-        );
-        fields.extend(
-            Fq::from_le_bytes_mod_order(&proof.response.to_bytes())
-                .to_field_elements()
-                .ok_or_else(|| transfer_field_encoding_error(&format!("{label}_response")))?,
+                .ok_or_else(|| transfer_field_encoding_error(label))?,
         );
     }
 
@@ -540,7 +480,7 @@ pub fn note_reshape_statement_hash(
 }
 
 pub fn transfer_statement_hash(fields: &[Fq]) -> Result<Fq, StatementHashError> {
-    let domain = transfer_statement_hash_constant("v1");
+    let domain = transfer_statement_hash_constant("v4");
     let pad_0 = transfer_statement_hash_constant("pad0");
     let pad_1 = transfer_statement_hash_constant("pad1");
     hash_statement_fields(
@@ -604,7 +544,7 @@ pub fn transfer_statement_hash_var(
     cs: ConstraintSystemRef<Fq>,
     fields: &[FqVar],
 ) -> Result<FqVar, SynthesisError> {
-    let domain = transfer_statement_hash_constant("v1");
+    let domain = transfer_statement_hash_constant("v4");
     let pad_0 = transfer_statement_hash_constant("pad0");
     let pad_1 = transfer_statement_hash_constant("pad1");
     hash_statement_fields_var(
@@ -690,9 +630,7 @@ mod tests {
             .join("../../../..")
             .join("tools/gnark/internal/testfixtures/vectors");
         for (label, filename) in [
-            ("note_reshape2x1", "note_reshape2x1_witness_v3.bin"),
             ("note_reshape1x8", "note_reshape1x8_witness_v3.bin"),
-            ("note_reshape4x1", "note_reshape4x1_witness_v3.bin"),
             ("note_reshape8x1", "note_reshape8x1_witness_v3.bin"),
         ] {
             let (family_id, hash) = go_fixture_statement_hash(
@@ -712,7 +650,7 @@ mod tests {
 
     #[test]
     fn note_reshape_wrong_family_domain_changes_the_statement_hash() {
-        let family_id = NoteReshapeFamilyId::TwoByOne;
+        let family_id = NoteReshapeFamilyId::EightByOne;
         let fields = (0..note_reshape_statement_field_count(
             family_id.input_count(),
             family_id.output_count(),
@@ -815,5 +753,81 @@ mod tests {
             .enforce_equal(&constrained_native)
             .expect("hashes must be equal");
         assert!(cs.is_satisfied().expect("cs should evaluate"));
+    }
+
+    #[test]
+    fn transfer_statement_binds_one_factored_metadata_record() {
+        let (public, _) = proof_test_helpers::build_transfer_roundtrip_inputs(true);
+        let fields = transfer_statement_fields(&public).expect("transfer statement fields");
+        assert_eq!(fields.len(), 41);
+        assert_eq!(fields[30], public.target_timestamp);
+
+        let metadata = &public.compliance.metadata;
+        let expected_metadata = [
+            metadata.sender_subject_derivation().unwrap(),
+            metadata.output_subject_derivation().unwrap(),
+            metadata.ring_id_hash().unwrap(),
+            metadata.policy_id_hash().unwrap(),
+            metadata.resource_hash().unwrap(),
+            metadata.permission_hash().unwrap(),
+            metadata.sender_core_salt().unwrap(),
+            metadata.sender_ext_salt().unwrap(),
+            metadata.output_core_salt().unwrap(),
+            metadata.output_ext_salt().unwrap(),
+        ];
+        assert_eq!(&fields[31..], expected_metadata.as_slice());
+
+        let v4 = transfer_statement_hash(&fields).expect("v4 transfer hash");
+        let v3 = hash_statement_fields(
+            &transfer_statement_hash_constant("v3"),
+            transfer_statement_hash_constant("pad0"),
+            transfer_statement_hash_constant("pad1"),
+            &fields,
+            TRANSFER_STATEMENT_FIELD_COUNT,
+            |expected, got| StatementHashError::InvalidFieldLength { expected, got },
+        )
+        .expect("legacy domain hash");
+        assert_ne!(v4, v3, "V16 must not verify under the V15 hash domain");
+    }
+
+    #[test]
+    fn transfer_statement_rejects_metadata_timestamp_drift() {
+        let (mut public, _) = proof_test_helpers::build_transfer_roundtrip_inputs(true);
+        public.compliance.metadata.target_timestamp += 1;
+        assert!(
+            transfer_statement_fields(&public).is_err(),
+            "metadata timestamp must equal the action timestamp"
+        );
+    }
+
+    #[test]
+    fn transfer_statement_hash_commits_to_every_factored_metadata_field() {
+        let (public, _) = proof_test_helpers::build_transfer_roundtrip_inputs(true);
+        let original = public.statement_hash().expect("baseline transfer hash");
+
+        fn increment(bytes: &mut [u8; 32]) {
+            let value = Fq::from_bytes_checked(bytes).expect("fixture field is canonical");
+            *bytes = (value + Fq::from(1u64)).to_bytes();
+        }
+        let mutations: [fn(&mut shieldd_sdk_compliance::TransferComplianceMetadata); 10] = [
+            |m| increment(&mut m.sender_subject_derivation_bytes),
+            |m| increment(&mut m.output_subject_derivation_bytes),
+            |m| increment(&mut m.ring_id_hash_bytes),
+            |m| increment(&mut m.policy_id_hash_bytes),
+            |m| increment(&mut m.resource_hash_bytes),
+            |m| increment(&mut m.permission_hash_bytes),
+            |m| increment(&mut m.sender_core_salt_bytes),
+            |m| increment(&mut m.sender_ext_salt_bytes),
+            |m| increment(&mut m.output_core_salt_bytes),
+            |m| increment(&mut m.output_ext_salt_bytes),
+        ];
+        for mutate in mutations {
+            let mut changed = public.clone();
+            mutate(&mut changed.compliance.metadata);
+            assert_ne!(
+                changed.statement_hash().expect("mutated transfer hash"),
+                original
+            );
+        }
     }
 }

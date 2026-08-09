@@ -48,16 +48,35 @@ for invocation in \
   fi
 done
 
-if bash "$ROOT/scripts/check-vk-derivation.sh" note_reshape2x1 \
+if python3 "$ROOT/scripts/check-fv-specification-completeness.py" \
+    --profile definitely_not_a_circuit \
+    >"$tmp_dir/invalid-specification-profile.log" 2>&1; then
+  fail "specification-completeness gate accepted an invalid circuit name"
+fi
+rg -F "unknown specification-completeness profiles" \
+  "$tmp_dir/invalid-specification-profile.log" >/dev/null \
+  || fail "specification-completeness gate did not fail closed on an invalid profile"
+
+if bash "$ROOT/scripts/check-key-coherence.sh" note_reshape8x1 \
     >"$tmp_dir/vk-mode.log" 2>&1; then
-  fail "check-vk-derivation accepted a run without an explicit binding mode"
+  fail "check-key-coherence accepted a run without an explicit binding mode"
 fi
 rg -F "select exactly one of --drift-only, --prove, or --proof-receipt" \
   "$tmp_dir/vk-mode.log" >/dev/null \
-  || fail "check-vk-derivation did not fail closed on a missing binding mode"
+  || fail "check-key-coherence did not fail closed on a missing binding mode"
+
+if bash "$ROOT/scripts/check-key-coherence.sh" note_reshape8x1 --prove \
+    >"$tmp_dir/key-case.log" 2>&1; then
+  fail "check-key-coherence accepted a proof without a canonical proof case"
+fi
+rg -F -- "--proof-case is required for proof validation" \
+  "$tmp_dir/key-case.log" >/dev/null \
+  || fail "check-key-coherence did not fail closed on a missing proof case"
 
 python3 -m unittest discover \
   -s "$ROOT/scripts/tests" -p 'test_*.py'
+python3 -m unittest discover \
+  -s "$ROOT/scripts/ci" -p 'test_*.py'
 bash "$ROOT/scripts/compliance-symbolic.sh" self-test
 bash "$ROOT/scripts/check-gadget-model-fidelity.sh" all
 

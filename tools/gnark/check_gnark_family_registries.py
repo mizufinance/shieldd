@@ -254,11 +254,6 @@ static {symbol}_PROOF_VERIFYING_KEY_JSON_BYTES: &[u8] = include_bytes!(concat!(
 ));
 
 static {symbol}_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {{
-    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_{symbol}_ARTIFACT_DIR") {{
-        return load_verifying_key_json_artifact(Path::new(&dir), "{label}")
-            .expect("can deserialize {label} VerifyingKey")
-            .into();
-    }}
     load_verifying_key_json_bytes({symbol}_PROOF_VERIFYING_KEY_JSON_BYTES)
     .expect("bundled {label} VerifyingKey is valid")
     .into()
@@ -307,6 +302,474 @@ pub fn transfer_circuit_metadata() -> &'static [u8] {{
     GENERATED_TRANSFER_PROOF_FAMILY.metadata_bytes
 }}
 """
+
+
+def note_reshape_input_padding_go(value: object) -> str:
+    return {
+        "fixed": "InputPaddingFixed",
+        "synthetic_private": "InputPaddingSyntheticPrivate",
+    }[str(value)]
+
+
+def note_reshape_output_padding_go(value: object) -> str:
+    return {
+        "fixed": "OutputPaddingFixed",
+        "zero_note": "OutputPaddingZeroNote",
+    }[str(value)]
+
+
+def note_reshape_input_padding_rust(value: object) -> str:
+    return {
+        "fixed": "InputPaddingPolicy::Fixed",
+        "synthetic_private": "InputPaddingPolicy::SyntheticPrivate",
+    }[str(value)]
+
+
+def note_reshape_output_padding_rust(value: object) -> str:
+    return {
+        "fixed": "OutputPaddingPolicy::Fixed",
+        "zero_note": "OutputPaddingPolicy::ZeroNote",
+    }[str(value)]
+
+
+def render_note_reshape_go(values: list[dict[str, object]]) -> str:
+    entries = "\n".join(
+        "\t{ID: %(id)d, Label: \"%(label)s\", ArtifactName: \"%(artifact_name)s\", "
+        "InputPadding: %(input_padding)s, OutputPadding: %(output_padding)s, "
+        "NIn: %(n_in)d, NOut: %(n_out)d, MinRealInputs: %(min_real_inputs)d, "
+        "MaxRealInputs: %(max_real_inputs)d, MinRealOutputs: %(min_real_outputs)d, "
+        "MaxRealOutputs: %(max_real_outputs)d},"
+        % {
+            **value,
+            "input_padding": note_reshape_input_padding_go(value["input_padding"]),
+            "output_padding": note_reshape_output_padding_go(value["output_padding"]),
+        }
+        for value in values
+    )
+    return f"""// Code generated from note_reshape_families.json. DO NOT EDIT.
+package generated
+
+type NoteReshapeFamilySpec struct {{
+\tID             uint32
+\tLabel          string
+\tArtifactName   string
+\tInputPadding   InputPaddingPolicy
+\tOutputPadding  OutputPaddingPolicy
+\tNIn            int
+\tNOut           int
+\tMinRealInputs  int
+\tMaxRealInputs  int
+\tMinRealOutputs int
+\tMaxRealOutputs int
+}}
+
+type InputPaddingPolicy uint8
+
+const (
+\tInputPaddingFixed InputPaddingPolicy = iota
+\tInputPaddingSyntheticPrivate
+)
+
+type OutputPaddingPolicy uint8
+
+const (
+\tOutputPaddingFixed OutputPaddingPolicy = iota
+\tOutputPaddingZeroNote
+)
+
+var NoteReshapeFamilies = []NoteReshapeFamilySpec{{
+{entries}
+}}
+
+func NoteReshapeFamilyByID(id uint32) (NoteReshapeFamilySpec, bool) {{
+\tfor _, family := range NoteReshapeFamilies {{
+\t\tif family.ID == id {{
+\t\t\treturn family, true
+\t\t}}
+\t}}
+\treturn NoteReshapeFamilySpec{{}}, false
+}}
+
+func NoteReshapeFamilyByLabel(label string) (NoteReshapeFamilySpec, bool) {{
+\tfor _, family := range NoteReshapeFamilies {{
+\t\tif family.Label == label {{
+\t\t\treturn family, true
+\t\t}}
+\t}}
+\treturn NoteReshapeFamilySpec{{}}, false
+}}
+
+func SmallestNoteReshapeFamily(realInputs, realOutputs int) (NoteReshapeFamilySpec, bool) {{
+\tvar selected NoteReshapeFamilySpec
+\tfound := false
+\tfor _, family := range NoteReshapeFamilies {{
+\t\tif realInputs < family.MinRealInputs || realInputs > family.MaxRealInputs ||
+\t\t\trealOutputs < family.MinRealOutputs || realOutputs > family.MaxRealOutputs {{
+\t\t\tcontinue
+\t\t}}
+\t\tif !found || family.NIn < selected.NIn || (family.NIn == selected.NIn && family.NOut < selected.NOut) {{
+\t\t\tselected = family
+\t\t\tfound = true
+\t\t}}
+\t}}
+\treturn selected, found
+}}
+"""
+
+
+def render_note_reshape_core(values: list[dict[str, object]]) -> str:
+    constants = "\n".join(
+        f"    pub const {value['rust_name']}: Self = Self({value['id']});"
+        for value in values
+    )
+    all_values = ", ".join(f"Self::{value['rust_name']}" for value in values)
+    specs = "\n".join(
+        f"""    NoteReshapeFamilySpec {{
+        id: NoteReshapeFamilyId::{value['rust_name']},
+        label: \"{value['label']}\",
+        artifact_name: \"{value['artifact_name']}\",
+        input_padding: {note_reshape_input_padding_rust(value['input_padding'])},
+        output_padding: {note_reshape_output_padding_rust(value['output_padding'])},
+        n_in: {value['n_in']},
+        n_out: {value['n_out']},
+        min_real_inputs: {value['min_real_inputs']},
+        max_real_inputs: {value['max_real_inputs']},
+        min_real_outputs: {value['min_real_outputs']},
+        max_real_outputs: {value['max_real_outputs']},
+    }},"""
+        for value in values
+    )
+    return f"""// Code generated from note_reshape_families.json. DO NOT EDIT.
+use anyhow::Error;
+
+#[derive(
+    Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize,
+)]
+#[serde(try_from = \"u32\", into = \"u32\")]
+pub struct NoteReshapeFamilyId(u32);
+
+#[allow(non_upper_case_globals)]
+impl NoteReshapeFamilyId {{
+{constants}
+
+    pub const ALL: [Self; {len(values)}] = [{all_values}];
+
+    pub const fn get(self) -> u32 {{
+        self.0
+    }}
+
+    pub fn label(self) -> &'static str {{
+        self.spec().label
+    }}
+    pub fn input_count(self) -> usize {{
+        self.spec().n_in
+    }}
+    pub fn output_count(self) -> usize {{
+        self.spec().n_out
+    }}
+    pub fn min_real_inputs(self) -> usize {{
+        self.spec().min_real_inputs
+    }}
+    pub fn max_real_inputs(self) -> usize {{
+        self.spec().max_real_inputs
+    }}
+    pub fn min_real_outputs(self) -> usize {{
+        self.spec().min_real_outputs
+    }}
+    pub fn max_real_outputs(self) -> usize {{
+        self.spec().max_real_outputs
+    }}
+    pub fn auth_sig_count(self) -> usize {{
+        self.input_count()
+    }}
+    pub fn is_many_to_one(self) -> bool {{
+        self.output_count() == 1
+    }}
+
+    pub fn spec(self) -> &'static NoteReshapeFamilySpec {{
+        NOTE_RESHAPE_FAMILY_SPECS
+            .iter()
+            .find(|spec| spec.id == self)
+            .expect(\"unknown note reshape family id\")
+    }}
+
+    pub fn supports_real_counts(self, real_inputs: usize, real_outputs: usize) -> bool {{
+        (self.min_real_inputs()..=self.max_real_inputs()).contains(&real_inputs)
+            && (self.min_real_outputs()..=self.max_real_outputs()).contains(&real_outputs)
+    }}
+
+    pub fn smallest_covering(real_inputs: usize, real_outputs: usize) -> Option<Self> {{
+        Self::ALL
+            .into_iter()
+            .filter(|family| family.supports_real_counts(real_inputs, real_outputs))
+            .min_by_key(|family| (family.input_count(), family.output_count()))
+    }}
+
+    pub fn validate_real_counts(
+        self,
+        real_inputs: usize,
+        real_outputs: usize,
+    ) -> anyhow::Result<()> {{
+        anyhow::ensure!(
+            self.supports_real_counts(real_inputs, real_outputs),
+            \"{{}} does not support {{}} real inputs and {{}} real outputs\",
+            self.label(),
+            real_inputs,
+            real_outputs
+        );
+        Ok(())
+    }}
+}}
+
+impl TryFrom<u32> for NoteReshapeFamilyId {{
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {{
+        let family = Self(value);
+        if NOTE_RESHAPE_FAMILY_SPECS
+            .iter()
+            .any(|spec| spec.id == family)
+        {{
+            Ok(family)
+        }} else {{
+            Err(anyhow::anyhow!(\"unknown note reshape family id {{value}}\"))
+        }}
+    }}
+}}
+
+impl From<NoteReshapeFamilyId> for u32 {{
+    fn from(value: NoteReshapeFamilyId) -> Self {{
+        value.0
+    }}
+}}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InputPaddingPolicy {{
+    Fixed,
+    SyntheticPrivate,
+}}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OutputPaddingPolicy {{
+    Fixed,
+    ZeroNote,
+}}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NoteReshapeFamilySpec {{
+    pub id: NoteReshapeFamilyId,
+    pub label: &'static str,
+    pub artifact_name: &'static str,
+    pub input_padding: InputPaddingPolicy,
+    pub output_padding: OutputPaddingPolicy,
+    pub n_in: usize,
+    pub n_out: usize,
+    pub min_real_inputs: usize,
+    pub max_real_inputs: usize,
+    pub min_real_outputs: usize,
+    pub max_real_outputs: usize,
+}}
+
+pub const NOTE_RESHAPE_FAMILY_SPECS: [NoteReshapeFamilySpec; {len(values)}] = [
+{specs}
+];
+
+#[cfg(test)]
+mod tests {{
+    use super::{{InputPaddingPolicy, NoteReshapeFamilyId, OutputPaddingPolicy}};
+
+    #[test]
+    fn registry_declares_the_two_padded_directions() {{
+        assert_eq!(NoteReshapeFamilyId::ALL.len(), 2);
+        assert_eq!(
+            NoteReshapeFamilyId::EightByOne.spec().input_padding,
+            InputPaddingPolicy::SyntheticPrivate
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::EightByOne.spec().output_padding,
+            OutputPaddingPolicy::Fixed
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::OneByEight.spec().input_padding,
+            InputPaddingPolicy::Fixed
+        );
+        assert_eq!(
+            NoteReshapeFamilyId::OneByEight.spec().output_padding,
+            OutputPaddingPolicy::ZeroNote
+        );
+    }}
+
+    #[test]
+    fn canonical_selection_is_directional_and_unique() {{
+        for real_inputs in 2..=8 {{
+            assert_eq!(
+                NoteReshapeFamilyId::smallest_covering(real_inputs, 1),
+                Some(NoteReshapeFamilyId::EightByOne)
+            );
+        }}
+        for real_outputs in 2..=8 {{
+            assert_eq!(
+                NoteReshapeFamilyId::smallest_covering(1, real_outputs),
+                Some(NoteReshapeFamilyId::OneByEight)
+            );
+        }}
+        assert_eq!(NoteReshapeFamilyId::smallest_covering(1, 1), None);
+        assert_eq!(NoteReshapeFamilyId::smallest_covering(9, 1), None);
+    }}
+
+    #[test]
+    fn serde_rejects_unknown_and_retired_family_ids() {{
+        for id in [0, 1, 4, 99] {{
+            let error = serde_json::from_str::<NoteReshapeFamilyId>(&id.to_string())
+                .expect_err(\"unknown family ids must fail closed\");
+            assert!(error.to_string().contains(\"unknown note reshape family id\"));
+        }}
+    }}
+}}
+"""
+
+
+def render_note_reshape_build(values: list[dict[str, object]]) -> str:
+    entries = "\n".join(
+        f"""    GeneratedNoteReshapeFamily {{
+        id: {value['id']},
+        label: \"{value['label']}\",
+        artifact_name: \"{value['artifact_name']}\",
+        input_padding: {note_reshape_input_padding_rust(value['input_padding'])},
+        output_padding: {note_reshape_output_padding_rust(value['output_padding'])},
+        n_in: {value['n_in']},
+        n_out: {value['n_out']},
+        min_real_inputs: {value['min_real_inputs']},
+        max_real_inputs: {value['max_real_inputs']},
+        min_real_outputs: {value['min_real_outputs']},
+        max_real_outputs: {value['max_real_outputs']},
+    }},"""
+        for value in values
+    )
+    return f"""// Code generated from note_reshape_families.json. DO NOT EDIT.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InputPaddingPolicy {{
+    Fixed,
+    SyntheticPrivate,
+}}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum OutputPaddingPolicy {{
+    Fixed,
+    ZeroNote,
+}}
+
+pub struct GeneratedNoteReshapeFamily {{
+    pub id: u32,
+    pub label: &'static str,
+    pub artifact_name: &'static str,
+    pub input_padding: InputPaddingPolicy,
+    pub output_padding: OutputPaddingPolicy,
+    pub n_in: usize,
+    pub n_out: usize,
+    pub min_real_inputs: usize,
+    pub max_real_inputs: usize,
+    pub min_real_outputs: usize,
+    pub max_real_outputs: usize,
+}}
+
+pub const GENERATED_NOTE_RESHAPE_FAMILIES: &[GeneratedNoteReshapeFamily] = &[
+{entries}
+];
+"""
+
+
+def render_note_reshape_proof_registry(
+    values: list[dict[str, object]],
+) -> str:
+    statics: list[str] = []
+    entries: list[str] = []
+    for value in values:
+        family_id = int(value["id"])
+        label = str(value["label"])
+        artifact = str(value["artifact_name"])
+        symbol = f"NOTE_RESHAPE{int(value['n_in'])}X{int(value['n_out'])}"
+        statics.append(
+            f"""static {symbol}_PROOF_VERIFYING_KEY_JSON_BYTES: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../../tools/gnark/artifacts/{artifact}/verifying_key.json"
+));
+
+static {symbol}_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {{
+    load_verifying_key_json_bytes({symbol}_PROOF_VERIFYING_KEY_JSON_BYTES)
+        .expect("bundled {label} VerifyingKey is valid")
+        .into()
+}});
+
+static {symbol}_PROOF_PROVING_KEY_BYTES: &[u8] = {{
+    #[cfg(feature = "bundled-proving-keys")]
+    {{
+        include_bytes!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../tools/gnark/artifacts/{artifact}/proving_key.bin"
+        ))
+    }}
+    #[cfg(not(feature = "bundled-proving-keys"))]
+    {{
+        &[]
+    }}
+}};
+
+static {symbol}_CIRCUIT_METADATA: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../../tools/gnark/artifacts/{artifact}/circuit_metadata.json"
+));"""
+        )
+        entries.append(
+            f"""    GeneratedNoteReshapeProofFamily {{
+        id: {family_id},
+        verification_key: &{symbol}_PROOF_VERIFICATION_KEY,
+        proving_key_bytes: {symbol}_PROOF_PROVING_KEY_BYTES,
+        verifying_key_json_bytes: {symbol}_PROOF_VERIFYING_KEY_JSON_BYTES,
+        metadata_bytes: {symbol}_CIRCUIT_METADATA,
+    }},"""
+        )
+    return """// Code generated from note_reshape_families.json. DO NOT EDIT.
+#[derive(Clone, Copy, Debug)]
+struct GeneratedNoteReshapeProofFamily {
+    id: u32,
+    verification_key: &'static Lazy<PreparedVerifyingKey<Bls12_377>>,
+    proving_key_bytes: &'static [u8],
+    verifying_key_json_bytes: &'static [u8],
+    metadata_bytes: &'static [u8],
+}
+
+%s
+
+static GENERATED_NOTE_RESHAPE_PROOF_FAMILIES: &[GeneratedNoteReshapeProofFamily] = &[
+%s
+];
+
+fn note_reshape_proof_family(family_id: u32) -> &'static GeneratedNoteReshapeProofFamily {
+    GENERATED_NOTE_RESHAPE_PROOF_FAMILIES
+        .iter()
+        .find(|family| family.id == family_id)
+        .unwrap_or_else(|| panic!("unknown note_reshape family id {family_id}"))
+}
+
+pub fn note_reshape_proof_verification_key(
+    family_id: u32,
+) -> &'static PreparedVerifyingKey<Bls12_377> {
+    &**note_reshape_proof_family(family_id).verification_key
+}
+
+pub fn note_reshape_proving_key_bytes(family_id: u32) -> &'static [u8] {
+    note_reshape_proof_family(family_id).proving_key_bytes
+}
+
+pub fn note_reshape_verifying_key_json_bytes(family_id: u32) -> &'static [u8] {
+    note_reshape_proof_family(family_id).verifying_key_json_bytes
+}
+
+pub fn note_reshape_circuit_metadata(family_id: u32) -> &'static [u8] {
+    note_reshape_proof_family(family_id).metadata_bytes
+}
+""" % ("\n\n".join(statics), "\n".join(entries))
 
 
 def render_withdrawal_go(values: list[dict[str, object]]) -> str:
@@ -514,11 +977,6 @@ def render_withdrawal_proof_registry(values: list[dict[str, object]]) -> str:
 static {symbol}_PROOF_VERIFICATION_KEY: Lazy<
     PreparedVerifyingKey<Bls12_377>,
 > = Lazy::new(|| {{
-    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_{symbol}_ARTIFACT_DIR") {{
-        return load_verifying_key_json_artifact(Path::new(&dir), "{label}")
-            .expect("can deserialize {label} VerifyingKey")
-            .into();
-    }}
     load_verifying_key_json_bytes({symbol}_PROOF_VERIFYING_KEY_JSON_BYTES)
     .expect("bundled {label} VerifyingKey is valid")
     .into()
@@ -598,6 +1056,24 @@ pub fn shielded_ics20_withdrawal_circuit_metadata(family_id: u32) -> &'static [u
 """ % ("\n\n".join(statics), "\n".join(entries))
 
 
+def note_reshape_families() -> list[dict[str, object]]:
+    manifest = strict_json(NOTE_RESHAPE_MANIFEST)
+    if manifest.get("schema") != "shieldd.note_reshape_families.v1":
+        fail("unexpected NoteReshape family manifest schema")
+    values = manifest.get("families")
+    if (
+        not isinstance(values, list)
+        or not values
+        or any(not isinstance(value, dict) for value in values)
+    ):
+        fail("NoteReshape families must be a nonempty object array")
+    ids = [value.get("id") for value in values]
+    labels = [value.get("label") for value in values]
+    if len(ids) != len(set(ids)) or len(labels) != len(set(labels)):
+        fail("NoteReshape family ids and labels must be unique")
+    return values
+
+
 def generated_outputs() -> dict[Path, str]:
     transfer = families(
         TRANSFER_MANIFEST,
@@ -630,6 +1106,7 @@ def generated_outputs() -> dict[Path, str]:
         fail(
             "all withdrawal families must share the one per-kind bundled prover library"
         )
+    note_reshape = note_reshape_families()
     transfer_hash = hashlib.sha256(TRANSFER_MANIFEST.read_bytes()).hexdigest()
     return {
         GNARK
@@ -651,6 +1128,22 @@ def generated_outputs() -> dict[Path, str]:
         ROOT
         / "crates/crypto/proof-params/src/gen/gnark/transfer_registry.rs": render_transfer_proof_registry(
             transfer
+        ),
+        ROOT
+        / "crates/crypto/proof-params/src/gen/gnark/note_reshape_registry.rs": render_note_reshape_proof_registry(
+            note_reshape
+        ),
+        GNARK
+        / "internal/generated/note_reshape_families_generated.go": render_note_reshape_go(
+            note_reshape
+        ),
+        ROOT
+        / "crates/core/component/shielded-pool/src/note_reshape/generated.rs": render_note_reshape_core(
+            note_reshape
+        ),
+        ROOT
+        / "crates/crypto/proof-params/src/gen/gnark/note_reshape_families_build.rs": render_note_reshape_build(
+            note_reshape
         ),
         GNARK
         / "internal/generated/shielded_ics20_withdrawal_families_generated.go": render_withdrawal_go(
@@ -677,16 +1170,7 @@ def require(contents: str, snippet: str, surface: str) -> None:
 
 
 def check_note_reshape() -> int:
-    manifest = strict_json(NOTE_RESHAPE_MANIFEST)
-    if manifest.get("schema") != "shieldd.note_reshape_families.v1":
-        fail("unexpected NoteReshape family manifest schema")
-    values = manifest.get("families")
-    if not isinstance(values, list) or not values:
-        fail("NoteReshape families must be a nonempty array")
-    ids = [value["id"] for value in values]
-    labels = [value["label"] for value in values]
-    if len(ids) != len(set(ids)) or len(labels) != len(set(labels)):
-        fail("NoteReshape family ids and labels must be unique")
+    values = note_reshape_families()
 
     go = (
         GNARK / "internal/generated/note_reshape_families_generated.go"
@@ -740,6 +1224,28 @@ def check_note_reshape() -> int:
     return len(values)
 
 
+def check_consensus_verifier_immutability() -> None:
+    registry_paths = (
+        ROOT / "crates/crypto/proof-params/src/gen/gnark/transfer_registry.rs",
+        ROOT / "crates/crypto/proof-params/src/gen/gnark/note_reshape_registry.rs",
+        ROOT
+        / "crates/crypto/proof-params/src/gen/gnark/shielded_ics20_withdrawal_registry.rs",
+    )
+    forbidden = (
+        "std::env",
+        "ARTIFACT_DIR",
+        "load_verifying_key_json_artifact",
+    )
+    for path in registry_paths:
+        contents = path.read_text(encoding="utf-8")
+        for marker in forbidden:
+            if marker in contents:
+                fail(
+                    f"{path}: consensus verifying-key registry contains "
+                    f"runtime override marker {marker!r}"
+                )
+
+
 def check_cross_surfaces() -> None:
     build = (ROOT / "crates/crypto/proof-params/build.rs").read_text()
     for snippet in (
@@ -767,7 +1273,7 @@ def main() -> None:
     parser.add_argument(
         "--write",
         action="store_true",
-        help="write deterministic Transfer/withdrawal projections",
+        help="write deterministic circuit-family projections",
     )
     args = parser.parse_args()
 
@@ -790,6 +1296,7 @@ def main() -> None:
             + "; run tools/gnark/check_gnark_family_registries.py --write"
         )
     note_count = check_note_reshape()
+    check_consensus_verifier_immutability()
     check_cross_surfaces()
     action = "wrote" if args.write else "checked"
     print(

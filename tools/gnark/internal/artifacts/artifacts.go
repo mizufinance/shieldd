@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -74,12 +75,14 @@ type CircuitMetadataJSON struct {
 	NbConstraints               int    `json:"nb_constraints"`
 	NbPublic                    int    `json:"nb_public_variables"`
 	NbSecret                    int    `json:"nb_secret_variables"`
+	SR1CSSHA256Hex              string `json:"sr1cs_sha256_hex"`
+	SetupProvenanceSHA256Hex    string `json:"setup_provenance_sha256_hex"`
 	ProvingKeySHA256Hex         string `json:"proving_key_sha256_hex"`
 	VerifyingKeyBinarySHA256Hex string `json:"verifying_key_binary_sha256_hex"`
 	VerifyingKeyJSONSHA256Hex   string `json:"verifying_key_json_sha256_hex"`
 }
 
-const CircuitMetadataSchema = "shieldd.gnark.circuit_metadata.v1"
+const CircuitMetadataSchema = "shieldd.gnark.circuit_metadata.v2"
 
 func EncodeProofJSON(proof *groth16bls.Proof) ProofJSON {
 	return ProofJSON{
@@ -133,6 +136,40 @@ func FillCircuitMetadataShape(metadata *CircuitMetadataJSON, ccs constraint.Cons
 }
 
 func WriteConstraintSystem(path string, ccs constraint.ConstraintSystem, circuit ...frontend.Circuit) error {
+	file, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("create constraint system file: %w", err)
+	}
+	writer := bufio.NewWriter(file)
+	if err := writeConstraintSystem(writer, ccs, circuit...); err != nil {
+		_ = file.Close()
+		return err
+	}
+	if err := writer.Flush(); err != nil {
+		_ = file.Close()
+		return fmt.Errorf("flush constraint system: %w", err)
+	}
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("close constraint system: %w", err)
+	}
+	return nil
+}
+
+// ConstraintSystemSHA256Hex hashes the canonical SR1CS bytes emitted by
+// WriteConstraintSystem without creating a temporary artifact.
+func ConstraintSystemSHA256Hex(ccs constraint.ConstraintSystem, circuit ...frontend.Circuit) (string, error) {
+	digest := sha256.New()
+	writer := bufio.NewWriter(digest)
+	if err := writeConstraintSystem(writer, ccs, circuit...); err != nil {
+		return "", err
+	}
+	if err := writer.Flush(); err != nil {
+		return "", fmt.Errorf("flush constraint-system digest: %w", err)
+	}
+	return hex.EncodeToString(digest.Sum(nil)), nil
+}
+
+func writeConstraintSystem(writer io.Writer, ccs constraint.ConstraintSystem, circuit ...frontend.Circuit) error {
 	if ccs == nil {
 		return fmt.Errorf("missing compiled constraint system")
 	}
@@ -140,15 +177,6 @@ func WriteConstraintSystem(path string, ccs constraint.ConstraintSystem, circuit
 	if !ok {
 		return fmt.Errorf("constraint system is not a U64 R1CS")
 	}
-	file, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("create constraint system file: %w", err)
-	}
-	defer file.Close()
-
-	writer := bufio.NewWriter(file)
-	defer writer.Flush()
-
 	if _, err := fmt.Fprintf(writer, "(prime-number %s)\n", ccs.Field().String()); err != nil {
 		return err
 	}
@@ -250,7 +278,7 @@ func isPicusGadgetOutput(name string) bool {
 	}
 }
 
-func writePicusLinearExpression(writer *bufio.Writer, resolver constraint.Resolver, expr constraint.LinearExpression) error {
+func writePicusLinearExpression(writer io.Writer, resolver constraint.Resolver, expr constraint.LinearExpression) error {
 	if _, err := fmt.Fprint(writer, "["); err != nil {
 		return err
 	}
@@ -585,7 +613,25 @@ func LoadCircuitMetadata(dir string) (*CircuitMetadataJSON, error) {
 	if err != nil {
 		return nil, err
 	}
-	return LoadCircuitMetadataBytes(data, path)
+	metadata, err := LoadCircuitMetadataBytes(data, path)
+	if err != nil {
+		return nil, err
+	}
+	provenancePath := filepath.Join(dir, "setup_provenance.json")
+	provenance, err := os.ReadFile(provenancePath)
+	if err != nil {
+		return nil, fmt.Errorf("read setup provenance: %w", err)
+	}
+	sum := sha256.Sum256(provenance)
+	actual := hex.EncodeToString(sum[:])
+	if actual != metadata.SetupProvenanceSHA256Hex {
+		return nil, fmt.Errorf(
+			"setup provenance hash mismatch: metadata says %s, got %s",
+			metadata.SetupProvenanceSHA256Hex,
+			actual,
+		)
+	}
+	return metadata, nil
 }
 
 func LoadCircuitMetadataBytes(data []byte, source string) (*CircuitMetadataJSON, error) {
@@ -618,6 +664,11 @@ func ValidateCircuitMetadataForCircuit(metadata *CircuitMetadataJSON, expectedCi
 	if metadata.ProvingKeySize <= 0 || metadata.VerifyingKeySize <= 0 {
 		return fmt.Errorf("artifact metadata is missing key sizes; rerun `gnarkctl setup`")
 	}
+	if !isLowerSHA256(metadata.SetupProvenanceSHA256Hex) {
+		return fmt.Errorf(
+			"artifact metadata is missing a canonical setup-provenance hash; rerun `gnarkctl setup`",
+		)
+	}
 	gotConstraints := ccs.GetNbConstraints()
 	if metadata.NbConstraints != gotConstraints {
 		return fmt.Errorf(
@@ -640,6 +691,17 @@ func ValidateCircuitMetadataForCircuit(metadata *CircuitMetadataJSON, expectedCi
 			"artifact mismatch: compiled circuit has %d secret variables but metadata says %d; rerun `gnarkctl setup`",
 			gotSecret,
 			metadata.NbSecret,
+		)
+	}
+	sr1csHash, err := ConstraintSystemSHA256Hex(ccs)
+	if err != nil {
+		return fmt.Errorf("hash compiled constraint system: %w", err)
+	}
+	if metadata.SR1CSSHA256Hex != sr1csHash {
+		return fmt.Errorf(
+			"artifact mismatch: compiled SR1CS hash %s but metadata binds %s; rerun `gnarkctl setup`",
+			sr1csHash,
+			metadata.SR1CSSHA256Hex,
 		)
 	}
 	return nil

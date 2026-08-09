@@ -151,8 +151,6 @@ func TestNoteReshapeWitnessRolesAreCompleteAndConstrained(t *testing.T) {
 func assertCompiledWitnessRoles(t *testing.T, roles witnessRoleManifest) {
 	t.Helper()
 	families := []string{
-		"note_reshape2x1",
-		"note_reshape4x1",
 		"note_reshape8x1",
 		"note_reshape1x8",
 	}

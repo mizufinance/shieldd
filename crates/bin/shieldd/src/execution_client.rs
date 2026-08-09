@@ -239,6 +239,24 @@ fn internal(error: anyhow::Error) -> Status {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use cnidarium::TempStorage;
+    use shieldd_sdk_app::{genesis::Content, SUBSTORE_PREFIXES};
+    use std::ops::Deref as _;
+
+    async fn initialized_client() -> Result<(TempStorage, GrpcExecutionClient)> {
+        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+        let client = GrpcExecutionClient::new(storage.deref().clone());
+        {
+            let mut inner = client.inner.lock().await;
+            inner
+                .init_genesis(AppState::Content(
+                    Content::default().with_chain_id("shieldd-grpc-test".to_owned()),
+                ))
+                .await?;
+            inner.commit().await?;
+        }
+        Ok((storage, client))
+    }
 
     #[test]
     fn decode_host_block_converts_valid_time() {
@@ -266,5 +284,50 @@ mod tests {
         .expect_err("missing time must be rejected");
 
         assert!(err.to_string().contains("missing begin_block time"));
+    }
+
+    #[tokio::test]
+    async fn grpc_execution_check_tx_rejects_invalid_transaction() -> Result<()> {
+        let (_storage, client) = initialized_client().await?;
+
+        let response = ExecutionClientService::check_tx(
+            &client,
+            Request::new(CheckTxRequest {
+                tx: b"not a shieldd transaction".to_vec(),
+            }),
+        )
+        .await?
+        .into_inner();
+
+        assert_eq!(response.code, 1);
+        assert!(response.log.contains("decoding transaction"));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn grpc_execution_deliver_tx_rejects_invalid_transaction() -> Result<()> {
+        let (_storage, client) = initialized_client().await?;
+        {
+            let mut inner = client.inner.lock().await;
+            inner
+                .begin_block(HostBlock {
+                    height: 1,
+                    time: Time::from_unix_timestamp(1_700_000_000, 0)?,
+                })
+                .await?;
+        }
+
+        let response = ExecutionClientService::deliver_tx(
+            &client,
+            Request::new(DeliverTxRequest {
+                tx: b"not a shieldd transaction".to_vec(),
+            }),
+        )
+        .await?
+        .into_inner();
+
+        assert_eq!(response.code, 1);
+        assert!(response.log.contains("decoding transaction"));
+        Ok(())
     }
 }

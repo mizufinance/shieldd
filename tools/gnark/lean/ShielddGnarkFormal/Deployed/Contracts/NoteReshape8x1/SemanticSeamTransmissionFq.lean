@@ -1,7 +1,7 @@
 import ShielddGnarkFormal.ChoiceFreeZMod
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg14
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg15
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg16
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg17
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg19
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.SemanticBindings
 import ShielddGnarkFormal.Deployed.NoteReshape8x1DtkSeating
 
@@ -23,17 +23,17 @@ local instance choiceFreeSemanticSeamTransmissionFqCommRing : CommRing SemanticF
 theorem sharedTransmissionFq_eq_compressOutput
     (rho : Nat → SemanticF) :
     sharedTransmissionFq rho =
-      Deployed.Templates.Semantics.TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.templateRho
-          (Seg16.localRho rho) 912 -
-      Deployed.Templates.Semantics.TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.templateRho
-          (Seg16.localRho rho) 572 := by
+      Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46.templateRho
+          (Seg19.localRho rho) 912 -
+      Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46.templateRho
+          (Seg19.localRho rho) 572 := by
   have hplus :
-      Seg16.wireSeating 1205 =
-        7658 := by
+      Seg19.wireSeating 707 =
+        7062 := by
     decide +kernel
   have hminus :
-      Seg16.wireSeating 865 =
-        7318 := by
+      Seg19.wireSeating 367 =
+        6722 := by
     decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF) = -1 := by
@@ -41,9 +41,9 @@ theorem sharedTransmissionFq_eq_compressOutput
   simp only [
     sharedTransmissionFq,
     sharedTransmissionFqLC,
-    Deployed.Templates.Semantics.TDecafCompressToField_134c00a44464b5c57e98bda9d7886aa5242d948a3dfc91f0241f963fac56f4a2.templateRho,
+    Deployed.Templates.Semantics.TDecafCompressToField_cb894e50f7cc665026bb25271f9bec0190867613208193b18d883d11ce856a46.templateRho,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg16.localRho, Deployed.Templates.seated,
+    StrideRun.eval, Seg19.localRho, Deployed.Templates.seated,
     zero_add, one_mul, add_zero,
     if_pos (by decide +kernel : 231 ≤ 912 ∧ 912 ≤ 912),
     if_pos (by decide +kernel : 231 ≤ 572 ∧ 572 ≤ 912),

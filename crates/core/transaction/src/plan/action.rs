@@ -12,7 +12,9 @@ use shieldd_sdk_governance::{ProposalSubmit, ValidatorVote};
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{symmetric::PayloadKey, FullViewingKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb_t, DomainType};
-use shieldd_sdk_shielded_pool::{NoteReshapePlan, ShieldedIcs20WithdrawalPlan, TransferPlan};
+use shieldd_sdk_shielded_pool::{
+    NoteReshapePlan, ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, TransferPlan,
+};
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
 /// A declaration of a planned [`Action`], for use in transaction creation.
@@ -36,6 +38,21 @@ pub enum ActionPlan {
 }
 
 impl ActionPlan {
+    /// Real shielded spends requiring witnesses and authorization signatures.
+    pub fn spends(&self) -> &[ShieldedInputPlan] {
+        match self {
+            ActionPlan::Transfer(plan) => &plan.spends,
+            ActionPlan::NoteReshape(plan) => &plan.spends,
+            ActionPlan::ShieldedIcs20Withdrawal(plan) => &plan.spends,
+            ActionPlan::ValidatorDefinition(_)
+            | ActionPlan::IbcAction(_)
+            | ActionPlan::ProposalSubmit(_)
+            | ActionPlan::ValidatorVote(_)
+            | ActionPlan::ComplianceRegisterAsset(_)
+            | ActionPlan::ComplianceRegisterUser(_) => &[],
+        }
+    }
+
     /// Builds a planned [`Action`] specified by this [`ActionPlan`].
     #[cfg(any(unix, windows))]
     pub fn build_unauth(

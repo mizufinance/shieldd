@@ -1,0 +1,3103 @@
+{
+  "schema": "shieldd.gnark.constraint_coverage_report.v1",
+  "circuit": "transfer",
+  "sr1cs_sha256_hex": "747d468d1fc79affc067323e03abb5c96a1793fa3c247f6ca4f50bb9746de4db",
+  "manifest_sha256_hex": "e3735705f04cdb94ca7f8dbf2e9d3dd441200468c81735b9fe7da9b4a47bc1eb",
+  "nb_constraints": 124428,
+  "prime": "8444461749428370424248824938781546531375899335154063827935233455917409239041",
+  "inputs": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    134,
+    135,
+    136,
+    137,
+    138,
+    139,
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150,
+    151,
+    152,
+    153,
+    154,
+    155,
+    156,
+    157,
+    158,
+    159,
+    160,
+    161,
+    162,
+    163,
+    164,
+    165,
+    166,
+    167,
+    168,
+    169,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    178,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188,
+    189,
+    190,
+    191,
+    192,
+    193,
+    194,
+    195,
+    196,
+    197,
+    198,
+    199,
+    200,
+    201,
+    202,
+    203,
+    204,
+    205,
+    206,
+    207,
+    208,
+    209,
+    210,
+    211,
+    212,
+    213,
+    214,
+    215,
+    216,
+    217,
+    218,
+    219,
+    220,
+    221,
+    222,
+    223,
+    224,
+    225,
+    226,
+    227,
+    228,
+    229,
+    230,
+    231,
+    232,
+    233,
+    234,
+    235,
+    236,
+    237,
+    238,
+    239,
+    240,
+    241,
+    242,
+    243,
+    244,
+    245,
+    246,
+    247,
+    248,
+    249,
+    250,
+    251,
+    252,
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262,
+    263,
+    264,
+    265,
+    266,
+    267,
+    268,
+    269,
+    270,
+    271,
+    272,
+    273,
+    274,
+    275,
+    276,
+    277,
+    278,
+    279,
+    280,
+    281,
+    282,
+    283,
+    284,
+    285,
+    286,
+    287,
+    288,
+    289,
+    290,
+    291,
+    292,
+    293,
+    294,
+    295,
+    296,
+    297,
+    298,
+    299,
+    300,
+    301,
+    302,
+    303,
+    304,
+    305,
+    306,
+    307,
+    308,
+    309,
+    310,
+    311,
+    312,
+    313,
+    314,
+    315,
+    316,
+    317,
+    318,
+    319,
+    320,
+    321,
+    322,
+    323,
+    324,
+    325,
+    326,
+    327,
+    328,
+    329,
+    330,
+    331,
+    332,
+    333,
+    334,
+    335,
+    336,
+    337,
+    338,
+    339,
+    340,
+    341,
+    342,
+    343,
+    344,
+    345,
+    346,
+    347,
+    348,
+    349,
+    350,
+    351,
+    352,
+    353,
+    354,
+    355,
+    356,
+    357,
+    358,
+    359,
+    360,
+    361,
+    362,
+    363,
+    364,
+    365,
+    366,
+    367,
+    368,
+    369,
+    370,
+    371,
+    372,
+    373,
+    374,
+    375,
+    376,
+    377,
+    378,
+    379,
+    380,
+    381,
+    382,
+    383,
+    384,
+    385,
+    386,
+    387,
+    388,
+    389,
+    390,
+    391,
+    392,
+    393,
+    394,
+    395,
+    396
+  ],
+  "outputs": [
+    1
+  ],
+  "constraints_by_kind": {
+    "adapter": 0,
+    "gadget": 124381,
+    "glue": 47,
+    "marker": 0
+  },
+  "segments": [
+    {
+      "index": 1,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 0,
+      "end": 1,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "fa631034af1c92d44d396d99bb5c483cc6c19078b58b2f377b16072aa2ead33a",
+      "verdict": "covered"
+    },
+    {
+      "index": 2,
+      "op": "shared.bind",
+      "kind": "marker",
+      "start": 1,
+      "end": 1,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 3,
+      "op": "assert.decaf_non_identity",
+      "kind": "glue",
+      "start": 1,
+      "end": 2,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "66da27dddec144d3180bd0c9ebee3a843ec3faa42167ed796ff7f6843922d24d",
+      "verdict": "covered"
+    },
+    {
+      "index": 4,
+      "op": "assert.decaf_non_identity",
+      "kind": "glue",
+      "start": 2,
+      "end": 3,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "8a222275607fa6a88ab08a54a3fd4ce3db3a59356970ca11d491462da664e397",
+      "verdict": "covered"
+    },
+    {
+      "index": 5,
+      "op": "assert.ne",
+      "kind": "glue",
+      "start": 3,
+      "end": 4,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "a5431019ce74aabd9cbd6402e12f29842a02ca4957d890e3a9317caa4811a7f5",
+      "verdict": "covered"
+    },
+    {
+      "index": 6,
+      "op": "select.point",
+      "kind": "glue",
+      "start": 4,
+      "end": 6,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "0d541f41f313906729e1973efe34793494d07af7360c43da5bec073b54179e78",
+      "verdict": "covered"
+    },
+    {
+      "index": 7,
+      "op": "select.point",
+      "kind": "glue",
+      "start": 6,
+      "end": 8,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "2975d7ccbdf6d9e7258eb214189ad37e8f90c097286468611b628b57a755cda3",
+      "verdict": "covered"
+    },
+    {
+      "index": 8,
+      "op": "select.field",
+      "kind": "glue",
+      "start": 8,
+      "end": 9,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "74bfed2bb7d56af74abb40cc280b79362543fc656b8f602ff4fdf2e02a69354e",
+      "verdict": "covered"
+    },
+    {
+      "index": 9,
+      "op": "select.field",
+      "kind": "glue",
+      "start": 9,
+      "end": 10,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "d66f33eefabac1fde52f89ff1f25508548e2d0eea5f80c4a1e145aa906b83de0",
+      "verdict": "covered"
+    },
+    {
+      "index": 10,
+      "op": "select.field",
+      "kind": "glue",
+      "start": 10,
+      "end": 11,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "3fd96f634f69fe5ea9e770b4e0855d179bf1d367f83d289a142405a969ef0e7a",
+      "verdict": "covered"
+    },
+    {
+      "index": 11,
+      "op": "select.field",
+      "kind": "glue",
+      "start": 11,
+      "end": 12,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "3f8b5898e7bf6238db1b2eb9dc0cbbcd00afa05393c79b97c2f721dcd89a81de",
+      "verdict": "covered"
+    },
+    {
+      "index": 12,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 12,
+      "end": 1058,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "98473ff485dc77b49f805115db04ad38441a7ad47b41da05236d4bee5ce068fa",
+      "verdict": "covered"
+    },
+    {
+      "index": 13,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 1058,
+      "end": 2104,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "2cd326b0710b0a55b6196f659dbcccdd804611a89a16f8396ce883414dfaa37f",
+      "verdict": "covered"
+    },
+    {
+      "index": 14,
+      "op": "assert.ne",
+      "kind": "glue",
+      "start": 2104,
+      "end": 2105,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "d8b120b8dfacb32d79be2caf35c36569d38c13c48f34d069aeab2d7368b571f8",
+      "verdict": "covered"
+    },
+    {
+      "index": 15,
+      "op": "decaf.diversified_transmission_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-dtk",
+      "bridge_theorem": "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound",
+      "start": 2105,
+      "end": 7582,
+      "constraint_count": 5477,
+      "constraint_sha256_hex": "3f2f18f9604ea254eee05d3ab5837b8a46dd4192fe1b6ee36b9ea9d398eb1555",
+      "verdict": "covered"
+    },
+    {
+      "index": 16,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 7582,
+      "end": 7585,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "daaa9e2e9eae1c86a880a9847284c19a1ac81467ea6d182ecff4edc19a964dca",
+      "verdict": "covered"
+    },
+    {
+      "index": 17,
+      "op": "assert.decaf_non_identity",
+      "kind": "glue",
+      "start": 7585,
+      "end": 7586,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "e755be8f7adbc0a89be828ad222b9a0b2576a5fc8bd1c380e4d77ab1a9b28ff5",
+      "verdict": "covered"
+    },
+    {
+      "index": 18,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 7586,
+      "end": 8632,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "bca312111555df50d835e4729f0f60358b9561e61b1ef4e4971dea7bbaeb8b26",
+      "verdict": "covered"
+    },
+    {
+      "index": 19,
+      "op": "gadget.asset_registry_params_hash",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash4",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon4Bridge.circuit_sound",
+      "start": 8632,
+      "end": 8982,
+      "constraint_count": 350,
+      "constraint_sha256_hex": "0867c786fb2fb1e1ca3f6ac36690e51d57926f8d656d8a38ef2f8aeade0b593c",
+      "verdict": "covered"
+    },
+    {
+      "index": 20,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 8982,
+      "end": 10028,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "3fc34067c8b2cf76d2d6e55e672dcd13fb01d10994d1f557fdbb6197a0745b16",
+      "verdict": "covered"
+    },
+    {
+      "index": 21,
+      "op": "gadget.asset_registry_ring_hash",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound_eq",
+      "start": 10028,
+      "end": 10418,
+      "constraint_count": 390,
+      "constraint_sha256_hex": "0fb8273e09729c1241ce999f8721b4d9fcf8c6f5f0f6f80f0eb0704ab93cb4ca",
+      "verdict": "covered"
+    },
+    {
+      "index": 22,
+      "op": "gadget.asset_registry_leaf_hash",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash5",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound_eq",
+      "start": 10418,
+      "end": 10808,
+      "constraint_count": 390,
+      "constraint_sha256_hex": "e775348068e0bc3921d7a26753a38901f810c08853c6f39ba7fd7c726f06ca00",
+      "verdict": "covered"
+    },
+    {
+      "index": 23,
+      "op": "gadget.asset_registry_path",
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-16",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon4Bridge.quadPath16_circuit_sound",
+      "start": 10808,
+      "end": 16665,
+      "constraint_count": 5857,
+      "constraint_sha256_hex": "92ebdc58b051d814956caeb1b1fd0a468dc1b24efaad2e7f3e30ad83a64e1a4d",
+      "verdict": "covered"
+    },
+    {
+      "index": 24,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 16665,
+      "end": 16666,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "3c24eacbcb2ed7d3d22387bde4f1b73e33ef2069e7db05735be62db3426db778",
+      "verdict": "covered"
+    },
+    {
+      "index": 25,
+      "op": "gadget.asset_registry_gap",
+      "kind": "gadget",
+      "gadget_label": "gadget-imt-gap-body",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.ImtGap.body_relation_sound",
+      "start": 16666,
+      "end": 20208,
+      "constraint_count": 3542,
+      "constraint_sha256_hex": "fd2b4a6e1a2c06ae8749d07a369d429272da186c61e7c74e123a9e5d69d1bf9b",
+      "verdict": "covered"
+    },
+    {
+      "index": 26,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 20208,
+      "end": 20209,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "dde24d87175202111e73ac97031ec3383a3ffa938a322798c04d39ab2250b63a",
+      "verdict": "covered"
+    },
+    {
+      "index": 27,
+      "op": "gadget.compliance_leaf",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash7",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound",
+      "start": 20209,
+      "end": 20679,
+      "constraint_count": 470,
+      "constraint_sha256_hex": "30983b4e5e5c8920c10f548162966493f2a7b44217479b1fdd3221321f36330f",
+      "verdict": "covered"
+    },
+    {
+      "index": 28,
+      "op": "gadget.compliance_path",
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-16",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon4Bridge.quadPath16_circuit_sound",
+      "start": 20679,
+      "end": 26536,
+      "constraint_count": 5857,
+      "constraint_sha256_hex": "62e4f46f6a741ba935710ded70dfb8995b8092b6061991b595f3298874ded4fd",
+      "verdict": "covered"
+    },
+    {
+      "index": 29,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 26536,
+      "end": 26538,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "ca7141c60bd1b6d55d8b464982ec75bcaed0f1def147057a99494a2b04a1a2c1",
+      "verdict": "covered"
+    },
+    {
+      "index": 30,
+      "op": "decaf.ack",
+      "kind": "gadget",
+      "gadget_label": "gadget-ack-derivation",
+      "bridge_theorem": "Shieldd.GnarkFormal.AckBridge.ack_sound",
+      "start": 26538,
+      "end": 29548,
+      "constraint_count": 3010,
+      "constraint_sha256_hex": "7a1aa496b397ec95b97d8b2a93c6bf803fceede0ab26d2de62a1a846d86569d6",
+      "verdict": "covered"
+    },
+    {
+      "index": 31,
+      "op": "spend.begin",
+      "kind": "marker",
+      "start": 29548,
+      "end": 29548,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 32,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 29548,
+      "end": 29978,
+      "constraint_count": 430,
+      "constraint_sha256_hex": "5e0598e612444fa8e0f37a8e2a7064f9a3fa2a55be2c38be6539a5b92f511b6f",
+      "verdict": "covered"
+    },
+    {
+      "index": 33,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-nullifier",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
+      "start": 29978,
+      "end": 30288,
+      "constraint_count": 310,
+      "constraint_sha256_hex": "6cd8debd60f8a71a72ab539d1eea4718fc0a63dab1057d4c8414486e83668e18",
+      "verdict": "covered"
+    },
+    {
+      "index": 34,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 30288,
+      "end": 39303,
+      "constraint_count": 9015,
+      "constraint_sha256_hex": "8547bbc83b26600c73ea111f8067bff4ae29ca3a1b695cd4effdffb61f37c470",
+      "verdict": "covered"
+    },
+    {
+      "index": 35,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 39303,
+      "end": 39304,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "cc7c2e9410a5f8bd94c2c59ffff362ab285697f682c9afb7364ab7dc63a94130",
+      "verdict": "covered"
+    },
+    {
+      "index": 36,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 39304,
+      "end": 39305,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "f2ef848dcc34fc2492fefa3dc3ca061e21da8143a4f964e8967a4f1cccf06dd8",
+      "verdict": "covered"
+    },
+    {
+      "index": 37,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 39305,
+      "end": 41117,
+      "constraint_count": 1812,
+      "constraint_sha256_hex": "57addb8539af65436c73656388a072f047dfe1227382407d68433939f262896b",
+      "verdict": "covered"
+    },
+    {
+      "index": 38,
+      "op": "decaf.assert_equivalent",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 41117,
+      "end": 41120,
+      "constraint_count": 3,
+      "constraint_sha256_hex": "dedfeb7f783081e9b43649379331e6267d55ddd0515d6e6d24b3d397407adb8b",
+      "verdict": "covered"
+    },
+    {
+      "index": 39,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 41120,
+      "end": 42166,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "8ab65f6304bfceb503d6502693aba5c1c56204ab28278730af9ae6e8db285621",
+      "verdict": "covered"
+    },
+    {
+      "index": 40,
+      "op": "spend.collect",
+      "kind": "marker",
+      "start": 42166,
+      "end": 42166,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 41,
+      "op": "spend.begin",
+      "kind": "marker",
+      "start": 42166,
+      "end": 42166,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 42,
+      "op": "assert.boolean",
+      "kind": "glue",
+      "start": 42166,
+      "end": 42167,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "7ab531c0b19101aef50a6982f1547d57a84bf5acda2f9a9ec3db9d0c4bde8383",
+      "verdict": "covered"
+    },
+    {
+      "index": 43,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 42167,
+      "end": 42597,
+      "constraint_count": 430,
+      "constraint_sha256_hex": "0c5fcae00c2735000b402900dc319c8145d4d02f940a172e103a984f445b85c9",
+      "verdict": "covered"
+    },
+    {
+      "index": 44,
+      "op": "gadget.nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-nullifier",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound",
+      "start": 42597,
+      "end": 42907,
+      "constraint_count": 310,
+      "constraint_sha256_hex": "485cfc515bf9fd1d12d4e924757a850ab9b6ba7c125aa7d57f44350a175e01c2",
+      "verdict": "covered"
+    },
+    {
+      "index": 45,
+      "op": "gadget.state_commitment_path",
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-24",
+      "bridge_theorem": "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24",
+      "start": 42907,
+      "end": 51922,
+      "constraint_count": 9015,
+      "constraint_sha256_hex": "f0ee312162e0f384597bbe47cb0420f8a597334cecb16a7698f4f182b51ec0dc",
+      "verdict": "covered"
+    },
+    {
+      "index": 46,
+      "op": "gadget.synthetic_dummy_nullifier",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash3-specialized",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps",
+      "start": 51922,
+      "end": 52227,
+      "constraint_count": 305,
+      "constraint_sha256_hex": "cdbe4af04e76047d18bbbab25c51042d4f64fffb118305d7ba7235e5afdbc8a4",
+      "verdict": "covered"
+    },
+    {
+      "index": 47,
+      "op": "dummy.mux",
+      "kind": "glue",
+      "start": 52227,
+      "end": 52229,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "777a4ba6480cafabc1557ecdda479d8cff7088c3f46c9923f0bece91dce9a7b7",
+      "verdict": "covered"
+    },
+    {
+      "index": 48,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 52229,
+      "end": 52230,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "605be8f947b0012cd12e0d5586afe405fa5704106cd19ba7e07835ac6dab0e84",
+      "verdict": "covered"
+    },
+    {
+      "index": 49,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 52230,
+      "end": 52232,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "fd60c8152b084584ca553d28151d1c515a0bd646ad899ed6e107e559ab43dbd9",
+      "verdict": "covered"
+    },
+    {
+      "index": 50,
+      "op": "decaf.randomized_verification_key",
+      "kind": "gadget",
+      "gadget_label": "gadget-rvk",
+      "bridge_theorem": "Shieldd.GnarkFormal.RvkBridge.decaf377_randomizedVerificationKey_sound",
+      "start": 52232,
+      "end": 54044,
+      "constraint_count": 1812,
+      "constraint_sha256_hex": "4675c5bdd761d35d87398b8bc05fdd54fa2f37d233ec50389ac55a5f5e74383f",
+      "verdict": "covered"
+    },
+    {
+      "index": 51,
+      "op": "decaf.assert_equivalent_if",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-assert-equivalent",
+      "bridge_theorem": "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound",
+      "start": 54044,
+      "end": 54050,
+      "constraint_count": 6,
+      "constraint_sha256_hex": "3340d8b48e0e18cb95529a6c2328eba4aaa4da1e0737b08ac636846db53429f4",
+      "verdict": "covered"
+    },
+    {
+      "index": 52,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 54050,
+      "end": 54052,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "b7f09e03479aa6442fa65289cd406582c70ef4b2a5a1511f8e6572bf7a29d3cf",
+      "verdict": "covered"
+    },
+    {
+      "index": 53,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 54052,
+      "end": 55098,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "87dee30ef0ae258b29efe2d43eb635f2ec3e47ebbbfff487b2f32b8289b3b320",
+      "verdict": "covered"
+    },
+    {
+      "index": 54,
+      "op": "spend.collect",
+      "kind": "marker",
+      "start": 55098,
+      "end": 55098,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 55,
+      "op": "output.begin",
+      "kind": "marker",
+      "start": 55098,
+      "end": 55098,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 56,
+      "op": "assert.decaf_non_identity",
+      "kind": "glue",
+      "start": 55098,
+      "end": 55099,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "f2769155d9d73d9d9511a36851bc317ec55f56a1ed9f601c6f32a533d49d338e",
+      "verdict": "covered"
+    },
+    {
+      "index": 57,
+      "op": "assert.decaf_non_identity",
+      "kind": "glue",
+      "start": 55099,
+      "end": 55100,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "b99b5abf5d3a0681bf738353068ed5e376b45e30679576d2b5315be5bb1cfde1",
+      "verdict": "covered"
+    },
+    {
+      "index": 58,
+      "op": "gadget.is_zero",
+      "kind": "gadget",
+      "gadget_label": "gadget-iszero",
+      "bridge_theorem": "Shieldd.GnarkFormal.isZeroExtracted_implies_is_zero",
+      "start": 55100,
+      "end": 55102,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "8e709cc52db85ae81acb42e3b7399b8b1f881924a513ac443277b517bf884a50",
+      "verdict": "covered"
+    },
+    {
+      "index": 59,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 55102,
+      "end": 56148,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "7f2986ad98735d4e10b5aeab6065ca4533dfc4394576b3c1ba60e792a765e909",
+      "verdict": "covered"
+    },
+    {
+      "index": 60,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 56148,
+      "end": 57194,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "763f7241df84c0abc5a441d19882d1e1628fd0052e28bc72da12dc84c65e884f",
+      "verdict": "covered"
+    },
+    {
+      "index": 61,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 57194,
+      "end": 57624,
+      "constraint_count": 430,
+      "constraint_sha256_hex": "129a2337dc0ff88e0c80f6f47c74c9e7818793db42c8c5366d2809d6ec7af84f",
+      "verdict": "covered"
+    },
+    {
+      "index": 62,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 57624,
+      "end": 57625,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "00c5ae150f8cdbb879ab54f871fc324c540f7081aac7f6ebc1bd4dc0185f31f5",
+      "verdict": "covered"
+    },
+    {
+      "index": 63,
+      "op": "gadget.compliance_leaf",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash7",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound",
+      "start": 57625,
+      "end": 58095,
+      "constraint_count": 470,
+      "constraint_sha256_hex": "c60cf6cd868fbfded7d44f5f11b3ca5b00c0dd3dc70c6534e02b13d7b8e1f4ed",
+      "verdict": "covered"
+    },
+    {
+      "index": 64,
+      "op": "gadget.compliance_path",
+      "kind": "gadget",
+      "gadget_label": "gadget-quad-path-16",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon4Bridge.quadPath16_circuit_sound",
+      "start": 58095,
+      "end": 63952,
+      "constraint_count": 5857,
+      "constraint_sha256_hex": "77923c43c0f9e57d95369c222d656f91270134d8a2c0d3eef796d9832315f588",
+      "verdict": "covered"
+    },
+    {
+      "index": 65,
+      "op": "assert.eq_if",
+      "kind": "glue",
+      "start": 63952,
+      "end": 63954,
+      "constraint_count": 2,
+      "constraint_sha256_hex": "81ec43db2aea31b07607ab6ae98f87c22b435e9e60b6173513af0310b9671e02",
+      "verdict": "covered"
+    },
+    {
+      "index": 66,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 63954,
+      "end": 63955,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "74249a3c4fb31869ed36a58c3089ba7c82a822f0cafd58260cf0c1b2246b6402",
+      "verdict": "covered"
+    },
+    {
+      "index": 67,
+      "op": "decaf.ack",
+      "kind": "gadget",
+      "gadget_label": "gadget-ack-derivation",
+      "bridge_theorem": "Shieldd.GnarkFormal.AckBridge.ack_sound",
+      "start": 63955,
+      "end": 66965,
+      "constraint_count": 3010,
+      "constraint_sha256_hex": "64e0d1e583b003f26157d44cde78d91ee2cb89a3e845610214317017ae910652",
+      "verdict": "covered"
+    },
+    {
+      "index": 68,
+      "op": "output.collect",
+      "kind": "marker",
+      "start": 66965,
+      "end": 66965,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 69,
+      "op": "output.begin",
+      "kind": "marker",
+      "start": 66965,
+      "end": 66965,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 70,
+      "op": "gadget.note_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash6",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound",
+      "start": 66965,
+      "end": 67395,
+      "constraint_count": 430,
+      "constraint_sha256_hex": "0cff6c68c6d7db6fa48d569e17b6fbc65820919880cf3ae46d67d83cbe8c112c",
+      "verdict": "covered"
+    },
+    {
+      "index": 71,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 67395,
+      "end": 67396,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "b9e621cd137b1e7ac9dd81ce7f2852fd54d22381e70b308009c8b4e29a2b5c2a",
+      "verdict": "covered"
+    },
+    {
+      "index": 72,
+      "op": "output.collect",
+      "kind": "marker",
+      "start": 67396,
+      "end": 67396,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 73,
+      "op": "compliance.begin",
+      "kind": "marker",
+      "start": 67396,
+      "end": 67396,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 74,
+      "op": "threshold.flag",
+      "kind": "gadget",
+      "gadget_label": "gadget-threshold-regulated-flag",
+      "bridge_theorem": "Shieldd.GnarkFormal.ThresholdRegulatedBridge.threshold_flag_sound",
+      "start": 67396,
+      "end": 68292,
+      "constraint_count": 896,
+      "constraint_sha256_hex": "e1d7b44fa80d37c2d8414fc8383083a6ec60373b33c9d778f16eae1c2e4b39a4",
+      "verdict": "covered"
+    },
+    {
+      "index": 75,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 68292,
+      "end": 69338,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "daa08eed1506e9ae9024e45e938cdfd54a8997ba031b81da9748357120bc1d1a",
+      "verdict": "covered"
+    },
+    {
+      "index": 76,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 69338,
+      "end": 70384,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "02a52cfd119a39caee6732d8b753549225eb98a9e794d0af9b29175cfb75e63c",
+      "verdict": "covered"
+    },
+    {
+      "index": 77,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 70384,
+      "end": 71430,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "01718780a8e9b71f288dcfbdb6d8b2fb30a6fa94aa9b62a2db4b046b47ece4e8",
+      "verdict": "covered"
+    },
+    {
+      "index": 78,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 71430,
+      "end": 72476,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "8c598fbad9aa369c2a25aa8e672935b3f8eaabd1ee8bc19d3214d9945a2f3769",
+      "verdict": "covered"
+    },
+    {
+      "index": 79,
+      "op": "gadget.transfer_salt",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
+      "start": 72476,
+      "end": 72741,
+      "constraint_count": 265,
+      "constraint_sha256_hex": "1207bcf0d8338c3e9dfd5c16fc02d7677aecf91c13b60d2651b7ed91a7e96dd8",
+      "verdict": "covered"
+    },
+    {
+      "index": 80,
+      "op": "gadget.transfer_salt",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
+      "start": 72741,
+      "end": 73006,
+      "constraint_count": 265,
+      "constraint_sha256_hex": "2b784fba656f0a64827c61962ddfbb0f64f7bb89b85c5e700f31f1dde2e2230a",
+      "verdict": "covered"
+    },
+    {
+      "index": 81,
+      "op": "gadget.transfer_salt",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
+      "start": 73006,
+      "end": 73271,
+      "constraint_count": 265,
+      "constraint_sha256_hex": "32890d82d608728d596d5b4d453122faf0e3c7b63475238a0735801d265e444a",
+      "verdict": "covered"
+    },
+    {
+      "index": 82,
+      "op": "gadget.transfer_salt",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
+      "start": 73271,
+      "end": 73536,
+      "constraint_count": 265,
+      "constraint_sha256_hex": "9607832b0aeb44043571e3853ad48a17954ecb6aec9dedbe55cc6b91d4bee8ad",
+      "verdict": "covered"
+    },
+    {
+      "index": 83,
+      "op": "gadget.transfer_salt",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon2",
+      "bridge_theorem": "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound",
+      "start": 73536,
+      "end": 73801,
+      "constraint_count": 265,
+      "constraint_sha256_hex": "07859b24eec9586a24d4f7a2589b751fd68a530d40104abe87cf97a95786995a",
+      "verdict": "covered"
+    },
+    {
+      "index": 84,
+      "op": "decaf.shared_secret",
+      "kind": "gadget",
+      "gadget_label": "gadget-shared-secrets",
+      "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
+      "start": 73801,
+      "end": 81128,
+      "constraint_count": 7327,
+      "constraint_sha256_hex": "a890395f31b7877c8f8044eccc722b22b794de77d6ece76949ff6e0dd716c34a",
+      "verdict": "covered"
+    },
+    {
+      "index": 85,
+      "op": "decaf.shared_secret",
+      "kind": "gadget",
+      "gadget_label": "gadget-shared-secrets",
+      "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
+      "start": 81128,
+      "end": 88454,
+      "constraint_count": 7326,
+      "constraint_sha256_hex": "217c82b49bb60f134edb51729e96134e1e250fd41d2f720dbb7b29175b598851",
+      "verdict": "covered"
+    },
+    {
+      "index": 86,
+      "op": "decaf.shared_secret",
+      "kind": "gadget",
+      "gadget_label": "gadget-shared-secrets",
+      "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
+      "start": 88454,
+      "end": 95780,
+      "constraint_count": 7326,
+      "constraint_sha256_hex": "8a98f9c5d322ac99142cdf75d553cb23238f9b067f3210cea86e89b784be2bd7",
+      "verdict": "covered"
+    },
+    {
+      "index": 87,
+      "op": "decaf.shared_secret",
+      "kind": "gadget",
+      "gadget_label": "gadget-shared-secrets",
+      "bridge_theorem": "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound",
+      "start": 95780,
+      "end": 103106,
+      "constraint_count": 7326,
+      "constraint_sha256_hex": "3c99cd3aef4abaaf5c753237cdffa945eb88f8ded080ca497a95afafce47c761",
+      "verdict": "covered"
+    },
+    {
+      "index": 88,
+      "op": "gadget.poseidon_encryption.detection",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-encryption-detection-body",
+      "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_body_sound",
+      "start": 103106,
+      "end": 105552,
+      "constraint_count": 2446,
+      "constraint_sha256_hex": "24d2e7f26f510db9dc8a79285c7769691c606ed5145c9ff4b7c8bba70cbb8b10",
+      "verdict": "covered"
+    },
+    {
+      "index": 89,
+      "op": "gadget.poseidon_encryption.amount",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-encryption-amount-body",
+      "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_body_sound",
+      "start": 105552,
+      "end": 106864,
+      "constraint_count": 1312,
+      "constraint_sha256_hex": "a411f8e22790292c239b3a5dca4594423c0d69c11291c70e057d66e2e0f23b3b",
+      "verdict": "covered"
+    },
+    {
+      "index": 90,
+      "op": "gadget.poseidon_encryption.address",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-encryption-address-body",
+      "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_body_sound",
+      "start": 106864,
+      "end": 109720,
+      "constraint_count": 2856,
+      "constraint_sha256_hex": "b36f35958927a7440c7f0196c72c391ed551ae51e688f9d515d784601257996a",
+      "verdict": "covered"
+    },
+    {
+      "index": 91,
+      "op": "gadget.poseidon_encryption.amount",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-encryption-amount-body",
+      "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_body_sound",
+      "start": 109720,
+      "end": 111032,
+      "constraint_count": 1312,
+      "constraint_sha256_hex": "8196baa57c9bc2ef3e9ba96ab43c68470e65678f8101822991177075b5760962",
+      "verdict": "covered"
+    },
+    {
+      "index": 92,
+      "op": "gadget.poseidon_encryption.address",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-encryption-address-body",
+      "bridge_theorem": "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_body_sound",
+      "start": 111032,
+      "end": 113888,
+      "constraint_count": 2856,
+      "constraint_sha256_hex": "60005e74f56f59321cc72aa5ddbe5f7af1928c24b87b8ad7a63f9be0a646629d",
+      "verdict": "covered"
+    },
+    {
+      "index": 93,
+      "op": "compliance.metadata.begin",
+      "kind": "marker",
+      "start": 113888,
+      "end": 113888,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 94,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113888,
+      "end": 113889,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "224b9bdc7f8d814132d5ced4fa470148006b7a98c2c8b9e007623261fa56ad40",
+      "verdict": "covered"
+    },
+    {
+      "index": 95,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113889,
+      "end": 113890,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "237fbcdcb8300ddfeeac954dd4251fca8416703f06823d37c8fde91d6b866dfe",
+      "verdict": "covered"
+    },
+    {
+      "index": 96,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113890,
+      "end": 113891,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "3c1267be0e42f4bcaca2054a6ed5022948f2c698ea9f80ef03db38de3b95ac85",
+      "verdict": "covered"
+    },
+    {
+      "index": 97,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113891,
+      "end": 113892,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "a1f786dcc26a0cb32c5c57b4272440459d61dd9c8e7834b8489294d9e78c19c5",
+      "verdict": "covered"
+    },
+    {
+      "index": 98,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113892,
+      "end": 113893,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "265f221578c7f3eeeabe91634431a3c5f9cde1e0dacec7ecc0645adfe866dd63",
+      "verdict": "covered"
+    },
+    {
+      "index": 99,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113893,
+      "end": 113894,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "2a5faf0d6bb09beea4827495b64f2428667682d3def87e635fc5b812ea15c5ac",
+      "verdict": "covered"
+    },
+    {
+      "index": 100,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113894,
+      "end": 113895,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "f649b1f7f5b61166d2ff66b4d61dd29ff6b83d8042106853ffebdb132335afac",
+      "verdict": "covered"
+    },
+    {
+      "index": 101,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113895,
+      "end": 113896,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "4dbfae02684ac9c2a9e09b39fc6e8dcc90af2afa9d4bf2c1c32dd50804350005",
+      "verdict": "covered"
+    },
+    {
+      "index": 102,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113896,
+      "end": 113897,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "e715fed92079939403b5877ae692e6cc6d8bb5588666b39f91a987338f8da82d",
+      "verdict": "covered"
+    },
+    {
+      "index": 103,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113897,
+      "end": 113898,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "f766d05ffa440f6de747f4f2758e805bd734801c02351b31975dec27730f1a26",
+      "verdict": "covered"
+    },
+    {
+      "index": 104,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 113898,
+      "end": 113899,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "a383a34bff1a587b15e20cb24400b34e4da285b6df721fee3aa76aa905e2b445",
+      "verdict": "covered"
+    },
+    {
+      "index": 105,
+      "op": "compliance.collect",
+      "kind": "marker",
+      "start": 113899,
+      "end": 113899,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 106,
+      "op": "decaf.net_balance_commitment",
+      "kind": "gadget",
+      "gadget_label": "gadget-net-balance-commitment2",
+      "bridge_theorem": "Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound",
+      "start": 113899,
+      "end": 120101,
+      "constraint_count": 6202,
+      "constraint_sha256_hex": "39ed24a81813192b5494fe523e8a24304bbdab075c77cbd629ea5e0229115e49",
+      "verdict": "covered"
+    },
+    {
+      "index": 107,
+      "op": "decaf.compress_to_field",
+      "kind": "gadget",
+      "gadget_label": "gadget-decaf-compress-to-field",
+      "bridge_theorem": "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound",
+      "start": 120101,
+      "end": 121147,
+      "constraint_count": 1046,
+      "constraint_sha256_hex": "0bad14191c5ba4d502658d5cb9606a02c2e67d8e759a048d4115386a652a6b9c",
+      "verdict": "covered"
+    },
+    {
+      "index": 108,
+      "op": "statement.assemble",
+      "kind": "adapter",
+      "start": 121147,
+      "end": 121147,
+      "constraint_count": 0,
+      "constraint_sha256_hex": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verdict": "covered"
+    },
+    {
+      "index": 109,
+      "op": "statement.hash",
+      "kind": "gadget",
+      "gadget_label": "gadget-poseidon-hash7",
+      "bridge_theorem": "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound",
+      "start": 121147,
+      "end": 124427,
+      "constraint_count": 3280,
+      "constraint_sha256_hex": "2d45ba5bf1d3ae86ae76a10987ff755f75612426d13ad28a62c083c84eba5397",
+      "verdict": "covered"
+    },
+    {
+      "index": 110,
+      "op": "assert.eq",
+      "kind": "glue",
+      "start": 124427,
+      "end": 124428,
+      "constraint_count": 1,
+      "constraint_sha256_hex": "fdcfaf9d6901c95271ce8d183592d438f76312a7630beca6359ecb8db3e4ec3b",
+      "verdict": "covered"
+    }
+  ],
+  "deployed_obligations": {
+    "circuit": "transfer",
+    "sr1cs_sha256_hex": "747d468d1fc79affc067323e03abb5c96a1793fa3c247f6ca4f50bb9746de4db",
+    "total_obligations": 97,
+    "discharged": 97,
+    "functional_assumptions": 0,
+    "pending": 0,
+    "unmapped": 0,
+    "constant_mismatch": 0,
+    "instance_unpinned": 0,
+    "theorem_missing": 0,
+    "contract_missing": 0,
+    "relation_mismatch": 0,
+    "wire_role_mismatch": 0,
+    "class_errors": [],
+    "obligations": [
+      {
+        "segment_index": 1,
+        "op": "assert.boolean",
+        "start": 0,
+        "end": 1,
+        "class_key": "assert.boolean@7a87157611237b8e",
+        "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+        "relation_sha256_hex": "bf340286f4e0f8e5976aa4ac95cf1a23fc25632e7a9b0aa691dfcb33324b5762",
+        "wire_role_sha256_hex": "0d8a340a2023e8c710fdafc2c4d26417b4a920629cd4c1574a760ca63ef83f69",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst1_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg1"
+        }
+      },
+      {
+        "segment_index": 3,
+        "op": "assert.decaf_non_identity",
+        "start": 1,
+        "end": 2,
+        "class_key": "assert.decaf_non_identity@02e979593efdfb54",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "353c8b9a5d2d6e40edbe07fd6b27984f143997754498dd44f8de08f9e85266c4",
+        "wire_role_sha256_hex": "c77f0a1db1f2c5ea4be09a0ccdbacb81d350868a85a79b116420be95aec28302",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst3_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg3"
+        }
+      },
+      {
+        "segment_index": 4,
+        "op": "assert.decaf_non_identity",
+        "start": 2,
+        "end": 3,
+        "class_key": "assert.decaf_non_identity@02e979593efdfb54",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "259a601f258f1c1f545b6f58eeae8cf1e52f9c1c930c283fd9cc17e3921dd653",
+        "wire_role_sha256_hex": "17f7fed5c0f970042640d06fb25c4b9ca194e6a2dfd2709923acd9df0f42b8f3",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst4_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg4"
+        }
+      },
+      {
+        "segment_index": 5,
+        "op": "assert.ne",
+        "start": 3,
+        "end": 4,
+        "class_key": "assert.ne@02e979593efdfb54",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "7d258f002ffad3dcefa6dae740e9828c3a3b036d1941dd708896637609e49a59",
+        "wire_role_sha256_hex": "833ccebc6f82dd8bde903b657645c14712048847af3668b6d1b176d0035cbd33",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst5_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg5"
+        }
+      },
+      {
+        "segment_index": 6,
+        "op": "select.point",
+        "start": 4,
+        "end": 6,
+        "class_key": "select.point@8d8f64b0e91548eb",
+        "constant_vector_sha256_hex": "a073f591ebeb448cb79897e926790da8859c083fb4f7edb5b3f02b437d9afd04",
+        "relation_sha256_hex": "3acc268991ac6a90106e4a3508144ed9141f6894476607b38f5aaed05bd46503",
+        "wire_role_sha256_hex": "b8323c50d4ed57f3f94c33321eb9c7f102277f03b0160d988bd3bb05eaf362d5",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst6_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg6"
+        }
+      },
+      {
+        "segment_index": 7,
+        "op": "select.point",
+        "start": 6,
+        "end": 8,
+        "class_key": "select.point@8d8f64b0e91548eb",
+        "constant_vector_sha256_hex": "bff87ae6570ec9f5fdf31944ad550d68067b6f22fd2db30ca0bf449da5a420cf",
+        "relation_sha256_hex": "f535316d7ef82a2abbb61f044890ec793dddd13c3cda25c2cde2842eb815a25b",
+        "wire_role_sha256_hex": "29ae007821d7c0e0655c9c85436083d397f2d7c6d52ade8f6813c50276d74218",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst7_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg7"
+        }
+      },
+      {
+        "segment_index": 8,
+        "op": "select.field",
+        "start": 8,
+        "end": 9,
+        "class_key": "select.field@f708306dd03a3713",
+        "constant_vector_sha256_hex": "080c9075f93d4645ca6011d4e254b051ab559dd033abdd43d08c207d0939615c",
+        "relation_sha256_hex": "3e361e088769f782c8de95e0cbe0403036dd11d4984202d70c8ab11434327af4",
+        "wire_role_sha256_hex": "1f6560f586d003b9873a5d82cd8f6c43ccca92da1a26c0e834a5eb96a47490d5",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst8_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg8"
+        }
+      },
+      {
+        "segment_index": 9,
+        "op": "select.field",
+        "start": 9,
+        "end": 10,
+        "class_key": "select.field@f708306dd03a3713",
+        "constant_vector_sha256_hex": "080c9075f93d4645ca6011d4e254b051ab559dd033abdd43d08c207d0939615c",
+        "relation_sha256_hex": "2ff59001ee6dba9bd6abe5d08b6ffbb58109c97bf2b2a3dba68e0ae3690be632",
+        "wire_role_sha256_hex": "d9035d5263e84cef942e95aa3e1324f4495d9a891cfb5431d8435f90fc41e887",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst9_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg9"
+        }
+      },
+      {
+        "segment_index": 10,
+        "op": "select.field",
+        "start": 10,
+        "end": 11,
+        "class_key": "select.field@f708306dd03a3713",
+        "constant_vector_sha256_hex": "080c9075f93d4645ca6011d4e254b051ab559dd033abdd43d08c207d0939615c",
+        "relation_sha256_hex": "624e102b7cfe0e0f0cfe254cf4a9b9042082fcc37febe72bff2e17d1773e4399",
+        "wire_role_sha256_hex": "c73a79ebd6af4394a785355eba70e493ee02038d9669e33b2f67528349512d81",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst10_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg10"
+        }
+      },
+      {
+        "segment_index": 11,
+        "op": "select.field",
+        "start": 11,
+        "end": 12,
+        "class_key": "select.field@f708306dd03a3713",
+        "constant_vector_sha256_hex": "080c9075f93d4645ca6011d4e254b051ab559dd033abdd43d08c207d0939615c",
+        "relation_sha256_hex": "1a2d5fc1fd55adca65dbfdd94f938f9581577b5da1b2b2db49463c430e4988e3",
+        "wire_role_sha256_hex": "4541baafb52374eaa260336e33319e8c5acffd8ce56482a526a024a3d6f3ad99",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst11_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg11"
+        }
+      },
+      {
+        "segment_index": 12,
+        "op": "decaf.compress_to_field",
+        "start": 12,
+        "end": 1058,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "b2a1b498968fffada659e9252f6a6e16156527c088dbf26b3920286b57fa1671",
+        "wire_role_sha256_hex": "c107d44f7fb4b9c9b28b8665e6dfc52c5f2c90712689dd4442f53aae6941b340",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst12_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg12"
+        }
+      },
+      {
+        "segment_index": 13,
+        "op": "decaf.compress_to_field",
+        "start": 1058,
+        "end": 2104,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "f1ba84c7f9e59491d080ef5fc9b5c5f340937aa2200727737ea4132291c835d9",
+        "wire_role_sha256_hex": "61d0bbb1af43876474d3e00bbd05833b4d071b837a5ac0d37082cf025d83590b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst13_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg13"
+        }
+      },
+      {
+        "segment_index": 14,
+        "op": "assert.ne",
+        "start": 2104,
+        "end": 2105,
+        "class_key": "assert.ne@02e979593efdfb54",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "f627f0bbef8379f5c4d417f82cdadfb94b44da10ca269a07c2340487f6606480",
+        "wire_role_sha256_hex": "176c63eab44543c7bf7150fe2cbad5f028093ded3a339289fb16c693acb44d6b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst14_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg14"
+        }
+      },
+      {
+        "segment_index": 15,
+        "op": "decaf.diversified_transmission_key",
+        "start": 2105,
+        "end": 7582,
+        "class_key": "decaf.diversified_transmission_key@50d12ca8a9329c70",
+        "constant_vector_sha256_hex": "500730942fa63a7e2f9e40502f22ca00737e04fa344ece0183f046e1d2b3e278",
+        "relation_sha256_hex": "4280da6b76ec787682851637a733f4ec1cd29913d49cb1eebc8e7f3cd873f390",
+        "wire_role_sha256_hex": "2cdf5e60544cfc8189f4596f32e5c903398e14540e3265aafb04a0ef6ebdfceb",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst15_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg15"
+        }
+      },
+      {
+        "segment_index": 16,
+        "op": "decaf.assert_equivalent",
+        "start": 7582,
+        "end": 7585,
+        "class_key": "decaf.assert_equivalent@de58bb27e32fe356",
+        "constant_vector_sha256_hex": "57adb5486b15ec518e31a1ae4d555bbebae97124faaf43f2e9802cc659cac3f5",
+        "relation_sha256_hex": "f9104783f82947761f189b42b222b76c946481cfe767585134421eaed462d8f0",
+        "wire_role_sha256_hex": "6aa7589bbf87c1a5948b18f712020afe47e2793529f30c77382a23e188f3c801",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst16_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg16"
+        }
+      },
+      {
+        "segment_index": 17,
+        "op": "assert.decaf_non_identity",
+        "start": 7585,
+        "end": 7586,
+        "class_key": "assert.decaf_non_identity@02e979593efdfb54",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "42693942949723837fac393617502791e006545fcea16cebd60153a6736196bd",
+        "wire_role_sha256_hex": "ba746b4cd4a5c328c2715b9fa01c29f59231790bb615c21481916aa374722ab3",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst17_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg17"
+        }
+      },
+      {
+        "segment_index": 18,
+        "op": "decaf.compress_to_field",
+        "start": 7586,
+        "end": 8632,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "87e2c7d629ae4404243f09d4747462c95e05484545771009bbe296b53cace121",
+        "wire_role_sha256_hex": "7fd3cac72728e55ee27c0a41f5414955c95f2caea0dff19124a7d20cb956f9c2",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst18_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg18"
+        }
+      },
+      {
+        "segment_index": 19,
+        "op": "gadget.asset_registry_params_hash",
+        "start": 8632,
+        "end": 8982,
+        "class_key": "gadget.asset_registry_params_hash@3ede260b6a451295",
+        "constant_vector_sha256_hex": "cffa669ae9d28feae68eaedd454fcd54ea56ea83884f1e63b1088aafa1ddfcc7",
+        "relation_sha256_hex": "8a2569a89fc5d0f33fce127da24b1842646245750877ca2f6c848e06fb4b2a0f",
+        "wire_role_sha256_hex": "b5a15f519ae08be5d59d4d76d8448ea9f9eb64a308b2909ed14e7e56261507f9",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst19_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg19"
+        }
+      },
+      {
+        "segment_index": 20,
+        "op": "decaf.compress_to_field",
+        "start": 8982,
+        "end": 10028,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "a286b99be2c8ce2dbf808734a7985ca64d8904cde24e729adc558a53706c734c",
+        "wire_role_sha256_hex": "ebaedfb4b685128a5118e23b65e9cc822c58232e736883736c9dc5a138afc303",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst20_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg20"
+        }
+      },
+      {
+        "segment_index": 21,
+        "op": "gadget.asset_registry_ring_hash",
+        "start": 10028,
+        "end": 10418,
+        "class_key": "gadget.asset_registry_ring_hash@3ea6f194c5cf87a2",
+        "constant_vector_sha256_hex": "49086457b41d3f1b66a6fe070f873c285de10475b720daeab83346a3d8682d6f",
+        "relation_sha256_hex": "b2865e815ef4f5c386b6455f800504fdbd26663590b3b1657a6c2217674b5bd5",
+        "wire_role_sha256_hex": "c66e0be1d3f09c977b53fd4daec5f6ba4b33d1dfdcc7d04f71b0e5e011307d38",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst21_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg21"
+        }
+      },
+      {
+        "segment_index": 22,
+        "op": "gadget.asset_registry_leaf_hash",
+        "start": 10418,
+        "end": 10808,
+        "class_key": "gadget.asset_registry_leaf_hash@2f42134e7cf0f61b",
+        "constant_vector_sha256_hex": "d515ebd225eb8fd444cbc0d69e7a9658b5764ce8ddf7e29051f910cb61c039bb",
+        "relation_sha256_hex": "ead36bd59051b6ec372f9b7b707ea82281357eb954e7f30add90f93148f338b8",
+        "wire_role_sha256_hex": "6b13f0f5a3dddd2bd5570b233cfa524c0ab8de5dd29db50ca7157f6ab6aebe80",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst22_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg22"
+        }
+      },
+      {
+        "segment_index": 23,
+        "op": "gadget.asset_registry_path",
+        "start": 10808,
+        "end": 16665,
+        "class_key": "gadget.asset_registry_path@ef63c050e024608c",
+        "constant_vector_sha256_hex": "ff0056132da0e46efb95f251d722854798ff116c178ab20aef7024dbe668e58c",
+        "relation_sha256_hex": "e38302d9ee17a4ec222c18b08db3ccb066d31febfecd5453b0c14ae0f1272d88",
+        "wire_role_sha256_hex": "83f0d7098a2541c012192779bcd59e2b958f1e9791bb199c8b1c0f20ff81271a",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst23_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg23"
+        }
+      },
+      {
+        "segment_index": 24,
+        "op": "assert.eq",
+        "start": 16665,
+        "end": 16666,
+        "class_key": "assert.eq@79834932d11ef8ff",
+        "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
+        "relation_sha256_hex": "3a081e5a08483ee4b6cfbfd0fae91d2f9c942d43ce1577b2fd5e21833f37c1b3",
+        "wire_role_sha256_hex": "a364e6254b4a45bb48477c518968f2565ceb558902888567f675622a364ac358",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst24_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg24"
+        }
+      },
+      {
+        "segment_index": 25,
+        "op": "gadget.asset_registry_gap",
+        "start": 16666,
+        "end": 20208,
+        "class_key": "gadget.asset_registry_gap@07f861b269e76a86",
+        "constant_vector_sha256_hex": "80f749d35ec65bcc26fc64a1eb12b16d32380937c38fe7577974926aae25f396",
+        "relation_sha256_hex": "9ddb8da27ae6b019a0113c3f8ede9011b5f2579c1019bb7826666359e0b0d692",
+        "wire_role_sha256_hex": "0f2f4b71d0d3f7c68c5dd378e9505978efcee7b633b89a3a84d3a64c92d95c20",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst25_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg25"
+        }
+      },
+      {
+        "segment_index": 26,
+        "op": "assert.eq",
+        "start": 20208,
+        "end": 20209,
+        "class_key": "assert.eq@e98882ab152e4816",
+        "constant_vector_sha256_hex": "9ebc369054f60e573f780564718a0be335abe6b8179928d854f5a7d24e87ff46",
+        "relation_sha256_hex": "bba296c173f12ed8d0b21e1685d962f82e8fe11bfb9d32e094e39637bb75b7d9",
+        "wire_role_sha256_hex": "b852fb3b47599fe61d16fa506d558d550f15d5f8a42471f50aadea80d2aba58a",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst26_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg26"
+        }
+      },
+      {
+        "segment_index": 27,
+        "op": "gadget.compliance_leaf",
+        "start": 20209,
+        "end": 20679,
+        "class_key": "gadget.compliance_leaf@55ea2ffd47dbcf71",
+        "constant_vector_sha256_hex": "dc87e8ab08026eced0662493a7fbd6e014fb6260b3bc384ed0d14ea686cc8869",
+        "relation_sha256_hex": "62f4bd5e7c8003d3c9ea9336e899b89b417aacb9c4a198d2763e5931274169e8",
+        "wire_role_sha256_hex": "e175bd708c660195841761b35375457ea7eb586b05e65ae76a32fe7cf845e090",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst27_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg27"
+        }
+      },
+      {
+        "segment_index": 28,
+        "op": "gadget.compliance_path",
+        "start": 20679,
+        "end": 26536,
+        "class_key": "gadget.compliance_path@48f5a51369e5517c",
+        "constant_vector_sha256_hex": "d20ea0e753223eac503d76af86182dd0e9651cf7a1967a64b84a03ef9e50e772",
+        "relation_sha256_hex": "6c506115a4c53774a73be43a67e314a6f9b8beafbb17d0b12c94e2a486a012e8",
+        "wire_role_sha256_hex": "f4fdfddaba67c3f8d56d95af0671218a4ac61b756321378fd4ef9915a16063a1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst28_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg28"
+        }
+      },
+      {
+        "segment_index": 29,
+        "op": "assert.eq_if",
+        "start": 26536,
+        "end": 26538,
+        "class_key": "assert.eq_if@6b189fceb6f38b99",
+        "constant_vector_sha256_hex": "81aa13b28cb82b96d2c488e0269ae01044d7da54a5e9bdce6dfdfb1b8c08ac53",
+        "relation_sha256_hex": "aea27ff9bcd3b1574d91b4aa3ad8dc0840f2a93254ca258ff20260883369b673",
+        "wire_role_sha256_hex": "3b1ad402c95edfa476cfbe8aab6afb17f3f9af76430f1fef766e4aaaf481aacd",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst29_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg29"
+        }
+      },
+      {
+        "segment_index": 30,
+        "op": "decaf.ack",
+        "start": 26538,
+        "end": 29548,
+        "class_key": "decaf.ack@6887193a7264ab45",
+        "constant_vector_sha256_hex": "bc43fe8e977e83a161cb1d5fead6dad7a61aa7b819cfa63a0b7877a9a18e66af",
+        "relation_sha256_hex": "b5114976012138d04a8def3923d9c3493547ce4af291ac43340f46e4fa637bdc",
+        "wire_role_sha256_hex": "fc3dcddc4f1e98e2bde4f51f65a41dc5779ae3a99ba2081ffed60ef2cd489182",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst30_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg30"
+        }
+      },
+      {
+        "segment_index": 32,
+        "op": "gadget.note_commitment",
+        "start": 29548,
+        "end": 29978,
+        "class_key": "gadget.note_commitment@a214e103a156e1fd",
+        "constant_vector_sha256_hex": "0ec1d01ff2b5c7ec88716e2f266eb1d3a39271c8370ee45b03f4d9defe942650",
+        "relation_sha256_hex": "b577a32b6eb3764609f2ff74425a02a21fc4ff7b7086193699893041437fbca6",
+        "wire_role_sha256_hex": "d859fd4d177ccc00cf53289596994186a4d7c8b9a538372d47a86272dbd5481f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst32_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg32"
+        }
+      },
+      {
+        "segment_index": 33,
+        "op": "gadget.nullifier",
+        "start": 29978,
+        "end": 30288,
+        "class_key": "gadget.nullifier@7d69f698e0d7da6c",
+        "constant_vector_sha256_hex": "bfe07058ea4e37b23d92586163cfb9e8a63b50d559082b29a3c5839838f38b50",
+        "relation_sha256_hex": "bb8b7a281ef5c262820455362a9a6315c4c45a731054b61fcd98d1e150730902",
+        "wire_role_sha256_hex": "b3abe63d2140b96d5bd05efc446a85bdaa2d71bd106893c2353f79a0fc484ce4",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst33_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg33"
+        }
+      },
+      {
+        "segment_index": 34,
+        "op": "gadget.state_commitment_path",
+        "start": 30288,
+        "end": 39303,
+        "class_key": "gadget.state_commitment_path@1fb4124ff9d8cc66",
+        "constant_vector_sha256_hex": "9368cc95120ed4d0d19d3dcc5ca9dea5ae19c2802c4e25b2f3cbd6d8e5edd8e9",
+        "relation_sha256_hex": "0f2ccbbc1fef41e2882d262e9cf7188626ffad8f88e451f3cfbc7b27ae96eb4a",
+        "wire_role_sha256_hex": "cb481a15a656cc319b9ebfeba81818ff5b662a30df92392d96c9a6e04f6e4831",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst34_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg34"
+        }
+      },
+      {
+        "segment_index": 35,
+        "op": "assert.eq",
+        "start": 39303,
+        "end": 39304,
+        "class_key": "assert.eq@f317d4157f1c5303",
+        "constant_vector_sha256_hex": "836c37280403f43529ca0ad27d77413aface8ff3aaf7167ddd9275199848c73a",
+        "relation_sha256_hex": "b98039720d048ed01cdcd2fe899c5774b7fcd9215f020d16e47bcc2af8df6fdd",
+        "wire_role_sha256_hex": "2a7a20d377ae35fa490cb007c51881769fb4b9beaf6ff5b5414167af04945312",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst35_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg35"
+        }
+      },
+      {
+        "segment_index": 36,
+        "op": "assert.eq",
+        "start": 39304,
+        "end": 39305,
+        "class_key": "assert.eq@79834932d11ef8ff",
+        "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
+        "relation_sha256_hex": "c06363ca54749441aa94e23ea75f88bded6f6f272e4c54be0e9d0e59af3add5d",
+        "wire_role_sha256_hex": "96181d99a38d475676328a85068e8656fc15ae1704b4cd468f915ac365dbd480",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst36_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg36"
+        }
+      },
+      {
+        "segment_index": 37,
+        "op": "decaf.randomized_verification_key",
+        "start": 39305,
+        "end": 41117,
+        "class_key": "decaf.randomized_verification_key@058cff75c684a4d6",
+        "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+        "relation_sha256_hex": "be365033bc0318166698b8598a9912cf927a04145222549ac4634aa5be7b0646",
+        "wire_role_sha256_hex": "057d593e12f9baeec5a96b8c61db538eb0a0d3b26fb4a00cfbddc2775e2f1742",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst37_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg37"
+        }
+      },
+      {
+        "segment_index": 38,
+        "op": "decaf.assert_equivalent",
+        "start": 41117,
+        "end": 41120,
+        "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+        "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+        "relation_sha256_hex": "392631957ddc190079bd3590e5c9fe860c981e6946f3a836b2ca936f94780afa",
+        "wire_role_sha256_hex": "2290ff9228da2cf9f353b03115787d36cd280acecdceff6321f3fd17667f0b4f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst38_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg38"
+        }
+      },
+      {
+        "segment_index": 39,
+        "op": "decaf.compress_to_field",
+        "start": 41120,
+        "end": 42166,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "aa69caed7d2c75f8acf9060c5f6ad2f4fe08a241446194da48353d188857099d",
+        "wire_role_sha256_hex": "74d43bc73defe3e1acb7e7d25b283b3ff382ed97c5806e83225a3a475fb09387",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst39_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg39"
+        }
+      },
+      {
+        "segment_index": 42,
+        "op": "assert.boolean",
+        "start": 42166,
+        "end": 42167,
+        "class_key": "assert.boolean@7a87157611237b8e",
+        "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+        "relation_sha256_hex": "d7afc504c5d24bdd3678c757038361feb792e43e4ba3eadae8dcceb7cd734d1d",
+        "wire_role_sha256_hex": "f9d0403ff3f4b35285215f97b88b5baae56b6da86084e8ac4af54feb18871adc",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst42_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg42"
+        }
+      },
+      {
+        "segment_index": 43,
+        "op": "gadget.note_commitment",
+        "start": 42167,
+        "end": 42597,
+        "class_key": "gadget.note_commitment@a214e103a156e1fd",
+        "constant_vector_sha256_hex": "0ec1d01ff2b5c7ec88716e2f266eb1d3a39271c8370ee45b03f4d9defe942650",
+        "relation_sha256_hex": "e3fcdda9dbed416be29b00bb076c31b8806d735f3a8bb200f12fbb803ffd3d3a",
+        "wire_role_sha256_hex": "06610f57d7d5875f274ac08eee436589f6171b335f238629fe3f4586796ab0c1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst43_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg43"
+        }
+      },
+      {
+        "segment_index": 44,
+        "op": "gadget.nullifier",
+        "start": 42597,
+        "end": 42907,
+        "class_key": "gadget.nullifier@7d69f698e0d7da6c",
+        "constant_vector_sha256_hex": "bfe07058ea4e37b23d92586163cfb9e8a63b50d559082b29a3c5839838f38b50",
+        "relation_sha256_hex": "94076293a61b999d884bafe89cb64a19c3c839c02ed1bf153f5788feb7211b87",
+        "wire_role_sha256_hex": "9d380ddea956857d18d1e60f59a0465fc209e19574941646f3ef481aed0af3c1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst44_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg44"
+        }
+      },
+      {
+        "segment_index": 45,
+        "op": "gadget.state_commitment_path",
+        "start": 42907,
+        "end": 51922,
+        "class_key": "gadget.state_commitment_path@1fb4124ff9d8cc66",
+        "constant_vector_sha256_hex": "9368cc95120ed4d0d19d3dcc5ca9dea5ae19c2802c4e25b2f3cbd6d8e5edd8e9",
+        "relation_sha256_hex": "c806d3eb649aa80dbe3a54e950b7e6e18a552ebbf9239632fe6dd59281b3eb6c",
+        "wire_role_sha256_hex": "32d623bdce104ab0c24404bae2e0be3beab8b5fdcdcf0485e14e84cd4632bb18",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst45_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg45"
+        }
+      },
+      {
+        "segment_index": 46,
+        "op": "gadget.synthetic_dummy_nullifier",
+        "start": 51922,
+        "end": 52227,
+        "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3",
+        "constant_vector_sha256_hex": "874b23936e86f3bd2e0d3d05466a8d3104513fc3a75c76931b4bd8e34258f6e5",
+        "relation_sha256_hex": "7f6374c110530fc1fce1311569dde9c54d120e2aa8730581637dbfae908027fd",
+        "wire_role_sha256_hex": "b434a8625b1bf41b6a3d68d1e69fd6d72f78fc3cac7d26fa28d411c4284bb2fe",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst46_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg46"
+        }
+      },
+      {
+        "segment_index": 47,
+        "op": "dummy.mux",
+        "start": 52227,
+        "end": 52229,
+        "class_key": "dummy.mux@68c34d6e11c35404",
+        "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+        "relation_sha256_hex": "b5cf2f847bd9ffc23411d734cf660fc07eb37d77b19a20c1b9b63f1594e00ac1",
+        "wire_role_sha256_hex": "bf995b4b29b18f510280d4dadb8c81414e0409a23e16f2bc39885215a93fdba9",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst47_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg47"
+        }
+      },
+      {
+        "segment_index": 48,
+        "op": "assert.eq",
+        "start": 52229,
+        "end": 52230,
+        "class_key": "assert.eq@c8f5f9ee8e1b47f7",
+        "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+        "relation_sha256_hex": "63a9d5a556ce2796f25f44b5d64151026f75621adb54d0a1dc7dd9e016ed7bbc",
+        "wire_role_sha256_hex": "578f78b19aae347aa07c4ab2f9fa4dff9155049a7472760fa81d7319221a5916",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst48_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg48"
+        }
+      },
+      {
+        "segment_index": 49,
+        "op": "assert.eq_if",
+        "start": 52230,
+        "end": 52232,
+        "class_key": "assert.eq_if@260c4859295f1af1",
+        "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+        "relation_sha256_hex": "2215a11c4c42e1c2191774e1d140e84d90f14770057c92b31fd8f75c9070b9dc",
+        "wire_role_sha256_hex": "867a9b162c7d57fe2da199f906c31b476b733bb66663cc07a7d1d7e282cebd26",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst49_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg49"
+        }
+      },
+      {
+        "segment_index": 50,
+        "op": "decaf.randomized_verification_key",
+        "start": 52232,
+        "end": 54044,
+        "class_key": "decaf.randomized_verification_key@058cff75c684a4d6",
+        "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+        "relation_sha256_hex": "4c5fa82f1ac8eb65d8b452ea5eeacd1d4e5f7311f72010c9acdde65f1b52c593",
+        "wire_role_sha256_hex": "1b2ce10cb6330bbf78a22fb02ee18746e7fa6885a95bedbf4139d024ade5bd3e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst50_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg50"
+        }
+      },
+      {
+        "segment_index": 51,
+        "op": "decaf.assert_equivalent_if",
+        "start": 54044,
+        "end": 54050,
+        "class_key": "decaf.assert_equivalent_if@6198d347efba32e9",
+        "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+        "relation_sha256_hex": "af4e9c0d771c852fac38ebd6dc89249ff144083d024baa8bea38c7edd60a1a87",
+        "wire_role_sha256_hex": "90b714856a1003236850947bad180998fa343ebc6db8f074f2ede432a9e8a1c3",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst51_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg51"
+        }
+      },
+      {
+        "segment_index": 52,
+        "op": "assert.eq_if",
+        "start": 54050,
+        "end": 54052,
+        "class_key": "assert.eq_if@85cc0c8fd7537839",
+        "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+        "relation_sha256_hex": "3c7e82da6c45dc7bd1cb957de84a03e7079bd20a389cf0a92e10227c416fad74",
+        "wire_role_sha256_hex": "de5071d89971e2e7848d2a89e5133711c1732a6bb75238f65b53b1ad6820dcbf",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst52_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg52"
+        }
+      },
+      {
+        "segment_index": 53,
+        "op": "decaf.compress_to_field",
+        "start": 54052,
+        "end": 55098,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "121e9f516a2bf4162159abd885afd0bead521529c45b330c91dd6420f10dc248",
+        "wire_role_sha256_hex": "35a13ae8eb3a5f73af79eedce2a768c0b109ffddca626c439a842e1281d600db",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst53_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg53"
+        }
+      },
+      {
+        "segment_index": 56,
+        "op": "assert.decaf_non_identity",
+        "start": 55098,
+        "end": 55099,
+        "class_key": "assert.decaf_non_identity@02e979593efdfb54",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "16a561c3be08e0e073947737d24136121bd58a2935996289d3708ceddd11571d",
+        "wire_role_sha256_hex": "b6cf9b8958d205b5223967fe83a62d8780ddbfceb38fdb1d68eadb3986a912fa",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst56_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg56"
+        }
+      },
+      {
+        "segment_index": 57,
+        "op": "assert.decaf_non_identity",
+        "start": 55099,
+        "end": 55100,
+        "class_key": "assert.decaf_non_identity@02e979593efdfb54",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "203a29dd24f4d658a8f7bc1e85975ee2ecb6e25a6f3cfc143f475b1ccae79fb8",
+        "wire_role_sha256_hex": "5c1306d649c2709573709320b0f13a85cbe5f4635e7c25861f89649ace384a40",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst57_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg57"
+        }
+      },
+      {
+        "segment_index": 58,
+        "op": "gadget.is_zero",
+        "start": 55100,
+        "end": 55102,
+        "class_key": "gadget.is_zero@c8f4bc71f8ac50d9",
+        "constant_vector_sha256_hex": "0b168a000ea62b8aefd3ae82338645f1667e4bf98c35938249c7019c839b2957",
+        "relation_sha256_hex": "04cbfaf3c58939f3f7e47c1d14e77096458f1f8e178374feb6ddc07224afc263",
+        "wire_role_sha256_hex": "8f0646cfe663fd6eb7d7b91f9c250d6c9ac0c063dd12158f9845d5015861f94b",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst58_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg58"
+        }
+      },
+      {
+        "segment_index": 59,
+        "op": "decaf.compress_to_field",
+        "start": 55102,
+        "end": 56148,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "fff4ea3005d7db25f7841239443023edb8af2cbec22f3002785ad1555c73f839",
+        "wire_role_sha256_hex": "d7b63e66b01a0a11c56a4cc2d90d25d1c245ab5d947a0457b413119a6e817e42",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst59_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg59"
+        }
+      },
+      {
+        "segment_index": 60,
+        "op": "decaf.compress_to_field",
+        "start": 56148,
+        "end": 57194,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "dd3b43b47bdbec4c34f13d1cc6de4e9641f5738c854bb27a76a32298d2b5f029",
+        "wire_role_sha256_hex": "c8953c5beeb08f4abc4fc017622c9c809829e047e4aab6a78906fe2e5544c7d3",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst60_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg60"
+        }
+      },
+      {
+        "segment_index": 61,
+        "op": "gadget.note_commitment",
+        "start": 57194,
+        "end": 57624,
+        "class_key": "gadget.note_commitment@a214e103a156e1fd",
+        "constant_vector_sha256_hex": "0ec1d01ff2b5c7ec88716e2f266eb1d3a39271c8370ee45b03f4d9defe942650",
+        "relation_sha256_hex": "6157b13e94db8f1f5affe6f955250223a8189bbdddbee9c0b67f94bb17eae2db",
+        "wire_role_sha256_hex": "18bfbc77e3d348fdea6cb940ba533f7c1d01d596d7ebb30b0b4e7340ba2f2a30",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst61_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg61"
+        }
+      },
+      {
+        "segment_index": 62,
+        "op": "assert.eq",
+        "start": 57624,
+        "end": 57625,
+        "class_key": "assert.eq@06c76cbbea275f19",
+        "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+        "relation_sha256_hex": "becea2c8c93d8abba5348915c09f56413c34e046c7a3f050f6fb1eebf1a5cb21",
+        "wire_role_sha256_hex": "d7e8ca843470ec2b36945b4084485c00ef59962221f495c4d1c6bc9d9dd7053e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst62_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg62"
+        }
+      },
+      {
+        "segment_index": 63,
+        "op": "gadget.compliance_leaf",
+        "start": 57625,
+        "end": 58095,
+        "class_key": "gadget.compliance_leaf@55ea2ffd47dbcf71",
+        "constant_vector_sha256_hex": "dc87e8ab08026eced0662493a7fbd6e014fb6260b3bc384ed0d14ea686cc8869",
+        "relation_sha256_hex": "fef087df1445bb1c5dde74d2dd28d33fcfb74aa61057125e4cb0aceae8c9d74b",
+        "wire_role_sha256_hex": "f9bdef4e0ddd64fce72517f2291f32b3562fc4de4c144444c5fb5d36ae54c743",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst63_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg63"
+        }
+      },
+      {
+        "segment_index": 64,
+        "op": "gadget.compliance_path",
+        "start": 58095,
+        "end": 63952,
+        "class_key": "gadget.compliance_path@48f5a51369e5517c",
+        "constant_vector_sha256_hex": "d20ea0e753223eac503d76af86182dd0e9651cf7a1967a64b84a03ef9e50e772",
+        "relation_sha256_hex": "4e69e9b54a56a326a74bef27597979cc0399ff4190e27d8bd6537752a79e3155",
+        "wire_role_sha256_hex": "9ab7b741345b43b21960d95b28ad76e2b0a0c481a2bd1fba3ee5bd0063cfb46e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst64_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg64"
+        }
+      },
+      {
+        "segment_index": 65,
+        "op": "assert.eq_if",
+        "start": 63952,
+        "end": 63954,
+        "class_key": "assert.eq_if@6b189fceb6f38b99",
+        "constant_vector_sha256_hex": "81aa13b28cb82b96d2c488e0269ae01044d7da54a5e9bdce6dfdfb1b8c08ac53",
+        "relation_sha256_hex": "dbf829cd562475e112ac8f8ae85c4da0d82c64005e0fbb37d36657e44d8ff76a",
+        "wire_role_sha256_hex": "3fb9e0d90b256bea7abdaae98e2b6b87d640783fbaa80da1bafdcc46e30cc556",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst65_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg65"
+        }
+      },
+      {
+        "segment_index": 66,
+        "op": "assert.eq",
+        "start": 63954,
+        "end": 63955,
+        "class_key": "assert.eq@2019d0cd6df69abf",
+        "constant_vector_sha256_hex": "bce2af287e89e40e04388c7b6bed61182eba286c2084e745d4c5f263d3ddfacd",
+        "relation_sha256_hex": "a1b31e53453bd09cef5b8631d09f4feb42016e6cd21302d911d20c6ee5178193",
+        "wire_role_sha256_hex": "d395d0251a77f7b3e20e75886637c658e96178c6a3aca678dc194f317ab7ea47",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst66_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg66"
+        }
+      },
+      {
+        "segment_index": 67,
+        "op": "decaf.ack",
+        "start": 63955,
+        "end": 66965,
+        "class_key": "decaf.ack@6887193a7264ab45",
+        "constant_vector_sha256_hex": "bc43fe8e977e83a161cb1d5fead6dad7a61aa7b819cfa63a0b7877a9a18e66af",
+        "relation_sha256_hex": "462d91cf50d69e12ff1b7a6f05f6880d2f980ec2147abd746425bb1906ea1254",
+        "wire_role_sha256_hex": "e6e5e5040eee5098d4a4e350337328dd816723c2a00de54cc30718f6425e5f64",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst67_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg67"
+        }
+      },
+      {
+        "segment_index": 70,
+        "op": "gadget.note_commitment",
+        "start": 66965,
+        "end": 67395,
+        "class_key": "gadget.note_commitment@a214e103a156e1fd",
+        "constant_vector_sha256_hex": "0ec1d01ff2b5c7ec88716e2f266eb1d3a39271c8370ee45b03f4d9defe942650",
+        "relation_sha256_hex": "c7477dd59f7e5b5fd4f8ed91b3dd1edecae53b221b499daecf6eb1d0b44f57ae",
+        "wire_role_sha256_hex": "72c0478f9f2a68bd75bf35a199c690f6f36737303e80ca70f1e34e5e0bb781b1",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst70_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg70"
+        }
+      },
+      {
+        "segment_index": 71,
+        "op": "assert.eq",
+        "start": 67395,
+        "end": 67396,
+        "class_key": "assert.eq@06c76cbbea275f19",
+        "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+        "relation_sha256_hex": "5c18e50a597b646e304b746d0074f7afcb50c77b44e2a58f520b91e090790c69",
+        "wire_role_sha256_hex": "1f54a40def7d4846892f8ac6e357a2db168f661585233c4a33542fe6d15a2063",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst71_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg71"
+        }
+      },
+      {
+        "segment_index": 74,
+        "op": "threshold.flag",
+        "start": 67396,
+        "end": 68292,
+        "class_key": "threshold.flag@c626a1c4264d69da",
+        "constant_vector_sha256_hex": "a96d0fc1b32f2d917fb52001be7ae36d4c4863e3128ad4b4463a1ba508c9eafa",
+        "relation_sha256_hex": "c4ac67692ecfed5f290acd8e83c7c8f684c2d719d582278ff6a48013b5047c0e",
+        "wire_role_sha256_hex": "834414d5476965e1ba05b4ee678c0039dc98b291289e6cef1ade56294875b3a9",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst74_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg74"
+        }
+      },
+      {
+        "segment_index": 75,
+        "op": "decaf.compress_to_field",
+        "start": 68292,
+        "end": 69338,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "f8045f13ebbf8074ccd1c3336f5dfa2e7380224489864e58689a29fd36ae4255",
+        "wire_role_sha256_hex": "b935ca0b5a143c9d01cf287c1ac7e9b764214d21dc890a155730c8d4ee2a458e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst75_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg75"
+        }
+      },
+      {
+        "segment_index": 76,
+        "op": "decaf.compress_to_field",
+        "start": 69338,
+        "end": 70384,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "4f2a08937e2451c9a324720845095955b1104f3a2aa25658a9d4987ed24bd42b",
+        "wire_role_sha256_hex": "9db1771205e1fd637850a8333c8ef3c6e948a2af2182642c772fe5af3c555cf0",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst76_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg76"
+        }
+      },
+      {
+        "segment_index": 77,
+        "op": "decaf.compress_to_field",
+        "start": 70384,
+        "end": 71430,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "9f43592fc21fd7a125947cab098551fa2effbe0fe6004b8699c0e1d961d9b2b0",
+        "wire_role_sha256_hex": "7797927c2b992f1272e1be95e08a385ddf1cf2ab93f733336793f42912e4ec07",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst77_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg77"
+        }
+      },
+      {
+        "segment_index": 78,
+        "op": "decaf.compress_to_field",
+        "start": 71430,
+        "end": 72476,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "1a89a7924e9c11e8c04952aaa1a64cb7ac4912e9280bdad2e76907501ef7cebe",
+        "wire_role_sha256_hex": "2c8c0d1c6cfa93db8ac27b41f92fbbfc892460ca0aa7769ba05dedbe55584347",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst78_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg78"
+        }
+      },
+      {
+        "segment_index": 79,
+        "op": "gadget.transfer_salt",
+        "start": 72476,
+        "end": 72741,
+        "class_key": "gadget.transfer_salt@ec9b475e75020561",
+        "constant_vector_sha256_hex": "3219ab5358cc20e9ed7d48c119d8c7f0cc52f6a4db835af86ec352bc1af7c1e1",
+        "relation_sha256_hex": "b8d59bdaac042aeb91e4f1856c2b7c43afe543c2b58314d56656dfa15938411c",
+        "wire_role_sha256_hex": "c13f83a381268419c652a756c6dbe6d6e1d0e76246d62a51136c81b6c33d0807",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst79_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg79"
+        }
+      },
+      {
+        "segment_index": 80,
+        "op": "gadget.transfer_salt",
+        "start": 72741,
+        "end": 73006,
+        "class_key": "gadget.transfer_salt@ec9b475e75020561",
+        "constant_vector_sha256_hex": "66e3358919fc345360495bb1008eb7b1f13bd578632005ba505b225d45c48ced",
+        "relation_sha256_hex": "0e603d1449c1be2af56467512a975fd8d8aeb8849f7945f3059c287c25df454f",
+        "wire_role_sha256_hex": "057c949103a5cb62c43740f78a6deafdb7a2fe992dd668631805b580105bcf8f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst80_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg80"
+        }
+      },
+      {
+        "segment_index": 81,
+        "op": "gadget.transfer_salt",
+        "start": 73006,
+        "end": 73271,
+        "class_key": "gadget.transfer_salt@ec9b475e75020561",
+        "constant_vector_sha256_hex": "109986436d8d0d67e032bd52271199c1106c80c0b0704fbe19d1dfa207e484b3",
+        "relation_sha256_hex": "ed8db8245ffc1a2bfb37f3b9405567f5d823d28ec173ef8e1c3ae23fc0bf156b",
+        "wire_role_sha256_hex": "773104079689f44a19e5ccfca545c06368883b8f5180aa386e3953781dbcb257",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst81_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg81"
+        }
+      },
+      {
+        "segment_index": 82,
+        "op": "gadget.transfer_salt",
+        "start": 73271,
+        "end": 73536,
+        "class_key": "gadget.transfer_salt@ec9b475e75020561",
+        "constant_vector_sha256_hex": "322ca764fa753a81a2aa724bedb8e631fbb1b4464116577a59dec6bd19a8600a",
+        "relation_sha256_hex": "fa4c4f4ab666e98df527c3a336854cf84a40f9c08e29028d6c2cc6eb373f82b9",
+        "wire_role_sha256_hex": "9d31b8b6ee02dc9bb0b28f20d549074dd29185fbe240a7d2ae4cd9be09b41917",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst82_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg82"
+        }
+      },
+      {
+        "segment_index": 83,
+        "op": "gadget.transfer_salt",
+        "start": 73536,
+        "end": 73801,
+        "class_key": "gadget.transfer_salt@ec9b475e75020561",
+        "constant_vector_sha256_hex": "57702d6e032591b5b7208ec7a8b9f4e3e4ae277bb8decbf92c9cc421d480e02f",
+        "relation_sha256_hex": "1a1934ec6046f2f20af590541ed6ca9dc62e5e7b4c5222fb8b7c19edf0c53f74",
+        "wire_role_sha256_hex": "e40e70c371e5638eaf78e50d9c03da2d207014d875ee799b28b0022ea10b720d",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst83_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg83"
+        }
+      },
+      {
+        "segment_index": 84,
+        "op": "decaf.shared_secret",
+        "start": 73801,
+        "end": 81128,
+        "class_key": "decaf.shared_secret@8d155e57b7455e91",
+        "constant_vector_sha256_hex": "3ee25121bb90e36b0779b324ec428b1ac43a717c5428576951709a220e280d8f",
+        "relation_sha256_hex": "989dba9b436a0cbbfd28374b3fd195ecb8af59a7374f44afff9ea1ed17344b85",
+        "wire_role_sha256_hex": "f9ebb8d273e98957e9288d0a88b2ae7a416cde02f2ffb5f6d92084eba7f2f9fe",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst84_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg84"
+        }
+      },
+      {
+        "segment_index": 85,
+        "op": "decaf.shared_secret",
+        "start": 81128,
+        "end": 88454,
+        "class_key": "decaf.shared_secret@0a9da5f3c9cae277",
+        "constant_vector_sha256_hex": "7ab973ff5c2b99de8aa13568aa6b81a98a395a1b0579ff33bf47ebdc826e9185",
+        "relation_sha256_hex": "56dd98196a6f29e72abdaa4579a11a9e60688cd854525743d94764c539c3bbc0",
+        "wire_role_sha256_hex": "ac979f4be1afd934707b0339b87bf7f23a1ae57e88774c80ed095f1a1321e88f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst85_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg85"
+        }
+      },
+      {
+        "segment_index": 86,
+        "op": "decaf.shared_secret",
+        "start": 88454,
+        "end": 95780,
+        "class_key": "decaf.shared_secret@0a9da5f3c9cae277",
+        "constant_vector_sha256_hex": "7ab973ff5c2b99de8aa13568aa6b81a98a395a1b0579ff33bf47ebdc826e9185",
+        "relation_sha256_hex": "83749bf6633bbcc3615e4acd519f9a6434a9459a2a923a53833a8f7ededbcfba",
+        "wire_role_sha256_hex": "c99af4316482c3b7b53d67ab9aa5eada87eff85ba2e1f0dab9329956a1d5c09d",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst86_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg86"
+        }
+      },
+      {
+        "segment_index": 87,
+        "op": "decaf.shared_secret",
+        "start": 95780,
+        "end": 103106,
+        "class_key": "decaf.shared_secret@0a9da5f3c9cae277",
+        "constant_vector_sha256_hex": "7ab973ff5c2b99de8aa13568aa6b81a98a395a1b0579ff33bf47ebdc826e9185",
+        "relation_sha256_hex": "c43ee697cd082651f97d531ea62656b9031d5c8d8915f2db93bfc53dafe199d7",
+        "wire_role_sha256_hex": "18101884c9ff36041460b412c0527e1888c393387607f9a586837d12fdf11aaf",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst87_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg87"
+        }
+      },
+      {
+        "segment_index": 88,
+        "op": "gadget.poseidon_encryption.detection",
+        "start": 103106,
+        "end": 105552,
+        "class_key": "gadget.poseidon_encryption.detection@9099cfd3f80d98d1",
+        "constant_vector_sha256_hex": "27e5030720fbd6ac2415e1c1b01f54ea73d8d604b3df0e73ab31a20a7ff4bda1",
+        "relation_sha256_hex": "03d23bcf62ed1d9806266637413cf8393a80fec3626c804928f4d42643641889",
+        "wire_role_sha256_hex": "7132619d7ea03d64b7e5fe207879492b8a26a1c898f7e904db7dda966022edff",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst88_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg88"
+        }
+      },
+      {
+        "segment_index": 89,
+        "op": "gadget.poseidon_encryption.amount",
+        "start": 105552,
+        "end": 106864,
+        "class_key": "gadget.poseidon_encryption.amount@6d2d73f6dbb6bf24",
+        "constant_vector_sha256_hex": "892c99b0bb81422368c0daf5ce37187f7235f230d6ae0ce22b474cac2b6938d7",
+        "relation_sha256_hex": "793a21e3d44bcf7b62c4e52f6938f2f925732851697b006bee34b21537962581",
+        "wire_role_sha256_hex": "79c832b4de1449c5a3a88c26ba029aca0b4e99d084dde19c41e5be293b37e90d",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst89_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg89"
+        }
+      },
+      {
+        "segment_index": 90,
+        "op": "gadget.poseidon_encryption.address",
+        "start": 106864,
+        "end": 109720,
+        "class_key": "gadget.poseidon_encryption.address@1808b9687f711325",
+        "constant_vector_sha256_hex": "9f95984ebe58e37464b11e794a3411317da3fe6fe246824c402af8d30f712745",
+        "relation_sha256_hex": "c50ffbd75e453ec19bd5bc2564d5592c438e871bcd74a9b4779d17ee5ef52a20",
+        "wire_role_sha256_hex": "151e9481a005d30b62164ef6104105716fc4c0ddc710e468c603c3207d7db929",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst90_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg90"
+        }
+      },
+      {
+        "segment_index": 91,
+        "op": "gadget.poseidon_encryption.amount",
+        "start": 109720,
+        "end": 111032,
+        "class_key": "gadget.poseidon_encryption.amount@6d2d73f6dbb6bf24",
+        "constant_vector_sha256_hex": "892c99b0bb81422368c0daf5ce37187f7235f230d6ae0ce22b474cac2b6938d7",
+        "relation_sha256_hex": "ec3697647310d0e7b344d6dced71efc4c8ce46c36ce2379e7d93d3a99eeab5b5",
+        "wire_role_sha256_hex": "eef5ece0de7f3265b90874bf1a007427f5247ba3944249c1c6a065d11e4bf37e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst91_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg91"
+        }
+      },
+      {
+        "segment_index": 92,
+        "op": "gadget.poseidon_encryption.address",
+        "start": 111032,
+        "end": 113888,
+        "class_key": "gadget.poseidon_encryption.address@1808b9687f711325",
+        "constant_vector_sha256_hex": "9f95984ebe58e37464b11e794a3411317da3fe6fe246824c402af8d30f712745",
+        "relation_sha256_hex": "c4aa99b7cd0ee519d6ec6915858d5c8bc743bddc807170294341fc5c6275ad35",
+        "wire_role_sha256_hex": "47f647dd550b257bfe05d50bf157a59d7e3363cd6ef1e80bb5e289f7a486c22f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst92_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg92"
+        }
+      },
+      {
+        "segment_index": 94,
+        "op": "assert.eq",
+        "start": 113888,
+        "end": 113889,
+        "class_key": "assert.eq@944014bd89e246a5",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "dd1042158fac9f17d53301fabbb9db50125300244df0f1aed08844f26a6ae7f1",
+        "wire_role_sha256_hex": "35fa672319513622e25895901b2f2377367902877085d31f5e1411ffba16f777",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst94_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg94"
+        }
+      },
+      {
+        "segment_index": 95,
+        "op": "assert.eq",
+        "start": 113889,
+        "end": 113890,
+        "class_key": "assert.eq@944014bd89e246a5",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "cc51c98e972a254af9011114a23bed188496642e52bf76829a91281e5e4faedb",
+        "wire_role_sha256_hex": "38a0f93af04aaeb69b74231748657a6961590bee74a696b9d96d8264e04355f6",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst95_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg95"
+        }
+      },
+      {
+        "segment_index": 96,
+        "op": "assert.eq",
+        "start": 113890,
+        "end": 113891,
+        "class_key": "assert.eq@a6016a1d8faf540f",
+        "constant_vector_sha256_hex": "0a892648d8f28bacebe08b0e482e81e50add1dcf6f0933e1f8d72a984a9d915f",
+        "relation_sha256_hex": "ec8e2069a16d333a55c7a29f269a685e227e0dd3625784b718e295310221928a",
+        "wire_role_sha256_hex": "6d4e7f86737507c8883bb145d6a6ae3bd89e87cd4899134c1cf3755917002760",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst96_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg96"
+        }
+      },
+      {
+        "segment_index": 97,
+        "op": "assert.eq",
+        "start": 113891,
+        "end": 113892,
+        "class_key": "assert.eq@a6016a1d8faf540f",
+        "constant_vector_sha256_hex": "0a892648d8f28bacebe08b0e482e81e50add1dcf6f0933e1f8d72a984a9d915f",
+        "relation_sha256_hex": "94bfa614760299297bd6da627ebee2551ce38c0b6481985d7364fff7850e7ec2",
+        "wire_role_sha256_hex": "d161eb6b0a3c2ee36f474fdcc2cc3fa8e24959680ddab82a1ccd55e7c0762e6d",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst97_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg97"
+        }
+      },
+      {
+        "segment_index": 98,
+        "op": "assert.eq",
+        "start": 113892,
+        "end": 113893,
+        "class_key": "assert.eq@a6016a1d8faf540f",
+        "constant_vector_sha256_hex": "0a892648d8f28bacebe08b0e482e81e50add1dcf6f0933e1f8d72a984a9d915f",
+        "relation_sha256_hex": "e46ad3b2aee631ec5f8de13bc8892e4715e12337e53b20d8f194571e22466da4",
+        "wire_role_sha256_hex": "cfb27856686987229c0eb4756d899dcf5f0162ec3adb6fd595f492fca998916e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst98_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg98"
+        }
+      },
+      {
+        "segment_index": 99,
+        "op": "assert.eq",
+        "start": 113893,
+        "end": 113894,
+        "class_key": "assert.eq@a6016a1d8faf540f",
+        "constant_vector_sha256_hex": "0a892648d8f28bacebe08b0e482e81e50add1dcf6f0933e1f8d72a984a9d915f",
+        "relation_sha256_hex": "da317a6d09e16ad8c1bec6209d8bd391b7a73abba1082abe350da036d4b79a2b",
+        "wire_role_sha256_hex": "4104e7c9627ff70ad4f4ca839d224ce9ac90aff99a9b568c814b5cb2315b66c3",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst99_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg99"
+        }
+      },
+      {
+        "segment_index": 100,
+        "op": "assert.eq",
+        "start": 113894,
+        "end": 113895,
+        "class_key": "assert.eq@944014bd89e246a5",
+        "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+        "relation_sha256_hex": "5881a4ebf6ff2956874427e5b7dd2245c429027b8201723e7fe260315cb1903a",
+        "wire_role_sha256_hex": "79ea55256ae4fcd34cccde472c19df6b35de25ad76841c422ea3eddbd3aa1899",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst100_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg100"
+        }
+      },
+      {
+        "segment_index": 101,
+        "op": "assert.eq",
+        "start": 113895,
+        "end": 113896,
+        "class_key": "assert.eq@2b6d8b310140652b",
+        "constant_vector_sha256_hex": "1437e4d057a2ac0bfab708589a01dd448d3289aa85547184f8b3620a13f6788a",
+        "relation_sha256_hex": "1caecbdc7b6be1693efe59ad8d60390a4b86a9ac50b5663ef54763f994f8ca09",
+        "wire_role_sha256_hex": "9707916baa508fb593ad7ee90f3f1ee6c0871baa5aabef4b0516c844a997034f",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst101_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg101"
+        }
+      },
+      {
+        "segment_index": 102,
+        "op": "assert.eq",
+        "start": 113896,
+        "end": 113897,
+        "class_key": "assert.eq@2b6d8b310140652b",
+        "constant_vector_sha256_hex": "1437e4d057a2ac0bfab708589a01dd448d3289aa85547184f8b3620a13f6788a",
+        "relation_sha256_hex": "c577fbd905edb8e964b00c0cf2cd4a760251f89cd4055b55b85dcbe759306e88",
+        "wire_role_sha256_hex": "7a1f31b96357f497a79482e81702891dec12e9c255ebdfcef577e9e393715655",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst102_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg102"
+        }
+      },
+      {
+        "segment_index": 103,
+        "op": "assert.eq",
+        "start": 113897,
+        "end": 113898,
+        "class_key": "assert.eq@2b6d8b310140652b",
+        "constant_vector_sha256_hex": "1437e4d057a2ac0bfab708589a01dd448d3289aa85547184f8b3620a13f6788a",
+        "relation_sha256_hex": "752e265747cb1e977d843482078d1399262b392115ee5e1a468a3e81fc0faca6",
+        "wire_role_sha256_hex": "eddb330d4b69f2f29aca278f652957d789e4821a77888d26642a0544e304db58",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst103_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg103"
+        }
+      },
+      {
+        "segment_index": 104,
+        "op": "assert.eq",
+        "start": 113898,
+        "end": 113899,
+        "class_key": "assert.eq@2b6d8b310140652b",
+        "constant_vector_sha256_hex": "1437e4d057a2ac0bfab708589a01dd448d3289aa85547184f8b3620a13f6788a",
+        "relation_sha256_hex": "ff3f99622a0c0dfebc0829e6c9cbccb6fb7a8ecd43448b4a7c608833b1915846",
+        "wire_role_sha256_hex": "a39e2c388bb7adb3cafa534dd824072fff3ae7f1bd45c68f52d14f6d81747c82",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst104_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg104"
+        }
+      },
+      {
+        "segment_index": 106,
+        "op": "decaf.net_balance_commitment",
+        "start": 113899,
+        "end": 120101,
+        "class_key": "decaf.net_balance_commitment@b726a29e377b3526",
+        "constant_vector_sha256_hex": "2734daa90d2d9daf4dc10ebf7bad27b3c2bbbc6e84b87bb81578e8061d042d11",
+        "relation_sha256_hex": "10e6fe4295052f5dda5ef1a98f5b82956e1efd8508d6cb36adb2851de3b228df",
+        "wire_role_sha256_hex": "f0cd4edcbe5f0fe9f4397142d07e9a633028fe77cb17487af9eb0c339856dcfa",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst106_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg106"
+        }
+      },
+      {
+        "segment_index": 107,
+        "op": "decaf.compress_to_field",
+        "start": 120101,
+        "end": 121147,
+        "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+        "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+        "relation_sha256_hex": "6913971bb58fee07ba8f2efe1903657add90d86d77988cb917a42ce097a3e404",
+        "wire_role_sha256_hex": "3330cc23b2707e432373181f13ca91206ce77a31c8598f8e5e509dfdc5186e7e",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst107_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg107"
+        }
+      },
+      {
+        "segment_index": 109,
+        "op": "statement.hash",
+        "start": 121147,
+        "end": 124427,
+        "class_key": "statement.hash@92a42b052ff2a42a",
+        "constant_vector_sha256_hex": "d62f948d7a7cd88af0bef0d740d171c5692b1e662b2a1c8ae81830f43c07b9f9",
+        "relation_sha256_hex": "e940fae7e402169e2caab9165ccafd7b7848e83178f02effd333352efa345733",
+        "wire_role_sha256_hex": "75b6c1f4992464d6c609352d615b5ed5291d452c359ec90eb3226cdce8f51ac7",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst109_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg109"
+        }
+      },
+      {
+        "segment_index": 110,
+        "op": "assert.eq",
+        "start": 124427,
+        "end": 124428,
+        "class_key": "assert.eq@fcdce018977caef8",
+        "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
+        "relation_sha256_hex": "c343da9d20aef0ea31bd22da6cd376c845c9dc0cf2e234fa3868d3d96f7be577",
+        "wire_role_sha256_hex": "6fc6a7eb2c76726cd9ca2e2423bc6eeb93f0108b7f8ca1488cf2a65a3d265ce7",
+        "verdict": {
+          "kind": "discharged",
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.inst110_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.Transfer.Seg110"
+        }
+      }
+    ]
+  }
+}

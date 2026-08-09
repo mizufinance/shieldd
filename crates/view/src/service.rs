@@ -1302,24 +1302,12 @@ impl ViewService for ViewServer {
                         .expect("TransactionPlan should exist in request")
                 });
 
-        fn action_spend_notes(
-            action: &shieldd_sdk_transaction::ActionPlan,
-        ) -> &[shieldd_sdk_shielded_pool::ShieldedInputPlan] {
-            use shieldd_sdk_transaction::ActionPlan;
-            match action {
-                ActionPlan::Transfer(p) => &p.spends,
-                ActionPlan::NoteReshape(p) => &p.spends,
-                ActionPlan::ShieldedIcs20Withdrawal(p) => &p.spends,
-                _ => &[],
-            }
-        }
-
         let zero_amount = 0u64.into();
         let all_spend_notes = || {
             tx_plan
                 .actions
                 .iter()
-                .flat_map(action_spend_notes)
+                .flat_map(|action| action.spends())
                 .chain(tx_plan.fee_funding.iter().flat_map(|f| &f.transfer.spends))
         };
 

@@ -23,6 +23,7 @@ theorem facts
     (spend6NoteCommitmentInputs1 rho).val < 2 ^ 128 ∧
     (spend7NoteCommitmentInputs1 rho).val < 2 ^ 128 ∧
     (output0NoteCommitmentInputs1 rho).val < 2 ^ 128 ∧
+    (actionBalanceBlinding rho).val < 2 ^ 251 ∧
     spend0NoteCommitmentInputs1 rho +
       spend1NoteCommitmentInputs1 rho +
       spend2NoteCommitmentInputs1 rho +
@@ -38,8 +39,11 @@ theorem facts
         (actionBalanceBlinding rho))
       ⟨claimedBalanceCommitment0 rho, claimedBalanceCommitment1 rho⟩ := by
   rcases NoteReshape8x1Balance.gadgetSpec rho circuitFacts with
-    ⟨hin0, hin1, hin2, hin3, hin4, hin5, hin6, hin7, hout0, hsum, hcomputed⟩
-  refine ⟨hin0, hin1, hin2, hin3, hin4, hin5, hin6, hin7, hout0, hsum, ?_⟩
+    ⟨hin0, hin1, hin2, hin3, hin4, hin5, hin6, hin7, hout0,
+     hblind, hsum, hcomputed⟩
+  refine
+    ⟨hin0, hin1, hin2, hin3, hin4, hin5, hin6, hin7, hout0,
+     hblind, hsum, ?_⟩
   rw [← hcomputed]
   exact ⟨
     Decaf377Assumptions.onCurve_of_compress

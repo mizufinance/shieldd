@@ -1,4 +1,4 @@
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg50
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg53
 
 /-! Generic compiler-seating join for compact conservation-ladder runs. -/
 
@@ -8,18 +8,18 @@ open Shieldd.GnarkFormal
 open Contracts.NoteReshape1x8
 
 theorem seatedRun_eq
-    (rho : Nat → Seg50.F)
+    (rho : Nat → Seg53.F)
     (localStart globalStart stride count : Nat)
     (hseating :
       (List.range count).map
-          (fun offset => Seg50.wireSeating (localStart + offset * stride)) =
+          (fun offset => Seg53.wireSeating (localStart + offset * stride)) =
         (List.range count).map
           (fun offset => globalStart + offset * stride)) :
-    StrideRun.sumAux (Seg50.localRho rho) localStart stride count =
+    StrideRun.sumAux (Seg53.localRho rho) localStart stride count =
       StrideRun.sumAux rho globalStart stride count := by
   rw [StrideRun.sumAux_seated, StrideRun.sumAux_seated]
   simpa only [
-    Seg50.localRho, Deployed.Templates.seated,
+    Seg53.localRho, Deployed.Templates.seated,
     List.map_map, Function.comp_apply
   ] using congrArg (fun wires => (wires.map rho).sum) hseating
 

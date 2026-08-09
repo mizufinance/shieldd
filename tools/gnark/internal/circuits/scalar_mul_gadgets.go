@@ -178,14 +178,10 @@ func (c *AckTwoStepGadget) Define(api frontend.API) error {
 	return nil
 }
 
-// DLEQGadget probes one transfer DLEQ response equation: two
-// scalar-multiplication prefixes over the response/challenge bit pairs joined
-// by Edwards addition (s·B1 + c·B2). Both response equations have exactly this
-// shape, and sharing the s/c bits across two individually-deterministic
-// equations cannot introduce a free signal, so this one-equation probe covers
-// the response seam (composition note: COMPOSITE transfer-dleq in the Picus
-// report). The two-equation monolith stopped discharging after T1-a's
-// identity-seed ladder left its add denominators symbolic.
+// DLEQGadget is a standalone legacy relation retained for research/fidelity
+// tests. It probes one response equation using two scalar-multiplication
+// prefixes joined by Edwards addition (s·B1 + c·B2). Transfer V16 neither
+// instantiates this gadget nor carries DLEQ witness or public fields.
 type DLEQGadget struct {
 	SBit0  frontend.Variable `gnark:",public"`
 	SBit1  frontend.Variable `gnark:",public"`

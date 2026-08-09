@@ -1,6 +1,5 @@
 use anyhow::Result;
 use futures::FutureExt;
-use sha2::Digest as _;
 
 use cnidarium::{Snapshot, Storage};
 
@@ -18,36 +17,48 @@ use std::sync::Arc;
 use std::{any::Any, panic::AssertUnwindSafe};
 
 use crate::{
-    app::{App, CheckTxSharedContext},
+    app::{App, MAX_TRANSACTION_SIZE_BYTES},
     block_tx_indexing::BlockTxIndexingMode,
     metrics,
     stateless_cache::StatelessCache,
 };
 
 const DEFAULT_MAX_IN_FLIGHT_CHECKTX: usize = 8;
+const MAX_IN_FLIGHT_CHECKTX: usize = 64;
+const MAX_IN_FLIGHT_CHECKTX_HEAVYWORK: usize = 32;
+
+fn bounded_checktx_concurrency(available_parallelism: usize) -> usize {
+    available_parallelism.clamp(DEFAULT_MAX_IN_FLIGHT_CHECKTX, MAX_IN_FLIGHT_CHECKTX)
+}
+
+fn bounded_checktx_heavywork_concurrency(available_parallelism: usize) -> usize {
+    (available_parallelism / 2).clamp(1, MAX_IN_FLIGHT_CHECKTX_HEAVYWORK)
+}
+
+fn available_parallelism() -> usize {
+    std::thread::available_parallelism()
+        .map(std::num::NonZeroUsize::get)
+        .unwrap_or(1)
+}
 
 fn max_in_flight_checktx() -> usize {
-    std::env::var("SHIELDD_MEMPOOL_CHECKTX_CONCURRENCY")
-        .ok()
-        .and_then(|value| value.parse::<usize>().ok())
-        .filter(|value| *value > 0)
-        .unwrap_or_else(|| {
-            std::thread::available_parallelism()
-                .map(|parallelism| parallelism.get().max(DEFAULT_MAX_IN_FLIGHT_CHECKTX))
-                .unwrap_or(DEFAULT_MAX_IN_FLIGHT_CHECKTX)
-        })
+    bounded_checktx_concurrency(available_parallelism())
 }
 
 fn max_in_flight_checktx_heavywork() -> usize {
-    std::env::var("SHIELDD_MEMPOOL_CHECKTX_HEAVYWORK_CONCURRENCY")
-        .ok()
-        .and_then(|value| value.parse::<usize>().ok())
-        .filter(|value| *value > 0)
-        .unwrap_or_else(|| {
-            std::thread::available_parallelism()
-                .map(|parallelism| std::cmp::max(1, parallelism.get() / 2))
-                .unwrap_or(1)
+    bounded_checktx_heavywork_concurrency(available_parallelism())
+}
+
+fn oversized_checktx_response(tx_size_bytes: usize) -> Option<Response> {
+    (tx_size_bytes > MAX_TRANSACTION_SIZE_BYTES).then(|| {
+        Response::CheckTx(CheckTxRsp {
+            code: 1.into(),
+            log: format!(
+                "transaction size {tx_size_bytes} exceeds maximum {MAX_TRANSACTION_SIZE_BYTES}"
+            ),
+            ..Default::default()
         })
+    })
 }
 
 /// A mempool service that applies transaction checks against an isolated application fork.
@@ -82,7 +93,6 @@ impl Mempool {
 
     async fn check_tx_with_state(
         snapshot: Snapshot,
-        checktx_shared_context: Option<Arc<CheckTxSharedContext>>,
         stateless_cache: Arc<StatelessCache>,
         req: Request,
     ) -> Result<Response, tower::BoxError> {
@@ -98,9 +108,6 @@ impl Mempool {
 
         let mut app = App::new(snapshot);
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
-        if let Some(checktx_shared_context) = checktx_shared_context {
-            app.set_checktx_shared_context(checktx_shared_context);
-        }
 
         match app
             .deliver_tx_bytes_v2_profiled(tx_bytes.as_ref(), Some(stateless_cache.as_ref()))
@@ -113,8 +120,6 @@ impl Mempool {
                     ?elapsed,
                     execute_ms = profile.execute_ms,
                     check_historical_ms = profile.check_historical_ms,
-                    nullifier_lookup_count = profile.execute_nullifier_lookup_count,
-                    nullifier_lookup_wall_ms = profile.execute_spend_nullifier_committed_check_ms,
                     "tx accepted"
                 );
                 metrics::histogram!(
@@ -164,35 +169,6 @@ impl Mempool {
         let stateless_cache = self.stateless_cache.clone();
         let mut queue_closed = false;
 
-        let mut snapshot_rx = storage.subscribe();
-        let initial_snapshot = snapshot_rx.borrow().clone();
-        let initial_ctx = match CheckTxSharedContext::load(&initial_snapshot).await {
-            Ok(ctx) => Some(Arc::new(ctx)),
-            Err(error) => {
-                tracing::warn!(?error, "CheckTxSharedContext unavailable at mempool startup; falling back to legacy CheckTx path until a later snapshot succeeds");
-                None
-            }
-        };
-        let (ctx_tx, ctx_rx) = tokio::sync::watch::channel(initial_ctx);
-
-        tokio::spawn(async move {
-            loop {
-                if snapshot_rx.changed().await.is_err() {
-                    break;
-                }
-                let snapshot = snapshot_rx.borrow_and_update().clone();
-                let version = snapshot.version();
-                match CheckTxSharedContext::load(&snapshot).await {
-                    Ok(ctx) => {
-                        let _ = ctx_tx.send(Some(Arc::new(ctx)));
-                    }
-                    Err(e) => {
-                        tracing::warn!(?version, "CheckTxSharedContext::load failed: {e:#}");
-                    }
-                }
-            }
-        });
-
         loop {
             tokio::select! {
                 Some(joined) = in_flight.join_next(), if !in_flight.is_empty() => {
@@ -204,21 +180,41 @@ impl Mempool {
                     match message {
                         Some(Message { req, rsp_sender, span }) => {
                             let received_at = tokio::time::Instant::now();
-                            let tx_hash: Option<[u8; 32]> = match &req {
+                            let (tx_size_bytes, kind) = match &req {
                                 Request::CheckTx(CheckTxReq { tx, kind, .. }) => {
-                                    let _ = kind;
-                                    Some(sha2::Sha256::digest(tx.as_ref()).into())
+                                    (tx.len(), *kind)
                                 }
                             };
-                            let tx_size_bytes = match &req {
-                                Request::CheckTx(CheckTxReq { tx, .. }) => tx.len(),
-                            };
-                            let current_checktx_context = ctx_rx.borrow().clone();
                             tracing::info!(
                                 parent: &span,
                                 tx_size_bytes,
                                 "checktx_frontdoor_received"
                             );
+                            if let Some(response) = oversized_checktx_response(tx_size_bytes) {
+                                let kind_str = match kind {
+                                    CheckTxKind::New => "new",
+                                    CheckTxKind::Recheck => "recheck",
+                                };
+                                tracing::info!(
+                                    parent: &span,
+                                    tx_size_bytes,
+                                    "checktx_frontdoor_rejected_oversized"
+                                );
+                                metrics::histogram!(
+                                    metrics::MEMPOOL_CHECKTX_DURATION,
+                                    "kind" => kind_str,
+                                    "code" => "1"
+                                )
+                                .record(received_at.elapsed());
+                                metrics::counter!(
+                                    metrics::MEMPOOL_CHECKTX_TOTAL,
+                                    "kind" => kind_str,
+                                    "code" => "1"
+                                )
+                                .increment(1);
+                                let _ = rsp_sender.send(Ok(response));
+                                continue;
+                            }
                             metrics::gauge!(metrics::MEMPOOL_CHECKTX_PENDING).increment(1.0);
                             let permit_wait_started = tokio::time::Instant::now();
                             let permit = permits
@@ -233,7 +229,6 @@ impl Mempool {
                             );
                             let heavywork_permits = heavywork_permits.clone();
                             let snapshot = storage.latest_snapshot();
-                            let checktx_shared_context = current_checktx_context;
                             let stateless_cache = stateless_cache.clone();
                             let stateless_cache_for_check = stateless_cache.clone();
                             in_flight.spawn(async move {
@@ -252,20 +247,16 @@ impl Mempool {
                                 let execute_started = tokio::time::Instant::now();
                                 let result = AssertUnwindSafe(Self::check_tx_with_state(
                                         snapshot,
-                                        checktx_shared_context,
                                         stateless_cache_for_check,
                                         req,
                                     ))
                                     .catch_unwind()
                                     .await;
-                                let _ = (tx_hash, stateless_cache);
-                                let tx_hash_hex = tx_hash.map(hex::encode);
                                 let result = match result {
                                     Ok(result) => result,
                                     Err(panic_payload) => {
                                         let panic_message = Self::panic_payload_message(&*panic_payload);
                                         tracing::error!(
-                                            tx_hash = tx_hash_hex.as_deref().unwrap_or("unknown"),
                                             tx_size_bytes,
                                             %panic_message,
                                             "checktx task panicked; rejecting transaction instead of terminating mempool actor"
@@ -308,5 +299,45 @@ impl Mempool {
         }
         tracing::info!("mempool service stopped");
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        bounded_checktx_concurrency, bounded_checktx_heavywork_concurrency,
+        oversized_checktx_response, MAX_TRANSACTION_SIZE_BYTES,
+    };
+    use tendermint::v0_37::abci::MempoolResponse;
+
+    #[test]
+    fn oversized_checktx_frontdoor_rejects_at_fixed_limit() {
+        assert!(oversized_checktx_response(MAX_TRANSACTION_SIZE_BYTES).is_none());
+
+        let response = oversized_checktx_response(MAX_TRANSACTION_SIZE_BYTES + 1)
+            .expect("oversized CheckTx must reject at the mempool frontdoor");
+        let MempoolResponse::CheckTx(response) = response;
+        assert_ne!(response.code.value(), 0);
+        assert_eq!(
+            response.log,
+            format!(
+                "transaction size {} exceeds maximum {}",
+                MAX_TRANSACTION_SIZE_BYTES + 1,
+                MAX_TRANSACTION_SIZE_BYTES
+            )
+        );
+    }
+
+    #[test]
+    fn checktx_concurrency_is_bounded_for_all_hardware_sizes() {
+        assert_eq!(bounded_checktx_concurrency(0), 8);
+        assert_eq!(bounded_checktx_concurrency(1), 8);
+        assert_eq!(bounded_checktx_concurrency(32), 32);
+        assert_eq!(bounded_checktx_concurrency(usize::MAX), 64);
+
+        assert_eq!(bounded_checktx_heavywork_concurrency(0), 1);
+        assert_eq!(bounded_checktx_heavywork_concurrency(1), 1);
+        assert_eq!(bounded_checktx_heavywork_concurrency(64), 32);
+        assert_eq!(bounded_checktx_heavywork_concurrency(usize::MAX), 32);
     }
 }

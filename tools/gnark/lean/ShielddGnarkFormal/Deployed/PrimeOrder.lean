@@ -9,7 +9,6 @@ import ShielddGnarkFormal.Extracted.Nullifier
 import ShielddGnarkFormal.Extracted.QuadPath2
 import ShielddGnarkFormal.Extracted.QuadPath16
 import ShielddGnarkFormal.Extracted.QuadPath24
-import ShielddGnarkFormal.Extracted.DecafAssertEquivalent
 import ShielddGnarkFormal.Extracted.DecafCompressToField
 import ShielddGnarkFormal.Extracted.DecafDtk
 import ShielddGnarkFormal.Extracted.DecafEncodeToCurve
@@ -47,7 +46,6 @@ instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.Nullifier.Order) := ⟨
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.QuadPath2.Order) := ⟨decaf377ScalarFieldPrime⟩
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.QuadPath16.Order) := ⟨decaf377ScalarFieldPrime⟩
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.QuadPath24.Order) := ⟨decaf377ScalarFieldPrime⟩
-instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.DecafAssertEquivalent.Order) := ⟨decaf377ScalarFieldPrime⟩
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.DecafCompressToField.Order) := ⟨decaf377ScalarFieldPrime⟩
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.DecafDtk.Order) := ⟨decaf377ScalarFieldPrime⟩
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.DecafEncodeToCurve.Order) := ⟨decaf377ScalarFieldPrime⟩

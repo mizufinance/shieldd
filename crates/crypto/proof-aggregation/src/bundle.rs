@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
+use prost::Message;
 use serde::{Deserialize, Serialize};
-use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
 
-const PROOF_FAMILY_TRANSFER: u32 = pb::ProofFamilyId::Transfer as u32;
-const PROOF_FAMILY_NOTE_RESHAPE: u32 = pb::ProofFamilyId::NoteReshape as u32;
-const PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL: u32 =
-    pb::ProofFamilyId::ShieldedIcs20Withdrawal as u32;
+const PROOF_FAMILY_UNSPECIFIED: u32 = 0;
+const PROOF_FAMILY_TRANSFER: u32 = 7;
+const PROOF_FAMILY_NOTE_RESHAPE: u32 = 8;
+const PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL: u32 = 10;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
 pub enum ProofFamilyId {
@@ -28,6 +28,32 @@ pub struct AggregateBundle {
     pub version: u32,
     pub srs_id: Vec<u8>,
     pub families: Vec<FamilyAggregate>,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct WireFamilyAggregate {
+    #[prost(uint32, tag = "1")]
+    family_id: u32,
+    #[prost(uint32, tag = "3")]
+    real_count: u32,
+    #[prost(uint32, tag = "4")]
+    padded_count: u32,
+    #[prost(bytes = "vec", tag = "5")]
+    aggregate_proof: Vec<u8>,
+    #[prost(uint32, tag = "6")]
+    note_reshape_family_id: u32,
+    #[prost(uint32, tag = "8")]
+    shielded_ics20_withdrawal_family_id: u32,
+}
+
+#[derive(Clone, PartialEq, Message)]
+struct WireAggregateBundle {
+    #[prost(uint32, tag = "1")]
+    version: u32,
+    #[prost(bytes = "vec", tag = "2")]
+    srs_id: Vec<u8>,
+    #[prost(message, repeated, tag = "3")]
+    families: Vec<WireFamilyAggregate>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -101,16 +127,6 @@ pub fn family_route_from_proto_fields(
     }
 }
 
-impl From<ProofFamilyId> for pb::ProofFamilyId {
-    fn from(value: ProofFamilyId) -> Self {
-        match value {
-            ProofFamilyId::Transfer => Self::Transfer,
-            ProofFamilyId::NoteReshape(_) => Self::NoteReshape,
-            ProofFamilyId::ShieldedIcs20Withdrawal(_) => Self::ShieldedIcs20Withdrawal,
-        }
-    }
-}
-
 impl ProofFamilyId {
     pub(crate) fn try_from_proto_fields(
         family_id: i32,
@@ -119,7 +135,7 @@ impl ProofFamilyId {
     ) -> Result<Self> {
         let family_id_u32 =
             u32::try_from(family_id).map_err(|_| anyhow!("unknown proof family id {family_id}"))?;
-        if family_id_u32 == pb::ProofFamilyId::Unspecified as u32 {
+        if family_id_u32 == PROOF_FAMILY_UNSPECIFIED {
             return Err(anyhow!("unspecified proof family id"));
         }
         let route = family_route_from_proto_fields(
@@ -150,6 +166,14 @@ impl ProofFamilyId {
             _ => 0,
         }
     }
+
+    pub(crate) fn wire_id(self) -> u32 {
+        match self {
+            Self::Transfer => PROOF_FAMILY_TRANSFER,
+            Self::NoteReshape(_) => PROOF_FAMILY_NOTE_RESHAPE,
+            Self::ShieldedIcs20Withdrawal(_) => PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL,
+        }
+    }
 }
 
 fn family_route_error_message(err: FamilyRouteError, family_id: i32) -> anyhow::Error {
@@ -167,19 +191,17 @@ fn family_route_error_message(err: FamilyRouteError, family_id: i32) -> anyhow::
     }
 }
 
-impl TryFrom<i32> for ProofFamilyId {
-    type Error = anyhow::Error;
+impl AggregateBundle {
+    pub fn encode_to_vec(&self) -> Vec<u8> {
+        WireAggregateBundle::from(self.clone()).encode_to_vec()
+    }
 
-    fn try_from(value: i32) -> Result<Self> {
-        Self::try_from_proto_fields(value, 0, 0)
+    pub fn decode(bytes: &[u8]) -> Result<Self> {
+        WireAggregateBundle::decode(bytes)?.try_into()
     }
 }
 
-impl DomainType for AggregateBundle {
-    type Proto = pb::AggregateBundle;
-}
-
-impl From<AggregateBundle> for pb::AggregateBundle {
+impl From<AggregateBundle> for WireAggregateBundle {
     fn from(value: AggregateBundle) -> Self {
         Self {
             version: value.version,
@@ -189,10 +211,10 @@ impl From<AggregateBundle> for pb::AggregateBundle {
     }
 }
 
-impl TryFrom<pb::AggregateBundle> for AggregateBundle {
+impl TryFrom<WireAggregateBundle> for AggregateBundle {
     type Error = anyhow::Error;
 
-    fn try_from(value: pb::AggregateBundle) -> Result<Self> {
+    fn try_from(value: WireAggregateBundle) -> Result<Self> {
         Ok(Self {
             version: value.version,
             srs_id: value.srs_id,
@@ -205,14 +227,10 @@ impl TryFrom<pb::AggregateBundle> for AggregateBundle {
     }
 }
 
-impl DomainType for FamilyAggregate {
-    type Proto = pb::FamilyAggregate;
-}
-
-impl From<FamilyAggregate> for pb::FamilyAggregate {
+impl From<FamilyAggregate> for WireFamilyAggregate {
     fn from(value: FamilyAggregate) -> Self {
         Self {
-            family_id: pb::ProofFamilyId::from(value.family_id) as i32,
+            family_id: value.family_id.wire_id(),
             note_reshape_family_id: value.family_id.note_reshape_family_id(),
             shielded_ics20_withdrawal_family_id: value
                 .family_id
@@ -224,13 +242,14 @@ impl From<FamilyAggregate> for pb::FamilyAggregate {
     }
 }
 
-impl TryFrom<pb::FamilyAggregate> for FamilyAggregate {
+impl TryFrom<WireFamilyAggregate> for FamilyAggregate {
     type Error = anyhow::Error;
 
-    fn try_from(value: pb::FamilyAggregate) -> Result<Self> {
+    fn try_from(value: WireFamilyAggregate) -> Result<Self> {
         Ok(Self {
             family_id: ProofFamilyId::try_from_proto_fields(
-                value.family_id,
+                i32::try_from(value.family_id)
+                    .map_err(|_| anyhow!("unknown proof family id {}", value.family_id))?,
                 value.note_reshape_family_id,
                 value.shielded_ics20_withdrawal_family_id,
             )?,
@@ -243,18 +262,27 @@ impl TryFrom<pb::FamilyAggregate> for FamilyAggregate {
 
 #[cfg(test)]
 mod tests {
-    use super::{AggregateBundle, FamilyAggregate, ProofFamilyId};
-    use shieldd_sdk_proto::DomainType;
-    use shieldd_sdk_shielded_pool::NoteReshapeFamilyId;
+    use super::{
+        AggregateBundle, FamilyAggregate, ProofFamilyId, WireAggregateBundle, WireFamilyAggregate,
+        PROOF_FAMILY_UNSPECIFIED,
+    };
+    use prost::Message;
+    use shieldd_sdk_shielded_pool::{NoteReshapeFamilyId, ShieldedIcs20WithdrawalFamilyId};
 
     #[test]
-    fn aggregate_bundle_proto_round_trip() {
+    fn aggregate_bundle_private_wire_round_trip() {
         let bundle = AggregateBundle {
             version: 7,
             srs_id: vec![1, 2, 3, 4],
             families: vec![
                 FamilyAggregate {
-                    family_id: ProofFamilyId::NoteReshape(NoteReshapeFamilyId::TwoByOne),
+                    family_id: ProofFamilyId::Transfer,
+                    real_count: 1,
+                    padded_count: 1,
+                    aggregate_proof: vec![0],
+                },
+                FamilyAggregate {
+                    family_id: ProofFamilyId::NoteReshape(NoteReshapeFamilyId::EightByOne),
                     real_count: 1,
                     padded_count: 1,
                     aggregate_proof: vec![1, 2, 3],
@@ -265,33 +293,77 @@ mod tests {
                     padded_count: 2,
                     aggregate_proof: vec![4, 5, 6],
                 },
+                FamilyAggregate {
+                    family_id: ProofFamilyId::ShieldedIcs20Withdrawal(
+                        ShieldedIcs20WithdrawalFamilyId::Canonical,
+                    ),
+                    real_count: 4,
+                    padded_count: 4,
+                    aggregate_proof: vec![7, 8, 9],
+                },
             ],
         };
 
-        let proto = bundle.to_proto();
-        let decoded = AggregateBundle::try_from(proto).expect("bundle round-trip");
+        let encoded = bundle.encode_to_vec();
+        let decoded = AggregateBundle::decode(&encoded).expect("bundle round-trip");
         assert_eq!(decoded, bundle);
     }
 
     #[test]
-    fn aggregate_bundle_decode_rejects_unspecified_family() {
-        let proto = shieldd_sdk_proto::core::transaction::v1::AggregateBundle {
-            version: 1,
-            srs_id: vec![0; 32],
-            families: vec![shieldd_sdk_proto::core::transaction::v1::FamilyAggregate {
-                family_id: shieldd_sdk_proto::core::transaction::v1::ProofFamilyId::Unspecified
-                    as i32,
-                note_reshape_family_id: 0,
-                shielded_ics20_withdrawal_family_id: 0,
-                real_count: 1,
-                padded_count: 1,
-                aggregate_proof: vec![1, 2, 3],
-            }],
-        };
+    fn aggregate_bundle_decode_rejects_invalid_family_routes() {
+        let cases = [
+            (
+                PROOF_FAMILY_UNSPECIFIED,
+                0,
+                0,
+                "unspecified proof family id",
+            ),
+            (
+                super::PROOF_FAMILY_NOTE_RESHAPE,
+                0,
+                0,
+                "missing its required subfamily id",
+            ),
+            (
+                super::PROOF_FAMILY_TRANSFER,
+                NoteReshapeFamilyId::EightByOne.get(),
+                0,
+                "has subfamily ids for another family",
+            ),
+            (
+                super::PROOF_FAMILY_SHIELDED_ICS20_WITHDRAWAL,
+                0,
+                u32::MAX,
+                "has an unknown subfamily id",
+            ),
+        ];
 
-        let err = AggregateBundle::try_from(proto)
-            .expect_err("unspecified aggregate family should reject");
+        for (
+            family_id,
+            note_reshape_family_id,
+            shielded_ics20_withdrawal_family_id,
+            expected_error,
+        ) in cases
+        {
+            let wire = WireAggregateBundle {
+                version: 1,
+                srs_id: vec![0; 32],
+                families: vec![WireFamilyAggregate {
+                    family_id,
+                    note_reshape_family_id,
+                    shielded_ics20_withdrawal_family_id,
+                    real_count: 1,
+                    padded_count: 1,
+                    aggregate_proof: vec![1, 2, 3],
+                }],
+            };
 
-        assert!(err.to_string().contains("unspecified proof family id"));
+            let err = AggregateBundle::decode(&wire.encode_to_vec())
+                .expect_err("invalid aggregate family route should reject");
+            assert!(
+                err.to_string().contains(expected_error),
+                "unexpected error for family {family_id}: {err}"
+            );
+        }
     }
 }

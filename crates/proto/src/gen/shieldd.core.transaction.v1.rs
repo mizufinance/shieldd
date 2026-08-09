@@ -137,54 +137,10 @@ impl ::prost::Name for DetectionData {
         "/shieldd.core.transaction.v1.DetectionData".into()
     }
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct FamilyAggregate {
-    #[prost(enumeration = "ProofFamilyId", tag = "1")]
-    pub family_id: i32,
-    #[prost(uint32, tag = "3")]
-    pub real_count: u32,
-    #[prost(uint32, tag = "4")]
-    pub padded_count: u32,
-    #[prost(bytes = "vec", tag = "5")]
-    pub aggregate_proof: ::prost::alloc::vec::Vec<u8>,
-    #[prost(uint32, tag = "6")]
-    pub note_reshape_family_id: u32,
-    #[prost(uint32, tag = "8")]
-    pub shielded_ics20_withdrawal_family_id: u32,
-}
-impl ::prost::Name for FamilyAggregate {
-    const NAME: &'static str = "FamilyAggregate";
-    const PACKAGE: &'static str = "shieldd.core.transaction.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.transaction.v1.FamilyAggregate".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.transaction.v1.FamilyAggregate".into()
-    }
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct AggregateBundle {
-    #[prost(uint32, tag = "1")]
-    pub version: u32,
-    #[prost(bytes = "vec", tag = "2")]
-    pub srs_id: ::prost::alloc::vec::Vec<u8>,
-    #[prost(message, repeated, tag = "3")]
-    pub families: ::prost::alloc::vec::Vec<FamilyAggregate>,
-}
-impl ::prost::Name for AggregateBundle {
-    const NAME: &'static str = "AggregateBundle";
-    const PACKAGE: &'static str = "shieldd.core.transaction.v1";
-    fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.core.transaction.v1.AggregateBundle".into()
-    }
-    fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.core.transaction.v1.AggregateBundle".into()
-    }
-}
 /// A state change performed by a transaction.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Action {
-    #[prost(oneof = "action::Action", tags = "5, 6, 16, 17, 18, 20, 80, 81, 82, 200")]
+    #[prost(oneof = "action::Action", tags = "5, 6, 16, 17, 18, 20, 80, 81, 200")]
     pub action: ::core::option::Option<action::Action>,
 }
 /// Nested message and enum types in `Action`.
@@ -215,8 +171,6 @@ pub mod action {
         ComplianceRegisterUser(
             super::super::super::component::compliance::v1::MsgRegisterUser,
         ),
-        #[prost(message, tag = "82")]
-        AggregateBundle(super::AggregateBundle),
         #[prost(message, tag = "200")]
         ShieldedIcs20Withdrawal(
             super::super::super::component::shielded_pool::v1::ShieldedIcs20Withdrawal,
@@ -462,7 +416,7 @@ impl ::prost::Name for TransactionBodyView {
 pub struct ActionView {
     #[prost(
         oneof = "action_view::ActionView",
-        tags = "5, 6, 16, 17, 18, 20, 80, 81, 82, 200"
+        tags = "5, 6, 16, 17, 18, 20, 80, 81, 200"
     )]
     pub action_view: ::core::option::Option<action_view::ActionView>,
 }
@@ -495,8 +449,6 @@ pub mod action_view {
         ComplianceRegisterUser(
             super::super::super::component::compliance::v1::MsgRegisterUser,
         ),
-        #[prost(message, tag = "82")]
-        AggregateBundle(super::AggregateBundle),
         #[prost(message, tag = "200")]
         ShieldedIcs20Withdrawal(
             super::super::super::component::shielded_pool::v1::ShieldedIcs20WithdrawalView,
@@ -853,39 +805,5 @@ impl ::prost::Name for MemoView {
     }
     fn type_url() -> ::prost::alloc::string::String {
         "/shieldd.core.transaction.v1.MemoView".into()
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum ProofFamilyId {
-    Unspecified = 0,
-    Transfer = 7,
-    NoteReshape = 8,
-    ShieldedIcs20Withdrawal = 10,
-}
-impl ProofFamilyId {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "PROOF_FAMILY_ID_UNSPECIFIED",
-            Self::Transfer => "PROOF_FAMILY_ID_TRANSFER",
-            Self::NoteReshape => "PROOF_FAMILY_ID_NOTE_RESHAPE",
-            Self::ShieldedIcs20Withdrawal => "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "PROOF_FAMILY_ID_UNSPECIFIED" => Some(Self::Unspecified),
-            "PROOF_FAMILY_ID_TRANSFER" => Some(Self::Transfer),
-            "PROOF_FAMILY_ID_NOTE_RESHAPE" => Some(Self::NoteReshape),
-            "PROOF_FAMILY_ID_SHIELDED_ICS20_WITHDRAWAL" => {
-                Some(Self::ShieldedIcs20Withdrawal)
-            }
-            _ => None,
-        }
     }
 }

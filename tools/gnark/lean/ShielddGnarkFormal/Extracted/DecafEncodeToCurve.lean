@@ -11,6 +11,17 @@ def Order : ℕ := 0x12ab655e9a2ca55660b44d1e5c37b00159aa76fed00000010a118000000
 variable [Fact (Nat.Prime Order)]
 abbrev F := ZMod Order
 abbrev Gates := GatesGnark9 Order
+local instance (priority := 2000) : CommRing F := ZMod.commRing _
+local instance (priority := 3000) : Add F := (ZMod.commRing _).toAdd
+local instance (priority := 3000) : Mul F := (ZMod.commRing _).toMul
+local instance (priority := 3000) : NatCast F := (ZMod.commRing _).toNatCast
+local instance (priority := 3000) : Zero F := (ZMod.commRing _).toZero
+local instance (priority := 3000) : One F := (ZMod.commRing _).toOne
+local instance (priority := 3000) : Neg F := (ZMod.commRing _).toNeg
+local instance (priority := 3000) : Sub F := (ZMod.commRing _).toSub
+local instance (priority := 3000) : MulOneClass F := (ZMod.commRing _).toMulOneClass
+local instance (priority := 3000) : CommSemiring F := (ZMod.commRing _).toCommSemiring
+local instance (priority := 3000) : Ring F := (ZMod.commRing _).toRing
 
 def reducedStepOne (PrefixEqual: F) (Bit: F) (k: F -> Prop): Prop :=
     ∃gate_0, gate_0 = Gates.mul PrefixEqual Bit ∧

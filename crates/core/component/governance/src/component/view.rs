@@ -602,7 +602,7 @@ pub trait StateWriteExt: StateWrite + shieldd_sdk_ibc::component::ConnectionStat
     #[instrument(skip(self))]
     async fn enact_proposal(
         &mut self,
-        _proposal_id: u64,
+        proposal_id: u64,
         payload: &ProposalPayload,
     ) -> Result<Result<()>> // inner error from proposal execution
     {
@@ -662,11 +662,14 @@ pub trait StateWriteExt: StateWrite + shieldd_sdk_ibc::component::ConnectionStat
                 self.put_client(client_id, unfrozen_client);
             }
             ProposalPayload::UpdateAssetIbcPolicy(update) => {
-                use shieldd_sdk_compliance::ComplianceRegistryWrite as _;
-                self.replace_asset_ibc_policy(
-                    update.asset_id,
-                    update.expected_route_policy_hash,
-                    update.allowed_ibc_routes.clone(),
+                use shieldd_sdk_compliance::{
+                    ComplianceRegistryWrite as _, EnactedGovernanceAssetPolicyAdmission,
+                };
+                self.apply_enacted_governance_asset_policy(
+                    EnactedGovernanceAssetPolicyAdmission::from_passed_proposal(
+                        proposal_id,
+                        update.clone(),
+                    ),
                 )
                 .await?;
             }

@@ -17,6 +17,7 @@ import json
 import pathlib
 import re
 
+from formal_json import read_json_object
 from poseidon_constants import rounds as poseidon_round_constants
 from write_if_changed import write_if_changed
 
@@ -347,7 +348,10 @@ def gen_leaf(sr1cs_rows, tct_domain):
     op = "gadget.state_commitment_path.leaf"
     start, end = LEAF_START, LEAF_START + 230
     rows = [parse_constraint(line) for line in sr1cs_rows[start:end]]
-    nb = json.loads((pathlib.Path(__file__).resolve().parent / "net_balance_gendata.json").read_text())
+    nb = read_json_object(
+        pathlib.Path(__file__).resolve().parent / "net_balance_gendata.json",
+        canonical="pretty",
+    )
 
     final_outputs = []
     local_outputs = []
@@ -475,7 +479,7 @@ def main():
         if line.strip().startswith("(constraint ")
     ]
     cs = parse_round_constants()
-    vectors = json.loads(VECTORS.read_text())
+    vectors = read_json_object(VECTORS, canonical="pretty_go")
     tct_domain = int(vectors["poseidon377"]["tct_domain"])
     stems = {}
     for level in range(LEVELS):

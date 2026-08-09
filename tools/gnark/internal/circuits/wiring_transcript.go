@@ -147,6 +147,27 @@ func (c *TransferCircuit) traceWiring(op string, args ...string) {
 	}
 }
 
+func (c *TransferCircuit) bindSemantic(name string, variables ...frontend.Variable) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.bind(name, variables...)
+	}
+}
+
+func (c *ShieldedIcs20WithdrawalCircuit) traceWiring(op string, args ...string) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.record(op, args...)
+	}
+}
+
+func (c *ShieldedIcs20WithdrawalCircuit) bindSemantic(
+	name string,
+	variables ...frontend.Variable,
+) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.bind(name, variables...)
+	}
+}
+
 func (c *NoteReshapeCircuit) bindWiringTrace(api frontend.API) {
 	if c.wiringTrace != nil {
 		c.wiringTrace.bindCompiler(api.Compiler())
@@ -159,8 +180,23 @@ func (c *TransferCircuit) bindWiringTrace(api frontend.API) {
 	}
 }
 
+func (c *ShieldedIcs20WithdrawalCircuit) bindWiringTrace(api frontend.API) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.bindCompiler(api.Compiler())
+	}
+}
+
 func noteReshapeCircuitWithTranscript(label string, nIn, nOut int, transcript *WiringTranscript) frontend.Circuit {
 	circuit := NewNoteReshapeCircuit(label, nIn, nOut)
+	circuit.wiringTrace = transcript
+	return circuit
+}
+
+func shieldedIcs20WithdrawalCircuitWithTranscript(
+	nIn int,
+	transcript *WiringTranscript,
+) frontend.Circuit {
+	circuit := NewShieldedIcs20WithdrawalCircuit(nIn)
 	circuit.wiringTrace = transcript
 	return circuit
 }
@@ -185,9 +221,9 @@ func ExportNoteReshapeWiringTranscript(label string, nIn, nOut int) (string, err
 	return transcript.canonical()
 }
 
-// ExportNoteReshape2x1WiringTranscript retains the focused test entry point.
-func ExportNoteReshape2x1WiringTranscript() (string, error) {
-	return ExportNoteReshapeWiringTranscript("note_reshape2x1", 2, 1)
+// ExportNoteReshape8x1WiringTranscript retains the focused test entry point.
+func ExportNoteReshape8x1WiringTranscript() (string, error) {
+	return ExportNoteReshapeWiringTranscript("note_reshape8x1", 8, 1)
 }
 
 // ExportTransferWiringTranscript returns the canonical transcript for the
@@ -200,6 +236,23 @@ func ExportTransferWiringTranscript() (string, error) {
 		transferCircuitWithTranscript(transcript),
 	); err != nil {
 		return "", fmt.Errorf("compile transfer for wiring transcript: %w", err)
+	}
+	return transcript.canonical()
+}
+
+// ExportShieldedIcs20WithdrawalWiringTranscript returns the canonical
+// transcript for the registered withdrawal Define path.
+func ExportShieldedIcs20WithdrawalWiringTranscript(
+	label string,
+	nIn int,
+) (string, error) {
+	transcript := newWiringTranscript(label, nIn, 1)
+	if _, err := frontend.Compile(
+		ecc.BLS12_377.ScalarField(),
+		r1cs.NewBuilder,
+		shieldedIcs20WithdrawalCircuitWithTranscript(nIn, transcript),
+	); err != nil {
+		return "", fmt.Errorf("compile %s for wiring transcript: %w", label, err)
 	}
 	return transcript.canonical()
 }
@@ -325,8 +378,8 @@ func CompileNoteReshapeForFV(label string, nIn, nOut int) (constraint.Constraint
 	return ccs, manifest, nil
 }
 
-func ExportNoteReshape2x1ConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
-	return ExportNoteReshapeConstraintManifest("note_reshape2x1", 2, 1, sr1csPath)
+func ExportNoteReshape8x1ConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
+	return ExportNoteReshapeConstraintManifest("note_reshape8x1", 8, 1, sr1csPath)
 }
 
 func ExportTransferConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
@@ -344,9 +397,28 @@ func ExportTransferConstraintManifest(sr1csPath string) (*ConstraintManifest, er
 	return manifest, nil
 }
 
-// CompileTransferForFV emits the transfer SR1CS and semantic manifest from one
-// frontend compile. Transfer remains a candidate until its exact deployed
-// obligations and semantic bindings are complete.
+func ExportShieldedIcs20WithdrawalConstraintManifest(
+	sr1csPath string,
+) (*ConstraintManifest, error) {
+	_, manifest, err := CompileShieldedIcs20WithdrawalForFV(
+		"shielded_ics20_withdrawal",
+		2,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if sr1csPath != "" {
+		hash, err := sha256HexFile(sr1csPath)
+		if err != nil {
+			return nil, err
+		}
+		manifest.SR1CSSHA256Hex = hash
+	}
+	return manifest, nil
+}
+
+// CompileTransferForFV emits the Transfer SR1CS and semantic manifest from one
+// frontend compile.
 func CompileTransferForFV() (constraint.ConstraintSystem, *ConstraintManifest, error) {
 	transcript := newWiringTranscript("transfer", TransferCircuitInputs, TransferCircuitOutputs)
 	transcript.recordCounts = true
@@ -366,21 +438,15 @@ func CompileTransferForFV() (constraint.ConstraintSystem, *ConstraintManifest, e
 	return ccs, manifest, nil
 }
 
-// CompileShieldedIcs20WithdrawalForFV emits a candidate artifact pair.
-// Until detailed tracing is added, its single unclassified segment makes
-// exact-coverage gates fail closed instead of implying certification.
+// CompileShieldedIcs20WithdrawalForFV emits withdrawal SR1CS and its semantic
+// manifest from one frontend compile.
 func CompileShieldedIcs20WithdrawalForFV(
 	label string,
 	nIn int,
 ) (constraint.ConstraintSystem, *ConstraintManifest, error) {
 	transcript := newWiringTranscript(label, nIn, 1)
 	transcript.recordCounts = true
-	transcript.events = append(transcript.events, wiringEvent{
-		op:         "candidate.unmodeled",
-		args:       []string{"reason=semantic_trace_pending"},
-		constraint: 0,
-	})
-	circuit := NewShieldedIcs20WithdrawalCircuit(nIn)
+	circuit := shieldedIcs20WithdrawalCircuitWithTranscript(nIn, transcript)
 	ccs, err := frontend.Compile(
 		ecc.BLS12_377.ScalarField(),
 		r1cs.NewBuilder,
@@ -744,11 +810,15 @@ func classifyConstraintSegment(op string) (kind, gadgetLabel, bridgeTheorem, not
 		return "marker", "", "", "semantic trace marker; expected to carry no constraints"
 	case op == "statement.append" || op == "statement.append_all" || op == "statement.assemble":
 		return "adapter", "", "", "statement vector assembly; expected to carry no constraints"
-	case op == "decaf.assert_on_curve":
-		return "glue", "", "", "allowed raw affine Decaf on-curve assertion"
-	case strings.HasPrefix(op, "assert."):
+	case op == "assert.boolean" ||
+		op == "assert.decaf_non_identity" ||
+		op == "assert.eq" ||
+		op == "assert.ne" ||
+		op == "assert.eq_if" ||
+		op == "assert.active_range" ||
+		op == "assert.dummy_suffix":
 		return "glue", "", "", "allowed assertion/copy constraint segment"
-	case strings.HasPrefix(op, "select.") || op == "dummy.mux" || op == "threshold.flag":
+	case op == "select.field" || op == "select.point" || op == "dummy.mux":
 		return "glue", "", "", "allowed selector/range glue segment"
 	default:
 		return "unclassified", "", "", "must be discharged by a gadget mapping or by re-authoring"
@@ -759,6 +829,8 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 	switch op {
 	case "decaf.compress_to_field":
 		return "gadget-decaf-compress-to-field", "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound", true
+	case "decaf.assert_on_curve":
+		return "gadget-decaf-assert-on-curve", "Shieldd.GnarkFormal.Deployed.DecafAssertOnCurve.circuit_sound", true
 	case "decaf.assert_equivalent", "decaf.assert_equivalent_if":
 		return "gadget-decaf-assert-equivalent", "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound", true
 	case "decaf.randomized_verification_key", "decaf.randomized_verification_key.dummy":
@@ -771,36 +843,49 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 	// and the balance-blinding ladder.
 	case "decaf.conservation_net_balance_commitment":
 		return "gadget-conservation-net-balance-commitment", "Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound", true
+	case "decaf.conservation_net_balance_commitment2":
+		return "gadget-conservation-net-balance-commitment2", "Shieldd.GnarkFormal.ConservationNetBalanceCommitment2Bridge.decaf377_conservationNetBalanceCommitment2_sound", true
 	case "decaf.ack":
-		return "gadget-ack-two-step", "Shieldd.GnarkFormal.AckBridge.ack_sound", true
+		return "gadget-ack-derivation", "Shieldd.GnarkFormal.AckBridge.ack_sound", true
 	case "decaf.shared_secret":
-		return "gadget-ack-two-step", "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound", true
+		return "gadget-shared-secrets", "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound", true
 	case "gadget.nullifier":
 		return "gadget-nullifier", "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound", true
 	case "gadget.synthetic_dummy_nullifier":
 		return "gadget-poseidon-hash3-specialized", "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps", true
 	case "gadget.is_zero":
 		return "gadget-iszero", "Shieldd.GnarkFormal.isZeroExtracted_implies_is_zero", true
-	case "gadget.state_commitment_path", "gadget.compliance_path":
+	case "threshold.flag":
+		return "gadget-threshold-regulated-flag", "Shieldd.GnarkFormal.ThresholdRegulatedBridge.threshold_flag_sound", true
+	case "gadget.state_commitment_path":
 		return "gadget-quad-path-24", "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24", true
+	case "gadget.asset_registry_path", "gadget.compliance_path":
+		return "gadget-quad-path-16", "Shieldd.GnarkFormal.Poseidon4Bridge.quadPath16_circuit_sound", true
 	case "gadget.note_commitment":
 		return "gadget-poseidon-hash6", "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound", true
-	case "gadget.asset_registry_imt":
-		return "gadget-imt-gap", "Shieldd.GnarkFormal.Extracted.ImtGap.circuit_sound", true
+	case "gadget.asset_registry_gap":
+		// The Boolean selector is constrained separately before the authenticated
+		// leaf/path pipeline, so this is the exact gap body rather than the
+		// standalone gadget that also contains that Boolean row.
+		return "gadget-imt-gap-body", "Shieldd.GnarkFormal.Extracted.ImtGap.body_relation_sound", true
+	case "gadget.asset_registry_params_hash":
+		return "gadget-poseidon-hash4", "Shieldd.GnarkFormal.Poseidon4Bridge.circuit_sound", true
+	case "gadget.asset_registry_ring_hash", "gadget.asset_registry_leaf_hash":
+		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound_eq", true
 	case "gadget.compliance_leaf":
-		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound", true
+		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound", true
 	case "gadget.transfer_salt":
 		return "gadget-poseidon2", "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound", true
 	case "gadget.poseidon_encryption.detection":
-		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_sound", true
+		return "gadget-poseidon-encryption-detection-body", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_body_sound", true
 	case "gadget.poseidon_encryption.amount":
-		return "gadget-poseidon2", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_sound", true
+		return "gadget-poseidon-encryption-amount-body", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_body_sound", true
 	case "gadget.poseidon_encryption.address":
-		return "gadget-poseidon-hash4", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_sound", true
+		return "gadget-poseidon-encryption-address-body", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_body_sound", true
 	case "gadget.metadata_hash":
 		return "gadget-poseidon-hash6", "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound", true
 	case "gadget.dleq":
-		return "gadget-dleq", "Shieldd.GnarkFormal.DleqBridge.dleq_sound", true
+		return "gadget-dleq-body", "Shieldd.GnarkFormal.DleqBridge.dleq_body_sound", true
 	case "statement.hash":
 		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound", true
 	default:

@@ -62,7 +62,7 @@ mod tests {
 
         let asset_id = asset::Id(Fq::from(42u64));
         state
-            .register_asset_in_imt(
+            .test_only_register_asset(
                 asset_id,
                 AssetPolicy::simple(
                     decaf377::Element::GENERATOR,
@@ -92,7 +92,7 @@ mod tests {
         let unregulated_2 = asset::Id(Fq::from(3u64));
 
         state
-            .register_asset_in_imt(
+            .test_only_register_asset(
                 regulated,
                 AssetPolicy::simple(
                     decaf377::Element::GENERATOR,

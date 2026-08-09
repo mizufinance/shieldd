@@ -77,7 +77,10 @@ import ShielddGnarkFormal.Deployed.PrimeOrder
 import ShielddGnarkFormal.Deployed.NoteReshapeRefinement
 import ShielddGnarkFormal.Protocol.NoteReshape.Concrete
 import ShielddGnarkFormal.Protocol.NoteReshape.Refinement
-import ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement
+import ShielddGnarkFormal.Protocol.NoteReshape.Security
+import ShielddGnarkFormal.Protocol.ShieldedIcs20Withdrawal.Security
+import ShielddGnarkFormal.Protocol.Transfer.Security
 import ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness
-import ShielddGnarkFormal.Deployed.NoteReshape4x1Soundness
 import ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness
+import ShielddGnarkFormal.Deployed.TransferRefinement
+import ShielddGnarkFormal.Deployed.ShieldedIcs20WithdrawalRefinement

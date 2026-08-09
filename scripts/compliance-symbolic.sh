@@ -10,9 +10,9 @@ cd "$ROOT"
 FORMAL_DIR="crates/core/component/compliance/formal"
 TOOLCHAIN="$FORMAL_DIR/toolchain.toml"
 COMPLIANCE_LEMMAS=(
-  SECRECY
+  RECOVERY_IMPLIES_DESIGNATED_ACTION
   DETECTION_CORRECTNESS
-  DESIGNATED_DECRYPTABILITY
+  RECOVERY_KEY_WAS_DESIGNATED
   DLEQ_BINDING
   REPLAY_RESISTANCE
   NO_KEY_CONFUSION
@@ -169,10 +169,11 @@ case "$maude_version" in
   *) fail "Maude version mismatch; expected $maude_pin, got: $maude_version" ;;
 esac
 
-# Each model has its own lemma set and stamped artifact. The closed-world
-# authorization model carries the secrecy/decryptability correspondence; the
-# active-adversary model carries binding/replay under a Dolev-Yao attacker.
-# Both must verify with zero wellformedness warnings.
+# Each model has its own lemma set and stamped artifact. The closed-world model
+# carries authorization/decryptability correspondences only; without attacker
+# knowledge it is not end-to-end secrecy evidence. The active-adversary model
+# carries binding/replay under a Dolev-Yao attacker and explicitly excludes
+# confidentiality. Both must verify with zero wellformedness warnings.
 prove_model() {
   local model="$1" artifact="$2"
   shift 2

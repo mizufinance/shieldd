@@ -27,6 +27,12 @@ pub const DEFAULT_DEV_SRS_ID: [u8; 32] = [
 ];
 const DEV_SRS_SEED: [u8; 32] = [0x50; 32];
 
+/// Deterministically generated development SRS.
+///
+/// Its generation seed is public, so it does not satisfy the unknown-trapdoor
+/// premise required for KZG binding. Aggregate verification with this SRS is
+/// not an acceptance soundness boundary; consensus independently verifies each
+/// constituent Groth16 proof.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct DevSrs {
     pub max_padded_count: u32,

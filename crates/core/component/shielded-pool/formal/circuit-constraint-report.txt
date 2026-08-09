@@ -33,7 +33,7 @@ GADGET gadget-nullifier safe
   precondition_sha256: none
   picus_exit: 8
 GADGET gadget-imt-gap safe
-  sr1cs_sha256: 4d9724484fc48a70ebc291b471f165f9079f07642cb1be7e5864e164a84311ce
+  sr1cs_sha256: af3c12eabeb2207fea737b85f2a1e77ac68de1e7f3def390ae3425361fca95b8
   precondition_sha256: none
   picus_exit: 8
 GADGET gadget-iszero safe
@@ -96,10 +96,6 @@ GADGET gadget-ack-two-step safe
   sr1cs_sha256: d2fbc37ad78acbe0e6bdc5ec280afd2966d24cdcb09676d808b5d3a6bd5f33aa
   precondition_sha256: none
   picus_exit: 8
-GADGET gadget-dleq safe
-  sr1cs_sha256: c1bc84db98ce96bc00856876468c8b473362ded5c56bf8e765d73d8e610a68d0
-  precondition_sha256: 11ffad68ad7ac94fa11566252848dc7f9bed096eaed65bfee420f3926f3315fc
-  picus_exit: 8
 COMPOSITE scalar-mul-le-128 safe-by-composition
   note: scalar-mul-step folded 128x over canonical-fq-bits boolean decomposition
   boundary_probe: gadget-scalar-mul-two-step (join seam safe)
@@ -111,7 +107,16 @@ COMPOSITE scalar-mul-le-251 safe-by-composition
 COMPOSITE ack-derivation safe-by-composition
   note: non-constant-base scalar-mul ladder over the asset ring public key
   boundary_probe: gadget-ack-two-step (join seam safe)
-  lean_lift: Shieldd.GnarkFormal.AckBridge.ack_sound
+  deployed_relation_lift: Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafAck_e3974880eca25a8b5cfa17d94f28498f1dc082a93526c584816508afe0778ca1.sound
+  conditional_spec: exact rows prove AckBridge.AckBodySpec; the enclosing circuit must supply the ring public key on-curve premise before AckSpec promotion
+COMPOSITE shared-secrets safe-by-composition
+  note: Boolean flag + three ACK derivations + EPK equivalence + selected-point join
+  boundary_probe: gadget-ack-two-step (each non-constant-base ladder seam safe)
+  deployed_relation_lift: Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafSharedSecret_041af0b46add32e74aa6803586e275955f3d35f426ea6bf6fc76982a6e67cd41.sound
+  deployed_relation_lift: Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.sound
+  deployed_flag_lift: Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafSharedSecret_0a9405fe9fa7b69f5919b41caaa6165a64f58cf75a38a13283885fbfe7b30f0b.flag_bool
+  promotion_lift: Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound
+  conditional_spec: exact rows prove SharedSecretsBody; Transfer composition must bind the shared flag and supply ACK, DK, and published EPK on-curve premises before SharedSecretsSpec promotion
 COMPOSITE quad-path-1/2/4/16/24 safe-by-composition
   note: quad-path-round folded per depth over canonical-fq-bits position decomposition
   boundary_probe: gadget-quad-path-two-round (join seam safe)
@@ -126,15 +131,12 @@ COMPOSITE dtk safe-by-composition
 COMPOSITE net-balance-commitment safe-by-composition
   note: poseidon1 + encode-to-curve + scalar-mul + edwards-add leaves
 COMPOSITE net-balance-commitment2 safe-by-composition
-  note: 2-in-2-out transfer balance; poseidon1 + encode-to-curve + four value scalar-mul ladders (two negated outputs) + blinding ladder + edwards-add/neg leaves
+  note: 2-in-2-out transfer balance; four canonical amount ranges + two 129-bit aggregate radix-4 ladders + blinding ladder + edwards-add/neg leaves
   lean_lift: Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound
-COMPOSITE transfer-dleq safe-by-composition
-  note: Poseidon7 challenge + paired scalar-mul response ladders + Decaf equivalence checks
-  boundary_probe: gadget-dleq (one response equation s*B1 + c*B2; both equations share this shape, and sharing the s/c bits across two individually-deterministic equations adds no free signal)
-  lean_lift: Shieldd.GnarkFormal.DleqBridge.dleq_sound
+COMPOSITE conservation-net-balance-commitment2 safe-by-composition
+  note: Withdrawal conservation; four canonical 128-bit amount decompositions + exact required + optional = change + withdrawal equation + one 251-bit balance-blinding ladder
+  lean_lift: Shieldd.GnarkFormal.ConservationNetBalanceCommitment2Bridge.decaf377_conservationNetBalanceCommitment2_sound
 FAMILY transfer whole-family-picus-excluded
-FAMILY note_reshape2x1 whole-family-picus-excluded
-FAMILY note_reshape4x1 whole-family-picus-excluded
 FAMILY note_reshape8x1 whole-family-picus-excluded
 FAMILY note_reshape1x8 whole-family-picus-excluded
 FAMILY shielded_ics20_withdrawal whole-family-picus-excluded

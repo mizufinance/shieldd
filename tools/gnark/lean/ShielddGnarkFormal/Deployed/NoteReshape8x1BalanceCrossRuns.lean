@@ -9,24 +9,24 @@ namespace Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceCrossRuns
 open Shieldd.GnarkFormal
 open Contracts.NoteReshape8x1
 
-theorem x0 (rho : Nat → Seg134.F) :
-    StrideRun.sumAux (Seg134.localRho rho) 3 1 149 =
-      StrideRun.sumAux rho 109383 5 149 :=
+theorem x0 (rho : Nat → Seg137.F) :
+    StrideRun.sumAux (Seg137.localRho rho) 3 1 149 =
+      StrideRun.sumAux rho 108787 5 149 :=
   NoteReshape8x1BalanceCrossRunX0.seated rho
 
-theorem x1 (rho : Nat → Seg134.F) :
-    StrideRun.sumAux (Seg134.localRho rho) 152 1 101 =
-      StrideRun.sumAux rho 110131 8 101 :=
+theorem x1 (rho : Nat → Seg137.F) :
+    StrideRun.sumAux (Seg137.localRho rho) 152 1 101 =
+      StrideRun.sumAux rho 109535 8 101 :=
   NoteReshape8x1BalanceCrossRunX1.seated rho
 
-theorem y0 (rho : Nat → Seg134.F) :
-    StrideRun.sumAux (Seg134.localRho rho) 255 1 149 =
-      StrideRun.sumAux rho 109384 5 149 :=
+theorem y0 (rho : Nat → Seg137.F) :
+    StrideRun.sumAux (Seg137.localRho rho) 255 1 149 =
+      StrideRun.sumAux rho 108788 5 149 :=
   NoteReshape8x1BalanceCrossRunY0.seated rho
 
-theorem y1 (rho : Nat → Seg134.F) :
-    StrideRun.sumAux (Seg134.localRho rho) 404 1 101 =
-      StrideRun.sumAux rho 110132 8 101 :=
+theorem y1 (rho : Nat → Seg137.F) :
+    StrideRun.sumAux (Seg137.localRho rho) 404 1 101 =
+      StrideRun.sumAux rho 109536 8 101 :=
   NoteReshape8x1BalanceCrossRunY1.seated rho
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceCrossRuns

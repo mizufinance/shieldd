@@ -1,0 +1,707 @@
+{
+  "schema": "shieldd.gnark.deployed_coverage_manifest.v5",
+  "circuit": "shielded_ics20_withdrawal",
+  "functional_assumption_allowlist": [],
+  "classes": [
+    {
+      "class_key": "assert.boolean@7a87157611237b8e",
+      "op": "assert.boolean",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "7a87157611237b8eaf68514a97856f7c4ce39b0f41ff7ae69579dc692a57b055",
+      "instances": [
+        {
+          "segment_index": 1,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst1_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg1",
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "relation_sha256_hex": "8dc92a89774e5338e6eb1b07a23cc71b4d69ac30ed51e654a23844153854a26d",
+          "wire_role_sha256_hex": "0f9c8647534b481a9928157f04063584f2cc475fa4955065cf6150b843492190"
+        },
+        {
+          "segment_index": 35,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst35_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg35",
+          "constant_vector_sha256_hex": "d4ea1a93f9a5c216a62bb9ebd0b7cf19e8baf92abc95b05ad37b63a905d0f01e",
+          "relation_sha256_hex": "9406312835ff023f7a85f8c778914091fd16664fa4258aebf2e3dddf01471b6e",
+          "wire_role_sha256_hex": "c00850f03670cabafc5240d34ee523733bc3e3a89598a5487144e015485d85b4"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.decaf_non_identity@02e979593efdfb54",
+      "op": "assert.decaf_non_identity",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "02e979593efdfb5411ee18e53be34cae16e590197fff6bfb0e56135e7a40d32d",
+      "instances": [
+        {
+          "segment_index": 3,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst3_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg3",
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "relation_sha256_hex": "9bd35dae623500ae7ce8493781f03a674065e120be77345d36b36fe953d06d53",
+          "wire_role_sha256_hex": "c8be7ff16f1f3a885c1abc9883c7e8a9937fdedfc826659950de54a42204367e"
+        },
+        {
+          "segment_index": 4,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst4_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg4",
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "relation_sha256_hex": "f13149360b6949c4ae3209e962d6c7e0e8c9b4c13c6142a9b243a3e3df5ff350",
+          "wire_role_sha256_hex": "3a4a88b1ca51265d45bc5427384da5c21f48559f79a753527612671cc7e9920d"
+        }
+      ],
+      "note": "normalized template bound"
+    },
+    {
+      "class_key": "assert.decaf_non_identity@be5630601603ed3d",
+      "op": "assert.decaf_non_identity",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "be5630601603ed3da2573cc8c19fdfac2aff987968e3a456259dbec03c37aea5",
+      "instances": [
+        {
+          "segment_index": 9,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst9_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg9",
+          "constant_vector_sha256_hex": "9ebc369054f60e573f780564718a0be335abe6b8179928d854f5a7d24e87ff46",
+          "relation_sha256_hex": "2940d2cdfd955acafc029a85393fbe6e00484f00a703221d0619d58af31cadb3",
+          "wire_role_sha256_hex": "e58fc0fc0c1bf28d36b2e8530bbaf296241f47f0c350de5d6466ea15c8a9af0c"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.eq@06c76cbbea275f19",
+      "op": "assert.eq",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "06c76cbbea275f19eb68b2fdbf0d782ef5b2bfa62f70ba8874dcd31c66157d27",
+      "instances": [
+        {
+          "segment_index": 45,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst45_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg45",
+          "constant_vector_sha256_hex": "a3f409519147bc8745b0e9ee111641ecae70ac7740a50be36c8502518ea81833",
+          "relation_sha256_hex": "47559cf3fadc97866af58eef3005f795dc520882402cf1a487c55d0ba5d2fdb2",
+          "wire_role_sha256_hex": "7aa0be932a16b82586786d881c4679950b98d2f283f972c4612afe8ef302c30e"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.eq@79834932d11ef8ff",
+      "op": "assert.eq",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "79834932d11ef8ff88e2c88c84922c13eff1590161635fe8ab6dcbeada12fc60",
+      "instances": [
+        {
+          "segment_index": 12,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst12_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg12",
+          "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
+          "relation_sha256_hex": "b78825c67c0e0d15f9efe1ca4489ffccced0a6e07c5eda583026aa4b40b4ef0f",
+          "wire_role_sha256_hex": "78cf87f312cadbbbde765efdc9e7d6a8c88575c45e3b43d26dece47d6b206c87"
+        },
+        {
+          "segment_index": 26,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst26_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg26",
+          "constant_vector_sha256_hex": "6be1487b637a04aaea7ea1884674bf237e63e3a2d145c85842915847bf00a32e",
+          "relation_sha256_hex": "c4308f7df25afed5798a3c7ac44db266f9eceefba7db8120ee028648363a0c1b",
+          "wire_role_sha256_hex": "00de26bc1d9685783ca24ec014a7282b7d86648a5289a0470c578603baa15932"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.eq@c8f5f9ee8e1b47f7",
+      "op": "assert.eq",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "c8f5f9ee8e1b47f722c6bffb7c3913d3e9b0f9fdfcf4f23bd4bb38dedc3b4d85",
+      "instances": [
+        {
+          "segment_index": 38,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst38_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg38",
+          "constant_vector_sha256_hex": "8a4492d79b965cae54af2e4e6184cdf011e726d83e3b1bfccba952128be5d7fb",
+          "relation_sha256_hex": "370a9eeda7086dcd4c1ab8a8c318d210b7ae0e5e9d9259acded97f3625ad5b60",
+          "wire_role_sha256_hex": "82d6c595e79130e17839f475fb8b91cc51b668e3a15784a16416fd0ae8effe7b"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.eq@e98882ab152e4816",
+      "op": "assert.eq",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "e98882ab152e4816645c3a3cf3a7802a6ee0d45eab56367eeb8421a84525c31c",
+      "instances": [
+        {
+          "segment_index": 15,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst15_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg15",
+          "constant_vector_sha256_hex": "9ebc369054f60e573f780564718a0be335abe6b8179928d854f5a7d24e87ff46",
+          "relation_sha256_hex": "64f93f4a4b7b75f896177550bac3ac0540435bd4def3b7f5c357606d6dda5978",
+          "wire_role_sha256_hex": "e53c3cc50c2c7f60dd6d9b8d21aa3a1efe76149cefe108de9d6b5b4b7e0b2455"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.eq@f317d4157f1c5303",
+      "op": "assert.eq",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "f317d4157f1c530382bb02e9d3efdd48215127886de65265086299c51cbd8d2a",
+      "instances": [
+        {
+          "segment_index": 25,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst25_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg25",
+          "constant_vector_sha256_hex": "836c37280403f43529ca0ad27d77413aface8ff3aaf7167ddd9275199848c73a",
+          "relation_sha256_hex": "3e43f2bc6a797c38cdf2b7d4aea66b4a0b0fe16c42de3585c633251556e92439",
+          "wire_role_sha256_hex": "9b1873f9c8bce19e8e9d532d6f6e5e675402fb47aa3177e3247cc32f1bca4e49"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.eq@fcdce018977caef8",
+      "op": "assert.eq",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "fcdce018977caef8841bd7700ba41d2ed471c63bd0c9ca1ea5ff6b831b71b392",
+      "instances": [
+        {
+          "segment_index": 53,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst53_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg53",
+          "constant_vector_sha256_hex": "0c4eca34451f0c5e7931a3becd9818b25c3f3b68efd694651a90841c183e73ec",
+          "relation_sha256_hex": "3b9cc340b5ae4ede549297d93d0532cdd760fecf93ebff991a53d08d24795914",
+          "wire_role_sha256_hex": "b1088bac55b6d5dda81a578fa481ac15d2ce9caa2b6dc0356da2ba7470d30cb9"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.eq_if@260c4859295f1af1",
+      "op": "assert.eq_if",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "260c4859295f1af12110f4c101e1c15ed922e3484c72c5a28bc0e62e74fc594c",
+      "instances": [
+        {
+          "segment_index": 39,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst39_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg39",
+          "constant_vector_sha256_hex": "d97849a6302d9f2d6f6ec25a40bac4c8c9e34d00b38eea1c16856bf288212b3a",
+          "relation_sha256_hex": "27a3f4ca9eeaf964d63bef3f62ceb7fdc5a4486ed4aba1bf7b791b4e1f822d5d",
+          "wire_role_sha256_hex": "3b313f447352b6c515b689483f1fa21ffff6638598edecbc8499886d63f509a7"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.eq_if@6b189fceb6f38b99",
+      "op": "assert.eq_if",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "6b189fceb6f38b9912ee4b9f7b3c2b1e14b48cf015b2b7634f54b97f121a250c",
+      "instances": [
+        {
+          "segment_index": 18,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst18_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg18",
+          "constant_vector_sha256_hex": "81aa13b28cb82b96d2c488e0269ae01044d7da54a5e9bdce6dfdfb1b8c08ac53",
+          "relation_sha256_hex": "2eb5209953f2d4daa326f07de919d147745f1cd4e64c4404a91990c3d162309e",
+          "wire_role_sha256_hex": "378b02d634ff8113de0ecbb4cc3b0d90702fb85c140bdf1009a0aff6a3ff4aa6"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.eq_if@85cc0c8fd7537839",
+      "op": "assert.eq_if",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "85cc0c8fd7537839beab1586a0fc48afe0c08eb7823adf1e4d504f78601c8543",
+      "instances": [
+        {
+          "segment_index": 41,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst41_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg41",
+          "constant_vector_sha256_hex": "829556af7635a21d7a1af040b61ed1e20af6747f7e92c3d0f2f616aa812b1b38",
+          "relation_sha256_hex": "2f42177acdfd86fceaa94b76651d241c94eab531bf0593e302fa12e0b414191c",
+          "wire_role_sha256_hex": "5fde569639d72a7aa11c00ad3e13d8da0b56ba82a6b8ce3b3448439b033c251a"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "assert.ne@02e979593efdfb54",
+      "op": "assert.ne",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "02e979593efdfb5411ee18e53be34cae16e590197fff6bfb0e56135e7a40d32d",
+      "instances": [
+        {
+          "segment_index": 6,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst6_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg6",
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "relation_sha256_hex": "ccd7a377be175f2a67341ce06de9e23f423f816c6e8c902950c79a71e3566cd5",
+          "wire_role_sha256_hex": "7afc0a5205540dd04bc39e1f726324b0eddc34d3dc894d2c6c2a814455a17348"
+        },
+        {
+          "segment_index": 13,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst13_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg13",
+          "constant_vector_sha256_hex": "a825ada3bede5c9b54a942a45bb193fdc513797d2db9b91346bc867a2a11d0be",
+          "relation_sha256_hex": "d81c066ee988542a61f7888aa7670ca6c6b85a9796b7d943729ad0c44220d391",
+          "wire_role_sha256_hex": "660a67ee52ab90f656815b43bacc518132baa941c6e20985aeae6ea6d95fb1ec"
+        }
+      ],
+      "note": "normalized template bound"
+    },
+    {
+      "class_key": "decaf.assert_equivalent@cddeba650593d6cb",
+      "op": "decaf.assert_equivalent",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "cddeba650593d6cb4d488a1facca6de7037b8887380b94c5bcd8da43a7b875ba",
+      "instances": [
+        {
+          "segment_index": 27,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst27_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg27",
+          "constant_vector_sha256_hex": "bb4b7eddf24f60416128f538e71bac420e5c68d0fe10a8f76541b1449cc2f1d2",
+          "relation_sha256_hex": "74e805dbdcaa2386e0422ede49ed76a320812cd639d3f3b1312748dca45e854e",
+          "wire_role_sha256_hex": "e27e46bc68320328acf27db3ce07c171aa97fd3d80ae0c9633cfef632157ab74"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "decaf.assert_equivalent_if@6198d347efba32e9",
+      "op": "decaf.assert_equivalent_if",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "6198d347efba32e96077e9828d2e3b0b946bd34eb3a561ac2f541e2bd9635fd5",
+      "instances": [
+        {
+          "segment_index": 40,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst40_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg40",
+          "constant_vector_sha256_hex": "902007ddfa9357d0175e6a93f344213adce96f820e09bb56f073f95ae184b472",
+          "relation_sha256_hex": "ed3748ebe24ba5e7db70828004a38446077db24a1bb10e8e5a4530b065626865",
+          "wire_role_sha256_hex": "e1bd822426d83d3a98a4a4cbcb08be146741efa7e86c171908d41eee621a8409"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "decaf.compress_to_field@8061730e89042f34",
+      "op": "decaf.compress_to_field",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "8061730e89042f34c91872aaf1899dd8f8ea3e4a79cf0cb2bcdffccbb8a7bb72",
+      "instances": [
+        {
+          "segment_index": 8,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst8_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg8",
+          "constant_vector_sha256_hex": "0ccbd51aa951ae46343bd2029997e607bdb411f8fd1ebcd41149d224d0244467",
+          "relation_sha256_hex": "8ca87af50b54f460c6895b2275fdbc2de72cad073ffd60c5687971a2671c72a4",
+          "wire_role_sha256_hex": "73486f947c15f33d26a4456bb7caa1e2474321e50e4e7e6609e8ec7ca3344676"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "decaf.compress_to_field@aaf77ee7e9fa9bd1",
+      "op": "decaf.compress_to_field",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "aaf77ee7e9fa9bd1d02f32114826d4026f8ad480f9641579f2a54fe57c0eb9c6",
+      "instances": [
+        {
+          "segment_index": 48,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst48_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg48",
+          "constant_vector_sha256_hex": "61f670d190050635888383bb8cd74d651f5811d04ef2e0fa84317ba9fe733b9f",
+          "relation_sha256_hex": "dfb0d5e736eb2568c7665209dce2a942725b629cdffbcf53086e9e8664bad0ea",
+          "wire_role_sha256_hex": "80730cd0c3ee60f61a21bc843420d7dbbd7abf1bbc3f37263d956332f534ce65"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "decaf.compress_to_field@c7b7aeec064cedd7",
+      "op": "decaf.compress_to_field",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "c7b7aeec064cedd7c8f6b7ba01df2138308c97883811dee9e212e804b918f4ac",
+      "instances": [
+        {
+          "segment_index": 5,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst5_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg5",
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "relation_sha256_hex": "4d5633465ec0eae8ef1ec21836d2ced712ab246c3bae088801ef85ddba8de114",
+          "wire_role_sha256_hex": "54ff6029923df2febc4d8fcf82780dab3e5265be64ef245d9b4784b048626b19"
+        },
+        {
+          "segment_index": 24,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst24_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg24",
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "relation_sha256_hex": "7b06a367a5e240089a190beb2698b7c7007eba92651bf698438c9a9f2054c789",
+          "wire_role_sha256_hex": "9bd0795f1f56d150c90135310acfbe57ca820a9ac85f9f371cddd2e4d7bde17c"
+        },
+        {
+          "segment_index": 34,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst34_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg34",
+          "constant_vector_sha256_hex": "11ddec3e6e8ca12b88b3a377dc3c7db9e845f13fdabafade282b22632f5834e9",
+          "relation_sha256_hex": "ac6c0a2120dc0473b90b2a86e04fce99a8204bd3aa150e0dbc630e6344b6501c",
+          "wire_role_sha256_hex": "55cd2ba09e39a5d9ccc582b3eed835ddf918d63653dc52cf4c5b471b77d68624"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "decaf.conservation_net_balance_commitment2@a82efdcf440556d8",
+      "op": "decaf.conservation_net_balance_commitment2",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "a82efdcf440556d81bd94141db579ad5a9d8213c131e34f7a7e1635b231d8936",
+      "instances": [
+        {
+          "segment_index": 47,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst47_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg47",
+          "constant_vector_sha256_hex": "32c745942da8a7af6b6c111d851b4da6801d3f5e5629391dc0aec2f95eefbfbf",
+          "relation_sha256_hex": "49f10f428a96ca7672ddc79b95df46a442016f2bc0ae6eceae81c7e8991a11af",
+          "wire_role_sha256_hex": "c2a52b3a3206b98e0d97fe0c2ac5853de680a3dbc6db905a50e7afa596253ea9"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "decaf.diversified_transmission_key@50d12ca8a9329c70",
+      "op": "decaf.diversified_transmission_key",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "50d12ca8a9329c7064c5c10199d9d29efce2e55d2b557ba79723d57a3462a6d0",
+      "instances": [
+        {
+          "segment_index": 7,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst7_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg7",
+          "constant_vector_sha256_hex": "500730942fa63a7e2f9e40502f22ca00737e04fa344ece0183f046e1d2b3e278",
+          "relation_sha256_hex": "bebf4456218bb3b07d00322a7fcbae811bdf2b7d772e507e57150344e4f3de00",
+          "wire_role_sha256_hex": "cee9dbc6c7e5df37cc028e21ec406b53efeeebcc2122062bbf14f4b54af7cca7"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "decaf.randomized_verification_key@058cff75c684a4d6",
+      "op": "decaf.randomized_verification_key",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "058cff75c684a4d6db15c17a9a129fb3a28e78936c26bea3d46fc531e01c2114",
+      "instances": [
+        {
+          "segment_index": 23,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst23_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg23",
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "relation_sha256_hex": "ad929b96a129fcd847a12f9b1cced461692c97eeb2e6d29bfeb536ccb4582c4a",
+          "wire_role_sha256_hex": "816d8cc26c22cb19032bc24ada2ccb03cf8c6813dd8ccad026b59cf8073d6fdb"
+        },
+        {
+          "segment_index": 33,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst33_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg33",
+          "constant_vector_sha256_hex": "e60f5e5a4779e69269ded2d568dc03f18089a9096367ea91aa849c70a1582cbc",
+          "relation_sha256_hex": "3ede9e7c8a72d2816d1cf90f48421d177df5eb08c688df946413f44c4aa44737",
+          "wire_role_sha256_hex": "618d62b62a2625731e8729951ea184016c4e80ead65c0595796a4ea72a45f3eb"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "dummy.mux@68c34d6e11c35404",
+      "op": "dummy.mux",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "68c34d6e11c35404d833d8723b94b24fa6f1796fe280f8638af47a3f6dead500",
+      "instances": [
+        {
+          "segment_index": 37,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst37_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg37",
+          "constant_vector_sha256_hex": "42141461045fde79d3e35b8642729c1bf1adb74b1cf74e7d3ef6b73400d7d36f",
+          "relation_sha256_hex": "5c34494a4b0cbc7167ac75c4002d7dd5a25afd39ca94b050de457ec32fe13b96",
+          "wire_role_sha256_hex": "ebeeaab8d1abaedde0baddbb42f8a7006ee6f4e2b4291a7f510d986ffe6f0efd"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "gadget.asset_registry_gap@07f861b269e76a86",
+      "op": "gadget.asset_registry_gap",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "07f861b269e76a86b6621a697ee11ab128a59179bcd2390d2f6cec9c5b896319",
+      "instances": [
+        {
+          "segment_index": 14,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst14_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg14",
+          "constant_vector_sha256_hex": "0b873499921546bdd7daf37a1d36382939d8f51f493f1e7d70a7f7432f9ad0bb",
+          "relation_sha256_hex": "070756a6a58ea47f7f2d3767ef24ff6a4a35a3fd2bd07bbe2546aa61dd1dce75",
+          "wire_role_sha256_hex": "eae90d7da5dbf81d359fdc22711576a4bc40d6b289acb40516186f437c5580fa"
+        }
+      ],
+      "note": "normalized template bound"
+    },
+    {
+      "class_key": "gadget.asset_registry_leaf_hash@0b8c04292b881050",
+      "op": "gadget.asset_registry_leaf_hash",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "0b8c04292b8810501476ab134505faa97d4c7a540d09d78c6344c456b2721866",
+      "instances": [
+        {
+          "segment_index": 10,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst10_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg10",
+          "constant_vector_sha256_hex": "ca5a9a2da8a745ca823bbcbc130a2ff586e496e2b154f520fd22b432ac3cf378",
+          "relation_sha256_hex": "6316fcf2cb67d9691bc38872af675d9dc0759cfeade232dbd108f12c2c3645b6",
+          "wire_role_sha256_hex": "9bc916508cf3e737ed4722e8ddbff64560809852afc72f208857bd6296b02a54"
+        }
+      ],
+      "note": "normalized template bound"
+    },
+    {
+      "class_key": "gadget.asset_registry_path@ef63c050e024608c",
+      "op": "gadget.asset_registry_path",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "ef63c050e024608c4d608e76311221983abf99d3845bf7bbd1b26c588c33b4b6",
+      "instances": [
+        {
+          "segment_index": 11,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst11_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg11",
+          "constant_vector_sha256_hex": "ff0056132da0e46efb95f251d722854798ff116c178ab20aef7024dbe668e58c",
+          "relation_sha256_hex": "0cfa1926db80de2e35e22546acd9dd78141913ab0327d1b9d2718ee71df5a4cf",
+          "wire_role_sha256_hex": "e256d17e22e25683bc15a35f847af0759240bd9141ce4bc520ebeffb1775837f"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "gadget.compliance_leaf@55ea2ffd47dbcf71",
+      "op": "gadget.compliance_leaf",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "55ea2ffd47dbcf71ff22044522a9268e450603937817a9767a7e816e3f94f622",
+      "instances": [
+        {
+          "segment_index": 16,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst16_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg16",
+          "constant_vector_sha256_hex": "dc87e8ab08026eced0662493a7fbd6e014fb6260b3bc384ed0d14ea686cc8869",
+          "relation_sha256_hex": "dc2cb963b32d3671210e401508fb55349b82ccea3cd3f12b5bbb016afbebcb6c",
+          "wire_role_sha256_hex": "6f73ae3bd24de757ad5b43db185949916adade2338310c517a04836b14d837b9"
+        }
+      ],
+      "note": "normalized template bound"
+    },
+    {
+      "class_key": "gadget.compliance_path@48f5a51369e5517c",
+      "op": "gadget.compliance_path",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "48f5a51369e5517ca337d1c9a4f103456c5e19f3107c082404b6d9c8e656b6b0",
+      "instances": [
+        {
+          "segment_index": 17,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst17_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg17",
+          "constant_vector_sha256_hex": "d20ea0e753223eac503d76af86182dd0e9651cf7a1967a64b84a03ef9e50e772",
+          "relation_sha256_hex": "69e6d1c1728760c5fd9cee5e0fe8c2be757910939c42abe9437a3ddb83638be3",
+          "wire_role_sha256_hex": "df1317ca784de0d4149f508f7be5523f179530533383fab3d557b056c4831794"
+        }
+      ],
+      "note": "normalized template bound"
+    },
+    {
+      "class_key": "gadget.note_commitment@a214e103a156e1fd",
+      "op": "gadget.note_commitment",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "a214e103a156e1fd3594aa629be2c8c5f770706a7ffd1323ed44d26221d76f8b",
+      "instances": [
+        {
+          "segment_index": 20,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst20_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg20",
+          "constant_vector_sha256_hex": "0ec1d01ff2b5c7ec88716e2f266eb1d3a39271c8370ee45b03f4d9defe942650",
+          "relation_sha256_hex": "1d783c73ed6807477bf8c4a19980afc7ba6dc38e485e5b4988bab3d4c8fe5a66",
+          "wire_role_sha256_hex": "d25b9e1313825b84f65f20e30488876a50f779741186111ff3efd0b887136daf"
+        },
+        {
+          "segment_index": 30,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst30_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg30",
+          "constant_vector_sha256_hex": "0ec1d01ff2b5c7ec88716e2f266eb1d3a39271c8370ee45b03f4d9defe942650",
+          "relation_sha256_hex": "6ef43bcf8d9791264acd6ec529cfba9c9248c86efaa6634439820ab719e56082",
+          "wire_role_sha256_hex": "7d91a984d3c4bf8752ece9dc44c46981e235470d4201495ea26d087a9133d796"
+        },
+        {
+          "segment_index": 44,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst44_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg44",
+          "constant_vector_sha256_hex": "0ec1d01ff2b5c7ec88716e2f266eb1d3a39271c8370ee45b03f4d9defe942650",
+          "relation_sha256_hex": "d78b65a7e59ffa03c2bed35b8aa677e6925e781c265aa55045db86359c070fef",
+          "wire_role_sha256_hex": "105140cca40e91c734c490ab314764278131a03f8a238a93eb94db1a7930d0d5"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "gadget.nullifier@7d69f698e0d7da6c",
+      "op": "gadget.nullifier",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "7d69f698e0d7da6cda7d847b7e87b080cd13c5af4bac207884f8498db2c7b390",
+      "instances": [
+        {
+          "segment_index": 21,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst21_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg21",
+          "constant_vector_sha256_hex": "bfe07058ea4e37b23d92586163cfb9e8a63b50d559082b29a3c5839838f38b50",
+          "relation_sha256_hex": "9e8d70cb9fa64b2dc9fdc117ddc033613675370a10a57e709f7d8d57edb6217d",
+          "wire_role_sha256_hex": "205a2f779cd79478261e21067127e6f413e1da6da3905ce847f7ec47bedb24a4"
+        },
+        {
+          "segment_index": 31,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst31_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg31",
+          "constant_vector_sha256_hex": "bfe07058ea4e37b23d92586163cfb9e8a63b50d559082b29a3c5839838f38b50",
+          "relation_sha256_hex": "dd8bbc5c26fe2433e3b1ed8979344efbec60c27e4a7f44c246c126f7674ac391",
+          "wire_role_sha256_hex": "07ee34bee07955eed3abd1cf22360a28369ee5583f54b08e0c2684f91193a4cb"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "gadget.state_commitment_path@1fb4124ff9d8cc66",
+      "op": "gadget.state_commitment_path",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "1fb4124ff9d8cc66f95dcf765fed8ce1d4265abd88ed0c9756b4b59a8b50e173",
+      "instances": [
+        {
+          "segment_index": 22,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst22_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg22",
+          "constant_vector_sha256_hex": "9368cc95120ed4d0d19d3dcc5ca9dea5ae19c2802c4e25b2f3cbd6d8e5edd8e9",
+          "relation_sha256_hex": "2f2079c0161e14572c35c9eaa06689d5897e285b4d79fb620c1810c9f671367c",
+          "wire_role_sha256_hex": "a9cf686d45b1df5f44ee2b8b6c3c6c96996c0280e4d84fe12e38b5ad4da65971"
+        },
+        {
+          "segment_index": 32,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst32_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg32",
+          "constant_vector_sha256_hex": "9368cc95120ed4d0d19d3dcc5ca9dea5ae19c2802c4e25b2f3cbd6d8e5edd8e9",
+          "relation_sha256_hex": "5d4a95f190713cd27b73b904be5387daf311821835fd2b96483676c107b4de93",
+          "wire_role_sha256_hex": "4a4a1f4d6108e9f087ca31f899ffb9be87a203dc186ed3b6cebc89d6de6ee170"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "gadget.synthetic_dummy_nullifier@18c09d9eae205eb3",
+      "op": "gadget.synthetic_dummy_nullifier",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "18c09d9eae205eb310206275a6cc01a73294a80cc36155ed13c08c10d4b2b138",
+      "instances": [
+        {
+          "segment_index": 36,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst36_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg36",
+          "constant_vector_sha256_hex": "dd8837141137c03e6a248decbd9dd007a6afa96dd0361add85c618a7aa09d4ef",
+          "relation_sha256_hex": "ec3b54533d90bb312c7c805c780d5c6a2513c95182d33b3a4c7d8c1e98a9be05",
+          "wire_role_sha256_hex": "426835bf534a3623822294465072293502100cbec9da556943489fe5edef22d3"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "statement.hash@87dba54a731c9e76",
+      "op": "statement.hash",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "87dba54a731c9e769fadb56b0e6cb8356c653bd5685757800db8a55020b5ea63",
+      "instances": [
+        {
+          "segment_index": 52,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst52_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg52",
+          "constant_vector_sha256_hex": "54220a8e95f9ecfa178dc944d3d9544d2b0006e57627a319fea70bf70c8ef08b",
+          "relation_sha256_hex": "1ba4440cbba9c87f7f7b22f474d848a5e8f44ac64f40fd6951873f928421dd21",
+          "wire_role_sha256_hex": "12c454ac0185db224101c23b7db3d5024d7f66c275b3543665ce6f6a0c18abcb"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "statement.hash@e0c07fffc08dab35",
+      "op": "statement.hash",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "e0c07fffc08dab35bd0b7d060368d168df720e0a3ed65f61aca40448c1ef5ecb",
+      "instances": [
+        {
+          "segment_index": 51,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst51_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg51",
+          "constant_vector_sha256_hex": "ae843d03bc362ce1d21d490975c724532433e0ee89c4d76cc1cec4fe02e5d5b7",
+          "relation_sha256_hex": "7c00a90c9fa6fb70e345dbf14ed948138e6d976c576234b7582e48dd0a2ae1e1",
+          "wire_role_sha256_hex": "4131ae4aa423d8e32db2c0a0cb681b739f60df0037c762a3e0efcae4d856a450"
+        }
+      ],
+      "note": ""
+    },
+    {
+      "class_key": "statement.hash@e4f4b2acc8ef5023",
+      "op": "statement.hash",
+      "status": "proven",
+      "assumption_id": "",
+      "shape_sha256_hex": "e4f4b2acc8ef50234a7fe401c02971415a76abd6c3349ba33d7aa15b1399846c",
+      "instances": [
+        {
+          "segment_index": 50,
+          "lean_theorem": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.inst50_bound",
+          "lean_contract": "Shieldd.GnarkFormal.Deployed.Contracts.ShieldedIcs20Withdrawal.Seg50",
+          "constant_vector_sha256_hex": "b1b4c8a1430c6b36e558b7afaee183a3bd01ec53ec80c0eee55c5822b14029c7",
+          "relation_sha256_hex": "7c711e16ab3c9842eb90beff5c027594372419629bbeea937912e3bd5d78a6b3",
+          "wire_role_sha256_hex": "2ac0f7e9526e4ae7c61b9e783335c47fd66c1af8098aa0a0c25d4ec08a2614aa"
+        }
+      ],
+      "note": ""
+    }
+  ]
+}

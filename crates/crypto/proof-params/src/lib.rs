@@ -8,15 +8,17 @@ use ark_ec::{pairing::Pairing, AffineRepr};
 use ark_ff::PrimeField;
 use ark_groth16::{PreparedVerifyingKey, VerifyingKey};
 use decaf377::Bls12_377;
+use gnark_artifact_validation::{
+    decode_canonical_json, G1PointJson, G2PointJson, VerifyingKeyJson,
+};
 use once_cell::sync::Lazy;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use sha2::{Digest, Sha256};
-use std::{fs, path::Path};
 
 /// The length of our Groth16 proofs in bytes.
 pub const GROTH16_PROOF_LENGTH_BYTES: usize = 192;
 
 pub mod batch;
+#[allow(dead_code)]
+mod gnark_artifact_validation;
 pub mod statement_hash;
 mod traits;
 
@@ -31,143 +33,44 @@ include!("gen/gnark/transfer_registry.rs");
 include!("gen/gnark/note_reshape_registry.rs");
 include!("gen/gnark/shielded_ics20_withdrawal_registry.rs");
 
+/// Closed identity for every proof key deployed by consensus.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum DeployedProofKey {
+    Transfer,
+    NoteReshapeOneByEight,
+    NoteReshapeEightByOne,
+    ShieldedIcs20WithdrawalCanonical,
+}
+
+impl DeployedProofKey {
+    pub const ALL: [Self; 4] = [
+        Self::Transfer,
+        Self::NoteReshapeOneByEight,
+        Self::NoteReshapeEightByOne,
+        Self::ShieldedIcs20WithdrawalCanonical,
+    ];
+
+    /// Resolve this closed identity to its bundled prepared verification key.
+    pub fn bundled_pvk(self) -> &'static PreparedVerifyingKey<Bls12_377> {
+        match self {
+            Self::Transfer => transfer_proof_verification_key(),
+            Self::NoteReshapeOneByEight => note_reshape_proof_verification_key(2),
+            Self::NoteReshapeEightByOne => note_reshape_proof_verification_key(3),
+            Self::ShieldedIcs20WithdrawalCanonical => {
+                shielded_ics20_withdrawal_proof_verification_key(1)
+            }
+        }
+    }
+}
+
 type ProofG1 = <Bls12_377 as Pairing>::G1Affine;
 type ProofG2 = <Bls12_377 as Pairing>::G2Affine;
 type ProofG1Base = <ProofG1 as AffineRepr>::BaseField;
 type ProofG2Base = <ProofG2 as AffineRepr>::BaseField;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct G1PointJson {
-    x: String,
-    y: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct Fq2Json {
-    a0: String,
-    a1: String,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct G2PointJson {
-    x: Fq2Json,
-    y: Fq2Json,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct VerifyingKeyJson {
-    alpha_g1: G1PointJson,
-    beta_g2: G2PointJson,
-    gamma_g2: G2PointJson,
-    delta_g2: G2PointJson,
-    gamma_abc_g1: Vec<G1PointJson>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-struct CircuitMetadataJson {
-    schema: String,
-    curve: String,
-    circuit: String,
-    proving_key_size_bytes: i64,
-    verifying_key_size_bytes: i64,
-    nb_constraints: i32,
-    nb_public_variables: i32,
-    nb_secret_variables: i32,
-    proving_key_sha256_hex: String,
-    verifying_key_binary_sha256_hex: String,
-    verifying_key_json_sha256_hex: String,
-}
-
 fn load_verifying_key_json_bytes(bytes: &[u8]) -> Result<VerifyingKey<Bls12_377>> {
     let vk_json: VerifyingKeyJson = decode_canonical_json(bytes, "verifying_key.json")?;
     verifying_key_from_json(&vk_json)
-}
-
-fn load_verifying_key_json_artifact(
-    artifact_dir: &Path,
-    expected_circuit: &str,
-) -> Result<VerifyingKey<Bls12_377>> {
-    let metadata_path = artifact_dir.join("circuit_metadata.json");
-    let metadata: CircuitMetadataJson = decode_canonical_json(
-        &fs::read(&metadata_path)?,
-        &format!("{expected_circuit} circuit_metadata.json"),
-    )?;
-    validate_circuit_metadata(&metadata, expected_circuit)?;
-    let vk_path = artifact_dir.join("verifying_key.json");
-    let vk_bytes = fs::read(&vk_path)?;
-    let actual_hash = hex::encode(Sha256::digest(&vk_bytes));
-    if actual_hash != metadata.verifying_key_json_sha256_hex {
-        bail!(
-            "{expected_circuit} JSON verifying key hash mismatch: expected {}, got {actual_hash}",
-            metadata.verifying_key_json_sha256_hex
-        );
-    }
-    load_verifying_key_json_bytes(&vk_bytes)
-}
-
-fn validate_circuit_metadata(metadata: &CircuitMetadataJson, expected_circuit: &str) -> Result<()> {
-    if metadata.schema != "shieldd.gnark.circuit_metadata.v1" {
-        bail!("unsupported circuit metadata schema {}", metadata.schema);
-    }
-    if metadata.curve != "bls12-377" {
-        bail!("artifact curve {} does not match bls12-377", metadata.curve);
-    }
-    if metadata.circuit != expected_circuit {
-        bail!(
-            "artifact circuit {} does not match expected {}",
-            metadata.circuit,
-            expected_circuit
-        );
-    }
-    if metadata.proving_key_size_bytes <= 0
-        || metadata.verifying_key_size_bytes <= 0
-        || metadata.nb_constraints <= 0
-        || metadata.nb_public_variables <= 0
-        || metadata.nb_secret_variables <= 0
-    {
-        bail!("artifact metadata has nonpositive size or circuit shape");
-    }
-    for (label, value) in [
-        ("proving key", &metadata.proving_key_sha256_hex),
-        (
-            "binary verifying key",
-            &metadata.verifying_key_binary_sha256_hex,
-        ),
-        (
-            "JSON verifying key",
-            &metadata.verifying_key_json_sha256_hex,
-        ),
-    ] {
-        if !is_lower_sha256(value) {
-            bail!("artifact metadata has invalid {label} hash");
-        }
-    }
-    Ok(())
-}
-
-fn is_lower_sha256(value: &str) -> bool {
-    value.len() == 64
-        && value
-            .bytes()
-            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-}
-
-fn decode_canonical_json<T>(bytes: &[u8], label: &str) -> Result<T>
-where
-    T: DeserializeOwned + Serialize,
-{
-    let value: T = serde_json::from_slice(bytes)?;
-    let mut canonical = serde_json::to_vec_pretty(&value)?;
-    canonical.push(b'\n');
-    if bytes != canonical {
-        bail!("{label} is not canonical two-space-indented JSON");
-    }
-    Ok(value)
 }
 
 fn verifying_key_from_json(vk: &VerifyingKeyJson) -> Result<VerifyingKey<Bls12_377>> {
@@ -224,11 +127,93 @@ fn parse_canonical_field<F: PrimeField>(value: &str, label: &str) -> Result<F> {
 mod gnark_artifact_tests {
     use super::*;
     use ark_ff::BigInteger;
+    use gnark_artifact_validation::{validate_circuit_metadata, CircuitMetadataJson};
 
     const TRANSFER_METADATA: &[u8] = include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../../tools/gnark/artifacts/transfer/circuit_metadata.json"
     ));
+
+    fn assert_bundled_verification_key(bytes: &[u8], actual: &PreparedVerifyingKey<Bls12_377>) {
+        let expected =
+            load_verifying_key_json_bytes(bytes).expect("bundled verifying key must decode");
+        assert_eq!(
+            actual.vk, expected,
+            "consensus verifier must use the exact build-bundled key"
+        );
+    }
+
+    #[test]
+    fn consensus_verifying_keys_are_exact_bundled_keys() {
+        assert_bundled_verification_key(
+            transfer_verifying_key_json_bytes(),
+            transfer_proof_verification_key(),
+        );
+        for family_id in [2, 3] {
+            assert_bundled_verification_key(
+                note_reshape_verifying_key_json_bytes(family_id),
+                note_reshape_proof_verification_key(family_id),
+            );
+        }
+        assert_bundled_verification_key(
+            shielded_ics20_withdrawal_verifying_key_json_bytes(1),
+            shielded_ics20_withdrawal_proof_verification_key(1),
+        );
+    }
+
+    #[test]
+    fn deployed_proof_key_registry_is_exhaustive_and_pairwise_distinct() {
+        assert_eq!(
+            DeployedProofKey::ALL.len(),
+            1 + GENERATED_NOTE_RESHAPE_PROOF_FAMILIES.len()
+                + GENERATED_SHIELDED_ICS20_WITHDRAWAL_PROOF_FAMILIES.len(),
+            "closed deployed-key registry must track every generated proof family"
+        );
+
+        let mut generated = vec![(
+            DeployedProofKey::Transfer,
+            transfer_proof_verification_key(),
+        )];
+        generated.extend(GENERATED_NOTE_RESHAPE_PROOF_FAMILIES.iter().map(|family| {
+            let key = match family.id {
+                2 => DeployedProofKey::NoteReshapeOneByEight,
+                3 => DeployedProofKey::NoteReshapeEightByOne,
+                unknown => panic!("generated note reshape family {unknown} has no deployed key"),
+            };
+            (key, &**family.verification_key)
+        }));
+        generated.extend(
+            GENERATED_SHIELDED_ICS20_WITHDRAWAL_PROOF_FAMILIES
+                .iter()
+                .map(|family| {
+                    let key = match family.id {
+                        1 => DeployedProofKey::ShieldedIcs20WithdrawalCanonical,
+                        unknown => panic!(
+                            "generated shielded ICS-20 withdrawal family {unknown} has no deployed key"
+                        ),
+                    };
+                    (key, &**family.verification_key)
+                }),
+        );
+
+        for deployed_key in DeployedProofKey::ALL {
+            let matches = generated
+                .iter()
+                .filter(|(generated_key, _)| *generated_key == deployed_key)
+                .collect::<Vec<_>>();
+            assert_eq!(
+                matches.len(),
+                1,
+                "{deployed_key:?} must map to exactly one generated verifier"
+            );
+            assert_eq!(deployed_key.bundled_pvk(), matches[0].1);
+        }
+        for (index, (_, left)) in generated.iter().enumerate() {
+            for (_, right) in generated.iter().skip(index + 1) {
+                assert_ne!(*left, *right, "deployed proof keys must be distinct");
+            }
+        }
+    }
 
     #[test]
     fn proof_params_rejects_noncanonical_metadata_and_vk_json() {

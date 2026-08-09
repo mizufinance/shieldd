@@ -10,14 +10,45 @@ import (
 
 	"github.com/mizufinance/shieldd/tools/gnark/internal/artifacts"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
+	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
+
+func TestPoseidonLeanGeneratorOwnsRate5(t *testing.T) {
+	vectors, err := primitives.LoadPrototypeVectors()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := writePoseidonLeanFixed(&out, vectors.Poseidon377.Rate5); err != nil {
+		t.Fatal(err)
+	}
+	source := out.String()
+	for _, want := range []string{
+		"namespace Shieldd.GnarkFormal.Poseidon377.Fixed5",
+		"def hash (Domain In0 In1 In2 In3 In4 : F)",
+		"let gate_38 :=",
+	} {
+		if !strings.Contains(source, want) {
+			t.Fatalf("generated rate-5 module is missing %q", want)
+		}
+	}
+
+	out.Reset()
+	if err := writePoseidonLean(&out, vectors.Poseidon377); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(),
+		"#guard (hash5 imtLeafDomain 2 3 5 7 11)") {
+		t.Fatal("generated vectors omit the native rate-5 parity guard")
+	}
+}
 
 func TestRunExportWiringTranscript(t *testing.T) {
 	cases := []struct {
 		label string
 		want  func() (string, error)
 	}{
-		{"note_reshape2x1", circuits.ExportNoteReshape2x1WiringTranscript},
+		{"note_reshape8x1", circuits.ExportNoteReshape8x1WiringTranscript},
 		{"transfer", circuits.ExportTransferWiringTranscript},
 	}
 
@@ -75,6 +106,172 @@ func TestWitnessFormatVersionReadsBoundPayloadHeader(t *testing.T) {
 func TestWitnessFormatVersionRejectsShortPayload(t *testing.T) {
 	if _, err := witnessFormatVersion(make([]byte, 7)); err == nil {
 		t.Fatal("expected short witness header to fail")
+	}
+}
+
+func TestValidateFVProofJobFlagsRequiresExactBranchMatrix(t *testing.T) {
+	validCases := []string{"regulated_unflagged", "unregulated_hidden"}
+	validWitnesses := []string{"regulated.bin", "unregulated.bin"}
+	validReceipts := []string{"regulated.json", "unregulated.json"}
+	if err := validateFVProofJobFlags(
+		true,
+		"artifacts/transfer",
+		validCases,
+		validWitnesses,
+		validReceipts,
+	); err != nil {
+		t.Fatalf("valid proof jobs rejected: %v", err)
+	}
+
+	tests := []struct {
+		name     string
+		prove    bool
+		artifact string
+		cases    []string
+		witness  []string
+		receipts []string
+		want     string
+	}{
+		{
+			name:     "flags without prove",
+			artifact: "artifacts/transfer",
+			want:     "require --prove",
+		},
+		{
+			name:  "missing artifact",
+			prove: true,
+			want:  "--artifact-dir",
+		},
+		{
+			name:     "unequal counts",
+			prove:    true,
+			artifact: "artifacts/transfer",
+			cases:    validCases[:1],
+			witness:  validWitnesses,
+			receipts: validReceipts,
+			want:     "equal nonzero counts",
+		},
+		{
+			name:     "invalid case",
+			prove:    true,
+			artifact: "artifacts/transfer",
+			cases:    []string{"Regulated"},
+			witness:  validWitnesses[:1],
+			receipts: validReceipts[:1],
+			want:     "invalid proof case",
+		},
+		{
+			name:     "duplicate case",
+			prove:    true,
+			artifact: "artifacts/transfer",
+			cases:    []string{"regulated", "regulated"},
+			witness:  validWitnesses,
+			receipts: validReceipts,
+			want:     "duplicate proof case",
+		},
+		{
+			name:     "duplicate witness",
+			prove:    true,
+			artifact: "artifacts/transfer",
+			cases:    validCases,
+			witness:  []string{"same.bin", "same.bin"},
+			receipts: validReceipts,
+			want:     "duplicate witness path",
+		},
+		{
+			name:     "duplicate receipt",
+			prove:    true,
+			artifact: "artifacts/transfer",
+			cases:    validCases,
+			witness:  validWitnesses,
+			receipts: []string{"same.json", "same.json"},
+			want:     "duplicate proof receipt path",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateFVProofJobFlags(
+				tc.prove,
+				tc.artifact,
+				tc.cases,
+				tc.witness,
+				tc.receipts,
+			)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %v, want substring %q", err, tc.want)
+			}
+		})
+	}
+}
+
+func TestValidateSetupSelfTestFlagsRequiresUniqueCasesAndWitnesses(t *testing.T) {
+	if err := validateSetupSelfTestFlags(
+		[]string{"regulated_unflagged", "unregulated_hidden"},
+		[]string{"regulated.bin", "unregulated.bin"},
+	); err != nil {
+		t.Fatalf("valid setup coherence matrix rejected: %v", err)
+	}
+	for _, tc := range []struct {
+		name      string
+		cases     []string
+		witnesses []string
+		want      string
+	}{
+		{name: "empty", want: "equal nonzero counts"},
+		{
+			name:      "unequal",
+			cases:     []string{"regulated"},
+			witnesses: []string{"first.bin", "second.bin"},
+			want:      "equal nonzero counts",
+		},
+		{
+			name:      "invalid case",
+			cases:     []string{"Regulated"},
+			witnesses: []string{"regulated.bin"},
+			want:      "invalid proof case",
+		},
+		{
+			name:      "duplicate case",
+			cases:     []string{"regulated", "regulated"},
+			witnesses: []string{"first.bin", "second.bin"},
+			want:      "duplicate proof case",
+		},
+		{
+			name:      "duplicate witness",
+			cases:     []string{"regulated", "unregulated"},
+			witnesses: []string{"same.bin", "same.bin"},
+			want:      "duplicate witness path",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateSetupSelfTestFlags(tc.cases, tc.witnesses)
+			if err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error = %v, want substring %q", err, tc.want)
+			}
+		})
+	}
+}
+
+func TestFilesEqualUsesExactBytes(t *testing.T) {
+	dir := t.TempDir()
+	first := filepath.Join(dir, "first")
+	second := filepath.Join(dir, "second")
+	if err := os.WriteFile(first, []byte("same"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(second, []byte("same"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	equal, err := filesEqual(first, second)
+	if err != nil || !equal {
+		t.Fatalf("equal files: equal=%v err=%v", equal, err)
+	}
+	if err := os.WriteFile(second, []byte("different"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	equal, err = filesEqual(first, second)
+	if err != nil || equal {
+		t.Fatalf("different files: equal=%v err=%v", equal, err)
 	}
 }
 

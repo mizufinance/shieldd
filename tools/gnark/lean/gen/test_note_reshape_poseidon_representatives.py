@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 
 import gen_note_reshape_poseidon_representatives as poseidon
@@ -12,9 +13,9 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
         cls.outputs = poseidon.generated_files()
 
     def test_provider_and_benchmark_set(self) -> None:
-        self.assertEqual(len(self.outputs), 91)
-        self.assertEqual(sum(path.parent == poseidon.OUT for path in self.outputs), 89)
-        self.assertEqual(sum(path.parent == poseidon.BENCH for path in self.outputs), 2)
+        self.assertEqual(len(self.outputs), 93)
+        self.assertEqual(sum(path.parent == poseidon.OUT for path in self.outputs), 90)
+        self.assertEqual(sum(path.parent == poseidon.BENCH for path in self.outputs), 3)
         note = poseidon.NAMES[poseidon.NOTE_KEY]
         self.assertIn(poseidon.OUT / f"{note}Base.lean", self.outputs)
         self.assertEqual(
@@ -22,6 +23,16 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
             86,
         )
         self.assertIn(f"{note}Part85", self.outputs[poseidon.OUT / f"{note}.lean"])
+
+    def test_representative_is_an_active_deployed_profile(self) -> None:
+        self.assertEqual(
+            poseidon.IR.name,
+            "note_reshape1x8-deployed-slice-ir.json",
+        )
+        self.assertEqual(
+            poseidon._segment(poseidon.NOTE_KEY, 430)["proof_template_id"],
+            poseidon.NOTE_KEY,
+        )
 
     def test_providers_use_exact_normalized_relations(self) -> None:
         combined = "\n".join(self.outputs.values())
@@ -37,9 +48,55 @@ class NoteReshapePoseidonRepresentativesTest(unittest.TestCase):
     def test_note_commitment_and_nullifier_specs_are_not_identity_semantics(self) -> None:
         note = self.outputs[poseidon.OUT / f"{poseidon.NAMES[poseidon.NOTE_KEY]}.lean"]
         nullifier = self.outputs[poseidon.OUT / f"{poseidon.NAMES[poseidon.NULLIFIER_KEY]}.lean"]
+        transfer_nullifier = self.outputs[
+            poseidon.OUT / f"{poseidon.NAMES[poseidon.TRANSFER_NULLIFIER_KEY]}.lean"
+        ]
         self.assertIn("NoteCommitment.spec38", note)
         self.assertIn("permSpec3", nullifier)
-        self.assertNotIn("def spec (rho : Nat -> F) : Prop :=\n  relation rho", note + nullifier)
+        self.assertIn("permSpec3", transfer_nullifier)
+        self.assertNotIn(
+            "def spec (rho : Nat -> F) : Prop :=\n  relation rho",
+            note + nullifier + transfer_nullifier,
+        )
+
+    def test_transfer_nullifier_recovers_the_inlined_commitment_boundary(self) -> None:
+        extracted, mapping, commitment = poseidon._transfer_nullifier_context()
+        self.assertEqual(len(extracted), 62)
+        self.assertEqual(
+            set(map(int, re.findall(r"\brho (\d+)\b", commitment))),
+            set(range(7, 14)),
+        )
+        self.assertEqual(
+            {wire: mapping[wire] for wire in (8, 23, 24, 1637, 1642, 1647, 1652)},
+            {
+                8: 1,
+                23: "stateCommitment rho",
+                24: 19,
+                1637: 304,
+                1642: 309,
+                1647: 314,
+                1652: 319,
+            },
+        )
+        name = poseidon.NAMES[poseidon.TRANSFER_NULLIFIER_KEY]
+        source = self.outputs[poseidon.OUT / f"{name}.lean"]
+        self.assertIn("def stateCommitment (rho : Nat → F) : F :=", source)
+        self.assertIn("(rho 1) (stateCommitment rho) (rho 19)", source)
+        self.assertIn("nullifierDomainLit", source)
+        self.assertEqual(
+            source.count(
+                "@one_mul F baseMulOneClass a"
+            ),
+            4,
+        )
+        self.assertEqual(
+            source.count(
+                "simpa only [stateCommitment, choiceFreeOneMul, "
+                "choiceFreeAddAssoc] using h"
+            ),
+            4,
+        )
+        self.assertNotIn("stateCommitment, one_mul", source)
 
     def test_tactic_dependencies_are_explicit(self) -> None:
         for path, source in self.outputs.items():

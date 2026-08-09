@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import re
 import unittest
 
 import gen_note_reshape_template_semantics as gen
+import manifest_discovery as discovery
 
 
 class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
@@ -36,14 +38,166 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
                 path.name,
             )
 
+    def test_unified_exact_semantics_roster_is_complete(self) -> None:
+        expected = {
+            ("gen_note_reshape_dtk_semantics", "generated_files"),
+            ("gen_note_reshape_rvk_semantics", "generated_files"),
+            ("gen_note_reshape_nb_semantics", "generated_nb_semantic_files"),
+            ("gen_transfer_net_balance_semantics", "generated_files"),
+            ("gen_note_reshape_direct_representatives", "generated_files"),
+            ("gen_certified_conditional_semantics", "generated_files"),
+            ("gen_transfer_semantics", "generated_files"),
+            ("gen_transfer_threshold_semantics", "generated_files"),
+            ("gen_transfer_ack_semantics", "generated_files"),
+            ("gen_window2_semantic_providers", "generated_files"),
+            ("gen_transfer_shared_secret_semantics", "generated_files"),
+            ("gen_withdrawal_registry_semantics", "generated_files"),
+            ("gen_certified_imt_gap_semantics", "generated_files"),
+            ("gen_certified_quad_path_semantics", "generated_files"),
+            ("gen_note_reshape_poseidon_representatives", "generated_files"),
+            ("gen_note_reshape_scp_semantics", "generated_files"),
+            ("gen_note_reshape_compress_semantics", "generated_files"),
+            ("gen_certified_composite_semantics", "generated_files"),
+            ("gen_certified_statement_hash_semantics", "generated_files"),
+        }
+        actual = {
+            (module, function)
+            for _, module, function in gen.OPERATION_GENERATORS
+        }
+        self.assertEqual(actual, expected)
+        self.assertEqual(gen.REQUIRED_OPERATION_GENERATORS, frozenset(expected))
+
+    def test_omitting_any_exact_semantics_generator_fails_closed(self) -> None:
+        for omitted in range(len(gen.OPERATION_GENERATORS)):
+            with self.subTest(generator=gen.OPERATION_GENERATORS[omitted][1]):
+                roster = (
+                    gen.OPERATION_GENERATORS[:omitted]
+                    + gen.OPERATION_GENERATORS[omitted + 1 :]
+                )
+                with self.assertRaisesRegex(
+                    SystemExit,
+                    "generator roster drifted",
+                ):
+                    gen.validate_operation_generator_roster(roster)
+
+    def test_duplicate_exact_semantics_generator_fails_closed(self) -> None:
+        with self.assertRaisesRegex(
+            SystemExit,
+            "duplicate exact semantic generator",
+        ):
+            gen.validate_operation_generator_roster(
+                gen.OPERATION_GENERATORS + (gen.OPERATION_GENERATORS[0],)
+            )
+
+    def test_direct_provider_main_validator_fails_closed(self) -> None:
+        path = gen.OUT / "TExample_deadbeef.lean"
+        valid = (
+            "def spec (rho : Nat → F) : Prop := rho 1 = 0\n"
+            "theorem sound\n"
+            "    (rho : Nat → F)\n"
+            "    (h : relation rho) :\n"
+            "    spec rho := by\n  exact h\n"
+        )
+        gen.validate_direct_provider_main("example@deadbeef", path, valid)
+        imported_spec = (
+            "namespace Example\n"
+            "def spec (rho : Nat → F) : Prop := rho 1 = 0\n"
+            "end Example\n"
+        )
+        main_without_spec = valid[valid.index("theorem sound") :]
+        gen.validate_direct_provider_main(
+            "example@deadbeef",
+            path,
+            main_without_spec,
+            (main_without_spec, imported_spec),
+        )
+        invalid = {
+            "missing spec": valid.replace("def spec", "def result"),
+            "duplicate spec": valid.replace(
+                "theorem sound", "def spec (rho : Nat → F) : Prop := True\n"
+                "theorem sound"
+            ),
+            "missing sound": valid.replace("theorem sound", "theorem result"),
+            "duplicate sound": valid + valid,
+            "wrong conclusion": valid.replace(
+                "spec rho := by", "relation rho := by"
+            ),
+            "relation alias": valid.replace(
+                "rho 1 = 0", "relation rho"
+            ),
+            "axiom": valid + "\naxiom escape : False\n",
+            "sorry": valid.replace("exact h", "sorry"),
+            "admit": valid.replace("exact h", "admit"),
+        }
+        for label, source in invalid.items():
+            with self.subTest(label=label):
+                with self.assertRaises(SystemExit):
+                    gen.validate_direct_provider_main(
+                        "example@deadbeef", path, source
+                    )
+
     def test_every_inventory_template_has_one_direct_provider_main(self) -> None:
         inventory = json.loads(gen.INVENTORY.read_text())
+        circuit_entries = {
+            circuit["circuit"]: circuit
+            for circuit in inventory["circuits"]
+        }
+        self.assertEqual(
+            len(circuit_entries),
+            len(inventory["circuits"]),
+            "certified inventory contains duplicate circuit entries",
+        )
+        self.assertEqual(
+            set(circuit_entries),
+            {
+                "note_reshape1x8",
+                "note_reshape8x1",
+                "shielded_ics20_withdrawal",
+                "transfer",
+            },
+        )
+        circuits: dict[str, int] = {}
+        for circuit, entry in circuit_entries.items():
+            manifest = discovery.read_json_object(
+                discovery.manifest_path(circuit)
+            )
+            segments = discovery.validate_manifest(
+                manifest, circuit=circuit
+            )
+            constraint_segments = sum(
+                segment["constraint_count"] > 0 for segment in segments
+            )
+            self.assertEqual(entry["segment_count"], len(segments), circuit)
+            self.assertEqual(
+                entry["constraint_segment_count"],
+                constraint_segments,
+                circuit,
+            )
+            self.assertEqual(
+                entry["nb_constraints"],
+                manifest["nb_constraints"],
+                circuit,
+            )
+            self.assertEqual(
+                entry["sr1cs_sha256_hex"],
+                manifest["sr1cs_sha256_hex"],
+                circuit,
+            )
+            circuits[circuit] = constraint_segments
+        self.assertEqual(
+            inventory["constraint_segment_count"],
+            sum(circuits.values()),
+        )
+        self.assertEqual(
+            inventory["template_count"],
+            len(inventory["templates"]),
+        )
         expected = {
             gen.OUT / f"{gen.template_name(template['template_key'])}.lean"
             for template in inventory["templates"]
         }
         actual = expected & self.outputs.keys()
-        self.assertEqual(len(expected), 42)
+        self.assertEqual(len(expected), inventory["template_count"])
         self.assertEqual(actual, expected)
 
     def test_small_providers_use_choice_free_zmod_instances(self) -> None:
@@ -133,7 +287,10 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             if "SyntheticDummyNullifier" in path.name
             and path.name.endswith("Fixed.lean")
         }
-        self.assertEqual(len(fixed), 8)
+        self.assertEqual(
+            len(fixed),
+            gen.SYNTHETIC_DUMMY_NULLIFIER_TEMPLATE_COUNT,
+        )
         for name, text in fixed.items():
             self.assertIn("import ShielddGnarkFormal.Deployed.Poseidon3Link", text)
             self.assertIn("syntheticDummyNullifierDomainLit", text)
@@ -145,6 +302,64 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             self.assertNotIn("Shieldd.GnarkFormal.Deployed.Nullifier.s0_", text)
             self.assertNotIn("Shieldd.GnarkFormal.Deployed.Nullifier.arg1_", text)
 
+    def test_cross_circuit_synthetic_domains_and_slots_are_exact(self) -> None:
+        expected = {
+            "gadget.synthetic_dummy_nullifier@"
+            "baf815f441dc1f36dd4b49d76d50f37ec9e315a12ec74f4c16391bdd9d7017fd": (
+                gen.TRANSFER_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+                1,
+                6539018564667032882904767449459259042672141079689425793113802164983541241467,
+            ),
+            "gadget.synthetic_dummy_nullifier@"
+            "a10de15a91d3ea84d283d8eb39cda0f9fdbeeab9de2f8d7df5acbc90e22093bb": (
+                gen.WITHDRAWAL_SYNTHETIC_DUMMY_NULLIFIER_LABEL,
+                1,
+                8431031452040580694060791815812941646157767086492607177479167856184906289835,
+            ),
+        }
+        for key, (label, slot, domain) in expected.items():
+            self.assertEqual(gen.SYNTHETIC_DUMMY_NULLIFIER[key], (label, slot))
+            self.assertEqual(gen.reduced_blake2b_domain(label), domain)
+            self.assertNotEqual(domain, gen.SYNTHETIC_DUMMY_NULLIFIER_DOMAIN)
+
+    def test_synthetic_template_roster_is_exact_and_fail_closed(self) -> None:
+        inventory = json.loads(gen.INVENTORY.read_text())
+        gen.validate_synthetic_dummy_nullifier_roster(
+            gen.SYNTHETIC_DUMMY_NULLIFIER, inventory
+        )
+        self.assertEqual(
+            gen.SYNTHETIC_DUMMY_NULLIFIER_TEMPLATE_COUNT,
+            10,
+        )
+        mutations = {}
+        removed = dict(gen.SYNTHETIC_DUMMY_NULLIFIER)
+        removed.pop(next(iter(removed)))
+        mutations["removed code role"] = (removed, inventory)
+        changed = dict(gen.SYNTHETIC_DUMMY_NULLIFIER)
+        first = next(iter(changed))
+        label, slot = changed[first]
+        changed[first] = (label, slot + 1)
+        mutations["changed code role"] = (changed, inventory)
+        inventory_removed = copy.deepcopy(inventory)
+        inventory_removed["templates"] = [
+            template
+            for template in inventory_removed["templates"]
+            if template["template_key"] != first
+        ]
+        mutations["removed inventory role"] = (
+            gen.SYNTHETIC_DUMMY_NULLIFIER,
+            inventory_removed,
+        )
+        for label, (roster, mutated_inventory) in mutations.items():
+            with self.subTest(label=label):
+                with self.assertRaisesRegex(
+                    SystemExit,
+                    "synthetic-dummy nullifier",
+                ):
+                    gen.validate_synthetic_dummy_nullifier_roster(
+                        roster, mutated_inventory
+                    )
+
     def test_every_synthetic_lane_uses_the_exact_normalized_relation(self) -> None:
         lane_pattern = re.compile(
             r"TGadgetSyntheticDummyNullifier_[0-9a-f]+Round(\d+)Lane([0-3])\.lean$"
@@ -154,7 +369,10 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             match = lane_pattern.fullmatch(path.name)
             if match is not None:
                 lanes.append((path.name, int(match.group(1)), int(match.group(2)), text))
-        self.assertEqual(len(lanes), 8 * 39 * 4)
+        self.assertEqual(
+            len(lanes),
+            gen.SYNTHETIC_DUMMY_NULLIFIER_TEMPLATE_COUNT * 39 * 4,
+        )
         self.assertEqual({gate for _, gate, _, _ in lanes}, set(range(39)))
         self.assertEqual({lane for _, _, lane, _ in lanes}, set(range(4)))
         for name, gate, lane, text in lanes:
@@ -194,7 +412,10 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             for path, text in self.outputs.items()
             if "SyntheticDummyNullifier" in path.name and "Part" in path.name
         ]
-        self.assertEqual(len(parts), 8 * 61)
+        self.assertEqual(
+            len(parts),
+            gen.SYNTHETIC_DUMMY_NULLIFIER_TEMPLATE_COUNT * 61,
+        )
         for name, text in parts:
             self.assertNotRegex(text, r"(?<!\.)\brelationLc\d+\b", name)
 
@@ -221,16 +442,35 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             for path in self.outputs
             if "SyntheticDummyNullifier" in path.name
         ]
-        self.assertEqual(len([name for name in synthetic if "Part" in name]), 8 * 61)
-        self.assertEqual(len([name for name in synthetic if "Round" in name]), 8 * 39 * 4)
-        self.assertEqual(len([name for name in synthetic if "Range" in name]), 8 * 9)
-        self.assertEqual(len([name for name in synthetic if name.endswith("Fixed.lean")]), 8)
+        count = gen.SYNTHETIC_DUMMY_NULLIFIER_TEMPLATE_COUNT
+        self.assertEqual(
+            len([name for name in synthetic if "Part" in name]),
+            count * 61,
+        )
+        self.assertEqual(
+            len([name for name in synthetic if "Round" in name]),
+            count * 39 * 4,
+        )
+        self.assertEqual(
+            len([name for name in synthetic if "Range" in name]),
+            count * 9,
+        )
+        self.assertEqual(
+            len(
+                [
+                    name
+                    for name in synthetic
+                    if name.endswith("Fixed.lean")
+                ]
+            ),
+            count,
+        )
         mains = [
             name
             for name in synthetic
             if not any(marker in name for marker in ("Part", "Round", "Range", "Fixed"))
         ]
-        self.assertEqual(len(mains), 8)
+        self.assertEqual(len(mains), count)
 
     def test_every_synthetic_provider_shard_is_choice_free(self) -> None:
         synthetic = [
@@ -238,7 +478,11 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
             for path, text in self.outputs.items()
             if "SyntheticDummyNullifier" in path.name
         ]
-        self.assertEqual(len(synthetic), 8 * (61 + 39 * 4 + 9 + 1 + 1))
+        self.assertEqual(
+            len(synthetic),
+            gen.SYNTHETIC_DUMMY_NULLIFIER_TEMPLATE_COUNT
+            * (61 + 39 * 4 + 9 + 1 + 1),
+        )
         for name, text in synthetic:
             self.assertIn(
                 "import ShielddGnarkFormal.ChoiceFreeZModCast",
@@ -266,7 +510,8 @@ class NoteReshapeTemplateSemanticsTest(unittest.TestCase):
                 )
             )
         }
-        self.assertEqual(len(synthetic_aggregators), 8 * 9 + 8)
+        count = gen.SYNTHETIC_DUMMY_NULLIFIER_TEMPLATE_COUNT
+        self.assertEqual(len(synthetic_aggregators), count * 9 + count)
         for name, text in synthetic_aggregators.items():
             self.assertIn(
                 "import ShielddGnarkFormal.Deployed.PrimeOrderCertificate",

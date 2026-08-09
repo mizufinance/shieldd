@@ -131,10 +131,20 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		"shared.asset_id=witness.shared.asset_id",
 		"shared.clue_key=witness.shared.clue_key",
 	)
+	c.traceWiring(
+		"assert.decaf_non_identity",
+		"point=auth.ak",
+		"coordinate=x",
+	)
+	AssertDecafNonIdentity(api, sharedAK)
+	c.traceWiring(
+		"assert.decaf_non_identity",
+		"point=shared.div_gen",
+		"coordinate=x",
+	)
+	AssertDecafNonIdentity(api, sharedDivGen)
 	c.traceWiring("decaf.assert_on_curve", "point=claimed.balance_commitment")
 	assertDecafPointOnCurve(api, claimedBalanceCommitment)
-	c.traceWiring("decaf.assert_on_curve", "point=shared.div_gen")
-	assertDecafPointOnCurve(api, sharedDivGen)
 	c.traceWiring("decaf.compress_to_field", "in=shared.div_gen", "out=shared.div_gen_fq")
 	sharedDivGenFq, err := decafgnark.CompressToField(api, sharedDivGen)
 	if err != nil {
@@ -142,8 +152,10 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 	}
 	c.bindSemantic("shared.div_gen_fq", sharedDivGenFq)
 
+	c.traceWiring("assert.ne", "lhs=auth.ivk_reduced", "rhs=0")
+	AssertIncomingViewingKeyNonzero(api, c.Auth.IVKReduced)
 	c.traceWiring("decaf.diversified_transmission_key", "nk=auth.nk", "ak=shared.ak", "div_gen=shared.div_gen", "ivk_reduced=auth.ivk_reduced", "ivk_quotient_a=auth.ivk_quotient_a", "out=shared.transmission.computed")
-	computedSharedTransmission, err := DiversifiedTransmissionKey(
+	computedSharedTransmission, err := diversifiedTransmissionKeyAfterIvkNonzero(
 		api,
 		c.Auth.NK,
 		sharedAK,
@@ -159,6 +171,12 @@ func (c *NoteReshapeCircuit) Define(api frontend.API) error {
 		computedSharedTransmission.X,
 		computedSharedTransmission.Y,
 	)
+	c.traceWiring(
+		"assert.decaf_non_identity",
+		"point=shared.transmission.computed",
+		"coordinate=x",
+	)
+	AssertDecafNonIdentity(api, computedSharedTransmission)
 	c.traceWiring("decaf.compress_to_field", "in=shared.transmission.computed", "out=shared.transmission.fq")
 	sharedTransmissionFq, err := decafgnark.CompressToField(api, computedSharedTransmission)
 	if err != nil {

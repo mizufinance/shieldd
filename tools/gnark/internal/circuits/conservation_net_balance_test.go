@@ -27,7 +27,13 @@ func (c *conservationNetBalanceParityCircuit) Define(api frontend.API) error {
 	inputs := []frontend.Variable{c.Input0Amount, c.Input1Amount}
 	outputs := []frontend.Variable{c.OutputAmount}
 
-	oldCommitment, err := computeTransferNetBalanceCommitment(api, inputs, outputs, c.AssetID, c.BalanceBlinding)
+	oldCommitment, err := computeTransferNetBalanceCommitment(
+		api,
+		inputs,
+		[]frontend.Variable{c.OutputAmount, 0},
+		c.AssetID,
+		c.BalanceBlinding,
+	)
 	if err != nil {
 		return err
 	}

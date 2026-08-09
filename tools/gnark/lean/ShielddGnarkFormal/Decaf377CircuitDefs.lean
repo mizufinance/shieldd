@@ -30,10 +30,8 @@ def DiversifiedTransmissionKeyCircuit
     Extracted.DecafDtk.circuit nk ak.x ak.y divGen.x divGen.y
       wasSquare sqrtRatio ivkReduced ivkQuotientA out.x out.y
 
-/-- The exact constraint set of the extracted NetBalanceCommitment gadget: a
-rate-1 Poseidon asset hash, a decaf377 encode-to-curve, four 128-bit value
-ladders, the Edwards add chain, a 251-bit blinding ladder, and a final add
-pinned to `out`. -/
+/-- The exact constraint set of the legacy NetBalanceCommitment gadget used as
+an optimization-parity oracle. This is not the deployed Transfer relation. -/
 def NetBalanceCommitmentCircuit
     (input0 input1 output assetID balanceBlinding : F) (out : Point) : Prop :=
   ∃ encodeWasSquare encodeInvSqrt,
@@ -49,8 +47,8 @@ def ConservationNetBalanceCommitmentCircuit
   Extracted.ConservationNetBalanceCommitment.circuit input0 input1 output
     balanceBlinding out.x out.y
 
-/-- The transfer (2-in-2-out) net-balance gadget: identical to the reshape
-shape but subtracting two output value ladders instead of one. -/
+/-- The legacy 2-in-2-out net-balance gadget retained as an independent
+optimization-parity oracle. Deployed Transfer uses two 129-bit sum ladders. -/
 def NetBalanceCommitment2Circuit
     (input0 input1 output0 output1 assetID balanceBlinding : F) (out : Point) : Prop :=
   ∃ encodeWasSquare encodeInvSqrt,

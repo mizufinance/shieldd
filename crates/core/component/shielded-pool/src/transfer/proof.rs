@@ -4,10 +4,7 @@ use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
-use shieldd_sdk_compliance::{
-    ComplianceLeaf, IndexedLeaf, MerklePath, OrbisEncryptedSeedUploadPackage,
-    TransferTierMetadataStatement,
-};
+use shieldd_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath, TransferComplianceMetadata};
 use shieldd_sdk_keys::keys::NullifierKey;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
@@ -35,35 +32,12 @@ pub struct TransferComplianceCiphertextPublic {
     pub epk: decaf377::Element,
     pub c2: Fq,
     pub ciphertext: Vec<Fq>,
-    pub proof: TransferComplianceProofPublic,
-}
-
-#[derive(Clone, Debug)]
-pub struct TransferComplianceProofPublic {
-    pub statement: TransferTierMetadataStatement,
-    pub derived_pk: decaf377::Element,
-    pub enc_cmt: decaf377::Element,
-    pub shared_point: decaf377::Element,
-    pub challenge: Fq,
-    pub response: Fr,
-}
-
-impl TransferComplianceProofPublic {
-    pub fn try_from_package(package: &OrbisEncryptedSeedUploadPackage) -> Result<Self> {
-        Ok(Self {
-            statement: package.statement.clone(),
-            derived_pk: package.derived_pk()?,
-            enc_cmt: package.enc_cmt()?,
-            shared_point: package.shared_point()?,
-            challenge: package.challenge_scalar()?,
-            response: package.response_scalar()?,
-        })
-    }
 }
 
 #[derive(Clone, Debug)]
 pub struct TransferCompliancePublic {
     pub detection_ciphertext: Vec<Fq>,
+    pub metadata: TransferComplianceMetadata,
     pub sender_core: TransferComplianceCiphertextPublic,
     pub sender_ext: TransferComplianceCiphertextPublic,
     pub output_core: TransferComplianceCiphertextPublic,
@@ -144,7 +118,6 @@ pub struct TransferCompliancePrivate {
     pub transfer_nonce_root: Fr,
     pub sender: TransferTierRandomizers,
     pub output: TransferTierRandomizers,
-    pub is_flagged: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -549,7 +522,7 @@ mod tests {
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
             shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
         let (
-            sender_leaf,
+            _,
             recipient_leaf,
             compliance_anchor,
             sender_compliance_path,
@@ -570,7 +543,7 @@ mod tests {
         spend.compliance_path = sender_compliance_path;
         spend.compliance_position = 0;
         spend
-            .set_compliance_details(&mut rng)
+            .set_compliance_details()
             .expect("set registered base-asset spend compliance details");
 
         let mut output =
@@ -584,12 +557,7 @@ mod tests {
         output.compliance_path = recipient_compliance_path;
         output.compliance_position = 1;
         output
-            .set_compliance_details(
-                &mut rng,
-                &recipient_leaf,
-                sender_leaf,
-                spend.tx_blinding_nonce,
-            )
+            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
             .expect("set registered base-asset output compliance details");
 
         let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(&mut rng))
@@ -652,7 +620,7 @@ mod tests {
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
             shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
         let (
-            sender_leaf,
+            _,
             recipient_leaf,
             compliance_anchor,
             sender_compliance_path,
@@ -673,7 +641,7 @@ mod tests {
         spend.compliance_path = sender_compliance_path;
         spend.compliance_position = 0;
         spend
-            .set_compliance_details(&mut rng)
+            .set_compliance_details()
             .expect("set registered base-asset spend compliance details");
 
         let mut output =
@@ -687,12 +655,7 @@ mod tests {
         output.compliance_path = recipient_compliance_path;
         output.compliance_position = 1;
         output
-            .set_compliance_details(
-                &mut rng,
-                &recipient_leaf,
-                sender_leaf,
-                spend.tx_blinding_nonce,
-            )
+            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
             .expect("set registered base-asset output compliance details");
 
         let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(&mut rng))
@@ -742,7 +705,7 @@ mod tests {
         let (asset_anchor, asset_indexed_leaf, asset_path, asset_position) =
             shieldd_sdk_compliance::create_default_imt_proof(input_note.asset_id().0);
         let (
-            sender_leaf,
+            _,
             recipient_leaf,
             compliance_anchor,
             sender_compliance_path,
@@ -763,7 +726,7 @@ mod tests {
         spend.compliance_path = sender_compliance_path;
         spend.compliance_position = 0;
         spend
-            .set_compliance_details(&mut rng)
+            .set_compliance_details()
             .expect("set registered base-asset spend compliance details");
 
         let mut output =
@@ -777,12 +740,7 @@ mod tests {
         output.compliance_path = recipient_compliance_path;
         output.compliance_position = 1;
         output
-            .set_compliance_details(
-                &mut rng,
-                &recipient_leaf,
-                sender_leaf,
-                spend.tx_blinding_nonce,
-            )
+            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
             .expect("set registered base-asset output compliance details");
 
         let transfer = TransferPlan::new(vec![spend], vec![output], Fr::rand(&mut rng))
@@ -853,7 +811,7 @@ mod tests {
         spend.compliance_path = sender_compliance_path.clone();
         spend.compliance_position = 0;
         spend
-            .set_compliance_details(&mut rng)
+            .set_compliance_details()
             .expect("set registered base-asset spend compliance details");
 
         let mut receiver_output = ShieldedOutputPlan::new(
@@ -873,12 +831,7 @@ mod tests {
         receiver_output.compliance_path = recipient_compliance_path;
         receiver_output.compliance_position = 1;
         receiver_output
-            .set_compliance_details(
-                &mut rng,
-                &recipient_leaf,
-                sender_leaf.clone(),
-                spend.tx_blinding_nonce,
-            )
+            .set_compliance_details(&recipient_leaf, spend.tx_blinding_nonce)
             .expect("set receiver output compliance details");
 
         let mut change_output = ShieldedOutputPlan::new(
@@ -898,12 +851,7 @@ mod tests {
         change_output.compliance_path = sender_compliance_path;
         change_output.compliance_position = 0;
         change_output
-            .set_compliance_details(
-                &mut rng,
-                &sender_leaf,
-                sender_leaf.clone(),
-                spend.tx_blinding_nonce,
-            )
+            .set_compliance_details(&sender_leaf, spend.tx_blinding_nonce)
             .expect("set change output compliance details");
 
         let transfer = TransferPlan::new(
@@ -1027,52 +975,8 @@ mod tests {
             extracted_public.compliance.output_ext.ciphertext
         );
         assert_eq!(
-            proving_public.compliance.sender_core.proof.statement,
-            extracted_public.compliance.sender_core.proof.statement
-        );
-        assert_eq!(
-            proving_public.compliance.sender_core.proof.challenge,
-            extracted_public.compliance.sender_core.proof.challenge
-        );
-        assert_eq!(
-            proving_public.compliance.sender_core.proof.response,
-            extracted_public.compliance.sender_core.proof.response
-        );
-        assert_eq!(
-            proving_public.compliance.sender_ext.proof.statement,
-            extracted_public.compliance.sender_ext.proof.statement
-        );
-        assert_eq!(
-            proving_public.compliance.sender_ext.proof.challenge,
-            extracted_public.compliance.sender_ext.proof.challenge
-        );
-        assert_eq!(
-            proving_public.compliance.sender_ext.proof.response,
-            extracted_public.compliance.sender_ext.proof.response
-        );
-        assert_eq!(
-            proving_public.compliance.output_core.proof.statement,
-            extracted_public.compliance.output_core.proof.statement
-        );
-        assert_eq!(
-            proving_public.compliance.output_core.proof.challenge,
-            extracted_public.compliance.output_core.proof.challenge
-        );
-        assert_eq!(
-            proving_public.compliance.output_core.proof.response,
-            extracted_public.compliance.output_core.proof.response
-        );
-        assert_eq!(
-            proving_public.compliance.output_ext.proof.statement,
-            extracted_public.compliance.output_ext.proof.statement
-        );
-        assert_eq!(
-            proving_public.compliance.output_ext.proof.challenge,
-            extracted_public.compliance.output_ext.proof.challenge
-        );
-        assert_eq!(
-            proving_public.compliance.output_ext.proof.response,
-            extracted_public.compliance.output_ext.proof.response
+            proving_public.compliance.metadata,
+            extracted_public.compliance.metadata
         );
 
         assert_eq!(

@@ -1,6 +1,6 @@
 import ShielddGnarkFormal.Deployed.Contract
 import ShielddGnarkFormal.Deployed.Templates.Core
-import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d
+import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3
 import Mathlib.Data.ZMod.Basic
 
 set_option maxRecDepth 1000000
@@ -11,7 +11,7 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg112
 def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order
 
-def wireSeatingTable : List Nat := [0, 511, 587, 94357]
+def wireSeatingTable : List Nat := [0, 507, 91944, 91945]
 
 def wireSeating : Nat -> Nat :=
 fun localWire => wireSeatingTable.getD localWire 0
@@ -20,15 +20,15 @@ def localRho (rho : Nat -> F) : Nat -> F :=
     Shieldd.GnarkFormal.Deployed.Templates.seated rho wireSeating
 
 def relation (rho : Nat -> F) : Prop :=
-    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.relation (localRho rho)
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.relation (localRho rho)
 
 def spec (rho : Nat -> F) : Prop :=
-    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.spec (localRho rho)
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.spec (localRho rho)
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
 segmentIndex := 112,
-relationSha256Hex := "9922da5c4746605953f374106ddb5a9782dc8bfdd4702b5c5dad19281fa407a6",
-wireRoleSha256Hex := "e9549b72a12340c71500047bc2e27149ec92119d2d85484593238dac4045e4a1",
+relationSha256Hex := "38b6182f8bc11e133a10f3ca6997c0174f8f773ff3616bf2f6fb92ba441d1013",
+wireRoleSha256Hex := "545f247b11c4f98af84fd7951b2ef3ce17fdf7322f6fc2335378576dd9fcf6f2",
 relation := relation,
 spec := spec
 }

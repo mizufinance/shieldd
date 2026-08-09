@@ -1,6 +1,6 @@
 # Soundness
 
-This directory contains three maintained documents. Machine artifacts and
+This directory contains four maintained documents. Machine artifacts and
 ledgers beside the code are authoritative; these pages explain how to use them.
 Hashes, wire numbers, constraint ranges, and obligation counts belong in the
 generated artifacts, not in prose.
@@ -23,17 +23,14 @@ When sources disagree, use this order:
 Git is the history. There is no separate handoff, status mirror, inventory, or
 gate-record documentation.
 
-## Current focus
+## Certified families
 
-The four NoteReshape families (`note_reshape2x1`, `note_reshape4x1`,
-`note_reshape8x1`, and `note_reshape1x8`) use the certified deployed-SR1CS path
-described in [fv.md](fv.md). Transfer and shielded ICS-20 withdrawal use
-candidate paths that recompile the exact Go circuits, reject SR1CS and semantic
-manifest drift, and issue metadata/key/witness-bound proof receipts, but do not
-yet claim an independent exact-row refinement. For NoteReshape, handwritten
-protocol semantics and refinement are the public review surface; generated
-`CircuitFacts` and `Capstone` modules are the typed and exhaustive exact-row
-surfaces.
+The two fixed-padded NoteReshape families (`note_reshape1x8` and
+`note_reshape8x1`), fixed Transfer 2x2, and fixed shielded ICS-20 Withdrawal
+2x1 use the certified deployed-SR1CS path described in [fv.md](fv.md).
+Handwritten protocol semantics and refinements are the public review surface;
+generated `CircuitFacts` and `Capstone` modules are the typed and exhaustive
+exact-row surfaces.
 
 The compliance and shielded-pool property/assumption ledgers remain the source
 for protocol-wide claims beyond this circuit. A whole-circuit proof does not by

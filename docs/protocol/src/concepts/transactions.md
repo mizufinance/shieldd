@@ -18,7 +18,6 @@ The reduced chain supports three main categories of actions:
   - `IbcRelay`
   - `ComplianceRegisterAsset`
   - `ComplianceRegisterUser`
-  - `AggregateBundle`
 
 Shielded actions consume existing note commitments, reveal nullifiers for spent
 notes, and create new note commitments when applicable. The transaction-level

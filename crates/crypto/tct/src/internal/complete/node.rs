@@ -320,12 +320,3 @@ impl<Child: GetHash + UncheckedSetHash + Clone> UncheckedSetHash for Node<Child>
         }
     }
 }
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn check_node_size() {
-        // Disabled due to spurious test failure.
-        // static_assertions::assert_eq_size!(Node<()>, [u8; 72]);
-    }
-}

@@ -1,7 +1,7 @@
 //! Proto conversion helpers for compliance data structures.
 
 use anyhow::Result;
-use decaf377::{Fq, Fr};
+use decaf377::Fr;
 use shieldd_sdk_compliance::ComplianceLeaf;
 use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
 use shieldd_sdk_tct::StateCommitment;
@@ -75,18 +75,6 @@ pub fn parse_indexed_leaf(
     proto
         .map(shieldd_sdk_compliance::IndexedLeaf::try_from)
         .transpose()
-}
-
-pub fn default_state_commitment() -> StateCommitment {
-    StateCommitment(Fq::from(0u64))
-}
-
-pub fn default_indexed_leaf() -> shieldd_sdk_compliance::IndexedLeaf {
-    shieldd_sdk_compliance::IndexedLeaf::with_default_policy(
-        Fq::from(0u64),
-        0,
-        shieldd_sdk_compliance::indexed_tree::FQ_MAX.clone(),
-    )
 }
 
 #[cfg(test)]

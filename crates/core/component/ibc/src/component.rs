@@ -35,6 +35,7 @@ pub use client_recovery::ClientRecoveryExt;
 pub use connection::StateReadExt as ConnectionStateReadExt;
 pub use connection::StateWriteExt as ConnectionStateWriteExt;
 pub use host_interface::HostInterface;
+pub use proof_verification::commit_packet;
 pub use view::{StateReadExt, StateWriteExt};
 
 pub use ibc_component::Ibc;

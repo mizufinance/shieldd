@@ -142,6 +142,8 @@ jobs:
 
       - name: Run gnark-backed Rust proof tests
         run: nix develop --command just ci-gnark-proof-tests
+      - name: Execute exact FV specification evidence
+        run: nix develop --command bash scripts/check-fv-specification-evidence.sh
 
   summary:
     needs: [lint, deny, features, test, go-gnark, gnark-rust]

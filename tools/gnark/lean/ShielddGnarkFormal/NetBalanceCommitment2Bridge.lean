@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.ScalarMulBridge
+import ShielddGnarkFormal.AckBridge
 import ShielddGnarkFormal.EncodeToCurveBridge
 import ShielddGnarkFormal.Poseidon1Bridge
 import ShielddGnarkFormal.Decaf377CircuitDefs
@@ -17,6 +18,8 @@ four 128-bit value ladders from identity over that generator, an Edwards add
 chain `add(add(add(add zero in0) in1)(neg out))`, a 251-bit blinding ladder over
 the fixed blinding generator, and a final Edwards add pinned to the outputs.
 Each segment is bridged with a bounded lemma; the ladders reuse `ScalarMulBridge`.
+This legacy relation is an independent optimization-parity oracle. Deployed
+Transfer uses the exact two-sum Window2 provider.
 -/
 
 namespace Shieldd.GnarkFormal.NetBalanceCommitment2Bridge
@@ -45,7 +48,6 @@ variable [Fact (Nat.Prime Order)]
 instance : Fact (Nat.Prime Extracted.NetBalanceCommitment2.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.DecafEncodeToCurve.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.PoseidonHash1.Order) := ‹_›
-instance : Fact (Nat.Prime Extracted.DecafAssertEquivalent.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.DecafCompressToField.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.DecafRvk.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.DecafDtk.Order) := ‹_›
@@ -307,9 +309,9 @@ theorem nbFinalK_semantic (px py qx qy outX outY : F)
   rcases h with ⟨rx, hrx, ry, hry, hx, hy, -⟩
   exact ⟨hx ▸ hrx, hy ▸ hry⟩
 
-/-! ### Circuit body: four value ladders, add chain, blinding ladder, final add -/
+/-! ### Legacy oracle: four value ladders, add chain, blinding ladder, final add -/
 
-/-- The post-encode body of `NetBalanceCommitment.circuit`: four 128-bit value
+/-- The post-encode body of the legacy circuit: four 128-bit value
 ladders from identity over the value generator `(vgX, vgY)`, the Edwards add
 chain `add(add(add(zero, in0), in1), neg out)`, a 251-bit blinding ladder over
 the fixed blinding generator, and the final Edwards add pinned to the outputs. -/
@@ -367,7 +369,8 @@ theorem nbLadder {nBits : ℕ} {scalar : F} {base : EdwardsBridge.Point}
     (hbase : EdwardsBridge.onCurve base)
     (h : ∃ b, Extracted.NetBalanceCommitment2.Gates.to_binary scalar nBits b ∧
          nbLadderK b k nBits 0 ⟨0, 1⟩ base) :
-    ∃ res : EdwardsBridge.Point, EdwardsBridge.onCurve res ∧
+    ∃ res : EdwardsBridge.Point, scalar.val < 2 ^ nBits ∧
+      EdwardsBridge.onCurve res ∧
       toA res = Decaf377Assumptions.scalarMulLE nBits (toA base) scalar ∧
       ∃ z w, k vec![res.x, res.y, z, w] := by
   obtain ⟨b, hbin, hladder⟩ := h
@@ -378,7 +381,7 @@ theorem nbLadder {nBits : ℕ} {scalar : F} {base : EdwardsBridge.Point}
   have hsem := nbLadderK_final_semantic bitsBool k nBits 0 ⟨0, 1⟩ base (by omega)
     EdwardsBridge.identity_onCurve hbase hladder
   rcases hsem with ⟨hon, z, w, htail⟩
-  refine ⟨scalarMulFromBits bitsBool nBits 0 ⟨0, 1⟩ base, hon, ?_, z, w, htail⟩
+  refine ⟨scalarMulFromBits bitsBool nBits 0 ⟨0, 1⟩ base, hlt, hon, ?_, z, w, htail⟩
   have hmodel := scalarMulFromBits_toA bitsBool scalar nBits 0 ⟨0, 1⟩ base (by omega)
     (by intro i _ hi; exact toBitsLE_get!_eq_testBit scalar.val hlt i (by omega))
   rw [hmodel]; rfl
@@ -394,6 +397,11 @@ private theorem nb_circuit_eq_and_onCurve
       EncodeWasSquare EncodeInvSqrt OutX OutY : F)
     (h : Extracted.NetBalanceCommitment2.circuit Input0Amount Input1Amount Output0Amount Output1Amount
         AssetID BalanceBlinding EncodeWasSquare EncodeInvSqrt OutX OutY) :
+    Input0Amount.val < 2 ^ 128 ∧
+    Input1Amount.val < 2 ^ 128 ∧
+    Output0Amount.val < 2 ^ 128 ∧
+    Output1Amount.val < 2 ^ 128 ∧
+    BalanceBlinding.val < 2 ^ 251 ∧
     EdwardsBridge.onCurve ⟨OutX, OutY⟩ ∧
     Decaf377Assumptions.Point.mk OutX OutY =
       Decaf377Assumptions.netBalanceCommit2 Input0Amount Input1Amount Output0Amount Output1Amount
@@ -415,13 +423,13 @@ private theorem nb_circuit_eq_and_onCurve
   have hS0eq : toA (⟨0, 1⟩ : EdwardsBridge.Point)
       = Decaf377Assumptions.scalarMulLE 128 (toA ⟨ox, oy⟩) 0 := by
     rw [scalarMulLE_zero]; rfl
-  obtain ⟨P1, hP1on, hP1eq, _, _, hbody⟩ :=
+  obtain ⟨P1, hInput0Range, hP1on, hP1eq, _, _, hbody⟩ :=
     nbLadder pow128_lt_order hvgOn hbody
-  obtain ⟨P2, hP2on, hP2eq, _, _, hbody⟩ :=
+  obtain ⟨P2, hInput1Range, hP2on, hP2eq, _, _, hbody⟩ :=
     nbLadder pow128_lt_order hvgOn hbody
-  obtain ⟨P3, hP3on, hP3eq, _, _, hbody⟩ :=
+  obtain ⟨P3, hOutput0Range, hP3on, hP3eq, _, _, hbody⟩ :=
     nbLadder pow128_lt_order hvgOn hbody
-  obtain ⟨P3b, hP3bon, hP3beq, _, _, hbody⟩ :=
+  obtain ⟨P3b, hOutput1Range, hP3bon, hP3beq, _, _, hbody⟩ :=
     nbLadder pow128_lt_order hvgOn hbody
   -- add chain
   obtain ⟨a1x, a1y, haddA, hbody⟩ := nbAddK_semantic _ _ _ _ _ hbody
@@ -431,7 +439,8 @@ private theorem nb_circuit_eq_and_onCurve
   obtain ⟨g621b, hg621b, hbody⟩ := hbody
   obtain ⟨a4x, a4y, haddD, hbody⟩ := nbAddK_semantic _ _ _ _ _ hbody
   -- blinding ladder + final add
-  obtain ⟨P4, hP4on, hP4eq, _, _, hbody⟩ := nbLadder pow251_lt_order blindGen_onCurve hbody
+  obtain ⟨P4, hBlindRange, hP4on, hP4eq, _, _, hbody⟩ :=
+    nbLadder pow251_lt_order blindGen_onCurve hbody
   have hfinal := nbFinalK_semantic _ _ _ _ _ _ hbody
   -- thread on-curve and addF equalities forward
   have hA1 := EdwardsBridge.addSpec_eq ⟨0, 1⟩ P1 ⟨a1x, a1y⟩ hS0on hP1on haddA
@@ -465,7 +474,8 @@ private theorem nb_circuit_eq_and_onCurve
   have hOut := EdwardsBridge.addSpec_eq ⟨a4x, a4y⟩ P4 ⟨OutX, OutY⟩ hA4on hP4on hfinal
   have hOutOn : EdwardsBridge.onCurve ⟨OutX, OutY⟩ :=
     hOut ▸ EdwardsBridge.add_onCurve _ _ hA4on hP4on
-  refine ⟨hOutOn, ?_⟩
+  refine ⟨hInput0Range, hInput1Range, hOutput0Range, hOutput1Range,
+    hBlindRange, hOutOn, ?_⟩
   -- assemble
   have hbg : toA (⟨(4661681602708190761543544705274244814260880986867766715334030151044279151219 : F),
       (4337336842509898676347982752646772244181661588533917621717979456142867120378 : F)⟩ :
@@ -486,7 +496,7 @@ theorem nb_circuit_sound
     Decaf377Assumptions.Point.mk OutX OutY =
       Decaf377Assumptions.netBalanceCommit2 Input0Amount Input1Amount Output0Amount Output1Amount
         AssetID BalanceBlinding :=
-  (nb_circuit_eq_and_onCurve _ _ _ _ _ _ _ _ _ _ h).2
+  (nb_circuit_eq_and_onCurve _ _ _ _ _ _ _ _ _ _ h).2.2.2.2.2.2
 
 theorem nb_circuit_onCurve
     (Input0Amount Input1Amount Output0Amount Output1Amount AssetID BalanceBlinding
@@ -494,7 +504,21 @@ theorem nb_circuit_onCurve
     (h : Extracted.NetBalanceCommitment2.circuit Input0Amount Input1Amount Output0Amount Output1Amount
         AssetID BalanceBlinding EncodeWasSquare EncodeInvSqrt OutX OutY) :
     EdwardsBridge.onCurve ⟨OutX, OutY⟩ :=
-  (nb_circuit_eq_and_onCurve _ _ _ _ _ _ _ _ _ _ h).1
+  (nb_circuit_eq_and_onCurve _ _ _ _ _ _ _ _ _ _ h).2.2.2.2.2.1
+
+theorem nb_circuit_ranges
+    (Input0Amount Input1Amount Output0Amount Output1Amount AssetID BalanceBlinding
+      EncodeWasSquare EncodeInvSqrt OutX OutY : F)
+    (h : Extracted.NetBalanceCommitment2.circuit Input0Amount Input1Amount Output0Amount Output1Amount
+        AssetID BalanceBlinding EncodeWasSquare EncodeInvSqrt OutX OutY) :
+    Input0Amount.val < 2 ^ 128 ∧
+    Input1Amount.val < 2 ^ 128 ∧
+    Output0Amount.val < 2 ^ 128 ∧
+    Output1Amount.val < 2 ^ 128 ∧
+    BalanceBlinding.val < 2 ^ 251 := by
+  obtain ⟨h0, h1, h2, h3, hb, _, _⟩ :=
+    nb_circuit_eq_and_onCurve _ _ _ _ _ _ _ _ _ _ h
+  exact ⟨h0, h1, h2, h3, hb⟩
 
 /-- `Decaf377Assumptions` predicate-level wrapper. -/
 theorem decaf377_netBalanceCommitment2_sound
@@ -518,5 +542,44 @@ theorem decaf377_netBalanceCommitment2_onCurve
   obtain ⟨ews, einv, hcircuit⟩ := h
   exact nb_circuit_onCurve input0 input1 output0 output1 assetID balanceBlinding
     ews einv out.x out.y hcircuit
+
+/--
+An exact encode witness upgrades the circuit-facing chosen-function equality
+to the independent protocol relation. The witness is load-bearing: the
+`NetBalanceCommitment2Spec` equality alone cannot reconstruct it.
+-/
+theorem protocol_netBalanceCommitment2_of_spec
+    (input0 input1 output0 output1 assetID balanceBlinding : F)
+    (valueGenerator out : Decaf377Assumptions.Point)
+    (hEncode :
+      Decaf377Assumptions.EncodeToCurveSpec
+        (Poseidon1Bridge.permSpec1
+          Decaf377Assumptions.valueGeneratorDomain assetID)
+        valueGenerator)
+    (hSpec :
+      Decaf377Assumptions.NetBalanceCommitment2Spec
+        input0 input1 output0 output1 assetID balanceBlinding out) :
+    Protocol.Common.Decaf.netBalanceCommitment2
+      input0 input1 output0 output1 assetID balanceBlinding
+      (AckBridge.toProtocolPoint out) := by
+  unfold Protocol.Common.Decaf.netBalanceCommitment2
+  refine ⟨AckBridge.toProtocolPoint valueGenerator, ?_, ?_⟩
+  · simpa only [
+      Poseidon1Bridge.permSpec1,
+      Decaf377Assumptions.valueGeneratorDomain,
+      Protocol.Common.Decaf.valueGeneratorDomain
+    ] using
+      Extracted.DecafEncodeToCurve.relation_to_protocol hEncode
+  · unfold Decaf377Assumptions.NetBalanceCommitment2Spec at hSpec
+    rw [hSpec]
+    unfold Decaf377Assumptions.netBalanceCommit2
+    rw [Decaf377Assumptions.encode_spec_eq hEncode]
+    simp only [
+      AckBridge.toProtocolPoint_add,
+      AckBridge.toProtocolPoint_neg,
+      AckBridge.toProtocolPoint_scalarMulLE,
+      AckBridge.toProtocolPoint_identity,
+      AckBridge.toProtocolPoint_valueBlindingGenerator
+    ]
 
 end Shieldd.GnarkFormal.NetBalanceCommitment2Bridge

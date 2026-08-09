@@ -126,17 +126,40 @@ pub struct Transaction {
     pub anchor: tct::Root,
 }
 
+/// Canonical placeholder for no-proof transactions whose binding key is identity.
+pub fn no_binding_signature() -> Signature<Binding> {
+    [0u8; 64].into()
+}
+
+/// Returns whether a binding signature is the canonical no-proof placeholder.
+pub fn is_no_binding_signature(signature: &Signature<Binding>) -> bool {
+    signature.to_bytes() == [0u8; 64]
+}
+
 impl Default for Transaction {
     fn default() -> Self {
         Transaction {
             transaction_body: Default::default(),
-            binding_sig: [0u8; 64].into(),
+            binding_sig: no_binding_signature(),
             anchor: tct::Tree::new().root(),
         }
     }
 }
 
 impl Transaction {
+    /// Decodes only the unique protobuf encoding emitted by this domain type.
+    pub fn decode_canonical(bytes: &[u8]) -> anyhow::Result<Self> {
+        let tx: Self = pbt::Transaction::decode(bytes)
+            .context("decoding transaction protobuf")?
+            .try_into()?;
+        let canonical: Vec<u8> = (&tx).into();
+        anyhow::ensure!(
+            canonical == bytes,
+            "transaction bytes are not the canonical protobuf encoding"
+        );
+        Ok(tx)
+    }
+
     pub fn context(&self) -> TransactionContext {
         TransactionContext {
             anchor: self.anchor,
@@ -152,33 +175,15 @@ impl Transaction {
                 Action::Transfer(_)
                 | Action::NoteReshape(_)
                 | Action::ShieldedIcs20Withdrawal(_) => 1,
-                _ => 0,
+                Action::ValidatorDefinition(_)
+                | Action::IbcRelay(_)
+                | Action::ProposalSubmit(_)
+                | Action::ValidatorVote(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_) => 0,
             })
             .sum::<usize>()
             + usize::from(self.transaction_body.fee_funding.is_some())
-    }
-
-    pub fn is_aggregate_bundle_tx(&self) -> bool {
-        matches!(
-            self.transaction_body.actions.as_slice(),
-            [Action::AggregateBundle(_)]
-        )
-    }
-
-    pub fn aggregate_bundle_action(
-        &self,
-    ) -> Option<&shieldd_sdk_proof_aggregation::AggregateBundle> {
-        self.actions().find_map(|action| {
-            if let Action::AggregateBundle(bundle) = action {
-                Some(bundle)
-            } else {
-                None
-            }
-        })
-    }
-
-    pub fn contains_aggregate_bundle_action(&self) -> bool {
-        self.aggregate_bundle_action().is_some()
     }
 
     pub fn decrypt_memo(&self, fvk: &FullViewingKey) -> anyhow::Result<MemoPlaintext> {
@@ -213,7 +218,12 @@ impl Transaction {
                     withdrawal.body.change_output.wrapped_memo_key.clone(),
                     withdrawal.body.balance_commitment,
                 )),
-                _ => None,
+                Action::ValidatorDefinition(_)
+                | Action::IbcRelay(_)
+                | Action::ProposalSubmit(_)
+                | Action::ValidatorVote(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_) => None,
             })
             .or_else(|| {
                 self.transaction_body
@@ -313,8 +323,7 @@ impl Transaction {
                 | Action::ProposalSubmit(_)
                 | Action::ValidatorVote(_)
                 | Action::ComplianceRegisterAsset(_)
-                | Action::ComplianceRegisterUser(_)
-                | Action::AggregateBundle(_) => {}
+                | Action::ComplianceRegisterUser(_) => {}
             }
         }
 
@@ -496,7 +505,12 @@ impl Transaction {
                     .iter()
                     .map(|input| input.nullifier)
                     .collect(),
-                _ => Vec::new(),
+                Action::ValidatorDefinition(_)
+                | Action::IbcRelay(_)
+                | Action::ProposalSubmit(_)
+                | Action::ValidatorVote(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_) => Vec::new(),
             })
             .collect::<Vec<_>>();
 
@@ -512,6 +526,31 @@ impl Transaction {
         }
 
         nullifiers.into_iter()
+    }
+
+    /// Counts every proof-bound spend without allocating the iterator's buffer.
+    pub fn spent_nullifier_count(&self) -> usize {
+        let body_count = self.actions().fold(0usize, |count, action| {
+            let action_count = match action {
+                Action::Transfer(transfer) => transfer.body.inputs.len(),
+                Action::NoteReshape(note_reshape) => note_reshape.body.inputs.len(),
+                Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.body.inputs.len(),
+                Action::ValidatorDefinition(_)
+                | Action::IbcRelay(_)
+                | Action::ProposalSubmit(_)
+                | Action::ValidatorVote(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_) => 0,
+            };
+            count.saturating_add(action_count)
+        });
+        let fee_count = self
+            .transaction_body
+            .fee_funding
+            .as_ref()
+            .map(|fee_funding| fee_funding.transfer.body.inputs.len())
+            .unwrap_or_default();
+        body_count.saturating_add(fee_count)
     }
 
     pub fn state_commitments(&self) -> impl Iterator<Item = StateCommitment> + '_ {
@@ -533,7 +572,12 @@ impl Transaction {
                 Action::ShieldedIcs20Withdrawal(withdrawal) => vec![Some(
                     withdrawal.body.change_output.note_payload.note_commitment,
                 )],
-                _ => vec![None],
+                Action::ValidatorDefinition(_)
+                | Action::IbcRelay(_)
+                | Action::ProposalSubmit(_)
+                | Action::ValidatorVote(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_) => vec![None],
             })
             .filter_map(|x| x)
             .collect::<Vec<_>>();
@@ -683,10 +727,36 @@ mod tests {
     use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_DENOM};
     use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
     use shieldd_sdk_keys::Address;
+    use shieldd_sdk_proto::DomainType as _;
     use shieldd_sdk_sct::Nullifier;
     use shieldd_sdk_shielded_pool::backref::ENCRYPTED_BACKREF_LEN;
 
     use super::{Action, Transaction, TransactionBody};
+
+    #[test]
+    fn canonical_decode_accepts_exact_encoding_and_rejects_unknown_fields() {
+        let tx = Transaction::default();
+        let canonical: Vec<u8> = (&tx).into();
+        assert_eq!(
+            Transaction::decode_canonical(&canonical)
+                .expect("canonical transaction must decode")
+                .encode_to_vec(),
+            canonical
+        );
+
+        // Unknown field 127, varint value 0. Prost accepts and drops it, so
+        // decode followed by canonical re-encoding must reject this wire form.
+        let mut noncanonical = canonical;
+        noncanonical.extend_from_slice(&[0xf8, 0x07, 0x00]);
+        let error = Transaction::decode_canonical(&noncanonical)
+            .expect_err("unknown protobuf fields must not cross transaction ingress");
+        assert!(
+            error
+                .to_string()
+                .contains("not the canonical protobuf encoding"),
+            "unexpected error: {error:#}"
+        );
+    }
 
     #[test]
     fn transfer_counts_as_nullifier_and_state_commitment_source() {
@@ -734,7 +804,7 @@ mod tests {
                         wrapped_memo_key: WrappedMemoKey([8u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([9u8; 48]),
                         compliance_ciphertext: vec![4, 5, 6],
-                        orbis_upload_bundle: vec![15, 16],
+                        compliance_metadata: vec![15, 16],
                     },
                     shieldd_sdk_shielded_pool::TransferOutputBody {
                         note_payload: shieldd_sdk_shielded_pool::NotePayload {
@@ -747,7 +817,7 @@ mod tests {
                         wrapped_memo_key: WrappedMemoKey([80u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([90u8; 48]),
                         compliance_ciphertext: vec![],
-                        orbis_upload_bundle: vec![],
+                        compliance_metadata: vec![],
                     },
                 ],
                 target_timestamp: 10,
@@ -769,10 +839,16 @@ mod tests {
         };
 
         assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 2);
+        assert_eq!(
+            tx.spent_nullifier_count(),
+            tx.spent_nullifiers().count(),
+            "zero-allocation count must match the canonical iterator"
+        );
         assert_eq!(tx.state_commitments().collect::<Vec<_>>().len(), 2);
 
         let fee_funded_tx = Transaction {
             transaction_body: TransactionBody {
+                actions: vec![Action::Transfer(transfer.clone())],
                 fee_funding: Some(crate::FeeFunding { transfer }),
                 ..Default::default()
             },
@@ -780,17 +856,22 @@ mod tests {
         };
         assert_eq!(
             fee_funded_tx.spent_nullifiers().collect::<Vec<_>>().len(),
-            2
+            4
+        );
+        assert_eq!(
+            fee_funded_tx.spent_nullifier_count(),
+            fee_funded_tx.spent_nullifiers().count(),
+            "body and fee-funding nullifiers must share one canonical count"
         );
         assert_eq!(
             fee_funded_tx.state_commitments().collect::<Vec<_>>().len(),
-            2
+            4
         );
     }
 
     #[test]
     fn note_reshape_fixed_slots_do_not_filter_spent_nullifiers() {
-        let inputs = (0..4)
+        let inputs = (0..8)
             .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                 nullifier: Nullifier(decaf377::Fq::from(100u64 + index)),
                 rk: VerificationKey::from(SigningKey::<SpendAuth>::from(decaf377::Fr::from(
@@ -808,7 +889,7 @@ mod tests {
 
         let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
             body: shieldd_sdk_shielded_pool::NoteReshapeBody {
-                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::FourByOne,
+                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                 anchor: shieldd_sdk_tct::Tree::default().root(),
                 balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
                 inputs,
@@ -824,7 +905,7 @@ mod tests {
                     ovk_wrapped_key: OvkWrappedKey([6u8; 48]),
                 }],
             },
-            auth_sigs: vec![[0u8; 64].into(); 4],
+            auth_sigs: vec![[0u8; 64].into(); 8],
             proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
         };
         let tx = Transaction {
@@ -835,7 +916,8 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 4);
+        assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 8);
+        assert_eq!(tx.spent_nullifier_count(), tx.spent_nullifiers().count());
     }
 
     #[test]
@@ -849,13 +931,13 @@ mod tests {
     }
 
     #[test]
-    fn num_proofs_counts_new_shielded_action_families() {
+    fn proof_and_nullifier_counts_cover_mixed_shielded_families() {
         let tx = Transaction {
             transaction_body: TransactionBody {
                 actions: vec![
                     Action::NoteReshape(shieldd_sdk_shielded_pool::NoteReshape {
                         body: shieldd_sdk_shielded_pool::NoteReshapeBody {
-                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::TwoByOne,
+                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                             anchor: shieldd_sdk_tct::Tree::default().root(),
                             balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
                             inputs: vec![
@@ -967,7 +1049,6 @@ mod tests {
                                         .expect("valid timeout height"),
                                     timeout_time: 1,
                                     source_channel: ibc_types::core::channel::ChannelId::new(7),
-                                    use_compat_address: false,
                                     ics20_memo: String::new(),
                                     use_transparent_address: false,
                                 },
@@ -1003,6 +1084,23 @@ mod tests {
         };
 
         assert_eq!(tx.num_proofs(), 3);
+        assert_eq!(
+            tx.spent_nullifiers().collect::<Vec<_>>(),
+            [
+                Nullifier(decaf377::Fq::from(2u64)),
+                Nullifier(decaf377::Fq::from(4u64)),
+                Nullifier(decaf377::Fq::from(14u64)),
+                Nullifier(decaf377::Fq::from(23u64)),
+                Nullifier(decaf377::Fq::from(25u64)),
+            ],
+            "transaction-wide duplicate detection must see every fixed-slot \
+             NoteReshape and shielded-withdrawal nullifier"
+        );
+        assert_eq!(
+            tx.spent_nullifier_count(),
+            tx.spent_nullifiers().count(),
+            "mixed-family count must match the canonical iterator"
+        );
     }
 }
 
@@ -1172,7 +1270,7 @@ impl TryFrom<&[u8]> for Transaction {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Transaction, Self::Error> {
-        pbt::Transaction::decode(bytes)?.try_into()
+        Self::decode_canonical(bytes)
     }
 }
 

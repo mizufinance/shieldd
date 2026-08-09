@@ -27,7 +27,6 @@ component = [
   "dep:tonic-web"
 ]
 parallel = [
-  "ark-ff/parallel",
   "shieldd-sdk-proof-params/parallel",
 ]
 benchmark-helpers = [
@@ -35,18 +34,13 @@ benchmark-helpers = [
   "shieldd-sdk-shielded-pool/benchmark-helpers",
 ]
 default = ["std", "component"]
-fuzzing = []
-std     = ["ark-ff/std", "ibc-types/std"]
+std     = ["ibc-types/std"]
 
 [dependencies]
 anyhow                           = { workspace = true }
-ark-ff                           = { workspace = true, default-features = false }
-ark-groth16                      = { workspace = true, default-features = false }
-ark-serialize                    = { workspace = true }
 async-trait                      = { workspace = true }
 base64                           = { workspace = true }
 bech32                           = { workspace = true }
-bincode                          = { workspace = true }
 bitvec                           = { workspace = true }
 blake2b_simd                     = { workspace = true }
 cfg-if                           = "1.0"
@@ -73,7 +67,6 @@ shieldd-sdk-ibc                     = { workspace = true, default-features = fal
 shieldd-sdk-keys                    = { workspace = true, default-features = true }
 shieldd-sdk-num                     = { workspace = true, default-features = true }
 shieldd-sdk-proof-params            = { workspace = true, default-features = false }
-shieldd-sdk-proof-aggregation       = { workspace = true, default-features = true }
 shieldd-sdk-proto                   = { workspace = true, default-features = true }
 shieldd-sdk-sct                     = { workspace = true, default-features = false }
 shieldd-sdk-shielded-pool           = { workspace = true, default-features = false }
@@ -110,12 +103,15 @@ tracing                          = { workspace = true }
 url                              = { workspace = true }
 
 [dev-dependencies]
+ark-groth16                      = { workspace = true, default-features = false }
+ark-serialize                    = { workspace = true }
 decaf377-fmd                     = { workspace = true, default-features = true }
 ed25519-consensus                = { workspace = true }
 shieldd-sdk-mock-client         = { workspace = true }
 shieldd-sdk-mock-consensus      = { workspace = true }
+shieldd-sdk-compliance          = { workspace = true, default-features = false, features = ["test-helpers"] }
 shieldd-sdk-proto               = { workspace = true, features = ["box-grpc"] }
-proptest                         = { workspace = true }
+shieldd-sdk-shielded-pool       = { workspace = true, default-features = false, features = ["benchmark-helpers"] }
 rand                             = { workspace = true }
 rand_chacha                      = { workspace = true }
 rand_core                        = { workspace = true }

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from functools import lru_cache
 from pathlib import Path
+
+from formal_json import read_json_object
 
 
 ROOT = Path(__file__).resolve().parents[4]
@@ -17,7 +18,7 @@ VECTORS = (
 def rounds(rate: int) -> tuple[tuple[str, tuple[int, ...]], ...]:
     """Return each round's fixed-module function name and constants."""
 
-    vectors = json.loads(VECTORS.read_text(encoding="utf-8"))["poseidon377"]
+    vectors = read_json_object(VECTORS, canonical="pretty_go")["poseidon377"]
     key = f"rate_{rate}"
     if key not in vectors:
         raise ValueError(f"missing Poseidon377 {key} vectors")

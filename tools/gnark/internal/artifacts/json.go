@@ -36,7 +36,7 @@ func DecodeCanonicalVerifyingKeyJSON(data []byte) (VerifyingKeyJSON, error) {
 	return vk, nil
 }
 
-// DecodeCanonicalCircuitMetadataJSON accepts exactly the v1 metadata encoding.
+// DecodeCanonicalCircuitMetadataJSON accepts exactly the v2 metadata encoding.
 func DecodeCanonicalCircuitMetadataJSON(data []byte) (CircuitMetadataJSON, error) {
 	var metadata CircuitMetadataJSON
 	if err := decodeCanonicalJSON(data, &metadata, "circuit metadata JSON"); err != nil {
@@ -49,6 +49,8 @@ func DecodeCanonicalCircuitMetadataJSON(data []byte) (CircuitMetadataJSON, error
 		)
 	}
 	for label, digest := range map[string]string{
+		"SR1CS":                metadata.SR1CSSHA256Hex,
+		"setup provenance":     metadata.SetupProvenanceSHA256Hex,
 		"proving key":          metadata.ProvingKeySHA256Hex,
 		"binary verifying key": metadata.VerifyingKeyBinarySHA256Hex,
 		"JSON verifying key":   metadata.VerifyingKeyJSONSHA256Hex,

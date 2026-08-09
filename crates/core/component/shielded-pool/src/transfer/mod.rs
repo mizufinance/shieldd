@@ -17,9 +17,8 @@ pub use generated::{
 pub use plan::TransferPlan;
 pub use proof::{
     TransferChangeOutputPrivate, TransferComplianceCiphertextPublic, TransferCompliancePrivate,
-    TransferComplianceProofPublic, TransferCompliancePublic, TransferOptionalSpendPrivate,
-    TransferOutputPublic, TransferProof, TransferProofPrivate, TransferProofPublic,
-    TransferReceiverOutputPrivate, TransferSpendPrivate, TransferSpendPublic,
-    TransferTierRandomizers,
+    TransferCompliancePublic, TransferOptionalSpendPrivate, TransferOutputPublic, TransferProof,
+    TransferProofPrivate, TransferProofPublic, TransferReceiverOutputPrivate, TransferSpendPrivate,
+    TransferSpendPublic, TransferTierRandomizers,
 };
 pub use view::TransferView;

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""Generate exact 4x1/8x1 note-commitment refinement leaves."""
+"""Generate exact 8x1 note-commitment refinement leaves."""
 
 from __future__ import annotations
 
 import argparse
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import gen_note_reshape_family as family
+from note_reshape_adapter_model import Deployment
 from write_if_changed import write_if_changed
 
 
@@ -20,52 +21,161 @@ class Config:
     circuit: str
     module: str
     slots: int
-    first_note_segment: int
-    output_note_segment: int
-    output_assert_segment: int
 
 
 CONFIGS = (
-    Config("note_reshape4x1", "NoteReshape4x1", 4, 14, 70, 71),
-    Config("note_reshape8x1", "NoteReshape8x1", 8, 18, 130, 131),
+    Config("note_reshape8x1", "NoteReshape8x1", 8),
 )
 
 
-def segment_source(config: Config, segment: int) -> Path:
-    return (
-        DEPLOYED
-        / "Contracts"
-        / config.module
-        / f"Seg{segment}.lean"
+def load(config: Config) -> Deployment:
+    return Deployment.load(
+        config.circuit,
+        config.module,
+        (config.slots, 1),
     )
 
 
-def wire(config: Config, segment: int, index: int) -> int:
-    source = segment_source(config, segment).read_text()
-    marker = "def wireSeatingTable : List Nat := ["
-    body = source.split(marker, 1)[1].split("]", 1)[0]
-    values = [int(value) for value in body.split(", ")]
-    return values[index]
+def wire(model: Deployment, segment: dict, index: int) -> int:
+    return model.seating(segment)[index]
 
 
-def semantic_template(config: Config, segment: int) -> str:
-    source = segment_source(config, segment).read_text()
-    match = re.search(
-        r"Templates\.Generated\.(T[A-Za-z0-9]+_[0-9a-f]+)",
-        source,
+def semantic_template(segment: dict) -> str:
+    return family.template_name(segment["proof_template_id"])
+
+
+def commitment_segment(
+    model: Deployment,
+    prefix: str,
+) -> dict:
+    segment = model.segment(
+        "gadget.note_commitment",
+        (
+            f"blinding={prefix}.note.blinding",
+            f"amount={prefix}.note.amount",
+            "asset_id=shared.asset_id",
+            "div_gen_fq=shared.div_gen_fq",
+            "transmission_key_s=shared.transmission.fq",
+            "clue_key=shared.clue_key",
+            f"out={prefix}.note.commitment.computed",
+        ),
     )
-    if match is None:
-        raise ValueError(f"missing template import in {segment_source(config, segment)}")
-    return match.group(1)
+    expected = (
+        "gadget.note_commitment@"
+        "9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5"
+    )
+    if segment["proof_template_id"] != expected:
+        raise ValueError(f"{model.circuit}: {prefix} commitment template drifted")
+    model.require_binding_role(
+        segment,
+        f"{prefix}.note_commitment.inputs",
+        "input",
+        exact=True,
+        arity=6,
+    )
+    model.require_binding_role(
+        segment,
+        f"{prefix}.note.commitment.computed",
+        "output",
+        exact=True,
+        arity=1,
+    )
+    return segment
 
 
-def spend_note_segment(config: Config, slot: int) -> int:
-    return config.first_note_segment + 14 * slot
+def spend_assert_segment(
+    model: Deployment,
+    prefix: str,
+    hash_segment: dict,
+    flag_wire: int,
+) -> dict:
+    segment = model.segment(
+        "assert.eq_if",
+        (
+            f"lhs={prefix}.note.commitment.computed",
+            f"rhs={prefix}.state_proof.commitment",
+            f"enabled={prefix}.is_real",
+        ),
+    )
+    expected = (
+        "assert.eq_if@"
+        "ce0e02a1deb2ef2e836cbed67d37f3678356db1d6c5cfaa61678d01652034f8f"
+    )
+    if segment["proof_template_id"] != expected:
+        raise ValueError(
+            f"{model.circuit}: {prefix} commitment assertion template drifted"
+        )
+    model.consecutive((hash_segment, segment))
+    model.require_binding_role(
+        segment,
+        f"{prefix}.note.commitment.computed",
+        "input",
+        arity=1,
+    )
+    model.require_binding_role(
+        segment,
+        f"{prefix}.state_proof.commitment",
+        "input",
+        arity=1,
+    )
+    model.require_wire_role(segment, flag_wire, "input")
+    exact_inputs = (
+        model.binding_wires(f"{prefix}.note.commitment.computed", 1)
+        | model.binding_wires(f"{prefix}.state_proof.commitment", 1)
+        | {flag_wire}
+    )
+    if exact_inputs != set(segment["wire_roles"]["input"]):
+        raise ValueError(
+            f"{model.circuit}: {prefix} conditional commitment inputs drifted"
+        )
+    return segment
+
+
+def output_assert_segment(
+    model: Deployment,
+    hash_segment: dict,
+) -> dict:
+    segment = model.segment(
+        "assert.eq",
+        (
+            "lhs=output0.note.commitment.computed",
+            "rhs=output0.note_commitment",
+        ),
+    )
+    expected = (
+        "assert.eq@"
+        "2f18e0b1e4152025fc1e73ed096bfe9b60336485134a1f7abc982c129828ff55"
+    )
+    if segment["proof_template_id"] != expected:
+        raise ValueError(
+            f"{model.circuit}: output commitment assertion template drifted"
+        )
+    model.consecutive((hash_segment, segment))
+    model.require_binding_role(
+        segment,
+        "output0.note.commitment.computed",
+        "input",
+        exact=True,
+        arity=1,
+    )
+    model.require_binding_role(
+        segment,
+        "output0.note.commitment.claimed",
+        "internal",
+        exact=True,
+        arity=1,
+    )
+    return segment
 
 
 def render_hash(
-    config: Config, prefix: str, owner: str, segment: int
+    config: Config,
+    model: Deployment,
+    prefix: str,
+    owner: str,
+    segment_data: dict,
 ) -> str:
+    segment = segment_data["index"]
     return f"""
 theorem {prefix}NoteCommitmentHash
     (rho : Nat → DeployedF)
@@ -82,21 +192,21 @@ theorem {prefix}NoteCommitmentHash
   change
     Deployed.Templates.Semantics.TGadgetNoteCommitment_9b647e64b935070c5a61da35d7d16d95f24153ac4b2409e2d4d7e2777d7ea9e5.spec
       (Seg{segment}.localRho rho) at h
-  have hw1 : Seg{segment}.wireSeating 1 = {wire(config, segment, 1)} := by decide +kernel
-  have hw7 : Seg{segment}.wireSeating 7 = {wire(config, segment, 7)} := by decide +kernel
-  have hw13 : Seg{segment}.wireSeating 13 = {wire(config, segment, 13)} := by decide +kernel
-  have hw19 : Seg{segment}.wireSeating 19 = {wire(config, segment, 19)} := by decide +kernel
-  have hw20 : Seg{segment}.wireSeating 20 = {wire(config, segment, 20)} := by decide +kernel
-  have hw26 : Seg{segment}.wireSeating 26 = {wire(config, segment, 26)} := by decide +kernel
-  have hw27 : Seg{segment}.wireSeating 27 = {wire(config, segment, 27)} := by decide +kernel
-  have hw33 : Seg{segment}.wireSeating 33 = {wire(config, segment, 33)} := by decide +kernel
-  have hw408 : Seg{segment}.wireSeating 408 = {wire(config, segment, 408)} := by decide +kernel
-  have hw413 : Seg{segment}.wireSeating 413 = {wire(config, segment, 413)} := by decide +kernel
-  have hw418 : Seg{segment}.wireSeating 418 = {wire(config, segment, 418)} := by decide +kernel
-  have hw423 : Seg{segment}.wireSeating 423 = {wire(config, segment, 423)} := by decide +kernel
-  have hw428 : Seg{segment}.wireSeating 428 = {wire(config, segment, 428)} := by decide +kernel
-  have hw433 : Seg{segment}.wireSeating 433 = {wire(config, segment, 433)} := by decide +kernel
-  have hw438 : Seg{segment}.wireSeating 438 = {wire(config, segment, 438)} := by decide +kernel
+  have hw1 : Seg{segment}.wireSeating 1 = {wire(model, segment_data, 1)} := by decide +kernel
+  have hw7 : Seg{segment}.wireSeating 7 = {wire(model, segment_data, 7)} := by decide +kernel
+  have hw13 : Seg{segment}.wireSeating 13 = {wire(model, segment_data, 13)} := by decide +kernel
+  have hw19 : Seg{segment}.wireSeating 19 = {wire(model, segment_data, 19)} := by decide +kernel
+  have hw20 : Seg{segment}.wireSeating 20 = {wire(model, segment_data, 20)} := by decide +kernel
+  have hw26 : Seg{segment}.wireSeating 26 = {wire(model, segment_data, 26)} := by decide +kernel
+  have hw27 : Seg{segment}.wireSeating 27 = {wire(model, segment_data, 27)} := by decide +kernel
+  have hw33 : Seg{segment}.wireSeating 33 = {wire(model, segment_data, 33)} := by decide +kernel
+  have hw408 : Seg{segment}.wireSeating 408 = {wire(model, segment_data, 408)} := by decide +kernel
+  have hw413 : Seg{segment}.wireSeating 413 = {wire(model, segment_data, 413)} := by decide +kernel
+  have hw418 : Seg{segment}.wireSeating 418 = {wire(model, segment_data, 418)} := by decide +kernel
+  have hw423 : Seg{segment}.wireSeating 423 = {wire(model, segment_data, 423)} := by decide +kernel
+  have hw428 : Seg{segment}.wireSeating 428 = {wire(model, segment_data, 428)} := by decide +kernel
+  have hw433 : Seg{segment}.wireSeating 433 = {wire(model, segment_data, 433)} := by decide +kernel
+  have hw438 : Seg{segment}.wireSeating 438 = {wire(model, segment_data, 438)} := by decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 :
         DeployedF) = -1 := by decide +kernel
@@ -135,16 +245,18 @@ theorem {prefix}NoteCommitmentHash
 
 def render_spend_asserted(
     config: Config,
+    model: Deployment,
     prefix: str,
     owner: str,
-    segment: int,
+    segment_data: dict,
     flag_wire: int,
     flag_role: str,
 ) -> str:
-    template = semantic_template(config, segment)
+    segment = segment_data["index"]
+    template = semantic_template(segment_data)
     seating = "\n".join(
         f"  have hw{index} : Seg{segment}.wireSeating {index} = "
-        f"{wire(config, segment, index)} := by decide +kernel"
+        f"{wire(model, segment_data, index)} := by decide +kernel"
         for index in range(1, 11)
     )
     return f"""
@@ -162,14 +274,17 @@ theorem {prefix}NoteCommitmentAsserted
 {seating}
   simp only [
     Deployed.Templates.Semantics.{template}.spec,
+    Deployed.Templates.Semantics.{template}.guard,
     Deployed.Templates.Semantics.{template}.residual,
     Seg{segment}.localRho, Deployed.Templates.seated,
     hw1, hw2, hw3, hw4, hw5, hw6, hw7, hw8, hw9, hw10
   ] at h
   rcases h with disabled | equal
   · rw [realWire] at disabled
+    have hOneZero : (1 : DeployedF) = 0 := by
+      simpa using disabled
     have hzeroOne : (0 : DeployedF) ≠ 1 := by decide +kernel
-    exact (hzeroOne disabled).elim
+    exact (hzeroOne hOneZero.symm).elim
   · simp only [
       {prefix}StateProofCommitment, {prefix}StateProofCommitmentLC,
       {prefix}NoteCommitmentComputed, {prefix}NoteCommitmentComputedLC,
@@ -180,29 +295,22 @@ theorem {prefix}NoteCommitmentAsserted
 """
 
 
-def render_output_asserted(config: Config) -> str:
-    segment = config.output_assert_segment
-    template = semantic_template(config, segment)
+def render_output_asserted(
+    config: Config,
+    model: Deployment,
+    segment_data: dict,
+) -> str:
+    segment = segment_data["index"]
+    template = semantic_template(segment_data)
+    seating_table = model.seating(segment_data)
     seating = "\n".join(
         f"  have hw{index} : Seg{segment}.wireSeating {index} = "
-        f"{wire(config, segment, index)} := by decide +kernel"
-        for index in range(1, len(
-            segment_source(config, segment)
-            .read_text()
-            .split("def wireSeatingTable : List Nat := [", 1)[1]
-            .split("]", 1)[0]
-            .split(", ")
-        ))
+        f"{wire(model, segment_data, index)} := by decide +kernel"
+        for index in range(1, len(seating_table))
     )
     indices = ", ".join(
         f"hw{index}"
-        for index in range(1, len(
-            segment_source(config, segment)
-            .read_text()
-            .split("def wireSeatingTable : List Nat := [", 1)[1]
-            .split("]", 1)[0]
-            .split(", ")
-        ))
+        for index in range(1, len(seating_table))
     )
     return f"""
 theorem output0NoteCommitmentAsserted
@@ -289,6 +397,7 @@ theorem {prefix}Commitment
 
 
 def render(config: Config) -> str:
+    model = load(config)
     shape = config.module.removeprefix("NoteReshape")
     parts = [
         f"""/- GENERATED by gen_note_reshape_padded_commitments.py — do not edit. -/
@@ -311,14 +420,26 @@ open Contracts.{config.module}.Witness (
     for slot in range(config.slots):
         prefix = f"spend{slot}"
         owner = prefix
-        note_segment = spend_note_segment(config, slot)
-        assert_segment = note_segment + 1
-        flag_wire = 95 + 82 * slot
+        note_segment = commitment_segment(model, prefix)
+        flag_wire = model.witness_wire(
+            f"SyntheticSpends_{slot}_IsDummy"
+        )
+        assert_segment = spend_assert_segment(
+            model, prefix, note_segment, flag_wire
+        )
         flag_role = f"syntheticSpends{slot}IsDummy"
-        parts.append(render_hash(config, prefix, owner, note_segment))
+        parts.append(
+            render_hash(config, model, prefix, owner, note_segment)
+        )
         parts.append(
             render_spend_asserted(
-                config, prefix, owner, assert_segment, flag_wire, flag_role
+                config,
+                model,
+                prefix,
+                owner,
+                assert_segment,
+                flag_wire,
+                flag_role,
             )
         )
         parts.append(
@@ -329,15 +450,18 @@ open Contracts.{config.module}.Witness (
                 flag_role,
             )
         )
+    output_note_segment = commitment_segment(model, "output0")
+    output_assert = output_assert_segment(model, output_note_segment)
     parts.append(
         render_hash(
             config,
+            model,
             "output0",
             "output0",
-            config.output_note_segment,
+            output_note_segment,
         )
     )
-    parts.append(render_output_asserted(config))
+    parts.append(render_output_asserted(config, model, output_assert))
     parts.append(
         render_bound(
             config,

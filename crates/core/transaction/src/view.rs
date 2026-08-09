@@ -310,7 +310,6 @@ mod tests {
                                     timeout_time: 10,
                                     return_address: shieldd_sdk_keys::test_keys::ADDRESS_0.clone(),
                                     source_channel: "channel-0".parse::<ChannelId>().expect("valid channel"),
-                                    use_compat_address: false,
                                     ics20_memo: String::new(),
                                     use_transparent_address: false,
                                 },

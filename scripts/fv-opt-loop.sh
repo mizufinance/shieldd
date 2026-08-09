@@ -16,9 +16,9 @@ set -euo pipefail
 # delegated to check-constraint-coverage.sh under its own resource rules.
 #
 # Usage:
-#   scripts/fv-opt-loop.sh diff  --circuit note_reshape2x1 --allow-flips 52,53 \
+#   scripts/fv-opt-loop.sh diff  --circuit note_reshape8x1 --allow-flips 52,53 \
 #       [--allow-remove 34,36] [--allow-add 60]
-#   scripts/fv-opt-loop.sh gates --circuit note_reshape2x1 [--lean] [--prove] \
+#   scripts/fv-opt-loop.sh gates --circuit note_reshape8x1 [--lean] [--prove] \
 #       [--record-out <file.md>]
 #   scripts/fv-opt-loop.sh census --circuit transfer
 #
@@ -68,7 +68,7 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 case "$circuit" in
-  note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8) ;;
+  note_reshape8x1|note_reshape1x8) ;;
   *) fail "--circuit must be a NoteReshape family" ;;
 esac
 
@@ -88,7 +88,7 @@ trap 'rm -rf "$tmp_dir"' EXIT
 generator_for_op() {
   local op="$1"
   if jq -e --arg op "$op" '.templates[] | select(.op == $op)' \
-      "$GNARK_DIR/artifacts/note-reshape-template-inventory.json" >/dev/null; then
+      "$GNARK_DIR/artifacts/certified-template-inventory.json" >/dev/null; then
     echo "gen_note_reshape_template_semantics.py"
   else
     echo ""

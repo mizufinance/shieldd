@@ -2,28 +2,35 @@ package testfixtures
 
 import _ "embed"
 
-//go:embed vectors/transfer_witness_v11.bin
-var embeddedTransferWitnessV11 []byte
+//go:embed vectors/transfer_witness_v16.bin
+var embeddedTransferWitnessV16 []byte
 
-//go:embed vectors/note_reshape2x1_witness_v3.bin
-var embeddedNoteReshape2x1WitnessV3 []byte
+//go:embed vectors/transfer_unregulated_witness_v16.bin
+var embeddedUnregulatedTransferWitnessV16 []byte
+
+//go:embed vectors/transfer_flagged_witness_v16.bin
+var embeddedFlaggedTransferWitnessV16 []byte
 
 //go:embed vectors/note_reshape1x8_witness_v3.bin
 var embeddedNoteReshape1x8WitnessV3 []byte
 
-//go:embed vectors/note_reshape4x1_witness_v3.bin
-var embeddedNoteReshape4x1WitnessV3 []byte
-
 //go:embed vectors/note_reshape8x1_witness_v3.bin
 var embeddedNoteReshape8x1WitnessV3 []byte
 
-//go:embed vectors/shielded_ics20_withdrawal_witness_v6.bin
-var embeddedShieldedIcs20WithdrawalWitnessV6 []byte
+//go:embed vectors/shielded_ics20_withdrawal_witness_v8.bin
+var embeddedShieldedIcs20WithdrawalWitnessV8 []byte
 
-func LoadTransferWitnessV11(label string) []byte {
+//go:embed vectors/shielded_ics20_withdrawal_unregulated_witness_v8.bin
+var embeddedUnregulatedShieldedIcs20WithdrawalWitnessV8 []byte
+
+func LoadTransferWitnessV16(label string) []byte {
 	switch label {
 	case "transfer":
-		return append([]byte(nil), embeddedTransferWitnessV11...)
+		return append([]byte(nil), embeddedTransferWitnessV16...)
+	case "transfer_unregulated":
+		return append([]byte(nil), embeddedUnregulatedTransferWitnessV16...)
+	case "transfer_flagged":
+		return append([]byte(nil), embeddedFlaggedTransferWitnessV16...)
 	default:
 		panic("unknown transfer witness label: " + label)
 	}
@@ -31,12 +38,8 @@ func LoadTransferWitnessV11(label string) []byte {
 
 func LoadNoteReshapeWitnessV3(label string) []byte {
 	switch label {
-	case "note_reshape2x1":
-		return append([]byte(nil), embeddedNoteReshape2x1WitnessV3...)
 	case "note_reshape1x8":
 		return append([]byte(nil), embeddedNoteReshape1x8WitnessV3...)
-	case "note_reshape4x1":
-		return append([]byte(nil), embeddedNoteReshape4x1WitnessV3...)
 	case "note_reshape8x1":
 		return append([]byte(nil), embeddedNoteReshape8x1WitnessV3...)
 	default:
@@ -44,10 +47,12 @@ func LoadNoteReshapeWitnessV3(label string) []byte {
 	}
 }
 
-func LoadShieldedIcs20WithdrawalWitnessV6(label string) []byte {
+func LoadShieldedIcs20WithdrawalWitnessV8(label string) []byte {
 	switch label {
 	case "shielded_ics20_withdrawal":
-		return append([]byte(nil), embeddedShieldedIcs20WithdrawalWitnessV6...)
+		return append([]byte(nil), embeddedShieldedIcs20WithdrawalWitnessV8...)
+	case "shielded_ics20_withdrawal_unregulated":
+		return append([]byte(nil), embeddedUnregulatedShieldedIcs20WithdrawalWitnessV8...)
 	default:
 		panic("unknown shielded ICS-20 withdrawal witness label: " + label)
 	}

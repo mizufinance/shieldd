@@ -13,6 +13,9 @@ use std::{
     process::Command,
 };
 
+#[path = "src/gnark_artifact_validation.rs"]
+mod gnark_artifact_validation;
+
 include!("src/gen/gnark/transfer_families_build.rs");
 include!("src/gen/gnark/note_reshape_families_build.rs");
 include!("src/gen/gnark/shielded_ics20_withdrawal_families_build.rs");
@@ -25,89 +28,112 @@ fn main() {
         .expect("emit note reshape family rerun-if-changed hints");
     emit_gnark_runtime_rerun_hints().expect("emit gnark runtime rerun-if-changed hints");
 
-    let mut proving_parameter_files = Vec::new();
-    proving_parameter_files.extend(GENERATED_SHIELDED_ICS20_WITHDRAWAL_FAMILIES.iter().map(
-        |family| {
-            format!(
-                "../../../tools/gnark/artifacts/{}/proving_key.bin",
-                family.artifact_name
-            )
-        },
-    ));
-    proving_parameter_files.extend(GENERATED_TRANSFER_FAMILIES.iter().map(|family| {
-        format!(
-            "../../../tools/gnark/artifacts/{}/proving_key.bin",
-            family.artifact_name
-        )
-    }));
-    proving_parameter_files.extend(GENERATED_NOTE_RESHAPE_FAMILIES.iter().map(|family| {
-        format!(
-            "../../../tools/gnark/artifacts/{}/proving_key.bin",
-            family.artifact_name
-        )
-    }));
+    let generated_roster = generated_deployed_family_roster();
+    gnark_artifact_validation::validate_deployed_family_roster(&generated_roster)
+        .expect("generated proof-family roster matches the exact four deployed families");
 
-    let mut verification_parameter_files = Vec::new();
-    verification_parameter_files.extend(
-        GENERATED_SHIELDED_ICS20_WITHDRAWAL_FAMILIES
-            .iter()
-            .flat_map(|family| {
-                [
-                    format!(
-                        "../../../tools/gnark/artifacts/{}/verifying_key.json",
-                        family.artifact_name
-                    ),
-                    format!(
-                        "../../../tools/gnark/artifacts/{}/circuit_metadata.json",
-                        family.artifact_name
-                    ),
-                ]
-            }),
-    );
-    verification_parameter_files.extend(GENERATED_TRANSFER_FAMILIES.iter().flat_map(|family| {
-        [
-            format!(
-                "../../../tools/gnark/artifacts/{}/verifying_key.json",
-                family.artifact_name
-            ),
-            format!(
-                "../../../tools/gnark/artifacts/{}/circuit_metadata.json",
-                family.artifact_name
-            ),
-        ]
-    }));
-    verification_parameter_files.extend(GENERATED_NOTE_RESHAPE_FAMILIES.iter().flat_map(
-        |family| {
-            [
-                format!(
-                    "../../../tools/gnark/artifacts/{}/verifying_key.json",
-                    family.artifact_name
-                ),
-                format!(
-                    "../../../tools/gnark/artifacts/{}/circuit_metadata.json",
-                    family.artifact_name
-                ),
-            ]
-        },
-    ));
-
-    for file in proving_parameter_files
-        .iter()
-        .map(|file| file.as_str())
-        .chain(
-            verification_parameter_files
-                .iter()
-                .map(|file| file.as_str()),
-        )
-    {
-        println!("cargo:rerun-if-changed={file}");
+    let artifact_root = repo_root()
+        .expect("resolve repository root")
+        .join("tools/gnark/artifacts");
+    for family in gnark_artifact_validation::DEPLOYED_FAMILIES {
+        for path in gnark_artifact_validation::artifact_paths(&artifact_root, family) {
+            println!("cargo:rerun-if-changed={}", path.display());
+        }
     }
 
-    for file in &proving_parameter_files {
-        handle_proving_key(file).expect("failed while handling proving keys");
+    // Resolve LFS pointers, when explicitly enabled, before validating the
+    // metadata-pinned proving-key bytes.
+    for family in gnark_artifact_validation::DEPLOYED_FAMILIES {
+        let proving_key = artifact_root
+            .join(family.artifact_name)
+            .join("proving_key.bin");
+        let proving_key = proving_key
+            .to_str()
+            .expect("proving-key artifact path is UTF-8");
+        handle_proving_key(proving_key).expect("failed while handling proving keys");
+    }
+    for family in gnark_artifact_validation::DEPLOYED_FAMILIES {
+        gnark_artifact_validation::validate_family_artifacts(&artifact_root, family)
+            .unwrap_or_else(|error| {
+                panic!(
+                    "deployed {} proof artifacts failed intrinsic build validation: {error:#}",
+                    family.label
+                )
+            });
     }
 
     write_bundled_gnark_runtime_paths().expect("failed while preparing bundled gnark runtime");
+}
+
+fn generated_deployed_family_roster() -> Vec<gnark_artifact_validation::DeployedFamily> {
+    use gnark_artifact_validation::{DeployedFamily, FamilyKind, InputPadding, OutputPadding};
+
+    let mut roster = Vec::with_capacity(
+        GENERATED_TRANSFER_FAMILIES.len()
+            + GENERATED_NOTE_RESHAPE_FAMILIES.len()
+            + GENERATED_SHIELDED_ICS20_WITHDRAWAL_FAMILIES.len(),
+    );
+    roster.extend(
+        GENERATED_TRANSFER_FAMILIES
+            .iter()
+            .map(|family| DeployedFamily {
+                kind: FamilyKind::Transfer,
+                id: None,
+                label: family.label,
+                artifact_name: family.artifact_name,
+                n_in: family.n_in,
+                n_out: family.n_out,
+                input_padding: InputPadding::Fixed,
+                output_padding: OutputPadding::Fixed,
+                min_real_inputs: family.n_in,
+                max_real_inputs: family.n_in,
+                min_real_outputs: family.n_out,
+                max_real_outputs: family.n_out,
+            }),
+    );
+    for family in GENERATED_NOTE_RESHAPE_FAMILIES {
+        let input_padding = match family.input_padding {
+            InputPaddingPolicy::Fixed => InputPadding::Fixed,
+            InputPaddingPolicy::SyntheticPrivate => InputPadding::SyntheticPrivate,
+        };
+        let output_padding = match family.output_padding {
+            OutputPaddingPolicy::Fixed => OutputPadding::Fixed,
+            OutputPaddingPolicy::ZeroNote => OutputPadding::ZeroNote,
+        };
+        roster.push(DeployedFamily {
+            kind: FamilyKind::NoteReshape,
+            id: Some(family.id),
+            label: family.label,
+            artifact_name: family.artifact_name,
+            n_in: family.n_in,
+            n_out: family.n_out,
+            input_padding,
+            output_padding,
+            min_real_inputs: family.min_real_inputs,
+            max_real_inputs: family.max_real_inputs,
+            min_real_outputs: family.min_real_outputs,
+            max_real_outputs: family.max_real_outputs,
+        });
+    }
+    roster.extend(
+        GENERATED_SHIELDED_ICS20_WITHDRAWAL_FAMILIES
+            .iter()
+            .map(|family| DeployedFamily {
+                kind: FamilyKind::ShieldedIcs20Withdrawal,
+                id: Some(family.id),
+                label: family.label,
+                artifact_name: family.artifact_name,
+                n_in: family.n_in,
+                n_out: family.n_out,
+                input_padding: InputPadding::Fixed,
+                output_padding: OutputPadding::Fixed,
+                min_real_inputs: family.n_in,
+                max_real_inputs: family.n_in,
+                min_real_outputs: family.n_out,
+                max_real_outputs: family.n_out,
+            }),
+    );
+    roster
 }
 
 fn emit_gnark_runtime_rerun_hints() -> anyhow::Result<()> {

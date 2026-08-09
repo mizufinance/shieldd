@@ -339,32 +339,13 @@ fn required_signatures(request: &SigningRequest) -> usize {
 fn spend_randomizers(plan: &TransactionPlan) -> impl Iterator<Item = decaf377::Fr> + '_ {
     plan.actions
         .iter()
-        .flat_map(|action| match action {
-            shieldd_sdk_transaction::ActionPlan::Transfer(plan) => plan
-                .spends
+        .flat_map(|action| action.spends().iter().map(|spend| spend.randomizer))
+        .chain(
+            plan.fee_funding
                 .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>(),
-            shieldd_sdk_transaction::ActionPlan::NoteReshape(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>(),
-            shieldd_sdk_transaction::ActionPlan::ShieldedIcs20Withdrawal(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>(),
-            _ => Vec::new(),
-        })
-        .chain(plan.fee_funding.iter().flat_map(|fee_funding| {
-            fee_funding
-                .transfer
-                .spends
-                .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>()
-        }))
+                .flat_map(|fee_funding| &fee_funding.transfer.spends)
+                .map(|spend| spend.randomizer),
+        )
 }
 
 /// Create a trivial signing response if no signatures are needed.

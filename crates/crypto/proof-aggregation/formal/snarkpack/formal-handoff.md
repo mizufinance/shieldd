@@ -1,14 +1,21 @@
 # SnarkPack Formal Handoff
 
-## Final Conditional Implementation Claim
+## Conditional Implementation Claim
 
-If Shieldd aggregate verification accepts, locally recomputed statement,
+If Shieldd aggregate verification accepts under an SRS satisfying the named
+structured-key binding premise, locally recomputed statement,
 wrapper, padding, and challenge artifacts passed typed preflight and reached the
 executed RIPP verifier core. The S2 aggregate-verifier refinement identifies
 that core with `Ipp.FsAccepts`; `Ipp.S1.s1_soundness` then implies every
 constituent Groth16 pairing equation. This claim is conditional only on the
 standing cryptographic, production-correspondence, dependency, and
 translation-tool boundaries recorded below.
+
+The deployed `DevSrs` is generated from a public deterministic seed. It does not
+provide evidence for the unknown-trapdoor/KZG-binding premise, so this
+conditional claim is not used as the consensus soundness boundary. Consensus
+independently verifies every constituent Groth16 proof under the exact bundled
+family key before execution or `Groth16Verified` cache promotion.
 
 The reached BLS12-377 arithmetic, scalar-multiplication, normalization, MSM,
 pairing execution, strict G1/G2/GT decoding, aggregate traversal/injectivity,
@@ -61,7 +68,7 @@ parity are outside this retirement.
 | SHA-256 preimage resistance | cryptography lead | Digest commitments must not be attacker-invertible. | SHA-256 cryptanalysis is external to this repository. | Postcondition: attackers cannot invert the recorded statement, wrapper, or challenge commitments at the chosen security margin; evidence is standard SHA-256 analysis and fixed-domain review. | replace the primitive or obtain an external cryptographic audit artifact | security/crypto | assumed |
 | Domain separation by fixed distinct prefixes | proof-aggregation maintainers | Statement digest, challenge context, challenge preimage, VK digest, and wrapper hashing occupy distinct domains. | The cryptographic consequence composes fixed-prefix review with the SHA-256 assumptions. | Postcondition: the five hash domains remain disjoint and unambiguous; evidence is the fixed constants, golden-layout tests, and invariant review. | mechanize prefix disjointness and bind it to every hash call site | security/crypto | assumed |
 | abstract Groth16 soundness | cryptography lead | Aggregate acceptance ultimately relies on each recovered Groth16 pairing equation being sound for its circuit. | Circuit and Groth16 soundness are separate from the SnarkPack implementation proof. | Postcondition: every accepted Groth16 proof satisfies its verified circuit under the published Groth16 assumptions; evidence is the published construction and Shieldd circuit audits. | replace with a separate Groth16 and circuit-soundness proof or external audit | security/crypto | assumed |
-| `assume.kzg-structured-key-binding` | cryptography lead | Supplies the q-SDH-style binding and KZG evaluation step consumed by S1. | This is a computational BLS12-377 assumption represented by `Ipp.KzgStructuredKeyBinding`. | Postcondition: every accepted final key and opening equals the honest structured-SRS MSM at the transcript coefficients; evidence is the explicit premise of `Ipp.S1.s1_soundness`. | provide a reduction for the deployed KZG scheme and curve | security/crypto | assumed |
+| `assume.kzg-structured-key-binding` | cryptography lead | Supplies the q-SDH-style binding and KZG evaluation step consumed by S1. | This is a computational BLS12-377 assumption represented by `Ipp.KzgStructuredKeyBinding`. | Postcondition: every accepted final key and opening equals the honest structured-SRS MSM at the transcript coefficients; the exact premise is explicit in `Ipp.S1.s1_soundness`, while the public `DEV_SRS_SEED` shows the deployed development SRS does not establish it. | replace `DevSrs` with a ceremony-derived SRS and provide a reduction for the deployed KZG scheme and curve | security/crypto | conditional; not discharged by deployed `DevSrs` |
 | `assume.pairing-commitment-binding` | cryptography lead | Supplies AFGHO/double-pairing binding for the A/C product lane and real B lane. | This is a computational BLS12-377 assumption represented by `Ipp.PairingCommitmentBinding`. | Postcondition: the pairing vector commitment is message-injective at the supplied keys; evidence is the exact S1 premise and the removal of the synthetic scalar column. | provide a reduction for the deployed pairing commitment | security/crypto | assumed |
 | `assume.bls12377-curve-orders` | proof-aggregation maintainers | Supplies the two concrete G1/G2 point-cardinality equalities used to construct prime subgroups. | Lean proves the field primes and cofactor arithmetic, but not the two point counts. | Postcondition: `Ipp.Bls12377.PublishedCurveOrderFacts` holds for the BLS12-377 curve and D-twist; evidence is arkworks-rs/algebra commit `df907e8c1601a898c2903ed7ab7bbbb10607f36b` and Bowe et al., IACR ePrint 2018/962, Section 8. | derive the concrete point counts in a checked development | security/crypto/formal | assumed |
 | `assume.bls12377-optimal-ate-pairing-laws` | proof-aggregation maintainers | Supplies `Ipp.Bls12377.PublishedPairingBilinearNondegenerate` for the executable pairing on the two prime subgroups. | The repository lacks divisor and Miller-function theory from which to derive the published optimal-ate theorem. | Postcondition: the executable pairing is additive in each source argument and left/right nondegenerate; evidence is the cited optimal-ate literature and the proved S3 Miller/final-exponent execution chain. | formalize the concrete optimal-ate theorem and identify it with the executed S3 chain | security/crypto/formal | assumed |

@@ -1,6 +1,6 @@
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg4
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg5
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg6
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg7
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.Seg9
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape1x8.SemanticBindings
 import ShielddGnarkFormal.Deployed.NoteReshape1x8DtkSeating
 
@@ -18,31 +18,18 @@ open Shieldd.GnarkFormal
 theorem sharedTransmissionComputed0_eq_dtkOutX
     (rho : Nat → SemanticF) :
     sharedTransmissionComputed0 rho =
-      Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.dtkOutX (Seg5.localRho rho) := by
-  have hperm :
-      ((List.range 149).map (fun offset =>
-          Seg5.wireSeating (2226 + offset * 13)) ++
-        (List.range 101).map (fun offset =>
-          Seg5.wireSeating (4164 + offset * 14)) ++
-        [Seg5.wireSeating 2212]).Perm
-        ((List.range 150).map
-            (fun offset => 3033 + offset * 13) ++
-          (List.range 101).map
-            (fun offset => 4984 + offset * 14)) := by
-    exact Shieldd.GnarkFormal.Deployed.NoteReshape1x8DtkSeating.dtkXPerm
-  have hsum := sumAux_pair_residual_eq_pair_of_perm rho
-    Seg5.wireSeating (fun wire => wire)
-    2226 13 149 4164 14 101 2212
-    3033 13 150
-    4984 14 101 hperm
+      (Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkWindowSupport.output (Seg7.localRho rho)).x := by
+  have h1 : Seg7.wireSeating 4961 = 5781 := by
+    decide +kernel
+  have h2 : Seg7.wireSeating 4969 = 5789 := by
+    decide +kernel
   simpa only [
     sharedTransmissionComputed0,
     sharedTransmissionComputed0LC,
-    Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.dtkOutX,
-    Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_7d900c76452264a8cdb821542b166cde6ebe25f9d05dac1d3e8cd4a896c6637b.DtkSupport.Outputs.dtkAccX251,
+    Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkWindowSupport.output,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg5.localRho, Deployed.Templates.seated,
-    zero_add, one_mul, add_zero] using hsum.symm
+    StrideRun.eval, Seg7.localRho, Deployed.Templates.seated,
+    h1, h2, zero_add, one_mul, add_zero]
 
 
 end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape1x8

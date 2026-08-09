@@ -380,7 +380,8 @@ pub fn commitment(
             value.asset_id.0,
             diversified_generator.vartime_compress_to_field(),
             transmission_key_s,
-            Fq::from_le_bytes_mod_order(&clue_key.0[..]),
+            Fq::from_bytes_checked(&clue_key.0)
+                .expect("note clue keys must use canonical address encodings"),
         ),
     );
 
@@ -403,7 +404,7 @@ pub fn commitment_from_address(
             value.asset_id.0,
             address.diversified_generator().vartime_compress_to_field(),
             transmission_key_s,
-            Fq::from_le_bytes_mod_order(&address.clue_key().0[..]),
+            Fq::from_bytes_checked(&address.clue_key().0).expect("address clue keys are canonical"),
         ),
     );
 
@@ -586,7 +587,8 @@ mod tests {
         let mut rng = OsRng;
 
         let seed_phrase = SeedPhrase::generate(rng);
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let (dest, _dtk_d) = ivk.payment_address(0u32.into());
@@ -609,7 +611,8 @@ mod tests {
         assert_eq!(plaintext, note);
 
         let seed_phrase = SeedPhrase::generate(rng);
-        let sk2 = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk2 = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements");
         let fvk2 = sk2.full_viewing_key();
         let ivk2 = fvk2.incoming();
 
@@ -621,7 +624,8 @@ mod tests {
         let mut rng = OsRng;
 
         let seed_phrase = SeedPhrase::generate(rng);
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let ovk = fvk.outgoing();
@@ -656,7 +660,8 @@ mod tests {
         let mut rng = OsRng;
 
         let seed_phrase = SeedPhrase::generate(rng);
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let (dest, _dtk_d) = ivk.payment_address(0u32.into());

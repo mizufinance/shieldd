@@ -1,7 +1,7 @@
 import ShielddGnarkFormal.ChoiceFreeZMod
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg14
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg15
-import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg16
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg17
+import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg19
 import ShielddGnarkFormal.Deployed.Contracts.NoteReshape8x1.SemanticBindings
 import ShielddGnarkFormal.Deployed.NoteReshape8x1DtkSeating
 
@@ -23,13 +23,13 @@ local instance choiceFreeSemanticSeamDivGenFqCommRing : CommRing SemanticF := ZM
 theorem sharedDivGenFq_eq_compressOutput
     (rho : Nat → SemanticF) :
     sharedDivGenFq rho =
-      Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.templateRho (Seg14.localRho rho) 912 -
-        Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.templateRho (Seg14.localRho rho) 572 := by
+      Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.templateRho (Seg15.localRho rho) 912 -
+        Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.templateRho (Seg15.localRho rho) 572 := by
   have hplus :
-      Seg14.wireSeating 705 = 1392 := by
+      Seg15.wireSeating 705 = 1394 := by
     decide +kernel
   have hminus :
-      Seg14.wireSeating 365 = 1052 := by
+      Seg15.wireSeating 365 = 1054 := by
     decide +kernel
   have hneg :
       (8444461749428370424248824938781546531375899335154063827935233455917409239040 : SemanticF) = -1 := by
@@ -39,7 +39,7 @@ theorem sharedDivGenFq_eq_compressOutput
     sharedDivGenFqLC,
     Deployed.Templates.Semantics.TDecafCompressToField_231c7eb4774f4fae9c807afeb357aa9dcfa341b773263301f31075bbe10795fb.templateRho,
     StructuredLC.eval, StructuredLC.sumRuns, StructuredLC.sumResidual,
-    StrideRun.eval, Seg14.localRho, Deployed.Templates.seated,
+    StrideRun.eval, Seg15.localRho, Deployed.Templates.seated,
     zero_add, one_mul, add_zero,
     if_pos (by decide +kernel : 231 ≤ 912 ∧ 912 ≤ 912),
     if_pos (by decide +kernel : 231 ≤ 572 ∧ 572 ≤ 912),

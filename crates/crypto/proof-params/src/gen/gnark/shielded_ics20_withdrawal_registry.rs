@@ -16,11 +16,6 @@ static SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFYING_KEY_JSON_BYTES: &[u8] = include
 static SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFICATION_KEY: Lazy<
     PreparedVerifyingKey<Bls12_377>,
 > = Lazy::new(|| {
-    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_SHIELDED_ICS20_WITHDRAWAL_ARTIFACT_DIR") {
-        return load_verifying_key_json_artifact(Path::new(&dir), "shielded_ics20_withdrawal")
-            .expect("can deserialize shielded_ics20_withdrawal VerifyingKey")
-            .into();
-    }
     load_verifying_key_json_bytes(SHIELDED_ICS20_WITHDRAWAL_PROOF_VERIFYING_KEY_JSON_BYTES)
     .expect("bundled shielded_ics20_withdrawal VerifyingKey is valid")
     .into()

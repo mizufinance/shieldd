@@ -1,0 +1,36 @@
+import ShielddGnarkFormal.Deployed.Contract
+import ShielddGnarkFormal.Deployed.Templates.Core
+import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d
+import Mathlib.Data.ZMod.Basic
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 50000000
+
+namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg129
+
+def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
+abbrev F := ZMod Order
+
+def wireSeatingTable : List Nat := [0, 593, 669, 106247]
+
+def wireSeating : Nat -> Nat :=
+fun localWire => wireSeatingTable.getD localWire 0
+
+def localRho (rho : Nat -> F) : Nat -> F :=
+    Shieldd.GnarkFormal.Deployed.Templates.seated rho wireSeating
+
+def relation (rho : Nat -> F) : Prop :=
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.relation (localRho rho)
+
+def spec (rho : Nat -> F) : Prop :=
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.spec (localRho rho)
+
+def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
+segmentIndex := 129,
+relationSha256Hex := "6fc09e40b145edfcb265d9a750a4e1baadd7444e23b5f0d9936e36b4e48d3735",
+wireRoleSha256Hex := "c1f33b1c939c78ed5b827f16f7a58b32973e0de66c98da912a97024848f994dc",
+relation := relation,
+spec := spec
+}
+
+end Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg129

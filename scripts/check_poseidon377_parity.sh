@@ -44,7 +44,7 @@ if ! diff -u "$VECTORS" "$tmp_dir/Vectors.lean" >/dev/null; then
   diff -u "$VECTORS" "$tmp_dir/Vectors.lean" >&2 || true
   fail "generated Vectors.lean is stale; re-run export-poseidon-lean and commit"
 fi
-for rate in 1 2 3 4 6 7; do
+for rate in 1 2 3 4 5 6 7; do
   fixed="$FIXED_DIR/Fixed${rate}.lean"
   generated="$tmp_dir/fixed/Fixed${rate}.lean"
   if ! diff -u "$fixed" "$generated" >/dev/null; then

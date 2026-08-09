@@ -10,14 +10,14 @@ import (
 	"github.com/mizufinance/shieldd/tools/gnark/internal/primitives"
 )
 
-func NewTransferCircuitAssignmentFromWitnessV11(
+func NewTransferCircuitAssignmentFromWitnessV16(
 	payload []byte,
 ) (*circuits.TransferCircuit, generated.TransferFamilySpec, error) {
-	witness, family, err := DecodeTransferWitnessV11(payload)
+	witness, family, err := DecodeTransferWitnessV16(payload)
 	if err != nil {
-		return nil, generated.TransferFamilySpec{}, fmt.Errorf("decode TransferWitnessV11: %w", err)
+		return nil, generated.TransferFamilySpec{}, fmt.Errorf("decode TransferWitnessV16: %w", err)
 	}
-	if err := validateTransferStatementHashV11(witness); err != nil {
+	if err := validateTransferStatementHashV16(witness); err != nil {
 		return nil, generated.TransferFamilySpec{}, err
 	}
 	assignment, err := newTransferCircuitAssignment(witness)
@@ -44,10 +44,10 @@ func expectedTransferStatementFieldCount() int {
 		primitives.TransferStatementFieldsPerOutput*circuits.TransferCircuitOutputs
 }
 
-func validateTransferStatementHashV11(witness *TransferWitnessV11Binary) error {
-	fields, err := ReconstructedTransferStatementFieldsFromWitnessV11(witness)
+func validateTransferStatementHashV16(witness *TransferWitnessV16Binary) error {
+	fields, err := ReconstructedTransferStatementFieldsFromWitnessV16(witness)
 	if err != nil {
-		return fmt.Errorf("reconstruct TransferWitnessV11 statement: %w", err)
+		return fmt.Errorf("reconstruct TransferWitnessV16 statement: %w", err)
 	}
 	fieldElements := make([]*big.Int, len(fields))
 	for i := range fields {
@@ -59,12 +59,12 @@ func validateTransferStatementHashV11(witness *TransferWitnessV11Binary) error {
 		circuits.TransferCircuitOutputs,
 	)
 	if err != nil {
-		return fmt.Errorf("hash reconstructed TransferWitnessV11 statement: %w", err)
+		return fmt.Errorf("hash reconstructed TransferWitnessV16 statement: %w", err)
 	}
 	claimed := primitives.LittleEndianBytesToBigInt(witness.ClaimedStatementHash[:])
 	if computed.Cmp(claimed) != 0 {
 		return fmt.Errorf(
-			"TransferWitnessV11 claimed statement hash mismatch: reconstructed=%s claimed=%s",
+			"TransferWitnessV16 claimed statement hash mismatch: reconstructed=%s claimed=%s",
 			computed,
 			claimed,
 		)
@@ -73,37 +73,34 @@ func validateTransferStatementHashV11(witness *TransferWitnessV11Binary) error {
 }
 
 func newTransferSharedAssignmentParts(
-	witness *TransferWitnessV11Binary,
+	witness *TransferWitnessV16Binary,
 ) (
-	circuits.Point2D,
 	circuits.TransferAuthSharedFields,
 	circuits.AssetTreeFields,
 	circuits.TransferUserCircuitFields,
 	error,
 ) {
-	var zeroPoint circuits.Point2D
 	var zeroAuth circuits.TransferAuthSharedFields
 	var zeroAsset circuits.AssetTreeFields
 	var zeroSender circuits.TransferUserCircuitFields
 
 	assetPath, err := quadPathFromBinary(witness.AssetPath)
 	if err != nil {
-		return zeroPoint, zeroAuth, zeroAsset, zeroSender, fmt.Errorf("decode transfer asset path: %w", err)
+		return zeroAuth, zeroAsset, zeroSender, fmt.Errorf("decode transfer asset path: %w", err)
 	}
 	senderPath, err := quadPathFromBinary(witness.SenderCompliancePath)
 	if err != nil {
-		return zeroPoint, zeroAuth, zeroAsset, zeroSender, fmt.Errorf("decode transfer sender compliance path: %w", err)
+		return zeroAuth, zeroAsset, zeroSender, fmt.Errorf("decode transfer sender compliance path: %w", err)
 	}
 	akCompressed, err := pointAffineToField(witness.AKAffine)
 	if err != nil {
-		return zeroPoint, zeroAuth, zeroAsset, zeroSender, fmt.Errorf("compress transfer ak: %w", err)
+		return zeroAuth, zeroAsset, zeroSender, fmt.Errorf("compress transfer ak: %w", err)
 	}
 	ivkReduced, quotientA, err := incomingViewingKeyReductionFromBinary(witness.NK, akCompressed)
 	if err != nil {
-		return zeroPoint, zeroAuth, zeroAsset, zeroSender, fmt.Errorf("compute transfer ivk reduction from affine ak: %w", err)
+		return zeroAuth, zeroAsset, zeroSender, fmt.Errorf("compute transfer ivk reduction from affine ak: %w", err)
 	}
 
-	balanceCommitment := point2DString(witness.BalanceCommitmentAffine)
 	auth := circuits.TransferAuthSharedFields{
 		AK:           point2DString(witness.AKAffine),
 		NK:           primitives.LittleEndianBytesToBigInt(witness.NK[:]).String(),
@@ -128,11 +125,11 @@ func newTransferSharedAssignmentParts(
 		Path:           senderPath,
 		Position:       witness.SenderCompliancePosition,
 	}
-	return balanceCommitment, auth, asset, sender, nil
+	return auth, asset, sender, nil
 }
 
 func transferCoreTierFields(
-	tier *TransferComplianceCiphertextWitnessV11Binary,
+	tier *TransferComplianceCiphertextWitnessV16Binary,
 ) (circuits.TransferComplianceCoreFields, error) {
 	var zero circuits.TransferComplianceCoreFields
 	if len(tier.Ciphertext) != compliance.TransferCoreCiphertextFQCount {
@@ -143,9 +140,8 @@ func transferCoreTierFields(
 		)
 	}
 	fields := circuits.TransferComplianceCoreFields{
-		Epk:   point2DString(tier.EPKAffine),
-		C2:    fqString(tier.C2),
-		Proof: transferTierProofFields(tier),
+		Epk: point2DString(tier.EPKAffine),
+		C2:  fqString(tier.C2),
 	}
 	for i := range tier.Ciphertext {
 		fields.Ciphertext[i] = fqString(tier.Ciphertext[i])
@@ -154,7 +150,7 @@ func transferCoreTierFields(
 }
 
 func transferExtTierFields(
-	tier *TransferComplianceCiphertextWitnessV11Binary,
+	tier *TransferComplianceCiphertextWitnessV16Binary,
 ) (circuits.TransferComplianceExtFields, error) {
 	var zero circuits.TransferComplianceExtFields
 	if len(tier.Ciphertext) != compliance.TransferExtCiphertextFQCount {
@@ -165,9 +161,8 @@ func transferExtTierFields(
 		)
 	}
 	fields := circuits.TransferComplianceExtFields{
-		Epk:   point2DString(tier.EPKAffine),
-		C2:    fqString(tier.C2),
-		Proof: transferTierProofFields(tier),
+		Epk: point2DString(tier.EPKAffine),
+		C2:  fqString(tier.C2),
 	}
 	for i := range tier.Ciphertext {
 		fields.Ciphertext[i] = fqString(tier.Ciphertext[i])
@@ -175,30 +170,8 @@ func transferExtTierFields(
 	return fields, nil
 }
 
-func transferTierProofFields(
-	tier *TransferComplianceCiphertextWitnessV11Binary,
-) circuits.TransferComplianceProofFields {
-	return circuits.TransferComplianceProofFields{
-		Statement: circuits.TransferComplianceStatementFields{
-			SubjectDerivation: fqString(tier.SubjectDerivation),
-			RingIDHash:        fqString(tier.RingIDHash),
-			PolicyIDHash:      fqString(tier.PolicyIDHash),
-			ResourceHash:      fqString(tier.ResourceHash),
-			PermissionHash:    fqString(tier.PermissionHash),
-			Tier:              tier.Tier,
-			TargetTimestamp:   fqString(tier.StatementTimestamp),
-			Salt:              fqString(tier.Salt),
-		},
-		Challenge:   fqString(tier.Challenge),
-		Response:    fqString(tier.Response),
-		DerivedPK:   point2DString(tier.DerivedPKAffine),
-		EncCmt:      point2DString(tier.EncCmtAffine),
-		SharedPoint: point2DString(tier.SharedPointAffine),
-	}
-}
-
 func newTransferComplianceFields(
-	witness *TransferWitnessV11Binary,
+	witness *TransferWitnessV16Binary,
 ) (circuits.TransferComplianceFields, error) {
 	var zero circuits.TransferComplianceFields
 	if len(witness.DetectionCiphertext) != compliance.TransferDetectionFQCount {
@@ -228,14 +201,27 @@ func newTransferComplianceFields(
 
 	fields := circuits.TransferComplianceFields{
 		TransferNonceRoot: fqString(witness.TransferNonceRoot),
-		SenderRCore:       fqString(witness.SenderRCore),
-		SenderRExt:        fqString(witness.SenderRExt),
-		OutputRCore:       fqString(witness.OutputRCore),
-		OutputRExt:        fqString(witness.OutputRExt),
-		SenderCore:        senderCore,
-		SenderExt:         senderExt,
-		OutputCore:        outputCore,
-		OutputExt:         outputExt,
+		Metadata: circuits.TransferComplianceMetadataFields{
+			SenderSubjectDerivation: fqString(witness.Metadata.SenderSubjectDerivation),
+			OutputSubjectDerivation: fqString(witness.Metadata.OutputSubjectDerivation),
+			RingIDHash:              fqString(witness.Metadata.RingIDHash),
+			PolicyIDHash:            fqString(witness.Metadata.PolicyIDHash),
+			ResourceHash:            fqString(witness.Metadata.ResourceHash),
+			PermissionHash:          fqString(witness.Metadata.PermissionHash),
+			TargetTimestamp:         fqString(witness.Metadata.TargetTimestamp),
+			SenderCoreSalt:          fqString(witness.Metadata.SenderCoreSalt),
+			SenderExtSalt:           fqString(witness.Metadata.SenderExtSalt),
+			OutputCoreSalt:          fqString(witness.Metadata.OutputCoreSalt),
+			OutputExtSalt:           fqString(witness.Metadata.OutputExtSalt),
+		},
+		SenderRCore: fqString(witness.SenderRCore),
+		SenderRExt:  fqString(witness.SenderRExt),
+		OutputRCore: fqString(witness.OutputRCore),
+		OutputRExt:  fqString(witness.OutputRExt),
+		SenderCore:  senderCore,
+		SenderExt:   senderExt,
+		OutputCore:  outputCore,
+		OutputExt:   outputExt,
 	}
 	for i := range witness.DetectionCiphertext {
 		fields.DetectionCiphertext[i] = fqString(witness.DetectionCiphertext[i])
@@ -246,12 +232,10 @@ func newTransferComplianceFields(
 func transferNotePayloadFields(
 	blinding [32]byte,
 	amount [32]byte,
-	clueKey [32]byte,
 ) circuits.TransferNotePayloadCircuitFields {
 	return circuits.TransferNotePayloadCircuitFields{
 		Blinding: fqString(blinding),
 		Amount:   fqString(amount),
-		ClueKey:  fqString(clueKey),
 	}
 }
 
@@ -270,7 +254,7 @@ func transferStatePathFields(
 }
 
 func newTransferRequiredSpendCircuitFields(
-	witness *TransferRequiredSpendWitnessV11Binary,
+	witness *TransferRequiredSpendWitnessV16Binary,
 ) (circuits.TransferRequiredSpendCircuitFields, error) {
 	stateProof, err := transferStatePathFields(
 		witness.StateCommitmentPosition,
@@ -289,7 +273,6 @@ func newTransferRequiredSpendCircuitFields(
 			TransferNotePayloadCircuitFields: transferNotePayloadFields(
 				witness.SpentNoteBlinding,
 				witness.SpentNoteAmount,
-				witness.SpentClueKey,
 			),
 			AssetID: fqString(witness.SpentNoteAssetID),
 		},
@@ -299,7 +282,7 @@ func newTransferRequiredSpendCircuitFields(
 }
 
 func newTransferOptionalSpendCircuitFields(
-	witness *TransferOptionalSpendWitnessV11Binary,
+	witness *TransferOptionalSpendWitnessV16Binary,
 ) (circuits.TransferOptionalSpendCircuitFields, error) {
 	stateProof, err := transferStatePathFields(
 		witness.StateCommitmentPosition,
@@ -317,7 +300,6 @@ func newTransferOptionalSpendCircuitFields(
 		Note: transferNotePayloadFields(
 			witness.SpentNoteBlinding,
 			witness.SpentNoteAmount,
-			witness.SpentClueKey,
 		),
 		StateProof:         stateProof,
 		AuthRandomizer:     fqString(witness.SpendAuthRandomizer),
@@ -334,7 +316,7 @@ func boolToVariable(value bool) int {
 }
 
 func newTransferReceiverOutputCircuitFields(
-	witness *TransferReceiverOutputWitnessV11Binary,
+	witness *TransferReceiverOutputWitnessV16Binary,
 ) (circuits.TransferReceiverOutputCircuitFields, error) {
 	recipientPath, err := quadPathFromBinary(witness.RecipientCompliancePath)
 	if err != nil {
@@ -345,11 +327,13 @@ func newTransferReceiverOutputCircuitFields(
 	}
 	return circuits.TransferReceiverOutputCircuitFields{
 		NoteCommitment: fqString(witness.NoteCommitment),
-		Note: transferNotePayloadFields(
-			witness.CreatedNoteBlinding,
-			witness.CreatedNoteAmount,
-			witness.CreatedClueKey,
-		),
+		Note: circuits.TransferReceiverNoteCircuitFields{
+			TransferNotePayloadCircuitFields: transferNotePayloadFields(
+				witness.CreatedNoteBlinding,
+				witness.CreatedNoteAmount,
+			),
+			ClueKey: fqString(witness.CreatedClueKey),
+		},
 		Recipient: circuits.TransferUserCircuitFields{
 			DivGen:         point2DString(witness.RecipientDiversifiedGenerator),
 			Transmission:   point2DString(witness.RecipientTransmissionKey),
@@ -363,22 +347,21 @@ func newTransferReceiverOutputCircuitFields(
 }
 
 func newTransferChangeOutputCircuitFields(
-	witness *TransferChangeOutputWitnessV11Binary,
+	witness *TransferChangeOutputWitnessV16Binary,
 ) circuits.TransferChangeOutputCircuitFields {
 	return circuits.TransferChangeOutputCircuitFields{
 		NoteCommitment: fqString(witness.NoteCommitment),
 		Note: transferNotePayloadFields(
 			witness.CreatedNoteBlinding,
 			witness.CreatedNoteAmount,
-			witness.CreatedClueKey,
 		),
 	}
 }
 
 func newTransferCircuitAssignment(
-	witness *TransferWitnessV11Binary,
+	witness *TransferWitnessV16Binary,
 ) (*circuits.TransferCircuit, error) {
-	balanceCommitment, auth, asset, sender, err := newTransferSharedAssignmentParts(witness)
+	auth, asset, sender, err := newTransferSharedAssignmentParts(witness)
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +385,6 @@ func newTransferCircuitAssignment(
 	assignment := circuits.NewTransferCircuit()
 	assignment.ClaimedStatementHash = fqString(witness.ClaimedStatementHash)
 	assignment.Anchor = fqString(witness.Anchor)
-	assignment.BalanceCommitment = balanceCommitment
 	assignment.AssetAnchor = fqString(witness.AssetAnchor)
 	assignment.ComplianceAnchor = fqString(witness.ComplianceAnchor)
 	assignment.TargetTimestamp = fqString(witness.TargetTimestamp)
@@ -411,6 +393,7 @@ func newTransferCircuitAssignment(
 	assignment.Auth = auth
 	assignment.Asset = asset
 	assignment.Sender = sender
+	assignment.SenderClueKey = fqString(witness.SenderClueKey)
 	assignment.Compliance = complianceFields
 	assignment.RequiredSpend = requiredSpend
 	assignment.OptionalSpend = optionalSpend

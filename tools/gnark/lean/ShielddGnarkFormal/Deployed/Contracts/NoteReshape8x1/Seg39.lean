@@ -1,6 +1,6 @@
 import ShielddGnarkFormal.Deployed.Contract
 import ShielddGnarkFormal.Deployed.Templates.Core
-import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3
+import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03
 import Mathlib.Data.ZMod.Basic
 
 set_option maxRecDepth 1000000
@@ -11,7 +11,7 @@ namespace Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape8x1.Seg39
 def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041
 abbrev F := ZMod Order
 
-def wireSeatingTable : List Nat := [0, 97, 30110, 30111]
+def wireSeatingTable : List Nat := [0, 177, 2, 29187, 29192, 29197, 29202, 29207, 29208]
 
 def wireSeating : Nat -> Nat :=
 fun localWire => wireSeatingTable.getD localWire 0
@@ -20,15 +20,15 @@ def localRho (rho : Nat -> F) : Nat -> F :=
     Shieldd.GnarkFormal.Deployed.Templates.seated rho wireSeating
 
 def relation (rho : Nat -> F) : Prop :=
-    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.relation (localRho rho)
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.relation (localRho rho)
 
 def spec (rho : Nat -> F) : Prop :=
-    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEq_460e4d66ff383bde603d8cffb059ede8f489117c64d82168ec67187bae7e1bc3.spec (localRho rho)
+    Shieldd.GnarkFormal.Deployed.Templates.Generated.TAssertEqIf_36366df670e29c988b147701d72d7155b3720bdc777b4429912cc664e80b0b03.spec (localRho rho)
 
 def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {
 segmentIndex := 39,
-relationSha256Hex := "39a365e79cff177ba571e748311339280b3d62c9fa4ebb3b9eabacab5b997cd8",
-wireRoleSha256Hex := "e81716d1bdc21e83c0b11ddec5e7ca36b0e70f4acdb6fc9632eb73850c01d161",
+relationSha256Hex := "5d2f1351e985ad47de7645064f1bce0d92fb82adbbf052d155bf3782c075b694",
+wireRoleSha256Hex := "1fe7bb00cd7f2694c00dd58852a3660224d5fcc33973819dea3bea3db94de53a",
 relation := relation,
 spec := spec
 }

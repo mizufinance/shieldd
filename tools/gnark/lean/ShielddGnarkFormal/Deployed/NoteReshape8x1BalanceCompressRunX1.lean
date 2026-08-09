@@ -9,10 +9,10 @@ namespace Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceCompressRunX1
 open Shieldd.GnarkFormal
 open Contracts.NoteReshape8x1
 
-theorem seated (rho : Nat → Seg135.F) :
-    StrideRun.sumAux (Seg135.localRho rho) 151 1 101 =
-      StrideRun.sumAux rho 110131 8 101 :=
+theorem seated (rho : Nat → Seg138.F) :
+    StrideRun.sumAux (Seg138.localRho rho) 151 1 101 =
+      StrideRun.sumAux rho 109535 8 101 :=
   NoteReshape8x1BalanceCompressRunsSupport.seatedRun_eq
-    rho 151 110131 8 101 (by rfl)
+    rho 151 109535 8 101 (by rfl)
 
 end Shieldd.GnarkFormal.Deployed.NoteReshape8x1BalanceCompressRunX1

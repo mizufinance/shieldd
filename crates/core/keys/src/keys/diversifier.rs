@@ -24,6 +24,10 @@ pub struct Diversifier(
 
 impl Diversifier {
     /// Generate the diversified basepoint associated to this diversifier.
+    ///
+    /// Protocol assumption `ZK-ASSUME-DIVERSIFIER-HASH-TO-GENERATOR-NONIDENTITY`:
+    /// no 16-byte input maps to the Decaf377 identity through this personalized
+    /// BLAKE2b-to-field-to-Elligator construction.
     pub fn diversified_generator(&self) -> decaf377::Element {
         let hash = blake2b_simd::Params::new()
             .personal(b"Shieldd_Divrsfy")

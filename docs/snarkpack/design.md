@@ -6,6 +6,18 @@ every deliberate change we made to that upstream, with rationale. Start here.
 The companion doc is [verification.md](verification.md): how we check that this
 design is faithfully and securely implemented.
 
+## Deployment security status
+
+The current application uses a deterministic `DevSrs`. Its public seed makes
+the KZG trapdoor reconstructible, so the structured-key binding premise is not
+discharged and an aggregate proof is not authoritative acceptance evidence.
+Validators independently verify every constituent Groth16 proof under its exact
+bundled family key before execution or `Groth16Verified` cache promotion.
+SnarkPack is presently a redundant proposal-integrity and performance path;
+replacing `DevSrs` with a
+ceremony-derived SRS is required before aggregate verification can carry
+soundness on its own.
+
 The authoritative machine-checked details live in the Lean and F* formal artifacts;
 the Filecoin divergence review remains available as provenance:
 
@@ -63,10 +75,10 @@ That lineage is **provenance and a comparison aid, not a production-security
 baseline** — audit scope is the full local implementation, not a diff against
 arkworks.
 
-Algebraic soundness of SnarkPack/RIPP/Groth16 is a **standing assumption** taken
-from the published paper and the audited Filecoin (Bellperson v0.21.0)
-implementation. We do not re-prove it; we check that our code faithfully refines
-it (see [verification.md](verification.md)).
+The formal SnarkPack implication is conditional on the published algebraic and
+structured-key assumptions. We check that our code faithfully refines that
+conditional construction (see [verification.md](verification.md)); the deployed
+deterministic SRS does not establish its unknown-trapdoor premise.
 
 ## 3. Modifications we made (and why)
 
@@ -117,11 +129,12 @@ recomputes SRS/VK facts and decodes the wrapper before SnarkPack verification.
 **Why:** validate prerequisites before doing downstream cryptographic work; keep
 adversarial rejection cheap.
 
-### Family routing + app-bundle integration
-Aggregates are accepted only through the proposal aggregation pipeline as
-`AggregateBundle` transactions — never through generic action handling, and only
-as the last, unique bundle in a proposal. **Why:** aggregation is a
-consensus-pipeline operation, not a user-facing action.
+### Research-only integration boundary
+SnarkPack artifacts are not transaction actions and are not accepted by
+PrepareProposal, ProcessProposal, DeliverTx, or host execution. Deployed
+consensus verifies each circuit proof directly with its exact Groth16 key.
+Aggregation experiments consume extracted proof fixtures out of band in the
+research and benchmark crates.
 
 ### Optimization byte-lock
 Optimizations must preserve the Shieldd byte trace or explicitly version the

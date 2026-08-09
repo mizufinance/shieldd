@@ -8,43 +8,87 @@ import hashlib
 import json
 import posixpath
 import re
+import stat
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+from fv_certification import (
+    CERTIFICATION_IDENTITIES,
+    backend_identity_errors,
+    predicate_consequence_declarations,
+    render_lean_certification_checks,
+)
+from fv_strict_json import StrictJsonError, loads as loads_strict_json
+from fv_specification_completeness import (
+    SpecificationCompletenessError,
+    load_and_validate as load_specification_completeness,
+    validate_profile_certification_join,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
 GNARK = ROOT / "tools" / "gnark"
 CATALOG = GNARK / "fv_profiles.json"
+CERTIFICATION_BACKENDS = GNARK / "fv_certification_backends.json"
 LEAN = GNARK / "lean"
 CIRCUIT_FORMAL = ROOT / "crates" / "core" / "component" / "shielded-pool" / "formal"
 
 # Family labels and shapes come from the generated Go runtime registries below.
-# This table pins only the canonical witness ABI for each runtime family.
+# This table pins the canonical witness ABI and the complete security-branch
+# proof matrix for each runtime family.
 PROFILE_ABI = {
-    "note_reshape2x1": (
-        3,
-        "internal/testfixtures/vectors/note_reshape2x1_witness_v3.bin",
-    ),
-    "note_reshape4x1": (
-        3,
-        "internal/testfixtures/vectors/note_reshape4x1_witness_v3.bin",
-    ),
     "note_reshape8x1": (
         3,
-        "internal/testfixtures/vectors/note_reshape8x1_witness_v3.bin",
+        (
+            (
+                "note_reshape8x1",
+                "internal/testfixtures/vectors/note_reshape8x1_witness_v3.bin",
+            ),
+        ),
     ),
     "note_reshape1x8": (
         3,
-        "internal/testfixtures/vectors/note_reshape1x8_witness_v3.bin",
+        (
+            (
+                "note_reshape1x8",
+                "internal/testfixtures/vectors/note_reshape1x8_witness_v3.bin",
+            ),
+        ),
     ),
     "transfer": (
-        11,
-        "internal/testfixtures/vectors/transfer_witness_v11.bin",
+        16,
+        (
+            (
+                "regulated_unflagged",
+                "internal/testfixtures/vectors/transfer_witness_v16.bin",
+            ),
+            (
+                "regulated_flagged_hidden",
+                "internal/testfixtures/vectors/transfer_flagged_witness_v16.bin",
+            ),
+            (
+                "unregulated_hidden",
+                "internal/testfixtures/vectors/transfer_unregulated_witness_v16.bin",
+            ),
+        ),
     ),
     "shielded_ics20_withdrawal": (
-        6,
-        "internal/testfixtures/vectors/shielded_ics20_withdrawal_witness_v6.bin",
+        8,
+        (
+            (
+                "regulated_optional_real",
+                "internal/testfixtures/vectors/"
+                "shielded_ics20_withdrawal_witness_v8.bin",
+            ),
+            (
+                "unregulated_optional_dummy",
+                "internal/testfixtures/vectors/"
+                "shielded_ics20_withdrawal_unregulated_witness_v8.bin",
+            ),
+        ),
     ),
 }
 
@@ -52,16 +96,6 @@ GENERATED = GNARK / "internal" / "generated"
 TRANSFER_FAMILIES = GNARK / "transfer_families.json"
 NOTE_RESHAPE_FAMILIES = GNARK / "note_reshape_families.json"
 WITHDRAWAL_FAMILIES = GNARK / "shielded_ics20_withdrawal_families.json"
-
-# Promotion is intentionally closed over the exact backend implemented by
-# check-lean-circuit-fv.sh. Adding a circuit requires extending that backend
-# and this registry in the same change.
-CERTIFICATION_ROOTS = {
-    "note_reshape2x1": "ShielddGnarkFormal.Deployed.NoteReshape2x1Refinement",
-    "note_reshape4x1": "ShielddGnarkFormal.Deployed.NoteReshape4x1Soundness",
-    "note_reshape8x1": "ShielddGnarkFormal.Deployed.NoteReshape8x1Soundness",
-    "note_reshape1x8": "ShielddGnarkFormal.Deployed.NoteReshape1x8Soundness",
-}
 
 WITNESS_MAGIC = {
     "note_reshape": b"PNWG",
@@ -93,13 +127,58 @@ METADATA_FIELD_ORDER = (
     "nb_constraints",
     "nb_public_variables",
     "nb_secret_variables",
+    "sr1cs_sha256_hex",
+    "setup_provenance_sha256_hex",
     "proving_key_sha256_hex",
     "verifying_key_binary_sha256_hex",
     "verifying_key_json_sha256_hex",
 )
 METADATA_FIELDS = set(METADATA_FIELD_ORDER)
+SETUP_PROVENANCE_FIELD_ORDER = (
+    "schema",
+    "curve",
+    "circuit",
+    "mode",
+    "sr1cs_sha256_hex",
+    "proving_key_sha256_hex",
+    "verifying_key_binary_sha256_hex",
+    "verifying_key_json_sha256_hex",
+    "generation_self_tests",
+    "setup_transcript",
+    "toxic_waste_erasure",
+)
+SETUP_PROVENANCE_FIELDS = set(SETUP_PROVENANCE_FIELD_ORDER)
+SETUP_GENERATION_SELF_TEST_FIELD_ORDER = (
+    "proof_case",
+    "witness_format_version",
+    "witness_sha256_hex",
+    "proved_and_verified_in_process",
+)
+SETUP_GENERATION_SELF_TEST_FIELDS = set(
+    SETUP_GENERATION_SELF_TEST_FIELD_ORDER
+)
+SETUP_MODES = {
+    "note_reshape8x1": "fresh_setup",
+    "note_reshape1x8": "fresh_setup",
+    "transfer": "fresh_setup",
+    "shielded_ics20_withdrawal": "fresh_setup",
+}
+DEPLOYED_ARTIFACT_STATIC_FILES = frozenset(
+    {
+        "circuit_metadata.json",
+        "proving_key.bin",
+        "setup_provenance.json",
+        "verifying_key.bin",
+        "verifying_key.json",
+    }
+)
 
 SEGMENT_KINDS = {"adapter", "gadget", "glue", "marker", "unclassified"}
+SUPPORTED_CERTIFICATION_BACKENDS = {
+    "generation_backend": {"note_reshape", "deployed_family"},
+    "benchmark_backend": {"certified_statement_hash"},
+    "evidence_backend": {"certified_circuit"},
+}
 SEGMENT_REQUIRED_FIELDS = {
     "index",
     "op",
@@ -122,32 +201,318 @@ def fail(message: str) -> None:
     raise SystemExit(f"FV profile check failed: {message}")
 
 
+def authenticated_path(
+    path: Path,
+    label: str,
+    *,
+    root: Path,
+    expected_kind: str,
+) -> Path:
+    """Resolve one ordinary repository path without filesystem aliases."""
+
+    if expected_kind not in {"file", "directory"}:
+        fail(f"{label}: unsupported authenticated path kind {expected_kind!r}")
+    unresolved_root = Path(root)
+    if unresolved_root.is_symlink():
+        fail(f"{label}: authenticated path root is symlinked: {unresolved_root}")
+    try:
+        root_metadata = unresolved_root.lstat()
+    except OSError as error:
+        fail(f"{label}: cannot inspect authenticated path root: {error}")
+    if not stat.S_ISDIR(root_metadata.st_mode):
+        fail(f"{label}: authenticated path root is not a directory")
+    resolved_root = unresolved_root.resolve()
+
+    unresolved = Path(path)
+    try:
+        relative = unresolved.relative_to(unresolved_root)
+    except ValueError:
+        fail(f"{label}: authenticated path is outside {unresolved_root}")
+    if any(part in {"", ".", ".."} for part in relative.parts):
+        fail(f"{label}: authenticated path is not normalized")
+
+    current = unresolved_root
+    parts = relative.parts
+    for index, part in enumerate(parts):
+        current /= part
+        try:
+            metadata = current.lstat()
+        except OSError as error:
+            fail(f"{label}: cannot inspect {current}: {error}")
+        if stat.S_ISLNK(metadata.st_mode):
+            fail(f"{label}: symlinked path component: {current}")
+        if index + 1 < len(parts) and not stat.S_ISDIR(metadata.st_mode):
+            fail(f"{label}: non-directory path component: {current}")
+
+    try:
+        resolved = current.resolve(strict=True)
+    except OSError as error:
+        fail(f"{label}: cannot resolve authenticated path: {error}")
+    if not resolved.is_relative_to(resolved_root):
+        fail(f"{label}: authenticated path escapes {unresolved_root}")
+    try:
+        metadata = resolved.lstat()
+    except OSError as error:
+        fail(f"{label}: cannot inspect authenticated path: {error}")
+    if expected_kind == "file":
+        if not stat.S_ISREG(metadata.st_mode):
+            fail(f"{label}: authenticated path is not a regular file")
+        if metadata.st_nlink != 1:
+            fail(
+                f"{label}: regular file has {metadata.st_nlink} physical aliases"
+            )
+    elif not stat.S_ISDIR(metadata.st_mode):
+        fail(f"{label}: authenticated path is not a directory")
+    return resolved
+
+
+def authenticated_relative_path(
+    label: str,
+    field: str,
+    value: object,
+    *,
+    base: Path,
+    expected_kind: str,
+) -> Path:
+    """Authenticate one normalized path relative to an explicit trusted base."""
+
+    if not isinstance(value, str) or not value:
+        fail(f"{label}: {field} must be a non-empty relative path")
+    pure = PurePosixPath(value)
+    if (
+        pure.is_absolute()
+        or "\\" in value
+        or str(pure) != value
+        or any(part in {"", ".", ".."} for part in pure.parts)
+        or any(character in value for character in "\t\r\n")
+    ):
+        fail(f"{label}: {field} must be a normalized relative path")
+    return authenticated_path(
+        Path(base).joinpath(*pure.parts),
+        f"{label}.{field}",
+        root=base,
+        expected_kind=expected_kind,
+    )
+
+
+def validate_specification_completeness(
+    profiles: list[dict[str, object]],
+) -> None:
+    try:
+        manifests = {
+            str(profile["label"]): profile_path(
+                str(profile["label"]),
+                "manifest",
+                profile["manifest"],
+                base=GNARK,
+                expected_kind="file",
+            )
+            for profile in profiles
+        }
+        statuses = load_specification_completeness(
+            manifests=manifests,
+            require_relation_evidence=True,
+        )
+        validate_profile_certification_join(profiles, statuses)
+    except SpecificationCompletenessError as error:
+        fail(f"specification completeness failed: {error}")
+
+
 def sha256(path: Path) -> str:
+    path = authenticated_path(
+        path,
+        f"SHA-256 source {path}",
+        root=ROOT,
+        expected_kind="file",
+    )
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load_json(path: Path, label: str) -> object:
-    def object_without_duplicates(
-        pairs: list[tuple[str, object]],
-    ) -> dict[str, object]:
-        result: dict[str, object] = {}
-        for key, value in pairs:
-            if key in result:
-                fail(f"{label}: duplicate JSON key {key!r}")
-            result[key] = value
-        return result
-
+def load_json(
+    path: Path,
+    label: str,
+    *,
+    authenticated_root: Path | None = None,
+) -> object:
+    if authenticated_root is not None:
+        path = authenticated_path(
+            path,
+            label,
+            root=authenticated_root,
+            expected_kind="file",
+        )
     try:
         raw = path.read_text(encoding="utf-8")
-        return json.loads(
-            raw,
-            object_pairs_hook=object_without_duplicates,
-            parse_constant=lambda value: fail(
-                f"{label}: non-finite JSON number {value!r}"
-            ),
-        )
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        return loads_strict_json(raw, label)
+    except (OSError, UnicodeError, StrictJsonError) as error:
         fail(f"{label}: cannot load strict JSON: {error}")
+
+
+def load_certification_backends() -> dict[str, dict[str, object]]:
+    data = load_json(
+        CERTIFICATION_BACKENDS,
+        "certification backend registry",
+        authenticated_root=ROOT,
+    )
+    if not isinstance(data, dict) or set(data) != {"schema", "backends"}:
+        fail("certification backend registry has an unexpected field set")
+    if data.get("schema") != "shieldd.gnark.fv_certification_backends.v1":
+        fail("unsupported certification backend registry schema")
+    entries = data.get("backends")
+    if not isinstance(entries, list) or not entries:
+        fail("certification backend registry must contain backends")
+
+    module_pattern = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
+    backend_fields = {
+        "label",
+        "contract_module",
+        "theorem_root",
+        "generation_backend",
+        "benchmark_backend",
+        "evidence_backend",
+        "lt_seating_artifact",
+        "build_modules",
+        "axiom_targets",
+    }
+    backends: dict[str, dict[str, object]] = {}
+    for index, backend in enumerate(entries, start=1):
+        if not isinstance(backend, dict) or set(backend) != backend_fields:
+            fail(f"certification backend {index} has an unexpected field set")
+        label = backend.get("label")
+        if (
+            not isinstance(label, str)
+            or re.fullmatch(r"[a-z0-9_]+", label) is None
+            or label in backends
+        ):
+            fail(f"certification backend {index} has an invalid or duplicate label")
+        contract_module = backend.get("contract_module")
+        if (
+            not isinstance(contract_module, str)
+            or re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", contract_module) is None
+        ):
+            fail(f"{label}: invalid contract module")
+        theorem_root = backend.get("theorem_root")
+        if not isinstance(theorem_root, str) or module_pattern.fullmatch(
+            theorem_root
+        ) is None:
+            fail(f"{label}: invalid certification theorem root")
+        for field in (
+            "generation_backend",
+            "benchmark_backend",
+            "evidence_backend",
+        ):
+            value = backend.get(field)
+            if value not in SUPPORTED_CERTIFICATION_BACKENDS[field]:
+                fail(f"{label}: unsupported {field} {value!r}")
+
+        seating = backend.get("lt_seating_artifact")
+        if seating is not None:
+            if (
+                not isinstance(seating, str)
+                or not seating
+                or Path(seating).is_absolute()
+                or "\\" in seating
+                or posixpath.normpath(seating) != seating
+            ):
+                fail(f"{label}: invalid LT seating artifact path")
+            seating_path = authenticated_relative_path(
+                label,
+                "lt_seating_artifact",
+                seating,
+                base=ROOT,
+                expected_kind="file",
+            )
+            sidecar_path = authenticated_path(
+                Path(f"{seating_path}.sha256"),
+                f"{label}.lt_seating_artifact sidecar",
+                root=ROOT,
+                expected_kind="file",
+            )
+            try:
+                sidecar = sidecar_path.read_text(encoding="ascii")
+            except (OSError, UnicodeError) as error:
+                fail(f"{label}: cannot read LT seating sidecar: {error}")
+            if re.fullmatch(r"[0-9a-f]{64}\n", sidecar) is None:
+                fail(
+                    f"{label}: LT seating sidecar must be one lowercase "
+                    "SHA-256 line"
+                )
+            if sidecar.removesuffix("\n") != sha256(seating_path):
+                fail(f"{label}: LT seating sidecar does not match seating bytes")
+
+        build_modules = backend.get("build_modules")
+        if (
+            not isinstance(build_modules, list)
+            or not build_modules
+            or len(build_modules) != len(set(build_modules))
+            or any(
+                not isinstance(module, str)
+                or module_pattern.fullmatch(module) is None
+                for module in build_modules
+            )
+        ):
+            fail(f"{label}: invalid or duplicate build modules")
+        if theorem_root not in build_modules:
+            fail(f"{label}: theorem root is not a build target")
+        for module in build_modules:
+            source = LEAN.joinpath(*module.split(".")).with_suffix(".lean")
+            authenticated_path(
+                source,
+                f"{label} build module {module}",
+                root=ROOT,
+                expected_kind="file",
+            )
+
+        axiom_targets = backend.get("axiom_targets")
+        if not isinstance(axiom_targets, list) or not axiom_targets:
+            fail(f"{label}: certification backend has no axiom targets")
+        seen_roots: set[str] = set()
+        for target_index, target in enumerate(axiom_targets, start=1):
+            if not isinstance(target, dict) or set(target) != {
+                "root_module",
+                "declarations",
+            }:
+                fail(f"{label}: axiom target {target_index} has invalid fields")
+            root_module = target.get("root_module")
+            declarations = target.get("declarations")
+            if (
+                not isinstance(root_module, str)
+                or module_pattern.fullmatch(root_module) is None
+                or root_module in seen_roots
+            ):
+                fail(f"{label}: axiom target {target_index} has an invalid root")
+            seen_roots.add(root_module)
+            root_source = LEAN.joinpath(*root_module.split(".")).with_suffix(
+                ".lean"
+            )
+            authenticated_path(
+                root_source,
+                f"{label} axiom root {root_module}",
+                root=ROOT,
+                expected_kind="file",
+            )
+            if (
+                not isinstance(declarations, list)
+                or not declarations
+                or len(declarations) != len(set(declarations))
+                or any(
+                    not isinstance(declaration, str)
+                    or module_pattern.fullmatch(declaration) is None
+                    for declaration in declarations
+                )
+            ):
+                fail(
+                    f"{label}: axiom target {target_index} has invalid declarations"
+                )
+        identity_errors = backend_identity_errors(backend)
+        if identity_errors:
+            fail(
+                f"{label}: certification backend does not match its "
+                "code-owned identity: "
+                + "; ".join(identity_errors)
+            )
+        backends[label] = backend
+    return backends
 
 
 def validate_canonical_metadata_json(
@@ -165,15 +530,228 @@ def validate_canonical_metadata_json(
         fail(f"{label}: circuit metadata is not canonical two-space-indented JSON")
 
 
+def validate_setup_provenance(
+    label: str,
+    provenance: object,
+    raw: str,
+    expected_proof_witnesses: tuple[tuple[str, str], ...],
+    witness_version: int,
+    artifact_dir: Path,
+) -> None:
+    if (
+        not isinstance(provenance, dict)
+        or set(provenance) != SETUP_PROVENANCE_FIELDS
+    ):
+        fail(f"{label}: setup provenance has an unexpected field set")
+    self_tests = provenance.get("generation_self_tests")
+    if not isinstance(self_tests, list) or not self_tests:
+        fail(f"{label}: setup provenance has no generation self-tests")
+    canonical_self_tests: list[dict[str, object]] = []
+    actual_cases: list[str] = []
+    for index, self_test in enumerate(self_tests):
+        if (
+            not isinstance(self_test, dict)
+            or set(self_test) != SETUP_GENERATION_SELF_TEST_FIELDS
+        ):
+            fail(
+                f"{label}: setup provenance generation self-test {index} "
+                "has an unexpected field set"
+            )
+        proof_case = self_test.get("proof_case")
+        if not isinstance(proof_case, str):
+            fail(
+                f"{label}: setup provenance generation self-test {index} "
+                "has an invalid case"
+            )
+        actual_cases.append(proof_case)
+        if self_test.get("witness_format_version") != witness_version:
+            fail(
+                f"{label}/{proof_case}: setup provenance witness version "
+                "does not match the profile"
+            )
+        require_sha256(
+            label,
+            (
+                "setup_provenance.generation_self_tests"
+                f"[{index}].witness_sha256_hex"
+            ),
+            self_test.get("witness_sha256_hex"),
+        )
+        if self_test.get("proved_and_verified_in_process") is not True:
+            fail(
+                f"{label}/{proof_case}: setup provenance generation "
+                "self-test did not prove and verify in process"
+            )
+        canonical_self_tests.append(
+            {
+                field: self_test[field]
+                for field in SETUP_GENERATION_SELF_TEST_FIELD_ORDER
+            }
+        )
+    expected_cases = [proof_case for proof_case, _ in expected_proof_witnesses]
+    if actual_cases != expected_cases:
+        fail(
+            f"{label}: setup provenance cases {actual_cases!r} != "
+            f"canonical profile cases {expected_cases!r}"
+        )
+    for self_test, (_, witness_rel) in zip(
+        self_tests, expected_proof_witnesses, strict=True
+    ):
+        if self_test["witness_sha256_hex"] != sha256(GNARK / witness_rel):
+            fail(
+                f"{label}/{self_test['proof_case']}: setup provenance does "
+                "not bind the canonical witness"
+            )
+
+    expected_values = {
+        "schema": "shieldd.gnark.setup_provenance.v2",
+        "curve": "bls12-377",
+        "circuit": label,
+        "mode": SETUP_MODES[label],
+        "sr1cs_sha256_hex": sha256(artifact_dir / f"{label}.sr1cs"),
+        "proving_key_sha256_hex": sha256(
+            artifact_dir / "proving_key.bin"
+        ),
+        "verifying_key_binary_sha256_hex": sha256(
+            artifact_dir / "verifying_key.bin"
+        ),
+        "verifying_key_json_sha256_hex": sha256(
+            artifact_dir / "verifying_key.json"
+        ),
+        "generation_self_tests": canonical_self_tests,
+        "setup_transcript": "not_recorded",
+        "toxic_waste_erasure": "not_mechanically_verified",
+    }
+    for field, expected in expected_values.items():
+        if provenance.get(field) != expected:
+            fail(
+                f"{label}: setup provenance {field} "
+                f"{provenance.get(field)!r} != {expected!r}"
+            )
+    canonical = json.dumps(expected_values, indent=2, allow_nan=False) + "\n"
+    if raw != canonical:
+        fail(
+            f"{label}: setup provenance is not canonical "
+            "two-space-indented JSON"
+        )
+
+
+def deployed_artifact_roster(label: str) -> frozenset[str]:
+    return DEPLOYED_ARTIFACT_STATIC_FILES | {
+        f"{label}.sr1cs",
+        f"{label}-manifest.json",
+    }
+
+
+def validate_deployed_artifact_roster(label: str, artifact_dir: Path) -> None:
+    expected = deployed_artifact_roster(label)
+    try:
+        actual = {entry.name for entry in artifact_dir.iterdir()}
+    except OSError as error:
+        fail(f"{label}: cannot enumerate deployed artifact directory: {error}")
+    if actual != expected:
+        fail(
+            f"{label}: deployed artifact directory roster mismatch: "
+            f"missing={sorted(expected - actual)!r} "
+            f"extra={sorted(actual - expected)!r}"
+        )
+
+
+def validate_manifest_semantic_bindings(
+    label: str, bindings: object, max_wire: int
+) -> None:
+    if not isinstance(bindings, list) or not bindings:
+        fail(f"{label}: manifest.semantic_bindings must be a nonempty array")
+    names: set[str] = set()
+    for binding_index, binding in enumerate(bindings, start=1):
+        if not isinstance(binding, dict) or set(binding) != {
+            "name",
+            "expressions",
+        }:
+            fail(
+                f"{label}: semantic binding {binding_index} has an "
+                "unexpected field set"
+            )
+        name = binding["name"]
+        if not isinstance(name, str) or not name or name in names:
+            fail(
+                f"{label}: semantic binding {binding_index} has an invalid "
+                "or duplicate name"
+            )
+        names.add(name)
+        expressions = binding["expressions"]
+        if not isinstance(expressions, list) or not expressions:
+            fail(f"{label}: semantic binding {binding_index} has no expressions")
+        for expression_index, expression in enumerate(expressions, start=1):
+            if not isinstance(expression, dict) or set(expression) != {
+                "constant",
+                "terms",
+            }:
+                fail(
+                    f"{label}: semantic binding {binding_index} expression "
+                    f"{expression_index} has an unexpected field set"
+                )
+            constant = expression["constant"]
+            terms = expression["terms"]
+            if not isinstance(constant, str) or not constant.isdigit():
+                fail(
+                    f"{label}: semantic binding {binding_index} expression "
+                    f"{expression_index} has an invalid constant"
+                )
+            if not isinstance(terms, list):
+                fail(
+                    f"{label}: semantic binding {binding_index} expression "
+                    f"{expression_index} has invalid terms"
+                )
+            wire_ids: list[int] = []
+            for term_index, term in enumerate(terms, start=1):
+                if not isinstance(term, dict) or set(term) != {
+                    "wire_id",
+                    "coefficient",
+                }:
+                    fail(
+                        f"{label}: semantic binding {binding_index} expression "
+                        f"{expression_index} term {term_index} has an "
+                        "unexpected field set"
+                    )
+                wire_id = term["wire_id"]
+                coefficient = term["coefficient"]
+                if (
+                    not isinstance(wire_id, int)
+                    or isinstance(wire_id, bool)
+                    or wire_id < 1
+                    or wire_id > max_wire
+                    or not isinstance(coefficient, str)
+                    or not coefficient.isdigit()
+                ):
+                    fail(
+                        f"{label}: semantic binding {binding_index} expression "
+                        f"{expression_index} term {term_index} is invalid"
+                    )
+                wire_ids.append(wire_id)
+            if wire_ids != sorted(set(wire_ids)):
+                fail(
+                    f"{label}: semantic binding {binding_index} expression "
+                    f"{expression_index} wire IDs are not sorted and unique"
+                )
+
+
 def parse_generated_go_registry(
     path: Path,
     variable: str,
     kind: str,
     *,
     expected_fields: set[str] | None = None,
+    root: Path = ROOT,
 ) -> dict[str, tuple[str, int, int]]:
     """Read the literal family slice that the Go prover runtime iterates."""
 
+    path = authenticated_path(
+        path,
+        f"{variable} generated Go registry",
+        root=root,
+        expected_kind="file",
+    )
     try:
         source = path.read_text(encoding="utf-8")
     except (OSError, UnicodeError) as error:
@@ -255,7 +833,7 @@ def load_json_family_registry(
     top_fields: set[str],
     family_fields: set[str],
 ) -> dict[str, tuple[str, int, int]]:
-    data = load_json(path, label)
+    data = load_json(path, label, authenticated_root=ROOT)
     if not isinstance(data, dict) or set(data) != top_fields:
         fail(f"{label}: family registry has an unexpected field set")
     families = data.get("families")
@@ -287,7 +865,11 @@ def load_json_family_registry(
 def load_runtime_profiles() -> dict[str, tuple[str, int, int]]:
     """Load and cross-check every family accepted by the Go prover runtime."""
 
-    transfer_data = load_json(TRANSFER_FAMILIES, "transfer family registry")
+    transfer_data = load_json(
+        TRANSFER_FAMILIES,
+        "transfer family registry",
+        authenticated_root=ROOT,
+    )
     if (
         not isinstance(transfer_data, dict)
         or transfer_data.get("schema") != "shieldd.transfer_families.v1"
@@ -306,7 +888,11 @@ def load_runtime_profiles() -> dict[str, tuple[str, int, int]]:
             "n_out",
         },
     )
-    note_reshape_data = load_json(NOTE_RESHAPE_FAMILIES, "note reshape registry")
+    note_reshape_data = load_json(
+        NOTE_RESHAPE_FAMILIES,
+        "note reshape registry",
+        authenticated_root=ROOT,
+    )
     if (
         not isinstance(note_reshape_data, dict)
         or note_reshape_data.get("schema") != "shieldd.note_reshape_families.v1"
@@ -333,7 +919,9 @@ def load_runtime_profiles() -> dict[str, tuple[str, int, int]]:
         },
     )
     withdrawal_data = load_json(
-        WITHDRAWAL_FAMILIES, "shielded ICS-20 withdrawal registry"
+        WITHDRAWAL_FAMILIES,
+        "shielded ICS-20 withdrawal registry",
+        authenticated_root=ROOT,
     )
     if (
         not isinstance(withdrawal_data, dict)
@@ -428,7 +1016,7 @@ def load_runtime_profiles() -> dict[str, tuple[str, int, int]]:
 def validate_registry_completeness(
     catalog_labels: set[str],
     runtime_profiles: dict[str, tuple[str, int, int]],
-    profile_abi: dict[str, tuple[int, str]] = PROFILE_ABI,
+    profile_abi: dict[str, tuple[int, tuple[tuple[str, str], ...]]] = PROFILE_ABI,
 ) -> None:
     runtime_labels = set(runtime_profiles)
     abi_labels = set(profile_abi)
@@ -440,6 +1028,14 @@ def validate_registry_completeness(
         missing = sorted(runtime_labels - catalog_labels)
         extra = sorted(catalog_labels - runtime_labels)
         fail(f"catalog/runtime registry mismatch: missing={missing}, extra={extra}")
+    identity_labels = set(CERTIFICATION_IDENTITIES)
+    if identity_labels != runtime_labels:
+        missing = sorted(runtime_labels - identity_labels)
+        extra = sorted(identity_labels - runtime_labels)
+        fail(
+            "runtime/code-owned certification identity mismatch: "
+            f"missing={missing}, extra={extra}"
+        )
 
 
 def require_nonnegative_int(label: str, field: str, value: object) -> int:
@@ -623,11 +1219,16 @@ def validate_manifest_witness_wires(
                 f"{label}: witness wire {expected_id} has invalid visibility "
                 f"{visibility!r}"
             )
-        require_nonnegative_int(
+        constraint_rows = require_nonnegative_int(
             label,
             f"witness_wires[{expected_id - 1}].constraint_rows",
             wire.get("constraint_rows"),
         )
+        if constraint_rows == 0:
+            fail(
+                f"{label}: witness wire {expected_id} {path!r} "
+                "influences no constraints"
+            )
     if public_count != public_variables - 1 or secret_count != secret_variables:
         fail(f"{label}: witness wire visibility totals are inconsistent")
 
@@ -664,28 +1265,23 @@ def profile_path(
     field: str,
     value: object,
     *,
-    root: Path,
+    base: Path,
+    expected_kind: str,
 ) -> Path:
-    if not isinstance(value, str) or not value:
-        fail(f"{label}: {field} must be a non-empty relative path")
-    if (
-        Path(value).is_absolute()
-        or "\\" in value
-        or posixpath.normpath(value) != value
-        or any(character in value for character in "\t\r\n")
-    ):
-        fail(f"{label}: {field} must be a normalized relative path")
-    path = (GNARK / value).resolve()
-    if not path.is_relative_to(root.resolve()):
-        fail(f"{label}: {field} escapes {root}")
-    return path
+    return authenticated_relative_path(
+        label,
+        field,
+        value,
+        base=base,
+        expected_kind=expected_kind,
+    )
 
 
 def load_profiles() -> list[dict[str, object]]:
-    data = load_json(CATALOG, "catalog")
+    data = load_json(CATALOG, "catalog", authenticated_root=ROOT)
     if not isinstance(data, dict) or set(data) != {"schema", "profiles"}:
         fail("catalog must contain exactly schema and profiles")
-    if data.get("schema") != "shieldd.gnark.fv_profiles.v1":
+    if data.get("schema") != "shieldd.gnark.fv_profiles.v2":
         fail(f"unsupported schema {data.get('schema')!r}")
     profiles = data.get("profiles")
     if not isinstance(profiles, list) or not profiles:
@@ -705,7 +1301,7 @@ def validate_profile(
         "n_in",
         "n_out",
         "witness_format_version",
-        "witness",
+        "proof_witnesses",
         "artifact_dir",
         "manifest",
         "status",
@@ -751,28 +1347,71 @@ def validate_profile(
             f"{(profile['kind'], profile['n_in'], profile['n_out'])!r} does not match "
             f"registered {(expected_kind, expected_n_in, expected_n_out)!r}"
         )
+    identity = CERTIFICATION_IDENTITIES.get(label)
+    if identity is None:
+        fail(f"{label}: no code-owned certification identity")
+    if profile["kind"] != identity.kind:
+        fail(
+            f"{label}: kind {profile['kind']!r} != code-owned certification "
+            f"kind {identity.kind!r}"
+        )
     profile_abi = PROFILE_ABI.get(label)
     if profile_abi is None:
         fail(f"{label}: runtime family has no registered FV witness ABI")
-    expected_witness_version, expected_witness = profile_abi
+    expected_witness_version, expected_proof_witnesses = profile_abi
     if profile["witness_format_version"] != expected_witness_version:
         fail(
             f"{label}: witness format version "
             f"{profile['witness_format_version']!r} != registered "
             f"{expected_witness_version!r}"
         )
-    if profile["witness"] != expected_witness:
+    proof_witnesses = profile["proof_witnesses"]
+    if not isinstance(proof_witnesses, list) or not proof_witnesses:
+        fail(f"{label}: proof_witnesses must be a nonempty array")
+    actual_proof_witnesses: list[tuple[str, str]] = []
+    seen_cases: set[str] = set()
+    seen_paths: set[str] = set()
+    for index, proof_witness in enumerate(proof_witnesses):
+        if not isinstance(proof_witness, dict) or set(proof_witness) != {
+            "case",
+            "path",
+        }:
+            fail(
+                f"{label}: proof_witnesses[{index}] must contain exactly "
+                "case and path"
+            )
+        proof_case = proof_witness["case"]
+        witness_path = proof_witness["path"]
+        if (
+            not isinstance(proof_case, str)
+            or re.fullmatch(r"[a-z0-9_]+", proof_case) is None
+        ):
+            fail(
+                f"{label}: proof_witnesses[{index}].case must contain only "
+                "lowercase letters, digits, and underscores"
+            )
+        if proof_case in seen_cases:
+            fail(f"{label}: duplicate proof witness case {proof_case!r}")
+        if not isinstance(witness_path, str):
+            fail(f"{label}: proof_witnesses[{index}].path must be a string")
+        if witness_path in seen_paths:
+            fail(f"{label}: duplicate proof witness path {witness_path!r}")
+        seen_cases.add(proof_case)
+        seen_paths.add(witness_path)
+        actual_proof_witnesses.append((proof_case, witness_path))
+    if tuple(actual_proof_witnesses) != expected_proof_witnesses:
         fail(
-            f"{label}: witness path {profile['witness']!r} != registered "
-            f"{expected_witness!r}"
+            f"{label}: proof witness matrix {tuple(actual_proof_witnesses)!r} "
+            f"!= registered {expected_proof_witnesses!r}"
         )
 
     theorem_root = profile["theorem_root"]
     coverage_report = profile["coverage_report"]
     if profile["status"] == "certified":
-        expected_theorem_root = CERTIFICATION_ROOTS.get(label)
-        if expected_theorem_root is None:
+        backend = load_certification_backends().get(label)
+        if backend is None:
             fail(f"{label}: no exact certification backend is registered")
+        expected_theorem_root = backend["theorem_root"]
         if theorem_root != expected_theorem_root:
             fail(
                 f"{label}: theorem root {theorem_root!r} != exact backend root "
@@ -784,7 +1423,11 @@ def validate_profile(
         if coverage_report is None:
             fail(f"{label}: certified profiles require a coverage root")
         actual_coverage = profile_path(
-            label, "coverage_report", coverage_report, root=ROOT
+            label,
+            "coverage_report",
+            coverage_report,
+            base=ROOT,
+            expected_kind="file",
         )
         if actual_coverage != expected_coverage:
             fail(f"{label}: coverage root must be {expected_coverage}")
@@ -794,28 +1437,43 @@ def validate_profile(
                 f"{label}: candidate profiles must have null theorem and coverage roots"
             )
 
-    witness_path = profile_path(
-        label, "witness", profile["witness"], root=GNARK
-    )
+    witness_paths = [
+        (
+            proof_case,
+            profile_path(
+                label,
+                f"proof_witnesses[{index}].path",
+                witness_path,
+                base=GNARK,
+                expected_kind="file",
+            ),
+        )
+        for index, (proof_case, witness_path) in enumerate(
+            actual_proof_witnesses
+        )
+    ]
     artifact_dir = profile_path(
-        label, "artifact_dir", profile["artifact_dir"], root=GNARK
+        label,
+        "artifact_dir",
+        profile["artifact_dir"],
+        base=GNARK,
+        expected_kind="directory",
     )
     manifest_path = profile_path(
-        label, "manifest", profile["manifest"], root=GNARK
-    )
-    if not witness_path.is_file():
-        fail(f"{label}: missing witness file {witness_path}")
-    witness_bytes = witness_path.read_bytes()
-    validate_witness_header(
         label,
-        profile["kind"],
-        profile["witness_format_version"],
-        witness_bytes,
+        "manifest",
+        profile["manifest"],
+        base=GNARK,
+        expected_kind="file",
     )
-    if not artifact_dir.is_dir():
-        fail(f"{label}: missing artifact directory {artifact_dir}")
-    if not manifest_path.is_file():
-        fail(f"{label}: missing semantic manifest {manifest_path}")
+    for proof_case, witness_path in witness_paths:
+        witness_bytes = witness_path.read_bytes()
+        validate_witness_header(
+            f"{label}/{proof_case}",
+            profile["kind"],
+            profile["witness_format_version"],
+            witness_bytes,
+        )
     expected_artifact_dir = (GNARK / "artifacts" / label).resolve()
     if artifact_dir != expected_artifact_dir:
         fail(f"{label}: artifact_dir must be {expected_artifact_dir}")
@@ -823,19 +1481,45 @@ def validate_profile(
     if manifest_path != expected_manifest:
         fail(f"{label}: manifest must be {expected_manifest}")
 
-    sr1cs_path = artifact_dir / f"{label}.sr1cs"
-    if not sr1cs_path.is_file():
-        fail(f"{label}: missing deployed SR1CS {sr1cs_path}")
-    for artifact in (
-        "circuit_metadata.json",
-        "proving_key.bin",
-        "verifying_key.bin",
-        "verifying_key.json",
-    ):
-        if not (artifact_dir / artifact).is_file():
-            fail(f"{label}: missing deployed artifact {artifact_dir / artifact}")
+    validate_deployed_artifact_roster(label, artifact_dir)
+    artifact_files = {
+        name: authenticated_path(
+            artifact_dir / name,
+            f"{label} deployed artifact {name}",
+            root=ROOT,
+            expected_kind="file",
+        )
+        for name in (
+            f"{label}.sr1cs",
+            f"{label}-manifest.json",
+            "setup_provenance.json",
+            "circuit_metadata.json",
+            "proving_key.bin",
+            "verifying_key.bin",
+            "verifying_key.json",
+        )
+    }
+    sr1cs_path = artifact_files[f"{label}.sr1cs"]
+    setup_provenance_path = artifact_files["setup_provenance.json"]
+    setup_provenance = load_json(
+        setup_provenance_path,
+        f"{label} setup provenance",
+        authenticated_root=ROOT,
+    )
+    validate_setup_provenance(
+        label,
+        setup_provenance,
+        setup_provenance_path.read_text(encoding="utf-8"),
+        expected_proof_witnesses,
+        expected_witness_version,
+        artifact_dir,
+    )
 
-    manifest = load_json(manifest_path, f"{label} manifest")
+    manifest = load_json(
+        manifest_path,
+        f"{label} manifest",
+        authenticated_root=ROOT,
+    )
     if not isinstance(manifest, dict) or set(manifest) != MANIFEST_FIELDS:
         fail(f"{label}: constraint manifest has an unexpected field set")
     if manifest.get("schema") != "shieldd.gnark.constraint_manifest.v1":
@@ -861,12 +1545,29 @@ def validate_profile(
     }
     if manifest_counts["nb_public_variables"] < 1:
         fail(f"{label}: manifest must include the constant public wire")
+    if (
+        manifest_counts["nb_public_variables"]
+        != identity.public_variable_count
+    ):
+        fail(
+            f"{label}: manifest public-variable count "
+            f"{manifest_counts['nb_public_variables']} != code-owned "
+            f"{identity.public_variable_count}"
+        )
     require_sha256(
         label, "manifest.sr1cs_sha256_hex", manifest.get("sr1cs_sha256_hex")
     )
     for field in ("segments", "semantic_bindings", "witness_wires"):
         if not isinstance(manifest.get(field), list):
             fail(f"{label}: manifest.{field} must be an array")
+    validate_manifest_semantic_bindings(
+        label,
+        manifest["semantic_bindings"],
+        manifest_counts["nb_public_variables"]
+        + manifest_counts["nb_secret_variables"]
+        + manifest_counts["nb_internal_variables"]
+        - 1,
+    )
     breakdown = manifest.get("breakdown")
     expected_breakdown_fields = {
         "total_constraints",
@@ -896,8 +1597,12 @@ def validate_profile(
     if manifest_counts["nb_constraints"] != total_constraints:
         fail(f"{label}: constraint manifest total is internally inconsistent")
 
-    metadata_path = artifact_dir / "circuit_metadata.json"
-    metadata = load_json(metadata_path, f"{label} metadata")
+    metadata_path = artifact_files["circuit_metadata.json"]
+    metadata = load_json(
+        metadata_path,
+        f"{label} metadata",
+        authenticated_root=ROOT,
+    )
     if not isinstance(metadata, dict) or set(metadata) != METADATA_FIELDS:
         fail(f"{label}: circuit metadata has an unexpected field set")
     validate_canonical_metadata_json(
@@ -905,7 +1610,7 @@ def validate_profile(
         metadata_path.read_text(encoding="utf-8"),
         label,
     )
-    if metadata.get("schema") != "shieldd.gnark.circuit_metadata.v1":
+    if metadata.get("schema") != "shieldd.gnark.circuit_metadata.v2":
         fail(f"{label}: unsupported circuit metadata schema")
     for field in (
         "nb_constraints",
@@ -916,28 +1621,38 @@ def validate_profile(
     ):
         require_nonnegative_int(label, f"metadata.{field}", metadata.get(field))
     for field in (
+        "sr1cs_sha256_hex",
+        "setup_provenance_sha256_hex",
         "proving_key_sha256_hex",
         "verifying_key_binary_sha256_hex",
         "verifying_key_json_sha256_hex",
     ):
         require_sha256(label, f"metadata.{field}", metadata.get(field))
     metadata_bindings = {
-        "schema": "shieldd.gnark.circuit_metadata.v1",
+        "schema": "shieldd.gnark.circuit_metadata.v2",
         "curve": "bls12-377",
         "circuit": label,
         "nb_constraints": manifest.get("nb_constraints"),
         "nb_public_variables": manifest.get("nb_public_variables"),
         "nb_secret_variables": manifest.get("nb_secret_variables"),
-        "proving_key_size_bytes": (artifact_dir / "proving_key.bin").stat().st_size,
+        "sr1cs_sha256_hex": sr1cs_hash,
+        "setup_provenance_sha256_hex": sha256(
+            setup_provenance_path
+        ),
+        "proving_key_size_bytes": artifact_files[
+            "proving_key.bin"
+        ].stat().st_size,
         "verifying_key_size_bytes": (
-            artifact_dir / "verifying_key.bin"
+            artifact_files["verifying_key.bin"]
         ).stat().st_size,
-        "proving_key_sha256_hex": sha256(artifact_dir / "proving_key.bin"),
+        "proving_key_sha256_hex": sha256(
+            artifact_files["proving_key.bin"]
+        ),
         "verifying_key_binary_sha256_hex": sha256(
-            artifact_dir / "verifying_key.bin"
+            artifact_files["verifying_key.bin"]
         ),
         "verifying_key_json_sha256_hex": sha256(
-            artifact_dir / "verifying_key.json"
+            artifact_files["verifying_key.json"]
         ),
     }
     for field, expected in metadata_bindings.items():
@@ -950,11 +1665,17 @@ def validate_profile(
     report = None
     if coverage_report is not None:
         report_path = profile_path(
-            label, "coverage_report", coverage_report, root=ROOT
+            label,
+            "coverage_report",
+            coverage_report,
+            base=ROOT,
+            expected_kind="file",
         )
-        if not report_path.is_file():
-            fail(f"{label}: missing coverage report {report_path}")
-        report = load_json(report_path, f"{label} coverage report")
+        report = load_json(
+            report_path,
+            f"{label} coverage report",
+            authenticated_root=ROOT,
+        )
         if not isinstance(report, dict):
             fail(f"{label}: coverage report must be an object")
         if report.get("schema") != "shieldd.gnark.constraint_coverage_report.v1":
@@ -974,8 +1695,12 @@ def validate_profile(
         if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]*", theorem_root) is None:
             fail(f"{label}: invalid theorem module {theorem_root!r}")
         theorem_path = LEAN.joinpath(*theorem_root.split(".")).with_suffix(".lean")
-        if not theorem_path.is_file():
-            fail(f"{label}: missing theorem module source {theorem_path}")
+        authenticated_path(
+            theorem_path,
+            f"{label} theorem module source",
+            root=ROOT,
+            expected_kind="file",
+        )
         if report is None:
             fail(f"{label}: certified profiles require theorem and coverage roots")
         obligations = report.get("deployed_obligations", {})
@@ -1012,13 +1737,41 @@ def validate_profile(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--emit-tsv", action="store_true")
+    output = parser.add_mutually_exclusive_group()
+    output.add_argument(
+        "--emit-tsv",
+        action="store_true",
+        help=(
+            "emit one row per profile; the witness column is the first "
+            "canonical proof witness"
+        ),
+    )
+    output.add_argument(
+        "--emit-proof-witness-tsv",
+        action="store_true",
+        help="emit one row for every canonical proof-witness case",
+    )
+    output.add_argument(
+        "--emit-lean-certification-checks",
+        action="store_true",
+        help="emit exact final-refinement theorem type checks for selected profiles",
+    )
     parser.add_argument("--status", choices=("candidate", "certified"))
+    parser.add_argument(
+        "--allow-empty",
+        action="store_true",
+        help="allow a status filter to select no profiles",
+    )
     parser.add_argument("labels", nargs="*")
     args = parser.parse_args()
-
+    registry_checker = authenticated_path(
+        GNARK / "check_gnark_family_registries.py",
+        "cross-language family registry checker",
+        root=ROOT,
+        expected_kind="file",
+    )
     registry_check = subprocess.run(
-        [sys.executable, str(GNARK / "check_gnark_family_registries.py")],
+        [sys.executable, str(registry_checker)],
         cwd=ROOT,
         capture_output=True,
         text=True,
@@ -1030,6 +1783,7 @@ def main() -> None:
 
     profiles = load_profiles()
     runtime_profiles = load_runtime_profiles()
+    validate_specification_completeness(profiles)
     seen: set[str] = set()
     by_label: dict[str, dict[str, object]] = {}
     for profile in profiles:
@@ -1040,6 +1794,19 @@ def main() -> None:
         seen.add(label)
         by_label[label] = profile
     validate_registry_completeness(set(by_label), runtime_profiles)
+    certified_labels = {
+        label
+        for label, profile in by_label.items()
+        if profile["status"] == "certified"
+    }
+    backend_labels = set(load_certification_backends())
+    if certified_labels != backend_labels:
+        missing = sorted(certified_labels - backend_labels)
+        extra = sorted(backend_labels - certified_labels)
+        fail(
+            "certified catalog/backend registry mismatch: "
+            f"missing={missing}, extra={extra}"
+        )
 
     labels = args.labels or list(by_label)
     if "all" in labels:
@@ -1055,28 +1822,66 @@ def main() -> None:
             for label in labels
             if by_label[label]["status"] == args.status
         ]
-        if not labels:
+        if not labels and not args.allow_empty:
             fail(f"no {args.status} profiles selected")
 
-    if args.emit_tsv:
+    if args.emit_lean_certification_checks:
+        not_certified = [
+            label
+            for label in labels
+            if by_label[label]["status"] != "certified"
+        ]
+        if not_certified:
+            fail(
+                "Lean certification checks require certified profiles: "
+                + ", ".join(not_certified)
+            )
+        print(render_lean_certification_checks(labels), end="")
+    elif args.emit_tsv:
         for label in labels:
             profile = by_label[label]
+            proof_witnesses = profile["proof_witnesses"]
+            assert isinstance(proof_witnesses, list)
+            first_proof_witness = proof_witnesses[0]
+            assert isinstance(first_proof_witness, dict)
             print(
                 "\t".join(
-                    str(profile[field])
-                    for field in (
-                        "label",
-                        "status",
-                        "kind",
-                        "n_in",
-                        "n_out",
-                        "witness",
-                        "artifact_dir",
-                        "manifest",
-                        "witness_format_version",
+                    (
+                        str(profile["label"]),
+                        str(profile["status"]),
+                        str(profile["kind"]),
+                        str(profile["n_in"]),
+                        str(profile["n_out"]),
+                        str(first_proof_witness["path"]),
+                        str(profile["artifact_dir"]),
+                        str(profile["manifest"]),
+                        str(profile["witness_format_version"]),
                     )
                 )
             )
+    elif args.emit_proof_witness_tsv:
+        for label in labels:
+            profile = by_label[label]
+            proof_witnesses = profile["proof_witnesses"]
+            assert isinstance(proof_witnesses, list)
+            for proof_witness in proof_witnesses:
+                assert isinstance(proof_witness, dict)
+                print(
+                    "\t".join(
+                        (
+                            str(profile["label"]),
+                            str(profile["status"]),
+                            str(profile["kind"]),
+                            str(profile["n_in"]),
+                            str(profile["n_out"]),
+                            str(proof_witness["case"]),
+                            str(proof_witness["path"]),
+                            str(profile["artifact_dir"]),
+                            str(profile["manifest"]),
+                            str(profile["witness_format_version"]),
+                        )
+                    )
+                )
     else:
         print(f"FV profile catalog ok: {len(profiles)} profiles")
 

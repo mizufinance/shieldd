@@ -5,9 +5,9 @@ use crate::{
         binary::encode_triple_path_32,
         binary::{encode_vec_32, put_bytes, put_u32, put_u64, put_u8, BinaryCursor},
         transfer_witness::{
-            TransferChangeOutputWitnessV11, TransferComplianceCiphertextWitnessV11,
-            TransferOptionalSpendWitnessV11, TransferReceiverOutputWitnessV11,
-            TransferRequiredSpendWitnessV11, TransferTierRandomizersWitnessV11, TransferWitnessV11,
+            TransferChangeOutputWitnessV16, TransferComplianceCiphertextWitnessV16,
+            TransferOptionalSpendWitnessV16, TransferReceiverOutputWitnessV16,
+            TransferRequiredSpendWitnessV16, TransferTierRandomizersWitnessV16, TransferWitnessV16,
         },
         typed::{
             decode_indexed_leaf, encode_indexed_leaf, encode_merkle_path, encode_point_affine,
@@ -17,9 +17,9 @@ use crate::{
 };
 
 const TRANSFER_WITNESS_MAGIC: &[u8; 4] = b"PTWG";
-const TRANSFER_WITNESS_VERSION: u32 = 11;
+const TRANSFER_WITNESS_VERSION: u32 = 16;
 
-impl TransferWitnessV11 {
+impl TransferWitnessV16 {
     pub fn encode(&self) -> Result<Vec<u8>> {
         let mut buf = Vec::new();
         put_bytes(&mut buf, TRANSFER_WITNESS_MAGIC);
@@ -41,8 +41,20 @@ impl TransferWitnessV11 {
         put_bytes(&mut buf, &self.sender_slot_id);
         put_bytes(&mut buf, &self.sender_slot_derivation);
         put_bytes(&mut buf, &self.sender_d);
+        put_bytes(&mut buf, &self.sender_clue_key);
         put_bytes(&mut buf, &self.transfer_nonce_root);
         encode_vec_32(&mut buf, &self.detection_ciphertext)?;
+        put_bytes(&mut buf, &self.sender_subject_derivation);
+        put_bytes(&mut buf, &self.output_subject_derivation);
+        put_bytes(&mut buf, &self.ring_id_hash);
+        put_bytes(&mut buf, &self.policy_id_hash);
+        put_bytes(&mut buf, &self.resource_hash);
+        put_bytes(&mut buf, &self.permission_hash);
+        put_bytes(&mut buf, &self.metadata_target_timestamp);
+        put_bytes(&mut buf, &self.sender_core_salt);
+        put_bytes(&mut buf, &self.sender_ext_salt);
+        put_bytes(&mut buf, &self.output_core_salt);
+        put_bytes(&mut buf, &self.output_ext_salt);
         encode_compliance_tier(&mut buf, &self.sender_core)?;
         encode_compliance_tier(&mut buf, &self.sender_ext)?;
         encode_compliance_tier(&mut buf, &self.output_core)?;
@@ -55,7 +67,6 @@ impl TransferWitnessV11 {
         encode_receiver_output(&mut buf, &self.receiver_output)?;
         encode_change_output(&mut buf, &self.change_output);
 
-        encode_point_affine(&mut buf, &self.balance_commitment_affine);
         encode_point_affine(&mut buf, &self.ak_affine);
         encode_point_affine(&mut buf, &self.asset_indexed_leaf_dk_pub_affine);
         encode_point_affine(&mut buf, &self.asset_indexed_leaf_ring_pk_affine);
@@ -103,8 +114,20 @@ impl TransferWitnessV11 {
             sender_slot_id: cursor.read_fixed::<32>()?,
             sender_slot_derivation: cursor.read_fixed::<32>()?,
             sender_d: cursor.read_fixed::<32>()?,
+            sender_clue_key: cursor.read_fixed::<32>()?,
             transfer_nonce_root: cursor.read_fixed::<32>()?,
             detection_ciphertext: cursor.read_vec_32()?,
+            sender_subject_derivation: cursor.read_fixed::<32>()?,
+            output_subject_derivation: cursor.read_fixed::<32>()?,
+            ring_id_hash: cursor.read_fixed::<32>()?,
+            policy_id_hash: cursor.read_fixed::<32>()?,
+            resource_hash: cursor.read_fixed::<32>()?,
+            permission_hash: cursor.read_fixed::<32>()?,
+            metadata_target_timestamp: cursor.read_fixed::<32>()?,
+            sender_core_salt: cursor.read_fixed::<32>()?,
+            sender_ext_salt: cursor.read_fixed::<32>()?,
+            output_core_salt: cursor.read_fixed::<32>()?,
+            output_ext_salt: cursor.read_fixed::<32>()?,
             sender_core: decode_compliance_tier(&mut cursor)?,
             sender_ext: decode_compliance_tier(&mut cursor)?,
             output_core: decode_compliance_tier(&mut cursor)?,
@@ -115,7 +138,6 @@ impl TransferWitnessV11 {
             optional_spend: decode_optional_spend(&mut cursor)?,
             receiver_output: decode_receiver_output(&mut cursor)?,
             change_output: decode_change_output(&mut cursor)?,
-            balance_commitment_affine: cursor.read_point_affine()?,
             ak_affine: cursor.read_point_affine()?,
             asset_indexed_leaf_dk_pub_affine: cursor.read_point_affine()?,
             asset_indexed_leaf_ring_pk_affine: cursor.read_point_affine()?,
@@ -130,68 +152,41 @@ impl TransferWitnessV11 {
 
 fn encode_compliance_tier(
     buf: &mut Vec<u8>,
-    tier: &TransferComplianceCiphertextWitnessV11,
+    tier: &TransferComplianceCiphertextWitnessV16,
 ) -> Result<()> {
     put_bytes(buf, &tier.c2);
     encode_vec_32(buf, &tier.ciphertext)?;
-    put_bytes(buf, &tier.subject_derivation);
-    put_bytes(buf, &tier.ring_id_hash);
-    put_bytes(buf, &tier.policy_id_hash);
-    put_bytes(buf, &tier.resource_hash);
-    put_bytes(buf, &tier.permission_hash);
-    put_u64(buf, tier.tier);
-    put_bytes(buf, &tier.statement_target_timestamp);
-    put_bytes(buf, &tier.salt);
-    put_bytes(buf, &tier.challenge);
-    put_bytes(buf, &tier.response);
     encode_point_affine(buf, &tier.epk_affine);
-    encode_point_affine(buf, &tier.derived_pk_affine);
-    encode_point_affine(buf, &tier.enc_cmt_affine);
-    encode_point_affine(buf, &tier.shared_point_affine);
     Ok(())
 }
 
 fn decode_compliance_tier(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<TransferComplianceCiphertextWitnessV11> {
-    Ok(TransferComplianceCiphertextWitnessV11 {
+) -> Result<TransferComplianceCiphertextWitnessV16> {
+    Ok(TransferComplianceCiphertextWitnessV16 {
         c2: cursor.read_fixed::<32>()?,
         ciphertext: cursor.read_vec_32()?,
-        subject_derivation: cursor.read_fixed::<32>()?,
-        ring_id_hash: cursor.read_fixed::<32>()?,
-        policy_id_hash: cursor.read_fixed::<32>()?,
-        resource_hash: cursor.read_fixed::<32>()?,
-        permission_hash: cursor.read_fixed::<32>()?,
-        tier: cursor.read_u64()?,
-        statement_target_timestamp: cursor.read_fixed::<32>()?,
-        salt: cursor.read_fixed::<32>()?,
-        challenge: cursor.read_fr()?,
-        response: cursor.read_fr()?,
         epk_affine: cursor.read_point_affine()?,
-        derived_pk_affine: cursor.read_point_affine()?,
-        enc_cmt_affine: cursor.read_point_affine()?,
-        shared_point_affine: cursor.read_point_affine()?,
     })
 }
 
-fn encode_randomizers(buf: &mut Vec<u8>, randomizers: &TransferTierRandomizersWitnessV11) {
+fn encode_randomizers(buf: &mut Vec<u8>, randomizers: &TransferTierRandomizersWitnessV16) {
     put_bytes(buf, &randomizers.core);
     put_bytes(buf, &randomizers.ext);
 }
 
-fn decode_randomizers(cursor: &mut BinaryCursor<'_>) -> Result<TransferTierRandomizersWitnessV11> {
-    Ok(TransferTierRandomizersWitnessV11 {
+fn decode_randomizers(cursor: &mut BinaryCursor<'_>) -> Result<TransferTierRandomizersWitnessV16> {
+    Ok(TransferTierRandomizersWitnessV16 {
         core: cursor.read_fr()?,
         ext: cursor.read_fr()?,
     })
 }
 
-fn encode_required_spend(buf: &mut Vec<u8>, spend: &TransferRequiredSpendWitnessV11) -> Result<()> {
+fn encode_required_spend(buf: &mut Vec<u8>, spend: &TransferRequiredSpendWitnessV16) -> Result<()> {
     put_bytes(buf, &spend.nullifier);
     put_bytes(buf, &spend.spent_note_blinding);
     put_bytes(buf, &spend.spent_note_amount);
     put_bytes(buf, &spend.spent_note_asset_id);
-    put_bytes(buf, &spend.spent_clue_key);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
     put_bytes(buf, &spend.spend_auth_randomizer);
@@ -199,13 +194,12 @@ fn encode_required_spend(buf: &mut Vec<u8>, spend: &TransferRequiredSpendWitness
     Ok(())
 }
 
-fn decode_required_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferRequiredSpendWitnessV11> {
-    Ok(TransferRequiredSpendWitnessV11 {
+fn decode_required_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferRequiredSpendWitnessV16> {
+    Ok(TransferRequiredSpendWitnessV16 {
         nullifier: cursor.read_fixed::<32>()?,
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
         spent_note_asset_id: cursor.read_fixed::<32>()?,
-        spent_clue_key: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
         spend_auth_randomizer: cursor.read_fr()?,
@@ -213,11 +207,10 @@ fn decode_required_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferRequir
     })
 }
 
-fn encode_optional_spend(buf: &mut Vec<u8>, spend: &TransferOptionalSpendWitnessV11) -> Result<()> {
+fn encode_optional_spend(buf: &mut Vec<u8>, spend: &TransferOptionalSpendWitnessV16) -> Result<()> {
     put_bytes(buf, &spend.nullifier);
     put_bytes(buf, &spend.spent_note_blinding);
     put_bytes(buf, &spend.spent_note_amount);
-    put_bytes(buf, &spend.spent_clue_key);
     put_u64(buf, spend.state_commitment_position);
     encode_triple_path_32(buf, &spend.state_commitment_auth_path)?;
     put_bytes(buf, &spend.spend_auth_randomizer);
@@ -227,12 +220,11 @@ fn encode_optional_spend(buf: &mut Vec<u8>, spend: &TransferOptionalSpendWitness
     Ok(())
 }
 
-fn decode_optional_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferOptionalSpendWitnessV11> {
-    Ok(TransferOptionalSpendWitnessV11 {
+fn decode_optional_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferOptionalSpendWitnessV16> {
+    Ok(TransferOptionalSpendWitnessV16 {
         nullifier: cursor.read_fixed::<32>()?,
         spent_note_blinding: cursor.read_fixed::<32>()?,
         spent_note_amount: cursor.read_fixed::<32>()?,
-        spent_clue_key: cursor.read_fixed::<32>()?,
         state_commitment_position: cursor.read_u64()?,
         state_commitment_auth_path: cursor.read_triple_path_32()?,
         spend_auth_randomizer: cursor.read_fr()?,
@@ -244,7 +236,7 @@ fn decode_optional_spend(cursor: &mut BinaryCursor<'_>) -> Result<TransferOption
 
 fn encode_receiver_output(
     buf: &mut Vec<u8>,
-    output: &TransferReceiverOutputWitnessV11,
+    output: &TransferReceiverOutputWitnessV16,
 ) -> Result<()> {
     put_bytes(buf, &output.note_commitment);
     put_bytes(buf, &output.created_note_blinding);
@@ -262,8 +254,8 @@ fn encode_receiver_output(
 
 fn decode_receiver_output(
     cursor: &mut BinaryCursor<'_>,
-) -> Result<TransferReceiverOutputWitnessV11> {
-    Ok(TransferReceiverOutputWitnessV11 {
+) -> Result<TransferReceiverOutputWitnessV16> {
+    Ok(TransferReceiverOutputWitnessV16 {
         note_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,
@@ -278,57 +270,16 @@ fn decode_receiver_output(
     })
 }
 
-fn encode_change_output(buf: &mut Vec<u8>, output: &TransferChangeOutputWitnessV11) {
+fn encode_change_output(buf: &mut Vec<u8>, output: &TransferChangeOutputWitnessV16) {
     put_bytes(buf, &output.note_commitment);
     put_bytes(buf, &output.created_note_blinding);
     put_bytes(buf, &output.created_note_amount);
-    put_bytes(buf, &output.created_clue_key);
 }
 
-fn decode_change_output(cursor: &mut BinaryCursor<'_>) -> Result<TransferChangeOutputWitnessV11> {
-    Ok(TransferChangeOutputWitnessV11 {
+fn decode_change_output(cursor: &mut BinaryCursor<'_>) -> Result<TransferChangeOutputWitnessV16> {
+    Ok(TransferChangeOutputWitnessV16 {
         note_commitment: cursor.read_fixed::<32>()?,
         created_note_blinding: cursor.read_fixed::<32>()?,
         created_note_amount: cursor.read_fixed::<32>()?,
-        created_clue_key: cursor.read_fixed::<32>()?,
     })
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use decaf377::Fr;
-
-    fn fr_modulus_bytes() -> [u8; 32] {
-        let mut modulus = (-Fr::from(1u64)).to_bytes();
-        for byte in &mut modulus {
-            let (next, carry) = byte.overflowing_add(1);
-            *byte = next;
-            if !carry {
-                break;
-            }
-        }
-        modulus
-    }
-
-    #[test]
-    fn compliance_tier_rejects_scalar_modulus_challenge() {
-        let mut encoded = Vec::new();
-        put_bytes(&mut encoded, &[0u8; 32]);
-        put_u32(&mut encoded, 0);
-        for _ in 0..5 {
-            put_bytes(&mut encoded, &[0u8; 32]);
-        }
-        put_u64(&mut encoded, 1);
-        put_bytes(&mut encoded, &[0u8; 32]);
-        put_bytes(&mut encoded, &[0u8; 32]);
-        put_bytes(&mut encoded, &fr_modulus_bytes());
-
-        let error = decode_compliance_tier(&mut BinaryCursor::new(&encoded))
-            .expect_err("Fr modulus challenge must be rejected");
-        assert!(
-            error.to_string().contains("non-canonical Fr"),
-            "unexpected challenge rejection: {error:#}"
-        );
-    }
 }

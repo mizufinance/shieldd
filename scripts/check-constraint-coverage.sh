@@ -2,6 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+GNARK="$ROOT/tools/gnark"
+BACKENDS="$GNARK/fv_certification_backends.json"
 require_full_deployed=0
 check_typed_bindings=0
 # The default run is Rust-only. Optional theorem checks assume the caller has
@@ -24,10 +26,18 @@ sha256_file() {
 
 select_circuits() {
   local selected=()
-  local candidate existing seen
+  local candidate existing seen certified
+
+  certified="$(
+    python3 "$ROOT/scripts/check-fv-profiles.py" --emit-tsv --status certified \
+      | cut -f1
+  )"
+  [[ -n "$certified" ]] || fail "FV catalog has no certified profiles"
 
   add_circuit() {
     candidate="$1"
+    grep -Fqx "$candidate" <<< "$certified" \
+      || fail "unsupported or uncertified circuit $candidate"
     seen=0
     if [[ "${#selected[@]}" -gt 0 ]]; then
       for existing in "${selected[@]}"; do
@@ -42,9 +52,11 @@ select_circuits() {
 
   if [[ "$#" -eq 0 ]]; then
     if [[ "$require_full_deployed" -eq 1 ]]; then
-      selected=(note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8)
+      while IFS= read -r candidate; do
+        [[ -z "$candidate" ]] || selected+=("$candidate")
+      done <<< "$certified"
     else
-      selected=(note_reshape2x1)
+      selected=("${certified%%$'\n'*}")
     fi
     printf '%s\n' "${selected[@]}"
     return
@@ -56,12 +68,11 @@ select_circuits() {
         [[ "$#" -gt 0 ]] || fail "--circuit requires an argument"
         case "$1" in
           all)
-            for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
-              add_circuit "$candidate"
-            done
+            while IFS= read -r candidate; do
+              [[ -z "$candidate" ]] || add_circuit "$candidate"
+            done <<< "$certified"
             ;;
-          note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8) add_circuit "$1" ;;
-          *) fail "unsupported circuit $1" ;;
+          *) add_circuit "$1" ;;
         esac
         ;;
       --require-full-deployed)
@@ -69,16 +80,11 @@ select_circuits() {
       --check-typed-bindings)
         ;;
       all)
-        for candidate in note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
-          add_circuit "$candidate"
-        done
+        while IFS= read -r candidate; do
+          [[ -z "$candidate" ]] || add_circuit "$candidate"
+        done <<< "$certified"
         ;;
-      note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8)
-        add_circuit "$1"
-        ;;
-      *)
-        fail "unsupported circuit argument $1"
-        ;;
+      *) add_circuit "$1" ;;
     esac
     shift
   done
@@ -112,6 +118,15 @@ done
 bridge_import_for_theorem() {
   local theorem="$1" namespace
   case "$theorem" in
+    Shieldd.GnarkFormal.Deployed.DecafAssertOnCurve.circuit_sound)
+      printf '%s\n' ShielddGnarkFormal.Deployed.DecafAssertOnCurveBridge
+      ;;
+    Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound)
+      printf '%s\n' ShielddGnarkFormal.DtkBridge.Semantics
+      ;;
+    Shieldd.GnarkFormal.isZeroExtracted_implies_is_zero)
+      printf '%s\n' ShielddGnarkFormal.ExtractedProofs
+      ;;
     Shieldd.GnarkFormal.Deployed.*)
       return 0
       ;;
@@ -219,14 +234,8 @@ check_generated_contracts() {
     find . -maxdepth 1 -type f -name 'Seg*.lean' | sed 's#^\./##' | sort
   ) > "$generated_list"
 
-  # Subset fidelity: every committed contract must exist in the freshly
-  # generated set and byte-match it. A committed contract the generator no
-  # longer emits is a stale orphan (always fatal). Generated contracts with no
-  # committed counterpart mean the deployed layer is incomplete; that is
-  # allowed only when the tier permits pending obligations (stamps tier),
-  # exactly as pending obligations are treated below, and fatal under
-  # --require-full-deployed. This keeps a complete set (note_reshape2x1) at full
-  # equality while allowing a stamps-tier run to omit unselected families.
+  # Every certified deployed contract must exist and byte-match. A stale
+  # committed contract or an uncommitted generated contract is always fatal.
   local orphans missing
   orphans="$(comm -23 "$committed_list" "$generated_list")"
   if [[ -n "$orphans" ]]; then
@@ -236,7 +245,7 @@ check_generated_contracts() {
   fi
 
   missing="$(comm -13 "$committed_list" "$generated_list")"
-  if [[ -n "$missing" && ( "$require_full_deployed" -eq 1 || "$circuit" == "note_reshape2x1" ) ]]; then
+  if [[ -n "$missing" ]]; then
     printf '%s\n' "$missing" \
       | sed 's/^/Generated contract with no committed counterpart: /' >&2
     fail "generated deployed contract set incomplete for $circuit"
@@ -247,6 +256,33 @@ check_generated_contracts() {
     if ! cmp -s "$committed_dir/$contract_file" "$generated_dir/$contract_file"; then
       diff -u "$committed_dir/$contract_file" "$generated_dir/$contract_file" >&2 || true
       fail "generated deployed contract drifted for $circuit: $contract_file"
+    fi
+  done < "$committed_list"
+}
+
+check_generated_family_artifacts() {
+  local committed_dir="$1" generated_dir="$2" circuit="$3"
+  local committed_list="$tmp_dir/$circuit-committed-family-files.txt"
+  local generated_list="$tmp_dir/$circuit-generated-family-files.txt"
+  local artifact
+
+  (
+    cd "$committed_dir"
+    find . -maxdepth 1 -type f -name '*.lean' | sed 's#^\./##' | sort
+  ) > "$committed_list"
+  (
+    cd "$generated_dir"
+    find . -maxdepth 1 -type f -name '*.lean' | sed 's#^\./##' | sort
+  ) > "$generated_list"
+  if ! cmp -s "$committed_list" "$generated_list"; then
+    diff -u "$committed_list" "$generated_list" >&2 || true
+    fail "generated family artifact set differs for $circuit"
+  fi
+  while IFS= read -r artifact; do
+    [[ -z "$artifact" ]] && continue
+    if ! cmp -s "$committed_dir/$artifact" "$generated_dir/$artifact"; then
+      diff -u "$committed_dir/$artifact" "$generated_dir/$artifact" >&2 || true
+      fail "generated family artifact drifted for $circuit: $artifact"
     fi
   done < "$committed_list"
 }
@@ -283,53 +319,36 @@ check_generated_templates() {
 }
 
 coverage_manifest_for_circuit() {
-  case "$1" in
-    note_reshape2x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-coverage-manifest.json" ;;
-    note_reshape4x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape4x1-coverage-manifest.json" ;;
-    note_reshape8x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape8x1-coverage-manifest.json" ;;
-    note_reshape1x8) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-coverage-manifest.json" ;;
-    *) fail "unsupported circuit $1" ;;
-  esac
+  printf '%s\n' \
+    "$ROOT/crates/core/component/shielded-pool/formal/$1-coverage-manifest.json"
 }
 
 coverage_ir_for_circuit() {
-  case "$1" in
-    note_reshape2x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-deployed-slice-ir.json" ;;
-    note_reshape4x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape4x1-deployed-slice-ir.json" ;;
-    note_reshape8x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape8x1-deployed-slice-ir.json" ;;
-    note_reshape1x8) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-deployed-slice-ir.json" ;;
-    *) fail "unsupported circuit $1" ;;
-  esac
+  printf '%s\n' \
+    "$ROOT/crates/core/component/shielded-pool/formal/$1-deployed-slice-ir.json"
 }
 
 contract_module_dir_for_circuit() {
-  case "$1" in
-    note_reshape2x1) printf '%s\n' NoteReshape2x1 ;;
-    note_reshape4x1) printf '%s\n' NoteReshape4x1 ;;
-    note_reshape8x1) printf '%s\n' NoteReshape8x1 ;;
-    note_reshape1x8) printf '%s\n' NoteReshape1x8 ;;
-    *) fail "unsupported circuit $1" ;;
-  esac
+  jq -er --arg circuit "$1" \
+    '.backends[] | select(.label == $circuit) | .contract_module' \
+    "$BACKENDS" \
+    || fail "missing contract module backend for $1"
+}
+
+generation_backend_for_circuit() {
+  jq -er --arg circuit "$1" \
+    '.backends[] | select(.label == $circuit) | .generation_backend' \
+    "$BACKENDS" \
+    || fail "missing generation backend for $1"
 }
 
 artifact_dir_for_circuit() {
-  case "$1" in
-    note_reshape2x1) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape2x1" ;;
-    note_reshape4x1) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape4x1" ;;
-    note_reshape8x1) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape8x1" ;;
-    note_reshape1x8) printf '%s\n' "$ROOT/tools/gnark/artifacts/note_reshape1x8" ;;
-    *) fail "unsupported circuit $1" ;;
-  esac
+  printf '%s\n' "$ROOT/tools/gnark/artifacts/$1"
 }
 
 formal_report_for_circuit() {
-  case "$1" in
-    note_reshape2x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-constraint-coverage-report.json" ;;
-    note_reshape4x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape4x1-constraint-coverage-report.json" ;;
-    note_reshape8x1) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape8x1-constraint-coverage-report.json" ;;
-    note_reshape1x8) printf '%s\n' "$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-constraint-coverage-report.json" ;;
-    *) fail "unsupported circuit $1" ;;
-  esac
+  printf '%s\n' \
+    "$ROOT/crates/core/component/shielded-pool/formal/$1-constraint-coverage-report.json"
 }
 
 if [[ "${#cli_args[@]}" -eq 0 ]]; then
@@ -338,11 +357,14 @@ else
   selected_circuits="$(select_circuits "${cli_args[@]}")"
 fi
 [[ -n "$selected_circuits" ]] || fail "no circuits selected"
+certified_circuits="$(
+  python3 "$ROOT/scripts/check-fv-profiles.py" --emit-tsv --status certified \
+    | cut -f1
+)"
+[[ -n "$certified_circuits" ]] || fail "FV catalog has no certified profiles"
 
-# The normalized-template inventory spans the four NoteReshape deployments,
-# even when this invocation selects only one deployed circuit. Keep it in the
-# full tier so a complete obligation check cannot silently use stale seating or
-# omit a family from the reusable-template review.
+# The normalized-template inventory spans every certified deployment, even
+# when this invocation selects only one circuit.
 if [[ "$require_full_deployed" -eq 1 ]]; then
   if [[ -n "${FV_FRESH_DIR:-}" ]]; then
     : # The fresh inventory is generated by the outer FV gate after all IRs exist.
@@ -350,15 +372,35 @@ if [[ "$require_full_deployed" -eq 1 ]]; then
     "$ROOT/scripts/check-template-inventory.sh" \
       || fail "normalized template inventory is stale or incomplete"
   fi
-  python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_template_semantics.py" --check \
-    || fail "generated normalized-template semantic providers drifted"
-  if rg -n 'spec := relation|fun _ h => h' \
-    "$lean_src_dir/ShielddGnarkFormal/Deployed/Templates/Generated" \
-    "$lean_src_dir/ShielddGnarkFormal/Deployed/Templates/Semantics" \
-    "$lean_src_dir/ShielddGnarkFormal/Deployed/Contracts/NoteReshape4x1/Bounds.lean" \
-    "$lean_src_dir/ShielddGnarkFormal/Deployed/Contracts/NoteReshape8x1/Bounds.lean" \
-    "$lean_src_dir/ShielddGnarkFormal/Deployed/Contracts/NoteReshape1x8/Bounds.lean"; then
-    fail "identity semantic proof found in the NoteReshape deployed proof chain"
+  generation_backends="$(
+    while IFS= read -r circuit; do
+      [[ -z "$circuit" ]] || generation_backend_for_circuit "$circuit"
+    done <<< "$certified_circuits" | LC_ALL=C sort -u
+  )"
+  while IFS= read -r generation_backend; do
+    [[ -z "$generation_backend" ]] && continue
+    case "$generation_backend" in
+      note_reshape|deployed_family)
+        python3 \
+          "$ROOT/tools/gnark/lean/gen/gen_note_reshape_template_semantics.py" \
+          --check \
+          || fail "generated normalized-template semantic providers drifted"
+        ;;
+      *) fail "unsupported certified generation backend $generation_backend" ;;
+    esac
+  done <<< "$generation_backends"
+  identity_paths=(
+    "$lean_src_dir/ShielddGnarkFormal/Deployed/Templates/Generated"
+    "$lean_src_dir/ShielddGnarkFormal/Deployed/Templates/Semantics"
+  )
+  while IFS= read -r circuit; do
+    [[ -z "$circuit" ]] && continue
+    identity_paths+=(
+      "$lean_src_dir/ShielddGnarkFormal/Deployed/Contracts/$(contract_module_dir_for_circuit "$circuit")/Bounds.lean"
+    )
+  done <<< "$certified_circuits"
+  if rg -n 'spec := relation|fun _ h => h' "${identity_paths[@]}"; then
+    fail "identity semantic proof found in a certified deployed proof chain"
   fi
 fi
 
@@ -376,44 +418,6 @@ export LEAN_NUM_THREADS=1
 # source root. All file paths are absolute ($ROOT/...), and the cargo runs that
 # need the repo root cd into "$ROOT" inside their own subshells.
 cd "$lean_src_dir"
-
-# Template reuse is a four-family invariant, not a property of whichever one
-# deployment happened to be selected on the command line. Regenerate the
-# complete union before checking exact Generated/Relations bytes.
-if [[ "$require_full_deployed" -eq 1 ]]; then
-  for template_circuit in \
-    note_reshape2x1 note_reshape4x1 note_reshape8x1 note_reshape1x8; do
-    template_artifact_dir="$(artifact_dir_for_circuit "$template_circuit")"
-    if [[ -n "${FV_FRESH_DIR:-}" ]]; then
-      template_artifact_dir="$FV_FRESH_DIR"
-    fi
-    (
-      cd "$ROOT"
-      if [[ "$template_circuit" == "note_reshape2x1" ]]; then
-        cargo run --release -q -p shieldd-constraint-coverage -- \
-          --manifest "$template_artifact_dir/$template_circuit-manifest.json" \
-          --sr1cs "$template_artifact_dir/$template_circuit.sr1cs" \
-          --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
-          --lean-template-out "$tmp_template_root" \
-          --report-out "$tmp_dir/$template_circuit-template-report.json" \
-          --lt-seating-out "$tmp_dir/note_reshape2x1-dtk-lt-seating.json"
-      else
-        cargo run --release -q -p shieldd-constraint-coverage -- \
-          --manifest "$template_artifact_dir/$template_circuit-manifest.json" \
-          --sr1cs "$template_artifact_dir/$template_circuit.sr1cs" \
-          --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
-          --lean-template-out "$tmp_template_root" \
-          --report-out "$tmp_dir/$template_circuit-template-report.json"
-      fi
-    )
-  done
-  canonical_lt_seating="$ROOT/crates/core/component/shielded-pool/formal/note_reshape2x1-dtk-lt-seating.json"
-  canonical_lt_seating_sha="$canonical_lt_seating.sha256"
-  cmp -s "$tmp_dir/note_reshape2x1-dtk-lt-seating.json" "$canonical_lt_seating" \
-    || fail "canonical parity-gated DTK LT seating artifact drifted"
-  [[ "$(sha256_file "$canonical_lt_seating")" == "$(tr -d '[:space:]' < "$canonical_lt_seating_sha")" ]] \
-    || fail "canonical parity-gated DTK LT seating digest sidecar drifted"
-fi
 
 while IFS= read -r circuit; do
   [[ -z "$circuit" ]] && continue
@@ -433,9 +437,20 @@ while IFS= read -r circuit; do
   report_stamp="$report.sha256"
   coverage_manifest_stamp="$coverage_manifest.sha256"
   coverage_ir_stamp="$coverage_ir.sha256"
+  wiring_cert="$ROOT/crates/core/component/shielded-pool/formal/$circuit-wiring-cert.json"
+  wiring_cert_stamp="$wiring_cert.sha256"
   tmp_report="$tmp_dir/$circuit-coverage-report.json"
   tmp_ir="$tmp_dir/$circuit-deployed-slice-ir.json"
   tmp_coverage_manifest="$tmp_dir/$circuit-coverage-manifest.json"
+  tmp_wiring_cert="$tmp_dir/$circuit-wiring-cert.json"
+  dtk_lt_seating=""
+  dtk_lt_seating_stamp=""
+  tmp_dtk_lt_seating=""
+  if [[ "$circuit" == "note_reshape1x8" ]]; then
+    dtk_lt_seating="$ROOT/crates/core/component/shielded-pool/formal/note_reshape1x8-dtk-lt-seating.json"
+    dtk_lt_seating_stamp="$dtk_lt_seating.sha256"
+    tmp_dtk_lt_seating="$tmp_dir/note_reshape1x8-dtk-lt-seating.json"
+  fi
   contract_module_dir="$(contract_module_dir_for_circuit "$circuit")"
   committed_contract_dir="$ROOT/tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/$contract_module_dir"
   tmp_contract_root="$tmp_dir/$circuit-contracts"
@@ -452,6 +467,45 @@ while IFS= read -r circuit; do
   [[ -f "$coverage_ir" ]] || fail "missing deployed slice IR $coverage_ir"
   [[ -f "$coverage_manifest_stamp" ]] || fail "missing deployed coverage manifest stamp $coverage_manifest_stamp"
   [[ -f "$coverage_ir_stamp" ]] || fail "missing deployed slice IR stamp $coverage_ir_stamp"
+  [[ -f "$wiring_cert" ]] || fail "missing wiring certificate $wiring_cert"
+  [[ -f "$wiring_cert_stamp" ]] || fail "missing wiring certificate stamp $wiring_cert_stamp"
+
+  extraction_args=(
+    --manifest "$manifest"
+    --sr1cs "$sr1cs"
+    --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json"
+    --coverage-manifest "$coverage_manifest"
+    --coverage-ir "$coverage_ir"
+    --ir-out "$tmp_ir"
+    --coverage-manifest-normalize "$coverage_manifest"
+    --coverage-manifest-out "$tmp_coverage_manifest"
+    --report-out "$tmp_report"
+    --lean-contract-out "$tmp_contract_root"
+  )
+  if [[ "$require_full_deployed" -eq 1 ]]; then
+    extraction_args+=(--lean-template-out "$tmp_template_root")
+  fi
+  if [[ -n "$tmp_dtk_lt_seating" ]]; then
+    extraction_args+=(--dtk-lt-seating-out "$tmp_dtk_lt_seating")
+  fi
+  (
+    cd "$ROOT"
+    cargo run --release -q -p shieldd-constraint-coverage -- \
+      "${extraction_args[@]}"
+  )
+  if [[ -n "$tmp_dtk_lt_seating" ]]; then
+    [[ -f "$dtk_lt_seating" && -f "$dtk_lt_seating_stamp" ]] \
+      || fail "missing active DTK LT seating artifact or sidecar"
+    if ! cmp -s "$tmp_dtk_lt_seating" "$dtk_lt_seating"; then
+      diff -u "$dtk_lt_seating" "$tmp_dtk_lt_seating" >&2 || true
+      fail "active DTK LT seating artifact drifted"
+    fi
+    [[ "$(tr -d '[:space:]' < "$dtk_lt_seating_stamp")" == "$(sha256_file "$dtk_lt_seating")" ]] \
+      || fail "active DTK LT seating digest sidecar drifted"
+  fi
+  check_generated_contracts \
+    "$committed_contract_dir" "$tmp_contract_dir" "$circuit"
+  contracts_checked=1
 
   (
     cd "$ROOT"
@@ -459,13 +513,15 @@ while IFS= read -r circuit; do
       --manifest "$manifest" \
       --sr1cs "$sr1cs" \
       --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
-      --coverage-manifest "$coverage_manifest" \
-      --coverage-ir "$coverage_ir" \
-      --ir-out "$tmp_ir" \
-      --coverage-manifest-normalize "$coverage_manifest" \
-      --coverage-manifest-out "$tmp_coverage_manifest" \
-      --report-out "$tmp_report"
+      --coverage-ir "$tmp_ir" \
+      --wiring-cert-out "$tmp_wiring_cert"
   )
+  if ! cmp -s "$tmp_wiring_cert" "$wiring_cert"; then
+    diff -u "$wiring_cert" "$tmp_wiring_cert" >&2 || true
+    fail "wiring certificate drift for $circuit"
+  fi
+  [[ "$(tr -d '[:space:]' < "$wiring_cert_stamp")" == "$(sha256_file "$wiring_cert")" ]] \
+    || fail "wiring certificate stamp mismatch for $circuit"
   if ! cmp -s "$tmp_ir" "$coverage_ir"; then
     diff -u "$coverage_ir" "$tmp_ir" >&2 || true
     fail "deployed slice IR drift for $circuit"
@@ -477,37 +533,72 @@ while IFS= read -r circuit; do
     diff -u "$coverage_manifest" "$tmp_coverage_manifest" >&2 || true
     fail "deployed coverage manifest is not the normalized fresh IR projection for $circuit"
   fi
-  if [[ -d "$committed_contract_dir" ]]; then
-    contract_generation_args=(--lean-contract-out "$tmp_contract_root")
-    (
-      cd "$ROOT"
-      cargo run --release -q -p shieldd-constraint-coverage -- \
-        --manifest "$manifest" \
-        --sr1cs "$sr1cs" \
-        --template-registry "$ROOT/tools/gnark/artifacts/proof-template-registry.json" \
-        "${contract_generation_args[@]}"
-    )
-    check_generated_contracts "$committed_contract_dir" "$tmp_contract_dir" "$circuit"
-    contracts_checked=1
-  fi
-  if [[ "$circuit" == note_reshape* ]]; then
-    python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_family.py" \
-      --ir "$tmp_ir" \
-      --manifest "$tmp_coverage_manifest" \
-      --constraint-manifest "$manifest" \
-      --out-dir "$tmp_contract_dir" \
-      --manifest-out "$tmp_coverage_manifest" \
-      --prune \
-      || fail "generated family proof artifacts drift for $circuit"
-    if ! cmp -s "$committed_contract_dir/Bounds.lean" "$tmp_contract_dir/Bounds.lean" \
-      || ! cmp -s "$committed_contract_dir/Capstone.lean" "$tmp_contract_dir/Capstone.lean" \
-      || ! cmp -s "$committed_contract_dir/CircuitFacts.lean" "$tmp_contract_dir/CircuitFacts.lean" \
-      || ! cmp -s "$committed_contract_dir/RoleBindings.lean" "$tmp_contract_dir/RoleBindings.lean" \
-      || ! cmp -s "$committed_contract_dir/SemanticBindings.lean" "$tmp_contract_dir/SemanticBindings.lean" \
-      || ! cmp -s "$committed_contract_dir/SemanticSeams.lean" "$tmp_contract_dir/SemanticSeams.lean"; then
-      fail "generated family proof artifacts drift for $circuit"
-    fi
-  fi
+  generation_backend="$(generation_backend_for_circuit "$circuit")"
+  case "$generation_backend" in
+    note_reshape)
+      python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_family.py" \
+        --ir "$tmp_ir" \
+        --manifest "$tmp_coverage_manifest" \
+        --constraint-manifest "$manifest" \
+        --out-dir "$tmp_contract_dir" \
+        --manifest-out "$tmp_coverage_manifest" \
+        --prune \
+        || fail "generated family proof artifacts drift for $circuit"
+      python3 "$ROOT/tools/gnark/lean/gen/gen_note_reshape_family.py" \
+        --ir "$tmp_ir" \
+        --manifest "$tmp_coverage_manifest" \
+        --constraint-manifest "$manifest" \
+        --out-dir "$tmp_contract_dir" \
+        --manifest-out "$tmp_coverage_manifest" \
+        --check \
+        --prune \
+        || fail "generated family proof ownership check failed for $circuit"
+      ;;
+    deployed_family)
+      case "$circuit" in
+        transfer)
+          canonical_refinement="TransferRefinement.lean"
+          ;;
+        shielded_ics20_withdrawal)
+          canonical_refinement="ShieldedIcs20WithdrawalRefinement.lean"
+          ;;
+        *)
+          fail "deployed-family circuit has no canonical refinement root: $circuit"
+          ;;
+      esac
+      tmp_canonical_refinement="$tmp_dir/$canonical_refinement"
+      committed_canonical_refinement="$ROOT/tools/gnark/lean/ShielddGnarkFormal/Deployed/$canonical_refinement"
+      python3 "$ROOT/tools/gnark/lean/gen/gen_deployed_family.py" \
+        --ir "$tmp_ir" \
+        --manifest "$tmp_coverage_manifest" \
+        --constraint-manifest "$manifest" \
+        --out-dir "$tmp_contract_dir" \
+        --manifest-out "$tmp_coverage_manifest" \
+        --canonical-out "$tmp_canonical_refinement" \
+        --prune \
+        || fail "generated family proof artifacts drift for $circuit"
+      python3 "$ROOT/tools/gnark/lean/gen/gen_deployed_family.py" \
+        --ir "$tmp_ir" \
+        --manifest "$tmp_coverage_manifest" \
+        --constraint-manifest "$manifest" \
+        --out-dir "$tmp_contract_dir" \
+        --manifest-out "$tmp_coverage_manifest" \
+        --canonical-out "$tmp_canonical_refinement" \
+        --check \
+        --prune \
+        || fail "generated family proof ownership check failed for $circuit"
+      if ! cmp -s \
+          "$tmp_canonical_refinement" "$committed_canonical_refinement"; then
+        diff -u \
+          "$committed_canonical_refinement" \
+          "$tmp_canonical_refinement" >&2 || true
+        fail "canonical refinement root drift for $circuit"
+      fi
+      ;;
+    *) fail "unsupported certified generation backend $generation_backend" ;;
+  esac
+  check_generated_family_artifacts \
+    "$committed_contract_dir" "$tmp_contract_dir" "$circuit"
   if [[ -n "${FV_FRESH_DIR:-}" ]]; then
     mkdir -p "$FV_FRESH_DIR/contracts"
     rm -rf "$FV_FRESH_DIR/contracts/$contract_module_dir"

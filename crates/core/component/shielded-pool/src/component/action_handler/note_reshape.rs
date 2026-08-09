@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use cnidarium::StateWrite;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
+use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_proto::{DomainType as _, StateWriteProto as _};
 use shieldd_sdk_sct::component::{source::SourceContext, tree::SctManager};
 use shieldd_sdk_sct::Nullifier;
@@ -43,8 +44,12 @@ pub(crate) fn verify_auth_sigs<I>(
         auth_sigs.len()
     );
     for (index, (input, auth_sig)) in inputs.iter().zip(auth_sigs.iter()).enumerate() {
-        rk(input)
-            .verify(context.effect_hash.as_ref(), auth_sig)
+        let rk = rk(input);
+        ensure_nonidentity_spend_auth_key(
+            rk,
+            &format!("{action_label} randomized spend key {index}"),
+        )?;
+        rk.verify(context.effect_hash.as_ref(), auth_sig)
             .with_context(|| format!("{action_label} auth signature {index} failed to verify"))?;
     }
     Ok(())
@@ -284,6 +289,37 @@ mod tests {
         assert!(
             err.to_string().contains("auth signature 1 failed"),
             "unexpected rejection reason: {err:#}"
+        );
+    }
+
+    #[test]
+    fn note_reshape_auth_verification_rejects_identity_randomized_key() {
+        let identity_sk = SigningKey::<SpendAuth>::from(Fr::from(0u64));
+        let identity_rk = VerificationKey::from(identity_sk.clone());
+        let context = TransactionContext {
+            anchor: shieldd_sdk_tct::Tree::default().root(),
+            effect_hash: Default::default(),
+        };
+        let different_message = b"different note reshape authorization hash";
+        assert_ne!(&different_message[..], context.effect_hash.as_ref());
+        let signature = identity_sk.sign_deterministic(different_message);
+
+        identity_rk
+            .verify(context.effect_hash.as_ref(), &signature)
+            .expect("the pinned RDSA primitive admits identity keys across messages");
+        let error = verify_auth_sigs(
+            "note_reshape",
+            &[identity_rk],
+            &[signature],
+            &context,
+            |rk| rk,
+        )
+        .expect_err("identity randomized spend keys must fail before RDSA verification");
+        assert!(
+            error
+                .to_string()
+                .contains("randomized spend key 0 must not be identity"),
+            "unexpected rejection reason: {error:#}"
         );
     }
 }

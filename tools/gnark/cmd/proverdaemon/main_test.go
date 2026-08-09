@@ -47,6 +47,18 @@ func TestLoadContextRejectsTrailingProvingKeyBytes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("hash proving key: %v", err)
 	}
+	sr1csHash, err := artifacts.ConstraintSystemSHA256Hex(ccs)
+	if err != nil {
+		t.Fatalf("hash test constraint system: %v", err)
+	}
+	provenancePath := filepath.Join(dir, "setup_provenance.json")
+	if err := os.WriteFile(provenancePath, []byte("{}\n"), 0o600); err != nil {
+		t.Fatalf("write setup provenance: %v", err)
+	}
+	provenanceHash, err := artifacts.SHA256HexFile(provenancePath)
+	if err != nil {
+		t.Fatalf("hash setup provenance: %v", err)
+	}
 	metadata := artifacts.CircuitMetadataJSON{
 		Schema:                      artifacts.CircuitMetadataSchema,
 		Curve:                       "bls12-377",
@@ -56,6 +68,8 @@ func TestLoadContextRejectsTrailingProvingKeyBytes(t *testing.T) {
 		NbConstraints:               ccs.GetNbConstraints(),
 		NbPublic:                    ccs.GetNbPublicVariables(),
 		NbSecret:                    ccs.GetNbSecretVariables(),
+		SR1CSSHA256Hex:              sr1csHash,
+		SetupProvenanceSHA256Hex:    provenanceHash,
 		ProvingKeySHA256Hex:         pkHash,
 		VerifyingKeyBinarySHA256Hex: strings.Repeat("2", 64),
 		VerifyingKeyJSONSHA256Hex:   strings.Repeat("3", 64),

@@ -122,10 +122,7 @@ check_fuzz_crate_boundary() {
   for target in \
     wrapper_inner_range \
     preflight_aggregate_verify \
-    deserialize_aggregate_proof \
-    sidecar_decoding \
-    aggregate_bundle_shape \
-    proposal_validation; do
+    deserialize_aggregate_proof; do
     local corpus_dir="$crate_dir/corpus/$target"
     [[ -d "$corpus_dir" ]] || fail "fuzz corpus missing for $target"
     [[ -n "$(find "$corpus_dir" -type f -print -quit)" ]] \

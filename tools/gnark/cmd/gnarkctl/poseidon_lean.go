@@ -56,6 +56,7 @@ func runExportPoseidonLean(args []string) error {
 		vectors.Poseidon377.Rate2,
 		vectors.Poseidon377.Rate3,
 		vectors.Poseidon377.Rate4,
+		vectors.Poseidon377.Rate5,
 		vectors.Poseidon377.Rate6,
 		vectors.Poseidon377.Rate7,
 	}
@@ -128,6 +129,16 @@ func writePoseidonLean(w io.Writer, vectors primitives.PoseidonVectors) error {
 	if err != nil {
 		return err
 	}
+	hash5Out, err := primitives.Poseidon377Hash5Native(
+		primitives.MustBigInt(vectors.IMTLeafDomain),
+		[5]*big.Int{
+			big.NewInt(2), big.NewInt(3), big.NewInt(5),
+			big.NewInt(7), big.NewInt(11),
+		},
+	)
+	if err != nil {
+		return err
+	}
 
 	header := []string{
 		"import ShielddGnarkFormal.Poseidon377.Sponge",
@@ -157,6 +168,7 @@ func writePoseidonLean(w io.Writer, vectors primitives.PoseidonVectors) error {
 	}{
 		{"nullifierDomain", vectors.NullifierDomain},
 		{"ivkDomain", vectors.IVKDomain},
+		{"imtLeafDomain", vectors.IMTLeafDomain},
 		{"hash7Domain", vectors.Hash7Domain},
 	}
 	for _, d := range domains {
@@ -170,6 +182,7 @@ func writePoseidonLean(w io.Writer, vectors primitives.PoseidonVectors) error {
 		"-- Parity with gnark/Go ground truth (see check_poseidon377_parity.sh).",
 		fmt.Sprintf("#guard (hash2 ivkDomain 7 11).val == %s", hash2Out.String()),
 		fmt.Sprintf("#guard (hash3 nullifierDomain 3 5 9).val == %s", hash3Out.String()),
+		fmt.Sprintf("#guard (hash5 imtLeafDomain 2 3 5 7 11).val == %s", hash5Out.String()),
 		fmt.Sprintf("#guard (hash7 hash7Domain %s).val == %s",
 			strings.Join(vectors.Hash7Inputs, " "), vectors.Hash7Output),
 		"",
