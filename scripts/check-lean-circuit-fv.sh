@@ -3,8 +3,6 @@ set -euo pipefail
 
 # Incremental exact Lean circuit FV gate.
 #
-#   kernel  Typecheck only the selected final theorem roots. This is the
-#           pull-request proof check; it does not regenerate or prove.
 #   drift   Go compilation, content impact, coverage, generator/inventory
 #           checks, and stamp integrity. No Lake command and no proving.
 #   typed   drift plus selected final soundness modules, typed theorem bindings,
@@ -17,9 +15,9 @@ set -euo pipefail
 
 MODE="${1:-}"
 case "$MODE" in
-  kernel|drift|typed|release) shift ;;
+  drift|typed|release) shift ;;
   *)
-    echo "usage: $(basename "$0") [kernel|drift|typed|release] [CERTIFIED_PROFILE|all]..." >&2
+    echo "usage: $(basename "$0") [drift|typed|release] [CERTIFIED_PROFILE|all]..." >&2
     exit 2
     ;;
 esac
@@ -168,23 +166,12 @@ lean_build() {
   tail -n 1 "$log"
 }
 
-if [[ "$MODE" == "kernel" ]]; then
-  echo "==> selected final theorem roots"
-  (
-    cd "$LEAN_DIR"
-    lake exe cache get >/dev/null 2>&1 || true
-    theorem_roots="$(
-      while IFS= read -r circuit; do
-        [[ -z "$circuit" ]] || backend_value "$circuit" theorem_root
-      done <<< "$selected_circuits" | awk '!seen[$0]++'
-    )"
-    while IFS= read -r theorem_root; do
-      [[ -z "$theorem_root" ]] || lean_build "$theorem_root"
-    done <<< "$theorem_roots"
-  )
-  echo "lean circuit fv ok (kernel): families=$(printf '%s' "$selected_circuits" | tr '\n' ',' | sed 's/,$//')"
-  exit 0
-fi
+lean_module_build() {
+  local module="$1"
+  # Kernel verification only needs the OLean. Avoid generating ILean/C/native
+  # artifacts for the very large generated proof closure.
+  lean_build "+$module:olean"
+}
 
 echo "==> registry parity"
 python3 "$GNARK_DIR/check_gnark_family_registries.py"
@@ -465,7 +452,7 @@ echo "==> selected exact facts, semantic seams, and final soundness roots"
     done <<< "$selected_circuits" | awk '!seen[$0]++'
   )"
   while IFS= read -r target; do
-    [[ -z "$target" ]] || lean_build "$target"
+    [[ -z "$target" ]] || lean_module_build "$target"
   done <<< "$build_targets"
 )
 
@@ -555,7 +542,7 @@ if [[ "$MODE" == "release" ]]; then
     [[ "$proof_case_count" -gt 0 ]] \
       || fail "no proof receipts checked for certified family $circuit"
   done <<< "$selected_circuits"
-  "$ROOT/scripts/check-soundness-invariants.sh"
+  "$ROOT/scripts/check-soundness-invariants.sh" strict
 fi
 
 echo "lean circuit fv ok ($MODE): families=$(printf '%s' "$selected_circuits" | tr '\n' ',' | sed 's/,$//')"

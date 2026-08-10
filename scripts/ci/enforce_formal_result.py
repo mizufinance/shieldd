@@ -229,9 +229,8 @@ def enforce() -> None:
     soundness_results = {
         "soundness-gate": value("GATE"),
         "soundness-seam-and-pin": value("SEAM"),
-        "soundness-source-drift": value("SOURCE_DRIFT"),
         "soundness-alloy": value("ALLOY"),
-        "soundness-lean-circuit-fv": value("LEAN"),
+        "soundness-artifact-replay": value("REPLAY"),
     }
     if soundness_status == "block":
         raise ValueError(
@@ -245,7 +244,7 @@ def enforce() -> None:
                 )
         print(f"soundness explained skip: {soundness_explanation}")
     elif soundness_status == "run":
-        if soundness_tier not in {"stamps", "typed", "full"}:
+        if soundness_tier not in {"pr", "full"}:
             raise ValueError(f"unsupported soundness tier: {soundness_tier}")
         required.append(
             (
@@ -256,31 +255,15 @@ def enforce() -> None:
         required.append(
             ("soundness-gate", soundness_results["soundness-gate"])
         )
-        source_drift = soundness_results["soundness-source-drift"]
-        lean = soundness_results["soundness-lean-circuit-fv"]
-        if soundness_tier == "stamps":
-            for label, result in (
-                ("soundness-source-drift", source_drift),
-                ("soundness-lean-circuit-fv", lean),
-            ):
-                if result != "skipped":
-                    raise ValueError(
-                        f"stamp-only soundness unexpectedly ran {label}: {result}"
-                    )
-        elif soundness_tier == "typed":
-            required.extend(
-                [
-                    ("soundness-source-drift", source_drift),
-                    ("soundness-lean-circuit-fv", lean),
-                ]
-            )
-        else:
-            if source_drift != "skipped":
+        replay = soundness_results["soundness-artifact-replay"]
+        if soundness_tier == "pr":
+            if replay != "skipped":
                 raise ValueError(
-                    "full soundness tier unexpectedly ran standalone "
-                    f"source drift: {source_drift}"
+                    "PR soundness unexpectedly ran deferred artifact replay: "
+                    f"{replay}"
                 )
-            required.append(("soundness-lean-circuit-fv", lean))
+        else:
+            required.append(("soundness-artifact-replay", replay))
         if event_name in {"pull_request", "merge_group"}:
             required.append(
                 ("soundness-alloy", soundness_results["soundness-alloy"])

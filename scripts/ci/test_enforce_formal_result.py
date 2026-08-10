@@ -46,9 +46,8 @@ def full_environment() -> dict[str, str]:
             "PUBLICATION": "success",
             "GATE": "success",
             "SEAM": "success",
-            "SOURCE_DRIFT": "skipped",
             "ALLOY": "success",
-            "LEAN": "success",
+            "REPLAY": "success",
         }
     )
     return env
@@ -94,7 +93,7 @@ def select_snarkpack_skip(env: dict[str, str]) -> None:
         "PUBLICATION",
     ):
         env[name] = "skipped"
-    for name in ("GATE", "SEAM", "SOURCE_DRIFT", "ALLOY", "LEAN"):
+    for name in ("GATE", "SEAM", "ALLOY", "REPLAY"):
         env[name] = "skipped"
 
 
@@ -104,37 +103,17 @@ class EnforceFormalResultTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("formal passed", result.stdout)
 
-    def test_typed_soundness_requires_source_drift(self) -> None:
+    def test_pr_soundness_skips_deferred_replay(self) -> None:
         env = full_environment()
-        env["SOUNDNESS_TIER"] = "typed"
-        env["SOURCE_DRIFT"] = "success"
+        env["SOUNDNESS_TIER"] = "pr"
+        env["REPLAY"] = "skipped"
         result = run_summary(env)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-        env["SOURCE_DRIFT"] = "skipped"
+        env["REPLAY"] = "success"
         result = run_summary(env)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("soundness-source-drift=skipped", result.stderr)
-
-    def test_stamp_only_soundness_skips_proving_and_lean(self) -> None:
-        env = full_environment()
-        env["SOUNDNESS_TIER"] = "stamps"
-        env["SOURCE_DRIFT"] = "skipped"
-        env["LEAN"] = "skipped"
-        result = run_summary(env)
-        self.assertEqual(result.returncode, 0, result.stderr)
-
-        env["SOURCE_DRIFT"] = "success"
-        result = run_summary(env)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("stamp-only soundness unexpectedly ran", result.stderr)
-
-    def test_full_soundness_rejects_standalone_source_drift(self) -> None:
-        env = full_environment()
-        env["SOURCE_DRIFT"] = "success"
-        result = run_summary(env)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("unexpectedly ran standalone source drift", result.stderr)
+        self.assertIn("PR soundness unexpectedly ran", result.stderr)
 
     def test_explained_skip_requires_no_snarkpack_lane(self) -> None:
         env = full_environment()

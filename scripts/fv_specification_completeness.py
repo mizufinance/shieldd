@@ -14331,6 +14331,14 @@ def main() -> None:
     parser.add_argument("--profile", action="append", default=[])
     parser.add_argument("--manifest", action="append", default=[], metavar="LABEL=PATH")
     parser.add_argument("--require-relation-evidence", action="store_true")
+    parser.add_argument(
+        "--skip-semantic-digest",
+        action="store_true",
+        help=(
+            "run structural candidate checks without requiring the reviewed "
+            "semantic bundle pin; strict replay must not use this"
+        ),
+    )
     parser.add_argument("--test-receipt", type=Path)
     parser.add_argument("--test-receipt-nonce")
     args = parser.parse_args()
@@ -14377,6 +14385,7 @@ def main() -> None:
             require_relation_evidence=args.require_relation_evidence,
             test_receipt=args.test_receipt,
             test_receipt_nonce=args.test_receipt_nonce,
+            check_semantic_digest=not args.skip_semantic_digest,
         )
     except SpecificationCompletenessError as error:
         print(f"FV specification completeness failed: {error}", file=sys.stderr)

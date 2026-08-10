@@ -311,9 +311,6 @@ jobs:
           # lane. One lane cannot mask another kind's stale evidence.
           SNARKPACK_ALLOW_PENDING_FSTAR_CONTRACT_REFRESH: ${{ needs.applicability.outputs.snarkpack_fstar_run == 'true' && '1' || '0' }}
           SNARKPACK_ALLOW_PENDING_EXTERNAL_CONTRACT_REFRESH: ${{ needs.applicability.outputs.snarkpack_rust_reference_run == 'true' && '1' || '0' }}
-          # Staleness remains fatal unless the exact affected graph is already
-          # delegated to this run's aggregate extraction job.
-          SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON: ${{ needs.applicability.outputs.snarkpack_extract_run == 'true' && needs.applicability.outputs.snarkpack_extract_graphs || '[]' }}
         run: >-
           python3 scripts/ci/run_with_annotation.py
           --title "SnarkPack static FV"
@@ -783,7 +780,7 @@ jobs:
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Check soundness invariants
-        run: bash scripts/check-soundness-invariants.sh
+        run: bash scripts/check-soundness-invariants.sh candidate
 
   soundness-seam-and-pin:
     name: 'soundness: seam-and-pin'
@@ -812,46 +809,6 @@ jobs:
       - name: DLEQ Lean stamps
         run: bash scripts/compliance-lean-dleq.sh stamps
 
-  soundness-source-drift:
-    name: 'soundness: source drift'
-    needs: applicability
-    # A semantic proof-source change regenerates and compares every committed
-    # circuit, contract, inventory, and evidence artifact without proving.
-    if: >-
-      needs.applicability.result == 'success' &&
-      needs.applicability.outputs.soundness_run == 'true' &&
-      needs.applicability.outputs.soundness_tier == 'typed'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    container:
-      image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:29488637fce71c867d9f6ffd8c5bdc825c80f55d675238bcdfbfe878be11d96c
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    permissions:
-      contents: read
-      packages: read
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
-      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
-        with:
-          workspaces: "."
-      - name: Cache Go build
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: go-fv-${{ hashFiles('tools/gnark/go.sum') }}
-          restore-keys: |
-            go-fv-
-      - name: Regenerate and compare committed formal artifacts
-        shell: bash
-        run: bash scripts/check-lean-circuit-fv.sh drift all
-
   soundness-alloy:
     name: 'soundness: alloy'
     needs: applicability
@@ -868,17 +825,18 @@ jobs:
       - name: Run compliance Alloy outcome gate
         run: nix shell nixpkgs#alloy6 --command bash scripts/compliance-alloy.sh
 
-  soundness-lean-circuit-fv:
-    name: 'soundness: lean-circuit-fv'
+  soundness-artifact-replay:
+    name: 'soundness: artifact replay'
     needs: applicability
-    # Stamp-only changes have no Lean source to typecheck. Their committed
-    # evidence is validated by the gate and seam-and-pin jobs above.
+    # Candidate events validate committed evidence. Manual/nightly runs also
+    # regenerate every artifact and prove/verify every deployed circuit. Lean
+    # kernel replay remains the local operation that creates that evidence.
     if: >-
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.soundness_run == 'true' &&
-      needs.applicability.outputs.soundness_tier != 'stamps'
+      needs.applicability.outputs.soundness_tier == 'full'
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 60 || 360 }}
+    timeout-minutes: 180
     container:
       image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:29488637fce71c867d9f6ffd8c5bdc825c80f55d675238bcdfbfe878be11d96c
       credentials:
@@ -887,22 +845,11 @@ jobs:
     permissions:
       contents: read
       packages: read
-    env:
-      LEAN_NUM_THREADS: "1"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
-      - name: Cache Lean dependencies
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
-        with:
-          path: |
-            ~/.cache/mathlib
-            tools/gnark/lean/.lake/packages
-          key: lean-fv-${{ hashFiles('tools/gnark/lean/lean-toolchain', 'tools/gnark/lean/lake-manifest.json') }}
-          restore-keys: |
-            lean-fv-
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: "."
@@ -915,27 +862,12 @@ jobs:
           key: go-fv-${{ hashFiles('tools/gnark/go.sum') }}
           restore-keys: |
             go-fv-
-      # Handwritten NoteReshape proof changes are typechecked on pull requests;
-      # deployed-key proving remains a merge/release check.
-      - name: Run whole-circuit FV tier
+      - name: Regenerate formal artifacts and verify deployed proofs
         shell: bash
-        env:
-          TIER: ${{ needs.applicability.outputs.soundness_tier }}
         run: |
           set -euo pipefail
-          case "$TIER" in
-            typed)
-              bash scripts/check-lean-circuit-fv.sh kernel all
-              ;;
-            full)
-              bash scripts/check-lean-circuit-fv.sh release all
-              bash scripts/check-circuit-fv.sh receipt --status candidate
-              ;;
-            *)
-              echo "unsupported soundness tier: $TIER" >&2
-              exit 1
-              ;;
-          esac
+          bash scripts/check-lean-circuit-fv.sh drift all
+          bash scripts/check-circuit-fv.sh receipt all
 
   # ------------------------------------------------------------------ summary
 
@@ -952,9 +884,8 @@ jobs:
       - snarkpack-publication
       - soundness-gate
       - soundness-seam-and-pin
-      - soundness-source-drift
       - soundness-alloy
-      - soundness-lean-circuit-fv
+      - soundness-artifact-replay
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -996,7 +927,6 @@ jobs:
           PUBLICATION: ${{ needs.snarkpack-publication.result }}
           GATE: ${{ needs.soundness-gate.result }}
           SEAM: ${{ needs.soundness-seam-and-pin.result }}
-          SOURCE_DRIFT: ${{ needs.soundness-source-drift.result }}
           ALLOY: ${{ needs.soundness-alloy.result }}
-          LEAN: ${{ needs.soundness-lean-circuit-fv.result }}
+          REPLAY: ${{ needs.soundness-artifact-replay.result }}
         run: python3 scripts/ci/enforce_formal_result.py

@@ -51,7 +51,8 @@
         "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Extracted/AeneasRuntime.lean",
         "crates/crypto/proof-aggregation/formal/lean-ipp/scripts/extractions.py",
         "crates/crypto/proof-aggregation/formal/snarkpack/aeneas-toolchain.toml",
-        "rust-toolchain.toml"
+        "rust-toolchain.toml",
+        "scripts/ci/snarkpack_lane_fingerprint.py"
       ],
       "graph_tiers": {
         "pull_request": "extract-changed",

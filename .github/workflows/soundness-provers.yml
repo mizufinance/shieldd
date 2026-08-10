@@ -237,7 +237,9 @@ jobs:
         with:
           rust-cache-prefix: soundness-post-prover
       - name: Check post-prover invariant and stamp state
-        run: nix develop --command bash scripts/check-soundness-invariants.sh
+        run: >-
+          nix develop --command bash
+          scripts/check-soundness-invariants.sh strict
 
   summary:
     name: 'provers: summary'
@@ -275,7 +277,7 @@ jobs:
             echo "explained skip: $EXPLANATION"
             exit 0
           fi
-          if [[ "$STATUS" != "run" || ( "$TIER" != "stamps" && "$TIER" != "full" ) ]]; then
+          if [[ "$STATUS" != "run" || "$TIER" != "full" ]]; then
             echo "invalid applicability contract: status=$STATUS tier=$TIER" >&2
             exit 1
           fi
