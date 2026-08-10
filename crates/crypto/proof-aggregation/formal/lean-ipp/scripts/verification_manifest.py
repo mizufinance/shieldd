@@ -140,7 +140,7 @@ VERIFICATION_CONTRACT_FIELDS = (
     "deployed_srs_evidence",
 )
 VERIFICATION_CONTRACT_SHA256 = (
-    "c8e76d0df12c50cba68697255d5e04abe479c5e27757d610b6d2e9ec715fa0c7"
+    "7a473fb930b6b63946e5363eb1c74c82a582c49211daa2bc77f09ea6384c3902"
 )
 BOUNDED_SAMPLER_ROOT = "bounded_challenge_sampler_boundary_suite"
 BOUNDED_SAMPLER_TESTS = (
@@ -185,6 +185,11 @@ FSTAR_UNRELATED_GATE_DIGEST_CONSTANTS = (
     "VERIFICATION_CONTRACT_SHA256",
 )
 FSTAR_GLOBAL_MODULE_INVENTORY = ("SnarkpackMachineSupport",)
+FSTAR_TRANSACTION_PROTO_INPUT = (
+    "proto/shieldd/shieldd/core/transaction/v1/transaction.proto"
+)
+FSTAR_CARGO_LOCK_INPUT = "Cargo.lock"
+FSTAR_CARGO_LOCK_ROOTS = ("shieldd-sdk-proof-aggregation",)
 FSTAR_GLOBAL_INPUT_INVENTORY = (
     ".cargo/config.toml",
     "Cargo.lock",
@@ -2309,6 +2314,262 @@ def _fstar_contract_roots_by_module(
     return roots_by_module
 
 
+def _proto_without_comments(source: str) -> str:
+    rendered: list[str] = []
+    index = 0
+    quote: str | None = None
+    while index < len(source):
+        character = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if quote is not None:
+            rendered.append(character)
+            if character == "\\" and following:
+                rendered.append(following)
+                index += 2
+                continue
+            if character == quote:
+                quote = None
+            index += 1
+            continue
+        if character in {'"', "'"}:
+            quote = character
+            rendered.append(character)
+            index += 1
+            continue
+        if character == "/" and following == "/":
+            newline = source.find("\n", index + 2)
+            if newline < 0:
+                break
+            rendered.append("\n")
+            index = newline + 1
+            continue
+        if character == "/" and following == "*":
+            end = source.find("*/", index + 2)
+            if end < 0:
+                raise VerificationError("transaction proto has an unterminated comment")
+            rendered.append(" ")
+            index = end + 2
+            continue
+        rendered.append(character)
+        index += 1
+    if quote is not None:
+        raise VerificationError("transaction proto has an unterminated string")
+    return "".join(rendered)
+
+
+def _proto_declaration_block(source: str, kind: str, name: str) -> str:
+    pattern = re.compile(rf"\b{re.escape(kind)}\s+{re.escape(name)}\s*\{{")
+    matches = list(pattern.finditer(source))
+    if len(matches) != 1:
+        raise VerificationError(
+            f"transaction proto must declare exactly one {kind} {name}"
+        )
+    start = matches[0].start()
+    opening = source.find("{", matches[0].start(), matches[0].end())
+    depth = 0
+    quote: str | None = None
+    index = opening
+    while index < len(source):
+        character = source[index]
+        following = source[index + 1] if index + 1 < len(source) else ""
+        if quote is not None:
+            if character == "\\" and following:
+                index += 2
+                continue
+            if character == quote:
+                quote = None
+            index += 1
+            continue
+        if character in {'"', "'"}:
+            quote = character
+        elif character == "{":
+            depth += 1
+        elif character == "}":
+            depth -= 1
+            if depth == 0:
+                return source[start : index + 1]
+            if depth < 0:
+                break
+        index += 1
+    raise VerificationError(f"transaction proto has an unbalanced {kind} {name}")
+
+
+PROTO_TOKEN = re.compile(
+    r'"(?:\\.|[^"\\])*"|'
+    r"'(?:\\.|[^'\\])*'|"
+    r"[A-Za-z_][A-Za-z0-9_.]*|-?[0-9]+|[{}=;\[\],()]"
+)
+
+
+def _proto_tokens(block: str, *, label: str) -> list[str]:
+    tokens: list[str] = []
+    offset = 0
+    for match in PROTO_TOKEN.finditer(block):
+        if block[offset : match.start()].strip():
+            raise VerificationError(f"unsupported token in transaction proto {label}")
+        tokens.append(match.group(0))
+        offset = match.end()
+    if block[offset:].strip():
+        raise VerificationError(f"unsupported trailing token in transaction proto {label}")
+    if not tokens:
+        raise VerificationError(f"empty transaction proto declaration {label}")
+    return tokens
+
+
+def _transaction_proto_semantic_payload(content: bytes) -> dict[str, Any]:
+    try:
+        source = _proto_without_comments(content.decode("utf-8"))
+    except UnicodeDecodeError as error:
+        raise VerificationError("transaction proto is not UTF-8") from error
+    syntax = re.findall(r'\bsyntax\s*=\s*"([^"]+)"\s*;', source)
+    package = re.findall(
+        r"\bpackage\s+([A-Za-z_][A-Za-z0-9_.]*)\s*;", source
+    )
+    if syntax != ["proto3"]:
+        raise VerificationError("transaction proto must declare syntax proto3 once")
+    if package != ["shieldd.core.transaction.v1"]:
+        raise VerificationError(
+            "transaction proto package differs from shieldd.core.transaction.v1"
+        )
+    declarations = {
+        name: _proto_tokens(
+            _proto_declaration_block(source, kind, name),
+            label=f"{kind} {name}",
+        )
+        for kind, name in (
+            ("enum", "ProofFamilyId"),
+            ("message", "FamilyAggregate"),
+            ("message", "AggregateBundle"),
+        )
+    }
+    action_fields: dict[str, dict[str, Any]] = {}
+    aggregate_field = re.compile(
+        r"\b(?P<type>(?:[A-Za-z_][A-Za-z0-9_.]*\.)?AggregateBundle)"
+        r"\s+aggregate_bundle\s*=\s*(?P<tag>[0-9]+)\s*;"
+    )
+    for message in ("Action", "ActionView"):
+        block = _proto_declaration_block(source, "message", message)
+        matches = list(aggregate_field.finditer(block))
+        if len(matches) != 1:
+            raise VerificationError(
+                f"transaction proto {message} must contain one aggregate_bundle field"
+            )
+        action_fields[message] = {
+            "field": "aggregate_bundle",
+            "tag": int(matches[0].group("tag")),
+            "type": matches[0].group("type"),
+        }
+    return {
+        "schema_version": 1,
+        "syntax": syntax[0],
+        "package": package[0],
+        "declarations": declarations,
+        "action_fields": action_fields,
+    }
+
+
+def _cargo_lock_semantic_payload(content: bytes) -> dict[str, Any]:
+    try:
+        lock = tomllib.loads(content.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+        raise VerificationError(f"Cargo.lock is malformed: {error}") from error
+    packages = lock.get("package")
+    if not isinstance(packages, list):
+        raise VerificationError("Cargo.lock package inventory must be an array")
+    by_name: dict[str, list[dict[str, Any]]] = {}
+    for index, package in enumerate(packages):
+        if not isinstance(package, dict):
+            raise VerificationError(f"Cargo.lock package[{index}] must be a table")
+        name = package.get("name")
+        version = package.get("version")
+        if not isinstance(name, str) or not name or not isinstance(version, str):
+            raise VerificationError(f"Cargo.lock package[{index}] identity is invalid")
+        by_name.setdefault(name, []).append(package)
+
+    def identity(package: dict[str, Any]) -> tuple[str, str, str]:
+        source = package.get("source", "")
+        if not isinstance(source, str):
+            raise VerificationError("Cargo.lock package source must be a string")
+        return str(package["name"]), str(package["version"]), source
+
+    def dependency_package(reference: str) -> dict[str, Any]:
+        match = re.fullmatch(
+            r"(?P<name>[^ ]+)(?: (?P<version>[^ ]+))?(?: \((?P<source>.+)\))?",
+            reference,
+        )
+        if match is None:
+            raise VerificationError(f"Cargo.lock dependency is malformed: {reference!r}")
+        candidates = list(by_name.get(match.group("name"), ()))
+        if match.group("version") is not None:
+            candidates = [
+                package
+                for package in candidates
+                if package["version"] == match.group("version")
+            ]
+        if match.group("source") is not None:
+            candidates = [
+                package
+                for package in candidates
+                if package.get("source") == match.group("source")
+            ]
+        if len(candidates) != 1:
+            raise VerificationError(
+                "Cargo.lock dependency does not resolve uniquely: "
+                f"{reference!r} ({len(candidates)} candidates)"
+            )
+        return candidates[0]
+
+    pending: list[dict[str, Any]] = []
+    for root_name in FSTAR_CARGO_LOCK_ROOTS:
+        roots = by_name.get(root_name, [])
+        if len(roots) != 1:
+            raise VerificationError(
+                f"Cargo.lock must contain exactly one {root_name} package"
+            )
+        pending.append(roots[0])
+    selected: dict[tuple[str, str, str], dict[str, Any]] = {}
+    while pending:
+        package = pending.pop()
+        package_id = identity(package)
+        if package_id in selected:
+            continue
+        selected[package_id] = package
+        dependencies = package.get("dependencies", [])
+        if not isinstance(dependencies, list) or not all(
+            isinstance(dependency, str) for dependency in dependencies
+        ):
+            raise VerificationError(
+                f"Cargo.lock dependencies are invalid for {package_id[0]}"
+            )
+        pending.extend(dependency_package(dependency) for dependency in dependencies)
+
+    normalized: list[dict[str, Any]] = []
+    for package_id in sorted(selected):
+        package = copy.deepcopy(selected[package_id])
+        dependencies = package.get("dependencies")
+        if isinstance(dependencies, list):
+            package["dependencies"] = sorted(dependencies)
+        normalized.append(package)
+    return {
+        "schema_version": 1,
+        "lock_version": lock.get("version"),
+        "roots": list(FSTAR_CARGO_LOCK_ROOTS),
+        "packages": normalized,
+    }
+
+
+def fstar_source_sha256(relative: str, content: bytes) -> str:
+    if relative == FSTAR_TRANSACTION_PROTO_INPUT:
+        payload: Any = _transaction_proto_semantic_payload(content)
+        canonical = _canonical_json(payload).encode("utf-8")
+    elif relative == FSTAR_CARGO_LOCK_INPUT:
+        payload = _cargo_lock_semantic_payload(content)
+        canonical = _canonical_json(payload).encode("utf-8")
+    else:
+        canonical = content
+    return hashlib.sha256(canonical).hexdigest()
+
+
 def _fstar_source_record(repo_root: Path, relative: str) -> dict[str, str]:
     safe = _safe_relative_path(relative, field="F* evidence source")
     path = repo_root.joinpath(*safe.parts)
@@ -2316,7 +2577,7 @@ def _fstar_source_record(repo_root: Path, relative: str) -> dict[str, str]:
         raise VerificationError(f"missing F* evidence source: {path}")
     return {
         "path": relative,
-        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "sha256": fstar_source_sha256(relative, path.read_bytes()),
     }
 
 
@@ -3129,7 +3390,7 @@ def validate_contract_evidence(
                     "module or global-input fingerprint"
                 )
             content = path.read_bytes()
-            digest = hashlib.sha256(content).hexdigest()
+            digest = fstar_source_sha256(source["path"], content)
             if source["sha256"] != digest and not stale_recheck:
                 raise VerificationError(
                     f"{source_where}.sha256 differs for {source['path']}"

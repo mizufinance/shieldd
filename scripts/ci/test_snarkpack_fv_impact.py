@@ -22,6 +22,67 @@ SPEC.loader.exec_module(IMPACT)
 
 
 class ImpactPlannerTests(unittest.TestCase):
+    def test_semantic_input_comparison_ignores_unrelated_proto_change(self) -> None:
+        relative = "proto/shieldd/shieldd/core/transaction/v1/transaction.proto"
+        source = (ROOT / relative).read_text(encoding="utf-8")
+        unrelated = source.replace(
+            "    component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan "
+            "shielded_ics20_withdrawal = 200;",
+            "    component.shielded_pool.v1.ShieldedIcs20WithdrawalPlan "
+            "shielded_ics20_withdrawal = 200;\n"
+            "    component.shielded_pool.v1.ShieldedHostWithdrawalPlan "
+            "shielded_host_withdrawal = 201;",
+        )
+        relevant = source.replace(
+            "    AggregateBundle aggregate_bundle = 82;",
+            "    AggregateBundle aggregate_bundle = 83;",
+            1,
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            verifier = root / IMPACT.FSTAR_VERIFIER
+            verifier.parent.mkdir(parents=True)
+            verifier.write_text(
+                (ROOT / IMPACT.FSTAR_VERIFIER).read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            proto = root / relative
+            proto.parent.mkdir(parents=True)
+            proto.write_text(source, encoding="utf-8")
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(
+                ["git", "config", "user.email", "test@example.invalid"],
+                cwd=root,
+                check=True,
+            )
+            subprocess.run(
+                ["git", "config", "user.name", "Test"], cwd=root, check=True
+            )
+            subprocess.run(["git", "add", "."], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "base"], cwd=root, check=True)
+            base = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=root,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout.strip()
+
+            proto.write_text(unrelated, encoding="utf-8")
+            self.assertEqual(
+                IMPACT.unchanged_fstar_semantic_inputs(
+                    root, base, (relative,)
+                ),
+                (relative,),
+            )
+            proto.write_text(relevant, encoding="utf-8")
+            self.assertEqual(
+                IMPACT.unchanged_fstar_semantic_inputs(
+                    root, base, (relative,)
+                ),
+                (),
+            )
+
     def test_base_without_extraction_manifest_has_no_retired_graphs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -511,6 +572,46 @@ class ImpactPlannerTests(unittest.TestCase):
             )
         )
         self.assertEqual(set(result.fstar_proofs), set(expected))
+
+    def test_unrelated_transaction_proto_change_does_not_select_fstar(self) -> None:
+        path = "proto/shieldd/shieldd/core/transaction/v1/transaction.proto"
+        result = IMPACT.plan(
+            ROOT,
+            event="pull_request",
+            status="run",
+            changed=(path,),
+            declared_graphs=(),
+            fstar_semantic_unchanged=(path,),
+        )
+        self.assertEqual(result.fstar_proofs, ())
+
+    def test_semantic_transaction_proto_change_selects_fstar(self) -> None:
+        path = "proto/shieldd/shieldd/core/transaction/v1/transaction.proto"
+        with patch.object(
+            IMPACT,
+            "current_fstar_proofs",
+            return_value=("FamilyRoutingProofs.fst",),
+        ) as current:
+            result = IMPACT.plan(
+                ROOT,
+                event="pull_request",
+                status="run",
+                changed=(path,),
+                declared_graphs=(),
+            )
+        self.assertEqual(result.fstar_proofs, ("FamilyRoutingProofs.fst",))
+        current.assert_called_once_with(ROOT, (), force_all=True)
+
+    def test_pending_fstar_evidence_selects_refresh_without_source_change(self) -> None:
+        result = IMPACT.plan(
+            ROOT,
+            event="pull_request",
+            status="run",
+            changed=("docs/snarkpack/verification.md",),
+            declared_graphs=(),
+            pending_fstar=("FamilyRoutingProofs.fst",),
+        )
+        self.assertEqual(result.fstar_proofs, ("FamilyRoutingProofs.fst",))
 
     def test_reference_fuzz_and_boundary_inputs_select_exact_heavy_lanes(self) -> None:
         reference = IMPACT.plan(

@@ -1462,6 +1462,9 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn(
             "snarkpack_fstar_cache_hit != 'true'", fstar
         )
+        self.assertIn("Upload exact F* evidence refresh", fstar)
+        self.assertIn("actions/upload-artifact@", fstar)
+        self.assertIn("fstar-checker-evidence.json", fstar)
         self.assertIn(
             "snarkpack_parity_cache_hit != 'true'", parity
         )

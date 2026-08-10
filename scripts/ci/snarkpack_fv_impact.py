@@ -540,6 +540,83 @@ def current_fstar_proofs(
     return tuple(f"{module}.fst" for module in modules)
 
 
+def pending_fstar_proofs(root: Path) -> tuple[str, ...]:
+    """Return proof modules not covered by current repository evidence."""
+    verifier_path = root / FSTAR_VERIFIER
+    spec = importlib.util.spec_from_file_location(
+        "_snarkpack_pending_fstar_evidence", verifier_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImpactError(f"cannot load F* evidence verifier: {verifier_path}")
+    verifier = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = verifier
+    try:
+        spec.loader.exec_module(verifier)
+        manifest = verifier.load_manifest(root / FSTAR_MANIFEST)
+        evidence = json.loads((root / FSTAR_EVIDENCE).read_text(encoding="utf-8"))
+        modules = verifier.plan_fstar_modules(
+            manifest,
+            root,
+            base=evidence,
+            requested=(),
+        )
+    except (
+        OSError,
+        UnicodeError,
+        json.JSONDecodeError,
+        verifier.VerificationError,
+    ) as error:
+        raise ImpactError(f"cannot plan pending F* evidence: {error}") from error
+    return tuple(f"{module}.fst" for module in modules)
+
+
+def unchanged_fstar_semantic_inputs(
+    root: Path,
+    base: str,
+    changed: Iterable[str],
+) -> tuple[str, ...]:
+    """Return changed whole files whose proof-relevant projection is stable."""
+    verifier_path = root / FSTAR_VERIFIER
+    spec = importlib.util.spec_from_file_location(
+        "_snarkpack_fstar_semantic_inputs", verifier_path
+    )
+    if spec is None or spec.loader is None:
+        raise ImpactError(f"cannot load F* evidence verifier: {verifier_path}")
+    verifier = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = verifier
+    try:
+        spec.loader.exec_module(verifier)
+        projected = {
+            verifier.FSTAR_TRANSACTION_PROTO_INPUT,
+            verifier.FSTAR_CARGO_LOCK_INPUT,
+        }
+        unchanged: list[str] = []
+        for relative in sorted(set(changed) & projected):
+            current_path = root / relative
+            if not current_path.is_file():
+                continue
+            previous = _run_git(
+                root,
+                ["show", f"{base}:{relative}"],
+                text=False,
+            )
+            if previous.returncode:
+                continue
+            before = verifier.fstar_source_sha256(
+                relative, bytes(previous.stdout)
+            )
+            after = verifier.fstar_source_sha256(
+                relative, current_path.read_bytes()
+            )
+            if before == after:
+                unchanged.append(relative)
+    except (OSError, UnicodeError, verifier.VerificationError) as error:
+        raise ImpactError(
+            f"cannot compare F* semantic inputs: {error}"
+        ) from error
+    return tuple(unchanged)
+
+
 def _starts_with_any(path: str, prefixes: Iterable[str]) -> bool:
     return any(path == prefix or path.startswith(prefix) for prefix in prefixes)
 
@@ -572,6 +649,8 @@ def plan(
     retired_graphs: Iterable[str] = (),
     fstar_manifest_control_change: bool = False,
     lean_environment_control_change: bool = False,
+    fstar_semantic_unchanged: Iterable[str] = (),
+    pending_fstar: Iterable[str] = (),
 ) -> ImpactPlan:
     if event not in SUPPORTED_EVENTS:
         raise ImpactError(f"unsupported event {event!r}")
@@ -633,6 +712,13 @@ def plan(
         normalized = _normalized_path(item["path"])
         if normalized not in FSTAR_NONPROOF_CONTROL_INPUTS:
             fstar_inputs.add(normalized)
+    semantic_unchanged = {
+        _normalized_path(path) for path in fstar_semantic_unchanged
+    }
+    if not semantic_unchanged <= set(paths):
+        raise ImpactError(
+            "unchanged F* semantic inputs must be changed candidate paths"
+        )
     proof_prefix = f"{FSTAR_ROOT.as_posix()}/"
     proof_root_changes = tuple(
         path
@@ -642,7 +728,7 @@ def plan(
     fstar_global_change = any(
         path in FSTAR_GLOBAL_INPUTS
         or _starts_with_any(path, RUST_ENVIRONMENT_PREFIXES)
-        or path in fstar_inputs
+        or (path in fstar_inputs and path not in semantic_unchanged)
         for path in paths
     ) or (
         FSTAR_MANIFEST.as_posix() in paths
@@ -658,6 +744,17 @@ def plan(
         if fstar_relevant
         else ()
     )
+    known_fstar_proofs = {
+        path.name for path in (root / FSTAR_ROOT).glob("*.fst")
+    }
+    pending_fstar_set = set(pending_fstar)
+    unknown_pending = sorted(pending_fstar_set - known_fstar_proofs)
+    if unknown_pending:
+        raise ImpactError(
+            "pending F* evidence selected unknown proof(s): "
+            + ", ".join(unknown_pending)
+        )
+    fstar_proofs = tuple(sorted(set(fstar_proofs) | pending_fstar_set))
 
     proof_rust = any(
         path.startswith(PROOF_AGGREGATION_PREFIX) and path.endswith(".rs")
@@ -791,6 +888,8 @@ def main(argv: list[str] | None = None) -> int:
         retired: tuple[str, ...] = ()
         fstar_control_change = False
         lean_environment_change = False
+        fstar_semantic_unchanged: tuple[str, ...] = ()
+        pending_fstar: tuple[str, ...] = ()
         if args.event in CANDIDATE_EVENTS and args.base:
             retired = tuple(
                 sorted(
@@ -806,6 +905,10 @@ def main(argv: list[str] | None = None) -> int:
                 lean_environment_change = lean_environment_control_changed(
                     ROOT, args.base
                 )
+            fstar_semantic_unchanged = unchanged_fstar_semantic_inputs(
+                ROOT, args.base, paths
+            )
+            pending_fstar = pending_fstar_proofs(ROOT)
         result = plan(
             ROOT,
             event=args.event,
@@ -816,6 +919,8 @@ def main(argv: list[str] | None = None) -> int:
             retired_graphs=retired,
             fstar_manifest_control_change=fstar_control_change,
             lean_environment_control_change=lean_environment_change,
+            fstar_semantic_unchanged=fstar_semantic_unchanged,
+            pending_fstar=pending_fstar,
         )
         if args.github_output:
             write_github_output(args.github_output, result)

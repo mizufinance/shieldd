@@ -161,7 +161,7 @@
         },
         {
           "path": "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
-          "sha256": "c986d4a8761a84184ae25209d29017ea4ce9a126618d13f8b52454d0f5dfa8d8"
+          "sha256": "27639b5f8faa6011b87a340248240ebb99641d99c2215024a7801eff7982b3e0"
         },
         {
           "path": "crates/core/component/shielded-pool/src/note_reshape/generated.rs",
