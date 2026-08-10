@@ -9,6 +9,10 @@ export GOCACHE="${GOCACHE:-$tmp_dir/go-cache}"
 nonce="$(python3 -c 'import secrets; print(secrets.token_hex(32))')"
 receipt="$tmp_dir/fv-specification-test-receipt.json"
 
+# Catch extractor/golden drift before the much slower exact Rust inventory.
+# The mapped extractor tests still run below and remain receipt-bound evidence.
+go -C "$ROOT/tools/gnark/third_party/gnark-lean-extractor" test ./...
+
 python3 "$ROOT/scripts/gen_fv_specification_matrix.py" --check
 python3 "$ROOT/scripts/run-fv-specification-tests.py" \
   --nonce "$nonce" \

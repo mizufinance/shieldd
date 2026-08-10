@@ -313,6 +313,19 @@ class RustWorkflowWiringTests(unittest.TestCase):
         )[1].split("\n\n", maxsplit=1)[0]
         self.assertIn("env:\n          CFLAGS: -O1", exact_fv_step)
 
+    def test_exact_fv_evidence_preflights_extractor_goldens(self) -> None:
+        evidence_gate = (
+            SCRIPT.parents[2] / "scripts/check-fv-specification-evidence.sh"
+        ).read_text(encoding="utf-8")
+        preflight = (
+            'go -C "$ROOT/tools/gnark/third_party/gnark-lean-extractor" '
+            "test ./..."
+        )
+        self.assertLess(
+            evidence_gate.index(preflight),
+            evidence_gate.index("run-fv-specification-tests.py"),
+        )
+
 
 class OrbisWorkflowWiringTests(unittest.TestCase):
     @classmethod
