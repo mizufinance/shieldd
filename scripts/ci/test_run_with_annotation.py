@@ -366,6 +366,26 @@ class OrbisWorkflowWiringTests(unittest.TestCase):
 
 
 class GeneralRunnerPolicyWiringTests(unittest.TestCase):
+    def test_nonformal_candidate_compute_lanes_have_explicit_caps(self) -> None:
+        root = SCRIPT.parents[2]
+        docs = (root / ".github/workflows/docs-lint.yml").read_text(
+            encoding="utf-8"
+        )
+        protobuf = (
+            root / ".github/workflows/buf-pull-request.yml"
+        ).read_text(encoding="utf-8")
+        smoke = (root / ".github/workflows/smoke.yml").read_text(
+            encoding="utf-8"
+        )
+        orbis = (
+            root / ".github/workflows/orbis-integration.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("timeout-minutes: 25", docs)
+        self.assertIn("timeout-minutes: 25", protobuf)
+        self.assertIn("&& 25 || 90", smoke)
+        self.assertIn("&& 25 || 45", orbis)
+
     def test_container_publication_uses_one_sha_across_architectures(self) -> None:
         root = SCRIPT.parents[2]
         workflow = (root / ".github/workflows/containers.yml").read_text(

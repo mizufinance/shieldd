@@ -40,7 +40,7 @@ jobs:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
     runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
-    timeout-minutes: 45
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 25 || 45 }}
     concurrency:
       group: orbis-integration-host-stack-v1
       cancel-in-progress: false
@@ -121,6 +121,7 @@ jobs:
     needs: [applicability, flow]
     if: always()
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Check Orbis integration result
         env:

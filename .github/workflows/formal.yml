@@ -948,6 +948,7 @@ jobs:
       - soundness-alloy
       - soundness-lean-circuit-fv
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
