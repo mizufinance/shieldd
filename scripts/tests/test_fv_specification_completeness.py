@@ -4054,6 +4054,23 @@ structure ClaimedFacts where
                 after = CHECK.semantic_bundle_digest(root)
                 self.assertNotEqual(before, after)
 
+    def test_semantic_source_digest_is_stable_across_lfs_checkout_modes(
+        self,
+    ) -> None:
+        materialized = b"formal relation contents\n"
+        digest = hashlib.sha256(materialized).hexdigest()
+        pointer = (
+            "version https://git-lfs.github.com/spec/v1\n"
+            f"oid sha256:{digest}\n"
+            f"size {len(materialized)}\n"
+        ).encode()
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "relation.bin"
+            source.write_bytes(materialized)
+            self.assertEqual(CHECK.semantic_source_sha256(source), digest)
+            source.write_bytes(pointer)
+            self.assertEqual(CHECK.semantic_source_sha256(source), digest)
+
     def test_semantic_digest_excludes_snarkpack_verification_receipts(
         self,
     ) -> None:
