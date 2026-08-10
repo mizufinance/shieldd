@@ -210,6 +210,65 @@ def copy_repository_surface(root: Path) -> None:
 
 
 class SpecificationCompletenessTests(unittest.TestCase):
+    def test_execution_receipt_allows_repeated_argv_values(self) -> None:
+        value = matrix()
+        test = next(
+            row
+            for row in CHECK.execution_tests(value)
+            if row["id"]
+            == "PROPERTY-APP-CAN-SWEEP-A-COLLECTION-OF-SMALL-NOTES"
+        )
+        reduced = {
+            "tests": [test],
+            "runtime_policy_contract": {"tests": []},
+            "property_test_contract": {"tests": []},
+            "artifact_test_contract": {"tests": []},
+        }
+        nonce = "a" * 32
+        source = ROOT / test["path"]
+        execution = test["execution"]
+        command = [
+            "cargo",
+            "test",
+            "-p",
+            execution["package"],
+            "--test",
+            execution["cargo_target"],
+            test["symbol"],
+            "--",
+            "--exact",
+            "--nocapture",
+        ]
+        self.assertEqual(command.count(test["symbol"]), 2)
+        receipt = {
+            "schema": "shieldd.gnark.specification_test_receipt.v1",
+            "claim_set": CHECK.CLAIM_SET,
+            "nonce": nonce,
+            "matrix_sha256": hashlib.sha256(
+                CHECK.MATRIX.read_bytes()
+            ).hexdigest(),
+            "execution_plan_sha256": CHECK.execution_plan_digest(reduced),
+            "results": [
+                {
+                    "test_id": test["id"],
+                    "runner": execution["runner"],
+                    "resolved_selector": test["symbol"],
+                    "command": command,
+                    "source_sha256": hashlib.sha256(
+                        source.read_bytes()
+                    ).hexdigest(),
+                    "output_sha256": "b" * 64,
+                    "executed": 1,
+                    "skipped": 0,
+                    "status": "passed",
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "receipt.json"
+            path.write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
+            CHECK.validate_test_execution_receipt(ROOT, reduced, path, nonce)
+
     def test_end_to_end_withdrawal_uses_real_integration_test_target(
         self,
     ) -> None:

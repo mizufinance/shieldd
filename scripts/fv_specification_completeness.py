@@ -11853,7 +11853,14 @@ def validate_test_execution_receipt(
         symbol = str(test["symbol"])
         if not (resolved == symbol or resolved.endswith(f"::{symbol}")):
             reject(f"{test_id}: receipt resolved another test selector")
-        command = string_list(result["command"], f"{test_id}.command")
+        # Command argv values are positional, not a set.  A Cargo integration
+        # test may legitimately use the same string for its target and exact
+        # test selector.
+        command = string_list(
+            result["command"],
+            f"{test_id}.command",
+            unique=False,
+        )
         if execution["runner"] == "go_test":
             expected_command = [
                 "go",
