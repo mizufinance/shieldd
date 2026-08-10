@@ -1089,6 +1089,45 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertFalse(classified.unknown_files)
         self.assertIn("base declaration", classified.matched[0]["reason"])
 
+    def test_removed_base_tier_uses_current_conservative_tier(self) -> None:
+        retired_path = "retired-formal-control/proof-input.lean"
+        previous = GATE.Declaration(
+            gate=self.soundness.gate,
+            tiers=("skip", "stamps", "typed", "full"),
+            events={
+                "pull_request": {"conservative_tier": "stamps"},
+                "merge_group": {"conservative_tier": "stamps"},
+                "schedule": {"tier": "full"},
+                "workflow_call": {"tier": "full"},
+                "workflow_dispatch": {"tier": "full"},
+            },
+            derived_inputs=(),
+            explicit_inputs=(
+                {
+                    "patterns": (retired_path,),
+                    "tiers": {
+                        "pull_request": "typed",
+                        "merge_group": "typed",
+                        "default": "full",
+                    },
+                    "reason": "retired proof input",
+                },
+            ),
+            irrelevant_inputs=(),
+        )
+
+        classified = GATE.classify(
+            self.soundness,
+            "pull_request",
+            [retired_path],
+            [],
+            previous_declaration=previous,
+        )
+
+        self.assertEqual((classified.status, classified.tier), ("run", "pr"))
+        self.assertFalse(classified.unknown_files)
+        self.assertIn("former tier 'typed'", classified.matched[0]["reason"])
+
     def test_audited_unrelated_changes_skip_both_formal_families(self) -> None:
         for path in (
             "README.md",
