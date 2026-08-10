@@ -32,19 +32,32 @@ if [[ "${LEAN_BUILD_VERBOSE:-0}" == "1" ]]; then
   LAKE_ARGS+=(--verbose)
 fi
 
-RSS_SAMPLER="ps"
-if ! ps aux -o pgid= >/dev/null 2>&1; then
-  if [[ "$(uname -s)" == "Darwin" ]] && command -v cc >/dev/null 2>&1; then
+RSS_SAMPLER=""
+case "$(uname -s)" in
+  Linux)
+    RSS_HELPER="$ROOT/scripts/linux-process-group-rss.py"
+    [[ -r /proc/self/stat && -f "$RSS_HELPER" ]] \
+      || fail "Linux procfs RSS sampling is unavailable; refusing an unguarded build"
+    command -v python3 >/dev/null 2>&1 \
+      || fail "python3 is required for Linux procfs RSS sampling"
+    RSS_SAMPLER="linux-proc"
+    ;;
+  Darwin)
+    command -v cc >/dev/null 2>&1 \
+      || fail "cc is required for macOS process-group RSS sampling"
     RSS_HELPER="$TMP/process-group-rss"
     if cc -O2 "$ROOT/scripts/macos-process-group-rss.c" -o "$RSS_HELPER"; then
       RSS_SAMPLER="macos-helper"
     else
       fail "could not compile the macOS RSS sampler"
     fi
-  else
-    fail "process-group RSS sampling is unavailable; refusing an unguarded build"
-  fi
-fi
+    ;;
+  *)
+    ps -eo rss=,pgid= >/dev/null 2>&1 \
+      || fail "process-group RSS sampling is unavailable; refusing an unguarded build"
+    RSS_SAMPLER="ps"
+    ;;
+esac
 
 set -m
 cd "$LEAN_DIR"
@@ -53,14 +66,14 @@ BUILD_PID=$!
 PGID=$BUILD_PID
 
 group_rss_kb() {
-  if [[ "$RSS_SAMPLER" == "macos-helper" ]]; then
-    "$RSS_HELPER" "$PGID"
-  else
-    # Appending PGID keeps the normal aux columns stable (RSS is column 6)
-    # and places PGID in the final column.
-    ps aux -o pgid= 2>/dev/null \
-      | awk -v group="$PGID" '$NF == group { total += $6 } END { print total + 0 }'
-  fi
+  case "$RSS_SAMPLER" in
+    linux-proc) python3 "$RSS_HELPER" "$PGID" ;;
+    macos-helper) "$RSS_HELPER" "$PGID" ;;
+    ps)
+      ps -eo rss=,pgid= 2>/dev/null \
+        | awk -v group="$PGID" '$2 == group { total += $1 } END { print total + 0 }'
+      ;;
+  esac
 }
 
 kill_group() { kill -9 -- "-$PGID" 2>/dev/null || true; }
@@ -73,13 +86,13 @@ abort_build() {
 trap abort_build INT TERM
 
 print_group() {
-  if [[ "$RSS_SAMPLER" == "macos-helper" ]]; then
+  if [[ "$RSS_SAMPLER" == "linux-proc" || "$RSS_SAMPLER" == "macos-helper" ]]; then
     printf 'process-group %s RSS: %sKB\n' "$PGID" "$(group_rss_kb)"
     return
   fi
   local snapshot
-  snapshot="$(ps aux -o pgid= 2>/dev/null)" || return 0
-  awk -v group="$PGID" '$NF == group' <<<"$snapshot"
+  snapshot="$(ps -eo pid=,ppid=,pgid=,rss=,comm= 2>/dev/null)" || return 0
+  awk -v group="$PGID" '$3 == group' <<<"$snapshot"
 }
 
 MAX_RSS_KB=$((MAX_RSS_MB * 1024))
