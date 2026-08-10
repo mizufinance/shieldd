@@ -307,6 +307,12 @@ class RustWorkflowWiringTests(unittest.TestCase):
                     jobs[lane],
                 )
 
+    def test_exact_fv_evidence_builds_jemalloc_with_optimization(self) -> None:
+        exact_fv_step = self.workflow.split(
+            "- name: Execute exact FV specification evidence", maxsplit=1
+        )[1].split("\n\n", maxsplit=1)[0]
+        self.assertIn("env:\n          CFLAGS: -O1", exact_fv_step)
+
 
 class OrbisWorkflowWiringTests(unittest.TestCase):
     @classmethod

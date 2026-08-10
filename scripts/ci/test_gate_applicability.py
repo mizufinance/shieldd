@@ -507,6 +507,23 @@ class GateApplicabilityTests(unittest.TestCase):
         ]
         self.assertIn("          lfs: true", soundness_gate)
 
+    def test_serial_circuit_jobs_have_time_to_finish_from_a_cold_cache(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        key_coherence = workflow[
+            workflow.index("  soundness-key-coherence:") : workflow.index(
+                "  soundness-alloy:"
+            )
+        ]
+        lean_fv = workflow[
+            workflow.index("  soundness-lean-circuit-fv:") : workflow.index(
+                "  # ------------------------------------------------------------------ summary"
+            )
+        ]
+        self.assertIn("timeout-minutes: 150", key_coherence)
+        self.assertIn("timeout-minutes: 360", lean_fv)
+
     def test_handwritten_snarkpack_lean_inputs_select_full_tier(self) -> None:
         paths = (
             "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Goal.lean",
