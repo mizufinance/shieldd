@@ -122,17 +122,40 @@ pub struct Transaction {
     pub anchor: tct::Root,
 }
 
+/// Canonical placeholder for no-proof transactions whose binding key is identity.
+pub fn no_binding_signature() -> Signature<Binding> {
+    [0u8; 64].into()
+}
+
+/// Returns whether a binding signature is the canonical no-proof placeholder.
+pub fn is_no_binding_signature(signature: &Signature<Binding>) -> bool {
+    signature.to_bytes() == [0u8; 64]
+}
+
 impl Default for Transaction {
     fn default() -> Self {
         Transaction {
             transaction_body: Default::default(),
-            binding_sig: [0u8; 64].into(),
+            binding_sig: no_binding_signature(),
             anchor: tct::Tree::new().root(),
         }
     }
 }
 
 impl Transaction {
+    /// Decodes only the unique protobuf encoding emitted by this domain type.
+    pub fn decode_canonical(bytes: &[u8]) -> anyhow::Result<Self> {
+        let tx: Self = pbt::Transaction::decode(bytes)
+            .context("decoding transaction protobuf")?
+            .try_into()?;
+        let canonical: Vec<u8> = (&tx).into();
+        anyhow::ensure!(
+            canonical == bytes,
+            "transaction bytes are not the canonical protobuf encoding"
+        );
+        Ok(tx)
+    }
+
     pub fn context(&self) -> TransactionContext {
         TransactionContext {
             anchor: self.anchor,
@@ -149,7 +172,13 @@ impl Transaction {
                 | Action::NoteReshape(_)
                 | Action::ShieldedIcs20Withdrawal(_)
                 | Action::ShieldedHostWithdrawal(_) => 1,
-                _ => 0,
+                Action::ValidatorDefinition(_)
+                | Action::ValidatorVote(_)
+                | Action::ProposalSubmit(_)
+                | Action::IbcRelay(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_)
+                | Action::AggregateBundle(_) => 0,
             })
             .sum::<usize>()
             + usize::from(self.transaction_body.fee_funding.is_some())
@@ -506,7 +535,6 @@ impl Transaction {
                     .body
                     .inputs
                     .iter()
-                    .filter(|input| !input.is_dummy())
                     .map(|input| input.nullifier)
                     .collect(),
                 Action::NoteReshape(note_reshape) => note_reshape
@@ -538,12 +566,38 @@ impl Transaction {
                     .body
                     .inputs
                     .iter()
-                    .filter(|input| !input.is_dummy())
                     .map(|input| input.nullifier),
             );
         }
 
         nullifiers.into_iter()
+    }
+
+    /// Counts every proof-bound spend without allocating the iterator's buffer.
+    pub fn spent_nullifier_count(&self) -> usize {
+        let body_count = self.actions().fold(0usize, |count, action| {
+            let action_count = match action {
+                Action::Transfer(transfer) => transfer.body.inputs.len(),
+                Action::NoteReshape(note_reshape) => note_reshape.body.inputs.len(),
+                Action::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.body.inputs.len(),
+                Action::ShieldedHostWithdrawal(withdrawal) => withdrawal.body.inputs.len(),
+                Action::ValidatorDefinition(_)
+                | Action::ValidatorVote(_)
+                | Action::ProposalSubmit(_)
+                | Action::IbcRelay(_)
+                | Action::ComplianceRegisterAsset(_)
+                | Action::ComplianceRegisterUser(_)
+                | Action::AggregateBundle(_) => 0,
+            };
+            count.saturating_add(action_count)
+        });
+        let fee_count = self
+            .transaction_body
+            .fee_funding
+            .as_ref()
+            .map(|fee_funding| fee_funding.transfer.body.inputs.len())
+            .unwrap_or_default();
+        body_count.saturating_add(fee_count)
     }
 
     pub fn state_commitments(&self) -> impl Iterator<Item = StateCommitment> + '_ {
@@ -554,7 +608,6 @@ impl Transaction {
                     .body
                     .outputs
                     .iter()
-                    .filter(|output| !output.is_dummy())
                     .map(|output| Some(output.note_payload.note_commitment))
                     .collect::<Vec<_>>(),
                 Action::NoteReshape(note_reshape) => note_reshape
@@ -581,7 +634,6 @@ impl Transaction {
                     .body
                     .outputs
                     .iter()
-                    .filter(|output| !output.is_dummy())
                     .map(|output| output.note_payload.note_commitment),
             );
         }
@@ -725,10 +777,36 @@ mod tests {
     use shieldd_sdk_asset::{asset, Balance, Value, BASE_ASSET_DENOM};
     use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
     use shieldd_sdk_keys::Address;
+    use shieldd_sdk_proto::DomainType as _;
     use shieldd_sdk_sct::Nullifier;
     use shieldd_sdk_shielded_pool::backref::ENCRYPTED_BACKREF_LEN;
 
     use super::{Action, Transaction, TransactionBody};
+
+    #[test]
+    fn canonical_decode_accepts_exact_encoding_and_rejects_unknown_fields() {
+        let tx = Transaction::default();
+        let canonical: Vec<u8> = (&tx).into();
+        assert_eq!(
+            Transaction::decode_canonical(&canonical)
+                .expect("canonical transaction must decode")
+                .encode_to_vec(),
+            canonical
+        );
+
+        // Unknown field 127, varint value 0. Prost accepts and drops it, so
+        // decode followed by canonical re-encoding must reject this wire form.
+        let mut noncanonical = canonical;
+        noncanonical.extend_from_slice(&[0xf8, 0x07, 0x00]);
+        let error = Transaction::decode_canonical(&noncanonical)
+            .expect_err("unknown protobuf fields must not cross transaction ingress");
+        assert!(
+            error
+                .to_string()
+                .contains("not the canonical protobuf encoding"),
+            "unexpected error: {error:#}"
+        );
+    }
 
     #[test]
     fn transfer_counts_as_nullifier_and_state_commitment_source() {
@@ -758,9 +836,9 @@ mod tests {
                             decaf377::Fr::from(40u64),
                         )),
                         encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
-                            [2u8; ENCRYPTED_BACKREF_LEN],
+                            [2u8; 48],
                         )
-                        .expect("valid encrypted backref"),
+                        .expect("fixed-size encrypted backref"),
                         compliance_ciphertext: vec![],
                     },
                 ],
@@ -777,7 +855,7 @@ mod tests {
                         wrapped_memo_key: WrappedMemoKey([8u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([9u8; 48]),
                         compliance_ciphertext: vec![4, 5, 6],
-                        orbis_upload_bundle: vec![15, 16],
+                        compliance_metadata: vec![15, 16],
                     },
                     shieldd_sdk_shielded_pool::TransferOutputBody {
                         note_payload: shieldd_sdk_shielded_pool::NotePayload {
@@ -791,7 +869,7 @@ mod tests {
                         wrapped_memo_key: WrappedMemoKey([80u8; 48]),
                         ovk_wrapped_key: OvkWrappedKey([90u8; 48]),
                         compliance_ciphertext: vec![],
-                        orbis_upload_bundle: vec![],
+                        compliance_metadata: vec![],
                     },
                 ],
                 target_timestamp: 10,
@@ -801,35 +879,69 @@ mod tests {
             auth_sigs: vec![[17u8; 64].into(), [0u8; 64].into()],
             proof: shieldd_sdk_shielded_pool::TransferProof::default(),
         };
+        assert_eq!(transfer.body.inputs.len(), 2);
+        assert_eq!(transfer.body.outputs.len(), 2);
 
         let tx = Transaction {
             transaction_body: TransactionBody {
-                actions: vec![Action::Transfer(transfer)],
+                actions: vec![Action::Transfer(transfer.clone())],
                 ..Default::default()
             },
             ..Default::default()
         };
 
         assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 2);
+        assert_eq!(
+            tx.spent_nullifier_count(),
+            tx.spent_nullifiers().count(),
+            "zero-allocation count must match the canonical iterator"
+        );
         assert_eq!(tx.state_commitments().collect::<Vec<_>>().len(), 2);
+
+        let fee_funded_tx = Transaction {
+            transaction_body: TransactionBody {
+                actions: vec![Action::Transfer(transfer.clone())],
+                fee_funding: Some(crate::FeeFunding { transfer }),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        assert_eq!(
+            fee_funded_tx.spent_nullifiers().collect::<Vec<_>>().len(),
+            4
+        );
+        assert_eq!(
+            fee_funded_tx.spent_nullifier_count(),
+            fee_funded_tx.spent_nullifiers().count(),
+            "body and fee-funding nullifiers must share one canonical count"
+        );
+        assert_eq!(
+            fee_funded_tx.state_commitments().collect::<Vec<_>>().len(),
+            4
+        );
     }
 
     #[test]
-    fn note_reshape_body_sentinel_does_not_filter_spent_nullifiers() {
-        let inputs = (0..4)
+    fn note_reshape_fixed_slots_do_not_filter_spent_nullifiers() {
+        let inputs = (0..8)
             .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                 nullifier: Nullifier(decaf377::Fq::from(100u64 + index)),
                 rk: VerificationKey::from(SigningKey::<SpendAuth>::from(decaf377::Fr::from(
                     200u64 + index,
                 ))),
-                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                    [u8::try_from(index + 1).expect("small test index"); 48],
+                )
+                .expect("fixed-size encrypted backref"),
             })
             .collect::<Vec<_>>();
-        assert!(inputs.iter().all(|input| input.is_dummy()));
+        assert!(inputs
+            .iter()
+            .all(|input| input.encrypted_backref.len() == 48));
 
         let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
             body: shieldd_sdk_shielded_pool::NoteReshapeBody {
-                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::FourByOne,
+                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                 anchor: shieldd_sdk_tct::Tree::default().root(),
                 balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
                 inputs,
@@ -846,7 +958,7 @@ mod tests {
                     ovk_wrapped_key: OvkWrappedKey([6u8; 48]),
                 }],
             },
-            auth_sigs: vec![[0u8; 64].into(); 4],
+            auth_sigs: vec![[0u8; 64].into(); 8],
             proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
         };
         let tx = Transaction {
@@ -857,7 +969,8 @@ mod tests {
             ..Default::default()
         };
 
-        assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 4);
+        assert_eq!(tx.spent_nullifiers().collect::<Vec<_>>().len(), 8);
+        assert_eq!(tx.spent_nullifier_count(), tx.spent_nullifiers().count());
     }
 
     #[test]
@@ -871,13 +984,13 @@ mod tests {
     }
 
     #[test]
-    fn num_proofs_counts_new_shielded_action_families() {
+    fn proof_and_nullifier_counts_cover_mixed_shielded_families() {
         let tx = Transaction {
             transaction_body: TransactionBody {
                 actions: vec![
                     Action::NoteReshape(shieldd_sdk_shielded_pool::NoteReshape {
                         body: shieldd_sdk_shielded_pool::NoteReshapeBody {
-                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::TwoByOne,
+                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                             anchor: shieldd_sdk_tct::Tree::default().root(),
                             balance_commitment: Balance::default().commit(decaf377::Fr::from(1u64)),
                             inputs: vec![
@@ -963,7 +1076,10 @@ mod tests {
                                             decaf377::Fr::from(24u64),
                                         )),
                                         encrypted_backref:
-                                            shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                            shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                                                [23u8; 48],
+                                            )
+                                            .expect("fixed-size encrypted backref"),
                                         compliance_ciphertext: vec![],
                                     },
                                     shieldd_sdk_shielded_pool::TransferInputBody {
@@ -972,7 +1088,10 @@ mod tests {
                                             decaf377::Fr::from(26u64),
                                         )),
                                         encrypted_backref:
-                                            shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
+                                            shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                                                [25u8; 48],
+                                            )
+                                            .expect("fixed-size encrypted backref"),
                                         compliance_ciphertext: vec![],
                                     },
                                 ],
@@ -985,7 +1104,6 @@ mod tests {
                                         .expect("valid timeout height"),
                                     timeout_time: 1,
                                     source_channel: ibc_types::core::channel::ChannelId::new(7),
-                                    use_compat_address: false,
                                     ics20_memo: String::new(),
                                     use_transparent_address: false,
                                 },
@@ -1022,6 +1140,23 @@ mod tests {
         };
 
         assert_eq!(tx.num_proofs(), 3);
+        assert_eq!(
+            tx.spent_nullifiers().collect::<Vec<_>>(),
+            [
+                Nullifier(decaf377::Fq::from(2u64)),
+                Nullifier(decaf377::Fq::from(4u64)),
+                Nullifier(decaf377::Fq::from(14u64)),
+                Nullifier(decaf377::Fq::from(23u64)),
+                Nullifier(decaf377::Fq::from(25u64)),
+            ],
+            "transaction-wide duplicate detection must see every fixed-slot \
+             NoteReshape and shielded-withdrawal nullifier"
+        );
+        assert_eq!(
+            tx.spent_nullifier_count(),
+            tx.spent_nullifiers().count(),
+            "mixed-family count must match the canonical iterator"
+        );
     }
 }
 
@@ -1184,7 +1319,7 @@ impl TryFrom<&[u8]> for Transaction {
     type Error = Error;
 
     fn try_from(bytes: &[u8]) -> Result<Transaction, Self::Error> {
-        pbt::Transaction::decode(bytes)?.try_into()
+        Self::decode_canonical(bytes)
     }
 }
 

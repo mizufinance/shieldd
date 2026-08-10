@@ -316,6 +316,34 @@ let impl_ShieldedIcs20WithdrawalFamilyId__get
     : u32 =
   match self <: t_ShieldedIcs20WithdrawalFamilyId with
   | ShieldedIcs20WithdrawalFamilyId value -> value
+
+[@@ FStar.Tactics.Typeclasses.tcinstance]
+let impl_ShieldedIcs20WithdrawalFamilyId__try_from:
+    Core_models.Convert.t_TryFrom t_ShieldedIcs20WithdrawalFamilyId u32 =
+  {
+    f_Error = Anyhow.t_Error;
+    f_try_from_pre = (fun (x: u32) -> true);
+    f_try_from_post
+    =
+    (fun (x: u32)
+        (out: Core_models.Result.t_Result
+          t_ShieldedIcs20WithdrawalFamilyId Anyhow.t_Error) ->
+        true);
+    f_try_from
+    =
+    fun (x: u32) ->
+      if x =. mk_u32 1
+      then
+        Core_models.Result.Result_Ok
+          (ShieldedIcs20WithdrawalFamilyId x
+            <: t_ShieldedIcs20WithdrawalFamilyId)
+          <: Core_models.Result.t_Result
+            t_ShieldedIcs20WithdrawalFamilyId Anyhow.t_Error
+      else
+        Core_models.Result.Result_Err (Anyhow.Error <: Anyhow.t_Error)
+          <: Core_models.Result.t_Result
+            t_ShieldedIcs20WithdrawalFamilyId Anyhow.t_Error
+  }
 FSTAR
 popd >/dev/null
 validate_fstar_boundary_cache

@@ -58,7 +58,8 @@ impl PcliConfig {
             Some(GovernanceCustodyConfig::Encrypted { fvk, .. }) => fvk,
             None => &self.full_viewing_key,
         };
-        GovernanceKey(fvk.spend_verification_key().clone())
+        GovernanceKey::try_from(fvk.spend_verification_key().clone())
+            .expect("full viewing keys have nonidentity spend verification keys")
     }
 }
 

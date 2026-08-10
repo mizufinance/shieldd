@@ -1,0 +1,59 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042cDtkLtRChunk205
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 20000000
+set_option linter.unusedVariables false
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkSupport
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
+theorem dtkRStep206Pe (rho : Nat -> F) (r1918 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.relationRow1918 rho) :
+    dtkRPe206 rho = dtkRPe207 rho * (1 - rho 1189) := by
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.relationRow1918 at r1918
+  unfold dtkRPe206 dtkRPe207
+  linear_combination -r1918
+
+theorem dtkRStep206 (rho : Nat -> F) (r1918 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.relationRow1918 rho) :
+    dtkRPe206 rho = dtkRPe207 rho * (1 - rho 1189) ∧
+    dtkRIl206 rho = dtkRIl207 rho := by
+  exact ⟨dtkRStep206Pe rho r1918, rfl⟩
+
+theorem dtk_r_chunk206 (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.relation rho) (k : Prop) (hq4 : Shieldd.GnarkFormal.Extracted.IvkModR.ltcRec (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.q4Bit
+    (Shieldd.GnarkFormal.DtkBridge.ivkGuardK (rho 978) k) 253 (1 : F) (0 : F)) :
+    Shieldd.GnarkFormal.Extracted.IvkModR.ltcRec (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.rBit
+      (Shieldd.GnarkFormal.DtkBridge.rContK (dtkIvkBits rho) (rho 978) k) 207 (dtkRPeState rho 207) (dtkRIlState rho 207) := by
+  have htail := dtk_r_chunk205 rho h k hq4
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.relation at h
+  rcases h with ⟨
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, p23, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _, _,
+    _, _, _, _, _, _, _, _, _
+  ⟩
+  unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.relationPart23 at p23
+  rcases p23 with ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, r1918, _⟩
+  have hsteps : ∀ n, 206 ≤ n → n < 207 →
+      if Shieldd.GnarkFormal.Extracted.IvkModR.rBit n then
+        dtkRPeState rho n = dtkRPeState rho (n + 1) * rho (983 + n) ∧
+        dtkRIlState rho n = dtkRIlState rho (n + 1) + dtkRPeState rho (n + 1) * (1 - rho (983 + n)) -
+          dtkRIlState rho (n + 1) * (dtkRPeState rho (n + 1) * (1 - rho (983 + n)))
+      else
+        dtkRPeState rho n = dtkRPeState rho (n + 1) * (1 - rho (983 + n)) ∧
+        dtkRIlState rho n = dtkRIlState rho (n + 1) := by
+    intro n hnlo hnhi
+    interval_cases n
+    · have hb : Shieldd.GnarkFormal.Extracted.IvkModR.rBit 206 = false := by decide +kernel
+      simp only [hb, ↓reduceIte, Nat.reduceAdd]
+      exact dtkRStep206 rho r1918
+  have ht := Shieldd.GnarkFormal.Deployed.Dtk.stateTrace_span_to_ltcRec
+    (dtkIvkBits rho) Shieldd.GnarkFormal.Extracted.IvkModR.rBit (Shieldd.GnarkFormal.DtkBridge.rContK (dtkIvkBits rho) (rho 978) k)
+    (dtkRPeState rho) (dtkRIlState rho) 206 1
+    (by intro n hnlo hnhi; have key := dtkIvkBits_get rho n (by omega); erw [key]; exact hsteps n hnlo hnhi) htail (by omega)
+  simpa only [Nat.reduceAdd] using ht
+
+end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafDiversifiedTransmissionKey_a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c.DtkSupport

@@ -27,5 +27,6 @@ func DeriveACKFromLeafD(api frontend.API, ringPK gnarkte.Point, d frontend.Varia
 	if err != nil {
 		return gnarkte.Point{}, err
 	}
-	return ScalarMulLE(api, curve, ringPK, d, primitives.MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen()), nil
+	bits := api.ToBinary(d, primitives.MustBigInt(vectors.Decaf377CompanionCurve.Order).BitLen())
+	return ScalarMulWindow2LEBits(api, curve, ringPK, bits), nil
 }

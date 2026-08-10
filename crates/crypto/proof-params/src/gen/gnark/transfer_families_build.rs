@@ -1,3 +1,4 @@
+// Code generated from transfer_families.json. DO NOT EDIT.
 pub struct GeneratedTransferFamily {
     pub label: &'static str,
     pub artifact_name: &'static str,
@@ -6,10 +7,12 @@ pub struct GeneratedTransferFamily {
     pub bundled_lib_basename: &'static str,
 }
 
-pub const GENERATED_TRANSFER_FAMILIES: &[GeneratedTransferFamily] = &[GeneratedTransferFamily {
-    label: "transfer",
-    artifact_name: "transfer",
-    n_in: 2,
-    n_out: 2,
-    bundled_lib_basename: "libshieldd_gnark_transfer",
-}];
+pub const GENERATED_TRANSFER_FAMILIES: &[GeneratedTransferFamily] = &[
+    GeneratedTransferFamily {
+        label: "transfer",
+        artifact_name: "transfer",
+        n_in: 2,
+        n_out: 2,
+        bundled_lib_basename: "libshieldd_gnark_transfer",
+    },
+];

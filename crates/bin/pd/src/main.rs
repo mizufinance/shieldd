@@ -30,6 +30,7 @@ use rand_core::OsRng;
 use rustls::crypto::aws_lc_rs;
 use shieldd_sdk_app::app_version::check_and_update_app_version;
 use shieldd_sdk_app::{APP_VERSION, SUBSTORE_PREFIXES};
+use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_tower_trace::remote_addr;
 use tendermint_config::net::Address as TendermintAddress;
 use tower::ServiceBuilder;
@@ -62,8 +63,10 @@ fn parse_spend_vk_hex(value: &str) -> anyhow::Result<VerificationKey<SpendAuth>>
     if bytes.len() != 32 {
         anyhow::bail!("--compliance-registrar-vk-hex must be exactly 64 hex chars");
     }
-    VerificationKey::<SpendAuth>::try_from(bytes.as_slice())
-        .map_err(|_| anyhow!("invalid --compliance-registrar-vk-hex encoding"))
+    let key = VerificationKey::<SpendAuth>::try_from(bytes.as_slice())
+        .map_err(|_| anyhow!("invalid --compliance-registrar-vk-hex encoding"))?;
+    ensure_nonidentity_spend_auth_key(&key, "compliance registrar key")?;
+    Ok(key)
 }
 
 #[tokio::main]

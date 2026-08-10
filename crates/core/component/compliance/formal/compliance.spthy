@@ -90,7 +90,7 @@ rule RULE_DecodeDesignatedDk:
   ]->
   [ ]
 
-lemma SECRECY:
+lemma RECOVERY_IMPLIES_DESIGNATED_ACTION:
   "All seed key #i.
     PlaintextRecovered(seed, key) @ #i ==> DesignatedDecrypt(key) @ #i"
 
@@ -98,7 +98,7 @@ lemma DETECTION_CORRECTNESS:
   "All seed key anchor #i.
     VerifyRegulated(seed, key, anchor) @ #i ==> DetectionAccepted(seed) @ #i"
 
-lemma DESIGNATED_DECRYPTABILITY:
+lemma RECOVERY_KEY_WAS_DESIGNATED:
   "All seed key #i.
     PlaintextRecovered(seed, key) @ #i
     ==> (Ex #j. DesignatedKey(key) @ #j & #j < #i)"

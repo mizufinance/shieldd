@@ -1,6 +1,7 @@
 import ShielddGnarkFormal.NetBalanceCommitmentBridge
 import ShielddGnarkFormal.RvkFixedBaseRung
 import ShielddGnarkFormal.CompressDeployedGadgets
+import ShielddGnarkFormal.ChoiceFreeZMod
 
 /-! # Deployed net-balance ladder keystones (note_reshape2x1 seg52)
 
@@ -95,6 +96,11 @@ theorem identity_addSpec (p : Point) : addSpec ⟨0, 1⟩ p p := by
   · norm_num
   · ring
 
+section ChoiceFreeAddSpecRows
+
+attribute [-instance] ZMod.instField
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+
 theorem addSpec_of_rows (px py qx qy t0 t1 t2 t3 rx ry : F)
     (hp : onCurve ⟨px, py⟩) (hq : onCurve ⟨qx, qy⟩)
     (h0 : (px + py) * (qx + qy) = t0)
@@ -125,6 +131,8 @@ theorem addSpec_of_rows (px py qx qy t0 t1 t2 t3 rx ry : F)
           Or.inl ⟨add_den_minus_ne ⟨px, py⟩ ⟨qx, qy⟩ hp hq, ?_⟩⟩
   · simpa [EdwardsBridge.d] using haddx
   · simpa [EdwardsBridge.a_eq, EdwardsBridge.d] using haddy
+
+end ChoiceFreeAddSpecRows
 
 def doublePow (base : Point) : ℕ → Point
   | 0 => base

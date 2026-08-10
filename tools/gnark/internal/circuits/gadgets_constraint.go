@@ -409,15 +409,10 @@ func (c *IsZeroGadget) Define(api frontend.API) error {
 	return nil
 }
 
-// CanonicalFqBitsGadget isolates a single Kestrel-shaped canonical
-// decomposition: `In` is decomposed into 253 little-endian bits whose packing
-// equals `In` and whose value is asserted reduced (`packbv <= p-1`) via the
-// exact `make-range-check-constraints` shapes for `c = p-1, n = 253`. This is
-// the reducedness keystone, isolated so the ACL2 proof
-// (canonical-fq-bits-proof.lisp) lifts the slice and instantiates
-// `make-range-check-constraints-correct` directly — no STP, no
-// gnark-vs-Kestrel encoding-equivalence lemma. The bit wires are exposed so the
-// `R1CS ⟹ spec` theorem can name them.
+// CanonicalFqBitsGadget isolates the explicit 253-bit canonical decomposition
+// consumed by the source-level extractor bridges for the Decaf gadgets. The
+// AssetRegistryGap circuit deliberately uses a separate private native
+// ToBinary relation whose backend rows are handled by its exact provider.
 type CanonicalFqBitsGadget struct {
 	In frontend.Variable `gnark:",public"`
 }
@@ -428,8 +423,8 @@ func (c *CanonicalFqBitsGadget) Define(api frontend.API) error {
 }
 
 // AssetRegistryGapGadget isolates the shipped decompose-once IMT comparator:
-// Select(IsRegulated, exactMatch, inGap) == 1. Each operand is decomposed
-// exactly once via the Kestrel-shaped CanonicalFqBits253.
+// Select(IsRegulated, exactMatch, inGap) == 1. Each operand is decomposed once
+// by gnark's native full-width ToBinary relation.
 type AssetRegistryGapGadget struct {
 	NoteAssetID frontend.Variable `gnark:",public"`
 	IsRegulated frontend.Variable `gnark:",public"`

@@ -1,4 +1,4 @@
-import ShielddGnarkFormal.DtkBridge.Semantics
+import ShielddGnarkFormal.DtkBridge.Core
 import ShielddGnarkFormal.ChoiceFreeZMod
 
 set_option maxRecDepth 100000
@@ -16,27 +16,6 @@ open Shieldd.GnarkFormal.ScalarMulBridge
 open Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd (Order)
 
 variable [Fact (Nat.Prime Order)]
-
-theorem dtkSeg14_build (gate_569 : List.Vector F 2) (IvkQuotient : F) (k : Prop)
-    (hguard : ivkGuard IvkQuotient gate_569[1]) (hk : k) :
-    dtkSeg14 gate_569 IvkQuotient k := by
-  unfold dtkSeg14
-  unfold ivkGuard at hguard
-  simp only [Extracted.DecafDtk.Gates, Extracted.IvkModR.Gates, GatesGnark9, GatesGnark8,
-    GatesDef.sub, GatesDef.mul, GatesDef.eq, GatesDef.is_zero] at hguard ⊢
-  obtain ⟨g570, hg570, g571, hg571, g572, hg572, g573, hg573, heq, -⟩ := hguard
-  exact ⟨g570, hg570, g571, hg571, g572, hg572, g573, hg573, heq, hk⟩
-
-/-- `k`-carrying form of `ivkGuard`: the continuation the deployed q4 ladder is run
-against (keystone #2 is generic in the continuation, so the generator plugs this
-in directly). -/
-def ivkGuardK (IvkQuotient : F) (k : Prop) (il : F) : Prop :=
-    ∃gate_570, gate_570 = Extracted.IvkModR.Gates.sub IvkQuotient (4:F) ∧
-    ∃gate_571, Extracted.IvkModR.Gates.is_zero gate_570 gate_571 ∧
-    ∃gate_572, gate_572 = Extracted.IvkModR.Gates.sub (1:F) il ∧
-    ∃gate_573, gate_573 = Extracted.IvkModR.Gates.mul gate_571 gate_572 ∧
-    Extracted.IvkModR.Gates.eq gate_573 (0:F) ∧
-    k
 
 /-- `k`-carrying guard rebuilds `dtkSeg14` in one step. -/
 theorem dtkSeg14_buildK (gate_569 : List.Vector F 2) (IvkQuotient : F) (k : Prop)
@@ -144,13 +123,6 @@ theorem dtkSeg8_build (bits : List.Vector F 253) (gate_332 : F)
   simp (config := { maxSteps := 200000 }) only [dtk_ltConstStepZero_uncps,
     dtk_ltConstStepOne_uncps] at h2 ⊢
   exact dtkSeg9_build _ _ _ _ h2
-
-/-- The rBit `< r` continuation, carrying the tail `k` through the q4 guard.
-`k`-carrying analog of the forward `RC` continuation. -/
-def rContK (bits : List.Vector F 253) (IvkQuotient : F) (k : Prop) (il1 : F) : Prop :=
-    Extracted.IvkModR.Gates.eq il1 (1:F) ∧
-    Extracted.IvkModR.ltcRec bits Extracted.IvkModR.q4Bit (ivkGuardK IvkQuotient k)
-      253 (1:F) (0:F)
 
 /-- Crossover builder (mpr of `dtkSeg7_ltcRQ`): the rBit ladder finishes, the
 `il1 = 1` guard fires, and the q4 ladder begins — all absorbed into `dtkSeg7`. -/

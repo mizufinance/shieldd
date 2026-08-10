@@ -17,18 +17,24 @@ abbrev F := ZMod Order
 local instance : Fact (Nat.Prime Order) :=
   ⟨Shieldd.GnarkFormal.Deployed.decaf377ScalarFieldPrime⟩
 
-def relation (rho : Nat -> F) : Prop :=
+def relation (rho : Nat → F) : Prop :=
   Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.relation rho
 
-def spec (rho : Nat -> F) : Prop :=
-  rho 1 = 0 ∨ rho 2 = 0
+def guard (rho : Nat → F) : F :=
+  (1 : F) * rho 1
 
-theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
-  simp only [relation, Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.relation, Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.relationSegment0] at h
-  obtain ⟨h0, h1, _⟩ := h
-  apply mul_eq_zero.mp
-  calc
-    rho 1 * rho 2 = rho 3 := by linear_combination h0
-    _ = 0 := by linear_combination h1
+def residual (rho : Nat → F) : F :=
+  (1 : F) * rho 2
+
+def spec (rho : Nat → F) : Prop :=
+  guard rho = 0 ∨ residual rho = 0
+
+theorem sound (rho : Nat → F) (h : relation rho) : spec rho := by
+  unfold relation Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.relation Shieldd.GnarkFormal.Deployed.Templates.Relations.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d.relationSegment0 at h
+  rcases h with ⟨h0, h1, _⟩
+  have hproduct : guard rho * residual rho = 0 := by
+    unfold guard residual
+    linear_combination h0 + h1
+  exact mul_eq_zero.mp hproduct
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TAssertEqIf_ddee3f5dbb25719dc8ce88820a48ef2b56159138d939c3b768c7bcfad396079d

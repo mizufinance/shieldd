@@ -1,12 +1,10 @@
 use anyhow::{anyhow, bail, ensure, Result};
 use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, PreparedVerifyingKey, Proof};
-use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_keys::keys::NullifierKey;
-use shieldd_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
@@ -19,12 +17,24 @@ use crate::{
 use super::NoteReshapeFamilyId;
 
 impl NoteReshapeFamilyId {
+    pub fn deployed_proof_key(self) -> shieldd_sdk_proof_params::DeployedProofKey {
+        match self.get() {
+            2 => shieldd_sdk_proof_params::DeployedProofKey::NoteReshapeOneByEight,
+            3 => shieldd_sdk_proof_params::DeployedProofKey::NoteReshapeEightByOne,
+            unknown => panic!("validated note reshape family has unknown id {unknown}"),
+        }
+    }
+
     pub fn proof_verification_key(self) -> &'static PreparedVerifyingKey<Bls12_377> {
-        shieldd_sdk_proof_params::note_reshape_proof_verification_key(self.get())
+        self.deployed_proof_key().bundled_pvk()
     }
 
     pub fn proving_key_bytes(self) -> &'static [u8] {
         shieldd_sdk_proof_params::note_reshape_proving_key_bytes(self.get())
+    }
+
+    pub fn verifying_key_json_bytes(self) -> &'static [u8] {
+        shieldd_sdk_proof_params::note_reshape_verifying_key_json_bytes(self.get())
     }
 
     pub fn circuit_metadata_bytes(self) -> &'static [u8] {
@@ -96,7 +106,6 @@ pub struct NoteReshapeInputPrivate {
     pub spend_auth_randomizer: Fr,
     pub(crate) is_dummy: bool,
     pub(crate) dummy_nullifier_seed: Fq,
-    pub(crate) dummy_spend_auth_key: Fr,
 }
 
 #[derive(Clone, Debug)]
@@ -176,10 +185,10 @@ impl NoteReshapeProof {
     }
 
     fn decoded_proof(&self) -> anyhow::Result<Proof<Bls12_377>> {
-        Proof::deserialize_compressed(&self.inner[..]).map_err(|e| anyhow!(e))
+        crate::groth16_proof::decode(&self.inner)
     }
 
-    pub fn to_batch_item(
+    pub(crate) fn to_batch_item(
         &self,
         public: &NoteReshapeProofPublic,
     ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
@@ -190,15 +199,6 @@ impl NoteReshapeProof {
             proof,
             public_inputs: vec![statement_hash],
         })
-    }
-
-    pub fn for_family(&self, _family_id: NoteReshapeFamilyId) -> anyhow::Result<()> {
-        let _: [u8; GROTH16_PROOF_LENGTH_BYTES] = self
-            .inner
-            .clone()
-            .try_into()
-            .map_err(|_| anyhow!("malformed note_reshape proof length"))?;
-        Ok(())
     }
 
     pub fn verify(&self, public: &NoteReshapeProofPublic) -> anyhow::Result<()> {
@@ -266,7 +266,9 @@ impl TryFrom<pb::ZkNoteReshapeProof> for NoteReshapeProof {
     type Error = anyhow::Error;
 
     fn try_from(value: pb::ZkNoteReshapeProof) -> Result<Self, Self::Error> {
-        Ok(Self { inner: value.inner })
+        let proof = Self { inner: value.inner };
+        proof.decoded_proof()?;
+        Ok(proof)
     }
 }
 
@@ -274,6 +276,16 @@ impl TryFrom<pb::ZkNoteReshapeProof> for NoteReshapeProof {
 mod tests {
     use super::NoteReshapeProof;
     use crate::{note_reshape::NoteReshapeFamilyId, test_proof_helpers::proof_test_helpers};
+
+    #[test]
+    fn note_reshape_deployed_key_mapping_matches_generated_registry_for_every_family() {
+        for family in NoteReshapeFamilyId::ALL {
+            assert!(std::ptr::eq(
+                family.deployed_proof_key().bundled_pvk(),
+                shieldd_sdk_proof_params::note_reshape_proof_verification_key(family.get()),
+            ));
+        }
+    }
 
     #[test]
     fn note_reshape_proof_public_shape_rejects_wrong_input_and_output_shapes() {
@@ -300,7 +312,12 @@ mod tests {
 
     #[cfg(any(unix, windows))]
     fn should_skip_note_reshape_proof_roundtrip() -> bool {
+        let evidence_required = std::env::var_os("SHIELDD_FV_EVIDENCE_REQUIRED").is_some();
         if cfg!(debug_assertions) {
+            assert!(
+                !evidence_required,
+                "FV proof evidence requires a release build"
+            );
             eprintln!(
                 "skipping note_reshape GNARK proof roundtrip in debug builds; use `cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys note_reshape_fresh_fixture_proof_roundtrip --lib` for real proving"
             );
@@ -315,6 +332,10 @@ mod tests {
             .into_iter()
             .all(|family_id| !family_id.proving_key_bytes().is_empty());
         if !has_library || !has_proving_keys {
+            assert!(
+                !evidence_required,
+                "FV proof evidence requires the bundled prover transport and every proving key"
+            );
             eprintln!(
                 "skipping note_reshape GNARK proof roundtrip: no bundled or external prover transport is available"
             );

@@ -77,9 +77,10 @@ impl GasCost for ActionPlan {
     fn gas_cost(&self) -> Gas {
         match self {
             ActionPlan::Transfer(_) => transfer_gas_cost(),
-            ActionPlan::NoteReshape(plan) => {
-                note_reshape_gas_cost(plan.body.inputs.len(), plan.body.outputs.len())
-            }
+            ActionPlan::NoteReshape(plan) => note_reshape_gas_cost(
+                plan.family_id().input_count(),
+                plan.family_id().output_count(),
+            ),
             ActionPlan::ValidatorDefinition(vd) => vd.gas_cost(),
             ActionPlan::IbcAction(i) => i.gas_cost(),
             ActionPlan::ProposalSubmit(ps) => ps.gas_cost(),
@@ -139,7 +140,10 @@ impl GasCost for NoteReshape {
 
 impl GasCost for NoteReshapePlan {
     fn gas_cost(&self) -> Gas {
-        note_reshape_gas_cost(self.body.inputs.len(), self.body.outputs.len())
+        note_reshape_gas_cost(
+            self.family_id().input_count(),
+            self.family_id().output_count(),
+        )
     }
 }
 

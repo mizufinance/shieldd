@@ -630,24 +630,11 @@ mod test {
                 .effect_hash
                 .expect("effect hash not present")
         );
-        let spend_randomizers = plan.actions.iter().flat_map(|action| match action {
-            shieldd_sdk_transaction::ActionPlan::Transfer(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>(),
-            shieldd_sdk_transaction::ActionPlan::NoteReshape(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>(),
-            shieldd_sdk_transaction::ActionPlan::ShieldedIcs20Withdrawal(plan) => plan
-                .spends
-                .iter()
-                .map(|spend| spend.randomizer)
-                .collect::<Vec<_>>(),
-            _ => Vec::new(),
-        });
+        let spend_randomizers = plan
+            .actions
+            .iter()
+            .flat_map(|action| action.spends())
+            .map(|spend| spend.randomizer);
         for (randomizer, sig) in spend_randomizers.zip(tx_authorization_data.spend_auths) {
             fvk.spend_verification_key().randomize(&randomizer).verify(
                 tx_authorization_data

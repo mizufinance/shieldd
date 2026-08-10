@@ -45,7 +45,7 @@ impl ValidatorKeys {
     pub fn from_seed(seed: [u8; 32]) -> Self {
         // Create the spend key for this node.
         let seed = SpendKeyBytes(seed);
-        let spend_key = SpendKey::from(seed.clone());
+        let spend_key = SpendKey::try_from(seed.clone()).expect("test spend key should be valid");
 
         // Create signing key and verification key for this node.
         let validator_id_sk = spend_key.spend_auth_key();
@@ -72,13 +72,13 @@ impl ValidatorKeys {
             tendermint::PrivateKey::Ed25519(signing_key_bytes.try_into().expect("32 bytes"));
         let node_key_pk = node_key_sk.public_key();
 
-        let identity_key: IdentityKey = IdentityKey(
+        let identity_key = IdentityKey::try_from(
             spend_key
                 .full_viewing_key()
                 .spend_verification_key()
-                .clone()
-                .into(),
-        );
+                .clone(),
+        )
+        .expect("test validator identity key is nonidentity");
         ValidatorKeys {
             validator_id_sk: validator_id_sk.clone(),
             validator_id_vk,
@@ -104,10 +104,18 @@ pub fn get_verified_genesis() -> Result<Genesis> {
     let mut genesis_contents =
         genesis::Content::default().with_chain_id(TestNode::<()>::CHAIN_ID.to_string());
 
-    let spend_key_a = SpendKey::from(vkeys_a.validator_spend_key.clone());
+    let spend_key_a = SpendKey::try_from(vkeys_a.validator_spend_key.clone())?;
     let validator_a = Validator {
-        identity_key: Some(IdentityKey(vkeys_a.validator_id_vk.into()).into()),
-        governance_key: Some(GovernanceKey(spend_key_a.spend_auth_key().into()).into()),
+        identity_key: Some(
+            IdentityKey::try_from(vkeys_a.validator_id_vk)
+                .expect("test validator identity key is nonidentity")
+                .into(),
+        ),
+        governance_key: Some(
+            GovernanceKey::try_from(VerificationKey::from(spend_key_a.spend_auth_key()))
+                .expect("test validator governance key is nonidentity")
+                .into(),
+        ),
         consensus_key: vkeys_a.validator_cons_pk.to_bytes(),
         name: "test".to_string(),
         website: "https://example.com".to_string(),

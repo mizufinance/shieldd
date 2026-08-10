@@ -325,10 +325,6 @@ func (c *noteReshapeStatementSeamCircuit) Define(api frontend.API) error {
 	var label string
 	var nIn, nOut int
 	switch len(c.Fields) {
-	case 7:
-		label, nIn, nOut = "note_reshape2x1", 2, 1
-	case 11:
-		label, nIn, nOut = "note_reshape4x1", 4, 1
 	case 19:
 		label, nIn, nOut = "note_reshape8x1", 8, 1
 	case 12:
@@ -349,7 +345,7 @@ func TestNoteReshapeStatementSeamsMatchShielddVectors(t *testing.T) {
 	if err != nil {
 		t.Fatalf("load vectors: %v", err)
 	}
-	if got, want := len(vectors.NoteReshapeStatements), 4; got != want {
+	if got, want := len(vectors.NoteReshapeStatements), 2; got != want {
 		t.Fatalf("statement vector count mismatch: got %d want %d", got, want)
 	}
 	for _, fx := range vectors.NoteReshapeStatements {

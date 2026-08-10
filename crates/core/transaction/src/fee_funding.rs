@@ -48,7 +48,7 @@ impl FeeFundingPlan {
 
         let transfer = self
             .transfer
-            .transfer(
+            .build_unauth_transfer(
                 fvk,
                 vec![[0; 64].into(); self.transfer.spends.len()],
                 auth_paths,

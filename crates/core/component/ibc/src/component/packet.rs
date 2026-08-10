@@ -6,6 +6,7 @@ use cnidarium::{StateRead, StateWrite};
 use ibc_types::core::{
     channel::{channel::State as ChannelState, events, ChannelId, Packet, PortId},
     client::Height,
+    connection::State as ConnectionState,
 };
 use tendermint::Time;
 
@@ -62,17 +63,6 @@ impl IBCPacket<Unchecked> {
             m: std::marker::PhantomData,
         }
     }
-
-    pub fn assume_checked(self) -> IBCPacket<Checked> {
-        IBCPacket {
-            source_port: self.source_port,
-            source_channel: self.source_channel,
-            timeout_height: self.timeout_height,
-            timeout_timestamp: self.timeout_timestamp,
-            data: self.data,
-            m: std::marker::PhantomData,
-        }
-    }
 }
 
 impl<S: CheckStatus> IBCPacket<S> {
@@ -123,26 +113,49 @@ pub trait SendPacketRead: StateRead {
             "ibc_send_channel_read"
         );
 
-        if channel.state_matches(&ChannelState::Closed) {
+        if !channel.state_matches(&ChannelState::Open) {
             anyhow::bail!(
-                "channel {} on port {} is closed",
+                "channel {} on port {} is not open",
                 packet.source_channel,
                 packet.source_port
             );
         }
 
-        // TODO: should we check dest port & channel here?
+        anyhow::ensure!(
+            channel.counterparty().channel_id().is_some(),
+            "channel {} on port {} has no counterparty channel",
+            packet.source_channel,
+            packet.source_port
+        );
+        anyhow::ensure!(
+            channel.connection_hops.len() == 1,
+            "channel {} on port {} must have exactly one connection hop, found {}",
+            packet.source_channel,
+            packet.source_port,
+            channel.connection_hops.len()
+        );
+
         let connection_start = Instant::now();
+        let connection_id = channel.connection_hops.first().ok_or_else(|| {
+            anyhow::anyhow!(
+                "channel {} on port {} has no connection hop",
+                packet.source_channel,
+                packet.source_port
+            )
+        })?;
         let connection = self
-            .get_connection(&channel.connection_hops[0])
+            .get_connection(connection_id)
             .await?
-            .ok_or_else(|| {
-                anyhow::anyhow!("connection {} does not exist", channel.connection_hops[0])
-            })?;
+            .ok_or_else(|| anyhow::anyhow!("connection {} does not exist", connection_id))?;
         tracing::debug!(
             elapsed_us = connection_start.elapsed().as_micros(),
-            connection_id = %channel.connection_hops[0],
+            connection_id = %connection_id,
             "ibc_send_connection_read"
+        );
+        anyhow::ensure!(
+            connection.state_matches(&ConnectionState::Open),
+            "connection {} is not open",
+            connection_id
         );
 
         // check that the client state is active so we don't do accidental sends on frozen clients.
@@ -190,6 +203,29 @@ pub trait SendPacketRead: StateRead {
             );
         }
 
+        let sequence = self
+            .get_send_sequence(&packet.source_channel, &packet.source_port)
+            .await?;
+        anyhow::ensure!(
+            sequence < u64::MAX,
+            "send sequence is exhausted for channel {} on port {}",
+            packet.source_channel,
+            packet.source_port
+        );
+        anyhow::ensure!(
+            self.get_packet_commitment_by_id(
+                &packet.source_channel,
+                &packet.source_port,
+                sequence,
+            )
+            .await?
+            .is_none(),
+            "packet commitment already exists for channel {} on port {} at sequence {}",
+            packet.source_channel,
+            packet.source_port,
+            sequence
+        );
+
         Ok(IBCPacket::<Checked> {
             source_port: packet.source_port.clone(),
             source_channel: packet.source_channel,
@@ -210,35 +246,57 @@ impl<T: StateRead + ?Sized> SendPacketRead for T {}
 pub trait SendPacketWrite: StateWrite {
     /// Send a packet on a channel. This assumes that send_packet_check has already been called on
     /// the provided packet.
-    async fn send_packet_execute(&mut self, packet: IBCPacket<Checked>) {
+    async fn send_packet_execute(&mut self, packet: IBCPacket<Checked>) -> Result<()> {
         // increment the send sequence counter
         let sequence_start = Instant::now();
         let sequence = self
             .get_send_sequence(&packet.source_channel, &packet.source_port)
-            .await
-            .expect("able to get send sequence while executing send packet");
-        self.put_send_sequence(&packet.source_channel, &packet.source_port, sequence + 1);
-        tracing::debug!(
-            elapsed_us = sequence_start.elapsed().as_micros(),
-            port = %packet.source_port,
-            channel = %packet.source_channel,
-            sequence,
-            "ibc_send_sequence_allocation"
+            .await?;
+        let next_sequence = sequence.checked_add(1).ok_or_else(|| {
+            anyhow::anyhow!(
+                "send sequence is exhausted for channel {} on port {}",
+                packet.source_channel,
+                packet.source_port
+            )
+        })?;
+        anyhow::ensure!(
+            self.get_packet_commitment_by_id(
+                &packet.source_channel,
+                &packet.source_port,
+                sequence,
+            )
+            .await?
+            .is_none(),
+            "packet commitment already exists for channel {} on port {} at sequence {}",
+            packet.source_channel,
+            packet.source_port,
+            sequence
         );
-
         let channel_start = Instant::now();
         let channel = self
             .get_channel(&packet.source_channel, &packet.source_port)
-            .await
-            .expect("should be able to get channel")
+            .await?
             .ok_or_else(|| {
                 anyhow::anyhow!(
                     "channel {} on port {} does not exist",
                     packet.source_channel,
                     packet.source_port
                 )
-            })
-            .expect("should be able to get channel");
+            })?;
+        let connection_id = channel.connection_hops.first().ok_or_else(|| {
+            anyhow::anyhow!(
+                "channel {} on port {} has no connection hop",
+                packet.source_channel,
+                packet.source_port
+            )
+        })?;
+        let counterparty_channel = channel.counterparty().channel_id.clone().ok_or_else(|| {
+            anyhow::anyhow!(
+                "channel {} on port {} has no counterparty channel",
+                packet.source_channel,
+                packet.source_port
+            )
+        })?;
         tracing::debug!(
             elapsed_us = channel_start.elapsed().as_micros(),
             port = %packet.source_port,
@@ -252,21 +310,25 @@ pub trait SendPacketWrite: StateWrite {
             port_on_a: packet.source_port.clone(),
             sequence: sequence.into(),
 
-            chan_on_b: channel
-                .counterparty()
-                .channel_id
-                .clone()
-                .expect("should have counterparty channel"),
+            chan_on_b: counterparty_channel,
             port_on_b: channel.counterparty().port_id.clone(),
 
             timeout_height_on_b: packet.timeout_height.into(),
             timeout_timestamp_on_b: ibc_types::timestamp::Timestamp::from_nanoseconds(
                 packet.timeout_timestamp,
-            )
-            .expect("able to parse timeout timestamp from nanoseconds"),
+            )?,
 
             data: packet.data,
         };
+
+        self.put_send_sequence(&packet.chan_on_a, &packet.port_on_a, next_sequence);
+        tracing::debug!(
+            elapsed_us = sequence_start.elapsed().as_micros(),
+            port = %packet.port_on_a,
+            channel = %packet.chan_on_a,
+            sequence,
+            "ibc_send_sequence_allocation"
+        );
 
         let commitment_start = Instant::now();
         self.put_packet_commitment(&packet);
@@ -289,10 +351,11 @@ pub trait SendPacketWrite: StateWrite {
                 dst_port_id: packet.port_on_b.clone(),
                 dst_channel_id: packet.chan_on_b,
                 channel_ordering: channel.ordering,
-                src_connection_id: channel.connection_hops[0].clone(),
+                src_connection_id: connection_id.clone(),
             }
             .into(),
         );
+        Ok(())
     }
 }
 

@@ -43,7 +43,7 @@ theorem template_scp_node4_seg12 (rho : Nat -> F)
     Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode4350_b95b10.seg12 (rho 1770) (rho 1775) (rho 1780) (rho 1785) (rho 1790) (rho 1795) (rho 1800) (rho 1805) next := by
   exact ⟨rho 1806, rho 1807, rho 1808, rho 1809, rho 1810, r1809, r1810, r1811, r1812, r1813, tail⟩
 
-theorem template_scp_node4_template (rho : Nat -> F)
+theorem template_scp_node4_seg13 (rho : Nat -> F)
     (next : F → F → F → F → F → Prop)
     (r1814 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1814 rho)
     (r1815 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1815 rho)
@@ -65,7 +65,7 @@ theorem template_scp_node4_seg14 (rho : Nat -> F)
     Shieldd.GnarkFormal.Extracted.Deployed.GadgetStateCommitmentPathNode4350_b95b10.seg14 (rho 1795) (rho 1800) (rho 1805) (rho 1810) (rho 1815) next := by
   exact ⟨rho 1816, rho 1817, rho 1818, rho 1819, rho 1820, r1819, r1820, r1821, r1822, r1823, tail⟩
 
-theorem template_scp_node4_seg15 (rho : Nat -> F)
+theorem template_scp_node4_template (rho : Nat -> F)
     (next : F → F → F → F → F → F → F → Prop)
     (r1824 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1824 rho)
     (r1825 : Shieldd.GnarkFormal.Deployed.Templates.Relations.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb.relationRow1825 rho)
@@ -122,4 +122,3 @@ theorem template_scp_node4_seg19 (rho : Nat -> F)
 
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
-

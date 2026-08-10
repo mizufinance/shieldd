@@ -33,11 +33,8 @@ cfg_if::cfg_if! {
         mod shieldd_host_chain;
 
         pub use crate::{
-            action_handler::AppActionHandler, app::StateWriteExt,
-            metrics::register_metrics, shieldd_host_chain::ShielddHost,
+            app::StateWriteExt, metrics::register_metrics,
+            shieldd_host_chain::ShielddHost,
         };
-
-        /// Temporary compat wrapper for duplicate trait impls
-        pub struct Compat<'a, T>(&'a T);
     }
 }

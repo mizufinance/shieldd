@@ -10,7 +10,7 @@ use crate::gnark::transport::{auto_lib_path, load_bundled_transport, load_librar
 
 use crate::{
     gnark::{
-        shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV1,
+        shielded_ics20_withdrawal_witness::ShieldedIcs20WithdrawalWitnessV8,
         transfer_proof_result::parse_binary_proof_result,
         transport::{
             load_daemon_transport, load_from_env_paths, prove_with_transport, shutdown_transport,
@@ -65,17 +65,17 @@ fn shielded_ics20_withdrawal_family_config(
     }
 }
 
-pub fn encode_shielded_ics20_withdrawal_witness_v1(
+pub fn encode_shielded_ics20_withdrawal_witness_v8(
     public: &ShieldedIcs20WithdrawalProofPublic,
     private: &ShieldedIcs20WithdrawalProofPrivate,
 ) -> Result<Vec<u8>> {
-    ShieldedIcs20WithdrawalWitnessV1::from_public_private(public, private)?.encode()
+    ShieldedIcs20WithdrawalWitnessV8::from_public_private(public, private)?.encode()
 }
 
-pub fn decode_shielded_ics20_withdrawal_witness_v1(
+pub fn decode_shielded_ics20_withdrawal_witness_v8(
     bytes: &[u8],
-) -> Result<ShieldedIcs20WithdrawalWitnessV1> {
-    ShieldedIcs20WithdrawalWitnessV1::decode(bytes)
+) -> Result<ShieldedIcs20WithdrawalWitnessV8> {
+    ShieldedIcs20WithdrawalWitnessV8::decode(bytes)
 }
 
 pub struct GnarkShieldedIcs20WithdrawalClient {
@@ -98,7 +98,7 @@ enum ShieldedIcs20WithdrawalTransportSource<'a> {
     Bundled {
         lib_path: &'a Path,
         pk_bytes: &'a [u8],
-        pvk: PreparedVerifyingKey<Bls12_377>,
+        vk_json_bytes: &'a [u8],
         metadata: &'a [u8],
     },
 }
@@ -126,12 +126,9 @@ impl GnarkShieldedIcs20WithdrawalClient {
             ShieldedIcs20WithdrawalTransportSource::Bundled {
                 lib_path,
                 pk_bytes,
-                pvk,
+                vk_json_bytes,
                 metadata,
-            } => (
-                load_bundled_transport(lib_path, pk_bytes, &pvk, metadata, config)?,
-                pvk,
-            ),
+            } => load_bundled_transport(lib_path, pk_bytes, vk_json_bytes, metadata, config)?,
         };
         Ok(Self {
             family_id,
@@ -184,7 +181,7 @@ impl GnarkShieldedIcs20WithdrawalClient {
     pub fn from_bundled(
         lib_path: &Path,
         pk_bytes: &[u8],
-        pvk: PreparedVerifyingKey<Bls12_377>,
+        vk_json_bytes: &[u8],
         metadata: &[u8],
         family_id: ShieldedIcs20WithdrawalFamilyId,
     ) -> Result<Self> {
@@ -195,14 +192,14 @@ impl GnarkShieldedIcs20WithdrawalClient {
                 ShieldedIcs20WithdrawalTransportSource::Bundled {
                     lib_path,
                     pk_bytes,
-                    pvk,
+                    vk_json_bytes,
                     metadata,
                 },
             )
         }
         #[cfg(not(any(unix, windows)))]
         {
-            let _ = (lib_path, pk_bytes, pvk, metadata, family_id);
+            let _ = (lib_path, pk_bytes, vk_json_bytes, metadata, family_id);
             bail!("gnark bundled library loading is not supported on this platform")
         }
     }
@@ -242,8 +239,14 @@ impl GnarkShieldedIcs20WithdrawalClient {
         public: &ShieldedIcs20WithdrawalProofPublic,
         private: &ShieldedIcs20WithdrawalProofPrivate,
     ) -> Result<ShieldedIcs20WithdrawalProof> {
-        let witness_model = ShieldedIcs20WithdrawalWitnessV1::from_public_private(public, private)?;
-        let expected_hash = Fq::from_le_bytes_mod_order(&witness_model.claimed_statement_hash);
+        let witness_model = ShieldedIcs20WithdrawalWitnessV8::from_public_private(public, private)?;
+        let expected_hash =
+            Fq::from_bytes_checked(&witness_model.claimed_statement_hash).map_err(|_| {
+                anyhow::anyhow!(
+                    "{} witness statement hash is non-canonical",
+                    self.family_id.label()
+                )
+            })?;
         let witness = witness_model.encode()?;
         let payload = prove_with_transport(&self.transport, &witness, self.family_id.label())?;
         let (claimed_hash, proof) =
@@ -284,26 +287,136 @@ pub fn translate_shielded_ics20_withdrawal_proof_result(
 #[cfg(test)]
 mod tests {
     use super::{
-        decode_shielded_ics20_withdrawal_witness_v1, encode_shielded_ics20_withdrawal_witness_v1,
+        decode_shielded_ics20_withdrawal_witness_v8, encode_shielded_ics20_withdrawal_witness_v8,
     };
     use crate::{
-        gnark::ShieldedIcs20WithdrawalWitnessV1, test_proof_helpers::proof_test_helpers,
+        gnark::ShieldedIcs20WithdrawalWitnessV8, test_proof_helpers::proof_test_helpers, Note,
         ShieldedIcs20WithdrawalFamilyId,
     };
+    use decaf377::{Fq, Fr};
+    use shieldd_sdk_asset::Balance;
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_tct::StateCommitment;
 
     #[test]
-    fn shielded_ics20_withdrawal_witness_v1_roundtrip() {
+    fn shielded_ics20_withdrawal_witness_v8_roundtrip() {
         let (public, private) =
             proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs(
                 ShieldedIcs20WithdrawalFamilyId::Canonical,
                 true,
             );
-        let encoded = encode_shielded_ics20_withdrawal_witness_v1(&public, &private)
+        let encoded = encode_shielded_ics20_withdrawal_witness_v8(&public, &private)
             .expect("encode shielded ICS-20 withdrawal witness");
-        let decoded = decode_shielded_ics20_withdrawal_witness_v1(&encoded)
+        let decoded = decode_shielded_ics20_withdrawal_witness_v8(&encoded)
             .expect("decode shielded ICS-20 withdrawal witness");
-        let expected = ShieldedIcs20WithdrawalWitnessV1::from_public_private(&public, &private)
+        let expected = ShieldedIcs20WithdrawalWitnessV8::from_public_private(&public, &private)
             .expect("build shielded ICS-20 withdrawal witness");
         assert_eq!(decoded, expected);
+
+        let leaf = &decoded.asset_indexed_leaf;
+        let recomposed = StateCommitment(poseidon377::hash_5(
+            &shieldd_sdk_compliance::IMT_LEAF_DOMAIN_SEP,
+            (
+                Fq::from_bytes_checked(&leaf.value).expect("canonical leaf value"),
+                Fq::from(leaf.next_index),
+                Fq::from_bytes_checked(&leaf.next_value).expect("canonical next value"),
+                Fq::from_bytes_checked(&leaf.params_hash).expect("canonical params hash"),
+                Fq::from_bytes_checked(&leaf.ring_hash).expect("canonical ring hash"),
+            ),
+        ));
+        assert_eq!(
+            recomposed,
+            private.asset_indexed_leaf.commit(),
+            "compact V8 leaf view must recompose the canonical native commitment"
+        );
+    }
+
+    #[test]
+    fn shielded_ics20_withdrawal_witness_v8_rejects_legacy_version() {
+        let (public, private) =
+            proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs(
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                true,
+            );
+        let mut encoded = encode_shielded_ics20_withdrawal_witness_v8(&public, &private)
+            .expect("encode shielded ICS-20 withdrawal witness");
+        encoded[4..8].copy_from_slice(&7u32.to_le_bytes());
+
+        decode_shielded_ics20_withdrawal_witness_v8(&encoded)
+            .expect_err("V8 decoder must reject the obsolete V7 layout");
+    }
+
+    #[test]
+    fn shielded_ics20_withdrawal_witness_v8_rejects_non_canonical_boolean_flags() {
+        const HEADER_BYTES: usize = 20;
+        const TOP_FIELDS_THROUGH_NK: usize = 6 * 32 + 4 * 32 + 32 + 2 * 32;
+        const MERKLE_PATH_BYTES: usize = 4 + 16 * (4 + 3 * 32);
+        const COMMITTED_INDEXED_LEAF_BYTES: usize = 32 + 8 + 3 * 32;
+        const IS_REGULATED_OFFSET: usize = HEADER_BYTES
+            + TOP_FIELDS_THROUGH_NK
+            + MERKLE_PATH_BYTES
+            + 8
+            + COMMITTED_INDEXED_LEAF_BYTES;
+        const SLIM_REQUIRED_SPEND_BYTES: usize = 3 * 32 + 8 + 4 + 24 * 3 * 32 + 32 + 64;
+        const OPTIONAL_IS_DUMMY_OFFSET: usize = IS_REGULATED_OFFSET
+            + 1
+            + MERKLE_PATH_BYTES
+            + 8
+            + 4 * 32
+            + 2 * SLIM_REQUIRED_SPEND_BYTES;
+
+        let (public, private) =
+            proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs(
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                true,
+            );
+        for offset in [IS_REGULATED_OFFSET, OPTIONAL_IS_DUMMY_OFFSET] {
+            let mut encoded = encode_shielded_ics20_withdrawal_witness_v8(&public, &private)
+                .expect("encode shielded ICS-20 withdrawal witness");
+            encoded[offset] = 2;
+            decode_shielded_ics20_withdrawal_witness_v8(&encoded)
+                .expect_err("V8 decoder must reject non-canonical boolean flags");
+        }
+    }
+
+    #[test]
+    fn shielded_ics20_withdrawal_witness_v8_rejects_mixed_clue_keys() {
+        let (public, mut private) =
+            proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs(
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                true,
+            );
+        let value = private.optional_input.spend.spent_note.value();
+        private.optional_input.spend.spent_note =
+            Note::generate(&mut rand::thread_rng(), &test_keys::ADDRESS_1, value);
+
+        ShieldedIcs20WithdrawalWitnessV8::from_public_private(&public, &private)
+            .expect_err("V8 witness must reject a non-sender optional clue key");
+    }
+
+    #[test]
+    fn shielded_ics20_withdrawal_witness_v8_rejects_unbalanced_amounts() {
+        let (mut public, private) =
+            proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs(
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                true,
+            );
+        public.outbound_amount += Fq::from(1u64);
+
+        ShieldedIcs20WithdrawalWitnessV8::from_public_private(&public, &private)
+            .expect_err("V8 witness must reject non-conserving withdrawal amounts");
+    }
+
+    #[test]
+    fn shielded_ics20_withdrawal_witness_v8_rejects_non_blinding_balance_commitment() {
+        let (mut public, private) =
+            proof_test_helpers::build_shielded_ics20_withdrawal_roundtrip_inputs(
+                ShieldedIcs20WithdrawalFamilyId::Canonical,
+                true,
+            );
+        public.balance_commitment = Balance::default().commit(Fr::from(999u64));
+
+        ShieldedIcs20WithdrawalWitnessV8::from_public_private(&public, &private)
+            .expect_err("V8 witness must reject a non-blinding-only balance commitment");
     }
 }

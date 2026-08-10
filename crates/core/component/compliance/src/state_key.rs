@@ -153,9 +153,8 @@ pub fn ibc_compliance_metadata(channel_id: &str, packet_seq: u64) -> String {
 
 /// State keys for historical anchor storage (following SCT pattern).
 ///
-/// Anchors are stored bidirectionally:
-/// - anchor_by_height: height -> anchor (for querying current anchor)
-/// - anchor_lookup: anchor -> height (for validating historical anchors)
+/// Append-only user roots are stored bidirectionally for historical proofs.
+/// Mutable asset-policy roots are accepted only when they equal current state.
 pub mod anchor {
     use shieldd_sdk_tct::StateCommitment;
 
@@ -173,16 +172,5 @@ pub mod anchor {
     /// Used to validate that a given anchor was valid at some historical point.
     pub fn user_anchor_lookup(anchor: &StateCommitment) -> String {
         format!("compliance/anchor/user/lookup/{}", anchor.0)
-    }
-
-    /// State key for asset IMT anchor at a specific block height.
-    pub fn asset_anchor_by_height(height: u64) -> String {
-        format!("compliance/anchor/asset/by_height/{}", height)
-    }
-
-    /// State key for reverse lookup: asset IMT anchor -> block height.
-    /// Used to validate that a given anchor was valid at some historical point.
-    pub fn asset_anchor_lookup(anchor: &StateCommitment) -> String {
-        format!("compliance/anchor/asset/lookup/{}", anchor.0)
     }
 }

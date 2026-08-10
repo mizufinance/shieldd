@@ -198,7 +198,8 @@ CREATE TABLE compliance_asset_tree_position (
     id INTEGER PRIMARY KEY CHECK (id = 0),
     leaf_count BIGINT NOT NULL
 );
-INSERT INTO compliance_asset_tree_position VALUES (0, 1); -- Starts with sentinel
+-- No durable leaves exist until ComplianceAssetTree persists its sentinel.
+INSERT INTO compliance_asset_tree_position VALUES (0, 0);
 
 -- Full asset policies used by compliance planning and Orbis upload packaging.
 CREATE TABLE compliance_asset_policies (

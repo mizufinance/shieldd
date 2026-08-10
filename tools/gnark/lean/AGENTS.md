@@ -18,7 +18,8 @@ limits at the bottom are load-bearing, not polish. Process and trust boundary:
   match-splitter equations (this alone once cost 769 MB oleans / 22 GB RSS).
 - Never hand-edit a `.lean` file with a GENERATED header — fix the generator
   in `tools/gnark/lean/gen/` and regenerate. In the NoteReshape deployed path,
-  `Bounds.lean`, `Capstone.lean`, `Statement.lean`, segment contracts, and
+  `Bounds.lean`, `Capstone.lean`, `CircuitFacts.lean`, `RoleBindings.lean`,
+  `SemanticBindings.lean`, `SemanticSeams.lean`, segment contracts, and
   normalized template providers are generated. Legacy family-local
   `Wiring.lean`, `Specs/`, and adapter stacks are obsolete; small generic proof
   substrates are hand-authored unless their header says otherwise.
@@ -73,8 +74,9 @@ segment.
 > **INCIDENT LOG:** Unbounded, concurrent `lake build` invocations have
 > force-rebooted this 48GB macOS machine **twice** (2025-06-23, 2025-06-29) by
 > exhausting RAM and disk. These rules bind on the local machine; ephemeral CI
-> runners run the full nightly tier (`soundness-formal.yml`) — never add Lean
-> to per-PR jobs.
+> runners run the full merge/release tier in `formal.yml`. Pull requests run
+> only selected final modules when handwritten NoteReshape proofs change;
+> never run concurrent or whole-package Lean builds there.
 
 Heavyweight adapter elaborations (Rvk/Dtk/Nb/Compress adapters, `Bounds`, Seg
 files) each hold hundreds of GF(p) witnesses; a single one can consume many GB

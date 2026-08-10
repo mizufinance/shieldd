@@ -181,8 +181,10 @@ mod tests {
 
     #[test]
     fn address_view_basic() {
-        let sk1 = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(OsRng), &Bip44Path::new(0));
-        let sk2 = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(OsRng), &Bip44Path::new(0));
+        let sk1 = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(OsRng), &Bip44Path::new(0))
+            .expect("generated spend key satisfies key refinements");
+        let sk2 = SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(OsRng), &Bip44Path::new(0))
+            .expect("generated spend key satisfies key refinements");
 
         let fvk1 = sk1.full_viewing_key();
         let fvk2 = sk2.full_viewing_key();

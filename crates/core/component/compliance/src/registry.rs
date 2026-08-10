@@ -5,6 +5,7 @@ use decaf377::Fq;
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use futures::StreamExt;
 use shieldd_sdk_asset::asset;
+use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_proto::{DomainType as _, StateReadProto, StateWriteProto};
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_tct::StateCommitment;
@@ -29,8 +30,15 @@ pub const MAX_ANCHOR_SEARCH_DEPTH_BLOCKS: u64 = 10;
 /// Maximum allowed drift between target_timestamp and block timestamp (±1 hour).
 pub const MAX_TIMESTAMP_DRIFT_SECS: u64 = 3600;
 
-/// Verify target_timestamp is within ±MAX_TIMESTAMP_DRIFT_SECS of block timestamp.
-pub fn check_timestamp_freshness(target_timestamp: u64, block_timestamp: u64) -> Result<()> {
+/// Verify a target timestamp against a signed consensus block timestamp.
+pub fn check_timestamp_freshness(
+    target_timestamp: u64,
+    consensus_timestamp_unix: i64,
+) -> Result<()> {
+    let block_timestamp = u64::try_from(consensus_timestamp_unix).map_err(|_| {
+        anyhow::anyhow!("consensus block timestamp {consensus_timestamp_unix} must be nonnegative")
+    })?;
+    anyhow::ensure!(target_timestamp != 0, "target_timestamp must be nonzero");
     let diff = target_timestamp.abs_diff(block_timestamp);
     anyhow::ensure!(
         diff <= MAX_TIMESTAMP_DRIFT_SECS,
@@ -39,10 +47,235 @@ pub fn check_timestamp_freshness(target_timestamp: u64, block_timestamp: u64) ->
     Ok(())
 }
 
+/// Validate a historical user root and the current mutable asset-policy root.
+pub fn validate_compliance_anchor_facts(
+    user_anchor_height: Option<u64>,
+    asset_anchor: &StateCommitment,
+    current_asset_anchor: &StateCommitment,
+    current_height: u64,
+    anchor_validation_window_blocks: u64,
+) -> Result<()> {
+    let user_anchor_height = user_anchor_height
+        .ok_or_else(|| anyhow::anyhow!("invalid user compliance anchor: not found in history"))?;
+    anyhow::ensure!(
+        user_anchor_height <= current_height,
+        "user compliance anchor height {} exceeds current height {}",
+        user_anchor_height,
+        current_height
+    );
+    if current_height.saturating_sub(user_anchor_height) > anchor_validation_window_blocks {
+        anyhow::bail!(
+            "user compliance anchor too old: height {} is more than {} blocks behind current height {}",
+            user_anchor_height,
+            anchor_validation_window_blocks,
+            current_height
+        );
+    }
+
+    anyhow::ensure!(
+        asset_anchor == current_asset_anchor,
+        "asset compliance anchor does not match the current asset compliance root"
+    );
+    Ok(())
+}
+
 // Re-export bincode for serialization
 use bincode;
 
 pub use crate::enrichment::AssetProofData;
+
+/// A user-registry mutation admitted after the signed user grant is verified.
+pub struct UserGrantAdmission {
+    leaf: ComplianceLeaf,
+}
+
+impl UserGrantAdmission {
+    /// Verify the complete signed grant and bind its leaf for durable insertion.
+    pub(crate) fn verify(
+        action: &crate::structs::MsgRegisterUser,
+        policy: &AssetPolicy,
+        current_unix: u64,
+    ) -> Result<Self> {
+        policy.validate_crypto_keys()?;
+        let grant = action
+            .grant
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("missing user registration grant"))?;
+        anyhow::ensure!(
+            grant.body.leaf == action.leaf,
+            "user registration grant leaf does not match action leaf"
+        );
+        action.leaf.validate_derivation()?;
+        anyhow::ensure!(
+            grant.body.policy_id == policy.ring.policy_id,
+            "user registration grant policy_id does not match asset policy"
+        );
+        anyhow::ensure!(
+            action.leaf.slot_id < policy.params.slot_count,
+            "compliance slot {} is outside asset slot count {}",
+            action.leaf.slot_id,
+            policy.params.slot_count
+        );
+        anyhow::ensure!(
+            current_unix <= grant.body.valid_until_unix,
+            "user registration grant expired"
+        );
+        let authority_vk = policy.registration_authority_vk.as_ref().ok_or_else(|| {
+            anyhow::anyhow!("regulated asset policy missing registration authority")
+        })?;
+        grant.verify(authority_vk)?;
+        Ok(Self {
+            leaf: action.leaf.clone(),
+        })
+    }
+}
+
+/// An asset-registry mutation admitted after the registrar grant is verified.
+pub struct AssetGrantAdmission {
+    asset_id: asset::Id,
+    policy: AssetPolicy,
+    is_regulated: bool,
+}
+
+impl AssetGrantAdmission {
+    /// Verify the registrar grant and construct the exact admitted policy.
+    pub(crate) fn verify(
+        action: &crate::structs::MsgRegisterAsset,
+        registrar_authorized: bool,
+        current_unix: u64,
+    ) -> Result<Self> {
+        action.validate_authorization_keys()?;
+        let grant = action
+            .asset_registration_grant
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("missing asset registration grant"))?;
+        anyhow::ensure!(
+            grant.body == action.registration_grant_body(grant.body.valid_until_unix),
+            "asset registration grant body does not match action"
+        );
+        grant.verify()?;
+        anyhow::ensure!(
+            registrar_authorized,
+            "asset registration grant signed by unauthorized registrar"
+        );
+        anyhow::ensure!(
+            current_unix <= grant.body.valid_until_unix,
+            "asset registration grant expired"
+        );
+
+        let policy = if action.is_regulated {
+            let dk_pub = action.dk_pub.ok_or_else(|| {
+                anyhow::anyhow!("regulated assets require a detection key (dk_pub)")
+            })?;
+            let registration_authority_vk = action.registration_authority_vk.ok_or_else(|| {
+                anyhow::anyhow!("regulated assets require registration_authority_vk")
+            })?;
+            anyhow::ensure!(
+                action.slot_count > 0,
+                "regulated assets require slot_count > 0"
+            );
+            let threshold = action.threshold.unwrap_or(u128::MAX);
+            let ring_pk = action.ring_pk.unwrap_or(decaf377::Element::GENERATOR);
+            AssetPolicy::new(
+                dk_pub,
+                threshold,
+                action.slot_count,
+                action.allowed_ibc_routes.clone(),
+                action.ibc_origin.clone(),
+                action.ring_id.clone(),
+                ring_pk,
+                action.policy_id.clone(),
+                action.permission.clone(),
+                action.resource.clone(),
+            )
+            .with_registration_authority(registration_authority_vk)
+        } else {
+            anyhow::ensure!(
+                action.allowed_ibc_routes.is_empty(),
+                "unregulated assets cannot set allowed IBC routes"
+            );
+            anyhow::ensure!(
+                action.ibc_origin.is_none(),
+                "unregulated assets cannot set IBC origin"
+            );
+            anyhow::ensure!(
+                action.slot_count == 0,
+                "unregulated assets cannot set slot_count"
+            );
+            AssetPolicy::default_unregulated()
+        };
+        policy.validate_crypto_keys()?;
+        Ok(Self {
+            asset_id: action.asset_id,
+            policy,
+            is_regulated: action.is_regulated,
+        })
+    }
+
+    pub(crate) fn policy(&self) -> &AssetPolicy {
+        &self.policy
+    }
+}
+
+/// An asset-registry mutation admitted from validated genesis content.
+pub struct GenesisAssetAdmission {
+    asset_id: asset::Id,
+    policy: AssetPolicy,
+    is_regulated: bool,
+}
+
+impl GenesisAssetAdmission {
+    pub(crate) fn validate(
+        asset_id: asset::Id,
+        policy: AssetPolicy,
+        is_regulated: bool,
+    ) -> Result<Self> {
+        anyhow::ensure!(
+            asset_id.0 != Fq::from(0u64),
+            "genesis asset ID zero is reserved"
+        );
+        if is_regulated {
+            anyhow::ensure!(
+                policy.params.slot_count > 0,
+                "regulated genesis asset requires slot_count > 0"
+            );
+            anyhow::ensure!(
+                policy.registration_authority_vk.is_some(),
+                "regulated genesis asset requires a registration authority"
+            );
+            policy.validate_crypto_keys()?;
+        } else {
+            anyhow::ensure!(
+                policy == AssetPolicy::default_unregulated(),
+                "unregulated genesis asset must use the canonical default policy"
+            );
+        }
+        Ok(Self {
+            asset_id,
+            policy,
+            is_regulated,
+        })
+    }
+}
+
+/// A policy transition admitted by the governance proposal state machine.
+pub struct EnactedGovernanceAssetPolicyAdmission {
+    proposal_id: u64,
+    update: crate::structs::UpdateAssetIbcPolicy,
+}
+
+impl EnactedGovernanceAssetPolicyAdmission {
+    /// Bind an enacted proposal identifier to its decoded policy payload.
+    pub fn from_passed_proposal(
+        proposal_id: u64,
+        update: crate::structs::UpdateAssetIbcPolicy,
+    ) -> Self {
+        Self {
+            proposal_id,
+            update,
+        }
+    }
+}
 
 /// Compact proof-service index for one registered compliance leaf.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -212,28 +445,32 @@ pub trait ComplianceRegistryRead: StateRead {
         let nodes = self.load_asset_imt_nodes().await?;
         let leaves = self.load_asset_imt_leaves().await?;
         if leaves.is_empty() {
+            anyhow::ensure!(
+                nodes.is_empty(),
+                "asset IMT has stored nodes without stored leaves"
+            );
+            anyhow::ensure!(
+                self.get_asset_count().await? == 0,
+                "asset IMT count is nonzero but no leaves are stored"
+            );
             Ok(IndexedMerkleTree::new())
         } else {
-            let leaf_count = self.get_asset_count().await?.max(
-                leaves
-                    .keys()
-                    .next_back()
-                    .copied()
-                    .map(|position| position + 1)
-                    .unwrap_or(1),
-            );
-            Ok(IndexedMerkleTree::from_sparse_parts(
+            let leaf_count = self.get_asset_count().await?;
+            IndexedMerkleTree::try_from_sparse_parts(
                 crate::tree::DEFAULT_DEPTH,
                 nodes,
                 leaves,
                 leaf_count,
-            ))
+            )
         }
     }
 
     /// Get the asset Indexed Merkle Tree (IMT) from state.
     async fn get_asset_imt(&self) -> Result<IndexedMerkleTree> {
-        if let Some(tree) = self.object_get(state_key::cache::cached_asset_imt()) {
+        if let Some(tree) =
+            self.object_get::<IndexedMerkleTree>(state_key::cache::cached_asset_imt())
+        {
+            tree.validate_well_formed()?;
             return Ok(tree);
         }
 
@@ -520,6 +757,7 @@ pub trait ComplianceRegistryRead: StateRead {
 
     /// Return whether a verification key is authorized to register compliance assets.
     async fn is_compliance_registrar(&self, vk: &VerificationKey<SpendAuth>) -> Result<bool> {
+        ensure_nonidentity_spend_auth_key(vk, "compliance registrar key")?;
         Ok(self
             .get_raw(&state_key::compliance_registrar_vk(vk))
             .await?
@@ -695,35 +933,18 @@ pub trait ComplianceRegistryRead: StateRead {
         self.get_proto(&key).await
     }
 
-    /// Check if an asset IMT anchor is valid (exists in historical records).
-    ///
-    /// Returns `Some(height)` if the anchor was recorded at that block height,
-    /// `None` if the anchor is unknown.
-    async fn check_asset_anchor(&self, anchor: &StateCommitment) -> Result<Option<u64>> {
-        let key = state_key::anchor::asset_anchor_lookup(anchor);
-        self.get_proto(&key).await
-    }
-
     /// Get the user tree anchor at a specific block height.
     async fn get_user_anchor_by_height(&self, height: u64) -> Result<Option<StateCommitment>> {
         self.get(&state_key::anchor::user_anchor_by_height(height))
             .await
     }
 
-    /// Get the asset IMT anchor at a specific block height.
-    async fn get_asset_anchor_by_height(&self, height: u64) -> Result<Option<StateCommitment>> {
-        self.get(&state_key::anchor::asset_anchor_by_height(height))
-            .await
-    }
-
-    /// Validate that a compliance proof uses valid historical anchors.
+    /// Validate the user history and require the current asset-policy root.
     ///
-    /// Checks that both anchors:
-    /// 1. Exist in historical records
-    /// 2. Are not older than the configured validation window from current height
-    ///
-    /// The age check prevents the "genesis anchor attack" where an attacker
-    /// uses an old anchor to prove false non-membership for newly regulated assets.
+    /// User registration is append-only, so recent historical membership proofs
+    /// remain valid. Asset leaves encode mutable classification and policy;
+    /// accepting a historical asset root would preserve superseded policy and
+    /// allow false non-membership immediately after registration.
     ///
     /// Returns `Ok(())` if both anchors are valid and recent, otherwise returns an error.
     async fn validate_compliance_anchors(
@@ -737,46 +958,22 @@ pub trait ComplianceRegistryRead: StateRead {
             .await?
             .anchor_validation_window_blocks;
 
-        // Check user anchor exists and is recent enough
-        let user_anchor_height = self.check_user_anchor(user_anchor).await?.ok_or_else(|| {
-            anyhow::anyhow!("invalid user compliance anchor: not found in history")
-        })?;
-
-        if current_height > user_anchor_height + anchor_validation_window_blocks {
-            anyhow::bail!(
-                "user compliance anchor too old: height {} is more than {} blocks behind current height {}",
-                user_anchor_height,
-                anchor_validation_window_blocks,
-                current_height
-            );
-        }
-
-        // Check asset anchor exists and is recent enough
-        let asset_anchor_height =
-            self.check_asset_anchor(asset_anchor)
-                .await?
-                .ok_or_else(|| {
-                    anyhow::anyhow!("invalid asset compliance anchor: not found in history")
-                })?;
-
-        if current_height > asset_anchor_height + anchor_validation_window_blocks {
-            anyhow::bail!(
-                "asset compliance anchor too old: height {} is more than {} blocks behind current height {}",
-                asset_anchor_height,
-                anchor_validation_window_blocks,
-                current_height
-            );
-        }
-
-        Ok(())
+        let current_asset_anchor = self.get_asset_imt_root().await?;
+        validate_compliance_anchor_facts(
+            self.check_user_anchor(user_anchor).await?,
+            asset_anchor,
+            &current_asset_anchor,
+            current_height,
+            anchor_validation_window_blocks,
+        )
     }
 }
 
 impl<T: StateRead + ?Sized> ComplianceRegistryRead for T {}
 
-/// Extension trait for writing compliance registry state.
+/// Internal durable registry operations.
 #[async_trait]
-pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
+trait ComplianceRegistryRawWrite: StateWrite + ComplianceRegistryRead {
     /// Track that compliance trees were modified in this block.
     fn mark_compliance_trees_modified(&mut self) {
         self.object_put(state_key::cache::trees_modified(), true);
@@ -942,8 +1139,23 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
 
     async fn ensure_asset_tree_initialized(&mut self) -> Result<()> {
         if self.get_asset_count().await? > 0 {
+            let tree = self.load_asset_imt_from_nv().await?;
+            if let Some(committed) = self
+                .get::<StateCommitment>(state_key::asset_imt_root())
+                .await?
+            {
+                anyhow::ensure!(
+                    tree.root() == committed,
+                    "asset IMT committed root does not match durable tree"
+                );
+            }
             return Ok(());
         }
+        anyhow::ensure!(
+            self.load_asset_imt_nodes().await?.is_empty()
+                && self.load_asset_imt_leaves().await?.is_empty(),
+            "uninitialized asset IMT has durable nodes or leaves"
+        );
         let sentinel = IndexedLeaf::with_default_policy(Fq::from(0u64), 0, *FQ_MAX);
         let touched_nodes = self
             .compute_asset_path_updates(&[(0, sentinel.commit())])
@@ -956,10 +1168,21 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
         self.put_asset_imt_nodes(&touched_nodes);
         self.put(state_key::asset_imt_root().to_string(), root);
         self.put_proto(state_key::asset_count().to_string(), 1u64);
+        self.verify_asset_tree_after_mutation(root).await?;
+        Ok(())
+    }
+
+    async fn verify_asset_tree_after_mutation(&self, expected_root: StateCommitment) -> Result<()> {
+        let tree = self.load_asset_imt_from_nv().await?;
+        anyhow::ensure!(
+            tree.root() == expected_root,
+            "asset IMT mutation did not produce its committed root"
+        );
         Ok(())
     }
 
     /// Read and cache an asset policy for this state delta.
+    #[cfg(test)]
     async fn get_asset_policy_cached(
         &mut self,
         asset_id: asset::Id,
@@ -978,26 +1201,6 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
         Ok(policy)
     }
 
-    /// Load user tree and seed in-block cache on miss.
-    async fn get_user_tree_for_write(&mut self) -> Result<QuadTree> {
-        if let Some(tree) = self.object_get(state_key::cache::cached_user_tree()) {
-            return Ok(tree);
-        }
-        let tree = self.get_user_tree().await?;
-        self.write_user_tree_cache(tree.clone());
-        Ok(tree)
-    }
-
-    /// Load asset IMT and seed in-block cache on miss.
-    async fn get_asset_imt_for_write(&mut self) -> Result<IndexedMerkleTree> {
-        if let Some(tree) = self.object_get(state_key::cache::cached_asset_imt()) {
-            return Ok(tree);
-        }
-        let tree = self.get_asset_imt().await?;
-        self.write_asset_imt_cache(tree.clone());
-        Ok(tree)
-    }
-
     /// Add a compliance leaf for a user.
     ///
     /// This registers a user's address compliance key (ACK) for a regulated asset.
@@ -1011,6 +1214,14 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
     /// # Returns
     /// The position in the user tree where the leaf was added.
     async fn add_compliance_leaf(&mut self, leaf: ComplianceLeaf) -> Result<u64> {
+        // This is the durable-state boundary, so intrinsic leaf validity must not
+        // depend on every caller having passed through MsgRegisterUser.
+        leaf.validate_derivation()?;
+        anyhow::ensure!(
+            leaf.asset_id.0 != Fq::from(0u64),
+            "compliance leaf asset ID zero is reserved"
+        );
+
         // Load the current user count (this will be our position)
         let position = self.get_user_count().await?;
         let max_leaves = QuadTree::max_leaves_for_depth(crate::tree::DEFAULT_DEPTH);
@@ -1063,6 +1274,7 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
             tracing::debug!(?asset_id, "unregulated asset uses IMT non-membership");
             return Ok(None);
         }
+        policy.validate_crypto_keys()?;
 
         self.ensure_asset_tree_initialized().await?;
         let value = asset_id.0;
@@ -1099,6 +1311,7 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
                 self.object_delete(state_key::cache::cached_asset_imt());
                 self.mark_compliance_trees_modified();
                 self.set_asset_policy(asset_id, policy)?;
+                self.verify_asset_tree_after_mutation(root).await?;
                 tracing::debug!(?asset_id, position, "upgraded existing asset to regulated");
                 return Ok(Some(InsertResult {
                     position,
@@ -1176,6 +1389,7 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
         // Update the persisted asset count
         let new_count = leaf_count + 1;
         self.put_proto(state_key::asset_count().to_string(), new_count);
+        self.verify_asset_tree_after_mutation(root).await?;
 
         tracing::debug!(
             ?asset_id,
@@ -1190,25 +1404,13 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
     /// Register a regulated asset in the IMT with the given policy.
     ///
     /// Convenience wrapper for `register_asset_in_imt` with `is_regulated = true`.
+    #[cfg(test)]
     async fn register_regulated_asset(
         &mut self,
         asset_id: asset::Id,
         policy: AssetPolicy,
     ) -> Result<Option<indexed_tree::InsertResult>> {
         self.register_asset_in_imt(asset_id, policy, true).await
-    }
-
-    /// Save the asset IMT to state.
-    async fn put_asset_imt(&mut self, tree: &IndexedMerkleTree) -> Result<()> {
-        let nodes = tree.stored_nodes().collect::<Vec<_>>();
-        self.put_asset_imt_nodes(&nodes);
-        for (position, leaf) in tree.stored_leaves() {
-            self.put_asset_imt_leaf(position, leaf)?;
-        }
-        self.put(state_key::asset_imt_root().to_string(), tree.root());
-        self.write_asset_imt_cache(tree.clone());
-        self.mark_compliance_trees_modified();
-        Ok(())
     }
 
     /// Set the compliance policy for an asset.
@@ -1254,6 +1456,7 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
         expected_route_policy_hash: [u8; 32],
         allowed_ibc_routes: Vec<crate::structs::IbcRoute>,
     ) -> Result<IndexedLeaf> {
+        self.ensure_asset_tree_initialized().await?;
         let mut policy = self
             .get_asset_policy(asset_id)
             .await?
@@ -1293,6 +1496,7 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
         self.object_delete(state_key::cache::cached_asset_imt());
         self.mark_compliance_trees_modified();
         self.set_asset_policy(asset_id, policy)?;
+        self.verify_asset_tree_after_mutation(root).await?;
         Ok(updated_leaf)
     }
 
@@ -1305,9 +1509,10 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
 
     /// Record the current compliance tree anchors at the given block height.
     ///
-    /// This should be called at the end of each block to store bidirectional
-    /// mappings for both user tree and asset IMT anchors. These mappings enable
-    /// validation of historical anchors in compliance proofs.
+    /// This should be called at the end of each block to store the append-only
+    /// user root used by historical compliance proofs. The mutable asset-policy
+    /// root is emitted for synchronization but is never retained as admissible
+    /// proof history.
     async fn record_compliance_anchors(&mut self, height: u64) -> Result<()> {
         let trees_modified = self.compliance_trees_modified();
 
@@ -1321,16 +1526,6 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
             user_anchor,
         );
         self.put_proto(state_key::anchor::user_anchor_lookup(&user_anchor), height);
-
-        // Store asset anchor bidirectionally using verifiable storage
-        self.put(
-            state_key::anchor::asset_anchor_by_height(height),
-            asset_anchor,
-        );
-        self.put_proto(
-            state_key::anchor::asset_anchor_lookup(&asset_anchor),
-            height,
-        );
 
         // Emit anchor event for local sync
         self.record_proto(event::compliance_anchor(height, user_anchor, asset_anchor));
@@ -1366,19 +1561,6 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
                         {
                             self.delete(state_key::anchor::user_anchor_lookup(
                                 &expired_user_anchor,
-                            ));
-                        }
-                    }
-
-                    if let Some(expired_asset_anchor) =
-                        self.get_asset_anchor_by_height(expired_height).await?
-                    {
-                        self.delete(state_key::anchor::asset_anchor_by_height(expired_height));
-                        if self.check_asset_anchor(&expired_asset_anchor).await?
-                            == Some(expired_height)
-                        {
-                            self.delete(state_key::anchor::asset_anchor_lookup(
-                                &expired_asset_anchor,
                             ));
                         }
                     }
@@ -1483,6 +1665,151 @@ pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
     }
 }
 
+impl<T: StateWrite + ?Sized> ComplianceRegistryRawWrite for T {}
+
+/// Component lifecycle operations that do not admit registry facts.
+#[async_trait]
+pub(crate) trait ComplianceRegistryComponentWrite:
+    StateWrite + ComplianceRegistryRead
+{
+    fn initialize_user_tree_cache(&mut self, tree: QuadTree) {
+        <Self as ComplianceRegistryRawWrite>::write_user_tree_cache(self, tree);
+    }
+
+    fn initialize_asset_imt_cache(&mut self, tree: IndexedMerkleTree) {
+        <Self as ComplianceRegistryRawWrite>::write_asset_imt_cache(self, tree);
+    }
+
+    fn reset_compliance_tree_dirty_flag(&mut self) {
+        <Self as ComplianceRegistryRawWrite>::clear_compliance_trees_modified(self);
+    }
+
+    fn admit_genesis_compliance_registrar(&mut self, vk: VerificationKey<SpendAuth>) -> Result<()> {
+        ensure_nonidentity_spend_auth_key(&vk, "compliance registrar key")?;
+        <Self as ComplianceRegistryRawWrite>::put_compliance_registrar(self, vk);
+        Ok(())
+    }
+
+    async fn finish_block_compliance_anchors(&mut self, height: u64) -> Result<()> {
+        <Self as ComplianceRegistryRawWrite>::record_compliance_anchors(self, height).await
+    }
+
+    fn queue_user_registration_event(&mut self, event: event::EventUserRegistered) {
+        <Self as ComplianceRegistryRawWrite>::record_pending_user_registration(self, event);
+    }
+
+    fn publish_asset_registration(&mut self, event: event::EventAssetRegistered) {
+        <Self as ComplianceRegistryRawWrite>::emit_asset_registered(self, event);
+    }
+}
+
+impl<T: StateWrite + ?Sized> ComplianceRegistryComponentWrite for T {}
+
+/// Authorized compliance-registry state transitions and non-registry buffers.
+///
+/// Registry mutations require an admission value produced by the corresponding
+/// grant, genesis, or governance validation path. Raw tree and policy mutators
+/// are intentionally not part of this public trait.
+#[async_trait]
+pub trait ComplianceRegistryWrite: StateWrite + ComplianceRegistryRead {
+    /// Persist a user registration admitted by a verified user grant.
+    async fn register_user_with_grant(&mut self, admission: UserGrantAdmission) -> Result<u64> {
+        <Self as ComplianceRegistryRawWrite>::add_compliance_leaf(self, admission.leaf).await
+    }
+
+    /// Persist an asset registration admitted by a verified registrar grant.
+    async fn register_asset_with_grant(
+        &mut self,
+        admission: AssetGrantAdmission,
+    ) -> Result<Option<indexed_tree::InsertResult>> {
+        <Self as ComplianceRegistryRawWrite>::register_asset_in_imt(
+            self,
+            admission.asset_id,
+            admission.policy,
+            admission.is_regulated,
+        )
+        .await
+    }
+
+    /// Persist an asset registration admitted during genesis validation.
+    async fn register_genesis_asset(
+        &mut self,
+        admission: GenesisAssetAdmission,
+    ) -> Result<Option<indexed_tree::InsertResult>> {
+        <Self as ComplianceRegistryRawWrite>::register_asset_in_imt(
+            self,
+            admission.asset_id,
+            admission.policy,
+            admission.is_regulated,
+        )
+        .await
+    }
+
+    /// Apply a route-policy transition admitted by the governance state machine.
+    async fn apply_enacted_governance_asset_policy(
+        &mut self,
+        admission: EnactedGovernanceAssetPolicyAdmission,
+    ) -> Result<IndexedLeaf> {
+        tracing::info!(
+            proposal_id = admission.proposal_id,
+            asset_id = %admission.update.asset_id,
+            "applying enacted compliance asset policy"
+        );
+        <Self as ComplianceRegistryRawWrite>::replace_asset_ibc_policy(
+            self,
+            admission.update.asset_id,
+            admission.update.expected_route_policy_hash,
+            admission.update.allowed_ibc_routes,
+        )
+        .await
+    }
+
+    /// Store validated ICS-20 compliance metadata.
+    fn store_ibc_compliance_metadata(
+        &mut self,
+        channel_id: &str,
+        packet_seq: u64,
+        metadata: &crate::ibc::IbcComplianceMetadata,
+    ) {
+        <Self as ComplianceRegistryRawWrite>::store_ibc_compliance_metadata(
+            self, channel_id, packet_seq, metadata,
+        );
+    }
+
+    /// Drain user-registration events during compact-block construction.
+    fn pending_user_registrations(&mut self) -> Vec<event::EventUserRegistered> {
+        <Self as ComplianceRegistryRawWrite>::pending_user_registrations(self)
+    }
+
+    /// Drain asset-registration events during compact-block construction.
+    fn pending_asset_registrations(&mut self) -> Vec<event::EventAssetRegistered> {
+        <Self as ComplianceRegistryRawWrite>::pending_asset_registrations(self)
+    }
+
+    /// Insert a user leaf in test/benchmark state without a signed grant.
+    #[cfg(any(test, feature = "test-helpers"))]
+    async fn test_only_add_compliance_leaf(&mut self, leaf: ComplianceLeaf) -> Result<u64> {
+        <Self as ComplianceRegistryRawWrite>::add_compliance_leaf(self, leaf).await
+    }
+
+    /// Insert an asset policy in test/benchmark state without a registrar grant.
+    #[cfg(any(test, feature = "test-helpers"))]
+    async fn test_only_register_asset(
+        &mut self,
+        asset_id: asset::Id,
+        policy: AssetPolicy,
+        is_regulated: bool,
+    ) -> Result<Option<indexed_tree::InsertResult>> {
+        <Self as ComplianceRegistryRawWrite>::register_asset_in_imt(
+            self,
+            asset_id,
+            policy,
+            is_regulated,
+        )
+        .await
+    }
+}
+
 impl<T: StateWrite + ?Sized> ComplianceRegistryWrite for T {}
 
 #[cfg(test)]
@@ -1491,7 +1818,8 @@ mod tests {
     use crate::params::{ComplianceParameters, StateWriteExt as _};
     use crate::tree::QuadTree;
     use cnidarium::TempStorage;
-    use decaf377::Fq;
+    use decaf377::{Fq, Fr};
+    use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
     use futures::StreamExt;
     use shieldd_sdk_keys::Address;
     use shieldd_sdk_sct::component::clock::EpochManager;
@@ -1541,6 +1869,23 @@ mod tests {
         });
     }
 
+    #[test]
+    fn compliance_anchor_facts_reject_future_user_height() {
+        let asset_anchor = StateCommitment(Fq::from(1u64));
+        let error = validate_compliance_anchor_facts(
+            Some(11),
+            &asset_anchor,
+            &asset_anchor,
+            10,
+            TEST_ANCHOR_WINDOW_BLOCKS,
+        )
+        .expect_err("a root recorded above the current height cannot be live");
+        assert!(
+            error.to_string().contains("exceeds current height"),
+            "unexpected error: {error:#}"
+        );
+    }
+
     #[tokio::test]
     async fn test_add_compliance_leaf() {
         let storage = TempStorage::new().await.unwrap();
@@ -1564,6 +1909,65 @@ mod tests {
         // Check that the tree root changed
         let root = state.get_user_tree_root().await.unwrap();
         assert_ne!(root.0, Fq::from(0u64));
+    }
+
+    #[tokio::test]
+    async fn add_compliance_leaf_rejects_invalid_derivation_before_mutation() {
+        let storage = TempStorage::new().await.unwrap();
+        let snapshot = storage.latest_snapshot();
+        let mut state = cnidarium::StateDelta::new(snapshot);
+        let slot_derivation = Fq::from(7u64);
+        let expected_d = crate::derive_compliance_scalar(slot_derivation);
+        let invalid_d = expected_d + Fq::from(1u64);
+        let leaf = ComplianceLeaf::new_unchecked(
+            Address::dummy(&mut rand::thread_rng()),
+            asset::Id(Fq::from(1u64)),
+            0,
+            slot_derivation,
+            invalid_d,
+        );
+
+        let err = state
+            .add_compliance_leaf(leaf)
+            .await
+            .expect_err("durable state must reject an invalid compliance derivation");
+
+        assert!(
+            err.to_string().contains("d does not match slot_derivation"),
+            "unexpected error: {err:#}"
+        );
+        assert_eq!(state.get_user_count().await.unwrap(), 0);
+        assert_eq!(
+            nv_count(&state, state_key::tree_storage::user_node_prefix()).await,
+            0
+        );
+    }
+
+    #[tokio::test]
+    async fn add_compliance_leaf_rejects_zero_asset_before_mutation() {
+        let storage = TempStorage::new().await.unwrap();
+        let snapshot = storage.latest_snapshot();
+        let mut state = cnidarium::StateDelta::new(snapshot);
+        let leaf = ComplianceLeaf::new(
+            Address::dummy(&mut rand::thread_rng()),
+            asset::Id(Fq::from(0u64)),
+            Fq::from(7u64),
+        );
+
+        let err = state
+            .add_compliance_leaf(leaf)
+            .await
+            .expect_err("the IMT sentinel value must not enter the user registry");
+
+        assert!(
+            err.to_string().contains("asset ID zero is reserved"),
+            "unexpected error: {err:#}"
+        );
+        assert_eq!(state.get_user_count().await.unwrap(), 0);
+        assert_eq!(
+            nv_count(&state, state_key::tree_storage::user_node_prefix()).await,
+            0
+        );
     }
 
     #[tokio::test]
@@ -1748,7 +2152,54 @@ mod tests {
             .verify_committed_tree_roots()
             .await
             .expect_err("missing asset-IMT NV leaves should fail root verification");
-        assert!(err.to_string().contains("asset IMT root mismatch"));
+        assert!(err.to_string().contains("asset IMT"));
+    }
+
+    #[tokio::test]
+    async fn corrupted_asset_structure_blocks_readiness_and_next_mutation() {
+        let storage = TempStorage::new().await.unwrap();
+        let snapshot = storage.latest_snapshot();
+        let mut state = cnidarium::StateDelta::new(snapshot);
+        let policy = AssetPolicy::simple(
+            decaf377::Element::GENERATOR,
+            u128::MAX,
+            decaf377::Element::GENERATOR,
+        );
+        state
+            .register_regulated_asset(asset::Id(Fq::from(777u64)), policy.clone())
+            .await
+            .unwrap();
+
+        let root_before = state.get_asset_imt_root().await.unwrap();
+        let count_before = state.get_asset_count().await.unwrap();
+        let mut sentinel = state.read_asset_leaf(0).await.unwrap();
+        sentinel.next_value = Fq::from(778u64);
+        state.nonverifiable_put_raw(
+            state_key::tree_storage::asset_leaf(0).into_bytes(),
+            bincode::serialize(&sentinel).unwrap(),
+        );
+
+        let readiness_error = state
+            .verify_committed_tree_roots()
+            .await
+            .expect_err("a malformed successor chain must fail readiness");
+        assert!(
+            readiness_error.to_string().contains("successor value"),
+            "unexpected error: {readiness_error:#}"
+        );
+
+        let next_asset = asset::Id(Fq::from(888u64));
+        let mutation_error = state
+            .register_regulated_asset(next_asset, policy)
+            .await
+            .expect_err("a malformed durable tree must block later mutations");
+        assert!(
+            mutation_error.to_string().contains("successor value"),
+            "unexpected error: {mutation_error:#}"
+        );
+        assert_eq!(state.get_asset_count().await.unwrap(), count_before);
+        assert_eq!(state.get_asset_imt_root().await.unwrap(), root_before);
+        assert!(state.get_asset_policy(next_asset).await.unwrap().is_none());
     }
 
     #[tokio::test]
@@ -1931,7 +2382,7 @@ mod tests {
         for i in 0..5 {
             let leaf = ComplianceLeaf::new(
                 Address::dummy(&mut rng),
-                asset::Id(Fq::from(i as u64)),
+                asset::Id(Fq::from(i as u64 + 1)),
                 Fq::from(0u64),
             );
             state.add_compliance_leaf(leaf).await.unwrap();
@@ -2123,7 +2574,7 @@ mod tests {
         for i in 0..5u64 {
             let leaf = ComplianceLeaf::new(
                 Address::dummy(&mut rng),
-                asset::Id(Fq::from(i)),
+                asset::Id(Fq::from(i + 1)),
                 Fq::from(0u64),
             );
             state.add_compliance_leaf(leaf.clone()).await.unwrap();
@@ -2430,6 +2881,62 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn regulated_asset_identity_keys_fail_before_tree_mutation() {
+        let identity_authority =
+            VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(0u64)));
+        let cases = [
+            (
+                "detection key",
+                AssetPolicy::simple(decaf377::Element::IDENTITY, 1, decaf377::Element::GENERATOR),
+            ),
+            (
+                "ring key",
+                AssetPolicy::simple(decaf377::Element::GENERATOR, 1, decaf377::Element::IDENTITY),
+            ),
+            (
+                "registration authority key",
+                AssetPolicy::simple(
+                    decaf377::Element::GENERATOR,
+                    1,
+                    decaf377::Element::GENERATOR,
+                )
+                .with_registration_authority(identity_authority),
+            ),
+        ];
+
+        for (index, (key_role, policy)) in cases.into_iter().enumerate() {
+            let storage = TempStorage::new().await.unwrap();
+            let snapshot = storage.latest_snapshot();
+            let mut state = cnidarium::StateDelta::new(snapshot);
+            let root_before = state.get_asset_imt_root().await.unwrap();
+            let asset_id = asset::Id(Fq::from(12345u64 + index as u64));
+
+            let error = state
+                .register_regulated_asset(asset_id, policy)
+                .await
+                .unwrap_err();
+
+            assert!(
+                error.to_string().contains("identity"),
+                "{key_role} returned unexpected error: {error:#}"
+            );
+            assert_eq!(
+                state.get_asset_imt_root().await.unwrap(),
+                root_before,
+                "{key_role} changed the asset tree root"
+            );
+            assert!(
+                !state.get_asset_imt().await.unwrap().contains(asset_id.0),
+                "{key_role} inserted an asset leaf"
+            );
+            assert!(
+                state.get_asset_policy(asset_id).await.unwrap().is_none(),
+                "{key_role} persisted an asset policy"
+            );
+        }
+    }
+
+    #[tokio::test]
     async fn test_imt_register_idempotent() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
@@ -2628,17 +3135,13 @@ mod tests {
             .await
             .unwrap();
 
-        // Can retrieve by height
+        // Append-only user roots remain available as recent history.
         let user_anchor_by_height = state.get_user_anchor_by_height(1).await.unwrap().unwrap();
-        let asset_anchor_by_height = state.get_asset_anchor_by_height(1).await.unwrap().unwrap();
         assert_eq!(user_anchor.0, user_anchor_by_height.0);
-        assert_eq!(asset_anchor.0, asset_anchor_by_height.0);
 
-        // Can check via lookup
+        // Historical validation applies only to the append-only user tree.
         let user_height = state.check_user_anchor(&user_anchor).await.unwrap();
-        let asset_height = state.check_asset_anchor(&asset_anchor).await.unwrap();
         assert_eq!(user_height, Some(1));
-        assert_eq!(asset_height, Some(1));
     }
 
     #[tokio::test]
@@ -2810,6 +3313,43 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn stale_asset_anchor_is_rejected_immediately_after_policy_change() {
+        let storage = TempStorage::new().await.unwrap();
+        let snapshot = storage.latest_snapshot();
+        let mut state = cnidarium::StateDelta::new(snapshot);
+        put_test_compliance_params(&mut state);
+
+        state.put_block_height(1);
+        state.record_compliance_anchors(1).await.unwrap();
+        let user_anchor = state.get_user_tree_root().await.unwrap();
+        let stale_asset_anchor = state.get_asset_imt_root().await.unwrap();
+
+        state.put_block_height(2);
+        state
+            .register_regulated_asset(
+                asset::Id(Fq::from(4242u64)),
+                AssetPolicy::simple(
+                    decaf377::Element::GENERATOR,
+                    u128::MAX,
+                    decaf377::Element::GENERATOR,
+                ),
+            )
+            .await
+            .unwrap();
+        let current_asset_anchor = state.get_asset_imt_root().await.unwrap();
+        assert_ne!(stale_asset_anchor, current_asset_anchor);
+
+        let error = state
+            .validate_compliance_anchors(&user_anchor, &stale_asset_anchor)
+            .await
+            .expect_err("an asset anchor predating a policy change must be invalid immediately");
+        assert!(
+            error.to_string().contains("current asset compliance root"),
+            "unexpected error: {error:#}"
+        );
+    }
+
+    #[tokio::test]
     async fn test_shortened_anchor_window_rejects_existing_old_anchor_immediately() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
@@ -2941,11 +3481,12 @@ mod tests {
             .validate_compliance_anchors(&genesis_user_anchor, &genesis_asset_anchor)
             .await;
 
-        // Should fail because genesis anchor is outside the configured validation window.
+        // The mutable asset-policy tree must match current state regardless of
+        // whether a stale root also exceeds the user-history window.
         assert!(result.is_err());
         let err_msg = result.unwrap_err().to_string();
         assert!(
-            err_msg.contains("too old"),
+            err_msg.contains("current asset compliance root"),
             "Genesis anchor attack should be prevented: {}",
             err_msg
         );
@@ -3049,7 +3590,6 @@ mod tests {
         state.put_block_height(1);
         state.record_compliance_anchors(1).await.unwrap();
         let expired_user_anchor = state.get_user_tree_root().await.unwrap();
-        let expired_asset_anchor = state.get_asset_imt_root().await.unwrap();
 
         state.put_block_height(2);
         state
@@ -3060,33 +3600,13 @@ mod tests {
             ))
             .await
             .unwrap();
-        state
-            .register_regulated_asset(
-                asset::Id(Fq::from(4343u64)),
-                AssetPolicy::simple(
-                    decaf377::Element::GENERATOR,
-                    u128::MAX,
-                    decaf377::Element::GENERATOR,
-                ),
-            )
-            .await
-            .unwrap();
-
         let prune_height = TEST_ANCHOR_WINDOW_BLOCKS + MAX_ANCHOR_SEARCH_DEPTH_BLOCKS + 2;
         state.put_block_height(prune_height);
         state.record_compliance_anchors(prune_height).await.unwrap();
 
         assert_eq!(state.get_user_anchor_by_height(1).await.unwrap(), None);
-        assert_eq!(state.get_asset_anchor_by_height(1).await.unwrap(), None);
         assert_eq!(
             state.check_user_anchor(&expired_user_anchor).await.unwrap(),
-            None
-        );
-        assert_eq!(
-            state
-                .check_asset_anchor(&expired_asset_anchor)
-                .await
-                .unwrap(),
             None
         );
     }
@@ -3191,46 +3711,71 @@ mod tests {
         state.put_block_height(1);
         state.record_compliance_anchors(1).await.unwrap();
         let reused_user_anchor = state.get_user_tree_root().await.unwrap();
-        let reused_asset_anchor = state.get_asset_imt_root().await.unwrap();
 
         let prune_height = TEST_ANCHOR_WINDOW_BLOCKS + MAX_ANCHOR_SEARCH_DEPTH_BLOCKS + 2;
         state.put_block_height(prune_height);
         state.record_compliance_anchors(prune_height).await.unwrap();
 
         assert_eq!(state.get_user_anchor_by_height(1).await.unwrap(), None);
-        assert_eq!(state.get_asset_anchor_by_height(1).await.unwrap(), None);
         assert_eq!(
             state.check_user_anchor(&reused_user_anchor).await.unwrap(),
             Some(prune_height)
         );
-        assert_eq!(
-            state
-                .check_asset_anchor(&reused_asset_anchor)
-                .await
-                .unwrap(),
-            Some(prune_height)
+    }
+
+    #[test]
+    fn timestamp_freshness_accepts_current_and_exact_boundaries() {
+        const CURRENT: i64 = 1_700_000_000;
+        assert!(check_timestamp_freshness(CURRENT as u64, CURRENT).is_ok());
+        assert!(
+            check_timestamp_freshness((CURRENT as u64) - MAX_TIMESTAMP_DRIFT_SECS, CURRENT,)
+                .is_ok()
+        );
+        assert!(
+            check_timestamp_freshness((CURRENT as u64) + MAX_TIMESTAMP_DRIFT_SECS, CURRENT,)
+                .is_ok()
         );
     }
 
     #[test]
-    fn timestamp_freshness_exact_boundary() {
-        assert!(check_timestamp_freshness(1000, 1000 + 3600).is_ok());
-        assert!(check_timestamp_freshness(1000 + 3600, 1000).is_ok());
+    fn timestamp_freshness_signed_conversion_matches_u64_policy() {
+        let cases = [
+            (1u64, 0i64),
+            (1, 1),
+            (1, 3_601),
+            (1, 3_602),
+            (7_201, 3_601),
+            (7_202, 3_601),
+            (i64::MAX as u64, i64::MAX),
+        ];
+        for (target_timestamp, consensus_timestamp) in cases {
+            let block_timestamp = u64::try_from(consensus_timestamp).expect("case is nonnegative");
+            let expected = target_timestamp != 0
+                && target_timestamp.abs_diff(block_timestamp) <= MAX_TIMESTAMP_DRIFT_SECS;
+            assert_eq!(
+                check_timestamp_freshness(target_timestamp, consensus_timestamp).is_ok(),
+                expected,
+                "signed conversion changed freshness for target={target_timestamp}, consensus={consensus_timestamp}"
+            );
+        }
     }
 
     #[test]
-    fn timestamp_freshness_inside_window() {
-        assert!(check_timestamp_freshness(1000, 1000 + 3599).is_ok());
+    fn timestamp_freshness_rejects_negative_consensus_time() {
+        let error = check_timestamp_freshness(1, -1)
+            .expect_err("pre-epoch consensus time must fail before conversion");
+        assert!(
+            error.to_string().contains("must be nonnegative"),
+            "unexpected rejection reason: {error:#}"
+        );
     }
 
     #[test]
-    fn timestamp_freshness_outside_window() {
+    fn timestamp_freshness_rejects_zero_and_outside_window() {
+        assert!(check_timestamp_freshness(0, 0).is_err());
+        assert!(check_timestamp_freshness(0, 1).is_err());
+        assert!(check_timestamp_freshness(0, MAX_TIMESTAMP_DRIFT_SECS as i64).is_err());
         assert!(check_timestamp_freshness(1000, 1000 + 3601).is_err());
         assert!(check_timestamp_freshness(1000 + 3601, 1000).is_err());
-    }
-
-    #[test]
-    fn timestamp_freshness_equal() {
-        assert!(check_timestamp_freshness(1000, 1000).is_ok());
     }
 }

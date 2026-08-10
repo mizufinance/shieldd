@@ -68,7 +68,7 @@ pub async fn network_join(
         Some(tm_p2p_bind),
     )?;
 
-    let tv = NetworkValidator::default();
+    let tv = NetworkValidator::generate()?;
     tm_config.write_config(node_dir, &tv, &genesis)?;
     Ok(())
 }

@@ -8,8 +8,8 @@ use shieldd_sdk_keys::{keys::AddressIndex, Address};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::view::v1::NotesRequest;
 use shieldd_sdk_shielded_pool::{
-    note, Ics20Withdrawal, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalFamilyId,
-    ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+    note, Ics20Withdrawal, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalPlan,
+    ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
 };
 use shieldd_sdk_transaction::{
     check_transaction_plan_enabled,
@@ -85,7 +85,7 @@ enum BaseFeeFundingSelection {
     UnsupportedIntent { reason: String },
 }
 
-fn align_transfer_planning_metadata(
+fn align_shielded_planning_metadata(
     spends: &mut [ShieldedInputPlan],
     outputs: &mut [ShieldedOutputPlan],
 ) {
@@ -265,7 +265,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         }
 
                         let transfer = self.build_transfer_plan(
-                            source,
                             &selected,
                             recipient.clone(),
                             value,
@@ -344,8 +343,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 });
             }
 
-            let transfer =
-                self.build_transfer_plan(source, &selected, recipient.clone(), value, fee)?;
+            let transfer = self.build_transfer_plan(&selected, recipient.clone(), value, fee)?;
             let new_fee = gas_prices
                 .fee(&ActionPlan::Transfer(transfer.clone()).gas_cost())
                 .apply_tier(self.fee_tier);
@@ -547,7 +545,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                         }
 
                         let shielded_withdrawal = self.build_ics20_withdrawal_plan(
-                            source,
                             &selected,
                             withdrawal.clone(),
                             zero_base_fee(),
@@ -626,7 +623,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             }
 
             let shielded_withdrawal =
-                self.build_ics20_withdrawal_plan(source, &selected, withdrawal.clone(), fee)?;
+                self.build_ics20_withdrawal_plan(&selected, withdrawal.clone(), fee)?;
             let new_fee = gas_prices
                 .fee(&ActionPlan::ShieldedIcs20Withdrawal(shielded_withdrawal.clone()).gas_cost())
                 .apply_tier(self.fee_tier);
@@ -922,12 +919,11 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         };
 
         let mut notes = available_notes;
-        if notes.len() < family_id.input_count() {
+        let real_input_count = notes.len().min(family_id.max_real_inputs());
+        if real_input_count < family_id.min_real_inputs() {
             return Ok(None);
         }
-        let selected: Vec<_> = (0..family_id.input_count())
-            .filter_map(|_| notes.pop())
-            .collect();
+        let selected: Vec<_> = (0..real_input_count).filter_map(|_| notes.pop()).collect();
         self.build_note_reshape_transaction(view, source, asset_id, family_id, selected)
             .await
     }
@@ -997,7 +993,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
     fn build_transfer_plan(
         &mut self,
-        source: AddressIndex,
         selected: &[SpendableNoteRecord],
         recipient: Address,
         value: Value,
@@ -1007,7 +1002,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             .first()
             .map(|record| record.note.address())
             .ok_or_else(|| anyhow!("transfer requires at least one selected note"))?;
-        debug_assert_eq!(source.account, source.account);
         let total_input = selected
             .iter()
             .map(|record| record.note.amount())
@@ -1039,7 +1033,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                 sender_address,
             ));
         }
-        align_transfer_planning_metadata(&mut spends, &mut outputs);
+        align_shielded_planning_metadata(&mut spends, &mut outputs);
 
         TransferPlan::new(spends, outputs, Fr::rand(&mut self.rng))
     }
@@ -1080,7 +1074,7 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             },
             sender_address,
         )];
-        align_transfer_planning_metadata(&mut spends, &mut outputs);
+        align_shielded_planning_metadata(&mut spends, &mut outputs);
 
         TransferPlan::new(spends, outputs, Fr::rand(&mut self.rng))
     }
@@ -1214,7 +1208,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
 
     fn build_ics20_withdrawal_plan(
         &mut self,
-        source: AddressIndex,
         selected: &[SpendableNoteRecord],
         withdrawal: Ics20Withdrawal,
         fee: Fee,
@@ -1223,7 +1216,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             .first()
             .map(|record| record.note.address())
             .ok_or_else(|| anyhow!("ICS-20 withdrawal requires at least one selected note"))?;
-        debug_assert_eq!(source.account, source.account);
         let total_input = selected
             .iter()
             .map(|record| record.note.amount())
@@ -1237,14 +1229,14 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         }
 
         let change_amount = total_input - total_required;
-        let spends = selected
+        let mut spends = selected
             .iter()
             .map(|record| {
                 ShieldedInputPlan::new(&mut self.rng, record.note.clone(), record.position)
             })
             .collect::<Vec<_>>();
 
-        let change_output = if change_amount > Amount::zero() {
+        let mut change_output = if change_amount > Amount::zero() {
             Some(ShieldedOutputPlan::new(
                 &mut self.rng,
                 Value {
@@ -1256,14 +1248,14 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
         } else {
             None
         };
+        match change_output.as_mut() {
+            Some(output) => {
+                align_shielded_planning_metadata(&mut spends, std::slice::from_mut(output))
+            }
+            None => align_shielded_planning_metadata(&mut spends, &mut []),
+        }
 
-        ShieldedIcs20WithdrawalPlan::new(
-            ShieldedIcs20WithdrawalFamilyId::Canonical,
-            spends,
-            change_output,
-            withdrawal,
-            Fr::rand(&mut self.rng),
-        )
+        ShieldedIcs20WithdrawalPlan::new(spends, change_output, withdrawal, Fr::rand(&mut self.rng))
     }
 
     async fn load_notes_for_asset<V: ViewClient + Send + ?Sized>(
@@ -1390,21 +1382,13 @@ fn fee_funding_excluded_note_commitments(
 ) -> BTreeSet<note::StateCommitment> {
     let mut commitments = BTreeSet::new();
     for action in actions {
-        let spends = match action {
-            ActionPlan::Transfer(plan) => Some(&plan.spends),
-            ActionPlan::NoteReshape(plan) => Some(&plan.spends),
-            ActionPlan::ShieldedIcs20Withdrawal(plan) => Some(&plan.spends),
-            _ => None,
-        };
-
-        if let Some(spends) = spends {
-            commitments.extend(
-                spends
-                    .iter()
-                    .filter(|spend| spend.note.asset_id() == *BASE_ASSET_ID)
-                    .map(|spend| spend.note.commit()),
-            );
-        }
+        commitments.extend(
+            action
+                .spends()
+                .iter()
+                .filter(|spend| spend.note.asset_id() == *BASE_ASSET_ID)
+                .map(|spend| spend.note.commit()),
+        );
     }
     commitments
 }
@@ -1413,35 +1397,8 @@ fn select_auto_note_reshape_family(
     selected_note_count: usize,
     available_note_count: usize,
 ) -> Option<NoteReshapeFamilyId> {
-    // Preserve wallet intent: select the smallest useful many-to-one family
-    // when the selected set is close to its capacity; otherwise choose the
-    // largest available family to avoid revealing the selected input count.
-    let direct_match = [
-        NoteReshapeFamilyId::TwoByOne,
-        NoteReshapeFamilyId::FourByOne,
-        NoteReshapeFamilyId::EightByOne,
-    ]
-    .into_iter()
-    .find(|family| {
-        let input_count = family.input_count();
-        available_note_count >= input_count
-            && selected_note_count
-                .saturating_sub(input_count)
-                .saturating_add(1)
-                <= 2
-    });
-
-    if direct_match.is_some() {
-        return direct_match;
-    }
-
-    [
-        NoteReshapeFamilyId::EightByOne,
-        NoteReshapeFamilyId::FourByOne,
-        NoteReshapeFamilyId::TwoByOne,
-    ]
-    .into_iter()
-    .find(|family| available_note_count >= family.input_count())
+    let family = NoteReshapeFamilyId::EightByOne;
+    (selected_note_count > 2 && available_note_count >= family.min_real_inputs()).then_some(family)
 }
 
 fn prioritize_and_filter_spendable_notes(
@@ -1527,6 +1484,7 @@ mod tests {
     fn test_spend_key(index: u32) -> SpendKey {
         let seed = SeedPhrase::from_randomness(&[index as u8; 32]);
         SpendKey::from_seed_phrase_bip44(seed, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements")
     }
 
     fn spendable_note_record(
@@ -1590,7 +1548,6 @@ mod tests {
             },
             timeout_time: 60_000_000_000,
             source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
-            use_compat_address: false,
             ics20_memo: String::new(),
             use_transparent_address: false,
         }
@@ -1610,8 +1567,10 @@ mod tests {
         let consensus_vk = consensus_sk.verification_key();
 
         let validator = validator::Validator {
-            identity_key: IdentityKey(spend_auth_vk.clone().into()),
-            governance_key: GovernanceKey(spend_auth_vk.clone().into()),
+            identity_key: IdentityKey::try_from(spend_auth_vk.clone())
+                .expect("test spend verification key is nonidentity"),
+            governance_key: GovernanceKey::try_from(spend_auth_vk.clone())
+                .expect("test spend verification key is nonidentity"),
             consensus_key: tendermint::PublicKey::from_raw_ed25519(&consensus_vk.to_bytes())
                 .expect("valid test consensus key"),
             name: "reduced-surface-validator".to_owned(),
@@ -1636,8 +1595,10 @@ mod tests {
         let body = ValidatorVoteBody {
             proposal: 7,
             vote: Vote::Yes,
-            identity_key: IdentityKey(vk.clone().into()),
-            governance_key: GovernanceKey(vk.clone().into()),
+            identity_key: IdentityKey::try_from(vk.clone())
+                .expect("test spend verification key is nonidentity"),
+            governance_key: GovernanceKey::try_from(vk.clone())
+                .expect("test spend verification key is nonidentity"),
             reason: ValidatorVoteReason("validator vote".to_owned()),
         };
         let auth_sig = spend_key
@@ -1657,8 +1618,10 @@ mod tests {
                 description: "funded by a self-transfer".to_owned(),
                 payload: ProposalPayload::Signaling { commit: None },
             },
-            proposer: IdentityKey(vk.clone().into()),
-            governance_key: GovernanceKey(vk.clone().into()),
+            proposer: IdentityKey::try_from(vk.clone())
+                .expect("test spend verification key is nonidentity"),
+            governance_key: GovernanceKey::try_from(vk.clone())
+                .expect("test spend verification key is nonidentity"),
         };
         let auth_sig = spend_key
             .spend_auth_key()
@@ -1684,15 +1647,15 @@ mod tests {
             next_value: vec![0u8; 32],
             dk_pub: vec![0u8; 32],
             threshold: u128::MAX.to_le_bytes().to_vec(),
-            route_policy_hash: vec![],
+            route_policy_hash: vec![0u8; 32],
             slot_count: shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT
                 .to_le_bytes()
                 .to_vec(),
             ring_pk: vec![0u8; 32],
-            ring_id_hash: vec![],
-            policy_id_hash: vec![],
-            permission_hash: vec![],
-            resource_hash: vec![],
+            ring_id_hash: vec![0u8; 32],
+            policy_id_hash: vec![0u8; 32],
+            permission_hash: vec![0u8; 32],
+            resource_hash: vec![0u8; 32],
         }
     }
 
@@ -1988,9 +1951,9 @@ mod tests {
                     user_registered: false,
                     asset_registered: false,
                     is_regulated: false,
-                    compliance_path: None,
+                    compliance_path: Some(shieldd_sdk_compliance::MerklePath::default().into()),
                     compliance_position: 0,
-                    asset_path: None,
+                    asset_path: Some(shieldd_sdk_compliance::MerklePath::default().into()),
                     asset_position: 0,
                     compliance_anchor: vec![0u8; 32],
                     asset_anchor: vec![0u8; 32],
@@ -2085,7 +2048,7 @@ mod tests {
         assert!(matches!(
             maintenance_plan.actions.first(),
             Some(ActionPlan::NoteReshape(note_reshape))
-                if note_reshape.family_id() == NoteReshapeFamilyId::FourByOne
+                if note_reshape.family_id() == NoteReshapeFamilyId::EightByOne
         ));
 
         view.replace_notes(vec![spendable_note_record(
@@ -2173,7 +2136,7 @@ mod tests {
         assert!(matches!(
             maintenance_plan.actions.first(),
             Some(ActionPlan::NoteReshape(note_reshape))
-                if note_reshape.family_id() == NoteReshapeFamilyId::FourByOne
+                if note_reshape.family_id() == NoteReshapeFamilyId::EightByOne
         ));
 
         view.replace_notes(vec![spendable_note_record(
@@ -2404,7 +2367,7 @@ mod tests {
                 &mut view,
                 source,
                 *BASE_ASSET_ID,
-                Some(NoteReshapeFamilyId::TwoByOne),
+                Some(NoteReshapeFamilyId::EightByOne),
             )
             .await
             .expect("note reshape planning succeeds");
@@ -2415,7 +2378,7 @@ mod tests {
         assert!(matches!(
             transaction_plan.actions.first(),
             Some(ActionPlan::NoteReshape(note_reshape))
-                if note_reshape.family_id() == NoteReshapeFamilyId::TwoByOne
+                if note_reshape.family_id() == NoteReshapeFamilyId::EightByOne
         ));
     }
 
@@ -2445,26 +2408,26 @@ mod tests {
         let Some(ActionPlan::NoteReshape(note_reshape)) = transaction_plan.actions.first() else {
             panic!("expected note reshape action");
         };
-        assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::FourByOne);
+        assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::EightByOne);
         assert_eq!(note_reshape.spends.len(), 3);
-        assert_eq!(note_reshape.body.inputs.len(), 4);
-        // Plan bodies are placeholders; dummy classification is meaningful
-        // only after materializing the action body.
+        assert_eq!(note_reshape.family_id().input_count(), 8);
         let spend_key = test_spend_key(6);
+        let fvk = spend_key.full_viewing_key();
         let body = note_reshape
             .note_reshape_body(
-                spend_key.full_viewing_key(),
+                fvk,
                 &PayloadKey::from([0u8; 32]),
                 shieldd_sdk_tct::Tree::default().root(),
             )
             .expect("note reshape body materialization succeeds");
-        assert_eq!(
-            body.inputs
-                .iter()
-                .map(|input| input.is_dummy())
-                .collect::<Vec<_>>(),
-            vec![false, false, false, true]
-        );
+        assert!(body.inputs.iter().all(|input| input.encrypted_backref.len()
+            == shieldd_sdk_shielded_pool::backref::ENCRYPTED_BACKREF_LEN));
+        let padded_input = &body.inputs[3];
+        assert!(padded_input
+            .encrypted_backref
+            .decrypt(&fvk.backref_key(), &padded_input.nullifier)
+            .expect("padded backref is a valid ciphertext")
+            .is_some());
     }
 
     #[tokio::test]
@@ -2496,23 +2459,39 @@ mod tests {
         };
         assert_eq!(note_reshape.family_id(), NoteReshapeFamilyId::OneByEight);
         assert_eq!(note_reshape.outputs.len(), 3);
-        assert_eq!(note_reshape.body.outputs.len(), 8);
-        // Plan bodies are placeholders; dummy classification is meaningful
-        // only after materializing the action body.
+        assert_eq!(note_reshape.family_id().output_count(), 8);
         let spend_key = test_spend_key(5);
+        let fvk = spend_key.full_viewing_key();
         let body = note_reshape
             .note_reshape_body(
-                spend_key.full_viewing_key(),
+                fvk,
                 &PayloadKey::from([0u8; 32]),
                 shieldd_sdk_tct::Tree::default().root(),
             )
             .expect("note reshape body materialization succeeds");
-        assert_eq!(
-            body.outputs
-                .iter()
-                .map(|output| output.is_dummy())
-                .collect::<Vec<_>>(),
-            vec![false, false, false, true, true, true, true, true]
-        );
+        assert!(body.outputs.iter().all(|output| {
+            output.wrapped_memo_key.0 != [0u8; 48] && output.ovk_wrapped_key.0 != [0u8; 48]
+        }));
+        for (index, output) in body.outputs.iter().enumerate() {
+            let shared_secret = Note::decrypt_key(
+                output.ovk_wrapped_key.clone(),
+                output.note_payload.note_commitment,
+                body.balance_commitment,
+                fvk.outgoing(),
+                &output.note_payload.ephemeral_key,
+            )
+            .expect("every fixed output uses the serialized action commitment");
+            let payload_key =
+                PayloadKey::derive(&shared_secret, &output.note_payload.ephemeral_key);
+            let note = Note::decrypt_with_payload_key(
+                &output.note_payload.encrypted_note,
+                &payload_key,
+                &output.note_payload.ephemeral_key,
+            )
+            .expect("fixed output is an ordinary encrypted note");
+            if index >= 3 {
+                assert_eq!(note.amount(), Amount::zero());
+            }
+        }
     }
 }

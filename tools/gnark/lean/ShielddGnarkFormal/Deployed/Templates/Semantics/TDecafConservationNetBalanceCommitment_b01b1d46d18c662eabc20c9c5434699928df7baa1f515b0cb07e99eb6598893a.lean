@@ -46,6 +46,7 @@ def spec (rho : Nat -> F) : Prop :=
   (rho 903).val < 2 ^ 128 ∧
   (rho 1032).val < 2 ^ 128 ∧
   (rho 1161).val < 2 ^ 128 ∧
+  (rho 1413).val < 2 ^ 251 ∧
   (rho 129) = (rho 258 + rho 387 + rho 516 + rho 645 + rho 774 + rho 903 + rho 1032 + rho 1161) ∧
   Shieldd.GnarkFormal.Decaf377Assumptions.Point.mk (nbBlindAccState rho 251).x (nbBlindAccState rho 251).y =
     Shieldd.GnarkFormal.Decaf377Assumptions.scalarMulLE 251
@@ -62,12 +63,15 @@ theorem sound (rho : Nat -> F) (h : relation rho) : spec rho := by
   have hOut6Bin := nbOut6Bits_toBinary rho h
   have hOut7Bin := nbOut7Bits_toBinary rho h
   have hBlindBin := nbBlindBits_toBinary rho h
+  have hBlindRange :=
+    Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary
+      pow251_lt_order hBlindBin
   obtain ⟨blindBool, hBlindEq, hBlindValue⟩ :=
     Shieldd.GnarkFormal.ChoiceFreeBinary.exists_bool_vector_of_to_binary
       pow251_lt_order hBlindBin
   have hBlindScalar := nbBlind_scalarMul rho h blindBool hBlindEq hBlindValue
   have hcons := nb_conservation rho h
-  refine ⟨Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hIn0Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut0Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut1Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut2Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut3Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut4Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut5Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut6Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut7Bin, hcons, ?_⟩
+  refine ⟨Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hIn0Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut0Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut1Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut2Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut3Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut4Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut5Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut6Bin, Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary Shieldd.GnarkFormal.ScalarMulBridge.pow128_lt_order hOut7Bin, hBlindRange, hcons, ?_⟩
   have hbg : toA Shieldd.GnarkFormal.Deployed.NetBalanceChoiceFree.blindGen =
       Shieldd.GnarkFormal.Decaf377Assumptions.valueBlindingGenerator := rfl
   change toA (nbBlindAccState rho 251) =

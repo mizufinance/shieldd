@@ -1,3 +1,4 @@
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.Poseidon7Bridge
 
 /-! Reusable deployed-slice ⇒ `permSpec7` link for width-8 (rate-7) Poseidon
@@ -7,6 +8,7 @@ deployed evaluator composes up to `permSpec7` round-by-round (CLAUDE ≤60-gate)
 
 namespace Shieldd.GnarkFormal.Deployed.Poseidon7Link
 
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 open Shieldd.GnarkFormal.Poseidon7Bridge
 open Shieldd.GnarkFormal.Extracted.PoseidonHash7 (F)
 

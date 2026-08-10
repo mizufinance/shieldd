@@ -48,6 +48,28 @@ theorem assetMembershipValid_regulated_exact
     assetMembershipValidSpec true true leafValue assetId nextValue = true := by
   simp [assetMembershipValidSpec, selectSpec]
 
+/-- Interpret the gadget's Bool-level acceptance predicate as the field-level
+registry-gap disjunction used by the protocol refinements. -/
+theorem assetMembershipValidSpec_registryGap
+    (assetId isRegulated low high : F) (regulated : Bool)
+    (hRegulated : isRegulated = if regulated then 1 else 0)
+    (hValid :
+      assetMembershipValidSpec regulated (decide (assetId = low))
+        low.val assetId.val high.val = true) :
+    (isRegulated = 1 ∧ assetId = low) ∨
+      (isRegulated = 0 ∧ low.val < assetId.val ∧ assetId.val < high.val) := by
+  cases regulated with
+  | false =>
+      right
+      constructor
+      · simp [hRegulated]
+      · simpa [assetMembershipValidSpec, selectSpec, imtGapSpec] using hValid
+  | true =>
+      left
+      constructor
+      · simp [hRegulated]
+      · simpa [assetMembershipValidSpec, selectSpec] using hValid
+
 /-- Nullifier = Poseidon377 rate-3 hash of (nk, stateCommitment, position) under
 the nullifier domain separator. Concrete `ZMod P` definition (see
 `Poseidon377`); no longer opaque. -/

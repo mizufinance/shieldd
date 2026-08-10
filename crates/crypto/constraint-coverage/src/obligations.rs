@@ -573,11 +573,11 @@ mod tests {
 
     fn load() -> (DeployedSliceIr, CoverageManifest) {
         let ir_bytes = std::fs::read(format!(
-            "{FORMAL_DIR}/note_reshape2x1-deployed-slice-ir.json"
+            "{FORMAL_DIR}/note_reshape1x8-deployed-slice-ir.json"
         ))
         .expect("read committed deployed-slice IR");
         let man_bytes = std::fs::read(format!(
-            "{FORMAL_DIR}/note_reshape2x1-coverage-manifest.json"
+            "{FORMAL_DIR}/note_reshape1x8-coverage-manifest.json"
         ))
         .expect("read committed coverage manifest");
         (
@@ -802,7 +802,7 @@ mod tests {
 
     /// A structural class cannot be silently moved into the residual tier: the
     /// closed allowlist must be changed explicitly as well. (Independent of the
-    /// class's prior status — note_reshape2x1 has no pending classes once every
+    /// class's prior status — note_reshape1x8 has no pending classes once every
     /// segment is discharged, so promote the first class rather than a pending
     /// one.)
     #[test]

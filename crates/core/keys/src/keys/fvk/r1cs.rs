@@ -13,6 +13,15 @@ fn generator() -> Element {
 
 pub(crate) static SPENDAUTH_BASEPOINT: Lazy<Element> = Lazy::new(generator);
 
+// Native census predicate: DEC-AUTHORIZATION-KEY-NONIDENTITY.
+fn enforce_authorization_key_nonidentity(
+    cs: ark_relations::r1cs::ConstraintSystemRef<Fq>,
+    authorization_key: &ElementVar,
+) -> Result<(), SynthesisError> {
+    let identity = ElementVar::new_constant(cs, decaf377::Element::default())?;
+    identity.enforce_not_equal(authorization_key)
+}
+
 pub struct RandomizedVerificationKey {
     pub inner: ElementVar,
 }
@@ -95,9 +104,7 @@ impl AllocVar<VerificationKey<SpendAuth>, Fq> for AuthorizationKeyVar {
                 let ak_element_var: ElementVar =
                     AllocVar::<Element, Fq>::new_witness(cs.clone(), || Ok(ak_point))?;
 
-                // The ak must never be identity.
-                let identity = ElementVar::new_constant(cs, decaf377::Element::default())?;
-                identity.enforce_not_equal(&ak_element_var)?;
+                enforce_authorization_key_nonidentity(cs, &ak_element_var)?;
                 Ok(Self {
                     inner: ak_element_var,
                 })
@@ -177,5 +184,53 @@ impl R1CSVar<Fq> for SpendAuthRandomizerVar {
             bytes[i] = byte.value()?;
         }
         Ok(Fr::from_bytes_checked(&bytes).expect("can convert bytes to Fr"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ark_relations::r1cs::ConstraintSystem;
+
+    use super::*;
+
+    #[test]
+    fn authorization_key_var_enforces_nonidentity() {
+        let valid = *crate::test_keys::FULL_VIEWING_KEY.spend_verification_key();
+        let valid_cs = ConstraintSystem::<Fq>::new_ref();
+        AuthorizationKeyVar::new_witness(valid_cs.clone(), || Ok(valid))
+            .expect("a valid authorization-key witness must allocate");
+        assert!(
+            valid_cs
+                .is_satisfied()
+                .expect("valid authorization-key constraint satisfaction is defined"),
+            "a native valid authorization key must satisfy AuthorizationKeyVar"
+        );
+
+        let identity = VerificationKey::<SpendAuth>::try_from(
+            VerificationKeyBytes::<SpendAuth>::from(Element::default().vartime_compress().0),
+        )
+        .expect("the native key type deliberately admits the identity encoding");
+
+        let primitive_cs = ConstraintSystem::<Fq>::new_ref();
+        let identity_var = ElementVar::new_witness(primitive_cs.clone(), || Ok(Element::default()))
+            .expect("an identity point witness must allocate");
+        enforce_authorization_key_nonidentity(primitive_cs.clone(), &identity_var)
+            .expect("the nonidentity predicate must synthesize for an identity witness");
+        assert!(
+            !primitive_cs
+                .is_satisfied()
+                .expect("primitive nonidentity constraint satisfaction is defined"),
+            "the algebraic predicate must reject the Decaf identity"
+        );
+
+        let authorization_cs = ConstraintSystem::<Fq>::new_ref();
+        AuthorizationKeyVar::new_witness(authorization_cs.clone(), || Ok(identity))
+            .expect("an identity authorization-key witness must allocate");
+        assert!(
+            !authorization_cs
+                .is_satisfied()
+                .expect("authorization-key constraint satisfaction is defined"),
+            "AuthorizationKeyVar must reject the Decaf identity authorization key"
+        );
     }
 }

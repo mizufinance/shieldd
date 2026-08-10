@@ -1,0 +1,18 @@
+import ShielddGnarkFormal.Deployed.Templates.Relations.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd
+import ShielddGnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd
+
+set_option maxRecDepth 1000000
+set_option maxHeartbeats 50000000
+
+namespace Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd
+
+abbrev F := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.F
+
+def relation (rho : Nat -> F) : Prop := Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.relation rho
+
+def spec (rho : Nat -> F) : Prop := Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.spec rho
+
+theorem sound (rho : Nat → F) (h : relation rho) : spec rho := by
+             apply Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.sound rho
+             simpa only [relation, Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.relation, Shieldd.GnarkFormal.Deployed.Templates.Relations.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.relation, Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.RelationBlocks.block0, Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.RelationBlocks.block1, Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.RelationBlocks.block2, Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.RelationBlocks.block3, Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.RelationBlocks.block4, Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.RelationBlocks.block5, Shieldd.GnarkFormal.Deployed.Templates.Semantics.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd.RelationBlocks.block6, and_assoc] using h
+end Shieldd.GnarkFormal.Deployed.Templates.Generated.TStatementHash_042c03f6fbeb384ad6230b63ee320b87cd0d4f74a820f0cac6e6f7499e9350bd

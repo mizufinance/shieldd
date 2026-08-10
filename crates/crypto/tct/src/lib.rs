@@ -134,18 +134,3 @@ pub mod proptest {
     #[doc(inline)]
     pub use super::commitment::FqStrategy;
 }
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn check_eternity_size() {
-        // Disabled due to spurious test failure.
-        // static_assertions::assert_eq_size!(Tree, [u8; 32]);
-    }
-
-    #[test]
-    fn check_eternity_proof_size() {
-        // Disabled due to spurious test failure.
-        // static_assertions::assert_eq_size!(Proof, [u8; 2344]);
-    }
-}

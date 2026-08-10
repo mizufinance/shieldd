@@ -39,7 +39,6 @@ impl ComplianceScreener {
         let (asset_id, is_flagged, salt, sender_slot_id, receiver_slot_id) =
             match self.detection_key.try_decrypt_detection(
                 &ciphertext.sender_core_epk,
-                &ciphertext.sender_core_epk,
                 &ciphertext.detection_tag,
                 &self.target_asset_id,
             ) {
@@ -106,7 +105,7 @@ mod tests {
         ExtractedComplianceCiphertext {
             output_ref,
             raw_bytes,
-            upload_bundle_bytes: None,
+            metadata_bytes: None,
         }
     }
 

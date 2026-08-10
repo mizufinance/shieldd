@@ -1,9 +1,9 @@
-use decaf377::{Fq, Fr};
+use decaf377::Fq;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::asset;
-use shieldd_sdk_keys::Address;
+use shieldd_sdk_keys::{ensure_nonidentity_spend_auth_key, Address};
 use shieldd_sdk_proto::shieldd::core::component::compliance::v1 as pb;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_tct::StateCommitment;
@@ -27,7 +27,7 @@ pub const TOTAL_PLAINTEXT_BYTES: usize =
 ///   + c2_core(32) + c2_ext(32) + c2_sext(32) + detection(128) + core(96) + ext(96) + sext(96)
 pub const EPK_BYTES: usize = 32;
 pub const C2_BYTES: usize = 32;
-pub const DETECTION_TAG_BYTES: usize = 128; // 4 Fq elements: asset_id+flag, salt, sender slot, receiver slot
+pub const DETECTION_TAG_BYTES: usize = 128; // 4 Fq elements: asset, salt, sender slot+flag*2^32, receiver slot
 pub const ENCRYPTED_TIER_BYTES: usize = 96; // 3 Fq elements per tier
 
 /// Transfer-input ciphertext: 1 EPK + 1 c2 + detection + core.
@@ -54,10 +54,7 @@ fn grant_signing_bytes(domain: &[u8], body_bytes: Vec<u8>) -> Vec<u8> {
     bytes
 }
 
-/// DLEQ proof wire format: (c, s) per tier. Transfer-input has 1 tier, transfer-output has 3.
 pub const FQ_BYTES: usize = 32;
-pub const TRANSFER_INPUT_DLEQ_BYTES: usize = FQ_BYTES * 2; // 64 bytes: c || s
-pub const TRANSFER_OUTPUT_DLEQ_BYTES: usize = FQ_BYTES * 6; // 192 bytes: c1||s1||c2||s2||c3||s3
 
 // Compile-time consistency checks.
 const _: () = {
@@ -70,14 +67,6 @@ const _: () = {
         "TRANSFER_OUTPUT_WIRE_BYTES must be 608"
     );
     assert!(
-        TRANSFER_INPUT_DLEQ_BYTES == 64,
-        "TRANSFER_INPUT_DLEQ_BYTES must be 64"
-    );
-    assert!(
-        TRANSFER_OUTPUT_DLEQ_BYTES == 192,
-        "TRANSFER_OUTPUT_DLEQ_BYTES must be 192"
-    );
-    assert!(
         TRANSFER_INPUT_CIPHERTEXT_FQS == 7,
         "TRANSFER_INPUT_CIPHERTEXT_FQS must be 7"
     );
@@ -87,37 +76,9 @@ const _: () = {
     );
 };
 
-/// A single DLEQ proof: (challenge, response).
-///
-/// Proves EPK = r×G and S = r×ACK use the same r, bound to metadata M.
-/// Challenge c is the truncated Poseidon output (high bits zeroed via `fq_to_challenge_scalar`).
-/// Stored as Fq for circuit compatibility; high 4 bits of byte 31 are always zero.
-#[derive(Clone, Debug)]
-pub struct DleqProof {
-    pub c: Fq, // Fiat-Shamir challenge (truncated, high bits zero)
-    pub s: Fr, // Response: k + c_truncated × r
-}
-
-impl DleqProof {
-    /// Serialize to 64 bytes: c (32 LE) || s (32 LE).
-    pub fn to_bytes(&self) -> [u8; 64] {
-        let mut bytes = [0u8; 64];
-        bytes[..32].copy_from_slice(&self.c.to_bytes());
-        bytes[32..].copy_from_slice(&self.s.to_bytes());
-        bytes
-    }
-
-    /// Deserialize from 64 bytes.
-    pub fn from_bytes(bytes: &[u8; 64]) -> Self {
-        let c = Fq::from_le_bytes_mod_order(&bytes[..32]);
-        let s = Fr::from_le_bytes_mod_order(&bytes[32..]);
-        Self { c, s }
-    }
-}
-
 /// The domain separator used to generate compliance leaf commitments.
 pub(crate) static COMPLIANCE_LEAF_DOMAIN_SEP: Lazy<Fq> = Lazy::new(|| {
-    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.compliance.leaf").as_bytes())
+    Fq::from_le_bytes_mod_order(blake2b_simd::blake2b(b"shieldd.compliance.leaf.v2").as_bytes())
 });
 
 /// A compliance leaf in the public on-chain registry for regulated assets.
@@ -138,6 +99,18 @@ pub struct ComplianceLeaf {
     pub slot_derivation: Fq,
     /// Derivation scalar: d = SHA512_derive(slot_derivation). Verified at registration.
     pub d: Fq,
+}
+
+fn validate_derivation_scalar(d: Fq, expected: Fq) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        expected != Fq::from(0u64),
+        "compliance leaf derivation scalar must be nonzero"
+    );
+    anyhow::ensure!(
+        d == expected,
+        "compliance leaf d does not match slot_derivation"
+    );
+    Ok(())
 }
 
 impl ComplianceLeaf {
@@ -189,11 +162,7 @@ impl ComplianceLeaf {
 
     pub fn validate_derivation(&self) -> anyhow::Result<()> {
         let expected = crate::derive_compliance_scalar(self.slot_derivation);
-        anyhow::ensure!(
-            self.d == expected,
-            "compliance leaf d does not match slot_derivation"
-        );
-        Ok(())
+        validate_derivation_scalar(self.d, expected)
     }
 
     /// Create the Poseidon commitment.
@@ -204,13 +173,16 @@ impl ComplianceLeaf {
             .vartime_compress_to_field();
         let transmission_key_s = Fq::from_bytes_checked(&self.address.transmission_key().0)
             .expect("transmission key is valid");
+        let discovery_key = Fq::from_bytes_checked(&self.address.discovery_key().0)
+            .expect("validated address discovery key is a canonical Fq encoding");
         let asset_id_field = self.asset_id.0;
 
-        let commit = poseidon377::hash_6(
+        let commit = poseidon377::hash_7(
             &COMPLIANCE_LEAF_DOMAIN_SEP,
             (
                 diversified_generator,
                 transmission_key_s,
+                discovery_key,
                 asset_id_field,
                 Fq::from(self.slot_id),
                 self.slot_derivation,
@@ -519,6 +491,24 @@ impl AssetPolicy {
         self.params.allowed_ibc_routes = canonical_routes(routes);
     }
 
+    pub fn validate_crypto_keys(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            !self.params.dk_pub.is_identity(),
+            "asset policy detection key must not be the identity"
+        );
+        anyhow::ensure!(
+            !self.ring.ring_pk.is_identity(),
+            "asset policy ring key must not be the identity"
+        );
+        if let Some(registration_authority_vk) = &self.registration_authority_vk {
+            ensure_nonidentity_spend_auth_key(
+                registration_authority_vk,
+                "compliance registration authority key",
+            )?;
+        }
+        Ok(())
+    }
+
     pub fn permits_ibc_route(&self, route: &IbcRoute) -> bool {
         self.params.allowed_ibc_routes.binary_search(route).is_ok()
     }
@@ -571,6 +561,7 @@ impl AssetPolicy {
     ///         [permission_len: 2] [permission bytes]
     ///         [resource_len: 2] [resource bytes]
     pub fn to_bytes(&self) -> anyhow::Result<Vec<u8>> {
+        self.validate_crypto_keys()?;
         let mut bytes = Vec::with_capacity(128);
         bytes.extend_from_slice(ASSET_POLICY_STORAGE_MAGIC);
         // AssetParams
@@ -728,7 +719,7 @@ impl AssetPolicy {
             anyhow::bail!("trailing bytes after AssetPolicy");
         }
 
-        Ok(Self {
+        let policy = Self {
             params: AssetParams {
                 dk_pub,
                 threshold,
@@ -744,7 +735,9 @@ impl AssetPolicy {
                 resource,
             },
             registration_authority_vk,
-        })
+        };
+        policy.validate_crypto_keys()?;
+        Ok(policy)
     }
 }
 
@@ -799,7 +792,7 @@ impl TryFrom<pb::AssetPolicy> for AssetPolicy {
             .collect::<anyhow::Result<Vec<_>>>()?;
         let ibc_origin = value.ibc_origin.map(TryInto::try_into).transpose()?;
 
-        Ok(AssetPolicy {
+        let policy = AssetPolicy {
             params: AssetParams {
                 dk_pub,
                 threshold,
@@ -815,7 +808,9 @@ impl TryFrom<pb::AssetPolicy> for AssetPolicy {
                 resource: value.resource,
             },
             registration_authority_vk,
-        })
+        };
+        policy.validate_crypto_keys()?;
+        Ok(policy)
     }
 }
 
@@ -872,6 +867,16 @@ impl AssetRegistrationGrantBody {
     pub fn signing_bytes(&self) -> Vec<u8> {
         grant_signing_bytes(ASSET_REGISTRATION_GRANT_DOMAIN, self.encode_to_vec())
     }
+
+    pub fn validate_authorization_keys(&self) -> anyhow::Result<()> {
+        if let Some(registration_authority_vk) = &self.registration_authority_vk {
+            ensure_nonidentity_spend_auth_key(
+                registration_authority_vk,
+                "compliance registration authority key",
+            )?;
+        }
+        Ok(())
+    }
 }
 
 impl TryFrom<pb::AssetRegistrationGrantBody> for AssetRegistrationGrantBody {
@@ -900,7 +905,7 @@ impl TryFrom<pb::AssetRegistrationGrantBody> for AssetRegistrationGrantBody {
             .collect::<anyhow::Result<Vec<_>>>()?;
         let ibc_origin = value.ibc_origin.map(TryInto::try_into).transpose()?;
 
-        Ok(Self {
+        let body = Self {
             asset_id: value
                 .asset_id
                 .ok_or_else(|| anyhow::anyhow!("missing asset_id"))?
@@ -918,7 +923,9 @@ impl TryFrom<pb::AssetRegistrationGrantBody> for AssetRegistrationGrantBody {
             resource: value.resource,
             registration_authority_vk,
             valid_until_unix: value.valid_until_unix,
-        })
+        };
+        body.validate_authorization_keys()?;
+        Ok(body)
     }
 }
 
@@ -973,6 +980,8 @@ impl DomainType for AssetRegistrationGrant {
 
 impl AssetRegistrationGrant {
     pub fn verify(&self) -> anyhow::Result<()> {
+        self.body.validate_authorization_keys()?;
+        ensure_nonidentity_spend_auth_key(&self.registrar_vk, "compliance registrar key")?;
         self.registrar_vk
             .verify(&self.body.signing_bytes(), &self.signature)
             .map_err(|_| anyhow::anyhow!("asset registration grant signature failed to verify"))
@@ -983,7 +992,7 @@ impl TryFrom<pb::AssetRegistrationGrant> for AssetRegistrationGrant {
     type Error = anyhow::Error;
 
     fn try_from(value: pb::AssetRegistrationGrant) -> Result<Self, Self::Error> {
-        Ok(Self {
+        let grant = Self {
             body: value
                 .body
                 .ok_or_else(|| anyhow::anyhow!("missing asset registration grant body"))?
@@ -996,7 +1005,10 @@ impl TryFrom<pb::AssetRegistrationGrant> for AssetRegistrationGrant {
                 .signature
                 .ok_or_else(|| anyhow::anyhow!("missing asset registration grant signature"))?
                 .try_into()?,
-        })
+        };
+        grant.body.validate_authorization_keys()?;
+        ensure_nonidentity_spend_auth_key(&grant.registrar_vk, "compliance registrar key")?;
+        Ok(grant)
     }
 }
 
@@ -1075,6 +1087,7 @@ impl DomainType for UserRegistrationGrant {
 
 impl UserRegistrationGrant {
     pub fn verify(&self, vk: &VerificationKey<SpendAuth>) -> anyhow::Result<()> {
+        ensure_nonidentity_spend_auth_key(vk, "compliance registration authority key")?;
         vk.verify(&self.body.signing_bytes(), &self.signature)
             .map_err(|_| anyhow::anyhow!("user registration grant signature failed to verify"))
     }
@@ -1193,7 +1206,7 @@ impl TryFrom<pb::MsgRegisterAsset> for MsgRegisterAsset {
             .collect::<anyhow::Result<Vec<_>>>()?;
         let ibc_origin = value.ibc_origin.map(TryInto::try_into).transpose()?;
 
-        Ok(MsgRegisterAsset {
+        let message = MsgRegisterAsset {
             asset_id: value
                 .asset_id
                 .ok_or_else(|| anyhow::anyhow!("missing asset_id"))?
@@ -1211,7 +1224,9 @@ impl TryFrom<pb::MsgRegisterAsset> for MsgRegisterAsset {
             resource: value.resource,
             registration_authority_vk,
             asset_registration_grant,
-        })
+        };
+        message.validate_authorization_keys()?;
+        Ok(message)
     }
 }
 
@@ -1250,6 +1265,20 @@ impl From<MsgRegisterAsset> for pb::MsgRegisterAsset {
 }
 
 impl MsgRegisterAsset {
+    pub fn validate_authorization_keys(&self) -> anyhow::Result<()> {
+        if let Some(registration_authority_vk) = &self.registration_authority_vk {
+            ensure_nonidentity_spend_auth_key(
+                registration_authority_vk,
+                "compliance registration authority key",
+            )?;
+        }
+        if let Some(grant) = &self.asset_registration_grant {
+            grant.body.validate_authorization_keys()?;
+            ensure_nonidentity_spend_auth_key(&grant.registrar_vk, "compliance registrar key")?;
+        }
+        Ok(())
+    }
+
     pub fn registration_grant_body(&self, valid_until_unix: u64) -> AssetRegistrationGrantBody {
         AssetRegistrationGrantBody {
             asset_id: self.asset_id,
@@ -1422,6 +1451,42 @@ mod tests {
     }
 
     #[test]
+    fn test_compliance_leaf_commitment_binds_discovery_key() {
+        let mut rng = rand::thread_rng();
+        let address = Address::dummy(&mut rng);
+        let different_discovery_key = loop {
+            let candidate = Address::dummy(&mut rng);
+            if candidate.discovery_key() != address.discovery_key() {
+                break *candidate.discovery_key();
+            }
+        };
+        let alias = Address::from_components(
+            *address.diversifier(),
+            *address.transmission_key(),
+            different_discovery_key,
+        )
+        .expect("validated discovery key remains valid with the same transmission key");
+
+        assert_eq!(
+            address.diversified_generator(),
+            alias.diversified_generator()
+        );
+        assert_eq!(address.transmission_key(), alias.transmission_key());
+        assert_ne!(address.discovery_key(), alias.discovery_key());
+
+        let asset_id = asset::Id(decaf377::Fq::from(100u64));
+        let slot_derivation = decaf377::Fq::from(42u64);
+        let registered = ComplianceLeaf::with_slot(address, asset_id, 3, slot_derivation);
+        let substituted = ComplianceLeaf::with_slot(alias, asset_id, 3, slot_derivation);
+
+        assert_ne!(
+            registered.commit(),
+            substituted.commit(),
+            "a user-tree path must authenticate the full registered address"
+        );
+    }
+
+    #[test]
     fn test_same_slot_reuse_same_d_and_ack() {
         let mut rng = rand::thread_rng();
         let asset_id = asset::Id(decaf377::Fq::from(100u64));
@@ -1538,6 +1603,17 @@ mod tests {
     }
 
     #[test]
+    fn test_compliance_leaf_validation_rejects_zero_d() {
+        let error = validate_derivation_scalar(decaf377::Fq::from(0u64), decaf377::Fq::from(0u64))
+            .expect_err("zero d cannot be a valid registered compliance key");
+
+        assert!(
+            error.to_string().contains("must be nonzero"),
+            "unexpected error: {error:#}"
+        );
+    }
+
+    #[test]
     fn test_asset_policy_bytes_roundtrip() {
         let dk = decaf377::Fr::from(42u64);
         let dk_pub = decaf377::Element::GENERATOR * dk;
@@ -1575,6 +1651,130 @@ mod tests {
         assert_eq!(policy.ring.policy_id, recovered.ring.policy_id);
         assert_eq!(policy.ring.permission, recovered.ring.permission);
         assert_eq!(policy.ring.resource, recovered.ring.resource);
+    }
+
+    #[test]
+    fn asset_policy_rejects_identity_crypto_keys() {
+        let identity = decaf377::Element::IDENTITY;
+        let generator = decaf377::Element::GENERATOR;
+
+        let identity_dk = AssetPolicy::simple(identity, 1, generator);
+        assert!(identity_dk.validate_crypto_keys().is_err());
+        assert!(identity_dk.to_bytes().is_err());
+
+        let identity_ring = AssetPolicy::simple(generator, 1, identity);
+        assert!(identity_ring.validate_crypto_keys().is_err());
+        assert!(identity_ring.to_bytes().is_err());
+
+        let valid = AssetPolicy::simple(generator, 1, generator);
+        let mut identity_dk_proto: pb::AssetPolicy = valid.clone().into();
+        identity_dk_proto.dk_pub = identity.vartime_compress().0.to_vec();
+        assert!(AssetPolicy::try_from(identity_dk_proto).is_err());
+
+        let mut identity_ring_proto: pb::AssetPolicy = valid.into();
+        identity_ring_proto.ring_pk = identity.vartime_compress().0.to_vec();
+        assert!(AssetPolicy::try_from(identity_ring_proto).is_err());
+    }
+
+    #[test]
+    fn asset_policy_rejects_identity_registration_authority_key() {
+        let identity_signing_key =
+            decaf377_rdsa::SigningKey::<SpendAuth>::from(decaf377::Fr::from(0u64));
+        let identity = VerificationKey::from(&identity_signing_key);
+        let policy = AssetPolicy::simple(
+            decaf377::Element::GENERATOR,
+            1,
+            decaf377::Element::GENERATOR,
+        )
+        .with_registration_authority(identity);
+
+        let error = policy
+            .validate_crypto_keys()
+            .expect_err("asset policies must reject identity registration authorities");
+        assert!(
+            error
+                .to_string()
+                .contains("compliance registration authority key must not be identity"),
+            "unexpected rejection reason: {error:#}"
+        );
+
+        let proto: pb::AssetPolicy = policy.into();
+        assert!(
+            AssetPolicy::try_from(proto).is_err(),
+            "typed policy decode must reject identity registration authorities"
+        );
+    }
+
+    #[test]
+    fn asset_registration_grant_rejects_identity_registrar_key() {
+        let signing_key = decaf377_rdsa::SigningKey::<SpendAuth>::from(decaf377::Fr::from(0u64));
+        let registrar_vk = VerificationKey::from(&signing_key);
+        let body = AssetRegistrationGrantBody {
+            asset_id: asset::Id(decaf377::Fq::from(1u64)),
+            is_regulated: false,
+            dk_pub: None,
+            threshold: None,
+            slot_count: 0,
+            allowed_ibc_routes: Vec::new(),
+            ibc_origin: None,
+            ring_pk: None,
+            ring_id: String::new(),
+            policy_id: String::new(),
+            permission: String::new(),
+            resource: String::new(),
+            registration_authority_vk: None,
+            valid_until_unix: 1,
+        };
+        let signature = signing_key.sign_deterministic(&body.signing_bytes());
+        let grant = AssetRegistrationGrant {
+            body,
+            registrar_vk,
+            signature,
+        };
+
+        let error = grant
+            .verify()
+            .expect_err("asset registration grants must reject identity registrar keys");
+        assert!(
+            error
+                .to_string()
+                .contains("compliance registrar key must not be identity"),
+            "unexpected rejection reason: {error:#}"
+        );
+
+        let proto: pb::AssetRegistrationGrant = grant.into();
+        assert!(
+            AssetRegistrationGrant::try_from(proto).is_err(),
+            "typed grant decode must reject identity registrar keys"
+        );
+    }
+
+    #[test]
+    fn user_registration_grant_rejects_identity_registration_authority() {
+        let signing_key = decaf377_rdsa::SigningKey::<SpendAuth>::from(decaf377::Fr::from(0u64));
+        let registration_authority_vk = VerificationKey::from(&signing_key);
+        let body = UserRegistrationGrantBody {
+            leaf: ComplianceLeaf::new(
+                Address::dummy(&mut rand::thread_rng()),
+                asset::Id(decaf377::Fq::from(1u64)),
+                decaf377::Fq::from(2u64),
+            ),
+            policy_id: "policy".to_owned(),
+            valid_until_unix: 1,
+            nonce: vec![1],
+        };
+        let signature = signing_key.sign_deterministic(&body.signing_bytes());
+        let grant = UserRegistrationGrant { body, signature };
+
+        let error = grant
+            .verify(&registration_authority_vk)
+            .expect_err("user registration grants must reject identity authorities");
+        assert!(
+            error
+                .to_string()
+                .contains("compliance registration authority key must not be identity"),
+            "unexpected rejection reason: {error:#}"
+        );
     }
 
     #[test]
@@ -1741,10 +1941,47 @@ mod tests {
         );
         assert_eq!(policy.params.threshold, u128::MAX);
     }
+
+    #[test]
+    fn merkle_path_default_is_fixed_width_and_canonical() {
+        let path = MerklePath::default();
+        path.validate().expect("default path is canonical");
+        assert_eq!(path.layers.len(), usize::from(crate::tree::DEFAULT_DEPTH));
+        assert!(path.layers.iter().all(|layer| {
+            layer.siblings.len() == 3 && layer.siblings.iter().all(|sibling| sibling == &[0u8; 32])
+        }));
+
+        let proto: pb::MerklePath = path.clone().into();
+        assert_eq!(
+            MerklePath::try_from(proto).expect("canonical path roundtrip"),
+            path
+        );
+    }
+
+    #[test]
+    fn merkle_path_proto_rejects_noncanonical_shape_and_fields() {
+        let canonical: pb::MerklePath = MerklePath::default().into();
+
+        let mut short = canonical.clone();
+        short.layers.pop();
+        MerklePath::try_from(short).expect_err("short path must fail");
+
+        let mut wrong_arity = canonical.clone();
+        wrong_arity.layers[0].siblings.pop();
+        MerklePath::try_from(wrong_arity).expect_err("wrong sibling arity must fail");
+
+        let mut wrong_length = canonical.clone();
+        wrong_length.layers[0].siblings[0].pop();
+        MerklePath::try_from(wrong_length).expect_err("short sibling must fail");
+
+        let mut noncanonical = canonical;
+        noncanonical.layers[0].siblings[0] = vec![0xff; 32];
+        MerklePath::try_from(noncanonical).expect_err("noncanonical sibling must fail");
+    }
 }
 
 /// A Merkle path in the Quad Merkle Tree (arity 4).
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(try_from = "pb::MerklePath", into = "pb::MerklePath")]
 pub struct MerklePath {
     /// The layers of the Merkle path, from leaf to root.
@@ -1752,6 +1989,17 @@ pub struct MerklePath {
 }
 
 impl MerklePath {
+    /// Fixed-width zero path for a conditionally disabled membership branch.
+    pub fn zeroed() -> Self {
+        Self {
+            layers: (0..crate::tree::DEFAULT_DEPTH)
+                .map(|_| MerklePathLayer {
+                    siblings: vec![vec![0u8; 32]; 3],
+                })
+                .collect(),
+        }
+    }
+
     /// Create a MerklePath from the output of registry auth_path functions.
     pub fn from_auth_path(auth_path: Vec<[StateCommitment; 3]>) -> Self {
         let layers = auth_path
@@ -1765,6 +2013,41 @@ impl MerklePath {
             })
             .collect();
         MerklePath { layers }
+    }
+
+    pub fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.layers.len() == usize::from(crate::tree::DEFAULT_DEPTH),
+            "Merkle path must have exactly {} layers, got {}",
+            crate::tree::DEFAULT_DEPTH,
+            self.layers.len()
+        );
+        for (layer_index, layer) in self.layers.iter().enumerate() {
+            anyhow::ensure!(
+                layer.siblings.len() == 3,
+                "Merkle path layer {layer_index} must have exactly 3 siblings, got {}",
+                layer.siblings.len()
+            );
+            for (sibling_index, sibling) in layer.siblings.iter().enumerate() {
+                let bytes: [u8; 32] = sibling.as_slice().try_into().map_err(|_| {
+                    anyhow::anyhow!(
+                        "Merkle path layer {layer_index} sibling {sibling_index} must be 32 bytes"
+                    )
+                })?;
+                Fq::from_bytes_checked(&bytes).map_err(|_| {
+                    anyhow::anyhow!(
+                        "Merkle path layer {layer_index} sibling {sibling_index} is not canonical"
+                    )
+                })?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Default for MerklePath {
+    fn default() -> Self {
+        Self::zeroed()
     }
 }
 
@@ -1787,7 +2070,9 @@ impl TryFrom<pb::MerklePath> for MerklePath {
             .into_iter()
             .map(|l| l.try_into())
             .collect::<Result<Vec<_>, _>>()?;
-        Ok(MerklePath { layers })
+        let path = MerklePath { layers };
+        path.validate()?;
+        Ok(path)
     }
 }
 
@@ -1824,342 +2109,6 @@ impl From<MerklePathLayer> for pb::MerklePathLayer {
     fn from(value: MerklePathLayer) -> pb::MerklePathLayer {
         pb::MerklePathLayer {
             siblings: value.siblings,
-        }
-    }
-}
-
-/// Compliance ciphertext with tiered encryption.
-///
-/// Supports two formats:
-/// - **Transfer-input** (288 bytes): 1 EPK + c2_core + detection + core
-/// - **Transfer-output** (544 bytes): 3 EPKs + 3 c2s + detection + core + ext + sext
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ComplianceCiphertext {
-    /// Ephemeral public key EPK_1 = r_1 × G (all actions).
-    pub epk_1: decaf377::Element,
-
-    /// Ephemeral public key EPK_2 = r_2 × G (transfer-output only).
-    pub epk_2: Option<decaf377::Element>,
-
-    /// Ephemeral public key EPK_3 = r_3 × G (transfer-output only).
-    pub epk_3: Option<decaf377::Element>,
-
-    /// Encrypted seed for core tier (ElGamal envelope).
-    pub c2_core: Fq,
-
-    /// Encrypted seed for extension tier (transfer-output only).
-    pub c2_ext: Option<Fq>,
-
-    /// Encrypted seed for sender-extension tier (transfer-output only).
-    pub c2_sext: Option<Fq>,
-
-    /// Encrypted detection tier: [asset_id+flag (32 bytes), salt (32 bytes)].
-    pub detection_tag: [u8; DETECTION_TAG_BYTES],
-
-    /// Encrypted core data: amount + self address (96 bytes).
-    pub encrypted_core: Vec<u8>,
-
-    /// Encrypted extension: counterparty address for receiver (96 bytes, transfer-output only).
-    pub encrypted_ext: Option<Vec<u8>>,
-
-    /// Encrypted sender-extension: counterparty data for sender (96 bytes, transfer-output only).
-    pub encrypted_sext: Option<Vec<u8>>,
-}
-
-impl ComplianceCiphertext {
-    /// Serialize EPK_1 to bytes.
-    pub fn epk_1_bytes(&self) -> [u8; 32] {
-        self.epk_1.vartime_compress().0
-    }
-
-    /// Create a transfer-input ciphertext (detection + core only, 288 bytes).
-    pub fn new_transfer_input(
-        epk_1: decaf377::Element,
-        c2_core: Fq,
-        detection_tag: [u8; DETECTION_TAG_BYTES],
-        encrypted_core: Vec<u8>,
-    ) -> Self {
-        Self {
-            epk_1,
-            epk_2: None,
-            epk_3: None,
-            c2_core,
-            c2_ext: None,
-            c2_sext: None,
-            detection_tag,
-            encrypted_core,
-            encrypted_ext: None,
-            encrypted_sext: None,
-        }
-    }
-
-    /// Create a transfer-output ciphertext (all tiers, 544 bytes).
-    pub fn new_transfer_output(
-        epk_1: decaf377::Element,
-        epk_2: decaf377::Element,
-        epk_3: decaf377::Element,
-        c2_core: Fq,
-        c2_ext: Fq,
-        c2_sext: Fq,
-        detection_tag: [u8; DETECTION_TAG_BYTES],
-        encrypted_core: Vec<u8>,
-        encrypted_ext: Vec<u8>,
-        encrypted_sext: Vec<u8>,
-    ) -> Self {
-        Self {
-            epk_1,
-            epk_2: Some(epk_2),
-            epk_3: Some(epk_3),
-            c2_core,
-            c2_ext: Some(c2_ext),
-            c2_sext: Some(c2_sext),
-            detection_tag,
-            encrypted_core,
-            encrypted_ext: Some(encrypted_ext),
-            encrypted_sext: Some(encrypted_sext),
-        }
-    }
-
-    /// Whether this is a transfer-input ciphertext (no extension tiers).
-    pub fn is_transfer_input(&self) -> bool {
-        self.epk_2.is_none()
-    }
-
-    /// Serialize to bytes.
-    ///
-    /// Transfer-input (224): EPK_1 + c2_core + detection + core
-    /// Transfer-output (544): EPK_1 + EPK_2 + EPK_3 + c2_core + c2_ext + c2_sext + detection + core + ext + sext
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        bytes.extend_from_slice(&self.epk_1_bytes());
-        if let Some(epk_2) = &self.epk_2 {
-            bytes.extend_from_slice(&epk_2.vartime_compress().0);
-        }
-        if let Some(epk_3) = &self.epk_3 {
-            bytes.extend_from_slice(&epk_3.vartime_compress().0);
-        }
-        bytes.extend_from_slice(&self.c2_core.to_bytes());
-        if let Some(c2_ext) = &self.c2_ext {
-            bytes.extend_from_slice(&c2_ext.to_bytes());
-        }
-        if let Some(c2_sext) = &self.c2_sext {
-            bytes.extend_from_slice(&c2_sext.to_bytes());
-        }
-        bytes.extend_from_slice(&self.detection_tag);
-        bytes.extend_from_slice(&self.encrypted_core);
-        if let Some(ext) = &self.encrypted_ext {
-            bytes.extend_from_slice(ext);
-        }
-        if let Some(sext) = &self.encrypted_sext {
-            bytes.extend_from_slice(sext);
-        }
-        bytes
-    }
-
-    /// Deserialize from bytes. Accepts transfer-input (288 bytes) or transfer-output (544 bytes) format.
-    pub fn from_bytes(bytes: &[u8]) -> anyhow::Result<Self> {
-        let is_output = match bytes.len() {
-            TRANSFER_INPUT_WIRE_BYTES => false,
-            TRANSFER_OUTPUT_WIRE_BYTES => true,
-            n => anyhow::bail!(
-                "invalid ciphertext length: expected {} (transfer input) or {} (transfer output), got {}",
-                TRANSFER_INPUT_WIRE_BYTES,
-                TRANSFER_OUTPUT_WIRE_BYTES,
-                n
-            ),
-        };
-
-        let mut offset = 0;
-
-        // EPK_1
-        let epk_1_bytes: [u8; EPK_BYTES] = bytes[offset..offset + EPK_BYTES].try_into()?;
-        let epk_1 = decaf377::Encoding(epk_1_bytes)
-            .vartime_decompress()
-            .map_err(|_| anyhow::anyhow!("failed to decompress epk_1"))?;
-        offset += EPK_BYTES;
-
-        // EPK_2 and EPK_3 (transfer-output only)
-        let (epk_2, epk_3) = if is_output {
-            let epk_2_bytes: [u8; EPK_BYTES] = bytes[offset..offset + EPK_BYTES].try_into()?;
-            let epk_2 = decaf377::Encoding(epk_2_bytes)
-                .vartime_decompress()
-                .map_err(|_| anyhow::anyhow!("failed to decompress epk_2"))?;
-            offset += EPK_BYTES;
-
-            let epk_3_bytes: [u8; EPK_BYTES] = bytes[offset..offset + EPK_BYTES].try_into()?;
-            let epk_3 = decaf377::Encoding(epk_3_bytes)
-                .vartime_decompress()
-                .map_err(|_| anyhow::anyhow!("failed to decompress epk_3"))?;
-            offset += EPK_BYTES;
-
-            (Some(epk_2), Some(epk_3))
-        } else {
-            (None, None)
-        };
-
-        // c2_core
-        let c2_core_bytes: [u8; C2_BYTES] = bytes[offset..offset + C2_BYTES].try_into()?;
-        let c2_core = Fq::from_bytes_checked(&c2_core_bytes)
-            .map_err(|_| anyhow::anyhow!("invalid c2_core field element"))?;
-        offset += C2_BYTES;
-
-        // c2_ext and c2_sext (transfer-output only)
-        let (c2_ext, c2_sext) = if is_output {
-            let ext_bytes: [u8; C2_BYTES] = bytes[offset..offset + C2_BYTES].try_into()?;
-            let c2_ext = Fq::from_bytes_checked(&ext_bytes)
-                .map_err(|_| anyhow::anyhow!("invalid c2_ext field element"))?;
-            offset += C2_BYTES;
-
-            let sext_bytes: [u8; C2_BYTES] = bytes[offset..offset + C2_BYTES].try_into()?;
-            let c2_sext = Fq::from_bytes_checked(&sext_bytes)
-                .map_err(|_| anyhow::anyhow!("invalid c2_sext field element"))?;
-            offset += C2_BYTES;
-
-            (Some(c2_ext), Some(c2_sext))
-        } else {
-            (None, None)
-        };
-
-        let detection_tag: [u8; DETECTION_TAG_BYTES] =
-            bytes[offset..offset + DETECTION_TAG_BYTES].try_into()?;
-        offset += DETECTION_TAG_BYTES;
-
-        let encrypted_core = bytes[offset..offset + ENCRYPTED_TIER_BYTES].to_vec();
-        offset += ENCRYPTED_TIER_BYTES;
-
-        let (encrypted_ext, encrypted_sext) = if is_output {
-            let ext = bytes[offset..offset + ENCRYPTED_TIER_BYTES].to_vec();
-            offset += ENCRYPTED_TIER_BYTES;
-            let sext = bytes[offset..offset + ENCRYPTED_TIER_BYTES].to_vec();
-            (Some(ext), Some(sext))
-        } else {
-            (None, None)
-        };
-
-        Ok(Self {
-            epk_1,
-            epk_2,
-            epk_3,
-            c2_core,
-            c2_ext,
-            c2_sext,
-            detection_tag,
-            encrypted_core,
-            encrypted_ext,
-            encrypted_sext,
-        })
-    }
-
-    /// Convert to transfer-output circuit public inputs (11 Fq).
-    ///
-    /// Returns `(epk_1, epk_2, epk_3, c2_core, c2_ext, c2_sext, ciphertext_fqs)`
-    /// where ciphertext_fqs = [detection:2][core:3][ext:3][sext:3] = 11 Fq.
-    pub fn to_transfer_output_circuit_public_inputs(
-        &self,
-    ) -> (
-        decaf377::Element,
-        decaf377::Element,
-        decaf377::Element,
-        decaf377::Fq,
-        decaf377::Fq,
-        decaf377::Fq,
-        Vec<decaf377::Fq>,
-    ) {
-        use decaf377::Fq;
-
-        let epk_2 = self
-            .epk_2
-            .expect("to_transfer_output_circuit_public_inputs called on transfer-input ciphertext");
-        let epk_3 = self
-            .epk_3
-            .expect("to_transfer_output_circuit_public_inputs called on transfer-input ciphertext");
-        let c2_ext = self
-            .c2_ext
-            .expect("to_transfer_output_circuit_public_inputs called on transfer-input ciphertext");
-        let c2_sext = self
-            .c2_sext
-            .expect("to_transfer_output_circuit_public_inputs called on transfer-input ciphertext");
-        let encrypted_ext = self
-            .encrypted_ext
-            .as_ref()
-            .expect("to_transfer_output_circuit_public_inputs called on transfer-input ciphertext");
-        let encrypted_sext = self
-            .encrypted_sext
-            .as_ref()
-            .expect("to_transfer_output_circuit_public_inputs called on transfer-input ciphertext");
-
-        let payload_bytes = DETECTION_TAG_BYTES + ENCRYPTED_TIER_BYTES * 3;
-        let mut ciphertext_bytes = Vec::with_capacity(payload_bytes);
-        ciphertext_bytes.extend_from_slice(&self.detection_tag);
-        ciphertext_bytes.extend_from_slice(&self.encrypted_core);
-        ciphertext_bytes.extend_from_slice(encrypted_ext);
-        ciphertext_bytes.extend_from_slice(encrypted_sext);
-
-        debug_assert_eq!(ciphertext_bytes.len(), payload_bytes);
-
-        let ciphertext_fqs: Vec<Fq> = ciphertext_bytes
-            .chunks_exact(32)
-            .map(|chunk| {
-                let buf: [u8; 32] = chunk.try_into().expect("chunk should be exactly 32 bytes");
-                Fq::from_le_bytes_mod_order(&buf)
-            })
-            .collect();
-
-        debug_assert_eq!(ciphertext_fqs.len(), TRANSFER_OUTPUT_CIPHERTEXT_FQS);
-
-        (
-            self.epk_1,
-            epk_2,
-            epk_3,
-            self.c2_core,
-            c2_ext,
-            c2_sext,
-            ciphertext_fqs,
-        )
-    }
-
-    /// Convert to transfer-input circuit public inputs (5 Fq).
-    ///
-    /// Returns `(epk_1, c2_core, ciphertext_fqs)` where ciphertext_fqs
-    /// = [detection:2][core:3] = 5 Fq.
-    pub fn to_transfer_input_circuit_public_inputs(
-        &self,
-    ) -> (decaf377::Element, decaf377::Fq, Vec<decaf377::Fq>) {
-        use decaf377::Fq;
-
-        let mut ciphertext_bytes = Vec::with_capacity(128);
-        ciphertext_bytes.extend_from_slice(&self.detection_tag);
-        ciphertext_bytes.extend_from_slice(&self.encrypted_core);
-
-        let ciphertext_fqs: Vec<Fq> = ciphertext_bytes
-            .chunks_exact(32)
-            .map(|chunk| {
-                let buf: [u8; 32] = chunk.try_into().expect("chunk should be exactly 32 bytes");
-                Fq::from_le_bytes_mod_order(&buf)
-            })
-            .collect();
-
-        debug_assert_eq!(ciphertext_fqs.len(), TRANSFER_INPUT_CIPHERTEXT_FQS);
-
-        (self.epk_1, self.c2_core, ciphertext_fqs)
-    }
-}
-
-/// Complete compliance payload containing both sender and receiver ciphertexts.
-#[derive(Clone, Debug)]
-pub struct CompliancePayload {
-    pub sender_compliance: ComplianceCiphertext,
-    pub receiver_compliance: ComplianceCiphertext,
-}
-
-impl CompliancePayload {
-    pub fn new(
-        sender_compliance: ComplianceCiphertext,
-        receiver_compliance: ComplianceCiphertext,
-    ) -> Self {
-        Self {
-            sender_compliance,
-            receiver_compliance,
         }
     }
 }

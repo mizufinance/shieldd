@@ -14,7 +14,7 @@ pub use crate::{ActionRef, BlockRef, OutputRef, TxRef};
 pub struct ExtractedComplianceCiphertext {
     pub output_ref: OutputRef,
     pub raw_bytes: Vec<u8>,
-    pub upload_bundle_bytes: Option<Vec<u8>>,
+    pub metadata_bytes: Option<Vec<u8>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

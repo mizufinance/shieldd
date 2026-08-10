@@ -1,0 +1,26 @@
+{
+  "schema": "shieldd.gnark.setup_provenance.v2",
+  "curve": "bls12-377",
+  "circuit": "shielded_ics20_withdrawal",
+  "mode": "fresh_setup",
+  "sr1cs_sha256_hex": "eeeab50e0385ba71b1b4c58e8f4c9fb2a08fb1c4cc598b11aab1bae6d51b8edb",
+  "proving_key_sha256_hex": "7ff58d217d33338507445fe25b8c3ead820ccfb45abe0d1b925668de023f53c1",
+  "verifying_key_binary_sha256_hex": "2912a611adffd786043bcb0e40da5f0effd9fcd87062a37e98d39ebb2b4a156e",
+  "verifying_key_json_sha256_hex": "1ee75287aa603c92b5e28aa7dfa7cbc8876f0250049cf185a4f477e407716d0c",
+  "generation_self_tests": [
+    {
+      "proof_case": "regulated_optional_real",
+      "witness_format_version": 8,
+      "witness_sha256_hex": "6c3da42fbe93d2a05513ccdff6bca8270a69db06c0fa32ef5f4d38476b6bb37e",
+      "proved_and_verified_in_process": true
+    },
+    {
+      "proof_case": "unregulated_optional_dummy",
+      "witness_format_version": 8,
+      "witness_sha256_hex": "6e196f9f9969d1975bfae7e982fa1c2603d2239f51052b1283830ee242ad1026",
+      "proved_and_verified_in_process": true
+    }
+  ],
+  "setup_transcript": "not_recorded",
+  "toxic_waste_erasure": "not_mechanically_verified"
+}

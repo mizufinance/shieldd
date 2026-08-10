@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use decaf377::Fq;
 use decaf377_frost as frost;
 use ed25519_consensus::{SigningKey, VerificationKey};
@@ -121,16 +121,15 @@ impl Config {
         signing_key: SigningKey,
         verification_keys: Vec<VerificationKey>,
         nullifier_key: Fq,
-    ) -> Self {
-        let fvk = FullViewingKey::from_components(
-            public_key_package
-                .group_public()
-                .serialize()
-                .as_slice()
-                .try_into()
-                .expect("conversion of a group element to a VerifyingKey should not fail"),
-            NullifierKey(nullifier_key),
-        );
+    ) -> Result<Self> {
+        let authorization_key = public_key_package
+            .group_public()
+            .serialize()
+            .as_slice()
+            .try_into()
+            .context("threshold group key is not a valid spend authorization key")?;
+        let fvk = FullViewingKey::from_components(authorization_key, NullifierKey(nullifier_key))
+            .context("threshold group key cannot form a full viewing key")?;
         let spend_key_share = key_package.secret_share().to_owned();
         let verifying_shares = verification_keys
             .into_iter()
@@ -140,13 +139,13 @@ impl Config {
                 (vk, public_key_package.signer_pubkeys()[&id])
             })
             .collect();
-        Self {
+        Ok(Self {
             threshold: *key_package.min_signers(),
             fvk,
             spend_key_share,
             signing_key,
             verifying_shares,
-        }
+        })
     }
 
     pub fn deal(mut rng: &mut impl CryptoRngCore, t: u16, n: u16) -> Result<Vec<Self>> {
@@ -181,15 +180,14 @@ impl Config {
             .collect::<HashMap<_, _>>();
         // Okay, this conversion is a bit of a hack, but it should work...
         // It's a hack cause we're going via the serialization, but, you know, that should be fine.
-        let fvk = FullViewingKey::from_components(
-            public_key_package
-                .group_public()
-                .serialize()
-                .as_slice()
-                .try_into()
-                .expect("conversion of a group element to a VerifyingKey should not fail"),
-            NullifierKey(Fq::rand(rng)),
-        );
+        let authorization_key = public_key_package
+            .group_public()
+            .serialize()
+            .as_slice()
+            .try_into()
+            .context("threshold group key is not a valid spend authorization key")?;
+        let fvk = FullViewingKey::from_components(authorization_key, NullifierKey(Fq::rand(rng)))
+            .context("threshold group key cannot form a full viewing key")?;
 
         Ok(signing_keys
             .into_iter()

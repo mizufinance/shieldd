@@ -3,7 +3,7 @@ import ProvenZk.Gates
 
 set_option linter.unusedVariables false
 set_option maxRecDepth 100000
-set_option maxHeartbeats 0
+set_option maxHeartbeats 50000000
 
 /-! Auto-generated CPS-segmented deployed-slice relation for `statement.hash` (size 470, 94 segments of ≤5 rows).
 Each `seg{k}` threads its live-out wires into the continuation; `relation` composes them. Generated from the checked deployed-slice IR. -/

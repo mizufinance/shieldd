@@ -7,8 +7,7 @@ use std::{
 };
 
 use anyhow::Context;
-use ark_serialize::CanonicalDeserialize;
-use decaf377::Fq;
+use decaf377::{Element, Encoding, Fq};
 use f4jumble::{f4jumble, f4jumble_inv};
 use rand::{CryptoRng, Rng};
 use serde::{Deserialize, Serialize};
@@ -42,16 +41,28 @@ pub struct Address {
 
     /// The public key for this payment address.
     ///
-    /// extra invariant: the bytes in pk_d should be the canonical encoding of an
-    /// s value (whether or not it is a valid decaf377 encoding)
-    /// this ensures we can use a PaymentAddress to form a note commitment,
-    /// which involves hashing s as a field element.
+    /// The bytes are a canonical field encoding of a valid, nonidentity
+    /// Decaf377 point, so note commitments can hash its s-coordinate safely.
     pk_d: ka::Public,
     /// The transmission key s value.
     transmission_key_s: Fq,
 
     /// Public routing material for note discovery.
     discovery_key: DiscoveryKey,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, thiserror::Error)]
+pub enum AddressError {
+    #[error("diversified generator is the Decaf377 identity")]
+    IdentityDiversifiedGenerator,
+    #[error("transmission key has a noncanonical field encoding")]
+    NoncanonicalTransmissionKey,
+    #[error("transmission key is not a valid Decaf377 point")]
+    InvalidTransmissionKey,
+    #[error("transmission key is the Decaf377 identity")]
+    IdentityTransmissionKey,
+    #[error("discovery key has a noncanonical field encoding")]
+    NoncanonicalDiscoveryKey,
 }
 
 impl std::cmp::PartialEq for Address {
@@ -110,27 +121,49 @@ impl std::hash::Hash for Address {
 impl Address {
     /// Constructs a payment address from its components.
     ///
-    /// Returns `None` if the bytes in pk_d are a non-canonical representation
-    /// of an [`Fq`] `s` value.
+    /// Rejects identity generators and transmission keys, invalid points, and
+    /// noncanonical transmission or discovery-key encodings.
     pub fn from_components(
         d: Diversifier,
         pk_d: ka::Public,
         discovery_key: DiscoveryKey,
-    ) -> Option<Self> {
-        // XXX ugly -- better way to get our hands on the s value?
-        // add to decaf377::Encoding? there's compress_to_field already...
-        if let Ok(transmission_key_s) = Fq::deserialize_compressed(&pk_d.0[..]) {
-            // don't need an error type here, caller will probably .expect anyways
-            Some(Self {
-                d,
-                g_d: OnceLock::new(),
-                pk_d,
-                discovery_key,
-                transmission_key_s,
-            })
-        } else {
-            None
+    ) -> Result<Self, AddressError> {
+        let diversified_generator = d.diversified_generator();
+        Self::from_components_with_diversified_generator(
+            d,
+            diversified_generator,
+            pk_d,
+            discovery_key,
+        )
+    }
+
+    fn from_components_with_diversified_generator(
+        d: Diversifier,
+        diversified_generator: Element,
+        pk_d: ka::Public,
+        discovery_key: DiscoveryKey,
+    ) -> Result<Self, AddressError> {
+        if diversified_generator == Element::default() {
+            return Err(AddressError::IdentityDiversifiedGenerator);
         }
+        let transmission_key_s = Fq::from_bytes_checked(&pk_d.0)
+            .map_err(|_| AddressError::NoncanonicalTransmissionKey)?;
+        let transmission_key = Encoding(pk_d.0)
+            .vartime_decompress()
+            .map_err(|_| AddressError::InvalidTransmissionKey)?;
+        if transmission_key == Element::default() {
+            return Err(AddressError::IdentityTransmissionKey);
+        }
+        Fq::from_bytes_checked(&discovery_key.0)
+            .map_err(|_| AddressError::NoncanonicalDiscoveryKey)?;
+
+        Ok(Self {
+            d,
+            g_d: OnceLock::from(diversified_generator),
+            pk_d,
+            discovery_key,
+            transmission_key_s,
+        })
     }
 
     /// Returns a reference to the address diversifier.
@@ -197,7 +230,7 @@ impl Address {
                 DiscoveryKey::derive(&discovery_key_bytes),
             );
 
-            if let Some(addr) = addr {
+            if let Ok(addr) = addr {
                 return addr;
             }
         }
@@ -360,7 +393,7 @@ impl std::str::FromStr for Address {
             let discovery_key = DiscoveryKey([0u8; 32]);
 
             let address = Self::from_components(dzero, pk_dzero, discovery_key)
-                .ok_or_else(|| anyhow::anyhow!("could not reconstruct transparent address"))?;
+                .context("could not reconstruct transparent address")?;
 
             // Verify this is a valid transparent address, bailing if not
             if address.encode_as_transparent_address().is_none() {
@@ -437,7 +470,7 @@ impl TryFrom<&[u8]> for Address {
             ka::Public(pk_d_bytes),
             DiscoveryKey(discovery_key_bytes),
         )
-        .ok_or_else(|| anyhow::anyhow!("could not create address from components"))
+        .context("could not create address from components")
     }
 }
 
@@ -466,7 +499,8 @@ mod tests {
     fn test_address_encoding() {
         let rng = OsRng;
         let seed_phrase = SeedPhrase::generate(rng);
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("generated spend key satisfies key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let (dest, _discovery_key) = ivk.payment_address(0u32.into());
@@ -501,7 +535,8 @@ mod tests {
     fn test_compat_encoding() {
         let rng = OsRng;
         let seed_phrase = SeedPhrase::generate(rng);
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("generated spend key satisfies key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let (dest, _discovery_key) = ivk.payment_address(0u32.into());
@@ -522,7 +557,8 @@ mod tests {
     fn test_bytes_roundtrip() {
         let rng = OsRng;
         let seed_phrase = SeedPhrase::generate(rng);
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("generated spend key satisfies key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let (dest, _discovery_key) = ivk.payment_address(0u32.into());
@@ -537,7 +573,8 @@ mod tests {
     fn test_address_keys_are_diversified() {
         let rng = OsRng;
         let seed_phrase = SeedPhrase::generate(rng);
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("generated spend key satisfies key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let (dest1, discovery_key1) = ivk.payment_address(0u32.into());
@@ -546,5 +583,72 @@ mod tests {
         assert!(dest1.transmission_key() != dest2.transmission_key());
         assert!(dest1.discovery_key() != dest2.discovery_key());
         assert_ne!(discovery_key1, discovery_key2);
+    }
+
+    #[test]
+    fn rejects_noncanonical_discovery_key_field_alias() {
+        use ark_ff::{BigInteger, PrimeField};
+
+        let known = crate::test_keys::ADDRESS_0.clone();
+        let mut alias = known.discovery_key().0;
+        let modulus = Fq::MODULUS.to_bytes_le();
+        let mut carry = 0u16;
+        for (byte, modulus_byte) in alias.iter_mut().zip(modulus) {
+            let sum = u16::from(*byte) + u16::from(modulus_byte) + carry;
+            *byte = sum as u8;
+            carry = sum >> 8;
+        }
+        assert_eq!(
+            carry, 0,
+            "canonical discovery encoding plus q fits in 256 bits"
+        );
+        assert_eq!(
+            Fq::from_le_bytes_mod_order(&alias),
+            Fq::from_le_bytes_mod_order(&known.discovery_key().0),
+            "the malformed encoding is a field alias"
+        );
+
+        assert_eq!(
+            Address::from_components(
+                *known.diversifier(),
+                *known.transmission_key(),
+                DiscoveryKey(alias),
+            ),
+            Err(AddressError::NoncanonicalDiscoveryKey)
+        );
+    }
+
+    #[test]
+    fn address_components_reject_identity_diversified_generator() {
+        let known = crate::test_keys::ADDRESS_0.clone();
+        assert_eq!(
+            Address::from_components_with_diversified_generator(
+                *known.diversifier(),
+                Element::default(),
+                *known.transmission_key(),
+                *known.discovery_key(),
+            ),
+            Err(AddressError::IdentityDiversifiedGenerator)
+        );
+    }
+
+    #[test]
+    fn address_components_reject_identity_or_invalid_transmission_key() {
+        let known = crate::test_keys::ADDRESS_0.clone();
+        let identity = ka::Public(Element::default().vartime_compress().0);
+        assert_eq!(
+            Address::from_components(*known.diversifier(), identity, *known.discovery_key()),
+            Err(AddressError::IdentityTransmissionKey)
+        );
+
+        let invalid_point = (0u64..)
+            .map(Fq::from)
+            .map(|field| ka::Public(field.to_bytes()))
+            .find(|candidate| Encoding(candidate.0).vartime_decompress().is_err())
+            .expect("some canonical field encodings are not valid Decaf377 points");
+        assert_eq!(
+            Address::from_components(*known.diversifier(), invalid_point, *known.discovery_key(),),
+            Err(AddressError::InvalidTransmissionKey)
+        );
     }
 }

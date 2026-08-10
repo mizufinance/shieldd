@@ -18,6 +18,17 @@ class NoteReshapeRvkSemanticsTest(unittest.TestCase):
         self.assertNotIn(".RvkSupport", "\n".join(self.outputs.values()))
         self.assertIn("theorem sound ", provider)
         self.assertNotIn("theorem rvk_sound ", provider)
+        base = self.outputs[rvk.OUT / f"{rvk.NAME}RvkBase.lean"]
+        self.assertIn("(rho 252).val < 2 ^ 251", base)
+        self.assertIn("ChoiceFreeBinary.range_of_to_binary", provider)
+        self.assertIn("refine ⟨hscalarRange, ?_⟩", provider)
+
+    def test_representative_is_an_active_deployed_profile(self) -> None:
+        self.assertEqual(
+            rvk.IR.name,
+            "note_reshape1x8-deployed-slice-ir.json",
+        )
+        self.assertEqual(rvk._segment()["proof_template_id"], rvk.KEY)
 
     def test_recovery_discovers_monolithic_and_sharded_fixed_rungs(self) -> None:
         for inst in ("Inst0", "Inst1"):
@@ -139,6 +150,25 @@ class NoteReshapeRvkSemanticsTest(unittest.TestCase):
             "Shieldd.GnarkFormal.RvkToBinary.to_binary_of_deployed",
             source,
         )
+
+    def test_generator_curve_endpoint_uses_choice_free_zmod(self) -> None:
+        source = (rvk.FORMAL_ROOT / "RvkBridge.lean").read_text()
+        self.assertIn(
+            "import ShielddGnarkFormal.ChoiceFreeZModCast", source
+        )
+        section = source.split("section ChoiceFreeGenerator", 1)[1].split(
+            "end ChoiceFreeGenerator", 1
+        )[0]
+        self.assertIn(
+            "open scoped Shieldd.GnarkFormal.ChoiceFreeZMod", section
+        )
+        self.assertIn("attribute [-instance] ZMod.instField", section)
+        self.assertIn("theorem orderSubOne_cast", section)
+        self.assertIn("theorem generator_onCurve", section)
+        self.assertIn(
+            "ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq", section
+        )
+        self.assertNotIn("ZMod.natCast_eq_natCast_iff'", section)
 
     def test_entire_normalized_ladder_uses_choice_free_boundaries(self) -> None:
         generated = "\n".join(

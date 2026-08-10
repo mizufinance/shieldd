@@ -23,6 +23,7 @@ use std::{
 static RELATION_TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 pub const TEMPLATE_REGISTRY_SCHEMA: &str = "shieldd.gnark.proof_template_registry.v1";
+const MATCH_SEARCH_BUDGET: usize = 100_000;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TemplateRegistry {
@@ -99,6 +100,26 @@ struct RowShape {
     output: (usize, bool),
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct RowSupport {
+    inputs: [Vec<usize>; 2],
+    output: Vec<usize>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct PreparedRow {
+    l: BTreeMap<usize, Fp>,
+    r: BTreeMap<usize, Fp>,
+    o: BTreeMap<usize, Fp>,
+    shape: RowShape,
+    support: RowSupport,
+}
+
+struct PreparedRowIndex {
+    shape_frequency: BTreeMap<RowShape, usize>,
+    by_support: BTreeMap<RowSupport, Vec<usize>>,
+}
+
 fn sha256_hex(data: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(data);
@@ -121,22 +142,76 @@ fn aggregate(side: &[Term]) -> BTreeMap<usize, Fp> {
     result
 }
 
-fn row_shape(row: &Constraint) -> RowShape {
-    let l = aggregate(&row.l);
-    let r = aggregate(&row.r);
+fn shape_of_aggregates(
+    l: &BTreeMap<usize, Fp>,
+    r: &BTreeMap<usize, Fp>,
+    o: &BTreeMap<usize, Fp>,
+) -> RowShape {
     let mut inputs = [(l.len(), l.contains_key(&0)), (r.len(), r.contains_key(&0))];
     inputs.sort_unstable();
-    let o = aggregate(&row.o);
     RowShape {
         inputs,
         output: (o.len(), o.contains_key(&0)),
     }
 }
 
-pub fn coarse_shape_sha256(rows: &[Constraint]) -> String {
-    let mut shapes = rows.iter().map(row_shape).collect::<Vec<_>>();
+fn support_of_aggregates(
+    l: &BTreeMap<usize, Fp>,
+    r: &BTreeMap<usize, Fp>,
+    o: &BTreeMap<usize, Fp>,
+) -> RowSupport {
+    let mut inputs = [
+        l.keys().copied().collect::<Vec<_>>(),
+        r.keys().copied().collect::<Vec<_>>(),
+    ];
+    inputs.sort_unstable();
+    RowSupport {
+        inputs,
+        output: o.keys().copied().collect(),
+    }
+}
+
+fn prepare_row(row: &Constraint) -> PreparedRow {
+    let l = aggregate(&row.l);
+    let r = aggregate(&row.r);
+    let o = aggregate(&row.o);
+    PreparedRow {
+        shape: shape_of_aggregates(&l, &r, &o),
+        support: support_of_aggregates(&l, &r, &o),
+        l,
+        r,
+        o,
+    }
+}
+
+fn prepare_rows(rows: &[Constraint]) -> Vec<PreparedRow> {
+    rows.iter().map(prepare_row).collect()
+}
+
+fn index_prepared_rows(rows: &[PreparedRow]) -> PreparedRowIndex {
+    let mut shape_frequency = BTreeMap::<RowShape, usize>::new();
+    let mut by_support = BTreeMap::<RowSupport, Vec<usize>>::new();
+    for (index, row) in rows.iter().enumerate() {
+        *shape_frequency.entry(row.shape.clone()).or_insert(0) += 1;
+        by_support
+            .entry(row.support.clone())
+            .or_default()
+            .push(index);
+    }
+    PreparedRowIndex {
+        shape_frequency,
+        by_support,
+    }
+}
+
+fn coarse_shape_sha256_prepared(rows: &[PreparedRow]) -> String {
+    let mut shapes = rows.iter().map(|row| row.shape.clone()).collect::<Vec<_>>();
     shapes.sort_unstable();
     sha256_hex(format!("{shapes:?}").as_bytes())
+}
+
+pub fn coarse_shape_sha256(rows: &[Constraint]) -> String {
+    coarse_shape_sha256_prepared(&prepare_rows(rows))
 }
 
 fn encode_rows(rows: &[Constraint]) -> String {
@@ -212,6 +287,46 @@ fn write_relation_if_changed(path: &Path, rows: &[Constraint]) -> Result<(), Cov
                 path.display()
             ))
         })?;
+    }
+    Ok(())
+}
+
+fn authenticate_template_relation(
+    template: &ProofTemplate,
+    registry_root: &Path,
+) -> Result<(), CoverageError> {
+    let actual = if let Some(relation) = &template.canonical_relation_cache {
+        sha256_hex(relation.as_bytes())
+    } else {
+        let path = registry_root.join(&template.canonical_relation_file);
+        let file = fs::File::open(&path).map_err(|error| {
+            CoverageError::TemplateRegistry(format!(
+                "open canonical relation {}: {error}",
+                path.display()
+            ))
+        })?;
+        let mut decoder = GzDecoder::new(BufReader::new(file));
+        let mut hasher = Sha256::new();
+        let mut buffer = [0u8; 64 * 1024];
+        loop {
+            let read = decoder.read(&mut buffer).map_err(|error| {
+                CoverageError::TemplateRegistry(format!(
+                    "decompress canonical relation {}: {error}",
+                    path.display()
+                ))
+            })?;
+            if read == 0 {
+                break;
+            }
+            hasher.update(&buffer[..read]);
+        }
+        hex::encode(hasher.finalize())
+    };
+    if actual != template.canonical_relation_sha256_hex {
+        return Err(CoverageError::TemplateRegistry(format!(
+            "canonical relation digest mismatch for {}",
+            template.proof_template_id
+        )));
     }
     Ok(())
 }
@@ -361,8 +476,8 @@ fn wire_count(rows: &[Constraint]) -> usize {
 
 /// Deterministic partition refinement over the row/wire incidence graph.
 /// L/R are intentionally one edge color because rows may swap those inputs.
-fn refined_wire_colors(rows: &[Constraint], n_wires: usize) -> Vec<usize> {
-    let shapes = rows.iter().map(row_shape).collect::<Vec<_>>();
+fn refined_wire_colors(rows: &[PreparedRow], n_wires: usize) -> Vec<usize> {
+    let shapes = rows.iter().map(|row| row.shape.clone()).collect::<Vec<_>>();
     let mut row_colors = rank(&shapes);
     let mut wire_colors = (0..n_wires)
         .map(|wire| usize::from(wire != 0))
@@ -371,15 +486,18 @@ fn refined_wire_colors(rows: &[Constraint], n_wires: usize) -> Vec<usize> {
         let row_keys = rows
             .iter()
             .map(|row| {
-                let mut l = aggregate(&row.l)
+                let mut l = row
+                    .l
                     .keys()
                     .map(|wire| wire_colors[*wire])
                     .collect::<Vec<_>>();
-                let mut r = aggregate(&row.r)
+                let mut r = row
+                    .r
                     .keys()
                     .map(|wire| wire_colors[*wire])
                     .collect::<Vec<_>>();
-                let mut o = aggregate(&row.o)
+                let mut o = row
+                    .o
                     .keys()
                     .map(|wire| wire_colors[*wire])
                     .collect::<Vec<_>>();
@@ -389,16 +507,16 @@ fn refined_wire_colors(rows: &[Constraint], n_wires: usize) -> Vec<usize> {
                 if r < l {
                     std::mem::swap(&mut l, &mut r);
                 }
-                (row_shape(row), l, r, o)
+                (row.shape.clone(), l, r, o)
             })
             .collect::<Vec<_>>();
         let next_rows = rank(&row_keys);
         let mut occurrences = vec![Vec::<(usize, u8)>::new(); n_wires];
         for (row_index, row) in rows.iter().enumerate() {
-            for wire in aggregate(&row.l).keys().chain(aggregate(&row.r).keys()) {
+            for wire in row.l.keys().chain(row.r.keys()) {
                 occurrences[*wire].push((next_rows[row_index], 0));
             }
-            for wire in aggregate(&row.o).keys() {
+            for wire in row.o.keys() {
                 occurrences[*wire].push((next_rows[row_index], 1));
             }
         }
@@ -447,6 +565,15 @@ fn scale_side(
         return None;
     }
     if canonical.is_empty() {
+        return Some(Fp::one());
+    }
+    // Normalized relations overwhelmingly preserve unit scaling. Prove that
+    // directly before paying for a modular inverse; non-unit presentations
+    // retain the complete ratio check below.
+    let unit_scaled = canonical.iter().all(|(wire, coeff)| {
+        wire_map.get(*wire).and_then(|target| deployed.get(target)) == Some(coeff)
+    });
+    if unit_scaled {
         return Some(Fp::one());
     }
     let mut scale = None;
@@ -589,27 +716,54 @@ fn bounded_permutations(values: &[usize], limit: usize) -> Vec<Vec<usize>> {
 fn witness_for_wire_map(
     canonical: &[Constraint],
     deployed: &[Constraint],
+    canonical_rows: &[PreparedRow],
+    deployed_rows: &[PreparedRow],
+    deployed_index: &PreparedRowIndex,
     wire_map: Vec<usize>,
+    remaining: &mut usize,
 ) -> Option<LocalWitness> {
+    let mapped_support = |row: &PreparedRow| -> Option<RowSupport> {
+        let map_side = |side: &BTreeMap<usize, Fp>| -> Option<Vec<usize>> {
+            let mut mapped = side
+                .keys()
+                .map(|wire| wire_map.get(*wire).copied())
+                .collect::<Option<Vec<_>>>()?;
+            mapped.sort_unstable();
+            Some(mapped)
+        };
+        let mut inputs = [map_side(&row.l)?, map_side(&row.r)?];
+        inputs.sort_unstable();
+        Some(RowSupport {
+            inputs,
+            output: map_side(&row.o)?,
+        })
+    };
+    let canonical_supports = canonical_rows
+        .iter()
+        .map(mapped_support)
+        .collect::<Option<Vec<_>>>()?;
+
     // Rare row shapes first makes the bounded search deterministic and small.
     let mut order = (0..canonical.len()).collect::<Vec<_>>();
     order.sort_by_key(|index| {
-        let shape = row_shape(&canonical[*index]);
         (
-            deployed
-                .iter()
-                .filter(|row| row_shape(row) == shape)
-                .count(),
+            deployed_index
+                .shape_frequency
+                .get(&canonical_rows[*index].shape)
+                .copied()
+                .unwrap_or(0),
             *index,
         )
     });
 
     struct RowSearch<'a> {
-        canonical: &'a [Constraint],
-        deployed: &'a [Constraint],
+        canonical: &'a [PreparedRow],
+        deployed: &'a [PreparedRow],
+        canonical_supports: &'a [RowSupport],
+        deployed_by_support: &'a BTreeMap<RowSupport, Vec<usize>>,
         wire_map: &'a [usize],
         order: &'a [usize],
-        remaining: usize,
+        remaining: &'a mut usize,
     }
 
     impl RowSearch<'_> {
@@ -623,31 +777,36 @@ fn witness_for_wire_map(
             if position == self.order.len() {
                 return true;
             }
-            if self.remaining == 0 {
+            if *self.remaining == 0 {
                 return false;
             }
-            self.remaining -= 1;
+            *self.remaining -= 1;
             let canonical_index = self.order[position];
             let row = &self.canonical[canonical_index];
-            for (deployed_index, target) in self.deployed.iter().enumerate() {
-                if used.contains(&deployed_index) || row_shape(row) != row_shape(target) {
+            let Some(candidates) = self
+                .deployed_by_support
+                .get(&self.canonical_supports[canonical_index])
+            else {
+                return false;
+            };
+            for &deployed_index in candidates {
+                if used.contains(&deployed_index) {
                     continue;
                 }
+                let target = &self.deployed[deployed_index];
                 for swap_lr in [false, true] {
                     let (l, r) = if swap_lr {
-                        (aggregate(&row.r), aggregate(&row.l))
+                        (&row.r, &row.l)
                     } else {
-                        (aggregate(&row.l), aggregate(&row.r))
+                        (&row.l, &row.r)
                     };
-                    let Some(l_scale) = scale_side(&l, &aggregate(&target.l), self.wire_map) else {
+                    let Some(l_scale) = scale_side(l, &target.l, self.wire_map) else {
                         continue;
                     };
-                    let Some(r_scale) = scale_side(&r, &aggregate(&target.r), self.wire_map) else {
+                    let Some(r_scale) = scale_side(r, &target.r, self.wire_map) else {
                         continue;
                     };
-                    let Some(o_scale) =
-                        scale_side(&aggregate(&row.o), &aggregate(&target.o), self.wire_map)
-                    else {
+                    let Some(o_scale) = scale_side(&row.o, &target.o, self.wire_map) else {
                         continue;
                     };
                     if &l_scale * &r_scale != o_scale {
@@ -679,11 +838,13 @@ fn witness_for_wire_map(
         .map(identity_transform)
         .collect::<Vec<_>>();
     let mut search = RowSearch {
-        canonical,
-        deployed,
+        canonical: canonical_rows,
+        deployed: deployed_rows,
+        canonical_supports: &canonical_supports,
+        deployed_by_support: &deployed_index.by_support,
         wire_map: &wire_map,
         order: &order,
-        remaining: 100_000,
+        remaining,
     };
     if !search.run(0, &mut used, &mut row_map, &mut transforms) {
         return None;
@@ -696,21 +857,58 @@ fn witness_for_wire_map(
     verify_local(canonical, deployed, &witness).then_some(witness)
 }
 
-fn match_local(canonical: &[Constraint], deployed: &[Constraint]) -> Option<LocalWitness> {
-    if canonical.len() != deployed.len()
-        || coarse_shape_sha256(canonical) != coarse_shape_sha256(deployed)
-        || wire_count(canonical) != wire_count(deployed)
+enum LocalMatch {
+    Found(LocalWitness),
+    NoMatch,
+    SearchBudgetExceeded,
+}
+
+fn match_local(
+    canonical: &[Constraint],
+    deployed: &[Constraint],
+    remaining: &mut usize,
+) -> LocalMatch {
+    if canonical.len() != deployed.len() || wire_count(canonical) != wire_count(deployed) {
+        return LocalMatch::NoMatch;
+    }
+    let canonical_rows = prepare_rows(canonical);
+    let deployed_rows = prepare_rows(deployed);
+    if coarse_shape_sha256_prepared(&canonical_rows) != coarse_shape_sha256_prepared(&deployed_rows)
     {
-        return None;
+        return LocalMatch::NoMatch;
     }
-    let canonical_colors = refined_wire_colors(canonical, wire_count(canonical));
-    let deployed_colors = refined_wire_colors(deployed, wire_count(deployed));
+    let canonical_colors = refined_wire_colors(&canonical_rows, wire_count(canonical));
+    let deployed_colors = refined_wire_colors(&deployed_rows, wire_count(deployed));
     if color_histogram(&canonical_colors) != color_histogram(&deployed_colors) {
-        return None;
+        return LocalMatch::NoMatch;
     }
-    candidate_wire_maps(&canonical_colors, &deployed_colors, 100_000)
-        .into_iter()
-        .find_map(|map| witness_for_wire_map(canonical, deployed, map))
+    let deployed_index = index_prepared_rows(&deployed_rows);
+    let wire_maps = candidate_wire_maps(&canonical_colors, &deployed_colors, *remaining);
+    for map in wire_maps {
+        if *remaining == 0 {
+            return LocalMatch::SearchBudgetExceeded;
+        }
+        // Candidate enumeration and recursive row seating consume one shared
+        // segment-level budget. In particular, a fresh row-search allowance is
+        // never granted for each of up to 100,000 candidate wire maps.
+        *remaining -= 1;
+        if let Some(witness) = witness_for_wire_map(
+            canonical,
+            deployed,
+            &canonical_rows,
+            &deployed_rows,
+            &deployed_index,
+            map,
+            remaining,
+        ) {
+            return LocalMatch::Found(witness);
+        }
+    }
+    if *remaining == 0 {
+        LocalMatch::SearchBudgetExceeded
+    } else {
+        LocalMatch::NoMatch
+    }
 }
 
 fn witness_digest(
@@ -779,27 +977,45 @@ pub fn match_registry(
     deployed_local_rows: &[Constraint],
     deployed_local_to_absolute: &[usize],
 ) -> Result<TemplateEquivalenceWitness, CoverageError> {
+    let deployed_digest = sha256_hex(encode_rows(deployed_local_rows).as_bytes());
+    match_registry_with_digest(
+        registry,
+        registry_root,
+        op,
+        deployed_local_rows,
+        deployed_local_to_absolute,
+        &deployed_digest,
+    )
+}
+
+pub(crate) fn match_registry_with_digest(
+    registry: &TemplateRegistry,
+    registry_root: &Path,
+    op: &str,
+    deployed_local_rows: &[Constraint],
+    deployed_local_to_absolute: &[usize],
+    deployed_digest: &str,
+) -> Result<TemplateEquivalenceWitness, CoverageError> {
     if registry.schema != TEMPLATE_REGISTRY_SCHEMA {
         return Err(CoverageError::TemplateRegistry(format!(
             "unsupported schema {:?}",
             registry.schema
         )));
     }
-    let coarse = coarse_shape_sha256(deployed_local_rows);
-    let candidates = registry
+    let shape_candidates = registry
         .templates
         .iter()
         .filter(|template| {
             template.op == op
-                && template.coarse_shape_sha256_hex == coarse
                 && template.row_count == deployed_local_rows.len()
                 && template.local_wire_count == deployed_local_to_absolute.len()
         })
         .collect::<Vec<_>>();
     // Identity is overwhelmingly the common path. Resolve it across the full
-    // candidate set before opening or searching any sibling presentation.
-    let deployed_digest = sha256_hex(encode_rows(deployed_local_rows).as_bytes());
-    let exact = candidates
+    // shape-compatible set before computing the expensive coefficient-aware
+    // coarse partition or opening any sibling presentation. An authenticated
+    // canonical-relation digest already implies the same coarse shape.
+    let exact = shape_candidates
         .iter()
         .copied()
         .filter(|template| template.canonical_relation_sha256_hex == deployed_digest)
@@ -811,6 +1027,7 @@ pub fn match_registry(
         });
     }
     if let Some(template) = exact.into_iter().next() {
+        authenticate_template_relation(template, registry_root)?;
         let row_map = RowPermutationWitness::Identity {
             row_count: deployed_local_rows.len(),
         };
@@ -825,28 +1042,41 @@ pub fn match_registry(
             witness_sha256_hex: digest,
         });
     }
+    let coarse = coarse_shape_sha256(deployed_local_rows);
+    let candidates = shape_candidates
+        .into_iter()
+        .filter(|template| template.coarse_shape_sha256_hex == coarse)
+        .collect::<Vec<_>>();
     let mut matches = Vec::new();
+    let mut remaining = MATCH_SEARCH_BUDGET;
     for template in candidates {
         let canonical_rows = load_template_rows(template, registry_root)?;
-        let local = match_local(&canonical_rows, deployed_local_rows);
-        if let Some(local) = local {
-            let seating = local
-                .canonical_to_deployed_wire
-                .iter()
-                .map(|wire| deployed_local_to_absolute[*wire])
-                .collect::<Vec<_>>();
-            let row_map = compact_row_map(&local.canonical_to_deployed_row);
-            let transforms = compact_transforms(&local.transforms);
-            let digest =
-                witness_digest(&template.proof_template_id, &seating, &row_map, &transforms);
-            matches.push(TemplateEquivalenceWitness {
-                proof_template_id: template.proof_template_id.clone(),
-                canonical_local_to_deployed_wire_seating: seating,
-                canonical_row_to_deployed_row: row_map,
-                row_transforms: transforms,
-                witness_sha256_hex: digest,
-            });
-        }
+        let local = match match_local(&canonical_rows, deployed_local_rows, &mut remaining) {
+            LocalMatch::Found(local) => local,
+            LocalMatch::NoMatch => continue,
+            LocalMatch::SearchBudgetExceeded => {
+                return Err(CoverageError::TemplateSearchBudgetExceeded {
+                    op: op.to_owned(),
+                    proof_template_id: template.proof_template_id.clone(),
+                    budget: MATCH_SEARCH_BUDGET,
+                });
+            }
+        };
+        let seating = local
+            .canonical_to_deployed_wire
+            .iter()
+            .map(|wire| deployed_local_to_absolute[*wire])
+            .collect::<Vec<_>>();
+        let row_map = compact_row_map(&local.canonical_to_deployed_row);
+        let transforms = compact_transforms(&local.transforms);
+        let digest = witness_digest(&template.proof_template_id, &seating, &row_map, &transforms);
+        matches.push(TemplateEquivalenceWitness {
+            proof_template_id: template.proof_template_id.clone(),
+            canonical_local_to_deployed_wire_seating: seating,
+            canonical_row_to_deployed_row: row_map,
+            row_transforms: transforms,
+            witness_sha256_hex: digest,
+        });
     }
     match matches.len() {
         1 => Ok(matches.remove(0)),
@@ -1005,6 +1235,61 @@ mod tests {
     }
 
     #[test]
+    fn indexed_row_search_handles_large_same_shape_permutation() {
+        const ROWS: usize = 2_048;
+        let canonical = (0..ROWS)
+            .map(|index| {
+                let base = 3 * index + 1;
+                Constraint {
+                    l: vec![term("1", 0), term("2", base)],
+                    r: vec![term("3", base + 1)],
+                    o: vec![term("6", base + 2)],
+                }
+            })
+            .collect::<Vec<_>>();
+        let deployed = canonical.iter().cloned().rev().collect::<Vec<_>>();
+        let wire_map = (0..wire_count(&canonical)).collect::<Vec<_>>();
+        let canonical_rows = prepare_rows(&canonical);
+        let deployed_rows = prepare_rows(&deployed);
+        let deployed_index = index_prepared_rows(&deployed_rows);
+        let mut remaining = MATCH_SEARCH_BUDGET;
+
+        let witness = witness_for_wire_map(
+            &canonical,
+            &deployed,
+            &canonical_rows,
+            &deployed_rows,
+            &deployed_index,
+            wire_map,
+            &mut remaining,
+        )
+        .expect("same relation with reversed rows must match");
+
+        assert_eq!(
+            witness.canonical_to_deployed_row,
+            (0..ROWS).rev().collect::<Vec<_>>()
+        );
+        assert!(verify_local(&canonical, &deployed, &witness));
+    }
+
+    #[test]
+    fn local_match_uses_one_fail_closed_search_budget() {
+        let canonical = relation();
+        let mut remaining = 1;
+        assert!(matches!(
+            match_local(&canonical, &canonical, &mut remaining),
+            LocalMatch::SearchBudgetExceeded
+        ));
+        assert_eq!(remaining, 0);
+
+        let mut sufficient = 1 + canonical.len();
+        assert!(matches!(
+            match_local(&canonical, &canonical, &mut sufficient),
+            LocalMatch::Found(_)
+        ));
+    }
+
+    #[test]
     fn semantic_mutations_fail_closed() {
         let canonical = relation();
         let registry = registry(canonical.clone());
@@ -1076,6 +1361,21 @@ mod tests {
             &canonical,
             &seating,
             &wrong_seating
+        ));
+    }
+
+    #[test]
+    fn exact_digest_authenticates_registry_payload() {
+        let canonical = relation();
+        let mut registry = registry(canonical.clone());
+        let mut corrupted = canonical.clone();
+        corrupted[0].l[0].coeff = "3".to_owned();
+        registry.templates[0].canonical_relation_cache = Some(encode_rows(&corrupted));
+        let seating = vec![0, 1, 2, 3, 4, 5];
+        assert!(matches!(
+            match_registry(&registry, Path::new("."), "example", &canonical, &seating),
+            Err(CoverageError::TemplateRegistry(message))
+                if message.contains("canonical relation digest mismatch")
         ));
     }
 

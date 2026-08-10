@@ -378,20 +378,27 @@ mod tests {
 
     #[test]
     fn real_rvk_slice_is_exhaustive_and_bit_exact() {
-        let data =
-            std::fs::read("../../../tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs");
-        let Ok(data) = data else {
-            return; // artifact not present in this checkout
-        };
+        let artifact_dir = "../../../tools/gnark/artifacts/note_reshape1x8";
+        let data = std::fs::read(format!("{artifact_dir}/note_reshape1x8.sr1cs"))
+            .expect("deployed NoteReshape1x8 SR1CS artifact must be present");
         let sr1cs = parse_sr1cs(&data).unwrap();
         let rows = crate::ir::parse_rows(&sr1cs).unwrap();
-        let map = build_row_map(&sr1cs, &rows, "rvk_inst0", 16896, 18708);
-        assert_eq!(map.row_count, 1812);
-        assert_eq!(map.rows.len(), 1812);
+        let (manifest, _) =
+            crate::load_manifest(format!("{artifact_dir}/note_reshape1x8-manifest.json")).unwrap();
+        let segment = manifest
+            .segments
+            .iter()
+            .find(|segment| segment.op == "decaf.randomized_verification_key")
+            .expect("randomized verification key segment");
+        let map = build_row_map(&sr1cs, &rows, "rvk_inst0", segment.start, segment.end);
+        assert_eq!(map.row_count, segment.constraint_count);
+        assert_eq!(map.rows.len(), segment.constraint_count);
         // exactly the 251 deployed bit wires, recomposed into the scalar wire.
         assert_eq!(map.bit_wires.len(), 251);
-        assert_eq!(*map.bit_wires.first().unwrap(), 16130);
-        assert_eq!(*map.bit_wires.last().unwrap(), 16380);
+        assert!(
+            map.bit_wires.windows(2).all(|pair| pair[1] == pair[0] + 1),
+            "bit wires must be a contiguous, ordered scalar decomposition"
+        );
         // exactly one geometric recomposition row; the rest of to_binary is bitness.
         assert_eq!(map.counts.get("ToBinary:recomposition").copied(), Some(1));
         assert_eq!(map.counts.get("ToBinary:bitness").copied(), Some(251));

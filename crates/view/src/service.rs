@@ -1009,14 +1009,7 @@ impl ViewService for ViewServer {
                     }
                 }
                 Action::NoteReshape(note_reshape) => {
-                    let synthetic_input_padding = note_reshape.body.family_id.spec().input_padding
-                        == shieldd_sdk_shielded_pool::note_reshape::InputPaddingPolicy::SyntheticPrivate;
-                    for input in note_reshape
-                        .body
-                        .inputs
-                        .iter()
-                        .filter(|input| !synthetic_input_padding || !input.is_dummy())
-                    {
+                    for input in &note_reshape.body.inputs {
                         let nullifier = input.nullifier;
                         if let Ok(spendable_note_record) =
                             self.storage.note_by_nullifier(nullifier, false).await
@@ -1082,10 +1075,7 @@ impl ViewService for ViewServer {
                         ..
                     },
                 ) => {
-                    for note in spent_notes
-                        .iter()
-                        .chain(std::slice::from_ref(change_note).iter())
-                    {
+                    for note in spent_notes.iter().chain(change_note.iter()) {
                         let address = note.address();
                         address_views.insert(address.clone(), fvk.view_address(address));
                         asset_ids.insert(note.asset_id());
@@ -1523,24 +1513,12 @@ impl ViewService for ViewServer {
                         .expect("TransactionPlan should exist in request")
                 });
 
-        fn action_spend_notes(
-            action: &shieldd_sdk_transaction::ActionPlan,
-        ) -> &[shieldd_sdk_shielded_pool::ShieldedInputPlan] {
-            use shieldd_sdk_transaction::ActionPlan;
-            match action {
-                ActionPlan::Transfer(p) => &p.spends,
-                ActionPlan::NoteReshape(p) => &p.spends,
-                ActionPlan::ShieldedIcs20Withdrawal(p) => &p.spends,
-                _ => &[],
-            }
-        }
-
         let zero_amount = 0u64.into();
         let all_spend_notes = || {
             tx_plan
                 .actions
                 .iter()
-                .flat_map(action_spend_notes)
+                .flat_map(|action| action.spends())
                 .chain(tx_plan.fee_funding.iter().flat_map(|f| &f.transfer.spends))
         };
 
@@ -2026,15 +2004,13 @@ impl ViewService for ViewServer {
 
                         let path = proof_response
                             .compliance_path
-                            .map(|p| shieldd_sdk_compliance::structs::MerklePath {
-                                layers: p
-                                    .layers
-                                    .into_iter()
-                                    .map(|layer| shieldd_sdk_compliance::structs::MerklePathLayer {
-                                        siblings: layer.siblings,
-                                    })
-                                    .collect(),
-                            })
+                            .map(shieldd_sdk_compliance::structs::MerklePath::try_from)
+                            .transpose()
+                            .map_err(|error| {
+                                tonic::Status::internal(format!(
+                                    "invalid compliance_path in pd response: {error}"
+                                ))
+                            })?
                             .ok_or_else(|| {
                                 tonic::Status::internal("compliance_path missing from pd response")
                             })?;
@@ -2336,17 +2312,13 @@ impl ViewService for ViewServer {
 
                             let path = proof_response
                                 .compliance_path
-                                .map(|p| shieldd_sdk_compliance::structs::MerklePath {
-                                    layers: p
-                                        .layers
-                                        .into_iter()
-                                        .map(|layer| {
-                                            shieldd_sdk_compliance::structs::MerklePathLayer {
-                                                siblings: layer.siblings,
-                                            }
-                                        })
-                                        .collect(),
-                                })
+                                .map(shieldd_sdk_compliance::structs::MerklePath::try_from)
+                                .transpose()
+                                .map_err(|error| {
+                                    tonic::Status::internal(format!(
+                                        "invalid compliance_path in pd response: {error}"
+                                    ))
+                                })?
                                 .ok_or_else(|| {
                                     tonic::Status::internal(
                                         "compliance_path missing from pd response",

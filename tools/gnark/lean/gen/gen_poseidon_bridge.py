@@ -15,8 +15,9 @@ seg windows, range partition) come from a JSON gendata file + the extracted slic
 The spec side (permSpecW + its constants) lives in the Poseidon{rate}Bridge and is
 NOT touched here, keeping the regression bite meaningful.
 """
-import json, pathlib, re, sys
+import pathlib, re, sys
 
+from formal_json import is_repo_path, read_json_object
 from lean_zmod_instances import normalize_choice_free_zmod_file
 from write_if_changed import write_if_changed
 
@@ -43,7 +44,10 @@ CONFIGS = {
     "dtk_ivk": dict(
         W=3,
         leaf="DtkIvkPoseidon",
-        slice_stem=json.load(open(HERE / "dtk_ivk_gendata.json"))["slice_stem"],
+        slice_stem=read_json_object(
+            HERE / "dtk_ivk_gendata.json",
+            canonical="pretty",
+        )["slice_stem"],
         choice_free_zmod=True,
         link="Poseidon2Link",
         bridge_ns="Poseidon2Bridge",
@@ -81,7 +85,11 @@ _leaf_gd = HERE / "state_commitment_leaf_gendata.json"
 CONFIGS["state_commitment_leaf"] = dict(
     W=2,
     leaf="StateCommitmentPathLeaf",
-    slice_stem=json.load(open(_leaf_gd))["slice_stem"] if _leaf_gd.exists() else None,
+    slice_stem=(
+        read_json_object(_leaf_gd, canonical="pretty")["slice_stem"]
+        if _leaf_gd.exists() or _leaf_gd.is_symlink()
+        else None
+    ),
     choice_free_zmod=True,
     link="Poseidon1Link",
     bridge_ns="Poseidon1Bridge",
@@ -99,7 +107,11 @@ for _k in range(24):
     CONFIGS[f"state_commitment_node{_k}"] = dict(
         W=5,
         leaf=f"StateCommitmentPathNode{_k}",
-        slice_stem=json.load(open(_gd))["slice_stem"] if _gd.exists() else None,
+        slice_stem=(
+            read_json_object(_gd, canonical="pretty")["slice_stem"]
+            if _gd.exists() or _gd.is_symlink()
+            else None
+        ),
         choice_free_zmod=True,
         link="Poseidon4Link",
         bridge_ns="Poseidon4Bridge",
@@ -131,7 +143,12 @@ def build(cfgname):
     if cfg.get("choice_free_zmod"):
         normalize_choice_free_zmod_file(EXTRACTED / f"{stem}.lean")
 
-    gd = json.load(open(HERE / f"{cfgname}_gendata.json"))
+    gd_path = HERE / f"{cfgname}_gendata.json"
+    gd = read_json_object(
+        gd_path,
+        canonical="pretty",
+        repo_owned=is_repo_path(gd_path),
+    )
     cs = {int(k): [int(x) % Order for x in v] for k, v in gd["cs"].items()}
     groups = gd["groups"]               # round -> [wire,...]
     kind = {int(k): v for k, v in gd["kind"].items()}

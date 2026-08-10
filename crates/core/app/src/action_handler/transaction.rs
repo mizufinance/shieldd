@@ -3,10 +3,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::Instant;
 
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 use async_trait::async_trait;
 use cnidarium::{Snapshot, StateRead, StateWrite};
-use cnidarium_component::ActionHandler as _;
 use shieldd_sdk_compact_block::StatePayload;
 use shieldd_sdk_compliance::params::StateReadExt as _;
 use shieldd_sdk_compliance::registry::{check_timestamp_freshness, ComplianceRegistryRead as _};
@@ -15,7 +14,11 @@ use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext;
 use shieldd_sdk_sct::component::tree::VerificationExt as _;
 use shieldd_sdk_sct::Nullifier;
-use shieldd_sdk_shielded_pool::component::{Ics20Transfer, StateReadExt as _};
+use shieldd_sdk_shielded_pool::component::{
+    note_reshape_execute_verified, shielded_host_withdrawal_execute_verified,
+    shielded_ics20_withdrawal_execute_verified, transfer_execute_validated,
+    transfer_execute_verified, transfer_validate_verified, Ics20Transfer, StateReadExt as _,
+};
 use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_transaction::{gas::GasCost as _, Action, Transaction};
@@ -25,7 +28,11 @@ use tokio::task::JoinSet;
 use tracing::{instrument, Instrument};
 
 use super::AppActionHandler;
-use crate::{app::StateReadExt as _, ShielddHost};
+use crate::{
+    app::{StateReadExt as _, MAX_TRANSACTION_ACTION_COUNT, MAX_TRANSACTION_NULLIFIER_COUNT},
+    stateless_cache::{ProofSlot, VerifiedTxArtifact},
+    ShielddHost,
+};
 
 mod stateful;
 pub(crate) mod stateless;
@@ -239,6 +246,69 @@ impl HistoricalCheckContext {
     }
 }
 
+async fn drain_joinset_results<T: Send + 'static>(
+    tasks: &mut JoinSet<Result<T>>,
+    panic_context: &str,
+) -> Result<Vec<T>> {
+    let mut values = Vec::new();
+    let mut first_error = None;
+    while let Some(result) = tasks.join_next().await {
+        match result
+            .with_context(|| panic_context.to_owned())
+            .and_then(|result| result)
+        {
+            Ok(value) => values.push(value),
+            Err(error) if first_error.is_none() => first_error = Some(error),
+            Err(_) => {}
+        }
+    }
+    if let Some(error) = first_error {
+        return Err(error);
+    }
+    Ok(values)
+}
+
+pub(crate) fn transaction_action_count_allowed(
+    body_action_count: usize,
+    has_fee_funding: bool,
+) -> bool {
+    body_action_count.saturating_add(usize::from(has_fee_funding)) <= MAX_TRANSACTION_ACTION_COUNT
+}
+
+pub(crate) fn transaction_nullifier_count_allowed(nullifier_count: usize) -> bool {
+    nullifier_count <= MAX_TRANSACTION_NULLIFIER_COUNT
+}
+
+pub(crate) fn transaction_nullifier_count(tx: &Transaction) -> usize {
+    tx.spent_nullifier_count()
+}
+
+pub(crate) fn ensure_transaction_resource_bounds(tx: &Transaction) -> Result<()> {
+    let body_action_count = tx.transaction_body.actions.len();
+    let has_fee_funding = tx.transaction_body.fee_funding.is_some();
+    anyhow::ensure!(
+        transaction_action_count_allowed(body_action_count, has_fee_funding),
+        "transaction action count {} exceeds maximum {}",
+        body_action_count.saturating_add(usize::from(has_fee_funding)),
+        MAX_TRANSACTION_ACTION_COUNT
+    );
+    let nullifier_count = transaction_nullifier_count(tx);
+    anyhow::ensure!(
+        transaction_nullifier_count_allowed(nullifier_count),
+        "transaction spend nullifier count {} exceeds maximum {}",
+        nullifier_count,
+        MAX_TRANSACTION_NULLIFIER_COUNT
+    );
+    Ok(())
+}
+
+pub(crate) fn validate_transaction_envelope(tx: &Transaction) -> Result<()> {
+    ensure_transaction_resource_bounds(tx)?;
+    valid_binding_signature(tx)?;
+    check_memo_exists_if_outputs_absent_if_not(tx)?;
+    check_non_empty_transaction(tx)
+}
+
 async fn check_nullifier_read_only<S>(
     state: &S,
     _context: &HistoricalCheckContext,
@@ -288,18 +358,15 @@ async fn validate_compliance_anchors_read_only<S: StateRead>(
                 ));
             }
 
-            let asset_anchor_height = state
-                .check_asset_anchor(asset_anchor)
+            let current_asset_anchor = state
+                .get_asset_imt_root()
                 .await
-                .map_err(|e| e.to_string())?
-                .ok_or_else(|| "invalid asset compliance anchor: not found in history".to_string())?;
-            if block_height > asset_anchor_height + anchor_validation_window_blocks {
-                return Err(format!(
-                    "asset compliance anchor too old: height {} is more than {} blocks behind current height {}",
-                    asset_anchor_height,
-                    anchor_validation_window_blocks,
-                    block_height
-                ));
+                .map_err(|e| e.to_string())?;
+            if *asset_anchor != current_asset_anchor {
+                return Err(
+                    "asset compliance anchor does not match the current asset compliance root"
+                        .to_string(),
+                );
             }
 
             Ok(())
@@ -409,25 +476,15 @@ fn validate_compliance_anchors_read_only_sync(
                 ));
             }
 
-            let asset_anchor_height = snapshot
-                .get_raw(&shieldd_sdk_compliance::state_key::anchor::asset_anchor_lookup(
-                    &asset_anchor,
-                ))
+            let current_asset_anchor = snapshot
+                .get_asset_imt_root()
                 .await
-                .map_err(|e| e.to_string())?
-                .map(|bytes| {
-                    <u64 as shieldd_sdk_proto::Message>::decode(bytes.as_slice())
-                        .map_err(|e| anyhow::anyhow!(e).to_string())
-                })
-                .transpose()?
-                .ok_or_else(|| "invalid asset compliance anchor: not found in history".to_string())?;
-            if block_height > asset_anchor_height + anchor_validation_window_blocks {
-                return Err(format!(
-                    "asset compliance anchor too old: height {} is more than {} blocks behind current height {}",
-                    asset_anchor_height,
-                    anchor_validation_window_blocks,
-                    block_height
-                ));
+                .map_err(|e| e.to_string())?;
+            if asset_anchor != current_asset_anchor {
+                return Err(
+                    "asset compliance anchor does not match the current asset compliance root"
+                        .to_string(),
+                );
             }
 
             Ok(())
@@ -497,6 +554,7 @@ pub(crate) async fn check_historical_with_context_profiled<S: StateRead + 'stati
     let mut await_ms = 0.0;
     let mut action_checks = JoinSet::new();
 
+    ensure_transaction_resource_bounds(tx)?;
     tx_parameters_historical_check_with_context(tx, context)?;
     discovery_parameters_valid_with_context(tx, context)?;
 
@@ -554,6 +612,7 @@ pub(crate) fn check_historical_with_context_sync_profiled(
 ) -> Result<HistoricalCheckProfile> {
     let total_start = Instant::now();
 
+    ensure_transaction_resource_bounds(tx)?;
     tx_parameters_historical_check_with_context(tx, context)?;
     discovery_parameters_valid_with_context(tx, context)?;
 
@@ -571,13 +630,16 @@ pub(crate) fn check_historical_with_context_sync_profiled(
 }
 
 pub(crate) async fn check_and_execute_profiled<S>(
-    tx: &Transaction,
+    artifact: &VerifiedTxArtifact,
     mut state: S,
 ) -> Result<TransactionExecutionProfile>
 where
     S: StateWrite,
 {
+    let tx = artifact.tx().as_ref();
     let mut profile = TransactionExecutionProfile::default();
+    ensure_transaction_resource_bounds(tx)?;
+    let tx_context = tx.context();
     let tx_id = tx.id();
     let action_spans_enabled = tracing::enabled!(tracing::Level::INFO);
 
@@ -592,9 +654,66 @@ where
     profile.pay_fee_ms = pay_fee_start.elapsed().as_secs_f64() * 1000.0;
 
     let action_execute_start = Instant::now();
+    // Fee funding is hashed before body actions and validates against the
+    // pre-transaction roots used to build its proof. Its effects remain in
+    // their original post-body position to preserve commitment ordering.
+    let validated_fee_funding = if let Some(fee_funding) = &tx.transaction_body.fee_funding {
+        let action_start = Instant::now();
+        let validated = transfer_validate_verified(
+            &fee_funding.transfer,
+            &tx_context,
+            artifact.proof_for_slot(ProofSlot::FeeFunding)?,
+            &mut state,
+        )
+        .await?;
+        profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
+        Some(validated)
+    } else {
+        None
+    };
     for (i, action) in tx.actions().enumerate() {
         let action_start = Instant::now();
         match action {
+            Action::Transfer(action) => {
+                transfer_execute_verified(
+                    action,
+                    &tx_context,
+                    artifact.proof_for_slot(ProofSlot::BodyAction(i))?,
+                    &mut state,
+                )
+                .await?;
+                profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
+            }
+            Action::NoteReshape(action) => {
+                note_reshape_execute_verified(
+                    action,
+                    &tx_context,
+                    artifact.proof_for_slot(ProofSlot::BodyAction(i))?,
+                    &mut state,
+                )
+                .await?;
+                profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
+            }
+            Action::ShieldedIcs20Withdrawal(action) => {
+                shielded_ics20_withdrawal_execute_verified(
+                    action,
+                    &tx_context,
+                    artifact.proof_for_slot(ProofSlot::BodyAction(i))?,
+                    &mut state,
+                )
+                .await?;
+                profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
+            }
+            Action::ShieldedHostWithdrawal(action) => {
+                shielded_host_withdrawal_execute_verified(
+                    action,
+                    &tx_context,
+                    artifact.proof_for_slot(ProofSlot::BodyAction(i))?,
+                    &mut state,
+                )
+                .await?;
+                profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
+            }
             Action::IbcRelay(action) => {
                 let relay = action.clone().with_handler::<Ics20Transfer, ShielddHost>();
                 let execute = relay.check_and_execute(&mut state);
@@ -606,7 +725,11 @@ where
                 }
                 profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
             }
-            _ => {
+            action @ (Action::ValidatorDefinition(_)
+            | Action::ValidatorVote(_)
+            | Action::ProposalSubmit(_)
+            | Action::ComplianceRegisterAsset(_)
+            | Action::ComplianceRegisterUser(_)) => {
                 if action_spans_enabled {
                     let span = action.create_span(i);
                     action
@@ -618,11 +741,20 @@ where
                 }
                 profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
             }
+            Action::AggregateBundle(_) => anyhow::bail!(
+                "aggregate bundle actions are only permitted in the dedicated aggregation pipeline"
+            ),
         }
     }
     if let Some(fee_funding) = &tx.transaction_body.fee_funding {
         let action_start = Instant::now();
-        fee_funding.transfer.check_and_execute(&mut state).await?;
+        transfer_execute_validated(
+            &fee_funding.transfer,
+            &tx_context,
+            validated_fee_funding.expect("fee funding validation must exist"),
+            &mut state,
+        )
+        .await?;
         profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
     }
     profile.action_execute_ms = action_execute_start.elapsed().as_secs_f64() * 1000.0;
@@ -638,6 +770,7 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
 ) -> Result<PreparedCandidateRead> {
     let read_start = Instant::now();
     let mut prepared = PreparedCandidateRead::default();
+    ensure_transaction_resource_bounds(tx.as_ref())?;
 
     let execution_context = TxExecutionContext {
         block_timestamp: context.block_timestamp,
@@ -658,9 +791,6 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                     execution_context.block_timestamp,
                 )?;
                 for input in &transfer.body.inputs {
-                    if input.is_dummy() {
-                        continue;
-                    }
                     anyhow::ensure!(
                         tx_nullifiers.insert(input.nullifier),
                         "transaction contains duplicate spend nullifier {}",
@@ -674,7 +804,6 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                         .body
                         .outputs
                         .iter()
-                        .filter(|output| !output.is_dummy())
                         .map(|output| output.note_payload.clone()),
                 );
             }
@@ -711,9 +840,6 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
             execution_context.block_timestamp,
         )?;
         for input in &fee_funding.transfer.body.inputs {
-            if input.is_dummy() {
-                continue;
-            }
             anyhow::ensure!(
                 tx_nullifiers.insert(input.nullifier),
                 "transaction contains duplicate spend nullifier {}",
@@ -731,7 +857,6 @@ pub(crate) async fn prepare_candidate_read_profiled<S: StateRead + 'static>(
                 .body
                 .outputs
                 .iter()
-                .filter(|output| !output.is_dummy())
                 .map(|output| output.note_payload.clone()),
         );
     }
@@ -854,6 +979,7 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
 ) -> Result<PreparedCandidateRead> {
     let read_start = Instant::now();
     let mut prepared = PreparedCandidateRead::default();
+    ensure_transaction_resource_bounds(tx.as_ref())?;
 
     let execution_context = TxExecutionContext {
         block_timestamp: context.block_timestamp,
@@ -874,9 +1000,6 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                     execution_context.block_timestamp,
                 )?;
                 for input in &transfer.body.inputs {
-                    if input.is_dummy() {
-                        continue;
-                    }
                     anyhow::ensure!(
                         tx_nullifiers.insert(input.nullifier),
                         "transaction contains duplicate spend nullifier {}",
@@ -890,7 +1013,6 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                         .body
                         .outputs
                         .iter()
-                        .filter(|output| !output.is_dummy())
                         .map(|output| output.note_payload.clone()),
                 );
             }
@@ -927,9 +1049,6 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
             execution_context.block_timestamp,
         )?;
         for input in &fee_funding.transfer.body.inputs {
-            if input.is_dummy() {
-                continue;
-            }
             anyhow::ensure!(
                 tx_nullifiers.insert(input.nullifier),
                 "transaction contains duplicate spend nullifier {}",
@@ -947,7 +1066,6 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
                 .body
                 .outputs
                 .iter()
-                .filter(|output| !output.is_dummy())
                 .map(|output| output.note_payload.clone()),
         );
     }
@@ -1013,12 +1131,14 @@ pub(crate) fn prepare_candidate_read_blocking_profiled(
 }
 
 fn check_action_timestamp_freshness(target_timestamp: u64, block_timestamp: u64) -> Result<()> {
-    if target_timestamp == 0
-        && std::env::var_os("SHIELDD_BENCH_ALLOW_ZERO_TARGET_TIMESTAMP").is_some()
-    {
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    if target_timestamp == 0 && crate::app::benchmark_zero_timestamp_allowed() {
         return Ok(());
     }
-    check_timestamp_freshness(target_timestamp, block_timestamp)?;
+    check_timestamp_freshness(
+        target_timestamp,
+        i64::try_from(block_timestamp).context("block timestamp exceeds i64 range")?,
+    )?;
     Ok(())
 }
 
@@ -1029,23 +1149,7 @@ impl AppActionHandler for Transaction {
     // We only instrument the top-level `check_stateless`, so we get one span for each transaction.
     #[instrument(skip(self, _context))]
     async fn check_stateless(&self, _context: ()) -> Result<()> {
-        // This check should be done first, and complete before all other
-        // stateless checks, like proof verification.  In addition to proving
-        // that value balances, the binding signature binds the proofs to the
-        // transaction, as the binding signature can only be created with
-        // knowledge of all of the openings to the commitments the transaction
-        // makes proofs against. (This is where the name binding signature comes
-        // from).
-        //
-        // This allows us to cheaply eliminate a large class of invalid
-        // transactions upfront -- past this point, we can be sure that the user
-        // who submitted the transaction actually formed the proofs, rather than
-        // replaying them from another transaction.
-        valid_binding_signature(self)?;
-        // Other checks probably too cheap to be worth splitting into tasks.
-        check_memo_exists_if_outputs_absent_if_not(self)?;
-        // This check ensures that transactions contain at least one action.
-        check_non_empty_transaction(self)?;
+        validate_transaction_envelope(self)?;
 
         let context = self.context();
 
@@ -1060,13 +1164,17 @@ impl AppActionHandler for Transaction {
             action_checks
                 .spawn(async move { action.check_stateless(context2).await }.instrument(span));
         }
-        // Now check if any component action failed verification.
-        while let Some(check) = action_checks.join_next().await {
-            check??;
-        }
+        // Every verifier is joined before an error is returned.
+        drain_joinset_results(
+            &mut action_checks,
+            "transaction stateless action check task panicked",
+        )
+        .await?;
 
         if let Some(fee_funding) = &self.transaction_body.fee_funding {
-            fee_funding.transfer.check_stateless(context).await?;
+            Action::Transfer(fee_funding.transfer.clone())
+                .check_stateless(context)
+                .await?;
         }
 
         Ok(())
@@ -1080,10 +1188,9 @@ impl AppActionHandler for Transaction {
     }
 
     // We only instrument the top-level `execute`, so we get one span for each transaction.
-    #[instrument(skip(self, state))]
-    async fn check_and_execute<S: StateWrite>(&self, state: S) -> Result<()> {
-        check_and_execute_profiled(self, state).await?;
-        Ok(())
+    #[instrument(skip(self, _state))]
+    async fn check_and_execute<S: StateWrite>(&self, _state: S) -> Result<()> {
+        anyhow::bail!("transaction execution requires the canonical verified App pipeline")
     }
 }
 
@@ -1108,9 +1215,49 @@ mod tests {
     use shieldd_sdk_tct as tct;
     use shieldd_sdk_transaction::{plan::TransactionPlan, TransactionParameters, WitnessData};
 
-    use crate::AppActionHandler;
+    use crate::action_handler::AppActionHandler;
 
-    use super::{AnchorValidationCache, ClaimedAnchorValidationCache};
+    use super::{
+        drain_joinset_results, transaction_action_count_allowed,
+        transaction_nullifier_count_allowed, AnchorValidationCache, ClaimedAnchorValidationCache,
+    };
+
+    #[test]
+    fn transaction_action_count_policy_is_fixed_at_boundary() {
+        assert!(transaction_action_count_allowed(512, false));
+        assert!(!transaction_action_count_allowed(513, false));
+        assert!(transaction_action_count_allowed(511, true));
+        assert!(!transaction_action_count_allowed(512, true));
+        assert!(!transaction_action_count_allowed(usize::MAX, true));
+    }
+
+    #[test]
+    fn transaction_nullifier_count_policy_is_fixed_at_boundary() {
+        assert!(transaction_nullifier_count_allowed(256));
+        assert!(!transaction_nullifier_count_allowed(257));
+        assert!(!transaction_nullifier_count_allowed(usize::MAX));
+    }
+
+    #[tokio::test]
+    async fn structured_join_drain_waits_for_transaction_siblings_after_error() {
+        let completed = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let mut tasks = tokio::task::JoinSet::new();
+        tasks.spawn(async { anyhow::bail!("injected task failure") });
+        let completed_by_sibling = completed.clone();
+        tasks.spawn(async move {
+            tokio::task::yield_now().await;
+            completed_by_sibling.store(true, std::sync::atomic::Ordering::SeqCst);
+            Ok::<(), anyhow::Error>(())
+        });
+
+        let result = drain_joinset_results(&mut tasks, "injected transaction task panic").await;
+        assert!(result.is_err());
+        assert!(
+            completed.load(std::sync::atomic::Ordering::SeqCst),
+            "the sibling must complete before the first error is returned"
+        );
+        assert!(tasks.is_empty());
+    }
 
     #[tokio::test]
     async fn anchor_validation_cache_counts_shared_pair_once() -> Result<()> {
@@ -1185,7 +1332,7 @@ mod tests {
     /// Enrich a shielded input plan with valid compliance data for testing.
     /// Uses unregulated compliance for simplicity.
     fn enrich_spend_for_test<R: rand_core::RngCore + rand_core::CryptoRng>(
-        rng: &mut R,
+        _rng: &mut R,
         spend: &mut ShieldedInputPlan,
         _sender_address: &Address,
     ) {
@@ -1206,7 +1353,7 @@ mod tests {
         spend.asset_indexed_leaf = indexed_leaf;
 
         spend
-            .set_compliance_details(rng)
+            .set_compliance_details()
             .expect("can set compliance details");
 
         // Build user tree from the compliance_leaf that set_compliance_details created
@@ -1228,9 +1375,9 @@ mod tests {
     /// Enrich a shielded output plan with valid compliance data for testing.
     /// Uses unregulated compliance for simplicity.
     fn enrich_output_for_test<R: rand_core::RngCore + rand_core::CryptoRng>(
-        rng: &mut R,
+        _rng: &mut R,
         output: &mut ShieldedOutputPlan,
-        sender_address: &Address,
+        _sender_address: &Address,
         asset_id: asset::Id,
     ) {
         // Create IMT non-membership proof (unregulated asset)
@@ -1255,18 +1402,8 @@ mod tests {
         let recipient_leaf =
             ComplianceLeaf::new(output.dest_address.clone(), asset_id, recv_b_d_fq);
 
-        let send_b_d_fq = sender_address
-            .diversified_generator()
-            .vartime_compress_to_field();
-        let sender_leaf = ComplianceLeaf::new(sender_address.clone(), asset_id, send_b_d_fq);
-
         output
-            .set_compliance_details(
-                rng,
-                &recipient_leaf,
-                sender_leaf,
-                Fr::from(0u64), // tx_blinding_nonce
-            )
+            .set_compliance_details(&recipient_leaf, Fr::from(0u64))
             .expect("can set compliance details");
 
         // Build user tree from the compliance_leaf that set_compliance_details created

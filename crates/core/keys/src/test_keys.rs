@@ -37,6 +37,7 @@ pub static SPEND_KEY: Lazy<SpendKey> = Lazy::new(|| {
             .expect("hardcoded test seed phrase should be valid"),
         &Bip44Path::new(0),
     )
+    .expect("hardcoded test spend key satisfies key refinement invariants")
 });
 
 /// The test account's full viewing key, as a string.

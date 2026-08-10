@@ -7,7 +7,9 @@ use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::execution_client::v1::{
     DepositRequest, DepositResponse, HostSource as ProtoHostSource,
 };
-use shieldd_sdk_shielded_pool::component::{AssetRegistry as _, AssetRegistryRead as _};
+use shieldd_sdk_shielded_pool::component::{
+    AssetRegistry as _, AssetRegistryRead as _, NoteManager as _,
+};
 use std::str::FromStr as _;
 use std::time::Instant;
 
@@ -265,24 +267,8 @@ impl HostExecution {
             "check_tx requires initialized storage"
         );
 
-        let snapshot = self.storage.latest_snapshot();
-        let checktx_shared_context = match CheckTxSharedContext::load(&snapshot).await {
-            Ok(context) => Some(Arc::new(context)),
-            Err(error) => {
-                tracing::warn!(
-                    ?error,
-                    version = snapshot.version(),
-                    "CheckTxSharedContext unavailable; falling back to legacy CheckTx path"
-                );
-                None
-            }
-        };
-
-        let mut app = App::new(snapshot);
+        let mut app = App::new(self.storage.latest_snapshot());
         app.set_block_tx_indexing_mode(BlockTxIndexingMode::NoIndex);
-        if let Some(context) = checktx_shared_context {
-            app.set_checktx_shared_context(context);
-        }
 
         Ok(
             match app
@@ -302,7 +288,8 @@ impl HostExecution {
             self.phase
         );
 
-        let tx = match Transaction::decode(tx_bytes).context("decoding host transaction") {
+        let tx = match Transaction::decode_canonical(tx_bytes).context("decoding host transaction")
+        {
             Ok(tx) => tx,
             Err(error) => return Ok(HostTxResponse::rejected(error)),
         };
@@ -562,7 +549,6 @@ impl App {
 
         let snapshot_reset_start = Instant::now();
         let latest_snapshot = storage.latest_snapshot();
-        self.snapshot_version = latest_snapshot.version();
         self.committed_snapshot = latest_snapshot.clone();
         self.state = Arc::new(StateDelta::new(latest_snapshot));
         self.pending_sct_append_log.clear();
