@@ -383,8 +383,8 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
 
         self.assertIn("timeout-minutes: 25", docs)
         self.assertIn("timeout-minutes: 25", protobuf)
-        self.assertIn("&& 25 || 90", smoke)
-        self.assertIn("&& 25 || 45", orbis)
+        self.assertIn("&& 45 || 90", smoke)
+        self.assertIn("timeout-minutes: 45", orbis)
 
     def test_container_publication_uses_one_sha_across_architectures(self) -> None:
         root = SCRIPT.parents[2]

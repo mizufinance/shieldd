@@ -409,6 +409,15 @@ class GateApplicabilityTests(unittest.TestCase):
             "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/CircuitFacts.lean",
             "tools/gnark/lean/gen/gen_note_reshape_padded_spends.py",
             "tools/gnark/lean/gen/gen_deployed_family.py",
+            "crates/crypto/constraint-coverage/src/main.rs",
+            "tools/gnark/cmd/gnarkctl/export_fv.go",
+            "tools/gnark/internal/abi/statement.go",
+            "tools/gnark/internal/circuits/transfer.go",
+            "tools/gnark/internal/primitives/poseidon.go",
+            "tools/gnark/third_party/gnark-lean-extractor/main.go",
+            "scripts/check-constraint-coverage.sh",
+            "scripts/check-lean-circuit-fv.sh",
+            "scripts/gen-certified-circuit-artifacts.py",
             "crates/core/component/shielded-pool/formal/certified-circuit-obligation-ledger.md",
         )
         for path in paths:
@@ -462,8 +471,8 @@ class GateApplicabilityTests(unittest.TestCase):
                 self.assertIn(f"{tier})", run_case)
         self.assertNotIn("            stamps)", run_case)
 
-        key_coherence_job = workflow[
-            workflow.index("  soundness-key-coherence:") : workflow.index(
+        source_drift_job = workflow[
+            workflow.index("  soundness-source-drift:") : workflow.index(
                 "  soundness-alloy:"
             )
         ]
@@ -472,7 +481,7 @@ class GateApplicabilityTests(unittest.TestCase):
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.soundness_run == 'true' &&
       needs.applicability.outputs.soundness_tier == 'typed'""",
-            key_coherence_job,
+            source_drift_job,
         )
 
         lean_fv_job = workflow[
@@ -491,13 +500,14 @@ class GateApplicabilityTests(unittest.TestCase):
             )
         ]
         self.assertIn(
-            "needs.applicability.outputs.soundness_tier == 'full'",
+            "needs.applicability.outputs.soundness_run == 'true'",
             soundness_gate_job,
         )
+        self.assertNotIn("soundness_tier == 'full'", soundness_gate_job)
 
         seam_job = workflow[
             workflow.index("  soundness-seam-and-pin:") : workflow.index(
-                "  soundness-key-coherence:"
+                "  soundness-source-drift:"
             )
         ]
         self.assertIn("sudo apt-get install -y ripgrep", seam_job)
@@ -505,11 +515,11 @@ class GateApplicabilityTests(unittest.TestCase):
 
         summary = workflow[workflow.index("  summary:") :]
         self.assertIn(
-            "KEY_COHERENCE: "
-            "${{ needs.soundness-key-coherence.result }}",
+            "SOURCE_DRIFT: "
+            "${{ needs.soundness-source-drift.result }}",
             summary,
         )
-        self.assertIn("- soundness-key-coherence", summary)
+        self.assertIn("- soundness-source-drift", summary)
         self.assertIn("- soundness-lean-circuit-fv", summary)
         self.assertIn(
             "run: python3 scripts/ci/enforce_formal_result.py",
@@ -538,8 +548,8 @@ class GateApplicabilityTests(unittest.TestCase):
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
             encoding="utf-8"
         )
-        key_coherence = workflow[
-            workflow.index("  soundness-key-coherence:") : workflow.index(
+        source_drift = workflow[
+            workflow.index("  soundness-source-drift:") : workflow.index(
                 "  soundness-alloy:"
             )
         ]
@@ -548,15 +558,16 @@ class GateApplicabilityTests(unittest.TestCase):
                 "  # ------------------------------------------------------------------ summary"
             )
         ]
-        self.assertIn("timeout-minutes: 25", key_coherence)
-        self.assertIn("check-circuit-fv.sh drift all", key_coherence)
-        self.assertNotIn("check-circuit-fv.sh receipt all", key_coherence)
+        self.assertIn("timeout-minutes: 60", source_drift)
+        self.assertIn("check-lean-circuit-fv.sh drift all", source_drift)
+        self.assertNotIn("check-circuit-fv.sh receipt all", source_drift)
         self.assertIn(
             "(github.event_name == 'pull_request' || "
-            "github.event_name == 'merge_group') && 25 || 360",
+            "github.event_name == 'merge_group') && 60 || 360",
             lean_fv,
         )
-        self.assertIn("lean-build-safe.sh", lean_fv)
+        self.assertIn("check-lean-circuit-fv.sh kernel all", lean_fv)
+        self.assertNotIn("lean-build-safe.sh", lean_fv)
         self.assertIn("check-lean-circuit-fv.sh release all", lean_fv)
         self.assertNotIn("check-lean-circuit-fv.sh typed all", lean_fv)
 
@@ -1030,14 +1041,14 @@ class GateApplicabilityTests(unittest.TestCase):
             ):
                 GATE.load_declaration(path)
 
-    def test_certified_artifact_generator_selects_soundness_gate(self) -> None:
+    def test_certified_artifact_generator_selects_typed_gate(self) -> None:
         decision = GATE.classify(
             self.soundness,
             "pull_request",
             ["scripts/gen-certified-circuit-artifacts.py"],
             [],
         )
-        self.assertEqual((decision.status, decision.tier), ("run", "stamps"))
+        self.assertEqual((decision.status, decision.tier), ("run", "typed"))
         self.assertFalse(decision.unknown_files)
 
     def test_unknown_path_promotes_pr_and_merge_group(self) -> None:
@@ -1524,7 +1535,7 @@ class GateApplicabilityTests(unittest.TestCase):
             {
                 "soundness-gate",
                 "soundness-seam-and-pin",
-                "soundness-key-coherence",
+                "soundness-source-drift",
                 "soundness-alloy",
                 "soundness-lean-circuit-fv",
             },
@@ -1581,6 +1592,42 @@ class GateApplicabilityTests(unittest.TestCase):
             workflow,
         )
 
+    def test_manual_formal_runs_accept_and_freeze_exact_commit_refs(self) -> None:
+        for relative in (
+            ".github/workflows/formal.yml",
+            ".github/workflows/soundness-provers.yml",
+        ):
+            with self.subTest(workflow=relative):
+                workflow = (self.root / relative).read_text(encoding="utf-8")
+                dispatch_end = (
+                    "\n  pull_request:"
+                    if relative.endswith("/formal.yml")
+                    else "\nconcurrency:"
+                )
+                dispatch = workflow.split(
+                    "  workflow_dispatch:", maxsplit=1
+                )[1].split(dispatch_end, maxsplit=1)[0]
+                self.assertIn("type: string", dispatch)
+                self.assertNotIn("type: choice", dispatch)
+                self.assertIn(
+                    "candidate_sha: ${{ steps.candidate.outputs.sha }}",
+                    workflow,
+                )
+
+        provers = (
+            self.root / ".github/workflows/soundness-provers.yml"
+        ).read_text(encoding="utf-8")
+        applicability, downstream = provers.split(
+            "\n  tamarin-alloy:\n", maxsplit=1
+        )
+        self.assertEqual(applicability.count("ref: ${{ env.CANDIDATE_REF }}"), 1)
+        self.assertNotIn("ref: ${{ env.CANDIDATE_REF }}", downstream)
+        self.assertGreaterEqual(
+            downstream.count(
+                "ref: ${{ needs.applicability.outputs.candidate_sha }}"
+            ),
+            6,
+        )
     def test_nix_cache_key_includes_flake_lock(self) -> None:
         action = (
             self.root / ".github/actions/setup-nix-rust/action.yml"

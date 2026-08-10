@@ -25,13 +25,10 @@ on:
   workflow_dispatch:
     inputs:
       target_ref:
-        description: Branch whose committed state is the manual-run candidate.
+        description: Branch, tag, or commit SHA to verify.
         required: true
-        type: choice
+        type: string
         default: dev
-        options:
-          - dev
-          - main
   pull_request:
   merge_group:
     types: [checks_requested]
@@ -137,7 +134,7 @@ jobs:
           args=(
             --gate soundness-formal
             --event "$GITHUB_EVENT_NAME"
-            --head "$GITHUB_SHA"
+            --head "${{ steps.candidate.outputs.sha }}"
             --decision-file .ci-state/soundness-decision.json
             --github-output "$GITHUB_OUTPUT"
             --pretty
@@ -457,7 +454,7 @@ jobs:
         needs.applicability.outputs.snarkpack_fstar_cache_hit != 'true'
       )
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 25 || 90 }}
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 45 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -775,8 +772,7 @@ jobs:
     needs: applicability
     if: >-
       needs.applicability.result == 'success' &&
-      needs.applicability.outputs.soundness_run == 'true' &&
-      needs.applicability.outputs.soundness_tier == 'full'
+      needs.applicability.outputs.soundness_run == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -794,7 +790,7 @@ jobs:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -816,29 +812,45 @@ jobs:
       - name: DLEQ Lean stamps
         run: bash scripts/compliance-lean-dleq.sh stamps
 
-  soundness-key-coherence:
-    name: 'soundness: key coherence'
+  soundness-source-drift:
+    name: 'soundness: source drift'
     needs: applicability
-    # A proof-source change recompiles the circuit and checks committed key
-    # bindings without generating a proof. Full prove/verify stays scheduled.
+    # A semantic proof-source change regenerates and compares every committed
+    # circuit, contract, inventory, and evidence artifact without proving.
     if: >-
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.soundness_run == 'true' &&
       needs.applicability.outputs.soundness_tier == 'typed'
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 60
+    container:
+      image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:29488637fce71c867d9f6ffd8c5bdc825c80f55d675238bcdfbfe878be11d96c
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
           lfs: true
-      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
+      - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
-          go-version-file: tools/gnark/go.mod
-          cache-dependency-path: tools/gnark/go.sum
-      - name: Source and committed-key drift
+          workspaces: "."
+      - name: Cache Go build
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-fv-${{ hashFiles('tools/gnark/go.sum') }}
+          restore-keys: |
+            go-fv-
+      - name: Regenerate and compare committed formal artifacts
         shell: bash
-        run: bash scripts/check-circuit-fv.sh drift all
+        run: bash scripts/check-lean-circuit-fv.sh drift all
 
   soundness-alloy:
     name: 'soundness: alloy'
@@ -866,7 +878,7 @@ jobs:
       needs.applicability.outputs.soundness_run == 'true' &&
       needs.applicability.outputs.soundness_tier != 'stamps'
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 25 || 360 }}
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 60 || 360 }}
     container:
       image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:29488637fce71c867d9f6ffd8c5bdc825c80f55d675238bcdfbfe878be11d96c
       credentials:
@@ -913,13 +925,7 @@ jobs:
           set -euo pipefail
           case "$TIER" in
             typed)
-              cd tools/gnark/lean
-              lake exe cache get >/dev/null 2>&1 || true
-              jq -r '.backends[].theorem_root' ../fv_certification_backends.json \
-                | awk '!seen[$0]++' \
-                | while IFS= read -r theorem_root; do
-                    "$GITHUB_WORKSPACE/scripts/lean-build-safe.sh" "$theorem_root"
-                  done
+              bash scripts/check-lean-circuit-fv.sh kernel all
               ;;
             full)
               bash scripts/check-lean-circuit-fv.sh release all
@@ -946,7 +952,7 @@ jobs:
       - snarkpack-publication
       - soundness-gate
       - soundness-seam-and-pin
-      - soundness-key-coherence
+      - soundness-source-drift
       - soundness-alloy
       - soundness-lean-circuit-fv
     runs-on: ubuntu-24.04
@@ -990,7 +996,7 @@ jobs:
           PUBLICATION: ${{ needs.snarkpack-publication.result }}
           GATE: ${{ needs.soundness-gate.result }}
           SEAM: ${{ needs.soundness-seam-and-pin.result }}
-          KEY_COHERENCE: ${{ needs.soundness-key-coherence.result }}
+          SOURCE_DRIFT: ${{ needs.soundness-source-drift.result }}
           ALLOY: ${{ needs.soundness-alloy.result }}
           LEAN: ${{ needs.soundness-lean-circuit-fv.result }}
         run: python3 scripts/ci/enforce_formal_result.py

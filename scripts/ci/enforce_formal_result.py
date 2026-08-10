@@ -229,7 +229,7 @@ def enforce() -> None:
     soundness_results = {
         "soundness-gate": value("GATE"),
         "soundness-seam-and-pin": value("SEAM"),
-        "soundness-key-coherence": value("KEY_COHERENCE"),
+        "soundness-source-drift": value("SOURCE_DRIFT"),
         "soundness-alloy": value("ALLOY"),
         "soundness-lean-circuit-fv": value("LEAN"),
     }
@@ -253,13 +253,14 @@ def enforce() -> None:
                 soundness_results["soundness-seam-and-pin"],
             )
         )
-        gate = soundness_results["soundness-gate"]
-        key_coherence = soundness_results["soundness-key-coherence"]
+        required.append(
+            ("soundness-gate", soundness_results["soundness-gate"])
+        )
+        source_drift = soundness_results["soundness-source-drift"]
         lean = soundness_results["soundness-lean-circuit-fv"]
         if soundness_tier == "stamps":
             for label, result in (
-                ("soundness-gate", gate),
-                ("soundness-key-coherence", key_coherence),
+                ("soundness-source-drift", source_drift),
                 ("soundness-lean-circuit-fv", lean),
             ):
                 if result != "skipped":
@@ -267,28 +268,19 @@ def enforce() -> None:
                         f"stamp-only soundness unexpectedly ran {label}: {result}"
                     )
         elif soundness_tier == "typed":
-            if gate != "skipped":
-                raise ValueError(
-                    f"typed soundness unexpectedly ran exhaustive gate: {gate}"
-                )
             required.extend(
                 [
-                    ("soundness-key-coherence", key_coherence),
+                    ("soundness-source-drift", source_drift),
                     ("soundness-lean-circuit-fv", lean),
                 ]
             )
         else:
-            if key_coherence != "skipped":
+            if source_drift != "skipped":
                 raise ValueError(
                     "full soundness tier unexpectedly ran standalone "
-                    f"key coherence: {key_coherence}"
+                    f"source drift: {source_drift}"
                 )
-            required.extend(
-                [
-                    ("soundness-gate", gate),
-                    ("soundness-lean-circuit-fv", lean),
-                ]
-            )
+            required.append(("soundness-lean-circuit-fv", lean))
         if event_name in {"pull_request", "merge_group"}:
             required.append(
                 ("soundness-alloy", soundness_results["soundness-alloy"])

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import re
@@ -104,6 +105,7 @@ IMPORT_RE = re.compile(
 IMPORT_PREFIX_RE = re.compile(r"^[ \t]*(?:public[ \t]+)?import(?:[ \t]|$)")
 GRAPH_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 AUDIT_MODULE_RE = re.compile(r"^Ipp\.ProofAudit[A-Za-z0-9_]*$")
+_FSTAR_VERIFIER_CACHE: dict[Path, object] = {}
 
 
 class ImpactError(RuntimeError):
@@ -512,27 +514,26 @@ def current_fstar_proofs(
     force_all: bool = False,
 ) -> tuple[str, ...]:
     """Return only proof modules lacking current per-module pass evidence."""
-    verifier_path = root / FSTAR_VERIFIER
-    spec = importlib.util.spec_from_file_location(
-        "_snarkpack_fstar_evidence", verifier_path
-    )
-    if spec is None or spec.loader is None:
-        raise ImpactError(f"cannot load F* evidence verifier: {verifier_path}")
-    verifier = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = verifier
+    _fstar_proof_names(root)
+    verifier = _load_fstar_verifier(root)
     try:
-        spec.loader.exec_module(verifier)
         manifest = verifier.load_manifest(root / FSTAR_MANIFEST)
         proof_prefix = f"{FSTAR_ROOT.as_posix()}/"
-        requested = tuple(
-            Path(path).name
-            for path in changed_hints
-            if path.startswith(proof_prefix) and path.endswith(".fst")
-        )
+        requested: list[str] = []
+        for path in changed_hints:
+            if not path.startswith(proof_prefix) or not path.endswith(".fst"):
+                continue
+            relative = path.removeprefix(proof_prefix)
+            if "/" in relative:
+                raise ImpactError(
+                    f"F* proof modules must be direct children of {FSTAR_ROOT}: "
+                    f"{path}"
+                )
+            requested.append(relative)
         modules = verifier.affected_fstar_modules(
             manifest,
             root,
-            requested=requested,
+            requested=tuple(requested),
             force_all=force_all,
         )
     except (OSError, UnicodeError, verifier.VerificationError) as error:
@@ -542,16 +543,9 @@ def current_fstar_proofs(
 
 def pending_fstar_proofs(root: Path) -> tuple[str, ...]:
     """Return proof modules not covered by current repository evidence."""
-    verifier_path = root / FSTAR_VERIFIER
-    spec = importlib.util.spec_from_file_location(
-        "_snarkpack_pending_fstar_evidence", verifier_path
-    )
-    if spec is None or spec.loader is None:
-        raise ImpactError(f"cannot load F* evidence verifier: {verifier_path}")
-    verifier = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = verifier
+    _fstar_proof_names(root)
+    verifier = _load_fstar_verifier(root)
     try:
-        spec.loader.exec_module(verifier)
         manifest = verifier.load_manifest(root / FSTAR_MANIFEST)
         evidence = json.loads((root / FSTAR_EVIDENCE).read_text(encoding="utf-8"))
         modules = verifier.plan_fstar_modules(
@@ -576,16 +570,8 @@ def unchanged_fstar_semantic_inputs(
     changed: Iterable[str],
 ) -> tuple[str, ...]:
     """Return changed whole files whose proof-relevant projection is stable."""
-    verifier_path = root / FSTAR_VERIFIER
-    spec = importlib.util.spec_from_file_location(
-        "_snarkpack_fstar_semantic_inputs", verifier_path
-    )
-    if spec is None or spec.loader is None:
-        raise ImpactError(f"cannot load F* evidence verifier: {verifier_path}")
-    verifier = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = verifier
+    verifier = _load_fstar_verifier(root)
     try:
-        spec.loader.exec_module(verifier)
         projected = {
             verifier.FSTAR_TRANSACTION_PROTO_INPUT,
             verifier.FSTAR_CARGO_LOCK_INPUT,
@@ -615,6 +601,46 @@ def unchanged_fstar_semantic_inputs(
             f"cannot compare F* semantic inputs: {error}"
         ) from error
     return tuple(unchanged)
+
+
+def _load_fstar_verifier(root: Path) -> object:
+    verifier_path = (root / FSTAR_VERIFIER).resolve()
+    cached = _FSTAR_VERIFIER_CACHE.get(verifier_path)
+    if cached is not None:
+        return cached
+    module_suffix = hashlib.sha256(
+        str(verifier_path).encode("utf-8")
+    ).hexdigest()[:16]
+    module_name = f"_snarkpack_fstar_evidence_{module_suffix}"
+    spec = importlib.util.spec_from_file_location(module_name, verifier_path)
+    if spec is None or spec.loader is None:
+        raise ImpactError(f"cannot load F* evidence verifier: {verifier_path}")
+    verifier = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = verifier
+    try:
+        spec.loader.exec_module(verifier)
+    except Exception as error:
+        sys.modules.pop(module_name, None)
+        raise ImpactError(
+            f"cannot load F* evidence verifier: {verifier_path}: {error}"
+        ) from error
+    _FSTAR_VERIFIER_CACHE[verifier_path] = verifier
+    return verifier
+
+
+def _fstar_proof_names(root: Path) -> tuple[str, ...]:
+    proof_root = root / FSTAR_ROOT
+    nested = sorted(
+        path.relative_to(root).as_posix()
+        for path in proof_root.rglob("*.fst")
+        if path.parent != proof_root
+    )
+    if nested:
+        raise ImpactError(
+            "F* proof modules must use the flat proof directory layout: "
+            + ", ".join(nested)
+        )
+    return tuple(sorted(path.name for path in proof_root.glob("*.fst")))
 
 
 def _starts_with_any(path: str, prefixes: Iterable[str]) -> bool:
@@ -743,9 +769,7 @@ def plan(
         if fstar_relevant
         else ()
     )
-    known_fstar_proofs = {
-        path.name for path in (root / FSTAR_ROOT).glob("*.fst")
-    }
+    known_fstar_proofs = set(_fstar_proof_names(root))
     pending_fstar_set = set(pending_fstar)
     unknown_pending = sorted(pending_fstar_set - known_fstar_proofs)
     if unknown_pending:

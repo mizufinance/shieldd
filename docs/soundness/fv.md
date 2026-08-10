@@ -315,7 +315,9 @@ transitions.
 
 The Lean gate permits one Lake build at a time with `LEAN_NUM_THREADS=1`.
 Generated Lean is never edited directly; generator output and template
-ownership are byte-checked.
+ownership are byte-checked. Typed pull requests run `drift` and `kernel` in
+parallel: `drift` regenerates committed formal artifacts without proving, and
+`kernel` typechecks only the selected final theorem roots.
 
 ## Release commands
 

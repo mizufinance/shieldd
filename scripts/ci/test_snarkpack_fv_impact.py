@@ -22,6 +22,23 @@ SPEC.loader.exec_module(IMPACT)
 
 
 class ImpactPlannerTests(unittest.TestCase):
+    def test_fstar_verifier_is_loaded_once_per_repository(self) -> None:
+        first = IMPACT._load_fstar_verifier(ROOT)
+        second = IMPACT._load_fstar_verifier(ROOT)
+        self.assertIs(first, second)
+
+    def test_nested_fstar_proof_is_rejected_by_flat_layout_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / IMPACT.FSTAR_ROOT / "nested" / "Proof.fst"
+            nested.parent.mkdir(parents=True)
+            nested.write_text("module Proof\n", encoding="utf-8")
+            with self.assertRaisesRegex(
+                IMPACT.ImpactError,
+                "flat proof directory layout",
+            ):
+                IMPACT._fstar_proof_names(root)
+
     def test_semantic_input_comparison_ignores_unrelated_proto_change(self) -> None:
         relative = "proto/shieldd/shieldd/core/transaction/v1/transaction.proto"
         source = (ROOT / relative).read_text(encoding="utf-8")

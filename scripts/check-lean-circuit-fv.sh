@@ -3,6 +3,8 @@ set -euo pipefail
 
 # Incremental exact Lean circuit FV gate.
 #
+#   kernel  Typecheck only the selected final theorem roots. This is the
+#           pull-request proof check; it does not regenerate or prove.
 #   drift   Go compilation, content impact, coverage, generator/inventory
 #           checks, and stamp integrity. No Lake command and no proving.
 #   typed   drift plus selected final soundness modules, typed theorem bindings,
@@ -15,9 +17,9 @@ set -euo pipefail
 
 MODE="${1:-}"
 case "$MODE" in
-  drift|typed|release) shift ;;
+  kernel|drift|typed|release) shift ;;
   *)
-    echo "usage: $(basename "$0") [drift|typed|release] [CERTIFIED_PROFILE|all]..." >&2
+    echo "usage: $(basename "$0") [kernel|drift|typed|release] [CERTIFIED_PROFILE|all]..." >&2
     exit 2
     ;;
 esac
@@ -165,6 +167,24 @@ lean_build() {
   fi
   tail -n 1 "$log"
 }
+
+if [[ "$MODE" == "kernel" ]]; then
+  echo "==> selected final theorem roots"
+  (
+    cd "$LEAN_DIR"
+    lake exe cache get >/dev/null 2>&1 || true
+    theorem_roots="$(
+      while IFS= read -r circuit; do
+        [[ -z "$circuit" ]] || backend_value "$circuit" theorem_root
+      done <<< "$selected_circuits" | awk '!seen[$0]++'
+    )"
+    while IFS= read -r theorem_root; do
+      [[ -z "$theorem_root" ]] || lean_build "$theorem_root"
+    done <<< "$theorem_roots"
+  )
+  echo "lean circuit fv ok (kernel): families=$(printf '%s' "$selected_circuits" | tr '\n' ',' | sed 's/,$//')"
+  exit 0
+fi
 
 echo "==> registry parity"
 python3 "$GNARK_DIR/check_gnark_family_registries.py"
