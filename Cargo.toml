@@ -10,6 +10,7 @@ members = [
   "crates/bench",
   "crates/bin/orbis-audit",
   "crates/bin/orbis-integration",
+  "crates/bin/bankd-e2e-host-withdrawal-builder",
   "crates/bin/bankd-e2e-spend-builder",
   "crates/bin/pcli",
   "crates/bin/pclientd",

@@ -904,6 +904,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "bankd-e2e-host-withdrawal-builder"
+version = "2.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.21.7",
+ "cnidarium",
+ "decaf377",
+ "ibc-types",
+ "rand_core 0.6.4",
+ "shieldd-sdk-app",
+ "shieldd-sdk-asset",
+ "shieldd-sdk-keys",
+ "shieldd-sdk-mock-client",
+ "shieldd-sdk-num",
+ "shieldd-sdk-proof-params",
+ "shieldd-sdk-proto",
+ "shieldd-sdk-sct",
+ "shieldd-sdk-shielded-pool",
+ "shieldd-sdk-transaction",
+ "shieldd-sdk-txhash",
+ "shieldd-sdk-view",
+ "tokio",
+]
+
+[[package]]
 name = "bankd-e2e-spend-builder"
 version = "2.1.0"
 dependencies = [
