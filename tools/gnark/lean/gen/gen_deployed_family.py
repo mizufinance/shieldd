@@ -10287,7 +10287,7 @@ def _render_transfer_metadata_seams(
             else f"(C.action rho).{action_field}"
         )
         projection_unfold = (
-            f"C.{action_projection}, " if action_projection else ""
+            f", C.{action_projection}" if action_projection else ""
         )
         direct.append(f"""\
 /-- Exact metadata binding for `{metadata_field}`. -/
@@ -10299,7 +10299,7 @@ theorem metadata{stable}_of_semantic
   have h := semantic.{lower}
   unfold {camel}SemanticSpec {provider}.spec at h
   simpa [
-    C.action, C.transcript, C.metadata, {projection_unfold}
+    C.action, C.transcript, C.metadata{projection_unfold},
     {metadata_binding}, {metadata_binding}LC,
     {action_binding}, {action_binding}LC,
     StructuredLC.eval, StructuredLC.sumRuns,

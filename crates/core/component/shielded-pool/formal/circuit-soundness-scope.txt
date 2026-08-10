@@ -65,7 +65,7 @@ ZK-FIND-FORMAL-EXTERNAL-BOUNDARY|tools/gnark/lean/ShielddGnarkFormal/Protocol/Tr
 ZK-FIND-PLAN-CACHED-PROJECTIONS|proto/shieldd/shieldd/core/component/shielded_pool/v1/shielded_pool.proto:reserved 1, 3;
 ZK-FIND-TEMPLATE-MATCHER-QUADRATIC|crates/crypto/constraint-coverage/src/template_registry.rs:SearchBudgetExceeded
 ZK-FIND-HASH-BINDING-TRUST-BOUNDARY|crates/core/component/compliance/formal/assumption-ledger.md:ZK-ASSUME-PUBLIC-INPUT-HASH-CR
-ZK-FIND-TRANSFER-SENDER-CLUE-KEY-SPLIT|tools/gnark/internal/circuits/transfer_circuit.go:SenderClueKey frontend.Variable
+ZK-FIND-TRANSFER-SENDER-DISCOVERY-KEY-SPLIT|tools/gnark/internal/circuits/transfer_circuit.go:SenderClueKey frontend.Variable
 ZK-FIND-TRANSFER-SHARED-POINT-DISCONNECT|crates/core/component/compliance/src/evidence.rs:The object deliberately excludes PRE envelopes, DH shared points, and
 ZK-FIND-COMPLIANCE-EVIDENCE-CANONICALITY|crates/core/component/compliance/src/evidence.rs:pub fn from_bytes(bytes: &[u8]) -> Result<Self>
 ZK-FIND-TRANSFER-EFFECT-HASH-COMPLIANCE-SPEC|crates/core/component/shielded-pool/src/transfer/plan.rs:effect_hash_binds_proof_bound_compliance_records_but_not_witness_anchor
@@ -78,7 +78,7 @@ ZK-FIND-AGGREGATE-DEV-SRS-TRAPDOOR|crates/core/app/src/app/mod.rs:async fn verif
 ZK-FIND-ASYNC-WORKER-LIFETIME|crates/core/app/src/app/mod.rs:async fn drain_joinset_results<T: Send + 'static>(
 ZK-FIND-CHECKTX-ANCHOR-CACHE-GROWTH|crates/core/app/src/server/mempool.rs:let snapshot = storage.latest_snapshot();
 ZK-FIND-CHECKTX-CONTEXT-STALE-REUSE|crates/core/app/src/server/mempool.rs:let mut app = App::new(snapshot);
-ZK-FIND-COMPLIANCE-LEAF-CLUE-KEY-OMISSION|crates/core/component/compliance/src/structs.rs:let clue_key = Fq::from_bytes_checked
+ZK-FIND-COMPLIANCE-LEAF-DISCOVERY-KEY-OMISSION|crates/core/component/compliance/src/structs.rs:let discovery_key = Fq::from_bytes_checked
 ZK-FIND-COMPLIANCE-ZERO-DERIVATION|crates/core/component/compliance/src/structs.rs:fn validate_derivation_scalar
 ZK-FIND-CONSENSUS-ADMISSION-RESOURCE-BOUNDS|crates/core/app/src/app/mod.rs:pub const MAX_BLOCK_TXS_PAYLOAD_BYTES
 ZK-FIND-CONSENSUS-DIAGNOSTIC-IO|crates/core/app/src/app/mod.rs:fn consensus_acceptance_source_has_no_diagnostic_io()
@@ -88,7 +88,7 @@ ZK-FIND-FV-BRANCH-WITNESS-COVERAGE|tools/gnark/fv_profiles.json:"case": "regulat
 ZK-FIND-FV-SEMANTIC-IMPORT-CLOSURE|scripts/fv_specification_completeness.py:def lean_import_modules
 ZK-FIND-FV-SETUP-PROVENANCE-OVERCLAIM|scripts/check-fv-profiles.py:"toxic_waste_erasure": "not_mechanically_verified"
 ZK-FIND-IVK-ZERO-TRANSMISSION-IDENTITY|tools/gnark/internal/circuits/transfer_circuit.go:lhs=auth.ivk_reduced
-ZK-FIND-STATELESS-CACHE-IDENTITY-AND-BOUNDS|crates/core/app/src/stateless_cache.rs:pub(crate) fn get(&self, hash: &[u8; 32], raw_tx: &[u8])
+ZK-FIND-STATELESS-CACHE-IDENTITY-AND-BOUNDS|crates/core/app/src/stateless_cache.rs:pub fn get(&self, hash: &[u8; 32], raw_tx: &[u8])
 ZK-FIND-TRANSFER-ASSET-SENTINEL|tools/gnark/internal/circuits/transfer_circuit.go:api.AssertIsDifferent(shared.sharedAssetID, 0)
 ZK-FIND-TRANSFER-COMPLIANCE-NONCE-REUSE|crates/view/src/client_compliance.rs:fn fresh_transfer_nonce
 ZK-FIND-TRANSFER-DETECTION-ASSET-FLAG-ALIAS|tools/gnark/internal/circuits/transfer_circuit.go:sender_word=sender.slot_id+flag*2^32

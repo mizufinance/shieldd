@@ -4324,6 +4324,9 @@ class DeployedFamilyTests(unittest.TestCase):
         ir, manifest = self.transfer_refinement_fixture()
         source = deployed.render_transfer_transcript_seams(ir, manifest)
 
+        self.assertTrue(
+            all(line == line.rstrip() for line in source.splitlines())
+        )
         self.assertIn(
             "open Shieldd.GnarkFormal.Deployed.TransferRefinement",
             source,

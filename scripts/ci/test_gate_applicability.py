@@ -496,6 +496,17 @@ class GateApplicabilityTests(unittest.TestCase):
             full_case,
         )
 
+    def test_soundness_gate_materializes_lfs_witnesses(self) -> None:
+        workflow = (self.root / ".github/workflows/formal.yml").read_text(
+            encoding="utf-8"
+        )
+        soundness_gate = workflow[
+            workflow.index("  soundness-gate:") : workflow.index(
+                "  soundness-seam-and-pin:"
+            )
+        ]
+        self.assertIn("          lfs: true", soundness_gate)
+
     def test_handwritten_snarkpack_lean_inputs_select_full_tier(self) -> None:
         paths = (
             "crates/crypto/proof-aggregation/formal/lean-ipp/Ipp/Goal.lean",
@@ -1531,6 +1542,16 @@ class GateApplicabilityTests(unittest.TestCase):
             "hashFiles(inputs.nix-cache-glob, 'flake.lock')",
             action,
         )
+
+    def test_nix_shell_exposes_sqlite_to_rust_test_binaries(self) -> None:
+        flake = (self.root / "flake.nix").read_text(encoding="utf-8")
+        library_path = flake[
+            flake.index("export LD_LIBRARY_PATH=") : flake.index(
+                "export RUST_LOG=",
+                flake.index("export LD_LIBRARY_PATH="),
+            )
+        ]
+        self.assertIn("pkgs.sqlite", library_path)
 
     def test_local_fv_quarantine_recovery_uses_real_safety_state(self) -> None:
         runner = (

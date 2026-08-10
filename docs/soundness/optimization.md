@@ -63,26 +63,26 @@ circuit metadata are authoritative. The intervening mixed-purpose changes are
 not presented as one optimization delta.
 
 Transfer V13 also deletes the required-spend, optional-spend, and change-note
-clue-key copies in favor of one sender clue key; the receiver alone retains an
+discovery-key copies in favor of one sender discovery key; the receiver alone retains an
 independent key. Transfer V16 then deletes the upload bundle, public shared
 points, and all four DLEQ packages. Detection, amount, and address encryption
 remain unconditional in the circuit, while the regulation bit gates only the
 threshold result and shared-secret selection. This is a security simplification
 of the accepted language, not an optimization claim over the historical V13
 count. Transfer V16 further separates the exact asset from the flag, constrains
-both detection slots to 32 bits, adopts clue-key-bearing compliance leaves,
+both detection slots to 32 bits, adopts discovery-key-bearing compliance leaves,
 rejects the asset-tree sentinel, and rejection-samples nonzero tier scalars.
 Those are mixed security changes, so no optimization percentage is claimed
 until the final V16 artifact census is pinned.
 
 ## Withdrawal follow-up
 
-Withdrawal V7 removed duplicated per-note sender clue keys, derived the
+Withdrawal V7 removed duplicated per-note sender discovery keys, derived the
 fixed-family public body from canonical plan facts, and used the
 conservation-specific balance construction. Withdrawal V8 replaces repeated
 full policy openings with the canonical compact asset leaf
 `(value, nextIndex, nextValue, paramsHash, ringHash)`, adopts the shared
-clue-key-bearing compliance leaf, rejects the zero sentinel, and removes
+discovery-key-bearing compliance leaf, rejects the zero sentinel, and removes
 cross-spend transaction-nonce coupling. The fixed 2x1 relation moves from
 59,579 to 56,788 constraints: −2,791 (−4.68%). Because this combines
 simplification with security hardening, the number is a deployed relation

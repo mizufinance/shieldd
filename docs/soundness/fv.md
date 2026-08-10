@@ -34,7 +34,7 @@ real/dummy selection, randomized keys, conservation, canonical encodings, and
 the exact native statement hash. Transfer additionally covers its asset/user
 registry proofs, regulation-gated threshold comparison, unconditional compliance
 ciphertexts, salts, shared-secret/ACK derivations, and factored metadata.
-Transfer V16 also proves the v2 clue-key-bearing compliance leaves, excludes
+Transfer V16 also proves the v2 discovery-key-bearing compliance leaves, excludes
 the asset-tree zero sentinel, constrains both detection slots to 32 bits, and
 keeps the exact asset separate from the flag packed into sender-slot bit 32.
 It has no DLEQ or public shared-point surface. Withdrawal V8 proves the same
@@ -211,7 +211,7 @@ ledger row, required test, or stated assumption silently falls out of the
 implementation/proof chain.
 
 The version-3 NoteReshape witness contains one private shared asset ID,
-diversified generator, and clue key. Transfer V16 and Withdrawal V8 likewise
+diversified generator, and discovery key. Transfer V16 and Withdrawal V8 likewise
 derive their public bodies and shared sender context from canonical plan facts.
 There is no persisted placeholder action body or duplicate balance in any of
 the three proof plans.

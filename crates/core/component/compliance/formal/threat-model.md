@@ -56,8 +56,8 @@ disclose its own randomness.
 
 Honest construction also rejection-samples each tier scalar until nonzero.
 Registry admission rejects a zero derived `d` and requires a checked canonical
-clue key in the v2 compliance leaf. These prevent identity audit capabilities
-and clue-key substitution for state admitted through the supported builders;
+discovery key in the v2 compliance leaf. These prevent identity audit capabilities
+and discovery-key substitution for state admitted through the supported builders;
 a malicious creator can still disclose plaintext it already knows.
 
 ## Public And Secret Inventory

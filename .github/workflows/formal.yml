@@ -770,6 +770,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
+          lfs: true
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Check soundness invariants
@@ -812,7 +813,7 @@ jobs:
       needs.applicability.outputs.soundness_run == 'true' &&
       needs.applicability.outputs.soundness_tier != 'full'
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

@@ -24,7 +24,7 @@ CC-FIND-UNUSED-STREAM-DOMAIN|crates/core/component/compliance/src/crypto.rs:fn c
 CC-FIND-DESIGNATED-VERIFIER-CLAIM|crates/core/component/compliance/src/evidence.rs:The object deliberately excludes PRE envelopes, DH shared points, and
 CC-FIND-DLEQ-WEAK-FS|crates/core/component/compliance/formal/lean-dleq/Dleq/FiatShamir.lean:theorem dleq_fs_knowledge_soundness_strong
 CC-FIND-DLEQ-CHALLENGE-BIAS|crates/core/component/compliance/formal/lean-dleq/Dleq/Challenge.lean:theorem emb_injective
-CC-FIND-COMPLIANCE-LEAF-CLUE-OMISSION|crates/core/component/compliance/src/structs.rs:let clue_key = Fq::from_bytes_checked
+CC-FIND-COMPLIANCE-LEAF-DISCOVERY-KEY-OMISSION|crates/core/component/compliance/src/structs.rs:let discovery_key = Fq::from_bytes_checked
 CC-FIND-TRANSFER-IDENTITY-DIVERSIFIER-OWNERSHIP|tools/gnark/internal/circuits/transfer_circuit.go:AssertDecafNonIdentity(api, shared.senderDivGen)
 CC-FIND-DETECTION-ASSET-FLAG-ALIAS|tools/gnark/internal/circuits/transfer_circuit.go:sender_word=sender.slot_id+flag*2^32
 CC-FIND-ZERO-EPHEMERAL-SCALAR|crates/core/component/compliance/src/transfer.rs:fn sample_nonzero_scalar
