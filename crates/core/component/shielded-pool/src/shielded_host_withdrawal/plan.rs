@@ -12,6 +12,7 @@ use shieldd_sdk_tct as tct;
 use shieldd_sdk_txhash::EffectingData;
 
 use crate::{
+    discovery::Precision,
     note_reshape_padding::{
         dummy_spend_auth_sig, dummy_state_commitment_proof, pad_to_len, HiddenArityPadder,
     },
@@ -39,6 +40,7 @@ pub struct ShieldedHostWithdrawalPlan {
     pub spends: Vec<ShieldedInputPlan>,
     pub change_output: Option<ShieldedOutputPlan>,
     pub withdrawal: HostWithdrawal,
+    pub discovery_precision: Precision,
 }
 
 impl ShieldedHostWithdrawalPlan {
@@ -106,7 +108,7 @@ impl ShieldedHostWithdrawalPlan {
                 inputs: Vec::new(),
                 withdrawal: withdrawal.clone(),
                 change_output: ShieldedIcs20WithdrawalChangeBody {
-                    note_payload: spends[0].note.payload(),
+                    note_payload: spends[0].note.payload(Precision::default()),
                     wrapped_memo_key: WrappedMemoKey([0u8; 48]),
                     ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
                 },
@@ -119,6 +121,7 @@ impl ShieldedHostWithdrawalPlan {
             spends,
             change_output,
             withdrawal,
+            discovery_precision: Precision::default(),
         };
         plan.body = plan.placeholder_body();
         Ok(plan)
@@ -126,6 +129,11 @@ impl ShieldedHostWithdrawalPlan {
 
     pub fn family_id(&self) -> ShieldedIcs20WithdrawalFamilyId {
         self.body.family_id
+    }
+
+    pub fn set_discovery_precision(&mut self, precision: Precision) {
+        self.discovery_precision = precision;
+        self.body = self.placeholder_body();
     }
 
     pub fn balance(&self) -> Balance {
@@ -278,13 +286,17 @@ impl ShieldedHostWithdrawalPlan {
 
         let change_output = if let Some(change_output) = &self.change_output {
             ShieldedIcs20WithdrawalChangeBody {
-                note_payload: change_output.output_note().payload(),
+                note_payload: change_output
+                    .output_note()
+                    .payload(self.discovery_precision),
                 wrapped_memo_key: WrappedMemoKey([0u8; 48]),
                 ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
             }
         } else {
             ShieldedIcs20WithdrawalChangeBody {
-                note_payload: padder.synthetic_dummy_output_note(1).payload(),
+                note_payload: padder
+                    .synthetic_dummy_output_note(1)
+                    .payload(self.discovery_precision),
                 wrapped_memo_key: WrappedMemoKey([0u8; 48]),
                 ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([0u8; 48]),
             }
@@ -462,8 +474,8 @@ impl ShieldedHostWithdrawalPlan {
         });
 
         let change_output = if let Some(change_output) = &self.change_output {
-            let (note_payload, wrapped_memo_key, ovk_wrapped_key) =
-                change_output.action_output_parts(fvk.outgoing(), memo_key);
+            let (note_payload, wrapped_memo_key, ovk_wrapped_key) = change_output
+                .action_output_parts(fvk.outgoing(), memo_key, self.discovery_precision);
             ShieldedIcs20WithdrawalChangeBody {
                 note_payload,
                 wrapped_memo_key,
@@ -481,7 +493,7 @@ impl ShieldedHostWithdrawalPlan {
                 &dummy_note.diversified_generator(),
             );
             ShieldedIcs20WithdrawalChangeBody {
-                note_payload: dummy_note.payload(),
+                note_payload: dummy_note.payload(self.discovery_precision),
                 wrapped_memo_key,
                 ovk_wrapped_key,
             }
@@ -573,6 +585,7 @@ impl From<ShieldedHostWithdrawalPlan> for pb::ShieldedHostWithdrawalPlan {
             spends: value.spends.into_iter().map(Into::into).collect(),
             change_output: value.change_output.map(Into::into),
             withdrawal: Some(value.withdrawal.into()),
+            discovery_precision_bits: value.discovery_precision.into(),
         }
     }
 }
@@ -608,6 +621,7 @@ impl TryFrom<pb::ShieldedHostWithdrawalPlan> for ShieldedHostWithdrawalPlan {
                 .withdrawal
                 .ok_or_else(|| anyhow!("missing embedded shielded host withdrawal payload"))?
                 .try_into()?,
+            discovery_precision: value.discovery_precision_bits.try_into()?,
         };
         plan.validate_invariants()?;
         Ok(plan)

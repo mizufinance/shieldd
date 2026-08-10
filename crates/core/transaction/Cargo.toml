@@ -28,7 +28,6 @@ blake2b_simd = {workspace = true}
 bytes = {workspace = true}
 chacha20poly1305 = {workspace = true}
 decaf377 = {workspace = true}
-decaf377-fmd = {workspace = true}
 decaf377-ka = {workspace = true}
 decaf377-rdsa = {workspace = true}
 derivative = {workspace = true}

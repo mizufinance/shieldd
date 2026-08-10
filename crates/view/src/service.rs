@@ -39,7 +39,7 @@ use shieldd_sdk_proto::{
         view_service_client::ViewServiceClient,
         view_service_server::{ViewService, ViewServiceServer},
         AppParametersResponse, AssetMetadataByIdRequest, AssetMetadataByIdResponse,
-        BroadcastTransactionResponse, FmdParametersResponse, GasPricesResponse,
+        BroadcastTransactionResponse, DiscoveryParametersResponse, GasPricesResponse,
         NoteByCommitmentResponse, StatusResponse, TransactionPlannerResponse, WalletIdRequest,
         WalletIdResponse, WitnessResponse,
     },
@@ -1751,18 +1751,17 @@ impl ViewService for ViewServer {
     }
 
     #[instrument(skip_all, level = "trace")]
-    async fn fmd_parameters(
+    async fn discovery_parameters(
         &self,
-        _request: tonic::Request<pb::FmdParametersRequest>,
-    ) -> Result<tonic::Response<pb::FmdParametersResponse>, tonic::Status> {
+        _request: tonic::Request<pb::DiscoveryParametersRequest>,
+    ) -> Result<tonic::Response<pb::DiscoveryParametersResponse>, tonic::Status> {
         self.check_worker().await?;
 
-        let parameters =
-            self.storage.fmd_parameters().await.map_err(|e| {
-                tonic::Status::unavailable(format!("error getting FMD params: {e}"))
-            })?;
+        let parameters = self.storage.discovery_parameters().await.map_err(|e| {
+            tonic::Status::unavailable(format!("error getting discovery parameters: {e}"))
+        })?;
 
-        let response = FmdParametersResponse {
+        let response = DiscoveryParametersResponse {
             parameters: Some(parameters.into()),
         };
 

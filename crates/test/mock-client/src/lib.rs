@@ -268,11 +268,6 @@ impl MockClient {
         // Enrich the plan with compliance data
         self.enrich_plan_with_compliance_internal(plan, state, block_ts)
             .await?;
-        // Populate FMD clues if not already set (stateless checks require
-        // num_clues == num_note_creating_outputs).
-        if plan.detection_data.is_none() {
-            plan.populate_detection_data(&mut OsRng, Default::default());
-        }
         // Populate memo if outputs exist but no memo set.
         if plan.memo.is_none() && plan.num_outputs() > 0 {
             let (return_address, _) = self.fvk.incoming().payment_address(0u32.into());

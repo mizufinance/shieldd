@@ -11,8 +11,8 @@ pub use host_withdrawal::{
     EvmCall, HostExecution, HostTransfer, HostWithdrawal, HostWithdrawalDestination,
 };
 
+pub mod discovery;
 pub mod event;
-pub mod fmd;
 pub mod genesis;
 pub mod gnark;
 pub mod params;

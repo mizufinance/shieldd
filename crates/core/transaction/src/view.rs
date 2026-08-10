@@ -19,7 +19,7 @@ use crate::{
     fee_funding::FeeFunding,
     memo::MemoCiphertext,
     transaction::{TransactionEffect, TransactionSummary},
-    Action, DetectionData, Transaction, TransactionBody, TransactionParameters,
+    Action, Transaction, TransactionBody, TransactionParameters,
 };
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -39,7 +39,6 @@ pub struct TransactionBodyView {
     pub action_views: Vec<ActionView>,
     pub transaction_parameters: TransactionParameters,
     pub fee_funding: Option<TransferView>,
-    pub detection_data: Option<DetectionData>,
     pub memo_view: Option<MemoView>,
 }
 
@@ -89,7 +88,6 @@ impl TransactionView {
                         TransferView::Opaque { transfer } => transfer,
                     },
                 }),
-                detection_data: self.body_view.detection_data.clone(),
                 memo: memo_ciphertext.cloned(),
             },
             binding_sig: self.binding_sig,
@@ -345,6 +343,7 @@ mod tests {
                                         note_commitment: StateCommitment(Fq::from(3u64)),
                                         ephemeral_key: change_note.ephemeral_public_key(),
                                         encrypted_note: change_note.encrypt(),
+                                        discovery_tag: Default::default(),
                                     },
                                     wrapped_memo_key: WrappedMemoKey([0u8; 48]),
                                     ovk_wrapped_key: OvkWrappedKey([0u8; 48]),
@@ -363,7 +362,6 @@ mod tests {
                 )],
                 transaction_parameters: Default::default(),
                 fee_funding: None,
-                detection_data: None,
                 memo_view: None,
             },
             binding_sig: [0u8; 64].into(),
@@ -460,23 +458,10 @@ impl TryFrom<pbt::TransactionBodyView> for TransactionBodyView {
             .try_into()?;
         let fee_funding = body_view.fee_funding.map(TryInto::try_into).transpose()?;
 
-        let fmd_clues = body_view
-            .detection_data
-            .map(|dd| {
-                dd.fmd_clues
-                    .into_iter()
-                    .map(|fmd| fmd.try_into())
-                    .collect::<Result<Vec<_>, _>>()
-            })
-            .transpose()?;
-
-        let detection_data = fmd_clues.map(|fmd_clues| DetectionData { fmd_clues });
-
         Ok(TransactionBodyView {
             action_views,
             transaction_parameters,
             fee_funding,
-            detection_data,
             memo_view,
         })
     }
@@ -498,7 +483,6 @@ impl From<TransactionBodyView> for pbt::TransactionBodyView {
             action_views: v.action_views.into_iter().map(Into::into).collect(),
             transaction_parameters: Some(v.transaction_parameters.into()),
             fee_funding: v.fee_funding.map(Into::into),
-            detection_data: v.detection_data.map(Into::into),
             memo_view: v.memo_view.map(Into::into),
         }
     }

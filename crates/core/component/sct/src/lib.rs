@@ -12,10 +12,8 @@ pub mod nullifier_tree;
 pub mod params;
 pub mod state_key;
 
-mod nullification_info;
 mod nullifier;
 mod source;
 
-pub use nullification_info::NullificationInfo;
 pub use nullifier::{Nullifier, NullifierVar};
 pub use source::CommitmentSource;

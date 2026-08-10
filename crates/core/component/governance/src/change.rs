@@ -231,9 +231,11 @@ mod tests {
           "fixedGasPrices": {}
         },
         "shieldedPoolParams": {
-          "fmdMetaParams": {
+          "discoveryParams": {
+            "precisionBits": 16,
             "asOfBlockHeight": "1"
-          }
+          },
+          "discoveryGracePeriodBlocks": "16"
         }
       }
     "#;

@@ -610,14 +610,12 @@ mod test {
             output,
             decaf377::Fr::rand(&mut OsRng),
         )?;
-        let mut plan = TransactionPlan {
+        let plan = TransactionPlan {
             actions: vec![shieldd_sdk_transaction::ActionPlan::Transfer(transfer)],
             memo: None,
-            detection_data: None,
             fee_funding: None,
             transaction_parameters: shieldd_sdk_transaction::TransactionParameters::default(),
         };
-        plan.populate_detection_data(OsRng, Default::default());
         let fvk = coordinator_config.fvk().clone();
         let authorization_data = Threshold::new(coordinator_config, coordinator_terminal)
             .authorize(SigningRequest::TransactionPlan(plan.clone()))

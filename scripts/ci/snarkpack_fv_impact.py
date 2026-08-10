@@ -111,6 +111,13 @@ class ImpactError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class GateDecision:
+    status: str
+    graphs: tuple[str, ...]
+    unknown_files: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class ImpactPlan:
     static: bool
     extraction_graphs: tuple[str, ...]
@@ -245,9 +252,20 @@ def extraction_graph_ids(root: Path) -> tuple[str, ...]:
 def extraction_graph_ids_at(
     root: Path, revision: str
 ) -> tuple[str, ...]:
+    manifest_path = EXTRACTION_MANIFEST.as_posix()
+    listing = _run_git(
+        root,
+        ["ls-tree", "--name-only", revision, "--", manifest_path],
+    )
+    if listing.returncode:
+        raise ImpactError(
+            f"cannot inspect extraction manifest at base {revision!r}"
+        )
+    if str(listing.stdout).strip() != manifest_path:
+        return ()
     result = _run_git(
         root,
-        ["show", f"{revision}:{EXTRACTION_MANIFEST.as_posix()}"],
+        ["show", f"{revision}:{manifest_path}"],
     )
     if result.returncode:
         raise ImpactError(
@@ -683,16 +701,34 @@ def plan(
     )
 
 
-def _parse_json_strings(value: str, label: str) -> tuple[str, ...]:
+def load_gate_decision(path: Path) -> GateDecision:
     try:
-        decoded = json.loads(value)
-    except json.JSONDecodeError as error:
-        raise ImpactError(f"{label} is malformed JSON: {error}") from error
-    if not isinstance(decoded, list) or any(
-        not isinstance(item, str) or not item for item in decoded
-    ):
-        raise ImpactError(f"{label} must be an array of non-empty strings")
-    return tuple(decoded)
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise ImpactError(f"cannot read gate decision {path}: {error}") from error
+    if not isinstance(value, dict) or value.get("schema_version") != 1:
+        raise ImpactError(f"gate decision {path} must use schema version 1")
+    status = value.get("status")
+    if status not in {"run", "skip", "block"}:
+        raise ImpactError(f"gate decision {path} has invalid status {status!r}")
+    if value.get("run") is not (status == "run"):
+        raise ImpactError(f"gate decision {path} has inconsistent run state")
+
+    def strings(field: str) -> tuple[str, ...]:
+        items = value.get(field)
+        if not isinstance(items, list) or any(
+            not isinstance(item, str) or not item for item in items
+        ):
+            raise ImpactError(
+                f"gate decision {path}.{field} must be an array of strings"
+            )
+        return tuple(items)
+
+    return GateDecision(
+        status=status,
+        graphs=strings("graphs"),
+        unknown_files=strings("unknown_files"),
+    )
 
 
 def write_github_output(path: Path, plan_value: ImpactPlan) -> None:
@@ -730,12 +766,10 @@ def write_github_output(path: Path, plan_value: ImpactPlan) -> None:
 def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(description=__doc__)
     result.add_argument("--event", required=True, choices=sorted(SUPPORTED_EVENTS))
-    result.add_argument("--status", required=True)
     result.add_argument("--base")
     result.add_argument("--head", default="HEAD")
     result.add_argument("--changed-file", action="append", default=[])
-    result.add_argument("--graphs-json", default="[]")
-    result.add_argument("--unknown-files-json", default="[]")
+    result.add_argument("--gate-decision", type=Path, required=True)
     result.add_argument("--github-output", type=Path)
     result.add_argument("--pretty", action="store_true")
     return result
@@ -753,10 +787,7 @@ def main(argv: list[str] | None = None) -> int:
                 raise ImpactError(f"--base is required for {args.event}")
         else:
             paths = ()
-        graphs = _parse_json_strings(args.graphs_json, "--graphs-json")
-        unknown = _parse_json_strings(
-            args.unknown_files_json, "--unknown-files-json"
-        )
+        decision = load_gate_decision(args.gate_decision)
         retired: tuple[str, ...] = ()
         fstar_control_change = False
         lean_environment_change = False
@@ -778,10 +809,10 @@ def main(argv: list[str] | None = None) -> int:
         result = plan(
             ROOT,
             event=args.event,
-            status=args.status,
+            status=decision.status,
             changed=paths,
-            declared_graphs=graphs,
-            unknown_files=unknown,
+            declared_graphs=decision.graphs,
+            unknown_files=decision.unknown_files,
             retired_graphs=retired,
             fstar_manifest_control_change=fstar_control_change,
             lean_environment_control_change=lean_environment_change,

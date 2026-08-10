@@ -279,7 +279,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                                     actions: actions.clone(),
                                     transaction_parameters: TransactionParameters::default(),
                                     fee_funding: None,
-                                    detection_data: None,
                                     memo: None,
                                 }
                                 .gas_cost(),
@@ -563,7 +562,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                                     actions: actions.clone(),
                                     transaction_parameters: TransactionParameters::default(),
                                     fee_funding: None,
-                                    detection_data: None,
                                     memo: None,
                                 }
                                 .gas_cost(),
@@ -1179,7 +1177,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
                     actions: primary_actions.clone(),
                     transaction_parameters: TransactionParameters::default(),
                     fee_funding: None,
-                    detection_data: None,
                     memo: None,
                 }
                 .gas_cost(),
@@ -1302,7 +1299,6 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             actions,
             transaction_parameters,
             fee_funding,
-            detection_data: None,
             memo: None,
         };
 
@@ -1324,8 +1320,8 @@ impl<R: RngCore + CryptoRng> NoteManager<R> {
             ));
         }
 
-        let fmd_params = view.fmd_parameters().await?;
-        plan.populate_detection_data(&mut self.rng, fmd_params.precision);
+        let discovery_params = view.discovery_parameters().await?;
+        plan.populate_discovery_precision(discovery_params.precision);
         plan.sort_actions();
         check_transaction_plan_enabled(&plan)?;
 
@@ -1510,7 +1506,7 @@ mod tests {
     use shieldd_sdk_proto::view::v1 as pb;
     use shieldd_sdk_proto::{DomainType, Message as _};
     use shieldd_sdk_sct::{CommitmentSource, Nullifier};
-    use shieldd_sdk_shielded_pool::{fmd, note, Note, Rseed};
+    use shieldd_sdk_shielded_pool::{discovery, note, Note, Rseed};
     use shieldd_sdk_transaction::{
         plan::ActionPlan, txhash::TransactionId, AuthorizationData, Transaction, WitnessData,
     };
@@ -1768,10 +1764,10 @@ mod tests {
             async move { Ok(GasPrices::zero()) }.boxed()
         }
 
-        fn fmd_parameters(
+        fn discovery_parameters(
             &mut self,
-        ) -> Pin<Box<dyn Future<Output = Result<fmd::Parameters>> + Send + 'static>> {
-            async move { Ok(fmd::Parameters::default()) }.boxed()
+        ) -> Pin<Box<dyn Future<Output = Result<discovery::Parameters>> + Send + 'static>> {
+            async move { Ok(discovery::Parameters::default()) }.boxed()
         }
 
         fn notes(

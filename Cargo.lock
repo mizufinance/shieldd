@@ -2282,21 +2282,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "decaf377-fmd"
-version = "2.1.0"
-dependencies = [
- "ark-ff",
- "ark-serialize",
- "bitvec",
- "blake2b_simd 1.0.2",
- "criterion",
- "decaf377",
- "proptest",
- "rand_core 0.6.4",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "decaf377-frost"
 version = "2.1.0"
 dependencies = [
@@ -7909,7 +7894,6 @@ dependencies = [
  "cnidarium",
  "cnidarium-component",
  "decaf377",
- "decaf377-fmd",
  "decaf377-rdsa",
  "ed25519-consensus",
  "futures",
@@ -7998,7 +7982,6 @@ dependencies = [
  "cnidarium",
  "cnidarium-component",
  "decaf377",
- "decaf377-fmd",
  "decaf377-rdsa",
  "ed25519-consensus",
  "futures",
@@ -8083,7 +8066,6 @@ dependencies = [
  "blake2b_simd 1.0.2",
  "bytes",
  "decaf377",
- "decaf377-fmd",
  "decaf377-rdsa",
  "derivative",
  "ethnum",
@@ -8145,7 +8127,6 @@ dependencies = [
  "criterion",
  "csv",
  "decaf377",
- "decaf377-fmd",
  "decaf377-ka",
  "decaf377-rdsa",
  "futures",
@@ -8279,7 +8260,6 @@ dependencies = [
  "cnidarium",
  "cnidarium-component",
  "decaf377",
- "decaf377-fmd",
  "decaf377-ka",
  "decaf377-rdsa",
  "futures",
@@ -8521,7 +8501,6 @@ dependencies = [
  "bytes",
  "chacha20poly1305",
  "decaf377",
- "decaf377-fmd",
  "decaf377-ka",
  "decaf377-rdsa",
  "derivative",
@@ -8646,7 +8625,6 @@ dependencies = [
  "blake2b_simd 1.0.2",
  "bytes",
  "decaf377",
- "decaf377-fmd",
  "decaf377-rdsa",
  "derivative",
  "ethnum",
@@ -8788,7 +8766,6 @@ dependencies = [
  "bytes",
  "chrono",
  "cnidarium",
- "decaf377-fmd",
  "decaf377-rdsa",
  "futures",
  "hex",
@@ -8876,7 +8853,6 @@ dependencies = [
  "cnidarium",
  "cnidarium-component",
  "decaf377",
- "decaf377-fmd",
  "decaf377-ka",
  "decaf377-rdsa",
  "futures",
@@ -9065,7 +9041,6 @@ dependencies = [
  "bytes",
  "chacha20poly1305",
  "decaf377",
- "decaf377-fmd",
  "decaf377-ka",
  "decaf377-rdsa",
  "derivative",

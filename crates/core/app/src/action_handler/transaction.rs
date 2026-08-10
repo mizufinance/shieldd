@@ -15,8 +15,8 @@ use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::source::SourceContext;
 use shieldd_sdk_sct::component::tree::VerificationExt as _;
 use shieldd_sdk_sct::Nullifier;
-use shieldd_sdk_shielded_pool::component::{ClueManager, Ics20Transfer, StateReadExt as _};
-use shieldd_sdk_shielded_pool::fmd;
+use shieldd_sdk_shielded_pool::component::{Ics20Transfer, StateReadExt as _};
+use shieldd_sdk_shielded_pool::discovery;
 use shieldd_sdk_tct::StateCommitment;
 use shieldd_sdk_transaction::{gas::GasCost as _, Action, Transaction};
 use shieldd_sdk_txhash::TransactionId;
@@ -31,12 +31,12 @@ mod stateful;
 pub(crate) mod stateless;
 
 use self::stateful::{
-    claimed_anchor_is_valid, fmd_parameters_valid_with_context,
+    claimed_anchor_is_valid, discovery_parameters_valid_with_context,
     tx_parameters_historical_check_with_context,
 };
 use stateless::{
     check_memo_exists_if_outputs_absent_if_not, check_non_empty_transaction,
-    num_clues_equal_to_num_outputs, valid_binding_signature,
+    valid_binding_signature,
 };
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -64,7 +64,6 @@ pub(crate) struct TransactionExecutionProfile {
     pub output_action_execute_ms: f64,
     pub output_add_note_payload_ms: f64,
     pub other_action_execute_ms: f64,
-    pub record_clues_ms: f64,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -199,9 +198,9 @@ pub(crate) struct HistoricalCheckContext {
     pub chain_id: String,
     pub block_height: u64,
     pub block_timestamp: u64,
-    pub fmd_meta_params: fmd::MetaParameters,
-    pub previous_fmd_parameters: fmd::Parameters,
-    pub current_fmd_parameters: fmd::Parameters,
+    pub discovery_grace_period_blocks: u64,
+    pub previous_discovery_parameters: discovery::Parameters,
+    pub current_discovery_parameters: discovery::Parameters,
     pub anchor_cache: Arc<AnchorValidationCache>,
     pub claimed_anchor_cache: Arc<ClaimedAnchorValidationCache>,
 }
@@ -225,13 +224,13 @@ impl HistoricalCheckContext {
             chain_id: state.get_chain_id().await?,
             block_height: state.get_block_height().await?,
             block_timestamp: state.get_current_block_timestamp().await?.unix_timestamp() as u64,
-            fmd_meta_params: shielded_pool_params.fmd_meta_params,
-            previous_fmd_parameters: state
-                .get_previous_fmd_parameters()
+            discovery_grace_period_blocks: shielded_pool_params.discovery_grace_period_blocks,
+            previous_discovery_parameters: state
+                .get_previous_discovery_parameters()
                 .await
                 .expect("chain params request must succeed"),
-            current_fmd_parameters: state
-                .get_current_fmd_parameters()
+            current_discovery_parameters: state
+                .get_current_discovery_parameters()
                 .await
                 .expect("chain params request must succeed"),
             anchor_cache: Arc::new(AnchorValidationCache::default()),
@@ -499,7 +498,7 @@ pub(crate) async fn check_historical_with_context_profiled<S: StateRead + 'stati
     let mut action_checks = JoinSet::new();
 
     tx_parameters_historical_check_with_context(tx, context)?;
-    fmd_parameters_valid_with_context(tx, context)?;
+    discovery_parameters_valid_with_context(tx, context)?;
 
     let claimed_anchor_tx = Arc::new(tx.clone());
     let claimed_anchor_wait_start = Instant::now();
@@ -556,7 +555,7 @@ pub(crate) fn check_historical_with_context_sync_profiled(
     let total_start = Instant::now();
 
     tx_parameters_historical_check_with_context(tx, context)?;
-    fmd_parameters_valid_with_context(tx, context)?;
+    discovery_parameters_valid_with_context(tx, context)?;
 
     let await_ms = validate_claimed_anchor_read_only_sync(
         handle,
@@ -574,7 +573,6 @@ pub(crate) fn check_historical_with_context_sync_profiled(
 pub(crate) async fn check_and_execute_profiled<S>(
     tx: &Transaction,
     mut state: S,
-    record_clues: bool,
 ) -> Result<TransactionExecutionProfile>
 where
     S: StateWrite,
@@ -628,20 +626,6 @@ where
         profile.other_action_execute_ms += action_start.elapsed().as_secs_f64() * 1000.0;
     }
     profile.action_execute_ms = action_execute_start.elapsed().as_secs_f64() * 1000.0;
-
-    if record_clues {
-        let record_clues_start = Instant::now();
-        state.put_current_source(None);
-        for clue in tx
-            .transaction_body
-            .detection_data
-            .iter()
-            .flat_map(|x| x.fmd_clues.iter())
-        {
-            state.record_clue(clue.clone(), tx_id.clone()).await?;
-        }
-        profile.record_clues_ms = record_clues_start.elapsed().as_secs_f64() * 1000.0;
-    }
 
     Ok(profile)
 }
@@ -1059,7 +1043,6 @@ impl AppActionHandler for Transaction {
         // replaying them from another transaction.
         valid_binding_signature(self)?;
         // Other checks probably too cheap to be worth splitting into tasks.
-        num_clues_equal_to_num_outputs(self)?;
         check_memo_exists_if_outputs_absent_if_not(self)?;
         // This check ensures that transactions contain at least one action.
         check_non_empty_transaction(self)?;
@@ -1099,7 +1082,7 @@ impl AppActionHandler for Transaction {
     // We only instrument the top-level `execute`, so we get one span for each transaction.
     #[instrument(skip(self, state))]
     async fn check_and_execute<S: StateWrite>(&self, state: S) -> Result<()> {
-        check_and_execute_profiled(self, state, true).await?;
+        check_and_execute_profiled(self, state).await?;
         Ok(())
     }
 }
@@ -1123,10 +1106,7 @@ mod tests {
     use shieldd_sdk_keys::{test_keys, Address};
     use shieldd_sdk_shielded_pool::{Note, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
     use shieldd_sdk_tct as tct;
-    use shieldd_sdk_transaction::{
-        plan::{CluePlan, DetectionDataPlan, TransactionPlan},
-        TransactionParameters, WitnessData,
-    };
+    use shieldd_sdk_transaction::{plan::TransactionPlan, TransactionParameters, WitnessData};
 
     use crate::AppActionHandler;
 
@@ -1403,13 +1383,6 @@ mod tests {
             },
             actions: vec![transfer.into()],
             fee_funding: None,
-            detection_data: Some(DetectionDataPlan {
-                clue_plans: vec![CluePlan::new(
-                    &mut OsRng,
-                    test_keys::ADDRESS_1.deref().clone(),
-                    1.try_into().unwrap(),
-                )],
-            }),
             memo: None,
         };
 
@@ -1487,7 +1460,6 @@ mod tests {
             },
             actions: vec![transfer.into()],
             fee_funding: None,
-            detection_data: None,
             memo: None,
         };
 

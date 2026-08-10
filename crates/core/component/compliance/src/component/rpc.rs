@@ -193,20 +193,23 @@ impl QueryService for Server {
             .await
             .map_err(|e| Status::internal(format!("failed to get asset proof data: {e}")))?;
 
-        // Look up user's position in compliance tree
-        let user_position = state
-            .get_user_leaf_position(&address, asset_id)
+        // Load the compact user index once; it carries both position and leaf.
+        let user_record = state
+            .get_user_leaf_record(&address, asset_id)
             .await
-            .map_err(|e| Status::internal(format!("failed to look up user position: {e}")))?;
+            .map_err(|e| Status::internal(format!("failed to look up user record: {e}")))?;
 
         // Build the response based on what was found
         // Also fetch the user leaf if registered
         let (user_registered, compliance_path, compliance_position, compliance_leaf) =
-            match user_position {
-                Some(pos) => {
-                    let path = state.get_user_auth_path(pos).await.map_err(|e| {
-                        Status::internal(format!("failed to get user auth path: {e}"))
-                    })?;
+            match user_record {
+                Some(record) => {
+                    let path = state
+                        .get_user_auth_path(record.position)
+                        .await
+                        .map_err(|e| {
+                            Status::internal(format!("failed to get user auth path: {e}"))
+                        })?;
 
                     let proto_path = MerklePath {
                         layers: path
@@ -220,15 +223,12 @@ impl QueryService for Server {
                             .collect(),
                     };
 
-                    // Fetch the user leaf to include in response
-                    let leaf_opt = state
-                        .get_user_leaf(&address, asset_id)
-                        .await
-                        .map_err(|e| Status::internal(format!("failed to get user leaf: {e}")))?;
-
-                    let leaf_proto = leaf_opt.map(Into::into);
-
-                    (true, Some(proto_path), pos, leaf_proto)
+                    (
+                        true,
+                        Some(proto_path),
+                        record.position,
+                        Some(record.leaf.into()),
+                    )
                 }
                 None => (false, None, 0, None),
             };
@@ -374,11 +374,11 @@ impl QueryService for Server {
                 .try_into()
                 .map_err(|e| Status::invalid_argument(format!("could not parse asset_id: {e}")))?;
 
-            // Look up user's position in compliance tree
-            let user_position = state
-                .get_user_leaf_position(&address, asset_id)
+            // Load the compact user index once; it carries both position and leaf.
+            let user_record = state
+                .get_user_leaf_record(&address, asset_id)
                 .await
-                .map_err(|e| Status::internal(format!("failed to look up user position: {e}")))?;
+                .map_err(|e| Status::internal(format!("failed to look up user record: {e}")))?;
 
             // Get asset proof data from IMT
             let asset_proof_data = state
@@ -388,11 +388,15 @@ impl QueryService for Server {
 
             // Build the result for this query, including the user leaf if registered
             let (user_registered, compliance_path, compliance_position, compliance_leaf) =
-                match user_position {
-                    Some(pos) => {
-                        let path = state.get_user_auth_path(pos).await.map_err(|e| {
-                            Status::internal(format!("failed to get user auth path: {e}"))
-                        })?;
+                match user_record {
+                    Some(record) => {
+                        let path =
+                            state
+                                .get_user_auth_path(record.position)
+                                .await
+                                .map_err(|e| {
+                                    Status::internal(format!("failed to get user auth path: {e}"))
+                                })?;
 
                         let proto_path = MerklePath {
                             layers: path
@@ -406,15 +410,12 @@ impl QueryService for Server {
                                 .collect(),
                         };
 
-                        // Fetch the user leaf to include in response
-                        let leaf_opt =
-                            state.get_user_leaf(&address, asset_id).await.map_err(|e| {
-                                Status::internal(format!("failed to get user leaf: {e}"))
-                            })?;
-
-                        let leaf_proto = leaf_opt.map(Into::into);
-
-                        (true, Some(proto_path), pos, leaf_proto)
+                        (
+                            true,
+                            Some(proto_path),
+                            record.position,
+                            Some(record.leaf.into()),
+                        )
                     }
                     None => (false, None, 0, None),
                 };

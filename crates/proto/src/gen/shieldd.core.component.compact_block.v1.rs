@@ -23,10 +23,10 @@ pub struct CompactBlock {
     /// If a proposal started voting in this block, this is set to `true`.
     #[prost(bool, tag = "6")]
     pub proposal_started: bool,
-    /// Latest Fuzzy Message Detection parameters.
+    /// Latest note-discovery parameters. Absent when unchanged.
     #[prost(message, optional, tag = "7")]
-    pub fmd_parameters: ::core::option::Option<
-        super::super::shielded_pool::v1::FmdParameters,
+    pub discovery_parameters: ::core::option::Option<
+        super::super::shielded_pool::v1::DiscoveryParameters,
     >,
     /// Indicates updated app parameters.
     #[prost(bool, tag = "9")]
@@ -201,6 +201,107 @@ impl ::prost::Name for CompactBlockResponse {
         "/shieldd.core.component.compact_block.v1.CompactBlockResponse".into()
     }
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DiscoveryBlock {
+    #[prost(uint64, tag = "1")]
+    pub height: u64,
+    #[prost(message, optional, tag = "2")]
+    pub block_root: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::MerkleRoot,
+    >,
+    #[prost(message, optional, tag = "3")]
+    pub epoch_root: ::core::option::Option<
+        super::super::super::super::crypto::tct::v1::MerkleRoot,
+    >,
+    #[prost(message, repeated, tag = "4")]
+    pub tags: ::prost::alloc::vec::Vec<super::super::shielded_pool::v1::DiscoveryTag>,
+    #[prost(message, optional, tag = "5")]
+    pub discovery_parameters: ::core::option::Option<
+        super::super::shielded_pool::v1::DiscoveryParameters,
+    >,
+}
+impl ::prost::Name for DiscoveryBlock {
+    const NAME: &'static str = "DiscoveryBlock";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.DiscoveryBlock".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.DiscoveryBlock".into()
+    }
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct DiscoveryBlockRangeRequest {
+    #[prost(uint64, tag = "1")]
+    pub start_height: u64,
+    #[prost(uint64, tag = "2")]
+    pub end_height: u64,
+}
+impl ::prost::Name for DiscoveryBlockRangeRequest {
+    const NAME: &'static str = "DiscoveryBlockRangeRequest";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.DiscoveryBlockRangeRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.DiscoveryBlockRangeRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct DiscoveryBlockRangeResponse {
+    #[prost(message, optional, tag = "1")]
+    pub discovery_block: ::core::option::Option<DiscoveryBlock>,
+}
+impl ::prost::Name for DiscoveryBlockRangeResponse {
+    const NAME: &'static str = "DiscoveryBlockRangeResponse";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.DiscoveryBlockRangeResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.DiscoveryBlockRangeResponse".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NoteCandidatesRequest {
+    #[prost(uint64, tag = "1")]
+    pub start_height: u64,
+    #[prost(uint64, tag = "2")]
+    pub end_height: u64,
+    #[prost(message, repeated, tag = "3")]
+    pub tags: ::prost::alloc::vec::Vec<super::super::shielded_pool::v1::DiscoveryTag>,
+}
+impl ::prost::Name for NoteCandidatesRequest {
+    const NAME: &'static str = "NoteCandidatesRequest";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.NoteCandidatesRequest".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.NoteCandidatesRequest".into()
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct NoteCandidatesResponse {
+    #[prost(uint64, tag = "1")]
+    pub height: u64,
+    #[prost(uint32, tag = "2")]
+    pub state_payload_index: u32,
+    #[prost(message, optional, tag = "3")]
+    pub note_payload: ::core::option::Option<
+        super::super::shielded_pool::v1::NotePayload,
+    >,
+}
+impl ::prost::Name for NoteCandidatesResponse {
+    const NAME: &'static str = "NoteCandidatesResponse";
+    const PACKAGE: &'static str = "shieldd.core.component.compact_block.v1";
+    fn full_name() -> ::prost::alloc::string::String {
+        "shieldd.core.component.compact_block.v1.NoteCandidatesResponse".into()
+    }
+    fn type_url() -> ::prost::alloc::string::String {
+        "/shieldd.core.component.compact_block.v1.NoteCandidatesResponse".into()
+    }
+}
 /// Generated client implementations.
 #[cfg(feature = "rpc")]
 pub mod query_service_client {
@@ -356,6 +457,66 @@ pub mod query_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /// Streams public discovery tags without encrypted note payloads.
+        pub async fn discovery_block_range(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DiscoveryBlockRangeRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::DiscoveryBlockRangeResponse>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.core.component.compact_block.v1.QueryService/DiscoveryBlockRange",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.core.component.compact_block.v1.QueryService",
+                        "DiscoveryBlockRange",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
+        /// Finds encrypted note candidates by public discovery tag without requiring an index.
+        pub async fn note_candidates(
+            &mut self,
+            request: impl tonic::IntoRequest<super::NoteCandidatesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<tonic::codec::Streaming<super::NoteCandidatesResponse>>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/shieldd.core.component.compact_block.v1.QueryService/NoteCandidates",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "shieldd.core.component.compact_block.v1.QueryService",
+                        "NoteCandidates",
+                    ),
+                );
+            self.inner.server_streaming(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -397,6 +558,37 @@ pub mod query_service_server {
             request: tonic::Request<super::CompactBlockRequest>,
         ) -> std::result::Result<
             tonic::Response<super::CompactBlockResponse>,
+            tonic::Status,
+        >;
+        /// Server streaming response type for the DiscoveryBlockRange method.
+        type DiscoveryBlockRangeStream: tonic::codegen::tokio_stream::Stream<
+                Item = std::result::Result<
+                    super::DiscoveryBlockRangeResponse,
+                    tonic::Status,
+                >,
+            >
+            + std::marker::Send
+            + 'static;
+        /// Streams public discovery tags without encrypted note payloads.
+        async fn discovery_block_range(
+            &self,
+            request: tonic::Request<super::DiscoveryBlockRangeRequest>,
+        ) -> std::result::Result<
+            tonic::Response<Self::DiscoveryBlockRangeStream>,
+            tonic::Status,
+        >;
+        /// Server streaming response type for the NoteCandidates method.
+        type NoteCandidatesStream: tonic::codegen::tokio_stream::Stream<
+                Item = std::result::Result<super::NoteCandidatesResponse, tonic::Status>,
+            >
+            + std::marker::Send
+            + 'static;
+        /// Finds encrypted note candidates by public discovery tag without requiring an index.
+        async fn note_candidates(
+            &self,
+            request: tonic::Request<super::NoteCandidatesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<Self::NoteCandidatesStream>,
             tonic::Status,
         >;
     }
@@ -566,6 +758,100 @@ pub mod query_service_server {
                                 max_encoding_message_size,
                             );
                         let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.core.component.compact_block.v1.QueryService/DiscoveryBlockRange" => {
+                    #[allow(non_camel_case_types)]
+                    struct DiscoveryBlockRangeSvc<T: QueryService>(pub Arc<T>);
+                    impl<
+                        T: QueryService,
+                    > tonic::server::ServerStreamingService<
+                        super::DiscoveryBlockRangeRequest,
+                    > for DiscoveryBlockRangeSvc<T> {
+                        type Response = super::DiscoveryBlockRangeResponse;
+                        type ResponseStream = T::DiscoveryBlockRangeStream;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::ResponseStream>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DiscoveryBlockRangeRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as QueryService>::discovery_block_range(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = DiscoveryBlockRangeSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.server_streaming(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/shieldd.core.component.compact_block.v1.QueryService/NoteCandidates" => {
+                    #[allow(non_camel_case_types)]
+                    struct NoteCandidatesSvc<T: QueryService>(pub Arc<T>);
+                    impl<
+                        T: QueryService,
+                    > tonic::server::ServerStreamingService<super::NoteCandidatesRequest>
+                    for NoteCandidatesSvc<T> {
+                        type Response = super::NoteCandidatesResponse;
+                        type ResponseStream = T::NoteCandidatesStream;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::ResponseStream>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::NoteCandidatesRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as QueryService>::note_candidates(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = NoteCandidatesSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.server_streaming(method, req).await;
                         Ok(res)
                     };
                     Box::pin(fut)

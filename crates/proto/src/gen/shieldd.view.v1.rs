@@ -805,34 +805,34 @@ impl ::prost::Name for GasPricesResponse {
         "/shieldd.view.v1.GasPricesResponse".into()
     }
 }
-/// Requests the current FMD parameters from the view service.
+/// Requests the current note-discovery parameters from the view service.
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct FmdParametersRequest {}
-impl ::prost::Name for FmdParametersRequest {
-    const NAME: &'static str = "FMDParametersRequest";
+pub struct DiscoveryParametersRequest {}
+impl ::prost::Name for DiscoveryParametersRequest {
+    const NAME: &'static str = "DiscoveryParametersRequest";
     const PACKAGE: &'static str = "shieldd.view.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.view.v1.FMDParametersRequest".into()
+        "shieldd.view.v1.DiscoveryParametersRequest".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.view.v1.FMDParametersRequest".into()
+        "/shieldd.view.v1.DiscoveryParametersRequest".into()
     }
 }
 #[derive(Clone, Copy, PartialEq, ::prost::Message)]
-pub struct FmdParametersResponse {
+pub struct DiscoveryParametersResponse {
     #[prost(message, optional, tag = "1")]
     pub parameters: ::core::option::Option<
-        super::super::core::component::shielded_pool::v1::FmdParameters,
+        super::super::core::component::shielded_pool::v1::DiscoveryParameters,
     >,
 }
-impl ::prost::Name for FmdParametersResponse {
-    const NAME: &'static str = "FMDParametersResponse";
+impl ::prost::Name for DiscoveryParametersResponse {
+    const NAME: &'static str = "DiscoveryParametersResponse";
     const PACKAGE: &'static str = "shieldd.view.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.view.v1.FMDParametersResponse".into()
+        "shieldd.view.v1.DiscoveryParametersResponse".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.view.v1.FMDParametersResponse".into()
+        "/shieldd.view.v1.DiscoveryParametersResponse".into()
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -1650,12 +1650,12 @@ pub mod view_service_client {
                 .insert(GrpcMethod::new("shieldd.view.v1.ViewService", "GasPrices"));
             self.inner.unary(req, path, codec).await
         }
-        /// Query for the current FMD parameters.
-        pub async fn fmd_parameters(
+        /// Query for the current note-discovery parameters.
+        pub async fn discovery_parameters(
             &mut self,
-            request: impl tonic::IntoRequest<super::FmdParametersRequest>,
+            request: impl tonic::IntoRequest<super::DiscoveryParametersRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::FmdParametersResponse>,
+            tonic::Response<super::DiscoveryParametersResponse>,
             tonic::Status,
         > {
             self.inner
@@ -1668,11 +1668,13 @@ pub mod view_service_client {
                 })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/shieldd.view.v1.ViewService/FMDParameters",
+                "/shieldd.view.v1.ViewService/DiscoveryParameters",
             );
             let mut req = request.into_request();
             req.extensions_mut()
-                .insert(GrpcMethod::new("shieldd.view.v1.ViewService", "FMDParameters"));
+                .insert(
+                    GrpcMethod::new("shieldd.view.v1.ViewService", "DiscoveryParameters"),
+                );
             self.inner.unary(req, path, codec).await
         }
         /// Query for an address given an address index
@@ -2344,12 +2346,12 @@ pub mod view_service_server {
             tonic::Response<super::GasPricesResponse>,
             tonic::Status,
         >;
-        /// Query for the current FMD parameters.
-        async fn fmd_parameters(
+        /// Query for the current note-discovery parameters.
+        async fn discovery_parameters(
             &self,
-            request: tonic::Request<super::FmdParametersRequest>,
+            request: tonic::Request<super::DiscoveryParametersRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::FmdParametersResponse>,
+            tonic::Response<super::DiscoveryParametersResponse>,
             tonic::Status,
         >;
         /// Query for an address given an address index
@@ -2972,25 +2974,26 @@ pub mod view_service_server {
                     };
                     Box::pin(fut)
                 }
-                "/shieldd.view.v1.ViewService/FMDParameters" => {
+                "/shieldd.view.v1.ViewService/DiscoveryParameters" => {
                     #[allow(non_camel_case_types)]
-                    struct FMDParametersSvc<T: ViewService>(pub Arc<T>);
+                    struct DiscoveryParametersSvc<T: ViewService>(pub Arc<T>);
                     impl<
                         T: ViewService,
-                    > tonic::server::UnaryService<super::FmdParametersRequest>
-                    for FMDParametersSvc<T> {
-                        type Response = super::FmdParametersResponse;
+                    > tonic::server::UnaryService<super::DiscoveryParametersRequest>
+                    for DiscoveryParametersSvc<T> {
+                        type Response = super::DiscoveryParametersResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
                         >;
                         fn call(
                             &mut self,
-                            request: tonic::Request<super::FmdParametersRequest>,
+                            request: tonic::Request<super::DiscoveryParametersRequest>,
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as ViewService>::fmd_parameters(&inner, request).await
+                                <T as ViewService>::discovery_parameters(&inner, request)
+                                    .await
                             };
                             Box::pin(fut)
                         }
@@ -3001,7 +3004,7 @@ pub mod view_service_server {
                     let max_encoding_message_size = self.max_encoding_message_size;
                     let inner = self.inner.clone();
                     let fut = async move {
-                        let method = FMDParametersSvc(inner);
+                        let method = DiscoveryParametersSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(
