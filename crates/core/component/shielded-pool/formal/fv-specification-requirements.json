@@ -3403,7 +3403,7 @@
     {
       "id": "PROPERTY-MINT-NOTE-STAGES-POSITION-DERIVED-PAYLOADS",
       "path": "crates/core/component/shielded-pool/src/component/note_manager.rs",
-      "source_sha256": "2cd51b7ae5cdaa4a97b99eb4dcd5ffe331b1b441d5ddfaec0d31bcd38900a882"
+      "source_sha256": "8f551c133c8f41e4026c9e951702ff1cc1d0147620ec7580bdd79c9e769bf547"
     },
     {
       "id": "PROPERTY-MISSING-ASSET-ID-REJECTED",
@@ -3513,7 +3513,7 @@
     {
       "id": "PROPERTY-POSITION-DERIVED-MINT-MATCHES-IMMEDIATE-MINT-PAYLOAD",
       "path": "crates/core/component/shielded-pool/src/component/note_manager.rs",
-      "source_sha256": "2cd51b7ae5cdaa4a97b99eb4dcd5ffe331b1b441d5ddfaec0d31bcd38900a882"
+      "source_sha256": "8f551c133c8f41e4026c9e951702ff1cc1d0147620ec7580bdd79c9e769bf547"
     },
     {
       "id": "PROPERTY-PRESERVES-USER-MEMO",
@@ -3608,7 +3608,7 @@
     {
       "id": "PROPERTY-SCT-CAPACITY-IS-CHECKED-BEFORE-BLOCK-MUTATION",
       "path": "crates/core/component/sct/src/component/tree.rs",
-      "source_sha256": "4f63b5dbde02de8057d737301f74e5f0383ec7d28616897067665df7b6f98027"
+      "source_sha256": "86b90201488ea33041fb57f544d17aa8c509aa7f442e4df645406b560b3d2bc1"
     },
     {
       "id": "PROPERTY-SERDE-REJECTS-UNKNOWN-AND-RETIRED-FAMILY-IDS",
@@ -4813,7 +4813,7 @@
     {
       "id": "SCT-ANCHOR-LIVENESS-BOUNDARY",
       "path": "crates/core/component/sct/src/component/tree.rs",
-      "source_sha256": "4f63b5dbde02de8057d737301f74e5f0383ec7d28616897067665df7b6f98027"
+      "source_sha256": "86b90201488ea33041fb57f544d17aa8c509aa7f442e4df645406b560b3d2bc1"
     },
     {
       "id": "SCT-PATH-CIRCUIT-COMPILES",

@@ -137,12 +137,14 @@ pub trait NoteManager: StateWrite + StateReadExt {
         self.object_put(state_key::pending_rolled_up_payloads(), payloads);
     }
 
-    fn pending_note_payloads(&self) -> im::Vector<(tct::Position, NotePayload, CommitmentSource)> {
+    fn pending_note_payloads(
+        &self,
+    ) -> imbl::Vector<(tct::Position, NotePayload, CommitmentSource)> {
         self.object_get(state_key::pending_notes())
             .unwrap_or_default()
     }
 
-    fn pending_rolled_up_payloads(&self) -> im::Vector<(tct::Position, StateCommitment)> {
+    fn pending_rolled_up_payloads(&self) -> imbl::Vector<(tct::Position, StateCommitment)> {
         self.object_get(state_key::pending_rolled_up_payloads())
             .unwrap_or_default()
     }

@@ -61,7 +61,7 @@ hex                              = { workspace = true }
 ibc-proto                        = { workspace = true, default-features = false, features = ["server"] }
 ibc-types                        = { workspace = true, default-features = false }
 ics23                            = { workspace = true }
-im                               = { workspace = true }
+imbl                             = { workspace = true }
 jmt                              = { workspace = true }
 metrics                          = { workspace = true }
 once_cell                        = { workspace = true }
