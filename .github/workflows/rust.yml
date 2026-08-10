@@ -67,8 +67,8 @@ jobs:
   # As of 2025Q1, the "features" job is the slowest in the CI suite.
   # Consider moving to a scheduled job on main, rather than running on PRs.
   features:
-    runs-on: blacksmith-8vcpu-ubuntu-2404
-    timeout-minutes: 25
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 25 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -93,8 +93,8 @@ jobs:
           -- ./deployments/scripts/check-wasm-compat.sh
 
   test:
-    runs-on: blacksmith-8vcpu-ubuntu-2404
-    timeout-minutes: 25
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 25 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

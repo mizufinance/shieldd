@@ -12,7 +12,7 @@
       "conservative_tier": "stamps"
     },
     "merge_group": {
-      "conservative_tier": "full"
+      "conservative_tier": "stamps"
     },
     "schedule": {
       "tier": "full"
@@ -39,7 +39,7 @@
       ],
       "tiers": {
         "pull_request": "stamps",
-        "merge_group": "full",
+        "merge_group": "stamps",
         "default": "full"
       },
       "reason": "local Cargo dependency closure for deployed ABCI/host front doors, circuit, transaction, view construction, consensus execution, and constraint coverage seams"
@@ -78,7 +78,7 @@
       ],
       "tiers": {
         "pull_request": "typed",
-        "merge_group": "full",
+        "merge_group": "typed",
         "default": "full"
       },
       "reason": "handwritten certified-circuit semantic or refinement source"
@@ -103,7 +103,7 @@
       ],
       "tiers": {
         "pull_request": "stamps",
-        "merge_group": "full",
+        "merge_group": "stamps",
         "default": "full"
       },
       "reason": "workspace, toolchain, image, workflow, or classifier input"
@@ -154,7 +154,7 @@
       ],
       "tiers": {
         "pull_request": "stamps",
-        "merge_group": "full",
+        "merge_group": "stamps",
         "default": "full"
       },
       "reason": "soundness proof, artifact, generator, runtime, or invoked gate input"
@@ -165,7 +165,7 @@
       ],
       "tiers": {
         "pull_request": "stamps",
-        "merge_group": "full",
+        "merge_group": "stamps",
         "default": "full"
       },
       "reason": "protobuf code generator can alter generated Rust inputs in the soundness Cargo closure"

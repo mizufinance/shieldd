@@ -107,6 +107,7 @@ class EnforceFormalResultTests(unittest.TestCase):
     def test_typed_soundness_requires_standalone_key_coherence(self) -> None:
         env = full_environment()
         env["SOUNDNESS_TIER"] = "typed"
+        env["GATE"] = "skipped"
         env["KEY_COHERENCE"] = "success"
         result = run_summary(env)
         self.assertEqual(result.returncode, 0, result.stderr)

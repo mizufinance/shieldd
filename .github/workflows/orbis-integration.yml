@@ -39,7 +39,7 @@ jobs:
   flow:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: 45
     concurrency:
       group: orbis-integration-host-stack-v1

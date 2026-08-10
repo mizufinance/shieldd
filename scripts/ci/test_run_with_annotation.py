@@ -303,7 +303,19 @@ class RustWorkflowWiringTests(unittest.TestCase):
         for lane in ("features", "test"):
             with self.subTest(blacksmith_lane=lane):
                 self.assertIn(
-                    "runs-on: blacksmith-8vcpu-ubuntu-2404",
+                    "github.event_name == 'pull_request'",
+                    jobs[lane],
+                )
+                self.assertIn(
+                    "github.event_name == 'merge_group'",
+                    jobs[lane],
+                )
+                self.assertIn(
+                    "'blacksmith-8vcpu-ubuntu-2404'",
+                    jobs[lane],
+                )
+                self.assertIn(
+                    "|| 'ubuntu-24.04'",
                     jobs[lane],
                 )
 
@@ -387,7 +399,19 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
             )
         )
         self.assertIn(
-            "runs-on: blacksmith-16vcpu-ubuntu-2404",
+            "github.event_name == 'pull_request'",
+            jobs["smoke"],
+        )
+        self.assertIn(
+            "github.event_name == 'merge_group'",
+            jobs["smoke"],
+        )
+        self.assertIn(
+            "'blacksmith-16vcpu-ubuntu-2404'",
+            jobs["smoke"],
+        )
+        self.assertIn(
+            "|| 'ubuntu-24.04'",
             jobs["smoke"],
         )
         for lane in ("paths", "summary"):
@@ -405,20 +429,18 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
         )
 
         self.assertNotIn("runs-on: blacksmith-", provers)
-        self.assertEqual(formal.count("runs-on: blacksmith-"), 1)
-        self.assertEqual(
-            formal.count("runs-on: blacksmith-16vcpu-ubuntu-2404"),
-            1,
-        )
+        self.assertNotIn("blacksmith-", formal)
 
-    def test_orbis_remains_accelerated(self) -> None:
+    def test_orbis_uses_blacksmith_only_for_merge_candidates(self) -> None:
         workflow = (
             SCRIPT.parents[2] / ".github/workflows/orbis-integration.yml"
         ).read_text(encoding="utf-8")
-        self.assertEqual(
-            workflow.count("runs-on: blacksmith-16vcpu-ubuntu-2404"),
-            1,
+        self.assertIn("github.event_name == 'pull_request'", workflow)
+        self.assertIn("github.event_name == 'merge_group'", workflow)
+        self.assertIn(
+            "'blacksmith-16vcpu-ubuntu-2404'", workflow
         )
+        self.assertIn("|| 'ubuntu-24.04'", workflow)
 
 
 class SnarkPackReleaseAuditWorkflowWiringTests(unittest.TestCase):

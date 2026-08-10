@@ -267,9 +267,12 @@ def enforce() -> None:
                         f"stamp-only soundness unexpectedly ran {label}: {result}"
                     )
         elif soundness_tier == "typed":
+            if gate != "skipped":
+                raise ValueError(
+                    f"typed soundness unexpectedly ran exhaustive gate: {gate}"
+                )
             required.extend(
                 [
-                    ("soundness-gate", gate),
                     ("soundness-key-coherence", key_coherence),
                     ("soundness-lean-circuit-fv", lean),
                 ]

@@ -491,7 +491,7 @@ class GateApplicabilityTests(unittest.TestCase):
             )
         ]
         self.assertIn(
-            "needs.applicability.outputs.soundness_tier != 'stamps'",
+            "needs.applicability.outputs.soundness_tier == 'full'",
             soundness_gate_job,
         )
 
@@ -533,7 +533,7 @@ class GateApplicabilityTests(unittest.TestCase):
         ]
         self.assertIn("          lfs: true", soundness_gate)
 
-    def test_serial_circuit_jobs_have_time_to_finish_from_a_cold_cache(self) -> None:
+    def test_candidate_circuit_jobs_are_bounded_without_proving(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
             encoding="utf-8"
         )
@@ -547,8 +547,17 @@ class GateApplicabilityTests(unittest.TestCase):
                 "  # ------------------------------------------------------------------ summary"
             )
         ]
-        self.assertIn("timeout-minutes: 150", key_coherence)
-        self.assertIn("timeout-minutes: 360", lean_fv)
+        self.assertIn("timeout-minutes: 25", key_coherence)
+        self.assertIn("check-circuit-fv.sh drift all", key_coherence)
+        self.assertNotIn("check-circuit-fv.sh receipt all", key_coherence)
+        self.assertIn(
+            "(github.event_name == 'pull_request' || "
+            "github.event_name == 'merge_group') && 25 || 360",
+            lean_fv,
+        )
+        self.assertIn("lean-build-safe.sh", lean_fv)
+        self.assertIn("check-lean-circuit-fv.sh release all", lean_fv)
+        self.assertNotIn("check-lean-circuit-fv.sh typed all", lean_fv)
 
     def test_handwritten_snarkpack_lean_inputs_select_full_tier(self) -> None:
         paths = (
@@ -1413,13 +1422,7 @@ class GateApplicabilityTests(unittest.TestCase):
             "  # ---------------------------------------------------------------- soundness",
             maxsplit=1,
         )[0]
-        self.assertEqual(snarkpack_section.count("runs-on: blacksmith-"), 1)
-        self.assertEqual(
-            snarkpack_section.count(
-                "runs-on: blacksmith-16vcpu-ubuntu-2404"
-            ),
-            1,
-        )
+        self.assertNotIn("runs-on: blacksmith-", snarkpack_section)
         for forbidden in (
             "lake build",
             "lake env lean",
@@ -1501,11 +1504,8 @@ class GateApplicabilityTests(unittest.TestCase):
             with self.subTest(github_hosted_lane=lane):
                 self.assertEqual(lane.count("runs-on: ubuntu-24.04"), 1)
                 self.assertNotIn("runs-on: blacksmith-", lane)
-        self.assertIn(
-            "runs-on: blacksmith-16vcpu-ubuntu-2404",
-            runtime,
-        )
-        self.assertNotIn("runs-on: ubuntu-24.04", runtime)
+        self.assertIn("runs-on: ubuntu-24.04", runtime)
+        self.assertNotIn("runs-on: blacksmith-", runtime)
         self.assertNotIn("restore-keys:", runtime)
         self.assertNotIn("runner.temp }}/snarkpack", workflow)
 

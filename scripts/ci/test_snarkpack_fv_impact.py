@@ -230,7 +230,7 @@ class ImpactPlannerTests(unittest.TestCase):
         self.assertFalse(result.fuzz)
         self.assertFalse(result.dos)
 
-    def test_changed_graph_does_not_force_unrelated_proof_builds(self) -> None:
+    def test_changed_graph_defers_reproduction_to_full_replay(self) -> None:
         graph = IMPACT.extraction_graph_ids(ROOT)[0]
         result = IMPACT.plan(
             ROOT,
@@ -242,12 +242,13 @@ class ImpactPlannerTests(unittest.TestCase):
             ),
             declared_graphs=(graph,),
         )
-        self.assertEqual(result.extraction_graphs, (graph,))
+        self.assertEqual(result.extraction_graphs, ())
         self.assertEqual(result.lean_modules, ())
-        self.assertTrue(result.parity)
-        self.assertTrue(result.rust_reference)
+        self.assertFalse(result.parity)
+        self.assertFalse(result.rust_reference)
+        self.assertIn("deferred extraction/parity", result.explanation)
 
-    def test_repository_evidence_cannot_suppress_a_changed_graph(self) -> None:
+    def test_changed_graph_never_enters_candidate_compute(self) -> None:
         graph = IMPACT.extraction_graph_ids(ROOT)[0]
         result = IMPACT.plan(
             ROOT,
@@ -259,8 +260,8 @@ class ImpactPlannerTests(unittest.TestCase):
             ),
             declared_graphs=(graph,),
         )
-        self.assertEqual(result.extraction_graphs, (graph,))
-        self.assertTrue(result.parity)
+        self.assertEqual(result.extraction_graphs, ())
+        self.assertFalse(result.parity)
 
     def test_one_lean_leaf_selects_only_reverse_import_closure(self) -> None:
         changed = (
@@ -613,7 +614,7 @@ class ImpactPlannerTests(unittest.TestCase):
         )
         self.assertEqual(result.fstar_proofs, ("FamilyRoutingProofs.fst",))
 
-    def test_reference_fuzz_and_boundary_inputs_select_exact_heavy_lanes(self) -> None:
+    def test_reference_fuzz_and_boundary_inputs_defer_heavy_lanes(self) -> None:
         reference = IMPACT.plan(
             ROOT,
             event="pull_request",
@@ -621,7 +622,7 @@ class ImpactPlannerTests(unittest.TestCase):
             changed=("crates/crypto/proof-aggregation-reference/src/lib.rs",),
             declared_graphs=(),
         )
-        self.assertTrue(reference.rust_reference)
+        self.assertFalse(reference.rust_reference)
         self.assertFalse(reference.fuzz)
 
         fuzz = IMPACT.plan(
@@ -631,7 +632,7 @@ class ImpactPlannerTests(unittest.TestCase):
             changed=("crates/crypto/proof-aggregation-fuzz/fuzz/fuzz_targets/x.rs",),
             declared_graphs=(),
         )
-        self.assertTrue(fuzz.fuzz)
+        self.assertFalse(fuzz.fuzz)
         self.assertFalse(fuzz.rust_reference)
 
         fixture = IMPACT.plan(
@@ -644,8 +645,8 @@ class ImpactPlannerTests(unittest.TestCase):
             ),
             declared_graphs=(),
         )
-        self.assertTrue(fixture.rust_reference)
-        self.assertTrue(fixture.fuzz)
+        self.assertFalse(fixture.rust_reference)
+        self.assertFalse(fixture.fuzz)
 
         app = IMPACT.plan(
             ROOT,
@@ -654,8 +655,10 @@ class ImpactPlannerTests(unittest.TestCase):
             changed=("crates/core/app/Cargo.toml",),
             declared_graphs=(),
         )
-        self.assertTrue(app.rust_reference)
-        self.assertTrue(app.dos)
+        self.assertFalse(app.rust_reference)
+        self.assertFalse(app.dos)
+        for plan in (reference, fuzz, fixture, app):
+            self.assertIn("deferred runtime", plan.explanation)
 
     def test_parity_never_runs_without_a_selected_graph(self) -> None:
         result = IMPACT.plan(

@@ -688,7 +688,6 @@ def plan(
             + ", ".join(unknown_graphs)
         )
     graph_set.intersection_update(all_graphs)
-    parity_graph_set = set(graph_set)
 
     # CI and audit-parser controls are checked by the static lane. They never
     # schedule a kernel build when no Lean source or Lean environment changed.
@@ -779,21 +778,35 @@ def plan(
         proof_package or reference_change or app_rust or rust_global
     )
 
+    # Pull requests prove that locally generated evidence is complete and run
+    # only the affected proof-language checks. Extraction, parity, fuzzing, and
+    # runtime replay are exhaustive reproducibility work owned by the
+    # manual/nightly full fingerprint.
+    deferred = []
+    if graph_set:
+        deferred.append("extraction/parity")
+    if rust_reference or fuzz_change or proof_package or app_rust or rust_global:
+        deferred.append("runtime")
+
     return ImpactPlan(
         static=True,
-        extraction_graphs=tuple(sorted(graph_set)),
+        extraction_graphs=(),
         lean_modules=lean_modules,
         fstar_proofs=fstar_proofs,
         fstar_force_all=False,
-        parity=bool(parity_graph_set),
-        rust_reference=rust_reference,
-        fuzz=proof_package or fuzz_change or rust_global,
-        dos=proof_package or app_rust or rust_global,
+        parity=False,
+        rust_reference=False,
+        fuzz=False,
+        dos=False,
         explanation=(
             f"{len(paths)} changed path(s); "
-            f"{len(graph_set)} extraction graph(s), "
             f"{len(lean_modules)} Lean module(s), "
-            f"{len(fstar_proofs)} F* proof file(s)"
+            f"{len(fstar_proofs)} F* proof file(s); "
+            + (
+                "deferred " + ", ".join(deferred) + " to full replay"
+                if deferred
+                else "no exhaustive replay needed"
+            )
         ),
     )
 

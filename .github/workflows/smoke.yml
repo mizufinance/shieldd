@@ -48,7 +48,7 @@ jobs:
   smoke:
     needs: paths
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group' || needs.paths.outputs.smoke == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     env:
       SHIELDD_PD_GRPC_PORT: "18080"
       SHIELDD_COMETBFT_RPC_PORT: "17657"

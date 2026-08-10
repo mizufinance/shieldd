@@ -457,7 +457,7 @@ jobs:
         needs.applicability.outputs.snarkpack_fstar_cache_hit != 'true'
       )
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 25 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -621,7 +621,9 @@ jobs:
         needs.applicability.outputs.snarkpack_dos_run == 'true'
       ) &&
       needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    # Candidate runs defer this exhaustive lane. Manual/nightly replays use
+    # GitHub-hosted runners so the assurance path has no external-runner dependency.
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -774,7 +776,7 @@ jobs:
     if: >-
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.soundness_run == 'true' &&
-      needs.applicability.outputs.soundness_tier != 'stamps'
+      needs.applicability.outputs.soundness_tier == 'full'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -792,7 +794,7 @@ jobs:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -815,15 +817,14 @@ jobs:
   soundness-key-coherence:
     name: 'soundness: key coherence'
     needs: applicability
-    # A proof-source change receives an independent key check. Stamp-only
-    # PRs validate committed pins without regenerating proofs, while the full
-    # scheduled lane emits and validates its own deployed-key receipts.
+    # A proof-source change recompiles the circuit and checks committed key
+    # bindings without generating a proof. Full prove/verify stays scheduled.
     if: >-
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.soundness_run == 'true' &&
       needs.applicability.outputs.soundness_tier == 'typed'
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -833,11 +834,9 @@ jobs:
         with:
           go-version-file: tools/gnark/go.mod
           cache-dependency-path: tools/gnark/go.sum
-      # Run serially so each deployed key is exercised against the exact
-      # source-compiled circuit without multiplying peak memory.
-      - name: Exact SR1CS and multi-branch key coherence
+      - name: Source and committed-key drift
         shell: bash
-        run: bash scripts/check-circuit-fv.sh receipt all
+        run: bash scripts/check-circuit-fv.sh drift all
 
   soundness-alloy:
     name: 'soundness: alloy'
@@ -865,7 +864,7 @@ jobs:
       needs.applicability.outputs.soundness_run == 'true' &&
       needs.applicability.outputs.soundness_tier != 'stamps'
     runs-on: ubuntu-24.04
-    timeout-minutes: 360
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 25 || 360 }}
     container:
       image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:29488637fce71c867d9f6ffd8c5bdc825c80f55d675238bcdfbfe878be11d96c
       credentials:
@@ -912,8 +911,13 @@ jobs:
           set -euo pipefail
           case "$TIER" in
             typed)
-              bash scripts/check-lean-circuit-fv.sh typed all
-              bash scripts/check-circuit-fv.sh drift --status candidate
+              cd tools/gnark/lean
+              lake exe cache get >/dev/null 2>&1 || true
+              jq -r '.backends[].theorem_root' ../fv_certification_backends.json \
+                | awk '!seen[$0]++' \
+                | while IFS= read -r theorem_root; do
+                    "$GITHUB_WORKSPACE/scripts/lean-build-safe.sh" "$theorem_root"
+                  done
               ;;
             full)
               bash scripts/check-lean-circuit-fv.sh release all
