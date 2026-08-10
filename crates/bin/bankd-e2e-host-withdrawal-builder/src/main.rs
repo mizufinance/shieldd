@@ -5,28 +5,22 @@ use std::{env, ops::Deref, path::PathBuf, str::FromStr};
 use anyhow::{anyhow, bail, Context, Result};
 use base64::{engine::general_purpose::STANDARD, Engine as _};
 use cnidarium::Storage;
-use decaf377::{Fq, Fr};
-use ibc_types::core::{channel::ChannelId, client::Height as IbcHeight};
+use decaf377::Fr;
 use rand_core::OsRng;
 use shieldd_sdk_app::SUBSTORE_PREFIXES;
 use shieldd_sdk_asset::{asset, Value};
 use shieldd_sdk_keys::{test_keys, Address};
-use shieldd_sdk_mock_client::{MockClient, StateReadComplianceProvider};
+use shieldd_sdk_mock_client::MockClient;
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
-use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_shielded_pool::{
     component::StateReadExt as _, EvmCall, HostExecution, HostTransfer, HostWithdrawal,
-    HostWithdrawalDestination, Ics20Withdrawal, ShieldedHostWithdrawal, ShieldedHostWithdrawalBody,
-    ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalPlan, ShieldedIcs20WithdrawalProof,
+    HostWithdrawalDestination, ShieldedHostWithdrawalPlan, ShieldedIcs20WithdrawalFamilyId,
     ShieldedInputPlan, ShieldedOutputPlan,
 };
 use shieldd_sdk_transaction::{
-    memo::MemoPlaintext, plan::MemoPlan, Action, ActionPlan, AuthorizationData,
-    TransactionParameters, TransactionPlan,
+    memo::MemoPlaintext, plan::MemoPlan, TransactionParameters, TransactionPlan,
 };
-use shieldd_sdk_txhash::{EffectHash, EffectingData};
-use shieldd_sdk_view::enrich_plan_with_compliance;
 
 struct Opt {
     db: PathBuf,
@@ -181,34 +175,22 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
     };
     align_withdrawal_planning_metadata(&mut spend, change.as_mut());
 
-    // Host withdrawals share the shielded withdrawal circuit with ICS-20.
-    // Build and enrich the existing ICS-20 plan, then substitute the host-only
-    // public payload before proving and signing the final action.
-    let planning_withdrawal = Ics20Withdrawal {
-        amount: opt.amount,
-        denom,
-        destination_chain_address: match &opt.destination {
-            HostWithdrawalDestination::Transfer(transfer) => transfer.recipient.clone(),
-            HostWithdrawalDestination::Execution(_) => "host-execution".to_owned(),
+    let withdrawal = HostWithdrawal {
+        value: Value {
+            amount: opt.amount,
+            asset_id: input_note.asset_id(),
         },
-        return_address: test_keys::ADDRESS_0.deref().clone(),
-        timeout_height: IbcHeight::new(1, 10).context("invalid planning timeout height")?,
-        timeout_time: 60_000_000_000,
-        source_channel: ChannelId::from_str("channel-0")
-            .context("invalid planning source channel")?,
-        use_compat_address: false,
-        ics20_memo: String::new(),
-        use_transparent_address: false,
+        destination: opt.destination,
     };
-    let withdrawal_plan = ShieldedIcs20WithdrawalPlan::new(
+    let withdrawal_plan = ShieldedHostWithdrawalPlan::new(
         ShieldedIcs20WithdrawalFamilyId::Canonical,
         vec![spend],
         change,
-        planning_withdrawal,
+        withdrawal,
         Fr::from(1u64),
     )?;
     let mut plan = TransactionPlan {
-        actions: vec![ActionPlan::ShieldedIcs20Withdrawal(withdrawal_plan)],
+        actions: vec![withdrawal_plan.into()],
         memo: Some(MemoPlan::new(
             &mut OsRng,
             MemoPlaintext::blank_memo(test_keys::ADDRESS_0.deref().clone()),
@@ -227,115 +209,11 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
         .context("failed to read Shieldd discovery parameters")?
         .precision;
     plan.populate_discovery_precision(discovery_precision);
-    let block_timestamp = snapshot
-        .get_current_block_timestamp()
+    let tx = client
+        .witness_auth_build_with_compliance(&mut plan, snapshot)
         .await
-        .ok()
-        .map(|timestamp| timestamp.unix_timestamp() as u64);
-    let provider = StateReadComplianceProvider::new(snapshot);
-    enrich_plan_with_compliance(&mut plan, &provider, &mut OsRng, block_timestamp)
-        .await
-        .context("failed to enrich Shieldd host withdrawal plan")?;
-
-    let witness_data = client.witness_plan(&plan)?;
-    let withdrawal_plan = match plan.actions.as_slice() {
-        [ActionPlan::ShieldedIcs20Withdrawal(plan)] => plan.clone(),
-        _ => bail!("expected one shielded withdrawal plan"),
-    };
-    let state_commitment_proofs = withdrawal_plan
-        .spends
-        .iter()
-        .map(|spend| {
-            witness_data
-                .state_commitment_proofs
-                .get(&spend.note.commit())
-                .cloned()
-                .ok_or_else(|| anyhow!("missing state commitment proof for withdrawal input"))
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    let host_withdrawal = HostWithdrawal {
-        value: Value {
-            amount: opt.amount,
-            asset_id: input_note.asset_id(),
-        },
-        destination: opt.destination,
-    };
-    host_withdrawal.validate()?;
-
-    let (mut public, private) = withdrawal_plan.shielded_ics20_withdrawal_public_private(
-        &client.fvk,
-        &state_commitment_proofs,
-        witness_data.anchor,
-    )?;
-    let (effect_hash_lo, effect_hash_hi) = effect_hash_limbs(host_withdrawal.effect_hash());
-    public.withdrawal_effect_hash_lo = effect_hash_lo;
-    public.withdrawal_effect_hash_hi = effect_hash_hi;
-    let proof = ShieldedIcs20WithdrawalProof::prove(public, private)
-        .context("failed to prove Shieldd host withdrawal")?;
-
-    let memo_key = plan.memo_key().unwrap_or_else(|| [0u8; 32].into());
-    let body = withdrawal_plan
-        .action_body(&client.fvk, &memo_key, witness_data.anchor)
-        .context("failed to build Shieldd host withdrawal body")?;
-    let host_action = ShieldedHostWithdrawal {
-        body: ShieldedHostWithdrawalBody {
-            family_id: body.family_id,
-            anchor: body.anchor,
-            balance_commitment: body.balance_commitment,
-            inputs: body.inputs,
-            withdrawal: host_withdrawal,
-            change_output: body.change_output,
-            target_timestamp: body.target_timestamp,
-            compliance_anchor: body.compliance_anchor,
-            asset_anchor: body.asset_anchor,
-        },
-        auth_sigs: Vec::new(),
-        proof,
-    };
-    let mut tx = plan.clone().build_unauth_with_actions(
-        vec![Action::ShieldedHostWithdrawal(host_action)],
-        None,
-        &witness_data,
-    )?;
-
-    let effect_hash = tx.effect_hash();
-    let mut auth_sigs = withdrawal_plan
-        .spends
-        .iter()
-        .map(|spend| {
-            test_keys::SPEND_KEY
-                .spend_auth_key()
-                .randomize(&spend.randomizer)
-                .sign(&mut OsRng, effect_hash.as_ref())
-        })
-        .collect::<Vec<_>>();
-    let real_auth_sigs = auth_sigs.clone();
-    while auth_sigs.len() < withdrawal_plan.family_id().auth_sig_count() {
-        let slot = auth_sigs.len();
-        auth_sigs.push(withdrawal_plan.synthetic_dummy_auth_sig(slot, effect_hash.as_ref()));
-    }
-    match tx.transaction_body.actions.as_mut_slice() {
-        [Action::ShieldedHostWithdrawal(action)] => action.auth_sigs = auth_sigs,
-        _ => bail!("expected one shielded host withdrawal action"),
-    }
-
-    let tx = plan.apply_auth_data(
-        &AuthorizationData {
-            effect_hash: Some(effect_hash),
-            spend_auths: real_auth_sigs,
-        },
-        tx,
-    )?;
+        .context("failed to build Shieldd host withdrawal transaction")?;
     Ok(tx.encode_to_vec())
-}
-
-fn effect_hash_limbs(effect_hash: EffectHash) -> (Fq, Fq) {
-    let bytes = effect_hash.as_bytes();
-    (
-        Fq::from_le_bytes_mod_order(&bytes[..32]),
-        Fq::from_le_bytes_mod_order(&bytes[32..]),
-    )
 }
 
 fn align_withdrawal_planning_metadata(

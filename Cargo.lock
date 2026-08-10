@@ -911,7 +911,6 @@ dependencies = [
  "base64 0.21.7",
  "cnidarium",
  "decaf377",
- "ibc-types",
  "rand_core 0.6.4",
  "shieldd-sdk-app",
  "shieldd-sdk-asset",
@@ -920,11 +919,8 @@ dependencies = [
  "shieldd-sdk-num",
  "shieldd-sdk-proof-params",
  "shieldd-sdk-proto",
- "shieldd-sdk-sct",
  "shieldd-sdk-shielded-pool",
  "shieldd-sdk-transaction",
- "shieldd-sdk-txhash",
- "shieldd-sdk-view",
  "tokio",
 ]
 
