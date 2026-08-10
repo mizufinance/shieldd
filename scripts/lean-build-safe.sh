@@ -33,7 +33,7 @@ if [[ "${LEAN_BUILD_VERBOSE:-0}" == "1" ]]; then
 fi
 
 RSS_SAMPLER="ps"
-if ! ps aux -o pgid= >/dev/null 2>&1; then
+if ! ps -e -o rss= -o pgid= >/dev/null 2>&1; then
   if [[ "$(uname -s)" == "Darwin" ]] && command -v cc >/dev/null 2>&1; then
     RSS_HELPER="$TMP/process-group-rss"
     if cc -O2 "$ROOT/scripts/macos-process-group-rss.c" -o "$RSS_HELPER"; then
@@ -56,10 +56,8 @@ group_rss_kb() {
   if [[ "$RSS_SAMPLER" == "macos-helper" ]]; then
     "$RSS_HELPER" "$PGID"
   else
-    # Appending PGID keeps the normal aux columns stable (RSS is column 6)
-    # and places PGID in the final column.
-    ps aux -o pgid= 2>/dev/null \
-      | awk -v group="$PGID" '$NF == group { total += $6 } END { print total + 0 }'
+    ps -e -o rss= -o pgid= 2>/dev/null \
+      | awk -v group="$PGID" '$2 == group { total += $1 } END { print total + 0 }'
   fi
 }
 
@@ -78,8 +76,8 @@ print_group() {
     return
   fi
   local snapshot
-  snapshot="$(ps aux -o pgid= 2>/dev/null)" || return 0
-  awk -v group="$PGID" '$NF == group' <<<"$snapshot"
+  snapshot="$(ps -e -o rss= -o pgid= 2>/dev/null)" || return 0
+  awk -v group="$PGID" '$2 == group' <<<"$snapshot"
 }
 
 MAX_RSS_KB=$((MAX_RSS_MB * 1024))
