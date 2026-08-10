@@ -500,6 +500,7 @@ class GateApplicabilityTests(unittest.TestCase):
                 "  soundness-key-coherence:"
             )
         ]
+        self.assertIn("sudo apt-get install -y ripgrep", seam_job)
         self.assertIn("bash scripts/compliance-lean-dleq.sh stamps", seam_job)
 
         summary = workflow[workflow.index("  summary:") :]
