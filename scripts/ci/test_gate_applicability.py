@@ -457,11 +457,10 @@ class GateApplicabilityTests(unittest.TestCase):
                 "# ------------------------------------------------------------------ summary"
             )
         ]
-        for tier in self.soundness.tiers:
-            if tier == "skip":
-                continue
+        for tier in ("typed", "full"):
             with self.subTest(tier=tier):
                 self.assertIn(f"{tier})", run_case)
+        self.assertNotIn("            stamps)", run_case)
 
         key_coherence_job = workflow[
             workflow.index("  soundness-key-coherence:") : workflow.index(
@@ -472,9 +471,36 @@ class GateApplicabilityTests(unittest.TestCase):
             """if: >-
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.soundness_run == 'true' &&
-      needs.applicability.outputs.soundness_tier != 'full'""",
+      needs.applicability.outputs.soundness_tier == 'typed'""",
             key_coherence_job,
         )
+
+        lean_fv_job = workflow[
+            workflow.index("  soundness-lean-circuit-fv:") : workflow.index(
+                "  # ------------------------------------------------------------------ summary"
+            )
+        ]
+        self.assertIn(
+            "needs.applicability.outputs.soundness_tier != 'stamps'",
+            lean_fv_job,
+        )
+
+        soundness_gate_job = workflow[
+            workflow.index("  soundness-gate:") : workflow.index(
+                "  soundness-seam-and-pin:"
+            )
+        ]
+        self.assertIn(
+            "needs.applicability.outputs.soundness_tier != 'stamps'",
+            soundness_gate_job,
+        )
+
+        seam_job = workflow[
+            workflow.index("  soundness-seam-and-pin:") : workflow.index(
+                "  soundness-key-coherence:"
+            )
+        ]
+        self.assertIn("bash scripts/compliance-lean-dleq.sh stamps", seam_job)
 
         summary = workflow[workflow.index("  summary:") :]
         self.assertIn(

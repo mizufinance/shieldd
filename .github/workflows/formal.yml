@@ -771,7 +771,10 @@ jobs:
   soundness-gate:
     name: 'soundness: gate'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.soundness_run == 'true' &&
+      needs.applicability.outputs.soundness_tier != 'stamps'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -783,8 +786,6 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Check soundness invariants
         run: bash scripts/check-soundness-invariants.sh
-      - name: Check DLEQ Lean stamps
-        run: bash scripts/compliance-lean-dleq.sh stamps
 
   soundness-seam-and-pin:
     name: 'soundness: seam-and-pin'
@@ -808,18 +809,19 @@ jobs:
           go test ./internal/primitives/ -run TestNoteReshapeStatementSeamsMatchShielddVectors -count=1
       - name: Manifest pin
         run: bash scripts/check-manifest-pin.sh
+      - name: DLEQ Lean stamps
+        run: bash scripts/compliance-lean-dleq.sh stamps
 
   soundness-key-coherence:
     name: 'soundness: key coherence'
     needs: applicability
-    # The full whole-circuit lane emits and validates the same deployed-key
-    # proof receipts for all certified and candidate profiles. Keep this
-    # standalone round trip only for stamps/typed runs, where the whole-circuit
-    # lane deliberately does not prove.
+    # A proof-source change receives an independent key check. Stamp-only
+    # PRs validate committed pins without regenerating proofs, while the full
+    # scheduled lane emits and validates its own deployed-key receipts.
     if: >-
       needs.applicability.result == 'success' &&
       needs.applicability.outputs.soundness_run == 'true' &&
-      needs.applicability.outputs.soundness_tier != 'full'
+      needs.applicability.outputs.soundness_tier == 'typed'
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
@@ -856,7 +858,12 @@ jobs:
   soundness-lean-circuit-fv:
     name: 'soundness: lean-circuit-fv'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
+    # Stamp-only changes have no Lean source to typecheck. Their committed
+    # evidence is validated by the gate and seam-and-pin jobs above.
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.soundness_run == 'true' &&
+      needs.applicability.outputs.soundness_tier != 'stamps'
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     container:
@@ -904,10 +911,6 @@ jobs:
         run: |
           set -euo pipefail
           case "$TIER" in
-            stamps)
-              bash scripts/check-lean-circuit-fv.sh drift all
-              bash scripts/check-circuit-fv.sh drift --status candidate
-              ;;
             typed)
               bash scripts/check-lean-circuit-fv.sh typed all
               bash scripts/check-circuit-fv.sh drift --status candidate

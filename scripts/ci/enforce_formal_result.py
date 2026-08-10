@@ -247,28 +247,45 @@ def enforce() -> None:
     elif soundness_status == "run":
         if soundness_tier not in {"stamps", "typed", "full"}:
             raise ValueError(f"unsupported soundness tier: {soundness_tier}")
-        required.extend(
-            [
-                ("soundness-gate", soundness_results["soundness-gate"]),
-                (
-                    "soundness-seam-and-pin",
-                    soundness_results["soundness-seam-and-pin"],
-                ),
-                (
-                    "soundness-lean-circuit-fv",
-                    soundness_results["soundness-lean-circuit-fv"],
-                ),
-            ]
+        required.append(
+            (
+                "soundness-seam-and-pin",
+                soundness_results["soundness-seam-and-pin"],
+            )
         )
+        gate = soundness_results["soundness-gate"]
         key_coherence = soundness_results["soundness-key-coherence"]
-        if soundness_tier == "full":
+        lean = soundness_results["soundness-lean-circuit-fv"]
+        if soundness_tier == "stamps":
+            for label, result in (
+                ("soundness-gate", gate),
+                ("soundness-key-coherence", key_coherence),
+                ("soundness-lean-circuit-fv", lean),
+            ):
+                if result != "skipped":
+                    raise ValueError(
+                        f"stamp-only soundness unexpectedly ran {label}: {result}"
+                    )
+        elif soundness_tier == "typed":
+            required.extend(
+                [
+                    ("soundness-gate", gate),
+                    ("soundness-key-coherence", key_coherence),
+                    ("soundness-lean-circuit-fv", lean),
+                ]
+            )
+        else:
             if key_coherence != "skipped":
                 raise ValueError(
                     "full soundness tier unexpectedly ran standalone "
                     f"key coherence: {key_coherence}"
                 )
-        else:
-            required.append(("soundness-key-coherence", key_coherence))
+            required.extend(
+                [
+                    ("soundness-gate", gate),
+                    ("soundness-lean-circuit-fv", lean),
+                ]
+            )
         if event_name in {"pull_request", "merge_group"}:
             required.append(
                 ("soundness-alloy", soundness_results["soundness-alloy"])

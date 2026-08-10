@@ -116,6 +116,20 @@ class EnforceFormalResultTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("soundness-key-coherence=skipped", result.stderr)
 
+    def test_stamp_only_soundness_skips_proving_and_lean(self) -> None:
+        env = full_environment()
+        env["SOUNDNESS_TIER"] = "stamps"
+        env["GATE"] = "skipped"
+        env["KEY_COHERENCE"] = "skipped"
+        env["LEAN"] = "skipped"
+        result = run_summary(env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+        env["GATE"] = "success"
+        result = run_summary(env)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("stamp-only soundness unexpectedly ran", result.stderr)
+
     def test_full_soundness_rejects_standalone_key_coherence(self) -> None:
         env = full_environment()
         env["KEY_COHERENCE"] = "success"
