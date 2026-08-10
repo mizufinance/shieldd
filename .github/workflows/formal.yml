@@ -860,7 +860,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     container:
-      image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:4bdec94eb778ca2ae549ba75de18b44a822f5460f608d7facc911382f08e88aa
+      image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:29488637fce71c867d9f6ffd8c5bdc825c80f55d675238bcdfbfe878be11d96c
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

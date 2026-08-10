@@ -76,6 +76,10 @@ SEMANTIC_BUILD_EVIDENCE_INPUTS = (
     "rust-toolchain.toml",
 )
 SEMANTIC_SCOPE_EXCLUSIONS = {
+    ".github/workflows/formal.yml": (
+        "PR orchestration selects assurance work but is not four-circuit "
+        "protocol semantics"
+    ),
     ".github/workflows/formal-scheduled.yml": (
         "scheduled orchestration does not govern the four-circuit merge/release "
         "claim"
@@ -85,6 +89,20 @@ SEMANTIC_SCOPE_EXCLUSIONS = {
     ),
     ".github/workflows/fv-toolchain-image.yml": (
         "formal.yml binds the active FV toolchain by immutable container digest"
+    ),
+    ".github/workflows/rust.yml": (
+        "Rust CI orchestration is assurance policy, not protocol semantics"
+    ),
+    "ci/gates/soundness-formal.json": (
+        "impact classification selects assurance work but does not define the "
+        "four circuits"
+    ),
+    "scripts/ci/gate-applicability.py": (
+        "impact classifier implementation is assurance policy, not protocol "
+        "semantics"
+    ),
+    "scripts/ci/test_gate_applicability.py": (
+        "impact classifier tests are assurance controls, not protocol semantics"
     ),
     "deny.toml": (
         "license/advisory policy is not an FV evidence or circuit-semantic input"
@@ -117,10 +135,6 @@ SEMANTIC_PIN = ROOT / "tools/gnark/lean/certified-protocol-semantics.sha256"
 SEMANTIC_BASE_FILES = (
     "Cargo.toml",
     "Cargo.lock",
-    "scripts/fv_rust_evidence_classification.py",
-    "scripts/fv_specification_completeness.py",
-    "scripts/gen_fv_specification_matrix.py",
-    "scripts/run-fv-specification-tests.py",
     "tools/gnark/go.mod",
     "tools/gnark/go.sum",
     "tools/gnark/fv_profiles.json",
@@ -140,9 +154,6 @@ SEMANTIC_BASE_FILES = (
     "crates/crypto/proof-params/Cargo.toml",
     "crates/crypto/proof-aggregation/Cargo.toml",
     "crates/crypto/tct/Cargo.toml",
-    "ci/gates/soundness-formal.json",
-    ".github/workflows/formal.yml",
-    ".github/workflows/rust.yml",
     "tools/gnark/lean/ShielddGnarkFormal.lean",
     "tools/gnark/lean/ShielddGnarkFormal/Poseidon377.lean",
     "tools/gnark/lean/ShielddGnarkFormal/ChoiceFreeZMod.lean",
@@ -206,7 +217,9 @@ SEMANTIC_EXACT_INPUT_ROSTERS = {
     ),
 }
 SEMANTIC_IMPLEMENTATION_ROOTS = (
-    ("scripts", (".py", ".sh")),
+    # Assurance scripts are deliberately not swept into protocol semantics.
+    # Their committed normative outputs and the implementations they inspect
+    # remain bound below, while CI/checker refactors cannot invalidate proofs.
     ("crates", (".rs", ".toml", ".proto", ".json")),
     ("proto", (".proto",)),
     ("tools/gnark", (".go", ".py", ".sh")),

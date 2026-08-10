@@ -4283,11 +4283,8 @@ structure ClaimedFacts where
             for relative, _ in CHECK.semantic_bundle_paths(ROOT)
         }
         expected = {
-            ".github/workflows/formal.yml",
-            ".github/workflows/rust.yml",
             "Cargo.lock",
             "Cargo.toml",
-            "ci/gates/soundness-formal.json",
             "crates/cnidarium-component/src/action_handler.rs",
             "crates/core/app/src/app/mod.rs",
             "crates/core/asset/src/lib.rs",
@@ -4298,7 +4295,6 @@ structure ClaimedFacts where
             "crates/crypto/tct/src/lib.rs",
             "crates/proto/src/lib.rs",
             "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
-            "scripts/fv_certification.py",
             "tools/gnark/fv_certification_backends.json",
             "tools/gnark/fv_profiles.json",
             "tools/gnark/go.mod",
@@ -4315,6 +4311,16 @@ structure ClaimedFacts where
             "tools/gnark/third_party/gnark-lean-extractor/go.sum",
         }
         self.assertEqual(expected - paths, set())
+        assurance_controls = {
+            ".github/workflows/formal.yml",
+            ".github/workflows/rust.yml",
+            "ci/gates/soundness-formal.json",
+            "scripts/ci/gate-applicability.py",
+            "scripts/fv_certification.py",
+            "scripts/lean-build-safe.sh",
+            "scripts/lean-leaf-bench.sh",
+        }
+        self.assertEqual(assurance_controls & paths, set())
 
         gate = json.loads(
             (ROOT / "ci/gates/soundness-formal.json").read_text(
@@ -4329,17 +4335,22 @@ structure ClaimedFacts where
         ]
         self.assertEqual(len(build_entries), 1)
         patterns = set(build_entries[0]["patterns"])
-        scoped_workflow_exclusions = {
+        scoped_assurance_exclusions = {
+            ".github/workflows/formal.yml",
             ".github/workflows/formal-scheduled.yml",
             ".github/workflows/soundness-provers.yml",
             ".github/workflows/fv-toolchain-image.yml",
+            ".github/workflows/rust.yml",
+            "ci/gates/soundness-formal.json",
+            "scripts/ci/gate-applicability.py",
+            "scripts/ci/test_gate_applicability.py",
         }
         self.assertEqual(
             patterns & set(CHECK.SEMANTIC_SCOPE_EXCLUSIONS),
-            scoped_workflow_exclusions,
+            scoped_assurance_exclusions,
         )
         gate_inputs: set[str] = set()
-        for pattern in sorted(patterns - scoped_workflow_exclusions):
+        for pattern in sorted(patterns - scoped_assurance_exclusions):
             if pattern.endswith("/**"):
                 prefix = pattern.removesuffix("/**")
                 gate_inputs.update(
@@ -4408,9 +4419,14 @@ structure ClaimedFacts where
         self.assertEqual(
             set(CHECK.SEMANTIC_SCOPE_EXCLUSIONS),
             {
+                ".github/workflows/formal.yml",
                 ".github/workflows/formal-scheduled.yml",
                 ".github/workflows/soundness-provers.yml",
                 ".github/workflows/fv-toolchain-image.yml",
+                ".github/workflows/rust.yml",
+                "ci/gates/soundness-formal.json",
+                "scripts/ci/gate-applicability.py",
+                "scripts/ci/test_gate_applicability.py",
                 "deny.toml",
                 "justfile",
             },
