@@ -5,7 +5,7 @@ mod proof;
 #[cfg(any(unix, windows))]
 mod prover_runtime;
 #[cfg(test)]
-mod test_runtime;
+pub(crate) mod test_runtime;
 mod view;
 
 pub use action::{

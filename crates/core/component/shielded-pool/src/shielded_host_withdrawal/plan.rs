@@ -171,8 +171,9 @@ impl ShieldedHostWithdrawalPlan {
             first_spend_randomizer: self.first_spend().randomizer,
             sender_address: self.sender_address(),
             asset_id: self.withdrawal_asset_id(),
+            // Host withdrawals reuse the ICS-20 circuit and its fixed dummy-nullifier domain.
             nullifier_domain_sep_label:
-                b"shieldd.shielded_host_withdrawal.synthetic_dummy.nullifier",
+                b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier",
             nullifier_seed_label:
                 b"shieldd.shielded_host_withdrawal.synthetic_dummy.nullifier_seed",
             spend_auth_key_label:
@@ -635,9 +636,53 @@ mod tests {
     use rand_core::OsRng;
     use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM};
     use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_sct::Nullifier;
 
     use super::*;
-    use crate::{HostTransfer, HostWithdrawalDestination, Note};
+    use crate::{
+        shielded_ics20_withdrawal::test_runtime, HostTransfer, HostWithdrawalDestination, Note,
+        ShieldedIcs20WithdrawalProof, ShieldedIcs20WithdrawalProofPrivate,
+        ShieldedIcs20WithdrawalProofPublic,
+    };
+
+    fn padded_proof_inputs() -> (
+        ShieldedIcs20WithdrawalProofPublic,
+        ShieldedIcs20WithdrawalProofPrivate,
+    ) {
+        let value = Value {
+            amount: 42u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        };
+        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
+        let mut tree = tct::Tree::new();
+        tree.insert(tct::Witness::Keep, note.commit())
+            .expect("insert withdrawal note");
+        let state_commitment_proof = tree
+            .witness(note.commit())
+            .expect("witness withdrawal note");
+        let spend = ShieldedInputPlan::new(&mut OsRng, note, state_commitment_proof.position());
+        let withdrawal = HostWithdrawal {
+            value,
+            destination: HostWithdrawalDestination::Transfer(HostTransfer {
+                recipient: "bank1recipient".to_owned(),
+            }),
+        };
+        let plan = ShieldedHostWithdrawalPlan::new(
+            ShieldedIcs20WithdrawalFamilyId::Canonical,
+            vec![spend],
+            None,
+            withdrawal,
+            Fr::from(7u64),
+        )
+        .expect("plan should be valid");
+
+        plan.proof_public_private(
+            &test_keys::FULL_VIEWING_KEY,
+            &[state_commitment_proof],
+            tree.root(),
+        )
+        .expect("derive host withdrawal proof inputs")
+    }
 
     #[test]
     fn new_plan_builds_padded_host_withdrawal_body() {
@@ -669,5 +714,40 @@ mod tests {
             plan.created_output_address(),
             test_keys::ADDRESS_0.deref().clone()
         );
+    }
+
+    #[test]
+    fn padded_spend_uses_shared_withdrawal_circuit_nullifier_domain() {
+        let (public, private) = padded_proof_inputs();
+        let dummy = &private.inputs[1];
+        let domain = Fq::from_le_bytes_mod_order(
+            blake2b_simd::blake2b(b"shieldd.shielded_ics20_withdrawal.synthetic_dummy.nullifier")
+                .as_bytes(),
+        );
+        let expected = Nullifier(poseidon377::hash_3(
+            &domain,
+            (
+                dummy.dummy_nullifier_seed,
+                Fq::from_le_bytes_mod_order(&dummy.spend_auth_randomizer.to_bytes()),
+                Fq::from(1u64),
+            ),
+        ));
+
+        assert_eq!(public.inputs[1].nullifier, expected);
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn padded_host_withdrawal_proof_roundtrip() {
+        if test_runtime::should_skip_shielded_ics20_withdrawal_proof_roundtrip_tests() {
+            return;
+        }
+
+        let (public, private) = padded_proof_inputs();
+        let proof = ShieldedIcs20WithdrawalProof::prove(public.clone(), private)
+            .expect("padded host withdrawal proof should generate");
+        proof
+            .verify(&public)
+            .expect("padded host withdrawal proof should verify");
     }
 }
