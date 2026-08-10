@@ -218,6 +218,17 @@ SEMANTIC_EXCLUDED_IMPLEMENTATION_PATHS = frozenset(
     {
         # Local pcli proposal input is deliberately ignored and is not source.
         "crates/bin/pcli/proposal.toml",
+        # Trusted checker output attests to a semantic input set; it is not
+        # itself a protocol-semantic input. Including it creates a refresh
+        # cycle where committing new evidence invalidates every circuit pin.
+        (
+            "crates/crypto/proof-aggregation/formal/snarkpack/"
+            "fstar-checker-evidence.json"
+        ),
+        (
+            "crates/crypto/proof-aggregation/formal/snarkpack/"
+            "verification-manifest.json"
+        ),
     }
 )
 PROOF_ACCEPTANCE_TEST_PATH = (
