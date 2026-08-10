@@ -148,7 +148,6 @@
         "scripts/compliance-symbolic.sh",
         "scripts/lib/fail-closed-rg.sh",
         "scripts/lint-emitted-lean.py",
-        "scripts/linux-process-group-rss.py",
         "scripts/run-picus-bounded.sh",
         "scripts/shielded-pool-formal.sh",
         "tools/gnark/**"

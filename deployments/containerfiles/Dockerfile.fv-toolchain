@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl git git-lfs unzip xz-utils ripgrep \
       build-essential pkg-config libssl-dev \
       clang lld \
-      jq python3 perl \
+      jq python3 perl procps \
     && rm -rf /var/lib/apt/lists/* \
     && git lfs install --system
 

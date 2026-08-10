@@ -96,32 +96,19 @@ OUTPUT_BYTES="${BENCH_OUTPUT_BYTES:-32768}"
 (( OUTPUT_BYTES <= 131072 )) \
   || fail "BENCH_OUTPUT_BYTES must not exceed 131072"
 
-RSS_SAMPLER=""
-case "$(uname -s)" in
-  Linux)
-    RSS_HELPER="$ROOT/scripts/linux-process-group-rss.py"
-    [[ -r /proc/self/stat && -f "$RSS_HELPER" ]] \
-      || fail "Linux procfs RSS sampling is unavailable; refusing an unguarded benchmark"
-    command -v python3 >/dev/null 2>&1 \
-      || fail "python3 is required for Linux procfs RSS sampling"
-    RSS_SAMPLER="linux-proc"
-    ;;
-  Darwin)
-    command -v cc >/dev/null 2>&1 \
-      || fail "cc is required for macOS process-group RSS sampling"
+RSS_SAMPLER="ps"
+if ! ps aux -o pgid= >/dev/null 2>&1; then
+  if [[ "$(uname -s)" == "Darwin" ]] && command -v cc >/dev/null 2>&1; then
     RSS_HELPER="$TMP/process-group-rss"
     if cc -O2 "$ROOT/scripts/macos-process-group-rss.c" -o "$RSS_HELPER"; then
       RSS_SAMPLER="macos-helper"
     else
       fail "could not compile the macOS RSS sampler"
     fi
-    ;;
-  *)
-    ps -eo rss=,pgid= >/dev/null 2>&1 \
-      || fail "process-group RSS sampling is unavailable; refusing an unguarded benchmark"
-    RSS_SAMPLER="ps"
-    ;;
-esac
+  else
+    fail "process-group RSS sampling is unavailable; refusing an unguarded benchmark"
+  fi
+fi
 
 PROFILE_OUT="${BENCH_PROFILE_OUT:-$PWD/leaf-profile-$(basename "${TARGET%.lean}").json}"
 PROFILE_ARGS=()
@@ -169,14 +156,12 @@ LEAN_PID=$!
 PGID=$LEAN_PID   # under `set -m`, the job's pgid == its leader pid
 
 group_rss_kb() {
-  case "$RSS_SAMPLER" in
-    linux-proc) python3 "$RSS_HELPER" "$PGID" ;;
-    macos-helper) "$RSS_HELPER" "$PGID" ;;
-    ps)
-      ps -eo rss=,pgid= 2>/dev/null \
-        | awk -v group="$PGID" '$2 == group { total += $1 } END { print total + 0 }'
-      ;;
-  esac
+  if [[ "$RSS_SAMPLER" == "macos-helper" ]]; then
+    "$RSS_HELPER" "$PGID"
+  else
+    ps aux -o pgid= 2>/dev/null \
+      | awk -v group="$PGID" '$NF == group { total += $6 } END { print total + 0 }'
+  fi
 }
 kill_group()   { kill -9 -- "-$PGID" 2>/dev/null || true; }
 
