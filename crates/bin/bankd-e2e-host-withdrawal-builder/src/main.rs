@@ -16,8 +16,8 @@ use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_shielded_pool::{
-    EvmCall, HostExecution, HostTransfer, HostWithdrawal, HostWithdrawalDestination,
-    Ics20Withdrawal, ShieldedHostWithdrawal, ShieldedHostWithdrawalBody,
+    component::StateReadExt as _, EvmCall, HostExecution, HostTransfer, HostWithdrawal,
+    HostWithdrawalDestination, Ics20Withdrawal, ShieldedHostWithdrawal, ShieldedHostWithdrawalBody,
     ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalPlan, ShieldedIcs20WithdrawalProof,
     ShieldedInputPlan, ShieldedOutputPlan,
 };
@@ -213,7 +213,6 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
             &mut OsRng,
             MemoPlaintext::blank_memo(test_keys::ADDRESS_0.deref().clone()),
         )),
-        detection_data: None,
         fee_funding: None,
         transaction_parameters: TransactionParameters {
             chain_id: opt.chain_id,
@@ -222,6 +221,12 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
     };
 
     let snapshot = storage.latest_snapshot();
+    let discovery_precision = snapshot
+        .get_current_discovery_parameters()
+        .await
+        .context("failed to read Shieldd discovery parameters")?
+        .precision;
+    plan.populate_discovery_precision(discovery_precision);
     let block_timestamp = snapshot
         .get_current_block_timestamp()
         .await
@@ -231,7 +236,6 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
     enrich_plan_with_compliance(&mut plan, &provider, &mut OsRng, block_timestamp)
         .await
         .context("failed to enrich Shieldd host withdrawal plan")?;
-    plan.populate_detection_data(&mut OsRng, Default::default());
 
     let witness_data = client.witness_plan(&plan)?;
     let withdrawal_plan = match plan.actions.as_slice() {
