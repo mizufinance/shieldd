@@ -6,7 +6,8 @@ use shieldd_sdk_proto::{
     DomainType,
 };
 
-use decaf377_rdsa::{SpendAuth, VerificationKey};
+use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
+use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 
 /// The root of a validator's governance identity (which may be distinct from its main identity, to
 /// allow cold storage of validator keys).
@@ -19,7 +20,31 @@ use decaf377_rdsa::{SpendAuth, VerificationKey};
 /// custodying funds to protect their identity.
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(try_from = "pb::GovernanceKey", into = "pb::GovernanceKey")]
-pub struct GovernanceKey(pub VerificationKey<SpendAuth>);
+pub struct GovernanceKey(VerificationKey<SpendAuth>);
+
+impl GovernanceKey {
+    pub fn verification_key(&self) -> &VerificationKey<SpendAuth> {
+        &self.0
+    }
+
+    pub fn to_bytes(&self) -> [u8; 32] {
+        self.0.to_bytes()
+    }
+
+    pub fn verify(&self, message: &[u8], signature: &Signature<SpendAuth>) -> anyhow::Result<()> {
+        ensure_nonidentity_spend_auth_key(&self.0, "validator governance key")?;
+        Ok(self.0.verify(message, signature)?)
+    }
+}
+
+impl TryFrom<VerificationKey<SpendAuth>> for GovernanceKey {
+    type Error = anyhow::Error;
+
+    fn try_from(key: VerificationKey<SpendAuth>) -> Result<Self, Self::Error> {
+        ensure_nonidentity_spend_auth_key(&key, "validator governance key")?;
+        Ok(Self(key))
+    }
+}
 
 impl std::str::FromStr for GovernanceKey {
     type Err = anyhow::Error;
@@ -62,6 +87,50 @@ impl From<GovernanceKey> for pb::GovernanceKey {
 impl TryFrom<pb::GovernanceKey> for GovernanceKey {
     type Error = anyhow::Error;
     fn try_from(gk: pb::GovernanceKey) -> Result<Self, Self::Error> {
-        Ok(Self(gk.gk.as_slice().try_into()?))
+        let key: VerificationKey<SpendAuth> = gk.gk.as_slice().try_into()?;
+        key.try_into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use decaf377::Fr;
+    use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+
+    use super::*;
+
+    #[test]
+    fn governance_key_rejects_identity() {
+        let signing_key = SigningKey::<SpendAuth>::from(Fr::from(0u64));
+        let verification_key = VerificationKey::from(&signing_key);
+        let signature = signing_key.sign_deterministic(b"governance action");
+
+        let error = GovernanceKey::try_from(verification_key)
+            .expect_err("validator governance keys must be nonidentity");
+        assert!(
+            error
+                .to_string()
+                .contains("validator governance key must not be identity"),
+            "unexpected rejection reason: {error:#}"
+        );
+
+        let proto = pb::GovernanceKey {
+            gk: verification_key.to_bytes().to_vec(),
+        };
+        assert!(
+            GovernanceKey::try_from(proto).is_err(),
+            "typed governance-key decode must reject identity"
+        );
+
+        let unchecked = GovernanceKey(verification_key);
+        let verification_error = unchecked
+            .verify(b"governance action", &signature)
+            .expect_err("proposal and vote verification must reject identity defensively");
+        assert!(
+            verification_error
+                .to_string()
+                .contains("validator governance key must not be identity"),
+            "unexpected verification rejection: {verification_error:#}"
+        );
     }
 }

@@ -19,7 +19,6 @@ visibility for regulated assets.
 | `ValidatorVote` | Validator votes on governance proposals |
 | `ComplianceRegisterAsset` | Register a regulated asset with its issuer policy |
 | `ComplianceRegisterUser` | Register a user address for a regulated asset |
-| `AggregateBundle` | Validator-submitted proof aggregation (internal, not user-facing) |
 
 ## Removed Actions
 

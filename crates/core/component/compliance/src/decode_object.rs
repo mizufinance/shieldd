@@ -1,146 +1,168 @@
-use anyhow::{anyhow, bail, Result};
-use decaf377::{Element, Encoding, Fq, Fr};
+use anyhow::{anyhow, ensure, Result};
+use decaf377::Fq;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    crypto::{compute_metadata_hash, derive_compliance_scalar, verify_dleq_native},
-    indexed_tree::string_to_fq,
-    structs::DleqProof,
-};
+use crate::indexed_tree::string_to_fq;
 
-/// Canonical Shieldd transfer-tier labels for DLEQ metadata binding.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[repr(u64)]
-#[serde(rename_all = "snake_case")]
-pub enum TransferTierKind {
-    SenderCore = 1,
-    SenderExt = 2,
-    OutputCore = 3,
-    OutputExt = 4,
-}
-
-impl TransferTierKind {
-    pub fn as_u64(self) -> u64 {
-        self as u64
-    }
-
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::SenderCore => "sender_core",
-            Self::SenderExt => "sender_ext",
-            Self::OutputCore => "output_core",
-            Self::OutputExt => "output_ext",
-        }
-    }
-}
-
-/// Shieldd-owned canonical transfer metadata statement.
+/// Canonical circuit-bound metadata for one fixed-shape transfer.
 ///
-/// This is the metadata that the transfer DLEQ binds to the ACK/EPK relation.
-/// It is distinct from the current Orbis anchor-object metadata used by
-/// `store_secret`.
+/// Tier identity is structural: the four salts and ciphertexts always appear
+/// in sender-core, sender-extension, output-core, output-extension order.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TransferTierMetadataStatement {
-    /// Canonical 32-byte little-endian encoding of the subject's slot derivation.
-    pub subject_derivation_bytes: [u8; 32],
+pub struct TransferComplianceMetadata {
+    pub sender_subject_derivation_bytes: [u8; 32],
+    pub output_subject_derivation_bytes: [u8; 32],
     pub ring_id_hash_bytes: [u8; 32],
     pub policy_id_hash_bytes: [u8; 32],
     pub resource_hash_bytes: [u8; 32],
     pub permission_hash_bytes: [u8; 32],
-    pub tier: TransferTierKind,
     pub target_timestamp: u64,
-    pub salt_bytes: [u8; 32],
+    pub sender_core_salt_bytes: [u8; 32],
+    pub sender_ext_salt_bytes: [u8; 32],
+    pub output_core_salt_bytes: [u8; 32],
+    pub output_ext_salt_bytes: [u8; 32],
 }
 
-impl TransferTierMetadataStatement {
+pub const TRANSFER_COMPLIANCE_METADATA_BYTES: usize = 10 * 32 + 8;
+
+impl TransferComplianceMetadata {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        subject_derivation: Fq,
+        sender_subject_derivation: Fq,
+        output_subject_derivation: Fq,
         ring_id_hash: Fq,
         policy_id_hash: Fq,
         resource_hash: Fq,
         permission_hash: Fq,
-        tier: TransferTierKind,
         target_timestamp: u64,
-        salt: Fq,
+        sender_core_salt: Fq,
+        sender_ext_salt: Fq,
+        output_core_salt: Fq,
+        output_ext_salt: Fq,
     ) -> Self {
         Self {
-            subject_derivation_bytes: subject_derivation.to_bytes(),
+            sender_subject_derivation_bytes: sender_subject_derivation.to_bytes(),
+            output_subject_derivation_bytes: output_subject_derivation.to_bytes(),
             ring_id_hash_bytes: ring_id_hash.to_bytes(),
             policy_id_hash_bytes: policy_id_hash.to_bytes(),
             resource_hash_bytes: resource_hash.to_bytes(),
             permission_hash_bytes: permission_hash.to_bytes(),
-            tier,
             target_timestamp,
-            salt_bytes: salt.to_bytes(),
+            sender_core_salt_bytes: sender_core_salt.to_bytes(),
+            sender_ext_salt_bytes: sender_ext_salt.to_bytes(),
+            output_core_salt_bytes: output_core_salt.to_bytes(),
+            output_ext_salt_bytes: output_ext_salt.to_bytes(),
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn from_identifiers(
-        subject_derivation: Fq,
+        sender_subject_derivation: Fq,
+        output_subject_derivation: Fq,
         ring_id: &str,
         policy_id: &str,
         resource: &str,
         permission: &str,
-        tier: TransferTierKind,
         target_timestamp: u64,
-        salt: Fq,
+        sender_core_salt: Fq,
+        sender_ext_salt: Fq,
+        output_core_salt: Fq,
+        output_ext_salt: Fq,
     ) -> Self {
         Self::new(
-            subject_derivation,
+            sender_subject_derivation,
+            output_subject_derivation,
             string_to_fq(ring_id),
             string_to_fq(policy_id),
             string_to_fq(resource),
             string_to_fq(permission),
-            tier,
             target_timestamp,
-            salt,
+            sender_core_salt,
+            sender_ext_salt,
+            output_core_salt,
+            output_ext_salt,
         )
     }
 
-    pub fn validate_shape(&self) -> Result<()> {
-        self.subject_derivation()?;
+    pub fn validate(&self) -> Result<()> {
+        self.sender_subject_derivation()?;
+        self.output_subject_derivation()?;
         self.ring_id_hash()?;
         self.policy_id_hash()?;
         self.resource_hash()?;
         self.permission_hash()?;
-        self.salt()?;
-
-        if self.target_timestamp == 0 {
-            bail!("target_timestamp must be non-zero");
+        for salt in self.salts() {
+            parse_fq(*salt, "transfer compliance salt")?;
         }
-
+        ensure!(
+            self.target_timestamp != 0,
+            "target_timestamp must be non-zero"
+        );
         Ok(())
     }
 
-    pub fn metadata_hash(&self) -> Result<Fq> {
-        self.validate_shape()?;
-        Ok(compute_metadata_hash(
-            self.policy_id_hash()?,
-            self.resource_hash()?,
-            self.permission_hash()?,
-            Fq::from(self.tier.as_u64()),
-            Fq::from(self.target_timestamp),
-            self.salt()?,
-        ))
+    pub fn to_bytes(&self) -> Result<Vec<u8>> {
+        self.validate()?;
+        let mut out = Vec::with_capacity(TRANSFER_COMPLIANCE_METADATA_BYTES);
+        out.extend_from_slice(&self.sender_subject_derivation_bytes);
+        out.extend_from_slice(&self.output_subject_derivation_bytes);
+        out.extend_from_slice(&self.ring_id_hash_bytes);
+        out.extend_from_slice(&self.policy_id_hash_bytes);
+        out.extend_from_slice(&self.resource_hash_bytes);
+        out.extend_from_slice(&self.permission_hash_bytes);
+        out.extend_from_slice(&self.target_timestamp.to_le_bytes());
+        for salt in self.salts() {
+            out.extend_from_slice(salt);
+        }
+        debug_assert_eq!(out.len(), TRANSFER_COMPLIANCE_METADATA_BYTES);
+        Ok(out)
     }
 
-    pub fn subject_ack(&self, ring_pk: &Element) -> Result<Element> {
-        let d = derive_compliance_scalar(self.subject_derivation()?);
-        let d_fr = Fr::from_bytes_checked(&d.to_bytes())
-            .map_err(|_| anyhow!("derived compliance scalar is not a canonical Fr"))?;
-        Ok(*ring_pk * d_fr)
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        ensure!(
+            bytes.len() == TRANSFER_COMPLIANCE_METADATA_BYTES,
+            "transfer compliance metadata must be {TRANSFER_COMPLIANCE_METADATA_BYTES} bytes, got {}",
+            bytes.len()
+        );
+        let mut reader = MetadataReader::new(bytes);
+        let metadata = Self {
+            sender_subject_derivation_bytes: reader.read_array::<32>()?,
+            output_subject_derivation_bytes: reader.read_array::<32>()?,
+            ring_id_hash_bytes: reader.read_array::<32>()?,
+            policy_id_hash_bytes: reader.read_array::<32>()?,
+            resource_hash_bytes: reader.read_array::<32>()?,
+            permission_hash_bytes: reader.read_array::<32>()?,
+            target_timestamp: reader.read_u64()?,
+            sender_core_salt_bytes: reader.read_array::<32>()?,
+            sender_ext_salt_bytes: reader.read_array::<32>()?,
+            output_core_salt_bytes: reader.read_array::<32>()?,
+            output_ext_salt_bytes: reader.read_array::<32>()?,
+        };
+        reader.finish()?;
+        metadata.validate()?;
+        Ok(metadata)
     }
 
-    pub fn subject_derivation(&self) -> Result<Fq> {
-        parse_fq(self.subject_derivation_bytes, "subject_derivation_bytes")
+    pub fn sender_subject_derivation(&self) -> Result<Fq> {
+        parse_fq(
+            self.sender_subject_derivation_bytes,
+            "sender_subject_derivation_bytes",
+        )
     }
 
-    pub fn policy_id_hash(&self) -> Result<Fq> {
-        parse_fq(self.policy_id_hash_bytes, "policy_id_hash_bytes")
+    pub fn output_subject_derivation(&self) -> Result<Fq> {
+        parse_fq(
+            self.output_subject_derivation_bytes,
+            "output_subject_derivation_bytes",
+        )
     }
 
     pub fn ring_id_hash(&self) -> Result<Fq> {
         parse_fq(self.ring_id_hash_bytes, "ring_id_hash_bytes")
+    }
+
+    pub fn policy_id_hash(&self) -> Result<Fq> {
+        parse_fq(self.policy_id_hash_bytes, "policy_id_hash_bytes")
     }
 
     pub fn resource_hash(&self) -> Result<Fq> {
@@ -151,105 +173,29 @@ impl TransferTierMetadataStatement {
         parse_fq(self.permission_hash_bytes, "permission_hash_bytes")
     }
 
-    pub fn salt(&self) -> Result<Fq> {
-        parse_fq(self.salt_bytes, "salt_bytes")
-    }
-}
-
-/// Shieldd-owned public decode contract for one logical transfer tier.
-///
-/// This object is public-data-only and contains no seed material. It models the
-/// long-term object Shieldd wants Orbis to authorize over, while remaining
-/// explicit that current live PRE operates on a separate Orbis-compatible
-/// encrypted-seed object.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PublicTransferTierDecodeObject {
-    pub statement: TransferTierMetadataStatement,
-    /// Public tier EPK from the transfer ciphertext.
-    pub epk_bytes: [u8; 32],
-    /// Public tier C2 from the transfer ciphertext.
-    pub c2_bytes: [u8; 32],
-    /// Public `S = r x ACK` point needed to validate the transfer DLEQ offline.
-    pub shared_point_bytes: [u8; 32],
-    pub dleq_challenge_bytes: [u8; 32],
-    pub dleq_response_bytes: [u8; 32],
-}
-
-impl PublicTransferTierDecodeObject {
-    pub fn new(
-        statement: TransferTierMetadataStatement,
-        epk: &Element,
-        c2: Fq,
-        shared_point: &Element,
-        proof: &DleqProof,
-    ) -> Self {
-        Self {
-            statement,
-            epk_bytes: epk.vartime_compress().0,
-            c2_bytes: c2.to_bytes(),
-            shared_point_bytes: shared_point.vartime_compress().0,
-            dleq_challenge_bytes: proof.c.to_bytes(),
-            dleq_response_bytes: proof.s.to_bytes(),
-        }
+    pub fn sender_core_salt(&self) -> Result<Fq> {
+        parse_fq(self.sender_core_salt_bytes, "sender_core_salt_bytes")
     }
 
-    pub fn validate_shape(&self) -> Result<()> {
-        self.statement.validate_shape()?;
-        self.epk()?;
-        self.c2()?;
-        self.shared_point()?;
-        self.dleq_proof()?;
-        Ok(())
+    pub fn sender_ext_salt(&self) -> Result<Fq> {
+        parse_fq(self.sender_ext_salt_bytes, "sender_ext_salt_bytes")
     }
 
-    /// Validate the canonical Shieldd metadata binding for this tier object.
-    ///
-    /// This checks the transfer DLEQ only. It does not prove that `c2` encrypts
-    /// a valid seed; use `validate_c2_seed` after seed decryption, or rely on a
-    /// circuit-backed transfer statement.
-    pub fn validate(&self, ring_pk: &Element) -> Result<()> {
-        self.validate_shape()?;
-        let metadata_hash = self.statement.metadata_hash()?;
-        let ack = self.statement.subject_ack(ring_pk)?;
-        let epk = self.epk()?;
-        let shared_point = self.shared_point()?;
-        let proof = self.dleq_proof()?;
-        verify_dleq_native(&ack, &epk, &shared_point, &proof.c, &proof.s, metadata_hash)
+    pub fn output_core_salt(&self) -> Result<Fq> {
+        parse_fq(self.output_core_salt_bytes, "output_core_salt_bytes")
     }
 
-    pub fn validate_c2_seed(&self, seed: Fq) -> Result<()> {
-        let expected_c2 = seed + self.shared_point()?.vartime_compress_to_field();
-        if self.c2()? != expected_c2 {
-            bail!("tier c2 does not match decrypted seed and shared point");
-        }
-        Ok(())
+    pub fn output_ext_salt(&self) -> Result<Fq> {
+        parse_fq(self.output_ext_salt_bytes, "output_ext_salt_bytes")
     }
 
-    pub fn epk(&self) -> Result<Element> {
-        parse_element(self.epk_bytes, "epk_bytes")
-    }
-
-    pub fn c2(&self) -> Result<Fq> {
-        parse_fq(self.c2_bytes, "c2_bytes")
-    }
-
-    pub fn shared_point(&self) -> Result<Element> {
-        parse_element(self.shared_point_bytes, "shared_point_bytes")
-    }
-
-    pub fn dleq_proof(&self) -> Result<DleqProof> {
-        let c = parse_fq(self.dleq_challenge_bytes, "dleq_challenge_bytes")?;
-        let s = Fr::from_bytes_checked(&self.dleq_response_bytes)
-            .map_err(|_| anyhow!("invalid dleq_response_bytes"))?;
-        Ok(DleqProof { c, s })
-    }
-
-    pub fn to_json(&self) -> Result<String> {
-        serde_json::to_string_pretty(self).map_err(Into::into)
-    }
-
-    pub fn from_json(json: &str) -> Result<Self> {
-        serde_json::from_str(json).map_err(Into::into)
+    fn salts(&self) -> [&[u8; 32]; 4] {
+        [
+            &self.sender_core_salt_bytes,
+            &self.sender_ext_salt_bytes,
+            &self.output_core_salt_bytes,
+            &self.output_ext_salt_bytes,
+        ]
     }
 }
 
@@ -257,137 +203,111 @@ fn parse_fq(bytes: [u8; 32], label: &str) -> Result<Fq> {
     Fq::from_bytes_checked(&bytes).map_err(|_| anyhow!("invalid {label}"))
 }
 
-fn parse_element(bytes: [u8; 32], label: &str) -> Result<Element> {
-    Encoding(bytes)
-        .vartime_decompress()
-        .map_err(|_| anyhow!("invalid {label}"))
+struct MetadataReader<'a> {
+    bytes: &'a [u8],
+    offset: usize,
+}
+
+impl<'a> MetadataReader<'a> {
+    fn new(bytes: &'a [u8]) -> Self {
+        Self { bytes, offset: 0 }
+    }
+
+    fn read_array<const N: usize>(&mut self) -> Result<[u8; N]> {
+        let end = self
+            .offset
+            .checked_add(N)
+            .ok_or_else(|| anyhow!("metadata offset overflow"))?;
+        let value = self
+            .bytes
+            .get(self.offset..end)
+            .ok_or_else(|| anyhow!("truncated transfer compliance metadata"))?
+            .try_into()
+            .expect("slice length is checked");
+        self.offset = end;
+        Ok(value)
+    }
+
+    fn read_u64(&mut self) -> Result<u64> {
+        Ok(u64::from_le_bytes(self.read_array::<8>()?))
+    }
+
+    fn finish(self) -> Result<()> {
+        ensure!(
+            self.offset == self.bytes.len(),
+            "trailing bytes in transfer compliance metadata"
+        );
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand_core::OsRng;
 
-    use crate::crypto::compute_dleq_native;
-
-    fn valid_decode_object() -> (PublicTransferTierDecodeObject, Element, Fq) {
-        let mut rng = OsRng;
-        let sk_ring = Fr::rand(&mut rng);
-        let ring_pk = Element::GENERATOR * sk_ring;
-
-        let subject_derivation = Fq::from(42u64);
-        let statement = TransferTierMetadataStatement::from_identifiers(
-            subject_derivation,
+    fn metadata() -> TransferComplianceMetadata {
+        TransferComplianceMetadata::from_identifiers(
+            Fq::from(41u64),
+            Fq::from(42u64),
             "ring-id",
             "policy-id",
             "document",
             "read",
-            TransferTierKind::OutputCore,
             1_700_000_000,
-            Fq::from(777u64),
-        );
-        let ack = statement.subject_ack(&ring_pk).expect("ack should derive");
-
-        let r = Fr::rand(&mut rng);
-        let k = Fr::rand(&mut rng);
-        let epk = Element::GENERATOR * r;
-        let shared_point = ack * r;
-        let seed = Fq::from(1234u64);
-        let c2 = seed + shared_point.vartime_compress_to_field();
-        let metadata_hash = statement
-            .metadata_hash()
-            .expect("metadata hash should compute");
-        let proof = compute_dleq_native(r, k, &ack, &epk, metadata_hash);
-
-        (
-            PublicTransferTierDecodeObject::new(statement, &epk, c2, &shared_point, &proof),
-            ring_pk,
-            seed,
+            Fq::from(11u64),
+            Fq::from(12u64),
+            Fq::from(13u64),
+            Fq::from(14u64),
         )
     }
 
     #[test]
-    fn transfer_tier_decode_object_roundtrips_json() {
-        let (object, ring_pk, seed) = valid_decode_object();
-        let json = object.to_json().expect("object should serialize");
-        let decoded =
-            PublicTransferTierDecodeObject::from_json(&json).expect("object should deserialize");
+    fn transfer_metadata_has_one_canonical_fixed_encoding() {
+        let metadata = metadata();
+        let encoded = metadata.to_bytes().expect("metadata should encode");
+        assert_eq!(encoded.len(), TRANSFER_COMPLIANCE_METADATA_BYTES);
+        assert_eq!(
+            TransferComplianceMetadata::from_bytes(&encoded).expect("metadata should decode"),
+            metadata
+        );
 
-        assert_eq!(decoded, object);
-        decoded
-            .validate(&ring_pk)
-            .expect("roundtripped object should stay valid");
-        decoded
-            .validate_c2_seed(seed)
-            .expect("roundtripped c2 should match seed");
+        let mut trailing = encoded.clone();
+        trailing.push(0);
+        assert!(TransferComplianceMetadata::from_bytes(&trailing).is_err());
+        assert!(TransferComplianceMetadata::from_bytes(&encoded[..encoded.len() - 1]).is_err());
     }
 
     #[test]
-    fn transfer_tier_decode_object_rejects_wrong_tier() {
-        let (mut object, ring_pk, _) = valid_decode_object();
-        object.statement.tier = TransferTierKind::OutputExt;
+    fn transfer_metadata_wire_is_exactly_the_factored_record() {
+        let metadata = metadata();
+        let mut expected = Vec::with_capacity(TRANSFER_COMPLIANCE_METADATA_BYTES);
+        expected.extend_from_slice(&metadata.sender_subject_derivation_bytes);
+        expected.extend_from_slice(&metadata.output_subject_derivation_bytes);
+        expected.extend_from_slice(&metadata.ring_id_hash_bytes);
+        expected.extend_from_slice(&metadata.policy_id_hash_bytes);
+        expected.extend_from_slice(&metadata.resource_hash_bytes);
+        expected.extend_from_slice(&metadata.permission_hash_bytes);
+        expected.extend_from_slice(&metadata.target_timestamp.to_le_bytes());
+        expected.extend_from_slice(&metadata.sender_core_salt_bytes);
+        expected.extend_from_slice(&metadata.sender_ext_salt_bytes);
+        expected.extend_from_slice(&metadata.output_core_salt_bytes);
+        expected.extend_from_slice(&metadata.output_ext_salt_bytes);
 
-        let error = object
-            .validate(&ring_pk)
-            .expect_err("tampered tier should fail binding validation");
-        assert!(error.to_string().contains("challenge mismatch"));
+        assert_eq!(expected.len(), TRANSFER_COMPLIANCE_METADATA_BYTES);
+        assert_eq!(
+            metadata.to_bytes().expect("metadata should encode"),
+            expected
+        );
     }
 
     #[test]
-    fn transfer_tier_decode_object_rejects_wrong_timestamp() {
-        let (mut object, ring_pk, _) = valid_decode_object();
-        object.statement.target_timestamp += 1;
+    fn transfer_metadata_rejects_zero_timestamp_and_noncanonical_fields() {
+        let mut zero_timestamp = metadata();
+        zero_timestamp.target_timestamp = 0;
+        assert!(zero_timestamp.to_bytes().is_err());
 
-        let error = object
-            .validate(&ring_pk)
-            .expect_err("tampered timestamp should fail binding validation");
-        assert!(error.to_string().contains("challenge mismatch"));
-    }
-
-    #[test]
-    fn transfer_tier_decode_object_rejects_wrong_subject_linkage() {
-        let (mut object, ring_pk, _) = valid_decode_object();
-        object.statement.subject_derivation_bytes = Fq::from(999u64).to_bytes();
-
-        let error = object
-            .validate(&ring_pk)
-            .expect_err("tampered subject linkage should fail binding validation");
-        assert!(error.to_string().contains("challenge mismatch"));
-    }
-
-    #[test]
-    fn transfer_tier_decode_object_rejects_tampered_dleq() {
-        let (mut object, ring_pk, _) = valid_decode_object();
-        object.dleq_challenge_bytes = Fq::from(5u64).to_bytes();
-
-        let error = object
-            .validate(&ring_pk)
-            .expect_err("tampered challenge should fail binding validation");
-        assert!(error.to_string().contains("challenge mismatch"));
-    }
-
-    #[test]
-    fn transfer_tier_decode_object_rejects_c2_malleability_with_seed() {
-        let (mut object, ring_pk, seed) = valid_decode_object();
-        object.c2_bytes = (object.c2().expect("valid c2") + Fq::from(1u64)).to_bytes();
-
-        object
-            .validate(&ring_pk)
-            .expect("DLEQ does not authenticate c2 by itself");
-        let error = object
-            .validate_c2_seed(seed)
-            .expect_err("seed-aware validation should reject c2 mutation");
-        assert!(error.to_string().contains("c2"));
-    }
-
-    #[test]
-    fn transfer_tier_decode_object_rejects_invalid_point_encoding() {
-        let (mut object, _, _) = valid_decode_object();
-        object.epk_bytes = [0xff; 32];
-
-        let error = object
-            .validate_shape()
-            .expect_err("malformed point encoding should fail shape validation");
-        assert!(error.to_string().contains("epk_bytes"));
+        let mut encoded = metadata().to_bytes().expect("metadata should encode");
+        encoded[..32].fill(0xff);
+        assert!(TransferComplianceMetadata::from_bytes(&encoded).is_err());
     }
 }

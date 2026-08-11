@@ -1,3 +1,5 @@
+#[cfg(any(test, feature = "benchmark-helpers"))]
+mod aggregate_diagnostics;
 mod host;
 mod preconsensus;
 mod validation_support;
@@ -19,23 +21,17 @@ pub use self::validation_support::{
     MAX_VALIDATION_NULLIFIERS_PER_TX, MAX_VALIDATION_TX_COUNT,
 };
 
-use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::fs::{self, OpenOptions};
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::collections::{BTreeMap, BTreeSet, HashSet, VecDeque};
 use std::process;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result};
-use ark_ff::{BigInteger, PrimeField, Zero};
 use ark_groth16::PreparedVerifyingKey;
 use async_trait::async_trait;
 use cnidarium::{ArcStateDeltaExt, Snapshot, StateDelta, StateRead, StateWrite, Storage};
 use cnidarium_component::Component;
-use decaf377::{Bls12_377, Fq, Fr};
-use decaf377_rdsa as rdsa;
+use decaf377::{Bls12_377, Fq};
 use ibc_types::core::connection::ChainId;
 use jmt::RootHash;
 use prost::bytes::Bytes;
@@ -65,7 +61,10 @@ use shieldd_sdk_proof_aggregation::{
     AppVerifyShippingCall, DevSrs, FamilyAggregate, ProofFamilyId, ShippingAggregateVerification,
     AGGREGATE_PROTOCOL_VERSION,
 };
-use shieldd_sdk_proof_params::batch::{self, BatchItem};
+use shieldd_sdk_proof_params::{
+    batch::{self, BatchItem, VerifiedBatchItem},
+    DeployedProofKey,
+};
 use shieldd_sdk_proto::core::app::v1::TransactionsByHeightResponse;
 use shieldd_sdk_proto::{DomainType, StateWriteProto as _};
 use shieldd_sdk_sct::component::clock::EpochRead;
@@ -77,12 +76,15 @@ use shieldd_sdk_sct::component::{StateReadExt as _, StateWriteExt as _};
 use shieldd_sdk_sct::epoch::Epoch;
 use shieldd_sdk_sct::{CommitmentSource, Nullifier};
 use shieldd_sdk_shielded_pool::component::{
-    transfer_extract_public, transfer_to_batch_item, NoteManager as _, ShieldedPool,
-    StateReadExt as _, StateWriteExt as _,
+    note_reshape_check_stateless_and_extract, shielded_host_withdrawal_check_stateless_and_extract,
+    shielded_ics20_withdrawal_check_stateless_and_extract, transfer_check_stateless_and_extract,
+    NoteManager as _, ShieldedPool, StateReadExt as _, StateWriteExt as _,
 };
 use shieldd_sdk_transaction::gas::GasCost as _;
-use shieldd_sdk_transaction::{Action, Transaction, TransactionBody, TransactionParameters};
-use shieldd_sdk_txhash::AuthorizingData as _;
+use shieldd_sdk_transaction::{
+    Action, FeeFunding, Transaction, TransactionBody, TransactionParameters,
+};
+use shieldd_sdk_txhash::TransactionContext;
 use shieldd_sdk_validator::component::{
     stake::ConsensusUpdateRead, Staking, StateReadExt as _, StateWriteExt as _,
 };
@@ -105,12 +107,13 @@ use crate::genesis::AppState;
 use crate::params::change::ParameterChangeExt as _;
 
 use crate::params::AppParameters;
-use crate::stateless_cache::{CacheEntry, HistoricalValidationStamp, StatelessCache, TxArtifact};
+use crate::stateless_cache::{
+    CacheEntry, HistoricalValidationStamp, StatelessCache, TxArtifact, VerifiedTxArtifact,
+};
 use crate::{metrics, ShielddHost};
 use sha2::Digest as _;
 #[cfg(feature = "benchmark-helpers")]
 use shieldd_sdk_ibc::benchmarking::{record_inbound_stage, InboundStage};
-use std::sync::OnceLock;
 
 pub mod state_key;
 
@@ -123,15 +126,32 @@ pub const MAX_BLOCK_TXS_PAYLOAD_BYTES: usize = 1024 * 1024;
 /// The maximum size of a single individual transaction (96KB).
 pub const MAX_TRANSACTION_SIZE_BYTES: usize = 96 * 1024;
 
+/// The maximum number of transactions in one proposal candidate set.
+pub const MAX_BLOCK_TX_COUNT: usize = 4_096;
+
+/// Maximum number of body actions plus an optional fee-funding action.
+pub const MAX_TRANSACTION_ACTION_COUNT: usize = 512;
+
+/// Maximum number of proof-bound nullifiers in one transaction.
+pub const MAX_TRANSACTION_NULLIFIER_COUNT: usize = 256;
+
+/// The maximum number of proof-bound nullifiers in one block.
+pub const MAX_BLOCK_NULLIFIER_COUNT: usize = 32_768;
+
 /// The maximum size of the evidence portion of a block (30KB).
 pub const MAX_EVIDENCE_SIZE_BYTES: usize = 30 * 1024;
 
-const MAX_PADDED_PROOF_COUNT: usize = 32_768;
-const AGGREGATE_DEBUG_DIR_ENV: &str = "SHIELDD_AGGREGATE_DEBUG_DIR";
-static AGGREGATE_DEBUG_SEQ: AtomicU64 = AtomicU64::new(0);
+fn extract_fee_funding_proof_item(
+    fee_funding: &FeeFunding,
+    context: &TransactionContext,
+) -> Result<BatchItem> {
+    transfer_check_stateless_and_extract(&fee_funding.transfer, context)
+        .context("fee funding transfer stateless extraction failed")
+}
 
+const MAX_PADDED_PROOF_COUNT: usize = 32_768;
 fn shipping_srs() -> Result<DevSrs> {
-    // Insecure Orbis integration only; never enable in production.
+    // Insecure isolated integration only; never enable in production.
     #[cfg(feature = "orbis-dev-srs")]
     {
         return Ok(DevSrs::default());
@@ -147,7 +167,7 @@ fn shipping_srs() -> Result<DevSrs> {
 }
 
 fn shipping_srs_for_id(requested_id: &[u8]) -> Result<DevSrs> {
-    // Insecure Orbis integration only; never enable in production.
+    // Insecure isolated integration only; never enable in production.
     #[cfg(feature = "orbis-dev-srs")]
     {
         anyhow::ensure!(
@@ -171,6 +191,7 @@ fn shipping_srs_for_id(requested_id: &[u8]) -> Result<DevSrs> {
 }
 
 #[derive(Clone, Debug)]
+#[cfg_attr(not(any(test, feature = "benchmark-helpers")), allow(dead_code))]
 struct AggregateDebugRow {
     tx_id: String,
     action_index: Option<usize>,
@@ -183,10 +204,6 @@ struct AggregateDebugSegmentFamily {
     family_index: usize,
     family_id: ProofFamilyId,
     rows: Vec<AggregateDebugRow>,
-}
-
-fn aggregate_debug_root() -> Option<PathBuf> {
-    std::env::var_os(AGGREGATE_DEBUG_DIR_ENV).map(PathBuf::from)
 }
 
 fn action_family_id(action: &Action) -> Option<ProofFamilyId> {
@@ -215,6 +232,14 @@ fn proof_verification_key_for_family(
     }
 }
 
+fn deployed_key_for_family(family_id: ProofFamilyId) -> DeployedProofKey {
+    match family_id {
+        ProofFamilyId::Transfer => DeployedProofKey::Transfer,
+        ProofFamilyId::NoteReshape(family_id) => family_id.deployed_proof_key(),
+        ProofFamilyId::ShieldedIcs20Withdrawal(family_id) => family_id.deployed_proof_key(),
+    }
+}
+
 fn proof_family_label(family_id: ProofFamilyId) -> &'static str {
     match family_id {
         ProofFamilyId::Transfer => shieldd_sdk_shielded_pool::TRANSFER_PROOF_LABEL,
@@ -231,120 +256,88 @@ fn proof_family_batch_verify_stage(family_id: ProofFamilyId) -> &'static str {
     }
 }
 
-fn fq_hex(value: &Fq) -> String {
-    hex::encode(value.into_bigint().to_bytes_le())
-}
+#[cfg(any(test, feature = "benchmark-helpers"))]
+use aggregate_diagnostics::maybe_write_aggregate_debug_dump;
 
+#[cfg(not(any(test, feature = "benchmark-helpers")))]
 fn maybe_write_aggregate_debug_dump(
-    phase: &str,
-    segment_index: usize,
-    family_index: usize,
-    family_id: ProofFamilyId,
-    rows: &[AggregateDebugRow],
-    padded_public_inputs: &[Vec<Fq>],
-    aggregate: Option<&FamilyAggregate>,
+    _phase: &str,
+    _segment_index: usize,
+    _family_index: usize,
+    _family_id: ProofFamilyId,
+    _rows: &[AggregateDebugRow],
+    _padded_public_inputs: &[Vec<Fq>],
+    _aggregate: Option<&FamilyAggregate>,
 ) {
-    let Some(root) = aggregate_debug_root() else {
-        return;
-    };
-    if let Err(error) = write_aggregate_debug_dump(
-        &root,
-        phase,
-        segment_index,
-        family_index,
-        family_id,
-        rows,
-        padded_public_inputs,
-        aggregate,
-    ) {
-        tracing::warn!(
-            ?error,
-            phase,
-            ?family_id,
-            "failed to write aggregate debug dump"
-        );
-    }
 }
-
-fn write_aggregate_debug_dump(
-    root: &Path,
-    phase: &str,
-    segment_index: usize,
-    family_index: usize,
-    family_id: ProofFamilyId,
-    rows: &[AggregateDebugRow],
-    padded_public_inputs: &[Vec<Fq>],
-    aggregate: Option<&FamilyAggregate>,
-) -> Result<()> {
-    fs::create_dir_all(root)
-        .with_context(|| format!("creating aggregate debug directory {}", root.display()))?;
-    let seq = AGGREGATE_DEBUG_SEQ.fetch_add(1, Ordering::Relaxed);
-    let file_path = root.join(format!(
-        "{seq:06}-{phase}-segment{segment_index:03}-family{family_index:02}-{family_id:?}.txt"
-    ));
-    let mut file = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(&file_path)
-        .with_context(|| format!("opening aggregate debug dump {}", file_path.display()))?;
-
-    writeln!(file, "phase={phase}")?;
-    writeln!(file, "segment_index={segment_index}")?;
-    writeln!(file, "family_index={family_index}")?;
-    writeln!(file, "family_id={family_id:?}")?;
-    writeln!(file, "real_count={}", rows.len())?;
-    writeln!(file, "padded_count={}", padded_public_inputs.len())?;
-
-    if let Some(aggregate) = aggregate {
-        writeln!(file, "bundle_real_count={}", aggregate.real_count)?;
-        writeln!(file, "bundle_padded_count={}", aggregate.padded_count)?;
-        writeln!(
-            file,
-            "aggregate_proof_sha256={}",
-            hex::encode(sha2::Sha256::digest(&aggregate.aggregate_proof))
-        )?;
-    }
-
-    for (row_index, row) in rows.iter().enumerate() {
-        let action_index = row
-            .action_index
-            .map(|index| index.to_string())
-            .unwrap_or_else(|| "unknown".to_string());
-        let public_inputs = row
-            .public_inputs
-            .iter()
-            .map(fq_hex)
-            .collect::<Vec<_>>()
-            .join(",");
-        writeln!(
-            file,
-            "row[{row_index}].tx_id={} action_index={} family_local_index={} public_inputs=[{}]",
-            row.tx_id, action_index, row.family_local_index, public_inputs
-        )?;
-    }
-
-    for (pad_index, inputs) in padded_public_inputs.iter().enumerate() {
-        let rendered = inputs.iter().map(fq_hex).collect::<Vec<_>>().join(",");
-        writeln!(file, "padded_public_inputs[{pad_index}]=[{rendered}]")?;
-    }
-
-    Ok(())
-}
-const BATCH_VERIFY_CHUNK_MIN_ITEMS: usize = 512;
-const BATCH_VERIFY_MAX_CHUNKS_PER_FAMILY: usize = 8;
 const AGGREGATE_BUNDLE_SIZE_SAFETY_MARGIN_BYTES: u64 = 8 * 1024;
 const AGGREGATE_PROOF_ESTIMATE_BYTES_OTHER: usize = 24 * 1024;
+#[cfg(any(test, feature = "benchmark-helpers"))]
+const MAX_CONCURRENT_AGGREGATE_SEGMENTS: usize = 2;
+const MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS: usize = 4;
+
+async fn drain_joinset_results<T: Send + 'static>(
+    tasks: &mut tokio::task::JoinSet<Result<T>>,
+    panic_context: &str,
+) -> Result<Vec<T>> {
+    let mut values = Vec::new();
+    let mut first_error = None;
+    while let Some(result) = tasks.join_next().await {
+        match result
+            .with_context(|| panic_context.to_owned())
+            .and_then(|result| result)
+        {
+            Ok(value) => values.push(value),
+            Err(error) if first_error.is_none() => first_error = Some(error),
+            Err(_) => {}
+        }
+    }
+    if let Some(error) = first_error {
+        return Err(error);
+    }
+    Ok(values)
+}
 
 fn max_transaction_size_bytes() -> usize {
-    static OVERRIDE: OnceLock<usize> = OnceLock::new();
-    *OVERRIDE.get_or_init(|| {
-        std::env::var("SHIELDD_MAX_TRANSACTION_SIZE_BYTES")
-            .ok()
-            .and_then(|value| value.parse::<usize>().ok())
-            .filter(|value| *value > 0)
-            .unwrap_or(MAX_TRANSACTION_SIZE_BYTES)
-    })
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    {
+        return aggregate_diagnostics::max_transaction_size_bytes_override();
+    }
+    #[cfg(not(any(test, feature = "benchmark-helpers")))]
+    {
+        MAX_TRANSACTION_SIZE_BYTES
+    }
+}
+
+fn truncate_prepare_candidates<T>(candidates: &mut Vec<T>) {
+    candidates.truncate(MAX_BLOCK_TX_COUNT);
+}
+
+fn process_proposal_tx_count_allowed(tx_count: usize) -> bool {
+    tx_count <= MAX_BLOCK_TX_COUNT
+}
+
+fn prepare_proposal_payload_limit(max_tx_bytes: i64) -> u64 {
+    u64::try_from(max_tx_bytes)
+        .unwrap_or(0)
+        .min(MAX_BLOCK_TXS_PAYLOAD_BYTES as u64)
+}
+
+fn process_proposal_payload_size_allowed(payload_size: usize) -> bool {
+    payload_size <= MAX_BLOCK_TXS_PAYLOAD_BYTES
+}
+
+fn block_nullifier_count_allowed(nullifier_count: usize) -> bool {
+    nullifier_count <= MAX_BLOCK_NULLIFIER_COUNT
+}
+
+fn transaction_size_allowed(transaction_size: usize) -> bool {
+    transaction_size <= max_transaction_size_bytes()
+}
+
+#[cfg(any(test, feature = "benchmark-helpers"))]
+pub(crate) fn benchmark_zero_timestamp_allowed() -> bool {
+    aggregate_diagnostics::zero_timestamp_allowed()
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -414,6 +407,7 @@ struct PrepareBlockLocalState {
 }
 
 #[derive(Clone, Debug)]
+#[cfg(any(test, feature = "benchmark-helpers"))]
 struct BenchBlockContext {
     height: block::Height,
     time: Time,
@@ -427,7 +421,7 @@ struct BenchBlockContext {
 enum CandidateData {
     Decoded(Arc<Transaction>),
     ExtractedArtifact(Arc<TxArtifact>),
-    VerifiedArtifact(Arc<TxArtifact>),
+    VerifiedArtifact(Arc<VerifiedTxArtifact>),
 }
 
 #[derive(Clone)]
@@ -441,16 +435,23 @@ impl Candidate {
     fn tx(&self) -> &Arc<Transaction> {
         match &self.data {
             CandidateData::Decoded(tx) => tx,
-            CandidateData::ExtractedArtifact(artifact)
-            | CandidateData::VerifiedArtifact(artifact) => &artifact.tx,
+            CandidateData::ExtractedArtifact(artifact) => &artifact.tx,
+            CandidateData::VerifiedArtifact(artifact) => artifact.tx(),
         }
     }
 
     fn artifact(&self) -> Option<Arc<TxArtifact>> {
         match &self.data {
-            CandidateData::ExtractedArtifact(artifact)
-            | CandidateData::VerifiedArtifact(artifact) => Some(artifact.clone()),
+            CandidateData::ExtractedArtifact(artifact) => Some(artifact.clone()),
+            CandidateData::VerifiedArtifact(artifact) => Some(artifact.extracted()),
             CandidateData::Decoded(_) => None,
+        }
+    }
+
+    fn verified_artifact(&self) -> Option<Arc<VerifiedTxArtifact>> {
+        match &self.data {
+            CandidateData::VerifiedArtifact(artifact) => Some(artifact.clone()),
+            CandidateData::Decoded(_) | CandidateData::ExtractedArtifact(_) => None,
         }
     }
 }
@@ -507,6 +508,7 @@ pub struct AggregateBuildProfile {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[cfg(any(test, feature = "benchmark-helpers"))]
 pub struct ExecutionBlockProfile {
     pub block_tx_count: usize,
     pub begin_block_ms: f64,
@@ -748,7 +750,7 @@ struct AggregateVerifyCallId {
     family_id: ProofFamilyId,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct AggregateVerifyCall {
     id: AggregateVerifyCallId,
     shipping_call: AppVerifyShippingCall,
@@ -757,17 +759,19 @@ struct AggregateVerifyCall {
     srs: DevSrs,
     debug_rows: Vec<AggregateDebugRow>,
     padded_public_inputs: Vec<Vec<Fq>>,
+    items: Vec<BatchItem>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Default)]
 struct AggregateVerifyPlan {
     calls: Vec<AggregateVerifyCall>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct AggregateVerifyProfiledCallOutcome {
     id: AggregateVerifyCallId,
     shipping_verification: ShippingAggregateVerification,
+    items: Vec<BatchItem>,
 }
 
 fn aggregate_verify_app_call_id(id: AggregateVerifyCallId) -> AppVerifyCallId {
@@ -997,6 +1001,7 @@ pub struct App {
 }
 
 impl App {
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     async fn benchmark_block_context(&self) -> Result<BenchBlockContext> {
         let next_height = self.state.get_block_height().await?.saturating_add(1);
         let height = block::Height::try_from(next_height)
@@ -1021,6 +1026,7 @@ impl App {
         })
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     fn begin_block_request_from_context(context: &BenchBlockContext) -> request::BeginBlock {
         request::BeginBlock {
             hash: Hash::None,
@@ -1048,6 +1054,7 @@ impl App {
         }
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     fn process_proposal_request_from_envelope(
         context: &BenchBlockContext,
         envelope: &CandidateEnvelope,
@@ -1216,11 +1223,14 @@ impl App {
             .unwrap_or(1)
             .max(1);
 
-        std::env::var("SHIELDD_PREPARE_PROPOSAL_FILTER_CONCURRENCY")
-            .ok()
-            .and_then(|value| value.parse::<usize>().ok())
-            .map(|value| value.max(1))
-            .unwrap_or(default)
+        #[cfg(any(test, feature = "benchmark-helpers"))]
+        {
+            return aggregate_diagnostics::prepare_proposal_filter_concurrency_override(default);
+        }
+        #[cfg(not(any(test, feature = "benchmark-helpers")))]
+        {
+            default
+        }
     }
 
     fn accumulate_prepare_candidate_profile(
@@ -1485,9 +1495,9 @@ impl App {
         .record(elapsed);
     }
 
-    fn handle_proof_verification_result(context: &'static str, result: Result<()>) -> Result<()> {
+    fn handle_proof_verification_result<T>(context: &'static str, result: Result<T>) -> Result<T> {
         match result {
-            Ok(()) => Ok(()),
+            Ok(value) => Ok(value),
             Err(error) => {
                 tracing::debug!(?error, context, "proof verification failed");
                 Err(error)
@@ -1529,14 +1539,9 @@ impl App {
                 match action {
                     Action::Transfer(transfer) => {
                         let t1 = Instant::now();
-                        let public = transfer_extract_public(transfer, &context)
-                            .context("transfer extract public failed")?;
+                        let item = transfer_check_stateless_and_extract(transfer, &context)
+                            .context("transfer stateless extraction failed")?;
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-
-                        let t2 = Instant::now();
-                        let item = transfer_to_batch_item(transfer, public)
-                            .context("transfer to_batch_item failed")?;
-                        profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                         let family_id = action_family_id(&Action::Transfer(transfer.clone()))
                             .expect("transfer has a proof family");
 
@@ -1551,22 +1556,11 @@ impl App {
                     }
                     Action::ShieldedIcs20Withdrawal(withdrawal) => {
                         let t1 = Instant::now();
-                        let public =
-                            shieldd_sdk_shielded_pool::component::shielded_ics20_withdrawal_extract_public(
-                                withdrawal,
-                                &context,
-                            )
-                            .context("shielded ICS-20 withdrawal extract public failed")?;
+                        let item = shielded_ics20_withdrawal_check_stateless_and_extract(
+                            withdrawal, &context,
+                        )
+                        .context("shielded ICS-20 withdrawal stateless extraction failed")?;
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-
-                        let t2 = Instant::now();
-                        let item =
-                            shieldd_sdk_shielded_pool::component::shielded_ics20_withdrawal_to_batch_item(
-                                withdrawal,
-                                public,
-                            )
-                            .context("shielded ICS-20 withdrawal to_batch_item failed")?;
-                        profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                         let family_id =
                             action_family_id(&Action::ShieldedIcs20Withdrawal(withdrawal.clone()))
                                 .expect("shielded ICS-20 withdrawal has a proof family");
@@ -1582,22 +1576,11 @@ impl App {
                     }
                     Action::ShieldedHostWithdrawal(withdrawal) => {
                         let t1 = Instant::now();
-                        let public =
-                            shieldd_sdk_shielded_pool::component::shielded_host_withdrawal_extract_public(
-                                withdrawal,
-                                &context,
-                            )
-                            .context("shielded host withdrawal extract public failed")?;
+                        let item = shielded_host_withdrawal_check_stateless_and_extract(
+                            withdrawal, &context,
+                        )
+                        .context("shielded host withdrawal stateless extraction failed")?;
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-
-                        let t2 = Instant::now();
-                        let item =
-                            shieldd_sdk_shielded_pool::component::shielded_host_withdrawal_to_batch_item(
-                                withdrawal,
-                                public,
-                            )
-                            .context("shielded host withdrawal to_batch_item failed")?;
-                        profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                         let family_id =
                             action_family_id(&Action::ShieldedHostWithdrawal(withdrawal.clone()))
                                 .expect("shielded host withdrawal has a proof family");
@@ -1613,22 +1596,9 @@ impl App {
                     }
                     Action::NoteReshape(note_reshape) => {
                         let t1 = Instant::now();
-                        let public =
-                            shieldd_sdk_shielded_pool::component::note_reshape_extract_public(
-                                note_reshape,
-                                &context,
-                            )
-                            .context("note reshape extract public failed")?;
+                        let item = note_reshape_check_stateless_and_extract(note_reshape, &context)
+                            .context("note reshape stateless extraction failed")?;
                         profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-
-                        let t2 = Instant::now();
-                        let item =
-                            shieldd_sdk_shielded_pool::component::note_reshape_to_batch_item(
-                                note_reshape,
-                                public,
-                            )
-                            .context("note reshape to_batch_item failed")?;
-                        profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                         let family_id =
                             action_family_id(&Action::NoteReshape(note_reshape.clone()))
                                 .expect("note reshape has a proof family");
@@ -1662,14 +1632,8 @@ impl App {
             if let Some(fee_funding) = &tx.transaction_body.fee_funding {
                 let transfer = &fee_funding.transfer;
                 let t1 = Instant::now();
-                let public = transfer_extract_public(transfer, &context)
-                    .context("fee funding transfer extract public failed")?;
+                let item = extract_fee_funding_proof_item(fee_funding, &context)?;
                 profile.action_extract_public_ms += t1.elapsed().as_secs_f64() * 1000.0;
-
-                let t2 = Instant::now();
-                let item = transfer_to_batch_item(transfer, public)
-                    .context("fee funding transfer to_batch_item failed")?;
-                profile.action_to_batch_item_ms += t2.elapsed().as_secs_f64() * 1000.0;
                 let family_id = action_family_id(&Action::Transfer(transfer.clone()))
                     .expect("fee funding transfer has a proof family");
 
@@ -1748,7 +1712,7 @@ impl App {
 
     async fn build_tx_artifacts_profiled(
         txs: &[Arc<Transaction>],
-    ) -> Result<(Vec<Arc<TxArtifact>>, ArtifactBuildBreakdown)> {
+    ) -> Result<(Vec<Arc<VerifiedTxArtifact>>, ArtifactBuildBreakdown)> {
         if txs.is_empty() {
             return Ok((Vec::new(), ArtifactBuildBreakdown::default()));
         }
@@ -1756,11 +1720,13 @@ impl App {
         let (proof_items, artifacts, mut profile) =
             Self::collect_consensus_proof_items_with_artifacts(txs).await?;
         let batch_verify_start = Instant::now();
-        Self::legacy_batch_verify_proof_families(proof_items).await?;
+        let capabilities = Self::independently_verify_proof_families(proof_items).await?;
+        let artifacts = Self::attach_verified_capabilities(artifacts, capabilities)?;
         profile.batch_verify_ms = batch_verify_start.elapsed().as_secs_f64() * 1000.0;
         Ok((artifacts, profile))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     async fn build_tx_artifacts_extracted_profiled(
         txs: &[Arc<Transaction>],
     ) -> Result<(Vec<Arc<TxArtifact>>, ArtifactBuildBreakdown)> {
@@ -1773,27 +1739,29 @@ impl App {
         Ok((artifacts, profile))
     }
 
-    async fn build_tx_artifact_extracted_profiled(
-        tx: Arc<Transaction>,
-    ) -> Result<(Arc<TxArtifact>, ArtifactBuildBreakdown)> {
-        let (mut artifacts, profile) =
-            Self::build_tx_artifacts_extracted_profiled(std::slice::from_ref(&tx)).await?;
-        artifacts
-            .pop()
-            .context("single transaction artifact missing")
-            .map(|artifact| (artifact, profile))
-    }
-
     async fn build_tx_artifacts_for_stage(
         stage: &'static str,
         txs: &[Arc<Transaction>],
-    ) -> Result<(Vec<Arc<TxArtifact>>, ArtifactBuildBreakdown)> {
+    ) -> Result<(Vec<Arc<VerifiedTxArtifact>>, ArtifactBuildBreakdown)> {
         let start = Instant::now();
         let result = Self::build_tx_artifacts_profiled(txs).await;
         Self::record_artifact_build(stage, txs.len(), start.elapsed(), result.is_ok());
         result
     }
 
+    async fn build_tx_artifact_for_stage(
+        stage: &'static str,
+        tx: Arc<Transaction>,
+    ) -> Result<(Arc<VerifiedTxArtifact>, ArtifactBuildBreakdown)> {
+        let (mut artifacts, profile) =
+            Self::build_tx_artifacts_for_stage(stage, std::slice::from_ref(&tx)).await?;
+        artifacts
+            .pop()
+            .context("single verified transaction artifact missing")
+            .map(|artifact| (artifact, profile))
+    }
+
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_tx_artifacts_extracted_for_stage_public(
         stage: &'static str,
         txs: &[Arc<Transaction>],
@@ -1805,6 +1773,7 @@ impl App {
         Ok(artifacts)
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_tx_artifacts_extracted_profiled_public(
         stage: &'static str,
         txs: &[Arc<Transaction>],
@@ -1815,35 +1784,30 @@ impl App {
         result
     }
 
-    async fn build_tx_artifact_extracted_for_stage(
-        stage: &'static str,
-        tx: Arc<Transaction>,
-    ) -> Result<(Arc<TxArtifact>, ArtifactBuildBreakdown)> {
-        let start = Instant::now();
-        let result = Self::build_tx_artifact_extracted_profiled(tx).await;
-        Self::record_artifact_build(stage, 1, start.elapsed(), result.is_ok());
-        result
-    }
-
     async fn verify_tx_artifacts_for_stage(
         stage: &'static str,
         artifacts: &[Arc<TxArtifact>],
-    ) -> Result<ArtifactBuildBreakdown> {
+    ) -> Result<(Vec<Arc<VerifiedTxArtifact>>, ArtifactBuildBreakdown)> {
         let start = Instant::now();
         let proof_items = Self::merge_artifact_proof_items(artifacts);
-        let result = Self::legacy_batch_verify_proof_families(proof_items).await;
+        let result = Self::independently_verify_proof_families(proof_items).await;
         Self::record_artifact_build(stage, artifacts.len(), start.elapsed(), result.is_ok());
-        result?;
-        Ok(ArtifactBuildBreakdown {
-            batch_verify_ms: start.elapsed().as_secs_f64() * 1000.0,
-            ..Default::default()
-        })
+        let capabilities = result?;
+        let verified = Self::attach_verified_capabilities(artifacts.to_vec(), capabilities)?;
+        Ok((
+            verified,
+            ArtifactBuildBreakdown {
+                batch_verify_ms: start.elapsed().as_secs_f64() * 1000.0,
+                ..Default::default()
+            },
+        ))
     }
 
     /// Runs Groth16 batch verification on a single pre-extracted artifact.
     /// Used by `mempool_v1_lab` strict mode to measure per-tx proof verify cost.
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn batch_verify_tx_artifact_for_bench(artifact: &Arc<TxArtifact>) -> Result<f64> {
-        let breakdown = Self::verify_tx_artifacts_for_stage(
+        let (_, breakdown) = Self::verify_tx_artifacts_for_stage(
             "checktx_strict_bench",
             std::slice::from_ref(artifact),
         )
@@ -1853,15 +1817,16 @@ impl App {
 
     /// Runs Groth16 batch verification across multiple pre-extracted artifacts in one call.
     /// Amortizes the MSM cost across all proofs in the slice.
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn batch_verify_artifacts_for_bench(artifacts: &[Arc<TxArtifact>]) -> Result<f64> {
-        let breakdown =
+        let (_, breakdown) =
             Self::verify_tx_artifacts_for_stage("checktx_strict_bench_batched", artifacts).await?;
         Ok(breakdown.batch_verify_ms)
     }
 
-    async fn legacy_batch_verify_proof_families(
+    async fn independently_verify_proof_families(
         proof_items: BTreeMap<ProofFamilyId, Vec<BatchItem>>,
-    ) -> Result<()> {
+    ) -> Result<BTreeMap<ProofFamilyId, VecDeque<VerifiedBatchItem>>> {
         let mut proof_items = proof_items;
         let mut tasks = tokio::task::JoinSet::new();
 
@@ -1876,42 +1841,48 @@ impl App {
             tasks.spawn(async move {
                 let family_label = proof_family_label(family_id);
                 let batch_verify_stage = proof_family_batch_verify_stage(family_id);
-                let result = Self::verify_batch_family_chunks(family_label, items, move |chunk| {
-                    batch::batch_verify(proof_verification_key_for_family(family_id), chunk)
-                        .map_err(|e| {
-                            anyhow::anyhow!("{family_label} batch verification failed: {e}")
-                        })
+                let key = deployed_key_for_family(family_id);
+                let result = tokio::task::spawn_blocking(move || {
+                    batch::verify_each_with_capabilities(
+                        key,
+                        items.into_iter().map(Arc::new).collect(),
+                    )
+                    .map_err(|error| {
+                        anyhow::anyhow!("{family_label} independent verification failed: {error}")
+                    })
                 })
-                .await;
-                (batch_verify_stage, result)
+                .await
+                .with_context(|| format!("{family_label} proof verification task panicked"))?;
+                let capabilities =
+                    Self::handle_proof_verification_result(batch_verify_stage, result)?;
+                Ok::<_, anyhow::Error>((family_id, VecDeque::from(capabilities)))
             });
         }
 
-        while let Some(join_result) = tasks.join_next().await {
-            let (batch_stage, result) =
-                join_result.context("legacy batch verification task panicked")?;
-            Self::handle_proof_verification_result(batch_stage, result)?;
-        }
-
-        Ok(())
+        let verified =
+            drain_joinset_results(&mut tasks, "independent proof verification task panicked")
+                .await?
+                .into_iter()
+                .collect();
+        Ok(verified)
     }
 
-    fn batch_verify_chunk_size(item_count: usize) -> usize {
-        if item_count <= BATCH_VERIFY_CHUNK_MIN_ITEMS {
-            return item_count.max(1);
-        }
-
-        let available_parallelism = std::thread::available_parallelism()
-            .map(|parallelism| parallelism.get())
-            .unwrap_or(1);
-        let max_chunks = (available_parallelism / 2)
-            .max(1)
-            .min(BATCH_VERIFY_MAX_CHUNKS_PER_FAMILY);
-        let chunk_count = (item_count / BATCH_VERIFY_CHUNK_MIN_ITEMS)
-            .max(1)
-            .min(max_chunks);
-
-        item_count.div_ceil(chunk_count)
+    fn attach_verified_capabilities(
+        artifacts: Vec<Arc<TxArtifact>>,
+        mut capabilities: BTreeMap<ProofFamilyId, VecDeque<VerifiedBatchItem>>,
+    ) -> Result<Vec<Arc<VerifiedTxArtifact>>> {
+        let verified = artifacts
+            .into_iter()
+            .map(|artifact| {
+                VerifiedTxArtifact::take_family_capabilities(artifact, &mut capabilities)
+                    .map(Arc::new)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        anyhow::ensure!(
+            capabilities.values().all(VecDeque::is_empty),
+            "verified proof capabilities remain after exact transaction-slot assignment"
+        );
+        Ok(verified)
     }
 
     fn max_prefix_len_for_payload_limit(
@@ -2019,42 +1990,10 @@ impl App {
         Self::max_prefix_len_for_payload_limit(prefix_payload_bytes, usable_limit)
     }
 
-    async fn verify_batch_family_chunks<F>(
-        family_label: &'static str,
-        items: Vec<BatchItem>,
-        verify: F,
-    ) -> Result<()>
-    where
-        F: Fn(&Vec<BatchItem>) -> Result<()> + Send + Sync + Copy + 'static,
-    {
-        if items.is_empty() {
-            return Ok(());
-        }
-
-        let chunk_size = Self::batch_verify_chunk_size(items.len());
-        if chunk_size >= items.len() {
-            return tokio::task::spawn_blocking(move || verify(&items))
-                .await
-                .with_context(|| format!("{family_label} batch verify task panicked"))?;
-        }
-
-        let mut tasks = tokio::task::JoinSet::new();
-        for chunk in items.chunks(chunk_size) {
-            let chunk = chunk.to_vec();
-            tasks.spawn_blocking(move || verify(&chunk));
-        }
-
-        while let Some(result) = tasks.join_next().await {
-            result.with_context(|| format!("{family_label} batch verify task panicked"))??;
-        }
-
-        Ok(())
-    }
-
     async fn build_aggregate_bundle_tx(&self, bundle: AggregateBundle) -> Result<Transaction> {
         let anchor = self.state.get_sct().await.root();
         let chain_id = self.state.get_chain_id().await?;
-        let mut tx = Transaction {
+        let tx = Transaction {
             transaction_body: TransactionBody {
                 actions: vec![Action::AggregateBundle(bundle)],
                 transaction_parameters: TransactionParameters {
@@ -2068,10 +2007,6 @@ impl App {
             binding_sig: [0; 64].into(),
             anchor,
         };
-
-        let binding_signing_key = rdsa::SigningKey::from(Fr::zero());
-        let auth_hash = tx.transaction_body.auth_hash();
-        tx.binding_sig = binding_signing_key.sign_deterministic(auth_hash.as_bytes());
 
         Ok(tx)
     }
@@ -2165,12 +2100,29 @@ impl App {
         }
 
         let mut families = Vec::new();
+        let mut first_error = None;
         for task in aggregate_tasks {
-            let (family, family_profile, family_elapsed_ms) =
-                task.await.context("aggregate family task panicked")??;
-            profile.add_family_time(family.family_id, family_elapsed_ms);
-            profile.merge(&family_profile);
-            families.push(family);
+            match task.await {
+                Ok(Ok((family, family_profile, family_elapsed_ms))) => {
+                    profile.add_family_time(family.family_id, family_elapsed_ms);
+                    profile.merge(&family_profile);
+                    families.push(family);
+                }
+                Ok(Err(error)) => {
+                    if first_error.is_none() {
+                        first_error = Some(error);
+                    }
+                }
+                Err(error) => {
+                    if first_error.is_none() {
+                        first_error =
+                            Some(anyhow::anyhow!("aggregate family task panicked: {error}"));
+                    }
+                }
+            }
+        }
+        if let Some(error) = first_error {
+            return Err(error);
         }
 
         Ok((families, profile))
@@ -2202,6 +2154,7 @@ impl App {
         Ok((families, segment_tx_counts, profile))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     async fn build_exact_segmented_family_aggregates_for_artifacts(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_counts: &[usize],
@@ -2227,27 +2180,57 @@ impl App {
 
         let mut families = Vec::new();
         let mut profile = AggregateBuildProfile::default();
-        let mut start = 0usize;
+        let mut next_start = 0usize;
+        let mut next_segment = 0usize;
         let mut segment_tasks = tokio::task::JoinSet::new();
         let mut ordered_segment_results = vec![None; segment_tx_counts.len()];
+        let mut first_error = None;
 
-        for (segment_index, &segment_tx_count) in segment_tx_counts.iter().enumerate() {
-            anyhow::ensure!(segment_tx_count > 0, "segment_tx_counts must be positive");
-            let end = start + segment_tx_count;
-            let artifact_segment = artifacts[start..end].to_vec();
-            segment_tasks.spawn(async move {
-                let (segment_families, segment_profile) =
-                    Self::build_family_aggregates_for_artifacts(&artifact_segment, segment_index)
+        while next_segment < segment_tx_counts.len() || !segment_tasks.is_empty() {
+            while next_segment < segment_tx_counts.len()
+                && segment_tasks.len() < MAX_CONCURRENT_AGGREGATE_SEGMENTS
+            {
+                let segment_tx_count = segment_tx_counts[next_segment];
+                anyhow::ensure!(segment_tx_count > 0, "segment_tx_counts must be positive");
+                let end = next_start + segment_tx_count;
+                let artifact_segment = artifacts[next_start..end].to_vec();
+                let segment_index = next_segment;
+                segment_tasks.spawn(async move {
+                    let (segment_families, segment_profile) =
+                        Self::build_family_aggregates_for_artifacts(
+                            &artifact_segment,
+                            segment_index,
+                        )
                         .await?;
-                Ok::<_, anyhow::Error>((segment_index, segment_families, segment_profile))
-            });
-            start = end;
-        }
+                    Ok::<_, anyhow::Error>((segment_index, segment_families, segment_profile))
+                });
+                next_start = end;
+                next_segment += 1;
+            }
 
-        while let Some(result) = segment_tasks.join_next().await {
-            let (segment_index, segment_families, segment_profile) =
-                result.context("aggregate segment task panicked")??;
-            ordered_segment_results[segment_index] = Some((segment_families, segment_profile));
+            let Some(result) = segment_tasks.join_next().await else {
+                continue;
+            };
+            match result {
+                Ok(Ok((segment_index, segment_families, segment_profile))) => {
+                    ordered_segment_results[segment_index] =
+                        Some((segment_families, segment_profile));
+                }
+                Ok(Err(error)) => {
+                    if first_error.is_none() {
+                        first_error = Some(error);
+                    }
+                }
+                Err(error) => {
+                    if first_error.is_none() {
+                        first_error =
+                            Some(anyhow::anyhow!("aggregate segment task panicked: {error}"));
+                    }
+                }
+            }
+        }
+        if let Some(error) = first_error {
+            return Err(error);
         }
 
         for segment_result in ordered_segment_results {
@@ -2536,6 +2519,7 @@ impl App {
                 srs: srs.clone(),
                 debug_rows,
                 padded_public_inputs: prepared_inputs.padded_public_inputs,
+                items,
             });
         }
 
@@ -2555,6 +2539,7 @@ impl App {
         Ok(AggregateVerifyProfiledCallOutcome {
             id: call.id,
             shipping_verification,
+            items: call.items,
         })
     }
 
@@ -2643,11 +2628,11 @@ impl App {
         artifacts: &[Arc<TxArtifact>],
         bundle: &AggregateBundle,
         segment_tx_counts: Option<&[usize]>,
-    ) -> Result<()> {
+    ) -> Result<Vec<Arc<VerifiedTxArtifact>>> {
         match Self::verify_aggregate_bundle_for_artifacts_raw(artifacts, bundle, segment_tx_counts)
             .await
         {
-            Ok(()) => Ok(()),
+            Ok(verified) => Ok(verified),
             Err(error) => {
                 tracing::debug!(
                     ?error,
@@ -2663,7 +2648,7 @@ impl App {
         artifacts: &[Arc<TxArtifact>],
         bundle: &AggregateBundle,
         segment_tx_counts: Option<&[usize]>,
-    ) -> Result<()> {
+    ) -> Result<Vec<Arc<VerifiedTxArtifact>>> {
         let (_profile, result) = Self::verify_aggregate_bundle_for_artifacts_raw_profiled(
             artifacts,
             bundle,
@@ -2677,10 +2662,10 @@ impl App {
         artifacts: &[Arc<TxArtifact>],
         bundle: &AggregateBundle,
         segment_tx_counts: Option<&[usize]>,
-    ) -> (AggregateVerifyProfile, Result<()>) {
+    ) -> (AggregateVerifyProfile, Result<Vec<Arc<VerifiedTxArtifact>>>) {
         let verify_start = Instant::now();
         let mut profile = AggregateVerifyProfile::default();
-        let result: Result<()> = async {
+        let result: Result<Vec<Arc<VerifiedTxArtifact>>> = async {
             let srs = shipping_srs_for_id(&bundle.srs_id)?;
             let segment_ranges = Self::validate_aggregate_verify_plan_inputs(
                 artifacts,
@@ -2701,28 +2686,47 @@ impl App {
             let plan = plan_result?;
 
             let expected_call_ids = plan.calls.iter().map(|call| call.id).collect::<Vec<_>>();
-            let mut verify_tasks = Vec::with_capacity(plan.calls.len());
-            for call in plan.calls {
-                maybe_write_aggregate_debug_dump(
-                    "verify",
-                    call.id.segment_index,
-                    call.id.family_index,
-                    call.id.family_id,
-                    &call.debug_rows,
-                    &call.padded_public_inputs,
-                    Some(&call.aggregate),
-                );
-                verify_tasks.push(tokio::task::spawn_blocking(move || {
-                    Self::execute_aggregate_verify_call(call)
-                }));
+            let mut pending_calls = VecDeque::from(plan.calls);
+            let mut verify_tasks = tokio::task::JoinSet::new();
+            let mut outcomes = Vec::with_capacity(pending_calls.len());
+            let mut first_error = None;
+            while !pending_calls.is_empty() || !verify_tasks.is_empty() {
+                while verify_tasks.len() < MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS {
+                    let Some(call) = pending_calls.pop_front() else {
+                        break;
+                    };
+                    maybe_write_aggregate_debug_dump(
+                        "verify",
+                        call.id.segment_index,
+                        call.id.family_index,
+                        call.id.family_id,
+                        &call.debug_rows,
+                        &call.padded_public_inputs,
+                        Some(&call.aggregate),
+                    );
+                    verify_tasks.spawn_blocking(move || Self::execute_aggregate_verify_call(call));
+                }
+                let Some(task) = verify_tasks.join_next().await else {
+                    continue;
+                };
+                match task {
+                    Ok(Ok(outcome)) => outcomes.push(outcome),
+                    Ok(Err(error)) => {
+                        if first_error.is_none() {
+                            first_error = Some(error);
+                        }
+                    }
+                    Err(error) => {
+                        if first_error.is_none() {
+                            first_error = Some(anyhow::anyhow!(
+                                "aggregate verification task panicked: {error}"
+                            ));
+                        }
+                    }
+                }
             }
-
-            let mut outcomes = Vec::with_capacity(verify_tasks.len());
-            for task in verify_tasks {
-                let outcome = task
-                    .await
-                    .context("aggregate verification task panicked")??;
-                outcomes.push(outcome);
+            if let Some(error) = first_error {
+                return Err(error);
             }
 
             let expected_core_ids = expected_call_ids
@@ -2790,7 +2794,21 @@ impl App {
                 profile.merge_backend_profile(&outcome.shipping_verification.profile);
             }
             reduction.acceptance_result()?;
-            require_no_rejected_joined_calls(rejected_calls)
+            require_no_rejected_joined_calls(rejected_calls)?;
+
+            let mut capabilities = BTreeMap::<ProofFamilyId, VecDeque<VerifiedBatchItem>>::new();
+            for outcome in outcomes {
+                let family_id = outcome.id.family_id;
+                let verified = outcome
+                    .shipping_verification
+                    .verified_statement_capabilities(
+                        family_id,
+                        deployed_key_for_family(family_id),
+                        &outcome.items,
+                    )?;
+                capabilities.entry(family_id).or_default().extend(verified);
+            }
+            Self::attach_verified_capabilities(artifacts.to_vec(), capabilities)
         }
         .await;
 
@@ -2799,22 +2817,29 @@ impl App {
         (profile, result)
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn verify_aggregate_bundle_for_artifacts_public(
         artifacts: &[Arc<TxArtifact>],
         bundle: &AggregateBundle,
         segment_tx_counts: Option<&[usize]>,
     ) -> Result<()> {
-        Self::verify_aggregate_bundle_for_artifacts(artifacts, bundle, segment_tx_counts).await
+        Self::verify_aggregate_bundle_for_artifacts(artifacts, bundle, segment_tx_counts)
+            .await
+            .map(|_| ())
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn verify_aggregate_bundle_for_artifacts_raw_public(
         artifacts: &[Arc<TxArtifact>],
         bundle: &AggregateBundle,
         segment_tx_counts: Option<&[usize]>,
     ) -> Result<()> {
-        Self::verify_aggregate_bundle_for_artifacts_raw(artifacts, bundle, segment_tx_counts).await
+        Self::verify_aggregate_bundle_for_artifacts_raw(artifacts, bundle, segment_tx_counts)
+            .await
+            .map(|_| ())
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_aggregate_bundle_tx_for_snapshot_public(
         snapshot: Snapshot,
         bundle: AggregateBundle,
@@ -2822,6 +2847,7 @@ impl App {
         Self::new(snapshot).build_aggregate_bundle_tx(bundle).await
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn validate_candidate_envelope_profiled(
         &self,
         envelope: &CandidateEnvelope,
@@ -2829,7 +2855,6 @@ impl App {
     ) -> Result<(ValidationVerdict, ValidationProfile)> {
         use shieldd_sdk_proto::core::transaction::v1::action::Action as ProtoAction;
         use shieldd_sdk_proto::core::transaction::v1::Transaction as ProtoTransaction;
-        use shieldd_sdk_proto::DomainType as _;
         use shieldd_sdk_transaction::Transaction;
 
         let mut verdict = ValidationVerdict::default();
@@ -3118,7 +3143,7 @@ impl App {
                 artifact_cache_lookup_start.elapsed().as_secs_f64() * 1000.0;
 
             let tx_decode_start = Instant::now();
-            let tx = match Transaction::decode(tx_bytes.as_slice()) {
+            let tx = match Transaction::decode_canonical(tx_bytes.as_slice()) {
                 Ok(tx) => Arc::new(tx),
                 Err(_) => {
                     reject_aggregate(&mut verdict, ValidationRejectReason::TxDecodeFailed);
@@ -3183,7 +3208,7 @@ impl App {
         profile.aggregate_backend_ppe_ms = aggregate_profile.backend_ppe_ms;
         profile.aggregate_backend_core_total_ms = aggregate_profile.backend_core_total_ms;
         match aggregate_result {
-            Ok(()) => {
+            Ok(_) => {
                 verdict.aggregate.ok = true;
                 verdict.final_accept = true;
                 Ok((verdict, profile))
@@ -3195,6 +3220,7 @@ impl App {
         }
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn process_candidate_envelope_profiled(
         &mut self,
         envelope: &CandidateEnvelope,
@@ -3209,6 +3235,7 @@ impl App {
             .await)
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn execute_validated_candidate_envelope_profiled(
         &mut self,
         envelope: &CandidateEnvelope,
@@ -3230,17 +3257,44 @@ impl App {
             .iter()
             .enumerate()
             .map(|(index, tx_bytes)| {
-                Transaction::decode(tx_bytes.as_slice())
+                Transaction::decode_canonical(tx_bytes.as_slice())
                     .map(Arc::new)
                     .with_context(|| format!("decoding execution benchmark tx ordinal {index}"))
             })
             .collect::<Result<Vec<_>>>()?;
 
+        let (extracted_artifacts, _) =
+            Self::build_tx_artifacts_extracted_profiled(&decoded_txs).await?;
+        let verified_artifacts = if extracted_artifacts
+            .iter()
+            .any(|artifact| artifact.total_proof_count != 0)
+        {
+            let bundle_bytes = envelope
+                .aggregate_bundle_tx_bytes
+                .as_deref()
+                .context("validated candidate with proofs is missing aggregate bundle tx")?;
+            let bundle_tx = Transaction::decode_canonical(bundle_bytes)
+                .context("decoding validated candidate aggregate bundle tx")?;
+            let bundle = Self::ensure_aggregate_bundle_tx_shape(&bundle_tx)?;
+            Self::verify_aggregate_bundle_for_artifacts(
+                &extracted_artifacts,
+                bundle,
+                Some(&envelope.segment_tx_counts),
+            )
+            .await?
+        } else {
+            extracted_artifacts
+                .into_iter()
+                .map(|artifact| VerifiedTxArtifact::new(artifact, Vec::new()).map(Arc::new))
+                .collect::<Result<Vec<_>>>()?
+        };
+
         let deliver_txs_start = Instant::now();
-        for tx in decoded_txs {
+        for artifact in verified_artifacts {
             let execute_tx_start = Instant::now();
-            let (_events, execute_profile) =
-                self.execute_tx_checked_historical_profiled(tx).await?;
+            let (_events, execute_profile) = self
+                .execute_tx_checked_historical_profiled(artifact)
+                .await?;
             profile.execute_tx_ms += execute_tx_start.elapsed().as_secs_f64() * 1000.0;
             profile.begin_state_tx_ms += execute_profile.begin_state_tx_ms;
             profile.index_tx_ms += execute_profile.index_tx_ms;
@@ -3294,6 +3348,7 @@ impl App {
         Ok(profile)
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     fn extract_spend_nullifiers_from_proto(
         proto_tx: &shieldd_sdk_proto::core::transaction::v1::Transaction,
     ) -> Result<Vec<Nullifier>> {
@@ -3367,6 +3422,7 @@ impl App {
         Ok(spend_nullifiers)
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_segmented_aggregate_bundle_for_artifacts_public(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_count: usize,
@@ -3385,6 +3441,7 @@ impl App {
         ))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_segmented_aggregate_bundle_for_artifacts_profiled_public(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_count: usize,
@@ -3404,6 +3461,7 @@ impl App {
         ))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_exact_segmented_aggregate_bundle_for_artifacts_profiled_public(
         artifacts: &[Arc<TxArtifact>],
         segment_tx_counts: &[usize],
@@ -3426,6 +3484,7 @@ impl App {
         ))
     }
 
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn build_candidate_envelope_for_bench_profiled_public(
         snapshot: Snapshot,
         txs: &[Vec<u8>],
@@ -3445,13 +3504,17 @@ impl App {
             .iter()
             .enumerate()
             .map(|(index, tx_bytes)| {
-                Transaction::decode(tx_bytes.as_slice())
+                Transaction::decode_canonical(tx_bytes.as_slice())
                     .map(Arc::new)
                     .with_context(|| format!("decoding bench tx ordinal {index}"))
             })
             .collect::<Result<Vec<_>>>()?;
-        let (artifacts, artifact_profile) =
+        let (verified_artifacts, artifact_profile) =
             Self::build_tx_artifacts_for_stage("bench_candidate_envelope", &decoded).await?;
+        let artifacts = verified_artifacts
+            .iter()
+            .map(|artifact| artifact.extracted())
+            .collect::<Vec<_>>();
 
         let segment_tx_counts = match segment_tx_count {
             Some(0) => anyhow::bail!("segment_tx_count must be positive"),
@@ -3492,6 +3555,56 @@ impl App {
             artifact_profile,
             aggregate_profile,
         ))
+    }
+
+    #[cfg(any(test, feature = "benchmark-helpers"))]
+    pub fn candidate_envelope_from_prepared_proposal_public(
+        prepared: &response::PrepareProposal,
+        sidecar: &ProposalArtifactSidecar,
+        source_builder_label: impl Into<String>,
+    ) -> Result<CandidateEnvelope> {
+        let user_tx_count = sidecar.chunk_tx_count;
+        anyhow::ensure!(
+            prepared.txs.len() == user_tx_count
+                || prepared.txs.len() == user_tx_count.saturating_add(1),
+            "prepared proposal must contain {user_tx_count} user transactions and at most one aggregate bundle, got {} entries",
+            prepared.txs.len()
+        );
+        anyhow::ensure!(
+            sidecar.segment_tx_counts.iter().sum::<usize>() == user_tx_count,
+            "prepared proposal sidecar segments must cover all user transactions"
+        );
+
+        let txs = prepared.txs[..user_tx_count]
+            .iter()
+            .map(|tx| tx.to_vec())
+            .collect::<Vec<_>>();
+        let aggregate_bundle_tx_bytes = if prepared.txs.len() == user_tx_count + 1 {
+            let bytes = prepared.txs[user_tx_count].to_vec();
+            let bundle_tx = Transaction::decode_canonical(bytes.as_slice())
+                .context("decoding prepared aggregate bundle transaction")?;
+            Self::ensure_aggregate_bundle_tx_shape(&bundle_tx)
+                .context("validating prepared aggregate bundle transaction")?;
+            Some(bytes)
+        } else {
+            None
+        };
+        let tx_hashes = txs
+            .iter()
+            .map(|tx_bytes| sha2::Sha256::digest(tx_bytes).into())
+            .collect::<Vec<[u8; 32]>>();
+
+        Ok(CandidateEnvelope {
+            txs,
+            tx_hashes: tx_hashes.clone(),
+            aggregate_bundle_tx_bytes,
+            sidecar: sidecar.to_record(),
+            segment_tx_counts: sidecar.segment_tx_counts.clone(),
+            block_tx_count: user_tx_count,
+            total_payload_bytes: prepared.txs[..user_tx_count].iter().map(Bytes::len).sum(),
+            candidate_digest: candidate_digest_from_hashes(&tx_hashes),
+            source_builder_label: source_builder_label.into(),
+        })
     }
 
     fn ensure_unique_spend_nullifiers_from_artifacts(artifacts: &[Arc<TxArtifact>]) -> Result<()> {
@@ -3591,7 +3704,7 @@ impl App {
 
             let hash: [u8; 32] = sha2::Sha256::digest(tx_bytes.as_ref()).into();
             if let Some(cache) = stateless_cache {
-                match cache.get(&hash) {
+                match cache.get(&hash, tx_bytes.as_ref()) {
                     Some(CacheEntry::Invalid) => continue,
                     Some(CacheEntry::FullyVerified(artifact)) => {
                         Self::record_artifact_reuse("prepare_proposal");
@@ -3617,7 +3730,7 @@ impl App {
                 }
             }
 
-            let tx = match Transaction::decode(tx_bytes.as_ref()) {
+            let tx = match Transaction::decode_canonical(tx_bytes.as_ref()) {
                 Ok(tx) => Arc::new(tx),
                 Err(_) => continue,
             };
@@ -3656,6 +3769,11 @@ impl App {
             if duplicate {
                 continue;
             }
+            if !block_nullifier_count_allowed(
+                seen_nullifiers.len().saturating_add(tx_nullifiers.len()),
+            ) {
+                break;
+            }
 
             seen_nullifiers.extend(tx_nullifiers);
             deduped.push(candidate);
@@ -3679,7 +3797,7 @@ impl App {
             .iter()
             .filter_map(|candidate| match &candidate.data {
                 CandidateData::ExtractedArtifact(artifact) => {
-                    Some((candidate.hash, artifact.clone()))
+                    Some((candidate.bytes.clone(), artifact.clone()))
                 }
                 CandidateData::VerifiedArtifact(_) | CandidateData::Decoded(_) => None,
             })
@@ -3700,7 +3818,7 @@ impl App {
                         .next()
                         .expect("artifact count should match decoded candidates");
                     if let Some(cache) = stateless_cache {
-                        cache.insert_fully_verified(candidate.hash, artifact.clone());
+                        cache.insert_fully_verified(candidate.bytes.as_ref(), artifact.clone())?;
                     }
                     candidate.data = CandidateData::VerifiedArtifact(artifact);
                 }
@@ -3714,7 +3832,7 @@ impl App {
                 .iter()
                 .map(|(_, artifact)| artifact.clone())
                 .collect::<Vec<_>>();
-            let verify_profile = Self::verify_tx_artifacts_for_stage(
+            let (verified_artifacts, verify_profile) = Self::verify_tx_artifacts_for_stage(
                 "prepare_proposal_upgrade",
                 &extracted_artifacts,
             )
@@ -3723,14 +3841,20 @@ impl App {
             profile.artifact_fill_batch_verify_ms += verify_profile.batch_verify_ms;
 
             if let Some(cache) = stateless_cache {
-                for (hash, artifact) in &extracted_cache_hits {
-                    cache.insert_fully_verified(*hash, artifact.clone());
+                for ((raw_tx, _), artifact) in extracted_cache_hits.iter().zip(&verified_artifacts)
+                {
+                    cache.insert_fully_verified(raw_tx.as_ref(), artifact.clone())?;
                 }
             }
 
+            let mut verified_artifacts = verified_artifacts.into_iter();
             for candidate in &mut deduped {
-                if let CandidateData::ExtractedArtifact(artifact) = &candidate.data {
-                    candidate.data = CandidateData::VerifiedArtifact(artifact.clone());
+                if matches!(candidate.data, CandidateData::ExtractedArtifact(_)) {
+                    candidate.data = CandidateData::VerifiedArtifact(
+                        verified_artifacts
+                            .next()
+                            .expect("verified artifact count must match extracted cache hits"),
+                    );
                 }
             }
         }
@@ -3754,8 +3878,9 @@ impl App {
             for candidate in deduped {
                 if let Ok((_, execution_profile)) = self
                     .execute_prepare_candidate_profiled(
-                        candidate.tx().clone(),
-                        candidate.artifact().as_deref(),
+                        candidate
+                            .verified_artifact()
+                            .expect("prepare candidate must be proof verified"),
                         &historical_context,
                     )
                     .await
@@ -4224,7 +4349,7 @@ impl App {
 
     async fn prepare_proposal_impl_profiled(
         &mut self,
-        proposal: request::PrepareProposal,
+        mut proposal: request::PrepareProposal,
         stateless_cache: Option<&StatelessCache>,
         allow_oversized_proposal: bool,
     ) -> (
@@ -4240,6 +4365,7 @@ impl App {
         }
 
         let num_candidate_txs = proposal.txs.len();
+        truncate_prepare_candidates(&mut proposal.txs);
         tracing::debug!(
             "processing PrepareProposal, found {} candidate transactions",
             num_candidate_txs
@@ -4249,7 +4375,7 @@ impl App {
         // mempool's `max_tx_bytes`. Comet will send us raw proposals that exceed this
         // limit, presuming that a subset of those transactions will be shed.
         // More context in https://github.com/cometbft/cometbft/blob/v0.37.5/spec/abci/abci%2B%2B_app_requirements.md
-        let max_proposal_size_bytes = proposal.max_tx_bytes as u64;
+        let max_proposal_size_bytes = prepare_proposal_payload_limit(proposal.max_tx_bytes);
         let (included_txs, profile, sidecar) = match self
             .prepare_proposal_batched_profiled(
                 proposal.height.value() as u64,
@@ -4489,36 +4615,32 @@ impl App {
 
         enum UserTxData {
             ExtractedArtifact(Arc<TxArtifact>),
-            VerifiedArtifact(Arc<TxArtifact>),
+            VerifiedArtifact(Arc<VerifiedTxArtifact>),
             Decoded(Arc<Transaction>),
         }
 
         struct UserTx {
             hash: [u8; 32],
+            raw_tx: Bytes,
             data: UserTxData,
             cache_miss: bool,
             extracted_cache_hit: bool,
         }
 
         impl UserTx {
-            fn tx(&self) -> &Arc<Transaction> {
-                match &self.data {
-                    UserTxData::ExtractedArtifact(artifact)
-                    | UserTxData::VerifiedArtifact(artifact) => &artifact.tx,
-                    UserTxData::Decoded(tx) => tx,
-                }
-            }
-
             fn artifact(&self) -> Option<Arc<TxArtifact>> {
                 match &self.data {
-                    UserTxData::ExtractedArtifact(artifact)
-                    | UserTxData::VerifiedArtifact(artifact) => Some(artifact.clone()),
+                    UserTxData::ExtractedArtifact(artifact) => Some(artifact.clone()),
+                    UserTxData::VerifiedArtifact(artifact) => Some(artifact.extracted()),
                     UserTxData::Decoded(_) => None,
                 }
             }
         }
 
         let proposal_tx_count = proposal.txs.len();
+        if !process_proposal_tx_count_allowed(proposal_tx_count) {
+            reject_process_proposal!("tx_count_exceeded", proposal_tx_count);
+        }
         let mut total_txs_payload_size = 0usize;
         let mut user_txs = Vec::with_capacity(proposal_tx_count);
         let mut bundle_tx: Option<Arc<Transaction>> = None;
@@ -4532,7 +4654,9 @@ impl App {
             }
 
             total_txs_payload_size = total_txs_payload_size.saturating_add(tx_size);
-            if !allow_oversized_proposal && total_txs_payload_size >= MAX_BLOCK_TXS_PAYLOAD_BYTES {
+            if !allow_oversized_proposal
+                && !process_proposal_payload_size_allowed(total_txs_payload_size)
+            {
                 reject_process_proposal!(
                     "total_txs_payload_exceeded",
                     index,
@@ -4542,7 +4666,7 @@ impl App {
 
             let tx_hash: [u8; 32] = sha2::Sha256::digest(tx_bytes.as_ref()).into();
             if let Some(cache) = stateless_cache {
-                match cache.get(&tx_hash) {
+                match cache.get(&tx_hash, tx_bytes.as_ref()) {
                     Some(CacheEntry::Invalid) => {
                         reject_process_proposal!("stateless_cache_invalid", tx_hash = %hex::encode(tx_hash));
                     }
@@ -4552,6 +4676,7 @@ impl App {
                         profile.warm_reuse_count += 1;
                         user_txs.push(UserTx {
                             hash: tx_hash,
+                            raw_tx: tx_bytes.clone(),
                             data: UserTxData::VerifiedArtifact(artifact),
                             cache_miss: false,
                             extracted_cache_hit: false,
@@ -4564,6 +4689,7 @@ impl App {
                         profile.warm_reuse_count += 1;
                         user_txs.push(UserTx {
                             hash: tx_hash,
+                            raw_tx: tx_bytes.clone(),
                             data: UserTxData::ExtractedArtifact(artifact),
                             cache_miss: false,
                             extracted_cache_hit: true,
@@ -4575,7 +4701,7 @@ impl App {
             }
 
             let decode_start = Instant::now();
-            let tx = match Transaction::decode(tx_bytes.as_ref()) {
+            let tx = match Transaction::decode_canonical(tx_bytes.as_ref()) {
                 Ok(tx) => Arc::new(tx),
                 Err(_) => reject_process_proposal!("tx_decode_failed", index),
             };
@@ -4585,8 +4711,8 @@ impl App {
                 if index + 1 != proposal_tx_count {
                     reject_process_proposal!("aggregate_bundle_not_last", index, proposal_tx_count);
                 }
-                if Self::ensure_aggregate_bundle_tx_shape(&tx).is_err() {
-                    reject_process_proposal!("aggregate_bundle_bad_shape", index);
+                if let Err(error) = Self::ensure_aggregate_bundle_tx_shape(&tx) {
+                    reject_process_proposal!("aggregate_bundle_bad_shape", index, error = %error);
                 }
                 if bundle_tx.replace(tx).is_some() {
                     reject_process_proposal!("multiple_aggregate_bundle_txs");
@@ -4604,6 +4730,7 @@ impl App {
             profile.artifact_miss_count += 1;
             user_txs.push(UserTx {
                 hash: tx_hash,
+                raw_tx: tx_bytes,
                 data: UserTxData::Decoded(tx),
                 cache_miss: true,
                 extracted_cache_hit: false,
@@ -4688,6 +4815,13 @@ impl App {
                     .expect("proposal user tx should have artifact after miss fill")
             })
             .collect::<Vec<_>>();
+        let block_nullifier_count = artifacts
+            .iter()
+            .map(|artifact| artifact.spend_nullifiers.len())
+            .sum::<usize>();
+        if !block_nullifier_count_allowed(block_nullifier_count) {
+            reject_process_proposal!("block_nullifier_count_exceeded", block_nullifier_count);
+        }
         let nullifier_dedup_start = Instant::now();
         if Self::ensure_unique_spend_nullifiers_from_artifacts(&artifacts).is_err() {
             reject_process_proposal!("duplicate_spend_nullifiers");
@@ -4705,7 +4839,9 @@ impl App {
         profile.anchor_recheck_ms = anchor_recheck_start.elapsed().as_secs_f64() * 1000.0;
 
         let total_proofs = Self::total_artifact_proof_count(&artifacts);
-        let mut aggregate_verify_task: Option<tokio::task::JoinHandle<anyhow::Result<()>>> = None;
+        let mut aggregate_verify_task: Option<
+            tokio::task::JoinHandle<anyhow::Result<Vec<Arc<VerifiedTxArtifact>>>>,
+        > = None;
         match (total_proofs, bundle_tx.as_ref()) {
             (0, None) => {}
             (0, Some(_)) => reject_process_proposal!("bundle_present_with_zero_proofs"),
@@ -4731,29 +4867,48 @@ impl App {
             }
         }
 
-        if let Some(cache) = stateless_cache {
-            for user_tx in &user_txs {
-                if user_tx.cache_miss || user_tx.extracted_cache_hit {
-                    let artifact = user_tx
-                        .artifact()
-                        .expect("cache miss proposal tx should have artifact");
-                    cache.insert_fully_verified(user_tx.hash, artifact);
-                }
-            }
-        }
-
-        let stateful_replay_start = Instant::now();
         let historical_context = match HistoricalCheckContext::load(Arc::as_ref(&self.state)).await
         {
             Ok(context) => context,
             Err(_) => reject_process_proposal!("historical_context_load_failed"),
         };
-        for user_tx in user_txs {
+
+        let aggregate_verify_start = Instant::now();
+        let verified_artifacts = if let Some(aggregate_verify_task) = aggregate_verify_task {
+            match aggregate_verify_task.await {
+                Ok(Ok(verified)) => verified,
+                _ => reject_process_proposal!("aggregate_verify_task_failed"),
+            }
+        } else {
+            match artifacts
+                .iter()
+                .cloned()
+                .map(|artifact| VerifiedTxArtifact::new(artifact, Vec::new()).map(Arc::new))
+                .collect::<Result<Vec<_>>>()
+            {
+                Ok(verified) => verified,
+                Err(_) => reject_process_proposal!("zero_proof_capability_construction_failed"),
+            }
+        };
+        profile.aggregate_verify_ms = aggregate_verify_start.elapsed().as_secs_f64() * 1000.0;
+
+        if let Some(cache) = stateless_cache {
+            for (user_tx, artifact) in user_txs.iter().zip(&verified_artifacts) {
+                if user_tx.cache_miss || user_tx.extracted_cache_hit {
+                    if cache
+                        .insert_fully_verified(user_tx.raw_tx.as_ref(), artifact.clone())
+                        .is_err()
+                    {
+                        reject_process_proposal!("stateless_cache_artifact_binding_failed");
+                    }
+                }
+            }
+        }
+
+        let stateful_replay_start = Instant::now();
+        for artifact in verified_artifacts {
             let execution_profile = match self
-                .deliver_tx_with_verified_stateless_profiled(
-                    user_tx.tx().clone(),
-                    Some(&historical_context),
-                )
+                .deliver_tx_with_verified_stateless_profiled(artifact, Some(&historical_context))
                 .await
             {
                 Ok((_, execution_profile)) => execution_profile,
@@ -4796,15 +4951,6 @@ impl App {
             profile.stateful_replay_apply_ms += execution_profile.apply_ms;
         }
         profile.stateful_replay_execute_ms = stateful_replay_start.elapsed().as_secs_f64() * 1000.0;
-
-        if let Some(aggregate_verify_task) = aggregate_verify_task {
-            let aggregate_verify_start = Instant::now();
-            match aggregate_verify_task.await {
-                Ok(Ok(())) => {}
-                _ => reject_process_proposal!("aggregate_verify_task_failed"),
-            }
-            profile.aggregate_verify_ms = aggregate_verify_start.elapsed().as_secs_f64() * 1000.0;
-        }
 
         if self.block_tx_indexing_mode == BlockTxIndexingMode::DeferredBatch {
             let deferred_index_flush_start = Instant::now();
@@ -4945,9 +5091,9 @@ impl App {
     /// Wrapper function for [`Self::deliver_tx`] that decodes from bytes.
     ///
     /// When a `StatelessCache` is provided, anchor-independent tx artifacts are
-    /// cached by SHA-256 of the raw tx bytes. Cache hits skip decode + stateless
-    /// proof work entirely; misses build the artifact once while running
-    /// historical checks in parallel.
+    /// indexed by SHA-256 and bound to the complete raw tx bytes. Cache hits
+    /// skip decode + stateless proof work entirely; misses build the artifact
+    /// once while running historical checks in parallel.
     async fn deliver_tx_bytes_impl(
         &mut self,
         tx_bytes: &[u8],
@@ -4966,13 +5112,19 @@ impl App {
     ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
         let total_start = Instant::now();
         let mut profile = CheckTxProfile::default();
+        anyhow::ensure!(
+            transaction_size_allowed(tx_bytes.len()),
+            "transaction size {} exceeds maximum {}",
+            tx_bytes.len(),
+            MAX_TRANSACTION_SIZE_BYTES
+        );
         if let Some(cache) = stateless_cache {
             let cache_lookup_start = Instant::now();
             let hash: [u8; 32] = sha2::Sha256::digest(tx_bytes).into();
-            let cache_entry = cache.get(&hash);
+            let cache_entry = cache.get(&hash, tx_bytes);
             profile.checktx_cache_lookup_ms = cache_lookup_start.elapsed().as_secs_f64() * 1000.0;
             match cache_entry {
-                Some(CacheEntry::Extracted(artifact) | CacheEntry::FullyVerified(artifact)) => {
+                Some(CacheEntry::FullyVerified(artifact)) => {
                     tracing::debug!("stateless cache hit (valid)");
                     Self::record_artifact_reuse("checktx");
                     profile.cache_hit_count = 1;
@@ -4980,21 +5132,51 @@ impl App {
                         artifact.has_matching_historical_validation(self.snapshot_version);
                     let execute_fast_start = Instant::now();
                     let (events, execute_profile) =
-                        if supports_parallel_prepare(artifact.tx.as_ref())
+                        if supports_parallel_prepare(artifact.tx().as_ref())
                             && self.checktx_shared_context.is_some()
                         {
-                            self.execute_checktx_fast_profiled(artifact.tx.clone(), skip_historical)
+                            self.execute_checktx_fast_profiled(artifact.clone(), skip_historical)
                                 .await?
                         } else {
-                            self.deliver_tx_with_verified_stateless_profiled(
-                                artifact.tx.clone(),
-                                None,
-                            )
-                            .await?
+                            self.deliver_tx_with_verified_stateless_profiled(artifact, None)
+                                .await?
                         };
                     profile.checktx_execute_fast_wall_ms =
                         execute_fast_start.elapsed().as_secs_f64() * 1000.0;
                     profile.check_historical_ms = execute_profile.check_historical_ms;
+                    Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
+                    profile.checktx_total_wall_ms = total_start.elapsed().as_secs_f64() * 1000.0;
+                    return Ok((events, profile));
+                }
+                Some(CacheEntry::Extracted(extracted)) => {
+                    let (mut verified, verify_profile) = match Self::verify_tx_artifacts_for_stage(
+                        "checktx_cache_upgrade",
+                        std::slice::from_ref(&extracted),
+                    )
+                    .await
+                    {
+                        Ok(verified) => verified,
+                        Err(error) => {
+                            cache.insert_invalid(tx_bytes)?;
+                            return Err(error);
+                        }
+                    };
+                    let artifact = verified
+                        .pop()
+                        .context("verified cache-upgrade artifact missing")?;
+                    cache.insert_fully_verified(tx_bytes, artifact.clone())?;
+                    profile.stateless_artifact_batch_verify_ms = verify_profile.batch_verify_ms;
+                    let skip_historical =
+                        artifact.has_matching_historical_validation(self.snapshot_version);
+                    let (events, execute_profile) = if supports_parallel_prepare(artifact.tx())
+                        && self.checktx_shared_context.is_some()
+                    {
+                        self.execute_checktx_fast_profiled(artifact, skip_historical)
+                            .await?
+                    } else {
+                        self.deliver_tx_with_verified_stateless_profiled(artifact, None)
+                            .await?
+                    };
                     Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
                     profile.checktx_total_wall_ms = total_start.elapsed().as_secs_f64() * 1000.0;
                     return Ok((events, profile));
@@ -5005,9 +5187,7 @@ impl App {
                 None => {
                     let miss_start = Instant::now();
                     let (events, miss_profile) = self
-                        .deliver_tx_with_stateless_extraction_caching_profiled(
-                            tx_bytes, cache, hash,
-                        )
+                        .deliver_tx_with_stateless_extraction_caching_profiled(tx_bytes, cache)
                         .await?;
                     let mut miss_profile = miss_profile;
                     miss_profile.checktx_stateless_phase_wall_ms =
@@ -5021,7 +5201,7 @@ impl App {
         }
 
         let decode_start = Instant::now();
-        let tx = Arc::new(Transaction::decode(tx_bytes).context("decoding transaction")?);
+        let tx = Arc::new(Transaction::decode_canonical(tx_bytes).context("decoding transaction")?);
         profile.decode_tx_ms = decode_start.elapsed().as_secs_f64() * 1000.0;
         Self::ensure_user_tx_has_no_internal_actions(&tx)?;
         let execute_fast_start = Instant::now();
@@ -5067,6 +5247,7 @@ impl App {
     /// Benchmark-only admission path that reuses extracted stateless artifacts
     /// but intentionally skips per-transaction batch proof verification on
     /// cache misses.
+    #[cfg(any(test, feature = "benchmark-helpers"))]
     pub async fn deliver_tx_bytes_v2_extracted_profiled_for_bench(
         &mut self,
         tx_bytes: &[u8],
@@ -5074,26 +5255,49 @@ impl App {
     ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
         let total_start = Instant::now();
         let mut profile = CheckTxProfile::default();
+        anyhow::ensure!(
+            transaction_size_allowed(tx_bytes.len()),
+            "transaction size {} exceeds maximum {}",
+            tx_bytes.len(),
+            MAX_TRANSACTION_SIZE_BYTES
+        );
         let cache_lookup_start = Instant::now();
         let hash: [u8; 32] = sha2::Sha256::digest(tx_bytes).into();
-        let cache_entry = stateless_cache.get(&hash);
+        let cache_entry = stateless_cache.get(&hash, tx_bytes);
         profile.checktx_cache_lookup_ms = cache_lookup_start.elapsed().as_secs_f64() * 1000.0;
 
         match cache_entry {
-            Some(CacheEntry::Extracted(artifact) | CacheEntry::FullyVerified(artifact)) => {
+            Some(CacheEntry::Extracted(extracted)) => {
+                let (mut verified, verify_profile) = match Self::verify_tx_artifacts_for_stage(
+                    "checktx_extract_only_upgrade",
+                    std::slice::from_ref(&extracted),
+                )
+                .await
+                {
+                    Ok(verified) => verified,
+                    Err(error) => {
+                        stateless_cache.insert_invalid(tx_bytes)?;
+                        return Err(error);
+                    }
+                };
+                profile.stateless_artifact_batch_verify_ms = verify_profile.batch_verify_ms;
+                let artifact = verified
+                    .pop()
+                    .context("verified benchmark cache artifact missing")?;
+                stateless_cache.insert_fully_verified(tx_bytes, artifact.clone())?;
                 tracing::debug!("stateless cache hit (valid, extracted-for-bench)");
                 Self::record_artifact_reuse("checktx_extract_only");
                 profile.cache_hit_count = 1;
                 let skip_historical =
                     artifact.has_matching_historical_validation(self.snapshot_version);
                 let execute_fast_start = Instant::now();
-                let (events, execute_profile) = if supports_parallel_prepare(artifact.tx.as_ref())
+                let (events, execute_profile) = if supports_parallel_prepare(artifact.tx())
                     && self.checktx_shared_context.is_some()
                 {
-                    self.execute_checktx_fast_profiled(artifact.tx.clone(), skip_historical)
+                    self.execute_checktx_fast_profiled(artifact.clone(), skip_historical)
                         .await?
                 } else {
-                    self.deliver_tx_with_verified_stateless_profiled(artifact.tx.clone(), None)
+                    self.deliver_tx_with_verified_stateless_profiled(artifact, None)
                         .await?
                 };
                 profile.checktx_execute_fast_wall_ms =
@@ -5101,6 +5305,21 @@ impl App {
                 profile.check_historical_ms = execute_profile.check_historical_ms;
                 Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
                 profile.checktx_total_wall_ms = total_start.elapsed().as_secs_f64() * 1000.0;
+                Ok((events, profile))
+            }
+            Some(CacheEntry::FullyVerified(artifact)) => {
+                let skip_historical =
+                    artifact.has_matching_historical_validation(self.snapshot_version);
+                let (events, execute_profile) = if supports_parallel_prepare(artifact.tx())
+                    && self.checktx_shared_context.is_some()
+                {
+                    self.execute_checktx_fast_profiled(artifact.clone(), skip_historical)
+                        .await?
+                } else {
+                    self.deliver_tx_with_verified_stateless_profiled(artifact, None)
+                        .await?
+                };
+                Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
                 Ok((events, profile))
             }
             Some(CacheEntry::Invalid) => {
@@ -5112,7 +5331,6 @@ impl App {
                     .deliver_tx_with_stateless_extraction_caching_profiled(
                         tx_bytes,
                         stateless_cache,
-                        hash,
                     )
                     .await?;
                 miss_profile.checktx_stateless_phase_wall_ms =
@@ -5187,11 +5405,10 @@ impl App {
         &mut self,
         tx_bytes: &[u8],
         cache: &StatelessCache,
-        hash: [u8; 32],
     ) -> Result<(Vec<abci::Event>, CheckTxProfile)> {
         let mut profile = CheckTxProfile::default();
         let decode_start = Instant::now();
-        let tx = Arc::new(Transaction::decode(tx_bytes).context("decoding transaction")?);
+        let tx = Arc::new(Transaction::decode_canonical(tx_bytes).context("decoding transaction")?);
         profile.decode_tx_ms = decode_start.elapsed().as_secs_f64() * 1000.0;
         Self::ensure_user_tx_has_no_internal_actions(&tx)?;
         let supports_fast_path =
@@ -5220,11 +5437,7 @@ impl App {
 
                     let artifact_start = Instant::now();
                     let artifact_result = handle.block_on(async move {
-                        Self::build_tx_artifact_extracted_for_stage(
-                            "checktx_extract_only",
-                            tx_for_extract,
-                        )
-                        .await
+                        Self::build_tx_artifact_for_stage("checktx", tx_for_extract).await
                     });
                     let artifact_blocking_ms = artifact_start.elapsed().as_secs_f64() * 1000.0;
 
@@ -5257,8 +5470,8 @@ impl App {
 
             let initial_cache_insert_start = Instant::now();
             match &artifact_result {
-                Ok((artifact, _)) => cache.insert_extracted(hash, artifact.clone()),
-                Err(_) => cache.insert_invalid(hash),
+                Ok((artifact, _)) => cache.insert_fully_verified(tx_bytes, artifact.clone())?,
+                Err(_) => cache.insert_invalid(tx_bytes)?,
             }
             profile.stateless_initial_cache_insert_ms =
                 initial_cache_insert_start.elapsed().as_secs_f64() * 1000.0;
@@ -5291,8 +5504,7 @@ impl App {
             prepared.checktx_fast_read_blocking_total_ms = fast_read_blocking_ms;
 
             let historical_stamp_start = Instant::now();
-            let historical_stamp =
-                self.current_historical_validation_stamp(Arc::as_ref(&artifact.tx));
+            let historical_stamp = self.current_historical_validation_stamp(artifact.tx());
             profile.stateless_historical_stamp_ms =
                 historical_stamp_start.elapsed().as_secs_f64() * 1000.0;
             let historical_mark_start = Instant::now();
@@ -5300,13 +5512,14 @@ impl App {
             profile.stateless_historical_mark_ms =
                 historical_mark_start.elapsed().as_secs_f64() * 1000.0;
             let final_cache_insert_start = Instant::now();
-            cache.insert_extracted(hash, artifact.clone());
+            cache.insert_fully_verified(tx_bytes, artifact.clone())?;
             profile.stateless_final_cache_insert_ms =
                 final_cache_insert_start.elapsed().as_secs_f64() * 1000.0;
 
             let execute_fast_start = Instant::now();
-            let (events, execute_profile) =
-                self.apply_prepared_checktx_profiled(tx, prepared).await?;
+            let (events, execute_profile) = self
+                .apply_prepared_checktx_profiled(artifact, prepared)
+                .await?;
             profile.checktx_execute_fast_wall_ms =
                 execute_fast_start.elapsed().as_secs_f64() * 1000.0;
             profile.check_historical_ms = execute_profile.check_historical_ms;
@@ -5324,7 +5537,7 @@ impl App {
                 let queue_wait_ms = stateless_spawn_started.elapsed().as_secs_f64() * 1000.0;
                 let start = Instant::now();
                 let result = handle.block_on(async move {
-                    Self::build_tx_artifact_extracted_for_stage("checktx_extract_only", tx2).await
+                    Self::build_tx_artifact_for_stage("checktx", tx2).await
                 });
                 let blocking_total_ms = start.elapsed().as_secs_f64() * 1000.0;
                 (result, queue_wait_ms, blocking_total_ms)
@@ -5354,8 +5567,8 @@ impl App {
         profile.stateless_artifact_ms = stateless_artifact_ms;
         let initial_cache_insert_start = Instant::now();
         match &artifact_result {
-            Ok((artifact, _)) => cache.insert_extracted(hash, artifact.clone()),
-            Err(_) => cache.insert_invalid(hash),
+            Ok((artifact, _)) => cache.insert_fully_verified(tx_bytes, artifact.clone())?,
+            Err(_) => cache.insert_invalid(tx_bytes)?,
         }
         profile.stateless_initial_cache_insert_ms =
             initial_cache_insert_start.elapsed().as_secs_f64() * 1000.0;
@@ -5371,12 +5584,13 @@ impl App {
 
         let (events, execute_profile) = if supports_fast_path {
             let historical_stamp_start = Instant::now();
-            let historical_stamp =
-                self.current_historical_validation_stamp(Arc::as_ref(&artifact.tx));
+            let historical_stamp = self.current_historical_validation_stamp(artifact.tx());
             profile.stateless_historical_stamp_ms =
                 historical_stamp_start.elapsed().as_secs_f64() * 1000.0;
             let execute_fast_start = Instant::now();
-            let (events, execute_profile) = self.execute_checktx_fast_profiled(tx, false).await?;
+            let (events, execute_profile) = self
+                .execute_checktx_fast_profiled(artifact.clone(), false)
+                .await?;
             profile.checktx_execute_fast_wall_ms =
                 execute_fast_start.elapsed().as_secs_f64() * 1000.0;
             let historical_mark_start = Instant::now();
@@ -5384,7 +5598,7 @@ impl App {
             profile.stateless_historical_mark_ms =
                 historical_mark_start.elapsed().as_secs_f64() * 1000.0;
             let final_cache_insert_start = Instant::now();
-            cache.insert_extracted(hash, artifact.clone());
+            cache.insert_fully_verified(tx_bytes, artifact.clone())?;
             profile.stateless_final_cache_insert_ms =
                 final_cache_insert_start.elapsed().as_secs_f64() * 1000.0;
             profile.check_historical_ms = execute_profile.check_historical_ms;
@@ -5398,8 +5612,7 @@ impl App {
             stateful_result.context("check_stateful failed")?;
 
             let historical_stamp_start = Instant::now();
-            let historical_stamp =
-                self.current_historical_validation_stamp(Arc::as_ref(&artifact.tx));
+            let historical_stamp = self.current_historical_validation_stamp(artifact.tx());
             profile.stateless_historical_stamp_ms =
                 historical_stamp_start.elapsed().as_secs_f64() * 1000.0;
             let historical_mark_start = Instant::now();
@@ -5407,11 +5620,11 @@ impl App {
             profile.stateless_historical_mark_ms =
                 historical_mark_start.elapsed().as_secs_f64() * 1000.0;
             let final_cache_insert_start = Instant::now();
-            cache.insert_extracted(hash, artifact.clone());
+            cache.insert_fully_verified(tx_bytes, artifact.clone())?;
             profile.stateless_final_cache_insert_ms =
                 final_cache_insert_start.elapsed().as_secs_f64() * 1000.0;
 
-            self.execute_tx_checked_historical_profiled(artifact.tx.clone())
+            self.execute_tx_checked_historical_profiled(artifact)
                 .await?
         };
         Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
@@ -5432,7 +5645,9 @@ impl App {
                 span.in_scope(|| {
                     let queue_wait_ms = stateless_spawn_started.elapsed().as_secs_f64() * 1000.0;
                     let start = Instant::now();
-                    let result = handle.block_on(async move { tx2.check_stateless(()).await });
+                    let result = handle.block_on(async move {
+                        Self::build_tx_artifact_for_stage("checktx_uncached", tx2).await
+                    });
                     let blocking_total_ms = start.elapsed().as_secs_f64() * 1000.0;
                     (result, queue_wait_ms, blocking_total_ms)
                 })
@@ -5448,10 +5663,15 @@ impl App {
             profile.stateless_artifact_queue_wait_ms = stateless_artifact_queue_wait_ms;
             profile.stateless_artifact_blocking_total_ms = stateless_artifact_ms;
             profile.stateless_artifact_ms = stateless_artifact_ms;
-            stateless_result.context("check_stateless failed")?;
+            let (artifact, artifact_profile) =
+                stateless_result.context("check_stateless failed")?;
+            profile.stateless_artifact_precheck_ms = artifact_profile.precheck_ms;
+            profile.stateless_artifact_action_extract_ms = artifact_profile.action_extract_ms;
+            profile.stateless_artifact_batch_verify_ms = artifact_profile.batch_verify_ms;
 
             let execute_fast_start = Instant::now();
-            let (events, execute_profile) = self.execute_checktx_fast_profiled(tx, false).await?;
+            let (events, execute_profile) =
+                self.execute_checktx_fast_profiled(artifact, false).await?;
             profile.checktx_execute_fast_wall_ms =
                 execute_fast_start.elapsed().as_secs_f64() * 1000.0;
             profile.check_historical_ms = execute_profile.check_historical_ms;
@@ -5473,7 +5693,9 @@ impl App {
             span.in_scope(|| {
                 let queue_wait_ms = stateless_spawn_started.elapsed().as_secs_f64() * 1000.0;
                 let start = Instant::now();
-                let result = handle.block_on(async move { tx2.check_stateless(()).await });
+                let result = handle.block_on(async move {
+                    Self::build_tx_artifact_for_stage("checktx_uncached", tx2).await
+                });
                 let blocking_total_ms = start.elapsed().as_secs_f64() * 1000.0;
                 (result, queue_wait_ms, blocking_total_ms)
             })
@@ -5497,22 +5719,28 @@ impl App {
         profile.stateless_artifact_queue_wait_ms = stateless_artifact_queue_wait_ms;
         profile.stateless_artifact_blocking_total_ms = stateless_artifact_ms;
         profile.stateless_artifact_ms = stateless_artifact_ms;
-        stateless_result.context("check_stateless failed")?;
+        let (artifact, artifact_profile) = stateless_result.context("check_stateless failed")?;
+        profile.stateless_artifact_precheck_ms = artifact_profile.precheck_ms;
+        profile.stateless_artifact_action_extract_ms = artifact_profile.action_extract_ms;
+        profile.stateless_artifact_batch_verify_ms = artifact_profile.batch_verify_ms;
         let (stateful_result, check_historical_ms) =
             stateful.await.context("waiting for check_stateful tasks")?;
         profile.check_historical_ms = check_historical_ms;
         stateful_result.context("check_stateful failed")?;
 
-        let (events, execute_profile) = self.execute_tx_checked_historical_profiled(tx).await?;
+        let (events, execute_profile) = self
+            .execute_tx_checked_historical_profiled(artifact)
+            .await?;
         Self::fill_checktx_execute_profile(&mut profile, &execute_profile);
         Ok((events, profile))
     }
 
     async fn deliver_tx_with_verified_stateless_profiled(
         &mut self,
-        tx: Arc<Transaction>,
+        artifact: Arc<VerifiedTxArtifact>,
         historical_context: Option<&HistoricalCheckContext>,
     ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
+        let tx = artifact.tx().clone();
         let mut profile = VerifiedStatefulTxBreakdown::default();
         let historical_start = Instant::now();
         match historical_context {
@@ -5528,7 +5756,9 @@ impl App {
         }
         profile.check_historical_ms = historical_start.elapsed().as_secs_f64() * 1000.0;
 
-        let (events, execute_profile) = self.execute_tx_checked_historical_profiled(tx).await?;
+        let (events, execute_profile) = self
+            .execute_tx_checked_historical_profiled(artifact)
+            .await?;
         profile.begin_state_tx_ms = execute_profile.begin_state_tx_ms;
         profile.index_tx_ms = execute_profile.index_tx_ms;
         profile.clone_tx_ms = execute_profile.clone_tx_ms;
@@ -5568,25 +5798,23 @@ impl App {
 
     async fn execute_prepare_candidate_profiled(
         &mut self,
-        tx: Arc<Transaction>,
-        artifact: Option<&TxArtifact>,
+        artifact: Arc<VerifiedTxArtifact>,
         historical_context: &HistoricalCheckContext,
     ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
-        if artifact.is_some_and(|artifact| {
-            artifact.has_matching_historical_validation(self.snapshot_version)
-        }) {
-            return self.execute_tx_checked_historical_profiled(tx).await;
+        if artifact.has_matching_historical_validation(self.snapshot_version) {
+            return self.execute_tx_checked_historical_profiled(artifact).await;
         }
 
-        self.deliver_tx_with_verified_stateless_profiled(tx, Some(historical_context))
+        self.deliver_tx_with_verified_stateless_profiled(artifact, Some(historical_context))
             .await
     }
 
     async fn execute_checktx_fast_profiled(
         &mut self,
-        tx: Arc<Transaction>,
+        artifact: Arc<VerifiedTxArtifact>,
         skip_historical: bool,
     ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
+        let tx = artifact.tx().clone();
         let context_load_start = Instant::now();
         let historical_context = self
             .checktx_shared_context
@@ -5623,7 +5851,9 @@ impl App {
         prepared.checktx_fast_read_queue_wait_ms = queue_wait_ms;
         prepared.checktx_fast_read_blocking_total_ms = blocking_total_ms;
         let apply_start = Instant::now();
-        let result = self.apply_prepared_checktx_profiled(tx, prepared).await;
+        let result = self
+            .apply_prepared_checktx_profiled(artifact, prepared)
+            .await;
         let apply_wall_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
         let (events, mut profile) = result?;
         profile.checktx_fast_prepare_join_wall_ms = prepare_join_wall_ms;
@@ -5634,9 +5864,10 @@ impl App {
 
     async fn apply_prepared_checktx_profiled(
         &mut self,
-        tx: Arc<Transaction>,
+        artifact: Arc<VerifiedTxArtifact>,
         prepared: PreparedCandidateRead,
     ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
+        let tx = artifact.tx().clone();
         let serial_apply_start = Instant::now();
         let mut profile = VerifiedStatefulTxBreakdown::default();
         profile.check_historical_ms = prepared.check_historical_ms;
@@ -5672,6 +5903,7 @@ impl App {
         profile.begin_state_tx_ms = begin_state_tx_start.elapsed().as_secs_f64() * 1000.0;
 
         let index_start = Instant::now();
+        let mut deferred_transaction = None;
         match self.block_tx_indexing_mode {
             BlockTxIndexingMode::NoIndex => {}
             BlockTxIndexingMode::PerTx => {
@@ -5710,10 +5942,7 @@ impl App {
                 let proto_convert_start = Instant::now();
                 let proto_transaction = transaction.into();
                 profile.proto_convert_ms = proto_convert_start.elapsed().as_secs_f64() * 1000.0;
-                let put_block_transaction_start = Instant::now();
-                self.deferred_block_transactions.push(proto_transaction);
-                profile.put_block_transaction_ms =
-                    put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
+                deferred_transaction = Some(proto_transaction);
             }
         }
         profile.index_tx_ms = index_start.elapsed().as_secs_f64() * 1000.0;
@@ -5817,6 +6046,13 @@ impl App {
         let apply_start = Instant::now();
         let events = state_tx.apply().1;
         profile.apply_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
+        if let Some(transaction) = deferred_transaction {
+            let put_block_transaction_start = Instant::now();
+            self.deferred_block_transactions.push(transaction);
+            profile.put_block_transaction_ms =
+                put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
+            profile.index_tx_ms += profile.put_block_transaction_ms;
+        }
         profile.serial_apply_wall_ms = serial_apply_start.elapsed().as_secs_f64() * 1000.0;
 
         Ok((events, profile))
@@ -5824,10 +6060,11 @@ impl App {
 
     async fn apply_prepared_prepare_candidate_profiled(
         &mut self,
-        tx: Arc<Transaction>,
+        artifact: Arc<VerifiedTxArtifact>,
         prepared: PreparedCandidateRead,
         block_state: &mut PrepareBlockLocalState,
     ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
+        let tx = artifact.tx().clone();
         let serial_apply_start = Instant::now();
         let conflict_check_start = Instant::now();
         for nullifier in &prepared.effects.spend_nullifiers {
@@ -5873,6 +6110,7 @@ impl App {
         profile.begin_state_tx_ms = begin_state_tx_start.elapsed().as_secs_f64() * 1000.0;
 
         let index_start = Instant::now();
+        let mut deferred_transaction = None;
         match self.block_tx_indexing_mode {
             BlockTxIndexingMode::NoIndex => {}
             BlockTxIndexingMode::PerTx => {
@@ -5911,10 +6149,7 @@ impl App {
                 let proto_convert_start = Instant::now();
                 let proto_transaction = transaction.into();
                 profile.proto_convert_ms = proto_convert_start.elapsed().as_secs_f64() * 1000.0;
-                let put_block_transaction_start = Instant::now();
-                self.deferred_block_transactions.push(proto_transaction);
-                profile.put_block_transaction_ms =
-                    put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
+                deferred_transaction = Some(proto_transaction);
             }
         }
         profile.index_tx_ms = index_start.elapsed().as_secs_f64() * 1000.0;
@@ -5987,6 +6222,13 @@ impl App {
         let apply_start = Instant::now();
         let events = state_tx.apply().1;
         profile.apply_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
+        if let Some(transaction) = deferred_transaction {
+            let put_block_transaction_start = Instant::now();
+            self.deferred_block_transactions.push(transaction);
+            profile.put_block_transaction_ms =
+                put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
+            profile.index_tx_ms += profile.put_block_transaction_ms;
+        }
         profile.serial_apply_wall_ms = serial_apply_start.elapsed().as_secs_f64() * 1000.0;
 
         block_state.staged_nullifiers.extend(
@@ -6106,7 +6348,9 @@ impl App {
 
             match self
                 .apply_prepared_prepare_candidate_profiled(
-                    candidate.tx().clone(),
+                    candidate
+                        .verified_artifact()
+                        .expect("prepared candidate must be proof verified"),
                     prepared,
                     &mut block_state,
                 )
@@ -6291,8 +6535,9 @@ impl App {
 
     async fn execute_tx_checked_historical_profiled(
         &mut self,
-        tx: Arc<Transaction>,
+        artifact: Arc<VerifiedTxArtifact>,
     ) -> Result<(Vec<abci::Event>, VerifiedStatefulTxBreakdown)> {
+        let tx = artifact.tx().clone();
         let mut profile = VerifiedStatefulTxBreakdown::default();
         // At this point, the stateful checks should have completed,
         // leaving us with exclusive access to the Arc<State>.
@@ -6314,6 +6559,7 @@ impl App {
 
         // Index the transaction:
         let index_start = Instant::now();
+        let mut deferred_transaction = None;
         match self.block_tx_indexing_mode {
             BlockTxIndexingMode::NoIndex => {}
             BlockTxIndexingMode::PerTx => {
@@ -6352,16 +6598,13 @@ impl App {
                 let proto_convert_start = Instant::now();
                 let proto_transaction = transaction.into();
                 profile.proto_convert_ms = proto_convert_start.elapsed().as_secs_f64() * 1000.0;
-                let put_block_transaction_start = Instant::now();
-                self.deferred_block_transactions.push(proto_transaction);
-                profile.put_block_transaction_ms =
-                    put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
+                deferred_transaction = Some(proto_transaction);
             }
         }
         profile.index_tx_ms = index_start.elapsed().as_secs_f64() * 1000.0;
 
         let check_and_execute_start = Instant::now();
-        let execution_profile = check_and_execute_profiled(Arc::as_ref(&tx), &mut state_tx)
+        let execution_profile = check_and_execute_profiled(Arc::as_ref(&artifact), &mut state_tx)
             .await
             .context("executing transaction")?;
         profile.check_and_execute_ms = check_and_execute_start.elapsed().as_secs_f64() * 1000.0;
@@ -6395,6 +6638,13 @@ impl App {
         let apply_start = Instant::now();
         let events = state_tx.apply().1;
         profile.apply_ms = apply_start.elapsed().as_secs_f64() * 1000.0;
+        if let Some(transaction) = deferred_transaction {
+            let put_block_transaction_start = Instant::now();
+            self.deferred_block_transactions.push(transaction);
+            profile.put_block_transaction_ms =
+                put_block_transaction_start.elapsed().as_secs_f64() * 1000.0;
+            profile.index_tx_ms += profile.put_block_transaction_ms;
+        }
 
         Ok((events, profile))
     }
@@ -6758,6 +7008,8 @@ impl<T: StateWrite + ?Sized> StateWriteExt for T {}
 
 #[cfg(test)]
 mod tests {
+    mod proof_acceptance_tests;
+
     use std::collections::BTreeMap;
     use std::ops::Deref;
     use std::sync::Arc;
@@ -6765,11 +7017,12 @@ mod tests {
     use anyhow::{anyhow, Context, Result};
     use ark_ff::Zero;
     use ark_serialize::CanonicalSerialize;
-    use cnidarium::{StateDelta, StateRead, StateWrite, TempStorage};
+    use cnidarium::{ArcStateDeltaExt as _, StateDelta, StateRead, StateWrite, TempStorage};
     use decaf377::{Fq, Fr};
     use decaf377_rdsa as rdsa;
     use futures::StreamExt as _;
     use proptest::prelude::*;
+    use prost::bytes::Bytes;
     use rand_core::OsRng;
     use sha2::Digest as _;
     use shieldd_sdk_asset::{asset, Value, BASE_ASSET_DENOM, BASE_ASSET_ID};
@@ -6797,6 +7050,7 @@ mod tests {
     use shieldd_sdk_sct::params::SctParameters;
     use shieldd_sdk_sct::{CommitmentSource, Nullifier};
     use shieldd_sdk_shielded_pool::component::NoteManager as _;
+    use shieldd_sdk_shielded_pool::test_proof_helpers::proof_test_helpers::build_transfer_action_and_public_without_proof;
     use shieldd_sdk_shielded_pool::{
         genesis::Allocation, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
     };
@@ -6857,9 +7111,312 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn failed_transaction_drops_all_staged_effects() -> Result<()> {
+        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+        let mut base_state = StateDelta::new(storage.latest_snapshot());
+        shieldd_sdk_sct::nullifier_tree::initialize(&mut base_state).await?;
+        let mut state = Arc::new(base_state);
+        let nullifier = Nullifier(Fq::from(71u64));
+        let source = CommitmentSource::Transaction {
+            id: Some([7u8; 32]),
+        };
+        let payload = shieldd_sdk_shielded_pool::NotePayload {
+            note_commitment: tct::StateCommitment(Fq::from(72u64)),
+            ..shieldd_sdk_shielded_pool::NotePayload::dummy()
+        };
+        let unrelated_effect_key = "fv/transaction/staged-effect".to_string();
+
+        let execution_result: Result<()> = async {
+            let mut state_tx = state
+                .try_begin_transaction()
+                .expect("test state must have unique ownership");
+            state_tx.put_block_height(42);
+            state_tx
+                .nullify_all(std::slice::from_ref(&nullifier), source.clone())
+                .await?;
+            state_tx.add_note_payload(payload, source).await;
+            state_tx.put_raw(unrelated_effect_key.clone(), vec![1u8]);
+
+            assert_eq!(
+                state_tx
+                    .pending_nullifiers()
+                    .iter()
+                    .copied()
+                    .collect::<Vec<_>>(),
+                vec![nullifier]
+            );
+            assert_eq!(state_tx.pending_note_payloads().len(), 1);
+            assert_eq!(
+                state_tx.get_raw(unrelated_effect_key.as_str()).await?,
+                Some(vec![1u8])
+            );
+
+            Err(anyhow!("later action failed"))
+        }
+        .await;
+
+        assert!(execution_result.is_err());
+        assert!(state.pending_nullifiers().is_empty());
+        assert!(state.pending_note_payloads().is_empty());
+        assert!(!shieldd_sdk_sct::nullifier_tree::is_spent(Arc::as_ref(&state), nullifier).await?);
+        assert_eq!(state.get_raw(unrelated_effect_key.as_str()).await?, None);
+
+        Ok(())
+    }
+
     #[test]
-    fn artifact_extraction_keeps_note_reshape_sentinel_nullifiers() {
-        let inputs = (0..4)
+    fn proposal_tx_count_policy_is_fixed_at_boundary() {
+        let mut candidates = vec![Bytes::new(); super::MAX_BLOCK_TX_COUNT + 1];
+        super::truncate_prepare_candidates(&mut candidates);
+        assert_eq!(candidates.len(), super::MAX_BLOCK_TX_COUNT);
+        assert!(super::process_proposal_tx_count_allowed(
+            super::MAX_BLOCK_TX_COUNT
+        ));
+        assert!(!super::process_proposal_tx_count_allowed(
+            super::MAX_BLOCK_TX_COUNT + 1
+        ));
+    }
+
+    #[test]
+    fn proposal_payload_size_policy_is_fixed_at_boundary() {
+        assert_eq!(super::prepare_proposal_payload_limit(-1), 0);
+        assert_eq!(super::prepare_proposal_payload_limit(0), 0);
+        assert_eq!(
+            super::prepare_proposal_payload_limit(super::MAX_BLOCK_TXS_PAYLOAD_BYTES as i64),
+            super::MAX_BLOCK_TXS_PAYLOAD_BYTES as u64
+        );
+        assert_eq!(
+            super::prepare_proposal_payload_limit(super::MAX_BLOCK_TXS_PAYLOAD_BYTES as i64 + 1),
+            super::MAX_BLOCK_TXS_PAYLOAD_BYTES as u64
+        );
+        assert!(super::process_proposal_payload_size_allowed(
+            super::MAX_BLOCK_TXS_PAYLOAD_BYTES
+        ));
+        assert!(!super::process_proposal_payload_size_allowed(
+            super::MAX_BLOCK_TXS_PAYLOAD_BYTES + 1
+        ));
+    }
+
+    #[test]
+    fn proposal_nullifier_count_policy_is_fixed_at_boundary() {
+        assert!(super::block_nullifier_count_allowed(
+            super::MAX_BLOCK_NULLIFIER_COUNT
+        ));
+        assert!(!super::block_nullifier_count_allowed(
+            super::MAX_BLOCK_NULLIFIER_COUNT + 1
+        ));
+        assert!(!super::block_nullifier_count_allowed(usize::MAX));
+    }
+
+    #[test]
+    fn proposal_transaction_size_policy_is_fixed_at_boundary() {
+        assert!(super::transaction_size_allowed(
+            super::MAX_TRANSACTION_SIZE_BYTES
+        ));
+        assert!(!super::transaction_size_allowed(
+            super::MAX_TRANSACTION_SIZE_BYTES + 1
+        ));
+    }
+
+    #[test]
+    fn proof_worker_concurrency_is_bounded_for_all_hardware_sizes() {
+        assert_eq!(App::proof_family_ids().len(), 4);
+        assert_eq!(super::MAX_CONCURRENT_AGGREGATE_SEGMENTS, 2);
+        assert_eq!(super::MAX_CONCURRENT_AGGREGATE_VERIFY_CALLS, 4);
+        assert!(super::MAX_CONCURRENT_AGGREGATE_SEGMENTS * App::proof_family_ids().len() <= 8);
+    }
+
+    #[tokio::test]
+    async fn structured_join_drain_waits_for_siblings_after_error() {
+        let sibling_finished = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let sibling_finished_for_task = sibling_finished.clone();
+        let mut tasks = tokio::task::JoinSet::new();
+        tasks.spawn(async { Err::<(), anyhow::Error>(anyhow!("injected early failure")) });
+        tasks.spawn_blocking(move || {
+            std::thread::sleep(std::time::Duration::from_millis(25));
+            sibling_finished_for_task.store(true, std::sync::atomic::Ordering::SeqCst);
+            Ok::<(), anyhow::Error>(())
+        });
+
+        let result = super::drain_joinset_results(&mut tasks, "injected task panic").await;
+        assert!(result.is_err());
+        assert!(
+            sibling_finished.load(std::sync::atomic::Ordering::SeqCst),
+            "drain must await sibling work before returning the first error"
+        );
+        assert!(tasks.is_empty());
+    }
+
+    #[tokio::test]
+    async fn oversized_checktx_bytes_reject_before_decode_or_cache() -> Result<()> {
+        let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
+        let mut app = App::new(storage.latest_snapshot());
+        let cache = StatelessCache::new();
+        let maximum_transaction_size = super::MAX_TRANSACTION_SIZE_BYTES;
+        let oversized = vec![
+            0xff;
+            maximum_transaction_size
+                .checked_add(1)
+                .context("maximum transaction size must fit in usize")?
+        ];
+
+        let error = app
+            .deliver_tx_bytes(&oversized, Some(&cache))
+            .await
+            .expect_err("oversized CheckTx bytes must reject before decoding or cache admission");
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "transaction size {} exceeds maximum {maximum_transaction_size}",
+                oversized.len()
+            ),
+            "oversized CheckTx rejection must come from the pre-decode size guard"
+        );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn artifact_extraction_cannot_bypass_action_stateless_checks() -> Result<()> {
+        let action_anchor = tct::Tree::default().root();
+        let balance_commitment = shieldd_sdk_asset::Balance::default().commit(Fr::from(1u64));
+        let inputs = (0..8)
+            .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
+                nullifier: Nullifier(Fq::from(10u64 + index)),
+                rk: rdsa::VerificationKey::from(rdsa::SigningKey::<rdsa::SpendAuth>::from(
+                    Fr::from(20u64 + index),
+                )),
+                encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::try_from(
+                    [u8::try_from(index + 1).expect("small index"); 48],
+                )
+                .expect("fixed-size encrypted backref"),
+            })
+            .collect();
+        let note_reshape = shieldd_sdk_shielded_pool::NoteReshape {
+            body: shieldd_sdk_shielded_pool::NoteReshapeBody {
+                family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
+                anchor: action_anchor,
+                balance_commitment,
+                inputs,
+                outputs: vec![shieldd_sdk_shielded_pool::NoteReshapeOutputBody {
+                    note_payload: shieldd_sdk_shielded_pool::NotePayload {
+                        note_commitment: tct::StateCommitment(Fq::from(30u64)),
+                        ..shieldd_sdk_shielded_pool::NotePayload::dummy()
+                    },
+                    wrapped_memo_key: shieldd_sdk_keys::symmetric::WrappedMemoKey([31u8; 48]),
+                    ovk_wrapped_key: shieldd_sdk_keys::symmetric::OvkWrappedKey([32u8; 48]),
+                }],
+            },
+            auth_sigs: vec![[0u8; 64].into(); 8],
+            proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
+        };
+        let mut invalid_auth = Transaction {
+            transaction_body: shieldd_sdk_transaction::TransactionBody {
+                actions: vec![Action::NoteReshape(note_reshape)],
+                memo: Some(MemoCiphertext([0u8; MEMO_CIPHERTEXT_LEN_BYTES])),
+                ..Default::default()
+            },
+            anchor: action_anchor,
+            ..Default::default()
+        };
+        let binding_signing_key = rdsa::SigningKey::<rdsa::Binding>::from(Fr::from(1u64));
+        invalid_auth.binding_sig =
+            binding_signing_key.sign_deterministic(invalid_auth.auth_hash().as_bytes());
+
+        let mut mismatched_anchor = invalid_auth.clone();
+        mismatched_anchor.anchor = tct::Root(tct::structure::Hash::new(Fq::from(987_654u64)));
+        let error = match App::build_tx_artifacts_extracted_for_stage_public(
+            "artifact_stateless_regression_anchor",
+            &[Arc::new(mismatched_anchor)],
+        )
+        .await
+        {
+            Ok(_) => panic!("artifact extraction must enforce action/context anchor equality"),
+            Err(error) => error,
+        };
+        assert!(
+            format!("{error:#}").contains("body anchor does not match transaction anchor"),
+            "unexpected anchor rejection: {error:#}"
+        );
+
+        let error = match App::build_tx_artifacts_extracted_for_stage_public(
+            "artifact_stateless_regression_auth",
+            &[Arc::new(invalid_auth)],
+        )
+        .await
+        {
+            Ok(_) => panic!("artifact extraction must verify spend authorization signatures"),
+            Err(error) => error,
+        };
+        assert!(
+            format!("{error:#}").contains("auth signature 0 failed to verify"),
+            "unexpected authorization rejection: {error:#}"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn fee_funding_extraction_rejects_identity_randomized_key() {
+        let (mut transfer, _, context) = build_transfer_action_and_public_without_proof(true);
+        let identity_sk = rdsa::SigningKey::<rdsa::SpendAuth>::from(Fr::from(0u64));
+        transfer.body.inputs[0].rk = rdsa::VerificationKey::from(identity_sk.clone());
+        let different_message = b"different fee funding authorization hash";
+        assert_ne!(&different_message[..], context.effect_hash.as_ref());
+        transfer.auth_sigs[0] = identity_sk.sign_deterministic(different_message);
+        transfer.body.inputs[0]
+            .rk
+            .verify(context.effect_hash.as_ref(), &transfer.auth_sigs[0])
+            .expect("the pinned RDSA primitive admits identity keys across messages");
+        let fee_funding = shieldd_sdk_transaction::FeeFunding { transfer };
+
+        let error = match super::extract_fee_funding_proof_item(&fee_funding, &context) {
+            Ok(_) => panic!("fee funding must use the shared identity-RK rejection"),
+            Err(error) => error,
+        };
+        assert!(
+            format!("{error:#}").contains("randomized spend key 0 must not be identity"),
+            "unexpected rejection reason: {error:#}"
+        );
+    }
+
+    #[test]
+    fn consensus_acceptance_source_has_no_diagnostic_io() {
+        let sources = [
+            include_str!("mod.rs"),
+            include_str!("../server/consensus.rs"),
+            include_str!("../server/mempool.rs"),
+        ];
+        let forbidden = [
+            ["std", "::env"].concat(),
+            ["tokio", "::env"].concat(),
+            ["std", "::fs"].concat(),
+            ["tokio", "::fs"].concat(),
+            ["Open", "Options"].concat(),
+            ["File", "::create"].concat(),
+            ["create_dir", "_all"].concat(),
+            ["write", "_all"].concat(),
+        ];
+
+        for source in sources {
+            for token in &forbidden {
+                assert!(
+                    !source.contains(token),
+                    "consensus acceptance source contains forbidden diagnostic I/O token {token}"
+                );
+            }
+        }
+        assert!(include_str!("mod.rs").contains(
+            "#[cfg(any(test, feature = \"benchmark-helpers\"))]\nmod aggregate_diagnostics;"
+        ));
+        assert!(include_str!("../server.rs")
+            .contains("#[cfg(any(test, feature = \"benchmark-helpers\"))]\nmod diagnostics;"));
+    }
+
+    #[test]
+    fn artifact_extraction_keeps_all_note_reshape_fixed_slot_nullifiers() {
+        let inputs = (0..8)
             .map(|index| shieldd_sdk_shielded_pool::NoteReshapeInputBody {
                 nullifier: Nullifier(Fq::from(400u64 + index)),
                 rk: rdsa::VerificationKey::from(rdsa::SigningKey::<rdsa::SpendAuth>::from(
@@ -6868,14 +7425,12 @@ mod tests {
                 encrypted_backref: shieldd_sdk_shielded_pool::EncryptedBackref::dummy(),
             })
             .collect::<Vec<_>>();
-        assert!(inputs.iter().all(|input| input.is_dummy()));
-
         let tx = Transaction {
             transaction_body: shieldd_sdk_transaction::TransactionBody {
                 actions: vec![Action::NoteReshape(
                     shieldd_sdk_shielded_pool::NoteReshape {
                         body: shieldd_sdk_shielded_pool::NoteReshapeBody {
-                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::FourByOne,
+                            family_id: shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne,
                             anchor: tct::Tree::default().root(),
                             balance_commitment: shieldd_sdk_asset::Balance::default()
                                 .commit(Fr::from(1u64)),
@@ -6893,7 +7448,7 @@ mod tests {
                                 ),
                             }],
                         },
-                        auth_sigs: vec![[0u8; 64].into(); 4],
+                        auth_sigs: vec![[0u8; 64].into(); 8],
                         proof: shieldd_sdk_shielded_pool::NoteReshapeProof::default(),
                     },
                 )],
@@ -6906,7 +7461,7 @@ mod tests {
         let extracted = App::extract_spend_nullifiers_from_proto(&proto)
             .expect("extract NoteReshape nullifiers");
         assert_eq!(extracted, tx.spent_nullifiers().collect::<Vec<_>>());
-        assert_eq!(extracted.len(), 4);
+        assert_eq!(extracted.len(), 8);
     }
 
     async fn delete_nv_prefix<S>(state: &mut S, prefix: &[u8]) -> Result<()>
@@ -7056,7 +7611,12 @@ mod tests {
                     .with_context(|| format!("decoding fixture tx ordinal {index}"))
             })
             .collect::<Result<Vec<_>>>()?;
-        let (artifacts, _profile) = App::build_tx_artifacts_for_stage("app_test", &decoded).await?;
+        let (verified_artifacts, _profile) =
+            App::build_tx_artifacts_for_stage("app_test", &decoded).await?;
+        let artifacts = verified_artifacts
+            .iter()
+            .map(|artifact| artifact.extracted())
+            .collect::<Vec<_>>();
         let segment_tx_counts = vec![decoded.len()];
         let (bundle, _segment_tx_counts, _aggregate_profile) =
             App::build_exact_segmented_aggregate_bundle_for_artifacts_profiled_public(
@@ -7100,7 +7660,12 @@ mod tests {
             .iter()
             .map(|tx_bytes| Transaction::decode(tx_bytes.as_slice()).map(Arc::new))
             .collect::<Result<Vec<_>, _>>()?;
-        let (artifacts, _profile) = App::build_tx_artifacts_for_stage("app_test", &decoded).await?;
+        let (verified_artifacts, _profile) =
+            App::build_tx_artifacts_for_stage("app_test", &decoded).await?;
+        let artifacts = verified_artifacts
+            .iter()
+            .map(|artifact| artifact.extracted())
+            .collect::<Vec<_>>();
         let segment_tx_counts = vec![decoded.len()];
         let (bundle, _, _) =
             App::build_exact_segmented_aggregate_bundle_for_artifacts_profiled_public(
@@ -7161,7 +7726,7 @@ mod tests {
     fn aggregate_expected_segments_preserve_segment_and_family_order() {
         let transfer = ProofFamilyId::Transfer;
         let note_reshape =
-            ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NoteReshapeFamilyId::TwoByOne);
+            ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne);
         let artifacts = vec![
             aggregate_verify_test_artifact(vec![
                 (note_reshape, aggregate_verify_test_item(note_reshape, 11)),
@@ -7319,20 +7884,22 @@ mod tests {
             expected_segments.clone(),
             shieldd_sdk_proof_aggregation::DevSrs::default(),
         )
-        .expect_err("missing family must reject");
+        .err()
+        .expect("missing family must reject");
         assert!(family_count_error
             .to_string()
             .contains("aggregate bundle family count mismatch"));
 
         let mut wrong_order = bundle.clone();
         wrong_order.families[0].family_id =
-            ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NoteReshapeFamilyId::TwoByOne);
+            ProofFamilyId::NoteReshape(shieldd_sdk_shielded_pool::NoteReshapeFamilyId::EightByOne);
         let order_error = App::plan_aggregate_bundle_verification(
             &wrong_order,
             expected_segments.clone(),
             shieldd_sdk_proof_aggregation::DevSrs::default(),
         )
-        .expect_err("wrong family order must reject");
+        .err()
+        .expect("wrong family order must reject");
         assert!(order_error
             .to_string()
             .contains("aggregate family ordering mismatch"));
@@ -7344,7 +7911,8 @@ mod tests {
             expected_segments.clone(),
             shieldd_sdk_proof_aggregation::DevSrs::default(),
         )
-        .expect_err("wrong real count must reject");
+        .err()
+        .expect("wrong real count must reject");
         assert!(real_count_error
             .to_string()
             .contains("aggregate real_count mismatch"));
@@ -7356,7 +7924,8 @@ mod tests {
             expected_segments,
             shieldd_sdk_proof_aggregation::DevSrs::default(),
         )
-        .expect_err("wrong padded count must reject");
+        .err()
+        .expect("wrong padded count must reject");
         assert!(padded_count_error
             .to_string()
             .contains("aggregate padded_count mismatch"));
@@ -7518,15 +8087,17 @@ mod tests {
         let normal_error =
             App::verify_aggregate_bundle_for_artifacts_raw(&artifacts, &wrong_count, Some(&[1]))
                 .await
-                .expect_err("normal verification must reject wrong counts");
+                .err()
+                .expect("normal verification must reject wrong counts");
         let (_profile, profiled_result) = App::verify_aggregate_bundle_for_artifacts_raw_profiled(
             &artifacts,
             &wrong_count,
             Some(&[1]),
         )
         .await;
-        let profiled_error =
-            profiled_result.expect_err("profiled verification must reject wrong counts");
+        let profiled_error = profiled_result
+            .err()
+            .expect("profiled verification must reject wrong counts");
         assert_eq!(normal_error.to_string(), profiled_error.to_string());
 
         Ok(())
@@ -7673,7 +8244,7 @@ mod tests {
             )
             .await?;
 
-            assert_eq!(prepared.effects.spend_nullifiers.len(), 1);
+            assert_eq!(prepared.effects.spend_nullifiers.len(), 2);
             assert_eq!(
                 prepared.effects.sct_payloads.len(),
                 2,
@@ -7753,6 +8324,7 @@ mod tests {
         let tx = Arc::new(Transaction::decode(
             txs.first().expect("fixture transaction").as_slice(),
         )?);
+        let (artifact, _) = App::build_tx_artifact_for_stage("app_test", tx.clone()).await?;
         assert!(supports_parallel_prepare(Arc::as_ref(&tx)));
         let shared_context =
             Arc::new(CheckTxSharedContext::load(&storage.latest_snapshot()).await?);
@@ -7760,12 +8332,14 @@ mod tests {
         let mut legacy_app = App::new(storage.latest_snapshot());
         tx.check_historical(legacy_app.state.clone()).await?;
         let (legacy_events, legacy_profile) = legacy_app
-            .execute_tx_checked_historical_profiled(tx.clone())
+            .execute_tx_checked_historical_profiled(artifact.clone())
             .await?;
 
         let mut fast_app = App::new(storage.latest_snapshot());
         fast_app.set_checktx_shared_context(shared_context);
-        let (fast_events, fast_profile) = fast_app.execute_checktx_fast_profiled(tx, false).await?;
+        let (fast_events, fast_profile) = fast_app
+            .execute_checktx_fast_profiled(artifact, false)
+            .await?;
 
         let mut legacy_rendered = legacy_events
             .iter()
@@ -8017,7 +8591,7 @@ mod tests {
                 App::verify_aggregate_bundle_for_artifacts_raw_profiled(&[artifact], &bundle, None)
                     .await;
             let elapsed = started.elapsed();
-            let error = result.expect_err("bad SRS id must fail before SRS setup");
+            let error = result.err().expect("bad SRS id must fail before SRS setup");
 
             assert!(error.to_string().contains(expected_error));
             assert_eq!(profile.expected_segments_ms, 0.0);
@@ -8042,10 +8616,8 @@ mod tests {
         assert!(matches!(verdict, response::ProcessProposal::Accept));
 
         let mut execution_only = envelope.clone();
-        execution_only.aggregate_bundle_tx_bytes = None;
-        execution_only.segment_tx_counts.clear();
-        execution_only.sidecar =
-            ProposalArtifactSidecar::from_record(envelope.sidecar.clone()).to_record();
+        execution_only.tx_hashes.clear();
+        execution_only.candidate_digest = [0; 32];
 
         let mut app = App::new(storage.latest_snapshot());
         let profile = app
@@ -8133,6 +8705,7 @@ mod tests {
         let tx = Arc::new(Transaction::decode(
             txs.first().expect("fixture transaction").as_slice(),
         )?);
+        let (artifact, _) = App::build_tx_artifact_for_stage("app_test", tx.clone()).await?;
         let snapshot = Arc::new(storage.latest_snapshot());
         let historical_context = HistoricalCheckContext::load(Arc::as_ref(&snapshot)).await?;
 
@@ -8159,10 +8732,14 @@ mod tests {
         let mut app = App::new(storage.latest_snapshot());
         let mut block_state = PrepareBlockLocalState::default();
 
-        app.apply_prepared_prepare_candidate_profiled(tx.clone(), prepared_first, &mut block_state)
-            .await?;
+        app.apply_prepared_prepare_candidate_profiled(
+            artifact.clone(),
+            prepared_first,
+            &mut block_state,
+        )
+        .await?;
         let err = app
-            .apply_prepared_prepare_candidate_profiled(tx, prepared_second, &mut block_state)
+            .apply_prepared_prepare_candidate_profiled(artifact, prepared_second, &mut block_state)
             .await
             .expect_err("serial apply should resolve duplicate nullifiers in the same proposal");
 
@@ -8338,20 +8915,21 @@ mod tests {
         let storage = TempStorage::new_with_prefixes(SUBSTORE_PREFIXES.to_vec()).await?;
         let mut state = StateDelta::new(storage.latest_snapshot());
         state
-            .add_compliance_leaf(ComplianceLeaf::new(
+            .test_only_add_compliance_leaf(ComplianceLeaf::new(
                 Address::dummy(&mut rand::thread_rng()),
                 asset::Id(Fq::from(123u64)),
                 Fq::from(7u64),
             ))
             .await?;
         state
-            .register_regulated_asset(
+            .test_only_register_asset(
                 asset::Id(Fq::from(456u64)),
                 AssetPolicy::simple(
                     decaf377::Element::GENERATOR,
                     u128::MAX,
                     decaf377::Element::GENERATOR,
                 ),
+                true,
             )
             .await?;
         storage.commit(state).await?;
@@ -8498,7 +9076,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn prepare_proposal_upgrades_extracted_cache_entries_to_fully_verified() -> Result<()> {
+    async fn prepare_proposal_reuses_fully_verified_checktx_cache_entries() -> Result<()> {
         let (storage, _node, txs) = setup_test_txs(1).await?;
         let tx_bytes = txs
             .into_iter()
@@ -8513,9 +9091,9 @@ mod tests {
             .deliver_tx_bytes(tx_bytes.as_slice(), Some(&cache))
             .await?;
 
-        let extracted = match cache.get(&tx_hash) {
-            Some(CacheEntry::Extracted(artifact)) => artifact,
-            _ => anyhow::bail!("expected extracted cache entry after CheckTx"),
+        let extracted = match cache.get(&tx_hash, &tx_bytes) {
+            Some(CacheEntry::FullyVerified(artifact)) => artifact.extracted(),
+            _ => anyhow::bail!("expected fully verified cache entry after CheckTx"),
         };
         assert!(!extracted.proof_items.is_empty());
         assert_eq!(
@@ -8529,7 +9107,7 @@ mod tests {
         let mut proposer = App::new(storage.latest_snapshot());
         proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
         let proposal = request::PrepareProposal {
-            txs: vec![tx_bytes.into()],
+            txs: vec![tx_bytes.clone().into()],
             max_tx_bytes: 1024 * 1024,
             local_last_commit: None,
             misbehavior: Vec::new(),
@@ -8552,7 +9130,59 @@ mod tests {
             "prepare_proposal should reuse the CheckTx historical validation on the same snapshot"
         );
 
-        match cache.get(&tx_hash) {
+        match cache.get(&tx_hash, &tx_bytes) {
+            Some(CacheEntry::FullyVerified(_)) => {}
+            _ => anyhow::bail!("expected fully verified cache entry after PrepareProposal"),
+        }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn prepare_proposal_verifies_and_upgrades_extracted_cache_entry() -> Result<()> {
+        let (storage, _node, txs) = setup_test_txs(1).await?;
+        let tx_bytes = txs
+            .into_iter()
+            .next()
+            .expect("fixture should return one tx");
+        let tx_hash: [u8; 32] = sha2::Sha256::digest(tx_bytes.as_slice()).into();
+        let cache = StatelessCache::new();
+
+        let tx = Arc::new(Transaction::decode_canonical(tx_bytes.as_slice())?);
+        let mut extracted = App::build_tx_artifacts_extracted_for_stage_public(
+            "test_extracted_seed",
+            std::slice::from_ref(&tx),
+        )
+        .await?;
+        let extracted = extracted
+            .pop()
+            .context("single extracted transaction artifact missing")?;
+        cache.insert_extracted(tx_bytes.as_slice(), extracted.clone())?;
+        assert!(!extracted.proof_items.is_empty());
+
+        let mut proposer = App::new(storage.latest_snapshot());
+        proposer.set_block_tx_indexing_mode(BlockTxIndexingMode::DeferredBatch);
+        let proposal = request::PrepareProposal {
+            txs: vec![tx_bytes.clone().into()],
+            max_tx_bytes: 1024 * 1024,
+            local_last_commit: None,
+            misbehavior: Vec::new(),
+            height: block::Height::from(1u32),
+            time: Time::unix_epoch(),
+            next_validators_hash: Hash::None,
+            proposer_address: account::Id::new([0u8; 20]),
+        };
+
+        let (prepared, _profile, _) = proposer
+            .prepare_proposal_v2_profiled(proposal, Some(&cache), false)
+            .await;
+        assert_eq!(
+            prepared.txs.len(),
+            2,
+            "proposal should include the user transaction and aggregate bundle"
+        );
+
+        match cache.get(&tx_hash, tx_bytes.as_slice()) {
             Some(CacheEntry::FullyVerified(_)) => {}
             _ => anyhow::bail!("expected fully verified cache entry after PrepareProposal"),
         }

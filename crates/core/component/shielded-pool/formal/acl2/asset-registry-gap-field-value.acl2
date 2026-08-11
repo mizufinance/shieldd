@@ -1,4 +1,0 @@
-(in-package "ACL2")
-(include-book "kestrel/crypto/r1cs/portcullis" :dir :system)
-
-; cert-flags: ? T :TTAGS :ALL

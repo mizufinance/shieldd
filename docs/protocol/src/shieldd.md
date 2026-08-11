@@ -15,7 +15,6 @@ The current chain surface is intentionally reduced:
   - `ValidatorVote`
   - `ComplianceRegisterAsset`
   - `ComplianceRegisterUser`
-  - `AggregateBundle`
 
 Removed product families such as DEX, auctions, community-pool actions,
 staking/delegation economics, and legacy governance deposit flows are not part

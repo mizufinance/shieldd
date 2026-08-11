@@ -1,22 +1,30 @@
 # ID|file:fixed-string-pattern
-SECRECY|crates/core/component/compliance/src/crypto.rs:encrypt_tier_bytes
-DETECTION-CORRECTNESS|crates/core/component/compliance/src/r1cs.rs:verify_poseidon_encryption
-DESIGNATED-DECRYPTABILITY|crates/core/component/compliance/src/transfer.rs:*dk_pub * sender.core.r
-DLEQ-BINDING|crates/core/component/compliance/src/crypto.rs:verify_dleq_native
-REPLAY-RESISTANCE|crates/core/component/compliance/src/registry.rs:check_timestamp_freshness
-NO-KEY-CONFUSION|crates/core/component/compliance/src/crypto.rs:compute_metadata_hash
-ANCHOR-FRESHNESS|crates/core/component/compliance/src/registry.rs:validate_compliance_anchors
+SECRECY|proto/shieldd/shieldd/core/component/shielded_pool/v1/shielded_pool.proto:This field must never contain DH shared points or seed-opening material.
+DETECTION-CORRECTNESS|tools/gnark/internal/compliance/transfer_encryption.go:func VerifyPoseidonEncryptionTransferDetection
+DESIGNATED-DECRYPTABILITY|crates/core/component/compliance/src/transfer.rs:let sender_core_shared = if is_flagged
+DLEQ-BINDING|crates/core/component/compliance/formal/lean-dleq/Dleq/FiatShamir.lean:theorem dleq_fs_knowledge_soundness_strong
+REPLAY-RESISTANCE|crates/core/component/compliance/src/registry.rs:pub fn check_timestamp_freshness
+NO-KEY-CONFUSION|tools/gnark/internal/circuits/transfer_circuit.go:func (c *TransferCircuit) verifyTransferComplianceCiphertexts
+ANCHOR-FRESHNESS|crates/core/component/compliance/src/registry.rs:async fn validate_compliance_anchors
 IMT-NULLIFIER-STATE|crates/core/component/compliance/formal/alloy/nullifier-imt.als:assert NoDoubleSpend
 TX-VALUE-CONSERVATION|crates/core/component/compliance/formal/alloy/value-conservation.als:assert BindingImpliesConservation
 COMPLIANCE-TIER-FSM|crates/core/component/compliance/formal/alloy/compliance-tiers.als:assert CompleteIsTerminal
-ORBIS-DESIGNATED-DECRYPT|crates/core/component/compliance/formal/alloy/orbis-authorization.als:assert OnlyDesignatedRecovers
-DLEQ-COMPLETENESS|crates/core/component/compliance/formal/lean-dleq/Dleq/Sigma.lean:sigma_complete
-DLEQ-SPECIAL-SOUNDNESS|crates/core/component/compliance/formal/lean-dleq/Dleq/Sigma.lean:sigma_speciallySound
-DLEQ-HVZK|crates/core/component/compliance/formal/lean-dleq/Dleq/Sigma.lean:sigma_hvzk
-DLEQ-CHALLENGE-TRUNCATION|crates/core/component/compliance/formal/lean-dleq/Dleq/Challenge.lean:emb_injective
-DLEQ-FS-KNOWLEDGE-SOUNDNESS|crates/core/component/compliance/formal/lean-dleq/Dleq/FiatShamir.lean:dleq_fs_knowledge_soundness
-CC-FIND-C2-MALLEABILITY|crates/core/component/shielded-pool/src/public_input_hash.rs:transfer_statement_fields
-CC-FIND-UNUSED-STREAM-DOMAIN|crates/core/component/compliance/src/crypto.rs:COMPLIANCE_STREAM_CIPHER_DOMAIN
-CC-FIND-DESIGNATED-VERIFIER-CLAIM|crates/core/component/compliance/src/crypto.rs:compute_dleq_native
-CC-FIND-DLEQ-WEAK-FS|crates/core/component/compliance/formal/lean-dleq/Dleq/FiatShamir.lean:dleq_fs_knowledge_soundness_strong
-CC-FIND-DLEQ-CHALLENGE-BIAS|crates/core/component/compliance/src/crypto.rs:fq_to_challenge_scalar
+ORBIS-DESIGNATED-DECRYPT|crates/core/component/compliance/src/audit.rs:Orbis v0 audit export is disabled
+ZK-PROP-NOTE-RESHAPE-STATEMENT-SUFFICIENT|crates/core/component/compliance/formal/alloy/note_reshape-statement-sufficiency.als:assert NoDoubleSpend
+ZK-PROP-TRANSFER-STATEMENT-SUFFICIENT|tools/gnark/lean/ShielddGnarkFormal/Protocol/Transfer/Refinement.lean:theorem consensusAccepted_of_circuitFacts
+DLEQ-COMPLETENESS|crates/core/component/compliance/formal/lean-dleq/Dleq/Sigma.lean:theorem sigma_complete
+DLEQ-SPECIAL-SOUNDNESS|crates/core/component/compliance/formal/lean-dleq/Dleq/Sigma.lean:theorem sigma_speciallySound
+DLEQ-HVZK|crates/core/component/compliance/formal/lean-dleq/Dleq/Sigma.lean:theorem sigma_hvzk
+DLEQ-CHALLENGE-TRUNCATION|crates/core/component/compliance/formal/lean-dleq/Dleq/Challenge.lean:theorem emb_injective
+DLEQ-FS-KNOWLEDGE-SOUNDNESS|crates/core/component/compliance/formal/lean-dleq/Dleq/FiatShamir.lean:theorem dleq_fs_knowledge_soundness_strong
+CC-FIND-PUBLIC-SHARED-POINT|proto/shieldd/shieldd/core/component/shielded_pool/v1/shielded_pool.proto:This field must never contain DH shared points or seed-opening material.
+CC-FIND-ORBIS-SEED-UNBOUND|crates/core/component/compliance/src/audit.rs:Orbis v0 audit import is disabled
+CC-FIND-C2-MALLEABILITY|tools/gnark/internal/circuits/transfer_circuit.go:func (c *TransferCircuit) buildTransferStatementFields
+CC-FIND-UNUSED-STREAM-DOMAIN|crates/core/component/compliance/src/crypto.rs:fn compliance_stream_block
+CC-FIND-DESIGNATED-VERIFIER-CLAIM|crates/core/component/compliance/src/evidence.rs:The object deliberately excludes PRE envelopes, DH shared points, and
+CC-FIND-DLEQ-WEAK-FS|crates/core/component/compliance/formal/lean-dleq/Dleq/FiatShamir.lean:theorem dleq_fs_knowledge_soundness_strong
+CC-FIND-DLEQ-CHALLENGE-BIAS|crates/core/component/compliance/formal/lean-dleq/Dleq/Challenge.lean:theorem emb_injective
+CC-FIND-COMPLIANCE-LEAF-DISCOVERY-KEY-OMISSION|crates/core/component/compliance/src/structs.rs:let discovery_key = Fq::from_bytes_checked
+CC-FIND-TRANSFER-IDENTITY-DIVERSIFIER-OWNERSHIP|tools/gnark/internal/circuits/transfer_circuit.go:AssertDecafNonIdentity(api, shared.senderDivGen)
+CC-FIND-DETECTION-ASSET-FLAG-ALIAS|tools/gnark/internal/circuits/transfer_circuit.go:sender_word=sender.slot_id+flag*2^32
+CC-FIND-ZERO-EPHEMERAL-SCALAR|crates/core/component/compliance/src/transfer.rs:fn sample_nonzero_scalar

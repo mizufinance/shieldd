@@ -209,13 +209,25 @@ class ExtractionManifestTests(unittest.TestCase):
             manifest = {
                 "graphs": [
                     {
+                        "id": "Example",
+                        "package": "example",
                         "crate_manifest": "crates/example/Cargo.toml",
                         "source_files": ["crates/example/src/declared.rs"],
                     }
                 ]
             }
+            selection = SimpleNamespace(
+                directories=(Path("crates/example"),),
+                metadata_projection=b"metadata\n",
+                lock_projection=b"lock\n",
+            )
 
-            with patch.object(EXTRACTIONS, "REPO_ROOT", repo_root):
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS, "cargo_selection", return_value=selection
+                ),
+            ):
                 baseline = EXTRACTIONS.undeclared_rust_source_inventory_sha256(
                     manifest
                 )
@@ -266,14 +278,24 @@ class ExtractionManifestTests(unittest.TestCase):
             manifest = {
                 "graphs": [
                     {
+                        "id": "Example",
+                        "package": "example",
                         "crate_manifest": "crates/example/Cargo.toml",
                         "source_files": [],
                     }
                 ]
             }
+            selection = SimpleNamespace(
+                directories=(Path("crates/example"),),
+                metadata_projection=b"metadata\n",
+                lock_projection=b"lock\n",
+            )
 
             with (
                 patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS, "cargo_selection", return_value=selection
+                ),
                 patch.object(
                     EXTRACTIONS.Path,
                     "rglob",
@@ -287,6 +309,9 @@ class ExtractionManifestTests(unittest.TestCase):
                 )
             with (
                 patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS, "cargo_selection", return_value=selection
+                ),
                 patch.object(
                     EXTRACTIONS.Path,
                     "rglob",
@@ -311,8 +336,16 @@ class ExtractionManifestTests(unittest.TestCase):
             output.parent.mkdir(parents=True)
             output.write_bytes(b"generated\n")
             graph["output_sha256"] = EXTRACTIONS.sha256_file(output)
+            selection = SimpleNamespace(
+                directories=(Path("crates/selected"),),
+                metadata_projection=b"metadata\n",
+                lock_projection=b"lock\n",
+            )
             with (
                 patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS, "cargo_selection", return_value=selection
+                ),
                 patch.object(EXTRACTIONS, "CI_ATTESTATION_PATHS", ()),
                 patch.object(EXTRACTIONS, "graph_source_paths", return_value=[]),
                 patch.object(
@@ -331,6 +364,9 @@ class ExtractionManifestTests(unittest.TestCase):
                 )
             with (
                 patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS, "cargo_selection", return_value=selection
+                ),
                 patch.object(EXTRACTIONS, "CI_ATTESTATION_PATHS", ()),
                 patch.object(EXTRACTIONS, "graph_source_paths", return_value=[]),
                 patch.object(
@@ -1414,7 +1450,7 @@ class ExtractionManifestTests(unittest.TestCase):
         self.assertEqual(environment["RAYON_NUM_THREADS"], "1")
         self.assertEqual(environment["GRAPH_SETTING"], "preserved")
 
-    def test_crate_configuration_paths_cover_dependencies_without_rust_fanout(self):
+    def test_crate_configuration_paths_cover_selected_cargo_scope(self):
         with tempfile.TemporaryDirectory(prefix="extractions-test-") as directory:
             repo_root = Path(directory).resolve()
             main = repo_root / "crates" / "main"
@@ -1431,8 +1467,7 @@ class ExtractionManifestTests(unittest.TestCase):
                 "[build]\n", encoding="utf-8"
             )
             (main / "Cargo.toml").write_text(
-                '[dependencies]\ndep = { path = "../dependency" }\n',
-                encoding="utf-8",
+                '[package]\nname = "main"\n', encoding="utf-8"
             )
             (main / "src" / "lib.rs").write_text("", encoding="utf-8")
             (main / "tests" / "parity.rs").write_text("", encoding="utf-8")
@@ -1442,10 +1477,24 @@ class ExtractionManifestTests(unittest.TestCase):
             )
             (dependency / "src" / "lib.rs").write_text("", encoding="utf-8")
 
-            with patch.object(EXTRACTIONS, "REPO_ROOT", repo_root):
+            selection = SimpleNamespace(
+                directories=(Path("crates/main"), Path("crates/dependency")),
+                metadata_projection=b"metadata\n",
+                lock_projection=b"lock\n",
+            )
+            with (
+                patch.object(EXTRACTIONS, "REPO_ROOT", repo_root),
+                patch.object(
+                    EXTRACTIONS, "cargo_selection", return_value=selection
+                ),
+            ):
                 paths = set(
                     EXTRACTIONS.crate_configuration_paths(
-                        {"crate_manifest": "crates/main/Cargo.toml"}
+                        {
+                            "id": "Main",
+                            "package": "main",
+                            "crate_manifest": "crates/main/Cargo.toml",
+                        }
                     )
                 )
 
@@ -1454,7 +1503,7 @@ class ExtractionManifestTests(unittest.TestCase):
         self.assertNotIn(dependency / "src" / "lib.rs", paths)
         self.assertIn(main / "Cargo.toml", paths)
         self.assertIn(dependency / "Cargo.toml", paths)
-        self.assertIn(repo_root / "Cargo.toml", paths)
+        self.assertNotIn(repo_root / "Cargo.toml", paths)
         self.assertIn(repo_root / ".cargo" / "config.toml", paths)
         self.assertNotIn(main / "proofs" / "stale.rs", paths)
 
@@ -1470,6 +1519,40 @@ class ExtractionManifestTests(unittest.TestCase):
         self.assertNotIn(
             "crates/crypto/proof-aggregation/src/ipp/ip_proofs/src/gipa.rs",
             paths,
+        )
+        self.assertNotIn("Cargo.lock", paths)
+        self.assertNotIn("Cargo.toml", paths)
+        self.assertIn("scripts/ci/snarkpack_lane_fingerprint.py", paths)
+
+    def test_source_snapshot_hashes_resolved_cargo_scope(self):
+        graph = copy.deepcopy(self.manifest["graphs"][0])
+        selection = SimpleNamespace(
+            directories=(Path("crates/selected"),),
+            metadata_projection=b"selected metadata\n",
+            lock_projection=b"selected lock closure\n",
+        )
+        cache = EXTRACTIONS.SourceSnapshotCache()
+        cache._head = "a" * 40
+        with (
+            patch.object(EXTRACTIONS, "cargo_selection", return_value=selection),
+            patch.object(EXTRACTIONS, "graph_source_paths", return_value=[]),
+            patch.object(
+                EXTRACTIONS,
+                "undeclared_rust_source_inventory_sha256",
+                return_value="b" * 64,
+            ),
+        ):
+            snapshot = EXTRACTIONS.current_graph_source_snapshot(
+                graph, self.manifest, cache=cache
+            )
+
+        self.assertEqual(
+            snapshot["cargo:local-metadata-v1"],
+            EXTRACTIONS.hashlib.sha256(selection.metadata_projection).hexdigest(),
+        )
+        self.assertEqual(
+            snapshot["cargo:lock-closure-v1"],
+            EXTRACTIONS.hashlib.sha256(selection.lock_projection).hexdigest(),
         )
 
     def test_graph_source_paths_include_reuse_modules(self):

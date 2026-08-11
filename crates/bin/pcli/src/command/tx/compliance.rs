@@ -12,7 +12,7 @@ use shieldd_sdk_compliance::{
     issuer_keys::DetectionKey, ComplianceLeaf, IssuerComplianceWorker, RpcAuditAdviceProvider,
     SqliteScannerStore, TendermintProxyBlockIdentityProvider,
 };
-use shieldd_sdk_keys::Address;
+use shieldd_sdk_keys::{ensure_nonidentity_spend_auth_key, Address};
 use shieldd_sdk_proto::util::tendermint_proxy::v1::{
     tendermint_proxy_service_client::TendermintProxyServiceClient, GetStatusRequest,
 };
@@ -731,6 +731,21 @@ mod tests {
         )
         .is_err());
     }
+
+    #[test]
+    fn authorization_key_parsers_reject_identity() {
+        let identity_sk = SigningKey::<SpendAuth>::from(decaf377::Fr::from(0u64));
+        let identity_vk = VerificationKey::from(&identity_sk);
+
+        assert!(
+            parse_spend_vk(&hex::encode(identity_vk.to_bytes()), "test_vk").is_err(),
+            "CLI verification-key parsing must reject identity"
+        );
+        assert!(
+            parse_spend_sk(&hex::encode(decaf377::Fr::from(0u64).to_bytes()), "test_sk").is_err(),
+            "CLI signing-key parsing must reject a key deriving identity"
+        );
+    }
 }
 
 #[derive(Debug, clap::Subcommand)]
@@ -832,8 +847,10 @@ fn parse_spend_vk(hex_str: &str, label: &str) -> Result<VerificationKey<SpendAut
     if bytes.len() != 32 {
         anyhow::bail!("{label} must be exactly 64 hex chars (32 bytes)");
     }
-    VerificationKey::<SpendAuth>::try_from(bytes.as_slice())
-        .map_err(|_| anyhow::anyhow!("invalid {label} encoding"))
+    let key = VerificationKey::<SpendAuth>::try_from(bytes.as_slice())
+        .map_err(|_| anyhow::anyhow!("invalid {label} encoding"))?;
+    ensure_nonidentity_spend_auth_key(&key, label)?;
+    Ok(key)
 }
 
 fn parse_spend_sk(hex_str: &str, label: &str) -> Result<SigningKey<SpendAuth>> {
@@ -841,8 +858,10 @@ fn parse_spend_sk(hex_str: &str, label: &str) -> Result<SigningKey<SpendAuth>> {
     if bytes.len() != 32 {
         anyhow::bail!("{label} must be exactly 64 hex chars (32 bytes)");
     }
-    SigningKey::<SpendAuth>::try_from(bytes.as_slice())
-        .map_err(|_| anyhow::anyhow!("invalid {label} encoding"))
+    let key = SigningKey::<SpendAuth>::try_from(bytes.as_slice())
+        .map_err(|_| anyhow::anyhow!("invalid {label} encoding"))?;
+    ensure_nonidentity_spend_auth_key(&VerificationKey::from(&key), label)?;
+    Ok(key)
 }
 
 fn decode_asset_registration_grant(hex_str: &str) -> Result<AssetRegistrationGrant> {

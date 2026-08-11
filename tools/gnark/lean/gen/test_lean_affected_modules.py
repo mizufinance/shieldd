@@ -2,18 +2,144 @@ from __future__ import annotations
 
 from pathlib import Path
 import os
+import subprocess
+import sys
 import tempfile
 import unittest
 
 from lean_affected_modules import (
     affected_order,
     artifact_is_current,
+    declared_imports,
     local_imports,
     module_sources,
 )
 
 
 class LeanAffectedModulesTest(unittest.TestCase):
+    def test_module_sources_accepts_ordinary_import_tree(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / "Nested"
+            nested.mkdir()
+            (root / "A.lean").write_text("import Nested.B\n")
+            (nested / "B.lean").write_text("")
+
+            sources = module_sources(root)
+
+            self.assertEqual(set(sources), {"A", "Nested.B"})
+            self.assertEqual(local_imports(sources["A"], set(sources)), ("Nested.B",))
+
+    def test_module_sources_rejects_file_and_directory_symlinks(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            outside = workspace / "outside"
+            outside.mkdir()
+            (outside / "Target.lean").write_text("")
+
+            file_root = workspace / "file-root"
+            file_root.mkdir()
+            (file_root / "Alias.lean").symlink_to(outside / "Target.lean")
+            with self.assertRaisesRegex(ValueError, "symlinked Lean source"):
+                module_sources(file_root)
+
+            component_root = workspace / "component-root"
+            component_root.mkdir()
+            (component_root / "Alias").symlink_to(
+                outside, target_is_directory=True
+            )
+            with self.assertRaisesRegex(
+                ValueError, "symlinked Lean source directory component"
+            ):
+                module_sources(component_root)
+
+    def test_module_sources_rejects_physical_aliases(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "A.lean"
+            source.write_text("")
+            os.link(source, root / "B.lean")
+
+            with self.assertRaisesRegex(ValueError, "physical Lean source alias"):
+                module_sources(root)
+
+    def test_cli_rejects_symlinked_lean_root_before_resolution(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            target = workspace / "target"
+            target.mkdir()
+            (target / "Root.lean").write_text("")
+            alias = workspace / "alias"
+            alias.symlink_to(target, target_is_directory=True)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(__file__).with_name("lean_affected_modules.py")),
+                    "--lean-dir",
+                    str(alias),
+                    "--root-module",
+                    "Root",
+                    "--changed-module",
+                    "Root",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("symlinked Lean source root", result.stderr)
+
+    def test_local_imports_rejects_missing_repository_module(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "Root.lean"
+            source.write_text(
+                "import ShielddGnarkFormal.Protocol.Missing\n"
+            )
+            with self.assertRaisesRegex(
+                ValueError, "unresolved local Lean imports"
+            ):
+                local_imports(source, {"Root"})
+
+    def test_declared_imports_rejects_multiline_and_unsupported_syntax(
+        self,
+    ) -> None:
+        cases = (
+            "import\n  ShielddGnarkFormal.Protocol.Hidden\n",
+            "import ShielddGnarkFormal.Protocol.Hidden,\n",
+            "import ShielddGnarkFormal.Protocol.«Hidden»\n",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "Root.lean"
+            for text in cases:
+                with self.subTest(source=text):
+                    source.write_text(text, encoding="utf-8")
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        "one-line ASCII module roster",
+                    ):
+                        declared_imports(source)
+
+    def test_declared_imports_scrubs_nested_comments_and_strings(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "Root.lean"
+            source.write_text(
+                "/-\n"
+                "import ShielddGnarkFormal.Protocol.Commented\n"
+                "/- import ShielddGnarkFormal.Protocol.Nested -/\n"
+                "-/\n"
+                "import ShielddGnarkFormal.Protocol.Present "
+                "/- import ShielddGnarkFormal.Protocol.Inline -/\n"
+                'def importShadow := "import '
+                'ShielddGnarkFormal.Protocol.String"\n',
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                declared_imports(source),
+                ("ShielddGnarkFormal.Protocol.Present",),
+            )
+
     def test_limits_reverse_impact_to_root_closure(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

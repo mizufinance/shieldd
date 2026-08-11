@@ -124,10 +124,7 @@ check_fuzz_crate_boundary() {
   for target in \
     wrapper_inner_range \
     preflight_aggregate_verify \
-    deserialize_aggregate_proof \
-    sidecar_decoding \
-    aggregate_bundle_shape \
-    proposal_validation; do
+    deserialize_aggregate_proof; do
     local corpus_dir="$crate_dir/corpus/$target"
     [[ -d "$corpus_dir" ]] || fail "fuzz corpus missing for $target"
     [[ -n "$(find "$corpus_dir" -type f -print -quit)" ]] \
@@ -151,7 +148,7 @@ check_orbis_dev_srs_boundary() {
     "$app_manifest" "$pd_manifest"; then
     fail "orbis-dev-srs must be explicit and must not alias fuzzing"
   fi
-  rg -F 'Insecure Orbis integration only; never enable in production.' \
+  rg -F 'Insecure isolated integration only; never enable in production.' \
     "$app_manifest" "$pd_manifest" "$app_source" >/dev/null \
     || fail "orbis-dev-srs must carry an explicit insecure integration-only warning"
 
@@ -172,16 +169,25 @@ check_orbis_dev_srs_boundary() {
   fi
 
   local feature_build_sites
-  feature_build_sites="$(rg -n -F -- '--features orbis-dev-srs' justfile || true)"
-  [[ "$(printf '%s\n' "$feature_build_sites" | sed '/^$/d' | wc -l)" -eq 1 ]] \
-    || fail "exactly one build recipe must enable orbis-dev-srs"
+  feature_build_sites="$(
+    rg -n -F -- '--features orbis-dev-srs' \
+      justfile deployments/scripts/run-local-devnet.sh || true
+  )"
+  [[ "$(printf '%s\n' "$feature_build_sites" | sed '/^$/d' | wc -l)" -eq 3 ]] \
+    || fail "only the Orbis and isolated smoke builds may enable orbis-dev-srs"
   printf '%s\n' "$feature_build_sites" \
     | rg -F 'cargo build --release -p pd --features orbis-dev-srs' >/dev/null \
-    || fail "only the Orbis integration pd build may enable orbis-dev-srs"
+    || fail "the Orbis integration pd build must enable orbis-dev-srs"
+  printf '%s\n' "$feature_build_sites" \
+    | rg -F 'pd_cargo_args=(--features orbis-dev-srs)' >/dev/null \
+    || fail "the isolated smoke devnet must explicitly enable orbis-dev-srs"
+  rg -F 'export SHIELDD_PD_INTEGRATION_DEV_SRS=1' \
+    deployments/scripts/smoke-test.sh >/dev/null \
+    || fail "smoke must explicitly opt in to the integration dev SRS"
 
   [[ "$(rg -n -F '#[cfg(feature = "orbis-dev-srs")]' "$app_source" | wc -l)" -ge 3 ]] \
     || fail "app must isolate the Orbis dev SRS implementation and focused test"
-  [[ "$(rg -n -F '#[cfg(not(any(' "$app_source" | wc -l)" -eq 2 ]] \
+  [[ "$(rg -n -F '#[cfg(not(any(test, feature = "fuzzing", feature = "orbis-dev-srs")))]' "$app_source" | wc -l)" -eq 2 ]] \
     || fail "normal app builds must retain both registered production SRS loaders"
   [[ "$(rg -n -F 'feature = "orbis-dev-srs"' "$app_source" | wc -l)" -ge 7 ]] \
     || fail "every SRS selection branch must account for orbis-dev-srs explicitly"

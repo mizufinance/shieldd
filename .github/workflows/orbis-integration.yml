@@ -25,31 +25,25 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Classify Orbis integration applicability
+      # Orbis v0 transfer PRE discloses the DH point that opens every tier
+      # seed. Keep the workflow visible and green as an explained skip until
+      # the integration uses a non-disclosing PRE protocol.
+      - name: Explain disabled Orbis v0 PRE
         id: classify
-        env:
-          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || '' }}
         run: |
-          args=(
-            --gate orbis-integration
-            --event "${{ github.event_name }}"
-            --head "$GITHUB_SHA"
-            --github-output "$GITHUB_OUTPUT"
-            --pretty
-          )
-          if [[ -n "$BASE_SHA" ]]; then
-            args+=(--base "$BASE_SHA")
-          fi
-          python3 scripts/ci/gate-applicability.py "${args[@]}"
+          echo "status=skip" >> "$GITHUB_OUTPUT"
+          echo "tier=skip" >> "$GITHUB_OUTPUT"
+          echo "run=false" >> "$GITHUB_OUTPUT"
+          echo "explanation=Orbis v0 transfer PRE is disabled until a non-disclosing protocol is available." >> "$GITHUB_OUTPUT"
 
   flow:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     timeout-minutes: 45
     concurrency:
       group: orbis-integration-host-stack-v1
-      cancel-in-progress: false
+      cancel-in-progress: true
     env:
       COMPLIANCE_TMP: /tmp/orbis-${{ github.run_id }}-${{ github.run_attempt }}
       SHIELDD_PD_GRPC_PORT: "28080"
@@ -127,6 +121,7 @@ jobs:
     needs: [applicability, flow]
     if: always()
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Check Orbis integration result
         env:

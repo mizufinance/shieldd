@@ -185,20 +185,12 @@ mod tests {
                 "shieldd.snarkpack.transfer.v1".as_bytes(),
             ),
             (
-                ProofFamilyId::NoteReshape(NoteReshapeFamilyId::TwoByOne),
-                "shieldd.snarkpack.note_reshape2x1.v1".as_bytes(),
-            ),
-            (
                 ProofFamilyId::NoteReshape(NoteReshapeFamilyId::OneByEight),
                 "shieldd.snarkpack.note_reshape1x8.v1".as_bytes(),
             ),
             (
                 ProofFamilyId::NoteReshape(NoteReshapeFamilyId::EightByOne),
                 "shieldd.snarkpack.note_reshape8x1.v1".as_bytes(),
-            ),
-            (
-                ProofFamilyId::NoteReshape(NoteReshapeFamilyId::FourByOne),
-                "shieldd.snarkpack.note_reshape4x1.v1".as_bytes(),
             ),
             (
                 ProofFamilyId::ShieldedIcs20Withdrawal(ShieldedIcs20WithdrawalFamilyId::Canonical),
@@ -224,10 +216,6 @@ mod tests {
         );
 
         assert_digest_prefix::<TransferTranscriptDigest>(ProofFamilyId::Transfer, &frame);
-        assert_digest_prefix::<NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>>(
-            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::TwoByOne),
-            &frame,
-        );
         assert_digest_prefix::<
             NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
         >(
@@ -238,10 +226,6 @@ mod tests {
             NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
         >(
             ProofFamilyId::NoteReshape(NoteReshapeFamilyId::EightByOne),
-            &frame,
-        );
-        assert_digest_prefix::<NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>>(
-            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::FourByOne),
             &frame,
         );
         assert_digest_prefix::<ShieldedIcs20WithdrawalTranscriptDigest>(

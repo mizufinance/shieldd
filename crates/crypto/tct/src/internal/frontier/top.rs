@@ -305,7 +305,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn position_advances_by_one() {
+    fn top_position_advances_by_one() {
         let mut top: Top<Item> = Top::new(TrackForgotten::No);
         for expected_position in 0..=(u16::MAX as u64) {
             assert_eq!(top.position(), Some(expected_position));

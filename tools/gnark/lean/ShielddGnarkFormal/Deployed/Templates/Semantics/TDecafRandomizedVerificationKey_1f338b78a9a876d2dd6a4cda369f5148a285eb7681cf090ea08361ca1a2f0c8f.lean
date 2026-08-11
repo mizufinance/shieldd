@@ -229,8 +229,12 @@ open Shieldd.GnarkFormal.RvkFixedBaseLiteralChoiceFree
 theorem sound (rho : Nat -> F)
     (h : Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relation rho) : spec rho := by
   unfold spec
-  intro hak
   have hbin := rvkRvkBits_toBinary rho h
+  have hscalarRange :=
+    Shieldd.GnarkFormal.ChoiceFreeBinary.range_of_to_binary
+      Shieldd.GnarkFormal.ScalarMulBridge.pow251_lt_order hbin
+  refine ⟨hscalarRange, ?_⟩
+  intro hak
   unfold Shieldd.GnarkFormal.Deployed.Templates.Relations.TDecafRandomizedVerificationKey_1f338b78a9a876d2dd6a4cda369f5148a285eb7681cf090ea08361ca1a2f0c8f.relation at h
   rcases h with ⟨
     p0, p1, p2, p3, p4, p5, p6, p7, p8, p9,

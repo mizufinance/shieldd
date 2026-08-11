@@ -15,8 +15,7 @@ use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_shielded_pool::{
     component::StateReadExt as _, EvmCall, HostExecution, HostTransfer, HostWithdrawal,
-    HostWithdrawalDestination, ShieldedHostWithdrawalPlan, ShieldedIcs20WithdrawalFamilyId,
-    ShieldedInputPlan, ShieldedOutputPlan,
+    HostWithdrawalDestination, ShieldedHostWithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan,
 };
 use shieldd_sdk_transaction::{
     memo::MemoPlaintext, plan::MemoPlan, TransactionParameters, TransactionPlan,
@@ -182,13 +181,8 @@ async fn build_host_withdrawal_tx(opt: Opt) -> Result<Vec<u8>> {
         },
         destination: opt.destination,
     };
-    let withdrawal_plan = ShieldedHostWithdrawalPlan::new(
-        ShieldedIcs20WithdrawalFamilyId::Canonical,
-        vec![spend],
-        change,
-        withdrawal,
-        Fr::from(1u64),
-    )?;
+    let withdrawal_plan =
+        ShieldedHostWithdrawalPlan::new(vec![spend], change, withdrawal, Fr::from(1u64))?;
     let mut plan = TransactionPlan {
         actions: vec![withdrawal_plan.into()],
         memo: Some(MemoPlan::new(

@@ -6,7 +6,12 @@ use crate::ShieldedIcs20WithdrawalFamilyId;
 
 #[cfg(any(unix, windows))]
 pub(crate) fn should_skip_shielded_ics20_withdrawal_proof_roundtrip_tests() -> bool {
+    let evidence_required = std::env::var_os("SHIELDD_FV_EVIDENCE_REQUIRED").is_some();
     if cfg!(debug_assertions) {
+        assert!(
+            !evidence_required,
+            "FV proof evidence requires a release build"
+        );
         eprintln!(
             "skipping shielded ICS-20 withdrawal gnark roundtrip tests in debug builds: use `cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys shielded_ics20_withdrawal_proof_roundtrip --lib` for real bundled proving"
         );
@@ -17,6 +22,10 @@ pub(crate) fn should_skip_shielded_ics20_withdrawal_proof_roundtrip_tests() -> b
         ShieldedIcs20WithdrawalFamilyId::Canonical,
     ) {
         Ok(false) => {
+            assert!(
+                !evidence_required,
+                "FV proof evidence requires the bundled withdrawal prover transport"
+            );
             eprintln!(
                 "skipping shielded ICS-20 withdrawal gnark roundtrip tests: no bundled or external prover transport is available"
             );

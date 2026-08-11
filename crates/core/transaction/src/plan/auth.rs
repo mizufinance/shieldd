@@ -16,32 +16,9 @@ impl TransactionPlan {
         let mut spend_auths = Vec::new();
 
         for action_plan in &self.actions {
-            match action_plan {
-                crate::ActionPlan::Transfer(plan) => {
-                    for spend_plan in &plan.spends {
-                        let rsk = sk.spend_auth_key().randomize(&spend_plan.randomizer);
-                        spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
-                    }
-                }
-                crate::ActionPlan::NoteReshape(plan) => {
-                    for spend_plan in &plan.spends {
-                        let rsk = sk.spend_auth_key().randomize(&spend_plan.randomizer);
-                        spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
-                    }
-                }
-                crate::ActionPlan::ShieldedIcs20Withdrawal(plan) => {
-                    for spend_plan in &plan.spends {
-                        let rsk = sk.spend_auth_key().randomize(&spend_plan.randomizer);
-                        spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
-                    }
-                }
-                crate::ActionPlan::ShieldedHostWithdrawal(plan) => {
-                    for spend_plan in &plan.spends {
-                        let rsk = sk.spend_auth_key().randomize(&spend_plan.randomizer);
-                        spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
-                    }
-                }
-                _ => {}
+            for spend_plan in action_plan.spends() {
+                let rsk = sk.spend_auth_key().randomize(&spend_plan.randomizer);
+                spend_auths.push(rsk.sign(&mut rng, effect_hash.as_ref()));
             }
         }
         if let Some(fee_funding) = &self.fee_funding {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate deployed state-commitment-path adapters for note_reshape2x1 segs 13/29.
+"""Reviewed state-commitment-path proof emitter for normalized providers.
 
 Each seg is one 9015-row Merkle slice: leaf Poseidon1 (rows 0-229), 48-bit
 position decomposition (230-277) + recompose (278), then 24 levels of
@@ -13,25 +13,22 @@ abstract QuadPath24 here, so composition folds the per-height
 `StateCommitmentPath.recover24H` via `recoverStep_eq` instead of citing
 `concrete_circuit_sound24`.
 
-All wire seats are parsed fail-closed from each instance's own contract
-(`Seg{N}.lean`); cross-instance consistency is asserted against the shared
-slice-module numbering (seg28 = seg13 seats +90 / internals +17746).
-Post-T1-d: seg13 (formerly seg11) itself gained a +5816 internal-wire shift
-from the DTK hoist; seg29 is unaffected.
+The normalized provider selects its active circuit evidence and supplies the
+exact canonical rows and local-wire map.  This module owns only the reviewed
+proof layout and extracted Poseidon slice coordinates.
 """
 
 from __future__ import annotations
 
-import json
 import re
 from pathlib import Path
 from types import SimpleNamespace
 
 import dtk_recovery as dtk
+from formal_json import read_json_object
 
 ROOT = Path(__file__).resolve().parents[1]
 FORMAL = ROOT / "ShielddGnarkFormal"
-CONTRACTS = FORMAL / "Deployed/Contracts/NoteReshape2x1"
 EXTRACTED = FORMAL / "Extracted/Deployed"
 HERE = Path(__file__).resolve().parent
 
@@ -41,7 +38,7 @@ BOOL_BASE_ROW, BOOL_COUNT, RECOMP_ROW = 230, 48, 278
 SEL_I_OFFS = (0, 1, 2, 3)
 SEL_T_OFFS = (5, 6, 8, 9, 11, 13)
 
-CTX = "Shieldd.GnarkFormal.Deployed.Contracts.NoteReshape2x1"
+CTX = "Shieldd.GnarkFormal.Deployed.Templates.Semantics.ScpEmitter"
 SCP = "Shieldd.GnarkFormal.Deployed.StateCommitmentPath"
 P4 = "Shieldd.GnarkFormal.Poseidon4Bridge.permSpec4"
 P1 = "Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1"
@@ -53,6 +50,7 @@ LEAF_STEM = "GadgetStateCommitmentPathLeaf230_c300c3"
 LEAF_ROW_COUNT, LEAF_SEGMENTS = 230, 46
 NODE_ROW_COUNT, NODE_SEGMENTS = 350, 70
 NODE_HELPER_CHUNK_SIZE = 10
+LOCAL_WIRE_COUNT = 8993
 
 LEAF_C = (
     "5629641166285580282832549959187697687583932890102709218623488970611606159361",
@@ -66,13 +64,48 @@ NODE_C = (
     "7600015574485533381823942444903391878238309401638657445141710110325668315137",
 )
 
-INSTANCES = (13, 28)
-
 HEADER_OPTS = [
     "set_option maxRecDepth 1000000",
     "set_option maxHeartbeats 20000000",
     "set_option linter.unusedVariables false",
 ]
+
+
+def reviewed_wire_seating() -> tuple[int, ...]:
+    """Canonical-local to stable coordinates used by extracted SCP modules."""
+
+    seating: list[int | None] = [None] * LOCAL_WIRE_COUNT
+    seating[0], seating[1], seating[280] = 0, 23, 24
+    seating[2:280] = range(7212, 7490)
+    seating[281:285] = range(7490, 7494)
+    for level in range(24):
+        local = 285 + 363 * level
+        reference = 7494 + 360 * level
+        boundary = 94 - 3 * level
+        for offset, value in enumerate(
+            (
+                boundary,
+                reference,
+                boundary + 1,
+                reference + 1,
+                reference + 2,
+                boundary + 2,
+            )
+        ):
+            seating[local + offset] = value
+        count = 353 if level == 23 else 357
+        seating[local + 6 : local + 6 + count] = range(
+            reference + 3, reference + 3 + count
+        )
+    if any(value is None for value in seating):
+        raise ValueError("SCP reviewed wire context is incomplete")
+    result = tuple(int(value) for value in seating)
+    if result[0] != 0 or len(set(result)) != len(result):
+        raise ValueError("SCP reviewed wire context is not injective")
+    return result
+
+
+REVIEWED_WIRE_SEATING = reviewed_wire_seating()
 
 
 def sel_base(k: int) -> int:
@@ -84,13 +117,14 @@ def perm_base(k: int) -> int:
 
 
 def node_stem(k: int) -> str:
-    gd = json.loads((HERE / f"state_commitment_node{k}_gendata.json").read_text())
+    gd = read_json_object(
+        HERE / f"state_commitment_node{k}_gendata.json",
+        canonical="pretty",
+    )
     return gd["slice_stem"]
 
 
 def cfg_for(seg: int) -> SimpleNamespace:
-    dtk.SOURCE_CONTRACTS = CONTRACTS
-    dtk.ROW_COUNT = ROW_COUNT
     return SimpleNamespace(seg=seg)
 
 
@@ -111,7 +145,7 @@ def relation_lc_names(inst: Instance, row: int) -> list[str]:
 
 
 def leaf_cont_wires() -> tuple[int, int]:
-    """The two lane wires the leaf slice's continuation binds (seg13 numbering)."""
+    """The two lane wires in stable reviewed extracted-module coordinates."""
     text = (EXTRACTED / f"{LEAF_STEM}.lean").read_text()
     match = re.findall(r"=>\s*k (w\d+) (w\d+)\)", text)
     if not match:
@@ -120,7 +154,7 @@ def leaf_cont_wires() -> tuple[int, int]:
 
 
 def node_cont_wires(k: int) -> tuple[int, ...]:
-    """The five s38_1 lane wires node k's continuation binds (seg13 numbering)."""
+    """Five s38_1 lane wires in reviewed extracted-module coordinates."""
     text = (EXTRACTED / f"{node_stem(k)}.lean").read_text()
     match = re.findall(r"=>\s*k (w\d+) (w\d+) (w\d+) (w\d+) (w\d+)\)", text)
     if not match:
@@ -129,12 +163,11 @@ def node_cont_wires(k: int) -> tuple[int, ...]:
 
 
 def wire_map(seg: int, wire: int) -> int:
-    if seg == 13:
-        return wire
-    # The regenerated extracted slices use whole-circuit wires directly. The
-    # second state-path instance has a +87 boundary-wire shift and a +12181
-    # internal-wire shift relative to the first instance.
-    return wire + 87 if wire < 7212 else wire + 12181
+    """Require the normalized generator to supply an exact local-wire map."""
+
+    raise ValueError(
+        f"SCP emitter wire map is not parameterized: segment {seg}, wire {wire}"
+    )
 
 
 class Level:
@@ -177,6 +210,7 @@ class Instance:
         self.rows = rows
         self.commitment = row_wires(rows[0])[0]
         assert self.commitment == wire_map(seg, 23)
+        self.commitment_expression = f"rho {self.commitment}"
         self.position = row_wires(rows[RECOMP_ROW])[-1]
         assert self.position == wire_map(seg, 24)
         self.bits_base = row_wires(rows[BOOL_BASE_ROW])[0]
@@ -220,7 +254,7 @@ def prefix_args(inst: Instance) -> str:
     return (
         f"{P4} "
         f"(fun k => ({DOM_NUM} : {inst.f}) + (k : {inst.f}) + (1 : {inst.f})) "
-        f"({P1} ({DOM_NUM} : {inst.f}) (rho {inst.commitment})) "
+        f"({P1} ({DOM_NUM} : {inst.f}) ({inst.commitment_expression})) "
         f"{sibling_expr(inst, 's0')} "
         f"{sibling_expr(inst, 's1')} "
         f"{sibling_expr(inst, 's2')} "
@@ -391,18 +425,18 @@ def emit_leaf(inst: Instance) -> str:
     ])
     lines += [
         f"theorem seg{inst.seg}_scp_leaf_eq (rho : Nat -> {inst.f}) (h : Seg{inst.seg}.relation rho) :",
-        f"    {inst.leaf_out_def()} rho = {P1} ({DOM_NUM} : {inst.f}) (rho {inst.commitment}) := by",
+        f"    {inst.leaf_out_def()} rho = {P1} ({DOM_NUM} : {inst.f}) ({inst.commitment_expression}) := by",
     ]
     dtk.emit_unpack(lines_sp(lines), inst.cfg, set(range(LEAF_ROW_COUNT)))
     lines += [
-        f"  have hrel : {mod}.relation (rho {inst.commitment})",
+        f"  have hrel : {mod}.relation ({inst.commitment_expression})",
         f"      (fun x y => x = rho {inst.leaf_lanes[0]} ∧ y = rho {inst.leaf_lanes[1]}) := by",
         f"    unfold {mod}.relation",
     ]
     emit_refine_chain(lines, inst, LEAF_STEM, LEAF_SEGMENTS, 0)
     lines += [
         "    exact ⟨rfl, rfl⟩",
-        f"  have hs := {ns}.relation_sound_permSpec (rho {inst.commitment}) _ hrel",
+        f"  have hs := {ns}.relation_sound_permSpec ({inst.commitment_expression}) _ hrel",
         "  rcases hs with ⟨x, y, ⟨rfl, rfl⟩, hs⟩",
         f"  simpa [{inst.leaf_out_def()}, {ns}.s38_1,",
         "    Shieldd.GnarkFormal.Deployed.Poseidon1Link.row2,",
@@ -580,12 +614,6 @@ def emit_steps_facade(inst: Instance) -> str:
     ]) + footer())
 
 
-def write_generated(path: Path, contents: str) -> None:
-    if path.exists() and path.read_text() == contents:
-        return
-    path.write_text(contents)
-
-
 def recompose_sum(inst: Instance, ftype: str) -> str:
     terms = [
         f"({1 << j} : {ftype}) * rho ({inst.bits_base} + {j})"
@@ -656,50 +684,8 @@ def deployedSpec{seg} (rho : Nat → DeployedF) : Prop :=
         + (k : DeployedF) + (1 : DeployedF))
       (Shieldd.GnarkFormal.Poseidon1Bridge.permSpec1
         (545001158149490383238005163525397553024965043366546261617421270984613353336 : DeployedF)
-        (rho {inst.commitment}))
+        ({inst.commitment_expression}))
       {sibling_expr(inst, 's0')} {sibling_expr(inst, 's1')}
       {sibling_expr(inst, 's2')}
       (fun k => rho ({inst.bits_base} + 2 * k)) (fun k => rho ({inst.bits_base + 1} + 2 * k))
 """
-
-
-def generate(*, output_contracts: Path = CONTRACTS, specs_out: Path | None = None) -> None:
-    output_contracts.mkdir(parents=True, exist_ok=True)
-    specs = []
-    for seg in INSTANCES:
-        inst = Instance(seg)
-        write_generated(output_contracts / f"ScpAdapterSeg{seg}Base.lean", emit_base(inst) + "\n")
-        write_generated(output_contracts / f"ScpAdapterSeg{seg}Leaf.lean", emit_leaf(inst) + "\n")
-        for k in range(LEVELS):
-            for chunk in range((NODE_SEGMENTS + NODE_HELPER_CHUNK_SIZE - 1) // NODE_HELPER_CHUNK_SIZE):
-                write_generated(
-                    output_contracts / f"ScpAdapterSeg{seg}Node{k}Rows{chunk}.lean",
-                    emit_node_helpers(inst, k, chunk) + "\n",
-                )
-            write_generated(
-                output_contracts / f"ScpAdapterSeg{seg}Node{k}.lean",
-                emit_node(inst, k) + "\n",
-            )
-        for k in range(LEVELS):
-            write_generated(
-                output_contracts / f"ScpAdapterSeg{seg}Step{k}.lean",
-                emit_step(inst, k) + "\n",
-            )
-        write_generated(
-            output_contracts / f"ScpAdapterSeg{seg}Bits.lean",
-            emit_bits(inst) + "\n",
-        )
-        write_generated(
-            output_contracts / f"ScpAdapterSeg{seg}Steps.lean",
-            emit_steps_facade(inst),
-        )
-        write_generated(
-            output_contracts / f"ScpAdapterSeg{seg}.lean",
-            emit_head(inst) + "\n",
-        )
-        specs.append(spec_text(inst))
-        print(f"seg{seg}: emitted Base + Leaf + {LEVELS} nodes + Steps + head")
-    out = specs_out or (HERE / "scp_specs_snippet.txt")
-    out.parent.mkdir(parents=True, exist_ok=True)
-    write_generated(out, "\n".join(specs))
-    print(f"spec snippet -> {out}")

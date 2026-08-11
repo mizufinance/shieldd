@@ -1,10 +1,11 @@
+// Code generated from shielded_ics20_withdrawal_families.json. DO NOT EDIT.
 use anyhow::Error;
 
 #[derive(
     Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, serde::Deserialize, serde::Serialize,
 )]
-#[serde(transparent)]
-pub struct ShieldedIcs20WithdrawalFamilyId(pub u32);
+#[serde(try_from = "u32", into = "u32")]
+pub struct ShieldedIcs20WithdrawalFamilyId(u32);
 
 #[allow(non_upper_case_globals)]
 impl ShieldedIcs20WithdrawalFamilyId {
@@ -20,12 +21,16 @@ impl ShieldedIcs20WithdrawalFamilyId {
         self.spec().label
     }
 
-    pub const fn input_count(self) -> usize {
-        2
+    pub fn input_count(self) -> usize {
+        self.spec().n_in
     }
 
-    pub const fn auth_sig_count(self) -> usize {
-        2
+    pub fn output_count(self) -> usize {
+        self.spec().n_out
+    }
+
+    pub fn auth_sig_count(self) -> usize {
+        self.spec().n_in
     }
 
     pub fn spec(self) -> &'static ShieldedIcs20WithdrawalFamilySpec {
@@ -65,7 +70,9 @@ pub struct ShieldedIcs20WithdrawalFamilySpec {
     pub id: ShieldedIcs20WithdrawalFamilyId,
     pub label: &'static str,
     pub artifact_name: &'static str,
+    pub bundled_lib_basename: &'static str,
     pub n_in: usize,
+    pub n_out: usize,
 }
 
 pub const SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS: [ShieldedIcs20WithdrawalFamilySpec; 1] =
@@ -73,5 +80,7 @@ pub const SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS: [ShieldedIcs20WithdrawalFamily
         id: ShieldedIcs20WithdrawalFamilyId::Canonical,
         label: "shielded_ics20_withdrawal",
         artifact_name: "shielded_ics20_withdrawal",
+        bundled_lib_basename: "libshieldd_gnark_shielded_ics20_withdrawal",
         n_in: 2,
+        n_out: 1,
     }];

@@ -337,8 +337,9 @@ mod tests {
     use super::*;
     use shieldd_sdk_app::genesis::{AppState, Content};
     use shieldd_sdk_proto::execution_client::v1::{
-        CommitRequest, CommitResponse, GetCommittedStateRequest, GetCommittedStateResponse,
-        InitGenesisRequest, InitGenesisResponse,
+        BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
+        CommitResponse, DeliverTxRequest, DeliverTxResponse, GetCommittedStateRequest,
+        GetCommittedStateResponse, InitGenesisRequest, InitGenesisResponse,
     };
 
     fn open(directory: &std::path::Path) -> *mut ShielddHandle {
@@ -393,6 +394,20 @@ mod tests {
         let response = Response::decode(response).expect("valid protobuf response");
         free_result(result);
         response
+    }
+
+    fn initialize(handle: *mut ShielddHandle) {
+        let _: InitGenesisResponse = call(
+            handle,
+            METHOD_INIT_GENESIS,
+            InitGenesisRequest {
+                genesis: Some(
+                    AppState::Content(Content::default().with_chain_id("bankd-local".to_owned()))
+                        .into(),
+                ),
+            },
+        );
+        let _: CommitResponse = call(handle, METHOD_COMMIT, CommitRequest {});
     }
 
     #[test]
@@ -489,6 +504,54 @@ mod tests {
 
         assert_eq!(committed.height, 0);
         assert_eq!(committed.root_hash, commit.root_hash);
+        close(handle);
+    }
+
+    #[test]
+    fn ffi_execution_check_tx_rejects_invalid_transaction() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+
+        let response: CheckTxResponse = call(
+            handle,
+            METHOD_CHECK_TX,
+            CheckTxRequest {
+                tx: b"not a shieldd transaction".to_vec(),
+            },
+        );
+
+        assert_eq!(response.code, 1);
+        assert!(response.log.contains("decoding transaction"));
+        close(handle);
+    }
+
+    #[test]
+    fn ffi_execution_deliver_tx_rejects_invalid_transaction() {
+        let directory = tempfile::tempdir().expect("temporary database directory");
+        let handle = open(directory.path());
+        initialize(handle);
+        let mut begin_block = BeginBlockRequest {
+            height: 1,
+            time: Some(Default::default()),
+        };
+        begin_block
+            .time
+            .as_mut()
+            .expect("test begin-block time")
+            .seconds = 1_700_000_000;
+        let _: BeginBlockResponse = call(handle, METHOD_BEGIN_BLOCK, begin_block);
+
+        let response: DeliverTxResponse = call(
+            handle,
+            METHOD_DELIVER_TX,
+            DeliverTxRequest {
+                tx: b"not a shieldd transaction".to_vec(),
+            },
+        );
+
+        assert_eq!(response.code, 1);
+        assert!(response.log.contains("decoding transaction"));
         close(handle);
     }
 

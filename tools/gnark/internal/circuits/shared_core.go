@@ -109,11 +109,12 @@ func ComplianceLeafCommitmentFromFixtureNative(fixture SpendFixture) (*big.Int, 
 		slotDerivation = MustBigInt(fixture.Private.UserLeaf.SlotDerivation)
 	}
 
-	return Poseidon377Hash6Native(
+	return Poseidon377Hash7Native(
 		MustBigInt(vectors.Poseidon377.ComplianceLeafDomain),
-		[6]*big.Int{
+		[7]*big.Int{
 			diversifiedGeneratorFq,
 			transmissionKeyFq,
+			MustBigInt(fixture.Private.ClueKey),
 			MustBigInt(fixture.Private.NoteAssetID),
 			slotID,
 			slotDerivation,
@@ -126,6 +127,7 @@ func ComplianceLeafCommitment(
 	api frontend.API,
 	diversifiedGenerator gnarkte.Point,
 	transmissionKey gnarkte.Point,
+	clueKey frontend.Variable,
 	assetID frontend.Variable,
 	slotID frontend.Variable,
 	slotDerivation frontend.Variable,
@@ -144,6 +146,7 @@ func ComplianceLeafCommitment(
 		api,
 		diversifiedGeneratorFq,
 		transmissionKeyFq,
+		clueKey,
 		assetID,
 		slotID,
 		slotDerivation,
@@ -155,6 +158,7 @@ func ComplianceLeafCommitmentFromCompressed(
 	api frontend.API,
 	diversifiedGeneratorFq frontend.Variable,
 	transmissionKeyFq frontend.Variable,
+	clueKey frontend.Variable,
 	assetID frontend.Variable,
 	slotID frontend.Variable,
 	slotDerivation frontend.Variable,
@@ -165,12 +169,13 @@ func ComplianceLeafCommitmentFromCompressed(
 		return nil, err
 	}
 
-	return Poseidon377Hash6(
+	return Poseidon377Hash7(
 		api,
 		MustBigInt(vectors.Poseidon377.ComplianceLeafDomain),
-		[6]frontend.Variable{
+		[7]frontend.Variable{
 			diversifiedGeneratorFq,
 			transmissionKeyFq,
+			clueKey,
 			assetID,
 			slotID,
 			slotDerivation,

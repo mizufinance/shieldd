@@ -100,9 +100,9 @@ fn init_gnark_transfer_client() -> Result<GnarkTransferClient, crate::ProofError
             "gnark transfer proving key not bundled (enable bundled-proving-keys feature)",
         )));
     }
-    let pvk = shieldd_sdk_proof_params::transfer_proof_verification_key().clone();
+    let vk_json_bytes = shieldd_sdk_proof_params::transfer_verifying_key_json_bytes();
     let metadata = shieldd_sdk_proof_params::transfer_circuit_metadata();
-    crate::gnark::GnarkTransferClient::from_bundled(&lib_path, pk_bytes, pvk, metadata)
+    crate::gnark::GnarkTransferClient::from_bundled(&lib_path, pk_bytes, vk_json_bytes, metadata)
         .map_err(|e| crate::ProofError::ProofGenerationFailed(format!("gnark transfer init: {e}")))
 }
 

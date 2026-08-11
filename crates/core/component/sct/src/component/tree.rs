@@ -426,7 +426,7 @@ pub trait SctRead: StateRead {
     }
 
     /// Return the set of nullifiers that have been spent in the current block.
-    fn pending_nullifiers(&self) -> im::Vector<Nullifier> {
+    fn pending_nullifiers(&self) -> imbl::Vector<Nullifier> {
         self.object_get(state_key::nullifier_set::pending_nullifiers())
             .unwrap_or_default()
     }
@@ -837,7 +837,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sct_retention_prunes_only_after_window_boundary() {
+    async fn claimed_anchor_liveness_matches_retention_boundary() {
         let storage = TempStorage::new().await.unwrap();
         let snapshot = storage.latest_snapshot();
         let mut state = cnidarium::StateDelta::new(snapshot);
@@ -852,15 +852,31 @@ mod tests {
         write_test_anchor(&mut state, 2, &mut tree).await;
 
         assert_eq!(state.get_anchor_by_height(0).await.unwrap(), Some(anchor_0));
+        state
+            .check_claimed_anchor(anchor_0)
+            .await
+            .expect("anchor remains live at the retention boundary");
         assert!(state.get_block_timestamp(0).await.is_ok());
         assert!(state.get_epoch_by_height(0).await.is_ok());
 
         write_test_anchor(&mut state, 3, &mut tree).await;
 
         assert_eq!(state.get_anchor_by_height(0).await.unwrap(), None);
+        let error = state
+            .check_claimed_anchor(anchor_0)
+            .await
+            .expect_err("anchor must be rejected immediately after retention");
+        assert!(
+            error.to_string().contains("not a valid SCT root"),
+            "unexpected rejection reason: {error:#}"
+        );
         assert!(state.get_block_timestamp(0).await.is_err());
         assert!(state.get_epoch_by_height(0).await.is_err());
         assert_eq!(state.get_anchor_by_height(1).await.unwrap(), Some(anchor_1));
+        state
+            .check_claimed_anchor(anchor_1)
+            .await
+            .expect("next retained anchor remains live");
         assert!(state.get_block_timestamp(1).await.is_ok());
         assert!(state.get_epoch_by_height(1).await.is_ok());
         assert_eq!(

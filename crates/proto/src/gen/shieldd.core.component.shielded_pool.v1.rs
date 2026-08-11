@@ -270,9 +270,10 @@ pub struct TransferOutputBody {
     /// Compliance ciphertext encrypting created note details for the asset issuer.
     #[prost(bytes = "vec", tag = "4")]
     pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
-    /// Orbis-compatible encrypted-seed upload bundle for the receiver output only.
+    /// Canonical 328-byte factored circuit metadata for the receiver output only.
+    /// This field must never contain DH shared points or seed-opening material.
     #[prost(bytes = "vec", tag = "5")]
-    pub orbis_upload_bundle: ::prost::alloc::vec::Vec<u8>,
+    pub compliance_metadata: ::prost::alloc::vec::Vec<u8>,
 }
 impl ::prost::Name for TransferOutputBody {
     const NAME: &'static str = "TransferOutputBody";
@@ -417,15 +418,9 @@ impl ::prost::Name for TransferView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TransferPlan {
-    /// The public body this plan will produce.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<TransferBody>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The net action balance committed by the action body.
-    #[prost(message, optional, tag = "3")]
-    pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
     /// The shielded input plans fused into this transfer.
     #[prost(message, repeated, tag = "4")]
     pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
@@ -680,15 +675,9 @@ impl ::prost::Name for ShieldedHostWithdrawalView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShieldedHostWithdrawalPlan {
-    /// The public body this plan will produce.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<ShieldedHostWithdrawalBody>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The net action balance committed by the action body.
-    #[prost(message, optional, tag = "3")]
-    pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
     /// The shielded input plans fused into this withdrawal.
     #[prost(message, repeated, tag = "4")]
     pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
@@ -883,15 +872,9 @@ impl ::prost::Name for ShieldedIcs20WithdrawalView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ShieldedIcs20WithdrawalPlan {
-    /// The public body this plan will produce.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<ShieldedIcs20WithdrawalBody>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The net action balance committed by the action body.
-    #[prost(message, optional, tag = "3")]
-    pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
     /// The shielded input plans fused into this withdrawal.
     #[prost(message, repeated, tag = "4")]
     pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
@@ -1083,23 +1066,20 @@ impl ::prost::Name for NoteReshapeView {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteReshapePlan {
-    /// The public body this plan will produce.
-    #[prost(message, optional, tag = "1")]
-    pub body: ::core::option::Option<NoteReshapeBody>,
     /// The blinding factor to use for the net balance commitment.
     #[prost(bytes = "vec", tag = "2")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The net action balance committed by the action body.
-    #[prost(message, optional, tag = "3")]
-    pub balance: ::core::option::Option<super::super::super::asset::v1::Balance>,
     /// The shielded input plans fused into this reshape.
     #[prost(message, repeated, tag = "4")]
     pub spends: ::prost::alloc::vec::Vec<ShieldedInputPlan>,
     /// The shielded output plans fused into this reshape.
     #[prost(message, repeated, tag = "5")]
     pub outputs: ::prost::alloc::vec::Vec<ShieldedOutputPlan>,
-    /// Protocol precision used by all real and padded output discovery tags.
+    /// The deployed proving family selected for this reshape.
     #[prost(uint32, tag = "6")]
+    pub family_id: u32,
+    /// Protocol precision used by all real and padded output discovery tags.
+    #[prost(uint32, tag = "7")]
     pub discovery_precision_bits: u32,
 }
 impl ::prost::Name for NoteReshapePlan {
@@ -1160,19 +1140,9 @@ pub struct ShieldedInputPlan {
     /// The blinding factor to use for the value commitment.
     #[prost(bytes = "vec", tag = "4")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The first blinding factor to use for the ZK spend proof.
-    #[prost(bytes = "vec", tag = "5")]
-    pub proof_blinding_r: ::prost::alloc::vec::Vec<u8>,
-    /// The second blinding factor to use for the ZK spend proof.
-    #[prost(bytes = "vec", tag = "6")]
-    pub proof_blinding_s: ::prost::alloc::vec::Vec<u8>,
     /// Target timestamp for compliance verification (Unix UTC seconds).
     #[prost(uint64, tag = "7")]
     pub target_timestamp: u64,
-    /// Precomputed compliance ciphertext (352 bytes: 32 EPK + 32 EPK_G + 32 C2_core + 32 C2_ext + 224 payload).
-    /// Empty when not yet generated. C2 fields are encrypted seeds for Orbis PRE.
-    #[prost(bytes = "vec", tag = "8")]
-    pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
     /// Whether the asset is regulated (requires compliance).
     #[prost(bool, tag = "9")]
     pub is_regulated: bool,
@@ -1181,9 +1151,6 @@ pub struct ShieldedInputPlan {
     pub compliance_leaf: ::core::option::Option<
         super::super::compliance::v1::ComplianceLeaf,
     >,
-    /// Ephemeral secret used in compliance ciphertext encryption (needed by circuit).
-    #[prost(bytes = "vec", tag = "12")]
-    pub compliance_ephemeral_secret: ::prost::alloc::vec::Vec<u8>,
     /// Shared transaction blinding nonce (same for spend and output in one transaction).
     #[prost(bytes = "vec", tag = "14")]
     pub tx_blinding_nonce: ::prost::alloc::vec::Vec<u8>,
@@ -1216,31 +1183,6 @@ pub struct ShieldedInputPlan {
     pub asset_indexed_leaf: ::core::option::Option<
         super::super::compliance::v1::IndexedLeafData,
     >,
-    /// Whether this spend is flagged (amount >= threshold).
-    /// Computed from threshold comparison and passed to circuit as witness.
-    #[prost(bool, tag = "22")]
-    pub is_flagged: bool,
-    /// DLEQ proof salt (random Fq used in metadata hash).
-    #[prost(bytes = "vec", tag = "23")]
-    pub salt: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof blinding factor (random Fr).
-    #[prost(bytes = "vec", tag = "24")]
-    pub dleq_k: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof challenge (Fq).
-    #[prost(bytes = "vec", tag = "25")]
-    pub dleq_c: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof response (Fq).
-    #[prost(bytes = "vec", tag = "26")]
-    pub dleq_s: ::prost::alloc::vec::Vec<u8>,
-    /// Ring public key used for compliance encryption.
-    #[prost(bytes = "vec", tag = "27")]
-    pub ring_pk: ::prost::alloc::vec::Vec<u8>,
-    /// Issuer detection key public component.
-    #[prost(bytes = "vec", tag = "28")]
-    pub dk_pub: ::prost::alloc::vec::Vec<u8>,
-    /// Threshold for flagging (in base units).
-    #[prost(bytes = "vec", tag = "29")]
-    pub threshold: ::prost::alloc::vec::Vec<u8>,
     /// Full compliance asset policy for regulated assets.
     #[prost(message, optional, tag = "30")]
     pub asset_policy: ::core::option::Option<super::super::compliance::v1::AssetPolicy>,
@@ -1269,19 +1211,9 @@ pub struct ShieldedOutputPlan {
     /// The blinding factor to use for the value commitment.
     #[prost(bytes = "vec", tag = "4")]
     pub value_blinding: ::prost::alloc::vec::Vec<u8>,
-    /// The first blinding factor to use for the ZK output proof.
-    #[prost(bytes = "vec", tag = "5")]
-    pub proof_blinding_r: ::prost::alloc::vec::Vec<u8>,
-    /// The second blinding factor to use for the ZK output proof.
-    #[prost(bytes = "vec", tag = "6")]
-    pub proof_blinding_s: ::prost::alloc::vec::Vec<u8>,
     /// Target timestamp for compliance verification (Unix UTC seconds).
     #[prost(uint64, tag = "7")]
     pub target_timestamp: u64,
-    /// Precomputed compliance ciphertext (352 bytes: 32 EPK + 32 EPK_G + 32 C2_core + 32 C2_ext + 224 payload).
-    /// Empty when not yet generated. C2 fields are encrypted seeds for Orbis PRE.
-    #[prost(bytes = "vec", tag = "8")]
-    pub compliance_ciphertext: ::prost::alloc::vec::Vec<u8>,
     /// Whether the asset is regulated (requires compliance).
     #[prost(bool, tag = "9")]
     pub is_regulated: bool,
@@ -1289,19 +1221,6 @@ pub struct ShieldedOutputPlan {
     #[prost(message, optional, tag = "10")]
     pub compliance_leaf: ::core::option::Option<
         super::super::compliance::v1::ComplianceLeaf,
-    >,
-    /// Counterparty compliance leaf (sender's registry entry).
-    #[prost(message, optional, tag = "11")]
-    pub counterparty_leaf: ::core::option::Option<
-        super::super::compliance::v1::ComplianceLeaf,
-    >,
-    /// Ephemeral secret used in compliance ciphertext encryption (needed by circuit).
-    #[prost(bytes = "vec", tag = "12")]
-    pub compliance_ephemeral_secret: ::prost::alloc::vec::Vec<u8>,
-    /// Counterparty address (the sender of this output).
-    #[prost(message, optional, tag = "13")]
-    pub counterparty_address: ::core::option::Option<
-        super::super::super::keys::v1::Address,
     >,
     /// Shared transaction blinding nonce (same for spend and output in one transaction).
     #[prost(bytes = "vec", tag = "14")]
@@ -1335,51 +1254,6 @@ pub struct ShieldedOutputPlan {
     pub asset_indexed_leaf: ::core::option::Option<
         super::super::compliance::v1::IndexedLeafData,
     >,
-    /// Sender-encrypted ciphertext (96 bytes = 3 × 32, 3 Fq elements).
-    /// Encrypts (recipient_gd, recipient_pk, amount) to sender's compliance ACK.
-    #[prost(bytes = "vec", tag = "22")]
-    pub sender_ciphertext: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof salt (random Fq used in metadata hash).
-    #[prost(bytes = "vec", tag = "23")]
-    pub salt: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof blinding factors (random Fr, one per EPK tier).
-    #[prost(bytes = "vec", tag = "24")]
-    pub dleq_k_1: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "25")]
-    pub dleq_k_2: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "26")]
-    pub dleq_k_3: ::prost::alloc::vec::Vec<u8>,
-    /// DLEQ proof challenges and responses (Fq pairs, one per tier).
-    #[prost(bytes = "vec", tag = "27")]
-    pub dleq_c_1: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "28")]
-    pub dleq_s_1: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "29")]
-    pub dleq_c_2: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "30")]
-    pub dleq_s_2: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "31")]
-    pub dleq_c_3: ::prost::alloc::vec::Vec<u8>,
-    #[prost(bytes = "vec", tag = "32")]
-    pub dleq_s_3: ::prost::alloc::vec::Vec<u8>,
-    /// Ring public key used for compliance encryption.
-    #[prost(bytes = "vec", tag = "33")]
-    pub ring_pk: ::prost::alloc::vec::Vec<u8>,
-    /// Issuer detection key public component.
-    #[prost(bytes = "vec", tag = "34")]
-    pub dk_pub: ::prost::alloc::vec::Vec<u8>,
-    /// Threshold for flagging (in base units).
-    #[prost(bytes = "vec", tag = "35")]
-    pub threshold_bytes: ::prost::alloc::vec::Vec<u8>,
-    /// Whether this output is flagged (amount >= threshold).
-    #[prost(bool, tag = "36")]
-    pub is_flagged: bool,
-    /// Ephemeral secret for extension tier (r_2, needed by circuit).
-    #[prost(bytes = "vec", tag = "37")]
-    pub r_2: ::prost::alloc::vec::Vec<u8>,
-    /// Ephemeral secret for spend extension tier (r_3, needed by circuit).
-    #[prost(bytes = "vec", tag = "38")]
-    pub r_3: ::prost::alloc::vec::Vec<u8>,
     /// Full compliance asset policy for regulated assets.
     #[prost(message, optional, tag = "39")]
     pub asset_policy: ::core::option::Option<super::super::compliance::v1::AssetPolicy>,

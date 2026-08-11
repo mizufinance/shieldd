@@ -12,10 +12,19 @@ pub mod prf;
 pub mod symmetric;
 pub mod test_keys;
 
-pub use address::{Address, AddressVar, AddressView};
+pub use address::{Address, AddressError, AddressVar, AddressView};
 pub use discovery_key::DiscoveryKey;
-pub use keys::FullViewingKey;
+pub use keys::{FullViewingKey, FullViewingKeyError, SpendKeyError};
 pub use symmetric::{BackreferenceKey, PayloadKey, PositionMetadataKey};
+
+/// Rejects the identity point for keys used to authorize protocol actions.
+pub fn ensure_nonidentity_spend_auth_key(
+    key: &rdsa::VerificationKey<rdsa::SpendAuth>,
+    role: &str,
+) -> anyhow::Result<()> {
+    anyhow::ensure!(!key.is_identity(), "{role} must not be identity");
+    Ok(())
+}
 
 fn fmt_hex<T: AsRef<[u8]>>(data: T, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     write!(f, "{}", hex::encode(data))

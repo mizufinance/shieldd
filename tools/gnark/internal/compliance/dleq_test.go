@@ -15,7 +15,6 @@ import (
 )
 
 type dleqVerifyCircuit struct {
-	R            frontend.Variable
 	AckX         frontend.Variable
 	AckY         frontend.Variable
 	SPointX      frontend.Variable
@@ -32,7 +31,6 @@ type dleqVerifyCircuit struct {
 func (c *dleqVerifyCircuit) Define(api frontend.API) error {
 	return VerifyDLEQ(
 		api,
-		c.R,
 		point(c.AckX, c.AckY),
 		point(c.SPointX, c.SPointY),
 		point(c.EpkX, c.EpkY),
@@ -65,7 +63,6 @@ func loadDLEQAssignment(metadata string, isRegulated int) (*dleqVerifyCircuit, e
 		return nil, err
 	}
 	return &dleqVerifyCircuit{
-		R:            vectors.DleqFixture.R,
 		AckX:         vectors.DleqFixture.AckX,
 		AckY:         vectors.DleqFixture.AckY,
 		SPointX:      sPoint.X.(*big.Int).String(),

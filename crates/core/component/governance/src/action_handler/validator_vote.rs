@@ -21,7 +21,6 @@ impl ActionHandler for ValidatorVote {
         // Check the signature using the GOVERNANCE KEY:
         let body_bytes = body.encode_to_vec();
         body.governance_key
-            .0
             .verify(&body_bytes, auth_sig)
             .context("validator vote signature failed to verify")?;
 

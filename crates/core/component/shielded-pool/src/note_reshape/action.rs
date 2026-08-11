@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 
 use anyhow::{Context, Error};
-use decaf377::Fq;
 use decaf377_rdsa::{Signature, SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_keys::symmetric::{OvkWrappedKey, WrappedMemoKey};
@@ -24,12 +23,6 @@ pub struct NoteReshapeInputBody {
     pub encrypted_backref: EncryptedBackref,
 }
 
-impl NoteReshapeInputBody {
-    pub fn is_dummy(&self) -> bool {
-        self.encrypted_backref.is_empty() || self.nullifier.0 == Fq::from(0u64)
-    }
-}
-
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 #[serde(
     try_from = "pb::NoteReshapeOutputBody",
@@ -39,12 +32,6 @@ pub struct NoteReshapeOutputBody {
     pub note_payload: NotePayload,
     pub wrapped_memo_key: WrappedMemoKey,
     pub ovk_wrapped_key: OvkWrappedKey,
-}
-
-impl NoteReshapeOutputBody {
-    pub fn is_dummy(&self) -> bool {
-        self.wrapped_memo_key.0 == [0u8; 48] && self.ovk_wrapped_key.0 == [0u8; 48]
-    }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -80,6 +67,12 @@ impl NoteReshapeBody {
             self.family_id.output_count(),
             self.outputs.len()
         );
+        for (index, input) in self.inputs.iter().enumerate() {
+            anyhow::ensure!(
+                input.encrypted_backref.len() == ENCRYPTED_BACKREF_LEN,
+                "note_reshape input {index} encrypted backref must be {ENCRYPTED_BACKREF_LEN} bytes"
+            );
+        }
         Ok(())
     }
 }
@@ -166,18 +159,12 @@ impl TryFrom<pb::NoteReshapeInputBody> for NoteReshapeInputBody {
     type Error = Error;
 
     fn try_from(proto: pb::NoteReshapeInputBody) -> Result<Self, Self::Error> {
-        let encrypted_backref = if proto.encrypted_backref.len() == ENCRYPTED_BACKREF_LEN {
-            let bytes: [u8; ENCRYPTED_BACKREF_LEN] = proto
-                .encrypted_backref
-                .try_into()
-                .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?;
-            EncryptedBackref::try_from(bytes)
-                .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?
-        } else if proto.encrypted_backref.is_empty() {
-            EncryptedBackref::dummy()
-        } else {
-            anyhow::bail!("invalid encrypted backref length")
-        };
+        let bytes: [u8; ENCRYPTED_BACKREF_LEN] =
+            proto.encrypted_backref.try_into().map_err(|_| {
+                anyhow::anyhow!("encrypted backref must be exactly {ENCRYPTED_BACKREF_LEN} bytes")
+            })?;
+        let encrypted_backref = EncryptedBackref::try_from(bytes)
+            .map_err(|_| anyhow::anyhow!("invalid encrypted backref"))?;
 
         Ok(Self {
             nullifier: proto
@@ -283,7 +270,7 @@ impl TryFrom<pb::NoteReshapeBody> for NoteReshapeBody {
 
 #[cfg(test)]
 mod tests {
-    use super::{pb, NoteReshapeBody};
+    use super::{pb, NoteReshapeBody, NoteReshapeInputBody};
 
     fn struct_body<'a>(source: &'a str, name: &str) -> &'a str {
         let start = source
@@ -311,6 +298,16 @@ mod tests {
     }
 
     #[test]
+    fn empty_input_backref_is_rejected_at_wire_boundary() {
+        let err = NoteReshapeInputBody::try_from(pb::NoteReshapeInputBody::default())
+            .expect_err("note_reshape inputs require fixed-size encrypted backrefs");
+        assert!(
+            err.to_string().contains("exactly 48 bytes"),
+            "unexpected error: {err:#}"
+        );
+    }
+
+    #[test]
     fn note_reshape_public_encodings_have_no_dummy_flags_after_redesign() {
         for (source, names) in [
             (
@@ -331,7 +328,7 @@ mod tests {
             ),
             (
                 include_str!("../gnark/note_reshape_witness.rs"),
-                vec!["NoteReshapeOutputWitnessV1"],
+                vec!["NoteReshapeOutputWitnessV3"],
             ),
         ] {
             for name in names {

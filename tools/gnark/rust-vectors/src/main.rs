@@ -102,16 +102,11 @@ struct DleqFixture {
     dleq_s: String,
 }
 
-/// NoteReshape2x1 statement-hash seam fixture (H3 / Phase C).
+/// NoteReshape statement-hash seam fixture (H3 / Phase C).
 ///
-/// A seeded note_reshape2x1 public statement: the 7 field elements in the exact
-/// production role order the circuit assembles them (anchor, output note
-/// commitment, balance commitment Fq, then per-input nullifier+rk), plus the
-/// reference statement hash computed with the real `poseidon377::hash_7` over
-/// the `note_reshape2x1` public-input-hash domain. The Go seam test assembles
-/// these fields in the same order, runs the production statement-hash gadget,
-/// and asserts the in-circuit wire equals `statement_hash`. Any wire-order,
-/// endianness, or domain drift fails.
+/// Seeded retained-family public statements in the exact production role order,
+/// plus reference statement hashes over their family-specific domains. The Go
+/// seam test assembles the same fields and checks the production gadget.
 #[derive(Serialize)]
 struct NoteReshapeStatementFixture {
     label: String,
@@ -344,8 +339,6 @@ fn main() {
         ),
     );
     let note_reshape_statements = [
-        ("note_reshape2x1", 2, 1),
-        ("note_reshape4x1", 4, 1),
         ("note_reshape8x1", 8, 1),
         ("note_reshape1x8", 1, 8),
     ]
@@ -472,7 +465,7 @@ fn main() {
                 blake2b_simd::blake2b(b"shieldd.leaf_binding.sender").as_bytes(),
             )
             .to_string(),
-            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf").to_string(),
+            compliance_leaf_domain: blake2b_fq(b"shieldd.compliance.leaf.v2").to_string(),
             issuer_detection_domain: blake2b_fq(b"shieldd.compliance.issuer_detection")
                 .to_string(),
             dleq_metadata_domain: blake2b_fq(b"shieldd.compliance.dleq_metadata").to_string(),

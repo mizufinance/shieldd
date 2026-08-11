@@ -18,7 +18,7 @@ GEN = Path(__file__).with_name("gen_template_inventory.py")
 
 class GeneratorMtimeTests(unittest.TestCase):
     def test_regenerating_identical_inventory_preserves_mtime(self) -> None:
-        source = ROOT / "crates/core/component/shielded-pool/formal/note_reshape2x1-deployed-slice-ir.json"
+        source = ROOT / "crates/core/component/shielded-pool/formal/note_reshape1x8-deployed-slice-ir.json"
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "inventory.json"
             command = [

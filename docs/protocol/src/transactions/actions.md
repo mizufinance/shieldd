@@ -15,4 +15,3 @@ reduced chain.
 | `governance.v1.ValidatorVote` | Records a validator's governance vote. |
 | `compliance.v1.ComplianceRegisterAsset` | Registers or updates asset-side compliance metadata. |
 | `compliance.v1.ComplianceRegisterUser` | Registers or updates user-side compliance metadata. |
-| `proof_aggregation.v1.AggregateBundle` | Submits an aggregation bundle through the dedicated aggregation pipeline. |

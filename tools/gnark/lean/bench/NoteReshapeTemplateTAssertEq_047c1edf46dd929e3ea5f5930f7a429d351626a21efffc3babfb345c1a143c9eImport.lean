@@ -1,1 +1,0 @@
-import ShielddGnarkFormal.Deployed.Templates.Semantics.TAssertEq_047c1edf46dd929e3ea5f5930f7a429d351626a21efffc3babfb345c1a143c9e

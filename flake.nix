@@ -118,6 +118,7 @@
               pkgs.openssl
               pkgs.rocksdb
               pkgs.snappy
+              pkgs.sqlite
               pkgs.stdenv.cc.cc
               pkgs.zstd
             ]}:''${LD_LIBRARY_PATH:-}

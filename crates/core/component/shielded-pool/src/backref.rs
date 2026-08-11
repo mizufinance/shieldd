@@ -142,7 +142,8 @@ mod tests {
         #[test]
         fn encrypted_backref_zero_length(seed_phrase_randomness in any::<[u8; 32]>(), amount_to_send in any::<u64>(), rseed_randomness in any::<[u8; 32]>()) {
             let seed_phrase = SeedPhrase::from_randomness(&seed_phrase_randomness);
-            let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+            let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+                .expect("test spend key should satisfy key refinements");
             let fvk = sk.full_viewing_key();
             let brk = fvk.backref_key();
 
@@ -181,7 +182,8 @@ mod tests {
         #[test]
         fn encrypted_backref_round_trip(seed_phrase_randomness in any::<[u8; 32]>(), amount_to_send in any::<u64>(), rseed_randomness in any::<[u8; 32]>()) {
             let seed_phrase = SeedPhrase::from_randomness(&seed_phrase_randomness);
-            let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+            let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+                .expect("test spend key should satisfy key refinements");
             let fvk = sk.full_viewing_key();
             let brk = fvk.backref_key();
 

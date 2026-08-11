@@ -193,6 +193,15 @@ class FormalWorkflowWiringTests(unittest.TestCase):
             self.workflow,
         )
 
+    def test_fstar_checkout_hydrates_lfs_verifier_artifacts(self) -> None:
+        fstar_job = self.workflow.split(
+            "  snarkpack-fstar:", maxsplit=1
+        )[1].split("\n  snarkpack-parity:", maxsplit=1)[0]
+        checkout = fstar_job.split(
+            "- uses: actions/checkout@", maxsplit=1
+        )[1].split("- uses: ./.github/actions/setup-nix-rust", maxsplit=1)[0]
+        self.assertIn("lfs: true", checkout)
+
     def test_extraction_has_no_ci_recovery_fanout(self) -> None:
         self.assertNotIn("matrix.graph", self.workflow)
         self.assertNotIn("snarkpack-extraction-recovery:", self.workflow)
@@ -294,25 +303,89 @@ class RustWorkflowWiringTests(unittest.TestCase):
         for lane in ("features", "test"):
             with self.subTest(blacksmith_lane=lane):
                 self.assertIn(
-                    "runs-on: blacksmith-8vcpu-ubuntu-2404",
+                    "github.event_name == 'pull_request'",
+                    jobs[lane],
+                )
+                self.assertIn(
+                    "github.event_name == 'merge_group'",
+                    jobs[lane],
+                )
+                self.assertIn(
+                    "'blacksmith-8vcpu-ubuntu-2404'",
+                    jobs[lane],
+                )
+                self.assertIn(
+                    "|| 'ubuntu-24.04'",
                     jobs[lane],
                 )
 
+    def test_exact_fv_evidence_builds_jemalloc_with_optimization(self) -> None:
+        exact_fv_step = self.workflow.split(
+            "- name: Execute exact FV specification evidence", maxsplit=1
+        )[1].split("\n\n", maxsplit=1)[0]
+        self.assertIn("env:\n          CFLAGS: -O1", exact_fv_step)
+
+    def test_exact_fv_evidence_preflights_extractor_goldens(self) -> None:
+        evidence_gate = (
+            SCRIPT.parents[2] / "scripts/check-fv-specification-evidence.sh"
+        ).read_text(encoding="utf-8")
+        preflight = (
+            'go -C "$ROOT/tools/gnark/third_party/gnark-lean-extractor" '
+            "test ./..."
+        )
+        self.assertLess(
+            evidence_gate.index(preflight),
+            evidence_gate.index("run-fv-specification-tests.py"),
+        )
+
 
 class OrbisWorkflowWiringTests(unittest.TestCase):
-    def test_integration_flow_publishes_bounded_diagnostics(self) -> None:
-        workflow = (
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = (
             SCRIPT.parents[2] / ".github/workflows/orbis-integration.yml"
         ).read_text(encoding="utf-8")
+
+    def test_integration_flow_publishes_bounded_diagnostics(self) -> None:
         self.assertIn(
-            "python3 scripts/ci/run_with_annotation.py", workflow
+            "python3 scripts/ci/run_with_annotation.py", self.workflow
         )
         self.assertIn(
-            '--title "Shieldd Orbis integration flow"', workflow
+            '--title "Shieldd Orbis integration flow"', self.workflow
+        )
+
+    def test_insecure_v0_pre_is_an_explained_skip(self) -> None:
+        self.assertIn("name: Explain disabled Orbis v0 PRE", self.workflow)
+        self.assertIn('echo "status=skip"', self.workflow)
+        self.assertIn('echo "tier=skip"', self.workflow)
+        self.assertIn('echo "run=false"', self.workflow)
+        self.assertIn(
+            "Orbis v0 transfer PRE is disabled until a non-disclosing protocol is available.",
+            self.workflow,
         )
 
 
 class GeneralRunnerPolicyWiringTests(unittest.TestCase):
+    def test_nonformal_candidate_compute_lanes_have_explicit_caps(self) -> None:
+        root = SCRIPT.parents[2]
+        docs = (root / ".github/workflows/docs-lint.yml").read_text(
+            encoding="utf-8"
+        )
+        protobuf = (
+            root / ".github/workflows/buf-pull-request.yml"
+        ).read_text(encoding="utf-8")
+        smoke = (root / ".github/workflows/smoke.yml").read_text(
+            encoding="utf-8"
+        )
+        orbis = (
+            root / ".github/workflows/orbis-integration.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("timeout-minutes: 25", docs)
+        self.assertIn("timeout-minutes: 25", protobuf)
+        self.assertIn("&& 45 || 90", smoke)
+        self.assertIn("timeout-minutes: 45", orbis)
+
     def test_container_publication_uses_one_sha_across_architectures(self) -> None:
         root = SCRIPT.parents[2]
         workflow = (root / ".github/workflows/containers.yml").read_text(
@@ -346,7 +419,19 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
             )
         )
         self.assertIn(
-            "runs-on: blacksmith-16vcpu-ubuntu-2404",
+            "github.event_name == 'pull_request'",
+            jobs["smoke"],
+        )
+        self.assertIn(
+            "github.event_name == 'merge_group'",
+            jobs["smoke"],
+        )
+        self.assertIn(
+            "'blacksmith-16vcpu-ubuntu-2404'",
+            jobs["smoke"],
+        )
+        self.assertIn(
+            "|| 'ubuntu-24.04'",
             jobs["smoke"],
         )
         for lane in ("paths", "summary"):
@@ -364,20 +449,18 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
         )
 
         self.assertNotIn("runs-on: blacksmith-", provers)
-        self.assertEqual(formal.count("runs-on: blacksmith-"), 1)
-        self.assertEqual(
-            formal.count("runs-on: blacksmith-16vcpu-ubuntu-2404"),
-            1,
-        )
+        self.assertNotIn("blacksmith-", formal)
 
-    def test_orbis_remains_accelerated(self) -> None:
+    def test_orbis_uses_blacksmith_only_for_merge_candidates(self) -> None:
         workflow = (
             SCRIPT.parents[2] / ".github/workflows/orbis-integration.yml"
         ).read_text(encoding="utf-8")
-        self.assertEqual(
-            workflow.count("runs-on: blacksmith-16vcpu-ubuntu-2404"),
-            1,
+        self.assertIn("github.event_name == 'pull_request'", workflow)
+        self.assertIn("github.event_name == 'merge_group'", workflow)
+        self.assertIn(
+            "'blacksmith-16vcpu-ubuntu-2404'", workflow
         )
+        self.assertIn("|| 'ubuntu-24.04'", workflow)
 
 
 class SnarkPackReleaseAuditWorkflowWiringTests(unittest.TestCase):

@@ -3,15 +3,15 @@
   "gate": "soundness-formal",
   "tiers": [
     "skip",
-    "stamps",
+    "pr",
     "full"
   ],
   "events": {
     "pull_request": {
-      "conservative_tier": "stamps"
+      "conservative_tier": "pr"
     },
     "merge_group": {
-      "conservative_tier": "full"
+      "conservative_tier": "pr"
     },
     "schedule": {
       "tier": "full"
@@ -27,19 +27,78 @@
     {
       "type": "cargo_local_closure",
       "packages": [
+        "pd",
+        "shieldd",
         "shieldd-constraint-coverage",
+        "shieldd-sdk-app",
         "shieldd-sdk-compliance",
-        "shieldd-sdk-shielded-pool"
+        "shieldd-sdk-shielded-pool",
+        "shieldd-sdk-transaction",
+        "shieldd-sdk-view"
       ],
       "tiers": {
-        "pull_request": "stamps",
-        "merge_group": "full",
+        "pull_request": "pr",
+        "merge_group": "pr",
         "default": "full"
       },
-      "reason": "local Cargo dependency closure for soundness seams and constraint coverage"
+      "reason": "local Cargo dependency closure for deployed ABCI/host front doors, circuit, transaction, view construction, consensus execution, and constraint coverage seams"
     }
   ],
   "explicit_inputs": [
+    {
+      "patterns": [
+        "scripts/fv_certification.py",
+        "tools/gnark/fv_certification_backends.json",
+        "tools/gnark/fv_profiles.json",
+        "tools/gnark/lean/ShielddGnarkFormal/Protocol/Common.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Protocol/NoteReshape/**",
+        "tools/gnark/lean/ShielddGnarkFormal/Protocol/Transfer/**",
+        "tools/gnark/lean/ShielddGnarkFormal/Protocol/ShieldedIcs20Withdrawal/**",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon1Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon2Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon3Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon4Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon6Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon7Spec.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon377*",
+        "tools/gnark/lean/ShielddGnarkFormal/Poseidon377/**",
+        "tools/gnark/lean/ShielddGnarkFormal/ChoiceFreeZMod*",
+        "tools/gnark/lean/ShielddGnarkFormal/NoteReshapeCanonical.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/*Bridge.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Deployed/NoteReshape*.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Deployed/Transfer*.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Deployed/ShieldedIcs20Withdrawal*.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Deployed/Generated/NoteReshape*.lean",
+        "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/NoteReshape*/**",
+        "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Transfer/**",
+        "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/**",
+        "tools/gnark/lean/gen/**",
+        "crates/crypto/constraint-coverage/**",
+        "tools/gnark/cmd/gnarkctl/**",
+        "tools/gnark/internal/abi/**",
+        "tools/gnark/internal/circuits/**",
+        "tools/gnark/internal/primitives/**",
+        "tools/gnark/third_party/gnark-lean-extractor/**",
+        "scripts/check-certified-circuit-impact.py",
+        "scripts/check-circuit-fv.sh",
+        "scripts/check-constraint-coverage.sh",
+        "scripts/check-fv-profiles.py",
+        "scripts/check-fv-specification-completeness.py",
+        "scripts/check-fv-specification-evidence.sh",
+        "scripts/check-key-coherence.sh",
+        "scripts/check-lean-circuit-fv.sh",
+        "scripts/gen-certified-circuit-artifacts.py",
+        "scripts/gen_fv_specification_matrix.py",
+        "scripts/sync-fv-certification-backends.py",
+        "crates/core/component/shielded-pool/formal/certified-circuit-obligation-ledger.md"
+      ],
+      "tiers": {
+        "pull_request": "pr",
+        "merge_group": "pr",
+        "default": "full"
+      },
+      "reason": "certified-circuit semantics, generators, extractors, or proof-validation source"
+    },
     {
       "patterns": [
         ".cargo/config.toml",
@@ -47,6 +106,7 @@
         ".github/workflows/fv-toolchain-image.yml",
         ".github/workflows/formal-scheduled.yml",
         ".github/workflows/formal.yml",
+        ".github/workflows/rust.yml",
         ".github/workflows/soundness-provers.yml",
         "Cargo.lock",
         "Cargo.toml",
@@ -58,8 +118,8 @@
         "scripts/ci/test_gate_applicability.py"
       ],
       "tiers": {
-        "pull_request": "stamps",
-        "merge_group": "full",
+        "pull_request": "pr",
+        "merge_group": "pr",
         "default": "full"
       },
       "reason": "workspace, toolchain, image, workflow, or classifier input"
@@ -67,30 +127,50 @@
     {
       "patterns": [
         ".gitignore",
+        "crates/core/app/src/action_handler/transaction.rs",
+        "crates/core/app/src/action_handler/transaction/**",
+        "crates/core/app/src/app/mod.rs",
         "crates/core/component/compliance/formal/**",
         "crates/core/component/shielded-pool/formal/**",
         "crates/core/component/shielded-pool/proofs/fstar/**",
         "docs/soundness/**",
         "scripts/check-constraint-coverage.sh",
+        "scripts/check-circuit-fv.sh",
+        "scripts/check-formal-gate-self-tests.sh",
+        "scripts/check-fv-profiles.py",
+        "scripts/check-fv-specification-evidence.sh",
+        "scripts/check-fv-specification-completeness.py",
+        "scripts/check-gadget-model-fidelity.sh",
         "scripts/check-lean-circuit-fv.sh",
         "scripts/check-manifest-pin.sh",
+        "scripts/check-certified-circuit-impact.py",
+        "scripts/check-certified-circuit-spec-independence.sh",
         "scripts/check-soundness-invariants.sh",
+        "scripts/check-structured-lc-generation.sh",
         "scripts/check-structured-lc-lint.sh",
-        "scripts/check-vk-derivation.sh",
+        "scripts/check-template-inventory.sh",
+        "scripts/check-key-coherence.sh",
+        "scripts/gen-certified-circuit-artifacts.py",
+        "scripts/gen_fv_specification_matrix.py",
+        "scripts/fv_specification_completeness.py",
+        "scripts/run-fv-specification-tests.py",
+        "scripts/sync-fv-certification-backends.py",
+        "scripts/tests/test_*.py",
+        "scripts/check_poseidon377_parity.sh",
         "scripts/circuit-constraint-check.sh",
         "scripts/circuit-gadget-proof-check.sh",
         "scripts/compliance-alloy.sh",
         "scripts/compliance-lean-dleq.sh",
         "scripts/compliance-symbolic.sh",
+        "scripts/lib/fail-closed-rg.sh",
         "scripts/lint-emitted-lean.py",
         "scripts/run-picus-bounded.sh",
-        "scripts/run-whole-circuit-picus.sh",
         "scripts/shielded-pool-formal.sh",
         "tools/gnark/**"
       ],
       "tiers": {
-        "pull_request": "stamps",
-        "merge_group": "full",
+        "pull_request": "pr",
+        "merge_group": "pr",
         "default": "full"
       },
       "reason": "soundness proof, artifact, generator, runtime, or invoked gate input"
@@ -100,8 +180,8 @@
         "tools/proto-compiler/**"
       ],
       "tiers": {
-        "pull_request": "stamps",
-        "merge_group": "full",
+        "pull_request": "pr",
+        "merge_group": "pr",
         "default": "full"
       },
       "reason": "protobuf code generator can alter generated Rust inputs in the soundness Cargo closure"

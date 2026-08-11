@@ -1,155 +1,340 @@
 # Circuit formal verification
 
-## Guarantee
+## What certification claims
 
-The maintained NoteReshape FV paths prove specifications of the exact deployed
-R1CS segments over one global wire valuation for `note_reshape2x1`,
-`note_reshape4x1`, `note_reshape8x1`, and `note_reshape1x8`. Each path composes every
-discharged segment and projects the result into a protocol-readable family
-Statement. Every shape covers its active notes' owner/key material, note
-commitments, nullifiers, depth-24 state paths, spend authorization keys,
-outputs, exact value conservation, net balance commitment, and public
-statement hash. Padded shapes additionally prove their active-range,
-dummy-suffix, and deterministic dummy-note obligations.
+The four fixed-shape circuit families use four deliberately separate assurance
+layers:
 
-The protocol theorem intentionally reflects the optimized circuit:
+1. `Protocol/{NoteReshape,Transfer,ShieldedIcs20Withdrawal}/Semantics` is
+   handwritten and imports only general mathematics. These modules define the
+   consensus-accepted fixed-shape actions, concrete action-local
+   pre-state/delta/post-state transitions, transaction composition and
+   committed-envelope semantics, and the separate honest-construction
+   guarantees. Executor rejection and rollback are runtime-tested boundaries,
+   not Lean-derived execution traces.
+2. The corresponding handwritten `Concrete` module fixes cryptographic
+   primitives and domain separators using independent Poseidon and Decaf
+   relations. It has no dependency on extracted or deployed circuit modules.
+3. Generated `Deployed.Contracts.*/CircuitFacts` modules prove typed facts
+   about every row of the exact deployed R1CS. Generated code does not define
+   protocol correctness.
+4. A handwritten deployed adapter consumes those exact facts and constructs
+   the independent `Protocol.*.CircuitFacts`; the handwritten refinement then
+   derives `Protocol.*.ConsensusAccepted`. Transaction-level claims additionally
+   require the exact deployed relation to derive `Protocol.*.TransactionAccepted`;
+   a standalone transaction theorem is not a deployed-circuit consequence.
 
-- `div_gen` is compressed once from the shared on-curve point. Per-note points
-  are related to it only by the circuit's Decaf cross-ratio relation; the proof
-  does not invent deleted per-note compression or curve checks.
-- the diversified transmission key is computed once from the shared inputs and
-  every note is bound to that result;
-- the 253-bit IVK decomposition proves the unused high bits are zero before the
-  251-bit scalar ladder is used;
-- every active input and output amount is 128-bit, the sum of active inputs
-  equals the sum of active outputs, and the conservation net-balance commitment
-  is the fixed blinding-generator multiplication compressed into the statement;
-- each randomized verification key is tied to the authorization key and
-  randomizer, not merely asserted to be on curve.
+The obligation ledger is
+`crates/core/component/shielded-pool/formal/certified-circuit-obligation-ledger.md`.
 
-The generated capstone remains exhaustive even when the readable theorem names
-only protocol facts. Review both: the capstone answers “did every deployed
-segment get a proof?”; the readable statement answers “did we retain the facts
-the protocol relies on?”
+The certified set is fixed-padded `note_reshape1x8` and `note_reshape8x1`,
+fixed Transfer 2x2, and fixed shielded ICS-20 Withdrawal 2x1. The adapters cover
+commitments, membership/nullifiers,
+real/dummy selection, randomized keys, conservation, canonical encodings, and
+the exact native statement hash. Transfer additionally covers its asset/user
+registry proofs, regulation-gated threshold comparison, unconditional compliance
+ciphertexts, salts, shared-secret/ACK derivations, and factored metadata.
+Transfer V16 also proves the v2 discovery-key-bearing compliance leaves, excludes
+the asset-tree zero sentinel, constrains both detection slots to 32 bits, and
+keeps the exact asset separate from the flag packed into sender-slot bit 32.
+It has no DLEQ or public shared-point surface. Withdrawal V8 proves the same
+leaf/sentinel invariants, its compact canonical asset leaf, outbound value, and
+all four 128-bit effect-hash limbs.
 
-## Deployed Statement families
+External proof-key selection, body/public-input projection, signatures, current
+asset policy, recent append-only user roots, registry authorization, nullifier
+state, output persistence, timestamp checks, and withdrawal execution stay
+outside Groth16. State-changing premises are one concrete typed
+`ConsensusTransition before action delta after`: it states freshness against
+the action pre-state, equality of the action delta to the proof-bound
+nullifiers and outputs, exact post-state extensions, and frame conditions.
+Transaction-wide uniqueness and commit require separate enclosing-transaction
+evidence; the action-local transition is not admissible as their sole proof.
+All-or-nothing rejection rollback is a distinct runtime obligation. The
+committed target is named at exact action-local
+pre/post states, its nullifier/output multisets are included in the complete
+transaction effects, and the durable transaction-final state is an exact
+multiplicity-preserving multiset extension by those complete effects, modulo
+storage ordering. This makes no append-order or SCT-position claim. Opaque
+“transition accepted” predicates are rejected.
+Wallet-only outgoing-view, plan-projection, and Transfer nonce guarantees
+inhabit `HonestConstructionFacts`; they are not prerequisites of
+`ConsensusAccepted`.
 
-The four final StatementHash providers use the exact deployed normalized
-relation for their family and keep the circuit's domain separator in the
-family-specific `TraceBase` artifact:
+## Why the dummy-input bug passed
 
-| Direction | Family hash | Domain separator | Rows | Proof blocks |
-| --- | --- | ---: | ---: | --- |
-| 2 → 1 | `fa0805975a685378ee126cbc35cc459afdc517f39a649a4b6c399ecb314e4ba4` | `5079577531472816977664249278115400294401892237874490721478834552286369830267` | 470 | 0 |
-| 4 → 1 | `1793252a60bcfa1349323fb6dd806d5ca870b6bb13928d2c76a9ab96d6285b78` | `5915654282401331336747985974992743439571166637199277295399593266008193812311` | 940 | 0–1 |
-| 1 → 8 | `ea6e16ca790c4a7c201bdf9c6af52686856895f165e4401a7d4548546019e805` | `2598058543572663691928291801991083332834406653466399970650219017347474033401` | 1,385 | 0–2 |
-| 8 → 1 | `7f09a82cc498d6d8110288b15abe6c94418d0ca73b1645467aff88fcbdd938ed` | `8151566796627494957780365425260097767647931594965532798107827918965818197203` | 1,860 | 0–3 |
+The previous Lean path proved that the deployed circuit satisfied facts derived
+from that same circuit. Its generated semantic-looking `Statement` interface
+was not an independent protocol specification. If the circuit and generated
+interface omitted the same dummy obligation, Lean could prove both perfectly.
+The missing piece was the handwritten join from exact circuit behavior to an
+independently reviewed accepted-language relation.
 
-Each relation provider exposes five-row `relationPart` shards, including the
-large 1 → 8 and 8 → 1 relations. Block providers compose those parts, and the
-family Statement composes the deployed blocks; no compatibility or alternate
-relation path is retained.
+Whole-family Picus did not close that gap. Its export classified every secret
+wire as an input, so the solver checked satisfiability after the prover had
+already chosen all secret values. That can find local algebraic counterexamples,
+but it does not establish that a protocol field is constrained or joined to
+the accepted language.
 
-## Drift-proof chain
+Picus remains useful for:
+
+- leaf-gadget counterexamples and small underconstraint probes;
+- rapid checks before an exact Lean adapter exists;
+- adversarial tests of a proposed local relation.
+
+It is not part of the whole-family certification claim. Family exports
+that assign every secret wire as an input are rejected.
+
+## Specification independence
+
+The CI boundary enforces:
+
+- the independently reviewed
+  `fv-specification-requirements.json` and the code-owned closed baseline have
+  the same predicate IDs, placements, and profile sets. That hand-owned file,
+  not the matrix generator, owns all 110 exact normative statements; each
+  requirement also declares its branch condition, binding mode, disclosure
+  boundary, variable source, and mandatory evidence-removal census;
+- the generated specification matrix must equal that independent requirement
+  source; the narrower native-type parity census is an exact subset for
+  prover-private values rejected by native Rust types; every runtime profile
+  has the exact applicable role multiplicity, and every role cites a concrete
+  predicate plus an independent acceptance/security consequence theorem;
+- every predicate/profile application binds the exact trace arguments or
+  formal facts it claims. Its evidence-removal target names every selected
+  trace or fact; the checker deletes a target from every application and
+  requires all such mapping omissions to fail. This is a census-closure check,
+  not evidence that a semantic attack was reproduced;
+- every critical or high predicate/profile application additionally requires
+  predicate-specific semantic evidence. A circuit atom needs either a theorem
+  whose conclusion states that atom and is joined to the deployed acceptance
+  root, or a concrete semantic mutation/negative test. An external or
+  construction atom needs a dedicated typed-relation theorem or focused
+  positive/negative test. A family-valid fixture, a generic refinement root,
+  or the shared action transition alone cannot satisfy this gate;
+- the independent generated-consequence roster names every exact
+  `(profile, circuit predicate, deployed theorem)` triple for the two padded
+  NoteReshape directions, Transfer, and Withdrawal. The checker independently
+  re-derives that same deficit universe, pins the canonical roster bytes, and
+  requires every named theorem to exist;
+- existence and axiom checks are not accepted as proposition checks. The
+  requirements artifact pins normalized theorem-signature hashes for the full
+  consequence surface, including every atom theorem and each profile's
+  `circuitFacts_of_relationAll` bridge, deployed/local acceptance root, and
+  transaction root. Renaming a weakened `True` theorem to an expected name
+  cannot satisfy the gate;
+- a transaction atom selects `TransactionAccepted.actionAccepted` and
+  `TransactionAccepted.committed`, not the action-local transition field.
+  Withdrawal state/atomicity also selects
+  `TransactionAccepted.withdrawalEffects`. Closure requires the protocol
+  `transactionAccepted_of_circuitFacts` theorem and the profile-specific
+  deployed `transactionAccepted_of_deployedRelation` root;
+- every positive constraint-manifest segment has one exact
+  `(operation, arguments, kind, row count)` inventory entry and is selected by
+  at least one atomic predicate; every handwritten formal-fact field and every
+  obligation-ledger row has exactly one evidence-set owner;
+- every state/effect predicate selects only the family’s typed
+  state relation; the checker pins the exact `ConsensusState`, `ActionDelta`,
+  action-transition clauses, transaction-composition evidence, and acceptance
+  embedding and rejects the former opaque state-premise fields;
+- consensus acceptance, honest construction, and claims that deliberately
+  compose both are different scopes. Construction evidence cannot enter a
+  circuit-to-acceptance refinement;
+- critical prover-private exclusions require a boundary-negative test, a
+  recomputed attack reproduction, and a full-circuit negative test;
+- a fresh constraint manifest must contain each matrix-mandated circuit
+  predicate as the exact authenticated row shape before Lean refinement starts;
+- protocol semantics cannot import generated contracts, manifests, traces,
+  artifacts, or wire indices;
+- generators cannot write protocol-semantic modules;
+- a circuit-only change must preserve the reviewed specification bundle digest
+  `tools/gnark/lean/certified-protocol-semantics.sha256`;
+- the digest includes every `Protocol/**/*.lean` and Poseidon377 semantic
+  module, the recursively discovered Lean import closure of all four deployed
+  roots and consequence modules, the whole `crates/**` Rust source/manifest/
+  schema closure, the circuit/extractor Go trees, Lean proof generators, FV
+  profiles/backends, Cargo/Go/Lean lock and build inputs, and the applicable CI
+  gates and workflows. A weakened helper outside a cited theorem or test
+  declaration therefore cannot evade review;
+- every witness field must have a reviewed role, a supporting obligation, and
+  at least one compiled R1CS row;
+- exact statement reconstruction is differential-tested across Rust and Go;
+- stale plan-body/balance caches and removed per-note address representations
+  are forbidden by schema and structural regression tests.
+
+This closes the specification only relative to the independently reviewed
+110-predicate requirements source, code-owned baseline, and obligation ledger.
+The current closed census contains 278 predicate/profile applications, 478
+exact trace selections spanning 301 unique trace IDs, 339 formal-fact
+selections spanning 103 unique acceptance/circuit/construction facts, 43
+obligation-ledger rows, 25 security properties, and 289 predicate-specific
+executable test IDs. Every declared `(test, predicate, profile)` claim must be
+selected by one exact application;
+family-specific evidence cannot silently claim another family merely because
+the underlying predicate is shared.
+
+`CommittedEffects` is deliberately an external transaction-envelope premise.
+It establishes global uniqueness, exact durable extensions, and target
+multiset inclusion; it does not claim a typed provenance proof that every item
+is the concatenation of an enumerated list of accepted actions. The Lean model
+deliberately has no detached rejected-outcome theorem. Release separately
+requires end-to-end executor rollback regressions covering state transactions
+and application-owned deferred buffers. Claims must not be strengthened beyond
+these boundaries without extending the model.
+
+The runtime half has a separate closed proof-acceptance census: 17 production
+sinks and 7 explicitly guarded test/benchmark exclusions. The checker parses
+the Rust entrypoints and rejects an unlisted public proof path, a missing
+test/benchmark `cfg`, any production use of legacy aggregate `batch_verify`,
+any cache promotion outside the reviewed callers, or any sink that does not
+reach `verify_each` and `Groth16::verify_with_processed_vk` under the exact
+bundled family key. Aggregation may be retained as redundant diagnostic or
+performance evidence, but it is never an acceptance authority.
+
+The adversarial runtime regressions exercise every deployed real-proof fixture
+through ProcessProposal, cold DeliverTx, extracted-cache hits, host delivery
+before and after CheckTx, and every cache-promotion tier. Decodable invalid
+Groth16 proofs are rejected despite a supplied aggregate, and rejection occurs
+before state mutation. Standalone test genesis does not create the Withdrawal
+`channel-0` route, so these regressions make no positive end-to-end stateful
+Withdrawal claim; the positive Withdrawal packet/supply transition remains
+covered by its focused handler tests, while the invalid-proof paths reject
+before IBC route state is consulted.
+
+No mechanized process can
+prove that humans have imagined every security property. Promotion therefore
+still requires adversarial review of the requirements source itself. The
+machine gate establishes two narrower, auditable claims: the reviewed
+requirement set is closed under the repository census, and no reviewed atom,
+branch/disclosure contract, role, trace row, formal fact, transition clause,
+ledger row, required test, or stated assumption silently falls out of the
+implementation/proof chain.
+
+The version-3 NoteReshape witness contains one private shared asset ID,
+diversified generator, and discovery key. Transfer V16 and Withdrawal V8 likewise
+derive their public bodies and shared sender context from canonical plan facts.
+There is no persisted placeholder action body or duplicate balance in any of
+the three proof plans.
+
+## Exact deployed chain
 
 ```text
-Go Define source
-  -> freshly compiled SR1CS, byte-equal to deployed SR1CS
-  -> semantic segment manifest, byte-equal to the committed manifest
-  -> typed slice IR and verified proof-template equivalence witness
-  -> reviewed proof-template registry and normalized coverage manifest
-  -> exact generated row contracts
-  -> generated template Bounds and exhaustive Capstone
-  -> generated role-partitioned Statement theorem
-  -> deployed PK/VK pins and a deployed-key prove/verify round trip
+independent Semantics + Concrete primitives + obligation ledger
+                              |
+Go Define -> SR1CS -> typed slice IR -> generated row contracts
+                              |                   |
+                      coverage capstone     typed CircuitFacts
+                              \                   /
+                    handwritten family adapters
+                              |
+                independent concrete refinement
+                              |
+       explicit acceptance facts + typed before/delta/after transition
+                              |
+                 Protocol.*.ConsensusAccepted
+
+Honest construction checks -----------------> ConstructedAndAccepted
 ```
 
-No handwritten circuit replica participates in this chain. The extractor may
-reuse a reviewed template only after reconstructing every deployed row from its
-canonical row with a wire and row permutation, optional L/R swap, and valid
-nonzero R1CS scaling. Term ordering is normalized. Aliases, coefficients,
-equations, or unmatched templates fail closed as unreviewed. Broader polynomial
-equivalence and variable elimination are intentionally out of scope.
+Each circuit-to-protocol refinement is closed conditional on its named external
+facts. Certification additionally pins the semantic segment manifest,
+authenticated row IR, template equivalence witnesses, generated ownership
+digests, SR1CS bytes, PK/VK bytes, and deployed-key prove/verify round trips.
+Template reuse is permitted only with a checked wire/row permutation, optional
+L/R swap, and valid nonzero R1CS scaling. Reused IR must project exactly onto
+the authenticated manifest segment partition and match a complete canonical
+reconstruction from the SR1CS and reviewed proof-template registry.
 
-Changing Go source, segment boundaries, operation labels, wire roles,
-proof-class status, theorem names, capstone membership, Statement
-membership, key bytes, or generated output makes a gate fail unless the change
-is covered by a verified local-equivalence witness. Generated Lean must be
-fixed through its generator and then regenerated; never edit it directly.
+Release proof cases are branch-labelled rather than treated as one anonymous
+coherence witness. Transfer proves and verifies canonical
+`regulated_unflagged`, `regulated_flagged_hidden`, and `unregulated_hidden`
+assignments under the same deployed key. Withdrawal does the same for its
+regulated/optional-real and unregulated/optional-dummy branches. These receipts
+show key/R1CS coherence and branch satisfiability; the exact-row Lean
+refinement, not witness sampling, establishes the universal relation claim.
 
-Lean's theorem starts from the conjunction of exact deployed segment relations.
-The Rust coverage gate is the checked bridge establishing that those relations
-partition the compiled SR1CS rows. The source/SR1CS and key gates are therefore
-part of the proof claim, not optional bookkeeping.
+The artifact contracts are `shieldd.gnark.fv_profiles.v2` with
+`proof_witnesses`, proof receipt schema v4 with `proof_case` and
+`setup_provenance_sha256_hex`, circuit metadata v2, and setup provenance v2.
+Setup provenance identifies each setup command generation self-test by case,
+witness version, and witness hash and records that the test proved and verified
+in process. It deliberately retains neither proof bytes nor a proof digest:
+fresh schema-v4 release receipts are per-run operational evidence that binds a
+prove/verify run to the deployed artifacts. They are nonce-bound and checked
+before the gate exits, but are not signed or persisted as portable
+attestations. The current provenance
+records a fresh setup but also states
+`setup_transcript=not_recorded` and
+`toxic_waste_erasure=not_mechanically_verified`. A successful proof receipt is
+not evidence of key derivation or toxic-waste destruction.
+Accordingly every profile is stamped with
+`setup_trust_status=conditional_unverified_ceremony` and the exact assumption
+`ZK-ASSUME-GROTH16-SETUP-TOXIC-WASTE`. The completeness checker requires this
+status/assumption join and will not report unconditional setup trust.
 
-## Evidence and trust boundary
+Every cited predicate test and separately owned runtime-policy test is
+executable evidence, not a filename in a
+spreadsheet. The requirements artifact pins the full source bytes for every
+test ID, so retaining a selector while replacing its body with a vacuous pass
+reopens the gate. `check-fv-specification-evidence.sh` resolves every Rust or Go
+selector to exactly one runnable test, forbids ignores/skips, executes it under
+the declared build profile and features, and emits a nonce-bound receipt over
+the matrix, execution plan, source bytes, command, and output. The completeness
+checker rejects a stale, partial, replayed, or differently scoped receipt.
+The dedicated real-proof acceptance module is also a closed test census:
+every runnable test in it must have a matrix row and is forced onto the exact
+release prover execution path. Every Withdrawal-named runtime test in the
+outbound ICS-20 module and every test in the three deployed shielded-action
+handler modules are likewise required to have matrix rows. The fixed-padded
+NoteReshape and Withdrawal proof modules are closed test censuses as well.
 
-Authoritative evidence lives at:
+## Trust boundary
 
-- `tools/gnark/artifacts/{note_reshape2x1,note_reshape4x1,note_reshape8x1,note_reshape1x8}/`
-  — deployed SR1CS, metadata, PK, and VK;
-- `crates/core/component/shielded-pool/formal/` — coverage reports, normalized
-  manifests, and stamped whole-circuit artifacts;
-- `tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/` — generated family
-  bounds, capstones, wiring, and Statements;
-- `tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/` — exact normalized
-  template relations and their reusable semantic providers;
-- `tools/gnark/artifacts/proof-template-registry.json` and
-  `tools/gnark/artifacts/proof-template-relations/` — reviewed canonical
-  relations and stable template identities;
-- `tools/gnark/artifacts/proof-template-ownership.json` —
-  template-owned generated files, exact byte digests, family consumers, and
-  per-family semantic-closure hashes;
-- `crates/core/component/compliance/formal/assumption-ledger.md` — named
-  assumptions and removal paths.
+The result still trusts the gnark compiler/backend and Groth16 implementation,
+the extraction and coverage tools, Lean's kernel and standard axiom baseline,
+and the documented cryptographic assumptions. These include Poseidon and
+BLAKE2b collision resistance and the exact Decaf gadget interpretations listed
+in the assumption ledger. Note-owner uniqueness specifically relies on
+`ZK-ASSUME-IVK-HASH-TO-SCALAR-BINDING` for the composed
+`Poseidon377::hash_2(... ) mod r` map restricted to nonzero results: native
+full-viewing-key construction and all four circuits reject the zero reduced
+scalar, and every circuit rejects identity-class transmission points exactly.
+Only collisions between distinct admitted hash outputs congruent modulo `r`
+remain an accepted-proof computational boundary; the five-target zero
+probability is an honest-constructor availability concern. Infallible native
+payment-address derivation additionally relies on
+`ZK-ASSUME-DIVERSIFIER-HASH-TO-GENERATOR-NONIDENTITY` for the exact
+personalized BLAKE2b-to-`Fq`-to-Elligator map over 16-byte diversifiers. The
+ledger deliberately claims no concrete negligible reduction until the
+Elligator identity-preimage count and hash-to-field idealization are proved;
+serialized addresses and every circuit role still reject identity values
+directly. It also trusts the current fresh-setup operator not
+to retain toxic waste; the explicit provenance makes that residual visible but
+does not discharge it. Protocol handlers own signatures, live state, and state
+transitions.
 
-The proof still trusts the gnark compiler/backend and Groth16 implementation,
-the coverage/extraction tools, Lean's kernel and standard axiom baseline, the
-cryptographic assumptions recorded in the ledger, and the surrounding Decaf377
-representation bridges. The BLS12-377 scalar-field modulus itself is proved
-prime by a kernel-checked Lucas certificate. The gate forbids project axioms and
-compiler-backed certificate shortcuts, then requires the certificate, deployed
-capstones, and readable Statements to expose their reviewed axiom baselines.
-The memory-bounded `.olean` dependency auditor requires each final theorem to
-depend on exactly `[propext, Quot.sound]`; every other axiom, including
-`Classical.choice` and `sorryAx`, fails the gate. Each deployed Statement's
-exact standard-axiom baseline is recorded in its stamped artifact. Protocol handlers and
-accepted-language/state-machine claims remain separate evidence.
+The Lean gate permits one Lake build at a time with `LEAN_NUM_THREADS=1`.
+Generated Lean is never edited directly; generator output and template
+ownership are byte-checked. Affected pull requests run the bounded soundness
+invariants, statement seams, manifest/stamp integrity, and Alloy checks.
+Manual/nightly GitHub-hosted runs regenerate every formal artifact and run
+deployed-key prove/verify. Lean kernel replay and the axiom audit are local
+release operations: their committed evidence binds the source closure, final
+theorem roots, axiom baseline, and toolchain, and the strict manual/nightly lane
+rejects stale evidence. This is a prototype cadence decision, not a claim that
+CI independently reruns Lean or that candidate checks replace local proof
+verification.
 
-## Editing workflow
-
-1. Change the circuit or semantic spec.
-2. Run focused Go tests and export a fresh candidate SR1CS/manifest.
-3. Inspect the semantic segment diff. New or changed relations require an
-   explicit proof; deleted relations require an explanation.
-4. Regenerate typed IR and verify its registry witness. A new relation must be
-   reviewed and added to the registry before proof generation can continue.
-5. Regenerate contracts, template semantics, wiring, capstone, Statement, and
-   the ownership manifest from their generators.
-6. Build the narrowest changed Lean modules in dependency order.
-7. Run `drift`, then `typed`; generate evidence only after the axiom audit is
-   green, and finish with `release` for the deployed-key round trip.
-8. Update compact stamped artifacts only after every source gate is green.
-
-Lean resource rules are load-bearing: run one Lake command at a time, set
-`LEAN_NUM_THREADS=1`, build the narrowest named module, keep generated
-`maxHeartbeats` finite, and monitor the process. The extractor now emits a finite
-budget, and its regression gate prevents new unbounded exports. Exact contracts
-whose definition payload exceeds 16 MiB are emitted as a small base, contiguous
-512 KiB definition shards, and a canonical façade; every shard must remain
-inside the leaf budget. Older extracted
-modules remain source-hash-gated with their historical unbounded setting until a
-deliberate bulk regeneration is reviewed. The complete local rules are in
-`tools/gnark/lean/AGENTS.md`.
-
-Useful commands:
+## Release commands
 
 ```sh
+python3 scripts/gen_fv_specification_matrix.py --check
+python3 scripts/check-fv-specification-completeness.py
+bash scripts/check-fv-specification-evidence.sh
+scripts/check-certified-circuit-spec-independence.sh strict
 scripts/check-manifest-pin.sh all
 scripts/check-constraint-coverage.sh --require-full-deployed --check-typed-bindings all
-LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh drift all
-LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh typed all
-python3 scripts/gen-note-reshape-family-artifacts.py
+python3 scripts/gen-certified-circuit-artifacts.py
 LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh release all
-bash scripts/check-soundness-invariants.sh
+bash scripts/check-soundness-invariants.sh strict
 ```

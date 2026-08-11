@@ -395,4 +395,3 @@ theorem template_scp_recompose (rho : Nat -> F) (h : Shieldd.GnarkFormal.Deploye
   linear_combination -r278
 
 end Shieldd.GnarkFormal.Deployed.Templates.Semantics.TGadgetStateCommitmentPath_f8a8f9c6b11e69f98e85aa31c0465cb534c7ffca4183e830c5b26ea814c660eb
-

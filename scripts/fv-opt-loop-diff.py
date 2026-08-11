@@ -12,8 +12,13 @@ FLIPPED, REMOVED, or ADDED and absent indices are "-".
 """
 
 import difflib
-import json
 import sys
+from pathlib import Path
+
+try:
+    from .fv_strict_json import load as load_strict_json
+except ImportError:
+    from fv_strict_json import load as load_strict_json
 
 
 def identity(ob):
@@ -47,8 +52,12 @@ def diff(old, new):
 
 def main():
     committed, fresh = sys.argv[1], sys.argv[2]
-    old = json.load(open(committed))["deployed_obligations"]["obligations"]
-    new = json.load(open(fresh))["deployed_obligations"]["obligations"]
+    old = load_strict_json(
+        Path(committed), "committed FV obligation report"
+    )["deployed_obligations"]["obligations"]
+    new = load_strict_json(
+        Path(fresh), "fresh FV obligation report"
+    )["deployed_obligations"]["obligations"]
     old.sort(key=lambda x: x["segment_index"])
     new.sort(key=lambda x: x["segment_index"])
     for kind, oi, ni, op in diff(old, new):

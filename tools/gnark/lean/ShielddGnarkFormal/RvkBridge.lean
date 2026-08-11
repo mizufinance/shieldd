@@ -1,4 +1,5 @@
 import ShielddGnarkFormal.ScalarMulBridge
+import ShielddGnarkFormal.ChoiceFreeZModCast
 import ShielddGnarkFormal.Decaf377CircuitDefs
 import ShielddGnarkFormal.Extracted.DecafRvk
 import ProvenZk.Lemmas
@@ -41,6 +42,11 @@ variable [Fact (Nat.Prime Order)]
 
 instance : Fact (Nat.Prime Extracted.DecafRvk.Order) := ‹_›
 
+section ChoiceFreeGenerator
+
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
+attribute [-instance] ZMod.instField
+
 theorem genX_natCast : ((genXNat : ℕ) : F) =
     (4959445789346820725352484487855828915252512307947624787834978378872129235627 : F) := by
   simp only [genXNat]; exact_mod_cast rfl
@@ -60,12 +66,14 @@ theorem generator_onCurve :
   have hcast :
       ((genYNat * genYNat + (Order - 1) * (genXNat * genXNat) : ℕ) : F) =
         ((1 + EdwardsBridge.dNat * (genXNat * genXNat) * (genYNat * genYNat) : ℕ) : F) := by
-    rw [ZMod.natCast_eq_natCast_iff']
-    exact gen_onCurve_nat
+    exact Shieldd.GnarkFormal.ChoiceFreeZMod.natCast_eq_natCast_of_mod_eq
+      Order _ _ (by decide) gen_onCurve_nat
   simp only [Nat.cast_add, Nat.cast_mul, Nat.cast_one] at hcast
   rw [orderSubOne_cast, genX_natCast, genY_natCast, ← EdwardsBridge.d_natCast] at hcast
   show -(_ * _) + _ * _ = 1 + EdwardsBridge.d * (_ * _) * (_ * _)
   linear_combination hcast
+
+end ChoiceFreeGenerator
 
 /-! ### Rung and ladder -/
 
@@ -199,6 +207,19 @@ theorem rvkTailK_semantic (akX akY outX outY z w : F) (p : EdwardsBridge.Point)
   exact ⟨hx ▸ h266, hy ▸ h267⟩
 
 /-! ### Final theorems -/
+
+/-- The RVK ladder's exact 251-bit decomposition bounds its randomizer. -/
+theorem randomizer_lt_of_circuit
+    (akX akY randomizer outX outY : F)
+    (h : Extracted.DecafRvk.circuit
+      akX akY randomizer outX outY) :
+    randomizer.val < 2 ^ 251 := by
+  rw [rvk_circuit_eq_ladderK] at h
+  rcases h with
+    ⟨_, _, _, _, _, _, _, _, _, _, _, _, _, bits, hbin, _⟩
+  rw [Gates.to_binary_iff_eq_fin_to_bits_le_of_pow_length_lt
+    (N := Order) pow251_lt_order] at hbin
+  exact hbin.1
 
 theorem rvk_circuit_sound (akX akY randomizer outX outY : F)
     (hak : EdwardsBridge.onCurve ⟨akX, akY⟩)

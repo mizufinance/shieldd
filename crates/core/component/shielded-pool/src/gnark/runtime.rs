@@ -21,6 +21,7 @@ pub(crate) const GNARK_MAX_REQUEST_BYTES: usize = 4 * 1024 * 1024;
 pub(crate) const GNARK_MAX_RESULT_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct GnarkDaemonReady {
     pub magic: String,
     pub version: u32,
@@ -28,10 +29,9 @@ pub(crate) struct GnarkDaemonReady {
     pub circuit: String,
     pub curve: String,
     pub metadata_sha256_hex: String,
-    pub verifying_key_sha256_hex: String,
+    pub verifying_key_binary_sha256_hex: String,
+    pub verifying_key_json_sha256_hex: String,
     pub proving_key_sha256_hex: String,
-    #[serde(default)]
-    pub verifying_key_id: Option<String>,
 }
 
 pub(crate) struct GnarkDaemonProcess {
@@ -129,9 +129,9 @@ pub(crate) fn validate_daemon_ready(
     ready: &GnarkDaemonReady,
     expected_circuit: &str,
     metadata_hash: &str,
-    proving_key_hash: Option<&str>,
-    verifying_key_hash: Option<&str>,
-    verifying_key_id: Option<&str>,
+    proving_key_hash: &str,
+    verifying_key_binary_hash: &str,
+    verifying_key_json_hash: &str,
 ) -> Result<()> {
     if ready.circuit != expected_circuit {
         bail!(
@@ -148,30 +148,23 @@ pub(crate) fn validate_daemon_ready(
             ready.metadata_sha256_hex
         );
     }
-    if let Some(expected) = proving_key_hash {
-        if ready.proving_key_sha256_hex != expected {
-            bail!(
-                "gnark daemon proving key hash mismatch: expected {expected}, got {}",
-                ready.proving_key_sha256_hex
-            );
-        }
+    if ready.proving_key_sha256_hex != proving_key_hash {
+        bail!(
+            "gnark daemon proving key hash mismatch: expected {proving_key_hash}, got {}",
+            ready.proving_key_sha256_hex
+        );
     }
-    if let Some(expected) = verifying_key_hash {
-        if ready.verifying_key_sha256_hex != expected {
-            bail!(
-                "gnark daemon verifying key hash mismatch: expected {expected}, got {}",
-                ready.verifying_key_sha256_hex
-            );
-        }
+    if ready.verifying_key_binary_sha256_hex != verifying_key_binary_hash {
+        bail!(
+            "gnark daemon binary verifying key hash mismatch: expected {verifying_key_binary_hash}, got {}",
+            ready.verifying_key_binary_sha256_hex
+        );
     }
-    if let Some(expected) = verifying_key_id {
-        match ready.verifying_key_id.as_deref() {
-            Some(actual) if actual == expected => {}
-            Some(actual) => {
-                bail!("gnark daemon verifying key id mismatch: expected {expected}, got {actual}");
-            }
-            None => bail!("gnark daemon omitted verifying key id"),
-        }
+    if ready.verifying_key_json_sha256_hex != verifying_key_json_hash {
+        bail!(
+            "gnark daemon JSON verifying key hash mismatch: expected {verifying_key_json_hash}, got {}",
+            ready.verifying_key_json_sha256_hex
+        );
     }
     Ok(())
 }

@@ -36,7 +36,7 @@ benchmark-helpers = [
 ]
 default = ["std", "component"]
 fuzzing = []
-# Insecure Orbis integration only; never enable in production.
+# Insecure isolated integration only; never enable in production.
 orbis-dev-srs = []
 std     = ["ark-ff/std", "ibc-types/std"]
 
@@ -61,7 +61,7 @@ hex                              = { workspace = true }
 ibc-proto                        = { workspace = true, default-features = false, features = ["server"] }
 ibc-types                        = { workspace = true, default-features = false }
 ics23                            = { workspace = true }
-im                               = { workspace = true }
+imbl                             = { workspace = true }
 jmt                              = { workspace = true }
 metrics                          = { workspace = true }
 once_cell                        = { workspace = true }
@@ -113,9 +113,11 @@ url                              = { workspace = true }
 
 [dev-dependencies]
 ed25519-consensus                = { workspace = true }
+shieldd-sdk-compliance           = { workspace = true, features = ["test-helpers"] }
 shieldd-sdk-mock-client         = { workspace = true }
 shieldd-sdk-mock-consensus      = { workspace = true }
 shieldd-sdk-proto               = { workspace = true, features = ["box-grpc"] }
+shieldd-sdk-shielded-pool       = { workspace = true, default-features = false, features = ["benchmark-helpers"] }
 proptest                         = { workspace = true }
 rand                             = { workspace = true }
 rand_chacha                      = { workspace = true }

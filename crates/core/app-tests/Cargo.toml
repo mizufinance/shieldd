@@ -52,7 +52,7 @@ hex                              = { workspace = true }
 ibc-proto                        = { workspace = true, default-features = false, features = ["server"] }
 ibc-types                        = { workspace = true, default-features = false }
 ics23                            = { workspace = true }
-im                               = { workspace = true }
+imbl                             = { workspace = true }
 jmt                              = { workspace = true }
 metrics                          = { workspace = true }
 once_cell                        = { workspace = true }
@@ -65,7 +65,7 @@ shieldd-sdk-governance              = { workspace = true, default-features = fal
 shieldd-sdk-ibc                     = { workspace = true, features = ["benchmark-helpers"], default-features = false }
 shieldd-sdk-keys                    = { workspace = true, default-features = true }
 shieldd-sdk-num                     = { workspace = true, default-features = true }
-shieldd-sdk-compliance              = { workspace = true, default-features = false }
+shieldd-sdk-compliance              = { workspace = true, default-features = false, features = ["test-helpers"] }
 shieldd-sdk-proof-params            = { workspace = true, default-features = false }
 shieldd-sdk-proto                   = { workspace = true, default-features = true }
 shieldd-sdk-sct                     = { workspace = true, default-features = false }
@@ -111,7 +111,6 @@ shieldd-sdk-test-subscriber         = { workspace = true }
 shieldd-sdk-mock-tendermint-proxy   = { workspace = true }
 shieldd-sdk-view                    = { workspace = true }
 shieldd-sdk-wallet                  = { workspace = true }
-shieldd-sdk-proof-aggregation       = { workspace = true }
 rand                             = { workspace = true }
 rand_chacha                      = { workspace = true }
 rand_core                        = { workspace = true }

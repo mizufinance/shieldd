@@ -16,10 +16,11 @@ pub use generated::{
     SHIELDED_ICS20_WITHDRAWAL_FAMILY_SPECS,
 };
 pub use plan::ShieldedIcs20WithdrawalPlan;
+pub(crate) use proof::withdrawal_effect_hash_limbs;
 pub use proof::{
     ShieldedIcs20WithdrawalChangePrivate, ShieldedIcs20WithdrawalChangePublic,
-    ShieldedIcs20WithdrawalInputPrivate, ShieldedIcs20WithdrawalInputPublic,
+    ShieldedIcs20WithdrawalInputPublic, ShieldedIcs20WithdrawalOptionalInputPrivate,
     ShieldedIcs20WithdrawalProof, ShieldedIcs20WithdrawalProofPrivate,
-    ShieldedIcs20WithdrawalProofPublic,
+    ShieldedIcs20WithdrawalProofPublic, ShieldedIcs20WithdrawalRequiredInputPrivate,
 };
 pub use view::ShieldedIcs20WithdrawalView;

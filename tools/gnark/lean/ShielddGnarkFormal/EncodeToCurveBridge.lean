@@ -1,8 +1,10 @@
 import ShielddGnarkFormal.Extracted.DecafEncodeToCurve
 import ShielddGnarkFormal.CanonicalFqBitsBridge
 import ShielddGnarkFormal.ChoiceFreeBinary
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.CompressToFieldBridge
 import ShielddGnarkFormal.EdwardsCompleteness
+import ShielddGnarkFormal.Protocol.Common
 import ProvenZk.Lemmas
 import ProvenZk.Ext.Vector
 
@@ -21,12 +23,15 @@ the proven canonical-bits ladder for the sign normalization bit.
 namespace Shieldd.GnarkFormal.Extracted.DecafEncodeToCurve
 
 open Bool (toZMod)
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 variable [Fact (Nat.Prime Order)]
 
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.CanonicalFqBits.Order) := ‹_›
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.DecafEdwardsAdd.Order) := ‹_›
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.DecafCompressToField.Order) := ‹_›
+
+section ChoiceFreeSemanticDefinitions
 
 def zetaNat : ℕ :=
   2841681278031794617739547238867782961338435681360110683443920362658525667816
@@ -90,6 +95,8 @@ def Relation (input outX outY : F) : Prop :=
   ∃ wasSquare invSqrt t yDen,
     PreSem input wasSquare invSqrt t yDen ∧
     PostSem wasSquare t yDen outX outY
+
+end ChoiceFreeSemanticDefinitions
 
 def encodeSeg0 (Input WasSquare InvSqrt : F) (k : F → F → Prop) : Prop :=
     ∃gate_0, gate_0 = Gates.mul Input Input ∧
@@ -471,7 +478,7 @@ theorem map_toZMod_getElem_zero (x : List.Vector Bool 253) :
     (x.map toZMod)[0] = (toZMod x.head : F) := by
   rw [List.Vector.getElem_map]
   congr 1
-  show x.get ⟨0, by norm_num⟩ = x.head
+  show x.get ⟨0, by decide⟩ = x.head
   rw [← List.Vector.get_zero x]
   rfl
 
@@ -512,6 +519,136 @@ theorem normalizeT_absF {ws t s : F} (hb : ws = 0 ∨ ws = 1)
     rcases is_zero_cases _ _ hz with ⟨ha, _⟩ | ⟨_, hz1⟩
     · exact absurd (sub_self 1) ha
     · rw [hznt hz1]; simp [absF, hp]
+
+/-! ### Independent protocol projection -/
+
+/-- Backend sign normalization implies the protocol's canonical-parity rule. -/
+theorem normalizeT_protocol {wasSquare t signedT : F}
+    (hBoolean : wasSquare = 0 ∨ wasSquare = 1)
+    (h : NormalizeT wasSquare t signedT) :
+    Protocol.Common.EncodeToCurve.normalize
+      wasSquare t signedT := by
+  have hzero : (0 : F) ≠ 1 := zero_ne_one
+  rw [normalizeT_absF hBoolean h]
+  rcases hBoolean with rfl | rfl <;>
+    rcases Nat.mod_two_eq_zero_or_one t.val with hParity | hParity <;>
+    simp [
+      Protocol.Common.EncodeToCurve.normalize,
+      absF, hParity, Nat.testBit_zero, hzero
+    ]
+
+/--
+The exact extracted encode witness satisfies the independent protocol
+relation. This projection retains the witness instead of collapsing it into
+the noncomputable chosen encode point.
+-/
+theorem relation_to_protocol {input outX outY : F}
+    (h : Relation input outX outY) :
+    Protocol.Common.EncodeToCurve.relation
+      input ⟨outX, outY⟩ := by
+  set_option maxRecDepth 1000000 in
+  rcases h with
+    ⟨wasSquare, inverseSqrt, t, yDenominator,
+      ⟨hSqrt, hT, hYDenominator⟩,
+      signedT, hNormalize, hX, hY, hCurve⟩
+  have hBoolean : wasSquare = 0 ∨ wasSquare = 1 := by
+    rcases hSqrt with h | h | h
+    · exact Or.inr h.1
+    · exact Or.inl h.1
+    · exact Or.inl h.1
+  have hzeta :
+      Extracted.DecafEncodeToCurve.zeta =
+        Protocol.Common.EncodeToCurve.zeta := by
+    rfl
+  have ha :
+      Extracted.DecafEncodeToCurve.a =
+        Protocol.Common.EncodeToCurve.a := by
+    change (((Order - 1 : Nat) : Nat) : F) = -1
+    decide
+  have hd :
+      Extracted.DecafEncodeToCurve.d =
+        Protocol.Common.EncodeToCurve.d := by
+    rfl
+  have hdCurve :
+      Extracted.DecafEncodeToCurve.d =
+        Protocol.Common.Decaf.curveD := by
+    simpa only [Protocol.Common.EncodeToCurve.d] using hd
+  have hu :
+      u input = Protocol.Common.EncodeToCurve.u input := by
+    unfold u Protocol.Common.EncodeToCurve.u
+    rw [hzeta]
+    ring
+  have hnum :
+      num input = Protocol.Common.EncodeToCurve.numerator input := by
+    unfold num aMinusTwoD Protocol.Common.EncodeToCurve.numerator
+    rw [hu, ha, hd]
+  have hden :
+      den input = Protocol.Common.EncodeToCurve.denominator input := by
+    unfold den dMinusA Protocol.Common.EncodeToCurve.denominator
+    rw [hu, ha, hd]
+  have hsqrtDen :
+      sqrtDen input =
+        Protocol.Common.EncodeToCurve.sqrtDenominator input := by
+    unfold sqrtDen Protocol.Common.EncodeToCurve.sqrtDenominator
+    rw [hnum, hden]
+  have hselect (selector whenTrue whenFalse : F) :
+      selectF selector whenTrue whenFalse =
+        Protocol.Common.EncodeToCurve.selectF
+          selector whenTrue whenFalse := by
+    rfl
+  have hrawTwiddle :
+      rawTwiddle input wasSquare =
+        Protocol.Common.EncodeToCurve.rawTwiddle
+          input wasSquare := by
+    unfold rawTwiddle Protocol.Common.EncodeToCurve.rawTwiddle
+    rw [hselect]
+  have hrawSign :
+      rawSign wasSquare =
+        Protocol.Common.EncodeToCurve.rawSign wasSquare := by
+    unfold rawSign Protocol.Common.EncodeToCurve.rawSign
+    rw [hselect]
+  have hrawIsri :
+      rawIsri input wasSquare inverseSqrt =
+        Protocol.Common.EncodeToCurve.rawIsri
+          input wasSquare inverseSqrt := by
+    unfold rawIsri Protocol.Common.EncodeToCurve.rawIsri
+    rw [hrawTwiddle]
+  have hrawT :
+      rawT input wasSquare inverseSqrt =
+        Protocol.Common.EncodeToCurve.rawT
+          input wasSquare inverseSqrt := by
+    unfold rawT Protocol.Common.EncodeToCurve.rawT
+    rw [hrawIsri, hnum]
+  have hrawYDen :
+      rawYDen input wasSquare inverseSqrt t =
+        Protocol.Common.EncodeToCurve.rawYDenominator
+          input wasSquare inverseSqrt t := by
+    unfold rawYDen aMinusTwoD
+      Protocol.Common.EncodeToCurve.rawYDenominator
+    rw [hrawSign, hrawIsri, hu, ha, hd]
+  refine
+    ⟨wasSquare, inverseSqrt, t, yDenominator, signedT,
+      ?_, ?_, ?_, normalizeT_protocol hBoolean hNormalize,
+      ?_, ?_, ?_, ?_, ?_⟩
+  · simpa only [
+      Protocol.Common.EncodeToCurve.sqrtRatioCase,
+      SqrtRatioCase, hsqrtDen, hzeta
+    ] using hSqrt
+  · rw [← hrawT]
+    exact hT
+  · rw [← hrawYDen]
+    exact hYDenominator
+  · rw [← ha]
+    simpa only [mul_assoc] using hX.1
+  · rw [← ha]
+    simpa only [mul_assoc] using hX.2
+  · exact hY.1
+  · rw [← ha]
+    simpa only [mul_assoc] using hY.2
+  · unfold Protocol.Common.Decaf.onCurve
+    rw [← hdCurve]
+    unfold OnCurve at hCurve
+    linear_combination hCurve
 
 /-- Sign-normalized `t` is determined by `input` (independent of the `invSqrt`
 sign): equal squares give equal `signedT`. -/
