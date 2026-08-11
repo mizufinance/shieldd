@@ -39,7 +39,7 @@ impl AddressCmd {
         if let Ok(index) = index {
             //index provided
 
-            let address = match self.ephemeral {
+            let (address, _dtk) = match self.ephemeral {
                 false => fvk.incoming().payment_address(index.into()),
                 true => fvk.incoming().ephemeral_address(OsRng, index.into()),
             };
@@ -64,7 +64,7 @@ impl AddressCmd {
                     eprintln!("");
                     println!("{}", fvk);
                 } else if let Some(fvk) = &self.from_fvk {
-                    let address = FullViewingKey::payment_address(
+                    let (address, _) = FullViewingKey::payment_address(
                         &FullViewingKey::from_str(&fvk[..])?,
                         AddressIndex::new(0),
                     );

@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    pin::Pin,
-};
+use std::{collections::BTreeSet, pin::Pin};
 
 use anyhow::bail;
 use cnidarium::Storage;
@@ -10,7 +7,7 @@ use shieldd_sdk_proto::core::component::compact_block::v1::{
     query_service_server::QueryService, CompactBlock as ProtoCompactBlock,
     CompactBlockRangeRequest, CompactBlockRangeResponse, CompactBlockRequest, CompactBlockResponse,
     DiscoveryBlockRangeRequest, DiscoveryBlockRangeResponse, NoteCandidatesRequest,
-    NoteCandidatesResponse, TransactionCandidatesRequest, TransactionCandidatesResponse,
+    NoteCandidatesResponse,
 };
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_shielded_pool::discovery;
@@ -19,7 +16,7 @@ use tonic::Status;
 use tracing::{instrument, Instrument};
 
 use super::{metrics, StateReadExt};
-use crate::{DiscoveryBlock, NoteCandidate, StatePayload, TransactionCandidate};
+use crate::{DiscoveryBlock, NoteCandidate, StatePayload};
 
 const MAX_DISCOVERY_BLOCKS_PER_REQUEST: u64 = 10_000;
 const MAX_DISCOVERY_TAGS_PER_REQUEST: usize = 256;
@@ -45,11 +42,6 @@ impl QueryService for Server {
     >;
     type NoteCandidatesStream =
         Pin<Box<dyn futures::Stream<Item = Result<NoteCandidatesResponse, tonic::Status>> + Send>>;
-    type TransactionCandidatesStream = Pin<
-        Box<
-            dyn futures::Stream<Item = Result<TransactionCandidatesResponse, tonic::Status>> + Send,
-        >,
-    >;
 
     async fn compact_block(
         &self,
@@ -396,104 +388,6 @@ impl QueryService for Server {
                         height: block.height,
                         state_payload_index,
                         note_payload: *note,
-                    }
-                    .into();
-                    if tx.send(Ok(response)).await.is_err() {
-                        return;
-                    }
-                }
-            }
-        });
-
-        Ok(tonic::Response::new(
-            tokio_stream::wrappers::ReceiverStream::new(rx).boxed(),
-        ))
-    }
-
-    #[instrument(
-        skip(self, request),
-        fields(
-            start_height = request.get_ref().start_height,
-            end_height = request.get_ref().end_height,
-            tag_count = request.get_ref().tags.len(),
-        ),
-    )]
-    async fn transaction_candidates(
-        &self,
-        request: tonic::Request<TransactionCandidatesRequest>,
-    ) -> Result<tonic::Response<Self::TransactionCandidatesStream>, Status> {
-        let TransactionCandidatesRequest {
-            start_height,
-            end_height,
-            tags,
-        } = request.into_inner();
-        if tags.is_empty() {
-            return Err(Status::invalid_argument(
-                "at least one discovery tag is required",
-            ));
-        }
-        if tags.len() > MAX_DISCOVERY_TAGS_PER_REQUEST {
-            return Err(Status::invalid_argument(format!(
-                "at most {MAX_DISCOVERY_TAGS_PER_REQUEST} discovery tags are allowed"
-            )));
-        }
-        let tags = tags
-            .into_iter()
-            .map(discovery::Tag::try_from)
-            .collect::<std::result::Result<BTreeSet<_>, _>>()
-            .map_err(|error| Status::invalid_argument(format!("invalid discovery tag: {error}")))?;
-        let end_height = bounded_discovery_end(&self.storage, start_height, end_height).await?;
-        let storage = self.storage.clone();
-        let (tx, rx) = mpsc::channel(10);
-
-        tokio::spawn(async move {
-            let snapshot = storage.latest_snapshot();
-            let mut blocks = snapshot.stream_compact_block(start_height);
-            while let Some(result) = blocks.next().await {
-                let proto_block = match result {
-                    Ok(block) if block.height <= end_height => block,
-                    Ok(_) => break,
-                    Err(error) => {
-                        let _ = tx
-                            .send(Err(Status::internal(format!(
-                                "error scanning transaction candidates: {error:#}"
-                            ))))
-                            .await;
-                        return;
-                    }
-                };
-                let block = match crate::CompactBlock::try_from(proto_block) {
-                    Ok(block) => block,
-                    Err(error) => {
-                        let _ = tx
-                            .send(Err(Status::internal(format!(
-                                "invalid stored compact block: {error:#}"
-                            ))))
-                            .await;
-                        return;
-                    }
-                };
-
-                let mut matches = BTreeMap::new();
-                for transaction in block.transaction_discoveries {
-                    let sender_match = tags.contains(&transaction.sender);
-                    let receiver_match = tags.contains(&transaction.receiver);
-                    if !sender_match && !receiver_match {
-                        continue;
-                    }
-                    let entry = matches
-                        .entry(transaction.transaction_id)
-                        .or_insert((false, false));
-                    entry.0 |= sender_match;
-                    entry.1 |= receiver_match;
-                }
-
-                for (transaction_id, (sender_match, receiver_match)) in matches {
-                    let response: TransactionCandidatesResponse = TransactionCandidate {
-                        height: block.height,
-                        transaction_id,
-                        sender_match,
-                        receiver_match,
                     }
                     .into();
                     if tx.send(Ok(response)).await.is_err() {

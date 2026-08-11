@@ -1503,8 +1503,9 @@ impl Storage {
         let pool = self.pool.clone();
         let address_bytes = leaf.address.to_vec();
         let asset_bytes = leaf.asset_id.to_bytes().to_vec();
-        let user_public_key = leaf.user_public_key.vartime_compress().0.to_vec();
-        let orbis_registration_id = leaf.orbis_registration_id.to_vec();
+        let slot_id = leaf.slot_id;
+        let slot_derivation = leaf.slot_derivation.to_bytes().to_vec();
+        let d = leaf.d.to_bytes().to_vec();
 
         spawn_blocking(move || {
             let mut conn = pool.get()?;
@@ -1515,8 +1516,9 @@ impl Storage {
                     &address_bytes,
                     &asset_bytes,
                     position,
-                    &user_public_key,
-                    &orbis_registration_id,
+                    slot_id,
+                    &slot_derivation,
+                    &d,
                     commitment,
                 )?;
             }

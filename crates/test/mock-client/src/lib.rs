@@ -254,7 +254,7 @@ impl MockClient {
             .await?;
         // Populate memo if outputs exist but no memo set.
         if plan.memo.is_none() && plan.num_outputs() > 0 {
-            let return_address = self.fvk.incoming().payment_address(0u32.into());
+            let (return_address, _) = self.fvk.incoming().payment_address(0u32.into());
             plan.memo = Some(MemoPlan::new(
                 &mut OsRng,
                 MemoPlaintext::new(return_address, String::new())?,
@@ -433,7 +433,7 @@ impl<S: StateRead + Send + Sync> shieldd_sdk_compliance::ComplianceProofProvider
         let user_tree = self.state.get_user_tree().await?;
 
         // Get anchors from the same tree instances used for proofs
-        let asset_anchor = asset_tree.root();
+        let asset_anchor = tct::StateCommitment(asset_tree.root().0);
         let compliance_anchor = tct::StateCommitment(user_tree.root().0);
 
         let mut asset_proofs = BTreeMap::new();
@@ -572,7 +572,7 @@ mod tests {
                 .expect("test spend key should satisfy key refinements");
         let mut client = MockClient::new(sk);
         let fvk = client.fvk.clone();
-        let address = fvk.incoming().payment_address(0u32.into());
+        let (address, _) = fvk.incoming().payment_address(0u32.into());
 
         let note = Note::from_parts(
             address.clone(),
@@ -594,7 +594,7 @@ mod tests {
             &mut OsRng,
             Value {
                 amount: 60u64.into(),
-                asset_id: note.asset_id(),
+                asset_id: asset::Id(note.asset_id().0),
             },
             address,
         );

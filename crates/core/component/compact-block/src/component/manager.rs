@@ -7,11 +7,10 @@ use shieldd_sdk_governance::StateReadExt as _;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_sct::component::clock::EpochRead;
 use shieldd_sdk_sct::component::tree::{SctManager as _, SctRead};
-use shieldd_sdk_shielded_pool::component::DiscoveryManager as _;
 use shieldd_sdk_shielded_pool::component::NoteManager as _;
 use tracing::instrument;
 
-use crate::{state_key, CompactBlock, TransactionDiscovery};
+use crate::{state_key, CompactBlock};
 
 #[async_trait]
 pub trait CompactBlockManager: StateWrite {
@@ -121,11 +120,6 @@ trait Inner: StateWrite {
         // Drain pending compliance registrations buffered during TX execution
         let compliance_user_registrations = self.pending_user_registrations();
         let compliance_asset_registrations = self.pending_asset_registrations();
-        let transaction_discoveries = self
-            .pending_transaction_discoveries()
-            .into_iter()
-            .map(TransactionDiscovery::from)
-            .collect();
 
         let compact_block = CompactBlock {
             height,
@@ -143,7 +137,6 @@ trait Inner: StateWrite {
             compliance_asset_anchor,
             compliance_user_registrations,
             compliance_asset_registrations,
-            transaction_discoveries,
         };
 
         self.nonverifiable_put_raw(

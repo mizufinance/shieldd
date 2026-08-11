@@ -13,5 +13,5 @@ mod discovery;
 mod state_payload;
 
 pub use compact_block::CompactBlock;
-pub use discovery::{DiscoveryBlock, NoteCandidate, TransactionCandidate, TransactionDiscovery};
+pub use discovery::{DiscoveryBlock, NoteCandidate};
 pub use state_payload::{StatePayload, StatePayloadDebugKind};

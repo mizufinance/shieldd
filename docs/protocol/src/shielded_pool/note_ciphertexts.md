@@ -14,6 +14,4 @@ Encrypting a note plaintext involves the following steps:
 
 6. Construct the encrypted note ciphertext object.
 
-The note ciphertext is **144** bytes in length: a 128-byte plaintext containing
-the 48-byte address, amount, asset ID, and rseed, plus a 16-byte authentication
-tag.
+The note ciphertext is **176** bytes in length.

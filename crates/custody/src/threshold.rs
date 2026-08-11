@@ -250,7 +250,7 @@ impl<T: Terminal> Threshold<T> {
     ///
     /// This is just to match the API of the custody trait.
     fn confirm_address(&self, index: AddressIndex) -> Address {
-        self.config.fvk().payment_address(index)
+        self.config.fvk().payment_address(index).0
     }
 }
 
@@ -573,11 +573,13 @@ mod test {
         let sender = coordinator_config
             .fvk()
             .incoming()
-            .payment_address(0u32.into());
+            .payment_address(0u32.into())
+            .0;
         let recipient = coordinator_config
             .fvk()
             .incoming()
-            .payment_address(1u32.into());
+            .payment_address(1u32.into())
+            .0;
         let value = shieldd_sdk_asset::Value {
             amount: 1_000u64.into(),
             asset_id: *shieldd_sdk_asset::BASE_ASSET_ID,

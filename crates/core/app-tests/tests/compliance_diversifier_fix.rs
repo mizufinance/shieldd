@@ -44,7 +44,9 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
         .expect("custom test denom should parse as a base denom")
         .id();
 
-    let sender = test_keys::FULL_VIEWING_KEY.payment_address(AddressIndex::from(1u32));
+    let sender = test_keys::FULL_VIEWING_KEY
+        .payment_address(AddressIndex::from(1u32))
+        .0;
     let recipient = test_keys::ADDRESS_1.deref().clone();
 
     let _test_node = {
@@ -95,7 +97,6 @@ async fn compliance_enrichment_preserves_sender_diversifier_on_supported_transfe
         &mut build_state,
         &[sender.clone(), recipient.clone()],
         &[asset_id],
-        ring_pk,
     )
     .await?;
 

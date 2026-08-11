@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use shieldd_sdk_proto::{shieldd::core::component::compact_block::v1 as pb, DomainType};
 use shieldd_sdk_shielded_pool::{discovery, NotePayload};
 use shieldd_sdk_tct::builder::{block, epoch};
-use shieldd_sdk_txhash::TransactionId;
 
 use crate::{CompactBlock, StatePayload};
 
@@ -16,7 +15,6 @@ pub struct DiscoveryBlock {
     pub epoch_root: Option<epoch::Root>,
     pub tags: Vec<discovery::Tag>,
     pub parameters: Option<discovery::Parameters>,
-    pub transaction_discoveries: Vec<TransactionDiscovery>,
 }
 
 impl From<CompactBlock> for DiscoveryBlock {
@@ -36,7 +34,6 @@ impl From<CompactBlock> for DiscoveryBlock {
             epoch_root: block.epoch_root,
             tags,
             parameters: block.discovery_parameters,
-            transaction_discoveries: block.transaction_discoveries,
         }
     }
 }
@@ -57,11 +54,6 @@ impl From<DiscoveryBlock> for pb::DiscoveryBlock {
             epoch_root: block.epoch_root.map(Into::into),
             tags: block.tags.into_iter().map(Into::into).collect(),
             discovery_parameters: block.parameters.map(Into::into),
-            transaction_discoveries: block
-                .transaction_discoveries
-                .into_iter()
-                .map(Into::into)
-                .collect(),
         }
     }
 }
@@ -87,87 +79,7 @@ impl TryFrom<pb::DiscoveryBlock> for DiscoveryBlock {
                 .discovery_parameters
                 .map(TryInto::try_into)
                 .transpose()?,
-            transaction_discoveries: block
-                .transaction_discoveries
-                .into_iter()
-                .map(TryInto::try_into)
-                .collect::<Result<_>>()?,
         })
-    }
-}
-
-/// Proof-bound public routing tags associated with an original chain transaction ID.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TransactionDiscovery {
-    pub transaction_id: TransactionId,
-    pub sender: discovery::Tag,
-    pub receiver: discovery::Tag,
-}
-
-impl From<discovery::Transaction> for TransactionDiscovery {
-    fn from(value: discovery::Transaction) -> Self {
-        Self {
-            transaction_id: value.transaction_id,
-            sender: value.sender,
-            receiver: value.receiver,
-        }
-    }
-}
-
-impl From<TransactionDiscovery> for pb::TransactionDiscovery {
-    fn from(value: TransactionDiscovery) -> Self {
-        Self {
-            transaction_id: Some(value.transaction_id.into()),
-            sender: Some(value.sender.into()),
-            receiver: Some(value.receiver.into()),
-        }
-    }
-}
-
-impl TryFrom<pb::TransactionDiscovery> for TransactionDiscovery {
-    type Error = anyhow::Error;
-
-    fn try_from(value: pb::TransactionDiscovery) -> Result<Self> {
-        let sender: discovery::Tag = value
-            .sender
-            .ok_or_else(|| anyhow::anyhow!("transaction discovery missing sender tag"))?
-            .try_into()?;
-        let receiver: discovery::Tag = value
-            .receiver
-            .ok_or_else(|| anyhow::anyhow!("transaction discovery missing receiver tag"))?
-            .try_into()?;
-        anyhow::ensure!(
-            sender.precision == receiver.precision,
-            "transaction discovery participant precisions differ"
-        );
-        Ok(Self {
-            transaction_id: value
-                .transaction_id
-                .ok_or_else(|| anyhow::anyhow!("transaction discovery missing transaction ID"))?
-                .try_into()?,
-            sender,
-            receiver,
-        })
-    }
-}
-
-/// A transaction selected by one or more requested discovery tags.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct TransactionCandidate {
-    pub height: u64,
-    pub transaction_id: TransactionId,
-    pub sender_match: bool,
-    pub receiver_match: bool,
-}
-
-impl From<TransactionCandidate> for pb::TransactionCandidatesResponse {
-    fn from(candidate: TransactionCandidate) -> Self {
-        Self {
-            height: candidate.height,
-            transaction_id: Some(candidate.transaction_id.into()),
-            sender_match: candidate.sender_match,
-            receiver_match: candidate.receiver_match,
-        }
     }
 }
 
@@ -204,25 +116,5 @@ mod tests {
         };
 
         assert!(DiscoveryBlock::from(block).tags.is_empty());
-    }
-
-    #[test]
-    fn transaction_discovery_round_trips() {
-        let value = TransactionDiscovery {
-            transaction_id: TransactionId([7u8; 32]),
-            sender: discovery::Tag {
-                precision: discovery::Precision::new(10).expect("valid precision"),
-                value: 17,
-            },
-            receiver: discovery::Tag {
-                precision: discovery::Precision::new(10).expect("valid precision"),
-                value: 23,
-            },
-        };
-        let proto: pb::TransactionDiscovery = value.into();
-        assert_eq!(
-            TransactionDiscovery::try_from(proto).expect("valid proto"),
-            value
-        );
     }
 }

@@ -23,17 +23,12 @@ action surface.
 ## How compliance works
 
 When a regulated asset moves, the transfer carries an encrypted compliance
-bundle that only the asset's issuer can open. Access is field-granular, so an
-issuer can request just what they need:
+bundle that only the asset's issuer can open. Access is tiered, so an issuer can
+be granted just what they need:
 
 - **detection** — which asset, and whether the transfer is flagged
-- **sender** — sender identity
-- **amount** — transferred value
-- **receiver** — receiver identity
-
-The wire format implements this with sender/receiver core tiers containing the
-amount and sender/receiver extension tiers containing the counterparty identity.
-The audit layer projects those role-relative tiers into the three fields above.
+- **core** — sender address and amount
+- **extension** — counterparty
 
 Issuers hold a static detection key and can always scan for and read flagged
 transfers on their own. Reading the remaining tiers of an unflagged transfer

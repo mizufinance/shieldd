@@ -872,7 +872,7 @@ impl ViewService for ViewServer {
             })?;
 
         Ok(tonic::Response::new(pb::AddressByIndexResponse {
-            address: Some(fvk.payment_address(address_index).into()),
+            address: Some(fvk.payment_address(address_index).0.into()),
         }))
     }
 
@@ -939,7 +939,7 @@ impl ViewService for ViewServer {
             })?;
 
         Ok(tonic::Response::new(pb::EphemeralAddressResponse {
-            address: Some(fvk.ephemeral_address(OsRng, address_index).into()),
+            address: Some(fvk.ephemeral_address(OsRng, address_index).0.into()),
         }))
     }
 
@@ -1941,8 +1941,9 @@ impl ViewService for ViewServer {
                     let leaf_proto = compliance_pb::ComplianceLeaf {
                         address: Some(address.clone().into()),
                         asset_id: Some(asset_id.into()),
-                        user_public_key: leaf_data.user_public_key.to_vec(),
-                        orbis_registration_id: leaf_data.orbis_registration_id.to_vec(),
+                        d: leaf_data.d.to_vec(),
+                        slot_id: leaf_data.slot_id,
+                        slot_derivation: leaf_data.slot_derivation.to_vec(),
                     };
 
                     tracing::debug!(
@@ -2099,14 +2100,15 @@ impl ViewService for ViewServer {
             .map_err(|e| tonic::Status::internal(format!("storage error: {e}")))?;
 
         if let Some(leaf_data) = local_leaf_data {
-            // Local storage hit - reconstruct the registered key pair.
+            // Local storage hit - reconstruct the leaf from stored slot material.
             tracing::debug!(?address, ?asset_id, "using local storage for user leaf");
 
             let leaf = compliance_pb::ComplianceLeaf {
                 address: request_inner.address,
                 asset_id: request_inner.asset_id,
-                user_public_key: leaf_data.user_public_key.to_vec(),
-                orbis_registration_id: leaf_data.orbis_registration_id.to_vec(),
+                d: leaf_data.d.to_vec(),
+                slot_id: leaf_data.slot_id,
+                slot_derivation: leaf_data.slot_derivation.to_vec(),
             };
 
             return Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
@@ -2145,8 +2147,9 @@ impl ViewService for ViewServer {
         let leaf = response.leaf.map(|l| compliance_pb::ComplianceLeaf {
             address: l.address,
             asset_id: l.asset_id,
-            user_public_key: l.user_public_key,
-            orbis_registration_id: l.orbis_registration_id,
+            d: l.d,
+            slot_id: l.slot_id,
+            slot_derivation: l.slot_derivation,
         });
 
         Ok(tonic::Response::new(pb::ComplianceUserLeafResponse {
@@ -2247,8 +2250,9 @@ impl ViewService for ViewServer {
                         let leaf_proto = compliance_pb::ComplianceLeaf {
                             address: Some(address.clone().into()),
                             asset_id: Some(asset_id.into()),
-                            user_public_key: leaf_data.user_public_key.to_vec(),
-                            orbis_registration_id: leaf_data.orbis_registration_id.to_vec(),
+                            d: leaf_data.d.to_vec(),
+                            slot_id: leaf_data.slot_id,
+                            slot_derivation: leaf_data.slot_derivation.to_vec(),
                         };
 
                         tracing::debug!(

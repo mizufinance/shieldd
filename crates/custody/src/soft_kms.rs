@@ -221,7 +221,7 @@ impl pb::custody_service_server::CustodyService for SoftKms {
                 ))
             })?;
 
-        let address = self
+        let (address, _dtk) = self
             .config
             .spend_key
             .full_viewing_key()

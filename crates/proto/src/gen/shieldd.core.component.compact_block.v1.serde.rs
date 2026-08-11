@@ -51,9 +51,6 @@ impl serde::Serialize for CompactBlock {
         if !self.compliance_asset_registrations.is_empty() {
             len += 1;
         }
-        if !self.transaction_discoveries.is_empty() {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.CompactBlock", len)?;
         if self.height != 0 {
             #[allow(clippy::needless_borrow)]
@@ -108,9 +105,6 @@ impl serde::Serialize for CompactBlock {
         if !self.compliance_asset_registrations.is_empty() {
             struct_ser.serialize_field("complianceAssetRegistrations", &self.compliance_asset_registrations)?;
         }
-        if !self.transaction_discoveries.is_empty() {
-            struct_ser.serialize_field("transactionDiscoveries", &self.transaction_discoveries)?;
-        }
         struct_ser.end()
     }
 }
@@ -149,8 +143,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             "complianceUserRegistrations",
             "compliance_asset_registrations",
             "complianceAssetRegistrations",
-            "transaction_discoveries",
-            "transactionDiscoveries",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -170,7 +162,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
             ComplianceAssetAnchor,
             ComplianceUserRegistrations,
             ComplianceAssetRegistrations,
-            TransactionDiscoveries,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -208,7 +199,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             "complianceAssetAnchor" | "compliance_asset_anchor" => Ok(GeneratedField::ComplianceAssetAnchor),
                             "complianceUserRegistrations" | "compliance_user_registrations" => Ok(GeneratedField::ComplianceUserRegistrations),
                             "complianceAssetRegistrations" | "compliance_asset_registrations" => Ok(GeneratedField::ComplianceAssetRegistrations),
-                            "transactionDiscoveries" | "transaction_discoveries" => Ok(GeneratedField::TransactionDiscoveries),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -243,7 +233,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                 let mut compliance_asset_anchor__ = None;
                 let mut compliance_user_registrations__ = None;
                 let mut compliance_asset_registrations__ = None;
-                let mut transaction_discoveries__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Height => {
@@ -344,12 +333,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                             }
                             compliance_asset_registrations__ = Some(map_.next_value()?);
                         }
-                        GeneratedField::TransactionDiscoveries => {
-                            if transaction_discoveries__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("transactionDiscoveries"));
-                            }
-                            transaction_discoveries__ = Some(map_.next_value()?);
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -371,7 +354,6 @@ impl<'de> serde::Deserialize<'de> for CompactBlock {
                     compliance_asset_anchor: compliance_asset_anchor__.unwrap_or_default(),
                     compliance_user_registrations: compliance_user_registrations__.unwrap_or_default(),
                     compliance_asset_registrations: compliance_asset_registrations__.unwrap_or_default(),
-                    transaction_discoveries: transaction_discoveries__.unwrap_or_default(),
                 })
             }
         }
@@ -832,9 +814,6 @@ impl serde::Serialize for DiscoveryBlock {
         if self.discovery_parameters.is_some() {
             len += 1;
         }
-        if !self.transaction_discoveries.is_empty() {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.DiscoveryBlock", len)?;
         if self.height != 0 {
             #[allow(clippy::needless_borrow)]
@@ -852,9 +831,6 @@ impl serde::Serialize for DiscoveryBlock {
         }
         if let Some(v) = self.discovery_parameters.as_ref() {
             struct_ser.serialize_field("discoveryParameters", v)?;
-        }
-        if !self.transaction_discoveries.is_empty() {
-            struct_ser.serialize_field("transactionDiscoveries", &self.transaction_discoveries)?;
         }
         struct_ser.end()
     }
@@ -874,8 +850,6 @@ impl<'de> serde::Deserialize<'de> for DiscoveryBlock {
             "tags",
             "discovery_parameters",
             "discoveryParameters",
-            "transaction_discoveries",
-            "transactionDiscoveries",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -885,7 +859,6 @@ impl<'de> serde::Deserialize<'de> for DiscoveryBlock {
             EpochRoot,
             Tags,
             DiscoveryParameters,
-            TransactionDiscoveries,
             __SkipField__,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
@@ -913,7 +886,6 @@ impl<'de> serde::Deserialize<'de> for DiscoveryBlock {
                             "epochRoot" | "epoch_root" => Ok(GeneratedField::EpochRoot),
                             "tags" => Ok(GeneratedField::Tags),
                             "discoveryParameters" | "discovery_parameters" => Ok(GeneratedField::DiscoveryParameters),
-                            "transactionDiscoveries" | "transaction_discoveries" => Ok(GeneratedField::TransactionDiscoveries),
                             _ => Ok(GeneratedField::__SkipField__),
                         }
                     }
@@ -938,7 +910,6 @@ impl<'de> serde::Deserialize<'de> for DiscoveryBlock {
                 let mut epoch_root__ = None;
                 let mut tags__ = None;
                 let mut discovery_parameters__ = None;
-                let mut transaction_discoveries__ = None;
                 while let Some(k) = map_.next_key()? {
                     match k {
                         GeneratedField::Height => {
@@ -973,12 +944,6 @@ impl<'de> serde::Deserialize<'de> for DiscoveryBlock {
                             }
                             discovery_parameters__ = map_.next_value()?;
                         }
-                        GeneratedField::TransactionDiscoveries => {
-                            if transaction_discoveries__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("transactionDiscoveries"));
-                            }
-                            transaction_discoveries__ = Some(map_.next_value()?);
-                        }
                         GeneratedField::__SkipField__ => {
                             let _ = map_.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -990,7 +955,6 @@ impl<'de> serde::Deserialize<'de> for DiscoveryBlock {
                     epoch_root: epoch_root__,
                     tags: tags__.unwrap_or_default(),
                     discovery_parameters: discovery_parameters__,
-                    transaction_discoveries: transaction_discoveries__.unwrap_or_default(),
                 })
             }
         }
@@ -1810,427 +1774,5 @@ impl<'de> serde::Deserialize<'de> for state_payload::RolledUp {
             }
         }
         deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.StatePayload.RolledUp", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for TransactionCandidatesRequest {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.start_height != 0 {
-            len += 1;
-        }
-        if self.end_height != 0 {
-            len += 1;
-        }
-        if !self.tags.is_empty() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.TransactionCandidatesRequest", len)?;
-        if self.start_height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("startHeight", ToString::to_string(&self.start_height).as_str())?;
-        }
-        if self.end_height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("endHeight", ToString::to_string(&self.end_height).as_str())?;
-        }
-        if !self.tags.is_empty() {
-            struct_ser.serialize_field("tags", &self.tags)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for TransactionCandidatesRequest {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "start_height",
-            "startHeight",
-            "end_height",
-            "endHeight",
-            "tags",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            StartHeight,
-            EndHeight,
-            Tags,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "startHeight" | "start_height" => Ok(GeneratedField::StartHeight),
-                            "endHeight" | "end_height" => Ok(GeneratedField::EndHeight),
-                            "tags" => Ok(GeneratedField::Tags),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = TransactionCandidatesRequest;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.TransactionCandidatesRequest")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<TransactionCandidatesRequest, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut start_height__ = None;
-                let mut end_height__ = None;
-                let mut tags__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::StartHeight => {
-                            if start_height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("startHeight"));
-                            }
-                            start_height__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::EndHeight => {
-                            if end_height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("endHeight"));
-                            }
-                            end_height__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::Tags => {
-                            if tags__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("tags"));
-                            }
-                            tags__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(TransactionCandidatesRequest {
-                    start_height: start_height__.unwrap_or_default(),
-                    end_height: end_height__.unwrap_or_default(),
-                    tags: tags__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.TransactionCandidatesRequest", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for TransactionCandidatesResponse {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.height != 0 {
-            len += 1;
-        }
-        if self.transaction_id.is_some() {
-            len += 1;
-        }
-        if self.sender_match {
-            len += 1;
-        }
-        if self.receiver_match {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.TransactionCandidatesResponse", len)?;
-        if self.height != 0 {
-            #[allow(clippy::needless_borrow)]
-            #[allow(clippy::needless_borrows_for_generic_args)]
-            struct_ser.serialize_field("height", ToString::to_string(&self.height).as_str())?;
-        }
-        if let Some(v) = self.transaction_id.as_ref() {
-            struct_ser.serialize_field("transactionId", v)?;
-        }
-        if self.sender_match {
-            struct_ser.serialize_field("senderMatch", &self.sender_match)?;
-        }
-        if self.receiver_match {
-            struct_ser.serialize_field("receiverMatch", &self.receiver_match)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for TransactionCandidatesResponse {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "height",
-            "transaction_id",
-            "transactionId",
-            "sender_match",
-            "senderMatch",
-            "receiver_match",
-            "receiverMatch",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Height,
-            TransactionId,
-            SenderMatch,
-            ReceiverMatch,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "height" => Ok(GeneratedField::Height),
-                            "transactionId" | "transaction_id" => Ok(GeneratedField::TransactionId),
-                            "senderMatch" | "sender_match" => Ok(GeneratedField::SenderMatch),
-                            "receiverMatch" | "receiver_match" => Ok(GeneratedField::ReceiverMatch),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = TransactionCandidatesResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.TransactionCandidatesResponse")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<TransactionCandidatesResponse, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut height__ = None;
-                let mut transaction_id__ = None;
-                let mut sender_match__ = None;
-                let mut receiver_match__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Height => {
-                            if height__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("height"));
-                            }
-                            height__ = 
-                                Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
-                            ;
-                        }
-                        GeneratedField::TransactionId => {
-                            if transaction_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("transactionId"));
-                            }
-                            transaction_id__ = map_.next_value()?;
-                        }
-                        GeneratedField::SenderMatch => {
-                            if sender_match__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("senderMatch"));
-                            }
-                            sender_match__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::ReceiverMatch => {
-                            if receiver_match__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("receiverMatch"));
-                            }
-                            receiver_match__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(TransactionCandidatesResponse {
-                    height: height__.unwrap_or_default(),
-                    transaction_id: transaction_id__,
-                    sender_match: sender_match__.unwrap_or_default(),
-                    receiver_match: receiver_match__.unwrap_or_default(),
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.TransactionCandidatesResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for TransactionDiscovery {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if self.transaction_id.is_some() {
-            len += 1;
-        }
-        if self.sender.is_some() {
-            len += 1;
-        }
-        if self.receiver.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.core.component.compact_block.v1.TransactionDiscovery", len)?;
-        if let Some(v) = self.transaction_id.as_ref() {
-            struct_ser.serialize_field("transactionId", v)?;
-        }
-        if let Some(v) = self.sender.as_ref() {
-            struct_ser.serialize_field("sender", v)?;
-        }
-        if let Some(v) = self.receiver.as_ref() {
-            struct_ser.serialize_field("receiver", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for TransactionDiscovery {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "transaction_id",
-            "transactionId",
-            "sender",
-            "receiver",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            TransactionId,
-            Sender,
-            Receiver,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "transactionId" | "transaction_id" => Ok(GeneratedField::TransactionId),
-                            "sender" => Ok(GeneratedField::Sender),
-                            "receiver" => Ok(GeneratedField::Receiver),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = TransactionDiscovery;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.core.component.compact_block.v1.TransactionDiscovery")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<TransactionDiscovery, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut transaction_id__ = None;
-                let mut sender__ = None;
-                let mut receiver__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::TransactionId => {
-                            if transaction_id__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("transactionId"));
-                            }
-                            transaction_id__ = map_.next_value()?;
-                        }
-                        GeneratedField::Sender => {
-                            if sender__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("sender"));
-                            }
-                            sender__ = map_.next_value()?;
-                        }
-                        GeneratedField::Receiver => {
-                            if receiver__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("receiver"));
-                            }
-                            receiver__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(TransactionDiscovery {
-                    transaction_id: transaction_id__,
-                    sender: sender__,
-                    receiver: receiver__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.core.component.compact_block.v1.TransactionDiscovery", FIELDS, GeneratedVisitor)
     }
 }

@@ -1,19 +1,20 @@
-# Addresses and Public Discovery Tags
+# Addresses and Detection Keys
 
 Rather than having a single address for each spending authority, Shieldd allows
 the creation of many different publicly unlinkable *diversified addresses*.  An
 incoming viewing key can scan transactions to every diversified address
-simultaneously, so there is no per-address decryption-key management cost.
-Shieldd also permits anyone who knows an address to derive a short public tag
-from it and prefilter compact-block data before attempting decryption.
+simultaneously, so there is no per-address scanning cost.  In addition, Shieldd
+attaches a *detection key* to each address, allowing a user to outsource
+probabilistic transaction detection to a relatively untrusted third-party
+scanning service.
 
 ## Privacy Implications
 
-Discovery tags reveal that a transaction falls into a public address bucket.
-Every transaction for the same diversified address therefore stays in the same
-bucket, mixed with false positives selected by the protocol precision. Different
-diversified addresses remain unlinkable unless they are disclosed or linked by
-outside information. There is no discovery secret to issue, retain, or destroy.
+While diversified addresses are described as *publicly unlinkable*, a detection entity given multiple detection keys can empirically link the corresponding diversified addresses via the clue keys $\mathsf{ck_d}$ contained within them. This is because the detection entity, by reporting detected transactions to the same user, empirically knows that the detection keys $\mathsf{dtk_d}$ are linked. If the detection entity observes two addresses belonging to the user, they can link them because the clue key appears in each address and is derived solely from the detection key. 
+
+In a simplified scenario, a user with diversified addresses ${addr_1}$ and ${addr_2}$ gives the associated detection keys ${dtk_{d_1}}$ and ${dtk_{d_2}}$ to the detection entity. The detection entity detects relevant transactions using the clue keys ${ck_{d_1}}$ and ${ck_{d_2}}$, and reports the detected transactions for ${dtk_{d_1}}$ and ${dtk_{d_2}}$ back to the user. The detection entity can naively observe that transactions related to ${ck_{d_1}}$ and ${ck_{d_2}}$ are reported back to the same user, and therefore the addresses linked to these detection keys belong to the same user. There's a notion of linkability here since the diversified addresses can be linked by the detection entity through the detection keys, from which the clue keys are derived. 
+
+To mitigate the linkability of diversified addresses when using detection keys, a user should consider using multiple third parties: distribute detection keys to different detection entities instead of a single one, reducing the risk that any single entity has enough keys to link diversified addresses.
 
 ## Diversifiers
 
@@ -34,19 +35,32 @@ with personalization `b"Shieldd_Divrsfy"` to the input, then, interpret the
 $q$, and finally, use the resulting $\mathbb F_q$ element as input to the
 `decaf377` CDH map-to-group method.
 
-## Public Discovery
+## Detection Keys
 
-For protocol precision $n \in [0,32]$, the discovery tag is the low $n$ bits
-of the canonical little-endian encoding of $\mathsf{pk_d}$. Anyone knowing the
-address can compute the tag. A matching tag identifies a candidate only; it
-does not grant note decryption or prove that the address participated.
+Each address has an associated *detection key*, allowing the creator of the
+address to delegate a [probabilistic detection capability](../crypto/fmd.md) to a third-party
+scanning service.
+
+The detection key consists of one component,
+
+* $\mathsf{dtk_d}$, the detection key (component)[^2],
+
+derived as follows.  Define `prf_expand(label, key, input)` as BLAKE2b-512 with
+personalization `label`, key `key`, and input `input`.  Define
+`from_le_bytes(bytes)` as the function that interprets its input bytes as an
+integer in little-endian order, and `to_le_bytes` as the function that encodes
+an integer to little-endian bytes.  Then
+```
+dtk_d = from_le_bytes(prf_expand(b"ShielddExpndFMD", to_le_bytes(ivk), d))
+```
 
 ## Addresses
 
-Each payment address has two components:
+Each payment address has three components:
 
 * the *diversifier* $d$;
-* the *transmission key* $\mathsf{pk_d}$, a `decaf377` element.
+* the *transmission key* $\mathsf{pk_d}$, a `decaf377` element;
+* the *clue key* $\mathsf{ck_d}$, a `decaf377` element.
 
 The diversifier is derived from an address index as described above.  The
 diversifier $d_0$ with index $0$ is the *default diversifier*, and corresponds
@@ -56,10 +70,13 @@ The transmission key $\mathsf{pk_d}$ is derived as $\mathsf{pk_d} =
 [\mathsf{ivk}]B_d$, where $B_d = H_{\mathbb G}^{\mathsf d}(d)$ is the
 diversified basepoint.
 
+The clue key is $\mathsf{ck_d}$ is derived as $\mathsf{ck_d} =
+[\mathsf{dtk_d}]B$, where $B$ is the conventional `decaf377` basepoint.
+
 ### Address Encodings
 
-The raw binary encoding of a payment address is the 48-byte string `d || pk_d`.
-We then apply the [F4Jumble] algorithm to
+The raw binary encoding of a payment address is the 80-byte string `d || pk_d ||
+ck_d`.  We then apply the [F4Jumble] algorithm to
 this string. This mitigates attacks where an attacker replaces a valid
 address with one derived from an attacker controlled key that encodes to an
 address with a subset of characters that collide with the target valid address.
@@ -122,8 +139,12 @@ The short form is intended to mitigate this attack.
 principle construct diversifiers in another way, although deviating from this
 mechanism risks compromising privacy.
 
+[^2]: As in the previous section, we use the modifier "component" to distinguish
+between the internal key component and the external, opaque key.
+
 [AES]: https://docs.rs/aes/latest/aes/
 [Bech32m]: https://github.com/bitcoin/bips/blob/master/bip-0350.mediawiki
 [hash-to-group]: ../../crypto/decaf377/group_hash.md
 [F4Jumble]: https://zips.z.cash/zip-0316#jumbling
+[fmd]: ../../crypto/fmd.md
 [ZIP316]: https://zips.z.cash/zip-0316

@@ -20,11 +20,13 @@ docker compose -f deployments/compose/docker-compose.yml up -d
 
 **Address:**
 ```
-shieldd1u29dhz4vxgnek6a3vzxlejg0l83wegpu7hgs3yphdvljcnnnh89dvs6lc9hxxw94w464t7lh5x36cxnxyx0
+shieldd19lf99grquvn8yufxswy9yasux5xhew2adjefmwdk7pnnd6za6ardtce0d9z7suzwz94cjclz6rwqqn5qeta4pn4j7y59k38za5yhmkt66tngw3txh90rm0vrhelx68lcdd0ejt
 ```
 
-The test-only key material for this address is maintained in
-`crates/core/keys/src/test_keys.rs`.
+**Mnemonic:**
+```
+decorate bright ozone fork gallery riot bus exhaust worth way bone indoor calm squirrel merry zero scheme cotton until shop any excess stage laundry
+```
 
 ### Verified Genesis Allocations
 

@@ -16,7 +16,7 @@ use crate::{
 use shieldd_sdk_proto::DomainType;
 
 const NULLIFIER_SIZE: u64 = 2 + 32;
-const NOTEPAYLOAD_SIZE: u64 = 32 + 32 + 144;
+const NOTEPAYLOAD_SIZE: u64 = 32 + 32 + 176;
 const ZKPROOF_SIZE: u64 = 192;
 
 /// Allows [`Action`]s and [`Transaction`]s to statically indicate their relative resource consumption.

@@ -580,6 +580,7 @@ impl TxCmd {
                     app.config
                         .full_viewing_key
                         .ephemeral_address(OsRng, AddressIndex::from(*source))
+                        .0
                 };
 
                 let timeout_height = match timeout_height {
@@ -740,7 +741,7 @@ impl TxCmd {
 
                 let address = if let Ok(index) = index {
                     // address index provided
-                    let address = match ephemeral {
+                    let (address, _dtk) = match ephemeral {
                         false => fvk.incoming().payment_address(index.into()),
                         true => fvk.incoming().ephemeral_address(OsRng, index.into()),
                     };

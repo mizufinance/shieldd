@@ -135,7 +135,7 @@ impl ::prost::Name for NoteView {
     }
 }
 /// An encrypted note.
-/// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+/// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NoteCiphertext {
     #[prost(bytes = "vec", tag = "1")]
@@ -164,7 +164,7 @@ pub struct NotePayload {
     #[prost(bytes = "vec", tag = "2")]
     pub ephemeral_key: ::prost::alloc::vec::Vec<u8>,
     /// An encryption of the newly created note.
-    /// 144 = 48(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
+    /// 176 = 80(address) + 16(amount) + 32(asset ID) + 32(rseed) + 16(MAC) bytes.
     #[prost(message, optional, tag = "3")]
     pub encrypted_note: ::core::option::Option<NoteCiphertext>,
     /// Public best-effort routing metadata. It does not grant decryption capability.
