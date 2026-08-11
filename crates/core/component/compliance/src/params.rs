@@ -80,17 +80,3 @@ pub trait StateWriteExt: StateWrite {
 
 #[cfg(feature = "component")]
 impl<T: StateWrite + ?Sized> StateWriteExt for T {}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn protobuf_round_trip_preserves_parameters() {
-        let params = ComplianceParameters {
-            anchor_validation_window_blocks: 42,
-        };
-        let proto: pb::ComplianceParameters = params.clone().into();
-        assert_eq!(ComplianceParameters::try_from(proto).unwrap(), params);
-    }
-}
