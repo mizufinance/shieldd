@@ -130,13 +130,7 @@ pub(crate) fn validate_artifact_hashes(
     metadata: &GnarkArtifactMetadata,
     family: &str,
 ) -> Result<()> {
-    let actual = sha256_hex(&fs::read(artifact_dir.join("setup_provenance.json"))?);
-    if actual != metadata.setup_provenance_sha256_hex {
-        bail!(
-            "gnark {family} setup provenance hash mismatch: expected {}, got {actual}",
-            metadata.setup_provenance_sha256_hex
-        );
-    }
+    validate_repository_hashes(artifact_dir, metadata, family)?;
     let proving_key = fs::read(artifact_dir.join("proving_key.bin"))?;
     if i64::try_from(proving_key.len()).ok() != Some(metadata.proving_key_size_bytes) {
         bail!(
@@ -150,6 +144,21 @@ pub(crate) fn validate_artifact_hashes(
         bail!(
             "gnark {family} proving key hash mismatch: expected {}, got {actual}",
             metadata.proving_key_sha256_hex
+        );
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_repository_hashes(
+    artifact_dir: &Path,
+    metadata: &GnarkArtifactMetadata,
+    family: &str,
+) -> Result<()> {
+    let actual = sha256_hex(&fs::read(artifact_dir.join("setup_provenance.json"))?);
+    if actual != metadata.setup_provenance_sha256_hex {
+        bail!(
+            "gnark {family} setup provenance hash mismatch: expected {}, got {actual}",
+            metadata.setup_provenance_sha256_hex
         );
     }
     let verifying_key = fs::read(artifact_dir.join("verifying_key.bin"))?;
@@ -337,9 +346,10 @@ mod statement_parity_tests {
             let metadata = load_artifact_metadata(&family_dir)
                 .unwrap_or_else(|e| panic!("load metadata for {family}: {e}"));
 
-            // The strict metadata decoder requires all three pins. The real
-            // validator then checks PK binary, VK binary, and canonical VK JSON.
-            validate_artifact_hashes(&family_dir, &metadata, family)
+            // The strict metadata decoder requires all pins. The repository
+            // validator checks setup and verification material; the external
+            // bundle is checked independently before bundled-prover builds.
+            validate_repository_hashes(&family_dir, &metadata, family)
                 .unwrap_or_else(|e| panic!("hash validation for {family}: {e}"));
 
             // Also parse the committed VK end-to-end (on-curve + subgroup checks

@@ -14,12 +14,6 @@ bundled-proving-keys = [
     "shieldd-sdk-proof-params/bundled-proving-keys",
     "shieldd-sdk-shielded-pool/bundled-proving-keys",
 ]
-download-proving-keys = [
-    "bundled-proving-keys",
-    "shieldd-sdk-proof-params/download-proving-keys",
-    "shieldd-sdk-shielded-pool/download-proving-keys",
-]
-
 [dependencies]
 anyhow = { workspace = true }
 base64 = { workspace = true }

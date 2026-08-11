@@ -78,6 +78,7 @@ gnark-proof-tests-fast:
 
 # Run the slow end-to-end gnark proof-generation suite.
 gnark-proof-tests-slow:
+    python3 scripts/proof_artifacts.py materialize
     cargo test --release -p shieldd-sdk-shielded-pool --features bundled-proving-keys transfer_proof_roundtrip --lib
     cargo test --release -p shieldd-sdk-shielded-pool --lib
 
@@ -257,6 +258,7 @@ orbis-integration-preflight-bringup:
 
 # Build the binaries required by the Orbis integration flow.
 orbis-integration-build:
+    python3 scripts/proof_artifacts.py materialize
     cargo build --release -p pcli -p pclientd --features bundled-proving-keys
     # Insecure deterministic SRS is confined to the local Orbis integration node.
     cargo build --release -p pd --features orbis-dev-srs
@@ -341,14 +343,16 @@ reduced-surface-check:
 
 # Run integration tests for pclientd. Assumes specific dev env is already running.
 integration-pclientd:
-    cargo test --release --features bundled-proving-keys,download-proving-keys,sct-divergence-check --package pclientd --test network_integration -- \
+    python3 scripts/proof_artifacts.py materialize
+    cargo test --release --features bundled-proving-keys,sct-divergence-check --package pclientd --test network_integration -- \
       --ignored --test-threads 1 --nocapture
 
 # Run integration tests for pcli. Assumes specific dev env is already running.
 integration-pcli:
-    cargo test --release --features bundled-proving-keys,download-proving-keys,sct-divergence-check --package pcli --test network_integration -- \
+    python3 scripts/proof_artifacts.py materialize
+    cargo test --release --features bundled-proving-keys,sct-divergence-check --package pcli --test network_integration -- \
       --ignored --test-threads 1 --nocapture
-    cargo test --release --features bundled-proving-keys,download-proving-keys,sct-divergence-check --package pcli --test compliance_network -- \
+    cargo test --release --features bundled-proving-keys,sct-divergence-check --package pcli --test compliance_network -- \
       --ignored --test-threads 1 --nocapture
 
 # Run integration tests for pindexer. Assumes specific dev env is already running.

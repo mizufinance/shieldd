@@ -7,7 +7,7 @@ name: formal
 # They verify the same tree on the same events, so they are one gate with two
 # families of lanes: `snarkpack: *` and `soundness: *`.
 #
-# The scheduled-only provers live in soundness-provers.yml, which has no
+# The manually invoked provers live in soundness-provers.yml, which has no
 # pull_request trigger, so they never appear as skipped checks here.
 #
 # There is deliberately no `push` trigger: a standalone feature branch starts
@@ -41,10 +41,8 @@ permissions:
   contents: read
 
 env:
-  # Reusable workflows retain the caller's event name (for example
-  # `schedule`), so select an explicitly supplied target independently of the
-  # event. PR and merge-queue runs have no target_ref and use their checked-out
-  # candidate commit.
+  # Reusable workflows select an explicitly supplied target independently of
+  # the event. PR and merge-queue runs use their checked-out candidate commit.
   CANDIDATE_REF: ${{ inputs.target_ref || '' }}
   SNARKPACK_FUZZ_TOOLCHAIN: nightly-2025-09-30
   CARGO_FUZZ_VERSION: 0.13.2
@@ -217,7 +215,7 @@ jobs:
           RUST_REFERENCE_RUN: ${{ steps.snarkpack_impact.outputs.rust_reference_run }}
           FUZZ_RUN: ${{ steps.snarkpack_impact.outputs.fuzz_run }}
           DOS_RUN: ${{ steps.snarkpack_impact.outputs.dos_run }}
-          FUZZ_RUNS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
+          FUZZ_RUNS: ${{ (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
         run: |
           set -euo pipefail
           python3 scripts/ci/snarkpack_lane_fingerprint.py \
@@ -288,7 +286,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
       - name: Validate the locally generated Lean cache
         if: needs.applicability.outputs.snarkpack_lean_run == 'true'
         env:
@@ -340,7 +337,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
       - name: Trust the workspace inside the container
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Restore the shared extraction compiler cache
@@ -456,7 +452,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: snarkpack-formal
@@ -502,8 +497,7 @@ jobs:
           SNARKPACK_FSTAR_EVIDENCE_UPDATE: "1"
           SNARKPACK_FSTAR_PROOFS_JSON: ${{ needs.applicability.outputs.snarkpack_fstar_proofs }}
           SNARKPACK_FSTAR_BOUNDARY_CACHE_HIT: ${{ steps.fstar_boundary_cache.outputs.cache-hit == 'true' && '1' || '0' }}
-          # Reusable scheduled runs retain the caller's event name. Those and
-          # manual full runs must re-check every module even when committed
+          # Reusable and manual full runs must re-check every module even when committed
           # per-module evidence is current.
           SNARKPACK_FSTAR_FORCE_ALL: ${{ needs.applicability.outputs.snarkpack_fstar_force_all == 'true' && '1' || '0' }}
         run: >-
@@ -572,7 +566,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: snarkpack-parity
@@ -615,7 +608,7 @@ jobs:
         needs.applicability.outputs.snarkpack_dos_run == 'true'
       ) &&
       needs.applicability.outputs.snarkpack_runtime_cache_hit != 'true'
-    # Candidate runs defer this exhaustive lane. Manual/nightly replays use
+    # Candidate runs defer this exhaustive lane. Manual replays use
     # GitHub-hosted runners so the assurance path has no external-runner dependency.
     runs-on: ubuntu-24.04
     timeout-minutes: 180
@@ -623,7 +616,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: snarkpack-runtime
@@ -680,7 +672,7 @@ jobs:
         if: >-
           needs.applicability.outputs.snarkpack_fuzz_run == 'true'
         env:
-          SNARKPACK_FUZZ_RUNS: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
+          SNARKPACK_FUZZ_RUNS: ${{ (github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch' || github.event_name == 'merge_group') && '256' || '16' }}
         run: >-
           python3 scripts/ci/run_with_annotation.py
           --title "SnarkPack fuzz"
@@ -753,7 +745,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
       - name: Require closed committed SnarkPack evidence
         env:
           SNARKPACK_FV_MODE: publication
@@ -776,7 +767,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Check soundness invariants
@@ -792,13 +782,15 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
       - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5
         with:
           go-version-file: tools/gnark/go.mod
           cache-dependency-path: tools/gnark/go.sum
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - uses: ./.github/actions/materialize-proof-artifacts
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Statement-field seam and parity
         working-directory: tools/gnark
         run: |
@@ -828,7 +820,7 @@ jobs:
   soundness-artifact-replay:
     name: 'soundness: artifact replay'
     needs: applicability
-    # Candidate events validate committed evidence. Manual/nightly runs also
+    # Candidate events validate committed evidence. Manual runs also
     # regenerate every artifact and prove/verify every deployed circuit. Lean
     # kernel replay remains the local operation that creates that evidence.
     if: >-
@@ -849,10 +841,12 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
           workspaces: "."
+      - uses: ./.github/actions/materialize-proof-artifacts
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Cache Go build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:

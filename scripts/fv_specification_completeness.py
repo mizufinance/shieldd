@@ -5265,23 +5265,12 @@ def semantic_bundle_digest(root: Path = ROOT) -> str:
 
 
 def semantic_source_sha256(path: Path) -> str:
-    """Hash materialized content and Git LFS pointers identically."""
+    """Hash the semantic source bytes."""
 
     try:
         source = path.read_bytes()
     except OSError as error:
         reject(f"cannot hash semantic source {path}: {error}")
-    lfs_prefix = b"version https://git-lfs.github.com/spec/v1\n"
-    if source.startswith(lfs_prefix):
-        pointer = re.fullmatch(
-            lfs_prefix
-            + rb"oid sha256:([0-9a-f]{64})\n"
-            + rb"size (?:0|[1-9][0-9]*)\n",
-            source,
-        )
-        if pointer is None:
-            reject(f"malformed Git LFS pointer in semantic source {path}")
-        return pointer.group(1).decode("ascii")
     return hashlib.sha256(source).hexdigest()
 
 

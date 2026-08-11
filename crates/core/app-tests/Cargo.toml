@@ -131,7 +131,6 @@ sha2                             = { workspace = true }
 workspace = true
 features = [
     "bundled-proving-keys",
-    "download-proving-keys",
 ]
 
 # Explicitly list tests to run. Tests not listed here are excluded.

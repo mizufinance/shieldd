@@ -19,7 +19,6 @@ sct-divergence-check = ["shieldd-sdk-view/sct-divergence-check"]
 # Enable to use rayon parallelism for crypto operations
 parallel = ["shieldd-sdk-transaction/parallel"]
 bundled-proving-keys = ["shieldd-sdk-proof-params/bundled-proving-keys"]
-download-proving-keys = ["shieldd-sdk-proof-params/download-proving-keys"]
 
 [dependencies]
 anyhow = {workspace = true}
@@ -74,5 +73,4 @@ ibc-proto = {workspace = true, default-features = false, features = ["server"]}
 ibc-types = {workspace = true, default-features = true}
 shieldd-sdk-proof-params = {workspace = true, features = [
     "bundled-proving-keys",
-    "download-proving-keys",
 ], default-features = true}

@@ -507,16 +507,17 @@ class GateApplicabilityTests(unittest.TestCase):
             summary,
         )
 
-    def test_soundness_gate_materializes_lfs_witnesses(self) -> None:
+    def test_soundness_pin_materializes_current_proof_bundle(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
             encoding="utf-8"
         )
-        soundness_gate = workflow[
-            workflow.index("  soundness-gate:") : workflow.index(
-                "  soundness-seam-and-pin:"
+        soundness_pin = workflow[
+            workflow.index("  soundness-seam-and-pin:") : workflow.index(
+                "  soundness-alloy:"
             )
         ]
-        self.assertIn("          lfs: true", soundness_gate)
+        self.assertIn(".github/actions/materialize-proof-artifacts", soundness_pin)
+        self.assertNotIn("lfs: true", workflow)
 
     def test_candidate_soundness_defers_only_the_reviewed_semantic_pin(self) -> None:
         runner = (self.root / "scripts/check-soundness-invariants.sh").read_text(

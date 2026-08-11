@@ -56,7 +56,12 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: shieldd
-          lfs: true
+
+      - name: Materialize current proof artifacts
+        working-directory: shieldd
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/proof_artifacts.py materialize
 
       - uses: ./shieldd/.github/actions/setup-nix-rust
         with:

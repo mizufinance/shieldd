@@ -6,17 +6,10 @@ description = "Shieldd proof parameters"
 version = {workspace = true}
 license = {workspace = true}
 edition = {workspace = true}
-# We permit inclusion of the `*.bin` files, but including the full binary
-# data would be too large for crates.io, so a custom script converts them
-# to git-lfs pointers, which can be resolved by enabling the `download-proving-keys` feature.
-# exclude = ["src/gen/*.bin"]
+# Large proving artifacts are external to this crate. Repository builds that
+# enable `bundled-proving-keys` must materialize the current artifact bundle.
 
 [build-dependencies]
-regex = { version = "1", optional = true }
-reqwest = { version = "0.12.9", optional = true, features = [
-    "blocking",
-    "json",
-] }
 serde = {workspace = true, features = ["derive"]}
 serde_json = {workspace = true}
 sha2 = {workspace = true}
@@ -26,11 +19,6 @@ anyhow = {workspace = true}
 [features]
 default = []
 bundled-proving-keys = []
-download-proving-keys = [
-    "regex",
-    "reqwest",
-    "bundled-proving-keys",
-]
 parallel = [
     "dep:rayon",
     "ark-ff/parallel",

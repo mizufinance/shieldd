@@ -5,16 +5,6 @@
 #   1. `cargo-release` (present in nix env)
 #   2. env var CARGO_REGISTRY_TOKEN with sufficient rights
 #
-# The major contribution of this script is that it will munge the binary
-# proving keys from the `shieldd-sdk-proof-params` crate to be text-only
-# Git LFS pointers, rather than the full binary files. We do this so that
-# publishing the `proof-params` crate to crates.io doesn't exceed the filesize
-# limit for crates (with binary data it'd be ~100MB).
-#
-# If we simply omit the `src/gen/*.bin` files from the crates.io upload, then
-# the build.rs logic for downloading key contents by resolving git-lfs pointers
-# can't work, because they won't have hashes to identify or verify the downloads.
-#
 # This script assumes that a developer has already bumped the requisite version,
 # by running:
 #
@@ -40,10 +30,6 @@ fi
 target_version="$(toml get Cargo.toml workspace.package.version -r)"
 
 # Check for local changes to working tree, and error out if any.
-# Normally `cargo-release` would check for this itself, but since
-# we munge the git-lfs pointers for the `proof-params` crate
-# to stay under the size limits for crates.io, we must skip verification
-# via cargo-release.
 s="$(git status --porcelain)"
 if [[ -n "$s" ]]; then
   >&2 echo "ERROR: found modified files that should be committed:"
@@ -52,14 +38,6 @@ if [[ -n "$s" ]]; then
   exit 1
 fi
 
-# Swap out the full binary contents for the raw git-lfs pointers; suggestion via
-# https://github.com/git-lfs/git-lfs/issues/951#issuecomment-581477084
-# This is a destructive action! Which is why we checked for dirty tree above.
-git read-tree HEAD && GIT_LFS_SKIP_SMUDGE=1 git checkout -f HEAD
-
-# Restore the full binary contents on exit, so the script doesn't have lasting side-effects.
-trap 'git lfs pull' EXIT
-
 # Slow down the crate publishing, to avoid hitting a 429 ratelimit.
 # Normally the per-crate compilation checks would slow things down enough,
 # but we skip those.
@@ -67,6 +45,4 @@ export PUBLISH_GRACE_SLEEP="20"
 
 >&2 echo "Publishing crate versions '$target_version' to crates.io..."
 # Run the publish command.
-# Uses `--no-verify` because the git-lfs munging will trigger a dirty build for `pd`,
-# complaining about its asset zipfiles being pointers.
-cargo release publish --execute --no-verify --no-confirm
+cargo release publish --execute --no-confirm

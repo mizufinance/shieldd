@@ -107,6 +107,16 @@ poc/tools/gnark-spend-prototype/.gocache/
 poc/tools/gnark-spend-prototype/.tmp/
 **/__pycache__/
 
+# Current POC proof bundle; materialize with scripts/proof_artifacts.py.
+tools/gnark/artifacts/note_reshape1x8/note_reshape1x8.sr1cs
+tools/gnark/artifacts/note_reshape1x8/proving_key.bin
+tools/gnark/artifacts/note_reshape8x1/note_reshape8x1.sr1cs
+tools/gnark/artifacts/note_reshape8x1/proving_key.bin
+tools/gnark/artifacts/shielded_ics20_withdrawal/shielded_ics20_withdrawal.sr1cs
+tools/gnark/artifacts/shielded_ics20_withdrawal/proving_key.bin
+tools/gnark/artifacts/transfer/transfer.sr1cs
+tools/gnark/artifacts/transfer/proving_key.bin
+
 # ACL2 gadget-proof build outputs (env-bound: cert embeds abs paths + timestamps).
 # Source of truth is the .lisp + stamped artifact; certs are regenerated in CI.
 crates/core/component/shielded-pool/formal/acl2/*.cert

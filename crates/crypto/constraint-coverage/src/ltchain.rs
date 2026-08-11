@@ -521,6 +521,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires the materialized current proof-artifact bundle"]
     fn recovers_r_ladder_from_real_sr1cs_and_gate_holds() {
         let rows = dtk_rows();
         let bound = scalar_order();
@@ -552,6 +553,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires the materialized current proof-artifact bundle"]
     fn recovers_q4_ladder_from_real_sr1cs() {
         let rows = dtk_rows();
         let bound = modulus() - &(&scalar_order() * 4u32);
@@ -565,6 +567,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires the materialized current proof-artifact bundle"]
     fn gate_fails_closed_on_wrong_bound() {
         // Recovering the R ladder against the Q4 bound must NOT silently pass:
         // the branch structure of the raw rows won't match the wrong bit
@@ -586,6 +589,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires the materialized current proof-artifact bundle"]
     fn production_gate_recovers_both_ladders() {
         // The extraction-time entry point wired into contracts::generate().
         let rows = dtk_rows();
