@@ -106,7 +106,7 @@ scripts/check-fv-census.sh
 scripts/check-extracted-lean-heartbeats.sh
 python3 scripts/check-fv-specification-completeness.py
 bash scripts/check-fv-specification-evidence.sh
-bash scripts/check-certified-circuit-spec-independence.sh
+bash scripts/check-certified-circuit-spec-independence.sh strict
 bash scripts/check-manifest-pin.sh all
 bash scripts/check-constraint-coverage.sh --require-full-deployed --check-typed-bindings all
 python3 scripts/gen-certified-circuit-artifacts.py --check
@@ -121,6 +121,12 @@ axioms. `release` additionally checks deployed PK/VK derivation, prove/verify,
 negative key-family cases, soundness invariants, and final evidence.
 `release all` is the terminal certification for both NoteReshape shapes,
 Transfer 2x2, and shielded ICS-20 Withdrawal 2x1.
+
+Use `typed` locally while developing proofs. Run `release` on the pinned
+toolchain before refreshing and committing Lean evidence. Manual/nightly GitHub
+Actions validates that committed evidence against its complete source closure
+and reruns `drift all` plus deployed-key `receipt all`, but does not
+independently rebuild the Lean import closure.
 
 The focused StatementHash resource gate uses a 120 s / 4 GiB aggregator budget,
 a 2 GiB marginal-RSS leaf budget, and a 50 MiB generated-olean budget. Current

@@ -76,26 +76,7 @@ run_static() {
     esac
   done
   python3 "$VERIFICATION_MANIFEST" "${manifest_args[@]}"
-  local extraction_args=(check)
-  if [[ -n "${SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON:-}" ]]; then
-    local delegated_graph_text
-    if ! delegated_graph_text="$(
-      parse_json_string_array \
-        SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON \
-        "${SNARKPACK_ALLOW_STALE_EXTRACTION_GRAPHS_JSON}"
-    )"; then
-      fail "could not parse delegated stale extraction graphs"
-    fi
-    local delegated_graphs=()
-    if [[ -n "$delegated_graph_text" ]]; then
-      mapfile -t delegated_graphs <<< "$delegated_graph_text"
-    fi
-    local delegated_graph
-    for delegated_graph in "${delegated_graphs[@]}"; do
-      extraction_args+=(--allow-stale-graph "$delegated_graph")
-    done
-  fi
-  python3 "$EXTRACTIONS" "${extraction_args[@]}"
+  python3 "$EXTRACTIONS" validate
 
   echo "snarkpack FV: normalizer tests and idempotence"
   python3 -m unittest discover -s "$LEAN_DIR/scripts" -p 'test_*.py'

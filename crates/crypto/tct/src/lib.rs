@@ -124,8 +124,13 @@ mod prelude {
         Position, Proof, Root, StateCommitment, Tree,
     };
 
-    // We use the hash map from `im`, but with the fast "hash prehashed data" hasher from `hash_hasher`
-    pub(crate) type HashedMap<K, V> = im::HashMap<K, V, hash_hasher::HashBuildHasher>;
+    // We use the hash map from `imbl`, but with the fast "hash prehashed data" hasher from `hash_hasher`
+    pub(crate) type HashedMap<K, V> = imbl::GenericHashMap<
+        K,
+        V,
+        hash_hasher::HashBuildHasher,
+        imbl::shared_ptr::DefaultSharedPtr,
+    >;
 }
 
 #[cfg(feature = "arbitrary")]

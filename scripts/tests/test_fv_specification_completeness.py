@@ -4054,6 +4054,73 @@ structure ClaimedFacts where
                 after = CHECK.semantic_bundle_digest(root)
                 self.assertNotEqual(before, after)
 
+    def test_semantic_source_digest_is_stable_across_lfs_checkout_modes(
+        self,
+    ) -> None:
+        materialized = b"formal relation contents\n"
+        digest = hashlib.sha256(materialized).hexdigest()
+        pointer = (
+            "version https://git-lfs.github.com/spec/v1\n"
+            f"oid sha256:{digest}\n"
+            f"size {len(materialized)}\n"
+        ).encode()
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "relation.bin"
+            source.write_bytes(materialized)
+            self.assertEqual(CHECK.semantic_source_sha256(source), digest)
+            source.write_bytes(pointer)
+            self.assertEqual(CHECK.semantic_source_sha256(source), digest)
+
+    def test_semantic_digest_excludes_snarkpack_verification_receipts(
+        self,
+    ) -> None:
+        receipt_relatives = (
+            (
+                "crates/crypto/proof-aggregation/formal/snarkpack/"
+                "fstar-checker-evidence.json"
+            ),
+            (
+                "crates/crypto/proof-aggregation/formal/snarkpack/"
+                "verification-manifest.json"
+            ),
+        )
+        semantic_relative = "crates/protocol-semantic-input.json"
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            receipts = tuple(root / relative for relative in receipt_relatives)
+            for receipt in receipts:
+                receipt.parent.mkdir(parents=True, exist_ok=True)
+                receipt.write_text('{"result":"old"}\n', encoding="utf-8")
+            semantic = root / semantic_relative
+            semantic.write_text('{"rule":"bound"}\n', encoding="utf-8")
+            (root / "tools/gnark/lean").mkdir(parents=True)
+            with (
+                patch.object(CHECK, "SEMANTIC_BASE_FILES", ()),
+                patch.object(CHECK, "SEMANTIC_DISCOVERY_ROOTS", ()),
+                patch.object(CHECK, "SEMANTIC_EXACT_INPUT_ROSTERS", {}),
+                patch.object(
+                    CHECK,
+                    "SEMANTIC_IMPLEMENTATION_ROOTS",
+                    (("crates", (".json",)),),
+                ),
+                patch.object(
+                    CHECK, "semantic_relation_blob_paths", return_value=()
+                ),
+                patch.object(CHECK, "EXPECTED_CONSEQUENCE_ROSTER_PATHS", {}),
+                patch.object(CHECK, "DEPLOYED_ACCEPTANCE_CONSEQUENCES", {}),
+                patch.object(
+                    CHECK, "GENERATED_TRANSACTION_REFINEMENT_ROOTS", {}
+                ),
+            ):
+                before = CHECK.semantic_bundle_digest(root)
+                for receipt in receipts:
+                    receipt.write_text(
+                        '{"result":"refreshed"}\n', encoding="utf-8"
+                    )
+                self.assertEqual(before, CHECK.semantic_bundle_digest(root))
+                semantic.write_text('{"rule":"changed"}\n', encoding="utf-8")
+                self.assertNotEqual(before, CHECK.semantic_bundle_digest(root))
+
     def test_semantic_digest_binds_matrix_census_and_discovered_sources(
         self,
     ) -> None:
@@ -4233,11 +4300,8 @@ structure ClaimedFacts where
             for relative, _ in CHECK.semantic_bundle_paths(ROOT)
         }
         expected = {
-            ".github/workflows/formal.yml",
-            ".github/workflows/rust.yml",
             "Cargo.lock",
             "Cargo.toml",
-            "ci/gates/soundness-formal.json",
             "crates/cnidarium-component/src/action_handler.rs",
             "crates/core/app/src/app/mod.rs",
             "crates/core/asset/src/lib.rs",
@@ -4248,7 +4312,6 @@ structure ClaimedFacts where
             "crates/crypto/tct/src/lib.rs",
             "crates/proto/src/lib.rs",
             "proto/shieldd/shieldd/core/transaction/v1/transaction.proto",
-            "scripts/fv_certification.py",
             "tools/gnark/fv_certification_backends.json",
             "tools/gnark/fv_profiles.json",
             "tools/gnark/go.mod",
@@ -4265,6 +4328,16 @@ structure ClaimedFacts where
             "tools/gnark/third_party/gnark-lean-extractor/go.sum",
         }
         self.assertEqual(expected - paths, set())
+        assurance_controls = {
+            ".github/workflows/formal.yml",
+            ".github/workflows/rust.yml",
+            "ci/gates/soundness-formal.json",
+            "scripts/ci/gate-applicability.py",
+            "scripts/fv_certification.py",
+            "scripts/lean-build-safe.sh",
+            "scripts/lean-leaf-bench.sh",
+        }
+        self.assertEqual(assurance_controls & paths, set())
 
         gate = json.loads(
             (ROOT / "ci/gates/soundness-formal.json").read_text(
@@ -4279,17 +4352,22 @@ structure ClaimedFacts where
         ]
         self.assertEqual(len(build_entries), 1)
         patterns = set(build_entries[0]["patterns"])
-        scoped_workflow_exclusions = {
+        scoped_assurance_exclusions = {
+            ".github/workflows/formal.yml",
             ".github/workflows/formal-scheduled.yml",
             ".github/workflows/soundness-provers.yml",
             ".github/workflows/fv-toolchain-image.yml",
+            ".github/workflows/rust.yml",
+            "ci/gates/soundness-formal.json",
+            "scripts/ci/gate-applicability.py",
+            "scripts/ci/test_gate_applicability.py",
         }
         self.assertEqual(
             patterns & set(CHECK.SEMANTIC_SCOPE_EXCLUSIONS),
-            scoped_workflow_exclusions,
+            scoped_assurance_exclusions,
         )
         gate_inputs: set[str] = set()
-        for pattern in sorted(patterns - scoped_workflow_exclusions):
+        for pattern in sorted(patterns - scoped_assurance_exclusions):
             if pattern.endswith("/**"):
                 prefix = pattern.removesuffix("/**")
                 gate_inputs.update(
@@ -4358,9 +4436,14 @@ structure ClaimedFacts where
         self.assertEqual(
             set(CHECK.SEMANTIC_SCOPE_EXCLUSIONS),
             {
+                ".github/workflows/formal.yml",
                 ".github/workflows/formal-scheduled.yml",
                 ".github/workflows/soundness-provers.yml",
                 ".github/workflows/fv-toolchain-image.yml",
+                ".github/workflows/rust.yml",
+                "ci/gates/soundness-formal.json",
+                "scripts/ci/gate-applicability.py",
+                "scripts/ci/test_gate_applicability.py",
                 "deny.toml",
                 "justfile",
             },

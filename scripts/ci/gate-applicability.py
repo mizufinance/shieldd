@@ -1517,8 +1517,18 @@ def classify(
                 "base declaration gate differs from the current declaration"
             )
         for item in previous_declaration.explicit_inputs:
-            tier = tier_for(item["tiers"], event, "base explicit input")
-            declaration.rank(tier)
+            base_tier = tier_for(
+                item["tiers"], event, "base explicit input"
+            )
+            if base_tier in declaration.tiers:
+                tier = base_tier
+                reason = f"base declaration: {item['reason']}"
+            else:
+                tier = declaration.events[event]["conservative_tier"]
+                reason = (
+                    f"base declaration (former tier {base_tier!r} mapped to "
+                    f"conservative tier {tier!r}): {item['reason']}"
+                )
             if any(
                 rule.patterns == item["patterns"] and rule.tier == tier
                 for rule in rules
@@ -1528,7 +1538,7 @@ def classify(
                 InputRule(
                     patterns=item["patterns"],
                     tier=tier,
-                    reason=f"base declaration: {item['reason']}",
+                    reason=reason,
                 )
             )
 

@@ -6,6 +6,19 @@ cd "$ROOT"
 source "$ROOT/scripts/lib/fail-closed-rg.sh"
 source "$ROOT/scripts/lib/soundness-symbol-cell.sh"
 
+MODE="${1:-}"
+semantic_digest_args=()
+case "$MODE" in
+  candidate)
+    semantic_digest_args=(--skip-semantic-digest)
+    ;;
+  strict) ;;
+  *)
+    echo "usage: $(basename "$0") [candidate|strict]" >&2
+    exit 2
+    ;;
+esac
+
 fail() {
   echo "soundness invariant failed: $*" >&2
   exit 1
@@ -19,6 +32,7 @@ command -v jq >/dev/null 2>&1 || fail "jq is required"
 python3 scripts/gen_fv_specification_matrix.py --check \
   || fail "fixed-circuit specification evidence matrix is stale"
 python3 scripts/check-fv-specification-completeness.py \
+  "${semantic_digest_args[@]}" \
   || fail "fixed-circuit specification predicate matrix is not closed"
 
 # NoteReshape is the sole production vocabulary for this circuit family. Keep
@@ -599,7 +613,7 @@ reject_rg_matches "abstract shared-secret theorem mislabeled as deployed relatio
   scripts/circuit-constraint-check.sh \
   "$CIRCUIT_FORMAL/circuit-constraint-report.txt" \
   || fail "Picus gadget evidence still labels the abstract shared-secret theorem as a deployed-row lift"
-bash scripts/check-certified-circuit-spec-independence.sh
+bash scripts/check-certified-circuit-spec-independence.sh "$MODE"
 
 # Handwritten deployed refinements must resolve action witness roles through
 # generated named bindings rather than embedding compiler wire numbers.

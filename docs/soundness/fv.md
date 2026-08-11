@@ -315,7 +315,15 @@ transitions.
 
 The Lean gate permits one Lake build at a time with `LEAN_NUM_THREADS=1`.
 Generated Lean is never edited directly; generator output and template
-ownership are byte-checked.
+ownership are byte-checked. Affected pull requests run the bounded soundness
+invariants, statement seams, manifest/stamp integrity, and Alloy checks.
+Manual/nightly GitHub-hosted runs regenerate every formal artifact and run
+deployed-key prove/verify. Lean kernel replay and the axiom audit are local
+release operations: their committed evidence binds the source closure, final
+theorem roots, axiom baseline, and toolchain, and the strict manual/nightly lane
+rejects stale evidence. This is a prototype cadence decision, not a claim that
+CI independently reruns Lean or that candidate checks replace local proof
+verification.
 
 ## Release commands
 
@@ -323,12 +331,10 @@ ownership are byte-checked.
 python3 scripts/gen_fv_specification_matrix.py --check
 python3 scripts/check-fv-specification-completeness.py
 bash scripts/check-fv-specification-evidence.sh
-scripts/check-certified-circuit-spec-independence.sh
+scripts/check-certified-circuit-spec-independence.sh strict
 scripts/check-manifest-pin.sh all
 scripts/check-constraint-coverage.sh --require-full-deployed --check-typed-bindings all
 python3 scripts/gen-certified-circuit-artifacts.py
-LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh drift all
-LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh typed all
 LEAN_NUM_THREADS=1 bash scripts/check-lean-circuit-fv.sh release all
-bash scripts/check-soundness-invariants.sh
+bash scripts/check-soundness-invariants.sh strict
 ```

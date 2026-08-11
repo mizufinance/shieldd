@@ -166,6 +166,13 @@ lean_build() {
   tail -n 1 "$log"
 }
 
+lean_module_build() {
+  local module="$1"
+  # Kernel verification only needs the OLean. Avoid generating ILean/C/native
+  # artifacts for the very large generated proof closure.
+  lean_build "+$module:olean"
+}
+
 echo "==> registry parity"
 python3 "$GNARK_DIR/check_gnark_family_registries.py"
 
@@ -445,7 +452,7 @@ echo "==> selected exact facts, semantic seams, and final soundness roots"
     done <<< "$selected_circuits" | awk '!seen[$0]++'
   )"
   while IFS= read -r target; do
-    [[ -z "$target" ]] || lean_build "$target"
+    [[ -z "$target" ]] || lean_module_build "$target"
   done <<< "$build_targets"
 )
 
@@ -535,7 +542,7 @@ if [[ "$MODE" == "release" ]]; then
     [[ "$proof_case_count" -gt 0 ]] \
       || fail "no proof receipts checked for certified family $circuit"
   done <<< "$selected_circuits"
-  "$ROOT/scripts/check-soundness-invariants.sh"
+  "$ROOT/scripts/check-soundness-invariants.sh" strict
 fi
 
 echo "lean circuit fv ok ($MODE): families=$(printf '%s' "$selected_circuits" | tr '\n' ',' | sed 's/,$//')"

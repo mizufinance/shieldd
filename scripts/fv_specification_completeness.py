@@ -76,6 +76,10 @@ SEMANTIC_BUILD_EVIDENCE_INPUTS = (
     "rust-toolchain.toml",
 )
 SEMANTIC_SCOPE_EXCLUSIONS = {
+    ".github/workflows/formal.yml": (
+        "PR orchestration selects assurance work but is not four-circuit "
+        "protocol semantics"
+    ),
     ".github/workflows/formal-scheduled.yml": (
         "scheduled orchestration does not govern the four-circuit merge/release "
         "claim"
@@ -85,6 +89,20 @@ SEMANTIC_SCOPE_EXCLUSIONS = {
     ),
     ".github/workflows/fv-toolchain-image.yml": (
         "formal.yml binds the active FV toolchain by immutable container digest"
+    ),
+    ".github/workflows/rust.yml": (
+        "Rust CI orchestration is assurance policy, not protocol semantics"
+    ),
+    "ci/gates/soundness-formal.json": (
+        "impact classification selects assurance work but does not define the "
+        "four circuits"
+    ),
+    "scripts/ci/gate-applicability.py": (
+        "impact classifier implementation is assurance policy, not protocol "
+        "semantics"
+    ),
+    "scripts/ci/test_gate_applicability.py": (
+        "impact classifier tests are assurance controls, not protocol semantics"
     ),
     "deny.toml": (
         "license/advisory policy is not an FV evidence or circuit-semantic input"
@@ -117,10 +135,6 @@ SEMANTIC_PIN = ROOT / "tools/gnark/lean/certified-protocol-semantics.sha256"
 SEMANTIC_BASE_FILES = (
     "Cargo.toml",
     "Cargo.lock",
-    "scripts/fv_rust_evidence_classification.py",
-    "scripts/fv_specification_completeness.py",
-    "scripts/gen_fv_specification_matrix.py",
-    "scripts/run-fv-specification-tests.py",
     "tools/gnark/go.mod",
     "tools/gnark/go.sum",
     "tools/gnark/fv_profiles.json",
@@ -140,9 +154,6 @@ SEMANTIC_BASE_FILES = (
     "crates/crypto/proof-params/Cargo.toml",
     "crates/crypto/proof-aggregation/Cargo.toml",
     "crates/crypto/tct/Cargo.toml",
-    "ci/gates/soundness-formal.json",
-    ".github/workflows/formal.yml",
-    ".github/workflows/rust.yml",
     "tools/gnark/lean/ShielddGnarkFormal.lean",
     "tools/gnark/lean/ShielddGnarkFormal/Poseidon377.lean",
     "tools/gnark/lean/ShielddGnarkFormal/ChoiceFreeZMod.lean",
@@ -206,7 +217,9 @@ SEMANTIC_EXACT_INPUT_ROSTERS = {
     ),
 }
 SEMANTIC_IMPLEMENTATION_ROOTS = (
-    ("scripts", (".py", ".sh")),
+    # Assurance scripts are deliberately not swept into protocol semantics.
+    # Their committed normative outputs and the implementations they inspect
+    # remain bound below, while CI/checker refactors cannot invalidate proofs.
     ("crates", (".rs", ".toml", ".proto", ".json")),
     ("proto", (".proto",)),
     ("tools/gnark", (".go", ".py", ".sh")),
@@ -218,6 +231,17 @@ SEMANTIC_EXCLUDED_IMPLEMENTATION_PATHS = frozenset(
     {
         # Local pcli proposal input is deliberately ignored and is not source.
         "crates/bin/pcli/proposal.toml",
+        # Trusted checker output attests to a semantic input set; it is not
+        # itself a protocol-semantic input. Including it creates a refresh
+        # cycle where committing new evidence invalidates every circuit pin.
+        (
+            "crates/crypto/proof-aggregation/formal/snarkpack/"
+            "fstar-checker-evidence.json"
+        ),
+        (
+            "crates/crypto/proof-aggregation/formal/snarkpack/"
+            "verification-manifest.json"
+        ),
     }
 )
 PROOF_ACCEPTANCE_TEST_PATH = (
@@ -5235,12 +5259,30 @@ def semantic_bundle_digest(root: Path = ROOT) -> str:
 
     framed = bytearray()
     for relative, path in semantic_bundle_paths(root):
-        try:
-            digest = hashlib.sha256(path.read_bytes()).hexdigest()
-        except OSError as error:
-            reject(f"cannot hash semantic source {relative}: {error}")
+        digest = semantic_source_sha256(path)
         framed.extend(f"{digest}  {relative}\n".encode())
     return hashlib.sha256(framed).hexdigest()
+
+
+def semantic_source_sha256(path: Path) -> str:
+    """Hash materialized content and Git LFS pointers identically."""
+
+    try:
+        source = path.read_bytes()
+    except OSError as error:
+        reject(f"cannot hash semantic source {path}: {error}")
+    lfs_prefix = b"version https://git-lfs.github.com/spec/v1\n"
+    if source.startswith(lfs_prefix):
+        pointer = re.fullmatch(
+            lfs_prefix
+            + rb"oid sha256:([0-9a-f]{64})\n"
+            + rb"size (?:0|[1-9][0-9]*)\n",
+            source,
+        )
+        if pointer is None:
+            reject(f"malformed Git LFS pointer in semantic source {path}")
+        return pointer.group(1).decode("ascii")
+    return hashlib.sha256(source).hexdigest()
 
 
 def validate_extractor_golden_contract(root: Path = ROOT) -> None:
@@ -14289,6 +14331,14 @@ def main() -> None:
     parser.add_argument("--profile", action="append", default=[])
     parser.add_argument("--manifest", action="append", default=[], metavar="LABEL=PATH")
     parser.add_argument("--require-relation-evidence", action="store_true")
+    parser.add_argument(
+        "--skip-semantic-digest",
+        action="store_true",
+        help=(
+            "run structural candidate checks without requiring the reviewed "
+            "semantic bundle pin; strict replay must not use this"
+        ),
+    )
     parser.add_argument("--test-receipt", type=Path)
     parser.add_argument("--test-receipt-nonce")
     args = parser.parse_args()
@@ -14335,6 +14385,7 @@ def main() -> None:
             require_relation_evidence=args.require_relation_evidence,
             test_receipt=args.test_receipt,
             test_receipt_nonce=args.test_receipt_nonce,
+            check_semantic_digest=not args.skip_semantic_digest,
         )
     except SpecificationCompletenessError as error:
         print(f"FV specification completeness failed: {error}", file=sys.stderr)

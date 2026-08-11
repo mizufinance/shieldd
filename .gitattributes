@@ -33,5 +33,9 @@
 *.sr1cs filter=lfs diff=lfs merge=lfs -text
 assets/** filter=lfs diff=lfs merge=lfs -text
 
-# Lean proof tree: mostly machine-generated adapters; collapse in GitHub PR review
-tools/gnark/lean/ShielddGnarkFormal/**/*.lean linguist-generated=true
+# Collapse generated circuit adapters while keeping handwritten Lean proofs
+# visible in GitHub review.
+tools/gnark/lean/ShielddGnarkFormal/Deployed/**/*.lean linguist-generated=true
+tools/gnark/lean/ShielddGnarkFormal/Deployed/*.lean linguist-generated=false
+tools/gnark/lean/ShielddGnarkFormal/Extracted/Deployed/**/*.lean linguist-generated=true
+tools/gnark/lean/ShielddGnarkFormal/PrimeCertificates/Generated/**/*.lean linguist-generated=true

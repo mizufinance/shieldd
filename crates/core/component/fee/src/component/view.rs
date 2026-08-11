@@ -43,7 +43,7 @@ pub trait StateReadExt: StateRead {
     }
 
     /// The accumulated base fees and tips for this block, indexed by asset ID.
-    fn accumulated_base_fees_and_tips(&self) -> im::OrdMap<asset::Id, (Amount, Amount)> {
+    fn accumulated_base_fees_and_tips(&self) -> imbl::OrdMap<asset::Id, (Amount, Amount)> {
         self.object_get(state_key::fee_accumulator())
             .unwrap_or_default()
     }
@@ -73,9 +73,9 @@ pub trait StateWriteExt: StateWrite {
      */
 
     /// Takes the accumulated base fees and tips for this block, resetting them to zero.
-    fn take_accumulated_base_fees_and_tips(&mut self) -> im::OrdMap<asset::Id, (Amount, Amount)> {
+    fn take_accumulated_base_fees_and_tips(&mut self) -> imbl::OrdMap<asset::Id, (Amount, Amount)> {
         let old = self.accumulated_base_fees_and_tips();
-        let new = im::OrdMap::<asset::Id, (Amount, Amount)>::new();
+        let new = imbl::OrdMap::<asset::Id, (Amount, Amount)>::new();
         self.object_put(state_key::fee_accumulator(), new);
         old
     }

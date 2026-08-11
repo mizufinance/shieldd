@@ -97,7 +97,7 @@ OUTPUT_BYTES="${BENCH_OUTPUT_BYTES:-32768}"
   || fail "BENCH_OUTPUT_BYTES must not exceed 131072"
 
 RSS_SAMPLER="ps"
-if ! ps aux -o pgid= >/dev/null 2>&1; then
+if ! ps -e -o rss= -o pgid= >/dev/null 2>&1; then
   if [[ "$(uname -s)" == "Darwin" ]] && command -v cc >/dev/null 2>&1; then
     RSS_HELPER="$TMP/process-group-rss"
     if cc -O2 "$ROOT/scripts/macos-process-group-rss.c" -o "$RSS_HELPER"; then
@@ -159,8 +159,8 @@ group_rss_kb() {
   if [[ "$RSS_SAMPLER" == "macos-helper" ]]; then
     "$RSS_HELPER" "$PGID"
   else
-    ps aux -o pgid= 2>/dev/null \
-      | awk -v group="$PGID" '$NF == group { total += $6 } END { print total + 0 }'
+    ps -e -o rss= -o pgid= 2>/dev/null \
+      | awk -v group="$PGID" '$2 == group { total += $1 } END { print total + 0 }'
   fi
 }
 kill_group()   { kill -9 -- "-$PGID" 2>/dev/null || true; }

@@ -197,7 +197,8 @@ gate_battery() {
     run_gate "constraint-coverage(rust)" \
       bash "$ROOT/scripts/check-constraint-coverage.sh" --circuit "$circuit"
   fi
-  run_gate "soundness-invariants" bash "$ROOT/scripts/check-soundness-invariants.sh"
+  run_gate "soundness-invariants" \
+    bash "$ROOT/scripts/check-soundness-invariants.sh" strict
   # SnarkPack boundary: config-only until S1
   # (`crates/crypto/proof-aggregation/optimization-playbook.md` §3). If the
   # aggregation crate differs from the merge base, its invariant gates pass too.

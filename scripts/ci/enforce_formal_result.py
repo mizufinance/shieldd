@@ -229,9 +229,8 @@ def enforce() -> None:
     soundness_results = {
         "soundness-gate": value("GATE"),
         "soundness-seam-and-pin": value("SEAM"),
-        "soundness-key-coherence": value("KEY_COHERENCE"),
         "soundness-alloy": value("ALLOY"),
-        "soundness-lean-circuit-fv": value("LEAN"),
+        "soundness-artifact-replay": value("REPLAY"),
     }
     if soundness_status == "block":
         raise ValueError(
@@ -245,30 +244,26 @@ def enforce() -> None:
                 )
         print(f"soundness explained skip: {soundness_explanation}")
     elif soundness_status == "run":
-        if soundness_tier not in {"stamps", "typed", "full"}:
+        if soundness_tier not in {"pr", "full"}:
             raise ValueError(f"unsupported soundness tier: {soundness_tier}")
-        required.extend(
-            [
-                ("soundness-gate", soundness_results["soundness-gate"]),
-                (
-                    "soundness-seam-and-pin",
-                    soundness_results["soundness-seam-and-pin"],
-                ),
-                (
-                    "soundness-lean-circuit-fv",
-                    soundness_results["soundness-lean-circuit-fv"],
-                ),
-            ]
+        required.append(
+            (
+                "soundness-seam-and-pin",
+                soundness_results["soundness-seam-and-pin"],
+            )
         )
-        key_coherence = soundness_results["soundness-key-coherence"]
-        if soundness_tier == "full":
-            if key_coherence != "skipped":
+        required.append(
+            ("soundness-gate", soundness_results["soundness-gate"])
+        )
+        replay = soundness_results["soundness-artifact-replay"]
+        if soundness_tier == "pr":
+            if replay != "skipped":
                 raise ValueError(
-                    "full soundness tier unexpectedly ran standalone "
-                    f"key coherence: {key_coherence}"
+                    "PR soundness unexpectedly ran deferred artifact replay: "
+                    f"{replay}"
                 )
         else:
-            required.append(("soundness-key-coherence", key_coherence))
+            required.append(("soundness-artifact-replay", replay))
         if event_name in {"pull_request", "merge_group"}:
             required.append(
                 ("soundness-alloy", soundness_results["soundness-alloy"])

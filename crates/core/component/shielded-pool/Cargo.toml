@@ -64,7 +64,7 @@ futures = {workspace = true}
 hex = {workspace = true}
 ibc-proto = {workspace = true, default-features = false}
 ibc-types = {workspace = true, features = ["with_serde"], default-features = false}
-im = {workspace = true}
+imbl = {workspace = true}
 jmt = {workspace = true}
 libloading = {workspace = true}
 metrics = {workspace = true}

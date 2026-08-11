@@ -14,6 +14,7 @@ concurrency:
 jobs:
   paths:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     outputs:
       smoke: ${{ github.event_name == 'merge_group' && steps.merge-group.outputs.smoke || steps.filter.outputs.smoke }}
     steps:
@@ -72,6 +73,7 @@ jobs:
     needs: [paths, smoke]
     if: always()
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Check integration result
         env:

@@ -17,7 +17,7 @@ component = [
     "shieldd-sdk-shielded-pool/component",
     "shieldd-sdk-compliance/component",
     "tokio",
-    "im",
+    "imbl",
     "futures",
     "async-trait",
     "async-stream",
@@ -55,7 +55,7 @@ decaf377 = {workspace = true, features = ["r1cs"], default-features = true}
 decaf377-rdsa = {workspace = true}
 futures = {workspace = true, optional = true}
 hex = {workspace = true}
-im = {workspace = true, optional = true}
+imbl = {workspace = true, optional = true}
 metrics = {workspace = true, optional = true}
 once_cell = {workspace = true}
 shieldd-sdk-asset = {workspace = true, default-features = false}
