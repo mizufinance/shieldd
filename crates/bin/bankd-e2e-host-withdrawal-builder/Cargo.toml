@@ -1,0 +1,38 @@
+[package]
+name = "bankd-e2e-host-withdrawal-builder"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+description = "Builds Shieldd host withdrawal transactions for Bankd e2e tests"
+repository = { workspace = true }
+license = { workspace = true }
+publish = false
+
+[features]
+default = ["bundled-proving-keys"]
+bundled-proving-keys = [
+    "shieldd-sdk-proof-params/bundled-proving-keys",
+    "shieldd-sdk-shielded-pool/bundled-proving-keys",
+]
+download-proving-keys = [
+    "bundled-proving-keys",
+    "shieldd-sdk-proof-params/download-proving-keys",
+    "shieldd-sdk-shielded-pool/download-proving-keys",
+]
+
+[dependencies]
+anyhow = { workspace = true }
+base64 = { workspace = true }
+cnidarium = { workspace = true, features = ["migration", "rpc"], default-features = true }
+decaf377 = { workspace = true, default-features = true }
+rand_core = { workspace = true }
+shieldd-sdk-app = { workspace = true, features = ["parallel"], default-features = true }
+shieldd-sdk-asset = { workspace = true, default-features = true }
+shieldd-sdk-keys = { workspace = true, default-features = true }
+shieldd-sdk-mock-client = { workspace = true }
+shieldd-sdk-num = { workspace = true, default-features = true }
+shieldd-sdk-proof-params = { workspace = true, default-features = true }
+shieldd-sdk-proto = { workspace = true, default-features = true }
+shieldd-sdk-shielded-pool = { workspace = true, features = ["component"], default-features = true }
+shieldd-sdk-transaction = { workspace = true, features = ["parallel"], default-features = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

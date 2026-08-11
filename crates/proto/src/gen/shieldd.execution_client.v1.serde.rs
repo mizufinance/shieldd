@@ -2238,6 +2238,136 @@ impl<'de> serde::Deserialize<'de> for HostSource {
         deserializer.deserialize_struct("shieldd.execution_client.v1.HostSource", FIELDS, GeneratedVisitor)
     }
 }
+impl serde::Serialize for HostWithdrawal {
+    #[allow(deprecated)]
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut len = 0;
+        if self.coin.is_some() {
+            len += 1;
+        }
+        if self.destination.is_some() {
+            len += 1;
+        }
+        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.HostWithdrawal", len)?;
+        if let Some(v) = self.coin.as_ref() {
+            struct_ser.serialize_field("coin", v)?;
+        }
+        if let Some(v) = self.destination.as_ref() {
+            match v {
+                host_withdrawal::Destination::Transfer(v) => {
+                    struct_ser.serialize_field("transfer", v)?;
+                }
+                host_withdrawal::Destination::Execution(v) => {
+                    struct_ser.serialize_field("execution", v)?;
+                }
+            }
+        }
+        struct_ser.end()
+    }
+}
+impl<'de> serde::Deserialize<'de> for HostWithdrawal {
+    #[allow(deprecated)]
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        const FIELDS: &[&str] = &[
+            "coin",
+            "transfer",
+            "execution",
+        ];
+
+        #[allow(clippy::enum_variant_names)]
+        enum GeneratedField {
+            Coin,
+            Transfer,
+            Execution,
+            __SkipField__,
+        }
+        impl<'de> serde::Deserialize<'de> for GeneratedField {
+            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                struct GeneratedVisitor;
+
+                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+                    type Value = GeneratedField;
+
+                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        write!(formatter, "expected one of: {:?}", &FIELDS)
+                    }
+
+                    #[allow(unused_variables)]
+                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
+                    where
+                        E: serde::de::Error,
+                    {
+                        match value {
+                            "coin" => Ok(GeneratedField::Coin),
+                            "transfer" => Ok(GeneratedField::Transfer),
+                            "execution" => Ok(GeneratedField::Execution),
+                            _ => Ok(GeneratedField::__SkipField__),
+                        }
+                    }
+                }
+                deserializer.deserialize_identifier(GeneratedVisitor)
+            }
+        }
+        struct GeneratedVisitor;
+        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
+            type Value = HostWithdrawal;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                formatter.write_str("struct shieldd.execution_client.v1.HostWithdrawal")
+            }
+
+            fn visit_map<V>(self, mut map_: V) -> std::result::Result<HostWithdrawal, V::Error>
+                where
+                    V: serde::de::MapAccess<'de>,
+            {
+                let mut coin__ = None;
+                let mut destination__ = None;
+                while let Some(k) = map_.next_key()? {
+                    match k {
+                        GeneratedField::Coin => {
+                            if coin__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("coin"));
+                            }
+                            coin__ = map_.next_value()?;
+                        }
+                        GeneratedField::Transfer => {
+                            if destination__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("transfer"));
+                            }
+                            destination__ = map_.next_value::<::std::option::Option<_>>()?.map(host_withdrawal::Destination::Transfer)
+;
+                        }
+                        GeneratedField::Execution => {
+                            if destination__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("execution"));
+                            }
+                            destination__ = map_.next_value::<::std::option::Option<_>>()?.map(host_withdrawal::Destination::Execution)
+;
+                        }
+                        GeneratedField::__SkipField__ => {
+                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
+                        }
+                    }
+                }
+                Ok(HostWithdrawal {
+                    coin: coin__,
+                    destination: destination__,
+                })
+            }
+        }
+        deserializer.deserialize_struct("shieldd.execution_client.v1.HostWithdrawal", FIELDS, GeneratedVisitor)
+    }
+}
 impl serde::Serialize for InitGenesisRequest {
     #[allow(deprecated)]
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -2547,117 +2677,5 @@ impl<'de> serde::Deserialize<'de> for RollbackResponse {
             }
         }
         deserializer.deserialize_struct("shieldd.execution_client.v1.RollbackResponse", FIELDS, GeneratedVisitor)
-    }
-}
-impl serde::Serialize for Withdrawal {
-    #[allow(deprecated)]
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut len = 0;
-        if !self.recipient.is_empty() {
-            len += 1;
-        }
-        if self.coin.is_some() {
-            len += 1;
-        }
-        let mut struct_ser = serializer.serialize_struct("shieldd.execution_client.v1.Withdrawal", len)?;
-        if !self.recipient.is_empty() {
-            struct_ser.serialize_field("recipient", &self.recipient)?;
-        }
-        if let Some(v) = self.coin.as_ref() {
-            struct_ser.serialize_field("coin", v)?;
-        }
-        struct_ser.end()
-    }
-}
-impl<'de> serde::Deserialize<'de> for Withdrawal {
-    #[allow(deprecated)]
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        const FIELDS: &[&str] = &[
-            "recipient",
-            "coin",
-        ];
-
-        #[allow(clippy::enum_variant_names)]
-        enum GeneratedField {
-            Recipient,
-            Coin,
-            __SkipField__,
-        }
-        impl<'de> serde::Deserialize<'de> for GeneratedField {
-            fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
-            where
-                D: serde::Deserializer<'de>,
-            {
-                struct GeneratedVisitor;
-
-                impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-                    type Value = GeneratedField;
-
-                    fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                        write!(formatter, "expected one of: {:?}", &FIELDS)
-                    }
-
-                    #[allow(unused_variables)]
-                    fn visit_str<E>(self, value: &str) -> std::result::Result<GeneratedField, E>
-                    where
-                        E: serde::de::Error,
-                    {
-                        match value {
-                            "recipient" => Ok(GeneratedField::Recipient),
-                            "coin" => Ok(GeneratedField::Coin),
-                            _ => Ok(GeneratedField::__SkipField__),
-                        }
-                    }
-                }
-                deserializer.deserialize_identifier(GeneratedVisitor)
-            }
-        }
-        struct GeneratedVisitor;
-        impl<'de> serde::de::Visitor<'de> for GeneratedVisitor {
-            type Value = Withdrawal;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct shieldd.execution_client.v1.Withdrawal")
-            }
-
-            fn visit_map<V>(self, mut map_: V) -> std::result::Result<Withdrawal, V::Error>
-                where
-                    V: serde::de::MapAccess<'de>,
-            {
-                let mut recipient__ = None;
-                let mut coin__ = None;
-                while let Some(k) = map_.next_key()? {
-                    match k {
-                        GeneratedField::Recipient => {
-                            if recipient__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("recipient"));
-                            }
-                            recipient__ = Some(map_.next_value()?);
-                        }
-                        GeneratedField::Coin => {
-                            if coin__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("coin"));
-                            }
-                            coin__ = map_.next_value()?;
-                        }
-                        GeneratedField::__SkipField__ => {
-                            let _ = map_.next_value::<serde::de::IgnoredAny>()?;
-                        }
-                    }
-                }
-                Ok(Withdrawal {
-                    recipient: recipient__.unwrap_or_default(),
-                    coin: coin__,
-                })
-            }
-        }
-        deserializer.deserialize_struct("shieldd.execution_client.v1.Withdrawal", FIELDS, GeneratedVisitor)
     }
 }

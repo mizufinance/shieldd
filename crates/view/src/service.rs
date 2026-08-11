@@ -1030,6 +1030,17 @@ impl ViewService for ViewServer {
                         }
                     }
                 }
+                Action::ShieldedHostWithdrawal(withdrawal) => {
+                    for input in &withdrawal.body.inputs {
+                        let nullifier = input.nullifier;
+                        if let Ok(spendable_note_record) =
+                            self.storage.note_by_nullifier(nullifier, false).await
+                        {
+                            txp.spend_nullifiers
+                                .insert(nullifier, spendable_note_record.note);
+                        }
+                    }
+                }
                 _ => {}
             }
         }
@@ -1076,6 +1087,27 @@ impl ViewService for ViewServer {
                     },
                 ) => {
                     for note in spent_notes.iter().chain(change_note.iter()) {
+                        let address = note.address();
+                        address_views.insert(address.clone(), fvk.view_address(address));
+                        asset_ids.insert(note.asset_id());
+                    }
+                    if let Ok(memo) = tx.decrypt_memo(&fvk) {
+                        let return_address = memo.return_address();
+                        address_views
+                            .insert(return_address.clone(), fvk.view_address(return_address));
+                    }
+                }
+                ActionView::ShieldedHostWithdrawal(
+                    shieldd_sdk_shielded_pool::ShieldedHostWithdrawalView::Visible {
+                        spent_notes,
+                        change_note,
+                        ..
+                    },
+                ) => {
+                    for note in spent_notes
+                        .iter()
+                        .chain(std::slice::from_ref(change_note).iter())
+                    {
                         let address = note.address();
                         address_views.insert(address.clone(), fvk.view_address(address));
                         asset_ids.insert(note.asset_id());

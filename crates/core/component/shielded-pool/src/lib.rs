@@ -7,7 +7,9 @@ pub mod ics20_withdrawal;
 pub use ics20_withdrawal::Ics20Withdrawal;
 
 mod host_withdrawal;
-pub use host_withdrawal::HostWithdrawal;
+pub use host_withdrawal::{
+    EvmCall, HostExecution, HostTransfer, HostWithdrawal, HostWithdrawalDestination,
+};
 
 pub mod discovery;
 pub mod event;
@@ -50,7 +52,8 @@ pub use note_reshape::{
     NoteReshapeProofPrivate, NoteReshapeProofPublic, NoteReshapeView, NOTE_RESHAPE_FAMILY_SPECS,
 };
 pub use shielded_host_withdrawal::{
-    ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedHostWithdrawalView,
+    ShieldedHostWithdrawal, ShieldedHostWithdrawalBody, ShieldedHostWithdrawalPlan,
+    ShieldedHostWithdrawalView,
 };
 pub use shielded_ics20_withdrawal::{
     ShieldedIcs20Withdrawal, ShieldedIcs20WithdrawalBody, ShieldedIcs20WithdrawalChangeBody,

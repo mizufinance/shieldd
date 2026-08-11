@@ -10,6 +10,7 @@ use shieldd_sdk_proto::execution_client::v1::{
 use shieldd_sdk_shielded_pool::component::{
     AssetRegistry as _, AssetRegistryRead as _, NoteManager as _,
 };
+use shieldd_sdk_shielded_pool::HostWithdrawalDestination;
 use std::str::FromStr as _;
 use std::time::Instant;
 
@@ -69,12 +70,12 @@ impl HostTxResponse {
     }
 }
 
-/// Host-chain transfer emitted by an accepted shielded withdrawal.
+/// Host-chain work emitted by an accepted shielded withdrawal.
 #[derive(Clone, Debug)]
 pub struct HostWithdrawal {
-    pub recipient: String,
     pub denom: String,
     pub amount: Amount,
+    pub destination: HostWithdrawalDestination,
 }
 
 #[derive(Clone, Debug)]
@@ -321,9 +322,9 @@ impl HostExecution {
                 .await
                 .ok_or_else(|| anyhow::anyhow!("host withdrawal asset is not registered"))?;
             withdrawals.push(HostWithdrawal {
-                recipient: action.body.withdrawal.recipient.clone(),
                 denom: metadata.base_denom().denom,
                 amount: value.amount,
+                destination: action.body.withdrawal.destination.clone(),
             });
         }
         Ok(withdrawals)
@@ -710,6 +711,7 @@ mod tests {
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_shielded_pool::component::StateReadExt as _;
     use shieldd_sdk_shielded_pool::{
+        EvmCall, HostExecution as DomainHostExecution, HostTransfer,
         HostWithdrawal as DomainHostWithdrawal, NotePayload, ShieldedHostWithdrawal,
         ShieldedHostWithdrawalBody, ShieldedIcs20WithdrawalChangeBody,
         ShieldedIcs20WithdrawalFamilyId, ShieldedIcs20WithdrawalProof,
@@ -758,11 +760,13 @@ mod tests {
                 balance_commitment: Default::default(),
                 inputs: Vec::new(),
                 withdrawal: DomainHostWithdrawal {
-                    recipient: "bank1recipient".to_owned(),
                     value: Value {
                         amount: 42u64.into(),
                         asset_id: BASE_ASSET_DENOM.id(),
                     },
+                    destination: HostWithdrawalDestination::Transfer(HostTransfer {
+                        recipient: "bank1recipient".to_owned(),
+                    }),
                 },
                 change_output: ShieldedIcs20WithdrawalChangeBody {
                     note_payload: NotePayload::dummy(),
@@ -980,9 +984,54 @@ mod tests {
             .await?;
 
         assert_eq!(withdrawals.len(), 1);
-        assert_eq!(withdrawals[0].recipient, "bank1recipient");
+        assert!(matches!(
+            &withdrawals[0].destination,
+            HostWithdrawalDestination::Transfer(HostTransfer { recipient })
+                if recipient == "bank1recipient"
+        ));
         assert_eq!(withdrawals[0].denom, BASE_ASSET_DENOM.base_denom().denom);
         assert_eq!(withdrawals[0].amount, 42u64.into());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn host_withdrawals_preserve_withdrawal_order() -> Result<()> {
+        let storage = temp_storage().await;
+        let mut host = HostExecution::new(storage.deref().clone());
+
+        host.init_genesis(host_genesis()).await?;
+        host.commit().await?;
+        host.begin_block(host_block(1)).await?;
+        host.deposit(deposit_request(0)).await?;
+
+        let transfer = host_withdrawal_action();
+        let mut execution = host_withdrawal_action();
+        execution.body.withdrawal.destination =
+            HostWithdrawalDestination::Execution(DomainHostExecution {
+                refund_address: test_keys::ADDRESS_0.deref().clone(),
+                gas_limit: 200_000,
+                calls: vec![EvmCall {
+                    contract: [7u8; 20],
+                    calldata: vec![0xaa],
+                }],
+            });
+        let mut tx = Transaction::default();
+        tx.transaction_body.actions = vec![
+            Action::ShieldedHostWithdrawal(transfer),
+            Action::ShieldedHostWithdrawal(execution),
+        ];
+
+        let withdrawals = host.resolve_host_withdrawals(&tx).await?;
+
+        assert!(matches!(
+            withdrawals[0].destination,
+            HostWithdrawalDestination::Transfer(_)
+        ));
+        assert!(matches!(
+            withdrawals[1].destination,
+            HostWithdrawalDestination::Execution(_)
+        ));
 
         Ok(())
     }

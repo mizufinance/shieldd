@@ -214,6 +214,48 @@ impl TransactionPlan {
                     }
                 }
                 (
+                    ActionPlan::ShieldedHostWithdrawal(plan),
+                    Action::ShieldedHostWithdrawal(withdrawal),
+                ) => {
+                    plan.validate().map_err(|error| {
+                        anyhow::anyhow!(
+                            "invalid shielded host withdrawal plan at action {action_index}: {error}"
+                        )
+                    })?;
+                    withdrawal.body.validate_shape().map_err(|error| {
+                        anyhow::anyhow!(
+                            "invalid shielded host withdrawal shape at action {action_index}: {error}"
+                        )
+                    })?;
+                    anyhow::ensure!(
+                        plan.withdrawal.effect_hash() == withdrawal.body.withdrawal.effect_hash(),
+                        "shielded host withdrawal payload at action {action_index} does not match plan"
+                    );
+                    anyhow::ensure!(
+                        withdrawal.auth_sigs.len()
+                            == withdrawal.body.family_id.auth_sig_count(),
+                        "shielded host withdrawal action {action_index} expected {} authorization signature slots, got {}",
+                        withdrawal.body.family_id.auth_sig_count(),
+                        withdrawal.auth_sigs.len()
+                    );
+                    anyhow::ensure!(
+                        plan.spends.len() <= withdrawal.auth_sigs.len(),
+                        "shielded host withdrawal action {action_index} has fewer authorization signature slots than real spends"
+                    );
+                    for (index, auth_sig) in withdrawal.auth_sigs.iter_mut().enumerate() {
+                        if index < plan.spends.len() {
+                            *auth_sig = spend_auths.next().ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "missing spend authorization for shielded host withdrawal action {action_index} slot {index}"
+                                )
+                            })?;
+                        } else {
+                            *auth_sig =
+                                plan.synthetic_dummy_auth_sig(index, effect_hash.as_ref());
+                        }
+                    }
+                }
+                (
                     ActionPlan::ValidatorDefinition(plan),
                     Action::ValidatorDefinition(action),
                 ) => anyhow::ensure!(

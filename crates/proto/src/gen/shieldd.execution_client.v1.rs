@@ -234,9 +234,9 @@ pub struct DeliverTxResponse {
     /// Module or subsystem that produced a non-zero code.
     #[prost(string, tag = "8")]
     pub codespace: ::prost::alloc::string::String,
-    /// Host-chain withdrawals requested by the executed transaction.
+    /// Host-chain withdrawals in their order within the executed transaction.
     #[prost(message, repeated, tag = "9")]
-    pub withdrawals: ::prost::alloc::vec::Vec<Withdrawal>,
+    pub withdrawals: ::prost::alloc::vec::Vec<HostWithdrawal>,
 }
 impl ::prost::Name for DeliverTxResponse {
     const NAME: &'static str = "DeliverTxResponse";
@@ -248,24 +248,35 @@ impl ::prost::Name for DeliverTxResponse {
         "/shieldd.execution_client.v1.DeliverTxResponse".into()
     }
 }
-/// Withdrawal describes a coin the host chain should send to a recipient.
+/// HostWithdrawal describes committed value the host chain must transfer or execute.
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Withdrawal {
-    /// Host-chain recipient address.
-    #[prost(string, tag = "1")]
-    pub recipient: ::prost::alloc::string::String,
+pub struct HostWithdrawal {
     /// Coin withdrawn from Shieldd.
-    #[prost(message, optional, tag = "2")]
+    #[prost(message, optional, tag = "1")]
     pub coin: ::core::option::Option<super::super::super::cosmos::base::v1beta1::Coin>,
+    #[prost(oneof = "host_withdrawal::Destination", tags = "2, 3")]
+    pub destination: ::core::option::Option<host_withdrawal::Destination>,
 }
-impl ::prost::Name for Withdrawal {
-    const NAME: &'static str = "Withdrawal";
+/// Nested message and enum types in `HostWithdrawal`.
+pub mod host_withdrawal {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Destination {
+        #[prost(message, tag = "2")]
+        Transfer(super::super::super::core::component::shielded_pool::v1::HostTransfer),
+        #[prost(message, tag = "3")]
+        Execution(
+            super::super::super::core::component::shielded_pool::v1::HostExecution,
+        ),
+    }
+}
+impl ::prost::Name for HostWithdrawal {
+    const NAME: &'static str = "HostWithdrawal";
     const PACKAGE: &'static str = "shieldd.execution_client.v1";
     fn full_name() -> ::prost::alloc::string::String {
-        "shieldd.execution_client.v1.Withdrawal".into()
+        "shieldd.execution_client.v1.HostWithdrawal".into()
     }
     fn type_url() -> ::prost::alloc::string::String {
-        "/shieldd.execution_client.v1.Withdrawal".into()
+        "/shieldd.execution_client.v1.HostWithdrawal".into()
     }
 }
 /// EndBlockRequest identifies the host-chain block being finalized.

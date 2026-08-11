@@ -14,14 +14,16 @@ use shieldd_sdk_proto::{
     core::app::v1 as proto_app,
     cosmos::base::v1beta1::Coin,
     execution_client::v1::{
-        BeginBlockRequest, BeginBlockResponse, CheckTxRequest, CheckTxResponse, CommitRequest,
-        CommitResponse, DeliverTxRequest, DeliverTxResponse, DepositRequest, DepositResponse,
-        EndBlockRequest, EndBlockResponse, Event as ProtoEvent,
-        EventAttribute as ProtoEventAttribute, ExportGenesisRequest, ExportGenesisResponse,
-        GetCommittedStateRequest, GetCommittedStateResponse, InitGenesisRequest,
-        InitGenesisResponse, RollbackRequest, RollbackResponse, Withdrawal as ProtoWithdrawal,
+        host_withdrawal::Destination as ProtoDestination, BeginBlockRequest, BeginBlockResponse,
+        CheckTxRequest, CheckTxResponse, CommitRequest, CommitResponse, DeliverTxRequest,
+        DeliverTxResponse, DepositRequest, DepositResponse, EndBlockRequest, EndBlockResponse,
+        Event as ProtoEvent, EventAttribute as ProtoEventAttribute, ExportGenesisRequest,
+        ExportGenesisResponse, GetCommittedStateRequest, GetCommittedStateResponse,
+        HostWithdrawal as ProtoHostWithdrawal, InitGenesisRequest, InitGenesisResponse,
+        RollbackRequest, RollbackResponse,
     },
 };
+use shieldd_sdk_shielded_pool::HostWithdrawalDestination;
 use tendermint::{abci, Time};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ErrorKind {
@@ -300,14 +302,21 @@ fn deliver_tx_response(response: HostTxResponse) -> Result<DeliverTxResponse> {
     })
 }
 
-fn encode_withdrawals(withdrawals: Vec<HostWithdrawal>) -> Vec<ProtoWithdrawal> {
+fn encode_withdrawals(withdrawals: Vec<HostWithdrawal>) -> Vec<ProtoHostWithdrawal> {
     withdrawals
         .into_iter()
-        .map(|withdrawal| ProtoWithdrawal {
-            recipient: withdrawal.recipient,
+        .map(|withdrawal| ProtoHostWithdrawal {
             coin: Some(Coin {
                 denom: withdrawal.denom,
                 amount: withdrawal.amount.to_string(),
+            }),
+            destination: Some(match withdrawal.destination {
+                HostWithdrawalDestination::Transfer(transfer) => {
+                    ProtoDestination::Transfer(transfer.into())
+                }
+                HostWithdrawalDestination::Execution(execution) => {
+                    ProtoDestination::Execution(execution.into())
+                }
             }),
         })
         .collect()
@@ -341,6 +350,9 @@ fn encode_events(events: Vec<abci::Event>) -> Result<Vec<ProtoEvent>> {
 mod tests {
     use super::*;
     use shieldd_sdk_app::genesis::{AppState, Content};
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_shielded_pool::{EvmCall, HostExecution};
+    use std::ops::Deref;
 
     fn init_genesis_request() -> InitGenesisRequest {
         InitGenesisRequest {
@@ -387,18 +399,58 @@ mod tests {
     }
 
     #[test]
-    fn encode_withdrawals_maps_recipient_and_coin() {
+    fn encode_withdrawals_maps_transfer_and_coin() {
         let encoded = encode_withdrawals(vec![HostWithdrawal {
-            recipient: "bank1recipient".to_owned(),
             denom: "ushieldd".to_owned(),
             amount: 42u64.into(),
+            destination: HostWithdrawalDestination::Transfer(
+                shieldd_sdk_shielded_pool::HostTransfer {
+                    recipient: "bank1recipient".to_owned(),
+                },
+            ),
         }]);
 
         assert_eq!(encoded.len(), 1);
-        assert_eq!(encoded[0].recipient, "bank1recipient");
         let coin = encoded[0].coin.as_ref().expect("withdrawal coin");
         assert_eq!(coin.denom, "ushieldd");
         assert_eq!(coin.amount, "42");
+        assert!(matches!(
+            encoded[0].destination.as_ref(),
+            Some(ProtoDestination::Transfer(transfer))
+                if transfer.recipient == "bank1recipient"
+        ));
+    }
+
+    #[test]
+    fn encode_withdrawals_preserves_execution_call_order_and_refund_address() {
+        let encoded = encode_withdrawals(vec![HostWithdrawal {
+            denom: "ushieldd".to_owned(),
+            amount: 42u64.into(),
+            destination: HostWithdrawalDestination::Execution(HostExecution {
+                refund_address: test_keys::ADDRESS_0.deref().clone(),
+                gas_limit: 200_000,
+                calls: vec![
+                    EvmCall {
+                        contract: [1u8; 20],
+                        calldata: vec![0xaa],
+                    },
+                    EvmCall {
+                        contract: [2u8; 20],
+                        calldata: vec![0xbb],
+                    },
+                ],
+            }),
+        }]);
+
+        let Some(ProtoDestination::Execution(execution)) = encoded[0].destination.as_ref() else {
+            panic!("expected host execution");
+        };
+        assert_eq!(execution.refund_address, test_keys::ADDRESS_0.to_string());
+        assert_eq!(execution.gas_limit, 200_000);
+        assert_eq!(execution.calls[0].contract, [1u8; 20]);
+        assert_eq!(execution.calls[0].calldata, vec![0xaa]);
+        assert_eq!(execution.calls[1].contract, [2u8; 20]);
+        assert_eq!(execution.calls[1].calldata, vec![0xbb]);
     }
 
     #[tokio::test]

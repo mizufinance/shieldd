@@ -5,7 +5,7 @@ use anyhow::Result;
 use crate::ShieldedIcs20WithdrawalFamilyId;
 
 #[cfg(any(unix, windows))]
-pub(super) fn should_skip_shielded_ics20_withdrawal_proof_roundtrip_tests() -> bool {
+pub(crate) fn should_skip_shielded_ics20_withdrawal_proof_roundtrip_tests() -> bool {
     let evidence_required = std::env::var_os("SHIELDD_FV_EVIDENCE_REQUIRED").is_some();
     if cfg!(debug_assertions) {
         assert!(

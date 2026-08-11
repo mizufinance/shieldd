@@ -33,7 +33,8 @@ status.
 ## Why Shieldd needs something Filecoin doesn't
 
 - **Heterogeneous proofs.** A block mixes families — `Transfer`, `NoteReshape`
-  (1→8, 2→1, 4→1, or 8→1), `ShieldedIcs20Withdrawal`
+  (1→8, 2→1, 4→1, or 8→1), and the shared withdrawal family used by
+  `ShieldedIcs20Withdrawal` and `ShieldedHostWithdrawal`
   ([bundle.rs](../../crates/crypto/proof-aggregation/src/bundle.rs)) — each a
   distinct VK. You cannot "aggregate the block"; you aggregate per `(family,
   subfamily)` bucket.
