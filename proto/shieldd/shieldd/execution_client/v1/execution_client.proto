@@ -5,6 +5,7 @@ package shieldd.execution_client.v1;
 import "cosmos/base/v1beta1/coin.proto";
 import "google/protobuf/timestamp.proto";
 import "shieldd/core/app/v1/app.proto";
+import "shieldd/core/component/shielded_pool/v1/shielded_pool.proto";
 
 // ExecutionClientService is the gRPC boundary used by a host chain to drive Shieldd
 // execution without embedding the Shieldd app in-process.
@@ -139,16 +140,18 @@ message DeliverTxResponse {
   repeated Event events = 7;
   // Module or subsystem that produced a non-zero code.
   string codespace = 8;
-  // Host-chain withdrawals requested by the executed transaction.
-  repeated Withdrawal withdrawals = 9;
+  // Host-chain withdrawals in their order within the executed transaction.
+  repeated HostWithdrawal withdrawals = 9;
 }
 
-// Withdrawal describes a coin the host chain should send to a recipient.
-message Withdrawal {
-  // Host-chain recipient address.
-  string recipient = 1;
+// HostWithdrawal describes committed value the host chain must transfer or execute.
+message HostWithdrawal {
   // Coin withdrawn from Shieldd.
-  cosmos.base.v1beta1.Coin coin = 2;
+  cosmos.base.v1beta1.Coin coin = 1;
+  oneof destination {
+    shieldd.core.component.shielded_pool.v1.HostTransfer transfer = 2;
+    shieldd.core.component.shielded_pool.v1.HostExecution execution = 3;
+  }
 }
 
 // EndBlockRequest identifies the host-chain block being finalized.

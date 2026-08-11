@@ -1,7 +1,8 @@
 use shieldd_sdk_fee::Gas;
 use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_shielded_pool::{
-    NoteReshape, NoteReshapePlan, ShieldedHostWithdrawal, ShieldedIcs20Withdrawal,
+    HostWithdrawal, HostWithdrawalDestination, NoteReshape, NoteReshapePlan,
+    ShieldedHostWithdrawal, ShieldedHostWithdrawalPlan, ShieldedIcs20Withdrawal,
     ShieldedIcs20WithdrawalPlan,
 };
 use shieldd_sdk_validator::validator::Definition as ValidatorDefinition;
@@ -61,6 +62,18 @@ pub fn shielded_withdrawal_gas_cost() -> Gas {
     spend_gas_cost() + spend_gas_cost() + output_gas_cost()
 }
 
+fn host_withdrawal_gas_cost(withdrawal: &HostWithdrawal) -> Gas {
+    let mut gas = shielded_withdrawal_gas_cost();
+    gas.block_space = gas
+        .block_space
+        .saturating_add(withdrawal.encode_to_vec().len() as u64);
+    if let HostWithdrawalDestination::Execution(execution) = &withdrawal.destination {
+        // TODO(#117): Decide whether Bankd EVM gas maps 1:1 to Shieldd execution gas.
+        gas.execution = gas.execution.saturating_add(execution.gas_limit);
+    }
+    gas
+}
+
 impl GasCost for Transaction {
     fn gas_cost(&self) -> Gas {
         self.actions().map(GasCost::gas_cost).sum()
@@ -86,6 +99,7 @@ impl GasCost for ActionPlan {
             ActionPlan::ProposalSubmit(ps) => ps.gas_cost(),
             ActionPlan::ValidatorVote(v) => v.gas_cost(),
             ActionPlan::ShieldedIcs20Withdrawal(w) => w.gas_cost(),
+            ActionPlan::ShieldedHostWithdrawal(w) => w.gas_cost(),
             ActionPlan::ComplianceRegisterAsset(_) | ActionPlan::ComplianceRegisterUser(_) => Gas {
                 block_space: 100,
                 compact_block_space: 100,
@@ -161,7 +175,13 @@ impl GasCost for ShieldedIcs20Withdrawal {
 
 impl GasCost for ShieldedHostWithdrawal {
     fn gas_cost(&self) -> Gas {
-        shielded_withdrawal_gas_cost()
+        host_withdrawal_gas_cost(&self.body.withdrawal)
+    }
+}
+
+impl GasCost for ShieldedHostWithdrawalPlan {
+    fn gas_cost(&self) -> Gas {
+        host_withdrawal_gas_cost(&self.withdrawal)
     }
 }
 
@@ -206,5 +226,55 @@ impl GasCost for ValidatorVote {
             verification: 200,
             execution: 10,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ops::Deref;
+
+    use shieldd_sdk_asset::{Value, BASE_ASSET_DENOM};
+    use shieldd_sdk_keys::test_keys;
+    use shieldd_sdk_shielded_pool::{
+        EvmCall, HostExecution, HostTransfer, HostWithdrawalDestination,
+    };
+
+    use super::*;
+
+    fn value() -> Value {
+        Value {
+            amount: 42u64.into(),
+            asset_id: BASE_ASSET_DENOM.id(),
+        }
+    }
+
+    #[test]
+    fn host_execution_charges_requested_execution_gas() {
+        let transfer = HostWithdrawal {
+            value: value(),
+            destination: HostWithdrawalDestination::Transfer(HostTransfer {
+                recipient: "bank1recipient".to_owned(),
+            }),
+        };
+        let execution = HostWithdrawal {
+            value: value(),
+            destination: HostWithdrawalDestination::Execution(HostExecution {
+                refund_address: test_keys::ADDRESS_0.deref().clone(),
+                gas_limit: 200_000,
+                calls: vec![EvmCall {
+                    contract: [7u8; 20],
+                    calldata: vec![0xaa],
+                }],
+            }),
+        };
+
+        assert_eq!(
+            host_withdrawal_gas_cost(&execution).execution,
+            shielded_withdrawal_gas_cost().execution + 200_000
+        );
+        assert_eq!(
+            host_withdrawal_gas_cost(&transfer).execution,
+            shielded_withdrawal_gas_cost().execution
+        );
     }
 }
