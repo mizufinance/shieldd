@@ -462,6 +462,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
+          lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: snarkpack-formal
@@ -764,11 +765,12 @@ jobs:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
+          lfs: true
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - name: Check soundness invariants
@@ -781,7 +783,7 @@ jobs:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -799,12 +801,19 @@ jobs:
       - name: Manifest pin
         run: bash scripts/check-manifest-pin.sh
 
-  soundness-vk-derivation:
-    name: 'soundness: vk-derivation'
+  soundness-key-coherence:
+    name: 'soundness: key coherence'
     needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
+    # The full whole-circuit lane emits and validates the same deployed-key
+    # proof receipts for all certified and candidate profiles. Keep this
+    # standalone round trip only for stamps/typed runs, where the whole-circuit
+    # lane deliberately does not prove.
+    if: >-
+      needs.applicability.result == 'success' &&
+      needs.applicability.outputs.soundness_run == 'true' &&
+      needs.applicability.outputs.soundness_tier != 'full'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -814,17 +823,11 @@ jobs:
         with:
           go-version-file: tools/gnark/go.mod
           cache-dependency-path: tools/gnark/go.sum
-      # One job, not a 2-way matrix: each circuit takes ~1 min, so a second
-      # runner and Go toolchain setup cost more than running them in sequence.
-      - name: VK derivation pinning
+      # Run serially so each deployed key is exercised against the exact
+      # source-compiled circuit without multiplying peak memory.
+      - name: Exact SR1CS and multi-branch key coherence
         shell: bash
-        run: |
-          set -euo pipefail
-          for circuit in note_reshape2x1 transfer; do
-            echo "::group::vk-derivation $circuit"
-            bash scripts/check-vk-derivation.sh "$circuit"
-            echo "::endgroup::"
-          done
+        run: bash scripts/check-circuit-fv.sh receipt all
 
   soundness-alloy:
     name: 'soundness: alloy'
@@ -847,7 +850,7 @@ jobs:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.soundness_run == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 360
     container:
       image: ghcr.io/mizufinance/shieldd-fv-toolchain@sha256:4bdec94eb778ca2ae549ba75de18b44a822f5460f608d7facc911382f08e88aa
       credentials:
@@ -884,10 +887,8 @@ jobs:
           key: go-fv-${{ hashFiles('tools/gnark/go.sum') }}
           restore-keys: |
             go-fv-
-      # dev replaced the script's `stamps|full` modes with `drift|typed|release`
-      # plus a family list. Map the applicability tier onto that interface here
-      # rather than passing the tier through, so an unrecognised tier fails loudly
-      # instead of reaching the script as an unknown mode.
+      # Handwritten NoteReshape proof changes are typechecked on pull requests;
+      # deployed-key proving remains a merge/release check.
       - name: Run whole-circuit FV tier
         shell: bash
         env:
@@ -895,8 +896,18 @@ jobs:
         run: |
           set -euo pipefail
           case "$TIER" in
-            stamps) bash scripts/check-lean-circuit-fv.sh drift all ;;
-            full)   bash scripts/check-lean-circuit-fv.sh release all ;;
+            stamps)
+              bash scripts/check-lean-circuit-fv.sh drift all
+              bash scripts/check-circuit-fv.sh drift --status candidate
+              ;;
+            typed)
+              bash scripts/check-lean-circuit-fv.sh typed all
+              bash scripts/check-circuit-fv.sh drift --status candidate
+              ;;
+            full)
+              bash scripts/check-lean-circuit-fv.sh release all
+              bash scripts/check-circuit-fv.sh receipt --status candidate
+              ;;
             *)
               echo "unsupported soundness tier: $TIER" >&2
               exit 1
@@ -918,7 +929,7 @@ jobs:
       - snarkpack-publication
       - soundness-gate
       - soundness-seam-and-pin
-      - soundness-vk-derivation
+      - soundness-key-coherence
       - soundness-alloy
       - soundness-lean-circuit-fv
     runs-on: ubuntu-24.04
@@ -961,7 +972,7 @@ jobs:
           PUBLICATION: ${{ needs.snarkpack-publication.result }}
           GATE: ${{ needs.soundness-gate.result }}
           SEAM: ${{ needs.soundness-seam-and-pin.result }}
-          VK: ${{ needs.soundness-vk-derivation.result }}
+          KEY_COHERENCE: ${{ needs.soundness-key-coherence.result }}
           ALLOY: ${{ needs.soundness-alloy.result }}
           LEAN: ${{ needs.soundness-lean-circuit-fv.result }}
         run: python3 scripts/ci/enforce_formal_result.py

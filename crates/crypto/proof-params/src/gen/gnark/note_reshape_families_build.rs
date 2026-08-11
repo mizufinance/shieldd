@@ -1,3 +1,4 @@
+// Code generated from note_reshape_families.json. DO NOT EDIT.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum InputPaddingPolicy {
     Fixed,
@@ -26,19 +27,6 @@ pub struct GeneratedNoteReshapeFamily {
 
 pub const GENERATED_NOTE_RESHAPE_FAMILIES: &[GeneratedNoteReshapeFamily] = &[
     GeneratedNoteReshapeFamily {
-        id: 1,
-        label: "note_reshape2x1",
-        artifact_name: "note_reshape2x1",
-        input_padding: InputPaddingPolicy::Fixed,
-        output_padding: OutputPaddingPolicy::Fixed,
-        n_in: 2,
-        n_out: 1,
-        min_real_inputs: 2,
-        max_real_inputs: 2,
-        min_real_outputs: 1,
-        max_real_outputs: 1,
-    },
-    GeneratedNoteReshapeFamily {
         id: 2,
         label: "note_reshape1x8",
         artifact_name: "note_reshape1x8",
@@ -59,21 +47,8 @@ pub const GENERATED_NOTE_RESHAPE_FAMILIES: &[GeneratedNoteReshapeFamily] = &[
         output_padding: OutputPaddingPolicy::Fixed,
         n_in: 8,
         n_out: 1,
-        min_real_inputs: 5,
+        min_real_inputs: 2,
         max_real_inputs: 8,
-        min_real_outputs: 1,
-        max_real_outputs: 1,
-    },
-    GeneratedNoteReshapeFamily {
-        id: 4,
-        label: "note_reshape4x1",
-        artifact_name: "note_reshape4x1",
-        input_padding: InputPaddingPolicy::SyntheticPrivate,
-        output_padding: OutputPaddingPolicy::Fixed,
-        n_in: 4,
-        n_out: 1,
-        min_real_inputs: 3,
-        max_real_inputs: 4,
         min_real_outputs: 1,
         max_real_outputs: 1,
     },

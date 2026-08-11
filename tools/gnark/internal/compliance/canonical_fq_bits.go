@@ -8,22 +8,10 @@ import (
 	"github.com/reilabs/gnark-lean-extractor/v3/abstractor"
 )
 
-// Canonical field-element decomposition, native-ToBinary shape.
-//
-// CanonicalFqBits253 decomposes a field element into its 253 little-endian bits
-// via gnark's api.ToBinary (extractor-native: emits Gates.to_binary, modelled in
-// proven-zk as `recover_binary_zmod' bits = v ∧ is_vector_binary bits`) and then
-// asserts the decomposition is *reduced* (packbv(bits) < p) with an explicit
-// MSB-first lexicographic `<= p-1` comparator. The comparator is the Lean
-// `LeLadder` shape (see RangeCheckLadder.lean): at each position the value bit
-// must not exceed the bound bit, and equality defers to lower bits.
-//
-// The two tracks are independent provers of the shipped circuit: this gadget is
-// the Lean-optimal shape (native ToBinary + ladder, no solver hint, no
-// multi-arg-op shadowing). ACL2 re-proves whatever ships on its own path.
-//
-// Returns the 253 little-endian bit wires so a comparator can reuse them without
-// re-decomposing (decompose-once).
+// CanonicalFqBits253 exposes a source-extractor-friendly 253-bit decomposition:
+// native ToBinary plus an explicit MSB-first `<= p-1` ladder. The deployed
+// AssetRegistryGap instead uses private native decomposition blocks whose
+// backend modulus rows are consumed by its exact relation provider.
 
 // pMinusOneBits returns the little-endian bits of c = p-1 over n = field bit length.
 func pMinusOneBits() []uint {
@@ -36,10 +24,8 @@ func pMinusOneBits() []uint {
 	return bits
 }
 
-// canonicalFqBitsGadget wraps the decomposition as an extractor gadget so the
-// Lean export emits a single reusable `def` plus one call per use (three in
-// AssetRegistryGap). During proving the call runs DefineGadget inline, so the
-// constraint system is identical to the inlined form.
+// canonicalFqBitsGadget wraps the explicit decomposition so source extraction
+// emits one reusable definition. Proving still inlines the same constraints.
 type canonicalFqBitsGadget struct {
 	In frontend.Variable
 }
@@ -52,6 +38,18 @@ func (g canonicalFqBitsGadget) DefineGadget(api frontend.API) interface{} {
 // The returned slice is little-endian (index 0 = LSB).
 func CanonicalFqBits253(api frontend.API, v frontend.Variable) []frontend.Variable {
 	return abstractor.Call1(api, canonicalFqBitsGadget{In: v})
+}
+
+// nativeCanonicalFqBits253 uses gnark's own full-width ToBinary relation.
+// On the BLS12-377 scalar field, ToBinary(v, 253) emits Booleanity,
+// recomposition, and MustBeLessOrEqCst(bits, p-1, v). The exact deployed
+// AssetRegistryGap provider proves reducedness from those backend rows.
+//
+// This helper is intentionally private to AssetRegistryGap. Other Decaf
+// gadgets retain CanonicalFqBits253's explicit comparison ladder because their
+// abstract extractor bridges consume that source-level shape.
+func nativeCanonicalFqBits253(api frontend.API, v frontend.Variable) []frontend.Variable {
+	return api.ToBinary(v, primitives.ScalarField().BitLen())
 }
 
 func canonicalFqBits253(api frontend.API, v frontend.Variable) []frontend.Variable {
@@ -167,7 +165,9 @@ func lexLess253Inline(api frontend.API, aBits, bBits []frontend.Variable) fronte
 // AssetRegistryGap is the decompose-once IMT membership / non-membership
 // comparator: Select(isRegulated, exactMatch, inGap), matching Rust's
 // `verify_asset_registry_imt`. Each of leaf/id/next is decomposed exactly once
-// via CanonicalFqBits253, and the two comparisons reuse those bits.
+// by gnark's native full-width ToBinary relation, and the two comparisons reuse
+// those bits. The exact R1CS provider consumes the native modulus-comparison
+// rows; bare extractor-level ToBinary semantics are not treated as canonical.
 func AssetRegistryGap(
 	api frontend.API,
 	noteAssetID frontend.Variable,
@@ -175,9 +175,9 @@ func AssetRegistryGap(
 	leafValue frontend.Variable,
 	nextValue frontend.Variable,
 ) frontend.Variable {
-	leafBits := CanonicalFqBits253(api, leafValue)
-	idBits := CanonicalFqBits253(api, noteAssetID)
-	nextBits := CanonicalFqBits253(api, nextValue)
+	leafBits := nativeCanonicalFqBits253(api, leafValue)
+	idBits := nativeCanonicalFqBits253(api, noteAssetID)
+	nextBits := nativeCanonicalFqBits253(api, nextValue)
 
 	isExactMatch := api.IsZero(api.Sub(noteAssetID, leafValue))
 	gtLow := lexLess253(api, leafBits, idBits)

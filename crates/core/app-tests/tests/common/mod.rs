@@ -16,24 +16,6 @@ use shieldd_sdk_compliance::{ComplianceLeaf, ComplianceRegistryRead, ComplianceR
 use shieldd_sdk_keys::Address;
 use shieldd_sdk_shielded_pool::{ShieldedInputPlan, ShieldedOutputPlan};
 
-fn compliance_leaf(
-    address: Address,
-    asset_id: asset::Id,
-    ring_pk: &decaf377::Element,
-) -> ComplianceLeaf {
-    let registration_id = [17u8; 32];
-    let user_public_key =
-        shieldd_sdk_compliance::derive_orbis_user_public_key(ring_pk, &registration_id)
-            .expect("valid Orbis user key");
-    ComplianceLeaf::new_with_orbis_registration_id(
-        address,
-        asset_id,
-        user_public_key,
-        registration_id,
-    )
-    .expect("non-identity compliance key")
-}
-
 #[allow(dead_code)]
 pub fn align_transfer_planning_metadata(
     spends: &mut [ShieldedInputPlan],
@@ -77,10 +59,11 @@ pub async fn register_assets_for_compliance<S: StateWrite + ComplianceRegistryRe
     Ok(())
 }
 
-/// Register test users with deterministic, distinct compliance keys.
+/// Register test users in the compliance registry with BLACK_HOLE_ACK.
 ///
-/// This is necessary for tests that build transactions with shielded input/output plans,
-/// as the compliance circuit requires valid Merkle proofs.
+/// This helper registers the given addresses for the specified assets as unregulated
+/// users (using BLACK_HOLE_ACK). This is necessary for tests that build transactions
+/// with shielded input/output plans, as the compliance circuit requires valid Merkle proofs.
 ///
 /// # Example
 /// ```ignore
@@ -89,7 +72,6 @@ pub async fn register_assets_for_compliance<S: StateWrite + ComplianceRegistryRe
 ///     &mut state,
 ///     &[sender_address, recipient_address],
 ///     &[staking_token_id],
-///     ring_pk,
 /// ).await?;
 /// storage.commit(state).await?;
 /// ```
@@ -98,12 +80,12 @@ pub async fn register_test_users_for_compliance<S: StateWrite>(
     state: &mut S,
     addresses: &[Address],
     asset_ids: &[asset::Id],
-    ring_pk: decaf377::Element,
 ) -> anyhow::Result<()> {
     for address in addresses {
         for &asset_id in asset_ids {
-            let leaf = compliance_leaf(address.clone(), asset_id, &ring_pk);
-            state.add_compliance_leaf(leaf).await?;
+            let b_d_fq = address.diversified_generator().vartime_compress_to_field();
+            let leaf = ComplianceLeaf::new(address.clone(), asset_id, b_d_fq);
+            state.test_only_add_compliance_leaf(leaf).await?;
         }
     }
     Ok(())
@@ -122,17 +104,17 @@ pub async fn state_with_compliance_for_build(
     storage: &cnidarium::TempStorage,
     addresses: &[Address],
     asset_ids: &[asset::Id],
-    ring_pk: decaf377::Element,
 ) -> anyhow::Result<cnidarium::StateDelta<cnidarium::Snapshot>> {
     use cnidarium::StateDelta;
 
     let mut delta = StateDelta::new(storage.latest_snapshot());
 
-    // Register users with deterministic keys derived from each test address.
+    // Register users with real d (matching what the circuit derives from the address)
     for address in addresses {
         for &asset_id in asset_ids {
-            let leaf = compliance_leaf(address.clone(), asset_id, &ring_pk);
-            delta.add_compliance_leaf(leaf).await?;
+            let b_d_fq = address.diversified_generator().vartime_compress_to_field();
+            let leaf = ComplianceLeaf::new(address.clone(), asset_id, b_d_fq);
+            delta.test_only_add_compliance_leaf(leaf).await?;
         }
     }
 

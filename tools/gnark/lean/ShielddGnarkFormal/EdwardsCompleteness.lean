@@ -455,6 +455,13 @@ theorem double_onCurve (p : Point) (hp : onCurve p) : onCurve (doubleF p) := by
       mul_one]
     ring
 
+section ChoiceFreeCrossRatio
+
+attribute [-instance] ZMod.instField ZMod.instIsDomain
+local instance choiceFreeCrossRatioCommRing : CommRing F := ZMod.commRing _
+local instance choiceFreeCrossRatioNoZeroDivisors : NoZeroDivisors F :=
+  ChoiceFreeZMod.noZeroDivisors Order
+
 /-- Over `F`, the decaf cross-ratio `p.x*q.y = q.x*p.y` together with both points
 on-curve forces `q` to be either `p` itself or its 2-torsion shift `(-p.x, -p.y)`.
 The remaining line-through-origin intersections would require `√d`, impossible
@@ -480,8 +487,14 @@ theorem crossRatio_pins_to_two_torsion (p q : Point)
     · left; exact ⟨rfl, by linear_combination h⟩
     · right; exact ⟨by ring, by linear_combination h⟩
   · -- px ≠ 0: write q = λ·p and use that d is a non-square.
-    set lam := qx / px with hlam
-    have hqx_eq : qx = lam * px := by rw [hlam]; field_simp
+    set lam := qx * px⁻¹ with hlam
+    have hqx_eq : qx = lam * px := by
+      rw [hlam]
+      calc
+        qx = qx * 1 := (mul_one qx).symm
+        _ = qx * (px⁻¹ * px) := by
+          rw [ChoiceFreeZMod.inv_mul_cancel Order px hpx]
+        _ = (qx * px⁻¹) * px := (mul_assoc qx px⁻¹ px).symm
     have hqy_eq : qy = lam * py := by
       have : px * qy = lam * px * py := by rw [hcr, hqx_eq]
       have hcancel : qy = lam * py := by
@@ -508,6 +521,18 @@ theorem crossRatio_pins_to_two_torsion (p q : Point)
       have hne : px * py * lam ≠ 0 := by
         intro h0; rw [h0] at hprod; simp at hprod
       apply d_not_square
-      refine ⟨(px * py * lam)⁻¹, ?_⟩
-      field_simp
-      linear_combination hprod
+      let z := px * py * lam
+      have hzInv : z * z⁻¹ = 1 :=
+        ChoiceFreeZMod.mul_inv_cancel Order z (by simpa [z] using hne)
+      have hpair : (z * z) * (z⁻¹ * z⁻¹) = 1 := by
+        calc
+          (z * z) * (z⁻¹ * z⁻¹) = (z * z⁻¹) * (z * z⁻¹) := by ring
+          _ = 1 := by rw [hzInv, one_mul]
+      refine ⟨z⁻¹, ?_⟩
+      calc
+        d = d * 1 := (mul_one d).symm
+        _ = d * ((z * z) * (z⁻¹ * z⁻¹)) := by rw [hpair]
+        _ = (d * (z * z)) * (z⁻¹ * z⁻¹) := by ring
+        _ = z⁻¹ * z⁻¹ := by rw [show d * (z * z) = 1 by simpa [z] using hprod, one_mul]
+
+end ChoiceFreeCrossRatio

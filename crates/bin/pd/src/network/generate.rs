@@ -522,7 +522,6 @@ pub struct NetworkValidator {
     /// on this address.
     pub external_address: Option<TendermintAddress>,
     pub peer_address_template: Option<String>,
-    #[serde(default)]
     pub keys: ValidatorKeys,
 }
 
@@ -563,8 +562,8 @@ impl NetworkValidator {
                         let spend_key = SpendKey::from_seed_phrase_bip44(
                             seed_phrase,
                             &Bip44Path::new(raw.sequence_number),
-                        );
-                        ValidatorKeys::from_seed(spend_key.to_bytes().0)
+                        )?;
+                        ValidatorKeys::from_seed(spend_key.to_bytes().0)?
                     }
                 };
 
@@ -628,17 +627,17 @@ impl NetworkValidator {
     }
 }
 
-impl Default for NetworkValidator {
-    fn default() -> Self {
-        Self {
+impl NetworkValidator {
+    pub fn generate() -> Result<Self> {
+        Ok(Self {
             name: "".to_string(),
             website: "".to_string(),
             description: "".to_string(),
             sequence_number: 0,
             external_address: None,
             peer_address_template: None,
-            keys: ValidatorKeys::generate(),
-        }
+            keys: ValidatorKeys::generate()?,
+        })
     }
 }
 
@@ -667,8 +666,10 @@ impl TryFrom<&NetworkValidator> for Validator {
             // Currently there's no way to set validator keys beyond
             // manually editing the genesis.json. Otherwise they
             // will be randomly generated keys.
-            identity_key: IdentityKey(tv.keys.validator_id_vk.into()),
-            governance_key: GovernanceKey(tv.keys.validator_id_vk),
+            identity_key: IdentityKey::try_from(tv.keys.validator_id_vk)
+                .context("invalid validator identity key")?,
+            governance_key: GovernanceKey::try_from(tv.keys.validator_id_vk)
+                .context("invalid validator governance key")?,
             consensus_key: tv.keys.validator_cons_pk,
             name: tv.name.clone(),
             website: tv.website.clone(),
@@ -737,7 +738,35 @@ where
 
 #[cfg(test)]
 mod tests {
+    use decaf377::Fr;
+    use decaf377_rdsa::SigningKey;
+
     use super::*;
+
+    #[test]
+    fn validator_conversion_rejects_identity_authorization_key_without_panicking(
+    ) -> anyhow::Result<()> {
+        let mut keys = ValidatorKeys::from_seed([1u8; 32])?;
+        keys.validator_id_vk =
+            VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(0u64)));
+        let network_validator = NetworkValidator {
+            name: "identity-key-validator".to_owned(),
+            website: String::new(),
+            description: String::new(),
+            sequence_number: 0,
+            external_address: None,
+            peer_address_template: None,
+            keys,
+        };
+
+        let error = Validator::try_from(&network_validator)
+            .expect_err("network config must reject identity authorization keys");
+        assert!(
+            format!("{error:#}").contains("invalid validator identity key"),
+            "unexpected error: {error:#}"
+        );
+        Ok(())
+    }
 
     #[test]
     fn parse_allocations_from_good_csv() -> anyhow::Result<()> {

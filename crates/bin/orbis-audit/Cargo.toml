@@ -3,37 +3,10 @@ name = "orbis-audit"
 version = { workspace = true }
 authors = { workspace = true }
 edition = { workspace = true }
-description = "Orbis PRE audit tool for transfer-only compliance"
+description = "Fail-closed marker for the disabled Orbis v0 transfer audit path"
 repository = { workspace = true }
 license = { workspace = true }
 publish = false
 
-[features]
-default = ["demo"]
-demo = ["shieldd-sdk-keys/demo"]
-
 [dependencies]
 anyhow = { workspace = true }
-clap = { workspace = true, features = ["derive", "env"] }
-decaf377 = { workspace = true, default-features = true }
-did-key = "0.2.1"
-hex = { workspace = true }
-orbis-authn = { package = "authn", git = "https://github.com/sourcenetwork/orbis-rs", rev = "b5d229aaadef4c0127203c2fccafb6771f38eaca" }
-orbis-common = { package = "common", git = "https://github.com/sourcenetwork/orbis-rs", rev = "b5d229aaadef4c0127203c2fccafb6771f38eaca" }
-serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
-sha2 = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
-tonic = { workspace = true }
-url = { workspace = true }
-
-shieldd-orbis-client = { workspace = true }
-shieldd-sdk-compliance = { workspace = true, default-features = false }
-shieldd-sdk-asset = { workspace = true, default-features = false }
-shieldd-sdk-keys = { workspace = true, default-features = false }
-shieldd-sdk-num = { workspace = true, default-features = false }
-shieldd-sdk-proto = { workspace = true, features = ["rpc"], default-features = true }
-shieldd-sdk-shielded-pool = { workspace = true, default-features = false }
-shieldd-sdk-txhash = { workspace = true, default-features = false }
-poseidon377 = { workspace = true }
-rand_core = { workspace = true }

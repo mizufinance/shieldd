@@ -1,5 +1,6 @@
 {
-  "manifest_sha256": "semantic-transfer",
+  "schema": "shieldd.transfer_family_projection.v1",
+  "source_sha256": "0f75ef45326e733fa5d2859e8ce0064d6d4da8c14c4bf06b294f6b9b3d27acd3",
   "families": [
     {
       "label": "transfer",

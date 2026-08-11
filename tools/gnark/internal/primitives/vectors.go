@@ -160,6 +160,7 @@ type IndexedLeafFixture struct {
 	NextValue      []byte      `json:"next_value"`
 	DKPub          []byte      `json:"dk_pub"`
 	Threshold      json.Number `json:"threshold"`
+	SlotCount      json.Number `json:"slot_count"`
 	ChannelsHash   []byte      `json:"channels_hash"`
 	RingPK         []byte      `json:"ring_pk"`
 	RingIDHash     []byte      `json:"ring_id_hash"`
@@ -177,9 +178,11 @@ type AssetIDFixture struct {
 }
 
 type ComplianceLeafFixture struct {
-	Address       AddressFixture `json:"address"`
-	AssetID       AssetIDFixture `json:"assetId"`
-	UserPublicKey []byte         `json:"user_public_key"`
+	Address        AddressFixture `json:"address"`
+	AssetID        AssetIDFixture `json:"assetId"`
+	SlotID         string         `json:"slot_id"`
+	SlotDerivation string         `json:"slot_derivation"`
+	D              string         `json:"d"`
 }
 
 type SpendPrivateFixture struct {
@@ -192,6 +195,7 @@ type SpendPrivateFixture struct {
 	DiversifiedGeneratorAffine     PointAffineFixture          `json:"diversified_generator_affine"`
 	TransmissionKeyHex             string                      `json:"transmission_key_hex"`
 	TransmissionKeyAffine          PointAffineFixture          `json:"transmission_key_affine"`
+	ClueKey                        string                      `json:"clue_key"`
 	StateCommitmentProof           StateCommitmentProofFixture `json:"state_commitment_proof"`
 	VBlinding                      string                      `json:"v_blinding"`
 	SpendAuthRandomizer            string                      `json:"spend_auth_randomizer"`
@@ -208,7 +212,7 @@ type SpendPrivateFixture struct {
 	CompliancePosition             uint64                      `json:"compliance_position"`
 	UserLeaf                       ComplianceLeafFixture       `json:"user_leaf"`
 	UserLeafCommitment             string                      `json:"user_leaf_commitment"`
-	UserPublicKeyAffine            PointAffineFixture          `json:"user_public_key_affine"`
+	UserDDecimal                   string                      `json:"user_d_decimal"`
 	UserDiversifiedGeneratorAffine PointAffineFixture          `json:"user_diversified_generator_affine"`
 	UserTransmissionKeyAffine      PointAffineFixture          `json:"user_transmission_key_affine"`
 	ComplianceEphemeralSecret      string                      `json:"compliance_ephemeral_secret"`

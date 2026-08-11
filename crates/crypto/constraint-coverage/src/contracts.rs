@@ -51,44 +51,6 @@ fn circuit_module(circuit: &str) -> String {
     out
 }
 
-fn is_note_reshape_family(circuit: &str) -> bool {
-    matches!(
-        circuit,
-        "note_reshape2x1" | "note_reshape4x1" | "note_reshape8x1" | "note_reshape1x8"
-    )
-}
-
-fn uses_normalized_template_contract(circuit: &str, _segment: &SegmentIr) -> bool {
-    is_note_reshape_family(circuit)
-}
-
-/// The `Specs` submodule holding a segment's hand-authored endpoint.
-///
-/// note_reshape2x1's specs are split per crypto family (`Specs/Core.lean`,
-/// `Specs/Compress.lean`, …) so that touching one family's endpoints does not
-/// re-elaborate contracts/adapters seated on another. Each contract imports the
-/// narrowest family submodule; the `Specs.deployedSpecN` reference still
-/// resolves because every submodule opens the shared `…Specs` namespace.
-/// Other circuits keep the monolithic `Specs`.
-fn spec_submodule(circuit: &str, segment_index: usize) -> &'static str {
-    if circuit_module(circuit) != "NoteReshape2x1" {
-        return "Specs";
-    }
-    match segment_index {
-        5 | 17 | 32 | 48 => "Specs.Compress",
-        9 | 24 | 39 => "Specs.NoteCommitment",
-        11 | 26 => "Specs.Nullifier",
-        15 | 30 => "Specs.Rvk",
-        6 => "Specs.Dtk",
-        46 => "Specs.Nb",
-        13 | 28 => "Specs.Scp",
-        // on-curve, assert-eq, assert-equivalent glue rows, seg7 (DTK
-        // consumer, post-hoist single instance), and the statement-hash
-        // endpoint (seg 53).
-        _ => "Specs.Glue",
-    }
-}
-
 pub fn contract_module(circuit: &str, segment_index: usize) -> String {
     format!(
         "Shieldd.GnarkFormal.Deployed.Contracts.{}.Seg{}",
@@ -153,17 +115,6 @@ const MIN_RUN: usize = 16;
 /// Generated contract modules are large, but must still fail deterministically
 /// instead of elaborating without a bound.
 const MAX_CONTRACT_HEARTBEATS: u64 = 50_000_000;
-
-/// Split definition payloads before a monolithic contract approaches the
-/// bounded contract tier. NoteReshape2x1 Seg6 demonstrated that a 1.9 MiB payload
-/// can exceed the 180-second limit even though byte size alone looks modest.
-const CONTRACT_SHARD_THRESHOLD_BYTES: usize = 1024 * 1024;
-
-/// Each shard is small enough to elaborate independently under the leaf tier.
-/// Seg6 demonstrated that even a 256 KiB shard can reach 61 seconds when its
-/// definitions are algebraically dense, so retain margin below the strict
-/// 60-second limit instead of tuning to the boundary.
-const CONTRACT_SHARD_BYTES: usize = 128 * 1024;
 
 /// One compressed arithmetic-progression run: `coeff · Σ_{i<count} rho(start + i·stride)`.
 struct StrideRun {
@@ -638,7 +589,7 @@ fn template_module_name(template_key: &str) -> String {
 fn render_generated_relation(template_key: &str, rows: &[Constraint]) -> Vec<TemplateFile> {
     let module_name = template_module_name(template_key);
     // Crypto templates retain the same five-row proof surface used by the
-    // deployed 2x1 adapters, so Poseidon/fixed-base generators can be reused
+    // deployed adapters, so Poseidon/fixed-base generators can be reused
     // without restating their mathematics. Small control templates stay in
     // compact 16-row CPS blocks for inexpensive direct semantic proofs.
     let (relation_defs, relation_body) = if rows.len() > 100 {
@@ -926,160 +877,11 @@ fn parse_segment_rows(
         .collect()
 }
 
-fn render_contract(circuit: &str, segment: &SegmentIr, rows: &[Constraint]) -> Vec<ContractFile> {
-    // The new NoteReshape families share the normalized-template substrate.
-    // Their instance contracts must stay small even for dense Poseidon and
-    // scalar-multiplication slices; the normalized relation is emitted once by
-    // `generate_templates` and each instance only seats it.
-    if uses_normalized_template_contract(circuit, segment) {
-        return vec![render_generated_template_contract(circuit, segment)];
-    }
-    let module_tail = format!("{}.Seg{}", circuit_module(circuit), segment.index);
-    let module = contract_module(circuit, segment.index);
-    let file_name = contract_file_name(circuit, segment.index);
-    let circuit_mod = circuit_module(circuit);
-    // Semantic adapters project recomposition rows directly. Keep bounded
-    // irregular LCs in the row equation so proofs never open a relationLc*Part*
-    // implementation detail. Equal-coefficient ladder sums are compacted first
-    // by StructuredLC and exposed through one opaque relationLc* definition.
-    let inline_limit = match segment.op.as_str() {
-        "decaf.net_balance_commitment" => 256,
-        "gadget.state_commitment_path" => 64,
-        _ => 32,
-    };
-    // The rvk fixed-base bridges (segs 13/31) consume the flat relationLc*
-    // defs directly; compacting their ladder accumulators into StructuredLC
-    // would delete the defs those proven adapters are seated on.
-    let structured = segment.op != "decaf.randomized_verification_key";
-    let chunk_size = if rows.len() <= 1_200 { 5 } else { 80 };
-    let (relation_defs, relation_body) = render_relation_defs_with_inline_limit(
-        rows,
-        inline_limit,
-        structured,
-        false,
-        false,
-        chunk_size,
-    );
-    let contents = format!(
-         "import ShielddGnarkFormal.Deployed.Contract\n\
-         import ShielddGnarkFormal.Deployed.Contracts.{circuit_mod}.{spec_sub}\n\
-         import ShielddGnarkFormal.StructuredLC\n\
-         import Mathlib.Data.ZMod.Basic\n\n\
-         set_option maxRecDepth 1000000\n\
-         set_option maxHeartbeats {max_heartbeats}\n\n\
-         namespace Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}\n\n\
-         def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041\n\
-         abbrev F := ZMod Order\n\n\
-         {relation_defs}\
-         def relation (rho : Nat -> F) : Prop :=\n    {relation}\n\n\
-         /-- Semantic projection: the hand-authored Layer-2 endpoint for this\n\
-         deployed segment, seated on this slice's wire roles. -/\n\
-         def spec (rho : Nat -> F) : Prop := Specs.deployedSpec{segment_index} rho\n\n\
-         def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {{\n\
-           segmentIndex := {segment_index},\n\
-           relationSha256Hex := \"{relation_hash}\",\n\
-           wireRoleSha256Hex := \"{wire_role_hash}\",\n\
-           relation := relation,\n\
-           spec := spec\n\
-         }}\n\n\
-         end Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}\n",
-        relation_defs = relation_defs,
-        relation = relation_body,
-        max_heartbeats = MAX_CONTRACT_HEARTBEATS,
-        segment_index = segment.index,
-        spec_sub = spec_submodule(circuit, segment.index),
-        relation_hash = segment.relation_sha256_hex,
-        wire_role_hash = segment.wire_role_sha256_hex,
-    );
-    if relation_defs.len() <= CONTRACT_SHARD_THRESHOLD_BYTES {
-        return vec![ContractFile {
-            segment_index: segment.index,
-            module,
-            file_name,
-            contents,
-        }];
-    }
-
-    let module_root = format!(
-        "ShielddGnarkFormal.Deployed.Contracts.{circuit_mod}.Seg{}",
-        segment.index
-    );
-    let namespace = format!("Shieldd.GnarkFormal.Deployed.Contracts.{module_tail}");
-    let mut files = Vec::new();
-    let base_module = format!("{module_root}Base");
-    files.push(ContractFile {
-        segment_index: segment.index,
-        module: base_module.clone(),
-        file_name: format!("{circuit_mod}/Seg{}Base.lean", segment.index),
-        contents: format!(
-            "import ShielddGnarkFormal.Deployed.Contract\n\
-             import ShielddGnarkFormal.Deployed.Contracts.{circuit_mod}.{spec_sub}\n\
-             import ShielddGnarkFormal.StructuredLC\n\
-             import Mathlib.Data.ZMod.Basic\n\n\
-             set_option maxRecDepth 1000000\n\
-             set_option maxHeartbeats {max_heartbeats}\n\n\
-             namespace {namespace}\n\n\
-             def Order : Nat := 8444461749428370424248824938781546531375899335154063827935233455917409239041\n\
-             abbrev F := ZMod Order\n\n\
-             end {namespace}\n",
-            spec_sub = spec_submodule(circuit, segment.index),
-            max_heartbeats = MAX_CONTRACT_HEARTBEATS,
-        ),
-    });
-
-    let mut previous_module = base_module;
-    for (index, shard) in definition_shards(&relation_defs, CONTRACT_SHARD_BYTES)
-        .into_iter()
-        .enumerate()
-    {
-        let shard_module = format!("{module_root}Defs{index}");
-        files.push(ContractFile {
-            segment_index: segment.index,
-            module: shard_module.clone(),
-            file_name: format!("{circuit_mod}/Seg{}Defs{index}.lean", segment.index),
-            contents: format!(
-                "import {previous_module}\n\n\
-                 set_option maxRecDepth 1000000\n\
-                 set_option maxHeartbeats {max_heartbeats}\n\n\
-                 namespace {namespace}\n\n\
-                 {shard}\
-                 end {namespace}\n",
-                max_heartbeats = MAX_CONTRACT_HEARTBEATS,
-            ),
-        });
-        previous_module = shard_module;
-    }
-
-    let facade = format!(
-        "import {previous_module}\n\n\
-         set_option maxRecDepth 1000000\n\
-         set_option maxHeartbeats {max_heartbeats}\n\n\
-         namespace {namespace}\n\n\
-         def relation (rho : Nat -> F) : Prop :=\n    {relation}\n\n\
-         /-- Semantic projection: the hand-authored Layer-2 endpoint for this\n\
-         deployed segment, seated on this slice's wire roles. -/\n\
-         def spec (rho : Nat -> F) : Prop := Specs.deployedSpec{segment_index} rho\n\n\
-         def contract : Shieldd.GnarkFormal.Deployed.DeployedContract F := {{\n\
-           segmentIndex := {segment_index},\n\
-           relationSha256Hex := \"{relation_hash}\",\n\
-           wireRoleSha256Hex := \"{wire_role_hash}\",\n\
-           relation := relation,\n\
-           spec := spec\n\
-         }}\n\n\
-         end {namespace}\n",
-        max_heartbeats = MAX_CONTRACT_HEARTBEATS,
-        relation = relation_body,
-        segment_index = segment.index,
-        relation_hash = segment.relation_sha256_hex,
-        wire_role_hash = segment.wire_role_sha256_hex,
-    );
-    files.push(ContractFile {
-        segment_index: segment.index,
-        module,
-        file_name,
-        contents: facade,
-    });
-    files
+fn render_contract(circuit: &str, segment: &SegmentIr, _rows: &[Constraint]) -> Vec<ContractFile> {
+    // Every deployed family uses the same normalized-template substrate.
+    // Instance contracts contain only extractor-authenticated seating and
+    // fingerprints; reviewed semantic providers own the reusable relation.
+    vec![render_generated_template_contract(circuit, segment)]
 }
 
 /// Generate the reusable normalized relation modules required by a family.
@@ -1229,29 +1031,18 @@ pub fn generate(ir: &CircuitIr, sr1cs: &Sr1cs) -> Result<Vec<ContractFile>, Cove
                 actual: witness.proof_template_id.clone(),
             });
         }
-        files.extend(render_contract(&ir.circuit, segment, &segment_rows));
-    }
-    // Tier-3 inherent-topology gate: recover and parity-check the note_reshape2x1
-    // DTK canonicity ladders at extraction time (fail-closed), the analogue of
-    // `structure_lc`'s in-line parity assert.
-    // The DTK segment's row range moves whenever gnark's constraint-emission
-    // order changes (e.g. hoisting DTK computation earlier), so its offset is
-    // located from the IR by op rather than pinned to a constant — the slice
-    // bound still doubles as the guard that this is the real circuit, not a
-    // synthetic fixture (a missing/short DTK segment falls through to `None`).
-    const DTK_ROWS: usize = 6077;
-    if ir.circuit == "note_reshape2x1" {
-        if let Some(dtk_segment) = ir
-            .segments
-            .iter()
-            .find(|s| s.op == "decaf.diversified_transmission_key")
-        {
-            let dtk_rows = parse_segment_rows(sr1cs, dtk_segment)?;
-            if let Some(dtk) = dtk_rows.get(..DTK_ROWS) {
-                crate::ltchain::verify_note_reshape2x1_lt_ladders(dtk)
-                    .map_err(CoverageError::LtLadderParity)?;
+        if segment.proof_template_id == crate::ltchain::ACTIVE_DTK_TEMPLATE_ID {
+            if segment_rows.len() != crate::ltchain::ACTIVE_DTK_ROWS {
+                return Err(CoverageError::LtLadderParity(format!(
+                    "active DTK row count {} != {}",
+                    segment_rows.len(),
+                    crate::ltchain::ACTIVE_DTK_ROWS,
+                )));
             }
+            crate::ltchain::verify_dtk_lt_ladders(&segment_rows)
+                .map_err(CoverageError::LtLadderParity)?;
         }
+        files.extend(render_contract(&ir.circuit, segment, &segment_rows));
     }
     Ok(files)
 }
@@ -1473,7 +1264,7 @@ mod tests {
     use crate::Sr1cs;
 
     #[test]
-    fn renders_exact_contract_for_constraint_segment() {
+    fn renders_every_family_through_the_normalized_template_facade() {
         let mut ir = CircuitIr {
             schema: "test".to_owned(),
             circuit: "synthetic".to_owned(),
@@ -1531,18 +1322,16 @@ mod tests {
         assert!(file.contents.contains("wireRoleSha256Hex := \"roles\""));
         assert!(file
             .contents
-            .contains("((2 : F) * rho 1) * ((3 : F) * rho 2) = ((6 : F) * rho 3)"));
-        // Non-NoteReshape consumers keep their direct exact-row contract and
-        // monolithic Specs endpoint.
+            .contains("import ShielddGnarkFormal.Deployed.Templates.Generated.TAssertEq_"));
+        assert!(file.contents.contains(".relation (localRho rho)"));
+        assert!(file.contents.contains(".spec (localRho rho)"));
         assert!(file
             .contents
-            .contains("import ShielddGnarkFormal.Deployed.Contracts.Synthetic.Specs\n"));
-        assert!(file
-            .contents
-            .contains("def spec (rho : Nat -> F) : Prop := Specs.deployedSpec100 rho"));
+            .contains("wireSeatingTable : List Nat := [0, 1, 2, 3]"));
         assert!(file.contents.contains("set_option maxRecDepth 1000000"));
         assert!(file.contents.contains("set_option maxHeartbeats 50000000"));
         assert!(!file.contents.contains("set_option maxHeartbeats 0"));
+        assert!(!file.contents.contains("Specs.deployedSpec100"));
         assert!(!file.contents.contains(":= False"));
     }
 
@@ -1550,7 +1339,7 @@ mod tests {
     fn renders_repeated_assert_eq_through_the_registry_facade() {
         let mut ir = CircuitIr {
             schema: "test".to_owned(),
-            circuit: "note_reshape2x1".to_owned(),
+            circuit: "note_reshape1x8".to_owned(),
             sr1cs_sha256_hex: "sr1cs".to_owned(),
             nb_constraints: 1,
             classes: Vec::new(),

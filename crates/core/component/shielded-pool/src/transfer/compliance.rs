@@ -5,18 +5,16 @@ use shieldd_sdk_asset::Value;
 #[cfg(feature = "component")]
 use shieldd_sdk_compliance::TRANSFER_WIRE_BYTES;
 use shieldd_sdk_compliance::{
-    build_orbis_encrypted_seed_upload_package_with_randomness, derive_authorization_id,
     derive_transfer_salt, encrypt_transfer, AssetPolicy, IndexedLeaf, TransferComplianceCiphertext,
-    TransferCompliancePublicInputs, TransferOrbisUploadBundle, TransferTierKind,
-    TransferTierMetadataStatement,
+    TransferComplianceMetadata, TransferCompliancePublicInputs,
 };
 
 #[cfg(feature = "component")]
 use super::TransferOutputBody;
 use crate::{
     transfer::{
-        TransferComplianceCiphertextPublic, TransferCompliancePrivate,
-        TransferComplianceProofPublic, TransferCompliancePublic, TransferTierRandomizers,
+        TransferComplianceCiphertextPublic, TransferCompliancePrivate, TransferCompliancePublic,
+        TransferTierRandomizers,
     },
     ShieldedOutputPlan,
 };
@@ -42,24 +40,17 @@ fn transfer_compliance_rng_seed(transfer_nonce_root: Fr) -> [u8; 32] {
     seed
 }
 
-fn transfer_orbis_upload_rng_seed(transfer_nonce_root: Fr) -> [u8; 32] {
-    let hash = blake2b_simd::Params::new()
-        .hash_length(32)
-        .personal(b"pnxfer-orbis-v1")
-        .hash(&transfer_nonce_root.to_bytes());
-    let mut seed = [0u8; 32];
-    seed.copy_from_slice(hash.as_bytes());
-    seed
+fn transfer_is_flagged(is_regulated: bool, amount: u128, threshold: u128) -> bool {
+    is_regulated && amount >= threshold
 }
 
 pub(crate) fn build_transfer_compliance(
     outputs: &[ShieldedOutputPlan],
     sender_leaf: &shieldd_sdk_compliance::ComplianceLeaf,
-    asset_policy: &AssetPolicy,
+    asset_policy: Option<&AssetPolicy>,
     asset_indexed_leaf: &IndexedLeaf,
     target_timestamp: u64,
     transfer_nonce_root: Fr,
-    discovery_precision_bits: u8,
 ) -> Result<BuildTransferComplianceResult> {
     let receiver_output = outputs
         .get(RECEIVER_OUTPUT_INDEX)
@@ -82,13 +73,21 @@ pub(crate) fn build_transfer_compliance(
     };
 
     let receiver_amount: u128 = receiver_note.amount().into();
-    let is_flagged = receiver_amount >= asset_indexed_leaf.params.threshold;
+    // A non-membership witness carries the predecessor leaf, whose policy must
+    // not influence an unrelated unregulated asset. Flagging is therefore
+    // disabled by the authenticated regulatory-status branch itself. Using
+    // `u128::MAX` as a sentinel is insufficient because a maximum-value note
+    // would meet that threshold.
+    let is_flagged = transfer_is_flagged(
+        receiver_output.is_regulated,
+        receiver_amount,
+        asset_indexed_leaf.params.threshold,
+    );
 
-    let sender_ack = sender_leaf.user_public_key;
-    let receiver_ack = receiver_leaf.user_public_key;
+    let sender_ack = ring_pk * Fr::from_le_bytes_mod_order(&sender_leaf.d.to_bytes());
+    let receiver_ack = ring_pk * Fr::from_le_bytes_mod_order(&receiver_leaf.d.to_bytes());
 
     let detection_salt = derive_transfer_salt(transfer_nonce_root, b"detection");
-    let authorization_id = derive_authorization_id(transfer_nonce_root);
     let sender_core_salt = derive_transfer_salt(transfer_nonce_root, b"sender_core");
     let sender_ext_salt = derive_transfer_salt(transfer_nonce_root, b"sender_ext");
     let output_core_salt = derive_transfer_salt(transfer_nonce_root, b"output_core");
@@ -107,131 +106,44 @@ pub(crate) fn build_transfer_compliance(
             asset_id: receiver_note.asset_id(),
         },
         is_flagged,
-        authorization_id,
-        target_timestamp,
-        discovery_precision_bits,
+        sender_leaf.slot_id,
+        receiver_leaf.slot_id,
         detection_salt,
     )?;
 
-    let sender_user_public_key = sender_leaf.user_public_key;
-    let receiver_user_public_key = receiver_leaf.user_public_key;
-    let policy_id = &asset_policy.ring.policy_id;
-    let ring_id = &asset_policy.ring.ring_id;
-    let resource = &asset_policy.ring.resource;
-    let permission = &asset_policy.ring.permission;
-    let mut upload_rng = StdRng::from_seed(transfer_orbis_upload_rng_seed(transfer_nonce_root));
-    let bundle = TransferOrbisUploadBundle {
-        sender_core: build_orbis_encrypted_seed_upload_package_with_randomness(
-            &mut upload_rng,
-            &ring_pk,
-            receiver_output
-                .is_regulated
-                .then_some(&sender_leaf.orbis_registration_id),
-            encryption.sender.core.seed,
-            encryption.sender.core.r,
-            TransferTierMetadataStatement::from_identifiers(
-                sender_user_public_key,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::SenderCore,
-                target_timestamp,
-                authorization_id,
-                sender_core_salt,
-            ),
-            ring_id,
-            policy_id,
-            resource,
-            permission,
-            TransferTierKind::SenderCore,
-            target_timestamp,
-            sender_core_salt,
-        )?,
-        sender_ext: build_orbis_encrypted_seed_upload_package_with_randomness(
-            &mut upload_rng,
-            &ring_pk,
-            receiver_output
-                .is_regulated
-                .then_some(&sender_leaf.orbis_registration_id),
-            encryption.sender.ext.seed,
-            encryption.sender.ext.r,
-            TransferTierMetadataStatement::from_identifiers(
-                sender_user_public_key,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::SenderExt,
-                target_timestamp,
-                authorization_id,
-                sender_ext_salt,
-            ),
-            ring_id,
-            policy_id,
-            resource,
-            permission,
-            TransferTierKind::SenderExt,
-            target_timestamp,
-            sender_ext_salt,
-        )?,
-        output_core: build_orbis_encrypted_seed_upload_package_with_randomness(
-            &mut upload_rng,
-            &ring_pk,
-            receiver_output
-                .is_regulated
-                .then_some(&receiver_leaf.orbis_registration_id),
-            encryption.output.core.seed,
-            encryption.output.core.r,
-            TransferTierMetadataStatement::from_identifiers(
-                receiver_user_public_key,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::OutputCore,
-                target_timestamp,
-                authorization_id,
-                output_core_salt,
-            ),
-            ring_id,
-            policy_id,
-            resource,
-            permission,
-            TransferTierKind::OutputCore,
-            target_timestamp,
-            output_core_salt,
-        )?,
-        output_ext: build_orbis_encrypted_seed_upload_package_with_randomness(
-            &mut upload_rng,
-            &ring_pk,
-            receiver_output
-                .is_regulated
-                .then_some(&receiver_leaf.orbis_registration_id),
-            encryption.output.ext.seed,
-            encryption.output.ext.r,
-            TransferTierMetadataStatement::from_identifiers(
-                receiver_user_public_key,
-                ring_id,
-                policy_id,
-                resource,
-                permission,
-                TransferTierKind::OutputExt,
-                target_timestamp,
-                authorization_id,
-                output_ext_salt,
-            ),
-            ring_id,
-            policy_id,
-            resource,
-            permission,
-            TransferTierKind::OutputExt,
-            target_timestamp,
-            output_ext_salt,
-        )?,
+    let sender_slot_derivation = sender_leaf.slot_derivation;
+    let receiver_slot_derivation = receiver_leaf.slot_derivation;
+    // A non-membership witness carries the predecessor leaf. None of that
+    // unrelated predecessor's policy identifiers may enter the public
+    // statement for an unregulated transfer.
+    let (ring_id, policy_id, resource, permission) = if receiver_output.is_regulated {
+        let asset_policy =
+            asset_policy.ok_or_else(|| anyhow!("regulated transfer missing asset policy"))?;
+        (
+            asset_policy.ring.ring_id.as_str(),
+            asset_policy.ring.policy_id.as_str(),
+            asset_policy.ring.resource.as_str(),
+            asset_policy.ring.permission.as_str(),
+        )
+    } else {
+        ("", "", "", "")
     };
+    let metadata = TransferComplianceMetadata::from_identifiers(
+        sender_slot_derivation,
+        receiver_slot_derivation,
+        ring_id,
+        policy_id,
+        resource,
+        permission,
+        target_timestamp,
+        sender_core_salt,
+        sender_ext_salt,
+        output_core_salt,
+        output_ext_salt,
+    );
+    metadata.validate()?;
 
-    let public = transfer_compliance_public_from_parts(&encryption.ciphertext, &bundle)?;
+    let public = transfer_compliance_public_from_parts(&encryption.ciphertext, &metadata)?;
     let private = TransferCompliancePrivate {
         transfer_nonce_root,
         sender: TransferTierRandomizers {
@@ -242,12 +154,11 @@ pub(crate) fn build_transfer_compliance(
             core: encryption.output.core.r,
             ext: encryption.output.ext.r,
         },
-        is_flagged,
     };
 
     Ok(BuildTransferComplianceResult {
         ciphertext: encryption.ciphertext,
-        bundle,
+        metadata,
         public,
         private,
     })
@@ -255,37 +166,37 @@ pub(crate) fn build_transfer_compliance(
 
 pub(crate) struct BuildTransferComplianceResult {
     pub ciphertext: TransferComplianceCiphertext,
-    pub bundle: TransferOrbisUploadBundle,
+    pub metadata: TransferComplianceMetadata,
     pub public: TransferCompliancePublic,
     pub private: TransferCompliancePrivate,
 }
 
 pub(crate) struct TransferOutputComplianceBytes {
     pub compliance_ciphertext: Vec<u8>,
-    pub orbis_upload_bundle: Vec<u8>,
+    pub compliance_metadata: Vec<u8>,
 }
 
 pub(crate) fn receiver_output_transfer_compliance(
     ciphertext: &TransferComplianceCiphertext,
-    bundle: &TransferOrbisUploadBundle,
+    metadata: &TransferComplianceMetadata,
 ) -> Result<TransferOutputComplianceBytes> {
     Ok(TransferOutputComplianceBytes {
         compliance_ciphertext: ciphertext.to_bytes(),
-        orbis_upload_bundle: bundle.to_bytes()?,
+        compliance_metadata: metadata.to_bytes()?,
     })
 }
 
 pub(crate) fn change_output_transfer_compliance() -> TransferOutputComplianceBytes {
     TransferOutputComplianceBytes {
         compliance_ciphertext: Vec::new(),
-        orbis_upload_bundle: Vec::new(),
+        compliance_metadata: Vec::new(),
     }
 }
 
 #[cfg(feature = "component")]
 pub(crate) fn parse_transfer_output_compliance(
     outputs: &[TransferOutputBody],
-) -> Result<(TransferComplianceCiphertext, TransferOrbisUploadBundle)> {
+) -> Result<(TransferComplianceCiphertext, TransferComplianceMetadata)> {
     let receiver_output = outputs
         .get(RECEIVER_OUTPUT_INDEX)
         .ok_or_else(|| anyhow!("transfer requires at least one output"))?;
@@ -301,23 +212,23 @@ pub(crate) fn parse_transfer_output_compliance(
             index
         );
         anyhow::ensure!(
-            output.orbis_upload_bundle.is_empty(),
-            "change output {} Orbis upload bundle must be empty",
+            output.compliance_metadata.is_empty(),
+            "change output {} transfer compliance metadata must be empty",
             index
         );
     }
-    let bundle = TransferOrbisUploadBundle::from_bytes(&receiver_output.orbis_upload_bundle)?;
-    bundle.validate()?;
+    let metadata = TransferComplianceMetadata::from_bytes(&receiver_output.compliance_metadata)?;
     Ok((
         TransferComplianceCiphertext::from_bytes(&receiver_output.compliance_ciphertext)?,
-        bundle,
+        metadata,
     ))
 }
 
 pub(crate) fn transfer_compliance_public_from_parts(
     ciphertext: &TransferComplianceCiphertext,
-    bundle: &TransferOrbisUploadBundle,
+    metadata: &TransferComplianceMetadata,
 ) -> Result<TransferCompliancePublic> {
+    metadata.validate()?;
     let TransferCompliancePublicInputs {
         sender_core_epk,
         sender_ext_epk,
@@ -328,8 +239,6 @@ pub(crate) fn transfer_compliance_public_from_parts(
         output_core_c2,
         output_ext_c2,
         detection_ciphertext,
-        discovery_precision,
-        discovery_tags,
         sender_core_ciphertext,
         sender_ext_ciphertext,
         output_core_ciphertext,
@@ -338,31 +247,115 @@ pub(crate) fn transfer_compliance_public_from_parts(
 
     Ok(TransferCompliancePublic {
         detection_ciphertext: detection_ciphertext.to_vec(),
-        discovery_precision,
-        discovery_tags,
+        metadata: metadata.clone(),
         sender_core: TransferComplianceCiphertextPublic {
             epk: sender_core_epk,
             c2: sender_core_c2,
             ciphertext: sender_core_ciphertext.to_vec(),
-            proof: TransferComplianceProofPublic::try_from_package(&bundle.sender_core)?,
         },
         sender_ext: TransferComplianceCiphertextPublic {
             epk: sender_ext_epk,
             c2: sender_ext_c2,
             ciphertext: sender_ext_ciphertext.to_vec(),
-            proof: TransferComplianceProofPublic::try_from_package(&bundle.sender_ext)?,
         },
         output_core: TransferComplianceCiphertextPublic {
             epk: output_core_epk,
             c2: output_core_c2,
             ciphertext: output_core_ciphertext.to_vec(),
-            proof: TransferComplianceProofPublic::try_from_package(&bundle.output_core)?,
         },
         output_ext: TransferComplianceCiphertextPublic {
             epk: output_ext_epk,
             c2: output_ext_c2,
             ciphertext: output_ext_ciphertext.to_vec(),
-            proof: TransferComplianceProofPublic::try_from_package(&bundle.output_ext)?,
         },
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::transfer_is_flagged;
+    use decaf377::Fq;
+    use rand::{rngs::StdRng, SeedableRng};
+    use shieldd_sdk_asset::asset;
+
+    #[test]
+    fn unregulated_maximum_amount_is_never_flagged() {
+        assert!(!transfer_is_flagged(false, u128::MAX, u128::MAX));
+        assert!(transfer_is_flagged(true, u128::MAX, u128::MAX));
+    }
+
+    #[test]
+    fn unregulated_compliance_ignores_authenticated_predecessor_policy() {
+        let asset_id = asset::REGISTRY.parse_unit("test_usd").id();
+        let predecessor_asset_id = asset_id.0 - Fq::from(1u64);
+        let mut first_rng = StdRng::seed_from_u64(0x554e_5245_4750_4f4c);
+        let mut second_rng = StdRng::seed_from_u64(0x554e_5245_4750_4f4c);
+
+        let (first_public, first_private) = crate::test_proof_helpers::proof_test_helpers::
+            build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
+                &mut first_rng,
+                asset_id,
+                predecessor_asset_id,
+                1,
+                false,
+            );
+        let (second_public, second_private) = crate::test_proof_helpers::proof_test_helpers::
+            build_transfer_hidden_arity_roundtrip_inputs_for_asset_populated(
+                &mut second_rng,
+                asset_id,
+                predecessor_asset_id,
+                999_999,
+                false,
+            );
+
+        // The authenticated registry root must change with its predecessor leaf,
+        // but no unrelated predecessor policy may influence audit semantics.
+        assert_ne!(first_public.asset_anchor, second_public.asset_anchor);
+        assert!(!transfer_is_flagged(
+            false,
+            first_private.receiver_output.created_note.amount().into(),
+            first_private.asset_indexed_leaf.params.threshold,
+        ));
+        assert!(!transfer_is_flagged(
+            false,
+            second_private.receiver_output.created_note.amount().into(),
+            second_private.asset_indexed_leaf.params.threshold,
+        ));
+        assert_eq!(
+            first_public.compliance.metadata,
+            second_public.compliance.metadata
+        );
+        let empty_hash = shieldd_sdk_compliance::indexed_tree::string_to_fq("");
+        let metadata = &first_public.compliance.metadata;
+        assert_eq!(metadata.ring_id_hash().unwrap(), empty_hash);
+        assert_eq!(metadata.policy_id_hash().unwrap(), empty_hash);
+        assert_eq!(metadata.resource_hash().unwrap(), empty_hash);
+        assert_eq!(metadata.permission_hash().unwrap(), empty_hash);
+        assert_eq!(
+            first_public.compliance.detection_ciphertext,
+            second_public.compliance.detection_ciphertext
+        );
+        for (first, second) in [
+            (
+                &first_public.compliance.sender_core,
+                &second_public.compliance.sender_core,
+            ),
+            (
+                &first_public.compliance.sender_ext,
+                &second_public.compliance.sender_ext,
+            ),
+            (
+                &first_public.compliance.output_core,
+                &second_public.compliance.output_core,
+            ),
+            (
+                &first_public.compliance.output_ext,
+                &second_public.compliance.output_ext,
+            ),
+        ] {
+            assert_eq!(first.epk, second.epk);
+            assert_eq!(first.c2, second.c2);
+            assert_eq!(first.ciphertext, second.ciphertext);
+        }
+    }
 }

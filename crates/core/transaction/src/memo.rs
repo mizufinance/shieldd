@@ -273,7 +273,8 @@ mod tests {
     fn test_memo_encryption_and_decryption() {
         let mut rng = OsRng;
         let seed_phrase = SeedPhrase::generate(rng);
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let dest = ivk.payment_address(0u32.into());
@@ -313,7 +314,8 @@ mod tests {
         let mut rng = OsRng;
 
         let seed_phrase = SeedPhrase::generate(rng);
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements");
         let fvk = sk.full_viewing_key();
         let ivk = fvk.incoming();
         let ovk = fvk.outgoing();

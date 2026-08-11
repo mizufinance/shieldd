@@ -144,6 +144,67 @@ type ConservationNetBalanceCommitmentGadget struct {
 	OutY            frontend.Variable
 }
 
+// ConservationNetBalanceCommitment2Gadget mirrors the withdrawal 2-in/2-out
+// conservation-exact balance segment. It is distinct from the transfer gadget:
+// exact conservation cancels the value-generator terms, leaving only the
+// balance-blinding ladder.
+type ConservationNetBalanceCommitment2Gadget struct {
+	Input0Amount    frontend.Variable `gnark:",public"`
+	Input1Amount    frontend.Variable `gnark:",public"`
+	Output0Amount   frontend.Variable `gnark:",public"`
+	Output1Amount   frontend.Variable `gnark:",public"`
+	BalanceBlinding frontend.Variable `gnark:",public"`
+	OutX            frontend.Variable
+	OutY            frontend.Variable
+}
+
+func conservationNetBalanceCommitment2Mirror(
+	api frontend.API,
+	input0 frontend.Variable,
+	input1 frontend.Variable,
+	output0 frontend.Variable,
+	output1 frontend.Variable,
+	blinding frontend.Variable,
+) (gnarkte.Point, error) {
+	vectors, err := LoadPrototypeVectors()
+	if err != nil {
+		return gnarkte.Point{}, err
+	}
+	sumIn := frontend.Variable(0)
+	for _, amount := range []frontend.Variable{input0, input1} {
+		api.ToBinary(amount, 128)
+		sumIn = api.Add(sumIn, amount)
+	}
+	sumOut := frontend.Variable(0)
+	for _, amount := range []frontend.Variable{output0, output1} {
+		api.ToBinary(amount, 128)
+		sumOut = api.Add(sumOut, amount)
+	}
+	api.AssertIsEqual(sumIn, sumOut)
+	blindingGen := gnarkte.Point{
+		X: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorX),
+		Y: MustBigInt(vectors.Decaf377CompanionCurve.ValueBlindingGeneratorY),
+	}
+	return scalarMulLEMirror(api, blindingGen, blinding, 251), nil
+}
+
+func (c *ConservationNetBalanceCommitment2Gadget) Define(api frontend.API) error {
+	out, err := conservationNetBalanceCommitment2Mirror(
+		api,
+		c.Input0Amount,
+		c.Input1Amount,
+		c.Output0Amount,
+		c.Output1Amount,
+		c.BalanceBlinding,
+	)
+	if err != nil {
+		return err
+	}
+	api.AssertIsEqual(out.X, c.OutX)
+	api.AssertIsEqual(out.Y, c.OutY)
+	return nil
+}
+
 func (c *ConservationNetBalanceCommitmentGadget) Define(api frontend.API) error {
 	vectors, err := LoadPrototypeVectors()
 	if err != nil {

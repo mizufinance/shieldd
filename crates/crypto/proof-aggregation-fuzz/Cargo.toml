@@ -17,21 +17,11 @@ ark-groth16 = { workspace = true, default-features = false }
 ark-r1cs-std = { workspace = true }
 ark-relations = { workspace = true }
 ark-snark = { workspace = true }
-bincode = { workspace = true }
 decaf377 = { workspace = true }
-decaf377-rdsa = { workspace = true }
 libfuzzer-sys = "0.4"
-shieldd-sdk-app = { workspace = true, features = ["component", "fuzzing"] }
-shieldd-sdk-fee = { workspace = true, default-features = true }
 shieldd-sdk-proof-aggregation = { workspace = true, features = ["fuzzing"] }
 shieldd-sdk-proof-params = { workspace = true, default-features = false }
-shieldd-sdk-proto = { workspace = true, default-features = true }
-shieldd-sdk-sct = { workspace = true, default-features = false }
-shieldd-sdk-tct = { workspace = true, default-features = true }
-shieldd-sdk-transaction = { workspace = true, default-features = true }
-shieldd-sdk-txhash = { workspace = true, default-features = true }
 rand_chacha = { workspace = true }
-tokio = { workspace = true, features = ["rt"] }
 
 [[bin]]
 name = "wrapper_inner_range"
@@ -50,27 +40,6 @@ bench = false
 [[bin]]
 name = "deserialize_aggregate_proof"
 path = "fuzz_targets/deserialize_aggregate_proof.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "sidecar_decoding"
-path = "fuzz_targets/sidecar_decoding.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "aggregate_bundle_shape"
-path = "fuzz_targets/aggregate_bundle_shape.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "proposal_validation"
-path = "fuzz_targets/proposal_validation.rs"
 test = false
 doc = false
 bench = false

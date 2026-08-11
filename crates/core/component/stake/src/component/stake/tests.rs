@@ -20,7 +20,8 @@ async fn test_persistent_identity_by_ck() -> anyhow::Result<()> {
 
     let rng = OsRng;
     let vk = VerificationKey::from(SigningKey::<SpendAuth>::new(OsRng));
-    let persistent_identity = IdentityKey(vk.into());
+    let persistent_identity =
+        IdentityKey::try_from(vk).expect("test validator identity key is nonidentity");
 
     let old_ck_raw = ed25519_consensus::SigningKey::new(rng)
         .verification_key()

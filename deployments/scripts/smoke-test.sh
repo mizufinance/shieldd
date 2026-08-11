@@ -38,6 +38,11 @@ if [ "${SHIELDD_PRODUCTION:-0}" = "1" ]; then
     exit 1
 fi
 
+# The repository intentionally has no production SnarkPack SRS until the
+# ceremony/provenance work is complete. This isolated ephemeral devnet opts in
+# to the explicitly insecure integration SRS so aggregation remains exercised.
+export SHIELDD_PD_INTEGRATION_DEV_SRS=1
+
 # Run the full smoke environment against an isolated Shieldd state directory so
 # local developer state does not interfere with the devnet/process-compose paths.
 export SHIELDD_DEVNET_HOME="${smoke_test_dir}/shieldd-home"

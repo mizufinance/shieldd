@@ -16,9 +16,9 @@ set -euo pipefail
 # delegated to check-constraint-coverage.sh under its own resource rules.
 #
 # Usage:
-#   scripts/fv-opt-loop.sh diff  --circuit note_reshape2x1 --allow-flips 52,53 \
+#   scripts/fv-opt-loop.sh diff  --circuit note_reshape8x1 --allow-flips 52,53 \
 #       [--allow-remove 34,36] [--allow-add 60]
-#   scripts/fv-opt-loop.sh gates --circuit note_reshape2x1 [--lean] [--prove] \
+#   scripts/fv-opt-loop.sh gates --circuit note_reshape8x1 [--lean] [--prove] \
 #       [--record-out <file.md>]
 #   scripts/fv-opt-loop.sh census --circuit transfer
 #
@@ -68,7 +68,7 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 case "$circuit" in
-  note_reshape2x1|note_reshape4x1|note_reshape8x1|note_reshape1x8) ;;
+  note_reshape8x1|note_reshape1x8) ;;
   *) fail "--circuit must be a NoteReshape family" ;;
 esac
 
@@ -88,7 +88,7 @@ trap 'rm -rf "$tmp_dir"' EXIT
 generator_for_op() {
   local op="$1"
   if jq -e --arg op "$op" '.templates[] | select(.op == $op)' \
-      "$GNARK_DIR/artifacts/note-reshape-template-inventory.json" >/dev/null; then
+      "$GNARK_DIR/artifacts/certified-template-inventory.json" >/dev/null; then
     echo "gen_note_reshape_template_semantics.py"
   else
     echo ""
@@ -206,15 +206,14 @@ gate_battery() {
     run_gate "snarkpack-invariants" bash "$ROOT/scripts/check-snarkpack-invariants.sh"
   fi
   run_gate "wiring-transcript+parity-tests" \
-    env -C "$GNARK_DIR" go test ./internal/circuits/ -run \
-    'TestNoteReshape2x1WiringTranscript|TestAmountRangeBoundIs128Bits|Acl2ModelParity|AxeFidelity' -count=1
+    bash "$ROOT/scripts/check-gadget-model-fidelity.sh" all
   run_gate "statement-seam" \
     env -C "$GNARK_DIR" go test ./internal/primitives/ -run 'StatementSeam|StatementHash' -count=1
   if [[ "$run_prove" -eq 1 ]]; then
     run_gate "prover-round-trip" \
       env -C "$GNARK_DIR" go run ./cmd/gnarkctl replay \
       --circuit "$circuit" \
-      --witness "$GNARK_DIR/internal/testfixtures/vectors/${circuit}_witness_v1.bin" \
+      --witness "$GNARK_DIR/internal/testfixtures/vectors/${circuit}_witness_v3.bin" \
       --artifact-dir "$artifact_dir" \
       --mode prove
   fi

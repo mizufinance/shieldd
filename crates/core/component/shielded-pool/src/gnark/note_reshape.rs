@@ -10,7 +10,7 @@ use crate::gnark::transport::{auto_lib_path, load_bundled_transport, load_librar
 
 use crate::{
     gnark::{
-        note_reshape_witness::NoteReshapeWitnessV1,
+        note_reshape_witness::NoteReshapeWitnessV3,
         transfer_proof_result::parse_binary_proof_result,
         transport::{
             load_daemon_transport, load_from_env_paths, prove_with_transport, shutdown_transport,
@@ -33,7 +33,7 @@ const NOTE_RESHAPE_FREE_SYMBOL: &[u8] = b"shieldd_gnark_note_reshape_free";
 const NOTE_RESHAPE_SHUTDOWN_SYMBOL: &[u8] = b"shieldd_gnark_note_reshape_shutdown";
 
 static NOTE_RESHAPE_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "note_reshape2x1",
+    family: "note_reshape8x1",
     env_artifact_dir: NOTE_RESHAPE_ENV_ARTIFACT_DIR,
     env_lib: NOTE_RESHAPE_ENV_LIB,
     env_daemon: NOTE_RESHAPE_ENV_DAEMON,
@@ -44,18 +44,8 @@ static NOTE_RESHAPE_FAMILY_CONFIG: GnarkFamilyConfig = GnarkFamilyConfig {
     shutdown_symbol: NOTE_RESHAPE_SHUTDOWN_SYMBOL,
 };
 
-static NOTE_RESHAPE_FAMILY_CONFIG_2X1: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "note_reshape2x1",
-    ..NOTE_RESHAPE_FAMILY_CONFIG
-};
-
 static NOTE_RESHAPE_FAMILY_CONFIG_8X1: GnarkFamilyConfig = GnarkFamilyConfig {
     family: "note_reshape8x1",
-    ..NOTE_RESHAPE_FAMILY_CONFIG
-};
-
-static NOTE_RESHAPE_FAMILY_CONFIG_4X1: GnarkFamilyConfig = GnarkFamilyConfig {
-    family: "note_reshape4x1",
     ..NOTE_RESHAPE_FAMILY_CONFIG
 };
 
@@ -66,23 +56,21 @@ static NOTE_RESHAPE_FAMILY_CONFIG_1X8: GnarkFamilyConfig = GnarkFamilyConfig {
 
 fn note_reshape_family_config(family_id: NoteReshapeFamilyId) -> &'static GnarkFamilyConfig {
     match family_id {
-        NoteReshapeFamilyId::TwoByOne => &NOTE_RESHAPE_FAMILY_CONFIG_2X1,
         NoteReshapeFamilyId::OneByEight => &NOTE_RESHAPE_FAMILY_CONFIG_1X8,
         NoteReshapeFamilyId::EightByOne => &NOTE_RESHAPE_FAMILY_CONFIG_8X1,
-        NoteReshapeFamilyId::FourByOne => &NOTE_RESHAPE_FAMILY_CONFIG_4X1,
         _ => panic!("unknown note_reshape family id {}", family_id.get()),
     }
 }
 
-pub fn encode_note_reshape_witness_v1(
+pub fn encode_note_reshape_witness_v3(
     public: &NoteReshapeProofPublic,
     private: &NoteReshapeProofPrivate,
 ) -> Result<Vec<u8>> {
-    NoteReshapeWitnessV1::from_public_private(public, private)?.encode()
+    NoteReshapeWitnessV3::from_public_private(public, private)?.encode()
 }
 
-pub fn decode_note_reshape_witness_v1(bytes: &[u8]) -> Result<NoteReshapeWitnessV1> {
-    NoteReshapeWitnessV1::decode(bytes)
+pub fn decode_note_reshape_witness_v3(bytes: &[u8]) -> Result<NoteReshapeWitnessV3> {
+    NoteReshapeWitnessV3::decode(bytes)
 }
 
 pub struct GnarkNoteReshapeClient {
@@ -105,7 +93,7 @@ enum NoteReshapeTransportSource<'a> {
     Bundled {
         lib_path: &'a Path,
         pk_bytes: &'a [u8],
-        pvk: PreparedVerifyingKey<Bls12_377>,
+        vk_json_bytes: &'a [u8],
         metadata: &'a [u8],
     },
 }
@@ -141,12 +129,9 @@ impl GnarkNoteReshapeClient {
             NoteReshapeTransportSource::Bundled {
                 lib_path,
                 pk_bytes,
-                pvk,
+                vk_json_bytes,
                 metadata,
-            } => (
-                load_bundled_transport(lib_path, pk_bytes, &pvk, metadata, config)?,
-                pvk,
-            ),
+            } => load_bundled_transport(lib_path, pk_bytes, vk_json_bytes, metadata, config)?,
         };
         Ok(Self {
             family_id,
@@ -199,7 +184,7 @@ impl GnarkNoteReshapeClient {
     pub fn from_bundled(
         lib_path: &Path,
         pk_bytes: &[u8],
-        pvk: PreparedVerifyingKey<Bls12_377>,
+        vk_json_bytes: &[u8],
         metadata: &[u8],
         family_id: NoteReshapeFamilyId,
     ) -> Result<Self> {
@@ -210,14 +195,14 @@ impl GnarkNoteReshapeClient {
                 NoteReshapeTransportSource::Bundled {
                     lib_path,
                     pk_bytes,
-                    pvk,
+                    vk_json_bytes,
                     metadata,
                 },
             )
         }
         #[cfg(not(any(unix, windows)))]
         {
-            let _ = (lib_path, pk_bytes, pvk, metadata, family_id);
+            let _ = (lib_path, pk_bytes, vk_json_bytes, metadata, family_id);
             bail!("gnark bundled library loading is not supported on this platform")
         }
     }
@@ -242,8 +227,14 @@ impl GnarkNoteReshapeClient {
         public: &NoteReshapeProofPublic,
         private: &NoteReshapeProofPrivate,
     ) -> Result<NoteReshapeProof> {
-        let witness_model = NoteReshapeWitnessV1::from_public_private(public, private)?;
-        let expected_hash = Fq::from_le_bytes_mod_order(&witness_model.claimed_statement_hash);
+        let witness_model = NoteReshapeWitnessV3::from_public_private(public, private)?;
+        let expected_hash =
+            Fq::from_bytes_checked(&witness_model.claimed_statement_hash).map_err(|_| {
+                anyhow::anyhow!(
+                    "{} witness statement hash is non-canonical",
+                    self.family_id.label()
+                )
+            })?;
         let witness = witness_model.encode()?;
         let payload = prove_with_transport(&self.transport, &witness, self.family_id.label())?;
         let (claimed_hash, proof) = translate_note_reshape_proof_result(&payload, self.family_id)?;
@@ -281,51 +272,52 @@ pub fn translate_note_reshape_proof_result(
 
 #[cfg(test)]
 mod tests {
-    use super::{decode_note_reshape_witness_v1, encode_note_reshape_witness_v1};
+    use super::{decode_note_reshape_witness_v3, encode_note_reshape_witness_v3};
     use crate::{
-        gnark::NoteReshapeWitnessV1, test_proof_helpers::proof_test_helpers, NoteReshapeFamilyId,
+        gnark::NoteReshapeWitnessV3, test_proof_helpers::proof_test_helpers, NoteReshapeFamilyId,
     };
 
     #[test]
-    fn note_reshape_witness_v1_roundtrip() {
+    fn note_reshape_witness_v3_roundtrip() {
         for family_id in NoteReshapeFamilyId::ALL {
             let (public, private) =
                 proof_test_helpers::build_note_reshape_roundtrip_inputs(family_id);
-            let encoded = encode_note_reshape_witness_v1(&public, &private)
+            let encoded = encode_note_reshape_witness_v3(&public, &private)
                 .expect("encode note_reshape witness");
             let decoded =
-                decode_note_reshape_witness_v1(&encoded).expect("decode note_reshape witness");
-            let expected = NoteReshapeWitnessV1::from_public_private(&public, &private)
+                decode_note_reshape_witness_v3(&encoded).expect("decode note_reshape witness");
+            let expected = NoteReshapeWitnessV3::from_public_private(&public, &private)
                 .expect("build note_reshape witness");
             assert_eq!(decoded, expected, "family {}", family_id.label());
         }
     }
 
     fn corrupt() -> Vec<u8> {
-        let (public, private) =
-            proof_test_helpers::build_note_reshape_roundtrip_inputs(NoteReshapeFamilyId::TwoByOne);
-        encode_note_reshape_witness_v1(&public, &private).expect("encode note_reshape witness")
+        let (public, private) = proof_test_helpers::build_note_reshape_roundtrip_inputs(
+            NoteReshapeFamilyId::EightByOne,
+        );
+        encode_note_reshape_witness_v3(&public, &private).expect("encode note_reshape witness")
     }
 
     #[test]
-    fn note_reshape_witness_v1_rejects_bad_magic() {
+    fn note_reshape_witness_v3_rejects_bad_magic() {
         let mut encoded = corrupt();
         encoded[0] = b'X';
-        assert!(decode_note_reshape_witness_v1(&encoded).is_err());
+        assert!(decode_note_reshape_witness_v3(&encoded).is_err());
     }
 
     #[test]
-    fn note_reshape_witness_v1_rejects_bad_version() {
+    fn note_reshape_witness_v3_rejects_bad_version() {
         let mut encoded = corrupt();
-        encoded[4..8].copy_from_slice(&u32::MAX.to_le_bytes());
-        assert!(decode_note_reshape_witness_v1(&encoded).is_err());
+        encoded[4..8].copy_from_slice(&2u32.to_le_bytes());
+        assert!(decode_note_reshape_witness_v3(&encoded).is_err());
     }
 
     #[test]
-    fn note_reshape_witness_v1_rejects_bad_length() {
+    fn note_reshape_witness_v3_rejects_bad_length() {
         let mut encoded = corrupt();
         let wrong_len = (encoded.len() as u32).saturating_sub(1);
         encoded[8..12].copy_from_slice(&wrong_len.to_le_bytes());
-        assert!(decode_note_reshape_witness_v1(&encoded).is_err());
+        assert!(decode_note_reshape_witness_v3(&encoded).is_err());
     }
 }

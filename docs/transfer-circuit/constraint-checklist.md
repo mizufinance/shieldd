@@ -14,6 +14,10 @@ own them.
 - Randomized verification keys bind to the spend authorization key and action
   randomizer for real spends.
 - Spent note transmission keys bind to the IVK decomposition.
+- The authorization key and shared sender diversified generator are
+  non-identity Decaf points. The generator check is ownership-critical:
+  identity DTK derivation would let one commitment/path be reopened with
+  distinct nullifier keys.
 
 ## Output Constraints
 
@@ -22,6 +26,9 @@ own them.
 - Output 1 is sender-owned change when present.
 - Output assets match the shared transfer asset.
 - Regulated output recipient leaves resolve to the compliance anchor.
+- The receiver diversified generator is non-identity; change inherits the
+  guarded sender generator. A malicious proof therefore cannot create an
+  identity-address note that later admits ambiguous ownership.
 
 ## Balance And Statement Constraints
 
@@ -32,4 +39,3 @@ own them.
 - Public statement hash binds anchor, balance commitment, asset/compliance
   anchors, target timestamp, nullifiers/RKs, output commitments, and compliance
   public fields.
-

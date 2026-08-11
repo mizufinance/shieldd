@@ -1,7 +1,7 @@
 name: soundness-provers
 
-# The heavy symbolic/SMT provers, split out of soundness-formal because they
-# only ever run on the scheduled path. Left in that workflow they were six
+# The heavy symbolic/SMT provers are separate from the main formal workflow
+# because they only run on the scheduled path. Kept there, they would be six
 # permanently-`skipped` check runs on every pull request. There is deliberately
 # no `pull_request` or `merge_group` trigger here.
 
@@ -179,11 +179,6 @@ jobs:
           echo "PICUS_BIN=$HOME/.local/opt/picus/run-picus" >> "$GITHUB_ENV"
       - name: Run gadget-scope under-constraint gate
         run: bash scripts/circuit-constraint-check.sh
-      - name: Attempt whole-circuit Picus
-        continue-on-error: true
-        env:
-          PICUS_WHOLE_BUDGET_SECONDS: '10800'
-        run: bash scripts/run-whole-circuit-picus.sh note_reshape2x1 transfer
 
   acl2:
     name: 'provers: acl2 (advisory)'

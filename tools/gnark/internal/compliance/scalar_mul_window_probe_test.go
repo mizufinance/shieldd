@@ -21,55 +21,6 @@ const (
 	scalarMulProbeFakeGLV
 )
 
-// ScalarMulWindow2LEBitsProbe is a test-only copy of gnark's generic two-bit
-// twisted-Edwards ladder, adapted to an explicit little-endian bit slice.
-func ScalarMulWindow2LEBitsProbe(
-	api frontend.API,
-	curve gnarkte.Curve,
-	base gnarkte.Point,
-	bits []frontend.Variable,
-) gnarkte.Point {
-	if len(bits) == 0 {
-		return gnarkte.Point{X: 0, Y: 1}
-	}
-	if len(bits) == 1 {
-		return gnarkte.Point{
-			X: api.Select(bits[0], base.X, 0),
-			Y: api.Select(bits[0], base.Y, 1),
-		}
-	}
-
-	identity := gnarkte.Point{X: 0, Y: 1}
-	double := curve.Double(base)
-	triple := curve.Add(double, base)
-
-	high := len(bits) - 1
-	result := gnarkte.Point{
-		X: api.Lookup2(bits[high], bits[high-1], identity.X, double.X, base.X, triple.X),
-		Y: api.Lookup2(bits[high], bits[high-1], identity.Y, double.Y, base.Y, triple.Y),
-	}
-
-	for i := high - 2; i >= 1; i -= 2 {
-		result = curve.Double(curve.Double(result))
-		window := gnarkte.Point{
-			X: api.Lookup2(bits[i], bits[i-1], identity.X, double.X, base.X, triple.X),
-			Y: api.Lookup2(bits[i], bits[i-1], identity.Y, double.Y, base.Y, triple.Y),
-		}
-		result = curve.Add(result, window)
-	}
-
-	if high%2 == 0 {
-		result = curve.Double(result)
-		withLowBit := curve.Add(result, base)
-		result = gnarkte.Point{
-			X: api.Select(bits[0], withLowBit.X, result.X),
-			Y: api.Select(bits[0], withLowBit.Y, result.Y),
-		}
-	}
-
-	return result
-}
-
 type scalarMulProbeCircuit struct {
 	BaseX  frontend.Variable `gnark:",public"`
 	BaseY  frontend.Variable `gnark:",public"`
@@ -100,7 +51,7 @@ func (c *scalarMulProbeCircuit) Define(api frontend.API) error {
 	case scalarMulProbeCurrent:
 		out = ScalarMulLE(api, curve, base, c.Scalar, c.NBits)
 	case scalarMulProbeWindow2:
-		out = ScalarMulWindow2LEBitsProbe(api, curve, base, api.ToBinary(c.Scalar, c.NBits))
+		out = ScalarMulWindow2LEBits(api, curve, base, api.ToBinary(c.Scalar, c.NBits))
 	case scalarMulProbeFakeGLV:
 		// Keep the current helper's exact integer range semantics before calling
 		// gnark's hint-based modular scalar multiplication.

@@ -193,6 +193,15 @@ class FormalWorkflowWiringTests(unittest.TestCase):
             self.workflow,
         )
 
+    def test_fstar_checkout_hydrates_lfs_verifier_artifacts(self) -> None:
+        fstar_job = self.workflow.split(
+            "  snarkpack-fstar:", maxsplit=1
+        )[1].split("\n  snarkpack-parity:", maxsplit=1)[0]
+        checkout = fstar_job.split(
+            "- uses: actions/checkout@", maxsplit=1
+        )[1].split("- uses: ./.github/actions/setup-nix-rust", maxsplit=1)[0]
+        self.assertIn("lfs: true", checkout)
+
     def test_extraction_has_no_ci_recovery_fanout(self) -> None:
         self.assertNotIn("matrix.graph", self.workflow)
         self.assertNotIn("snarkpack-extraction-recovery:", self.workflow)
@@ -298,17 +307,49 @@ class RustWorkflowWiringTests(unittest.TestCase):
                     jobs[lane],
                 )
 
+    def test_exact_fv_evidence_builds_jemalloc_with_optimization(self) -> None:
+        exact_fv_step = self.workflow.split(
+            "- name: Execute exact FV specification evidence", maxsplit=1
+        )[1].split("\n\n", maxsplit=1)[0]
+        self.assertIn("env:\n          CFLAGS: -O1", exact_fv_step)
+
+    def test_exact_fv_evidence_preflights_extractor_goldens(self) -> None:
+        evidence_gate = (
+            SCRIPT.parents[2] / "scripts/check-fv-specification-evidence.sh"
+        ).read_text(encoding="utf-8")
+        preflight = (
+            'go -C "$ROOT/tools/gnark/third_party/gnark-lean-extractor" '
+            "test ./..."
+        )
+        self.assertLess(
+            evidence_gate.index(preflight),
+            evidence_gate.index("run-fv-specification-tests.py"),
+        )
+
 
 class OrbisWorkflowWiringTests(unittest.TestCase):
-    def test_integration_flow_publishes_bounded_diagnostics(self) -> None:
-        workflow = (
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = (
             SCRIPT.parents[2] / ".github/workflows/orbis-integration.yml"
         ).read_text(encoding="utf-8")
+
+    def test_integration_flow_publishes_bounded_diagnostics(self) -> None:
         self.assertIn(
-            "python3 scripts/ci/run_with_annotation.py", workflow
+            "python3 scripts/ci/run_with_annotation.py", self.workflow
         )
         self.assertIn(
-            '--title "Shieldd Orbis integration flow"', workflow
+            '--title "Shieldd Orbis integration flow"', self.workflow
+        )
+
+    def test_insecure_v0_pre_is_an_explained_skip(self) -> None:
+        self.assertIn("name: Explain disabled Orbis v0 PRE", self.workflow)
+        self.assertIn('echo "status=skip"', self.workflow)
+        self.assertIn('echo "tier=skip"', self.workflow)
+        self.assertIn('echo "run=false"', self.workflow)
+        self.assertIn(
+            "Orbis v0 transfer PRE is disabled until a non-disclosing protocol is available.",
+            self.workflow,
         )
 
 

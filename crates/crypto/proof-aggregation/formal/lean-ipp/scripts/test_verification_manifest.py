@@ -1557,11 +1557,25 @@ class VerificationManifestTests(unittest.TestCase):
             byte_contents, trace_contents
         )
 
+        self.assertEqual(
+            VERIFICATION.V1_BASELINE_FAMILIES,
+            (
+                ("Transfer", 9_000),
+                ("NoteReshape(NoteReshapeFamilyId(2))", 9_200),
+                ("NoteReshape(NoteReshapeFamilyId(3))", 9_300),
+                (
+                    "ShieldedIcs20Withdrawal("
+                    "ShieldedIcs20WithdrawalFamilyId(1))",
+                    9_500,
+                ),
+            ),
+        )
+
         removed_vector = "\n".join(
             line
             for line in trace_contents.splitlines()
-            if not line.startswith("vector 23 ")
-            and not line.startswith("23.")
+            if not line.startswith("vector 15 ")
+            and not line.startswith("15.")
         ) + "\n"
         with self.assertRaises(VERIFICATION.VerificationError) as raised:
             VERIFICATION.validate_v1_baseline_fixtures(

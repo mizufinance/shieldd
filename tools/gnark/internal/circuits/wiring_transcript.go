@@ -5,8 +5,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"unsafe"
 
@@ -14,6 +16,7 @@ import (
 	"github.com/consensys/gnark/constraint"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
+	"github.com/consensys/gnark/frontend/schema"
 )
 
 const wiringTranscriptSchema = "shieldd.gnark.wiring.v1"
@@ -25,7 +28,10 @@ type WiringTranscript struct {
 	nOut              int
 	recordCounts      bool
 	constraintCounter func() (int, bool)
+	compiler          frontend.Compiler
 	events            []wiringEvent
+	bindings          []semanticBinding
+	bindingNames      map[string]struct{}
 }
 
 type wiringEvent struct {
@@ -35,7 +41,15 @@ type wiringEvent struct {
 }
 
 func newWiringTranscript(circuit string, nIn, nOut int) *WiringTranscript {
-	return &WiringTranscript{circuit: circuit, nIn: nIn, nOut: nOut}
+	return &WiringTranscript{
+		circuit: circuit, nIn: nIn, nOut: nOut,
+		bindingNames: make(map[string]struct{}),
+	}
+}
+
+type semanticBinding struct {
+	name        string
+	expressions []constraint.LinearExpression
 }
 
 func (t *WiringTranscript) record(op string, args ...string) {
@@ -52,12 +66,45 @@ func (t *WiringTranscript) record(op string, args ...string) {
 }
 
 func (t *WiringTranscript) bindCompiler(compiler frontend.Compiler) {
-	if t == nil || !t.recordCounts {
+	if t == nil {
+		return
+	}
+	t.compiler = compiler
+	if !t.recordCounts {
 		return
 	}
 	t.constraintCounter = func() (int, bool) {
 		return currentConstraintCount(compiler)
 	}
+}
+
+func (t *WiringTranscript) bind(name string, variables ...frontend.Variable) {
+	if t == nil {
+		return
+	}
+	if t.compiler == nil {
+		panic("semantic binding recorded before compiler attachment")
+	}
+	if name == "" || strings.ContainsAny(name, " \t\r\n") {
+		panic(fmt.Sprintf("invalid semantic binding name %q", name))
+	}
+	if _, exists := t.bindingNames[name]; exists {
+		panic(fmt.Sprintf("duplicate semantic binding %q", name))
+	}
+	expressions := make([]constraint.LinearExpression, len(variables))
+	for index, variable := range variables {
+		canonical := t.compiler.ToCanonicalVariable(variable)
+		expression, ok := canonical.(constraint.LinearExpression)
+		if !ok {
+			panic(fmt.Sprintf(
+				"semantic binding %q expression %d has unsupported canonical type %T",
+				name, index, canonical,
+			))
+		}
+		expressions[index] = expression.Clone()
+	}
+	t.bindingNames[name] = struct{}{}
+	t.bindings = append(t.bindings, semanticBinding{name: name, expressions: expressions})
 }
 
 func (t *WiringTranscript) canonical() (string, error) {
@@ -88,9 +135,36 @@ func (c *NoteReshapeCircuit) traceWiring(op string, args ...string) {
 	}
 }
 
+func (c *NoteReshapeCircuit) bindSemantic(name string, variables ...frontend.Variable) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.bind(name, variables...)
+	}
+}
+
 func (c *TransferCircuit) traceWiring(op string, args ...string) {
 	if c.wiringTrace != nil {
 		c.wiringTrace.record(op, args...)
+	}
+}
+
+func (c *TransferCircuit) bindSemantic(name string, variables ...frontend.Variable) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.bind(name, variables...)
+	}
+}
+
+func (c *ShieldedIcs20WithdrawalCircuit) traceWiring(op string, args ...string) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.record(op, args...)
+	}
+}
+
+func (c *ShieldedIcs20WithdrawalCircuit) bindSemantic(
+	name string,
+	variables ...frontend.Variable,
+) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.bind(name, variables...)
 	}
 }
 
@@ -106,8 +180,23 @@ func (c *TransferCircuit) bindWiringTrace(api frontend.API) {
 	}
 }
 
+func (c *ShieldedIcs20WithdrawalCircuit) bindWiringTrace(api frontend.API) {
+	if c.wiringTrace != nil {
+		c.wiringTrace.bindCompiler(api.Compiler())
+	}
+}
+
 func noteReshapeCircuitWithTranscript(label string, nIn, nOut int, transcript *WiringTranscript) frontend.Circuit {
 	circuit := NewNoteReshapeCircuit(label, nIn, nOut)
+	circuit.wiringTrace = transcript
+	return circuit
+}
+
+func shieldedIcs20WithdrawalCircuitWithTranscript(
+	nIn int,
+	transcript *WiringTranscript,
+) frontend.Circuit {
+	circuit := NewShieldedIcs20WithdrawalCircuit(nIn)
 	circuit.wiringTrace = transcript
 	return circuit
 }
@@ -132,9 +221,9 @@ func ExportNoteReshapeWiringTranscript(label string, nIn, nOut int) (string, err
 	return transcript.canonical()
 }
 
-// ExportNoteReshape2x1WiringTranscript retains the focused test entry point.
-func ExportNoteReshape2x1WiringTranscript() (string, error) {
-	return ExportNoteReshapeWiringTranscript("note_reshape2x1", 2, 1)
+// ExportNoteReshape8x1WiringTranscript retains the focused test entry point.
+func ExportNoteReshape8x1WiringTranscript() (string, error) {
+	return ExportNoteReshapeWiringTranscript("note_reshape8x1", 8, 1)
 }
 
 // ExportTransferWiringTranscript returns the canonical transcript for the
@@ -151,19 +240,60 @@ func ExportTransferWiringTranscript() (string, error) {
 	return transcript.canonical()
 }
 
+// ExportShieldedIcs20WithdrawalWiringTranscript returns the canonical
+// transcript for the registered withdrawal Define path.
+func ExportShieldedIcs20WithdrawalWiringTranscript(
+	label string,
+	nIn int,
+) (string, error) {
+	transcript := newWiringTranscript(label, nIn, 1)
+	if _, err := frontend.Compile(
+		ecc.BLS12_377.ScalarField(),
+		r1cs.NewBuilder,
+		shieldedIcs20WithdrawalCircuitWithTranscript(nIn, transcript),
+	); err != nil {
+		return "", fmt.Errorf("compile %s for wiring transcript: %w", label, err)
+	}
+	return transcript.canonical()
+}
+
 const constraintManifestSchema = "shieldd.gnark.constraint_manifest.v1"
 
 type ConstraintManifest struct {
-	Schema         string                      `json:"schema"`
-	Circuit        string                      `json:"circuit"`
-	Shape          ConstraintManifestShape     `json:"shape"`
-	NbConstraints  int                         `json:"nb_constraints"`
-	NbPublic       int                         `json:"nb_public_variables"`
-	NbSecret       int                         `json:"nb_secret_variables"`
-	NbInternal     int                         `json:"nb_internal_variables"`
-	SR1CSSHA256Hex string                      `json:"sr1cs_sha256_hex,omitempty"`
-	Segments       []ConstraintManifestSegment `json:"segments"`
-	Breakdown      ConstraintManifestBreakdown `json:"breakdown"`
+	Schema           string                      `json:"schema"`
+	Circuit          string                      `json:"circuit"`
+	Shape            ConstraintManifestShape     `json:"shape"`
+	NbConstraints    int                         `json:"nb_constraints"`
+	NbPublic         int                         `json:"nb_public_variables"`
+	NbSecret         int                         `json:"nb_secret_variables"`
+	NbInternal       int                         `json:"nb_internal_variables"`
+	SR1CSSHA256Hex   string                      `json:"sr1cs_sha256_hex,omitempty"`
+	WitnessWires     []ConstraintWitnessWire     `json:"witness_wires"`
+	SemanticBindings []ConstraintSemanticBinding `json:"semantic_bindings"`
+	Segments         []ConstraintManifestSegment `json:"segments"`
+	Breakdown        ConstraintManifestBreakdown `json:"breakdown"`
+}
+
+type ConstraintSemanticBinding struct {
+	Name        string                       `json:"name"`
+	Expressions []ConstraintLinearExpression `json:"expressions"`
+}
+
+type ConstraintLinearExpression struct {
+	Constant string                           `json:"constant"`
+	Terms    []ConstraintLinearExpressionTerm `json:"terms"`
+}
+
+type ConstraintLinearExpressionTerm struct {
+	WireID      int    `json:"wire_id"`
+	Coefficient string `json:"coefficient"`
+}
+
+type ConstraintWitnessWire struct {
+	WireID         int    `json:"wire_id"`
+	Path           string `json:"path"`
+	Visibility     string `json:"visibility"`
+	ConstraintRows int    `json:"constraint_rows"`
 }
 
 type ConstraintManifestShape struct {
@@ -232,40 +362,111 @@ func ExportNoteReshapeConstraintManifest(label string, nIn, nOut int, sr1csPath 
 func CompileNoteReshapeForFV(label string, nIn, nOut int) (constraint.ConstraintSystem, *ConstraintManifest, error) {
 	transcript := newWiringTranscript(label, nIn, nOut)
 	transcript.recordCounts = true
+	circuit := noteReshapeCircuitWithTranscript(label, nIn, nOut, transcript)
 	ccs, err := frontend.Compile(
 		ecc.BLS12_377.ScalarField(),
 		r1cs.NewBuilder,
-		noteReshapeCircuitWithTranscript(label, nIn, nOut, transcript),
+		circuit,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("compile %s for FV artifacts: %w", label, err)
 	}
-	manifest, err := transcript.constraintManifest(ccs, "")
+	manifest, err := transcript.constraintManifest(ccs, "", circuit)
 	if err != nil {
 		return nil, nil, fmt.Errorf("manifest %s for FV artifacts: %w", label, err)
 	}
 	return ccs, manifest, nil
 }
 
-func ExportNoteReshape2x1ConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
-	return ExportNoteReshapeConstraintManifest("note_reshape2x1", 2, 1, sr1csPath)
+func ExportNoteReshape8x1ConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
+	return ExportNoteReshapeConstraintManifest("note_reshape8x1", 8, 1, sr1csPath)
 }
 
 func ExportTransferConstraintManifest(sr1csPath string) (*ConstraintManifest, error) {
+	_, manifest, err := CompileTransferForFV()
+	if err != nil {
+		return nil, err
+	}
+	if sr1csPath != "" {
+		hash, err := sha256HexFile(sr1csPath)
+		if err != nil {
+			return nil, err
+		}
+		manifest.SR1CSSHA256Hex = hash
+	}
+	return manifest, nil
+}
+
+func ExportShieldedIcs20WithdrawalConstraintManifest(
+	sr1csPath string,
+) (*ConstraintManifest, error) {
+	_, manifest, err := CompileShieldedIcs20WithdrawalForFV(
+		"shielded_ics20_withdrawal",
+		2,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if sr1csPath != "" {
+		hash, err := sha256HexFile(sr1csPath)
+		if err != nil {
+			return nil, err
+		}
+		manifest.SR1CSSHA256Hex = hash
+	}
+	return manifest, nil
+}
+
+// CompileTransferForFV emits the Transfer SR1CS and semantic manifest from one
+// frontend compile.
+func CompileTransferForFV() (constraint.ConstraintSystem, *ConstraintManifest, error) {
 	transcript := newWiringTranscript("transfer", TransferCircuitInputs, TransferCircuitOutputs)
 	transcript.recordCounts = true
+	circuit := transferCircuitWithTranscript(transcript)
 	ccs, err := frontend.Compile(
 		ecc.BLS12_377.ScalarField(),
 		r1cs.NewBuilder,
-		transferCircuitWithTranscript(transcript),
+		circuit,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("compile transfer for constraint manifest: %w", err)
+		return nil, nil, fmt.Errorf("compile transfer for FV artifacts: %w", err)
 	}
-	return transcript.constraintManifest(ccs, sr1csPath)
+	manifest, err := transcript.constraintManifest(ccs, "", circuit)
+	if err != nil {
+		return nil, nil, fmt.Errorf("manifest transfer for FV artifacts: %w", err)
+	}
+	return ccs, manifest, nil
 }
 
-func (t *WiringTranscript) constraintManifest(ccs constraint.ConstraintSystem, sr1csPath string) (*ConstraintManifest, error) {
+// CompileShieldedIcs20WithdrawalForFV emits withdrawal SR1CS and its semantic
+// manifest from one frontend compile.
+func CompileShieldedIcs20WithdrawalForFV(
+	label string,
+	nIn int,
+) (constraint.ConstraintSystem, *ConstraintManifest, error) {
+	transcript := newWiringTranscript(label, nIn, 1)
+	transcript.recordCounts = true
+	circuit := shieldedIcs20WithdrawalCircuitWithTranscript(nIn, transcript)
+	ccs, err := frontend.Compile(
+		ecc.BLS12_377.ScalarField(),
+		r1cs.NewBuilder,
+		circuit,
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("compile %s for FV artifacts: %w", label, err)
+	}
+	manifest, err := transcript.constraintManifest(ccs, "", circuit)
+	if err != nil {
+		return nil, nil, fmt.Errorf("manifest %s for FV artifacts: %w", label, err)
+	}
+	return ccs, manifest, nil
+}
+
+func (t *WiringTranscript) constraintManifest(
+	ccs constraint.ConstraintSystem,
+	sr1csPath string,
+	circuit frontend.Circuit,
+) (*ConstraintManifest, error) {
 	total := ccs.GetNbConstraints()
 	segments := make([]ConstraintManifestSegment, 0, len(t.events))
 	for i, event := range t.events {
@@ -317,19 +518,287 @@ func (t *WiringTranscript) constraintManifest(ccs constraint.ConstraintSystem, s
 		}
 		sr1csHash = hash
 	}
+	witnessWires, err := constraintWitnessWires(ccs, circuit)
+	if err != nil {
+		return nil, err
+	}
+	if err := attachConstraintRows(ccs, witnessWires); err != nil {
+		return nil, err
+	}
+	semanticBindings, err := constraintSemanticBindings(ccs, t.bindings)
+	if err != nil {
+		return nil, err
+	}
 
 	return &ConstraintManifest{
-		Schema:         constraintManifestSchema,
-		Circuit:        t.circuit,
-		Shape:          ConstraintManifestShape{NIn: t.nIn, NOut: t.nOut},
-		NbConstraints:  total,
-		NbPublic:       ccs.GetNbPublicVariables(),
-		NbSecret:       ccs.GetNbSecretVariables(),
-		NbInternal:     ccs.GetNbInternalVariables(),
-		SR1CSSHA256Hex: sr1csHash,
-		Segments:       segments,
-		Breakdown:      breakdown,
+		Schema:           constraintManifestSchema,
+		Circuit:          t.circuit,
+		Shape:            ConstraintManifestShape{NIn: t.nIn, NOut: t.nOut},
+		NbConstraints:    total,
+		NbPublic:         ccs.GetNbPublicVariables(),
+		NbSecret:         ccs.GetNbSecretVariables(),
+		NbInternal:       ccs.GetNbInternalVariables(),
+		SR1CSSHA256Hex:   sr1csHash,
+		WitnessWires:     witnessWires,
+		SemanticBindings: semanticBindings,
+		Segments:         segments,
+		Breakdown:        breakdown,
 	}, nil
+}
+
+func attachConstraintRows(
+	ccs constraint.ConstraintSystem,
+	witnessWires []ConstraintWitnessWire,
+) error {
+	r1cs, ok := ccs.(constraint.R1CS[constraint.U64])
+	if !ok {
+		return fmt.Errorf("constraint system is not a U64 R1CS")
+	}
+
+	rowsByWire := make(map[int]int, len(witnessWires))
+	modulus := ccs.Field()
+	for _, row := range r1cs.GetR1Cs() {
+		left := normalizeLinearExpression(ccs, row.L, modulus)
+		right := normalizeLinearExpression(ccs, row.R, modulus)
+		output := normalizeLinearExpression(ccs, row.O, modulus)
+		candidates := make(map[int]struct{})
+		for wireID := range left.coefficients {
+			candidates[wireID] = struct{}{}
+		}
+		for wireID := range right.coefficients {
+			candidates[wireID] = struct{}{}
+		}
+		for wireID := range output.coefficients {
+			candidates[wireID] = struct{}{}
+		}
+		for wireID := range candidates {
+			if r1cPolynomialDependsOn(
+				left,
+				right,
+				output,
+				wireID,
+				modulus,
+			) {
+				rowsByWire[wireID]++
+			}
+		}
+	}
+
+	for i := range witnessWires {
+		witnessWires[i].ConstraintRows = rowsByWire[witnessWires[i].WireID]
+	}
+	return nil
+}
+
+type normalizedLinearExpression struct {
+	constant     *big.Int
+	coefficients map[int]*big.Int
+}
+
+func normalizeLinearExpression(
+	ccs constraint.ConstraintSystem,
+	expression constraint.LinearExpression,
+	modulus *big.Int,
+) normalizedLinearExpression {
+	normalized := normalizedLinearExpression{
+		constant:     new(big.Int),
+		coefficients: make(map[int]*big.Int),
+	}
+	for _, term := range expression {
+		coefficient := ccs.ToBigInt(ccs.GetCoefficient(term.CoeffID()))
+		if term.IsConstant() || term.WireID() == 0 {
+			normalized.constant.Add(normalized.constant, coefficient)
+			normalized.constant.Mod(normalized.constant, modulus)
+			continue
+		}
+		wireID := term.WireID()
+		if _, ok := normalized.coefficients[wireID]; !ok {
+			normalized.coefficients[wireID] = new(big.Int)
+		}
+		normalized.coefficients[wireID].Add(
+			normalized.coefficients[wireID],
+			coefficient,
+		)
+		normalized.coefficients[wireID].Mod(
+			normalized.coefficients[wireID],
+			modulus,
+		)
+	}
+	for wireID, coefficient := range normalized.coefficients {
+		if coefficient.Sign() == 0 {
+			delete(normalized.coefficients, wireID)
+		}
+	}
+	return normalized
+}
+
+// r1cPolynomialDependsOn checks actual influence in L*R-O, rather than mere
+// appearance in one of the three linear expressions. This rejects wires whose
+// contributions cancel into a tautology.
+func r1cPolynomialDependsOn(
+	left normalizedLinearExpression,
+	right normalizedLinearExpression,
+	output normalizedLinearExpression,
+	wireID int,
+	modulus *big.Int,
+) bool {
+	leftWire := coefficientAt(left, wireID)
+	rightWire := coefficientAt(right, wireID)
+	outputWire := coefficientAt(output, wireID)
+	if leftWire.Sign() == 0 && rightWire.Sign() == 0 && outputWire.Sign() == 0 {
+		return false
+	}
+
+	constant := new(big.Int).Mul(leftWire, right.constant)
+	constant.Add(
+		constant,
+		new(big.Int).Mul(rightWire, left.constant),
+	)
+	constant.Sub(constant, outputWire)
+	constant.Mod(constant, modulus)
+	if constant.Sign() != 0 {
+		return true
+	}
+
+	candidates := make(map[int]struct{})
+	for candidate := range left.coefficients {
+		candidates[candidate] = struct{}{}
+	}
+	for candidate := range right.coefficients {
+		candidates[candidate] = struct{}{}
+	}
+	for candidate := range candidates {
+		coefficient := new(big.Int).Mul(
+			leftWire,
+			coefficientAt(right, candidate),
+		)
+		coefficient.Add(
+			coefficient,
+			new(big.Int).Mul(
+				rightWire,
+				coefficientAt(left, candidate),
+			),
+		)
+		coefficient.Mod(coefficient, modulus)
+		if coefficient.Sign() != 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func coefficientAt(expression normalizedLinearExpression, wireID int) *big.Int {
+	if coefficient, ok := expression.coefficients[wireID]; ok {
+		return coefficient
+	}
+	return new(big.Int)
+}
+
+func constraintSemanticBindings(
+	ccs constraint.ConstraintSystem,
+	bindings []semanticBinding,
+) ([]ConstraintSemanticBinding, error) {
+	result := make([]ConstraintSemanticBinding, 0, len(bindings))
+	modulus := ccs.Field()
+	for _, binding := range bindings {
+		expressions := make([]ConstraintLinearExpression, 0, len(binding.expressions))
+		for _, expression := range binding.expressions {
+			constant := new(big.Int)
+			coefficients := make(map[int]*big.Int)
+			for _, term := range expression {
+				// GetCoefficient exposes backend Montgomery limbs. Convert
+				// through the field engine before treating the coefficient as
+				// a protocol field value.
+				coefficient := ccs.ToBigInt(
+					ccs.GetCoefficient(term.CoeffID()),
+				)
+				if term.IsConstant() || term.WireID() == 0 {
+					constant.Add(constant, coefficient)
+					constant.Mod(constant, modulus)
+					continue
+				}
+				wireID := term.WireID()
+				if _, ok := coefficients[wireID]; !ok {
+					coefficients[wireID] = new(big.Int)
+				}
+				coefficients[wireID].Add(coefficients[wireID], coefficient)
+				coefficients[wireID].Mod(coefficients[wireID], modulus)
+			}
+			wireIDs := make([]int, 0, len(coefficients))
+			for wireID, coefficient := range coefficients {
+				if coefficient.Sign() != 0 {
+					wireIDs = append(wireIDs, wireID)
+				}
+			}
+			sort.Ints(wireIDs)
+			terms := make([]ConstraintLinearExpressionTerm, 0, len(wireIDs))
+			for _, wireID := range wireIDs {
+				terms = append(terms, ConstraintLinearExpressionTerm{
+					WireID: wireID, Coefficient: coefficients[wireID].String(),
+				})
+			}
+			expressions = append(expressions, ConstraintLinearExpression{
+				Constant: constant.String(),
+				Terms:    terms,
+			})
+		}
+		result = append(result, ConstraintSemanticBinding{
+			Name: binding.name, Expressions: expressions,
+		})
+	}
+	return result, nil
+}
+
+func constraintWitnessWires(
+	ccs constraint.ConstraintSystem,
+	circuit frontend.Circuit,
+) ([]ConstraintWitnessWire, error) {
+	var public, secret []string
+	tVariable := reflect.TypeOf((*frontend.Variable)(nil)).Elem()
+	_, err := schema.Walk(
+		ccs.Field(),
+		circuit,
+		tVariable,
+		func(leaf schema.LeafInfo, _ reflect.Value) error {
+			switch leaf.Visibility {
+			case schema.Public:
+				public = append(public, leaf.FullName())
+			case schema.Secret:
+				secret = append(secret, leaf.FullName())
+			}
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("walk circuit witness schema: %w", err)
+	}
+	if len(public) != ccs.GetNbPublicVariables()-1 {
+		return nil, fmt.Errorf(
+			"witness schema public leaves %d != compiled public wires %d",
+			len(public),
+			ccs.GetNbPublicVariables()-1,
+		)
+	}
+	if len(secret) != ccs.GetNbSecretVariables() {
+		return nil, fmt.Errorf(
+			"witness schema secret leaves %d != compiled secret wires %d",
+			len(secret),
+			ccs.GetNbSecretVariables(),
+		)
+	}
+	wires := make([]ConstraintWitnessWire, 0, len(public)+len(secret))
+	for index, path := range public {
+		wires = append(wires, ConstraintWitnessWire{
+			WireID: 1 + index, Path: path, Visibility: "public",
+		})
+	}
+	for index, path := range secret {
+		wires = append(wires, ConstraintWitnessWire{
+			WireID: ccs.GetNbPublicVariables() + index,
+			Path:   path, Visibility: "secret",
+		})
+	}
+	return wires, nil
 }
 
 func classifyConstraintSegment(op string) (kind, gadgetLabel, bridgeTheorem, note string) {
@@ -341,11 +810,15 @@ func classifyConstraintSegment(op string) (kind, gadgetLabel, bridgeTheorem, not
 		return "marker", "", "", "semantic trace marker; expected to carry no constraints"
 	case op == "statement.append" || op == "statement.append_all" || op == "statement.assemble":
 		return "adapter", "", "", "statement vector assembly; expected to carry no constraints"
-	case op == "decaf.assert_on_curve":
-		return "glue", "", "", "allowed raw affine Decaf on-curve assertion"
-	case strings.HasPrefix(op, "assert."):
+	case op == "assert.boolean" ||
+		op == "assert.decaf_non_identity" ||
+		op == "assert.eq" ||
+		op == "assert.ne" ||
+		op == "assert.eq_if" ||
+		op == "assert.active_range" ||
+		op == "assert.dummy_suffix":
 		return "glue", "", "", "allowed assertion/copy constraint segment"
-	case strings.HasPrefix(op, "select.") || op == "dummy.mux" || op == "threshold.flag":
+	case op == "select.field" || op == "select.point" || op == "dummy.mux":
 		return "glue", "", "", "allowed selector/range glue segment"
 	default:
 		return "unclassified", "", "", "must be discharged by a gadget mapping or by re-authoring"
@@ -356,6 +829,8 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 	switch op {
 	case "decaf.compress_to_field":
 		return "gadget-decaf-compress-to-field", "Shieldd.GnarkFormal.Extracted.DecafCompressToField.circuit_sound", true
+	case "decaf.assert_on_curve":
+		return "gadget-decaf-assert-on-curve", "Shieldd.GnarkFormal.Deployed.DecafAssertOnCurve.circuit_sound", true
 	case "decaf.assert_equivalent", "decaf.assert_equivalent_if":
 		return "gadget-decaf-assert-equivalent", "Shieldd.GnarkFormal.Decaf377Assumptions.decaf377_assertEquivalent_sound", true
 	case "decaf.randomized_verification_key", "decaf.randomized_verification_key.dummy":
@@ -364,48 +839,53 @@ func segmentGadget(op string) (gadgetLabel, bridgeTheorem string, ok bool) {
 		return "gadget-dtk", "Shieldd.GnarkFormal.DtkBridge.decaf377_diversifiedTransmissionKey_sound", true
 	case "decaf.net_balance_commitment":
 		return "gadget-net-balance-commitment2", "Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound", true
-	// NB-1 (Wave 2): conservation-exact note_reshape shapes no longer build
-	// their balance commitment from computeTransferNetBalanceCommitment's
-	// value ladders. Pending Phase 3 re-stamp: bridge theorem name below is
-	// the Phase-3 target, not yet landed in lean/.
+	// Conservation-exact NoteReshape shapes use one collapsed amount equality
+	// and the balance-blinding ladder.
 	case "decaf.conservation_net_balance_commitment":
 		return "gadget-conservation-net-balance-commitment", "Shieldd.GnarkFormal.ConservationNetBalanceCommitmentBridge.decaf377_conservationNetBalanceCommitment_sound", true
+	case "decaf.conservation_net_balance_commitment2":
+		return "gadget-conservation-net-balance-commitment2", "Shieldd.GnarkFormal.ConservationNetBalanceCommitment2Bridge.decaf377_conservationNetBalanceCommitment2_sound", true
 	case "decaf.ack":
-		return "gadget-ack-two-step", "Shieldd.GnarkFormal.AckBridge.ack_sound", true
+		return "gadget-ack-derivation", "Shieldd.GnarkFormal.AckBridge.ack_sound", true
 	case "decaf.shared_secret":
-		return "gadget-ack-two-step", "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound", true
+		return "gadget-shared-secrets", "Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound", true
 	case "gadget.nullifier":
 		return "gadget-nullifier", "Shieldd.GnarkFormal.Poseidon3Bridge.circuit_sound", true
 	case "gadget.synthetic_dummy_nullifier":
 		return "gadget-poseidon-hash3-specialized", "Shieldd.GnarkFormal.Poseidon3Bridge.perm3_uncps", true
 	case "gadget.is_zero":
 		return "gadget-iszero", "Shieldd.GnarkFormal.isZeroExtracted_implies_is_zero", true
-	case "gadget.state_commitment_path", "gadget.compliance_path":
+	case "threshold.flag":
+		return "gadget-threshold-regulated-flag", "Shieldd.GnarkFormal.ThresholdRegulatedBridge.threshold_flag_sound", true
+	case "gadget.state_commitment_path":
 		return "gadget-quad-path-24", "Shieldd.GnarkFormal.AnchorMerkle.concrete_circuit_sound24", true
+	case "gadget.asset_registry_path", "gadget.compliance_path":
+		return "gadget-quad-path-16", "Shieldd.GnarkFormal.Poseidon4Bridge.quadPath16_circuit_sound", true
 	case "gadget.note_commitment":
-		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound", true
-	case "gadget.asset_registry_imt":
-		return "gadget-imt-gap", "Shieldd.GnarkFormal.Extracted.ImtGap.circuit_sound", true
-	case "gadget.compliance_leaf":
+		return "gadget-poseidon-hash6", "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound", true
+	case "gadget.asset_registry_gap":
+		// The Boolean selector is constrained separately before the authenticated
+		// leaf/path pipeline, so this is the exact gap body rather than the
+		// standalone gadget that also contains that Boolean row.
+		return "gadget-imt-gap-body", "Shieldd.GnarkFormal.Extracted.ImtGap.body_relation_sound", true
+	case "gadget.asset_registry_params_hash":
 		return "gadget-poseidon-hash4", "Shieldd.GnarkFormal.Poseidon4Bridge.circuit_sound", true
+	case "gadget.asset_registry_ring_hash", "gadget.asset_registry_leaf_hash":
+		return "gadget-poseidon-hash5", "Shieldd.GnarkFormal.Poseidon5Bridge.circuit_sound_eq", true
+	case "gadget.compliance_leaf":
+		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound", true
 	case "gadget.transfer_salt":
 		return "gadget-poseidon2", "Shieldd.GnarkFormal.TransferSaltBridge.transfer_salt_sound", true
-	case "gadget.authorization_id":
-		return "gadget-poseidon-hash1", "Shieldd.GnarkFormal.Poseidon1Bridge.circuit_sound", true
-	case "gadget.discovery_prefix":
-		return "gadget-canonical-fq-bits", "Shieldd.GnarkFormal.CanonicalFqBitsManifestBridge.canonical_sound", true
-	case "gadget.canonical_fq_bits":
-		return "gadget-canonical-fq-bits", "Shieldd.GnarkFormal.CanonicalFqBitsManifestBridge.canonical_sound", true
 	case "gadget.poseidon_encryption.detection":
-		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_sound", true
+		return "gadget-poseidon-encryption-detection-body", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.detection_body_sound", true
 	case "gadget.poseidon_encryption.amount":
-		return "gadget-poseidon2", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_sound", true
+		return "gadget-poseidon-encryption-amount-body", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.amount_body_sound", true
 	case "gadget.poseidon_encryption.address":
-		return "gadget-poseidon-hash4", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_sound", true
+		return "gadget-poseidon-encryption-address-body", "Shieldd.GnarkFormal.PoseidonEncryptionBridge.address_body_sound", true
 	case "gadget.metadata_hash":
-		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound", true
+		return "gadget-poseidon-hash6", "Shieldd.GnarkFormal.Poseidon6Bridge.circuit_sound", true
 	case "gadget.dleq":
-		return "gadget-dleq", "Shieldd.GnarkFormal.DleqBridge.dleq_sound", true
+		return "gadget-dleq-body", "Shieldd.GnarkFormal.DleqBridge.dleq_body_sound", true
 	case "statement.hash":
 		return "gadget-poseidon-hash7", "Shieldd.GnarkFormal.Poseidon7Bridge.circuit_sound", true
 	default:

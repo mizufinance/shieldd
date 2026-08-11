@@ -13,16 +13,22 @@ import argparse
 import json
 from pathlib import Path
 
+import formal_json
+from manifest_discovery import validate_ir
 from write_if_changed import write_if_changed
 from template_ir import SegmentTemplate
 
 IR_SCHEMA = "shieldd.gnark.deployed_slice_ir.v3"
 INVENTORY_SCHEMA = "shieldd.gnark.normalized_template_inventory.v1"
-NOTE_RESHAPE = {"note_reshape2x1", "note_reshape4x1", "note_reshape8x1", "note_reshape1x8"}
 
 
 def load_ir(path: Path) -> dict:
-    return json.loads(path.read_text())
+    ir = formal_json.read_deployed_ir(path)
+    validate_ir(ir)
+    circuit = ir["circuit"]
+    if path.name != f"{circuit}-deployed-slice-ir.json":
+        raise ValueError(f"{path}: deployed slice IR filename/circuit drifted")
+    return ir
 
 
 def require(condition: bool, message: str) -> None:
@@ -30,7 +36,7 @@ def require(condition: bool, message: str) -> None:
         raise ValueError(message)
 
 
-def inventory(irs: list[dict], require_note_reshape: bool = False) -> dict:
+def inventory(irs: list[dict]) -> dict:
     by_circuit: dict[str, dict] = {}
     templates: dict[str, dict] = {}
 
@@ -107,9 +113,6 @@ def inventory(irs: list[dict], require_note_reshape: bool = False) -> dict:
         }
 
     circuits = sorted(by_circuit.values(), key=lambda value: value["circuit"])
-    if require_note_reshape:
-        require(set(by_circuit) == NOTE_RESHAPE, f"NoteReshape family set mismatch: {sorted(by_circuit)}")
-
     rendered_templates = []
     for key in sorted(templates):
         entry = templates[key]
@@ -148,19 +151,20 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--ir", type=Path, nargs="+", required=True)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--require-note-reshape", action="store_true")
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    contents = render(inventory([load_ir(path) for path in args.ir], args.require_note_reshape))
+    inventory_data = inventory([load_ir(path) for path in args.ir])
+    contents = render(inventory_data)
+    template_count = inventory_data["template_count"]
     if args.check:
         actual = args.out.read_text()
         if actual != contents:
             raise SystemExit(f"stale template inventory: {args.out}")
-        print(f"checked {args.out} ({json.loads(contents)['template_count']} templates)")
+        print(f"checked {args.out} ({template_count} templates)")
         return
     args.out.parent.mkdir(parents=True, exist_ok=True)
     if write_if_changed(args.out, contents):
-        print(f"wrote {args.out} ({json.loads(contents)['template_count']} templates)")
+        print(f"wrote {args.out} ({template_count} templates)")
 
 
 if __name__ == "__main__":

@@ -1,23 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the deployed DTK adapter for note_reshape2x1 segment 6.
-
-Post-T1-d: DTK computation is hoisted into `Define()` and computed once, so
-the three pre-T1-d instances (segments 16, 34, 45) collapse into a single
-segment-6 instance. Generated Lean is split by semantic block so no theorem elaborates
-the complete 6,329-row relation.
-
-StructuredLC contract (see `AGENTS.md`, "Lean Circuit Proofs"): the base `Seg{N}.lean`
-now renders wide accumulator rows as `StructuredLC.eval rho { const, runs, residual }`
-(compact `StrideRun`s), not flat `relationLc*Part*` sums.  Adapter certificates MUST
-consume those rows opaquely — `linear_combination`/`ring` treat `StructuredLC.eval`
-as one atom.  Prove rung-to-rung recurrences over a SYMBOLIC index via the reused
-`StrideRun.sumAux_succ` peel, then instantiate at the concrete rung; never `simp`/
-`unfold` `StrideRun.sumAux` at a literal `count` (that expands all k terms
-and hits max recursion depth).  Never bridge a flat LC to `StructuredLC.eval` in
-Lean — the Rust extractor's parity gate (`contracts::structure_lc`) already proves
-the compact form equals the raw (coeff,wire) multiset.  Debug obligations with
-`scripts/lean-leaf-bench.sh` leaves, never full adapter rebuilds.
-"""
+"""Generate the normalized proof adapter for NoteReshape's shared DTK."""
 
 from __future__ import annotations
 
@@ -29,6 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from generated_contract_source import read_source
+from formal_json import RepoPathAudit, read_json_object
+from poseidon_constants import rounds as poseidon_round_constants
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -40,15 +24,11 @@ OUTPUT_CONTRACTS = DEFAULT_CONTRACTS
 DTK = FORMAL / "Deployed/Dtk"
 OUTPUT_DTK = DTK
 EXTRACTED_DEPLOYED = FORMAL / "Extracted/Deployed"
-SR1CS = ROOT.parent / "artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
-POSEIDON2 = FORMAL / "Poseidon2Bridge.lean"
+SR1CS = ROOT.parent / "artifacts/note_reshape1x8/note_reshape1x8.sr1cs"
 
 ORDER = 8444461749428370424248824938781546531375899335154063827935233455917409239041
 ROW_COUNT = 6077
 LADDER_BITS = 251
-# DTK segment's global row offset in the whole .sr1cs (was 13677 pre-T1-d;
-# DTK hoisting into Define() moved it to the front of emission order).
-DTK_GLOBAL_OFFSET = 1058
 
 
 def write_generated(path: Path, contents: str) -> None:
@@ -57,19 +37,13 @@ def write_generated(path: Path, contents: str) -> None:
     path.write_text(contents)
 
 
-# Wire index of the seg5 (only, post-T1-d) instance. `delta` measures every
-# instance's internal-witness offset relative to this base, so the
-# ladder-accumulator seat arithmetic reuses seg5's layout shifted by `delta`.
-# (Was 210 pre-T1-f; the shared divGen compress inserted 703 wires ahead.)
+# Base internal wire for relative seating within the shared instance.
 BASE_INTERNAL = 907
 
 
 @dataclass(frozen=True)
 class Instance:
-    """Per-instance seating data: the wire offsets that reseat the seg16 proof
-    shape onto seg34/seg45. Pure data — no emission logic lives here. The
-    validator fails generation on a wiring typo instead of emitting a silently
-    mis-seated (and later blowup-prone or unsound) adapter."""
+    """Reviewed wire offsets for one normalized DTK instance."""
 
     seg: int
     internal_base: int
@@ -98,7 +72,7 @@ class Instance:
                 f"Instance(seg={self.seg}): following_seg ({self.following_seg}) "
                 f"must be greater than seg"
             )
-        # seg16 is the base layout; every instance sits at or beyond it.
+        # BASE_INTERNAL is the reviewed normalized proof-coordinate boundary.
         if self.internal_base < BASE_INTERNAL:
             raise ValueError(
                 f"Instance(seg={self.seg}): internal_base ({self.internal_base}) "
@@ -119,9 +93,11 @@ class Instance:
         return self.internal_base - BASE_INTERNAL
 
 
-INSTANCES = (
-    Instance(6, BASE_INTERNAL, 17, 18, 7),
-)
+# Callers provide the exact normalized instance they are proving.  There is no
+# longer a binary-ladder NoteReshape deployment that can serve as an implicit
+# repository-wide default after the 2x1 family was retired.
+DTK_GLOBAL_OFFSET = 0
+INSTANCES: tuple[Instance, ...] = ()
 
 
 _SOURCE_CACHE: dict[tuple[str, int], str] = {}
@@ -266,13 +242,20 @@ def output_wires(cfg: Instance) -> tuple[list[int], list[int]]:
 
 
 def emit_outputs() -> str:
+    accumulator_comment = (
+        "/-! Generated opaque DTK ladder accumulators.  Keep these as plain `def`s: "
+        "the Seg.F/semantic-field boundary must not unfold the 251-term sums. -/\n\n"
+        if LADDER_BITS == 251
+        else
+        "/-! Generated opaque scalar-ladder accumulators.  Keep these as plain `def`s: "
+        f"the Seg.F/semantic-field boundary must not unfold the {LADDER_BITS}-term sums. -/\n\n"
+    )
     lines = [
         "import Mathlib.Data.ZMod.Basic\n\n",
         "import ShielddGnarkFormal.StructuredLC\n\n",
         "set_option maxRecDepth 1000000\n",
         "set_option maxHeartbeats 4000000\n\n",
-        "/-! Generated opaque DTK ladder accumulators.  Keep these as plain `def`s: ",
-        "the Seg.F/semantic-field boundary must not unfold the 251-term sums. -/\n\n",
+        accumulator_comment,
         "namespace Shieldd.GnarkFormal.Deployed.Dtk.Outputs\n\n",
         f"abbrev Order : Nat := {ORDER}\n",
         "abbrev F := ZMod Order\n\n",
@@ -290,8 +273,14 @@ def emit_outputs() -> str:
                 f"def seg{cfg.seg}AccY{k} (rho : Nat -> F) : F := "
                 f"{compact_wire_expr(1, ys[:k], 'F')}\n"
             )
-        lines.append(f"\ndef dtkOutX{cfg.seg} (rho : Nat -> F) : F := seg{cfg.seg}AccX251 rho\n")
-        lines.append(f"def dtkOutY{cfg.seg} (rho : Nat -> F) : F := seg{cfg.seg}AccY251 rho\n\n")
+        lines.append(
+            f"\ndef dtkOutX{cfg.seg} (rho : Nat -> F) : F := "
+            f"seg{cfg.seg}AccX{LADDER_BITS} rho\n"
+        )
+        lines.append(
+            f"def dtkOutY{cfg.seg} (rho : Nat -> F) : F := "
+            f"seg{cfg.seg}AccY{LADDER_BITS} rho\n\n"
+        )
     lines.append("end Shieldd.GnarkFormal.Deployed.Dtk.Outputs\n")
     return "".join(lines)
 
@@ -1021,13 +1010,13 @@ def sr1cs_lc_rows() -> list[tuple[Lc, Lc, Lc]]:
 # The lt-compare carry-chain recovery no longer lives here. It is done — and,
 # crucially, *parity-gated* — in the trusted Rust extractor
 # (`shieldd-constraint-coverage`, `ltchain::recover_lt_chain` +
-# `verify_note_reshape2x1_lt_ladders`). The generator consumes the extractor's
+# `verify_dtk_lt_ladders`). The generator consumes the extractor's
 # recovered seating as JSON, so a mis-seat is caught at extraction time against
 # the raw rows rather than silently emitted into Lean.
 
 LT_SEATING = (
     REPO_ROOT
-    / "crates/core/component/shielded-pool/formal/note_reshape2x1-dtk-lt-seating.json"
+    / "crates/core/component/shielded-pool/formal/note_reshape1x8-dtk-lt-seating.json"
 )
 LT_SEATING_SHA256 = LT_SEATING.with_suffix(LT_SEATING.suffix + ".sha256")
 # label -> the extracted bit predicate the emitted Lean references.
@@ -1039,14 +1028,47 @@ def _lt_seating() -> dict:
     """Read the canonical parity-gated LT seating with an exact byte pin."""
     if not LT_SEATING.is_file() or not LT_SEATING_SHA256.is_file():
         raise ValueError("missing canonical parity-gated DTK LT seating artifact")
-    raw = LT_SEATING.read_bytes()
-    expected = LT_SEATING_SHA256.read_text().strip()
-    actual = hashlib.sha256(raw).hexdigest()
-    if not re.fullmatch(r"[0-9a-f]{64}", expected) or actual != expected:
+    audit = RepoPathAudit()
+    audit.inspect(LT_SEATING_SHA256, label="DTK LT seating digest")
+    try:
+        digest_source = LT_SEATING_SHA256.read_bytes().decode(
+            "utf-8", errors="strict"
+        )
+    except (OSError, UnicodeError) as error:
+        raise ValueError("cannot read canonical DTK LT seating digest") from error
+    if not re.fullmatch(r"[0-9a-f]{64}\n", digest_source):
+        raise ValueError("DTK LT seating digest is not canonical lowercase hex")
+    expected = digest_source[:-1]
+    actual = hashlib.sha256(LT_SEATING.read_bytes()).hexdigest()
+    if actual != expected:
         raise ValueError(
             f"DTK LT seating digest drifted: expected {expected!r}, got {actual}"
         )
-    return json.loads(raw)
+    seating = read_json_object(
+        LT_SEATING,
+        canonical="pretty",
+        expected_sha256_hex=expected,
+        path_audit=audit,
+    )
+    expected_fields = {
+        "schema",
+        "proof_template_id",
+        "dtk_offset",
+        "dtk_rows",
+        "ladders",
+    }
+    if set(seating) != expected_fields:
+        raise ValueError("DTK LT seating field set drifted")
+    if seating["schema"] != "shieldd.gnark.dtk_lt_seating.v1":
+        raise ValueError("DTK LT seating schema drifted")
+    if seating["proof_template_id"] != (
+        "decaf.diversified_transmission_key@"
+        "a03dfc8083159402252a47c3be906c0878137600765dd0717aecbad037a5042c"
+    ):
+        raise ValueError("DTK LT seating template identity drifted")
+    if seating["dtk_rows"] != 5477:
+        raise ValueError("DTK LT seating row count drifted")
+    return seating
 
 
 def _lc_from_json(pairs) -> Lc:
@@ -2360,7 +2382,7 @@ def emit_scalar_defs(
     lines.append(
         f"def {acc_state} (rho : Nat -> Seg{cfg.seg}.F) : Nat -> EdwardsBridge.Point\n"
     )
-    for index in range(252):
+    for index in range(LADDER_BITS + 1):
         lines.append(
             f"  | {index} => ⟨({scalar_acc_name(cfg, 'X', index)} rho : Seg{cfg.seg}.F), "
             f"({scalar_acc_name(cfg, 'Y', index)} rho : Seg{cfg.seg}.F)⟩\n"
@@ -2761,14 +2783,15 @@ def emit_scalar_hstep_chunk(
     """
     acc_state = f"seg{cfg.seg}LadderAccState"
     cur_state = f"seg{cfg.seg}LadderCurState"
-    base = affine_internal_run(cfg, 977, 251, "scalar bits")
+    base = affine_internal_run(cfg, 977, LADDER_BITS, "scalar bits")
     lo = subset[0].index
     hi = subset[-1].index + 1
     lines.extend([
         f"theorem seg{cfg.seg}_hstep_c{chunk_index} "
         f"(rho : Nat -> Seg{cfg.seg}.F) (h : Seg{cfg.seg}.relation rho)\n",
-        "    (bits : List.Vector Bool 251)\n",
-        f"    (hbitAt : ∀ i, i < 251 → rho ({base} + i) = Bool.toZMod bits[i]!) :\n",
+        f"    (bits : List.Vector Bool {LADDER_BITS})\n",
+        f"    (hbitAt : ∀ i, i < {LADDER_BITS} → "
+        f"rho ({base} + i) = Bool.toZMod bits[i]!) :\n",
         f"    ∀ i, {lo} ≤ i → i < {hi} →\n",
         f"      EdwardsBridge.onCurve ({acc_state} rho i) →\n",
         f"      EdwardsBridge.onCurve ({cur_state} rho i) →\n",
@@ -2810,7 +2833,9 @@ def emit_scalar_chunk(
 
 
 def emit_scalar(cfg: Instance, rungs: tuple[ScalarRung, ...]) -> str:
-    scalar_bit_base = affine_internal_run(cfg, 977, 251, "scalar bits")
+    scalar_bit_base = affine_internal_run(
+        cfg, 977, LADDER_BITS, "scalar bits"
+    )
     lines = [
         f"import ShielddGnarkFormal.Deployed.Contracts.NoteReshape2x1.DtkAdapterSeg{cfg.seg}ScalarDefs\n",
     ]
@@ -2829,26 +2854,27 @@ def emit_scalar(cfg: Instance, rungs: tuple[ScalarRung, ...]) -> str:
     lines.append(
         f"theorem seg{cfg.seg}_scalar_ladder (rho : Nat -> Seg{cfg.seg}.F) "
         f"(h : Seg{cfg.seg}.relation rho)\n"
-        "    (bits : List.Vector Bool 251)\n"
+        f"    (bits : List.Vector Bool {LADDER_BITS})\n"
         f"    (hbits : seg{cfg.seg}ScalarBits rho = bits.map Bool.toZMod)\n"
         f"    (hdiv : Specs.onCurveAt (rho {cfg.div_x}) (rho {cfg.div_y})) :\n"
         "    Shieldd.GnarkFormal.DtkBridge.dtkLadderK "
         f"(seg{cfg.seg}ScalarBits rho)\n"
         "      (Shieldd.GnarkFormal.ScalarMulBridge.finalKWithOutputCurve\n"
         f"        (dtkOutX{cfg.seg} rho : Seg{cfg.seg}.F) (dtkOutY{cfg.seg} rho : Seg{cfg.seg}.F))\n"
-        f"      251 0 ⟨0, 1⟩ ⟨(rho {cfg.div_x} : Seg{cfg.seg}.F), "
+        f"      {LADDER_BITS} 0 ⟨0, 1⟩ "
+        f"⟨(rho {cfg.div_x} : Seg{cfg.seg}.F), "
         f"(rho {cfg.div_y} : Seg{cfg.seg}.F)⟩ := by\n"
     )
     acc_state = f"seg{cfg.seg}LadderAccState"
     cur_state = f"seg{cfg.seg}LadderCurState"
     lines.extend([
-        "  have hbitAt : ∀ i, i < 251 → rho "
+        f"  have hbitAt : ∀ i, i < {LADDER_BITS} → rho "
         f"({scalar_bit_base} + i) = Bool.toZMod bits[i]! := by\n",
         "    intro i hi\n",
         f"    rw [← seg{cfg.seg}ScalarBits_get rho i hi, hbits]\n",
         "    rw [getElem!_pos (bits.map Bool.toZMod) i (by simpa using hi), "
         "getElem!_pos bits i (by simpa using hi), List.Vector.getElem_map]\n",
-        "  have hstep : ∀ i, i < 251 →\n",
+        f"  have hstep : ∀ i, i < {LADDER_BITS} →\n",
         f"      EdwardsBridge.onCurve ({acc_state} rho i) →\n",
         f"      EdwardsBridge.onCurve ({cur_state} rho i) →\n",
         "      Shieldd.GnarkFormal.ScalarMulBridge.StepRel (Bool.toZMod bits[i]!)\n",
@@ -2878,22 +2904,25 @@ def emit_scalar(cfg: Instance, rungs: tuple[ScalarRung, ...]) -> str:
             )
     lines.extend([
         "  have hfinal : EdwardsBridge.onCurve "
-        f"({acc_state} rho 251) →\n",
+        f"({acc_state} rho {LADDER_BITS}) →\n",
         "      Shieldd.GnarkFormal.ScalarMulBridge.finalKWithOutputCurve\n",
         f"        (dtkOutX{cfg.seg} rho : Seg{cfg.seg}.F) (dtkOutY{cfg.seg} rho : Seg{cfg.seg}.F)\n",
-        f"        vec![({acc_state} rho 251).x, ({acc_state} rho 251).y,\n",
-        f"          ({cur_state} rho 251).x, ({cur_state} rho 251).y] := by\n",
+        f"        vec![({acc_state} rho {LADDER_BITS}).x, "
+        f"({acc_state} rho {LADDER_BITS}).y,\n",
+        f"          ({cur_state} rho {LADDER_BITS}).x, "
+        f"({cur_state} rho {LADDER_BITS}).y] := by\n",
         "    intro hacc\n",
         "    unfold Shieldd.GnarkFormal.ScalarMulBridge.finalKWithOutputCurve GatesDef.eq\n",
         "    refine ⟨rfl, rfl, ?_⟩\n",
         "    apply Shieldd.GnarkFormal.Deployed.Dtk.outputCurveGates_of_onCurve\n",
         "    have hacc' : EdwardsBridge.onCurve "
-        f"⟨({scalar_acc_name(cfg, 'X', 251)} rho : Seg{cfg.seg}.F), "
-        f"({scalar_acc_name(cfg, 'Y', 251)} rho : Seg{cfg.seg}.F)⟩ := hacc\n",
+        f"⟨({scalar_acc_name(cfg, 'X', LADDER_BITS)} rho : Seg{cfg.seg}.F), "
+        f"({scalar_acc_name(cfg, 'Y', LADDER_BITS)} rho : Seg{cfg.seg}.F)⟩ := hacc\n",
         f"    simpa only [dtkOutX{cfg.seg}, dtkOutY{cfg.seg}] using hacc'\n",
         "  rw [hbits]\n",
         "  apply Shieldd.GnarkFormal.Deployed.Dtk.stateTrace_to_dtkLadderK\n",
-        f"    bits _ ({acc_state} rho) ({cur_state} rho) hstep hfinal 251 0 (by omega)\n",
+        f"    bits _ ({acc_state} rho) ({cur_state} rho) hstep hfinal "
+        f"{LADDER_BITS} 0 (by omega)\n",
         "  · show EdwardsBridge.onCurve "
         f"⟨({scalar_acc_name(cfg, 'X', 0)} rho : Seg{cfg.seg}.F), "
         f"({scalar_acc_name(cfg, 'Y', 0)} rho : Seg{cfg.seg}.F)⟩\n",
@@ -3160,18 +3189,10 @@ def row_wires(rows: list[tuple[list[tuple[str, int]], ...]]) -> set[int]:
 
 
 def poseidon_constants() -> dict[str, list[str]]:
-    constants: dict[str, list[str]] = {}
-    for line in POSEIDON2.read_text().splitlines():
-        match = re.search(r"let gate_(\d+) := (?:fr3|pr3).*vec!\[(.*)\]", line)
-        if not match:
-            continue
-        values = re.findall(r"\((\d+):F\)", match.group(2))
-        if len(values) != 3:
-            raise ValueError(f"Poseidon2 gate {match.group(1)} has {len(values)} constants")
-        constants[match.group(1)] = values
-    if sorted(map(int, constants)) != list(range(39)):
-        raise ValueError("failed to parse all Poseidon2 round constants")
-    return constants
+    return {
+        str(index): [str(value) for value in values]
+        for index, (_, values) in enumerate(poseidon_round_constants(2))
+    }
 
 
 def emit_poseidon_segment(
@@ -3197,19 +3218,26 @@ def emit_poseidon_segment(
     )
 
 
-def generate_poseidon_shape(*, write_auxiliary: bool = True) -> tuple[str, list[list[int]]]:
-    start = DTK_GLOBAL_OFFSET + 1046
-    rows = []
-    constraint_index = 0
-    with SR1CS.open() as source_file:
-        for line in source_file:
-            if not line.strip().startswith("(constraint "):
-                continue
-            if constraint_index >= start + 270:
-                break
-            if constraint_index >= start:
-                rows.append(parse_constraint(line))
-            constraint_index += 1
+def generate_poseidon_shape(
+    *,
+    write_auxiliary: bool = True,
+    rows_override: list[tuple[list[tuple[str, int]], ...]] | None = None,
+) -> tuple[str, list[list[int]]]:
+    if rows_override is None:
+        start = DTK_GLOBAL_OFFSET + 1046
+        rows = []
+        constraint_index = 0
+        with SR1CS.open() as source_file:
+            for line in source_file:
+                if not line.strip().startswith("(constraint "):
+                    continue
+                if constraint_index >= start + 270:
+                    break
+                if constraint_index >= start:
+                    rows.append(parse_constraint(line))
+                constraint_index += 1
+    else:
+        rows = rows_override
     if len(rows) != 270:
         raise ValueError("missing DTK Poseidon rows")
     sboxes = [rows[index : index + 5] for index in range(0, len(rows), 5)]
@@ -3493,6 +3521,11 @@ def generate(
     output_dtk: Path = OUTPUT_DTK,
     adapters_only: bool = False,
 ) -> None:
+    if not INSTANCES:
+        raise ValueError(
+            "no DTK recovery instance configured; the retained deployments "
+            "use radix-4 and require an explicit radix-4 semantic provider"
+        )
     validate_normalized_shape()
     ltc_traces = dtk_ltc_traces()
     scalar_rungs = dtk_scalar_rungs()

@@ -38,7 +38,6 @@ instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.DecafEdwardsDouble.Orde
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.DecafEdwardsNeg.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.ScalarMulLE128.Order) := ‹_›
 instance : Fact (Nat.Prime Extracted.ScalarMulLE251.Order) := ‹_›
-instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.DecafAssertEquivalent.Order) := ‹_›
 instance : Fact (Nat.Prime Shieldd.GnarkFormal.Extracted.DecafCompressToField.Order) := ‹_›
 
 def toA (p : EdwardsBridge.Point) : Decaf377Assumptions.Point := ⟨p.x, p.y⟩
@@ -338,43 +337,14 @@ def scalarMulFromBits {n : ℕ} (bits : List.Vector Bool n) :
       scalarMulFromBits bits fuel (bitIndex + 1) acc' (EdwardsBridge.doubleF cur)
 
 theorem ofBitsLE_cons_val {n : ℕ} (hd : Bool) (tl : List.Vector Bool n) :
-    (Fin.ofBitsLE (hd ::ᵥ tl)).val = Nat.bit hd (Fin.ofBitsLE tl).val := by
-  simp [Fin.ofBitsLE, List.Vector.reverse_cons,
-    Shieldd.GnarkFormal.ChoiceFreeBinary.ofBitsBE_snoc_val]
-  cases hd
-  · simp [Nat.bit]
-  · simp [Nat.bit, Nat.add_comm]
-
-private theorem vector_get_succ_nat {α : Type} {n i : ℕ} (hd : α)
-    (tl : List.Vector α n) (h : i.succ < n.succ) :
-    (hd ::ᵥ tl)[i.succ]'h =
-      tl[i]'(Nat.lt_of_succ_lt_succ h) := by
-  rfl
+    (Fin.ofBitsLE (hd ::ᵥ tl)).val =
+      Nat.bit hd (Fin.ofBitsLE tl).val :=
+  ChoiceFreeBinary.ofBitsLE_cons_val hd tl
 
 theorem ofBitsLE_testBit {n : ℕ} (bits : List.Vector Bool n) :
-    ∀ i, i < n → (Fin.ofBitsLE bits).val.testBit i = bits[i]! := by
-  induction n with
-  | zero =>
-      intro i hi
-      exact (Nat.not_lt_zero i hi).elim
-  | succ n ih =>
-    intro i hi
-    cases bits using List.Vector.casesOn with
-    | cons hd tl =>
-      cases i with
-      | zero =>
-        rw [ofBitsLE_cons_val]
-        rw [Nat.testBit_bit_zero]
-        rw [getElem!_pos (hd ::ᵥ tl) 0 (Nat.zero_lt_succ n)]
-        simp
-      | succ i =>
-        have hi' : i < n := Nat.lt_of_succ_lt_succ hi
-        rw [ofBitsLE_cons_val]
-        rw [Nat.testBit_bit_succ]
-        rw [getElem!_pos (hd ::ᵥ tl) (i + 1) hi]
-        rw [vector_get_succ_nat]
-        rw [← getElem!_pos tl i hi']
-        exact ih tl i hi'
+    ∀ i, i < n →
+      (Fin.ofBitsLE bits).val.testBit i = bits[i]! :=
+  ChoiceFreeBinary.ofBitsLE_testBit bits
 
 theorem toBitsLE_get!_eq_testBit {n : ℕ} (m : ℕ) (hm : m < 2 ^ n)
     (i : ℕ) (hi : i < n) :

@@ -1,15 +1,11 @@
-use std::convert::TryInto;
-
 use anyhow::{anyhow, ensure, Result};
 use ark_groth16::{r1cs_to_qap::LibsnarkReduction, Groth16, PreparedVerifyingKey, Proof};
-use ark_serialize::CanonicalDeserialize;
 use ark_snark::SNARK;
 use decaf377::{Bls12_377, Fq, Fr};
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use shieldd_sdk_asset::balance;
 use shieldd_sdk_compliance::{ComplianceLeaf, IndexedLeaf, MerklePath};
 use shieldd_sdk_keys::keys::NullifierKey;
-use shieldd_sdk_proof_params::GROTH16_PROOF_LENGTH_BYTES;
 use shieldd_sdk_proto::{core::component::shielded_pool::v1 as pb, DomainType};
 use shieldd_sdk_sct::Nullifier;
 use shieldd_sdk_tct as tct;
@@ -19,12 +15,25 @@ use crate::{public_input_hash::shielded_ics20_withdrawal_statement_hash_from_pub
 use super::ShieldedIcs20WithdrawalFamilyId;
 
 impl ShieldedIcs20WithdrawalFamilyId {
+    pub fn deployed_proof_key(self) -> shieldd_sdk_proof_params::DeployedProofKey {
+        match self.get() {
+            1 => shieldd_sdk_proof_params::DeployedProofKey::ShieldedIcs20WithdrawalCanonical,
+            unknown => {
+                panic!("validated shielded ICS-20 withdrawal family has unknown id {unknown}")
+            }
+        }
+    }
+
     pub fn proof_verification_key(self) -> &'static PreparedVerifyingKey<Bls12_377> {
-        shieldd_sdk_proof_params::shielded_ics20_withdrawal_proof_verification_key(self.get())
+        self.deployed_proof_key().bundled_pvk()
     }
 
     pub fn proving_key_bytes(self) -> &'static [u8] {
         shieldd_sdk_proof_params::shielded_ics20_withdrawal_proving_key_bytes(self.get())
+    }
+
+    pub fn verifying_key_json_bytes(self) -> &'static [u8] {
+        shieldd_sdk_proof_params::shielded_ics20_withdrawal_verifying_key_json_bytes(self.get())
     }
 
     pub fn circuit_metadata_bytes(self) -> &'static [u8] {
@@ -60,8 +69,19 @@ pub struct ShieldedIcs20WithdrawalProofPublic {
     pub change_output: ShieldedIcs20WithdrawalChangePublic,
     pub outbound_asset_id: Fq,
     pub outbound_amount: Fq,
-    pub withdrawal_effect_hash_lo: Fq,
-    pub withdrawal_effect_hash_hi: Fq,
+    pub withdrawal_effect_hash_limbs: [Fq; 4],
+}
+
+pub(crate) fn withdrawal_effect_hash_limbs(bytes: &[u8]) -> [Fq; 4] {
+    assert_eq!(
+        bytes.len(),
+        64,
+        "withdrawal effect hash must contain exactly 64 bytes"
+    );
+    std::array::from_fn(|index| {
+        let start = index * 16;
+        Fq::from_le_bytes_mod_order(&bytes[start..start + 16])
+    })
 }
 
 impl ShieldedIcs20WithdrawalProofPublic {
@@ -86,13 +106,17 @@ impl ShieldedIcs20WithdrawalProofPublic {
 }
 
 #[derive(Clone, Debug)]
-pub struct ShieldedIcs20WithdrawalInputPrivate {
+pub struct ShieldedIcs20WithdrawalRequiredInputPrivate {
     pub state_commitment_proof: tct::Proof,
     pub spent_note: Note,
     pub spend_auth_randomizer: Fr,
+}
+
+#[derive(Clone, Debug)]
+pub struct ShieldedIcs20WithdrawalOptionalInputPrivate {
+    pub spend: ShieldedIcs20WithdrawalRequiredInputPrivate,
     pub is_dummy: bool,
     pub dummy_nullifier_seed: Fq,
-    pub dummy_spend_auth_key: Fr,
 }
 
 #[derive(Clone, Debug)]
@@ -113,7 +137,8 @@ pub struct ShieldedIcs20WithdrawalProofPrivate {
     pub sender_compliance_path: MerklePath,
     pub sender_compliance_position: u64,
     pub sender_leaf: ComplianceLeaf,
-    pub inputs: Vec<ShieldedIcs20WithdrawalInputPrivate>,
+    pub required_input: ShieldedIcs20WithdrawalRequiredInputPrivate,
+    pub optional_input: ShieldedIcs20WithdrawalOptionalInputPrivate,
     pub change_output: ShieldedIcs20WithdrawalChangePrivate,
 }
 
@@ -123,23 +148,16 @@ impl ShieldedIcs20WithdrawalProofPrivate {
             self.family_id == ShieldedIcs20WithdrawalFamilyId::Canonical,
             "shielded ICS-20 withdrawal family must be canonical"
         );
-        ensure!(
-            self.inputs.len() == self.family_id.input_count(),
-            "{} expects {} private inputs, got {}",
-            self.family_id.label(),
-            self.family_id.input_count(),
-            self.inputs.len()
-        );
         Ok(())
     }
 }
 
 impl ShieldedIcs20WithdrawalProof {
     fn decoded_proof(&self) -> anyhow::Result<Proof<decaf377::Bls12_377>> {
-        Proof::deserialize_compressed(&self.inner[..]).map_err(|e| anyhow!(e))
+        crate::groth16_proof::decode(&self.inner)
     }
 
-    pub fn to_batch_item(
+    pub(crate) fn to_batch_item(
         &self,
         public: &ShieldedIcs20WithdrawalProofPublic,
     ) -> anyhow::Result<shieldd_sdk_proof_params::batch::BatchItem> {
@@ -176,11 +194,7 @@ impl ShieldedIcs20WithdrawalProof {
     }
 
     pub fn for_family(&self, _family_id: ShieldedIcs20WithdrawalFamilyId) -> Result<()> {
-        let _: [u8; GROTH16_PROOF_LENGTH_BYTES] = self
-            .inner
-            .clone()
-            .try_into()
-            .map_err(|_| anyhow!("malformed shielded ICS-20 withdrawal proof length"))?;
+        self.decoded_proof()?;
         Ok(())
     }
 
@@ -227,17 +241,32 @@ impl TryFrom<pb::ZkShieldedIcs20WithdrawalProof> for ShieldedIcs20WithdrawalProo
     type Error = anyhow::Error;
 
     fn try_from(value: pb::ZkShieldedIcs20WithdrawalProof) -> Result<Self, Self::Error> {
-        Ok(Self { inner: value.inner })
+        let proof = Self { inner: value.inner };
+        proof.for_family(ShieldedIcs20WithdrawalFamilyId::Canonical)?;
+        Ok(proof)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::ShieldedIcs20WithdrawalProof;
+    use super::{withdrawal_effect_hash_limbs, ShieldedIcs20WithdrawalProof};
     use crate::{
         shielded_ics20_withdrawal::test_runtime, test_proof_helpers::proof_test_helpers,
         ShieldedIcs20WithdrawalFamilyId,
     };
+    use decaf377::Fq;
+
+    #[test]
+    fn withdrawal_deployed_key_mapping_matches_generated_registry_for_every_family() {
+        for family in ShieldedIcs20WithdrawalFamilyId::ALL {
+            assert!(std::ptr::eq(
+                family.deployed_proof_key().bundled_pvk(),
+                shieldd_sdk_proof_params::shielded_ics20_withdrawal_proof_verification_key(
+                    family.get(),
+                ),
+            ));
+        }
+    }
 
     #[test]
     fn shielded_ics20_withdrawal_rejects_wrong_public_shape() {
@@ -253,6 +282,25 @@ mod tests {
         assert!(
             error.to_string().contains("expects 2 inputs, got 1"),
             "unexpected shape error: {error}"
+        );
+    }
+
+    #[test]
+    fn withdrawal_effect_hash_maps_to_four_little_endian_u128_limbs() {
+        let expected = [
+            0x0123_4567_89ab_cdef_0011_2233_4455_6677u128,
+            0x1020_3040_5060_7080_90a0_b0c0_d0e0_f001u128,
+            0xdead_beef_cafe_babe_7654_3210_fedc_ba98u128,
+            0xffff_eeee_dddd_cccc_bbbb_aaaa_9999_8888u128,
+        ];
+        let mut bytes = [0u8; 64];
+        for (chunk, value) in bytes.chunks_exact_mut(16).zip(expected) {
+            chunk.copy_from_slice(&value.to_le_bytes());
+        }
+
+        assert_eq!(
+            withdrawal_effect_hash_limbs(&bytes),
+            expected.map(|value| Fq::from_le_bytes_mod_order(&value.to_le_bytes()))
         );
     }
 

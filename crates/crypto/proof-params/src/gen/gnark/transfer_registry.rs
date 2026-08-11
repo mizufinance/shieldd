@@ -1,20 +1,19 @@
+// Code generated from transfer_families.json. DO NOT EDIT.
 #[derive(Clone, Copy, Debug)]
 struct GeneratedTransferProofFamily {
     verification_key: &'static Lazy<PreparedVerifyingKey<Bls12_377>>,
     proving_key_bytes: &'static [u8],
+    verifying_key_json_bytes: &'static [u8],
     metadata_bytes: &'static [u8],
 }
 
+static TRANSFER_PROOF_VERIFYING_KEY_JSON_BYTES: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/../../../tools/gnark/artifacts/transfer/verifying_key.json"
+));
+
 static TRANSFER_PROOF_VERIFICATION_KEY: Lazy<PreparedVerifyingKey<Bls12_377>> = Lazy::new(|| {
-    if let Some(dir) = std::env::var_os("SHIELDD_GNARK_TRANSFER_ARTIFACT_DIR") {
-        return load_verifying_key_json_artifact(Path::new(&dir), "transfer")
-            .expect("can deserialize transfer VerifyingKey")
-            .into();
-    }
-    load_verifying_key_json_bytes(include_bytes!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../../../tools/gnark/artifacts/transfer/verifying_key.json"
-    )))
+    load_verifying_key_json_bytes(TRANSFER_PROOF_VERIFYING_KEY_JSON_BYTES)
     .expect("bundled transfer VerifyingKey is valid")
     .into()
 });
@@ -38,11 +37,13 @@ static TRANSFER_CIRCUIT_METADATA: &[u8] = include_bytes!(concat!(
     "/../../../tools/gnark/artifacts/transfer/circuit_metadata.json"
 ));
 
-static GENERATED_TRANSFER_PROOF_FAMILY: GeneratedTransferProofFamily = GeneratedTransferProofFamily {
-    verification_key: &TRANSFER_PROOF_VERIFICATION_KEY,
-    proving_key_bytes: TRANSFER_PROOF_PROVING_KEY_BYTES,
-    metadata_bytes: TRANSFER_CIRCUIT_METADATA,
-};
+static GENERATED_TRANSFER_PROOF_FAMILY: GeneratedTransferProofFamily =
+    GeneratedTransferProofFamily {
+        verification_key: &TRANSFER_PROOF_VERIFICATION_KEY,
+        proving_key_bytes: TRANSFER_PROOF_PROVING_KEY_BYTES,
+        verifying_key_json_bytes: TRANSFER_PROOF_VERIFYING_KEY_JSON_BYTES,
+        metadata_bytes: TRANSFER_CIRCUIT_METADATA,
+    };
 
 pub fn transfer_proof_verification_key() -> &'static PreparedVerifyingKey<Bls12_377> {
     &**GENERATED_TRANSFER_PROOF_FAMILY.verification_key
@@ -50,6 +51,10 @@ pub fn transfer_proof_verification_key() -> &'static PreparedVerifyingKey<Bls12_
 
 pub fn transfer_proving_key_bytes() -> &'static [u8] {
     GENERATED_TRANSFER_PROOF_FAMILY.proving_key_bytes
+}
+
+pub fn transfer_verifying_key_json_bytes() -> &'static [u8] {
+    GENERATED_TRANSFER_PROOF_FAMILY.verifying_key_json_bytes
 }
 
 pub fn transfer_circuit_metadata() -> &'static [u8] {

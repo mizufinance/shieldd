@@ -9,6 +9,7 @@
 use decaf377_rdsa::{SpendAuth, VerificationKey};
 use serde::{Deserialize, Serialize};
 use shieldd_sdk_asset::asset;
+use shieldd_sdk_keys::ensure_nonidentity_spend_auth_key;
 use shieldd_sdk_proto::{shieldd::core::component::compliance::v1 as pb, DomainType};
 
 use crate::params::ComplianceParameters;
@@ -29,6 +30,18 @@ pub struct Content {
     pub compliance_registrar_vk: Vec<VerificationKey<SpendAuth>>,
 }
 
+impl Content {
+    pub fn validate_authorization_keys(&self) -> anyhow::Result<()> {
+        for registrar_vk in &self.compliance_registrar_vk {
+            ensure_nonidentity_spend_auth_key(registrar_vk, "compliance registrar key")?;
+        }
+        for registration in &self.native_assets {
+            registration.validate_authorization_keys()?;
+        }
+        Ok(())
+    }
+}
+
 impl DomainType for Content {
     type Proto = pb::GenesisContent;
 }
@@ -37,7 +50,7 @@ impl TryFrom<pb::GenesisContent> for Content {
     type Error = anyhow::Error;
 
     fn try_from(value: pb::GenesisContent) -> Result<Self, Self::Error> {
-        Ok(Self {
+        let content = Self {
             compliance_params: value
                 .compliance_params
                 .map(TryInto::try_into)
@@ -53,7 +66,9 @@ impl TryFrom<pb::GenesisContent> for Content {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
-        })
+        };
+        content.validate_authorization_keys()?;
+        Ok(content)
     }
 }
 
@@ -85,6 +100,21 @@ pub struct NativeAssetRegistration {
     /// Immutable authority key that signs user registration grants for this asset.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub registration_authority_vk: Option<VerificationKey<SpendAuth>>,
+    /// Number of ACP-authorized compliance slots for this asset.
+    #[serde(default)]
+    pub slot_count: u32,
+}
+
+impl NativeAssetRegistration {
+    pub fn validate_authorization_keys(&self) -> anyhow::Result<()> {
+        if let Some(registration_authority_vk) = &self.registration_authority_vk {
+            ensure_nonidentity_spend_auth_key(
+                registration_authority_vk,
+                "compliance registration authority key",
+            )?;
+        }
+        Ok(())
+    }
 }
 
 impl DomainType for NativeAssetRegistration {
@@ -95,7 +125,7 @@ impl TryFrom<pb::NativeAssetRegistration> for NativeAssetRegistration {
     type Error = anyhow::Error;
 
     fn try_from(value: pb::NativeAssetRegistration) -> Result<Self, Self::Error> {
-        Ok(Self {
+        let registration = Self {
             asset_id: value
                 .asset_id
                 .ok_or_else(|| anyhow::anyhow!("missing genesis native asset_id"))?
@@ -117,7 +147,10 @@ impl TryFrom<pb::NativeAssetRegistration> for NativeAssetRegistration {
                 .map(TryInto::try_into)
                 .transpose()
                 .map_err(|e| anyhow::anyhow!("invalid genesis registration_authority_vk: {e}"))?,
-        })
+            slot_count: value.slot_count,
+        };
+        registration.validate_authorization_keys()?;
+        Ok(registration)
     }
 }
 
@@ -128,12 +161,16 @@ impl From<NativeAssetRegistration> for pb::NativeAssetRegistration {
             is_regulated: value.is_regulated,
             dk_pub: value.dk_pub.map(Vec::from).unwrap_or_default(),
             registration_authority_vk: value.registration_authority_vk.map(Into::into),
+            slot_count: value.slot_count,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use decaf377::Fr;
+    use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
+
     use super::*;
 
     #[test]
@@ -152,5 +189,43 @@ mod tests {
         let json = serde_json::to_string(&content).unwrap();
         let parsed: Content = serde_json::from_str(&json).unwrap();
         assert_eq!(content.native_assets.len(), parsed.native_assets.len());
+    }
+
+    #[test]
+    fn genesis_rejects_identity_authorization_keys() {
+        let identity = VerificationKey::from(&SigningKey::<SpendAuth>::from(Fr::from(0u64)));
+        let registrar_content = Content {
+            compliance_registrar_vk: vec![identity],
+            ..Default::default()
+        };
+        let registrar_error = registrar_content
+            .validate_authorization_keys()
+            .expect_err("genesis registrar keys must be nonidentity");
+        assert!(
+            registrar_error
+                .to_string()
+                .contains("compliance registrar key must not be identity"),
+            "unexpected rejection reason: {registrar_error:#}"
+        );
+
+        let authority_content = Content {
+            native_assets: vec![NativeAssetRegistration {
+                asset_id: asset::Id(decaf377::Fq::from(1u64)),
+                is_regulated: false,
+                dk_pub: None,
+                registration_authority_vk: Some(identity),
+                slot_count: 0,
+            }],
+            ..Default::default()
+        };
+        let authority_error = authority_content
+            .validate_authorization_keys()
+            .expect_err("genesis registration authority keys must be nonidentity");
+        assert!(
+            authority_error
+                .to_string()
+                .contains("compliance registration authority key must not be identity"),
+            "unexpected rejection reason: {authority_error:#}"
+        );
     }
 }

@@ -1,308 +1,265 @@
 # Compliance Reference
 
-Technical lookup material for compliance. See `flow.md` for the end-to-end
-walkthrough.
+Technical lookup material for the deployed V16 transfer compliance surface.
+See `flow.md` for the end-to-end lifecycle.
 
 ## Transfer Wire Format
 
-The receiver `TransferOutputBody.compliance_ciphertext` carries the unified
-transfer compliance ciphertext. Transfer inputs and change outputs must carry
-empty compliance bytes.
+Only the receiver `TransferOutputBody` carries compliance bytes. Transfer
+inputs and the change output must not carry compliance data.
 
 ```text
-TransferComplianceCiphertext: 585 bytes
-  0..128    4 EPKs: sender_core, sender_ext, output_core, output_ext
-  128..256  4 C2 envelopes, one per audit tier
-  256..320  detection tier: asset id + flag, salt
-  320..329  precision byte + sender and receiver fixed 32-bit discovery-tag slots
-  329..361  encrypted sender_core amount
-  361..457  encrypted sender_ext receiver address
-  457..489  encrypted output_core amount
-  489..585  encrypted output_ext sender address
+TransferComplianceCiphertext: 640 bytes
+  0..128    four compressed EPKs
+             sender_core, sender_ext, output_core, output_ext
+  128..256  four canonical Fq c2 values in the same order
+  256..384  four-Fq detection ciphertext
+  384..416  sender_core ciphertext: one Fq
+  416..512  sender_ext ciphertext: three Fq
+  512..544  output_core ciphertext: one Fq
+  544..640  output_ext ciphertext: three Fq
 
-TransferComplianceDleqProofs: 256 bytes
-  4 * (challenge, response)
+TransferComplianceMetadata: 328 bytes
+  0..32     sender_subject_derivation Fq
+  32..64    output_subject_derivation Fq
+  64..96    ring_id_hash Fq
+  96..128   policy_id_hash Fq
+  128..160  resource_hash Fq
+  160..192  permission_hash Fq
+  192..200  target_timestamp u64 little-endian
+  200..232  sender_core_salt Fq
+  232..264  sender_ext_salt Fq
+  264..296  output_core_salt Fq
+  296..328  output_ext_salt Fq
 ```
 
-The legacy IBC memo type remains in `compliance/src/ibc.rs`, but it is not the
-current transfer compliance wire.
+Every Fq and compressed point must decode canonically. Metadata timestamp zero
+is invalid. Tier labels are not serialized; fixed ordering is the tier domain.
+
+The V16 transport has no upload bundle, encrypted seed envelope, public shared
+point, DLEQ challenge, or DLEQ response.
+
+After decryption, the four detection words are:
+
+```text
+0  asset_id
+1  detection_salt
+2  sender_slot_id + is_flagged * 2^32
+3  receiver_slot_id
+```
+
+Both slots are canonical `u32` values. Word 0 is the exact asset id; V16 does
+not combine the asset with the flag.
+
+## Transfer Key And Address Validity
+
+The Transfer relation has three explicit one-row Decaf identity exclusions:
+
+```text
+authorization_key.x             != 0
+sender.diversified_generator.x  != 0
+receiver.diversified_generator.x != 0
+```
+
+For the on-curve companion-Edwards points consumed by the surrounding gadgets,
+`x = 0` is exactly the Decaf identity class. These rows match Rust's
+full-viewing-key and address allocation rules. In particular, the sender row
+prevents identity-DTK ownership aliasing, and the receiver row prevents a
+malicious proof from creating a note with that ambiguous owner.
+
+## Transfer Public Statement
+
+The fixed 2x2 Transfer statement has 41 Fq fields. Its hash uses the
+`shieldd.shielded_pool.transfer.public_input_hash.v4` domain.
+
+```text
+ 0       anchor
+ 1..2    receiver and change note commitments
+ 3       balance commitment
+ 4..7    two (nullifier, randomized verification key) pairs
+ 8..9    asset and compliance anchors
+10..13   detection ciphertext
+14..16   sender_core: EPK, c2, one ciphertext word
+17..21   sender_ext: EPK, c2, three ciphertext words
+22..24   output_core: EPK, c2, one ciphertext word
+25..29   output_ext: EPK, c2, three ciphertext words
+30       target_timestamp
+31..32   sender and output subject derivations
+33..36   ring, policy, resource, and permission hashes
+37..40   sender-core, sender-ext, output-core, and output-ext salts
+```
+
+The exact tail append order is:
+
+```text
+target_timestamp,
+sender_subject_derivation,
+output_subject_derivation,
+ring_id_hash,
+policy_id_hash,
+resource_hash,
+permission_hash,
+sender_core_salt,
+sender_ext_salt,
+output_core_salt,
+output_ext_salt
+```
+
+The metadata timestamp is not appended twice: its serialized value must equal
+the statement's existing `target_timestamp`. The authoritative builders are
+`transfer_statement_fields` in Rust and `buildTransferStatementFields` /
+`ReconstructedTransferStatementFieldsFromWitnessV16` in Go.
+
+## Effective Policy Selection
+
+| Value | Regulated | Unregulated |
+| --- | --- | --- |
+| `ring_pk` | registered asset leaf | fixed unregulated sink ring point |
+| `dk_pub` | registered asset leaf | fixed unregulated sink DK point |
+| threshold comparator input | registered threshold | authenticated gap-predecessor threshold; ignored by the regulation gate |
+| four policy hashes | registered strings | hash of the empty string |
+
+The circuit constrains `is_regulated` to exact asset-tree membership or a valid
+canonical non-membership gap. Encryption checks run in both branches.
+Registry admission rejects identity `dk_pub` and `ring_pk` values before a
+policy can be committed to the asset tree.
+
+The threshold flag is
+`is_regulated * (amount >= authenticated_leaf_threshold)`. It follows that
+regulated assets use their registered threshold exactly, while unregulated
+assets are never flagged regardless of the authenticated predecessor leaf's
+threshold or the receiver amount.
+
+For regulated assets, audit-tier shared secrets select ACK when unflagged and
+issuer DK when flagged. Detection always uses the selected DK. Each tier has an
+independent randomizer and EPK. Honest construction derives them from one
+fresh private CSPRNG nonce root per Transfer action. That root must not be
+reused across sibling Transfers or fee funding; its uniqueness and entropy are
+native privacy premises, not public circuit facts.
 
 ## Registry Trees
 
-| Tree | Purpose | Notes |
-|------|---------|-------|
-| QuadTree | `(address, asset) -> ComplianceLeaf` | Arity 4, depth 16, Poseidon377 |
-| Indexed asset tree | asset regulation status | Membership for regulated assets, non-membership gap proof for unregulated assets |
+| Tree | Purpose | Shape |
+| --- | --- | --- |
+| Compliance tree | `(address, asset) -> ComplianceLeaf` | arity 4, depth 16 |
+| Asset tree | regulated policy membership and unregulated gap | indexed tree |
 
-Both trees emit historical anchors per block. Clients cache tree state locally;
-issuer scanning uses a separate scanner DB and does not share wallet sync
-tables.
+Consensus requires the current mutable asset-policy root and permits a recent
+recorded root of the separate append-only compliance tree. Large node
+materialization is nonverifiable storage checked against those committed
+roots.
 
-Tree roots are committed in the app-state JMT. Tree nodes and leaves are stored
-in nonverifiable storage as deterministic materialization and are checked
-against committed roots at node readiness.
+`ComplianceLeaf` v2 is
 
-The asset tree remains an IMT because the compliance system needs membership
-proofs for regulated assets and non-membership proofs for unregulated assets.
-The nullifier set uses a dedicated JMT-style sparse tree instead because
-nullifier insertion is validator-executed, not proved inside a circuit.
+```text
+PoseidonHash7(
+  "shieldd.compliance.leaf.v2",
+  diversified_generator_fq,
+  transmission_key_fq,
+  clue_key_fq,
+  asset_id,
+  slot_id,
+  slot_derivation,
+  d
+)
+```
 
-`ComplianceLeaf` stores the registered address, asset id, one Orbis user public
-child key, and its independent 32-byte registration identifier. The leaf-tree
-commitment binds the diversified address, asset id, and child
-public key. Stateful registration additionally checks
-`child_pk = ring_pk * OrbisHash(registration_id)`, while the authority grant and
-application state bind the full registration. There are no user key indexes or
-slots. The registration identifier is carried to Orbis only as its PRE
-derivation input; it is never used for discovery.
+The address must carry a valid canonical clue-key encoding, and the derived
+`d` must be nonzero. Multiple addresses may share a slot, but then they
+intentionally share derivation material and ACK. Asset id zero is reserved for
+the indexed-tree sentinel and cannot be registered or used as a Transfer or
+Withdrawal action asset.
 
-## Scanner References
+Address audit plaintext is the canonical 64-byte little-endian concatenation
+of `diversified_generator_fq` and `transmission_key_fq`, split into 31-byte
+stream words. Gnark's `ToBinary(..., 256)` clamps each native field to 253
+bits, enforces the built-in `<= p-1` check, and pads the remaining three bits
+with zero; the formal provider exposes this reducedness condition explicitly.
+
+## Scanner Types And Tables
 
 ```rust
 BlockRef { height, block_hash, parent_hash, block_time_unix }
 TxRef { block, tx_index, tx_hash }
 ActionRef { tx, action_index }
 OutputRef { action, output_index }
-ExtractedComplianceCiphertext { output_ref, raw_bytes, upload_bundle_bytes }
+ExtractedComplianceCiphertext { output_ref, raw_bytes, metadata_bytes }
 ```
-
-`tx_hash` must match Shieldd `TransactionId`. If a helper computes it outside
-the transaction crate, keep the transaction-crate parity test mandatory.
-
-`CompactBlock.transaction_discoveries` carries, for each shielded transfer,
-the original `TransactionId` and its proof-bound sender/receiver discovery
-tags. `DiscoveryBlockRange` is the privacy-preserving local-scan path;
-`TransactionCandidates` is the optional server-filtered path. Both are bounded
-to 10,000 blocks per request and can be paginated. A candidate response is only
-routing advice: clients must fetch the original transaction and validate its
-ciphertext, DLEQ evidence, and authorization metadata before asking Orbis for
-PRE.
-
-## Scanner DB Tables
 
 | Table | Purpose |
-|-------|---------|
-| `scanner_blocks` | committed block identity and scan status |
-| `scanner_ciphertexts` | raw extracted output ciphertexts and screening status |
-| `scanner_detections` | DK-detected private transfer outputs and audit status |
-| `audit_authorizations` | validated authorization ID/timestamp index keyed by output ref |
-| `scanner_invalid_ciphertexts` | first capped malformed ciphertext rows per block |
-| `scanner_invalid_ciphertext_summaries` | overflow count for invalid rows above cap |
-| `scanner_clear_flows` | public shield/withdraw rows |
-| `scanner_sync` | single-row height/hash cursor |
-| `audit_rows` | normalized ledger projection |
-| `audit_address_aliases` | optional labels for UI/reporting |
-| `audit_row_audits` | idempotent subject audit marks |
-| `audit_decryption_failures` | failed issuer-DK or Orbis decrypt attempts |
-| `audit_evidence_failures` | evidence build/validation/import failures |
-| `audit_orbis_receipts` | stored PRE receipt JSON |
-| `compliance_evidence_objects` | canonical encrypted evidence object bytes |
+| --- | --- |
+| `scanner_blocks` | canonical block identity and scan status |
+| `scanner_ciphertexts` | accepted ciphertext and metadata bytes |
+| `scanner_detections` | DK-detected private outputs and audit status |
+| `scanner_invalid_ciphertexts` | bounded malformed rows |
+| `scanner_invalid_ciphertext_summaries` | overflow counts |
+| `scanner_clear_flows` | public shield/withdraw projections |
+| `scanner_sync` | replay cursor |
+| `compliance_evidence_objects` | canonical evidence bytes |
+| `audit_rows` | normalized audit projection |
+| `audit_decryption_failures` | bounded decryption failures |
+| `audit_evidence_failures` | bounded evidence failures |
 
-`commit_block` atomically writes block identity, raw ciphertexts, screening
-results, detections, invalid summaries, clear flows, audit projections, and
-sync state. Reorg handling compares live parent hash to stored `height - 1`,
-rolls back to a common ancestor, and replays.
+## Evidence Version 3
 
-## Scanner Boundaries
-
-- `ScannerStore`: async storage boundary. SQLite is current; Postgres or remote
-  stores should not change worker logic.
-- `ComplianceScreener`: pure parse + detection-tier DK decrypt. No persistence,
-  Orbis, ACP, audit, or chain I/O.
-- `AuditAdviceProvider`: policy/ring/label lookup boundary. SourceHub, Orbis,
-  ACP, and caches stay outside scanner logic.
-
-## Evidence And Audit Status
-
-`ComplianceEvidenceObject` is the canonical encrypted evidence payload for a
-detected transfer:
+`ComplianceEvidenceObject` contains:
 
 ```text
-output ref
+version and transfer object type
+OutputRef and block identity
 asset id, flag, detection salt
-sender and receiver discovery tags plus their tier EPKs
-transfer ciphertext
-transfer DLEQ bundle
-public tier decode objects
-optional Orbis upload-bundle hash
-payload hash
+TransferComplianceCiphertext
+TransferComplianceMetadata
+SHA-256 payload hash
 ```
 
-`AuditValidationInput` checks payload hash, canonical tier order, ciphertext and
-proof byte consistency, tier DLEQ validation against `ring_pk`, and upload
-bundle validation when present.
+It deliberately excludes PRE envelopes, DH shared points, and standalone DLEQ
+proofs. `validate_and_save_evidence_object` verifies the payload hash, metadata
+shape, accepted ciphertext/metadata byte equality, and persisted detection
+facts before advancing the row to `evidence_valid`.
 
-Valid audit states:
+## Audit Boundary
 
-```text
-pending
-evidence_valid
-evidence_invalid
-decrypt_failed
-audit_complete
-```
+Flagged transfers can be completed by issuer-DK decryption after evidence
+validation. Orbis v0 export and import always return errors because its public
+proof reveals the seed-opening DH point. Consequently, unflagged ACK-tier PRE
+audit is unavailable in V16.
 
-Allowed transitions:
+The retained DLEQ implementation and Lean/Tamarin material are standalone
+research. No deployed statement field, transaction byte, evidence object, or
+certification claim depends on them.
 
-```text
-pending -> evidence_valid
-pending -> evidence_invalid
-evidence_invalid -> evidence_valid
-evidence_valid -> decrypt_failed
-decrypt_failed -> audit_complete
-evidence_valid -> audit_complete
-audit_complete -> audit_complete
-```
+## Circuit Implementation Boundary
 
-Both flagged issuer-DK decrypt and unflagged Orbis PRE import require
-`evidence_valid`.
-
-## Orbis Authorization Binding
-
-Each audit tier carries Chaum-Pedersen/DLEQ material so Orbis can bind a PRE
-request to the metadata that ACP authorized. The proof is verified when the
-transaction is accepted because the transaction sender chooses the ciphertext
-and proof. Issuers can later use the accepted DLEQ material as evidence that
-the encrypted audit tier matches the authorized metadata. `ACK` is the user
-public child key committed in the compliance leaf:
-
-```text
-authorization_id = Poseidon(auth_id_domain, transfer_nonce_root)
-S  = r * ACK
-R  = k * G
-R' = k * ACK
-M  = Poseidon(policy_id_hash, resource_hash, permission_hash, tier,
-              authorization_timestamp, authorization_id, salt)
-c  = Poseidon(ACK, EPK, S, R, R', M)
-s  = k + c * r
-```
-
-Verifier reconstruction:
-
-```text
-R       = s * G   - c * EPK
-R'      = s * ACK - c * S
-c_check = Poseidon(ACK, EPK, S, R, R', M)
-```
-
-Tier constants:
-
-| Tier | Constant |
-|------|----------|
-| sender_core | 1 |
-| sender_ext | 2 |
-| output_core | 3 |
-| output_ext | 4 |
-
-The authorization ID is a dedicated selector, distinct from the Shieldd
-transaction ID, tier salt, and block metadata. All four statements in a
-transfer must carry the same authorization ID and timestamp. The transfer
-circuit derives the ID and constrains both values in each tier's metadata hash.
-The scanner indexes them only after the evidence object and upload bundle have
-validated.
-
-Current Orbis encrypted-seed objects retain their existing
-policy/resource/permission/tier/timestamp/salt metadata and proof. Shieldd
-therefore validates two proofs in an upload package: the Shieldd transfer proof
-above, which includes `authorization_id`, and the existing Orbis object proof.
-New regulated packages carry the independent registration identifier as the
-Orbis PRE derivation input. Shieldd checks that it derives the registered child
-public key and that the DLEQ statement targets that key before encryption and
-evidence acceptance.
-The demo selects and revalidates the Shieldd authorization metadata before
-requesting Orbis PRE. A future ACP integration must carry the Shieldd
-authorization tuple through the Orbis authorization boundary. `C2` correctness
-remains separate: it is established by the transfer construction and by
-validating the decrypted seed against `C2` after PRE or issuer-DK decryption.
-
-## Audit Selection And Authority
-
-`AuditSelection` supports exact authorization ID and inclusive authorization
-timestamp bounds. Master audits require at least one bound; user audits may
-scan all validated candidates for the named subject. Selection is checked both
-against the scanner index and against the extracted, validated upload bundle.
-
-User authority first examines compact public discovery records with the
-subject's public diversified address, then sends only matching candidates to
-Orbis. False positives can reach Orbis but false negatives are not expected for
-valid proof-bound tags. The subject's
-registered user key selects the decryptable sender or receiver tiers. Master
-authority uses the Orbis ring-key path and does not require a subject address.
-Both paths support independent `sender`, `amount`, and `receiver` output fields.
-
-The discovery tag for a role is:
-
-```text
-tag = low_n(address.transmission_key_s)
-```
-
-The transfer circuit binds each tag to the corresponding registered address and
-to the transmission-key encoding committed by the note, and binds public
-precision `n`. The tag is intentionally
-independent from DLEQ authorization metadata. For unrelated transfers, one role matches with
-probability `2^-n`; either of two role tags matches with probability
-`1 - (1 - 2^-n)^2`. At the default 11 bits this is about 0.098%, or 976
-candidates per million.
-
-### Precision And Constraint Cost
-
-`ShieldedPoolParameters.discovery_params.precision` selects 0 through 32 bits
-for new transactions; 11 is the default. The precision is copied into the transfer plan,
-stored in the ciphertext, included in the proof's public statement, and checked
-against the current or grace-period previous protocol parameter during execution. Historical tags keep
-their original precision.
-
-The circuit has one fixed shape. It decomposes each canonical transmission-key
-field element once, keeps the low 32 bits, and uses constrained selectors to
-zero the inactive high bits.
-Changing the public precision therefore changes only the false-positive rate,
-not wire size, proving key, or constraint count.
-
-| Bits per role | Either-role false positives | Candidates per million |
-|---:|---:|---:|
-| 8 | 0.780% | 7,797 |
-| 9 | 0.390% | 3,902 |
-| 10 | 0.195% | 1,952 |
-| 11 | 0.098% | 976 |
-| 12 | 0.049% | 488 |
-| 16 | 0.0031% | 31 |
-
-All rows use the same circuit and constraint count. The new construction removes
-the two in-circuit DH scalar multiplications and two Poseidon hashes used by
-the earlier auditor-FMD prototype; its remaining cost is bit decomposition and
-dynamic truncation. The discovery-tag gadget is 1,208 constraints at every
-precision, and the full canonical transfer circuit is 252,669 constraints.
-Lean/formal artifacts are intentionally not regenerated here.
+The deployed Transfer and shielded-withdrawal proving systems are the gnark
+circuits under `tools/gnark/`. The obsolete Arkworks alternative modules
+historically exported as `compliance/src/r1cs.rs` and
+`shielded-pool/src/r1cs.rs` were deleted and must not be cited as circuit
+evidence. Their zero-anchor skip is not part of the accepted gnark language;
+there is no second circuit architecture to maintain.
 
 ## Restrictions
 
-- Flagging is per transfer receiver amount: `amount >= threshold`.
-- Note reshapes do not carry compliance ciphertexts.
-- Registrations and asset policies are immutable.
+- Flagging is per receiver amount and regulation-gated:
+  `is_regulated * (amount >= authenticated_leaf_threshold)`.
+- Note reshapes carry no transfer compliance surface.
+- Asset policies and registrations are immutable.
 - Channel whitelist enforcement is first-hop only.
-- No key rotation is currently defined.
-- Knowing a subject address intentionally grants probabilistic transaction
-  discovery through its public prefix; it does not grant decryption.
-- Precision is protocol-wide, not issuer-specific. Asset ID is private in the
-  transfer proof, so an issuer-specific public setting would require expanding
-  the asset-policy leaf across every circuit that commits to it.
-- Cross-tier independence is mandatory: independent EPK/randomness per tier.
-- Orbis PRE operates on one encrypted-seed object per tier.
-- Transfer-circuit constraints that compliance assumes are tracked separately in
-  `../transfer-circuit/constraint-checklist.md`.
+- Cross-tier randomizer/EPK independence is mandatory.
+- Metadata belongs only to the receiver output.
+- PRE must remain disabled until a non-disclosing v1 is circuit-bound and
+  formally reviewed.
 
-## Source Files
+## Source Map
 
 | Component | Location |
-|-----------|----------|
-| Transfer ciphertext/DLEQ | `crates/core/component/compliance/src/transfer.rs` |
-| Discovery tag creation/examination | `crates/core/component/shielded-pool/src/discovery.rs`, `crates/core/component/compliance/src/participant.rs` |
-| Transaction discovery stream/query | `crates/core/component/compact-block/src/discovery.rs`, `component/rpc.rs` |
-| Crypto helpers | `crates/core/component/compliance/src/crypto.rs` |
-| Compliance circuits | `crates/core/component/compliance/src/r1cs.rs` |
-| Registry/trees | `crates/core/component/compliance/src/registry.rs`, `tree.rs`, `indexed_tree.rs` |
+| --- | --- |
+| Ciphertext construction | `crates/core/component/compliance/src/transfer.rs` |
+| Metadata codec | `crates/core/component/compliance/src/decode_object.rs` |
+| Native crypto | `crates/core/component/compliance/src/crypto.rs` |
+| Transfer circuit | `tools/gnark/internal/circuits/transfer_circuit.go` |
+| Witness ABI | `tools/gnark/internal/abi/transfer_witness_binary.go` |
+| Rust statement builder | `crates/core/component/shielded-pool/src/public_input_hash.rs` |
 | Scanner | `crates/core/component/compliance/src/scanner/` |
-| Evidence/audit | `crates/core/component/compliance/src/evidence.rs`, `audit.rs`, `audit_validation.rs` |
-| Transfer planning/proofs | `crates/core/component/shielded-pool/src/transfer/` |
-| Local compliance sync | `crates/view/src/storage/compliance.rs`, `crates/view/src/client_compliance.rs` |
-| Audit bridge | `crates/bin/orbis-audit/src/main.rs` |
+| Evidence and audit | `crates/core/component/compliance/src/evidence.rs`, `audit.rs` |
+| Formal transfer semantics | `tools/gnark/lean/ShielddGnarkFormal/Protocol/Transfer/` |

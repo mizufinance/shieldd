@@ -3,12 +3,11 @@ set -euo pipefail
 
 # Gadget-scope R1CS under-constraint check (Phase C / Track C).
 #
-# Runs Picus on the *decomposed soundness-critical gadgets*, not whole
-# transaction families. Whole-circuit Picus is a known scaling dead end
-# (Poseidon + Merkle + Decaf377 in one SMT system) and is recorded as
-# `attempted, undischarged (timeout)` rather than retried — see the plan and
-# docs/soundness. This is heavy prover work: it runs in the soundness-formal CI
-# `provers` job, not on every PR and not as part of the cheap invariant gate.
+# Runs Picus on decomposed soundness-critical gadgets, not transaction
+# families. The family export assigns every secret wire as an input, so it
+# cannot establish the functional joins required by the soundness claim. This
+# heavy prover work runs in the soundness-formal CI `provers` job, not on every
+# PR or in the cheap invariant gate.
 #
 # Verdicts (per gadget):
 #   safe         - Picus proved the gadget properly constrained (under-constraint
@@ -20,10 +19,17 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+update_report=0
+if [[ "${1:-}" == "--update" ]]; then
+  update_report=1
+  shift
+fi
+
 FORMAL_DIR="crates/core/component/shielded-pool/formal"
 WORK_DIR="$FORMAL_DIR/.generated/constraints"
 REPORT="$FORMAL_DIR/circuit-constraint-report.txt"
 REPORT_SHA="$REPORT.sha256"
+TEMPLATE_INVENTORY="tools/gnark/artifacts/certified-template-inventory.json"
 # Per-gadget Picus preconditions (assumption-relative `safe`). A gadget with a
 # precondition file reaches `safe` only under the stated algebraic assumption
 # (e.g. an Edwards denominator != 0). The file's sha256 is recorded in the
@@ -41,6 +47,23 @@ fail() {
   echo "circuit constraint check failed: $*" >&2
   exit 1
 }
+
+command -v jq >/dev/null 2>&1 || fail "jq is required"
+[[ -f "$TEMPLATE_INVENTORY" ]] \
+  || fail "certified template inventory is missing: $TEMPLATE_INVENTORY"
+
+template_digests() {
+  local prefix="$1"
+  jq -r --arg prefix "$prefix" '
+    .templates[]
+    | .template_key
+    | select(startswith($prefix))
+    | split("@")[1]
+  ' "$TEMPLATE_INVENTORY"
+}
+
+ack_digests="$(template_digests "decaf.ack@")"
+shared_secret_digests="$(template_digests "decaf.shared_secret@")"
 
 PICUS="${PICUS_BIN:-picus}"
 if [ -n "${PICUS_BIN:-}" ]; then
@@ -87,9 +110,14 @@ if [ "${#gadgets[@]}" -eq 0 ]; then
     gadget-scalar-mul-step
     # composition-boundary probe: two consecutive ladder rungs (join seam)
     gadget-scalar-mul-two-step
-    # transfer-only composition seams: ACK non-constant-base scalar mul and DLEQ responses
-    gadget-ack-two-step gadget-dleq
   )
+  # The non-constant-base scalar-multiplication seam is required only while an
+  # ACK-backed deployed template family exists. The standalone DLEQ probe
+  # remains available by explicit name for research, but is never a
+  # deployed-family certification target.
+  if [[ -n "$ack_digests" || -n "$shared_secret_digests" ]]; then
+    gadgets+=(gadget-ack-two-step)
+  fi
 fi
 
 rm -rf "$WORK_DIR"
@@ -121,8 +149,8 @@ for gadget in "${gadgets[@]}"; do
   # Optional per-gadget precondition + safety-mode flags.
   # Per-SMT-query timeout is deliberately much shorter than the per-leaf wall
   # watchdog: Picus recovers from a timed-out query via propagation and later
-  # queries, so failing single queries fast is what lets a hard leaf
-  # (gadget-dleq) converge inside the wall budget; 120 s per query let one
+  # queries, so failing single queries fast is what lets hard leaves converge
+  # inside the wall budget; 120 s per query let one
   # stuck query eat the entire budget.
   picus_flags=(--solver "$PICUS_SOLVER" --timeout "${PICUS_TIMEOUT_MS:-30000}")
   [ "$PICUS_SAFETY" = "strong" ] && picus_flags+=(--strong)
@@ -195,10 +223,32 @@ fi
   echo "  note: scalar-mul-step folded 251x over canonical-fq-bits boolean decomposition"
   echo "  boundary_probe: gadget-scalar-mul-two-step (join seam safe)"
   echo "  lean_lift: Shieldd.GnarkFormal.ScalarMulBridge.scalarMulLE251_sound"
-  echo "COMPOSITE ack-derivation safe-by-composition"
-  echo "  note: non-constant-base scalar-mul ladder over the asset ring public key"
-  echo "  boundary_probe: gadget-ack-two-step (join seam safe)"
-  echo "  lean_lift: Shieldd.GnarkFormal.AckBridge.ack_sound"
+  if [[ -n "$ack_digests" ]]; then
+    echo "COMPOSITE ack-derivation safe-by-composition"
+    echo "  note: non-constant-base scalar-mul ladder over the asset ring public key"
+    echo "  boundary_probe: gadget-ack-two-step (join seam safe)"
+    while IFS= read -r digest; do
+      [[ -z "$digest" ]] && continue
+      echo "  deployed_relation_lift: Shieldd.GnarkFormal.Deployed.Templates.Semantics.TDecafAck_${digest}.sound"
+    done <<<"$ack_digests"
+    echo "  conditional_spec: exact rows prove AckBridge.AckBodySpec; the enclosing circuit must supply the ring public key on-curve premise before AckSpec promotion"
+  fi
+  if [[ -n "$shared_secret_digests" ]]; then
+    echo "COMPOSITE shared-secrets safe-by-composition"
+    echo "  note: Boolean flag + three ACK derivations + EPK equivalence + selected-point join"
+    echo "  boundary_probe: gadget-ack-two-step (each non-constant-base ladder seam safe)"
+    while IFS= read -r digest; do
+      [[ -z "$digest" ]] && continue
+      module="TDecafSharedSecret_${digest}"
+      echo "  deployed_relation_lift: Shieldd.GnarkFormal.Deployed.Templates.Semantics.${module}.sound"
+      provider="tools/gnark/lean/ShielddGnarkFormal/Deployed/Templates/Semantics/${module}.lean"
+      if [[ -f "$provider" ]] && rg -n '^theorem flag_bool\b' "$provider" >/dev/null; then
+        echo "  deployed_flag_lift: Shieldd.GnarkFormal.Deployed.Templates.Semantics.${module}.flag_bool"
+      fi
+    done <<<"$shared_secret_digests"
+    echo "  promotion_lift: Shieldd.GnarkFormal.SharedSecretBridge.shared_secrets_sound"
+    echo "  conditional_spec: exact rows prove SharedSecretsBody; Transfer composition must bind the shared flag and supply ACK, DK, and published EPK on-curve premises before SharedSecretsSpec promotion"
+  fi
   echo "COMPOSITE quad-path-1/2/4/16/24 safe-by-composition"
   echo "  note: quad-path-round folded per depth over canonical-fq-bits position decomposition"
   echo "  boundary_probe: gadget-quad-path-two-round (join seam safe)"
@@ -213,25 +263,42 @@ fi
   echo "COMPOSITE net-balance-commitment safe-by-composition"
   echo "  note: poseidon1 + encode-to-curve + scalar-mul + edwards-add leaves"
   echo "COMPOSITE net-balance-commitment2 safe-by-composition"
-  echo "  note: 2-in-2-out transfer balance; poseidon1 + encode-to-curve + four value scalar-mul ladders (two negated outputs) + blinding ladder + edwards-add/neg leaves"
+  echo "  note: 2-in-2-out transfer balance; four canonical amount ranges + two 129-bit aggregate radix-4 ladders + blinding ladder + edwards-add/neg leaves"
   echo "  lean_lift: Shieldd.GnarkFormal.NetBalanceCommitment2Bridge.decaf377_netBalanceCommitment2_sound"
-  echo "COMPOSITE transfer-dleq safe-by-composition"
-  echo "  note: Poseidon7 challenge + paired scalar-mul response ladders + Decaf equivalence checks"
-  echo "  boundary_probe: gadget-dleq (one response equation s*B1 + c*B2; both equations share this shape, and sharing the s/c bits across two individually-deterministic equations adds no free signal)"
-  echo "  lean_lift: Shieldd.GnarkFormal.DleqBridge.dleq_sound"
+  echo "COMPOSITE conservation-net-balance-commitment2 safe-by-composition"
+  echo "  note: Withdrawal conservation; four canonical 128-bit amount decompositions + exact required + optional = change + withdrawal equation + one 251-bit balance-blinding ladder"
+  echo "  lean_lift: Shieldd.GnarkFormal.ConservationNetBalanceCommitment2Bridge.decaf377_conservationNetBalanceCommitment2_sound"
 } >>"$tmp_report"
 
-# Whole-circuit families: recorded as attempted-and-undischarged by design. No
-# tool formally verifies a whole transaction circuit; this is the documented
-# industry state of the art, not a shortfall.
+# Whole-family Picus is not a soundness claim. Assigning every secret wire as an
+# input hides the functional-dependence question that underconstraint analysis
+# is meant to answer. Keep Picus for the reviewed leaf probes above.
 {
-  echo "FAMILY transfer undischarged-by-design"
-  echo "  note: whole-circuit Picus times out (Poseidon+Merkle+Decaf377); not retried"
-  echo "FAMILY note_reshape2x1 undischarged-by-design"
-  echo "FAMILY shielded_ics20_withdrawal undischarged-by-design"
+  echo "FAMILY transfer whole-family-picus-excluded"
+  echo "FAMILY note_reshape8x1 whole-family-picus-excluded"
+  echo "FAMILY note_reshape1x8 whole-family-picus-excluded"
+  echo "FAMILY shielded_ics20_withdrawal whole-family-picus-excluded"
+  echo "  note: leaf Picus probes remain rapid counterexample checks; exports that classify every secret wire as an input are rejected as family soundness evidence"
 } >>"$tmp_report"
 
-cp "$tmp_report" "$REPORT"
-shasum -a 256 "$REPORT" | awk '{print $1}' >"$REPORT_SHA"
+tmp_report_sha="$(shasum -a 256 "$tmp_report" | awk '{print $1}')"
+if [[ "$update_report" -eq 1 ]]; then
+  cp "$tmp_report" "$REPORT"
+  printf '%s\n' "$tmp_report_sha" >"$REPORT_SHA"
+  echo "circuit constraint report updated: sha256:$tmp_report_sha"
+  exit 0
+fi
 
-echo "circuit constraint check ok: sha256:$(cat "$REPORT_SHA")"
+[[ -f "$REPORT" && -f "$REPORT_SHA" ]] \
+  || fail "missing committed report or sha256 sidecar; use --update deliberately"
+committed_sha="$(tr -d '[:space:]' <"$REPORT_SHA")"
+[[ "$committed_sha" == "$(shasum -a 256 "$REPORT" | awk '{print $1}')" ]] \
+  || fail "committed report does not match its sha256 sidecar"
+if ! cmp -s "$tmp_report" "$REPORT"; then
+  diff -u "$REPORT" "$tmp_report" >&2 || true
+  fail "fresh Picus report differs from the committed report; review and run --update"
+fi
+[[ "$tmp_report_sha" == "$committed_sha" ]] \
+  || fail "fresh Picus report hash differs from the committed sidecar"
+
+echo "circuit constraint check ok: sha256:$committed_sha"

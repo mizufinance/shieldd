@@ -361,11 +361,11 @@ pub fn round3(
         acc.push(state.sk.verification_key());
         acc
     };
-    Ok(Config::from_parts(
+    Config::from_parts(
         key_package,
         public_key_package,
         state.sk,
         verification_keys,
         nullifier_key,
-    ))
+    )
 }

@@ -1,6 +1,6 @@
 use rand_core::OsRng;
 use shieldd_sdk_asset::{Value, BASE_ASSET_ID};
-use shieldd_sdk_keys::test_keys;
+use shieldd_sdk_keys::{test_keys, DiscoveryKey};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::core::component::shielded_pool::v1 as pb;
 use shieldd_sdk_shielded_pool::{
@@ -10,8 +10,10 @@ use shieldd_sdk_shielded_pool::{
 
 #[test]
 fn tag_masks_every_precision_canonically() {
+    let key = DiscoveryKey([0xabu8; 32]);
+
     for bits in 0..=32 {
-        let tag = Tag::for_address(&test_keys::ADDRESS_0, Precision::new(bits).unwrap());
+        let tag = Tag::derive(&key, Precision::new(bits).unwrap());
         assert!(tag.is_canonical());
     }
 }
@@ -51,10 +53,11 @@ fn malformed_tag_does_not_prevent_full_scan_recovery() {
 
 #[test]
 fn tag_prefixes_are_stable_across_precision_changes() {
-    let short = Tag::for_address(&test_keys::ADDRESS_0, Precision::new(12).unwrap());
-    let long = Tag::for_address(&test_keys::ADDRESS_0, Precision::new(20).unwrap());
+    let key = DiscoveryKey([7u8; 32]);
+    let short = Tag::derive(&key, Precision::new(12).unwrap());
+    let long = Tag::derive(&key, Precision::new(20).unwrap());
 
-    assert_eq!(short.value, long.value & 0x0000_0fff);
+    assert_eq!(short.value, long.value & 0xfff0_0000);
 }
 
 #[test]

@@ -45,6 +45,11 @@ impl NoteVar {
     pub fn transmission_key(&self) -> ElementVar {
         self.address.transmission_key.clone()
     }
+
+    #[allow(dead_code)]
+    pub fn clue_key(&self) -> FqVar {
+        self.address.clue_key.clone()
+    }
 }
 
 impl AllocVar<Note, Fq> for NoteVar {
@@ -91,7 +96,7 @@ impl NoteVar {
         let domain_sep = FqVar::new_constant(cs.clone(), *NOTECOMMIT_DOMAIN_SEP)?;
         let compressed_g_d = self.address.diversified_generator().compress_to_field()?;
 
-        let commitment = poseidon377::r1cs::hash_5(
+        let commitment = poseidon377::r1cs::hash_6(
             cs,
             &domain_sep,
             (
@@ -100,6 +105,7 @@ impl NoteVar {
                 self.value.asset_id(),
                 compressed_g_d,
                 self.address.transmission_key().compress_to_field()?,
+                self.address.clue_key(),
             ),
         )?;
 

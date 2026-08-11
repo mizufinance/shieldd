@@ -7,33 +7,97 @@ import argparse
 from collections import defaultdict
 import os
 from pathlib import Path
-import re
 import signal
 import subprocess
+
+from lean_import_parser import parse_lean_imports
 
 
 ROOT = Path(__file__).resolve().parents[4]
 LEAN = ROOT / "tools/gnark/lean"
 SAFE_BUILD = ROOT / "scripts/lean-build-safe.sh"
-IMPORT = re.compile(r"^\s*import\s+(.+?)\s*(?:--.*)?$")
 
 
 def module_sources(lean_dir: Path) -> dict[str, Path]:
-    return {
-        ".".join(path.relative_to(lean_dir).with_suffix("").parts): path
-        for path in lean_dir.rglob("*.lean")
-        if ".lake" not in path.parts
-    }
+    unresolved_root = Path(lean_dir)
+    if unresolved_root.is_symlink():
+        raise ValueError(f"symlinked Lean source root: {unresolved_root}")
+    root = unresolved_root.resolve()
+    if not root.is_dir():
+        raise ValueError(f"missing Lean source root: {unresolved_root}")
+
+    sources: dict[str, Path] = {}
+    physical_sources: dict[tuple[int, int], str] = {}
+    for directory, child_dirs, filenames in os.walk(
+        unresolved_root, followlinks=False
+    ):
+        directory_path = Path(directory)
+        relative_directory = directory_path.relative_to(unresolved_root)
+        child_dirs[:] = sorted(
+            name for name in child_dirs if name != ".lake"
+        )
+        for name in child_dirs:
+            component = directory_path / name
+            if component.is_symlink():
+                relative = component.relative_to(unresolved_root)
+                raise ValueError(
+                    f"symlinked Lean source directory component: {relative}"
+                )
+
+        for name in sorted(filenames):
+            if not name.endswith(".lean"):
+                continue
+            unresolved = directory_path / name
+            relative = relative_directory / name
+            if unresolved.is_symlink():
+                raise ValueError(f"symlinked Lean source: {relative}")
+            path = unresolved.resolve()
+            if not path.is_relative_to(root):
+                raise ValueError(f"Lean source escapes source root: {relative}")
+            if not path.is_file():
+                raise ValueError(f"invalid Lean source: {relative}")
+
+            module = ".".join(relative.with_suffix("").parts)
+            if module in sources:
+                raise ValueError(f"duplicate Lean module label: {module}")
+            stat = path.stat()
+            if stat.st_nlink != 1:
+                raise ValueError(
+                    "physical Lean source alias count "
+                    f"{stat.st_nlink}: {relative}"
+                )
+            physical = (stat.st_dev, stat.st_ino)
+            prior_module = physical_sources.get(physical)
+            if prior_module is not None:
+                raise ValueError(
+                    "physical Lean source alias: "
+                    f"{prior_module} and {module}"
+                )
+            sources[module] = path
+            physical_sources[physical] = module
+    return sources
+
+
+def declared_imports(path: Path) -> tuple[str, ...]:
+    try:
+        source = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise ValueError(f"{path}: cannot read Lean source: {error}") from error
+    return parse_lean_imports(source, label=path)
 
 
 def local_imports(path: Path, known: set[str]) -> tuple[str, ...]:
-    imports: list[str] = []
-    for line in path.read_text().splitlines():
-        match = IMPORT.match(line)
-        if match is None:
-            continue
-        imports.extend(name for name in match.group(1).split() if name in known)
-    return tuple(imports)
+    declared = declared_imports(path)
+    missing_local = sorted(
+        name
+        for name in declared
+        if name.startswith("ShielddGnarkFormal.") and name not in known
+    )
+    if missing_local:
+        raise ValueError(
+            f"{path}: unresolved local Lean imports: {missing_local}"
+        )
+    return tuple(name for name in declared if name in known)
 
 
 def affected_order(
@@ -149,8 +213,9 @@ def main() -> int:
     parser.add_argument("--run", action="store_true")
     args = parser.parse_args()
 
-    lean_dir = args.lean_dir.resolve()
-    sources = module_sources(lean_dir)
+    unresolved_lean_dir = args.lean_dir
+    sources = module_sources(unresolved_lean_dir)
+    lean_dir = unresolved_lean_dir.resolve()
     known = set(sources)
     dependencies = {
         module: local_imports(path, known) for module, path in sources.items()

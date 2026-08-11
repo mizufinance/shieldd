@@ -4,17 +4,24 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 from typing import Iterable
 
-ACCEPTED_MASK = 0b011
+from formal_json import decode_json
+
+ALLOWED_MASK = 0b011
 FORBIDDEN_MASK = 0b100
 MAX_BATCH_BYTES = 256 * 1024 * 1024
 MAX_BATCH_MODULES = 128
+
+
+def mask_is_allowed(mask: int) -> bool:
+    """Accept any subset of the approved proof-irrelevance axioms."""
+
+    return mask & ~ALLOWED_MASK == 0
 
 
 def public_name_key(name: str) -> str:
@@ -130,12 +137,16 @@ def collect_masks(
             [str(executable), "summaries", *batch],
             cwd=lean_dir,
             env=env,
-            text=True,
             stdout=subprocess.PIPE,
         )
         assert process.stdout is not None
         for line in process.stdout:
-            summary = json.loads(line)
+            summary = decode_json(
+                line,
+                label=f"olean summary JSONL record {completed + 1}",
+                top_level=dict,
+            )
+            assert isinstance(summary, dict)
             resolve_module(
                 masks, summary["declarations"], forbidden, parents, displays
             )
@@ -202,7 +213,7 @@ def main() -> int:
                 "olean axiom audit: dependency path: " + " -> ".join(labels),
                 file=sys.stderr,
             )
-        ok &= mask == ACCEPTED_MASK
+        ok &= mask_is_allowed(mask)
     return 0 if ok else 1
 
 

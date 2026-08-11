@@ -27,7 +27,7 @@ use super::sync::{extract_clear_flows, extract_compliance_ciphertexts};
 use super::types::{BlockRef, DetectionEvent, TxRef};
 use crate::audit::EVIDENCE_STAGE_BUILD;
 use crate::{
-    issuer_keys::DetectionKey, ComplianceEvidenceObject, OutputRef, TransferOrbisUploadBundle,
+    issuer_keys::DetectionKey, ComplianceEvidenceObject, OutputRef, TransferComplianceMetadata,
 };
 
 const MAX_CB_SIZE_BYTES: usize = 64 * 1024 * 1024;
@@ -130,7 +130,7 @@ pub struct IssuerComplianceWorker {
     target_asset_id: asset::Id,
     storage: Arc<dyn ScannerStore>,
     block_identity: Arc<dyn BlockIdentityProvider>,
-    advice: Arc<dyn AuditAdviceProvider>,
+    _advice: Arc<dyn AuditAdviceProvider>,
     channel: Channel,
     error_slot: Arc<Mutex<Option<anyhow::Error>>>,
     sync_height_tx: watch::Sender<u64>,
@@ -158,7 +158,7 @@ impl IssuerComplianceWorker {
             target_asset_id,
             storage,
             block_identity,
-            advice,
+            _advice: advice,
             channel,
             error_slot: error_slot.clone(),
             sync_height_tx,
@@ -357,7 +357,7 @@ impl IssuerComplianceWorker {
 
             for extracted in extract_compliance_ciphertexts(&tx_ref, tx) {
                 let output_ref = extracted.output_ref.clone();
-                let upload_bundle_bytes = extracted.upload_bundle_bytes.clone();
+                let metadata_bytes = extracted.metadata_bytes.clone();
                 self.storage.save_ciphertext(&extracted).await?;
                 match self.screener.screen(extracted) {
                     ScreeningResult::Irrelevant => {
@@ -371,7 +371,7 @@ impl IssuerComplianceWorker {
                         evidence_work.push(PendingEvidenceWork {
                             output_ref: event.output_ref.clone(),
                             event: event.clone(),
-                            upload_bundle_bytes,
+                            metadata_bytes,
                         });
                         self.storage.save_detection(&event).await?;
                     }
@@ -417,46 +417,36 @@ impl IssuerComplianceWorker {
 
     async fn validate_detected_evidence(&self, work: PendingEvidenceWork) -> Result<()> {
         let output_ref = &work.output_ref;
-        let Some(upload_bundle_bytes) = work.upload_bundle_bytes.as_deref() else {
+        let Some(metadata_bytes) = work.metadata_bytes.as_deref() else {
             self.storage
                 .record_evidence_failure(
                     output_ref,
                     EVIDENCE_STAGE_BUILD,
-                    "detected output is missing Orbis upload bundle bytes",
+                    "detected output is missing transfer compliance metadata",
                 )
                 .await?;
             return Ok(());
         };
-        let upload_bundle = match TransferOrbisUploadBundle::from_bytes(upload_bundle_bytes) {
-            Ok(bundle) => bundle,
+        let metadata = match TransferComplianceMetadata::from_bytes(metadata_bytes) {
+            Ok(metadata) => metadata,
             Err(error) => {
                 self.storage
                     .record_evidence_failure(
                         output_ref,
                         EVIDENCE_STAGE_BUILD,
-                        &format!("failed to decode Orbis upload bundle: {error}"),
+                        &format!("failed to decode transfer compliance metadata: {error}"),
                     )
                     .await?;
                 return Ok(());
             }
         };
-        let Some(asset_policy) = self.advice.asset_policy(work.event.asset_id).await? else {
-            self.storage
-                .record_evidence_failure(
-                    output_ref,
-                    EVIDENCE_STAGE_BUILD,
-                    "asset policy unavailable for detected output",
-                )
-                .await?;
-            return Ok(());
-        };
-        let evidence = match ComplianceEvidenceObject::from_upload_bundle(
+        let evidence = match ComplianceEvidenceObject::new_transfer(
             output_ref.clone(),
             work.event.asset_id,
             work.event.is_flagged,
             work.event.salt,
             work.event.ciphertext,
-            &upload_bundle,
+            metadata,
         ) {
             Ok(evidence) => evidence,
             Err(error) => {
@@ -471,9 +461,7 @@ impl IssuerComplianceWorker {
             }
         };
 
-        self.storage
-            .validate_and_save_evidence(&evidence, &upload_bundle, &asset_policy.ring.ring_pk)
-            .await?;
+        self.storage.validate_and_save_evidence(&evidence).await?;
         Ok(())
     }
 
@@ -505,7 +493,7 @@ enum ReorgDecision {
 struct PendingEvidenceWork {
     output_ref: OutputRef,
     event: DetectionEvent,
-    upload_bundle_bytes: Option<Vec<u8>>,
+    metadata_bytes: Option<Vec<u8>>,
 }
 
 fn parse_block_ref(
@@ -566,7 +554,7 @@ mod tests {
     use std::collections::HashMap;
 
     use crate::scanner::{NoopAuditAdviceProvider, SqliteScannerStore};
-    use crate::{AssetPolicy, ExtractedComplianceCiphertext};
+    use crate::ExtractedComplianceCiphertext;
 
     #[derive(Default)]
     struct MemoryBlockIdentity {
@@ -597,25 +585,6 @@ mod tests {
                 .get(&height)
                 .cloned()
                 .ok_or_else(|| anyhow!("missing block {height}"))
-        }
-    }
-
-    struct FixedAuditAdviceProvider {
-        policy: AssetPolicy,
-    }
-
-    #[async_trait]
-    impl AuditAdviceProvider for FixedAuditAdviceProvider {
-        async fn asset_policy(&self, _asset_id: asset::Id) -> Result<Option<AssetPolicy>> {
-            Ok(Some(self.policy.clone()))
-        }
-
-        async fn ring_info(&self, _ring_id: &str) -> Result<Option<crate::scanner::RingInfo>> {
-            Ok(None)
-        }
-
-        async fn known_label(&self, _address_key: &[u8]) -> Result<Option<String>> {
-            Ok(None)
         }
     }
 
@@ -704,9 +673,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn worker_validates_detected_evidence_with_advice_provider() {
+    async fn worker_validates_detected_metadata_only_evidence() {
         let store = Arc::new(SqliteScannerStore::new(":memory:").unwrap());
-        let (evidence, bundle, ring_pk) = crate::evidence::tests::valid_evidence_fixture();
+        let (evidence, metadata) = crate::evidence::tests::valid_evidence_fixture();
         let block = evidence.output_ref.action.tx.block.clone();
         let event = DetectionEvent {
             output_ref: evidence.output_ref.clone(),
@@ -722,7 +691,7 @@ mod tests {
             .save_ciphertext(&ExtractedComplianceCiphertext {
                 output_ref: evidence.output_ref.clone(),
                 raw_bytes: evidence.transfer_ciphertext.to_bytes(),
-                upload_bundle_bytes: Some(bundle.to_bytes().unwrap()),
+                metadata_bytes: Some(metadata.to_bytes().unwrap()),
             })
             .await
             .unwrap();
@@ -734,9 +703,7 @@ mod tests {
             evidence.asset_id,
             store.clone(),
             Arc::new(MemoryBlockIdentity::default()),
-            Arc::new(FixedAuditAdviceProvider {
-                policy: AssetPolicy::simple(DetectionKey::demo().public_key(), 1, ring_pk),
-            }),
+            Arc::new(NoopAuditAdviceProvider),
             Channel::from_static("http://localhost:8080").connect_lazy(),
         )
         .await
@@ -746,7 +713,7 @@ mod tests {
             .validate_detected_evidence(PendingEvidenceWork {
                 output_ref: evidence.output_ref.clone(),
                 event,
-                upload_bundle_bytes: Some(bundle.to_bytes().unwrap()),
+                metadata_bytes: Some(metadata.to_bytes().unwrap()),
             })
             .await
             .unwrap();

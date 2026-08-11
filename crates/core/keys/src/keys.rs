@@ -8,7 +8,7 @@ mod seed_phrase;
 pub use seed_phrase::SeedPhrase;
 
 mod spend;
-pub use spend::{SpendKey, SpendKeyBytes, SPENDKEY_LEN_BYTES};
+pub use spend::{SpendKey, SpendKeyBytes, SpendKeyError, SPENDKEY_LEN_BYTES};
 
 mod bip44;
 pub use bip44::Bip44Path;
@@ -16,16 +16,14 @@ pub use bip44::Bip44Path;
 mod wallet_id;
 pub use wallet_id::WalletId;
 
-mod cvk;
 mod fvk;
 mod ivk;
 mod ovk;
 
-pub use cvk::{AddressComplianceKey, CVK_LEN_BYTES};
 pub(crate) use fvk::IVK_DOMAIN_SEP;
 pub use fvk::{
     r1cs::{AuthorizationKeyVar, RandomizedVerificationKey, SpendAuthRandomizerVar},
-    FullViewingKey,
+    FullViewingKey, FullViewingKeyError,
 };
 pub use ivk::{IncomingViewingKey, IncomingViewingKeyVar, IVK_LEN_BYTES};
 pub use ovk::{OutgoingViewingKey, OVK_LEN_BYTES};

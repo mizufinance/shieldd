@@ -1,5 +1,5 @@
 use decaf377::Fr;
-use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey, VerificationKeyBytes};
+use decaf377_rdsa::{SigningKey, SpendAuth, VerificationKey};
 use ed25519_consensus::SigningKey as Ed25519SigningKey;
 use ibc_proto::ics23::CommitmentProof;
 use ibc_types::core::{
@@ -26,8 +26,8 @@ use shieldd_sdk_keys::{Address, FullViewingKey};
 use shieldd_sdk_num::Amount;
 use shieldd_sdk_proto::DomainType;
 use shieldd_sdk_shielded_pool::{
-    Ics20Withdrawal, Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalFamilyId,
-    ShieldedIcs20WithdrawalPlan, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
+    Ics20Withdrawal, Note, NoteReshapeFamilyId, NoteReshapePlan, ShieldedIcs20WithdrawalPlan,
+    ShieldedInputPlan, ShieldedOutputPlan, TransferPlan,
 };
 use shieldd_sdk_transaction::{
     check_transaction_plan_enabled, ActionPlan, TransactionParameters, TransactionPlan,
@@ -90,8 +90,9 @@ fn address_strategy() -> impl Strategy<Value = Address> {
     // for some reason (invalid key errors on computing effecthash.)
     prop::strategy::LazyJust::new(|| {
         let seed_phrase = with_vector_rng(|rng| SeedPhrase::generate(rng));
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
-        let addr = sk.full_viewing_key().payment_address(0u32.into());
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test-vector spend key should satisfy key refinements");
+        let addr = sk.full_viewing_key().payment_address(0u32.into()).0;
 
         addr
     })
@@ -103,7 +104,7 @@ fn note_strategy(addr: Address) -> impl Strategy<Value = Note> {
 
 fn spend_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ShieldedInputPlan> {
     let tct_strategy = any::<shieldd_sdk_tct::Position>();
-    let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()));
+    let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()).0);
 
     (tct_strategy, note_strategy).prop_map(|(tct_pos, note)| {
         with_vector_rng(|rng| ShieldedInputPlan::new(rng, note, tct_pos))
@@ -111,9 +112,10 @@ fn spend_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = ShieldedIn
 }
 
 fn identity_key_strategy() -> impl Strategy<Value = IdentityKey> {
-    let rand_bytes = prop::array::uniform32(any::<u8>());
-
-    rand_bytes.prop_map(|vk_bytes| IdentityKey(VerificationKeyBytes::<SpendAuth>::from(vk_bytes)))
+    signing_key_strategy().prop_map(|signing_key| {
+        IdentityKey::try_from(VerificationKey::from(&signing_key))
+            .expect("generated validator identity key is nonidentity")
+    })
 }
 
 fn signing_key_strategy() -> impl Strategy<Value = SigningKey<SpendAuth>> {
@@ -127,7 +129,9 @@ fn consensus_secret_key_strategy() -> impl Strategy<Value = Ed25519SigningKey> {
 fn validator_strategy() -> impl Strategy<Value = (validator::Validator, SigningKey<SpendAuth>)> {
     (signing_key_strategy(), consensus_secret_key_strategy()).prop_map(
         move |(new_validator_id_sk, new_validator_consensus_sk)| {
-            let new_validator_id = IdentityKey(VerificationKey::from(&new_validator_id_sk).into());
+            let new_validator_id =
+                IdentityKey::try_from(VerificationKey::from(&new_validator_id_sk))
+                    .expect("generated validator identity key is nonidentity");
             let new_validator_consensus = new_validator_consensus_sk.verification_key();
             (
                 validator::Validator {
@@ -136,7 +140,10 @@ fn validator_strategy() -> impl Strategy<Value = (validator::Validator, SigningK
                         &new_validator_consensus.to_bytes(),
                     )
                     .expect("consensus key is valid"),
-                    governance_key: GovernanceKey(new_validator_id_sk.into()),
+                    governance_key: GovernanceKey::try_from(VerificationKey::from(
+                        &new_validator_id_sk,
+                    ))
+                    .expect("generated validator governance key is nonidentity"),
                     enabled: true,
                     sequence_number: 0,
                     name: "test validator".to_string(),
@@ -168,32 +175,38 @@ fn ibc_action_strategy() -> impl Strategy<Value = IbcRelay> {
     (
         sequence_strategy(),
         0..1000000000u64,
-        0..1000000000u64,
+        1..1000000000u64,
+        1..1_000_000_000_000_000_000u64,
         address_strategy(),
     )
-        .prop_map(|(sequence, revision_number, revision_height, src)| {
-            IbcRelay::RecvPacket(MsgRecvPacket {
-                packet: Packet {
-                    sequence,
-                    port_on_a: PortId::default(),
-                    chan_on_a: ChannelId::default(),
-                    port_on_b: PortId::default(),
-                    chan_on_b: ChannelId::default(),
-                    data: vec![0u8; 100],
-                    timeout_height_on_b: ibc_types::core::channel::TimeoutHeight::At(
-                        Height::new(revision_number, revision_height).expect("test value"),
-                    ),
-                    timeout_timestamp_on_b: Timestamp::now(),
-                },
-                // this can't be empty
-                proof_commitment_on_a: MerkleProof {
-                    proofs: vec![CommitmentProof::default()],
-                },
-                proof_height_on_a: Height::new(revision_number, revision_height)
-                    .expect("test value"),
-                signer: src.to_string(),
-            })
-        })
+        .prop_map(
+            |(sequence, revision_number, revision_height, timeout_timestamp_nanos, src)| {
+                IbcRelay::RecvPacket(MsgRecvPacket {
+                    packet: Packet {
+                        sequence,
+                        port_on_a: PortId::default(),
+                        chan_on_a: ChannelId::default(),
+                        port_on_b: PortId::default(),
+                        chan_on_b: ChannelId::default(),
+                        data: vec![0u8; 100],
+                        timeout_height_on_b: ibc_types::core::channel::TimeoutHeight::At(
+                            Height::new(revision_number, revision_height).expect("test value"),
+                        ),
+                        timeout_timestamp_on_b: Timestamp::from_nanoseconds(
+                            timeout_timestamp_nanos,
+                        )
+                        .expect("test timestamp"),
+                    },
+                    // this can't be empty
+                    proof_commitment_on_a: MerkleProof {
+                        proofs: vec![CommitmentProof::default()],
+                    },
+                    proof_height_on_a: Height::new(revision_number, revision_height)
+                        .expect("test value"),
+                    signer: src.to_string(),
+                })
+            },
+        )
 }
 
 fn proposal_strategy() -> impl Strategy<Value = Proposal> {
@@ -220,7 +233,8 @@ fn proposal_submit_strategy() -> impl Strategy<Value = ProposalSubmit> {
         signing_key_strategy(),
     )
         .prop_map(|(proposal, proposer, signing_key)| {
-            let governance_key = GovernanceKey(signing_key.into());
+            let governance_key = GovernanceKey::try_from(VerificationKey::from(&signing_key))
+                .expect("generated validator governance key is nonidentity");
             let body = ProposalSubmitBody {
                 proposal,
                 proposer,
@@ -244,7 +258,8 @@ fn validator_vote_strategy() -> impl Strategy<Value = ValidatorVote> {
         prop::string::string_regex(r"[a-zA-Z0-9]+").unwrap(),
     )
         .prop_map(|(proposal, vote, identity_key, signing_key, reason)| {
-            let governance_key = GovernanceKey(signing_key.into());
+            let governance_key = GovernanceKey::try_from(VerificationKey::from(&signing_key))
+                .expect("generated validator governance key is nonidentity");
             let body = ValidatorVoteBody {
                 proposal,
                 vote,
@@ -262,7 +277,7 @@ fn validator_vote_strategy() -> impl Strategy<Value = ValidatorVote> {
 fn shielded_ics20_withdrawal_plan_strategy(
     fvk: &FullViewingKey,
 ) -> impl Strategy<Value = ShieldedIcs20WithdrawalPlan> {
-    let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()));
+    let note_strategy = note_strategy(fvk.incoming().payment_address(0u32.into()).0);
     let position_strategy = any::<shieldd_sdk_tct::Position>();
 
     (
@@ -270,10 +285,18 @@ fn shielded_ics20_withdrawal_plan_strategy(
         position_strategy,
         address_strategy(),
         0..1000000000u64,
-        0..1000000000u64,
+        1..1000000u64,
+        1..1000000u64,
     )
         .prop_map(
-            |(note, position, return_address, revision_number, revision_height)| {
+            |(
+                note,
+                position,
+                return_address,
+                revision_number,
+                revision_height,
+                timeout_minutes,
+            )| {
                 let withdrawal = Ics20Withdrawal {
                     amount: note.amount(),
                     denom: BASE_ASSET_DENOM.clone(),
@@ -281,14 +304,12 @@ fn shielded_ics20_withdrawal_plan_strategy(
                     return_address: return_address.clone(),
                     timeout_height: Height::new(revision_number, revision_height)
                         .expect("test value"),
-                    timeout_time: 0u64,
+                    timeout_time: timeout_minutes * 60_000_000_000,
                     source_channel: ChannelId::default(),
-                    use_compat_address: false,
                     use_transparent_address: false,
                     ics20_memo: String::default(),
                 };
                 ShieldedIcs20WithdrawalPlan::new(
-                    ShieldedIcs20WithdrawalFamilyId::Canonical,
                     vec![ShieldedInputPlan::new(&mut OsRng, note, position)],
                     None,
                     withdrawal,
@@ -334,7 +355,7 @@ fn transfer_plan_strategy(fvk: &FullViewingKey) -> impl Strategy<Value = Transfe
 fn note_reshape_two_to_one_plan_strategy(
     fvk: &FullViewingKey,
 ) -> impl Strategy<Value = NoteReshapePlan> {
-    let addr = fvk.incoming().payment_address(0u32.into());
+    let addr = fvk.incoming().payment_address(0u32.into()).0;
     (
         note_strategy(addr.clone()),
         any::<shieldd_sdk_tct::Position>(),
@@ -352,7 +373,7 @@ fn note_reshape_two_to_one_plan_strategy(
                 addr.clone(),
             );
             NoteReshapePlan::new(
-                NoteReshapeFamilyId::TwoByOne,
+                NoteReshapeFamilyId::EightByOne,
                 vec![
                     ShieldedInputPlan::new(&mut OsRng, note_1, pos_1).into(),
                     ShieldedInputPlan::new(&mut OsRng, note_2, pos_2).into(),
@@ -367,7 +388,7 @@ fn note_reshape_two_to_one_plan_strategy(
 fn note_reshape_one_to_eight_plan_strategy(
     fvk: &FullViewingKey,
 ) -> impl Strategy<Value = NoteReshapePlan> {
-    let addr = fvk.incoming().payment_address(0u32.into());
+    let addr = fvk.incoming().payment_address(0u32.into()).0;
     (
         note_strategy(addr.clone()),
         any::<shieldd_sdk_tct::Position>(),
@@ -458,7 +479,8 @@ fn generate_transaction_signing_test_vectors() {
     let mut i = 0;
     while i < 100 {
         let seed_phrase = SeedPhrase::from_str(SEED_PHRASE).expect("test seed phrase is valid");
-        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+        let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+            .expect("test-vector spend key should satisfy key refinements");
         let fvk = sk.full_viewing_key();
         let value_tree = transaction_plan_strategy(fvk)
             .new_tree(&mut runner)
@@ -510,10 +532,10 @@ fn effect_hash_test_vectors() {
     // matches the expected effect hash.
     let test_vectors_dir = "tests/signing_test_vectors";
     let seed_phrase = SeedPhrase::from_str(SEED_PHRASE).expect("test seed phrase is valid");
-    let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0));
+    let sk = SpendKey::from_seed_phrase_bip44(seed_phrase, &Bip44Path::new(0))
+        .expect("test-vector spend key should satisfy key refinements");
     let fvk = sk.full_viewing_key();
 
-    let mut supported_vectors = 0;
     for i in 0..100 {
         let json_file_path = format!("{}/transaction_plan_{}.json", test_vectors_dir, i);
         let json_plan: TransactionPlan = serde_json::from_str(
@@ -527,18 +549,16 @@ fn effect_hash_test_vectors() {
         proto_file
             .read_to_end(&mut transaction_plan_encoded)
             .expect("Failed to read Protobuf file");
-        let Ok(transaction_plan) = TransactionPlan::decode(&transaction_plan_encoded[..]) else {
-            continue;
-        };
+        let transaction_plan = TransactionPlan::decode(&transaction_plan_encoded[..])
+            .unwrap_or_else(|error| panic!("protobuf vector {i} must decode: {error}"));
         assert_eq!(
             json_plan.encode_to_vec(),
             transaction_plan_encoded,
             "JSON/protobuf vector {i} drifted"
         );
 
-        if check_transaction_plan_enabled(&transaction_plan).is_err() {
-            continue;
-        }
+        check_transaction_plan_enabled(&transaction_plan)
+            .unwrap_or_else(|error| panic!("vector {i} must remain enabled: {error}"));
 
         let effect_hash_hex = hex::encode(
             transaction_plan
@@ -553,11 +573,5 @@ fn effect_hash_test_vectors() {
             .trim()
             .to_owned();
         assert_eq!(effect_hash_hex, expected_effect_hash, "vector {i}");
-        supported_vectors += 1;
     }
-
-    assert!(
-        supported_vectors > 0,
-        "expected at least one enabled signing test vector"
-    );
 }

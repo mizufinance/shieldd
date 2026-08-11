@@ -15,14 +15,13 @@ use ark_groth16::PreparedVerifyingKey;
 use decaf377::Bls12_377;
 #[cfg(any(unix, windows))]
 use libloading::Library;
-#[cfg(any(unix, windows))]
-use shieldd_sdk_proof_params::VerifyingKeyExt;
 
-use crate::gnark::artifacts::{
-    load_artifact_metadata, load_prepared_vk, validate_artifact_hashes, validate_artifact_metadata,
-};
 #[cfg(any(unix, windows))]
-use crate::gnark::artifacts::{sha256_hex, GnarkArtifactMetadata};
+use crate::gnark::artifacts::sha256_hex;
+use crate::gnark::artifacts::{
+    load_artifact_metadata, load_artifact_metadata_bytes, load_prepared_vk, load_prepared_vk_bytes,
+    validate_artifact_hashes, validate_artifact_metadata,
+};
 use crate::gnark::runtime::{
     sha256_hex_path, validate_daemon_ready, GnarkDaemonProcess, GNARK_MAX_REQUEST_BYTES,
     GNARK_MAX_RESULT_BYTES,
@@ -132,7 +131,7 @@ pub(crate) fn load_library_transport(
         );
     }
 
-    let pvk = load_prepared_vk(artifact_dir, &metadata, config.family)?;
+    let pvk = load_prepared_vk(artifact_dir, config.family)?;
     Ok((
         GnarkTransport::Library {
             _library: library,
@@ -161,12 +160,12 @@ pub(crate) fn load_daemon_transport(
         &ready,
         config.family,
         &metadata_hash,
-        metadata.proving_key_sha256_hex.as_deref(),
-        metadata.verifying_key_sha256_hex.as_deref(),
-        metadata.verifying_key_id.as_deref(),
+        &metadata.proving_key_sha256_hex,
+        &metadata.verifying_key_binary_sha256_hex,
+        &metadata.verifying_key_json_sha256_hex,
     )?;
 
-    let pvk = load_prepared_vk(artifact_dir, &metadata, config.family)?;
+    let pvk = load_prepared_vk(artifact_dir, config.family)?;
     Ok((
         GnarkTransport::Daemon {
             process: Mutex::new(process),
@@ -179,32 +178,40 @@ pub(crate) fn load_daemon_transport(
 pub(crate) fn load_bundled_transport(
     lib_path: &Path,
     pk_bytes: &[u8],
-    pvk: &PreparedVerifyingKey<Bls12_377>,
+    vk_json_bytes: &[u8],
     metadata_json: &[u8],
     config: &'static GnarkFamilyConfig,
-) -> Result<GnarkTransport> {
-    let metadata: GnarkArtifactMetadata = serde_json::from_slice(metadata_json)
-        .with_context(|| format!("parse bundled {} circuit_metadata.json", config.family))?;
+) -> Result<(GnarkTransport, PreparedVerifyingKey<Bls12_377>)> {
+    let metadata = load_artifact_metadata_bytes(
+        metadata_json,
+        &format!("bundled {} circuit_metadata.json", config.family),
+    )?;
     validate_artifact_metadata(&metadata, config.family)?;
-    if let Some(expected_pk_hash) = &metadata.proving_key_sha256_hex {
-        let actual = sha256_hex(pk_bytes);
-        if &actual != expected_pk_hash {
-            bail!(
-                "bundled {} proving key hash mismatch: expected {expected_pk_hash}, got {actual}",
-                config.family
-            );
-        }
+    if i64::try_from(pk_bytes.len()).ok() != Some(metadata.proving_key_size_bytes) {
+        bail!(
+            "bundled {} proving key size mismatch: expected {}, got {}",
+            config.family,
+            metadata.proving_key_size_bytes,
+            pk_bytes.len()
+        );
     }
-    if let Some(expected_vk_id) = &metadata.verifying_key_id {
-        let actual_id = pvk.debug_id();
-        if &actual_id != expected_vk_id {
-            bail!(
-                "bundled {} verifying key id mismatch: expected {expected_vk_id}, got {actual_id}",
-                config.family
-            );
-        }
+    let actual = sha256_hex(pk_bytes);
+    if actual != metadata.proving_key_sha256_hex {
+        bail!(
+            "bundled {} proving key hash mismatch: expected {}, got {actual}",
+            config.family,
+            metadata.proving_key_sha256_hex
+        );
     }
-
+    let actual = sha256_hex(vk_json_bytes);
+    if actual != metadata.verifying_key_json_sha256_hex {
+        bail!(
+            "bundled {} JSON verifying key hash mismatch: expected {}, got {actual}",
+            config.family,
+            metadata.verifying_key_json_sha256_hex
+        );
+    }
+    let pvk = load_prepared_vk_bytes(vk_json_bytes, config.family)?;
     let library = unsafe { Library::new(lib_path) }.with_context(|| {
         format!(
             "load gnark {} library {}",
@@ -247,14 +254,17 @@ pub(crate) fn load_bundled_transport(
         );
     }
 
-    Ok(GnarkTransport::Library {
-        _library: library,
-        prove,
-        free,
-        shutdown,
-        handle: init_result.handle,
-        prove_mutex: Mutex::new(()),
-    })
+    Ok((
+        GnarkTransport::Library {
+            _library: library,
+            prove,
+            free,
+            shutdown,
+            handle: init_result.handle,
+            prove_mutex: Mutex::new(()),
+        },
+        pvk,
+    ))
 }
 
 pub(crate) fn prove_with_transport(

@@ -155,7 +155,12 @@ impl TransactionPlan {
                     .map(|output| output.dest_address.clone())
                     .collect::<Vec<_>>(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => vec![plan.created_output_address()],
-                _ => Vec::new(),
+                ActionPlan::ValidatorDefinition(_)
+                | ActionPlan::IbcAction(_)
+                | ActionPlan::ProposalSubmit(_)
+                | ActionPlan::ValidatorVote(_)
+                | ActionPlan::ComplianceRegisterAsset(_)
+                | ActionPlan::ComplianceRegisterUser(_) => Vec::new(),
             })
             .collect::<Vec<_>>();
 
@@ -177,17 +182,22 @@ impl TransactionPlan {
             .actions
             .iter()
             .map(|action| match action {
-                ActionPlan::Transfer(plan) => plan.outputs.len(),
-                ActionPlan::NoteReshape(plan) => plan.outputs.len(),
+                ActionPlan::Transfer(plan) => plan.num_outputs(),
+                ActionPlan::NoteReshape(plan) => plan.family_id().output_count(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.note_creating_output_count(),
-                _ => 0,
+                ActionPlan::ValidatorDefinition(_)
+                | ActionPlan::IbcAction(_)
+                | ActionPlan::ProposalSubmit(_)
+                | ActionPlan::ValidatorVote(_)
+                | ActionPlan::ComplianceRegisterAsset(_)
+                | ActionPlan::ComplianceRegisterUser(_) => 0,
             })
             .sum::<usize>();
 
         let fee_funding_outputs = self
             .fee_funding
             .as_ref()
-            .map(|fee_funding| fee_funding.transfer.outputs.len())
+            .map(|fee_funding| fee_funding.transfer.num_outputs())
             .unwrap_or_default();
 
         action_outputs + fee_funding_outputs
@@ -197,12 +207,7 @@ impl TransactionPlan {
         let action_spends = self
             .actions
             .iter()
-            .map(|action| match action {
-                ActionPlan::Transfer(plan) => plan.spends.len(),
-                ActionPlan::NoteReshape(plan) => plan.spends.len(),
-                ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.spends.len(),
-                _ => 0,
-            })
+            .map(|action| action.spends().len())
             .sum::<usize>();
 
         let fee_funding_spends = self
@@ -222,7 +227,12 @@ impl TransactionPlan {
                 ActionPlan::Transfer(_)
                 | ActionPlan::NoteReshape(_)
                 | ActionPlan::ShieldedIcs20Withdrawal(_) => 1,
-                _ => 0,
+                ActionPlan::ValidatorDefinition(_)
+                | ActionPlan::IbcAction(_)
+                | ActionPlan::ProposalSubmit(_)
+                | ActionPlan::ValidatorVote(_)
+                | ActionPlan::ComplianceRegisterAsset(_)
+                | ActionPlan::ComplianceRegisterUser(_) => 0,
             })
             .sum::<usize>();
 
@@ -293,6 +303,7 @@ impl TryFrom<pb::TransactionPlan> for TransactionPlan {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{Transaction, TransactionBody};
     use decaf377::Fr;
     use ibc_types::core::channel::ChannelId;
     use ibc_types::core::client::Height as IbcHeight;
@@ -301,18 +312,115 @@ mod tests {
     use shieldd_sdk_keys::keys::{AddressIndex, Bip44Path, SeedPhrase, SpendKey};
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_shielded_pool::{
-        Ics20Withdrawal, Note, Rseed, ShieldedIcs20WithdrawalFamilyId, ShieldedInputPlan,
-        ShieldedOutputPlan,
+        Ics20Withdrawal, Note, NoteReshape, NoteReshapeFamilyId, NoteReshapePlan, NoteReshapeProof,
+        Rseed, ShieldedInputPlan, ShieldedOutputPlan,
     };
+    use shieldd_sdk_txhash::EffectHash;
     use std::{ops::Deref, str::FromStr};
+
+    fn note_reshape_eight_by_one_fixture() -> (TransactionPlan, Transaction) {
+        let mut rng = OsRng;
+        let input_value = Value {
+            amount: 1u64.into(),
+            asset_id: *BASE_ASSET_ID,
+        };
+        let spends = (0..5)
+            .map(|_| {
+                let note = Note::generate(&mut rng, &test_keys::ADDRESS_0, input_value);
+                ShieldedInputPlan::new(&mut rng, note, 0u64.into())
+            })
+            .collect::<Vec<_>>();
+        let output = ShieldedOutputPlan::new(
+            &mut rng,
+            Value {
+                amount: 5u64.into(),
+                asset_id: *BASE_ASSET_ID,
+            },
+            test_keys::ADDRESS_0.deref().clone(),
+        );
+        let note_reshape = NoteReshapePlan::new(
+            NoteReshapeFamilyId::EightByOne,
+            spends,
+            vec![output],
+            Fr::from(17u64),
+        )
+        .expect("valid padded NoteReshape plan");
+        let placeholder = NoteReshape {
+            body: note_reshape
+                .note_reshape_body(
+                    &test_keys::FULL_VIEWING_KEY,
+                    &PayloadKey::from([0u8; 32]),
+                    shieldd_sdk_tct::Tree::default().root(),
+                )
+                .expect("note reshape body materialization succeeds"),
+            auth_sigs: vec![[0u8; 64].into(); NoteReshapeFamilyId::EightByOne.auth_sig_count()],
+            proof: NoteReshapeProof::default(),
+        };
+        (
+            TransactionPlan {
+                actions: vec![ActionPlan::NoteReshape(note_reshape)],
+                ..Default::default()
+            },
+            Transaction {
+                transaction_body: TransactionBody {
+                    actions: vec![crate::Action::NoteReshape(placeholder)],
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+        )
+    }
+
+    fn fee_funding_plan_fixture() -> FeeFundingPlan {
+        let mut rng = OsRng;
+        let sender_sk =
+            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut rng), &Bip44Path::new(0))
+                .expect("test spend key should satisfy key refinements");
+        let recipient_sk =
+            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut rng), &Bip44Path::new(0))
+                .expect("test spend key should satisfy key refinements");
+        let sender = sender_sk
+            .full_viewing_key()
+            .incoming()
+            .payment_address(AddressIndex::from(0u32))
+            .0;
+        let recipient = recipient_sk
+            .full_viewing_key()
+            .incoming()
+            .payment_address(AddressIndex::from(0u32))
+            .0;
+        let value = Value {
+            amount: 100u64.into(),
+            asset_id: *BASE_ASSET_ID,
+        };
+        let note = Note::from_parts(sender, value, Rseed::generate(&mut rng)).expect("valid note");
+        let spend = ShieldedInputPlan::new(&mut rng, note, 0u64.into());
+        let mut output = ShieldedOutputPlan::new(&mut rng, value, recipient);
+        output.asset_anchor = spend.asset_anchor;
+        output.compliance_anchor = spend.compliance_anchor;
+        output.target_timestamp = spend.target_timestamp;
+        output.is_regulated = spend.is_regulated;
+        output.tx_blinding_nonce = spend.tx_blinding_nonce;
+        output.asset_indexed_leaf = spend.asset_indexed_leaf.clone();
+        output.asset_path = spend.asset_path.clone();
+        output.asset_position = spend.asset_position;
+        output.asset_policy = spend.asset_policy.clone();
+
+        FeeFundingPlan {
+            transfer: TransferPlan::from_spend_output(spend, output, Fr::from(19u64))
+                .expect("fee-funding transfer plan"),
+        }
+    }
 
     #[test]
     fn discovery_precision_propagates_to_transfer_family() {
         let mut rng = OsRng;
         let sender_sk =
-            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut rng), &Bip44Path::new(0));
+            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut rng), &Bip44Path::new(0))
+                .expect("test spend key should satisfy key refinements");
         let recipient_sk =
-            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut rng), &Bip44Path::new(0));
+            SpendKey::from_seed_phrase_bip44(SeedPhrase::generate(&mut rng), &Bip44Path::new(0))
+                .expect("test spend key should satisfy key refinements");
         let sender = sender_sk
             .full_viewing_key()
             .incoming()
@@ -351,8 +459,8 @@ mod tests {
 
         assert_eq!(
             plan.num_outputs(),
-            1,
-            "transfer should count semantic outputs, not padded family slots"
+            shieldd_sdk_shielded_pool::PADDED_TRANSFER_OUTPUTS,
+            "transfer must count every proof-bound output slot"
         );
         assert!(matches!(
             &plan.actions[0],
@@ -385,19 +493,13 @@ mod tests {
             timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),
             timeout_time: 60_000_000_000,
             source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
-            use_compat_address: false,
             ics20_memo: String::new(),
             use_transparent_address: false,
         };
 
-        let withdrawal = ShieldedIcs20WithdrawalPlan::new(
-            ShieldedIcs20WithdrawalFamilyId::Canonical,
-            vec![spend],
-            Some(change),
-            withdrawal,
-            Fr::from(7u64),
-        )
-        .expect("plan should be valid");
+        let withdrawal =
+            ShieldedIcs20WithdrawalPlan::new(vec![spend], Some(change), withdrawal, Fr::from(7u64))
+                .expect("plan should be valid");
 
         let mut plan = TransactionPlan {
             actions: vec![ActionPlan::ShieldedIcs20Withdrawal(withdrawal)],
@@ -436,19 +538,13 @@ mod tests {
             timeout_height: IbcHeight::new(1, 10).expect("valid timeout height"),
             timeout_time: 60_000_000_000,
             source_channel: ChannelId::from_str("channel-0").expect("valid channel id"),
-            use_compat_address: false,
             ics20_memo: String::new(),
             use_transparent_address: false,
         };
 
-        let withdrawal = ShieldedIcs20WithdrawalPlan::new(
-            ShieldedIcs20WithdrawalFamilyId::Canonical,
-            vec![spend],
-            None,
-            withdrawal,
-            Fr::from(7u64),
-        )
-        .expect("plan should be valid");
+        let withdrawal =
+            ShieldedIcs20WithdrawalPlan::new(vec![spend], None, withdrawal, Fr::from(7u64))
+                .expect("plan should be valid");
 
         let mut plan = TransactionPlan {
             actions: vec![ActionPlan::ShieldedIcs20Withdrawal(withdrawal)],
@@ -469,5 +565,261 @@ mod tests {
             ActionPlan::ShieldedIcs20Withdrawal(withdrawal)
                 if withdrawal.discovery_precision == precision
         ));
+    }
+
+    #[test]
+    fn apply_auth_data_rebinds_note_reshape_dummy_signatures_to_transaction_hash() {
+        let mut rng = OsRng;
+        let input_value = Value {
+            amount: 1u64.into(),
+            asset_id: *BASE_ASSET_ID,
+        };
+        let spends = (0..5)
+            .map(|_| {
+                let note = Note::generate(&mut rng, &test_keys::ADDRESS_0, input_value);
+                ShieldedInputPlan::new(&mut rng, note, 0u64.into())
+            })
+            .collect::<Vec<_>>();
+        let output = ShieldedOutputPlan::new(
+            &mut rng,
+            Value {
+                amount: 5u64.into(),
+                asset_id: *BASE_ASSET_ID,
+            },
+            test_keys::ADDRESS_0.deref().clone(),
+        );
+        let note_reshape = NoteReshapePlan::new(
+            NoteReshapeFamilyId::EightByOne,
+            spends,
+            vec![output],
+            Fr::from(17u64),
+        )
+        .expect("valid padded NoteReshape plan");
+        let placeholder = NoteReshape {
+            body: note_reshape
+                .note_reshape_body(
+                    &test_keys::FULL_VIEWING_KEY,
+                    &PayloadKey::from([0u8; 32]),
+                    shieldd_sdk_tct::Tree::default().root(),
+                )
+                .expect("note reshape body materialization succeeds"),
+            auth_sigs: vec![[0u8; 64].into(); NoteReshapeFamilyId::EightByOne.auth_sig_count()],
+            proof: NoteReshapeProof::default(),
+        };
+        let plan = TransactionPlan {
+            actions: vec![ActionPlan::NoteReshape(note_reshape.clone())],
+            ..Default::default()
+        };
+        let transaction = Transaction {
+            transaction_body: TransactionBody {
+                actions: vec![crate::Action::NoteReshape(placeholder)],
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+        let effect_hash = transaction.effect_hash();
+        let authorized = plan
+            .apply_auth_data(
+                &crate::AuthorizationData {
+                    effect_hash: Some(effect_hash),
+                    spend_auths: vec![[0u8; 64].into(); note_reshape.spends.len()],
+                },
+                transaction,
+            )
+            .expect("apply authorization data");
+        let crate::Action::NoteReshape(action) = &authorized.transaction_body.actions[0] else {
+            panic!("expected NoteReshape action");
+        };
+
+        for index in note_reshape.spends.len()..action.body.inputs.len() {
+            action.body.inputs[index]
+                .rk
+                .verify(effect_hash.as_ref(), &action.auth_sigs[index])
+                .unwrap_or_else(|error| {
+                    panic!("dummy signature {index} was not rebound to transaction hash: {error}")
+                });
+        }
+    }
+
+    #[test]
+    fn apply_auth_data_emits_canonical_no_binding_signature_for_zero_blinding() {
+        let plan = TransactionPlan::default();
+        let transaction = Transaction::default();
+        let authorized = plan
+            .apply_auth_data(
+                &crate::AuthorizationData {
+                    effect_hash: None,
+                    spend_auths: Vec::new(),
+                },
+                transaction,
+            )
+            .expect("zero-blinding authorization data must apply");
+
+        assert!(
+            crate::is_no_binding_signature(authorized.binding_sig()),
+            "zero aggregate blinding must use the canonical no-binding placeholder"
+        );
+    }
+
+    #[test]
+    fn apply_auth_data_rejects_zero_blinding_for_proof_bearing_transaction() {
+        let mut rng = OsRng;
+        let value = Value {
+            amount: 1u64.into(),
+            asset_id: *BASE_ASSET_ID,
+        };
+        let spends = (0..2)
+            .map(|_| {
+                let note = Note::generate(&mut rng, &test_keys::ADDRESS_0, value);
+                ShieldedInputPlan::new(&mut rng, note, 0u64.into())
+            })
+            .collect();
+        let output = ShieldedOutputPlan::new(&mut rng, value, test_keys::ADDRESS_0.deref().clone());
+        let note_reshape = NoteReshapePlan::new(
+            NoteReshapeFamilyId::EightByOne,
+            spends,
+            vec![output],
+            Fr::from(0u64),
+        )
+        .expect("valid zero-blinding plan");
+        let plan = TransactionPlan {
+            actions: vec![ActionPlan::NoteReshape(note_reshape)],
+            ..Default::default()
+        };
+
+        let error = plan
+            .apply_auth_data(
+                &crate::AuthorizationData {
+                    effect_hash: None,
+                    spend_auths: vec![[0u8; 64].into(); 2],
+                },
+                Transaction::default(),
+            )
+            .expect_err("proof-bearing plans must not emit identity binding mode");
+        assert!(
+            error
+                .to_string()
+                .contains("proof-bearing transaction plan has an identity aggregate binding key"),
+            "unexpected rejection reason: {error:#}"
+        );
+    }
+
+    #[test]
+    fn apply_auth_data_rejects_action_count_mismatch() {
+        let (plan, mut transaction) = note_reshape_eight_by_one_fixture();
+        transaction.transaction_body.actions.clear();
+        let effect_hash = transaction.effect_hash();
+
+        let error = plan
+            .apply_auth_data(
+                &crate::AuthorizationData {
+                    effect_hash: Some(effect_hash),
+                    spend_auths: vec![[0u8; 64].into(); plan.num_spends()],
+                },
+                transaction,
+            )
+            .expect_err("a transaction may not omit a planned proof-bearing action");
+
+        assert!(
+            error.to_string().contains("action count"),
+            "unexpected rejection reason: {error:#}"
+        );
+    }
+
+    #[test]
+    fn apply_auth_data_rejects_note_reshape_family_mismatch() {
+        let (plan, mut transaction) = note_reshape_eight_by_one_fixture();
+        let crate::Action::NoteReshape(action) = &mut transaction.transaction_body.actions[0]
+        else {
+            panic!("expected NoteReshape action");
+        };
+        action.body.family_id = NoteReshapeFamilyId::OneByEight;
+        let effect_hash = transaction.effect_hash();
+
+        let error = plan
+            .apply_auth_data(
+                &crate::AuthorizationData {
+                    effect_hash: Some(effect_hash),
+                    spend_auths: vec![[0u8; 64].into(); plan.num_spends()],
+                },
+                transaction,
+            )
+            .expect_err("authorization may not cross NoteReshape families");
+
+        assert!(
+            error.to_string().contains("family"),
+            "unexpected rejection reason: {error:#}"
+        );
+    }
+
+    #[test]
+    fn apply_auth_data_rejects_fee_funding_presence_mismatch() {
+        let plan = TransactionPlan {
+            fee_funding: Some(fee_funding_plan_fixture()),
+            ..Default::default()
+        };
+        let transaction = Transaction::default();
+        let effect_hash = transaction.effect_hash();
+
+        let error = plan
+            .apply_auth_data(
+                &crate::AuthorizationData {
+                    effect_hash: Some(effect_hash),
+                    spend_auths: vec![[0u8; 64].into(); plan.num_spends()],
+                },
+                transaction,
+            )
+            .expect_err("a transaction may not omit planned fee funding");
+
+        assert!(
+            error.to_string().contains("fee-funding presence"),
+            "unexpected rejection reason: {error:#}"
+        );
+    }
+
+    #[test]
+    fn apply_auth_data_rejects_missing_effect_hash_for_proof_bearing_plan() {
+        let (plan, transaction) = note_reshape_eight_by_one_fixture();
+
+        let error = plan
+            .apply_auth_data(
+                &crate::AuthorizationData {
+                    effect_hash: None,
+                    spend_auths: vec![[0u8; 64].into(); plan.num_spends()],
+                },
+                transaction,
+            )
+            .expect_err("proof-bearing authorization must name the approved transaction");
+
+        assert!(
+            error.to_string().contains("approved effect hash"),
+            "unexpected rejection reason: {error:#}"
+        );
+    }
+
+    #[test]
+    fn apply_auth_data_rejects_supplied_effect_hash_mismatch() {
+        let transaction = Transaction::default();
+        let actual_effect_hash = transaction.effect_hash();
+        let supplied_effect_hash = EffectHash([0x5au8; 64]);
+        assert_ne!(
+            supplied_effect_hash, actual_effect_hash,
+            "test vectors must exercise an actual mismatch"
+        );
+
+        let error = TransactionPlan::default()
+            .apply_auth_data(
+                &crate::AuthorizationData {
+                    effect_hash: Some(supplied_effect_hash),
+                    spend_auths: Vec::new(),
+                },
+                transaction,
+            )
+            .expect_err("authorization data may not name a different transaction");
+
+        assert!(
+            error.to_string().contains("effect hash"),
+            "unexpected rejection reason: {error:#}"
+        );
     }
 }

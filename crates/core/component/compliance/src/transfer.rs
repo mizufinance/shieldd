@@ -5,17 +5,12 @@ use shieldd_sdk_asset::Value;
 use shieldd_sdk_keys::Address;
 
 use crate::{
-    authorization::AuthorizationId,
-    crypto::{
-        compliance_stream_block, compute_dleq_native, compute_transfer_metadata_hash,
-        encrypt_tier_bytes, ISSUER_DETECTION_DOMAIN,
-    },
-    issuer_keys::detection_plaintext_fq,
-    participant::{TransferDiscoveryTags, TRANSFER_DISCOVERY_TAGS_BYTES},
-    structs::{DleqProof, C2_BYTES, DETECTION_TAG_BYTES, EPK_BYTES, FQ_BYTES},
+    crypto::{compliance_stream_block, encrypt_tier_bytes, ISSUER_DETECTION_DOMAIN},
+    issuer_keys::detection_sender_plaintext,
+    structs::{C2_BYTES, DETECTION_TAG_BYTES, EPK_BYTES, FQ_BYTES},
 };
 
-pub const TRANSFER_DETECTION_FQS: usize = 2;
+pub const TRANSFER_DETECTION_FQS: usize = 4;
 pub const TRANSFER_CORE_CIPHERTEXT_FQS: usize = 1;
 pub const TRANSFER_EXT_CIPHERTEXT_FQS: usize = 3;
 pub const TRANSFER_CIPHERTEXT_FQS: usize = TRANSFER_DETECTION_FQS
@@ -26,12 +21,10 @@ pub const TRANSFER_CIPHERTEXT_FQS: usize = TRANSFER_DETECTION_FQS
 pub const TRANSFER_WIRE_BYTES: usize = EPK_BYTES * 4
     + C2_BYTES * 4
     + DETECTION_TAG_BYTES
-    + TRANSFER_DISCOVERY_TAGS_BYTES
     + FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS
     + FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS
     + FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS
     + FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS;
-pub const TRANSFER_DLEQ_BYTES: usize = FQ_BYTES * 8;
 
 #[derive(Clone, Debug)]
 pub struct TransferComplianceCiphertext {
@@ -44,7 +37,6 @@ pub struct TransferComplianceCiphertext {
     pub output_core_c2: Fq,
     pub output_ext_c2: Fq,
     pub detection_tag: [u8; DETECTION_TAG_BYTES],
-    pub discovery_tags: TransferDiscoveryTags,
     pub encrypted_sender_core: [u8; FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS],
     pub encrypted_sender_ext: [u8; FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS],
     pub encrypted_output_core: [u8; FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS],
@@ -62,20 +54,10 @@ pub struct TransferCompliancePublicInputs {
     pub output_core_c2: Fq,
     pub output_ext_c2: Fq,
     pub detection_ciphertext: [Fq; TRANSFER_DETECTION_FQS],
-    pub discovery_precision: Fq,
-    pub discovery_tags: Fq,
     pub sender_core_ciphertext: [Fq; TRANSFER_CORE_CIPHERTEXT_FQS],
     pub sender_ext_ciphertext: [Fq; TRANSFER_EXT_CIPHERTEXT_FQS],
     pub output_core_ciphertext: [Fq; TRANSFER_CORE_CIPHERTEXT_FQS],
     pub output_ext_ciphertext: [Fq; TRANSFER_EXT_CIPHERTEXT_FQS],
-}
-
-#[derive(Clone, Debug)]
-pub struct TransferComplianceDleqProofs {
-    pub sender_core: DleqProof,
-    pub sender_ext: DleqProof,
-    pub output_core: DleqProof,
-    pub output_ext: DleqProof,
 }
 
 #[derive(Clone, Debug)]
@@ -97,6 +79,15 @@ pub struct TransferEncryptionResult {
     pub output: PartyTierMaterial,
 }
 
+fn sample_nonzero_scalar(rng: &mut (impl RngCore + CryptoRng)) -> Fr {
+    loop {
+        let scalar = Fr::rand(&mut *rng);
+        if scalar != Fr::from(0u64) {
+            return scalar;
+        }
+    }
+}
+
 impl TransferComplianceCiphertext {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut bytes = Vec::with_capacity(TRANSFER_WIRE_BYTES);
@@ -109,7 +100,6 @@ impl TransferComplianceCiphertext {
         bytes.extend_from_slice(&self.output_core_c2.to_bytes());
         bytes.extend_from_slice(&self.output_ext_c2.to_bytes());
         bytes.extend_from_slice(&self.detection_tag);
-        bytes.extend_from_slice(&self.discovery_tags.to_bytes());
         bytes.extend_from_slice(&self.encrypted_sender_core);
         bytes.extend_from_slice(&self.encrypted_sender_ext);
         bytes.extend_from_slice(&self.encrypted_output_core);
@@ -142,12 +132,22 @@ impl TransferComplianceCiphertext {
             *offset += 32;
             Fq::from_bytes_checked(&raw).map_err(|_| anyhow!("invalid transfer compliance Fq"))
         };
-        let read_fixed = |offset: &mut usize, len: usize| -> Result<Vec<u8>> {
-            let value = bytes[*offset..*offset + len].to_vec();
-            *offset += len;
-            Ok(value)
-        };
-
+        let read_fq_words =
+            |offset: &mut usize, word_count: usize, label: &str| -> Result<Vec<u8>> {
+                let len = word_count
+                    .checked_mul(FQ_BYTES)
+                    .ok_or_else(|| anyhow!("{label} length overflow"))?;
+                let value = bytes[*offset..*offset + len].to_vec();
+                *offset += len;
+                for (index, chunk) in value.chunks_exact(FQ_BYTES).enumerate() {
+                    let raw: [u8; FQ_BYTES] = chunk
+                        .try_into()
+                        .expect("chunks_exact yields one field element");
+                    Fq::from_bytes_checked(&raw)
+                        .map_err(|_| anyhow!("invalid canonical {label} field element {index}"))?;
+                }
+                Ok(value)
+            };
         let sender_core_epk = read_point(&mut offset)?;
         let sender_ext_epk = read_point(&mut offset)?;
         let output_core_epk = read_point(&mut offset)?;
@@ -157,31 +157,41 @@ impl TransferComplianceCiphertext {
         let output_core_c2 = read_fq(&mut offset)?;
         let output_ext_c2 = read_fq(&mut offset)?;
 
-        let detection_tag: [u8; DETECTION_TAG_BYTES] =
-            read_fixed(&mut offset, DETECTION_TAG_BYTES)?
-                .try_into()
-                .map_err(|_| anyhow!("invalid transfer detection tag length"))?;
-        let discovery_tags = TransferDiscoveryTags::from_bytes(
-            read_fixed(&mut offset, TRANSFER_DISCOVERY_TAGS_BYTES)?
-                .try_into()
-                .map_err(|_| anyhow!("invalid transfer discovery tags length"))?,
-        )?;
-        let encrypted_sender_core: [u8; FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS] =
-            read_fixed(&mut offset, FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS)?
-                .try_into()
-                .map_err(|_| anyhow!("invalid sender_core ciphertext length"))?;
-        let encrypted_sender_ext: [u8; FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS] =
-            read_fixed(&mut offset, FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS)?
-                .try_into()
-                .map_err(|_| anyhow!("invalid sender_ext ciphertext length"))?;
-        let encrypted_output_core: [u8; FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS] =
-            read_fixed(&mut offset, FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS)?
-                .try_into()
-                .map_err(|_| anyhow!("invalid output_core ciphertext length"))?;
-        let encrypted_output_ext: [u8; FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS] =
-            read_fixed(&mut offset, FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS)?
-                .try_into()
-                .map_err(|_| anyhow!("invalid output_ext ciphertext length"))?;
+        let detection_tag: [u8; DETECTION_TAG_BYTES] = read_fq_words(
+            &mut offset,
+            TRANSFER_DETECTION_FQS,
+            "transfer detection ciphertext",
+        )?
+        .try_into()
+        .map_err(|_| anyhow!("invalid transfer detection tag length"))?;
+        let encrypted_sender_core: [u8; FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS] = read_fq_words(
+            &mut offset,
+            TRANSFER_CORE_CIPHERTEXT_FQS,
+            "sender_core ciphertext",
+        )?
+        .try_into()
+        .map_err(|_| anyhow!("invalid sender_core ciphertext length"))?;
+        let encrypted_sender_ext: [u8; FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS] = read_fq_words(
+            &mut offset,
+            TRANSFER_EXT_CIPHERTEXT_FQS,
+            "sender_ext ciphertext",
+        )?
+        .try_into()
+        .map_err(|_| anyhow!("invalid sender_ext ciphertext length"))?;
+        let encrypted_output_core: [u8; FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS] = read_fq_words(
+            &mut offset,
+            TRANSFER_CORE_CIPHERTEXT_FQS,
+            "output_core ciphertext",
+        )?
+        .try_into()
+        .map_err(|_| anyhow!("invalid output_core ciphertext length"))?;
+        let encrypted_output_ext: [u8; FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS] = read_fq_words(
+            &mut offset,
+            TRANSFER_EXT_CIPHERTEXT_FQS,
+            "output_ext ciphertext",
+        )?
+        .try_into()
+        .map_err(|_| anyhow!("invalid output_ext ciphertext length"))?;
 
         Ok(Self {
             sender_core_epk,
@@ -193,7 +203,6 @@ impl TransferComplianceCiphertext {
             output_core_c2,
             output_ext_c2,
             detection_tag,
-            discovery_tags,
             encrypted_sender_core,
             encrypted_sender_ext,
             encrypted_output_core,
@@ -222,45 +231,11 @@ impl TransferComplianceCiphertext {
             output_core_c2: self.output_core_c2,
             output_ext_c2: self.output_ext_c2,
             detection_ciphertext: decode_fqs(&self.detection_tag),
-            discovery_precision: Fq::from(self.discovery_tags.precision_bits),
-            discovery_tags: Fq::from(self.discovery_tags.packed()),
             sender_core_ciphertext: decode_fqs(&self.encrypted_sender_core),
             sender_ext_ciphertext: decode_fqs(&self.encrypted_sender_ext),
             output_core_ciphertext: decode_fqs(&self.encrypted_output_core),
             output_ext_ciphertext: decode_fqs(&self.encrypted_output_ext),
         }
-    }
-}
-
-impl TransferComplianceDleqProofs {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(TRANSFER_DLEQ_BYTES);
-        bytes.extend_from_slice(&self.sender_core.to_bytes());
-        bytes.extend_from_slice(&self.sender_ext.to_bytes());
-        bytes.extend_from_slice(&self.output_core.to_bytes());
-        bytes.extend_from_slice(&self.output_ext.to_bytes());
-        bytes
-    }
-
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        if bytes.len() != TRANSFER_DLEQ_BYTES {
-            anyhow::bail!(
-                "transfer compliance DLEQ bundle must be {TRANSFER_DLEQ_BYTES} bytes, got {}",
-                bytes.len()
-            );
-        }
-        let parse = |offset: usize| -> DleqProof {
-            let raw: [u8; 64] = bytes[offset..offset + 64]
-                .try_into()
-                .expect("transfer DLEQ proof must be 64 bytes");
-            DleqProof::from_bytes(&raw)
-        };
-        Ok(Self {
-            sender_core: parse(0),
-            sender_ext: parse(64),
-            output_core: parse(128),
-            output_ext: parse(192),
-        })
     }
 }
 
@@ -275,10 +250,6 @@ pub fn derive_transfer_salt(root: Fr, label: &[u8]) -> Fq {
     )
 }
 
-pub fn derive_authorization_id(root: Fr) -> AuthorizationId {
-    AuthorizationId::derive(root)
-}
-
 pub fn encrypt_transfer(
     mut rng: impl RngCore + CryptoRng,
     ack_sender: &Element,
@@ -288,29 +259,28 @@ pub fn encrypt_transfer(
     sender_address: &Address,
     receiver_value: Value,
     is_flagged: bool,
-    _authorization_id: AuthorizationId,
-    _authorization_timestamp: u64,
-    discovery_precision_bits: u8,
+    sender_slot_id: u32,
+    receiver_slot_id: u32,
     detection_salt: Fq,
 ) -> Result<TransferEncryptionResult> {
     let sender = PartyTierMaterial {
         core: TierSecretMaterial {
             seed: Fq::rand(&mut rng),
-            r: Fr::rand(&mut rng),
+            r: sample_nonzero_scalar(&mut rng),
         },
         ext: TierSecretMaterial {
             seed: Fq::rand(&mut rng),
-            r: Fr::rand(&mut rng),
+            r: sample_nonzero_scalar(&mut rng),
         },
     };
     let output = PartyTierMaterial {
         core: TierSecretMaterial {
             seed: Fq::rand(&mut rng),
-            r: Fr::rand(&mut rng),
+            r: sample_nonzero_scalar(&mut rng),
         },
         ext: TierSecretMaterial {
             seed: Fq::rand(&mut rng),
-            r: Fr::rand(&mut rng),
+            r: sample_nonzero_scalar(&mut rng),
         },
     };
 
@@ -351,14 +321,16 @@ pub fn encrypt_transfer(
         &ISSUER_DETECTION_DOMAIN,
         (ss_detection.vartime_compress_to_field(), sender_core_epk_fq),
     );
-    let detection_0 = detection_plaintext_fq(&receiver_value.asset_id, is_flagged)
-        + compliance_stream_block(seed_detection, 0);
+    let detection_0 = receiver_value.asset_id.0 + compliance_stream_block(seed_detection, 0);
     let detection_1 = detection_salt + compliance_stream_block(seed_detection, 1);
+    let detection_2 = detection_sender_plaintext(sender_slot_id, is_flagged)
+        + compliance_stream_block(seed_detection, 2);
+    let detection_3 = Fq::from(receiver_slot_id) + compliance_stream_block(seed_detection, 3);
     let mut detection_tag = [0u8; DETECTION_TAG_BYTES];
     detection_tag[..32].copy_from_slice(&detection_0.to_bytes());
     detection_tag[32..64].copy_from_slice(&detection_1.to_bytes());
-    let discovery_tags =
-        TransferDiscoveryTags::derive(sender_address, receiver_address, discovery_precision_bits)?;
+    detection_tag[64..96].copy_from_slice(&detection_2.to_bytes());
+    detection_tag[96..128].copy_from_slice(&detection_3.to_bytes());
 
     let amount_bytes = receiver_value.amount.to_le_bytes();
     let encrypted_sender_core: [u8; FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS] =
@@ -389,7 +361,6 @@ pub fn encrypt_transfer(
             output_core_c2,
             output_ext_c2,
             detection_tag,
-            discovery_tags,
             encrypted_sender_core,
             encrypted_sender_ext,
             encrypted_output_core,
@@ -400,102 +371,130 @@ pub fn encrypt_transfer(
     })
 }
 
-pub fn compute_transfer_dleqs(
-    sender: &PartyTierMaterial,
-    output: &PartyTierMaterial,
-    sender_k_core: Fr,
-    sender_k_ext: Fr,
-    output_k_core: Fr,
-    output_k_ext: Fr,
-    ack_sender: &Element,
-    ack_receiver: &Element,
-    policy_id_hash: Fq,
-    resource_hash: Fq,
-    permission_hash: Fq,
-    authorization_id: AuthorizationId,
-    sender_core_salt: Fq,
-    sender_ext_salt: Fq,
-    output_core_salt: Fq,
-    output_ext_salt: Fq,
-    target_timestamp: u64,
-) -> TransferComplianceDleqProofs {
-    let sender_core_epk = Element::GENERATOR * sender.core.r;
-    let sender_ext_epk = Element::GENERATOR * sender.ext.r;
-    let output_core_epk = Element::GENERATOR * output.core.r;
-    let output_ext_epk = Element::GENERATOR * output.ext.r;
-
-    let sender_core_metadata = compute_transfer_metadata_hash(
-        policy_id_hash,
-        resource_hash,
-        permission_hash,
-        Fq::from(1u64),
-        Fq::from(target_timestamp),
-        authorization_id.to_fq(),
-        sender_core_salt,
-    );
-    let sender_ext_metadata = compute_transfer_metadata_hash(
-        policy_id_hash,
-        resource_hash,
-        permission_hash,
-        Fq::from(2u64),
-        Fq::from(target_timestamp),
-        authorization_id.to_fq(),
-        sender_ext_salt,
-    );
-    let output_core_metadata = compute_transfer_metadata_hash(
-        policy_id_hash,
-        resource_hash,
-        permission_hash,
-        Fq::from(3u64),
-        Fq::from(target_timestamp),
-        authorization_id.to_fq(),
-        output_core_salt,
-    );
-    let output_ext_metadata = compute_transfer_metadata_hash(
-        policy_id_hash,
-        resource_hash,
-        permission_hash,
-        Fq::from(4u64),
-        Fq::from(target_timestamp),
-        authorization_id.to_fq(),
-        output_ext_salt,
-    );
-
-    TransferComplianceDleqProofs {
-        sender_core: compute_dleq_native(
-            sender.core.r,
-            sender_k_core,
-            ack_sender,
-            &sender_core_epk,
-            sender_core_metadata,
-        ),
-        sender_ext: compute_dleq_native(
-            sender.ext.r,
-            sender_k_ext,
-            ack_sender,
-            &sender_ext_epk,
-            sender_ext_metadata,
-        ),
-        output_core: compute_dleq_native(
-            output.core.r,
-            output_k_core,
-            ack_receiver,
-            &output_core_epk,
-            output_core_metadata,
-        ),
-        output_ext: compute_dleq_native(
-            output.ext.r,
-            output_k_ext,
-            ack_receiver,
-            &output_ext_epk,
-            output_ext_metadata,
-        ),
-    }
-}
-
 fn address_bytes(address: &Address) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(64);
     bytes.extend_from_slice(&address.diversified_generator().vartime_compress().0);
     bytes.extend_from_slice(&address.transmission_key().0);
     bytes
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand_core::Error;
+
+    #[test]
+    fn compliance_address_plaintext_excludes_discovery_key() {
+        let address = crate::test_helpers::make_address(7);
+        let mut rng = rand_core::OsRng;
+        let different_discovery_address = loop {
+            let candidate = Address::dummy(&mut rng);
+            let discovery_key = *candidate.discovery_key();
+            if &discovery_key == address.discovery_key() {
+                continue;
+            }
+            break Address::from_components(
+                address.diversifier().clone(),
+                address.transmission_key().clone(),
+                discovery_key,
+            )
+            .expect("alternate discovery key is canonical");
+        };
+
+        assert!(address != different_discovery_address);
+        assert_eq!(
+            address_bytes(&address),
+            address_bytes(&different_discovery_address),
+            "compliance disclosure must not include the independently bound discovery key"
+        );
+
+        let mut expected = Vec::with_capacity(64);
+        expected.extend_from_slice(&address.diversified_generator().vartime_compress().0);
+        expected.extend_from_slice(&address.transmission_key().0);
+        assert_eq!(address_bytes(&address), expected);
+    }
+
+    struct ZeroThenOneRng {
+        word_calls: usize,
+        fill_calls: usize,
+    }
+
+    impl RngCore for ZeroThenOneRng {
+        fn next_u32(&mut self) -> u32 {
+            let value = if self.word_calls < 8 { 0 } else { 1 };
+            self.word_calls += 1;
+            value
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            let value = if self.word_calls < 4 { 0 } else { 1 };
+            self.word_calls += 1;
+            value
+        }
+
+        fn fill_bytes(&mut self, dest: &mut [u8]) {
+            dest.fill(0);
+            if self.fill_calls > 0 {
+                dest[0] = 1;
+            }
+            self.fill_calls += 1;
+        }
+
+        fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), Error> {
+            self.fill_bytes(dest);
+            Ok(())
+        }
+    }
+
+    impl CryptoRng for ZeroThenOneRng {}
+
+    #[test]
+    fn transfer_nonce_sampling_rejects_zero() {
+        let mut rng = ZeroThenOneRng {
+            word_calls: 0,
+            fill_calls: 0,
+        };
+
+        assert_ne!(sample_nonzero_scalar(&mut rng), Fr::from(0u64));
+        assert!(
+            rng.fill_calls > 1 || rng.word_calls > 4,
+            "the sampler must retry after the first all-zero scalar"
+        );
+    }
+
+    fn canonical_ciphertext() -> TransferComplianceCiphertext {
+        TransferComplianceCiphertext {
+            sender_core_epk: Element::GENERATOR,
+            sender_ext_epk: Element::GENERATOR,
+            output_core_epk: Element::GENERATOR,
+            output_ext_epk: Element::GENERATOR,
+            sender_core_c2: Fq::from(0u64),
+            sender_ext_c2: Fq::from(0u64),
+            output_core_c2: Fq::from(0u64),
+            output_ext_c2: Fq::from(0u64),
+            detection_tag: [0; DETECTION_TAG_BYTES],
+            encrypted_sender_core: [0; FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS],
+            encrypted_sender_ext: [0; FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS],
+            encrypted_output_core: [0; FQ_BYTES * TRANSFER_CORE_CIPHERTEXT_FQS],
+            encrypted_output_ext: [0; FQ_BYTES * TRANSFER_EXT_CIPHERTEXT_FQS],
+        }
+    }
+
+    #[test]
+    fn transfer_ciphertext_rejects_noncanonical_field_words() {
+        let canonical = canonical_ciphertext().to_bytes();
+        TransferComplianceCiphertext::from_bytes(&canonical)
+            .expect("canonical transfer ciphertext must decode");
+
+        let ciphertext_offset = 4 * EPK_BYTES + 4 * C2_BYTES;
+        for word in 0..TRANSFER_CIPHERTEXT_FQS {
+            let mut noncanonical = canonical.clone();
+            let start = ciphertext_offset + word * FQ_BYTES;
+            noncanonical[start..start + FQ_BYTES].fill(0xff);
+            assert!(
+                TransferComplianceCiphertext::from_bytes(&noncanonical).is_err(),
+                "noncanonical transfer ciphertext word {word} must be rejected"
+            );
+        }
+    }
 }

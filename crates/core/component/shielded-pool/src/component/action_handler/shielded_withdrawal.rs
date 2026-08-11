@@ -48,8 +48,6 @@ pub(crate) fn extract_public(
         .into_iter()
         .next()
         .expect("one change output was supplied");
-    let effect_hash_bytes = data.withdrawal_effect_hash.as_bytes();
-
     let public = ShieldedIcs20WithdrawalProofPublic {
         family_id: data.family_id,
         anchor: context.anchor,
@@ -69,8 +67,10 @@ pub(crate) fn extract_public(
         },
         outbound_asset_id: data.outbound_value.asset_id.0,
         outbound_amount: decaf377::Fq::from(data.outbound_value.amount),
-        withdrawal_effect_hash_lo: decaf377::Fq::from_le_bytes_mod_order(&effect_hash_bytes[..32]),
-        withdrawal_effect_hash_hi: decaf377::Fq::from_le_bytes_mod_order(&effect_hash_bytes[32..]),
+        withdrawal_effect_hash_limbs:
+            crate::shielded_ics20_withdrawal::withdrawal_effect_hash_limbs(
+                data.withdrawal_effect_hash.as_bytes(),
+            ),
     };
     public.validate_shape()?;
     Ok(public)
@@ -90,10 +90,7 @@ pub(crate) async fn validate_compliance<S: StateRead>(
     let block_time = state.get_current_block_timestamp().await?;
     let block_unix = block_time.unix_timestamp();
     anyhow::ensure!(block_unix >= 0, "block timestamp is negative");
-    shieldd_sdk_compliance::registry::check_timestamp_freshness(
-        target_timestamp,
-        block_unix as u64,
-    )?;
+    shieldd_sdk_compliance::registry::check_timestamp_freshness(target_timestamp, block_unix)?;
 
     Ok(block_time)
 }

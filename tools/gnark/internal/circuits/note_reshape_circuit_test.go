@@ -24,6 +24,7 @@ type sharedDivGenCommitmentParityCircuit struct {
 	Amount           frontend.Variable
 	AssetID          frontend.Variable
 	TransmissionKeyS frontend.Variable
+	ClueKey          frontend.Variable
 
 	SharedDivGenX frontend.Variable `gnark:",public"`
 	SharedDivGenY frontend.Variable `gnark:",public"`
@@ -46,7 +47,7 @@ func (c *sharedDivGenCommitmentParityCircuit) Define(api frontend.API) error {
 		return err
 	}
 	perNoteCommitment, err := NoteCommitmentWithCompressedDivGen(
-		api, c.Blinding, c.Amount, c.AssetID, perNoteFq, c.TransmissionKeyS,
+		api, c.Blinding, c.Amount, c.AssetID, perNoteFq, c.TransmissionKeyS, c.ClueKey,
 	)
 	if err != nil {
 		return err
@@ -58,7 +59,7 @@ func (c *sharedDivGenCommitmentParityCircuit) Define(api frontend.API) error {
 		return err
 	}
 	sharedCommitment, err := NoteCommitmentWithCompressedDivGen(
-		api, c.Blinding, c.Amount, c.AssetID, sharedFq, c.TransmissionKeyS,
+		api, c.Blinding, c.Amount, c.AssetID, sharedFq, c.TransmissionKeyS, c.ClueKey,
 	)
 	if err != nil {
 		return err
@@ -86,12 +87,13 @@ func TestSharedDivGenCompressCommitmentParity(t *testing.T) {
 	amount := randFieldElement(t)
 	assetID := randFieldElement(t)
 	transmissionKeyS := randFieldElement(t)
+	clueKey := randFieldElement(t)
 
 	// Case 1: note.div_gen is the SAME representative as shared.div_gen.
 	assignmentSame := &sharedDivGenCommitmentParityCircuit{
 		Blinding: blinding, Amount: amount, AssetID: assetID,
-		TransmissionKeyS: transmissionKeyS,
-		SharedDivGenX:    shared.X, SharedDivGenY: shared.Y,
+		TransmissionKeyS: transmissionKeyS, ClueKey: clueKey,
+		SharedDivGenX: shared.X, SharedDivGenY: shared.Y,
 		NoteDivGenX: shared.X, NoteDivGenY: shared.Y,
 	}
 	if err := test.IsSolved(
@@ -116,8 +118,8 @@ func TestSharedDivGenCompressCommitmentParity(t *testing.T) {
 
 	assignmentDifferentRepresentative := &sharedDivGenCommitmentParityCircuit{
 		Blinding: blinding, Amount: amount, AssetID: assetID,
-		TransmissionKeyS: transmissionKeyS,
-		SharedDivGenX:    shared.X, SharedDivGenY: shared.Y,
+		TransmissionKeyS: transmissionKeyS, ClueKey: clueKey,
+		SharedDivGenX: shared.X, SharedDivGenY: shared.Y,
 		NoteDivGenX: negX, NoteDivGenY: negY,
 	}
 	if err := test.IsSolved(

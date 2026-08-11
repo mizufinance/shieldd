@@ -1,0 +1,156 @@
+{
+  "schema_version": 3,
+  "assumption_ids": [
+    "ZK-ASSUME-DIVERSIFIER-HASH-TO-GENERATOR-NONIDENTITY"
+  ],
+  "predicates": [
+    {
+      "predicate_id": "DEC-AUTHORIZATION-KEY-NONIDENTITY",
+      "domain_enforcement": {
+        "source_file": "crates/core/keys/src/keys/fvk.rs",
+        "source_symbol": "from_components_with_ivk_hash",
+        "native_type": "FullViewingKey",
+        "test_file": "crates/core/keys/src/keys/fvk.rs",
+        "test_symbol": "full_viewing_key_rejects_identity_authorization_key",
+        "test_execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-keys",
+          "cargo_target": "lib",
+          "selector": "full_viewing_key_rejects_identity_authorization_key",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      "r1cs_enforcement": {
+        "source_file": "crates/core/keys/src/keys/fvk/r1cs.rs",
+        "source_symbol": "enforce_authorization_key_nonidentity",
+        "native_type": "AuthorizationKeyVar",
+        "test_file": "crates/core/keys/src/keys/fvk/r1cs.rs",
+        "test_symbol": "authorization_key_var_enforces_nonidentity",
+        "test_execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-keys",
+          "cargo_target": "lib",
+          "selector": "authorization_key_var_enforces_nonidentity",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      }
+    },
+    {
+      "predicate_id": "DEC-DIVERSIFIED-GENERATOR-NONIDENTITY",
+      "domain_enforcement": {
+        "source_file": "crates/core/keys/src/address.rs",
+        "source_symbol": "from_components_with_diversified_generator",
+        "native_type": "Address",
+        "test_file": "crates/core/keys/src/address.rs",
+        "test_symbol": "address_components_reject_identity_diversified_generator",
+        "test_execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-keys",
+          "cargo_target": "lib",
+          "selector": "address_components_reject_identity_diversified_generator",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      "r1cs_enforcement": {
+        "source_file": "crates/core/keys/src/address/r1cs.rs",
+        "source_symbol": "enforce_diversified_generator_nonidentity",
+        "native_type": "AddressVar",
+        "test_file": "crates/core/keys/src/address/r1cs.rs",
+        "test_symbol": "address_var_enforces_diversified_generator_nonidentity",
+        "test_execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-keys",
+          "cargo_target": "lib",
+          "selector": "address_var_enforces_diversified_generator_nonidentity",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      }
+    },
+    {
+      "predicate_id": "DEC-INCOMING-VIEWING-KEY-NONZERO",
+      "domain_enforcement": {
+        "source_file": "crates/core/keys/src/keys/fvk.rs",
+        "source_symbol": "from_components_with_ivk_hash",
+        "native_type": "FullViewingKey",
+        "test_file": "crates/core/keys/src/keys/fvk.rs",
+        "test_symbol": "full_viewing_key_rejects_zero_reduced_incoming_viewing_key",
+        "test_execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-keys",
+          "cargo_target": "lib",
+          "selector": "full_viewing_key_rejects_zero_reduced_incoming_viewing_key",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      "r1cs_enforcement": {
+        "source_file": "crates/core/keys/src/keys/ivk.rs",
+        "source_symbol": "enforce_incoming_viewing_key_nonzero",
+        "native_type": "IncomingViewingKeyVar",
+        "test_file": "crates/core/keys/src/keys/ivk.rs",
+        "test_symbol": "incoming_viewing_key_var_enforces_nonzero_reduction",
+        "test_execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-keys",
+          "cargo_target": "lib",
+          "selector": "incoming_viewing_key_var_enforces_nonzero_reduction",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      }
+    },
+    {
+      "predicate_id": "DEC-TRANSMISSION-KEY-NONIDENTITY",
+      "domain_enforcement": {
+        "source_file": "crates/core/keys/src/address.rs",
+        "source_symbol": "from_components_with_diversified_generator",
+        "native_type": "Address",
+        "test_file": "crates/core/keys/src/address.rs",
+        "test_symbol": "address_components_reject_identity_or_invalid_transmission_key",
+        "test_execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-keys",
+          "cargo_target": "lib",
+          "selector": "address_components_reject_identity_or_invalid_transmission_key",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      },
+      "r1cs_enforcement": {
+        "source_file": "crates/core/keys/src/address/r1cs.rs",
+        "source_symbol": "enforce_transmission_key_nonidentity",
+        "native_type": "AddressVar",
+        "test_file": "crates/core/keys/src/address/r1cs.rs",
+        "test_symbol": "address_var_enforces_transmission_key_nonidentity",
+        "test_execution": {
+          "runner": "cargo_test",
+          "working_directory": ".",
+          "package": "shieldd-sdk-keys",
+          "cargo_target": "lib",
+          "selector": "address_var_enforces_transmission_key_nonidentity",
+          "build_profile": "default",
+          "features": [],
+          "prover_required": false
+        }
+      }
+    }
+  ]
+}

@@ -15,6 +15,8 @@ import (
 	"github.com/consensys/gnark/constraint"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
+	gnarkte "github.com/consensys/gnark/std/algebra/native/twistededwards"
+	decafgnark "github.com/mizufinance/decaf377-go/gnark"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/abi"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/circuits"
 	"github.com/mizufinance/shieldd/tools/gnark/internal/generated"
@@ -25,13 +27,48 @@ import (
 
 func loadNoteReshapeRegressionAssignment(t *testing.T, label string) *circuits.NoteReshapeCircuit {
 	t.Helper()
-	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV1(
-		testfixtures.LoadNoteReshapeWitnessV1(label),
-	)
+	_, assignment := loadNoteReshapeRegressionWitnessAndAssignment(t, label)
+	return assignment
+}
+
+func loadNoteReshapeRegressionWitnessAndAssignment(
+	t *testing.T,
+	label string,
+) (*abi.NoteReshapeWitnessV3Binary, *circuits.NoteReshapeCircuit) {
+	t.Helper()
+	fixture := testfixtures.LoadNoteReshapeWitnessV3(label)
+	witness, _, err := abi.DecodeNoteReshapeWitnessV3(fixture)
+	if err != nil {
+		t.Fatalf("decode %s binary witness fixture: %v", label, err)
+	}
+	assignment, _, err := abi.NewNoteReshapeCircuitAssignmentFromWitnessV3(fixture)
 	if err != nil {
 		t.Fatalf("decode %s witness fixture: %v", label, err)
 	}
-	return assignment
+	return witness, assignment
+}
+
+func setNoteReshapeStatementHashV3(
+	t *testing.T,
+	label string,
+	witness *abi.NoteReshapeWitnessV3Binary,
+	assignment *circuits.NoteReshapeCircuit,
+) {
+	t.Helper()
+	fields, err := abi.ReconstructedNoteReshapeStatementFieldsFromWitnessV3(witness)
+	if err != nil {
+		t.Fatalf("reconstruct %s statement fields: %v", label, err)
+	}
+	statementHash, err := primitives.NoteReshapeStatementHashNativeForShape(
+		fieldElementStrings(fields),
+		label,
+		int(witness.NIn),
+		int(witness.NOut),
+	)
+	if err != nil {
+		t.Fatalf("compute %s statement hash: %v", label, err)
+	}
+	assignment.ClaimedStatementHash = statementHash.String()
 }
 
 func compileNoteReshapeRegressionCircuit(t *testing.T, label string, nIn, nOut int) constraint.ConstraintSystem {
@@ -114,13 +151,391 @@ func noteReshapeDomainHashNative(fields []*big.Int, label string) (*big.Int, err
 	return h, nil
 }
 
+func noteReshapeTransmissionKeyFQNative(
+	t *testing.T,
+	witness *abi.NoteReshapeWitnessV3Binary,
+) *big.Int {
+	t.Helper()
+	vectors, err := primitives.LoadPrototypeVectors()
+	if err != nil {
+		t.Fatalf("load prototype vectors: %v", err)
+	}
+	ivkModQ, err := primitives.Poseidon377Hash2Native(
+		primitives.MustBigInt(vectors.Poseidon377.IVKDomain),
+		[2]*big.Int{
+			primitives.LittleEndianBytesToBigInt(witness.NK[:]),
+			compressedPointFromBinary(t, witness.AKAffine),
+		},
+	)
+	if err != nil {
+		t.Fatalf("compute NoteReshape incoming viewing key: %v", err)
+	}
+	scalarOrder := primitives.MustBigInt(
+		vectors.Decaf377CompanionCurve.Order,
+	)
+	ivkReduced := new(big.Int).Mod(
+		new(big.Int).Set(ivkModQ),
+		scalarOrder,
+	)
+	transmission, err := decafgnark.ScalarMulNative(
+		gnarkte.Point{
+			X: primitives.LittleEndianBytesToBigInt(witness.Shared.DivGen.X[:]),
+			Y: primitives.LittleEndianBytesToBigInt(witness.Shared.DivGen.Y[:]),
+		},
+		ivkReduced,
+		scalarOrder.BitLen(),
+	)
+	if err != nil {
+		t.Fatalf("compute NoteReshape diversified transmission key: %v", err)
+	}
+	compressed, err := decafgnark.CompressToFieldNative(transmission)
+	if err != nil {
+		t.Fatalf("compress NoteReshape diversified transmission key: %v", err)
+	}
+	return compressed
+}
+
+func noteReshapeSpendAssignment(
+	t *testing.T,
+	family generated.NoteReshapeFamilySpec,
+	assignment *circuits.NoteReshapeCircuit,
+	index int,
+) *circuits.NoteReshapeSpendCircuitFields {
+	t.Helper()
+	if family.InputPadding == generated.InputPaddingSyntheticPrivate {
+		if len(assignment.SyntheticSpends) != family.NIn {
+			t.Fatalf(
+				"%s synthetic assignment length = %d, want %d",
+				family.Label,
+				len(assignment.SyntheticSpends),
+				family.NIn,
+			)
+		}
+		return &assignment.SyntheticSpends[index].NoteReshapeSpendCircuitFields
+	}
+	if len(assignment.Spends) != family.NIn {
+		t.Fatalf(
+			"%s fixed assignment length = %d, want %d",
+			family.Label,
+			len(assignment.Spends),
+			family.NIn,
+		)
+	}
+	return &assignment.Spends[index]
+}
+
+func TestNoteReshapeEverySpendAndOutputPublicFieldIsConstrained(t *testing.T) {
+	for _, family := range generated.NoteReshapeFamilies {
+		family := family
+		t.Run(family.Label, func(t *testing.T) {
+			baseWitness, baseAssignment :=
+				loadNoteReshapeRegressionWitnessAndAssignment(t, family.Label)
+			if len(baseWitness.Spends) != family.NIn {
+				t.Fatalf(
+					"%s witness spend length = %d, want %d",
+					family.Label,
+					len(baseWitness.Spends),
+					family.NIn,
+				)
+			}
+			if len(baseWitness.Outputs) != family.NOut {
+				t.Fatalf(
+					"%s witness output length = %d, want %d",
+					family.Label,
+					len(baseWitness.Outputs),
+					family.NOut,
+				)
+			}
+			ccs := compileNoteReshapeRegressionCircuit(
+				t,
+				family.Label,
+				family.NIn,
+				family.NOut,
+			)
+			if err := noteReshapeAssignmentSolved(
+				t,
+				ccs,
+				baseAssignment,
+			); err != nil {
+				t.Fatalf("%s canonical fixture must solve: %v", family.Label, err)
+			}
+
+			for spendIndex := range baseWitness.Spends {
+				spendIndex := spendIndex
+				t.Run(
+					fmt.Sprintf("spend_%d_nullifier", spendIndex),
+					func(t *testing.T) {
+						witness, assignment :=
+							loadNoteReshapeRegressionWitnessAndAssignment(
+								t,
+								family.Label,
+							)
+						witness.Spends[spendIndex].Nullifier =
+							addFieldElementBytes(
+								t,
+								witness.Spends[spendIndex].Nullifier,
+								big.NewInt(1),
+							)
+						noteReshapeSpendAssignment(
+							t,
+							family,
+							assignment,
+							spendIndex,
+						).Nullifier = primitives.LittleEndianBytesToBigInt(
+							witness.Spends[spendIndex].Nullifier[:],
+						).String()
+						setNoteReshapeStatementHashV3(
+							t,
+							family.Label,
+							witness,
+							assignment,
+						)
+						if err := noteReshapeAssignmentSolved(
+							t,
+							ccs,
+							assignment,
+						); err == nil {
+							t.Fatalf(
+								"%s accepted rebound spend %d nullifier",
+								family.Label,
+								spendIndex,
+							)
+						}
+					},
+				)
+
+				t.Run(
+					fmt.Sprintf("spend_%d_randomized_verification_key", spendIndex),
+					func(t *testing.T) {
+						witness, assignment :=
+							loadNoteReshapeRegressionWitnessAndAssignment(
+								t,
+								family.Label,
+							)
+						target := witness.Spends[spendIndex].RKAffine
+						candidates := make(
+							[]abi.PointAffineBinary,
+							0,
+							len(witness.Spends)+1,
+						)
+						for index := range witness.Spends {
+							if index != spendIndex {
+								candidates = append(
+									candidates,
+									witness.Spends[index].RKAffine,
+								)
+							}
+						}
+						candidates = append(candidates, witness.AKAffine)
+						var (
+							replacement abi.PointAffineBinary
+							found       bool
+						)
+						for _, candidate := range candidates {
+							if pointsHaveDistinctCompression(
+								t,
+								candidate,
+								target,
+							) {
+								replacement = candidate
+								found = true
+								break
+							}
+						}
+						if !found {
+							t.Fatalf(
+								"%s fixture must expose a valid point distinct from spend %d RK",
+								family.Label,
+								spendIndex,
+							)
+						}
+						compressedPointFromBinary(t, replacement)
+						witness.Spends[spendIndex].RKAffine = replacement
+						noteReshapeSpendAssignment(
+							t,
+							family,
+							assignment,
+							spendIndex,
+						).RK = circuitPointFromBinary(replacement)
+						setNoteReshapeStatementHashV3(
+							t,
+							family.Label,
+							witness,
+							assignment,
+						)
+						err := noteReshapeAssignmentSolved(t, ccs, assignment)
+						if witness.Spends[spendIndex].IsDummy {
+							if err != nil {
+								t.Fatalf(
+									"%s rejected externally authorized dummy spend %d RK: %v",
+									family.Label,
+									spendIndex,
+									err,
+								)
+							}
+							return
+						}
+						if err == nil {
+							t.Fatalf(
+								"%s accepted rebound real spend %d RK",
+								family.Label,
+								spendIndex,
+							)
+						}
+					},
+				)
+			}
+
+			for outputIndex := range baseWitness.Outputs {
+				outputIndex := outputIndex
+				t.Run(
+					fmt.Sprintf("output_%d_commitment", outputIndex),
+					func(t *testing.T) {
+						witness, assignment :=
+							loadNoteReshapeRegressionWitnessAndAssignment(
+								t,
+								family.Label,
+							)
+						witness.Outputs[outputIndex].NoteCommitment =
+							addFieldElementBytes(
+								t,
+								witness.Outputs[outputIndex].NoteCommitment,
+								big.NewInt(1),
+							)
+						assignment.Outputs[outputIndex].NoteCommitment =
+							primitives.LittleEndianBytesToBigInt(
+								witness.Outputs[outputIndex].NoteCommitment[:],
+							).String()
+						setNoteReshapeStatementHashV3(
+							t,
+							family.Label,
+							witness,
+							assignment,
+						)
+						if err := noteReshapeAssignmentSolved(
+							t,
+							ccs,
+							assignment,
+						); err == nil {
+							t.Fatalf(
+								"%s accepted rebound output %d commitment",
+								family.Label,
+								outputIndex,
+							)
+						}
+					},
+				)
+			}
+		})
+	}
+}
+
+func TestNoteReshapeFamiliesRejectIsolatedExactConservationMutation(
+	t *testing.T,
+) {
+	for _, family := range generated.NoteReshapeFamilies {
+		family := family
+		t.Run(family.Label, func(t *testing.T) {
+			ccs := compileNoteReshapeRegressionCircuit(
+				t,
+				family.Label,
+				family.NIn,
+				family.NOut,
+			)
+			witness, assignment :=
+				loadNoteReshapeRegressionWitnessAndAssignment(t, family.Label)
+			if len(witness.Outputs) != family.NOut || family.NOut == 0 {
+				t.Fatalf(
+					"%s witness output length = %d, want positive %d",
+					family.Label,
+					len(witness.Outputs),
+					family.NOut,
+				)
+			}
+
+			const outputIndex = 0
+			amount := primitives.LittleEndianBytesToBigInt(
+				witness.Outputs[outputIndex].CreatedNoteAmount[:],
+			)
+			amount.Add(amount, big.NewInt(1))
+			if amount.BitLen() > 128 {
+				t.Fatalf(
+					"%s mutated output amount exceeds the u128 range: %s",
+					family.Label,
+					amount,
+				)
+			}
+			witness.Outputs[outputIndex].CreatedNoteAmount =
+				le32FromBigInt(t, amount)
+			assignment.Outputs[outputIndex].Note.Amount = amount.String()
+
+			commitment := noteCommitmentNativeFromFields(
+				t,
+				witness.Outputs[outputIndex].CreatedNoteBlinding,
+				witness.Outputs[outputIndex].CreatedNoteAmount,
+				witness.Shared.AssetID,
+				compressedPointFromBinary(t, witness.Shared.DivGen),
+				noteReshapeTransmissionKeyFQNative(t, witness),
+				witness.Shared.ClueKey,
+			)
+			if commitment.Cmp(
+				primitives.LittleEndianBytesToBigInt(
+					witness.Outputs[outputIndex].NoteCommitment[:],
+				),
+			) == 0 {
+				t.Fatalf(
+					"%s amount mutation unexpectedly preserved output %d commitment",
+					family.Label,
+					outputIndex,
+				)
+			}
+			witness.Outputs[outputIndex].NoteCommitment =
+				le32FromBigInt(t, commitment)
+			assignment.Outputs[outputIndex].NoteCommitment =
+				commitment.String()
+			setNoteReshapeStatementHashV3(
+				t,
+				family.Label,
+				witness,
+				assignment,
+			)
+
+			if err := noteReshapeAssignmentSolved(
+				t,
+				ccs,
+				assignment,
+			); err == nil {
+				t.Fatalf(
+					"%s accepted a fully rebound output note with non-conserving amount",
+					family.Label,
+				)
+			}
+		})
+	}
+}
+
 func TestNoteReshape1x8BindsEveryOutputCommitment(t *testing.T) {
 	ccs := compileNoteReshapeRegressionCircuit(t, "note_reshape1x8", 1, 8)
 	for outputIndex := 0; outputIndex < 8; outputIndex++ {
 		t.Run(fmt.Sprintf("output_%d", outputIndex), func(t *testing.T) {
-			assignment := loadNoteReshapeRegressionAssignment(t, "note_reshape1x8")
-			assignment.Outputs[outputIndex].NoteCommitment = mutateFieldByOne(
-				assignment.Outputs[outputIndex].NoteCommitment,
+			witness, assignment := loadNoteReshapeRegressionWitnessAndAssignment(
+				t,
+				"note_reshape1x8",
+			)
+			witness.Outputs[outputIndex].NoteCommitment = addFieldElementBytes(
+				t,
+				witness.Outputs[outputIndex].NoteCommitment,
+				big.NewInt(1),
+			)
+			assignment.Outputs[outputIndex].NoteCommitment =
+				primitives.LittleEndianBytesToBigInt(
+					witness.Outputs[outputIndex].NoteCommitment[:],
+				).String()
+			setNoteReshapeStatementHashV3(
+				t,
+				"note_reshape1x8",
+				witness,
+				assignment,
 			)
 			if err := noteReshapeAssignmentSolved(t, ccs, assignment); err == nil {
 				t.Fatalf("mutating output %d commitment must invalidate the 1x8 witness", outputIndex)
@@ -154,16 +569,13 @@ func TestNoteReshape1x8PaddedOutputFieldsAreBound(t *testing.T) {
 			c.Outputs[paddedIndex].Note.Blinding = mutateFieldByOne(c.Outputs[paddedIndex].Note.Blinding)
 		}},
 		{name: "asset", mutate: func(c *circuits.NoteReshapeCircuit) {
-			c.Outputs[paddedIndex].Note.AssetID = mutateFieldByOne(c.Outputs[paddedIndex].Note.AssetID)
+			c.Shared.AssetID = mutateFieldByOne(c.Shared.AssetID)
 		}},
 		{name: "diversified_generator", mutate: func(c *circuits.NoteReshapeCircuit) {
-			c.Outputs[paddedIndex].Note.DivGen.X = mutateFieldByOne(c.Outputs[paddedIndex].Note.DivGen.X)
+			c.Shared.DivGen.X = mutateFieldByOne(c.Shared.DivGen.X)
 		}},
-		{name: "diversified_transmission_key", mutate: func(c *circuits.NoteReshapeCircuit) {
-			c.Outputs[paddedIndex].Note.Transmission.X = mutateFieldByOne(c.Outputs[paddedIndex].Note.Transmission.X)
-		}},
-		{name: "transmission_data", mutate: func(c *circuits.NoteReshapeCircuit) {
-			c.Outputs[paddedIndex].Note.TransmissionKeyS = mutateFieldByOne(c.Outputs[paddedIndex].Note.TransmissionKeyS)
+		{name: "clue_key", mutate: func(c *circuits.NoteReshapeCircuit) {
+			c.Shared.ClueKey = mutateFieldByOne(c.Shared.ClueKey)
 		}},
 	}
 
@@ -183,7 +595,6 @@ func TestNoteReshapePaddedSpendRegressions(t *testing.T) {
 		label string
 		nIn   int
 	}{
-		{label: "note_reshape4x1", nIn: 4},
 		{label: "note_reshape8x1", nIn: 8},
 	} {
 		t.Run(tc.label, func(t *testing.T) {
@@ -217,7 +628,7 @@ func TestNoteReshapePaddedSpendRegressions(t *testing.T) {
 				{name: "dummy_nullifier_seed", mutate: func(c *circuits.NoteReshapeCircuit) {
 					c.SyntheticSpends[dummyIndex].DummyNullifierSeed = mutateFieldByOne(c.SyntheticSpends[dummyIndex].DummyNullifierSeed)
 				}},
-				{name: "dummy_rk", mutate: func(c *circuits.NoteReshapeCircuit) {
+				{name: "dummy_malformed_rk_point", mutate: func(c *circuits.NoteReshapeCircuit) {
 					c.SyntheticSpends[dummyIndex].RK.X = mutateFieldByOne(c.SyntheticSpends[dummyIndex].RK.X)
 				}},
 				{name: "non_boolean_selector", mutate: func(c *circuits.NoteReshapeCircuit) {
@@ -245,17 +656,146 @@ func TestNoteReshapePaddedSpendRegressions(t *testing.T) {
 	}
 }
 
+func noteReshapeDummyNullifierForSlot(
+	t *testing.T,
+	spend abi.NoteReshapeSpendWitnessV3Binary,
+	slot int,
+) *big.Int {
+	t.Helper()
+	domainBytes := blake2b.Sum512(
+		[]byte("shieldd.note_reshape.synthetic_dummy.nullifier"),
+	)
+	nullifier, err := primitives.Poseidon377Hash3Native(
+		primitives.LittleEndianBytesToBigInt(domainBytes[:]),
+		[3]*big.Int{
+			primitives.LittleEndianBytesToBigInt(spend.DummyNullifierSeed[:]),
+			primitives.LittleEndianBytesToBigInt(spend.SpendAuthRandomizer[:]),
+			big.NewInt(int64(slot)),
+		},
+	)
+	if err != nil {
+		t.Fatalf("compute NoteReshape synthetic nullifier for slot %d: %v", slot, err)
+	}
+	return nullifier
+}
+
+func TestNoteReshapeSyntheticDummyNullifiersBindFixedSlot(t *testing.T) {
+	for _, label := range []string{"note_reshape8x1"} {
+		t.Run(label, func(t *testing.T) {
+			family, ok := generated.NoteReshapeFamilyByLabel(label)
+			if !ok {
+				t.Fatalf("missing generated family %s", label)
+			}
+			baseWitness, _ :=
+				loadNoteReshapeRegressionWitnessAndAssignment(t, label)
+			var dummyIndexes []int
+			for index, spend := range baseWitness.Spends {
+				if spend.IsDummy {
+					dummyIndexes = append(dummyIndexes, index)
+				}
+			}
+			if len(dummyIndexes) == 0 {
+				t.Fatalf(
+					"%s fixture must contain at least one dummy spend",
+					label,
+				)
+			}
+			ccs := compileNoteReshapeRegressionCircuit(
+				t,
+				label,
+				family.NIn,
+				family.NOut,
+			)
+
+			for _, dummyIndex := range dummyIndexes {
+				dummyIndex := dummyIndex
+				t.Run(fmt.Sprintf("slot_%d", dummyIndex), func(t *testing.T) {
+					if dummyIndex <= 0 {
+						t.Fatalf(
+							"%s dummy slot %d has no preceding wrong slot",
+							label,
+							dummyIndex,
+						)
+					}
+					witness, assignment :=
+						loadNoteReshapeRegressionWitnessAndAssignment(t, label)
+					canonicalNullifier := noteReshapeDummyNullifierForSlot(
+						t,
+						witness.Spends[dummyIndex],
+						dummyIndex,
+					)
+					storedNullifier := primitives.LittleEndianBytesToBigInt(
+						witness.Spends[dummyIndex].Nullifier[:],
+					)
+					if canonicalNullifier.Cmp(storedNullifier) != 0 {
+						t.Fatalf(
+							"%s slot %d fixture nullifier is not its canonical fixed-slot nullifier",
+							label,
+							dummyIndex,
+						)
+					}
+					wrongSlot := dummyIndex - 1
+					wrongNullifier := noteReshapeDummyNullifierForSlot(
+						t,
+						witness.Spends[dummyIndex],
+						wrongSlot,
+					)
+					if wrongNullifier.Cmp(canonicalNullifier) == 0 {
+						t.Fatalf(
+							"%s slot %d wrong-slot nullifier unexpectedly equals canonical",
+							label,
+							dummyIndex,
+						)
+					}
+					witness.Spends[dummyIndex].Nullifier = le32FromBigInt(
+						t,
+						wrongNullifier,
+					)
+					assignment.SyntheticSpends[dummyIndex].Nullifier =
+						wrongNullifier.String()
+					setNoteReshapeStatementHashV3(
+						t,
+						label,
+						witness,
+						assignment,
+					)
+
+					if err := noteReshapeAssignmentSolved(
+						t,
+						ccs,
+						assignment,
+					); err == nil {
+						t.Fatalf(
+							"%s accepted a dummy nullifier from slot %d in fixed slot %d",
+							label,
+							wrongSlot,
+							dummyIndex,
+						)
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestNoteReshapeFamiliesRejectWrongFamilyDomain(t *testing.T) {
 	for _, family := range generated.NoteReshapeFamilies {
 		t.Run(family.Label, func(t *testing.T) {
 			assignment := loadNoteReshapeRegressionAssignment(t, family.Label)
-			witness, _, err := abi.DecodeNoteReshapeWitnessV1(
-				testfixtures.LoadNoteReshapeWitnessV1(family.Label),
+			witness, _, err := abi.DecodeNoteReshapeWitnessV3(
+				testfixtures.LoadNoteReshapeWitnessV3(family.Label),
 			)
 			if err != nil {
 				t.Fatalf("decode %s fixture: %v", family.Label, err)
 			}
-			wrongHash, err := noteReshapeDomainHashNative(fieldElementStrings(witness.StatementFields), "note_reshape_wrong_family")
+			fields, err := abi.ReconstructedNoteReshapeStatementFieldsFromWitnessV3(witness)
+			if err != nil {
+				t.Fatalf("reconstruct %s statement fields: %v", family.Label, err)
+			}
+			wrongHash, err := noteReshapeDomainHashNative(
+				fieldElementStrings(fields),
+				"note_reshape_wrong_family",
+			)
 			if err != nil {
 				t.Fatalf("compute wrong-family hash: %v", err)
 			}
@@ -271,13 +811,35 @@ func TestNoteReshapeFamiliesRejectWrongFamilyDomain(t *testing.T) {
 func TestNoteReshapeFamiliesRejectWrongShape(t *testing.T) {
 	for _, family := range generated.NoteReshapeFamilies {
 		t.Run(family.Label, func(t *testing.T) {
-			wrongShape := circuits.NewNoteReshapeCircuit(family.Label, family.NIn+1, family.NOut)
-			if _, err := frontend.Compile(
-				ecc.BLS12_377.ScalarField(),
-				r1cs.NewBuilder,
-				wrongShape,
-			); err == nil {
-				t.Fatalf("wrong %s circuit shape must be rejected", family.Label)
+			for _, shape := range []struct {
+				name string
+				nIn  int
+				nOut int
+			}{
+				{name: "input_minus_one", nIn: family.NIn - 1, nOut: family.NOut},
+				{name: "input_plus_one", nIn: family.NIn + 1, nOut: family.NOut},
+				{name: "output_minus_one", nIn: family.NIn, nOut: family.NOut - 1},
+				{name: "output_plus_one", nIn: family.NIn, nOut: family.NOut + 1},
+			} {
+				t.Run(shape.name, func(t *testing.T) {
+					wrongShape := circuits.NewNoteReshapeCircuit(
+						family.Label,
+						shape.nIn,
+						shape.nOut,
+					)
+					if _, err := frontend.Compile(
+						ecc.BLS12_377.ScalarField(),
+						r1cs.NewBuilder,
+						wrongShape,
+					); err == nil {
+						t.Fatalf(
+							"wrong %s circuit shape %dx%d must be rejected",
+							family.Label,
+							shape.nIn,
+							shape.nOut,
+						)
+					}
+				})
 			}
 		})
 	}
@@ -286,12 +848,30 @@ func TestNoteReshapeFamiliesRejectWrongShape(t *testing.T) {
 func TestNoteReshapeFamiliesRejectWrongStatementPreimage(t *testing.T) {
 	for _, family := range generated.NoteReshapeFamilies {
 		t.Run(family.Label, func(t *testing.T) {
-			assignment := loadNoteReshapeRegressionAssignment(t, family.Label)
+			witness, assignment :=
+				loadNoteReshapeRegressionWitnessAndAssignment(t, family.Label)
+			witness.Spends[0].Nullifier = addFieldElementBytes(
+				t,
+				witness.Spends[0].Nullifier,
+				big.NewInt(1),
+			)
 			if family.InputPadding == generated.InputPaddingSyntheticPrivate {
-				assignment.SyntheticSpends[0].Nullifier = mutateFieldByOne(assignment.SyntheticSpends[0].Nullifier)
+				assignment.SyntheticSpends[0].Nullifier =
+					primitives.LittleEndianBytesToBigInt(
+						witness.Spends[0].Nullifier[:],
+					).String()
 			} else {
-				assignment.Spends[0].Nullifier = mutateFieldByOne(assignment.Spends[0].Nullifier)
+				assignment.Spends[0].Nullifier =
+					primitives.LittleEndianBytesToBigInt(
+						witness.Spends[0].Nullifier[:],
+					).String()
 			}
+			setNoteReshapeStatementHashV3(
+				t,
+				family.Label,
+				witness,
+				assignment,
+			)
 			ccs := compileNoteReshapeRegressionCircuit(t, family.Label, family.NIn, family.NOut)
 			if err := noteReshapeAssignmentSolved(t, ccs, assignment); err == nil {
 				t.Fatalf("mutating a statement-preimage nullifier must invalidate %s", family.Label)
@@ -312,7 +892,7 @@ func TestNoteReshapeStatementsHaveNoActiveCountFieldsAfterRedesign(t *testing.T)
 }
 
 func TestNoteReshape1x8HasNoOutputDummyWitnessOrManifestOperationsAfterRedesign(t *testing.T) {
-	if _, ok := reflect.TypeOf(abi.NoteReshapeOutputWitnessV1Binary{}).FieldByName("IsDummy"); ok {
+	if _, ok := reflect.TypeOf(abi.NoteReshapeOutputWitnessV3Binary{}).FieldByName("IsDummy"); ok {
 		t.Fatal("1x8 witness still exposes an output dummy flag")
 	}
 	if _, ok := reflect.TypeOf(circuits.NoteReshapeSpendCircuitFields{}).FieldByName("IsDummy"); ok {
@@ -320,6 +900,14 @@ func TestNoteReshape1x8HasNoOutputDummyWitnessOrManifestOperationsAfterRedesign(
 	}
 	if _, ok := reflect.TypeOf(circuits.NoteReshapeSyntheticSpendCircuitFields{}).FieldByName("IsDummy"); !ok {
 		t.Fatal("synthetic-family spend witness lost its private selector")
+	}
+	for _, forbidden := range []string{"AssetID", "DivGen", "TransmissionKeyS", "Transmission", "ClueKey"} {
+		if _, ok := reflect.TypeOf(circuits.NoteReshapeNoteCircuitFields{}).FieldByName(forbidden); ok {
+			t.Fatalf("per-note reshape witness still exposes shared field %s", forbidden)
+		}
+	}
+	if _, ok := reflect.TypeOf(circuits.NoteReshapeSyntheticSpendCircuitFields{}).FieldByName("DummySpendAuthKey"); ok {
+		t.Fatal("synthetic reshape witness still exposes dummy spend authorization key")
 	}
 
 	_, sourceFile, _, ok := runtime.Caller(0)

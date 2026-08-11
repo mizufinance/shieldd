@@ -18,20 +18,19 @@ When sources disagree, use this order:
 1. compiled circuit, deployed keys, and source-controlled machine artifacts;
 2. generated coverage IR, normalized coverage manifest, Lean contracts, and their gates;
 3. formal property and assumption ledgers under `crates/*/formal/`;
-4. these four explanatory documents.
+4. these explanatory documents.
 
 Git is the history. There is no separate handoff, status mirror, inventory, or
 gate-record documentation.
 
-## Current focus
+## Certified families
 
-The four NoteReshape families (`note_reshape2x1`, `note_reshape4x1`,
-`note_reshape8x1`, and `note_reshape1x8`) use the deployed SR1CS proof path described in
-[fv.md](fv.md); transfer retains the same release gate. The gate recompiles each
-Go circuit, rejects byte drift, derives proof inputs from the exact deployed
-rows, checks the generated Lean surface, and binds the deployed proving and
-verifying keys. The protocol-readable Statement is the public review surface;
-the generated Capstone is the exhaustive row-contract surface.
+The two fixed-padded NoteReshape families (`note_reshape1x8` and
+`note_reshape8x1`), fixed Transfer 2x2, and fixed shielded ICS-20 Withdrawal
+2x1 use the certified deployed-SR1CS path described in [fv.md](fv.md).
+Handwritten protocol semantics and refinements are the public review surface;
+generated `CircuitFacts` and `Capstone` modules are the typed and exhaustive
+exact-row surfaces.
 
 The compliance and shielded-pool property/assumption ledgers remain the source
 for protocol-wide claims beyond this circuit. A whole-circuit proof does not by

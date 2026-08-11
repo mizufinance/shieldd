@@ -336,7 +336,8 @@ mod tests {
 
     fn test_address(index: u32) -> Address {
         let seed = SeedPhrase::from_randomness(&[index as u8; 32]);
-        let spend_key = SpendKey::from_seed_phrase_bip44(seed, &Bip44Path::new(0));
+        let spend_key = SpendKey::from_seed_phrase_bip44(seed, &Bip44Path::new(0))
+            .expect("test spend key should satisfy key refinements");
         spend_key
             .full_viewing_key()
             .incoming()

@@ -1,20 +1,20 @@
 import ShielddGnarkFormal.Extracted.ImtGap
 import ShielddGnarkFormal.CanonicalFqBitsBridge
 import ShielddGnarkFormal.ChoiceFreeBinary
+import ShielddGnarkFormal.ChoiceFreeZMod
 import ShielddGnarkFormal.LexLessLadder
 import ShielddGnarkFormal.Specs
 import ProvenZk.Lemmas
 
 /-!
-B1 imt-gap bridge: the extracted `ImtGap.circuit` is sound against
-`assetMembershipValidSpec`.
+Exact-provider bridge for the deployed AssetRegistryGap body.
 
-Three `canonicalFqBitsGadget` calls pin canonical little-endian bit
-decompositions of `LeafValue`, `NoteAssetID`, `NextValue` (reusing the proven
-`CanonicalFqBits` capstone — the two namespaced gadget copies are defeq). Two
-`lexLess253` ladders compute the strict `<` of the recovered naturals (proven
-via the `LexLess.ltAccum` kernel), an `is_zero` gate computes the exact-match
-flag, and a `select` + `eq 1` pins the circuit's accepted set to the spec.
+The source extractor models native `ToBinary` as packing plus Booleanity and
+does not expose gnark's backend modulus-comparison rows. Therefore this module
+does not claim soundness for the source-level extracted `ImtGap.circuit`.
+Instead `BodyCircuit` uses the globally proved canonical-bits backend predicate;
+the deployed exact provider reconstructs that predicate from the exact native
+rows before applying `body_relation_sound`.
 -/
 
 set_option maxRecDepth 8000
@@ -29,18 +29,17 @@ namespace Shieldd.GnarkFormal.Extracted.ImtGap
 
 open Bool (toZMod)
 open Shieldd.GnarkFormal.LexLess
+open scoped Shieldd.GnarkFormal.ChoiceFreeZMod
 
 variable [Fact (Nat.Prime Order)]
 
 instance : Fact (Order > 1) := ⟨(Fact.out (p := Nat.Prime Order)).one_lt⟩
 
-/-- The two namespaces emit defeq copies of the canonical-bits gadget; reuse the
-proven `CanonicalFqBits` capstone for this file's copy. -/
 instance instCFBPrime : Fact (Nat.Prime CanonicalFqBits.Order) :=
   ‹Fact (Nat.Prime Order)›
 
 theorem canonicalFqBitsGadget_canonical (In : F) (k : List.Vector F 253 → Prop)
-    (h : canonicalFqBitsGadget In k) :
+    (h : CanonicalFqBits.canonicalFqBitsGadget In k) :
     ∃ (x : List.Vector Bool 253),
       Gates.to_binary In 253 (x.map toZMod) ∧
       (Fin.ofBitsLE x).val < Order ∧
@@ -206,12 +205,6 @@ private theorem is_zero_sub_eq_decide (a b out : F)
   rw [Gates.is_zero_def] at h
   simpa [sub_eq_zero, eq_comm] using h
 
-private theorem select_bool_value (c : Bool) (t f out : F)
-    (h : Gates.select (toZMod c) t f out) :
-    out = if c then t else f := by
-  dsimp [Gates, GatesGnark9, GatesGnark8] at h
-  exact (Gates.select_bool (N := Order) (c := c)).mp h
-
 private theorem eq_gate_value (a b : F) (h : Gates.eq a b) :
     a = b := by
   dsimp [Gates, GatesGnark9, GatesGnark8, GatesDef.eq] at h
@@ -222,32 +215,107 @@ private theorem gates_mul_bool_value (a b : Bool) :
   dsimp [Gates, GatesGnark9, GatesGnark8, GatesDef.mul]
   exact toZMod_mul a b
 
-private def imtTail
-    (NoteAssetID IsRegulated LeafValue : F)
-    (leafBits idBits nextBits : List.Vector F 253) : Prop :=
+section ChoiceFreeSemanticDefinitions
+
+attribute [-instance] ZMod.instField
+
+/-- Algebraic select relation emitted by the body row. Booleanity of `selector`
+is a separate circuit obligation. -/
+def BodySelectRelation (selector whenTrue whenFalse out : F) : Prop :=
+  out = whenFalse - selector * (whenFalse - whenTrue)
+
+/--
+The exact 3,542-row body emitted by `AssetRegistryGap`: three native canonical
+decompositions, equality/ordering logic, and the final selector. Booleanity of
+`IsRegulated` and acceptance of `selected` are separate circuit rows.
+-/
+def BodyCircuit
+    (NoteAssetID IsRegulated LeafValue NextValue selected : F) : Prop :=
+  CanonicalFqBits.canonicalFqBitsGadget LeafValue fun leafBits =>
+  CanonicalFqBits.canonicalFqBitsGadget NoteAssetID fun idBits =>
+  CanonicalFqBits.canonicalFqBitsGadget NextValue fun nextBits =>
   ∃ gate_4, gate_4 = Gates.sub NoteAssetID LeafValue ∧
   ∃ gate_5, Gates.is_zero gate_4 gate_5 ∧
   lexLess253Gadget_253_253 leafBits idBits fun gate_6 =>
   lexLess253Gadget_253_253 idBits nextBits fun gate_7 =>
   ∃ gate_8, gate_8 = Gates.mul gate_6 gate_7 ∧
-  ∃ gate_9, Gates.select IsRegulated gate_5 gate_8 gate_9 ∧
-  Gates.eq gate_9 (1 : F) ∧ True
+  ∃ gate_9, BodySelectRelation IsRegulated gate_5 gate_8 gate_9 ∧
+  gate_9 = selected ∧ True
 
-private def afterNext
-    (NoteAssetID IsRegulated LeafValue : F)
-    (leafBits idBits : List.Vector F 253) : List.Vector F 253 → Prop :=
-  fun nextBits => imtTail NoteAssetID IsRegulated LeafValue leafBits idBits nextBits
+/-- Semantic endpoint of the body alone; it does not assume a Boolean selector
+or that the returned validity field equals one. -/
+def BodyRelationSpec
+    (NoteAssetID IsRegulated LeafValue NextValue selected : F) : Prop :=
+  ∃ exactMatch lower upper : Bool,
+    exactMatch = decide (NoteAssetID = LeafValue) ∧
+    lower = decide (LeafValue.val < NoteAssetID.val) ∧
+    upper = decide (NoteAssetID.val < NextValue.val) ∧
+    BodySelectRelation IsRegulated
+      (toZMod exactMatch) (toZMod (lower && upper)) selected
 
-private def afterId
-    (NoteAssetID IsRegulated LeafValue NextValue : F)
-    (leafBits : List.Vector F 253) : List.Vector F 253 → Prop :=
-  fun idBits => canonicalFqBitsGadget NextValue
-    (afterNext NoteAssetID IsRegulated LeafValue leafBits idBits)
+end ChoiceFreeSemanticDefinitions
 
-private def afterLeaf
-    (NoteAssetID IsRegulated LeafValue NextValue : F) : List.Vector F 253 → Prop :=
-  fun leafBits => canonicalFqBitsGadget NoteAssetID
-    (afterId NoteAssetID IsRegulated LeafValue NextValue leafBits)
+/-- The exact gap body recovers canonical comparisons and the selector output,
+without claiming Booleanity or acceptance supplied by adjacent rows. -/
+theorem body_relation_sound
+    (NoteAssetID IsRegulated LeafValue NextValue selected : F)
+    (hBody :
+      BodyCircuit
+        NoteAssetID IsRegulated LeafValue NextValue selected) :
+    BodyRelationSpec
+      NoteAssetID IsRegulated LeafValue NextValue selected := by
+  unfold BodyCircuit at hBody
+  obtain ⟨leafBits, hLeafBin, hLeafLt, hId⟩ :=
+    canonicalFqBitsGadget_canonical LeafValue _ hBody
+  obtain ⟨idBits, hIdBin, hIdLt, hNext⟩ :=
+    canonicalFqBitsGadget_canonical NoteAssetID _ hId
+  obtain ⟨nextBits, hNextBin, hNextLt, hTail⟩ :=
+    canonicalFqBitsGadget_canonical NextValue _ hNext
+  rcases hTail with ⟨gate_4, hgate4, gate_5, hzero, hLower⟩
+  let lowerBool : Bool :=
+    decide ((Fin.ofBitsLE leafBits).val < (Fin.ofBitsLE idBits).val)
+  have hLowerK :
+      (fun gate_6 =>
+        lexLess253Gadget_253_253 (idBits.map toZMod) (nextBits.map toZMod) fun gate_7 =>
+        ∃ gate_8, gate_8 = Gates.mul gate_6 gate_7 ∧
+        ∃ gate_9, BodySelectRelation IsRegulated gate_5 gate_8 gate_9 ∧
+        gate_9 = selected ∧ True) (toZMod lowerBool) := by
+    simpa [lowerBool] using
+      lexLess253Gadget_sound leafBits idBits _ hLower
+  let upperBool : Bool :=
+    decide ((Fin.ofBitsLE idBits).val < (Fin.ofBitsLE nextBits).val)
+  have hUpperK :
+      (fun gate_7 =>
+        ∃ gate_8, gate_8 = Gates.mul (toZMod lowerBool) gate_7 ∧
+        ∃ gate_9, BodySelectRelation IsRegulated gate_5 gate_8 gate_9 ∧
+        gate_9 = selected ∧ True) (toZMod upperBool) := by
+    simpa [upperBool] using
+      lexLess253Gadget_sound idBits nextBits _ hLowerK
+  rcases hUpperK with
+    ⟨gate_8, hgate8, gate_9, hselect, hselected, _⟩
+  have hLeafVal :=
+    to_binary_val_eq_of_lt LeafValue leafBits hLeafBin hLeafLt
+  have hIdVal :=
+    to_binary_val_eq_of_lt NoteAssetID idBits hIdBin hIdLt
+  have hNextVal :=
+    to_binary_val_eq_of_lt NextValue nextBits hNextBin hNextLt
+  have hLowerBool :
+      lowerBool = decide (LeafValue.val < NoteAssetID.val) := by
+    simp [lowerBool, hLeafVal, hIdVal]
+  have hUpperBool :
+      upperBool = decide (NoteAssetID.val < NextValue.val) := by
+    simp [upperBool, hIdVal, hNextVal]
+  have hExact : gate_5 = toZMod (decide (NoteAssetID = LeafValue)) := by
+    rw [hgate4] at hzero
+    exact is_zero_sub_eq_decide NoteAssetID LeafValue gate_5 hzero
+  have hGate8 : gate_8 = toZMod (lowerBool && upperBool) := by
+    rw [hgate8]
+    exact gates_mul_bool_value lowerBool upperBool
+  unfold BodyRelationSpec
+  refine ⟨decide (NoteAssetID = LeafValue), lowerBool, upperBool,
+    rfl, hLowerBool, hUpperBool, ?_⟩
+  rw [← hExact, ← hGate8, ← hselected]
+  exact hselect
 
 private theorem asset_spec_of_selected_eq_one
     (isRegulated exactMatch lower upper : Bool) (leafValue assetId nextValue : ℕ)
@@ -265,11 +333,15 @@ private theorem asset_spec_of_selected_eq_one
   simpa [Shieldd.GnarkFormal.assetMembershipValidSpec, Shieldd.GnarkFormal.selectSpec,
     Shieldd.GnarkFormal.imtGapSpec] using hSelectedBool
 
-/-- **B1 imt-gap soundness.** Any satisfying assignment to the extracted
-AssetRegistryGap gadget yields Bool control witnesses and satisfies the
-high-level membership/non-membership predicate over canonical representatives. -/
-theorem circuit_sound (NoteAssetID IsRegulated LeafValue NextValue : F)
-    (h : circuit NoteAssetID IsRegulated LeafValue NextValue) :
+/-- A deployed body relation becomes the high-level membership predicate once
+the circuit supplies the separate selector-Booleanity and acceptance rows. -/
+theorem body_relation_spec_sound
+    (NoteAssetID IsRegulated LeafValue NextValue selected : F)
+    (hBoolean : Gates.is_bool IsRegulated)
+    (hBody :
+      BodyRelationSpec
+        NoteAssetID IsRegulated LeafValue NextValue selected)
+    (hAccepted : Gates.eq selected (1 : F)) :
     ∃ isRegulated : Bool,
       IsRegulated = toZMod isRegulated ∧
       Shieldd.GnarkFormal.assetMembershipValidSpec
@@ -278,86 +350,56 @@ theorem circuit_sound (NoteAssetID IsRegulated LeafValue NextValue : F)
         LeafValue.val
         NoteAssetID.val
         NextValue.val = true := by
-  rcases h with ⟨hRegBool, hLeaf⟩
-  obtain ⟨isRegulated, hReg⟩ := is_bool_exists_bool IsRegulated hRegBool
-  change canonicalFqBitsGadget LeafValue
-    (afterLeaf NoteAssetID IsRegulated LeafValue NextValue) at hLeaf
-  obtain ⟨leafBits, hLeafBin, hLeafLt, hId⟩ :=
-    canonicalFqBitsGadget_canonical LeafValue
-      (afterLeaf NoteAssetID IsRegulated LeafValue NextValue)
-      hLeaf
-  change canonicalFqBitsGadget NoteAssetID
-    (afterId NoteAssetID IsRegulated LeafValue NextValue (leafBits.map toZMod)) at hId
-  obtain ⟨idBits, hIdBin, hIdLt, hNext⟩ :=
-    canonicalFqBitsGadget_canonical NoteAssetID
-      (afterId NoteAssetID IsRegulated LeafValue NextValue (leafBits.map toZMod))
-      hId
-  change canonicalFqBitsGadget NextValue
-    (afterNext NoteAssetID IsRegulated LeafValue (leafBits.map toZMod) (idBits.map toZMod)) at hNext
-  obtain ⟨nextBits, hNextBin, hNextLt, hTail⟩ :=
-    canonicalFqBitsGadget_canonical NextValue
-      (afterNext NoteAssetID IsRegulated LeafValue (leafBits.map toZMod) (idBits.map toZMod))
-      hNext
-  change imtTail NoteAssetID IsRegulated LeafValue
-    (leafBits.map toZMod) (idBits.map toZMod) (nextBits.map toZMod) at hTail
-  unfold imtTail at hTail
-  rcases hTail with ⟨gate_4, hgate4, gate_5, hzero, hLower⟩
-  let lowerBool : Bool := decide ((Fin.ofBitsLE leafBits).val < (Fin.ofBitsLE idBits).val)
-  have hLowerK :
-      (fun gate_6 =>
-        lexLess253Gadget_253_253 (idBits.map toZMod) (nextBits.map toZMod) fun gate_7 =>
-        ∃ gate_8, gate_8 = Gates.mul gate_6 gate_7 ∧
-        ∃ gate_9, Gates.select IsRegulated gate_5 gate_8 gate_9 ∧
-        Gates.eq gate_9 (1 : F) ∧ True) (toZMod lowerBool) := by
-    simpa [lowerBool] using lexLess253Gadget_sound leafBits idBits _ hLower
-  let upperBool : Bool := decide ((Fin.ofBitsLE idBits).val < (Fin.ofBitsLE nextBits).val)
-  have hUpperK :
-      (fun gate_7 =>
-        ∃ gate_8, gate_8 = Gates.mul (toZMod lowerBool) gate_7 ∧
-        ∃ gate_9, Gates.select IsRegulated gate_5 gate_8 gate_9 ∧
-        Gates.eq gate_9 (1 : F) ∧ True) (toZMod upperBool) := by
-    simpa [upperBool] using lexLess253Gadget_sound idBits nextBits _ hLowerK
-  rcases hUpperK with ⟨gate_8, hgate8, gate_9, hselect, heq, _⟩
-  have hLeafVal := to_binary_val_eq_of_lt LeafValue leafBits hLeafBin hLeafLt
-  have hIdVal := to_binary_val_eq_of_lt NoteAssetID idBits hIdBin hIdLt
-  have hNextVal := to_binary_val_eq_of_lt NextValue nextBits hNextBin hNextLt
-  have hLowerBool :
-      lowerBool = decide (LeafValue.val < NoteAssetID.val) := by
-    simp [lowerBool, hLeafVal, hIdVal]
-  have hUpperBool :
-      upperBool = decide (NoteAssetID.val < NextValue.val) := by
-    simp [upperBool, hIdVal, hNextVal]
-  have hExact : gate_5 = toZMod (decide (NoteAssetID = LeafValue)) := by
-    rw [hgate4] at hzero
-    exact is_zero_sub_eq_decide NoteAssetID LeafValue gate_5 hzero
-  have hGate8 : gate_8 = toZMod (lowerBool && upperBool) := by
-    rw [hgate8]
-    exact gates_mul_bool_value lowerBool upperBool
-  have hGate9 : gate_9 = if isRegulated then gate_5 else gate_8 := by
-    rw [hReg] at hselect
-    exact select_bool_value isRegulated gate_5 gate_8 gate_9 hselect
-  have heq1 : gate_9 = 1 := eq_gate_value gate_9 (1 : F) heq
+  obtain ⟨isRegulated, hReg⟩ :=
+    is_bool_exists_bool IsRegulated hBoolean
+  rcases hBody with
+    ⟨exactMatch, lower, upper, hExact, hLower, hUpper, hSelect⟩
+  have hSelected : selected = 1 := eq_gate_value _ _ hAccepted
+  have hSelectedIf :
+      (if isRegulated then (toZMod exactMatch : F)
+        else toZMod (lower && upper)) = 1 := by
+    unfold BodySelectRelation at hSelect
+    rw [hReg] at hSelect
+    cases isRegulated with
+    | false =>
+      have hs : selected = toZMod (lower && upper) := by
+        simpa [Bool.toZMod_zero] using hSelect
+      exact hs.symm.trans hSelected
+    | true =>
+      have hs : selected = toZMod exactMatch := by
+        simpa [Bool.toZMod_one] using hSelect
+      exact hs.symm.trans hSelected
   refine ⟨isRegulated, hReg, ?_⟩
-  have hSelected :
-      (if isRegulated then (toZMod (decide (NoteAssetID = LeafValue)) : F)
-        else toZMod (lowerBool && upperBool)) = 1 := by
-    calc
-      (if isRegulated then (toZMod (decide (NoteAssetID = LeafValue)) : F)
-          else toZMod (lowerBool && upperBool))
-          = (if isRegulated then gate_5 else gate_8) := by
-            cases isRegulated <;> simp [hExact, hGate8]
-      _ = gate_9 := hGate9.symm
-      _ = 1 := heq1
+  rw [← hExact]
   exact asset_spec_of_selected_eq_one
-    isRegulated
-    (decide (NoteAssetID = LeafValue))
-    lowerBool
-    upperBool
-    LeafValue.val
-    NoteAssetID.val
-    NextValue.val
-    hLowerBool
-    hUpperBool
-    hSelected
+    isRegulated exactMatch lower upper
+    LeafValue.val NoteAssetID.val NextValue.val
+    hLower hUpper hSelectedIf
+
+/--
+The deployed gap body is sound when composed with the separately traced
+Booleanity and terminal-acceptance rows.
+-/
+theorem body_sound
+    (NoteAssetID IsRegulated LeafValue NextValue selected : F)
+    (hBoolean : Gates.is_bool IsRegulated)
+    (hBody :
+      BodyCircuit
+        NoteAssetID IsRegulated LeafValue NextValue selected)
+    (hAccepted : Gates.eq selected (1 : F)) :
+    ∃ isRegulated : Bool,
+      IsRegulated = toZMod isRegulated ∧
+      Shieldd.GnarkFormal.assetMembershipValidSpec
+        isRegulated
+        (decide (NoteAssetID = LeafValue))
+        LeafValue.val
+        NoteAssetID.val
+        NextValue.val = true :=
+  body_relation_spec_sound
+    NoteAssetID IsRegulated LeafValue NextValue selected
+    hBoolean
+    (body_relation_sound
+      NoteAssetID IsRegulated LeafValue NextValue selected hBody)
+    hAccepted
 
 end Shieldd.GnarkFormal.Extracted.ImtGap

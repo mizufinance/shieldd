@@ -67,20 +67,11 @@ use crate::ViewClient;
 /// Convert a proto MerklePath to native MerklePath.
 fn parse_proto_merkle_path(
     path: Option<shieldd_sdk_proto::core::component::compliance::v1::MerklePath>,
-) -> shieldd_sdk_compliance::structs::MerklePath {
-    use shieldd_sdk_compliance::structs::MerklePathLayer;
-    match path {
-        Some(p) => shieldd_sdk_compliance::structs::MerklePath {
-            layers: p
-                .layers
-                .into_iter()
-                .map(|layer| MerklePathLayer {
-                    siblings: layer.siblings,
-                })
-                .collect(),
-        },
-        None => shieldd_sdk_compliance::structs::MerklePath { layers: vec![] },
-    }
+    label: &str,
+) -> Result<shieldd_sdk_compliance::structs::MerklePath> {
+    path.ok_or_else(|| anyhow::anyhow!("missing {label}"))?
+        .try_into()
+        .map_err(|error| anyhow::anyhow!("invalid {label}: {error}"))
 }
 
 /// Compliance extensions for ViewClient.
@@ -201,8 +192,8 @@ impl ComplianceMerkleProofsData {
     pub fn try_from_proto(response: view_pb::ComplianceMerkleProofsResponse) -> Result<Self> {
         use decaf377::Fq;
 
-        let compliance_path = parse_proto_merkle_path(response.compliance_path);
-        let asset_path = parse_proto_merkle_path(response.asset_path);
+        let compliance_path = parse_proto_merkle_path(response.compliance_path, "compliance_path")?;
+        let asset_path = parse_proto_merkle_path(response.asset_path, "asset_path")?;
 
         // Parse anchors
         let compliance_anchor_bytes: [u8; 32] =
@@ -254,7 +245,7 @@ use shieldd_sdk_compliance::{
     AssetPolicy, AssetProofData, ComplianceProofProvider, MerklePath, UserProofData,
 };
 use shieldd_sdk_transaction::plan::{ActionPlan, TransactionPlan};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -382,6 +373,12 @@ impl<'a, V: ViewClient + Send + ?Sized> ComplianceProofProvider
             view.compliance_batch_merkle_proofs(queries.to_vec())
         };
         let batch_response = batch_future.await?;
+        anyhow::ensure!(
+            batch_response.results.len() == queries.len(),
+            "batch compliance response count {} does not match query count {}",
+            batch_response.results.len(),
+            queries.len()
+        );
 
         // Parse anchors
         let compliance_anchor_bytes: [u8; 32] = batch_response
@@ -419,39 +416,11 @@ impl<'a, V: ViewClient + Send + ?Sized> ComplianceProofProvider
 
         // Match results with queries - parse directly since individual results don't have anchors
         for (i, result) in batch_response.results.into_iter().enumerate() {
-            use shieldd_sdk_compliance::structs::MerklePathLayer;
-
             let (address, asset_id) = &queries[i];
 
-            // Parse compliance path
-            let compliance_path = if let Some(path) = result.compliance_path {
-                shieldd_sdk_compliance::structs::MerklePath {
-                    layers: path
-                        .layers
-                        .into_iter()
-                        .map(|layer| MerklePathLayer {
-                            siblings: layer.siblings,
-                        })
-                        .collect(),
-                }
-            } else {
-                shieldd_sdk_compliance::structs::MerklePath { layers: vec![] }
-            };
-
-            // Parse asset path
-            let asset_path = if let Some(path) = result.asset_path {
-                shieldd_sdk_compliance::structs::MerklePath {
-                    layers: path
-                        .layers
-                        .into_iter()
-                        .map(|layer| MerklePathLayer {
-                            siblings: layer.siblings,
-                        })
-                        .collect(),
-                }
-            } else {
-                shieldd_sdk_compliance::structs::MerklePath { layers: vec![] }
-            };
+            let compliance_path =
+                parse_proto_merkle_path(result.compliance_path, "batch compliance_path")?;
+            let asset_path = parse_proto_merkle_path(result.asset_path, "batch asset_path")?;
 
             // Cache asset proof
             if !asset_proofs.contains_key(asset_id) {
@@ -551,14 +520,8 @@ impl<'a, V: ViewClient + Send + ?Sized> ComplianceProofProvider
 
 /// Enriches a transaction plan with compliance data using a ComplianceProofProvider.
 ///
-/// This is the canonical implementation for multi-asset transaction enrichment.
-/// It handles cross-asset binding correctly by using "canonical" binding assets.
-///
-/// For multi-asset transactions, the binding check requires:
-/// - output.counterparty_leaf_hash == spend.sender_leaf_hash
-///
-/// Since ComplianceLeaf includes asset_id, we use canonical binding assets:
-/// - Output uses first SPEND's asset for counterparty lookup
+/// This is the canonical implementation for authenticated asset and user-tree
+/// witnesses used by the transfer-level compliance proof.
 ///
 /// # Parameters
 /// - `plan`: The transaction plan to enrich
@@ -570,7 +533,7 @@ pub async fn enrich_plan_with_compliance<P: ComplianceProofProvider>(
     rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng),
     target_timestamp_override: Option<u64>,
 ) -> Result<()> {
-    // Unix UTC timestamp for DLEQ metadata binding.
+    // Unix UTC timestamp for proof-bound policy metadata.
     // In production, use SystemTime::now(). Tests with fake chain times pass an override.
     let target_timestamp = match target_timestamp_override {
         Some(ts) => ts,
@@ -580,33 +543,67 @@ pub async fn enrich_plan_with_compliance<P: ComplianceProofProvider>(
             .as_secs(),
     };
 
-    let mut tx_blinding_nonce = None;
+    // Compliance encryption expands this private nonce deterministically into
+    // its tier seeds and ephemeral scalars. Sharing one nonce across actions
+    // would therefore reuse EPKs and stream keys. Allocate and collision-check
+    // one nonce for each Transfer action, including internal fee funding.
+    let mut used_transfer_nonces = BTreeSet::new();
+    let mut transfer_action_nonces = BTreeMap::new();
+    for (action_index, action) in plan.actions.iter().enumerate() {
+        match action {
+            ActionPlan::Transfer(_) => {
+                transfer_action_nonces.insert(
+                    action_index,
+                    fresh_transfer_nonce(rng, &mut used_transfer_nonces)?,
+                );
+            }
+            ActionPlan::NoteReshape(_)
+            | ActionPlan::ValidatorDefinition(_)
+            | ActionPlan::IbcAction(_)
+            | ActionPlan::ProposalSubmit(_)
+            | ActionPlan::ValidatorVote(_)
+            | ActionPlan::ShieldedIcs20Withdrawal(_)
+            | ActionPlan::ComplianceRegisterAsset(_)
+            | ActionPlan::ComplianceRegisterUser(_) => {}
+        }
+    }
+    let fee_funding_nonce = plan
+        .fee_funding
+        .as_ref()
+        .map(|_| fresh_transfer_nonce(rng, &mut used_transfer_nonces))
+        .transpose()?;
+
     enrich_transfer_family_with_compliance(
         plan,
         provider,
-        rng,
         target_timestamp,
-        &mut tx_blinding_nonce,
+        &transfer_action_nonces,
     )
     .await?;
-    enrich_shielded_ics20_withdrawals_with_compliance(
-        plan,
-        provider,
-        rng,
-        target_timestamp,
-        &mut tx_blinding_nonce,
-    )
-    .await?;
-    enrich_internal_funding_with_compliance(
-        plan,
-        provider,
-        rng,
-        target_timestamp,
-        &mut tx_blinding_nonce,
-    )
-    .await?;
+    enrich_shielded_ics20_withdrawals_with_compliance(plan, provider, target_timestamp).await?;
+    if let Some(fee_funding_nonce) = fee_funding_nonce {
+        enrich_internal_funding_with_compliance(
+            plan,
+            provider,
+            target_timestamp,
+            fee_funding_nonce,
+        )
+        .await?;
+    }
 
     Ok(())
+}
+
+fn fresh_transfer_nonce(
+    rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng),
+    used: &mut BTreeSet<[u8; 32]>,
+) -> Result<Fr> {
+    let nonce = Fr::rand(rng);
+    anyhow::ensure!(
+        used.insert(nonce.to_bytes()),
+        "compliance RNG generated a duplicate Transfer action nonce"
+    );
+    Ok(nonce)
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -637,33 +634,12 @@ async fn fetch_batch_compliance_data<P: ComplianceProofProvider>(
     provider: &P,
     spend_identities: &[(asset::Id, Address)],
     output_identities: &[(asset::Id, Address)],
-) -> Result<
-    Option<(
-        shieldd_sdk_compliance::BatchComplianceData,
-        Address,
-        asset::Id,
-    )>,
-> {
+) -> Result<Option<shieldd_sdk_compliance::BatchComplianceData>> {
     use std::collections::BTreeSet;
 
     if spend_identities.is_empty() && output_identities.is_empty() {
         return Ok(None);
     }
-
-    let sender_address = spend_identities
-        .first()
-        .map(|(_, address)| address.clone())
-        .or_else(|| {
-            output_identities
-                .first()
-                .map(|(_, address)| address.clone())
-        })
-        .expect("at least one spend or output identity must exist");
-    let spend_binding_asset_id = spend_identities
-        .first()
-        .map(|(asset_id, _)| *asset_id)
-        .or_else(|| output_identities.first().map(|(asset_id, _)| *asset_id))
-        .expect("at least one spend or output identity must exist");
 
     let mut queries: BTreeSet<(Address, asset::Id)> = BTreeSet::new();
     for (asset_id, address) in spend_identities {
@@ -671,20 +647,18 @@ async fn fetch_batch_compliance_data<P: ComplianceProofProvider>(
     }
     for (asset_id, address) in output_identities {
         queries.insert((address.clone(), *asset_id));
-        queries.insert((sender_address.clone(), spend_binding_asset_id));
     }
 
     let query_vec: Vec<_> = queries.into_iter().collect();
     let batch_data = provider.get_batch_proofs(&query_vec).await?;
-    Ok(Some((batch_data, sender_address, spend_binding_asset_id)))
+    Ok(Some(batch_data))
 }
 
 async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
     plan: &mut TransactionPlan,
     provider: &P,
-    rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng),
     target_timestamp: u64,
-    tx_blinding_nonce: &mut Option<Fr>,
+    action_nonces: &BTreeMap<usize, Fr>,
 ) -> Result<()> {
     let mut spend_locations = Vec::new();
     let mut output_locations = Vec::new();
@@ -705,8 +679,14 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
                     });
                 }
             }
-            ActionPlan::NoteReshape(_) => {}
-            _ => {}
+            ActionPlan::NoteReshape(_)
+            | ActionPlan::ValidatorDefinition(_)
+            | ActionPlan::IbcAction(_)
+            | ActionPlan::ProposalSubmit(_)
+            | ActionPlan::ValidatorVote(_)
+            | ActionPlan::ShieldedIcs20Withdrawal(_)
+            | ActionPlan::ComplianceRegisterAsset(_)
+            | ActionPlan::ComplianceRegisterUser(_) => {}
         }
     }
 
@@ -741,7 +721,7 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
         })
         .collect::<Vec<_>>();
 
-    let Some((batch_data, sender_address, spend_binding_asset_id)) =
+    let Some(batch_data) =
         fetch_batch_compliance_data(provider, &spend_identities, &output_identities).await?
     else {
         return Ok(());
@@ -763,7 +743,14 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
             .asset_proofs
             .get(&spend_asset_id)
             .cloned()
-            .unwrap_or_else(default_unregulated_asset_proof);
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "compliance provider omitted asset proof for transfer spend at action {} input {} (asset {})",
+                    action_index,
+                    spend_index,
+                    spend_asset_id
+                )
+            })?;
 
         let sender_proof = batch_data
             .user_proofs
@@ -810,98 +797,96 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
         } else {
             None
         };
-        spend.set_compliance_details(rng)?;
-        if let Some(nonce) = *tx_blinding_nonce {
-            spend.tx_blinding_nonce = nonce;
-        } else {
-            *tx_blinding_nonce = Some(spend.tx_blinding_nonce);
-        }
+        spend.set_compliance_details()?;
+        spend.tx_blinding_nonce = *action_nonces.get(&action_index).ok_or_else(|| {
+            anyhow::anyhow!("missing compliance nonce for Transfer action {action_index}")
+        })?;
     }
 
-    if !output_locations.is_empty() {
-        let nonce = tx_blinding_nonce.unwrap_or_else(|| Fr::rand(rng));
-        *tx_blinding_nonce = Some(nonce);
+    for (output_location, (output_asset_id, recipient_address)) in output_locations
+        .iter()
+        .copied()
+        .zip(output_identities.iter().cloned())
+    {
+        let TransferOutputLocation::Transfer {
+            action_index,
+            output_index,
+        } = output_location;
 
-        for (output_location, (output_asset_id, recipient_address)) in output_locations
-            .iter()
-            .copied()
-            .zip(output_identities.iter().cloned())
-        {
-            let TransferOutputLocation::Transfer {
-                action_index,
-                output_index,
-            } = output_location;
-
-            let asset_proof = batch_data
-                .asset_proofs
-                .get(&output_asset_id)
-                .cloned()
-                .unwrap_or_else(default_unregulated_asset_proof);
-
-            let recipient_proof = batch_data
-                .user_proofs
-                .get(&(recipient_address.clone(), output_asset_id))
-                .cloned()
-                .ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "missing user proof for transfer output at action {} output {}: \
-                         recipient may not be registered for asset {} \
-                         (recipient must be registered for regulated assets)",
+        let asset_proof = batch_data
+            .asset_proofs
+            .get(&output_asset_id)
+            .cloned()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                        "compliance provider omitted asset proof for transfer output at action {} output {} (asset {})",
                         action_index,
                         output_index,
                         output_asset_id
                     )
-                })?;
+            })?;
 
-            let sender_proof = batch_data
-                .user_proofs
-                .get(&(sender_address.clone(), spend_binding_asset_id))
-                .cloned()
-                .ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "missing user proof for transfer sender binding: \
-                         sender may not be registered for asset {} \
-                         (sender must be registered for regulated assets)",
-                        spend_binding_asset_id
-                    )
-                })?;
-
-            let ActionPlan::Transfer(transfer) = &mut plan.actions[action_index] else {
-                unreachable!()
-            };
-            let output = &mut transfer.outputs[output_index];
-            output.asset_indexed_leaf = asset_proof.indexed_leaf;
-            output.asset_path = asset_proof.auth_path;
-            output.asset_position = asset_proof.position;
-            output.asset_anchor = asset_anchor;
-            output.compliance_anchor = compliance_anchor;
-            output.compliance_path = recipient_proof.auth_path;
-            output.compliance_position = recipient_proof.position;
-            output.is_regulated = asset_proof.is_regulated;
-            output.target_timestamp = target_timestamp;
-            output.asset_policy = if asset_proof.is_regulated {
-                Some(
-                    batch_data
-                        .asset_policies
-                        .get(&output_asset_id)
-                        .cloned()
-                        .ok_or_else(|| {
-                            anyhow::anyhow!(
-                                "missing asset policy for regulated transfer output asset {}",
-                                output_asset_id
-                            )
-                        })?,
+        let recipient_proof = batch_data
+            .user_proofs
+            .get(&(recipient_address.clone(), output_asset_id))
+            .cloned()
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "missing user proof for transfer output at action {} output {}: \
+                         recipient may not be registered for asset {} \
+                         (recipient must be registered for regulated assets)",
+                    action_index,
+                    output_index,
+                    output_asset_id
                 )
-            } else {
-                None
-            };
-            output.set_compliance_details(rng, &recipient_proof.leaf, sender_proof.leaf, nonce)?;
-        }
+            })?;
+
+        let ActionPlan::Transfer(transfer) = &mut plan.actions[action_index] else {
+            unreachable!()
+        };
+        let output = &mut transfer.outputs[output_index];
+        output.asset_indexed_leaf = asset_proof.indexed_leaf;
+        output.asset_path = asset_proof.auth_path;
+        output.asset_position = asset_proof.position;
+        output.asset_anchor = asset_anchor;
+        output.compliance_anchor = compliance_anchor;
+        output.compliance_path = recipient_proof.auth_path;
+        output.compliance_position = recipient_proof.position;
+        output.is_regulated = asset_proof.is_regulated;
+        output.target_timestamp = target_timestamp;
+        output.asset_policy = if asset_proof.is_regulated {
+            Some(
+                batch_data
+                    .asset_policies
+                    .get(&output_asset_id)
+                    .cloned()
+                    .ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "missing asset policy for regulated transfer output asset {}",
+                            output_asset_id
+                        )
+                    })?,
+            )
+        } else {
+            None
+        };
+        let nonce = *action_nonces.get(&action_index).ok_or_else(|| {
+            anyhow::anyhow!("missing compliance nonce for Transfer action {action_index}")
+        })?;
+        output.set_compliance_details(&recipient_proof.leaf, nonce)?;
     }
 
     for action in &mut plan.actions {
-        if let ActionPlan::Transfer(transfer) = action {
-            transfer.refresh_body_public_inputs()?;
+        match action {
+            ActionPlan::Transfer(transfer) => transfer.validate()?,
+            ActionPlan::NoteReshape(_)
+            | ActionPlan::ValidatorDefinition(_)
+            | ActionPlan::IbcAction(_)
+            | ActionPlan::ProposalSubmit(_)
+            | ActionPlan::ValidatorVote(_)
+            | ActionPlan::ShieldedIcs20Withdrawal(_)
+            | ActionPlan::ComplianceRegisterAsset(_)
+            | ActionPlan::ComplianceRegisterUser(_) => {}
         }
     }
 
@@ -911,9 +896,8 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
 async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
     plan: &mut TransactionPlan,
     provider: &P,
-    rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng),
     target_timestamp: u64,
-    tx_blinding_nonce: &mut Option<Fr>,
+    transfer_nonce: Fr,
 ) -> Result<()> {
     let Some(fee_funding) = plan.fee_funding.as_mut() else {
         return Ok(());
@@ -932,7 +916,7 @@ async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
         .map(|output| (output.value.asset_id, output.dest_address.clone()))
         .collect::<Vec<_>>();
 
-    let Some((batch_data, sender_address, spend_binding_asset_id)) =
+    let Some(batch_data) =
         fetch_batch_compliance_data(provider, &spend_identities, &output_identities).await?
     else {
         return Ok(());
@@ -950,7 +934,12 @@ async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
             .asset_proofs
             .get(&spend_asset_id)
             .cloned()
-            .unwrap_or_else(default_unregulated_asset_proof);
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "compliance provider omitted asset proof for fee-funding spend asset {}",
+                    spend_asset_id
+                )
+            })?;
 
         let sender_proof = batch_data
             .user_proofs
@@ -990,18 +979,11 @@ async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
         } else {
             None
         };
-        spend.set_compliance_details(rng)?;
-        if let Some(nonce) = *tx_blinding_nonce {
-            spend.tx_blinding_nonce = nonce;
-        } else {
-            *tx_blinding_nonce = Some(spend.tx_blinding_nonce);
-        }
+        spend.set_compliance_details()?;
+        spend.tx_blinding_nonce = transfer_nonce;
     }
 
     if !fee_funding.transfer.outputs.is_empty() {
-        let nonce = tx_blinding_nonce.unwrap_or_else(|| Fr::rand(rng));
-        *tx_blinding_nonce = Some(nonce);
-
         for (output, (output_asset_id, recipient_address)) in fee_funding
             .transfer
             .outputs
@@ -1012,7 +994,12 @@ async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
                 .asset_proofs
                 .get(&output_asset_id)
                 .cloned()
-                .unwrap_or_else(default_unregulated_asset_proof);
+                .ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "compliance provider omitted asset proof for fee-funding output asset {}",
+                        output_asset_id
+                    )
+                })?;
 
             let recipient_proof = batch_data
                 .user_proofs
@@ -1023,18 +1010,6 @@ async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
                         "missing user proof for fee funding output: \
                          recipient may not be registered for asset {}",
                         output_asset_id
-                    )
-                })?;
-
-            let sender_proof = batch_data
-                .user_proofs
-                .get(&(sender_address.clone(), spend_binding_asset_id))
-                .cloned()
-                .ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "missing user proof for fee funding sender binding: \
-                         sender may not be registered for asset {}",
-                        spend_binding_asset_id
                     )
                 })?;
 
@@ -1063,11 +1038,11 @@ async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
             } else {
                 None
             };
-            output.set_compliance_details(rng, &recipient_proof.leaf, sender_proof.leaf, nonce)?;
+            output.set_compliance_details(&recipient_proof.leaf, transfer_nonce)?;
         }
     }
 
-    fee_funding.transfer.refresh_body_public_inputs()?;
+    fee_funding.transfer.validate()?;
 
     Ok(())
 }
@@ -1075,24 +1050,32 @@ async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
 async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofProvider>(
     plan: &mut TransactionPlan,
     provider: &P,
-    rng: &mut (impl rand_core::RngCore + rand_core::CryptoRng),
     target_timestamp: u64,
-    tx_blinding_nonce: &mut Option<Fr>,
 ) -> Result<()> {
     let mut spend_locations = Vec::new();
     let mut action_indices = Vec::new();
 
     for (action_index, action) in plan.actions.iter().enumerate() {
-        if let ActionPlan::ShieldedIcs20Withdrawal(withdrawal) = action {
-            action_indices.push(action_index);
-            for spend_index in 0..withdrawal.spends.len() {
-                spend_locations.push(
-                    ShieldedIcs20WithdrawalSpendLocation::ShieldedIcs20Withdrawal {
-                        action_index,
-                        spend_index,
-                    },
-                );
+        match action {
+            ActionPlan::ShieldedIcs20Withdrawal(withdrawal) => {
+                action_indices.push(action_index);
+                for spend_index in 0..withdrawal.spends.len() {
+                    spend_locations.push(
+                        ShieldedIcs20WithdrawalSpendLocation::ShieldedIcs20Withdrawal {
+                            action_index,
+                            spend_index,
+                        },
+                    );
+                }
             }
+            ActionPlan::Transfer(_)
+            | ActionPlan::NoteReshape(_)
+            | ActionPlan::ValidatorDefinition(_)
+            | ActionPlan::IbcAction(_)
+            | ActionPlan::ProposalSubmit(_)
+            | ActionPlan::ValidatorVote(_)
+            | ActionPlan::ComplianceRegisterAsset(_)
+            | ActionPlan::ComplianceRegisterUser(_) => {}
         }
     }
 
@@ -1113,8 +1096,7 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
         })
         .collect::<Vec<_>>();
 
-    let Some((batch_data, _, _)) =
-        fetch_batch_compliance_data(provider, &spend_identities, &[]).await?
+    let Some(batch_data) = fetch_batch_compliance_data(provider, &spend_identities, &[]).await?
     else {
         return Ok(());
     };
@@ -1135,7 +1117,14 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
             .asset_proofs
             .get(&spend_asset_id)
             .cloned()
-            .unwrap_or_else(default_unregulated_asset_proof);
+            .ok_or_else(|| {
+                anyhow::anyhow!(
+                    "compliance provider omitted asset proof for shielded ICS-20 withdrawal at action {} input {} (asset {})",
+                    action_index,
+                    spend_index,
+                    spend_asset_id
+                )
+            })?;
 
         let sender_proof = batch_data
             .user_proofs
@@ -1167,12 +1156,7 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
         spend.compliance_leaf = Some(sender_proof.leaf.clone());
         spend.is_regulated = asset_proof.is_regulated;
         spend.target_timestamp = target_timestamp;
-        spend.set_compliance_details(rng)?;
-        if let Some(nonce) = *tx_blinding_nonce {
-            spend.tx_blinding_nonce = nonce;
-        } else {
-            *tx_blinding_nonce = Some(spend.tx_blinding_nonce);
-        }
+        spend.set_compliance_details()?;
     }
 
     for action_index in action_indices {
@@ -1180,44 +1164,221 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
         else {
             unreachable!()
         };
-        let Some(first_spend) = withdrawal.spends.first() else {
-            continue;
-        };
-
-        withdrawal.body.target_timestamp = first_spend.target_timestamp;
-        withdrawal.body.compliance_anchor = first_spend.compliance_anchor;
-        withdrawal.body.asset_anchor = first_spend.asset_anchor;
-
-        if first_spend.is_regulated
-            && !first_spend.compliance_ciphertext.is_empty()
-            && !shieldd_sdk_compliance::IbcComplianceMetadata::is_compliance_memo(
-                &withdrawal.withdrawal.ics20_memo,
-            )
-        {
-            let metadata = shieldd_sdk_compliance::IbcComplianceMetadata {
-                compliance_ciphertext: first_spend.compliance_ciphertext.clone(),
-                asset_id: first_spend.note.asset_id(),
-            };
-            withdrawal.withdrawal.ics20_memo =
-                metadata.encode_to_memo(&withdrawal.withdrawal.ics20_memo)?;
-        }
-
-        withdrawal.body.withdrawal = withdrawal.withdrawal.clone();
+        withdrawal.validate()?;
     }
 
     Ok(())
 }
 
-fn default_unregulated_asset_proof() -> AssetProofData {
-    let default_leaf = shieldd_sdk_compliance::IndexedLeaf::with_default_policy(
-        decaf377::Fq::from(0u64),
-        0,
-        shieldd_sdk_compliance::indexed_tree::FQ_MAX.clone(),
-    );
-    AssetProofData {
-        indexed_leaf: default_leaf,
-        position: 0,
-        auth_path: MerklePath::default(),
-        is_regulated: false,
+#[cfg(test)]
+mod tests {
+    use super::{enrich_plan_with_compliance, fresh_transfer_nonce, parse_proto_merkle_path};
+    use async_trait::async_trait;
+    use decaf377::Fr;
+    use rand::{rngs::StdRng, SeedableRng};
+    use rand_core::{CryptoRng, Error as RandError, RngCore};
+    use shieldd_sdk_asset::{asset, Value, BASE_ASSET_ID};
+    use shieldd_sdk_compliance::{
+        AssetPolicy, AssetProofData, ComplianceLeaf, ComplianceProofProvider, MerklePath,
+        UserProofData,
+    };
+    use shieldd_sdk_keys::Address;
+    use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
+    use shieldd_sdk_shielded_pool::{Note, ShieldedInputPlan, ShieldedOutputPlan, TransferPlan};
+    use shieldd_sdk_tct::StateCommitment;
+    use shieldd_sdk_transaction::{
+        plan::{ActionPlan, TransactionPlan},
+        FeeFundingPlan,
+    };
+    use std::collections::BTreeSet;
+
+    struct RepeatingRng;
+
+    impl RngCore for RepeatingRng {
+        fn next_u32(&mut self) -> u32 {
+            0
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            0
+        }
+
+        fn fill_bytes(&mut self, destination: &mut [u8]) {
+            destination.fill(0);
+        }
+
+        fn try_fill_bytes(&mut self, destination: &mut [u8]) -> Result<(), RandError> {
+            self.fill_bytes(destination);
+            Ok(())
+        }
+    }
+
+    impl CryptoRng for RepeatingRng {}
+
+    struct UnregulatedProofProvider;
+
+    #[async_trait]
+    impl ComplianceProofProvider for UnregulatedProofProvider {
+        async fn get_compliance_anchor(&self) -> anyhow::Result<StateCommitment> {
+            Ok(StateCommitment(decaf377::Fq::from(0u64)))
+        }
+
+        async fn get_asset_anchor(&self) -> anyhow::Result<StateCommitment> {
+            let (root, _, _, _) = shieldd_sdk_compliance::create_default_imt_proof(BASE_ASSET_ID.0);
+            Ok(root)
+        }
+
+        async fn get_asset_proof(&self, asset_id: asset::Id) -> anyhow::Result<AssetProofData> {
+            let (_, indexed_leaf, auth_path, position) =
+                shieldd_sdk_compliance::create_default_imt_proof(asset_id.0);
+            Ok(AssetProofData {
+                auth_path,
+                position,
+                indexed_leaf,
+                is_regulated: false,
+            })
+        }
+
+        async fn get_asset_policy(
+            &self,
+            _asset_id: asset::Id,
+        ) -> anyhow::Result<Option<AssetPolicy>> {
+            Ok(None)
+        }
+
+        async fn get_user_proof(
+            &self,
+            address: &Address,
+            asset_id: asset::Id,
+        ) -> anyhow::Result<UserProofData> {
+            Ok(UserProofData {
+                auth_path: MerklePath::default(),
+                position: 0,
+                leaf: ComplianceLeaf::synthetic_unregulated(address.clone(), asset_id),
+            })
+        }
+    }
+
+    fn self_transfer_plan(rng: &mut StdRng) -> TransferPlan {
+        let sender = Address::dummy(rng);
+        let value = Value {
+            amount: 100u64.into(),
+            asset_id: *BASE_ASSET_ID,
+        };
+        let note = Note::generate(rng, &sender, value);
+        let spend = ShieldedInputPlan::new(rng, note, 0u64.into());
+        let mut output = ShieldedOutputPlan::new(rng, value, sender);
+        output.compliance_path = spend.compliance_path.clone();
+        output.compliance_leaf = spend.compliance_leaf.clone();
+        output.is_regulated = spend.is_regulated;
+        output.tx_blinding_nonce = spend.tx_blinding_nonce;
+        output.compliance_anchor = spend.compliance_anchor;
+        output.asset_anchor = spend.asset_anchor;
+        output.asset_path = spend.asset_path.clone();
+        output.asset_position = spend.asset_position;
+        output.asset_indexed_leaf = spend.asset_indexed_leaf.clone();
+        output.compliance_position = spend.compliance_position;
+        output.target_timestamp = spend.target_timestamp;
+        output.asset_policy = spend.asset_policy.clone();
+        TransferPlan::from_spend_output(spend, output, Fr::rand(rng))
+            .expect("self-transfer plan must be valid")
+    }
+
+    #[test]
+    fn rpc_merkle_path_parser_requires_canonical_fixed_shape() {
+        parse_proto_merkle_path(Some(MerklePath::default().into()), "test_path")
+            .expect("canonical fixed-width path");
+
+        parse_proto_merkle_path(None, "test_path").expect_err("missing path must fail");
+
+        let mut short: compliance_pb::MerklePath = MerklePath::default().into();
+        short.layers.pop();
+        parse_proto_merkle_path(Some(short), "test_path").expect_err("short path must fail");
+
+        let mut noncanonical: compliance_pb::MerklePath = MerklePath::default().into();
+        noncanonical.layers[0].siblings[0] = vec![0xff; 32];
+        parse_proto_merkle_path(Some(noncanonical), "test_path")
+            .expect_err("noncanonical field must fail");
+    }
+
+    #[test]
+    fn transfer_compliance_nonce_allocator_rejects_cross_action_reuse() {
+        let mut used = BTreeSet::new();
+        let mut repeating = RepeatingRng;
+        fresh_transfer_nonce(&mut repeating, &mut used).expect("first nonce is unused");
+        fresh_transfer_nonce(&mut repeating, &mut used)
+            .expect_err("a repeated action nonce must fail closed");
+
+        let mut seeded = StdRng::seed_from_u64(0x7368_6965_6c64_645f);
+        let mut used = BTreeSet::new();
+        for _ in 0..8 {
+            fresh_transfer_nonce(&mut seeded, &mut used)
+                .expect("independent CSPRNG draws must produce distinct action nonces");
+        }
+        assert_eq!(used.len(), 8);
+    }
+
+    #[tokio::test]
+    async fn compliance_enrichment_uses_one_fresh_nonce_per_transfer_action() {
+        let mut construction_rng = StdRng::seed_from_u64(7);
+        let first = self_transfer_plan(&mut construction_rng);
+        let second = self_transfer_plan(&mut construction_rng);
+        let fee_funding = self_transfer_plan(&mut construction_rng);
+        let mut plan = TransactionPlan {
+            actions: vec![ActionPlan::Transfer(first), ActionPlan::Transfer(second)],
+            transaction_parameters: Default::default(),
+            fee_funding: Some(FeeFundingPlan {
+                transfer: fee_funding,
+            }),
+            memo: None,
+        };
+        let mut enrichment_rng = StdRng::seed_from_u64(11);
+
+        enrich_plan_with_compliance(
+            &mut plan,
+            &UnregulatedProofProvider,
+            &mut enrichment_rng,
+            Some(1_700_000_000),
+        )
+        .await
+        .expect("unregulated enrichment must succeed");
+
+        let nonces = plan
+            .actions
+            .iter()
+            .map(|action| {
+                let ActionPlan::Transfer(transfer) = action else {
+                    panic!("test plan contains only Transfer actions")
+                };
+                let nonce = transfer.spends[0].tx_blinding_nonce;
+                assert_eq!(transfer.outputs[0].tx_blinding_nonce, nonce);
+                nonce
+            })
+            .collect::<Vec<_>>();
+        assert_ne!(
+            nonces[0], nonces[1],
+            "sibling Transfer actions must not reuse compliance encryption randomness"
+        );
+        let fee_nonce = plan
+            .fee_funding
+            .as_ref()
+            .expect("test plan contains fee funding")
+            .transfer
+            .spends[0]
+            .tx_blinding_nonce;
+        assert_eq!(
+            plan.fee_funding
+                .as_ref()
+                .expect("test plan contains fee funding")
+                .transfer
+                .outputs[0]
+                .tx_blinding_nonce,
+            fee_nonce,
+            "fee-funding spends and outputs must share exactly one action nonce"
+        );
+        assert!(
+            nonces.iter().all(|action_nonce| *action_nonce != fee_nonce),
+            "fee funding must not reuse an ordinary Transfer action nonce"
+        );
     }
 }

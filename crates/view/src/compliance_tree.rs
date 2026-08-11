@@ -139,7 +139,7 @@ impl ComplianceAssetTree {
         Self {
             inner: IndexedMerkleTree::new(),
             inserted_values: Vec::new(),
-            dirty_positions: BTreeSet::new(),
+            dirty_positions: BTreeSet::from([0]),
         }
     }
 
@@ -157,6 +157,10 @@ impl ComplianceAssetTree {
         // Check if sentinel (position 0) exists in storage
         // If not, this is a fresh database - return a new tree
         if store.get_asset_leaf(0)?.is_none() {
+            anyhow::ensure!(
+                leaf_count == 0,
+                "asset tree reports {leaf_count} leaves but the sentinel is missing"
+            );
             tracing::debug!("ComplianceAssetTree::from_store: fresh database, returning new tree");
             // Fresh database, no leaves stored yet - return new tree with sentinel
             return Ok(Self::new());
@@ -237,7 +241,7 @@ impl ComplianceAssetTree {
         }
 
         // Rebuild all internal hashes from the loaded leaves
-        tree.rebuild_hashes();
+        tree.rebuild_hashes()?;
 
         let root = tree.root();
         tracing::debug!(
@@ -409,6 +413,38 @@ mod tests {
 
         // Root should be computable
         let _root = tree.root();
+    }
+
+    #[test]
+    fn fresh_asset_tree_persists_sentinel_before_advancing_leaf_count() {
+        use r2d2_sqlite::rusqlite::Connection;
+
+        let mut db = Connection::open_in_memory().unwrap();
+        db.execute_batch(include_str!("storage/schema.sql"))
+            .unwrap();
+
+        let mut tree = {
+            let mut tx = db.transaction().unwrap();
+            let mut store = ComplianceTreeStore(&mut tx);
+            ComplianceAssetTree::from_store(&mut store).unwrap()
+        };
+        assert_eq!(tree.leaf_count(), 1);
+        assert_eq!(tree.dirty_position_count(), 1);
+
+        {
+            let mut tx = db.transaction().unwrap();
+            let mut store = ComplianceTreeStore(&mut tx);
+            tree.persist(&mut store, 0).unwrap();
+            tx.commit().unwrap();
+        }
+        tree.clear_dirty_positions();
+
+        let mut tx = db.transaction().unwrap();
+        let mut store = ComplianceTreeStore(&mut tx);
+        assert!(store.get_asset_leaf(0).unwrap().is_some());
+        assert_eq!(store.get_asset_tree_leaf_count().unwrap(), 1);
+        let reloaded = ComplianceAssetTree::from_store(&mut store).unwrap();
+        assert_eq!(reloaded.root(), tree.root());
     }
 
     #[test]

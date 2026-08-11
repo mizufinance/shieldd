@@ -62,7 +62,7 @@ fn generate_shieldd_sdk_validator(
     seed: Option<SpendKeyBytes>,
 ) -> ShielddValidator {
     let seed = seed.unwrap_or(SpendKeyBytes(OsRng.gen()));
-    let spend_key = SpendKey::from(seed.clone());
+    let spend_key = SpendKey::try_from(seed.clone()).expect("test spend key should be valid");
     let validator_id_sk = spend_key.spend_auth_key();
     let validator_id_vk = VerificationKey::from(validator_id_sk);
 

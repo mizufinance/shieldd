@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import io
+import re
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -17,10 +19,9 @@ class NoteReshapeNbSemanticsTest(unittest.TestCase):
         self.assertEqual(
             [template.key for template in gen.NB_TEMPLATES],
             [
-                "decaf.conservation_net_balance_commitment@9602c510696ca316ef532feb1eaa5610fa2276fdeb6f49a351c8c7c242b359e6",
-                "decaf.conservation_net_balance_commitment@f779542ea2a073487b8ab36fd2798d44fa0136855070c44e2ae2edc44c180a79",
                 "decaf.conservation_net_balance_commitment@91db75453548a10bc5fde12b84038f18faa6c2619dae208f39192f046be0acc3",
                 "decaf.conservation_net_balance_commitment@b01b1d46d18c662eabc20c9c5434699928df7baa1f515b0cb07e99eb6598893a",
+                "decaf.conservation_net_balance_commitment2@236fd0549adf468bfd993cdf1a3c2b4bbf80d1c8f9b95e4fda163888ecd365f6",
             ],
         )
         for template in gen.NB_TEMPLATES:
@@ -49,7 +50,7 @@ class NoteReshapeNbSemanticsTest(unittest.TestCase):
             self.assertEqual(conservation[2], {wire: 1 for wire in template.output_wires})
 
     def test_generated_file_set_and_bytes_are_pinned(self) -> None:
-        self.assertEqual(len(self.outputs), 257)
+        self.assertEqual(len(self.outputs), 197)
         provider_names = {
             gen.default_template_name(template.key) + ".lean"
             for template in gen.NB_TEMPLATES
@@ -58,6 +59,7 @@ class NoteReshapeNbSemanticsTest(unittest.TestCase):
             {path.name for path in self.outputs if path.name in provider_names},
             provider_names,
         )
+        self.assertIn(gen.CONSERVATION2_BRIDGE, self.outputs)
 
     def test_generated_semantics_are_non_identity_and_kernel_only(self) -> None:
         combined = "\n".join(self.outputs.values())
@@ -79,8 +81,55 @@ class NoteReshapeNbSemanticsTest(unittest.TestCase):
         self.assertIn("nb_conservation", combined)
         self.assertIn("NetBalanceChoiceFree.fixedTrace_to_scalarMulLE", combined)
         self.assertIn("RvkToBinaryChoiceFree.to_binary_of_deployed", combined)
+        for template in gen.NB_TEMPLATES:
+            provider = self.outputs[
+                Path("/semantic-out")
+                / f"{gen.default_template_name(template.key)}.lean"
+            ]
+            self.assertIn(
+                f"(rho {template.blind_wire}).val < 2 ^ 251",
+                provider,
+            )
+            self.assertIn("hBlindRange", provider)
         self.assertNotIn("NetBalance.fixedTrace_to_nbLadderK", combined)
         self.assertNotIn("NetBalanceCommitmentBridge.nbLadder", combined)
+
+    def test_every_nb_vector_getter_unfolds_bounded_indexing(self) -> None:
+        combined = "\n".join(self.outputs.values())
+        getters = re.findall(
+            r"theorem (nb(?:In|Out|Blind)\d*Bits_get).*? := by\n"
+            r"(.*?)(?=\n\n)",
+            combined,
+            re.DOTALL,
+        )
+        expected = sum(
+            template.amount_count + 1
+            for template in gen.NB_TEMPLATES
+        )
+        self.assertEqual(len(getters), expected)
+        for name, body in getters:
+            with self.subTest(getter=name):
+                self.assertIn("getElem!_pos", body)
+                self.assertIn(
+                    "conv_lhs => rw [List.Vector.getElem_def]",
+                    body,
+                )
+                self.assertIn("List.Vector.toList_ofFn", body)
+                self.assertIn("List.getElem_ofFn", body)
+                self.assertNotEqual(body.strip(), "rfl")
+
+    def test_withdrawal_bridge_is_exactly_two_input_two_output(self) -> None:
+        bridge = self.outputs[gen.CONSERVATION2_BRIDGE]
+        self.assertIn("def ConservationNetBalanceCommitment2Spec", bridge)
+        self.assertIn("required + optional = change + withdrawal", bridge)
+        self.assertEqual(bridge.count(".val < 2 ^ 128"), 4)
+        self.assertIn("balanceBlinding.val < 2 ^ 251", bridge)
+        self.assertIn("scalarMulLE 251", bridge)
+        self.assertIn(
+            "theorem decaf377_conservationNetBalanceCommitment2_sound",
+            bridge,
+        )
+        self.assertNotIn("rho 129 + rho 258 = rho 387 ∧", bridge)
 
     def test_choice_free_shared_certificates_are_generated(self) -> None:
         literal = self.outputs[gen.FIXED_BASE_LITERAL_CHOICE_FREE]
@@ -110,6 +159,12 @@ class NoteReshapeNbSemanticsTest(unittest.TestCase):
         template = replace(gen.NB_TEMPLATES[0], key="decaf.conservation_net_balance_commitment@deadbeef")
         with self.assertRaisesRegex(ValueError, "expected one deployed instance"):
             gen.recover(template)
+
+    def test_canonical_payload_digest_drift_fails_closed(self) -> None:
+        template = gen.NB_TEMPLATE_BY_KEY[gen.CONSERVATION2_KEY]
+        with patch.object(gen.gzip, "open", return_value=io.BytesIO(b"mutated\n")):
+            with self.assertRaisesRegex(ValueError, "canonical relation digest drift"):
+                gen.normalized_rows(template)
 
     def test_conservation_pin_drift_fails_closed(self) -> None:
         template = gen.NB_TEMPLATES[0]

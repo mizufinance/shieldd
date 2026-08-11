@@ -8,7 +8,8 @@ use shieldd_sdk_proto::serializers::bech32str;
 #[test]
 fn wallet_id_to_bech32() {
     let seed = SeedPhrase::from_str("comfort ten front cycle churn burger oak absent rice ice urge result art couple benefit cabbage frequent obscure hurry trick segment cool job debate").unwrap();
-    let spend_key = SpendKey::from_seed_phrase_bip39(seed, 0);
+    let spend_key = SpendKey::from_seed_phrase_bip39(seed, 0)
+        .expect("test spend key satisfies key refinements");
     let fvk = spend_key.full_viewing_key();
     let wallet_id = fvk.wallet_id();
     let actual_bech32_str = wallet_id.to_string();

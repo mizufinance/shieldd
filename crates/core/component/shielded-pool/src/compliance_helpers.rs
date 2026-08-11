@@ -1,7 +1,7 @@
 //! Proto conversion helpers for compliance data structures.
 
 use anyhow::Result;
-use decaf377::{Fq, Fr};
+use decaf377::Fr;
 use shieldd_sdk_compliance::ComplianceLeaf;
 use shieldd_sdk_proto::core::component::compliance::v1 as compliance_pb;
 use shieldd_sdk_tct::StateCommitment;
@@ -11,10 +11,9 @@ pub fn compliance_leaf_to_proto(leaf: &ComplianceLeaf) -> compliance_pb::Complia
     compliance_pb::ComplianceLeaf {
         address: Some(leaf.address.clone().into()),
         asset_id: Some(leaf.asset_id.into()),
-        user_public_key: leaf.user_public_key.vartime_compress().0.to_vec(),
-        orbis_registration_id: (leaf.orbis_registration_id != [0u8; 32])
-            .then(|| leaf.orbis_registration_id.to_vec())
-            .unwrap_or_default(),
+        d: leaf.d.to_bytes().to_vec(),
+        slot_id: leaf.slot_id,
+        slot_derivation: leaf.slot_derivation.to_bytes().to_vec(),
     }
 }
 
@@ -47,17 +46,12 @@ pub fn parse_ephemeral_secret(bytes: &[u8]) -> Result<Option<Fr>> {
     Ok(Some(fr))
 }
 
-/// Parse a tx_blinding_nonce (Fr) from proto bytes.
-pub fn parse_tx_blinding_nonce(bytes: &[u8]) -> Result<Option<Fr>> {
-    if bytes.is_empty() {
-        return Ok(None);
-    }
+/// Parse the required per-transaction compliance nonce.
+pub fn parse_tx_blinding_nonce(bytes: &[u8]) -> Result<Fr> {
     let arr: [u8; 32] = bytes
         .try_into()
         .map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce length"))?;
-    Fr::from_bytes_checked(&arr)
-        .map(Some)
-        .map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce bytes"))
+    Fr::from_bytes_checked(&arr).map_err(|_| anyhow::anyhow!("invalid tx_blinding_nonce bytes"))
 }
 
 /// Parse a StateCommitment from an optional proto.
@@ -83,14 +77,31 @@ pub fn parse_indexed_leaf(
         .transpose()
 }
 
-pub fn default_state_commitment() -> StateCommitment {
-    StateCommitment(Fq::from(0u64))
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-pub fn default_indexed_leaf() -> shieldd_sdk_compliance::IndexedLeaf {
-    shieldd_sdk_compliance::IndexedLeaf::with_default_policy(
-        Fq::from(0u64),
-        0,
-        shieldd_sdk_compliance::indexed_tree::FQ_MAX.clone(),
-    )
+    fn fr_modulus_bytes() -> [u8; 32] {
+        let mut modulus = (-Fr::from(1u64)).to_bytes();
+        for byte in &mut modulus {
+            let (next, carry) = byte.overflowing_add(1);
+            *byte = next;
+            if !carry {
+                break;
+            }
+        }
+        modulus
+    }
+
+    #[test]
+    fn transaction_blinding_nonce_is_required_and_canonical() {
+        assert_eq!(
+            parse_tx_blinding_nonce(&Fr::from(7u64).to_bytes()).expect("canonical nonce"),
+            Fr::from(7u64)
+        );
+        for bytes in [&[][..], &[0u8; 31], &fr_modulus_bytes()] {
+            parse_tx_blinding_nonce(bytes)
+                .expect_err("missing, short, or non-canonical nonce must fail");
+        }
+    }
 }

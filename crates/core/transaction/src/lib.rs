@@ -38,9 +38,10 @@ pub use fee_funding::{FeeFunding, FeeFundingPlan};
 pub use is_action::IsAction;
 pub use parameters::TransactionParameters;
 pub use plan::{ActionPlan, TransactionPlan};
-pub use shieldd_sdk_proof_aggregation::{AggregateBundle, FamilyAggregate, ProofFamilyId};
 pub use shieldd_sdk_txhash as txhash;
-pub use transaction::{Transaction, TransactionBody, TransactionSummary};
+pub use transaction::{
+    is_no_binding_signature, no_binding_signature, Transaction, TransactionBody, TransactionSummary,
+};
 pub use view::{ActionView, MemoPlaintextView, MemoView, TransactionPerspective, TransactionView};
 pub use witness_data::WitnessData;
 

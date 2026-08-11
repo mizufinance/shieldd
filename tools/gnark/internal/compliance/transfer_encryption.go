@@ -11,28 +11,21 @@ import (
 )
 
 const (
-	TransferDetectionFQCount      = 2
+	TransferDetectionFQCount      = 4
 	TransferCoreCiphertextFQCount = 1
 	TransferExtCiphertextFQCount  = 3
-	MaxDiscoveryPrecisionBits     = 32
+	TransferSlotIDBits            = 32
 )
 
 var (
-	TransferSaltDomain            = transferSaltConstant("shieldd.transfer.compliance.salt")
-	TransferDetectionSaltLabel    = transferSaltConstant("detection")
-	TransferSenderCoreSaltLabel   = transferSaltConstant("sender_core")
-	TransferSenderExtSaltLabel    = transferSaltConstant("sender_ext")
-	TransferOutputCoreSaltLabel   = transferSaltConstant("output_core")
-	TransferOutputExtSaltLabel    = transferSaltConstant("output_ext")
-	TransferAuthorizationIDDomain = transferSaltConstant("shieldd.transfer.compliance.authorization_id.v1")
+	TransferSaltDomain          = transferSaltConstant("shieldd.transfer.compliance.salt")
+	TransferDetectionSaltLabel  = transferSaltConstant("detection")
+	TransferSenderCoreSaltLabel = transferSaltConstant("sender_core")
+	TransferSenderExtSaltLabel  = transferSaltConstant("sender_ext")
+	TransferOutputCoreSaltLabel = transferSaltConstant("output_core")
+	TransferOutputExtSaltLabel  = transferSaltConstant("output_ext")
+	transferDetectionFlagBit    = new(big.Int).Lsh(big.NewInt(1), TransferSlotIDBits)
 )
-
-func DeriveAuthorizationID(
-	api frontend.API,
-	transferNonceRoot frontend.Variable,
-) (frontend.Variable, error) {
-	return primitives.Poseidon377Hash1(api, TransferAuthorizationIDDomain, transferNonceRoot)
-}
 
 func transferSaltConstant(label string) *big.Int {
 	sum := blake2b.Sum512([]byte(label))
@@ -64,22 +57,30 @@ func DeriveTransferSalt(
 	)
 }
 
-func ThresholdFlag(api frontend.API, amount, threshold frontend.Variable) frontend.Variable {
-	return api.Sub(1, fieldLessThan(api, amount, threshold))
+func ThresholdFlag(
+	api frontend.API,
+	isRegulated frontend.Variable,
+	amount frontend.Variable,
+	threshold frontend.Variable,
+) frontend.Variable {
+	thresholdReached := api.Sub(1, fieldLessThan(api, amount, threshold))
+	return api.Mul(isRegulated, thresholdReached)
 }
 
 func VerifyPoseidonEncryptionTransferDetection(
 	api frontend.API,
-	isRegulated frontend.Variable,
 	isFlagged frontend.Variable,
 	ssDetection gnarkte.Point,
 	senderCoreEPKFq frontend.Variable,
 	detectionSalt frontend.Variable,
 	assetID frontend.Variable,
+	senderSlotID frontend.Variable,
+	receiverSlotID frontend.Variable,
 	ciphertext [TransferDetectionFQCount]frontend.Variable,
 ) error {
-	api.AssertIsBoolean(isRegulated)
 	api.AssertIsBoolean(isFlagged)
+	api.ToBinary(senderSlotID, TransferSlotIDBits)
+	api.ToBinary(receiverSlotID, TransferSlotIDBits)
 
 	vectors, err := primitives.LoadPrototypeVectors()
 	if err != nil {
@@ -98,7 +99,10 @@ func VerifyPoseidonEncryptionTransferDetection(
 		return err
 	}
 
-	detectionPlaintext := api.Add(assetID, api.Mul(isFlagged, flagBitFq()))
+	senderDetectionPlaintext := api.Add(
+		senderSlotID,
+		api.Mul(isFlagged, transferDetectionFlagBit),
+	)
 	keystream0, err := complianceStreamBlock(api, seedDetection, 0)
 	if err != nil {
 		return err
@@ -107,75 +111,29 @@ func VerifyPoseidonEncryptionTransferDetection(
 	if err != nil {
 		return err
 	}
-	AssertEqualIf(api, api.Add(detectionPlaintext, keystream0), ciphertext[0], isRegulated)
-	AssertEqualIf(api, api.Add(detectionSalt, keystream1), ciphertext[1], isRegulated)
-	return nil
-}
-
-func truncateDiscoveryPrefix(
-	api frontend.API,
-	transmissionKeyFq frontend.Variable,
-	activeBits [MaxDiscoveryPrecisionBits]frontend.Variable,
-) frontend.Variable {
-	bits := api.ToBinary(transmissionKeyFq, 253)
-	masked := make([]frontend.Variable, MaxDiscoveryPrecisionBits)
-	for i := range masked {
-		masked[i] = api.Mul(bits[i], activeBits[i])
+	keystream2, err := complianceStreamBlock(api, seedDetection, 2)
+	if err != nil {
+		return err
 	}
-	return api.FromBinary(masked...)
-}
-
-func discoveryPrecisionActiveBits(
-	api frontend.API,
-	precision frontend.Variable,
-) [MaxDiscoveryPrecisionBits]frontend.Variable {
-	var exact [MaxDiscoveryPrecisionBits + 1]frontend.Variable
-	allowed := frontend.Variable(0)
-	for i := range exact {
-		exact[i] = api.IsZero(api.Sub(precision, i))
-		allowed = api.Add(allowed, exact[i])
+	keystream3, err := complianceStreamBlock(api, seedDetection, 3)
+	if err != nil {
+		return err
 	}
-	api.AssertIsEqual(allowed, 1)
 
-	var active [MaxDiscoveryPrecisionBits]frontend.Variable
-	for i := range active {
-		active[i] = 0
-		for precisionOffset := i + 1; precisionOffset < len(exact); precisionOffset++ {
-			active[i] = api.Add(active[i], exact[precisionOffset])
-		}
-	}
-	return active
-}
-
-func VerifyTransferDiscoveryTags(
-	api frontend.API,
-	senderTransmissionKeyFq frontend.Variable,
-	receiverTransmissionKeyFq frontend.Variable,
-	precision frontend.Variable,
-	packedTags frontend.Variable,
-	trace func(string, ...string),
-) error {
-	activeBits := discoveryPrecisionActiveBits(api, precision)
-	sender := truncateDiscoveryPrefix(api, senderTransmissionKeyFq, activeBits)
-	receiver := truncateDiscoveryPrefix(api, receiverTransmissionKeyFq, activeBits)
-	if trace != nil {
-		trace("gadget.discovery_prefix", "source=address.transmission_key")
-		trace("assert.eq", "lhs=compliance.discovery_tags", "rhs=discovery.sender_tag+2^32*discovery.receiver_tag")
-	}
-	api.AssertIsEqual(packedTags, api.Add(sender, api.Mul(receiver, uint64(1)<<MaxDiscoveryPrecisionBits)))
+	api.AssertIsEqual(api.Add(assetID, keystream0), ciphertext[0])
+	api.AssertIsEqual(api.Add(detectionSalt, keystream1), ciphertext[1])
+	api.AssertIsEqual(api.Add(senderDetectionPlaintext, keystream2), ciphertext[2])
+	api.AssertIsEqual(api.Add(receiverSlotID, keystream3), ciphertext[3])
 	return nil
 }
 
 func VerifyPoseidonEncryptionTransferAmount(
 	api frontend.API,
-	isRegulated frontend.Variable,
 	sharedSecret gnarkte.Point,
 	c2 frontend.Variable,
 	amount frontend.Variable,
 	ciphertext [TransferCoreCiphertextFQCount]frontend.Variable,
 ) error {
-	api.AssertIsBoolean(isRegulated)
-
 	sharedSecretFq, err := decafgnark.CompressToField(api, sharedSecret)
 	if err != nil {
 		return err
@@ -185,21 +143,18 @@ func VerifyPoseidonEncryptionTransferAmount(
 	if err != nil {
 		return err
 	}
-	AssertEqualIf(api, api.Add(amount, keystream), ciphertext[0], isRegulated)
+	api.AssertIsEqual(api.Add(amount, keystream), ciphertext[0])
 	return nil
 }
 
 func VerifyPoseidonEncryptionTransferAddress(
 	api frontend.API,
-	isRegulated frontend.Variable,
 	sharedSecret gnarkte.Point,
 	c2 frontend.Variable,
 	diversifiedGeneratorFq frontend.Variable,
 	transmissionKeyFq frontend.Variable,
 	ciphertext [TransferExtCiphertextFQCount]frontend.Variable,
 ) error {
-	api.AssertIsBoolean(isRegulated)
-
 	sharedSecretFq, err := decafgnark.CompressToField(api, sharedSecret)
 	if err != nil {
 		return err
@@ -211,7 +166,7 @@ func VerifyPoseidonEncryptionTransferAddress(
 		if err != nil {
 			return err
 		}
-		AssertEqualIf(api, api.Add(plain, keystream), ciphertext[i], isRegulated)
+		api.AssertIsEqual(api.Add(plain, keystream), ciphertext[i])
 	}
 	return nil
 }

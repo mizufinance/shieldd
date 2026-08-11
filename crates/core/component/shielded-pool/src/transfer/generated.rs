@@ -1,3 +1,4 @@
+// Code generated from transfer_families.json. DO NOT EDIT.
 pub const PADDED_TRANSFER_INPUTS: usize = 2;
 pub const PADDED_TRANSFER_OUTPUTS: usize = 2;
 pub const TRANSFER_STATEMENT_FIELD_COUNT: usize =

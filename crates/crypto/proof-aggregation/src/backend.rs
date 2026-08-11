@@ -161,6 +161,66 @@ impl ShippingAggregateVerification {
         self.execution.shipping_observation().clone()
     }
 
+    /// Convert an accepted aggregate result into exact per-statement capabilities.
+    ///
+    /// The reconstructed canonical statement pins the deployed verification key,
+    /// family, SRS identity, counts, order, and public inputs before capabilities
+    /// are minted. Rejected or mismatched results fail closed.
+    pub fn verified_statement_capabilities(
+        &self,
+        family_id: ProofFamilyId,
+        key: shieldd_sdk_proof_params::DeployedProofKey,
+        items: &[BatchItem],
+    ) -> anyhow::Result<Vec<shieldd_sdk_proof_params::batch::VerifiedBatchItem>> {
+        anyhow::ensure!(
+            self.shipping_result.result.accepted,
+            "cannot mint proof capabilities from a rejected aggregate"
+        );
+        let srs_id: [u8; 32] = self
+            .shipping_result
+            .input
+            .srs_id
+            .as_slice()
+            .try_into()
+            .map_err(|_| anyhow::anyhow!("authenticated aggregate SRS id is not 32 bytes"))?;
+        let prepared = crate::prepare_verify_inputs(
+            items,
+            self.shipping_result.input.call.expected_padded_count,
+        )?;
+        let statement = AggregateStatement::new(
+            self.shipping_result.input.protocol_version,
+            family_id,
+            srs_id,
+            key.bundled_pvk(),
+            self.shipping_result.input.real_count,
+            &prepared.padded_public_inputs,
+        )?;
+        anyhow::ensure!(
+            statement.canonical_bytes() == self.shipping_result.input.canonical_statement_bytes,
+            "aggregate capability statement does not match authenticated verifier input"
+        );
+        anyhow::ensure!(
+            statement.statement_digest().as_slice()
+                == self.shipping_result.input.statement_digest.as_slice(),
+            "aggregate capability statement digest mismatch"
+        );
+
+        Ok(items
+            .iter()
+            .cloned()
+            .map(|item| {
+                // SAFETY: the accepted shipping result authenticates the exact
+                // reconstructed key/family/SRS/count/order/public-input statement.
+                unsafe {
+                    shieldd_sdk_proof_params::batch::VerifiedBatchItem::from_verified_statement(
+                        key,
+                        std::sync::Arc::new(item),
+                    )
+                }
+            })
+            .collect())
+    }
+
     #[cfg(test)]
     pub(crate) fn statement_construction(&self) -> &ShippingStatementConstructionProvenance {
         &self._statement_construction
@@ -373,11 +433,6 @@ impl SnarkpackBackend {
         challenge_context: &ChallengeContext,
     ) -> Result<(Vec<u8>, AggregateBuildBackendProfile)> {
         match family_id {
-            NoteReshapeFamilyId::TwoByOne => {
-                aggregate_with_digest_profiled_real_count::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
-                >(items, real_count, srs, challenge_context)
-            }
             NoteReshapeFamilyId::OneByEight => {
                 aggregate_with_digest_profiled_real_count::<
                     NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
@@ -386,11 +441,6 @@ impl SnarkpackBackend {
             NoteReshapeFamilyId::EightByOne => {
                 aggregate_with_digest_profiled_real_count::<
                     NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
-                >(items, real_count, srs, challenge_context)
-            }
-            NoteReshapeFamilyId::FourByOne => {
-                aggregate_with_digest_profiled_real_count::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
                 >(items, real_count, srs, challenge_context)
             }
             other => Err(anyhow::anyhow!(
@@ -408,11 +458,6 @@ impl SnarkpackBackend {
         srs: &DevSrs,
     ) -> Result<Vec<u8>> {
         match family_id {
-            NoteReshapeFamilyId::TwoByOne => {
-                aggregate_with_digest_real_count::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
-                >(challenge_context, items, real_count, srs)
-            }
             NoteReshapeFamilyId::OneByEight => {
                 aggregate_with_digest_real_count::<
                     NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
@@ -421,11 +466,6 @@ impl SnarkpackBackend {
             NoteReshapeFamilyId::EightByOne => {
                 aggregate_with_digest_real_count::<
                     NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
-                >(challenge_context, items, real_count, srs)
-            }
-            NoteReshapeFamilyId::FourByOne => {
-                aggregate_with_digest_real_count::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
                 >(challenge_context, items, real_count, srs)
             }
             other => Err(anyhow::anyhow!(
@@ -444,15 +484,6 @@ impl SnarkpackBackend {
         srs: &DevSrs,
     ) -> Result<AggregateVerificationProfile, AggregateVerifyError> {
         match family_id {
-            NoteReshapeFamilyId::TwoByOne => verify_with_digest_profiled::<
-                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
-            >(
-                challenge_context,
-                pvk,
-                aggregate_proof_bytes,
-                padded_public_inputs,
-                srs,
-            ),
             NoteReshapeFamilyId::OneByEight => verify_with_digest_profiled::<
                 NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
             >(
@@ -464,15 +495,6 @@ impl SnarkpackBackend {
             ),
             NoteReshapeFamilyId::EightByOne => verify_with_digest_profiled::<
                 NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
-            >(
-                challenge_context,
-                pvk,
-                aggregate_proof_bytes,
-                padded_public_inputs,
-                srs,
-            ),
-            NoteReshapeFamilyId::FourByOne => verify_with_digest_profiled::<
-                NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
             >(
                 challenge_context,
                 pvk,
@@ -565,16 +587,6 @@ impl SnarkpackBackend {
                 )
             }
             ProofFamilyId::NoteReshape(family_id) => match family_id {
-                NoteReshapeFamilyId::TwoByOne => verify_with_digest_shipping_profiled::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
-                >(
-                    call_id,
-                    call.challenge_context(),
-                    call.pvk(),
-                    call.inner_proof_bytes(),
-                    padded_public_input_fields,
-                    call.srs(),
-                ),
                 NoteReshapeFamilyId::OneByEight => verify_with_digest_shipping_profiled::<
                     NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
                 >(
@@ -587,16 +599,6 @@ impl SnarkpackBackend {
                 ),
                 NoteReshapeFamilyId::EightByOne => verify_with_digest_shipping_profiled::<
                     NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
-                >(
-                    call_id,
-                    call.challenge_context(),
-                    call.pvk(),
-                    call.inner_proof_bytes(),
-                    padded_public_input_fields,
-                    call.srs(),
-                ),
-                NoteReshapeFamilyId::FourByOne => verify_with_digest_shipping_profiled::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
                 >(
                     call_id,
                     call.challenge_context(),
@@ -2585,7 +2587,7 @@ mod tests {
         let srs = DevSrs::default();
         let padded_items =
             pad_items_to_power_of_two(&items, srs.max_padded_count as usize).expect("padding");
-        let family_id = ProofFamilyId::NoteReshape(NoteReshapeFamilyId::TwoByOne);
+        let family_id = ProofFamilyId::NoteReshape(NoteReshapeFamilyId::EightByOne);
         let statement = statement_for_items(family_id, &pvk, items.len(), &padded_items, &srs);
 
         let shipping = aggregate_family(&statement, &pvk, &padded_items, &srs)
@@ -2659,9 +2661,16 @@ mod tests {
 
     fn baseline_vectors() -> Vec<(ProofFamilyId, usize, u64)> {
         let mut vectors = Vec::new();
-        for (family_index, family_id) in parity_families().into_iter().enumerate() {
+        for family_id in parity_families() {
+            // Keep each family's fixture seed stable when another deployed
+            // family is added or retired, so byte-lock drift remains local.
+            let seed_base = match family_id {
+                ProofFamilyId::Transfer => 9_000,
+                ProofFamilyId::NoteReshape(family_id) => 9_000 + u64::from(family_id.get()) * 100,
+                ProofFamilyId::ShieldedIcs20Withdrawal(_) => 9_500,
+            };
             for count in [1usize, 2, 4, 8] {
-                let seed = 9_000 + (family_index as u64) * 100 + count as u64;
+                let seed = seed_base + count as u64;
                 vectors.push((family_id, count, seed));
             }
         }
@@ -2767,11 +2776,6 @@ mod tests {
                 &srs,
                 inner,
             ),
-            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::TwoByOne) => {
-                challenge_trace_for_digest::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::TwoByOne.get() }>,
-                >(&statement, &pvk, &padded_items, &srs, inner)
-            }
             ProofFamilyId::NoteReshape(NoteReshapeFamilyId::OneByEight) => {
                 challenge_trace_for_digest::<
                     NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::OneByEight.get() }>,
@@ -2780,11 +2784,6 @@ mod tests {
             ProofFamilyId::NoteReshape(NoteReshapeFamilyId::EightByOne) => {
                 challenge_trace_for_digest::<
                     NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::EightByOne.get() }>,
-                >(&statement, &pvk, &padded_items, &srs, inner)
-            }
-            ProofFamilyId::NoteReshape(NoteReshapeFamilyId::FourByOne) => {
-                challenge_trace_for_digest::<
-                    NoteReshapeTranscriptDigest<{ NoteReshapeFamilyId::FourByOne.get() }>,
                 >(&statement, &pvk, &padded_items, &srs, inner)
             }
             ProofFamilyId::NoteReshape(other) => {

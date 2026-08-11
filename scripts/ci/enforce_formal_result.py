@@ -226,25 +226,62 @@ def enforce() -> None:
     soundness_status = value("SOUNDNESS_STATUS")
     soundness_tier = value("SOUNDNESS_TIER")
     soundness_explanation = value("SOUNDNESS_EXPLANATION")
+    soundness_results = {
+        "soundness-gate": value("GATE"),
+        "soundness-seam-and-pin": value("SEAM"),
+        "soundness-key-coherence": value("KEY_COHERENCE"),
+        "soundness-alloy": value("ALLOY"),
+        "soundness-lean-circuit-fv": value("LEAN"),
+    }
     if soundness_status == "block":
         raise ValueError(
             f"soundness applicability blocked: {soundness_explanation}"
         )
     if soundness_status == "skip":
+        for label, result in soundness_results.items():
+            if result != "skipped":
+                raise ValueError(
+                    f"soundness skip unexpectedly ran {label}: {result}"
+                )
         print(f"soundness explained skip: {soundness_explanation}")
-    else:
-        if soundness_tier not in {"stamps", "full"}:
+    elif soundness_status == "run":
+        if soundness_tier not in {"stamps", "typed", "full"}:
             raise ValueError(f"unsupported soundness tier: {soundness_tier}")
         required.extend(
             [
-                ("soundness-gate", value("GATE")),
-                ("soundness-seam-and-pin", value("SEAM")),
-                ("soundness-vk-derivation", value("VK")),
-                ("soundness-lean-circuit-fv", value("LEAN")),
+                ("soundness-gate", soundness_results["soundness-gate"]),
+                (
+                    "soundness-seam-and-pin",
+                    soundness_results["soundness-seam-and-pin"],
+                ),
+                (
+                    "soundness-lean-circuit-fv",
+                    soundness_results["soundness-lean-circuit-fv"],
+                ),
             ]
         )
+        key_coherence = soundness_results["soundness-key-coherence"]
+        if soundness_tier == "full":
+            if key_coherence != "skipped":
+                raise ValueError(
+                    "full soundness tier unexpectedly ran standalone "
+                    f"key coherence: {key_coherence}"
+                )
+        else:
+            required.append(("soundness-key-coherence", key_coherence))
         if event_name in {"pull_request", "merge_group"}:
-            required.append(("soundness-alloy", value("ALLOY")))
+            required.append(
+                ("soundness-alloy", soundness_results["soundness-alloy"])
+            )
+        elif soundness_results["soundness-alloy"] != "skipped":
+            raise ValueError(
+                "non-candidate soundness run unexpectedly ran Alloy: "
+                + soundness_results["soundness-alloy"]
+            )
+    else:
+        raise ValueError(
+            f"invalid soundness applicability status: {soundness_status}"
+        )
 
     failures = [
         f"{label}={result}" for label, result in required if result != "success"

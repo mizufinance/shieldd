@@ -95,6 +95,7 @@ pub async fn setup_proof_storage(
                 asset_id: *BASE_ASSET_ID,
                 is_regulated: true,
                 dk_pub: Some(decaf377::Element::GENERATOR.vartime_compress().0),
+                slot_count: shieldd_sdk_compliance::DEFAULT_COMPLIANCE_SLOT_COUNT,
                 registration_authority_vk: Some(authority_vk),
             }],
             ..Default::default()
@@ -124,13 +125,9 @@ pub async fn setup_proof_storage(
         test_keys::ADDRESS_0.deref().clone(),
         test_keys::ADDRESS_1.deref().clone(),
     ] {
-        let user_public_key = *address.diversified_generator();
+        let b_d_fq = address.diversified_generator().vartime_compress_to_field();
         state
-            .add_compliance_leaf(ComplianceLeaf::new(
-                address,
-                *BASE_ASSET_ID,
-                user_public_key,
-            )?)
+            .test_only_add_compliance_leaf(ComplianceLeaf::new(address, *BASE_ASSET_ID, b_d_fq))
             .await?;
     }
     storage.commit(state).await?;

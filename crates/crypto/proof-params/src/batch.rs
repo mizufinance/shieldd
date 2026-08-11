@@ -4,10 +4,12 @@
 //! multi-pairing check: `k + 2` miller loops + 1 final exponentiation
 //! instead of `4k` miller loops + `k` final exponentiations.
 //!
-//! Uses RNG-sampled random scalars (same approach as Zcash/bellman).
-//! Nondeterminism is acceptable: for valid batches, all honest verifiers
-//! accept with probability `1 - 1/|Fr|` (≈ `1 - 2^{-253}`), which is
-//! astronomically smaller than hardware fault rates.
+//! The batch optimizer derives deterministic SHA-256 randomizers from each
+//! key/proof/input tuple. It is retained for benchmarks and non-authoritative
+//! optimization measurements. Consensus acceptance uses [`verify_each`], so
+//! it does not rely on an unproved deterministic batching argument.
+
+use std::sync::Arc;
 
 use ark_ec::{
     pairing::Pairing, scalar_mul::variable_base::VariableBaseMSM, AffineRepr, CurveGroup,
@@ -21,6 +23,8 @@ use decaf377::Bls12_377;
 use rayon::prelude::*;
 use sha2::{Digest as _, Sha256};
 
+use crate::DeployedProofKey;
+
 type Fr = <Bls12_377 as Pairing>::ScalarField;
 type G1 = <Bls12_377 as Pairing>::G1;
 type G1Affine = <Bls12_377 as Pairing>::G1Affine;
@@ -29,10 +33,47 @@ type G2Prepared = <Bls12_377 as Pairing>::G2Prepared;
 type TargetField = <Bls12_377 as Pairing>::TargetField;
 
 /// A single Groth16 proof bundled with its public inputs, ready for batch verification.
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct BatchItem {
     pub proof: Proof<Bls12_377>,
     pub public_inputs: Vec<<Bls12_377 as Pairing>::ScalarField>,
+}
+
+/// Evidence that one exact public statement verified under one deployed key.
+///
+/// The proof serialization is deliberately not part of the capability identity:
+/// independent and aggregate proofs may establish the same statement. Consumers
+/// must bind the capability back to the action-derived public inputs and key.
+#[derive(Clone)]
+pub struct VerifiedBatchItem {
+    key: DeployedProofKey,
+    item: Arc<BatchItem>,
+}
+
+impl VerifiedBatchItem {
+    /// Require this capability to name the exact key and public inputs.
+    pub fn ensure_binds(
+        &self,
+        key: DeployedProofKey,
+        item: &BatchItem,
+    ) -> Result<(), BatchVerifyError> {
+        if self.key != key || self.item.public_inputs != item.public_inputs {
+            return Err(BatchVerifyError::VerifiedItemMismatch);
+        }
+        Ok(())
+    }
+
+    /// Mint evidence after another verifier has established this exact statement.
+    ///
+    /// # Safety
+    ///
+    /// The caller must have verified a sound proof for `item.public_inputs`
+    /// under `key`. This is exposed only so the SnarkPack verifier crate can
+    /// translate its authenticated accepted result into the shared capability.
+    #[doc(hidden)]
+    pub unsafe fn from_verified_statement(key: DeployedProofKey, item: Arc<BatchItem>) -> Self {
+        Self { key, item }
+    }
 }
 
 /// Error returned by batch verification.
@@ -47,6 +88,8 @@ pub enum BatchVerifyError {
         expected: usize,
         got: usize,
     },
+    /// A verified capability was presented for another key or proof item.
+    VerifiedItemMismatch,
 }
 
 impl std::fmt::Display for BatchVerifyError {
@@ -63,6 +106,10 @@ impl std::fmt::Display for BatchVerifyError {
                     "proof {index}: expected {expected} public inputs, got {got}"
                 )
             }
+            Self::VerifiedItemMismatch => write!(
+                f,
+                "verified proof capability does not bind this deployed statement"
+            ),
         }
     }
 }
@@ -90,7 +137,12 @@ pub fn batch_verify(
     // to individual verification and keeps one code path.
 
     let k = items.len();
-    let num_public_inputs = pvk.vk.gamma_abc_g1.len() - 1;
+    let num_public_inputs = pvk
+        .vk
+        .gamma_abc_g1
+        .len()
+        .checked_sub(1)
+        .ok_or(BatchVerifyError::BatchFailed)?;
 
     // Validate input lengths upfront.
     for (i, item) in items.iter().enumerate() {
@@ -159,6 +211,74 @@ pub fn batch_verify(
     } else {
         Err(BatchVerifyError::BatchFailed)
     }
+}
+
+/// Verify every Groth16 proof independently under the supplied prepared key.
+///
+/// Consensus execution uses this path when no ceremony-derived aggregation
+/// SRS is available. Acceptance therefore does not rely on batch
+/// randomization or aggregate-proof soundness.
+pub fn verify_each(
+    pvk: &PreparedVerifyingKey<Bls12_377>,
+    items: &[BatchItem],
+) -> Result<(), BatchVerifyError> {
+    use ark_groth16::r1cs_to_qap::LibsnarkReduction;
+    use ark_groth16::Groth16;
+    use ark_snark::SNARK;
+
+    let num_public_inputs = pvk
+        .vk
+        .gamma_abc_g1
+        .len()
+        .checked_sub(1)
+        .ok_or(BatchVerifyError::BatchFailed)?;
+    for (index, item) in items.iter().enumerate() {
+        if item.public_inputs.len() != num_public_inputs {
+            return Err(BatchVerifyError::InputLengthMismatch {
+                index,
+                expected: num_public_inputs,
+                got: item.public_inputs.len(),
+            });
+        }
+        let accepted = Groth16::<Bls12_377, LibsnarkReduction>::verify_with_processed_vk(
+            pvk,
+            &item.public_inputs,
+            &item.proof,
+        )
+        .map_err(|_| BatchVerifyError::BatchFailed)?;
+        if !accepted {
+            return Err(BatchVerifyError::BatchFailed);
+        }
+    }
+    Ok(())
+}
+
+/// Verify every item and return an opaque capability for each input item.
+///
+/// Capabilities preserve input order and retain only a compact key identity
+/// and their exact item. No capability retains the prepared key or unrelated
+/// batch items, and none is returned unless the complete slice verifies.
+pub fn verify_each_with_capabilities(
+    key: DeployedProofKey,
+    items: Vec<Arc<BatchItem>>,
+) -> Result<Vec<VerifiedBatchItem>, BatchVerifyError> {
+    let pvk = key.bundled_pvk();
+    for (index, item) in items.iter().enumerate() {
+        verify_each(pvk, std::slice::from_ref(item.as_ref())).map_err(|error| match error {
+            BatchVerifyError::InputLengthMismatch { expected, got, .. } => {
+                BatchVerifyError::InputLengthMismatch {
+                    index,
+                    expected,
+                    got,
+                }
+            }
+            other => other,
+        })?;
+    }
+    Ok(items
+        .into_iter()
+        .map(|item| VerifiedBatchItem { key, item })
+        .collect())
 }
 
 /// Diagnostic function: individually verify each proof and return indices of failures.
@@ -415,6 +535,76 @@ mod tests {
         }
 
         #[test]
+        fn verified_capabilities_bind_exact_key_item_and_order() {
+            let mut rng = ChaCha20Rng::seed_from_u64(19);
+            let setup_circuit = SquareCircuit {
+                x: Some(Fr::from(1u64)),
+            };
+            let pk =
+                Groth16::<Bls12_377, LibsnarkReduction>::generate_random_parameters_with_reduction(
+                    setup_circuit,
+                    &mut rng,
+                )
+                .expect("setup should succeed");
+            let items = [Fr::from(3u64), Fr::from(5u64)]
+                .into_iter()
+                .map(|x| BatchItem {
+                    proof: Groth16::<Bls12_377, LibsnarkReduction>::prove(
+                        &pk,
+                        SquareCircuit { x: Some(x) },
+                        &mut rng,
+                    )
+                    .expect("prove should succeed"),
+                    public_inputs: vec![x * x],
+                })
+                .collect::<Vec<_>>();
+            let expected = items.clone();
+
+            let capabilities = items
+                .into_iter()
+                .map(|item| VerifiedBatchItem {
+                    key: DeployedProofKey::Transfer,
+                    item: Arc::new(item),
+                })
+                .collect::<Vec<_>>();
+            assert_eq!(capabilities.len(), expected.len());
+            for (capability, item) in capabilities.iter().zip(&expected) {
+                capability
+                    .ensure_binds(DeployedProofKey::Transfer, item)
+                    .expect("capability order must match input order");
+            }
+            assert!(matches!(
+                capabilities[0].ensure_binds(DeployedProofKey::Transfer, &expected[1]),
+                Err(BatchVerifyError::VerifiedItemMismatch)
+            ));
+
+            let mut wrong_item = expected[0].clone();
+            wrong_item.public_inputs[0] += Fr::from(1u64);
+            assert!(matches!(
+                capabilities[0].ensure_binds(DeployedProofKey::Transfer, &wrong_item),
+                Err(BatchVerifyError::VerifiedItemMismatch)
+            ));
+
+            for wrong_key in DeployedProofKey::ALL
+                .into_iter()
+                .filter(|key| *key != DeployedProofKey::Transfer)
+            {
+                assert!(matches!(
+                    capabilities[0].ensure_binds(wrong_key, &expected[0]),
+                    Err(BatchVerifyError::VerifiedItemMismatch)
+                ));
+            }
+        }
+
+        #[test]
+        fn verified_capability_retains_only_one_item_and_compact_key_id() {
+            assert!(
+                std::mem::size_of::<VerifiedBatchItem>() <= 2 * std::mem::size_of::<usize>(),
+                "capability must not retain a batch vector or prepared verification key"
+            );
+        }
+
+        #[test]
         fn batch_rejects_mutated_proof() {
             let mut rng = ChaCha20Rng::seed_from_u64(0);
             let x = Fr::from(7u64);
@@ -446,6 +636,10 @@ mod tests {
                 batch_verify(&pvk, &items).is_err(),
                 "batch verify should reject mutated proof"
             );
+            assert!(
+                verify_each(&pvk, &items).is_err(),
+                "independent verification should reject mutated proof"
+            );
         }
 
         #[test]
@@ -476,6 +670,10 @@ mod tests {
             assert!(
                 batch_verify(&pvk, &items).is_err(),
                 "batch verify should reject wrong inputs"
+            );
+            assert!(
+                verify_each(&pvk, &items).is_err(),
+                "independent verification should reject wrong inputs"
             );
         }
 
@@ -534,6 +732,7 @@ mod tests {
             let pvk: PreparedVerifyingKey<Bls12_377> = pk.vk.into();
 
             assert!(batch_verify(&pvk, &[]).is_ok());
+            assert!(verify_each(&pvk, &[]).is_ok());
         }
 
         #[test]
@@ -556,6 +755,36 @@ mod tests {
                 }) => {}
                 other => panic!("expected InputLengthMismatch, got {:?}", other.err()),
             }
+            match verify_each(&pvk, &items) {
+                Err(BatchVerifyError::InputLengthMismatch {
+                    index: 0,
+                    expected: 1,
+                    got: 0,
+                }) => {}
+                other => panic!("expected InputLengthMismatch, got {:?}", other.err()),
+            }
+        }
+
+        #[test]
+        fn verification_rejects_key_without_input_accumulator() {
+            let mut rng = ChaCha20Rng::seed_from_u64(0);
+            let x = Fr::from(7u64);
+            let (pk, proof, public_inputs) = setup_and_prove(&mut rng, x);
+            let mut pvk: PreparedVerifyingKey<Bls12_377> = pk.vk.into();
+            pvk.vk.gamma_abc_g1.clear();
+            let items = vec![BatchItem {
+                proof,
+                public_inputs,
+            }];
+
+            assert!(matches!(
+                batch_verify(&pvk, &items),
+                Err(BatchVerifyError::BatchFailed)
+            ));
+            assert!(matches!(
+                verify_each(&pvk, &items),
+                Err(BatchVerifyError::BatchFailed)
+            ));
         }
     }
 }

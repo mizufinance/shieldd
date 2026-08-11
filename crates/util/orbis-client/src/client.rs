@@ -9,29 +9,17 @@ use orbis_common::blockchain::{
 };
 use orbis_proto::{
     info_service::{info_service_client::InfoServiceClient, GetNodeInfoRequest},
-    v0::{
-        dkg::{dkg_service_client::DkgServiceClient, StartDkgRequest},
-        pre::{pre_service_client::PreServiceClient, StartPreRequest, TimestampRange},
-        store_secret::{store_secret_service_client::StoreSecretServiceClient, StoreSecretRequest},
-    },
+    v0::dkg::{dkg_service_client::DkgServiceClient, StartDkgRequest},
 };
 use orbis_tonic::transport::Endpoint;
-use serde::Deserialize;
 
-use crate::types::{DkgResult, NodeInfo, PreResult, RingInfo, StoreSecretResult};
-use shieldd_sdk_compliance::{OrbisEncryptedSeedUploadPackage, OrbisSecretEnvelope};
+use crate::types::{DkgResult, NodeInfo, RingInfo};
 
 const SOURCEHUB_TX_MAX_RETRIES: u32 = 30;
 
 /// Minimum `pss_interval` (seconds) the orbis x/pss module accepts for a ring.
 /// Values below this are rejected as `invalid ring`.
 const PSS_INTERVAL_MIN_SECS: u64 = 86_400;
-
-#[derive(Debug, Deserialize)]
-struct PreResponse {
-    xnc_cmt: String,
-    secret: OrbisSecretEnvelope,
-}
 
 pub struct OrbisClient {
     endpoint: Endpoint,
@@ -296,68 +284,6 @@ impl OrbisClient {
         bail!("created ACP policy, but could not find a policy defining {resource}/{permission}")
     }
 
-    pub async fn store_encrypted_seed_package(
-        &self,
-        ring_id: &str,
-        package: &OrbisEncryptedSeedUploadPackage,
-        jwt_signer: &JwtSigner,
-    ) -> Result<StoreSecretResult> {
-        let channel = self
-            .endpoint
-            .clone()
-            .connect()
-            .await
-            .map_err(|e| anyhow!("failed to connect to Orbis store-secret endpoint: {}", e))?;
-        let mut client = StoreSecretServiceClient::new(channel);
-
-        let request = StoreSecretRequest {
-            encrypted_document: package.encrypted_document.clone(),
-            enc_cmt: package.enc_cmt.clone(),
-            ring_id: ring_id.to_string(),
-            policy_id: package.policy_id.clone(),
-            resource: package.resource.clone(),
-            permission: package.permission.clone(),
-            shared_point: package.shared_point.clone(),
-            challenge: package.orbis_challenge.clone(),
-            response: package.orbis_response.clone(),
-            with_proof: false,
-            tier: Some(package.tier_label.clone()),
-            timestamp: Some(package.timestamp),
-        };
-
-        let token = jwt_signer
-            .create_store_secret_jwt(
-                &package.encrypted_document,
-                package.enc_cmt.clone(),
-                ring_id,
-                &package.policy_id,
-                &package.resource,
-                &package.permission,
-                package.shared_point.clone(),
-                package.orbis_challenge.clone(),
-                package.orbis_response.clone(),
-                false,
-                Some(package.tier_label.clone()),
-                Some(package.timestamp),
-            )
-            .map_err(|e| anyhow!("failed to create Orbis store-secret JWT: {}", e))?;
-
-        let response = client
-            .store_secret(create_authenticated_request(request, &token)?)
-            .await
-            .map_err(|e| anyhow!("Orbis store-secret request failed: {}", e))?
-            .into_inner();
-
-        Ok(StoreSecretResult {
-            status: response.status,
-            message: response.message,
-            created_at: response.created_at,
-            object_id: response.object_id,
-            ring_id: response.ring_id,
-            signature: response.signature,
-        })
-    }
-
     pub async fn register_object(
         client: &SourceHubClient,
         policy_id: &str,
@@ -406,66 +332,6 @@ impl OrbisClient {
             || client.acp_set_relationship(policy_id, relationship.clone()),
         )
         .await
-    }
-
-    pub async fn start_pre(
-        &self,
-        reader_pk_hex: &str,
-        object_id: &str,
-        derivation_hex: Option<&str>,
-        salt: Option<&str>,
-        timestamp: Option<u64>,
-        jwt_signer: &JwtSigner,
-    ) -> Result<PreResult> {
-        let channel = self
-            .endpoint
-            .clone()
-            .connect()
-            .await
-            .map_err(|e| anyhow!("failed to connect to Orbis PRE endpoint: {}", e))?;
-        let mut client = PreServiceClient::new(channel);
-
-        let reader_pk_bytes =
-            hex::decode(reader_pk_hex).context("failed to decode reader key hex")?;
-        let derivation_bytes = derivation_hex
-            .map(hex::decode)
-            .transpose()
-            .context("failed to decode derivation hex")?;
-
-        let request = StartPreRequest {
-            rdr_pk: reader_pk_bytes.clone(),
-            object_id: object_id.to_string(),
-            derivation: derivation_bytes.clone(),
-            salt: salt.map(str::to_owned),
-            valid_window: timestamp.map(|ts| TimestampRange { start: ts, end: ts }),
-        };
-
-        let token = jwt_signer
-            .create_pre_jwt(
-                reader_pk_bytes,
-                object_id,
-                derivation_bytes,
-                salt.map(str::to_owned),
-            )
-            .map_err(|e| anyhow!("failed to create Orbis PRE JWT: {}", e))?;
-
-        let response = client
-            .start_pre(create_authenticated_request(request, &token)?)
-            .await
-            .map_err(|e| anyhow!("Orbis PRE request failed: {}", e))?
-            .into_inner();
-
-        if response.encrypted_secret.is_empty() {
-            bail!("Orbis PRE response did not include encrypted_secret");
-        }
-
-        let pre_response: PreResponse = serde_json::from_slice(&response.encrypted_secret)
-            .map_err(|e| anyhow!("failed to parse PRE response JSON: {}", e))?;
-
-        Ok(PreResult {
-            xnc_cmt_hex: pre_response.xnc_cmt,
-            secret: pre_response.secret,
-        })
     }
 
     async fn policy_defines_resource(

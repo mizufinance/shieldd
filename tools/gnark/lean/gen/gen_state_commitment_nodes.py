@@ -17,6 +17,8 @@ import json
 import pathlib
 import re
 
+from formal_json import read_json_object
+from poseidon_constants import rounds as poseidon_round_constants
 from write_if_changed import write_if_changed
 
 ROOT = pathlib.Path(__file__).resolve().parents[4]
@@ -24,7 +26,6 @@ LEAN_ROOT = ROOT / "tools/gnark/lean/ShielddGnarkFormal"
 EXTRACTED = LEAN_ROOT / "Extracted/Deployed"
 DEPLOYED = LEAN_ROOT / "Deployed"
 SR1CS = ROOT / "tools/gnark/artifacts/note_reshape2x1/note_reshape2x1.sr1cs"
-POSEIDON4 = LEAN_ROOT / "Poseidon4Bridge.lean"
 VECTORS = ROOT / "tools/gnark/internal/primitives/vectors/phase05_vectors.json"
 
 NODE0_START = 8173
@@ -124,20 +125,10 @@ def shape_hash(rows):
 
 
 def parse_round_constants():
-    out = {}
-    for line in POSEIDON4.read_text().splitlines():
-        m = re.search(r"let gate_(\d+) := (?:fr5|pr5)", line)
-        if not m:
-            continue
-        idx = int(m.group(1))
-        arc = line.rsplit("vec![", 1)[1].split("]", 1)[0]
-        vals = [int(x) for x in re.findall(r"\((\d+):F\)", arc)]
-        if len(vals) != WIDTH:
-            raise ValueError(f"gate_{idx} has {len(vals)} constants")
-        out[idx] = vals
-    if sorted(out) != list(range(39)):
-        raise ValueError(f"missing Poseidon4 constants: {sorted(out)}")
-    return {str(k): [str(x) for x in v] for k, v in out.items()}
+    return {
+        str(index): [str(value) for value in values]
+        for index, (_, values) in enumerate(poseidon_round_constants(4))
+    }
 
 
 def verify_sbox(rows, seg):
@@ -357,7 +348,10 @@ def gen_leaf(sr1cs_rows, tct_domain):
     op = "gadget.state_commitment_path.leaf"
     start, end = LEAF_START, LEAF_START + 230
     rows = [parse_constraint(line) for line in sr1cs_rows[start:end]]
-    nb = json.loads((pathlib.Path(__file__).resolve().parent / "net_balance_gendata.json").read_text())
+    nb = read_json_object(
+        pathlib.Path(__file__).resolve().parent / "net_balance_gendata.json",
+        canonical="pretty",
+    )
 
     final_outputs = []
     local_outputs = []
@@ -485,7 +479,7 @@ def main():
         if line.strip().startswith("(constraint ")
     ]
     cs = parse_round_constants()
-    vectors = json.loads(VECTORS.read_text())
+    vectors = read_json_object(VECTORS, canonical="pretty_go")
     tct_domain = int(vectors["poseidon377"]["tct_domain"])
     stems = {}
     for level in range(LEVELS):
