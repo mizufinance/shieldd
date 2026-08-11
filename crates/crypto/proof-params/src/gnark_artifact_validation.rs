@@ -346,7 +346,7 @@ pub(crate) fn validate_repository_artifacts(
     Ok(())
 }
 
-/// Validate the external SR1CS and proving key against committed metadata.
+/// Validate the materialized SR1CS and proving key against committed metadata.
 pub(crate) fn validate_materialized_artifacts(
     artifact_root: &Path,
     family: DeployedFamily,

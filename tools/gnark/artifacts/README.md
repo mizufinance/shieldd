@@ -1,38 +1,30 @@
 # Proof artifacts
 
-Git contains the canonical metadata, manifests, setup receipts, and verification
-keys for each deployed proof family. The large SR1CS and proving-key files are
-kept in one rolling GitHub Release asset for the POC; old key generations are
-not retained.
+Git LFS stores only the current SR1CS and proving key for each deployed proof
+family. Metadata, manifests, setup receipts, verification keys, fixtures, and
+frontend assets are ordinary Git files.
 
-Materialize and validate the current files before a bundled-prover build:
+A normal clone with Git LFS installed materializes the current artifacts. For a
+clone made with LFS smudging disabled, or after clearing the files locally, run:
 
 ```sh
 python3 scripts/proof_artifacts.py materialize
 python3 scripts/proof_artifacts.py verify
 ```
 
-After intentionally regenerating all four deployed families, replace the
-rolling asset:
+The helper pulls exactly the eight paths listed in `.gitattributes` and checks
+their hashes against each family's committed `circuit_metadata.json`. Proof and
+integration recipes call it before builds that bundle proving keys.
 
-```sh
-python3 scripts/proof_artifacts.py publish
-```
+CI checkouts do not hydrate LFS globally. Jobs that need proving material use a
+cache keyed by the committed metadata and fall back to that same exact-path LFS
+pull on a cache miss.
 
-`publish` requires `gh` authentication and replaces the asset attached to the
-prerelease tag declared in `current-bundle.json`. The hashes in each family's
-committed `circuit_metadata.json` remain the source of truth.
+## Rotating proof material
 
-## Rollout
-
-1. Run `publish` once before merging the commit that removes the large files.
-   The bootstrap bundle can be published directly with
-   `python3 scripts/proof_artifacts.py publish --archive path/to/shieldd-proof-artifacts.zip`.
-2. Exercise a manual bundled-prover workflow and confirm it downloads the
-   release bundle rather than repository large-file storage.
-3. Merge the change, then remove historical large-file objects separately.
-   Deleting pointers from the current branch does not remove already-billed
-   objects from repository history; use the hosting provider's purge process or
-   replace the POC repository after preserving the source-only history.
-4. Keep the release tag rolling. Regeneration replaces its one asset; it does
-   not create dated key archives.
+Regenerate and commit the same current artifact paths plus their metadata. Do
+not add dated key directories or broaden the LFS patterns. GitHub retains old
+LFS objects for billing even after a branch stops referencing them, so removing
+old generations from billed storage is a separate provider cleanup operation.
+For this POC, request an LFS-object purge or recreate the repository after
+preserving the desired source history when historical storage becomes material.

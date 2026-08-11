@@ -789,8 +789,6 @@ jobs:
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
       - uses: ./.github/actions/materialize-proof-artifacts
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Statement-field seam and parity
         working-directory: tools/gnark
         run: |
@@ -845,8 +843,6 @@ jobs:
         with:
           workspaces: "."
       - uses: ./.github/actions/materialize-proof-artifacts
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Cache Go build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:

@@ -347,8 +347,8 @@ mod statement_parity_tests {
                 .unwrap_or_else(|e| panic!("load metadata for {family}: {e}"));
 
             // The strict metadata decoder requires all pins. The repository
-            // validator checks setup and verification material; the external
-            // bundle is checked independently before bundled-prover builds.
+            // validator checks setup and verification material; materialized
+            // proving artifacts are checked before bundled-prover builds.
             validate_repository_hashes(&family_dir, &metadata, family)
                 .unwrap_or_else(|e| panic!("hash validation for {family}: {e}"));
 

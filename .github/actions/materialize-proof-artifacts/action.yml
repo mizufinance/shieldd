@@ -1,23 +1,22 @@
 name: Materialize proof artifacts
-description: Restore and verify the current external POC proof bundle.
-
-inputs:
-  github-token:
-    description: Token used to download the rolling release asset on a cache miss.
-    required: true
+description: Restore and validate the current Git LFS proof artifacts.
 
 runs:
   using: composite
   steps:
-    - name: Restore proof bundle cache
+    - name: Restore proof artifact cache
       uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
         path: |
-          tools/gnark/artifacts/*/*.sr1cs
-          tools/gnark/artifacts/*/proving_key.bin
-        key: proof-artifacts-v1-${{ hashFiles('tools/gnark/artifacts/current-bundle.json', 'tools/gnark/artifacts/*/circuit_metadata.json') }}
-    - name: Download and validate proof bundle
+          tools/gnark/artifacts/note_reshape1x8/note_reshape1x8.sr1cs
+          tools/gnark/artifacts/note_reshape1x8/proving_key.bin
+          tools/gnark/artifacts/note_reshape8x1/note_reshape8x1.sr1cs
+          tools/gnark/artifacts/note_reshape8x1/proving_key.bin
+          tools/gnark/artifacts/shielded_ics20_withdrawal/shielded_ics20_withdrawal.sr1cs
+          tools/gnark/artifacts/shielded_ics20_withdrawal/proving_key.bin
+          tools/gnark/artifacts/transfer/transfer.sr1cs
+          tools/gnark/artifacts/transfer/proving_key.bin
+        key: proof-artifacts-lfs-v1-${{ hashFiles('tools/gnark/artifacts/*/circuit_metadata.json') }}
+    - name: Materialize and validate proof artifacts
       shell: bash
-      env:
-        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: python3 "$GITHUB_ACTION_PATH/../../../scripts/proof_artifacts.py" materialize

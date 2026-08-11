@@ -377,7 +377,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "requires the materialized current proof-artifact bundle"]
     fn real_rvk_slice_is_exhaustive_and_bit_exact() {
         let artifact_dir = "../../../tools/gnark/artifacts/note_reshape1x8";
         let data = std::fs::read(format!("{artifact_dir}/note_reshape1x8.sr1cs"))

@@ -4,7 +4,7 @@
 # instead of curl-installing on every run. Removes the recurring
 # raw.githubusercontent.com 429 that flaked the elan-init.sh fetch.
 #
-# Contents: Go, Rust (pinned), elan+Lean (pinned), ripgrep, git, xz.
+# Contents: Go, Rust (pinned), elan+Lean (pinned), ripgrep, git, lfs, xz.
 # Deliberately NO solvers / nix / hax: lean-circuit-fv uses none of them; those
 # are provers-only (nightly) and are a separate, heavier image.
 #
@@ -16,11 +16,12 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      ca-certificates curl git unzip xz-utils ripgrep \
+      ca-certificates curl git git-lfs unzip xz-utils ripgrep \
       build-essential pkg-config libssl-dev \
       clang lld \
       jq python3 perl procps \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && git lfs install --system
 
 # --- Go (matches tools/gnark/go.mod: go 1.25.4) ----------------------------
 ARG GO_VERSION=1.25.4
@@ -70,6 +71,6 @@ RUN set -eux; \
     jq --version; python3 --version; shasum -a 256 /dev/null >/dev/null; \
     rustc --print target-list | grep -qx wasm32-unknown-unknown; \
     elan --version; lean --version; lake --version; \
-    rg --version; git --version
+    rg --version; git lfs version
 
 CMD ["/bin/bash"]

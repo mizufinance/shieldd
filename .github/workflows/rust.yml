@@ -21,12 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Reject LFS and scheduled proof jobs
-        run: python3 scripts/check_no_lfs.py
+      - name: Enforce narrow LFS and proof scheduling policy
+        run: python3 scripts/check_lfs_policy.py
 
       - uses: ./.github/actions/materialize-proof-artifacts
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: ./.github/actions/setup-nix-rust
 
@@ -73,8 +71,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - uses: ./.github/actions/materialize-proof-artifacts
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -101,8 +97,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - uses: ./.github/actions/materialize-proof-artifacts
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: ./.github/actions/setup-nix-rust
         with:
@@ -165,8 +159,6 @@ jobs:
           free-disk: "true"
 
       - uses: ./.github/actions/materialize-proof-artifacts
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run gnark-backed Rust proof tests
         run: nix develop --command just ci-gnark-proof-tests

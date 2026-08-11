@@ -2,9 +2,10 @@ import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
-import zipfile
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -16,12 +17,12 @@ PROOF_ARTIFACTS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PROOF_ARTIFACTS)
 
 
-class ProofArtifactBundleTest(unittest.TestCase):
+class ProofArtifactsTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
-        self.artifacts = self.root / "artifacts"
+        self.artifacts = self.root / "tools" / "gnark" / "artifacts"
         family_dir = self.artifacts / "transfer"
         family_dir.mkdir(parents=True)
         self.sr1cs = b"synthetic sr1cs"
@@ -30,61 +31,55 @@ class ProofArtifactBundleTest(unittest.TestCase):
             "schema": "shieldd.gnark.circuit_metadata.v2",
             "circuit": "transfer",
             "sr1cs_sha256_hex": hashlib.sha256(self.sr1cs).hexdigest(),
-            "proving_key_sha256_hex": hashlib.sha256(
-                self.proving_key
-            ).hexdigest(),
+            "proving_key_sha256_hex": hashlib.sha256(self.proving_key).hexdigest(),
             "proving_key_size_bytes": len(self.proving_key),
         }
         (family_dir / "circuit_metadata.json").write_text(json.dumps(metadata))
         (family_dir / "transfer.sr1cs").write_bytes(self.sr1cs)
         (family_dir / "proving_key.bin").write_bytes(self.proving_key)
-        self.config = self.artifacts / "current-bundle.json"
-        self.config.write_text(
-            json.dumps(
-                {
-                    "schema": PROOF_ARTIFACTS.SCHEMA,
-                    "repository": "example/shieldd",
-                    "release_tag": "current",
-                    "asset": "proofs.zip",
-                    "families": ["transfer"],
-                }
-            )
-        )
+        self.original_repo_root = PROOF_ARTIFACTS.REPO_ROOT
         self.original_artifact_root = PROOF_ARTIFACTS.ARTIFACT_ROOT
-        self.original_bundle_config = PROOF_ARTIFACTS.BUNDLE_CONFIG
+        self.original_families = PROOF_ARTIFACTS.FAMILIES
+        PROOF_ARTIFACTS.REPO_ROOT = self.root
         PROOF_ARTIFACTS.ARTIFACT_ROOT = self.artifacts
-        PROOF_ARTIFACTS.BUNDLE_CONFIG = self.config
+        PROOF_ARTIFACTS.FAMILIES = ("transfer",)
         self.addCleanup(self.restore_globals)
 
     def restore_globals(self) -> None:
+        PROOF_ARTIFACTS.REPO_ROOT = self.original_repo_root
         PROOF_ARTIFACTS.ARTIFACT_ROOT = self.original_artifact_root
-        PROOF_ARTIFACTS.BUNDLE_CONFIG = self.original_bundle_config
+        PROOF_ARTIFACTS.FAMILIES = self.original_families
 
-    def test_pack_and_materialize_round_trip(self) -> None:
-        archive = self.root / "proofs.zip"
-        PROOF_ARTIFACTS.pack(archive)
-        (self.artifacts / "transfer" / "transfer.sr1cs").unlink()
-        (self.artifacts / "transfer" / "proving_key.bin").unlink()
+    def test_verify_accepts_metadata_pinned_files(self) -> None:
+        PROOF_ARTIFACTS.verify()
 
-        PROOF_ARTIFACTS.materialize(archive)
+    def test_materialize_pulls_only_current_paths(self) -> None:
+        sr1cs = self.artifacts / "transfer" / "transfer.sr1cs"
+        proving_key = self.artifacts / "transfer" / "proving_key.bin"
+        sr1cs.unlink()
+        proving_key.unlink()
 
+        def fake_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+            sr1cs.write_bytes(self.sr1cs)
+            proving_key.write_bytes(self.proving_key)
+            return subprocess.CompletedProcess(command, 0)
+
+        with mock.patch.object(PROOF_ARTIFACTS.subprocess, "run", side_effect=fake_run) as run:
+            PROOF_ARTIFACTS.materialize()
+
+        command = run.call_args.args[0]
+        self.assertEqual(command[:3], ["git", "lfs", "pull"])
+        self.assertEqual(command[-1], "--exclude=")
         self.assertEqual(
-            (self.artifacts / "transfer" / "transfer.sr1cs").read_bytes(),
-            self.sr1cs,
-        )
-        self.assertEqual(
-            (self.artifacts / "transfer" / "proving_key.bin").read_bytes(),
-            self.proving_key,
+            command[-2],
+            "--include=tools/gnark/artifacts/transfer/transfer.sr1cs,"
+            "tools/gnark/artifacts/transfer/proving_key.bin",
         )
 
-    def test_archive_rejects_unexpected_members(self) -> None:
-        archive = self.root / "proofs.zip"
-        with zipfile.ZipFile(archive, "w") as bundle:
-            bundle.writestr("unexpected", b"data")
-
-        with tempfile.TemporaryDirectory() as destination:
-            with self.assertRaises(PROOF_ARTIFACTS.ArtifactError):
-                PROOF_ARTIFACTS.validate_archive(archive, Path(destination))
+    def test_materialize_skips_lfs_when_files_are_valid(self) -> None:
+        with mock.patch.object(PROOF_ARTIFACTS.subprocess, "run") as run:
+            PROOF_ARTIFACTS.materialize()
+        run.assert_not_called()
 
 
 if __name__ == "__main__":
