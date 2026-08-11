@@ -97,12 +97,6 @@ ignore = [
     "RUSTSEC-2026-0046",
     "RUSTSEC-2026-0047",
     "RUSTSEC-2026-0048",
-
-    # im 15.1.0 is unmaintained and has no patched release. The reported
-    # aliasing violation is limited to OrdSet insertion; Shieldd uses only
-    # HashMap, OrdMap, and Vector. Exit: replace im with a maintained
-    # persistent-collection crate, or remove it from the workspace.
-    "RUSTSEC-2023-0126",
 ]
 
 # ---------------------------------------------------------------------------
