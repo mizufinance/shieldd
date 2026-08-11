@@ -303,7 +303,19 @@ class RustWorkflowWiringTests(unittest.TestCase):
         for lane in ("features", "test"):
             with self.subTest(blacksmith_lane=lane):
                 self.assertIn(
-                    "runs-on: blacksmith-8vcpu-ubuntu-2404",
+                    "github.event_name == 'pull_request'",
+                    jobs[lane],
+                )
+                self.assertIn(
+                    "github.event_name == 'merge_group'",
+                    jobs[lane],
+                )
+                self.assertIn(
+                    "'blacksmith-8vcpu-ubuntu-2404'",
+                    jobs[lane],
+                )
+                self.assertIn(
+                    "|| 'ubuntu-24.04'",
                     jobs[lane],
                 )
 
@@ -354,6 +366,26 @@ class OrbisWorkflowWiringTests(unittest.TestCase):
 
 
 class GeneralRunnerPolicyWiringTests(unittest.TestCase):
+    def test_nonformal_candidate_compute_lanes_have_explicit_caps(self) -> None:
+        root = SCRIPT.parents[2]
+        docs = (root / ".github/workflows/docs-lint.yml").read_text(
+            encoding="utf-8"
+        )
+        protobuf = (
+            root / ".github/workflows/buf-pull-request.yml"
+        ).read_text(encoding="utf-8")
+        smoke = (root / ".github/workflows/smoke.yml").read_text(
+            encoding="utf-8"
+        )
+        orbis = (
+            root / ".github/workflows/orbis-integration.yml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("timeout-minutes: 25", docs)
+        self.assertIn("timeout-minutes: 25", protobuf)
+        self.assertIn("&& 45 || 90", smoke)
+        self.assertIn("timeout-minutes: 45", orbis)
+
     def test_container_publication_uses_one_sha_across_architectures(self) -> None:
         root = SCRIPT.parents[2]
         workflow = (root / ".github/workflows/containers.yml").read_text(
@@ -387,7 +419,19 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
             )
         )
         self.assertIn(
-            "runs-on: blacksmith-16vcpu-ubuntu-2404",
+            "github.event_name == 'pull_request'",
+            jobs["smoke"],
+        )
+        self.assertIn(
+            "github.event_name == 'merge_group'",
+            jobs["smoke"],
+        )
+        self.assertIn(
+            "'blacksmith-16vcpu-ubuntu-2404'",
+            jobs["smoke"],
+        )
+        self.assertIn(
+            "|| 'ubuntu-24.04'",
             jobs["smoke"],
         )
         for lane in ("paths", "summary"):
@@ -405,20 +449,18 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
         )
 
         self.assertNotIn("runs-on: blacksmith-", provers)
-        self.assertEqual(formal.count("runs-on: blacksmith-"), 1)
-        self.assertEqual(
-            formal.count("runs-on: blacksmith-16vcpu-ubuntu-2404"),
-            1,
-        )
+        self.assertNotIn("blacksmith-", formal)
 
-    def test_orbis_remains_accelerated(self) -> None:
+    def test_orbis_uses_blacksmith_only_for_merge_candidates(self) -> None:
         workflow = (
             SCRIPT.parents[2] / ".github/workflows/orbis-integration.yml"
         ).read_text(encoding="utf-8")
-        self.assertEqual(
-            workflow.count("runs-on: blacksmith-16vcpu-ubuntu-2404"),
-            1,
+        self.assertIn("github.event_name == 'pull_request'", workflow)
+        self.assertIn("github.event_name == 'merge_group'", workflow)
+        self.assertIn(
+            "'blacksmith-16vcpu-ubuntu-2404'", workflow
         )
+        self.assertIn("|| 'ubuntu-24.04'", workflow)
 
 
 class SnarkPackReleaseAuditWorkflowWiringTests(unittest.TestCase):

@@ -8,9 +8,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SAFE_BUILD = ROOT / "scripts/lean-build-safe.sh"
+LEAF_BENCH = ROOT / "scripts/lean-leaf-bench.sh"
 
 
 class SafeLeanBuildTests(unittest.TestCase):
+    def test_rss_sampler_uses_portable_ps_output_selection(self) -> None:
+        for script in (SAFE_BUILD, LEAF_BENCH):
+            with self.subTest(script=script.name):
+                source = script.read_text(encoding="utf-8")
+                self.assertIn("ps -e -o rss= -o pgid=", source)
+                self.assertNotIn("ps aux -o pgid=", source)
+
     def run_with_fake_lake(
         self,
         script: str,

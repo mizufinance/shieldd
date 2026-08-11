@@ -39,11 +39,11 @@ jobs:
   flow:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: blacksmith-16vcpu-ubuntu-2404
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     timeout-minutes: 45
     concurrency:
       group: orbis-integration-host-stack-v1
-      cancel-in-progress: false
+      cancel-in-progress: true
     env:
       COMPLIANCE_TMP: /tmp/orbis-${{ github.run_id }}-${{ github.run_attempt }}
       SHIELDD_PD_GRPC_PORT: "28080"
@@ -121,6 +121,7 @@ jobs:
     needs: [applicability, flow]
     if: always()
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Check Orbis integration result
         env:

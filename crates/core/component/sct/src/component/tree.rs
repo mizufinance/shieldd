@@ -426,7 +426,7 @@ pub trait SctRead: StateRead {
     }
 
     /// Return the set of nullifiers that have been spent in the current block.
-    fn pending_nullifiers(&self) -> im::Vector<Nullifier> {
+    fn pending_nullifiers(&self) -> imbl::Vector<Nullifier> {
         self.object_get(state_key::nullifier_set::pending_nullifiers())
             .unwrap_or_default()
     }

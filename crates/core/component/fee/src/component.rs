@@ -54,7 +54,7 @@ impl Component for FeeComponent {
         let fees = state_ref.accumulated_base_fees_and_tips();
 
         let (swapped_base, swapped_tip) = fees
-            .get(&shieldd_sdk_asset::BASE_ASSET_ID)
+            .get(&*shieldd_sdk_asset::BASE_ASSET_ID)
             .cloned()
             .unwrap_or_default();
 

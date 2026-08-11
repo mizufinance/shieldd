@@ -7,6 +7,19 @@ PROTOCOL_ROOT="$ROOT/tools/gnark/lean/ShielddGnarkFormal/Protocol"
 GENERATOR_DIR="$ROOT/tools/gnark/lean/gen"
 PIN="$ROOT/tools/gnark/lean/certified-protocol-semantics.sha256"
 
+MODE="${1:-}"
+semantic_digest_args=()
+case "$MODE" in
+  candidate)
+    semantic_digest_args=(--skip-semantic-digest)
+    ;;
+  strict) ;;
+  *)
+    echo "usage: $(basename "$0") [candidate|strict]" >&2
+    exit 2
+    ;;
+esac
+
 fail() {
   echo "certified-circuit specification independence: $*" >&2
   exit 1
@@ -16,6 +29,7 @@ fail() {
 python3 "$ROOT/scripts/gen_fv_specification_matrix.py" --check \
   || fail "the generated reviewed evidence matrix is stale"
 python3 "$ROOT/scripts/check-fv-specification-completeness.py" \
+  "${semantic_digest_args[@]}" \
   || fail "the native/specification/circuit predicate matrix or semantic digest is not closed"
 
 reject_rg_matches "protocol import independence" \

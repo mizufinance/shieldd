@@ -3,16 +3,15 @@
   "gate": "soundness-formal",
   "tiers": [
     "skip",
-    "stamps",
-    "typed",
+    "pr",
     "full"
   ],
   "events": {
     "pull_request": {
-      "conservative_tier": "stamps"
+      "conservative_tier": "pr"
     },
     "merge_group": {
-      "conservative_tier": "full"
+      "conservative_tier": "pr"
     },
     "schedule": {
       "tier": "full"
@@ -38,8 +37,8 @@
         "shieldd-sdk-view"
       ],
       "tiers": {
-        "pull_request": "stamps",
-        "merge_group": "full",
+        "pull_request": "pr",
+        "merge_group": "pr",
         "default": "full"
       },
       "reason": "local Cargo dependency closure for deployed ABCI/host front doors, circuit, transaction, view construction, consensus execution, and constraint coverage seams"
@@ -74,14 +73,31 @@
         "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/Transfer/**",
         "tools/gnark/lean/ShielddGnarkFormal/Deployed/Contracts/ShieldedIcs20Withdrawal/**",
         "tools/gnark/lean/gen/**",
+        "crates/crypto/constraint-coverage/**",
+        "tools/gnark/cmd/gnarkctl/**",
+        "tools/gnark/internal/abi/**",
+        "tools/gnark/internal/circuits/**",
+        "tools/gnark/internal/primitives/**",
+        "tools/gnark/third_party/gnark-lean-extractor/**",
+        "scripts/check-certified-circuit-impact.py",
+        "scripts/check-circuit-fv.sh",
+        "scripts/check-constraint-coverage.sh",
+        "scripts/check-fv-profiles.py",
+        "scripts/check-fv-specification-completeness.py",
+        "scripts/check-fv-specification-evidence.sh",
+        "scripts/check-key-coherence.sh",
+        "scripts/check-lean-circuit-fv.sh",
+        "scripts/gen-certified-circuit-artifacts.py",
+        "scripts/gen_fv_specification_matrix.py",
+        "scripts/sync-fv-certification-backends.py",
         "crates/core/component/shielded-pool/formal/certified-circuit-obligation-ledger.md"
       ],
       "tiers": {
-        "pull_request": "typed",
-        "merge_group": "full",
+        "pull_request": "pr",
+        "merge_group": "pr",
         "default": "full"
       },
-      "reason": "handwritten certified-circuit semantic or refinement source"
+      "reason": "certified-circuit semantics, generators, extractors, or proof-validation source"
     },
     {
       "patterns": [
@@ -102,8 +118,8 @@
         "scripts/ci/test_gate_applicability.py"
       ],
       "tiers": {
-        "pull_request": "stamps",
-        "merge_group": "full",
+        "pull_request": "pr",
+        "merge_group": "pr",
         "default": "full"
       },
       "reason": "workspace, toolchain, image, workflow, or classifier input"
@@ -153,8 +169,8 @@
         "tools/gnark/**"
       ],
       "tiers": {
-        "pull_request": "stamps",
-        "merge_group": "full",
+        "pull_request": "pr",
+        "merge_group": "pr",
         "default": "full"
       },
       "reason": "soundness proof, artifact, generator, runtime, or invoked gate input"
@@ -164,8 +180,8 @@
         "tools/proto-compiler/**"
       ],
       "tiers": {
-        "pull_request": "stamps",
-        "merge_group": "full",
+        "pull_request": "pr",
+        "merge_group": "pr",
         "default": "full"
       },
       "reason": "protobuf code generator can alter generated Rust inputs in the soundness Cargo closure"

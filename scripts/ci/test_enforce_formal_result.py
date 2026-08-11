@@ -46,9 +46,8 @@ def full_environment() -> dict[str, str]:
             "PUBLICATION": "success",
             "GATE": "success",
             "SEAM": "success",
-            "KEY_COHERENCE": "skipped",
             "ALLOY": "success",
-            "LEAN": "success",
+            "REPLAY": "success",
         }
     )
     return env
@@ -94,7 +93,7 @@ def select_snarkpack_skip(env: dict[str, str]) -> None:
         "PUBLICATION",
     ):
         env[name] = "skipped"
-    for name in ("GATE", "SEAM", "KEY_COHERENCE", "ALLOY", "LEAN"):
+    for name in ("GATE", "SEAM", "ALLOY", "REPLAY"):
         env[name] = "skipped"
 
 
@@ -104,24 +103,17 @@ class EnforceFormalResultTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("formal passed", result.stdout)
 
-    def test_typed_soundness_requires_standalone_key_coherence(self) -> None:
+    def test_pr_soundness_skips_deferred_replay(self) -> None:
         env = full_environment()
-        env["SOUNDNESS_TIER"] = "typed"
-        env["KEY_COHERENCE"] = "success"
+        env["SOUNDNESS_TIER"] = "pr"
+        env["REPLAY"] = "skipped"
         result = run_summary(env)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-        env["KEY_COHERENCE"] = "skipped"
+        env["REPLAY"] = "success"
         result = run_summary(env)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("soundness-key-coherence=skipped", result.stderr)
-
-    def test_full_soundness_rejects_standalone_key_coherence(self) -> None:
-        env = full_environment()
-        env["KEY_COHERENCE"] = "success"
-        result = run_summary(env)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("unexpectedly ran standalone key coherence", result.stderr)
+        self.assertIn("PR soundness unexpectedly ran", result.stderr)
 
     def test_explained_skip_requires_no_snarkpack_lane(self) -> None:
         env = full_environment()

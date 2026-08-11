@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import re
@@ -104,6 +105,7 @@ IMPORT_RE = re.compile(
 IMPORT_PREFIX_RE = re.compile(r"^[ \t]*(?:public[ \t]+)?import(?:[ \t]|$)")
 GRAPH_ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 AUDIT_MODULE_RE = re.compile(r"^Ipp\.ProofAudit[A-Za-z0-9_]*$")
+_FSTAR_VERIFIER_CACHE: dict[Path, object] = {}
 
 
 class ImpactError(RuntimeError):
@@ -512,32 +514,133 @@ def current_fstar_proofs(
     force_all: bool = False,
 ) -> tuple[str, ...]:
     """Return only proof modules lacking current per-module pass evidence."""
-    verifier_path = root / FSTAR_VERIFIER
-    spec = importlib.util.spec_from_file_location(
-        "_snarkpack_fstar_evidence", verifier_path
-    )
-    if spec is None or spec.loader is None:
-        raise ImpactError(f"cannot load F* evidence verifier: {verifier_path}")
-    verifier = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = verifier
+    _fstar_proof_names(root)
+    verifier = _load_fstar_verifier(root)
     try:
-        spec.loader.exec_module(verifier)
         manifest = verifier.load_manifest(root / FSTAR_MANIFEST)
         proof_prefix = f"{FSTAR_ROOT.as_posix()}/"
-        requested = tuple(
-            Path(path).name
-            for path in changed_hints
-            if path.startswith(proof_prefix) and path.endswith(".fst")
-        )
+        requested: list[str] = []
+        for path in changed_hints:
+            if not path.startswith(proof_prefix) or not path.endswith(".fst"):
+                continue
+            relative = path.removeprefix(proof_prefix)
+            if "/" in relative:
+                raise ImpactError(
+                    f"F* proof modules must be direct children of {FSTAR_ROOT}: "
+                    f"{path}"
+                )
+            requested.append(relative)
         modules = verifier.affected_fstar_modules(
             manifest,
             root,
-            requested=requested,
+            requested=tuple(requested),
             force_all=force_all,
         )
     except (OSError, UnicodeError, verifier.VerificationError) as error:
         raise ImpactError(f"cannot plan current F* evidence: {error}") from error
     return tuple(f"{module}.fst" for module in modules)
+
+
+def pending_fstar_proofs(root: Path) -> tuple[str, ...]:
+    """Return proof modules not covered by current repository evidence."""
+    _fstar_proof_names(root)
+    verifier = _load_fstar_verifier(root)
+    try:
+        manifest = verifier.load_manifest(root / FSTAR_MANIFEST)
+        evidence = json.loads((root / FSTAR_EVIDENCE).read_text(encoding="utf-8"))
+        modules = verifier.plan_fstar_modules(
+            manifest,
+            root,
+            base=evidence,
+            requested=(),
+        )
+    except (
+        OSError,
+        UnicodeError,
+        json.JSONDecodeError,
+        verifier.VerificationError,
+    ) as error:
+        raise ImpactError(f"cannot plan pending F* evidence: {error}") from error
+    return tuple(f"{module}.fst" for module in modules)
+
+
+def unchanged_fstar_semantic_inputs(
+    root: Path,
+    base: str,
+    changed: Iterable[str],
+) -> tuple[str, ...]:
+    """Return changed whole files whose proof-relevant projection is stable."""
+    verifier = _load_fstar_verifier(root)
+    try:
+        projected = {
+            verifier.FSTAR_TRANSACTION_PROTO_INPUT,
+            verifier.FSTAR_CARGO_LOCK_INPUT,
+        }
+        unchanged: list[str] = []
+        for relative in sorted(set(changed) & projected):
+            current_path = root / relative
+            if not current_path.is_file():
+                continue
+            previous = _run_git(
+                root,
+                ["show", f"{base}:{relative}"],
+                text=False,
+            )
+            if previous.returncode:
+                continue
+            before = verifier.fstar_source_sha256(
+                relative, bytes(previous.stdout)
+            )
+            after = verifier.fstar_source_sha256(
+                relative, current_path.read_bytes()
+            )
+            if before == after:
+                unchanged.append(relative)
+    except (OSError, UnicodeError, verifier.VerificationError) as error:
+        raise ImpactError(
+            f"cannot compare F* semantic inputs: {error}"
+        ) from error
+    return tuple(unchanged)
+
+
+def _load_fstar_verifier(root: Path) -> object:
+    verifier_path = (root / FSTAR_VERIFIER).resolve()
+    cached = _FSTAR_VERIFIER_CACHE.get(verifier_path)
+    if cached is not None:
+        return cached
+    module_suffix = hashlib.sha256(
+        str(verifier_path).encode("utf-8")
+    ).hexdigest()[:16]
+    module_name = f"_snarkpack_fstar_evidence_{module_suffix}"
+    spec = importlib.util.spec_from_file_location(module_name, verifier_path)
+    if spec is None or spec.loader is None:
+        raise ImpactError(f"cannot load F* evidence verifier: {verifier_path}")
+    verifier = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = verifier
+    try:
+        spec.loader.exec_module(verifier)
+    except Exception as error:
+        sys.modules.pop(module_name, None)
+        raise ImpactError(
+            f"cannot load F* evidence verifier: {verifier_path}: {error}"
+        ) from error
+    _FSTAR_VERIFIER_CACHE[verifier_path] = verifier
+    return verifier
+
+
+def _fstar_proof_names(root: Path) -> tuple[str, ...]:
+    proof_root = root / FSTAR_ROOT
+    nested = sorted(
+        path.relative_to(root).as_posix()
+        for path in proof_root.rglob("*.fst")
+        if path.parent != proof_root
+    )
+    if nested:
+        raise ImpactError(
+            "F* proof modules must use the flat proof directory layout: "
+            + ", ".join(nested)
+        )
+    return tuple(sorted(path.name for path in proof_root.glob("*.fst")))
 
 
 def _starts_with_any(path: str, prefixes: Iterable[str]) -> bool:
@@ -572,6 +675,8 @@ def plan(
     retired_graphs: Iterable[str] = (),
     fstar_manifest_control_change: bool = False,
     lean_environment_control_change: bool = False,
+    fstar_semantic_unchanged: Iterable[str] = (),
+    pending_fstar: Iterable[str] = (),
 ) -> ImpactPlan:
     if event not in SUPPORTED_EVENTS:
         raise ImpactError(f"unsupported event {event!r}")
@@ -609,7 +714,6 @@ def plan(
             + ", ".join(unknown_graphs)
         )
     graph_set.intersection_update(all_graphs)
-    parity_graph_set = set(graph_set)
 
     # CI and audit-parser controls are checked by the static lane. They never
     # schedule a kernel build when no Lean source or Lean environment changed.
@@ -633,6 +737,13 @@ def plan(
         normalized = _normalized_path(item["path"])
         if normalized not in FSTAR_NONPROOF_CONTROL_INPUTS:
             fstar_inputs.add(normalized)
+    semantic_unchanged = {
+        _normalized_path(path) for path in fstar_semantic_unchanged
+    }
+    if not semantic_unchanged <= set(paths):
+        raise ImpactError(
+            "unchanged F* semantic inputs must be changed candidate paths"
+        )
     proof_prefix = f"{FSTAR_ROOT.as_posix()}/"
     proof_root_changes = tuple(
         path
@@ -642,7 +753,7 @@ def plan(
     fstar_global_change = any(
         path in FSTAR_GLOBAL_INPUTS
         or _starts_with_any(path, RUST_ENVIRONMENT_PREFIXES)
-        or path in fstar_inputs
+        or (path in fstar_inputs and path not in semantic_unchanged)
         for path in paths
     ) or (
         FSTAR_MANIFEST.as_posix() in paths
@@ -658,6 +769,15 @@ def plan(
         if fstar_relevant
         else ()
     )
+    known_fstar_proofs = set(_fstar_proof_names(root))
+    pending_fstar_set = set(pending_fstar)
+    unknown_pending = sorted(pending_fstar_set - known_fstar_proofs)
+    if unknown_pending:
+        raise ImpactError(
+            "pending F* evidence selected unknown proof(s): "
+            + ", ".join(unknown_pending)
+        )
+    fstar_proofs = tuple(sorted(set(fstar_proofs) | pending_fstar_set))
 
     proof_rust = any(
         path.startswith(PROOF_AGGREGATION_PREFIX) and path.endswith(".rs")
@@ -682,21 +802,35 @@ def plan(
         proof_package or reference_change or app_rust or rust_global
     )
 
+    # Pull requests prove that locally generated evidence is complete and run
+    # only the affected proof-language checks. Extraction, parity, fuzzing, and
+    # runtime replay are exhaustive reproducibility work owned by the
+    # manual/nightly full fingerprint.
+    deferred = []
+    if graph_set:
+        deferred.append("extraction/parity")
+    if rust_reference or fuzz_change or proof_package or app_rust or rust_global:
+        deferred.append("runtime")
+
     return ImpactPlan(
         static=True,
-        extraction_graphs=tuple(sorted(graph_set)),
+        extraction_graphs=(),
         lean_modules=lean_modules,
         fstar_proofs=fstar_proofs,
         fstar_force_all=False,
-        parity=bool(parity_graph_set),
-        rust_reference=rust_reference,
-        fuzz=proof_package or fuzz_change or rust_global,
-        dos=proof_package or app_rust or rust_global,
+        parity=False,
+        rust_reference=False,
+        fuzz=False,
+        dos=False,
         explanation=(
             f"{len(paths)} changed path(s); "
-            f"{len(graph_set)} extraction graph(s), "
             f"{len(lean_modules)} Lean module(s), "
-            f"{len(fstar_proofs)} F* proof file(s)"
+            f"{len(fstar_proofs)} F* proof file(s); "
+            + (
+                "deferred " + ", ".join(deferred) + " to full replay"
+                if deferred
+                else "no exhaustive replay needed"
+            )
         ),
     )
 
@@ -791,6 +925,8 @@ def main(argv: list[str] | None = None) -> int:
         retired: tuple[str, ...] = ()
         fstar_control_change = False
         lean_environment_change = False
+        fstar_semantic_unchanged: tuple[str, ...] = ()
+        pending_fstar: tuple[str, ...] = ()
         if args.event in CANDIDATE_EVENTS and args.base:
             retired = tuple(
                 sorted(
@@ -806,6 +942,10 @@ def main(argv: list[str] | None = None) -> int:
                 lean_environment_change = lean_environment_control_changed(
                     ROOT, args.base
                 )
+            fstar_semantic_unchanged = unchanged_fstar_semantic_inputs(
+                ROOT, args.base, paths
+            )
+            pending_fstar = pending_fstar_proofs(ROOT)
         result = plan(
             ROOT,
             event=args.event,
@@ -816,6 +956,8 @@ def main(argv: list[str] | None = None) -> int:
             retired_graphs=retired,
             fstar_manifest_control_change=fstar_control_change,
             lean_environment_control_change=lean_environment_change,
+            fstar_semantic_unchanged=fstar_semantic_unchanged,
+            pending_fstar=pending_fstar,
         )
         if args.github_output:
             write_github_output(args.github_output, result)

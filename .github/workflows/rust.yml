@@ -6,6 +6,9 @@ on:
       - 'docs/**'
   merge_group:
     types: [checks_requested]
+  # Slow proving runs off the merge-critical path on the default branch.
+  schedule:
+    - cron: '23 8 * * *'
   # Also support ad-hoc calls for workflow.
   workflow_call:
   workflow_dispatch:
@@ -17,6 +20,7 @@ concurrency:
 jobs:
   lint:
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -51,6 +55,7 @@ jobs:
 
   deny:
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -62,7 +67,8 @@ jobs:
   # As of 2025Q1, the "features" job is the slowest in the CI suite.
   # Consider moving to a scheduled job on main, rather than running on PRs.
   features:
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 45 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -87,7 +93,8 @@ jobs:
           -- ./deployments/scripts/check-wasm-compat.sh
 
   test:
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-8vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
+    timeout-minutes: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 45 || 90 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -107,6 +114,7 @@ jobs:
 
   go-gnark:
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -142,7 +150,11 @@ jobs:
         run: go vet ./...
 
   gnark-rust:
+    # Proofs and their evidence are produced locally and committed. The slow
+    # end-to-end replay runs nightly/manual, not on PRs or the merge queue.
+    if: github.event_name != 'pull_request' && github.event_name != 'merge_group'
     runs-on: ubuntu-24.04
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -166,6 +178,7 @@ jobs:
     needs: [lint, deny, features, test, go-gnark, gnark-rust]
     if: always()
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
       - name: Check Rust workflow result
         env:
@@ -175,6 +188,7 @@ jobs:
           TEST_RESULT: ${{ needs.test.result }}
           GO_GNARK_RESULT: ${{ needs['go-gnark'].result }}
           GNARK_RUST_RESULT: ${{ needs['gnark-rust'].result }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           failed=0
           for job in \
@@ -182,8 +196,7 @@ jobs:
             "deny:$DENY_RESULT" \
             "features:$FEATURES_RESULT" \
             "test:$TEST_RESULT" \
-            "go-gnark:$GO_GNARK_RESULT" \
-            "gnark-rust:$GNARK_RUST_RESULT"
+            "go-gnark:$GO_GNARK_RESULT"
           do
             name="${job%%:*}"
             result="${job#*:}"
@@ -194,5 +207,19 @@ jobs:
               echo "$name passed"
             fi
           done
+
+          if [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "merge_group" ]]; then
+            if [[ "$GNARK_RUST_RESULT" != "skipped" ]]; then
+              echo "gnark-rust should be skipped on $EVENT_NAME: $GNARK_RUST_RESULT"
+              failed=1
+            else
+              echo "gnark-rust deferred to nightly"
+            fi
+          elif [[ "$GNARK_RUST_RESULT" != "success" ]]; then
+            echo "gnark-rust did not pass: $GNARK_RUST_RESULT"
+            failed=1
+          else
+            echo "gnark-rust passed"
+          fi
 
           exit "$failed"
