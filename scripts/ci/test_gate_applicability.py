@@ -1172,6 +1172,9 @@ class GateApplicabilityTests(unittest.TestCase):
             "scripts/gen-note-reshape-family-artifacts.py",
             "scripts/check-circuit-fv.sh",
             "scripts/fv_specification_completeness.py",
+            "scripts/check_lfs_policy.py",
+            "scripts/proof_artifacts.py",
+            "scripts/tests/test_proof_artifacts.py",
             "scripts/lib/soundness-symbol-cell.sh",
             "scripts/tests/test_wiring_certificates.py",
             "scripts/fixtures/fv-census/signed-coefficients.sr1cs",
@@ -1184,6 +1187,24 @@ class GateApplicabilityTests(unittest.TestCase):
                     [],
                 )
                 self.assertEqual((decision.status, decision.tier), ("skip", "skip"))
+                self.assertFalse(decision.unknown_files)
+
+    def test_proof_artifact_controls_select_soundness_validation(self) -> None:
+        for path in (
+            ".gitattributes",
+            "justfile",
+            "scripts/check_lfs_policy.py",
+            "scripts/proof_artifacts.py",
+            "scripts/tests/test_proof_artifacts.py",
+        ):
+            with self.subTest(path=path):
+                decision = GATE.classify(
+                    self.soundness,
+                    "pull_request",
+                    [path],
+                    [],
+                )
+                self.assertEqual((decision.status, decision.tier), ("run", "pr"))
                 self.assertFalse(decision.unknown_files)
 
     def test_shared_strict_json_helper_selects_snarkpack_static_gate(self) -> None:
