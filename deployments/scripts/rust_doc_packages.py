@@ -239,7 +239,7 @@ def git_packages_from_lock(lock_text: str) -> Iterator[str]:
 
 
 def main() -> None:
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     metadata = json.loads(
         subprocess.check_output(
             ["cargo", "metadata", "--format-version=1", "--no-deps"],

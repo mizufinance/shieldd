@@ -22,7 +22,7 @@ export RUSTDOCFLAGS="--enable-index-page -Zunstable-options --cfg docsrs"
 
 package_specs_file="$(mktemp)"
 trap 'rm -f "$package_specs_file"' EXIT
-python3 scripts/rust_doc_packages.py > "$package_specs_file"
+python3 deployments/scripts/rust_doc_packages.py > "$package_specs_file"
 
 package_specs=()
 while IFS= read -r spec; do

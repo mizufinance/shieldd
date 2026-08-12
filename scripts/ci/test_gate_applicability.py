@@ -1200,6 +1200,8 @@ class GateApplicabilityTests(unittest.TestCase):
             "README.md",
             ".envrc.example",
             "deployments/compose/README.md",
+            "deployments/scripts/rust_doc_packages.py",
+            "deployments/scripts/tests/test_rust_doc_packages.py",
             "docs/architecture/unrelated.md",
             "proto/shieldd/shieldd/core/component/sct/v1/sct.proto",
         ):

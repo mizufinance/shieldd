@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 SCRIPTS = Path(__file__).resolve().parents[1]
-ROOT = SCRIPTS.parent
+ROOT = SCRIPTS.parents[1]
 sys.path.insert(0, str(SCRIPTS))
 
 import rust_doc_packages as PACKAGES
