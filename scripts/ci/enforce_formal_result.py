@@ -227,6 +227,7 @@ def enforce() -> None:
     soundness_tier = value("SOUNDNESS_TIER")
     soundness_explanation = value("SOUNDNESS_EXPLANATION")
     soundness_results = {
+        "soundness-policy": value("POLICY"),
         "soundness-gate": value("GATE"),
         "soundness-seam-and-pin": value("SEAM"),
         "soundness-alloy": value("ALLOY"),
@@ -244,35 +245,54 @@ def enforce() -> None:
                 )
         print(f"soundness explained skip: {soundness_explanation}")
     elif soundness_status == "run":
-        if soundness_tier not in {"pr", "full"}:
+        if soundness_tier not in {"policy", "pr", "full"}:
             raise ValueError(f"unsupported soundness tier: {soundness_tier}")
-        required.append(
-            (
-                "soundness-seam-and-pin",
-                soundness_results["soundness-seam-and-pin"],
-            )
-        )
-        required.append(
-            ("soundness-gate", soundness_results["soundness-gate"])
-        )
-        replay = soundness_results["soundness-artifact-replay"]
-        if soundness_tier == "pr":
-            if replay != "skipped":
-                raise ValueError(
-                    "PR soundness unexpectedly ran deferred artifact replay: "
-                    f"{replay}"
-                )
+        policy = soundness_results["soundness-policy"]
+        heavyweight = {
+            label: result
+            for label, result in soundness_results.items()
+            if label != "soundness-policy"
+        }
+        if soundness_tier == "policy":
+            required.append(("soundness-policy", policy))
+            for label, result in heavyweight.items():
+                if result != "skipped":
+                    raise ValueError(
+                        f"soundness policy unexpectedly ran {label}: {result}"
+                    )
         else:
-            required.append(("soundness-artifact-replay", replay))
-        if event_name in {"pull_request", "merge_group"}:
+            if policy != "skipped":
+                raise ValueError(
+                    "semantic soundness run unexpectedly ran policy lane: "
+                    f"{policy}"
+                )
             required.append(
-                ("soundness-alloy", soundness_results["soundness-alloy"])
+                (
+                    "soundness-seam-and-pin",
+                    soundness_results["soundness-seam-and-pin"],
+                )
             )
-        elif soundness_results["soundness-alloy"] != "skipped":
-            raise ValueError(
-                "non-candidate soundness run unexpectedly ran Alloy: "
-                + soundness_results["soundness-alloy"]
+            required.append(
+                ("soundness-gate", soundness_results["soundness-gate"])
             )
+            replay = soundness_results["soundness-artifact-replay"]
+            if soundness_tier == "pr":
+                if replay != "skipped":
+                    raise ValueError(
+                        "PR soundness unexpectedly ran deferred artifact replay: "
+                        f"{replay}"
+                    )
+            else:
+                required.append(("soundness-artifact-replay", replay))
+            if event_name in {"pull_request", "merge_group"}:
+                required.append(
+                    ("soundness-alloy", soundness_results["soundness-alloy"])
+                )
+            elif soundness_results["soundness-alloy"] != "skipped":
+                raise ValueError(
+                    "non-candidate soundness run unexpectedly ran Alloy: "
+                    + soundness_results["soundness-alloy"]
+                )
     else:
         raise ValueError(
             f"invalid soundness applicability status: {soundness_status}"

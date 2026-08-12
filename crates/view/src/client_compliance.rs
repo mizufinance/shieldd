@@ -562,6 +562,7 @@ pub async fn enrich_plan_with_compliance<P: ComplianceProofProvider>(
             | ActionPlan::IbcAction(_)
             | ActionPlan::ProposalSubmit(_)
             | ActionPlan::ValidatorVote(_)
+            | ActionPlan::ShieldedHostWithdrawal(_)
             | ActionPlan::ShieldedIcs20Withdrawal(_)
             | ActionPlan::ComplianceRegisterAsset(_)
             | ActionPlan::ComplianceRegisterUser(_) => {}
@@ -580,7 +581,7 @@ pub async fn enrich_plan_with_compliance<P: ComplianceProofProvider>(
         &transfer_action_nonces,
     )
     .await?;
-    enrich_shielded_ics20_withdrawals_with_compliance(plan, provider, target_timestamp).await?;
+    enrich_shielded_withdrawals_with_compliance(plan, provider, target_timestamp).await?;
     if let Some(fee_funding_nonce) = fee_funding_nonce {
         enrich_internal_funding_with_compliance(
             plan,
@@ -623,8 +624,12 @@ enum TransferOutputLocation {
 }
 
 #[derive(Clone, Copy, Debug)]
-enum ShieldedIcs20WithdrawalSpendLocation {
-    ShieldedIcs20Withdrawal {
+enum ShieldedWithdrawalSpendLocation {
+    Ics20 {
+        action_index: usize,
+        spend_index: usize,
+    },
+    Host {
         action_index: usize,
         spend_index: usize,
     },
@@ -684,6 +689,7 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
             | ActionPlan::IbcAction(_)
             | ActionPlan::ProposalSubmit(_)
             | ActionPlan::ValidatorVote(_)
+            | ActionPlan::ShieldedHostWithdrawal(_)
             | ActionPlan::ShieldedIcs20Withdrawal(_)
             | ActionPlan::ComplianceRegisterAsset(_)
             | ActionPlan::ComplianceRegisterUser(_) => {}
@@ -884,6 +890,7 @@ async fn enrich_transfer_family_with_compliance<P: ComplianceProofProvider>(
             | ActionPlan::IbcAction(_)
             | ActionPlan::ProposalSubmit(_)
             | ActionPlan::ValidatorVote(_)
+            | ActionPlan::ShieldedHostWithdrawal(_)
             | ActionPlan::ShieldedIcs20Withdrawal(_)
             | ActionPlan::ComplianceRegisterAsset(_)
             | ActionPlan::ComplianceRegisterUser(_) => {}
@@ -1047,25 +1054,29 @@ async fn enrich_internal_funding_with_compliance<P: ComplianceProofProvider>(
     Ok(())
 }
 
-async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofProvider>(
+async fn enrich_shielded_withdrawals_with_compliance<P: ComplianceProofProvider>(
     plan: &mut TransactionPlan,
     provider: &P,
     target_timestamp: u64,
 ) -> Result<()> {
     let mut spend_locations = Vec::new();
-    let mut action_indices = Vec::new();
 
     for (action_index, action) in plan.actions.iter().enumerate() {
         match action {
             ActionPlan::ShieldedIcs20Withdrawal(withdrawal) => {
-                action_indices.push(action_index);
                 for spend_index in 0..withdrawal.spends.len() {
-                    spend_locations.push(
-                        ShieldedIcs20WithdrawalSpendLocation::ShieldedIcs20Withdrawal {
-                            action_index,
-                            spend_index,
-                        },
-                    );
+                    spend_locations.push(ShieldedWithdrawalSpendLocation::Ics20 {
+                        action_index,
+                        spend_index,
+                    });
+                }
+            }
+            ActionPlan::ShieldedHostWithdrawal(withdrawal) => {
+                for spend_index in 0..withdrawal.spends.len() {
+                    spend_locations.push(ShieldedWithdrawalSpendLocation::Host {
+                        action_index,
+                        spend_index,
+                    });
                 }
             }
             ActionPlan::Transfer(_)
@@ -1082,11 +1093,22 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
     let spend_identities = spend_locations
         .iter()
         .map(|location| match *location {
-            ShieldedIcs20WithdrawalSpendLocation::ShieldedIcs20Withdrawal {
+            ShieldedWithdrawalSpendLocation::Ics20 {
                 action_index,
                 spend_index,
             } => {
                 let ActionPlan::ShieldedIcs20Withdrawal(withdrawal) = &plan.actions[action_index]
+                else {
+                    unreachable!()
+                };
+                let spend = &withdrawal.spends[spend_index];
+                (spend.note.asset_id(), spend.note.address())
+            }
+            ShieldedWithdrawalSpendLocation::Host {
+                action_index,
+                spend_index,
+            } => {
+                let ActionPlan::ShieldedHostWithdrawal(withdrawal) = &plan.actions[action_index]
                 else {
                     unreachable!()
                 };
@@ -1108,10 +1130,16 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
         .copied()
         .zip(spend_identities.iter().cloned())
     {
-        let ShieldedIcs20WithdrawalSpendLocation::ShieldedIcs20Withdrawal {
-            action_index,
-            spend_index,
-        } = spend_location;
+        let (action_index, spend_index, withdrawal_kind) = match spend_location {
+            ShieldedWithdrawalSpendLocation::Ics20 {
+                action_index,
+                spend_index,
+            } => (action_index, spend_index, "shielded ICS-20 withdrawal"),
+            ShieldedWithdrawalSpendLocation::Host {
+                action_index,
+                spend_index,
+            } => (action_index, spend_index, "shielded host withdrawal"),
+        };
 
         let asset_proof = batch_data
             .asset_proofs
@@ -1119,7 +1147,8 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
             .cloned()
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "compliance provider omitted asset proof for shielded ICS-20 withdrawal at action {} input {} (asset {})",
+                    "compliance provider omitted asset proof for {} at action {} input {} (asset {})",
+                    withdrawal_kind,
                     action_index,
                     spend_index,
                     spend_asset_id
@@ -1132,20 +1161,27 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
             .cloned()
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "missing user proof for shielded ICS-20 withdrawal spend at action {} input {}: \
+                    "missing user proof for {} spend at action {} input {}: \
                      user may not be registered for asset {} \
                      (check compliance registration status)",
+                    withdrawal_kind,
                     action_index,
                     spend_index,
                     spend_asset_id
                 )
             })?;
 
-        let ActionPlan::ShieldedIcs20Withdrawal(withdrawal) = &mut plan.actions[action_index]
-        else {
-            unreachable!()
+        let spend = match (&mut plan.actions[action_index], spend_location) {
+            (
+                ActionPlan::ShieldedIcs20Withdrawal(withdrawal),
+                ShieldedWithdrawalSpendLocation::Ics20 { .. },
+            ) => &mut withdrawal.spends[spend_index],
+            (
+                ActionPlan::ShieldedHostWithdrawal(withdrawal),
+                ShieldedWithdrawalSpendLocation::Host { .. },
+            ) => &mut withdrawal.spends[spend_index],
+            _ => unreachable!(),
         };
-        let spend = &mut withdrawal.spends[spend_index];
         spend.asset_indexed_leaf = asset_proof.indexed_leaf;
         spend.asset_path = asset_proof.auth_path;
         spend.asset_position = asset_proof.position;
@@ -1159,12 +1195,12 @@ async fn enrich_shielded_ics20_withdrawals_with_compliance<P: ComplianceProofPro
         spend.set_compliance_details()?;
     }
 
-    for action_index in action_indices {
-        let ActionPlan::ShieldedIcs20Withdrawal(withdrawal) = &mut plan.actions[action_index]
-        else {
-            unreachable!()
-        };
-        withdrawal.validate()?;
+    for action in &mut plan.actions {
+        match action {
+            ActionPlan::ShieldedIcs20Withdrawal(withdrawal) => withdrawal.validate()?,
+            ActionPlan::ShieldedHostWithdrawal(withdrawal) => withdrawal.validate()?,
+            _ => {}
+        }
     }
 
     Ok(())

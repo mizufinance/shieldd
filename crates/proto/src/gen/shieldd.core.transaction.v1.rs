@@ -616,7 +616,10 @@ impl ::prost::Name for FeeFundingPlan {
 /// themselves.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ActionPlan {
-    #[prost(oneof = "action_plan::Action", tags = "5, 6, 16, 17, 18, 20, 200, 80, 81")]
+    #[prost(
+        oneof = "action_plan::Action",
+        tags = "5, 6, 16, 17, 18, 20, 200, 201, 80, 81"
+    )]
     pub action: ::core::option::Option<action_plan::Action>,
 }
 /// Nested message and enum types in `ActionPlan`.
@@ -643,6 +646,10 @@ pub mod action_plan {
         #[prost(message, tag = "200")]
         ShieldedIcs20Withdrawal(
             super::super::super::component::shielded_pool::v1::ShieldedIcs20WithdrawalPlan,
+        ),
+        #[prost(message, tag = "201")]
+        ShieldedHostWithdrawal(
+            super::super::super::component::shielded_pool::v1::ShieldedHostWithdrawalPlan,
         ),
         /// Compliance
         #[prost(message, tag = "80")]

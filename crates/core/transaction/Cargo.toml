@@ -16,8 +16,6 @@ parallel = [
     "shieldd-sdk-governance/parallel",
     "shieldd-sdk-validator/parallel",
 ]
-download-proving-keys = ["shieldd-sdk-proof-params/download-proving-keys"]
-
 [dependencies]
 anyhow = {workspace = true}
 ark-ff = {workspace = true, default-features = false}

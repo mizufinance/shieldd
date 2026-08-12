@@ -936,7 +936,7 @@ impl<'de> serde::Deserialize<'de> for RoutingActionPayloads {
                             if action_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("actionIndex"));
                             }
-                            action_index__ =
+                            action_index__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1746,7 +1746,7 @@ impl<'de> serde::Deserialize<'de> for RoutingRecord {
                             if action_index__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("actionIndex"));
                             }
-                            action_index__ =
+                            action_index__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }
@@ -1754,7 +1754,7 @@ impl<'de> serde::Deserialize<'de> for RoutingRecord {
                             if tag_slot__.is_some() {
                                 return Err(serde::de::Error::duplicate_field("tagSlot"));
                             }
-                            tag_slot__ =
+                            tag_slot__ = 
                                 Some(map_.next_value::<::pbjson::private::NumberDeserialize<_>>()?.0)
                             ;
                         }

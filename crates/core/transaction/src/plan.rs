@@ -7,7 +7,8 @@ use shieldd_sdk_ibc::IbcRelay;
 use shieldd_sdk_keys::{Address, FullViewingKey, PayloadKey};
 use shieldd_sdk_proto::{core::transaction::v1 as pb, DomainType};
 use shieldd_sdk_shielded_pool::{
-    discovery::Parameters, Ics20Withdrawal, ShieldedIcs20WithdrawalPlan, TransferPlan,
+    discovery::Parameters, HostWithdrawal, Ics20Withdrawal, ShieldedHostWithdrawalPlan,
+    ShieldedIcs20WithdrawalPlan, TransferPlan,
 };
 use shieldd_sdk_txhash::{EffectHash, EffectingData};
 
@@ -143,6 +144,28 @@ impl TransactionPlan {
         })
     }
 
+    pub fn shielded_host_withdrawal_plans(
+        &self,
+    ) -> impl Iterator<Item = &ShieldedHostWithdrawalPlan> {
+        self.actions.iter().filter_map(|action| {
+            if let ActionPlan::ShieldedHostWithdrawal(plan) = action {
+                Some(plan)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn host_withdrawals(&self) -> impl Iterator<Item = &HostWithdrawal> {
+        self.actions.iter().filter_map(|action| {
+            if let ActionPlan::ShieldedHostWithdrawal(plan) = action {
+                Some(&plan.withdrawal)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn dest_addresses(&self) -> Vec<Address> {
         let mut addresses = self
             .actions
@@ -155,6 +178,7 @@ impl TransactionPlan {
                     .map(|output| output.dest_address.clone())
                     .collect::<Vec<_>>(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => vec![plan.created_output_address()],
+                ActionPlan::ShieldedHostWithdrawal(plan) => vec![plan.created_output_address()],
                 ActionPlan::ValidatorDefinition(_)
                 | ActionPlan::IbcAction(_)
                 | ActionPlan::ProposalSubmit(_)
@@ -185,6 +209,7 @@ impl TransactionPlan {
                 ActionPlan::Transfer(plan) => plan.num_outputs(),
                 ActionPlan::NoteReshape(plan) => plan.family_id().output_count(),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => plan.note_creating_output_count(),
+                ActionPlan::ShieldedHostWithdrawal(plan) => plan.note_creating_output_count(),
                 ActionPlan::ValidatorDefinition(_)
                 | ActionPlan::IbcAction(_)
                 | ActionPlan::ProposalSubmit(_)
@@ -226,7 +251,8 @@ impl TransactionPlan {
             .map(|action| match action {
                 ActionPlan::Transfer(_)
                 | ActionPlan::NoteReshape(_)
-                | ActionPlan::ShieldedIcs20Withdrawal(_) => 1,
+                | ActionPlan::ShieldedIcs20Withdrawal(_)
+                | ActionPlan::ShieldedHostWithdrawal(_) => 1,
                 ActionPlan::ValidatorDefinition(_)
                 | ActionPlan::IbcAction(_)
                 | ActionPlan::ProposalSubmit(_)
@@ -245,6 +271,9 @@ impl TransactionPlan {
                 ActionPlan::Transfer(plan) => plan.set_routing_parameters(parameters.clone()),
                 ActionPlan::NoteReshape(plan) => plan.set_routing_parameters(parameters.clone()),
                 ActionPlan::ShieldedIcs20Withdrawal(plan) => {
+                    plan.set_routing_parameters(parameters.clone())
+                }
+                ActionPlan::ShieldedHostWithdrawal(plan) => {
                     plan.set_routing_parameters(parameters.clone())
                 }
                 _ => {}
@@ -313,8 +342,9 @@ mod tests {
     use shieldd_sdk_keys::test_keys;
     use shieldd_sdk_shielded_pool::{
         discovery::{Parameters, Precision},
-        Ics20Withdrawal, Note, NoteReshape, NoteReshapeFamilyId, NoteReshapePlan, NoteReshapeProof,
-        Rseed, ShieldedInputPlan, ShieldedOutputPlan,
+        HostTransfer, HostWithdrawalDestination, Ics20Withdrawal, Note, NoteReshape,
+        NoteReshapeFamilyId, NoteReshapePlan, NoteReshapeProof, Rseed, ShieldedInputPlan,
+        ShieldedOutputPlan,
     };
     use shieldd_sdk_txhash::EffectHash;
     use std::{ops::Deref, str::FromStr};
@@ -565,6 +595,46 @@ mod tests {
         assert!(matches!(
             &plan.actions[0],
             ActionPlan::ShieldedIcs20Withdrawal(withdrawal)
+                if withdrawal.routing_parameters == parameters
+        ));
+    }
+
+    #[test]
+    fn shielded_host_withdrawal_uses_current_routing_parameters() {
+        let value = Value {
+            amount: 40_000u64.into(),
+            asset_id: *BASE_ASSET_ID,
+        };
+        let note = Note::generate(&mut OsRng, &test_keys::ADDRESS_0, value);
+        let spend = ShieldedInputPlan::new(&mut OsRng, note, 0u64.into());
+        let withdrawal = HostWithdrawal {
+            value,
+            destination: HostWithdrawalDestination::Transfer(HostTransfer {
+                recipient: "bank1destination".to_owned(),
+            }),
+        };
+        let withdrawal =
+            ShieldedHostWithdrawalPlan::new(vec![spend], None, withdrawal, Fr::from(7u64))
+                .expect("plan should be valid");
+
+        let mut plan = TransactionPlan {
+            actions: vec![ActionPlan::ShieldedHostWithdrawal(withdrawal)],
+            transaction_parameters: Default::default(),
+            fee_funding: None,
+            memo: None,
+        };
+        let parameters =
+            Parameters::new(Precision::new(11).unwrap(), Precision::new(19).unwrap(), 42).unwrap();
+        plan.populate_routing_parameters(parameters.clone());
+
+        assert_eq!(plan.num_outputs(), 1);
+        assert_eq!(
+            plan.dest_addresses(),
+            vec![test_keys::ADDRESS_0.deref().clone()]
+        );
+        assert!(matches!(
+            &plan.actions[0],
+            ActionPlan::ShieldedHostWithdrawal(withdrawal)
                 if withdrawal.routing_parameters == parameters
         ));
     }

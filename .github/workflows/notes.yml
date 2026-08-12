@@ -22,8 +22,8 @@ jobs:
     steps:
       - name: Checkout the source code
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          lfs: true
+
+      - uses: ./.github/actions/materialize-proof-artifacts
 
       - name: install nix
         uses: nixbuild/nix-quick-install-action@60e9c39264d4714139af3cdf15f691b19eec3530 # v28

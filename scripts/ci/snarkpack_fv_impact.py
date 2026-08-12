@@ -96,6 +96,15 @@ FSTAR_GLOBAL_INPUTS = {
 FSTAR_NONPROOF_CONTROL_INPUTS = {
     "scripts/ci/snarkpack_fv_impact.py",
 }
+FSTAR_SHIELDED_POOL_MANIFEST_INPUT = (
+    "crates/core/component/shielded-pool/Cargo.toml"
+)
+FSTAR_NON_SEMANTIC_MANIFEST_FEATURES = {
+    FSTAR_SHIELDED_POOL_MANIFEST_INPUT: frozenset({"download-proving-keys"}),
+}
+FSTAR_NON_SEMANTIC_LOCK_DEPENDENCIES = {
+    "shieldd-sdk-proof-params": frozenset({"regex", "reqwest 0.12.9"}),
+}
 LEAN_MODULE_TOKEN = r"[A-Za-z_][A-Za-z0-9_']*(?:\.[A-Za-z_][A-Za-z0-9_']*)*"
 IMPORT_RE = re.compile(
     rf"^[ \t]*import[ \t]+"
@@ -575,6 +584,7 @@ def unchanged_fstar_semantic_inputs(
         projected = {
             verifier.FSTAR_TRANSACTION_PROTO_INPUT,
             verifier.FSTAR_CARGO_LOCK_INPUT,
+            *FSTAR_NON_SEMANTIC_MANIFEST_FEATURES,
         }
         unchanged: list[str] = []
         for relative in sorted(set(changed) & projected):
@@ -588,11 +598,11 @@ def unchanged_fstar_semantic_inputs(
             )
             if previous.returncode:
                 continue
-            before = verifier.fstar_source_sha256(
-                relative, bytes(previous.stdout)
+            before = fstar_semantic_source_sha256(
+                verifier, relative, bytes(previous.stdout)
             )
-            after = verifier.fstar_source_sha256(
-                relative, current_path.read_bytes()
+            after = fstar_semantic_source_sha256(
+                verifier, relative, current_path.read_bytes()
             )
             if before == after:
                 unchanged.append(relative)
@@ -601,6 +611,145 @@ def unchanged_fstar_semantic_inputs(
             f"cannot compare F* semantic inputs: {error}"
         ) from error
     return tuple(unchanged)
+
+
+def fstar_semantic_source_sha256(
+    verifier: object, relative: str, content: bytes
+) -> str:
+    """Hash the proof-relevant projection used only for impact planning."""
+
+    if relative == verifier.FSTAR_CARGO_LOCK_INPUT:
+        projected_lock = fstar_cargo_lock_impact_payload(verifier, content)
+        canonical = json.dumps(
+            projected_lock,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ).encode("utf-8")
+        return hashlib.sha256(canonical).hexdigest()
+    ignored_features = FSTAR_NON_SEMANTIC_MANIFEST_FEATURES.get(relative)
+    if ignored_features is None:
+        return verifier.fstar_source_sha256(relative, content)
+    try:
+        manifest = tomllib.loads(content.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+        raise ImpactError(f"cannot parse F* Cargo input {relative}: {error}") from error
+    features = manifest.get("features")
+    if not isinstance(features, dict):
+        raise ImpactError(f"F* Cargo input {relative} has no feature table")
+    projected = dict(manifest)
+    projected["features"] = {
+        name: value
+        for name, value in features.items()
+        if name not in ignored_features
+    }
+    canonical = json.dumps(
+        projected,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(canonical).hexdigest()
+
+
+def fstar_cargo_lock_impact_payload(
+    verifier: object, content: bytes
+) -> dict[str, object]:
+    """Resolve the F* Cargo closure without disabled artifact download deps."""
+
+    try:
+        lock = tomllib.loads(content.decode("utf-8"))
+    except (UnicodeDecodeError, tomllib.TOMLDecodeError) as error:
+        raise ImpactError(f"cannot parse F* Cargo.lock input: {error}") from error
+    packages = lock.get("package")
+    if not isinstance(packages, list):
+        raise ImpactError("F* Cargo.lock input has no package inventory")
+    by_name: dict[str, list[dict[str, object]]] = defaultdict(list)
+    for index, package in enumerate(packages):
+        if not isinstance(package, dict):
+            raise ImpactError(f"F* Cargo.lock package[{index}] is not a table")
+        name = package.get("name")
+        version = package.get("version")
+        if not isinstance(name, str) or not isinstance(version, str):
+            raise ImpactError(f"F* Cargo.lock package[{index}] identity is invalid")
+        by_name[name].append(package)
+
+    def identity(package: dict[str, object]) -> tuple[str, str, str]:
+        source = package.get("source", "")
+        if not isinstance(source, str):
+            raise ImpactError("F* Cargo.lock package source is invalid")
+        return str(package["name"]), str(package["version"]), source
+
+    def resolve(reference: str) -> dict[str, object]:
+        match = re.fullmatch(
+            r"(?P<name>[^ ]+)(?: (?P<version>[^ ]+))?"
+            r"(?: \((?P<source>.+)\))?",
+            reference,
+        )
+        if match is None:
+            raise ImpactError(
+                f"F* Cargo.lock dependency is malformed: {reference!r}"
+            )
+        candidates = list(by_name.get(match.group("name"), ()))
+        version = match.group("version")
+        source = match.group("source")
+        if version is not None:
+            candidates = [
+                package
+                for package in candidates
+                if package.get("version") == version
+            ]
+        if source is not None:
+            candidates = [
+                package
+                for package in candidates
+                if package.get("source") == source
+            ]
+        if len(candidates) != 1:
+            raise ImpactError(
+                "F* Cargo.lock dependency does not resolve uniquely: "
+                f"{reference!r} ({len(candidates)} candidates)"
+            )
+        return candidates[0]
+
+    pending: list[dict[str, object]] = []
+    for root_name in verifier.FSTAR_CARGO_LOCK_ROOTS:
+        roots = by_name.get(root_name, [])
+        if len(roots) != 1:
+            raise ImpactError(
+                f"F* Cargo.lock must contain exactly one {root_name} package"
+            )
+        pending.append(roots[0])
+    selected: dict[tuple[str, str, str], dict[str, object]] = {}
+    while pending:
+        package = pending.pop()
+        package_id = identity(package)
+        if package_id in selected:
+            continue
+        dependencies = package.get("dependencies", [])
+        if not isinstance(dependencies, list) or any(
+            not isinstance(dependency, str) for dependency in dependencies
+        ):
+            raise ImpactError(
+                f"F* Cargo.lock dependencies are invalid for {package_id[0]}"
+            )
+        ignored = FSTAR_NON_SEMANTIC_LOCK_DEPENDENCIES.get(
+            package_id[0], frozenset()
+        )
+        retained = sorted(
+            dependency for dependency in dependencies if dependency not in ignored
+        )
+        normalized = dict(package)
+        normalized["dependencies"] = retained
+        selected[package_id] = normalized
+        pending.extend(resolve(dependency) for dependency in retained)
+
+    return {
+        "schema_version": 1,
+        "lock_version": lock.get("version"),
+        "roots": list(verifier.FSTAR_CARGO_LOCK_ROOTS),
+        "packages": [selected[key] for key in sorted(selected)],
+    }
 
 
 def _load_fstar_verifier(root: Path) -> object:

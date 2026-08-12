@@ -39,7 +39,7 @@ jobs:
   flow:
     needs: applicability
     if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
     timeout-minutes: 45
     concurrency:
       group: orbis-integration-host-stack-v1
@@ -56,7 +56,10 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: shieldd
-          lfs: true
+
+      - name: Materialize current proof artifacts
+        working-directory: shieldd
+        run: python3 scripts/proof_artifacts.py materialize
 
       - uses: ./shieldd/.github/actions/setup-nix-rust
         with:

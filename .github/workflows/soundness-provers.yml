@@ -1,7 +1,7 @@
 name: soundness-provers
 
 # The heavy symbolic/SMT provers are separate from the main formal workflow
-# because they only run on the scheduled path. Kept there, they would be six
+# because they only run when explicitly invoked. Kept there, they would be six
 # permanently-`skipped` check runs on every pull request. There is deliberately
 # no `pull_request` or `merge_group` trigger here.
 
@@ -167,7 +167,6 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.applicability.outputs.candidate_sha }}
-          lfs: true
       - uses: ./.github/actions/setup-nix-rust
         with:
           rust-cache-prefix: soundness-picus

@@ -19,11 +19,6 @@ bundled-proving-keys = [
     "shieldd-sdk-proof-params/bundled-proving-keys",
     "shieldd-sdk-shielded-pool/bundled-proving-keys",
 ]
-download-proving-keys = [
-    "bundled-proving-keys",
-    "shieldd-sdk-proof-params/download-proving-keys",
-    "shieldd-sdk-shielded-pool/download-proving-keys",
-]
 sct-divergence-check = ["shieldd-sdk-view/sct-divergence-check"]
 std = ["ark-ff/std", "ibc-types/std"]
 parallel = [
@@ -126,5 +121,4 @@ default-features = true
 workspace = true
 features = [
     "bundled-proving-keys",
-    "download-proving-keys",
 ]

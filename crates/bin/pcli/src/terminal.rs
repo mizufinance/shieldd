@@ -52,6 +52,7 @@ fn pretty_print_transaction_plan(
             ActionPlan::ProposalSubmit(_) => None,
             ActionPlan::ValidatorVote(_) => None,
             ActionPlan::ShieldedIcs20Withdrawal(_) => None,
+            ActionPlan::ShieldedHostWithdrawal(_) => None,
             ActionPlan::IbcAction(_) => None,
             ActionPlan::ComplianceRegisterAsset(_) => None,
             ActionPlan::ComplianceRegisterUser(_) => None,

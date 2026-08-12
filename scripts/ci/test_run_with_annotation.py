@@ -193,14 +193,14 @@ class FormalWorkflowWiringTests(unittest.TestCase):
             self.workflow,
         )
 
-    def test_fstar_checkout_hydrates_lfs_verifier_artifacts(self) -> None:
+    def test_formal_checkouts_do_not_hydrate_lfs(self) -> None:
         fstar_job = self.workflow.split(
             "  snarkpack-fstar:", maxsplit=1
         )[1].split("\n  snarkpack-parity:", maxsplit=1)[0]
         checkout = fstar_job.split(
             "- uses: actions/checkout@", maxsplit=1
         )[1].split("- uses: ./.github/actions/setup-nix-rust", maxsplit=1)[0]
-        self.assertIn("lfs: true", checkout)
+        self.assertNotIn("lfs:", checkout)
 
     def test_extraction_has_no_ci_recovery_fanout(self) -> None:
         self.assertNotIn("matrix.graph", self.workflow)
@@ -474,9 +474,10 @@ class SnarkPackReleaseAuditWorkflowWiringTests(unittest.TestCase):
             encoding="utf-8"
         )
 
-    def test_release_audit_is_one_github_hosted_scheduled_job(self) -> None:
-        self.assertIn("- cron: '17 11 * * *' # nightly dev", self.workflow)
-        self.assertIn("- cron: '41 11 * * 0' # weekly main", self.workflow)
+    def test_release_audit_is_one_manual_github_hosted_job(self) -> None:
+        self.assertIn("workflow_dispatch:", self.workflow)
+        self.assertNotIn("schedule:", self.workflow)
+        self.assertIn("CANDIDATE_REF: ${{ inputs.target_ref }}", self.workflow)
         self.assertNotIn("pull_request:", self.workflow)
         self.assertNotIn("merge_group:", self.workflow)
         jobs = self.workflow.split("\njobs:\n", maxsplit=1)[1]

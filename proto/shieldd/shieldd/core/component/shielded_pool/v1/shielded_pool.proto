@@ -185,12 +185,36 @@ message TransferPlan {
   DiscoveryParameters routing_parameters = 6;
 }
 
-// Releases shielded value to a recipient on the host chain.
+// Releases shielded value for transfer or execution on the host chain.
 message HostWithdrawal {
-  // The host-chain recipient.
-  string recipient = 1;
   // The canonical Shieldd value to release.
-  asset.v1.Value value = 2;
+  asset.v1.Value value = 1;
+  oneof destination {
+    HostTransfer transfer = 2;
+    HostExecution execution = 3;
+  }
+}
+
+// Transfers withdrawn value directly to a host-chain recipient.
+message HostTransfer {
+  string recipient = 1;
+}
+
+// Executes an ordered, atomic host-chain call batch.
+message HostExecution {
+  // Shieldd address credited if host execution fails.
+  string refund_address = 1;
+  // Maximum host-chain gas available to the call batch.
+  uint64 gas_limit = 2;
+  // Calls executed in order from the withdrawal's derived executor.
+  repeated EvmCall calls = 3;
+}
+
+// A host-chain EVM call.
+message EvmCall {
+  // The 20-byte EVM contract address.
+  bytes contract = 1;
+  bytes calldata = 2;
 }
 
 // Withdraws shielded funds to the host chain while keeping shielded change in the same action.
@@ -247,18 +271,18 @@ message ShieldedHostWithdrawalView {
 }
 
 message ShieldedHostWithdrawalPlan {
-  // The public body this plan will produce.
-  ShieldedHostWithdrawalBody body = 1;
+  reserved 1, 3;
+
   // The blinding factor to use for the net balance commitment.
   bytes value_blinding = 2;
-  // The net action balance committed by the action body.
-  asset.v1.Balance balance = 3;
   // The shielded input plans fused into this withdrawal.
   repeated ShieldedInputPlan spends = 4;
   // The sender-owned change output, if any.
   ShieldedOutputPlan change_output = 5;
   // The embedded host-chain withdrawal payload.
   HostWithdrawal withdrawal = 6;
+  // Protocol-wide routing parameters bound by the reused withdrawal proof.
+  DiscoveryParameters routing_parameters = 7;
 }
 
 message ShieldedIcs20WithdrawalChangeBody {
