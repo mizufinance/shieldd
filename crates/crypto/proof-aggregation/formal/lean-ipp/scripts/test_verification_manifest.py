@@ -1510,11 +1510,16 @@ checksum = "2222"
             VERIFICATION.REPO_ROOT / ".github/workflows/formal.yml"
         ).read_text(encoding="utf-8")
         summary = workflow.split("\n  summary:\n", maxsplit=1)[1]
-        self.assertIn("- snarkpack-runtime", summary)
+        self.assertIn("- snarkpack-host", summary)
         self.assertIn(
-            "RUNTIME: ${{ needs.snarkpack-runtime.result }}",
+            "RUNTIME: ${{ needs.snarkpack-host.outputs.runtime || 'skipped' }}",
             summary,
         )
+        host = workflow.split("\n  snarkpack-host:\n", maxsplit=1)[1].split(
+            "\n  snarkpack-extract:\n", maxsplit=1
+        )[0]
+        self.assertIn("runtime: ${{ steps.results.outputs.runtime }}", host)
+        self.assertIn("snarkpack_runtime_cache_hit != 'true'", host)
         enforcer = (
             VERIFICATION.REPO_ROOT / "scripts/ci/enforce_formal_result.py"
         ).read_text(encoding="utf-8")

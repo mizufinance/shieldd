@@ -482,37 +482,28 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertNotIn("  soundness-source-drift:", workflow)
         self.assertNotIn("  soundness-lean-circuit-fv:", workflow)
 
-        policy_job = workflow[
-            workflow.index("  soundness-policy:") : workflow.index(
-                "  soundness-gate:"
+        soundness_host = workflow[
+            workflow.index("  soundness-host:") : workflow.index(
+                "  soundness-artifact-replay:"
             )
         ]
-        self.assertIn("soundness_tier == 'policy'", policy_job)
-        self.assertIn("test_gate_applicability.py", policy_job)
-        self.assertNotIn("check-soundness-invariants.sh", policy_job)
-
-        soundness_gate_job = workflow[
-            workflow.index("  soundness-gate:") : workflow.index(
-                "  soundness-seam-and-pin:"
-            )
-        ]
+        self.assertIn("soundness_tier == 'policy'", soundness_host)
+        self.assertIn("test_gate_applicability.py", soundness_host)
         self.assertIn(
             "needs.applicability.outputs.soundness_run == 'true'",
-            soundness_gate_job,
+            soundness_host,
         )
         self.assertIn(
             "bash scripts/check-soundness-invariants.sh candidate",
-            soundness_gate_job,
+            soundness_host,
         )
-        self.assertNotIn("soundness_tier == 'full'", soundness_gate_job)
-
-        seam_job = workflow[
-            workflow.index("  soundness-seam-and-pin:") : workflow.index(
-                "  soundness-alloy:"
-            )
-        ]
-        self.assertIn("sudo apt-get install -y ripgrep", seam_job)
-        self.assertIn("bash scripts/compliance-lean-dleq.sh stamps", seam_job)
+        self.assertIn("sudo apt-get install -y ripgrep", soundness_host)
+        self.assertIn(
+            "bash scripts/compliance-lean-dleq.sh stamps", soundness_host
+        )
+        self.assertIn("id: results", soundness_host)
+        self.assertIn("policy: ${{ steps.results.outputs.policy }}", soundness_host)
+        self.assertIn("gate: ${{ steps.results.outputs.gate }}", soundness_host)
 
         summary = workflow[workflow.index("  summary:") :]
         self.assertIn("- soundness-artifact-replay", summary)
@@ -521,19 +512,23 @@ class GateApplicabilityTests(unittest.TestCase):
             summary,
         )
 
-    def test_soundness_pin_restores_the_prepared_full_bundle(self) -> None:
+    def test_soundness_host_reuses_one_prepared_full_bundle(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
             encoding="utf-8"
         )
-        soundness_pin = workflow[
-            workflow.index("  soundness-seam-and-pin:") : workflow.index(
-                "  soundness-alloy:"
+        soundness_host = workflow[
+            workflow.index("  soundness-host:") : workflow.index(
+                "  soundness-artifact-replay:"
             )
         ]
-        self.assertIn(".github/actions/restore-proof-artifacts", soundness_pin)
-        self.assertIn("bundle: full", soundness_pin)
+        self.assertIn(".github/actions/prepare-proof-artifacts", soundness_host)
+        self.assertIn("bundle: full", soundness_host)
+        self.assertNotIn(".github/actions/restore-proof-artifacts", soundness_host)
         self.assertEqual(
             workflow.count(".github/actions/prepare-proof-artifacts"), 1
+        )
+        self.assertEqual(
+            workflow.count(".github/actions/restore-proof-artifacts"), 1
         )
         self.assertNotIn("lfs: true", workflow)
 
@@ -1431,27 +1426,24 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual(
             {lane for lane, _ in lanes},
             {
-                "snarkpack-static",
+                "snarkpack-host",
                 "snarkpack-extract",
-                "snarkpack-fstar",
-                "snarkpack-parity",
-                "snarkpack-runtime",
-                "snarkpack-publication",
+                "snarkpack-closure",
             },
         )
         for lane, body in lanes:
-            if lane == "snarkpack-publication":
-                continue
             with self.subTest(lane=lane):
                 self.assertRegex(
                     body,
                     r"needs: (?:applicability|\[applicability,[^\]]+\])",
                 )
-                self.assertRegex(
-                    body,
-                    r"needs\.applicability\.outputs\."
-                    r"snarkpack_[a-z_]+_run == 'true'",
-                )
+                self.assertIn("needs.applicability.result == 'success'", body)
+        host = dict(lanes)["snarkpack-host"]
+        for selection in ("static", "fstar", "rust_reference", "fuzz", "dos"):
+            self.assertIn(
+                f"snarkpack_{selection}_run == 'true'", host
+            )
+        self.assertIn("id: results", host)
 
     def test_snarkpack_publication_closes_selected_lane_results(self) -> None:
         workflow = (self.root / ".github/workflows/formal.yml").read_text(
@@ -1464,47 +1456,26 @@ class GateApplicabilityTests(unittest.TestCase):
                 workflow,
             )
         )
-        publication = lanes["snarkpack-publication"]
+        publication = lanes["snarkpack-closure"]
         self.assertIn(
             "needs.applicability.outputs.snarkpack_status == 'run'",
             publication,
         )
         self.assertIn(
-            "needs.snarkpack-static.result == 'success'",
-            publication,
-        )
-        selected_results = {
-            "extract": "snarkpack-extract",
-            "fstar": "snarkpack-fstar",
-            "parity": "snarkpack-parity",
-        }
-        for selection, lane in selected_results.items():
-            with self.subTest(publication_lane=lane):
-                self.assertIn(
-                    "needs.applicability.outputs."
-                    f"snarkpack_{selection}_run != 'true'",
-                    publication,
-                )
-                self.assertIn(
-                    f"needs.{lane}.result == 'success'",
-                    publication,
-                )
-        for cached_lane in ("extract", "fstar", "parity", "runtime"):
-            self.assertIn(
-                "needs.applicability.outputs."
-                f"snarkpack_{cached_lane}_cache_hit == 'true'",
-                publication,
-            )
-        self.assertIn(
-            "needs.applicability.outputs.snarkpack_rust_reference_run "
-            "!= 'true'",
+            "needs.snarkpack-host.result == 'success'",
             publication,
         )
         self.assertIn(
-            "needs.snarkpack-runtime.result == 'success'",
+            "needs.applicability.outputs.snarkpack_extract_run != 'true'",
             publication,
         )
+        self.assertIn(
+            "needs.snarkpack-extract.result == 'success'",
+            publication,
+        )
+        self.assertIn("snarkpack_parity_cache_hit != 'true'", publication)
         self.assertIn("SNARKPACK_FV_MODE: publication", publication)
+        self.assertIn("publication: ${{ steps.results.outputs.publication }}", publication)
 
         summary = re.search(
             r"(?ms)^  summary:\n(.*)\Z",
@@ -1513,9 +1484,9 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIsNotNone(summary)
         assert summary is not None
         summary_job = summary.group(1)
-        self.assertIn("- snarkpack-publication", summary_job)
+        self.assertIn("- snarkpack-closure", summary_job)
         self.assertIn(
-            "PUBLICATION: ${{ needs.snarkpack-publication.result }}",
+            "PUBLICATION: ${{ needs.snarkpack-closure.outputs.publication || 'skipped' }}",
             summary_job,
         )
         self.assertIn(
@@ -1578,7 +1549,7 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn(
             '--title "SnarkPack affected extraction graphs"', workflow
         )
-        self.assertIn("snarkpack-runtime:", workflow)
+        self.assertIn("snarkpack-host:", workflow)
         self.assertIn("--lane runtime", workflow)
         self.assertIn("snarkpack-runtime-pass-v2-", workflow)
         self.assertIn("id: parity_pass_cache", workflow)
@@ -1645,39 +1616,36 @@ class GateApplicabilityTests(unittest.TestCase):
                 workflow,
             )
         )
-        fstar = lanes["snarkpack-fstar"]
-        parity = lanes["snarkpack-parity"]
-        runtime = lanes["snarkpack-runtime"]
-        applicability = workflow.split("  snarkpack-static:", maxsplit=1)[0]
-        self.assertNotIn("actions/cache/restore@", fstar)
-        self.assertIn("snarkpack-parity-pass-v2-", parity)
-        self.assertIn("snarkpack-runtime-pass-v2-", runtime)
-        self.assertNotIn("actions/cache/restore@", parity)
-        self.assertNotIn("actions/cache/restore@", runtime)
+        host = lanes["snarkpack-host"]
+        closure = lanes["snarkpack-closure"]
+        applicability = workflow.split("  snarkpack-host:", maxsplit=1)[0]
+        self.assertNotIn("actions/cache/restore@", host)
+        self.assertIn("snarkpack-fstar-pass-v2-", host)
+        self.assertIn("snarkpack-runtime-pass-v2-", host)
+        self.assertIn("snarkpack-parity-pass-v2-", closure)
+        self.assertNotIn("actions/cache/restore@", closure)
         self.assertIn("id: parity_pass_cache", applicability)
         self.assertIn("id: extract_pass_cache", applicability)
         self.assertIn("id: runtime_cache", applicability)
         self.assertIn("id: fstar_pass_cache", applicability)
         self.assertIn("--lane runtime", applicability)
         self.assertIn(
-            "snarkpack_fstar_cache_hit != 'true'", fstar
+            "snarkpack_fstar_cache_hit != 'true'", host
         )
-        self.assertIn("Upload exact F* evidence refresh", fstar)
-        self.assertIn("actions/upload-artifact@", fstar)
-        self.assertIn("fstar-checker-evidence.json", fstar)
+        self.assertIn("Upload exact F* evidence refresh", host)
+        self.assertIn("actions/upload-artifact@", host)
+        self.assertIn("fstar-checker-evidence.json", host)
         self.assertIn(
-            "snarkpack_parity_cache_hit != 'true'", parity
+            "snarkpack_parity_cache_hit != 'true'", closure
         )
         self.assertIn(
-            "snarkpack_runtime_cache_hit != 'true'", runtime
+            "snarkpack_runtime_cache_hit != 'true'", host
         )
-        for lane in (fstar, parity):
+        for lane in (host, closure):
             with self.subTest(github_hosted_lane=lane):
                 self.assertEqual(lane.count("runs-on: ubuntu-24.04"), 1)
                 self.assertNotIn("runs-on: blacksmith-", lane)
-        self.assertIn("runs-on: ubuntu-24.04", runtime)
-        self.assertNotIn("runs-on: blacksmith-", runtime)
-        self.assertNotIn("restore-keys:", runtime)
+        self.assertNotIn("restore-keys:", host)
         self.assertNotIn("runner.temp }}/snarkpack", workflow)
 
     def test_every_soundness_lane_is_applicability_gated(self) -> None:
@@ -1692,11 +1660,7 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertEqual(
             {lane for lane, _ in lanes},
             {
-                "soundness-policy",
-                "soundness-artifacts",
-                "soundness-gate",
-                "soundness-seam-and-pin",
-                "soundness-alloy",
+                "soundness-host",
                 "soundness-artifact-replay",
             },
         )
@@ -1735,11 +1699,11 @@ class GateApplicabilityTests(unittest.TestCase):
         self.assertIn("candidate_sha: ${{ steps.candidate.outputs.sha }}", applicability)
         self.assertEqual(applicability.count("ref: ${{ env.CANDIDATE_REF }}"), 1)
         self.assertNotIn("ref: ${{ env.CANDIDATE_REF }}", downstream)
-        self.assertGreaterEqual(
+        self.assertEqual(
             downstream.count(
                 "ref: ${{ needs.applicability.outputs.candidate_sha }}"
             ),
-            11,
+            6,
         )
 
     def test_reusable_scheduled_run_honors_its_target_ref(self) -> None:

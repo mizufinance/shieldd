@@ -194,10 +194,10 @@ class FormalWorkflowWiringTests(unittest.TestCase):
         )
 
     def test_formal_checkouts_do_not_hydrate_lfs(self) -> None:
-        fstar_job = self.workflow.split(
-            "  snarkpack-fstar:", maxsplit=1
-        )[1].split("\n  snarkpack-parity:", maxsplit=1)[0]
-        checkout = fstar_job.split(
+        host_job = self.workflow.split(
+            "  snarkpack-host:", maxsplit=1
+        )[1].split("\n  snarkpack-extract:", maxsplit=1)[0]
+        checkout = host_job.split(
             "- uses: actions/checkout@", maxsplit=1
         )[1].split("- uses: ./.github/actions/setup-nix-rust", maxsplit=1)[0]
         self.assertNotIn("lfs:", checkout)
@@ -229,7 +229,7 @@ class FormalWorkflowWiringTests(unittest.TestCase):
         self.assertIn("snarkpack-extract-v5-", self.workflow)
         self.assertIn("snarkpack-extract-pass-v2-", self.workflow)
         self.assertIn("snarkpack-runtime-pass-v2-", self.workflow)
-        applicability = self.workflow.split("  snarkpack-static:", maxsplit=1)[0]
+        applicability = self.workflow.split("  snarkpack-host:", maxsplit=1)[0]
         self.assertIn("Look up exact parity success", applicability)
         self.assertIn("Look up exact extraction success", applicability)
         self.assertIn("Look up exact runtime success", applicability)
@@ -299,8 +299,10 @@ class RustWorkflowWiringTests(unittest.TestCase):
                 self.workflow,
             )
         )
-        self.assertIn("runs-on: ubuntu-24.04", jobs["gnark-rust"])
-        for lane in ("features", "test"):
+        self.assertEqual(set(jobs), {"checks", "tests", "summary"})
+        self.assertIn("github.event_name != 'pull_request'", jobs["tests"])
+        self.assertIn("just ci-gnark-proof-tests", jobs["tests"])
+        for lane in ("checks", "tests"):
             with self.subTest(blacksmith_lane=lane):
                 self.assertIn(
                     "github.event_name == 'pull_request'",
@@ -364,6 +366,17 @@ class OrbisWorkflowWiringTests(unittest.TestCase):
             self.workflow,
         )
 
+    def test_orbis_is_one_conclusive_ui_job(self) -> None:
+        jobs = dict(
+            re.findall(
+                r"(?ms)^  ([a-z0-9-]+):\n"
+                r"(.*?)(?=^  [A-Za-z0-9_-]+:\n|\Z)",
+                self.workflow,
+            )
+        )
+        self.assertEqual(set(jobs), {"summary"})
+        self.assertIn("name: Orbis Integration Summary", jobs["summary"])
+
 
 class GeneralRunnerPolicyWiringTests(unittest.TestCase):
     def test_nonformal_candidate_compute_lanes_have_explicit_caps(self) -> None:
@@ -383,8 +396,8 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
 
         self.assertIn("timeout-minutes: 25", docs)
         self.assertIn("timeout-minutes: 25", protobuf)
-        self.assertIn("&& 45 || 90", smoke)
-        self.assertIn("timeout-minutes: 45", orbis)
+        self.assertIn("&& 90 || 120", smoke)
+        self.assertIn("timeout-minutes: 90", orbis)
 
     def test_container_publication_uses_one_sha_across_architectures(self) -> None:
         root = SCRIPT.parents[2]
@@ -406,7 +419,7 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
         self.assertNotIn(":${{ env.IMAGE_TAG }}-amd64", workflow)
         self.assertNotIn(":${{ env.IMAGE_TAG }}-arm64", workflow)
 
-    def test_smoke_accelerates_only_the_compute_lane(self) -> None:
+    def test_smoke_uses_one_accelerated_summary_lane(self) -> None:
         root = SCRIPT.parents[2]
         smoke = (root / ".github/workflows/smoke.yml").read_text(
             encoding="utf-8"
@@ -420,24 +433,21 @@ class GeneralRunnerPolicyWiringTests(unittest.TestCase):
         )
         self.assertIn(
             "github.event_name == 'pull_request'",
-            jobs["smoke"],
+            jobs["summary"],
         )
         self.assertIn(
             "github.event_name == 'merge_group'",
-            jobs["smoke"],
+            jobs["summary"],
         )
         self.assertIn(
             "'blacksmith-16vcpu-ubuntu-2404'",
-            jobs["smoke"],
+            jobs["summary"],
         )
         self.assertIn(
             "|| 'ubuntu-24.04'",
-            jobs["smoke"],
+            jobs["summary"],
         )
-        for lane in ("paths", "summary"):
-            with self.subTest(github_hosted_lane=lane):
-                self.assertIn("runs-on: ubuntu-24.04", jobs[lane])
-                self.assertNotIn("runs-on: blacksmith-", jobs[lane])
+        self.assertEqual(set(jobs), {"summary"})
 
     def test_noncritical_and_scheduled_lanes_use_github_runners(self) -> None:
         root = SCRIPT.parents[2]

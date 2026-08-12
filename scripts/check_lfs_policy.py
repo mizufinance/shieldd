@@ -33,7 +33,7 @@ ALLOWED_LFS_PATHS = {
     for family in FAMILIES
 }
 EXPECTED_WORKFLOW_RESTORES = {
-    "formal.yml": 3,
+    "formal.yml": 1,
 }
 
 
@@ -153,25 +153,28 @@ def enforce_workflow_fanout() -> None:
         return body[: boundary.start()] if boundary else body
 
     rust = (workflows / "rust.yml").read_text(encoding="utf-8")
-    for job_name in ("lint", "features", "test", "go-gnark"):
-        body = extract_job(rust, job_name)
-        if "proof-artifacts" in body:
-            fail(f"the non-formal Rust {job_name} job depends on proof-artifact hydration")
-    gnark_rust = extract_job(rust, "gnark-rust")
+    checks = extract_job(rust, "checks")
+    if "proof-artifacts" in checks:
+        fail("the non-formal Rust checks job depends on proof-artifact hydration")
+    tests = extract_job(rust, "tests")
+    if "/restore-proof-artifacts" in tests:
+        fail("the Rust tests job restores proof artifacts on candidate runs")
     if (
-        "uses: ./.github/actions/prepare-proof-artifacts" not in gnark_rust
-        or "bundle: full" not in gnark_rust
+        tests.count("/.github/actions/prepare-proof-artifacts") != 1
+        or "bundle: full" not in tests
+        or "if: github.event_name != 'pull_request' && github.event_name != 'merge_group'"
+        not in tests
     ):
-        fail("manual gnark replay does not prepare its full bundle")
+        fail("manual Rust proof replay is not isolated from candidate runs")
 
     formal = (workflows / "formal.yml").read_text(encoding="utf-8")
-    soundness_artifacts = formal.partition("\n  soundness-artifacts:")[2].partition(
-        "\n  soundness-gate:"
+    soundness_host = formal.partition("\n  soundness-host:")[2].partition(
+        "\n  soundness-artifact-replay:"
     )[0]
     if (
         "uses: ./.github/actions/prepare-proof-artifacts"
-        not in soundness_artifacts
-        or "bundle: full" not in soundness_artifacts
+        not in soundness_host
+        or "bundle: full" not in soundness_host
     ):
         fail("semantic soundness does not prepare one full artifact bundle")
 

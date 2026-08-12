@@ -10,37 +10,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  applicability:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    env:
-      RUSTUP_TOOLCHAIN: stable
-    outputs:
-      status: ${{ steps.classify.outputs.status }}
-      tier: ${{ steps.classify.outputs.tier }}
-      run: ${{ steps.classify.outputs.run }}
-      explanation: ${{ steps.classify.outputs.explanation }}
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          fetch-depth: 0
-
-      # Orbis v0 transfer PRE discloses the DH point that opens every tier
-      # seed. Keep the workflow visible and green as an explained skip until
-      # the integration uses a non-disclosing PRE protocol.
-      - name: Explain disabled Orbis v0 PRE
-        id: classify
-        run: |
-          echo "status=skip" >> "$GITHUB_OUTPUT"
-          echo "tier=skip" >> "$GITHUB_OUTPUT"
-          echo "run=false" >> "$GITHUB_OUTPUT"
-          echo "explanation=Orbis v0 transfer PRE is disabled until a non-disclosing protocol is available." >> "$GITHUB_OUTPUT"
-
-  flow:
-    needs: applicability
-    if: needs.applicability.result == 'success' && needs.applicability.outputs.run == 'true'
+  # The currently disabled flow remains one conclusive required check. When a
+  # safe PRE protocol enables it, preparation and execution share this checkout.
+  summary:
+    name: Orbis Integration Summary
     runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'merge_group') && 'blacksmith-16vcpu-ubuntu-2404' || 'ubuntu-24.04' }}
-    timeout-minutes: 45
+    timeout-minutes: 90
     concurrency:
       group: orbis-integration-host-stack-v1
       cancel-in-progress: true
@@ -56,18 +31,37 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           path: shieldd
+          fetch-depth: 0
 
-      - uses: ./shieldd/.github/actions/setup-nix-rust
+      # Orbis v0 transfer PRE discloses the DH point that opens every tier
+      # seed. Keep the gate visible and green as an explained skip.
+      - name: Explain disabled Orbis v0 PRE
+        id: classify
+        working-directory: shieldd
+        run: |
+          echo "status=skip" >> "$GITHUB_OUTPUT"
+          echo "tier=skip" >> "$GITHUB_OUTPUT"
+          echo "run=false" >> "$GITHUB_OUTPUT"
+          echo "explanation=Orbis v0 transfer PRE is disabled until a non-disclosing protocol is available." >> "$GITHUB_OUTPUT"
+
+      - name: Set up Nix and Rust
+        id: setup
+        if: steps.classify.outputs.run == 'true'
+        uses: ./shieldd/.github/actions/setup-nix-rust
         with:
           free-disk: "true"
           nix-cache-glob: "shieldd/**/*.nix"
           rust-workspaces: "shieldd"
 
       - name: Clean stale owned Orbis integration resources
+        id: preclean
+        if: steps.classify.outputs.run == 'true'
         working-directory: shieldd
         run: nix develop --command ./scripts/orbis-ci-cleanup.sh
 
       - name: Run Shieldd Orbis integration flow
+        id: flow
+        if: steps.classify.outputs.run == 'true'
         working-directory: shieldd
         run: |
           nix develop --command python3 scripts/ci/run_with_annotation.py \
@@ -92,14 +86,9 @@ jobs:
             just orbis-integration-run
           '
 
-      # NOTE: docker logs are captured by orbis-integration itself before it
-      # tears down the stack (see capture_orbis_logs in
-      # crates/bin/orbis-integration/src/main.rs). Running `orbis-stack.sh
-      # logs` here would query already-removed containers and overwrite the
-      # captured file with empty output.
-
       - name: Clean owned integration resources
-        if: always()
+        id: cleanup
+        if: always() && steps.classify.outputs.run == 'true'
         working-directory: shieldd
         run: |
           cleanup_status=0
@@ -108,46 +97,43 @@ jobs:
           exit "$cleanup_status"
 
       - name: Upload integration artifacts
-        if: failure()
+        if: failure() && steps.classify.outputs.run == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: orbis-integration-artifacts
-          path: |
-            ${{ env.COMPLIANCE_TMP }}/**
+          path: ${{ env.COMPLIANCE_TMP }}/**
 
-  summary:
-    name: Orbis Integration Summary
-    needs: [applicability, flow]
-    if: always()
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
       - name: Check Orbis integration result
+        if: always()
         env:
-          APPLICABILITY_RESULT: ${{ needs.applicability.result }}
-          STATUS: ${{ needs.applicability.outputs.status }}
-          TIER: ${{ needs.applicability.outputs.tier }}
-          EXPLANATION: ${{ needs.applicability.outputs.explanation }}
-          ORBIS_RESULT: ${{ needs.flow.result }}
+          STATUS: ${{ steps.classify.outputs.status }}
+          TIER: ${{ steps.classify.outputs.tier }}
+          EXPLANATION: ${{ steps.classify.outputs.explanation }}
+          CLASSIFY_RESULT: ${{ steps.classify.outcome }}
+          SETUP_RESULT: ${{ steps.setup.outcome }}
+          PRECLEAN_RESULT: ${{ steps.preclean.outcome }}
+          FLOW_RESULT: ${{ steps.flow.outcome }}
+          CLEANUP_RESULT: ${{ steps.cleanup.outcome }}
         run: |
-          if [[ "$APPLICABILITY_RESULT" != "success" ]]; then
-            echo "applicability classification failed: $APPLICABILITY_RESULT"
+          set -euo pipefail
+          if [[ "$CLASSIFY_RESULT" != "success" ]]; then
+            echo "applicability classification failed: $CLASSIFY_RESULT" >&2
             exit 1
           fi
           if [[ "$STATUS" == "skip" ]]; then
-            if [[ "$ORBIS_RESULT" != "skipped" ]]; then
-              echo "skip tier unexpectedly ran flow: $ORBIS_RESULT"
+            if [[ "$SETUP_RESULT" != "skipped" || "$PRECLEAN_RESULT" != "skipped" || "$FLOW_RESULT" != "skipped" ]]; then
+              echo "skip tier unexpectedly ran Orbis work" >&2
               exit 1
             fi
             echo "explained skip: $EXPLANATION"
             exit 0
           fi
-          if [[ "$STATUS" != "run" ]]; then
-            echo "invalid applicability status: $STATUS"
+          if [[ "$STATUS" != "run" || "$TIER" != "full" ]]; then
+            echo "invalid applicability result: status=$STATUS tier=$TIER" >&2
             exit 1
           fi
-          if [[ "$TIER" != "full" || "$ORBIS_RESULT" != "success" ]]; then
-            echo "required Orbis contract failed: tier=$TIER flow=$ORBIS_RESULT"
+          if [[ "$SETUP_RESULT" != "success" || "$PRECLEAN_RESULT" != "success" || "$FLOW_RESULT" != "success" || "$CLEANUP_RESULT" != "success" ]]; then
+            echo "required Orbis contract failed: setup=$SETUP_RESULT preclean=$PRECLEAN_RESULT flow=$FLOW_RESULT cleanup=$CLEANUP_RESULT" >&2
             exit 1
           fi
           echo "Orbis tier $TIER passed"
